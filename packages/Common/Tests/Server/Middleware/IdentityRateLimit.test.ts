@@ -1617,7 +1617,6 @@ describe("IdentityRateLimit", () => {
           IdentityRateLimitBucket.Login,
           IdentityRateLimitBucket.TwoFactor,
           IdentityRateLimitBucket.BackupCode,
-          IdentityRateLimitBucket.WebAuthnChallenge,
           IdentityRateLimitBucket.StatusPageLogin,
           IdentityRateLimitBucket.Passkey,
           IdentityRateLimitBucket.MagicLink,

@@ -115,6 +115,7 @@ import {
   SIGN_IN_SECURITY_KEY_NAME,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
+import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 import {
@@ -2967,6 +2968,42 @@ router.post(
 );
 
 /*
+ * The options for a security key's prompt at sign-in: the step before
+ * /verify-webauthn-auth (#9822, Types/Accounts/SecurityKeySignIn).
+ *
+ * A sign-in route like the second steps around it, and for the same
+ * reasons. Nobody is signed in, so the request carries the email and
+ * password again (or the sign-in link's token) and passes every check
+ * /login makes: an address with no account, an account with no password yet
+ * and a wrong password are refused alike, in the time a password check
+ * takes, so the options say nothing about an address to anyone who has not
+ * proved it. They name the keys of the account the password proved, and its
+ * challenge is kept for that account only. On the second step's limiter, as
+ * a password oracle in its own right, and nobody is signed in by it: the
+ * key's answer goes to /verify-webauthn-auth.
+ */
+router.post(
+  SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE,
+  twoFactorRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTotpAuth: false,
+      verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
+      verifyBackupCode: false,
+      securityKeySignInOptions: true,
+    });
+  },
+);
+
+/*
  * The way back in when the second factor itself is unreachable: the phone with
  * the authenticator app is gone, or the security key is in a taxi.
  *
@@ -3486,6 +3523,8 @@ type LoginFunction = (options: {
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
   securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
+  // The options for a security key's prompt, before /verify-webauthn-auth (#9822).
+  securityKeySignInOptions?: boolean | undefined;
   isMagicLinkFirstStep?: boolean | undefined;
 }) => Promise<void>;
 
@@ -3498,6 +3537,7 @@ const login: LoginFunction = async (options: {
   verifyTotpEnrolment: boolean;
   verifyBackupCode: boolean;
   securityKeyEnrolment?: SecurityKeyEnrolmentStage | undefined;
+  securityKeySignInOptions?: boolean | undefined;
   isMagicLinkFirstStep?: boolean | undefined;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
@@ -3509,6 +3549,8 @@ const login: LoginFunction = async (options: {
   const verifyBackupCode: boolean = options.verifyBackupCode;
   const securityKeyEnrolment: SecurityKeyEnrolmentStage | undefined =
     options.securityKeyEnrolment;
+  const securityKeySignInOptions: boolean =
+    options.securityKeySignInOptions === true;
   const isMagicLinkFirstStep: boolean = options.isMagicLinkFirstStep === true;
 
   /*
@@ -3523,7 +3565,8 @@ const login: LoginFunction = async (options: {
     verifyWebAuthn ||
     verifyTotpEnrolment ||
     verifyBackupCode ||
-    Boolean(securityKeyEnrolment);
+    Boolean(securityKeyEnrolment) ||
+    securityKeySignInOptions;
 
   /*
    * Recovery codes minted during a forced enrolment, carried out to the
@@ -3602,11 +3645,13 @@ const login: LoginFunction = async (options: {
               ? "totp-enrolment"
               : securityKeyEnrolment
                 ? "security-key-enrolment"
-                : verifyBackupCode
-                  ? "backup-code"
-                  : isMagicLinkFirstStep
-                    ? "magic-link"
-                    : "password"),
+                : securityKeySignInOptions
+                  ? "security-key-sign-in-options"
+                  : verifyBackupCode
+                    ? "backup-code"
+                    : isMagicLinkFirstStep
+                      ? "magic-link"
+                      : "password"),
       getLogAttributesFromRequest(req as RequestLike),
     );
 
@@ -4302,6 +4347,34 @@ const login: LoginFunction = async (options: {
               new BadDataException(TWO_FACTOR_MESSAGES.wrongCode),
             );
           }
+        } else if (securityKeySignInOptions) {
+          /*
+           * The options for the browser's prompt, for the account the
+           * password (or the sign-in link) has just proved - its own keys,
+           * under a challenge kept for it alone (#9822). Only its holder
+           * reaches this, so only they are told the account has no key, or
+           * no second step to answer. Nothing more happens here: no session,
+           * no wrong code counted, and a sign-in link is not spent - the
+           * key's answer, at /verify-webauthn-auth, finishes the sign-in.
+           */
+          if (!alreadySavedUser.enableTwoFactorAuth) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Two factor authentication is not enabled for this account.",
+              ),
+            );
+          }
+
+          const authentication: { options: any; challenge: string } =
+            await UserWebAuthnService.generateAuthenticationOptions({
+              userId: alreadySavedUser.id!,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            options: authentication.options,
+          });
         } else if (verifyWebAuthn) {
           const credential: any = data["credential"];
 

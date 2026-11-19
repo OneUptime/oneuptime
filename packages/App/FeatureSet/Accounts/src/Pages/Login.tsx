@@ -591,11 +591,16 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
     if (selectedWebAuthn) {
       setIsTwoFactorAuthLoading(true);
       try {
+        /*
+         * With the email and password again (or the sign-in link's token),
+         * as the key's answer below is sent: the server hands a key's
+         * options only to a sign-in that proves the account (#9822).
+         */
         const result: HTTPResponse<JSONObject> = await API.post({
           url: GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
           data: {
             data: {
-              email: initialValues["email"],
+              ...initialValues,
             },
           },
         });

@@ -663,12 +663,6 @@ function everySurface(): Array<Surface> {
       refusal: IDENTITY_RATE_LIMITED_MESSAGE,
       namesAccount: true,
     }),
-    identitySurface(IdentityRateLimitBucket.WebAuthnChallenge, {
-      perResource: 30,
-      perClient: 150,
-      refusal: IDENTITY_RATE_LIMITED_MESSAGE,
-      namesAccount: true,
-    }),
     identitySurface(IdentityRateLimitBucket.Passkey, {
       perResource: 300,
       perClient: 300,
