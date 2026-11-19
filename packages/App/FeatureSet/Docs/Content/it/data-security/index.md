@@ -33,7 +33,7 @@ flowchart TB
 
 ## In cosa è diverso
 
-- **La tua telemetria è un archivio dati.** I log, le tracce, le eccezioni, i replay di sessione e le conversazioni IA di ogni servizio vengono controllati come un bucket, ogni ora. Un indirizzo email in una riga di log è un risultato, e **Ripulisci** lo maschera all'ingestione da quel momento in poi. Vedi [Dati sensibili nella telemetria](/docs/data-security/telemetry).
+- **La tua telemetria è un archivio dati.** I log, le tracce, le metriche, le eccezioni, i replay di sessione e le conversazioni IA di ogni servizio vengono controllati come un bucket, ogni ora. Un indirizzo email in una riga di log è un risultato, e **Ripulisci** lo maschera all'ingestione da quel momento in poi. Vedi [Dati sensibili nella telemetria](/docs/data-security/telemetry).
 - **I flussi vengono dal traffico reale.** La mappa dei servizi dice quale servizio usa quale database, le chiamate IA nominano il provider che raggiungono, e le copie dei dati di produzione si trovano confrontando le impronte. Vedi [Flussi di dati, accesso e residenza](/docs/data-security/flows-access-residency).
 - **L'accesso si legge da entrambi i lati.** Sicurezza dei dati legge chi fanno entrare le impostazioni proprie di ogni archivio e, su AWS, cosa può raggiungere ogni ruolo e ogni utente tramite le sue policy IAM, e quando ciascuno è stato usato l'ultima volta. **Accesso** ordina ogni identità per il danno che potrebbe fare, e un accesso a dati sensibili inutilizzato da 90 giorni è un problema. Vedi [Chi può raggiungere un archivio](/docs/data-security/flows-access-residency#chi-può-raggiungere-un-archivio).
 - **Le prove sono sempre mascherate.** Un risultato conserva conteggi e al massimo tre campioni mascherati, come `j***@e******.com`, mascherati all'interno dello scanner prima che qualcosa ne esca. Disattiva i campioni e conserva solo i conteggi.
@@ -70,7 +70,7 @@ Apri **Sicurezza dei dati**. Gli archivi compaiono in **Archivi dati** man mano 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Database che gestisci | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA |
+| OneUptime | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche |
 
 Ogni archivio riceve i controlli che si applicano al suo tipo. Un archivio il cui contenuto non può essere campionato viene comunque controllato: un bucket pubblico o un database non cifrato è un problema qualunque cosa contenga.
 

@@ -221,7 +221,7 @@ Les paramètres de Sécurité des données forment un seul ensemble par projet, 
 | --- | --- | --- |
 | **Contrôler la configuration** | Activé | Exécute les contrôles sur chaque magasin de données. Désactivé, aucun problème ne s'ouvre, ne change ni ne se ferme. |
 | **Analyser le contenu** | Activé | Échantillonne le contenu des magasins de données là où l'autorisation de contenu a été accordée. |
-| **Analyser la télémétrie** | Activé | Échantillonne les journaux, traces, exceptions, relectures et conversations IA du projet. |
+| **Analyser la télémétrie** | Activé | Échantillonne les journaux, traces, métriques, exceptions, relectures et conversations IA du projet. |
 | **Conserver les échantillons masqués** | Activé | Conserve jusqu'à trois échantillons masqués avec chaque détection. Désactivé, ne conserve que des comptages. |
 | **Ouvrir des dossiers de sécurité** | Activé | Ouvre un dossier de sécurité, regroupé par magasin de données, quand un problème Critique s'ouvre. |
 | **Déclencher des alertes** | Désactivé | Déclenche une alerte, qui prévient la personne d'astreinte, quand un problème Critique s'ouvre. |

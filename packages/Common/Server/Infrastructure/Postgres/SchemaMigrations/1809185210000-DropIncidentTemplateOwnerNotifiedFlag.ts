@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * transaction (Docs/migrations/README.md). down() puts the column back not
  * told, and its index.
  */
-export class DropIncidentTemplateOwnerNotifiedFlag1809185110000
+export class DropIncidentTemplateOwnerNotifiedFlag1809185210000
   implements MigrationInterface
 {
-  public name: string = "DropIncidentTemplateOwnerNotifiedFlag1809185110000";
+  public name: string = "DropIncidentTemplateOwnerNotifiedFlag1809185210000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

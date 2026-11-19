@@ -34,7 +34,8 @@ import { ResourceAttentionItem } from "../../../Components/ResourcePart/Resource
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { fetchOpenStackKubernetesClusterOfMagnumCluster } from "../Utils/OpenStackLinkReads";
 import { fetchOpenStackBlastRadius } from "../Utils/OpenStackPartData";
 import {
@@ -61,10 +62,16 @@ const NO_PROJECT_DESCRIPTION: string = translationKey(
   "Magnum says whose a cluster is only on that cluster's own read, which the agent's exporter doesn't make. OneUptime takes it from the cluster's Heat stack, which this credential can't read.",
 );
 
-const ContainerClusterOverview: FunctionComponent<{
+interface ContainerClusterOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const ContainerClusterOverview: FunctionComponent<
+  ContainerClusterOverviewProps
+> = (props: ContainerClusterOverviewProps): ReactElement => {
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -85,11 +92,7 @@ const ContainerClusterOverview: FunctionComponent<{
       });
     }, [part.externalId, part.refreshToken]);
 
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
+  const attention: Array<ResourceAttentionItem> = props.attention.items;
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const reason: string = getOpenStackFactText(row, "statusReason");
@@ -212,11 +215,8 @@ const ContainerClusterOverview: FunctionComponent<{
       <NeedsAttentionCard
         testId="openstack-container-cluster-attention"
         items={attention}
-        current={{
-          key: `${OpenStackResourceKind.ContainerCluster}/${part.externalId}`,
-          label: translationKey("This cluster"),
-        }}
-        description="What about this cluster is broken or needs a look."
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -312,12 +312,27 @@ const OpenStackCloudContainerClusterDetail: FunctionComponent<
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.ContainerCluster,
   );
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.ContainerCluster,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <ContainerClusterOverview part={part} row={row} />;
+        return (
+          <ContainerClusterOverview
+            part={part}
+            row={row}
+            attention={attention}
+          />
+        );
       }}
     />
   );

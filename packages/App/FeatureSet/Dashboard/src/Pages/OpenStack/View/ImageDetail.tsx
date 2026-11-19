@@ -4,7 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Link from "Common/UI/Components/Link/Link";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
@@ -19,12 +19,14 @@ import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import {
+  ResourcePartAttention,
+  ResourcePartBadge,
+} from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
 import {
   OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS,
   getOpenStackPartExplanation,
@@ -41,19 +43,19 @@ import {
  * failed upload looks like, so that is called out, and instances asking for it fail.
  */
 
-const ImageOverview: FunctionComponent<{
+interface ImageOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const ImageOverview: FunctionComponent<ImageOverviewProps> = (
+  props: ImageOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const explanation: string | null = getOpenStackPartExplanation(row, now);
   const timeInState: string = getOpenStackTimeInState(row, now);
@@ -145,12 +147,9 @@ const ImageOverview: FunctionComponent<{
 
       <NeedsAttentionCard
         testId="openstack-image-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Image}/${part.externalId}`,
-          label: translationKey("This image"),
-        }}
-        description="What about this image is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -221,12 +220,21 @@ const OpenStackCloudImageDetail: FunctionComponent<
     }
   }
 
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Image,
+    externalId: part.externalId,
+    row: part.row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
+
   return (
     <OpenStackPartPage
       part={part}
-      hero={{ badges }}
+      hero={{ badges, attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <ImageOverview part={part} row={row} />;
+        return <ImageOverview part={part} row={row} attention={attention} />;
       }}
     />
   );

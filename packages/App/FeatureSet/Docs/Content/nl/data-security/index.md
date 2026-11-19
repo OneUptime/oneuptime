@@ -33,7 +33,7 @@ flowchart TB
 
 ## Wat het anders maakt
 
-- **Je telemetrie is een gegevensopslag.** De logs, traces, uitzonderingen, sessieherhalingen en AI-gesprekken van elke service worden elk uur gecontroleerd zoals een bucket. Een e-mailadres in een logregel is een bevinding, en **Opschonen** maskeert het vanaf dan al bij de inname. Zie [Gevoelige gegevens in telemetrie](/docs/data-security/telemetry).
+- **Je telemetrie is een gegevensopslag.** De logs, traces, metrieken, uitzonderingen, sessieherhalingen en AI-gesprekken van elke service worden elk uur gecontroleerd zoals een bucket. Een e-mailadres in een logregel is een bevinding, en **Opschonen** maskeert het vanaf dan al bij de inname. Zie [Gevoelige gegevens in telemetrie](/docs/data-security/telemetry).
 - **Stromen komen uit echt verkeer.** De servicekaart zegt welke service welke database gebruikt, AI-aanroepen noemen de provider die ze bereiken, en kopieën van productiegegevens worden gevonden door vingerafdrukken te vergelijken. Zie [Gegevensstromen, toegang en residentie](/docs/data-security/flows-access-residency).
 - **Toegang wordt van twee kanten gelezen.** Gegevensbeveiliging leest wie de eigen instellingen van elke opslag binnenlaten, en op AWS wat elke rol en elke gebruiker via zijn IAM-beleid mag bereiken, en wanneer elk voor het laatst is gebruikt. **Toegang** rangschikt elke identiteit naar de schade die ze kan aanrichten, en toegang tot gevoelige gegevens die 90 dagen niet is gebruikt, is een probleem. Zie [Wie bij een opslag kan](/docs/data-security/flows-access-residency#wie-bij-een-opslag-kan).
 - **Bewijs wordt altijd gemaskeerd.** Een bevinding bewaart tellingen en hoogstens drie gemaskeerde voorbeelden, zoals `j***@e******.com`, gemaskeerd in de scanner voordat er iets uit vertrekt. Zet je voorbeelden uit, dan bewaart ze alleen tellingen.
@@ -70,7 +70,7 @@ Open **Gegevensbeveiliging**. Opslagen verschijnen onder **Gegevensopslagen** zo
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databases die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken |
+| OneUptime | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken |
 
 Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de inhoud niet kan worden bemonsterd, wordt toch gecontroleerd: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat.
 

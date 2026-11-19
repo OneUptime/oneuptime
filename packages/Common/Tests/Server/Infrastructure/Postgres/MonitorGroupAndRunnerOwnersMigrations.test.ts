@@ -1,9 +1,9 @@
 import {
   MONITOR_GROUP_AND_RUNNER_OWNER_TABLES,
-  MarkMonitorGroupAndRunnerOwnersAsTold1809185100000,
+  MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
   getMarkMonitorGroupAndRunnerOwnersToldStatement,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185100000-MarkMonitorGroupAndRunnerOwnersAsTold";
-import { DropIncidentTemplateOwnerNotifiedFlag1809185110000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185110000-DropIncidentTemplateOwnerNotifiedFlag";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
 import { RESOURCE_OWNER_TABLES } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
 import { DATA_OWNER_TABLES } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184930000-MarkDataOwnersAddedBeforeNotificationsAsTold";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -41,8 +41,8 @@ import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
  * Drift job applies them to a migrated database.
  */
 
-const MARK_NAME: string = "MarkMonitorGroupAndRunnerOwnersAsTold1809185100000";
-const DROP_NAME: string = "DropIncidentTemplateOwnerNotifiedFlag1809185110000";
+const MARK_NAME: string = "MarkMonitorGroupAndRunnerOwnersAsTold1809185200000";
+const DROP_NAME: string = "DropIncidentTemplateOwnerNotifiedFlag1809185210000";
 
 const MIGRATIONS_DIR: string = path.resolve(
   __dirname,
@@ -93,13 +93,13 @@ function modelOf(table: string): BaseModel {
   return new modelType();
 }
 
-describe("MarkMonitorGroupAndRunnerOwnersAsTold1809185100000", () => {
+describe("MarkMonitorGroupAndRunnerOwnersAsTold1809185200000", () => {
   test("is registered once, under the name its class carries, after every earlier owner backfill", () => {
-    expect(new MarkMonitorGroupAndRunnerOwnersAsTold1809185100000().name).toBe(
+    expect(new MarkMonitorGroupAndRunnerOwnersAsTold1809185200000().name).toBe(
       MARK_NAME,
     );
     expect(SchemaMigrations).toContain(
-      MarkMonitorGroupAndRunnerOwnersAsTold1809185100000,
+      MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
     );
     expect(timesRegistered(MARK_NAME)).toBe(1);
 
@@ -130,7 +130,7 @@ describe("MarkMonitorGroupAndRunnerOwnersAsTold1809185100000", () => {
   test("marks the not-told rows of each table, one statement each", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new MarkMonitorGroupAndRunnerOwnersAsTold1809185100000().up(
+        return new MarkMonitorGroupAndRunnerOwnersAsTold1809185200000().up(
           runner,
         );
       }),
@@ -178,7 +178,7 @@ describe("MarkMonitorGroupAndRunnerOwnersAsTold1809185100000", () => {
   test("down() changes nothing", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new MarkMonitorGroupAndRunnerOwnersAsTold1809185100000().down(
+        return new MarkMonitorGroupAndRunnerOwnersAsTold1809185200000().down(
           runner,
         );
       }),
@@ -186,9 +186,9 @@ describe("MarkMonitorGroupAndRunnerOwnersAsTold1809185100000", () => {
   });
 });
 
-describe("DropIncidentTemplateOwnerNotifiedFlag1809185110000", () => {
+describe("DropIncidentTemplateOwnerNotifiedFlag1809185210000", () => {
   test("is registered once, under the name its class carries, after the backfill", () => {
-    expect(new DropIncidentTemplateOwnerNotifiedFlag1809185110000().name).toBe(
+    expect(new DropIncidentTemplateOwnerNotifiedFlag1809185210000().name).toBe(
       DROP_NAME,
     );
     expect(timesRegistered(DROP_NAME)).toBe(1);
@@ -201,7 +201,7 @@ describe("DropIncidentTemplateOwnerNotifiedFlag1809185110000", () => {
   test("drops each index, then the column it is on, of both template owner tables", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new DropIncidentTemplateOwnerNotifiedFlag1809185110000().up(
+        return new DropIncidentTemplateOwnerNotifiedFlag1809185210000().up(
           runner,
         );
       }),
@@ -230,7 +230,7 @@ describe("DropIncidentTemplateOwnerNotifiedFlag1809185110000", () => {
   test("down() puts back the column, not told, and its index", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new DropIncidentTemplateOwnerNotifiedFlag1809185110000().down(
+        return new DropIncidentTemplateOwnerNotifiedFlag1809185210000().down(
           runner,
         );
       }),

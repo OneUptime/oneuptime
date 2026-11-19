@@ -46,6 +46,7 @@ import {
 } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import ResourcePartHero from "../../../Components/ResourcePart/ResourcePartHero";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import ResourcePartOpenEventsCard from "../../../Components/ResourcePart/ResourcePartOpenEventsCard";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
 import {
@@ -73,7 +74,14 @@ import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
 
 const LABEL_FLAG: string = "--nova.metadata-extra-labels";
 
-// A sentence kept here, and looked up where Needs attention draws it.
+/*
+ * A sentence kept here, and looked up where Needs attention draws it.
+ * What its Needs attention card is for, and what its hero's status opens.
+ */
+const PROJECT_ATTENTION_DESCRIPTION: string = translationKey(
+  "What in this project needs someone, and the hosts down under it.",
+);
+
 const REASON_HOST_DOWN: { one: string; other: string } = {
   one: translationKey("Down, with {{count}} of this project's instances on it"),
   other: translationKey(
@@ -368,6 +376,16 @@ const OpenStackCloudProjectDetail: FunctionComponent<
     }),
   ];
 
+  /*
+   * What its Needs attention card lists, handed to the hero too: a project
+   * is enabled or not, a state nobody needs to explain, so today its status
+   * opens nothing - but the two read one list (#9594).
+   */
+  const attention: ResourcePartAttention = {
+    items: items,
+    description: PROJECT_ATTENTION_DESCRIPTION,
+  };
+
   return (
     <div className="space-y-5" data-testid="openstack-project">
       <ResourcePartHero
@@ -375,6 +393,7 @@ const OpenStackCloudProjectDetail: FunctionComponent<
         icon={IconProp.Folder}
         accent="indigo"
         name={name}
+        attention={attention}
         status={
           row.status
             ? {
@@ -400,9 +419,9 @@ const OpenStackCloudProjectDetail: FunctionComponent<
       />
 
       <NeedsAttentionCard
-        items={items}
+        items={attention.items}
         testId="openstack-project-attention"
-        description="What in this project needs someone, and the hosts down under it."
+        description={attention.description}
       />
 
       <Card

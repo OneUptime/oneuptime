@@ -1187,3 +1187,187 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
     expect(row).toHaveTextContent("1HA started");
   });
 });
+
+/*
+ * "2/3 nodes online", "1 HA error", "Last backup failed 1": each said
+ * something was wrong, never which part or why (#9594). Each count of what
+ * is wrong now opens exactly the parts it counts, a step from their pages.
+ */
+describe("Proxmox cluster overview: counts of what is wrong open which, and why", () => {
+  function dialogRows(testId: string): Array<HTMLElement> {
+    return screen.getAllByTestId(`${testId}-dialog-item`);
+  }
+
+  test("an offline node: the hero's count and the Node Availability tile open it, a step from its page", async () => {
+    await renderOverview();
+
+    // The chip still opens every node.
+    expect(
+      screen.getByTestId("proxmox-hero-nodes").getAttribute("href") || "",
+    ).toMatch(/\/nodes$/);
+
+    const hero: HTMLElement = screen.getByTestId("proxmox-hero-nodes-offline");
+    expect(hero.tagName).toBe("BUTTON");
+    expect(hero).toHaveTextContent("1 node offline");
+    expect(hero).toHaveAttribute("data-tone", "danger");
+
+    fireEvent.click(hero);
+    const rows: Array<HTMLElement> = dialogRows("proxmox-hero-nodes-offline");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!).toHaveTextContent("pve3");
+    expect(rows[0]!).toHaveTextContent("Offline");
+    expect(
+      within(rows[0]!).getByTestId("proxmox-hero-nodes-offline-dialog-view"),
+    ).toHaveAttribute("href", expect.stringContaining(CLUSTER_ID));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]!);
+
+    // The tile says the same, under its figure.
+    const tile: HTMLElement = cardOf(infoButton("Node Availability"));
+    const tilePill: HTMLElement = within(tile).getByTestId(
+      "proxmox-nodes-offline",
+    );
+    expect(tilePill).toHaveTextContent("1 node offline");
+    fireEvent.click(tilePill);
+    expect(dialogRows("proxmox-nodes-offline")[0]!).toHaveTextContent("pve3");
+  });
+
+  test("a cluster that lost quorum lists itself first, why its tile is red", async () => {
+    cluster["isQuorate"] = false;
+
+    await renderOverview();
+
+    fireEvent.click(screen.getByTestId("proxmox-hero-nodes-offline"));
+    const rows: Array<HTMLElement> = dialogRows("proxmox-hero-nodes-offline");
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["cluster", "Node:node/pve3"]);
+    expect(rows[0]!).toHaveTextContent("Not quorate");
+  });
+
+  test("not quorate with every node up: the count says Not quorate", async () => {
+    cluster["isQuorate"] = false;
+    inventory = inventory.map((row: Row) => {
+      return row["externalId"] === "node/pve3" ? { ...row, isUp: true } : row;
+    });
+
+    await renderOverview();
+
+    const hero: HTMLElement = screen.getByTestId("proxmox-hero-nodes-offline");
+    expect(hero).toHaveTextContent("Not quorate");
+    fireEvent.click(hero);
+    expect(
+      dialogRows("proxmox-hero-nodes-offline").map(
+        (row: HTMLElement): string | null => {
+          return row.getAttribute("data-key");
+        },
+      ),
+    ).toEqual(["cluster"]);
+  });
+
+  test("an HA resource in error: its chip opens it, HA's word first; a calm state is a plain chip", async () => {
+    inventory = inventory.map((row: Row) => {
+      return row["externalId"] === "qemu/100"
+        ? { ...row, haState: "error", parentNodeName: "pve1" }
+        : row;
+    });
+
+    await renderOverview();
+
+    const pill: HTMLElement = screen.getByTestId("proxmox-hero-ha-problem");
+    expect(pill.tagName).toBe("BUTTON");
+    expect(pill).toHaveAttribute("data-state", "error");
+    expect(pill).toHaveTextContent("1HA error");
+
+    fireEvent.click(pill);
+    expect(screen.getByText("1 HA resource in error")).toBeInTheDocument();
+    const rows: Array<HTMLElement> = dialogRows("proxmox-hero-ha-problem");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!).toHaveTextContent("web");
+    expect(
+      within(rows[0]!).getAllByTestId(
+        "proxmox-hero-ha-problem-dialog-reason",
+      )[0]!,
+    ).toHaveTextContent("HA state: error");
+    // Which node it runs on, a step from that node's page.
+    expect(
+      within(rows[0]!).getByTestId("proxmox-hero-ha-problem-dialog-fact-link"),
+    ).toHaveAttribute("href", expect.stringContaining("pve1"));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]!);
+
+    // "HA online" says nothing is wrong: it stays words, beside the (i).
+    const row: HTMLElement = infoButton("High-availability states")
+      .parentElement as HTMLElement;
+    expect(row).toHaveTextContent("2HA online");
+    expect(
+      within(row)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return (
+            button.getAttribute("data-testid") ||
+            button.getAttribute("aria-label") ||
+            ""
+          );
+        }),
+    ).toEqual(["proxmox-hero-ha-problem", "About High-availability states"]);
+  });
+
+  test("the Backups card's failed and in-no-job counts open their guests, when each failed", async () => {
+    cluster["lastNotificationAt"] = minutesAgo(30);
+    inventory = inventory.map((row: Row) => {
+      if (row["externalId"] === "lxc/101") {
+        return {
+          ...row,
+          lastBackupStatus: "failed",
+          lastBackupAt: minutesAgo(30),
+        };
+      }
+      return row;
+    });
+
+    await renderOverview();
+
+    const card: HTMLElement = screen.getByTestId("proxmox-backups-card");
+    const failed: HTMLElement = within(card).getByTestId(
+      "proxmox-backups-card-failed-guests",
+    );
+    expect(failed).toHaveTextContent("1 guest");
+    expect(failed).toHaveAttribute("data-tone", "danger");
+    fireEvent.click(failed);
+    expect(
+      screen.getByText("Last backup failed for 1 guest"),
+    ).toBeInTheDocument();
+    const rows: Array<HTMLElement> = dialogRows(
+      "proxmox-backups-card-failed-guests",
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!).toHaveTextContent("db");
+    expect(
+      within(rows[0]!).getByTestId(
+        "proxmox-backups-card-failed-guests-dialog-since",
+      ),
+      // The matcher reads the no-break space that holds 30 to its unit as one.
+    ).toHaveTextContent("Failed 30 minutes ago");
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]!);
+
+    const notInJob: HTMLElement = within(card).getByTestId(
+      "proxmox-backups-card-guests-not-in-job",
+    );
+    expect(notInJob).toHaveAttribute("data-tone", "warning");
+    fireEvent.click(notInJob);
+    expect(screen.getByText("1 guest in no backup job")).toBeInTheDocument();
+    expect(
+      dialogRows("proxmox-backups-card-guests-not-in-job")[0]!,
+    ).toHaveTextContent("In no backup job");
+  });
+
+  test("a disconnected agent's last inventory is no truth: no count opens a list", async () => {
+    cluster["otelCollectorStatus"] = "disconnected";
+
+    await renderOverview();
+
+    expect(screen.queryByTestId("proxmox-hero-nodes-offline")).toBeNull();
+    expect(screen.queryByTestId("proxmox-nodes-offline")).toBeNull();
+  });
+});

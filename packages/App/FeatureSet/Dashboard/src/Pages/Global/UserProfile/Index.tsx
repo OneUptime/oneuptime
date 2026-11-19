@@ -24,6 +24,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { isDashboardRecordingConfigured } from "../../../Utils/DashboardRecording/DashboardRecordingConfig";
 import { PERSON_RECORDING_COPY } from "../../../Components/DashboardRecording/DashboardRecordingCopy";
+import {
+  SignInManagementState,
+  SsoManagedSignInNotice,
+  useSignInManagement,
+} from "../../../Components/UserProfile/SignInManagement";
 
 /*
  * "Ask me how things went" (#6832): the person's own switch for the
@@ -59,6 +64,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const feedbackSettings: ProductFeedbackSettings | null =
     useProductFeedbackSettings();
+  const signInManagement: SignInManagementState = useSignInManagement();
 
   return (
     <Fragment>
@@ -203,6 +209,17 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelId: UserUtil.getUserId(),
         }}
       />
+      {/*
+       * Who manages the person's sign-in, when their organization does
+       * (#9688): their side menu has no Security section, and this says why.
+       */}
+      {signInManagement?.isManagedBySso ? (
+        <SsoManagedSignInNotice
+          ssoProviderNames={signInManagement.ssoProviderNames}
+        />
+      ) : (
+        <></>
+      )}
       {feedbackSettings?.isOn ? (
         <ModelSwitchCard<User>
           modelType={User}

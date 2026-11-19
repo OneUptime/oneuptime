@@ -522,3 +522,46 @@ describe("Docker Swarm Insights charts", () => {
     expect(code).not.toContain("InfoTooltip");
   });
 });
+
+/*
+ * "2/3 nodes ready" and "4/6 tasks running" said something was wrong,
+ * never which or why (#9594): beside each chip, the count of what is wrong
+ * opens exactly those parts, by the swarm's rules, through the shared pill.
+ */
+describe("Docker Swarm overview: counts of what is wrong open which, and why", () => {
+  const code: string = readCode("Index.tsx");
+
+  test("the nodes not ready and the tasks failing come from the swarm's rules, while it reports", () => {
+    expect(code).toContain(
+      'import ResourceAttentionPill, { ComponentProps as ResourceAttentionPillProps, } from "../../../Components/ResourcePart/ResourceAttentionPill";',
+    );
+    expect(code).toContain(
+      "inventory && isConnected ? getDockerSwarmNodesNotReadyItems({",
+    );
+    expect(code).toContain(
+      "inventory && isConnected ? getDockerSwarmFailingTaskItems({",
+    );
+  });
+
+  test("each count sits after its chip, which still opens the whole list", () => {
+    // The chip keeps its link to the whole list.
+    const nodes: string = between(
+      code,
+      'route: routes.nodesRoute, testId: "docker-swarm-hero-nodes",',
+      "if (managersTotal > 0)",
+    );
+    expect(nodes).toContain('testId: "docker-swarm-hero-nodes-not-ready"');
+    expect(nodes).toContain('hint: "Show which nodes and why"');
+
+    const tasks: string = between(
+      code,
+      'route: routes.tasksRoute, testId: "docker-swarm-hero-tasks",',
+      "if (stackCount > 0)",
+    );
+    expect(tasks).toContain('testId: "docker-swarm-hero-tasks-failing"');
+    expect(tasks).toContain('hint: "Show which tasks and why"');
+
+    // Drawn right after the chip's link, never inside it.
+    expect(code).toContain("</Link> {problem} </React.Fragment>");
+  });
+});

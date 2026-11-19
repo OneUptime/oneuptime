@@ -13,8 +13,8 @@
  *     the databases running on it;
  *   - a database: its own store;
  *   - a cloud resource: the store it is;
- *   - a service: its telemetry - the logs, traces, exceptions, replays and
- *     AI conversations it sends.
+ *   - a service: its telemetry - the logs, traces, metrics, exceptions,
+ *     replays and AI conversations it sends.
  *
  * A host has none: no database, bucket or telemetry stream records the host
  * it runs on, and a guess from an address would put a store on the wrong

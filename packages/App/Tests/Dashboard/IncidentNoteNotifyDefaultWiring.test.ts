@@ -220,9 +220,14 @@ describePublicNotesTab({
   resolveArgument: "incident",
   helperCall: "shouldNotifyForIncident",
   quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
+  /*
+   * The composer says above it why nothing is sent (#9735), so the summary
+   * under the box leaves that out.
+   */
   audienceSummary:
-    '( <SubscriberAudienceSummary request={{ incidentId: incidentId }} dataTestId="incident-public-note-audience" />',
+    '( <SubscriberAudienceSummary request={{ incidentId: incidentId }} dataTestId="incident-public-note-audience" isNothingSentSaidAbove={true} />',
   canBePrivate: true,
+  statusPageReachApiPath: "/incident",
 });
 
 describeSharedPublicNoteWiring();

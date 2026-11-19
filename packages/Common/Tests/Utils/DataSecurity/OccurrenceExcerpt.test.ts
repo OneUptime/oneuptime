@@ -9,6 +9,7 @@ import {
   buildOccurrenceExcerpt,
   EXCERPT_CONTEXT_AFTER,
   EXCERPT_CONTEXT_BEFORE,
+  maskSensitiveText,
   toReadableText,
 } from "../../../Utils/DataSecurity/OccurrenceExcerpt";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
@@ -299,5 +300,46 @@ describe("whatever the value", () => {
         /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/,
       );
     }
+  });
+});
+
+/*
+ * A SHORT TEXT THAT NAMES A RECORD, MASKED (issue #9604): a metric's name
+ * is shown with every sensitive value in it masked, and says whether
+ * anything was - a name with nothing masked is a key, which may open the
+ * metrics explorer.
+ */
+describe("a record's name", () => {
+  test("with nothing sensitive in it, as written, and a key", () => {
+    expect(maskSensitiveText("http.server.request.duration")).toEqual({
+      text: "http.server.request.duration",
+      isMasked: false,
+    });
+  });
+
+  test("every sensitive value in it masked, of any type, and no key", () => {
+    const masked: { text: string; isMasked: boolean } = maskSensitiveText(
+      "logins/jane.doe@acme-corp.com/from/81.2.69.160",
+    );
+
+    expect(masked.isMasked).toBe(true);
+    expect(masked.text).toBe("logins/j***@a********.com/from/81.***.***.***");
+  });
+
+  test("a project's own type, and control characters taken out", () => {
+    const loyalty: ScanDetector = compileCustomDataType({
+      dataTypeId: "custom:loyalty",
+      pattern: "LOY-[0-9]{6}",
+    })!;
+
+    expect(
+      maskSensitiveText("orders.LOY-123456.total", {
+        customDetectors: [loyalty],
+      }).isMasked,
+    ).toBe(true);
+    expect(maskSensitiveText("orders.LOY-123456.total").isMasked).toBe(false);
+    expect(maskSensitiveText("queue\u001b[31m.depth\u0007").text).toBe(
+      "queue.depth",
+    );
   });
 });

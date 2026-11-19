@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 如何创建密钥并选择哪些监视器可以使用它，请参阅 [监控密钥](/docs/monitor/monitor-secrets)。
 
+一次性验证码密钥保存的是网站的双因素设置密钥，而不是一个值。它的 `{{monitorSecrets.NAME}}` 是脚本开始时的验证码，而 `await oneuptime.getTotpCode("NAME")` 会在脚本请求时生成新的验证码，适合几页之后才到达验证码输入步骤的登录。请参阅[使用一次性验证码登录](/docs/monitor/monitor-secrets#使用一次性验证码登录)。
+
 ## 自定义指标
 
 你可以在脚本中用 `oneuptime.captureMetric()` 函数记录自定义指标。这些指标存储在 OneUptime 中，可以通过 Metric Explorer 在仪表板上绘制成图表。
@@ -258,6 +260,7 @@ return {
 | `crypto` | 在浏览器 Worker 中实现的 SHA-256 哈希、HMAC-SHA-256、`randomBytes`、`randomInt` 和 `randomUUID`。 |
 | `console` | `console.log`、`info`、`warn` 和 `error`。消息与每次运行一起保留。 |
 | `oneuptime.captureMetric` | 记录自定义指标。请参阅[自定义指标](#自定义指标)。 |
+| `oneuptime.getTotpCode` | 生成一次性验证码密钥的当前验证码：`await oneuptime.getTotpCode("NAME")`。请参阅[使用监控密钥](#使用监控密钥)。 |
 | `http` | 一个带缓冲、仅限客户端的兼容外观层，支持 `request`、`get` 和 `Agent`。 |
 | `https` | 仅限客户端的 `http` 外观层的 HTTPS 版本。 |
 | `Buffer`、`setTimeout`、`setInterval` | 以及它们对应的 `clear` 函数。 |

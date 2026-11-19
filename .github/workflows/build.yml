@@ -19,6 +19,24 @@ on:
 permissions:
   contents: read
 
+# The Vulnerability gate (vulnerability-gate, the last job). On a pull request
+# into `release` - so on every release, before it ships - or one labelled
+# vulnerability-gate, each job that builds an image the release ships also
+# writes that image's SBOM (.github/actions/image-sbom), and the gate scans
+# them with Grype and fails on a critical, high or known exploited
+# vulnerability that a newer version fixes, unless
+# Scripts/Security/image-vulnerability-exceptions.json accepts it until a date
+# (Scripts/Security/ImageVulnerabilities.js). 16.0.0 shipped nginx 1.30.5 with
+# three critical vulnerabilities that 1.30.6 had fixed four weeks before: the
+# release's own scan listed them, and nothing failed. Three images are built
+# for the gate alone (docker-build-nginx, docker-build-docker-agent and
+# docker-build-podman-agent), since no other pull request check builds them
+# whole. Every other pull request skips all of it.
+# Tests/Ops/ImageVulnerabilities.test.js holds each image the release ships
+# to one SBOM here.
+env:
+  VULNERABILITY_GATE: ${{ github.base_ref == 'release' || contains(github.event.pull_request.labels.*.name, 'vulnerability-gate') }}
+
 # The builds run in nick-fields/retry, as the runner's own user (it is in the
 # docker group), never through sudo. An attempt that reaches its
 # timeout_minutes is stopped by the action killing the command's processes,
@@ -125,6 +143,21 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: docker build --target enterprise -t oneuptime-app:enterprise -f ./packages/App/Dockerfile .
+
+      # Both editions' SBOMs, for the Vulnerability gate (see the top).
+      - name: SBOM of the Community Edition image for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-app:community
+          name: app
+
+      - name: SBOM of the Enterprise Edition image for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-app:enterprise
+          name: app-enterprise
 
       # Nothing else would notice a Community image that picked up ee/, or an
       # Enterprise image whose Dashboard quietly fell back to the Community UI.
@@ -235,7 +268,14 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: docker build --no-cache -f ./packages/Probe/Dockerfile .
+          command: docker build --no-cache -t oneuptime-probe:ci -f ./packages/Probe/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-probe:ci
+          name: probe
 
   docker-build-runner:
     runs-on: ubuntu-latest
@@ -275,6 +315,13 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: docker build --no-cache -t oneuptime-runner:ci -f ./packages/Runner/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-runner:ci
+          name: runner
 
       # The image is pruned to the packages the Runner reaches
       # (Scripts/Docker/PruneUnreachablePackages.js), so a package the walk
@@ -338,7 +385,14 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: docker build --no-cache -f ./agents/KubernetesAIAgent/Dockerfile .
+          command: docker build --no-cache -t oneuptime-kubernetes-ai-agent:ci -f ./agents/KubernetesAIAgent/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-kubernetes-ai-agent:ci
+          name: kubernetes-ai-agent
 
   # The resource AI agent image (agents/ResourceAIAgent), which the Docker,
   # Podman, Swarm, Proxmox, VMware, Ceph, database and host agents run as
@@ -379,7 +433,14 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: docker build --no-cache -f ./agents/ResourceAIAgent/Dockerfile .
+          command: docker build --no-cache -t oneuptime-resource-ai-agent:ci -f ./agents/ResourceAIAgent/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-resource-ai-agent:ci
+          name: resource-ai-agent
 
   # The Kubernetes cost agent image (agents/KubernetesCostAgent), which the
   # kubernetes-agent chart runs when cost collection is on. release.yml is the
@@ -421,7 +482,14 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: docker build --no-cache -f ./agents/KubernetesCostAgent/Dockerfile .
+          command: docker build --no-cache -t oneuptime-kubernetes-cost-agent:ci -f ./agents/KubernetesCostAgent/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-kubernetes-cost-agent:ci
+          name: kubernetes-cost-agent
 
   # The Kubernetes log tailer image (agents/KubernetesLogTailer), which the
   # kubernetes-agent chart runs when logs.mode is "api", as the GKE Autopilot,
@@ -458,7 +526,14 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: docker build --no-cache -f ./agents/KubernetesLogTailer/Dockerfile .
+          command: docker build --no-cache -t oneuptime-kubernetes-log-tailer:ci -f ./agents/KubernetesLogTailer/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        if: env.VULNERABILITY_GATE == 'true'
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-kubernetes-log-tailer:ci
+          name: kubernetes-log-tailer
 
   docker-build-test-server:
     runs-on: ubuntu-latest
@@ -498,3 +573,209 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: docker build --no-cache -f ./packages/TestServer/Dockerfile .
+
+  # The ingress image (packages/Nginx), built whole for the Vulnerability gate
+  # alone (see the top): Nginx Test builds only its base stage
+  # (test.nginx.yaml), and only the release builds the rest.
+  docker-build-nginx:
+    if: github.base_ref == 'release' || contains(github.event.pull_request.labels.*.name, 'vulnerability-gate')
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Its base is nginx's own image, on Docker Hub: pull it through
+      # mirror.gcr.io (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # Seeds the Node.js donor stage's public.ecr.aws image into the local
+      # store first, from Docker Hub if ECR will not serve it; see
+      # docker-build-kubernetes-ai-agent above.
+      - name: Warm base images
+        run: bash ./Scripts/GHA/warm_base_images.sh ./packages/Nginx/Dockerfile
+
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: docker build --no-cache -t oneuptime-nginx:ci -f ./packages/Nginx/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-nginx:ci
+          name: nginx
+
+  # The Docker agent image (agents/DockerAgent): the OpenTelemetry Collector's
+  # image and a config file. Built for the Vulnerability gate alone, as the
+  # ingress above is.
+  docker-build-docker-agent:
+    if: github.base_ref == 'release' || contains(github.event.pull_request.labels.*.name, 'vulnerability-gate')
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The collector's image is on Docker Hub: pull it through mirror.gcr.io
+      # (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # Every image job warms its Dockerfile's public.ecr.aws images; this one
+      # names none, so it is quick.
+      - name: Warm base images
+        run: bash ./Scripts/GHA/warm_base_images.sh ./agents/DockerAgent/Dockerfile
+
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          command: docker build --no-cache -t oneuptime-docker-agent:ci -f ./agents/DockerAgent/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-docker-agent:ci
+          name: docker-agent
+
+  # The Podman agent image (agents/PodmanAgent), the Docker agent's twin.
+  docker-build-podman-agent:
+    if: github.base_ref == 'release' || contains(github.event.pull_request.labels.*.name, 'vulnerability-gate')
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The collector's image is on Docker Hub: pull it through mirror.gcr.io
+      # (.github/actions/docker-hub-mirror).
+      - uses: ./.github/actions/docker-hub-mirror
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # Every image job warms its Dockerfile's public.ecr.aws images; this one
+      # names none, so it is quick.
+      - name: Warm base images
+        run: bash ./Scripts/GHA/warm_base_images.sh ./agents/PodmanAgent/Dockerfile
+
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          command: docker build --no-cache -t oneuptime-podman-agent:ci -f ./agents/PodmanAgent/Dockerfile .
+
+      - name: SBOM for the vulnerability gate
+        uses: ./.github/actions/image-sbom
+        with:
+          image: oneuptime-podman-agent:ci
+          name: podman-agent
+
+  # The Vulnerability gate (see the top). It fails while an image this release
+  # would ship has a critical, high or known exploited vulnerability that a
+  # newer version fixes and that Scripts/Security/image-vulnerability-exceptions.json
+  # does not accept. Its summary names each thing to upgrade, the lines that
+  # pin it and how to clear it; RELEASING.md (step 5) says what a release does
+  # about it. It needs every job that writes an SBOM, and fails when one of
+  # the images the release ships has none (--require-product-images).
+  vulnerability-gate:
+    name: Vulnerability gate
+    if: github.base_ref == 'release' || contains(github.event.pull_request.labels.*.name, 'vulnerability-gate')
+    needs:
+      - docker-build-app
+      - docker-build-probe
+      - docker-build-runner
+      - docker-build-kubernetes-ai-agent
+      - docker-build-resource-ai-agent
+      - docker-build-kubernetes-cost-agent
+      - docker-build-kubernetes-log-tailer
+      - docker-build-nginx
+      - docker-build-docker-agent
+      - docker-build-podman-agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Download the images' SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: vulnerability-gate-sbom-*
+          path: sbom
+          merge-multiple: true
+
+      # The Grype the release's scan-sbom-vulnerabilities job uses.
+      - name: Install grype
+        id: grype
+        uses: anchore/scan-action/download-grype@v7
+
+      # Its summary counts every vulnerability, fixed or not: the gate's own,
+      # next, is the one that says what fails it, so this one is not shown.
+      - name: Scan each SBOM with Grype
+        env:
+          GRYPE: ${{ steps.grype.outputs.cmd }}
+        run: |
+          GITHUB_STEP_SUMMARY=/dev/null PATH="$(dirname "$GRYPE"):$PATH" \
+            bash ./Scripts/GHA/scan_sbom_vulnerabilities.sh \
+            --input-dir sbom \
+            --output-dir vulnerabilities
+
+      - name: Fail on what a newer version fixes
+        run: node Scripts/Security/ImageVulnerabilities.js gate --reports vulnerabilities --require-product-images
+
+      # The reports, for whoever clears the gate: every finding, with its
+      # package's paths in the image.
+      - name: Keep Grype's reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-gate-reports
+          path: vulnerabilities/
+          if-no-files-found: ignore
+          retention-days: 14
+          overwrite: true

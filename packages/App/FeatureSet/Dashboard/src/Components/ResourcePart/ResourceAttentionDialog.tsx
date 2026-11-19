@@ -21,7 +21,10 @@ import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { ResourceAttentionItem } from "./ResourceAttention";
+import {
+  ResourceAttentionCurrent,
+  ResourceAttentionItem,
+} from "./ResourceAttention";
 import ResourceAttentionRow from "./ResourceAttentionRow";
 
 /*
@@ -70,6 +73,13 @@ export interface ComponentProps {
   onClose: () => void;
   // False when every row is the same kind of part (a list of pods).
   showKind?: boolean | undefined;
+  /*
+   * The part whose page this is, when the list is about it and what it
+   * runs (its hero's status, pressed): its row reads "This node", as in
+   * its Needs attention card, with no View - that is the page the reader
+   * is on.
+   */
+  current?: ResourceAttentionCurrent | undefined;
 }
 
 // The View link's look: the shared plain button, tinted indigo for View.
@@ -192,22 +202,29 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
           className="divide-y divide-gray-100"
         >
           {items.map((item: ResourceAttentionItem): ReactElement => {
+            const isCurrent: boolean = Boolean(
+              props.current && props.current.key === item.key,
+            );
             return (
               <li
                 key={item.key}
                 data-testid={`${props.testId}-item`}
                 data-key={item.key}
                 data-severity={item.severity}
+                data-current={isCurrent ? "true" : undefined}
                 className="flex items-start gap-3 py-4 first:pt-0 last:pb-0"
               >
                 <ResourceAttentionRow
                   item={item}
                   testId={props.testId}
                   showKind={props.showKind}
+                  currentLabel={
+                    isCurrent && props.current ? props.current.label : undefined
+                  }
                   areFactsLinked={true}
                   now={now}
                 />
-                {item.route ? (
+                {item.route && !isCurrent ? (
                   <Link
                     to={item.route}
                     dataTestId={`${props.testId}-view`}

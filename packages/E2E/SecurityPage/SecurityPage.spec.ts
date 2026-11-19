@@ -39,6 +39,7 @@ const SHOTS: string = path.resolve(
 
 interface FixtureRecord {
   lists: Array<string>;
+  creates: Array<{ table: string; name?: string }>;
   updates: Array<{ table: string; data: Record<string, unknown> }>;
   api: Array<{ method: string; url: string }>;
   unhandled: Array<Record<string, unknown>>;
@@ -290,6 +291,217 @@ test("a new account's page says what to set up first, in Persian and dark", asyn
     fullPage: true,
   });
 });
+
+/*
+ * #9666: Enable on an account with nothing set up walks through setting up a
+ * second step first, and turns two-factor authentication on only once that
+ * step's code was entered - never before.
+ */
+test("Enable on a new account sets up an authenticator app first, and turns on only after its code, in German", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const language: string = "de";
+
+  await page.goto(address(TWO_FACTOR, { language, state: "new" }));
+  await expect(
+    page.getByText(dashboardWord(language, "Not enabled"), { exact: true }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", {
+      name: dashboardWord(language, "Enable two-factor authentication"),
+    })
+    .click();
+
+  // Choose the second step: an authenticator app, or a security key.
+  const chooser: Locator = page.getByRole("dialog");
+  await expect(
+    chooser.getByText(
+      dashboardWord(language, "Set up two-factor authentication"),
+      { exact: true },
+    ),
+  ).toBeVisible();
+  for (const english of ["Authenticator app", "Security key"]) {
+    await expect(
+      chooser.getByText(dashboardWord(language, english), { exact: true }),
+    ).toBeVisible();
+  }
+  await expectNoSidewaysScroll(page);
+  await page.screenshot({ path: path.join(SHOTS, "enable-choose-de.png") });
+
+  await chooser
+    .getByRole("button", { name: dashboardWord(language, "Continue") })
+    .click();
+
+  // Set it up: its QR code, and its code to finish.
+  const setup: Locator = page.getByRole("dialog");
+  const verify: Locator = setup.getByRole("button", {
+    name: dashboardWord(language, "Verify and finish"),
+  });
+  await expect(verify).toBeVisible();
+  await expect(
+    page.getByTestId("authenticator-setup-key-toggle"),
+  ).toBeVisible();
+  await page.screenshot({ path: path.join(SHOTS, "enable-set-up-de.png") });
+
+  // Nothing is on yet: the app is saved unfinished, and the account untouched.
+  let record: FixtureRecord = await fixture(page);
+  expect(record.creates).toEqual([
+    {
+      table: "UserTotpAuth",
+      name: dashboardWord(language, "Authenticator app"),
+    },
+  ]);
+  expect(record.updates).toEqual([]);
+
+  await page.locator("#authenticator-verification-code").fill("123456");
+  await verify.click();
+
+  // Its first second step comes with the backup codes; then it is on.
+  await expect(page.getByTestId("backup-code")).toHaveCount(10);
+  record = await fixture(page);
+  expect(record.updates).toEqual([
+    { table: "User", data: { enableTwoFactorAuth: true } },
+  ]);
+  await page.getByTestId("backup-codes-saved-checkbox").check();
+  await page
+    .getByRole("button", { name: dashboardWord(language, "Done") })
+    .click();
+  await expect(
+    page
+      .getByTestId("two-factor-status")
+      .getByText(dashboardWord(language, "Enabled"), { exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: path.join(SHOTS, "enable-done-de.png"),
+    fullPage: true,
+  });
+});
+
+/*
+ * #9666: on with nothing set up - as an administrator's requirement leaves
+ * an account - is Setup needed, never Enabled, and Finish setup starts the
+ * same setup without turning anything on again.
+ */
+test("an account required to use two-factor authentication with nothing set up says Setup needed, and Finish setup starts the setup", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const language: string = "en";
+
+  await page.goto(address(TWO_FACTOR, { language, state: "pending" }));
+  const status: Locator = page.getByTestId("two-factor-status");
+  await expect(status.getByText("Setup needed", { exact: true })).toBeVisible();
+  await expect(status.getByText("Enabled", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText(
+      "Two-factor authentication is on, but no second step is set up yet, so it does not protect your account. Set one up now, or you will be asked to at your next sign-in.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Turn off two-factor authentication",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: path.join(SHOTS, "two-factor-pending-en.png"),
+    fullPage: true,
+  });
+
+  await page
+    .getByTestId("card")
+    .filter({ has: status })
+    .getByRole("button", { name: "Finish setup", exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByText("Set up two-factor authentication", { exact: true }),
+  ).toBeVisible();
+  expect((await fixture(page)).updates).toEqual([]);
+});
+
+/*
+ * #9688: on a server that requires SSO, somebody other than a master admin
+ * sets no password, passkey or two-factor authentication in OneUptime. The
+ * profile has no Security section, and a Security page says who manages
+ * their sign-in instead of offering settings the server would refuse.
+ */
+for (const route of [TWO_FACTOR, PASSKEYS]) {
+  test(`${route} says the organization's SSO manages the sign-in, in Persian, with no Security section`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const language: string = "fa";
+
+    await page.goto(address(route, { language, state: "sso" }));
+    const notice: Locator = page.getByTestId("sso-managed-sign-in");
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText("Okta");
+    await expect(
+      cardTitle(page, language, "Single Sign-On").first(),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    // No Security section in the side menu, and none of its settings.
+    const sideMenu: Locator = page
+      .getByRole("navigation")
+      .filter({
+        has: page.getByRole("link", {
+          name: dashboardWord(language, "Profile Picture"),
+        }),
+      })
+      .first();
+    await expect(sideMenu).toBeVisible();
+    await expect(
+      sideMenu.getByText(dashboardWord(language, "Security"), { exact: true }),
+    ).toHaveCount(0);
+    for (const english of [
+      "Password Management",
+      "Passkeys",
+      "Two-factor authentication",
+    ]) {
+      await expect(
+        sideMenu.getByRole("link", { name: dashboardWord(language, english) }),
+      ).toHaveCount(0);
+    }
+    for (const english of [
+      "Authenticator apps",
+      "Security keys",
+      "Backup codes",
+      "Add Passkey",
+    ]) {
+      await expect(
+        page.getByText(dashboardWord(language, english), { exact: true }),
+      ).toHaveCount(0);
+    }
+
+    // Nothing of the settings is read: no credentials, no status.
+    const record: FixtureRecord = await fixture(page);
+    expect(record.lists).not.toContain("UserTotpAuth");
+    expect(record.lists).not.toContain("UserWebAuthn");
+    expect(
+      record.api.filter((request: { url: string }) => {
+        return request.url.endsWith("/user/two-factor-auth-status");
+      }),
+    ).toEqual([]);
+
+    await expectNoSidewaysScroll(page);
+    await page.screenshot({
+      path: path.join(
+        SHOTS,
+        `sso-managed-${route === TWO_FACTOR ? "two-factor" : "passkeys"}-fa.png`,
+      ),
+      fullPage: true,
+    });
+  });
+}
 
 test("regenerating backup codes asks first, in German", async ({
   page,

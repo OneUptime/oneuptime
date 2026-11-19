@@ -31,10 +31,10 @@ export const getMarkMonitorGroupAndRunnerOwnersToldStatement: (
   return `UPDATE "${table}" SET "isOwnerNotified" = true WHERE "isOwnerNotified" = false`;
 };
 
-export class MarkMonitorGroupAndRunnerOwnersAsTold1809185100000
+export class MarkMonitorGroupAndRunnerOwnersAsTold1809185200000
   implements MigrationInterface
 {
-  public name: string = "MarkMonitorGroupAndRunnerOwnersAsTold1809185100000";
+  public name: string = "MarkMonitorGroupAndRunnerOwnersAsTold1809185200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     for (const table of MONITOR_GROUP_AND_RUNNER_OWNER_TABLES) {

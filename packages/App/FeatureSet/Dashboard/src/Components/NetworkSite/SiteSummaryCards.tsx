@@ -55,6 +55,15 @@ export interface ComponentProps {
   onTileClick?:
     | ((tile: SiteSummaryTile, selection: FacetTileSelection | null) => void)
     | undefined;
+  /*
+   * Told each time the counts are read, with the chip each tile stands for:
+   * a link that names a tile (?show=unhealthy) is pressed with it (#9596).
+   */
+  onCountsLoaded?:
+    | ((
+        getSelection: (tile: SiteSummaryTile) => FacetTileSelection | null,
+      ) => void)
+    | undefined;
 }
 
 const SiteSummaryCards: FunctionComponent<ComponentProps> = (
@@ -67,6 +76,8 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
 
   const fetchCounts: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
+
+    let loaded: SiteSummaryCounts | null = null;
 
     try {
       /*
@@ -83,14 +94,33 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
        * statuses behind the number on it — rather than every non-operational
        * status the project happens to define.
        */
-      setCounts(await fetchSiteSummary());
+      const summary: SiteSummaryCounts = await fetchSiteSummary();
+
+      setCounts(summary);
       setHasError(false);
+      loaded = summary;
     } catch {
       // The summary row is supplementary — hide it instead of breaking the page.
       setHasError(true);
     }
 
     setIsLoading(false);
+
+    /*
+     * Told outside the read's own failure: what the page does with the
+     * counts never hides the strip they are drawn in.
+     */
+    if (loaded) {
+      const summary: SiteSummaryCounts = loaded;
+
+      props.onCountsLoaded?.(
+        (tile: SiteSummaryTile): FacetTileSelection | null => {
+          return getSiteFacetSelectionForTile(tile, {
+            unhealthyStatusIds: summary.unhealthyStatusIds || [],
+          });
+        },
+      );
+    }
   };
 
   useEffect(() => {

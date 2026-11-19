@@ -17,6 +17,7 @@ import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
 import EgressGuardException from "Common/Types/Exception/EgressGuardException";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
 import { HttpTimingCollector } from "../../HttpTimingAgents";
@@ -54,7 +55,41 @@ export interface APIResponse {
   httpTimings?: HttpPhaseTimings | undefined;
 }
 
+// What one attempt sends: the configured request, its one-time codes filled in.
+interface ApiMonitorRequest {
+  url: string;
+  headers: Headers;
+  body: JSONObject | undefined;
+}
+
 export default class ApiMonitor {
+  /*
+   * The request of one attempt. The {{monitorSecrets.NAME}} of a one-time
+   * code (TOTP) secret in the URL, a header or the body is filled in here,
+   * at the moment the attempt is sent - all at one moment, and never with a
+   * code about to expire (TotpCodeIssuer).
+   */
+  private static async getRequest(
+    url: URL,
+    options: {
+      requestHeaders?: Headers | undefined;
+      requestBody?: JSONObject | undefined;
+      totpCodes?: TotpCodeIssuer | undefined;
+    },
+  ): Promise<ApiMonitorRequest> {
+    const configured: ApiMonitorRequest = {
+      url: url.toString(),
+      headers: options.requestHeaders || {},
+      body: options.requestBody,
+    };
+
+    if (!options.totpCodes || !options.totpCodes.hasSecrets()) {
+      return configured;
+    }
+
+    return await options.totpCodes.fill(configured);
+  }
+
   public static async ping(
     url: URL,
     options: {
@@ -73,6 +108,14 @@ export default class ApiMonitor {
       tlsClientKeyPassphrase?: string | undefined;
       attempts?: Array<ProbeAttempt> | undefined;
       executionContext?: HttpMonitorExecutionContext | undefined;
+      /*
+       * The check's one-time codes (issue #9703). Each attempt fills the
+       * {{monitorSecrets.NAME}} of a TOTP secret in its URL, headers and
+       * body just before it is sent - a retry gets a fresh code - and every
+       * code is taken out of what the check reports and logs. The URL,
+       * headers and body as configured stay what is reported.
+       */
+      totpCodes?: TotpCodeIssuer | undefined;
     },
   ): Promise<APIResponse | null> {
     if (!options) {
@@ -86,6 +129,16 @@ export default class ApiMonitor {
     if (!options.attempts) {
       options.attempts = [];
     }
+
+    // Before the attempt's clock starts: a wait for a fresh code is not its time.
+    const request: ApiMonitorRequest = await ApiMonitor.getRequest(
+      url,
+      options,
+    );
+    const totpCodes: TotpCodeIssuer | undefined = options.totpCodes;
+    const redact: <T>(value: T) => T = <T>(value: T): T => {
+      return totpCodes ? totpCodes.redact(value) : value;
+    };
 
     const ownsExecutionContext: boolean = !options.executionContext;
     if (!options.executionContext) {
@@ -249,10 +302,10 @@ export default class ApiMonitor {
       timingCollector.reset();
       let result: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await executeRequest(
-          url.toString(),
+          request.url,
           requestType,
-          options.requestHeaders || {},
-          options.requestBody,
+          request.headers,
+          request.body,
         );
 
       if (
@@ -268,10 +321,10 @@ export default class ApiMonitor {
         startTime = process.hrtime();
         timingCollector.reset();
         result = await executeRequest(
-          url.toString(),
+          request.url,
           HTTPMethod.GET,
-          options.requestHeaders || {},
-          options.requestBody,
+          request.headers,
+          request.body,
         );
       }
 
@@ -360,8 +413,9 @@ export default class ApiMonitor {
         isSecure: url.protocol === Protocol.HTTPS,
         responseTimeInMS: responseTimeInMS,
         statusCode: result.statusCode,
-        responseBody: JSON.stringify(result.data || {}),
-        responseHeaders: result.headers,
+        // A response that repeats a code it was sent never reports it.
+        responseBody: redact(JSON.stringify(result.data || {})),
+        responseHeaders: redact(result.headers),
         requestBody: options.requestBody || {},
         failureCause: "",
         isTimeout: false,
@@ -412,9 +466,12 @@ export default class ApiMonitor {
        * worded as such. A bare "connect EADDRNOTAVAIL ..." reads as the API
        * being down, and it goes on to be the incident's root cause.
        */
-      const failureCause: string =
+      const failureCause: string = redact(
         RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
-        API.getFriendlyErrorMessage(err as Error);
+          API.getFriendlyErrorMessage(err as Error),
+      );
+      // Said in the logs below; a code the request carried is taken out.
+      const errorText: string = redact(String(err));
 
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
@@ -466,15 +523,16 @@ export default class ApiMonitor {
       if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+            `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText}`,
           );
           return null;
         }
       }
 
       // Get detailed error information
-      const requestFailedDetails: RequestFailedDetails =
-        RequestFailedDetailsUtil.getRequestFailedDetails(err);
+      const requestFailedDetails: RequestFailedDetails = redact(
+        RequestFailedDetailsUtil.getRequestFailedDetails(err),
+      );
 
       const apiResponse: APIResponse = {
         url: url,
@@ -502,7 +560,7 @@ export default class ApiMonitor {
           (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
-          `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+          `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText}`,
         );
 
         apiResponse.failureCause = writeProbeTimeoutFailureCause(
@@ -530,7 +588,7 @@ export default class ApiMonitor {
        * offline response - so it must never open an Issue against OneUptime.
        */
       logger.error(
-        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
+        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText} Response: ${JSON.stringify(
           apiResponse,
         )}`,
         EXTERNAL_FAULT,

@@ -17,7 +17,11 @@ import useOpenStackRead, {
 import { fetchOpenStackRows } from "../Utils/OpenStackPartData";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
-import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import OpenStackServicePartOverview, {
+  OpenStackServicePartWords,
+  getOpenStackServicePartAttention,
+} from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
@@ -109,16 +113,38 @@ const PoolMembers: FunctionComponent<{ part: OpenStackPart }> = (props: {
   );
 };
 
+const WORDS: OpenStackServicePartWords = {
+  thisOne: translationKey("This pool"),
+  attentionDescription: translationKey(
+    "What about this pool is broken or needs a look.",
+  ),
+  openTitle: translationKey("Open on this pool"),
+  openDescription: translationKey(
+    "Unresolved incidents and alerts about this pool, incidents first.",
+  ),
+  alertsTitle: translationKey("Pool alerts"),
+  alertsDescription: translationKey(
+    "The cloud's alert that watches every pool, this one included: it is one monitor on the cloud.",
+  ),
+  detailsDescription: translationKey("What Octavia reports about this pool."),
+};
+
 const OpenStackCloudLoadBalancerPoolDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.LoadBalancerPool,
   );
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackServicePartAttention({
+    part: part,
+    words: WORDS,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
         const operating: string = getOpenStackFactText(row, "operatingStatus");
         const ids: unknown = (row.facts as JSONObject | undefined)?.[
@@ -227,23 +253,8 @@ const OpenStackCloudLoadBalancerPoolDetail: FunctionComponent<
             slug="load-balancer-pool"
             alertTemplateIds={OPENSTACK_POOL_ALERT_TEMPLATE_IDS}
             detailRows={detailRows}
-            words={{
-              thisOne: translationKey("This pool"),
-              attentionDescription: translationKey(
-                "What about this pool is broken or needs a look.",
-              ),
-              openTitle: translationKey("Open on this pool"),
-              openDescription: translationKey(
-                "Unresolved incidents and alerts about this pool, incidents first.",
-              ),
-              alertsTitle: translationKey("Pool alerts"),
-              alertsDescription: translationKey(
-                "The cloud's alert that watches every pool, this one included: it is one monitor on the cloud.",
-              ),
-              detailsDescription: translationKey(
-                "What Octavia reports about this pool.",
-              ),
-            }}
+            words={WORDS}
+            attention={attention}
             tiles={
               <>
                 <GoldenMetricTile

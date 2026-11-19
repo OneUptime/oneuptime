@@ -115,11 +115,12 @@ const OWNERS_TEAM_ID: ObjectID = new ObjectID(
   "7c000000-0000-4000-8000-0000000000c1",
 );
 
+// The grant ceiling, said of the permissions a workflow runs with (#9695).
 const GRANT_CEILING_SENTENCE: string =
-  "You cannot grant Project Owner because your own access does not include that permission at an equal or broader scope.";
+  "This workflow cannot grant Project Owner because the permissions it runs with do not include that permission at an equal or broader scope.";
 
 const ACCESS_RULE_SENTENCE: string =
-  "Workflow steps don't change who has access to this project";
+  "Workflows that run with the default permissions don't change who has access to this project";
 
 const ADMIN_CEILING_SENTENCE: string =
   "Workflow steps can do only what a Project Admin of this project can do";
@@ -299,7 +300,7 @@ describe('"Create One Team Permission" step', () => {
     // The run log names the step and why, in plain words.
     const line: string = refusedLine(component, step.lines);
     expect(line).toContain(ACCESS_RULE_SENTENCE);
-    expect(line).toContain("so they can't create Team Permissions");
+    expect(line).toContain("so this step can't create Team Permissions");
 
     // Refused before the would-be insert: nothing was written.
     expect(inserted()).toBeUndefined();
@@ -390,7 +391,7 @@ describe('"Create One Team Member" step', () => {
 
     const line: string = refusedLine(component, step.lines);
     expect(line).toContain(ACCESS_RULE_SENTENCE);
-    expect(line).toContain("so they can't create Team Members");
+    expect(line).toContain("so this step can't create Team Members");
 
     // Refused before the membership could be written.
     expect(inserted()).toBeUndefined();

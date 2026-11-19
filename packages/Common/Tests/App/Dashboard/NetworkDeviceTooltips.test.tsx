@@ -98,6 +98,10 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       getQueryString: (): string => {
         return "";
       },
+      // The Interfaces tab reads ?show=down once, when it mounts (#9596).
+      getQueryStringByName: (): null => {
+        return null;
+      },
     },
   };
 });

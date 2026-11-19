@@ -12,6 +12,7 @@ import {
   sortResourceAttention,
 } from "../ResourcePart/ResourceAttention";
 import {
+  ResourcePartAttention,
   ResourcePartStatus,
   ResourcePartTone,
 } from "../ResourcePart/ResourcePartTypes";
@@ -488,6 +489,40 @@ export function getContainerHostAttentionItems(data: {
   }
 
   return sortResourceAttention(items, [CONTAINER_KIND]);
+}
+
+// How a container's page says what its Needs attention card is for.
+export const CONTAINER_ATTENTION_DESCRIPTION: string = translationKey(
+  "What about this container is broken or needs a look.",
+);
+
+/*
+ * What needs attention on a container's page, read once: its Needs
+ * attention card draws it, and the hero's status opens it when it says
+ * something is wrong ("Restart loop", "Stopped reporting"), so the two can
+ * never disagree (#9594). The container itself reads as its card names it,
+ * "This container".
+ */
+export function getContainerHostPartAttention(data: {
+  // Null while nothing reported the container yet.
+  container: ContainerHostContainer | null;
+  hostLatestReadingAt: Date | null;
+}): ResourcePartAttention {
+  return {
+    items: data.container
+      ? getContainerHostAttentionItems({
+          containers: [data.container],
+          hostLatestReadingAt: data.hostLatestReadingAt,
+        })
+      : [],
+    description: CONTAINER_ATTENTION_DESCRIPTION,
+    current: data.container
+      ? {
+          key: getContainerAttentionKey(data.container.name),
+          label: THIS_CONTAINER_LABEL,
+        }
+      : undefined,
+  };
 }
 
 // The host's health from what needs attention on it.

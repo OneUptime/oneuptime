@@ -46,6 +46,19 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
  * ---------------------------------------------------------------------------------------------
  */
 
+/*
+ * A server that does not require single sign-on: Forgot password mails a
+ * link only to somebody whose sign-in SSO does not manage (#9688), which
+ * ForgotPasswordSsoManaged.test.ts drives with the server requiring it.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoNotRequiredStandIn",
+    ) as typeof import("./SsoNotRequiredStandIn")
+  ).ssoNotRequired();
+});
+
 jest.mock("Common/Server/Utils/Express", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/Express",

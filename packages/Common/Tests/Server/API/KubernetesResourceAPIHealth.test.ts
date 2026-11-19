@@ -298,6 +298,7 @@ describe("KubernetesResourceAPI part", () => {
     },
     pods: [],
     jobs: [],
+    objects: [],
     isPodsTruncated: false,
   };
 
@@ -442,10 +443,12 @@ describe("KubernetesResourceAPI part", () => {
     const calls: Array<Array<unknown>> = (
       Response.sendJsonObjectResponse as jest.Mock
     ).mock.calls as Array<Array<unknown>>;
+    // A namespace's other objects that need attention go with it (#9595).
     expect(calls[0]![2]).toEqual({
       part: PART.part,
       pods: [],
       jobs: [],
+      objects: [],
       isPodsTruncated: false,
     });
   });
