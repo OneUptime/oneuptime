@@ -38,8 +38,10 @@ import OnCallMoveOnsInFlight, {
   OnCallMoveOnInFlight,
 } from "./OnCallMoveOnsInFlight";
 import {
+  getOnCallLevelsBefore,
   getOnCallPolicyFirstLevel,
   getOnCallRunLaterLevels,
+  isOnCallRunPastFirstLevel,
   OnCallRunPlace,
   sortOnCallPolicyLevels,
 } from "../../../Types/OnCallDutyPolicy/OnCallRunLevel";
@@ -106,9 +108,10 @@ import {
  * (OnCallRunLevel, issue #9036): the first level after the place of the
  * level the run is on - so a level added, moved or deleted before it while
  * it paged neither skips a level nor pages its own again, and gaps in the
- * numbering skip nothing. A run whose level was deleted under it (its rule
+ * numbering skip nothing, nor do two levels at one place (the second comes
+ * after the first, by id). A run whose level was deleted under it (its rule
  * cleared, ON DELETE SET NULL; its place kept) has waited out the wait that
- * level started, and goes on to the level that moved up into its place. A
+ * level started, and goes on to the first level after that place. A
  * level deleted between being read here and being paged is passed, as one
  * that reached nobody is, rather than ending the run in error. A new pass
  * starts from the policy's first level now, whatever its number.
@@ -508,11 +511,11 @@ export default class OnCallEscalationAdvance {
      *
      * A run that moves on at once from a level after the first - a page
      * again starts at the level that was paging - has not been through the
-     * levels before it in this pass: it may repeat, to reach them.
+     * levels before it in this pass: it may repeat, to reach them. After
+     * the first level, not after place 1: a policy's first level can be at
+     * any place (OnCallRunLevel), and once read the levels say which it is.
      */
-    let hasPassReachedAnybody: boolean =
-      !data.isCurrentRuleEmpty ||
-      (run.lastExecutedEscalationRuleOrder || 0) > 1;
+    let hasPassReachedAnybody: boolean = !data.isCurrentRuleEmpty;
 
     for (let step: number = 0; step < MAX_RULES_IN_ONE_ADVANCE; step++) {
       /*
@@ -533,6 +536,13 @@ export default class OnCallEscalationAdvance {
       // The policy's levels now, first to last.
       const levels: Array<OnCallDutyPolicyEscalationRule> =
         await this.readLevels(run);
+
+      if (
+        step === 0 &&
+        isOnCallRunPastFirstLevel({ run: place, levels: levels })
+      ) {
+        hasPassReachedAnybody = true;
+      }
 
       const laterLevels: Array<OnCallDutyPolicyEscalationRule> =
         getOnCallRunLaterLevels({ run: place, levels: levels });
@@ -557,13 +567,13 @@ export default class OnCallEscalationAdvance {
 
       if (nextRule) {
         if (pickedRule) {
+          // The later levels before the one picked: two at one place included.
           await this.skipLevels({
             run: run,
-            levels: laterLevels.filter(
-              (level: OnCallDutyPolicyEscalationRule): boolean => {
-                return level.order! < pickedRule.order!;
-              },
-            ),
+            levels: getOnCallLevelsBefore({
+              level: pickedRule,
+              levels: laterLevels,
+            }),
           });
         }
 

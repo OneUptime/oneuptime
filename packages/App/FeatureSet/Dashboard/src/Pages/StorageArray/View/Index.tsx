@@ -87,10 +87,10 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
-import {
-  getResourceConnectionLabel,
-  getResourceHealthLabel,
-} from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import ResourceHealthPill, {
+  ResourceHealthDialogWords,
+} from "../../../Components/ResourcePart/ResourceHealthPill";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
@@ -106,6 +106,12 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+// What a Degraded or Unhealthy array's pill opens (ResourceHealthPill).
+export const STORAGE_ARRAY_HEALTH_WORDS: ResourceHealthDialogWords = {
+  degradedTitle: translationKey("Why this storage array is Degraded"),
+  unhealthyTitle: translationKey("Why this storage array is Unhealthy"),
+};
 
 /*
  * Storage array overview hero — the Ceph View/Index.tsx analog. Health,
@@ -1017,25 +1023,6 @@ const StorageArrayOverview: FunctionComponent<
 
     // The health is told once Needs attention has read the array.
     const showsHealth: boolean = !isAttentionLoading && !attentionError;
-    const healthLabel: string = getResourceHealthLabel({
-      translator: translator,
-      health: arrayHealth,
-      isConnected: isConnected,
-    });
-    const healthBadgeClass: string = !isConnected
-      ? "bg-gray-50 text-gray-600 ring-gray-200"
-      : arrayHealth === "Healthy"
-        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-        : arrayHealth === "Degraded"
-          ? "bg-amber-50 text-amber-700 ring-amber-200"
-          : "bg-red-50 text-red-700 ring-red-200";
-    const healthDotClass: string = !isConnected
-      ? "bg-gray-400"
-      : arrayHealth === "Healthy"
-        ? "bg-emerald-500"
-        : arrayHealth === "Degraded"
-          ? "bg-amber-500"
-          : "bg-red-500";
 
     const statusBadgeClass: string = isConnected
       ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
@@ -1114,16 +1101,14 @@ const StorageArrayOverview: FunctionComponent<
                      */}
                     {showsHealth ? (
                       <span className="inline-flex items-center gap-1">
-                        <span
-                          data-testid="storage-array-hero-health"
-                          data-health={isConnected ? arrayHealth : "Unknown"}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
-                          />
-                          {healthLabel}
-                        </span>
+                        {/* Degraded or Unhealthy opens why (ResourceHealthPill). */}
+                        <ResourceHealthPill
+                          health={arrayHealth}
+                          isConnected={isConnected}
+                          items={attentionItems}
+                          testId="storage-array-hero-health"
+                          words={STORAGE_ARRAY_HEALTH_WORDS}
+                        />
                         <InfoTooltip
                           label={
                             translator.translateText(

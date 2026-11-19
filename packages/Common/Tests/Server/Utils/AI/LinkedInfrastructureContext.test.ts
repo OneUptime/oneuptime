@@ -37,6 +37,13 @@ import {
 } from "../../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import {
+  keptForAudience,
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * THE INCIDENT'S LINKED INFRASTRUCTURE AND ITS ALERTS (issue #4786).
@@ -67,6 +74,10 @@ const RESOLVED_STATE: ObjectID = new ObjectID(
 );
 const MINUTE: number = 60 * 1000;
 const DECLARED_AT: Date = new Date("2026-10-16T14:30:00.000Z");
+// Everyone who may see the subject, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({ projectId: PROJECT_ID });
+// The audience the suite reads for: READERS unless a test narrows it.
+let readers: ReadAudience = READERS;
 
 function minutesFromIncident(minutes: number): Date {
   return new Date(DECLARED_AT.getTime() + minutes * MINUTE);
@@ -90,6 +101,8 @@ interface AlertFixture {
   column: "hosts" | "dockerHosts" | "services";
   on: Array<string>;
   isPrivate?: boolean;
+  // Set apart by an owner or a label: a role reading alerts by owner or label may not read it.
+  isSetApart?: boolean;
   rootCause?: string;
 }
 
@@ -151,7 +164,7 @@ function answerAlertReads(): void {
           DECLARED_AT.getTime() - RELATED_ALERTS_LOOKBACK_MINUTES * MINUTE,
         );
 
-        return fixtures
+        const matching: Array<AlertFixture> = fixtures
           .filter((fixture: AlertFixture): boolean => {
             const openedAt: Date = minutesFromIncident(
               fixture.openedMinutesFromIncident,
@@ -166,9 +179,28 @@ function answerAlertReads(): void {
           })
           .sort((a: AlertFixture, b: AlertFixture): number => {
             return b.openedMinutesFromIncident - a.openedMinutesFromIncident;
-          })
-          .slice(0, findBy.limit as number)
-          .map(toAlert);
+          });
+
+        // The read's own conditions leave records out before its limit.
+        return keptForAudience({
+          modelType: Alert,
+          rows: matching.map(toAlert),
+          props: findBy.props,
+          setApartIds: matching
+            .filter((fixture: AlertFixture): boolean => {
+              return fixture.isSetApart === true;
+            })
+            .map((fixture: AlertFixture): string => {
+              return fixture.id;
+            }),
+          privateIds: matching
+            .filter((fixture: AlertFixture): boolean => {
+              return fixture.isPrivate === true;
+            })
+            .map((fixture: AlertFixture): string => {
+              return fixture.id;
+            }),
+        }).slice(0, findBy.limit as number);
       },
     );
 }
@@ -176,6 +208,7 @@ function answerAlertReads(): void {
 beforeEach(() => {
   alertReads = [];
   fixtures = [];
+  readers = READERS;
   resources = [
     linked(LinkedAffectedResourceType.Monitor, OTHER_HOST, "Shop synthetic"),
     linked(LinkedAffectedResourceType.DockerHost, DOCKER_A, "web-1"),
@@ -208,6 +241,7 @@ async function readIncident(): Promise<LinkedInfrastructure> {
     await LinkedInfrastructureContext.readForIncident({
       projectId: PROJECT_ID,
       incidentId: INCIDENT_ID,
+      readAudience: readers,
     });
 
   if (!result) {
@@ -347,6 +381,7 @@ describe("which resources", () => {
       await LinkedInfrastructureContext.readForIncident({
         projectId: PROJECT_ID,
         incidentId: INCIDENT_ID,
+        readAudience: READERS,
       }),
     ).toBeNull();
     expect(findAlerts).not.toHaveBeenCalled();
@@ -368,7 +403,8 @@ describe("which alerts", () => {
       const query: JSONObject = read.query as unknown as JSONObject;
 
       expect(query["projectId"]).toBe(PROJECT_ID);
-      expect(read.props).toEqual({ isRoot: true });
+      // For everyone who may see the incident (#9576).
+      expect(read.props).toEqual(readAudienceProps(READERS));
       expect(read.limit).toBe(MAX_RELATED_ALERTS + 1);
       expect(read.sort).toEqual({ createdAt: "DESC" });
     }
@@ -614,6 +650,7 @@ describe("which alerts", () => {
 
     const result: LinkedInfrastructure | null =
       await LinkedInfrastructureContext.readForAlert({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         alertId: new ObjectID(SUBJECT),
       });
@@ -626,6 +663,107 @@ describe("which alerts", () => {
     expect(LinkedInfrastructureContext.buildContextSection(result)).toContain(
       "minutes before this alert",
     );
+  });
+});
+
+/*
+ * WHAT THE REPORT'S READERS MAY READ (#9576). Everyone who may see the
+ * incident reads the report. Where some role reads alerts only for some
+ * labels, an alert carrying a label is set apart from somebody who reads
+ * it: never listed, never counted among the ones "more" than listed, its
+ * title never written. The linked resources are the incident's own.
+ */
+describe("the alerts the incident's readers may read", () => {
+  // A team of the project reads alerts only for some labels.
+  const NARROWED: ReadAudience = readAudienceOf({
+    projectId: PROJECT_ID,
+    labelledPermissions: [Permission.ProjectMember],
+  });
+
+  function hrAlert(index: number): AlertFixture {
+    return {
+      id: alertId(100 + index),
+      number: 100 + index,
+      title: `Payroll export failed ${index} (HR only)`,
+      openedMinutesFromIncident: -2,
+      isOpen: true,
+      column: "hosts",
+      on: [HOST_A],
+      isSetApart: true,
+    };
+  }
+
+  test("every alert is read for the incident's readers", async () => {
+    readers = NARROWED;
+
+    await readIncident();
+
+    for (const read of alertReads) {
+      expect(read.props).toEqual(readAudienceProps(NARROWED));
+    }
+  });
+
+  test("an alert set apart is never listed nor its title written; one nobody set apart still is", async () => {
+    readers = NARROWED;
+    fixtures = [
+      hrAlert(1),
+      {
+        id: alertId(1),
+        number: 1,
+        title: "host A high CPU",
+        openedMinutesFromIncident: -5,
+        isOpen: true,
+        column: "hosts",
+        on: [HOST_A],
+      },
+    ];
+
+    const result: LinkedInfrastructure = await readIncident();
+    const section: string =
+      LinkedInfrastructureContext.buildContextSection(result);
+
+    expect(
+      result.alerts.map((alert: RelatedAlert): number | undefined => {
+        return alert.alertNumber;
+      }),
+    ).toEqual([1]);
+    expect(section).toContain("host A high CPU");
+    expect(section).not.toContain("Payroll");
+    expect(section).not.toContain(alertId(101));
+  });
+
+  test("alerts set apart are never counted: the context reads as though they never opened", async () => {
+    readers = NARROWED;
+    fixtures = Array.from({ length: MAX_RELATED_ALERTS + 3 }).map(
+      (_: unknown, index: number): AlertFixture => {
+        return hrAlert(index);
+      },
+    );
+
+    const narrowed: LinkedInfrastructure = await readIncident();
+
+    fixtures = [];
+    alertReads = [];
+
+    const empty: LinkedInfrastructure = await readIncident();
+
+    expect(narrowed.alerts).toEqual([]);
+    expect(narrowed.hasMoreAlerts).toBe(false);
+    expect(LinkedInfrastructureContext.buildContextSection(narrowed)).toBe(
+      LinkedInfrastructureContext.buildContextSection(empty),
+    );
+  });
+
+  test("a project whose roles narrow nobody lists the same alert, as before", async () => {
+    fixtures = [hrAlert(1)];
+
+    const result: LinkedInfrastructure = await readIncident();
+
+    expect(
+      result.alerts.map((alert: RelatedAlert): number | undefined => {
+        return alert.alertNumber;
+      }),
+    ).toEqual([101]);
   });
 });
 

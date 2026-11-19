@@ -720,20 +720,25 @@ export default class StatusPageGroupHierarchyViewUtil {
   }
 
   /*
-   * The `order` a group has to be given to swap places with the sibling above
-   * or below it.
+   * The group whose place a group takes to swap places with the sibling
+   * above or below it: that sibling's id, or null when there is none that
+   * way.
    *
    * `order` is one flat sequence across the whole status page rather than one
-   * per parent, so a sibling's own order is the correct target: the service
-   * renumbers everything between the two, which is what keeps every other
-   * group's relative position intact.
+   * per parent, so the move is "take the sibling's place": the server moves
+   * the group there and steps everything between the two aside, which keeps
+   * every other group's relative position intact (POST
+   * /status-page-group/:id/move, Types/Database/MoveInList). Named by id,
+   * not by the sibling's number: a page numbered through the API can have
+   * two groups at one number, or a group with none, and a move must still
+   * swap them.
    */
-  public static getReorderTargetOrder(data: {
+  public static getReorderTargetId(data: {
     statusPageGroups: Array<StatusPageGroup>;
     statusPageGroupId: string;
     direction: "up" | "down";
     index?: StatusPageGroupTreeIndex | undefined;
-  }): number | null {
+  }): string | null {
     const index: StatusPageGroupTreeIndex = this.resolveIndex(data);
 
     const group: StatusPageGroup | undefined = index.byId.get(
@@ -758,17 +763,11 @@ export default class StatusPageGroupHierarchyViewUtil {
         ? neighbours.previousSiblingId
         : neighbours.nextSiblingId;
 
-    if (!neighbourId) {
+    if (!neighbourId || !index.byId.get(neighbourId)) {
       return null;
     }
 
-    const neighbour: StatusPageGroup | undefined = index.byId.get(neighbourId);
-
-    if (!neighbour || typeof neighbour.order !== "number") {
-      return null;
-    }
-
-    return neighbour.order;
+    return neighbourId;
   }
 
   /*

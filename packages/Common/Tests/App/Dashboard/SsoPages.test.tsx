@@ -699,6 +699,8 @@ const PAGE_CASES: Array<PageCase> = [
     printed: [
       `https://oneuptime.example.com/identity/oidc-callback/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
+      // Where the provider sends people once it has signed them out (#9535).
+      "https://oneuptime.example.com/accounts",
     ],
     turnOnNote: OIDC_TURN_ON_NOTE,
     startsOnMembersTeam: true,
@@ -709,7 +711,10 @@ const PAGE_CASES: Array<PageCase> = [
       model: "Project",
       modelId: PROJECT_ID,
     },
-    // What the identity provider gives, then how people sign in.
+    /*
+     * What the identity provider gives, then how people sign in, and last
+     * whether signing out signs people out of the provider too (#9535).
+     */
     formFields: [
       "name",
       "issuerURL",
@@ -722,6 +727,7 @@ const PAGE_CASES: Array<PageCase> = [
       "emailClaimName",
       "nameClaimName",
       "description",
+      "signOutOfIdentityProvider",
     ],
     attachesToStatusPage: false,
     names: {

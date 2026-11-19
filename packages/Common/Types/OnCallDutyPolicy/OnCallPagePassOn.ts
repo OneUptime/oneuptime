@@ -809,9 +809,20 @@ export function getOnCallPassOnLevelChoices(
     choices.push(choice);
   }
 
+  /*
+   * In the policy's order: by place, and two levels at one place by their
+   * rule's id, as the levels are read (OnCallRunLevel).
+   */
   return choices.sort(
     (a: OnCallPassOnLevelChoice, b: OnCallPassOnLevelChoice): number => {
-      return a.order - b.order;
+      if (a.order !== b.order) {
+        return a.order - b.order;
+      }
+
+      const aId: string = a.escalationRuleId.trim().toLowerCase();
+      const bId: string = b.escalationRuleId.trim().toLowerCase();
+
+      return aId < bId ? -1 : aId > bId ? 1 : 0;
     },
   );
 }
@@ -867,15 +878,14 @@ export function getOnCallPassOnPickedResult(
     return { result: result, skipped: [] };
   }
 
+  // The levels before the one picked, in order: one at its place included.
   return {
     result: {
       ...result,
       rule: { order: picked.order, name: picked.name },
     },
     skipped: choices
-      .filter((choice: OnCallPassOnLevelChoice): boolean => {
-        return choice.order < picked.order;
-      })
+      .slice(0, choices.indexOf(picked))
       .map((choice: OnCallPassOnLevelChoice): OnCallPassOnRule => {
         return { order: choice.order, name: choice.name };
       }),

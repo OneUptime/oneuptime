@@ -44,6 +44,7 @@ import AnalyticsDatabaseService, {
   Results,
 } from "../../../Server/Services/AnalyticsDatabaseService";
 import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../Models/AnalyticsModels/Log";
@@ -99,8 +100,11 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceFramework,
   DataSecurityComplianceResponse,
+  DataSecurityFindingOccurrence,
   DataSecurityFindingOccurrences,
+  DataSecurityOccurrenceExcerptPartKind,
   DataSecurityOccurrenceRecordKind,
+  DataSecurityOccurrencesSource,
   DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
@@ -109,6 +113,7 @@ import {
   DataSecurityResourceScope,
   MAX_RESOURCE_SCOPE_STORES,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
+import { FindingSampleRecord } from "../../../Types/DataSecurity/FindingSampleRecord";
 import { getDataSecurityCheck } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
@@ -1285,7 +1290,7 @@ describe("A telemetry finding's records", () => {
       .mockResolvedValue(READ_ANSWER);
   });
 
-  test("reads the newest records of the finding's store, at its location, for its data type, with the project's scan setup", async () => {
+  test("reads the records of the finding's store, at its location, for its data type, with the project's scan setup", async () => {
     asCaller([Permission.SecurityMember]);
 
     const result: RouteCall = await records();
@@ -1297,10 +1302,13 @@ describe("A telemetry finding's records", () => {
       select: {
         dataTypeId: true,
         location: true,
+        sampleRecords: true,
+        lastSeenAt: true,
         dataStore: { kind: true, serviceId: true, storeKey: true },
       },
     });
     expect(setupSpy).toHaveBeenCalledWith(PROJECT_ID);
+    // A finding no scan kept records for, nor saw: its newest records.
     expect(occurrencesSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       plan: {
@@ -1311,8 +1319,40 @@ describe("A telemetry finding's records", () => {
       location: "attributes.user.email",
       dataTypeId: "email-address",
       options: scanOptions,
+      sampleRecords: [],
+      lastSeenAt: null,
       now: NOW,
     });
+  });
+
+  test("hands over the records the last scan found it in, read as records, and when it last saw it (#9549)", async () => {
+    const lastSeenAt: Date = new Date(NOW.getTime() - 12 * 86_400_000);
+
+    findingRow!.lastSeenAt = lastSeenAt;
+    findingRow!.sampleRecords = [
+      {
+        time: "2026-10-15T11:59:58.123Z",
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        // Nothing but a record's keys is read from the column.
+        value: "jane.doe@acme-corp.com",
+      } as unknown as FindingSampleRecord,
+      { time: "not a time" },
+    ];
+
+    await records();
+
+    expect(occurrencesSpy.mock.calls[0]![0]).toMatchObject({
+      sampleRecords: [
+        {
+          time: "2026-10-15T11:59:58.123Z",
+          traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        },
+      ],
+      lastSeenAt,
+    });
+    expect(JSON.stringify(occurrencesSpy.mock.calls[0]![0])).not.toContain(
+      "jane.doe",
+    );
   });
 
   test("asks whether the caller may read that telemetry themselves, of the table its records are rows of", async () => {
@@ -1556,11 +1596,79 @@ describe("A telemetry finding's records", () => {
         spanId: "00f067aa0ba902b7",
         severity: "Warning",
         maskedValue: "j***@a********.com",
+        excerpt: {
+          field: "user.email",
+          parts: [
+            {
+              kind: DataSecurityOccurrenceExcerptPartKind.Match,
+              text: "j***@a********.com",
+            },
+          ],
+          isCutAtStart: false,
+          isCutAtEnd: false,
+        },
       },
     ]);
     expect(answer.recordsRead).toBe(2);
+    expect(answer.source).toBe(DataSecurityOccurrencesSource.Recent);
     expect(JSON.stringify(answer)).not.toContain("jane.doe");
     expect(JSON.stringify(answer)).not.toContain("support@acme.io");
+  });
+
+  test("end to end, with the records the last scan kept: those records, looked up by their millisecond", async () => {
+    occurrencesSpy.mockRestore();
+
+    const statements: Array<Statement> = [];
+    const lastSeenAt: Date = new Date("2026-10-15T12:01:30.000Z");
+
+    findingRow = serviceFinding(DataStoreKind.TelemetryLogs, "body");
+    findingRow.dataTypeId = "ip-address";
+    findingRow.lastSeenAt = lastSeenAt;
+    findingRow.sampleRecords = [{ time: "2026-10-15T11:59:58.123Z" }];
+    jest
+      .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+      .mockImplementation((async (statement: Statement): Promise<Results> => {
+        statements.push(statement);
+
+        return {
+          json: (): Promise<unknown> => {
+            return Promise.resolve({
+              data: [
+                {
+                  ownerId: SERVICE_ID.toString(),
+                  recordTime: String(Date.parse("2026-10-15T11:59:58.123Z")),
+                  readSeverity: "Info",
+                  readBody: "Ping to 34.120.7.19 succeeded in 120 ms",
+                },
+              ],
+            });
+          },
+        } as unknown as Results;
+      }) as never);
+
+    const answer: DataSecurityFindingOccurrences = (await records())
+      .answer as unknown as DataSecurityFindingOccurrences;
+
+    expect(statements.length).toBe(1);
+    expect(statements[0]!.query).toMatch(
+      /AND \(\(time >= \{p\d+:DateTime64\(9\)\} AND time < \{p\d+:DateTime64\(9\)\}\)\)/,
+    );
+    // A lookup of kept records is not narrowed by a pattern.
+    expect(statements[0]!.query).not.toContain("match(substringUTF8(body");
+    expect(answer.source).toBe(DataSecurityOccurrencesSource.SampledRecords);
+    expect(answer.lastSeenAt).toBe(lastSeenAt.toISOString());
+    expect(
+      answer.occurrences.map(
+        (occurrence: DataSecurityFindingOccurrence): string => {
+          return (occurrence.excerpt?.parts || [])
+            .map((part: { text: string }): string => {
+              return part.text;
+            })
+            .join("");
+        },
+      ),
+    ).toEqual(["Ping to 34.***.***.*** succeeded in 120 ms"]);
+    expect(JSON.stringify(answer)).not.toContain("34.120.7.19");
   });
 });
 

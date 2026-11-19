@@ -259,10 +259,12 @@ class BaseAPI extends API {
    * Signs the person out, and resolves once the server has answered the
    * sign-out or the wait for it is over (User.logout). Never rejects. A
    * client whose 401 ends no session of a person's says so (a status page's
-   * signs its reader out, a form page signs nobody out).
+   * signs its reader out, a form page signs nobody out). A session that
+   * ended this way goes to the sign-in page, never to an identity
+   * provider's sign-out: only the person's own Sign Out does that.
    */
-  protected static logoutUser(): Promise<void> {
-    return User.logout();
+  protected static async logoutUser(): Promise<void> {
+    await User.logout();
   }
 
   /*

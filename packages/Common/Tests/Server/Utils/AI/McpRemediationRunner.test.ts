@@ -47,6 +47,8 @@ import FakeMcpServer, {
   LocalMcpHttpTransport,
 } from "../../../Helpers/FakeMcpServer";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * A FIX THROUGH THE PROJECT'S EXTERNAL MCP SERVERS, AGAINST A FAKE MCP
@@ -196,6 +198,18 @@ function changingCalls(): Array<string> {
       return name !== "describe_service";
     });
 }
+
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+});
 
 beforeEach(() => {
   clearMcpSignInCachesForTests();

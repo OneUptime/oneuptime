@@ -54,6 +54,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * ---------------------------------------------------------------------------
@@ -227,6 +228,7 @@ beforeEach(() => {
   ).mockResolvedValue(undefined);
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  treatEverySessionAsLive();
   getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(false);
   getJestSpyOn(GlobalConfigService, "getRequireSsoForLogin").mockResolvedValue(
     false,

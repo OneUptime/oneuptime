@@ -570,9 +570,10 @@ describe("VMware overview (Index.tsx)", () => {
     expect(
       between(hero, 'data-testid="vmware-hero-connection"', '"Data Status"'),
     ).toContain("{connectionLabel} </span> <InfoTooltip");
+    // The shared pill (ResourceHealthPill), which opens why when it is not Healthy.
     expect(
-      between(hero, 'data-testid="vmware-hero-health"', '"vCenter Health"'),
-    ).toContain("{healthLabel} </span> <InfoTooltip");
+      between(hero, 'testId="vmware-hero-health"', '"vCenter Health"'),
+    ).toContain("words={VMWARE_HEALTH_WORDS} /> <InfoTooltip");
     expect(code).not.toContain("<InfoCard");
     expect(code).not.toMatch(CARD_TOOLTIP);
   });

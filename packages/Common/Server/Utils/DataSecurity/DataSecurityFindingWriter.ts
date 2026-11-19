@@ -18,7 +18,7 @@ import {
 import logger from "../Logger";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../Types/Date";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DataCategory from "../../../Types/DataSecurity/DataCategory";
 import { FINDING_FRESHNESS_IN_DAYS } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
@@ -27,6 +27,7 @@ import {
   DataTypeInfo,
   getBuiltInDataType,
 } from "../../../Types/DataSecurity/DataTypeCatalog";
+import { readFindingSampleRecords } from "../../../Types/DataSecurity/FindingSampleRecord";
 import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
 
 /*
@@ -361,6 +362,17 @@ export default class DataSecurityFindingWriter {
         columns["aiReason"] = null;
       } else if (classification.aiReason !== undefined) {
         columns["aiReason"] = classification.aiReason.slice(0, 500);
+      }
+
+      /*
+       * A telemetry scan says which records of its sample held the data:
+       * this scan's, the newest that saw it, replace the last one's. Any
+       * other scan says nothing, and leaves them be.
+       */
+      if (location.sampleRecords) {
+        columns["sampleRecords"] = readFindingSampleRecords(
+          location.sampleRecords[classification.dataTypeId] || [],
+        ) as unknown as JSONArray;
       }
 
       if (description.category) {

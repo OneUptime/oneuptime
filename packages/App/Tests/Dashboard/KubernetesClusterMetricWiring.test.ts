@@ -6,6 +6,10 @@ import {
   KUBERNETES_COST_METRIC_DESCRIPTIONS,
   KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import {
+  KubernetesStatusChip,
+  getKubernetesStatusChips,
+} from "../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesPodStatus";
 
 /*
  * Every metric on the Kubernetes cluster pages carries an (i) that says what
@@ -36,7 +40,6 @@ const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const WHITESPACE: RegExp = /\s+/g;
 const TITLE_ATTRIBUTE: RegExp = /title="([^"]+)"/;
 const TITLE_PROPERTY: RegExp = /title: "([^"]+)"/;
-const LABEL_PROPERTY: RegExp = /label: "([^"]+)"/;
 const TILE_WINDOW: RegExp = /const TILE_WINDOW_MINUTES: number = (\d+);/;
 const TOP_POD_SLICE: RegExp = /\.slice\(0, (\d+)\)/g;
 const IDLE_THRESHOLDS: RegExp =
@@ -164,6 +167,9 @@ const RIGHT_SIZING_RECORD: string =
   "KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS";
 
 const OVERVIEW: string = readCode("Pages/Kubernetes/View/Index.tsx");
+const POD_STATUS: string = readCode(
+  "Pages/Kubernetes/Utils/KubernetesPodStatus.ts",
+);
 const RIGHT_SIZING: string = readCode(
   "Pages/Kubernetes/View/KubernetesRightSizingCard.tsx",
 );
@@ -301,32 +307,72 @@ describe("cluster overview: hero chips", () => {
     "return ( <TimeRangeZoomScope",
   );
 
+  /*
+   * Each pod once, as kubectl's STATUS says it (KubernetesPodStatus): Running
+   * explains itself in its (i); every count of something wrong opens which
+   * pods or nodes and why, and its dialog says what the count means
+   * (#9537).
+   */
   test("each pod status chip carries its own description", () => {
-    const chips: string = between(
-      hero,
-      "const podStatusChips:",
-      "return ( <div",
-    );
+    const chips: Array<KubernetesStatusChip> = getKubernetesStatusChips({
+      pods: {
+        running: 8,
+        pending: 2,
+        failed: 1,
+        succeeded: 1,
+        unknown: 1,
+        cannotRun: [{ reason: "CrashLoopBackOff", count: 2 }],
+      },
+      nodesNotReady: 1,
+    });
+
+    const descriptionKey: (text: string | undefined) => string | undefined = (
+      text: string | undefined,
+    ): string | undefined => {
+      return Object.keys(KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS).find(
+        (key: string): boolean => {
+          return (
+            KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS[
+              key as keyof typeof KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS
+            ] === text
+          );
+        },
+      );
+    };
 
     expect(
-      pairsIn({
-        block: chips,
-        opener: "podStatusChips.push({",
-        closer: "});",
-        titlePattern: LABEL_PROPERTY,
-        prop: "description",
-        record: CLUSTER_RECORD,
+      chips.map((chip: KubernetesStatusChip): [string, string | undefined] => {
+        return [
+          chip.name,
+          descriptionKey(chip.problem?.description || chip.description),
+        ];
       }),
     ).toEqual([
       ["Running", "podsRunning"],
+      ["CrashLoopBackOff", "podsCannotRun"],
       ["Pending", "podsPending"],
       ["Failed", "podsFailed"],
+      ["Unknown", "podsUnknown"],
       ["Nodes Not Ready", "nodesNotReady"],
     ]);
+
+    // Only Running is explained in an (i); the rest open their dialog.
+    expect(
+      chips
+        .filter((chip: KubernetesStatusChip): boolean => {
+          return !chip.problem;
+        })
+        .map((chip: KubernetesStatusChip): string => {
+          return chip.name;
+        }),
+    ).toEqual(["Running"]);
   });
 
-  test("the chip renders its (i) inside the chip, named after the chip", () => {
-    expectCode(hero, "<InfoTooltip label={chip.label} text={chip.description}");
+  test("a chip that only explains renders its (i) inside the chip, named after the chip; the rest are buttons that open which and why", () => {
+    expectCode(hero, "<InfoTooltip label={chip.name} text={chip.description}");
+    expectCode(hero, "<ResourceAttentionPill key={chip.key}");
+    expectCode(hero, "description: problem.description,");
+    expectCode(hero, "loadKubernetesProblemItems({");
   });
 
   test("the inventory count row ends with one (i) for the whole row", () => {
@@ -427,8 +473,10 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
   });
 
   test("the overview shows every cluster description except the Insights one", () => {
+    // The hero's counts take theirs from the chips' own module.
+    const shownBy: string = `${OVERVIEW} ${POD_STATUS}`;
     for (const key of Object.keys(KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS)) {
-      const referenced: boolean = OVERVIEW.includes(`${CLUSTER_RECORD}.${key}`);
+      const referenced: boolean = shownBy.includes(`${CLUSTER_RECORD}.${key}`);
 
       expect({ key, referenced }).toEqual({
         key,

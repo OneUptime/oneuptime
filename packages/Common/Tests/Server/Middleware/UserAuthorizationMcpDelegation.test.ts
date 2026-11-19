@@ -79,6 +79,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * The first thing UserMiddleware does with a request is ask whether it carries
@@ -273,6 +274,7 @@ describe("UserMiddleware hands a request with an MCP delegation token to McpDele
       UserService,
       "isUserBlocked",
     ).mockResolvedValue(false);
+    treatEverySessionAsLive();
     // A session that says master admin is one whose person still is one.
     getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
     getJestSpyOn(

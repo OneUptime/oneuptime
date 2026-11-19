@@ -44,6 +44,8 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../../Types/Date";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import ReadAudienceReader from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * Contract under test — Enable AI is the ONE project switch every
@@ -223,6 +225,18 @@ async function run(): Promise<void> {
     attemptCount: 1,
   });
 }
+
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+});
 
 describe("RemediationExecutionRunner — Enable AI is the one project gate for every round", () => {
   let runCas: jest.SpyInstance;

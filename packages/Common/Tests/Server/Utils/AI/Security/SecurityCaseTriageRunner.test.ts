@@ -43,6 +43,8 @@ import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityD
 import { SETUP_TEST_SOURCE_IP } from "../../../../../Types/SecurityEvent/SecuritySetupTest";
 import SecurityPlaybookTrigger from "../../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ReadAudienceReader from "../../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { readAudienceOf } from "../../../../Helpers/ReadAudienceFixtures";
 
 /*
  * OneUptime AI triages a security case: the runner the AI queue hands a
@@ -156,6 +158,18 @@ function driveEngine(options: {
       },
     );
 }
+
+/*
+ * Who reads what the run posts (#9612), stubbed as a project whose roles
+ * narrow nobody: the run reads as it did. The readers' own suites
+ * (ReadAudienceReader, RemediationReadAudience, the runners' read-audience
+ * suites) hold what narrows them.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockResolvedValue(readAudienceOf({ projectId: projectId }));
+});
 
 describe("SecurityCaseTriageRunner.executeTriage", () => {
   let updateCase: jest.SpyInstance;

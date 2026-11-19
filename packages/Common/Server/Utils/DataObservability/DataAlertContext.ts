@@ -45,6 +45,7 @@ import DataTableLineageReader, {
   withNamedReadable,
 } from "./DataTableLineage";
 import { describeDataAlertLineage } from "./DataTableLineageAnswer";
+import ReadAudience from "../../../Types/BaseDatabase/ReadAudience";
 
 /*
  * WHAT AN AI INVESTIGATION OF A DATA ALERT NEEDS TO KNOW.
@@ -121,7 +122,7 @@ const MAX_WRITING_PIPELINE_ROWS: number = 20;
  * table or pipeline is set apart, only that one would not be named.
  */
 export const DATA_ALERT_READ_SCOPE_LINE: string =
-  "- The tables and pipelines named below are the ones everyone who may see this alert may read: its own, and those no owner or label sets apart. Any other is left out, never named or counted.";
+  "- The tables and pipelines named below are the ones everyone who may see this alert may read: its own, and those no owner or label sets apart from any of them. Any other is left out, never named or counted.";
 
 function clip(text: string | null | undefined, max: number): string {
   const value: string = (text || "").replace(/\s+/g, " ").trim();
@@ -159,6 +160,13 @@ export default class DataAlertContext {
     projectId: ObjectID;
     alertId: ObjectID;
     now: Date;
+    /*
+     * Everyone who may see the alert (#9576): the tables and pipelines no
+     * team, custom role or API key reads only by owner or label are read
+     * whole (DataObservabilityReadScope.forAudience). Left out, as nobody
+     * in particular may read them.
+     */
+    readAudience?: ReadAudience | undefined;
   }): Promise<string> {
     const dataAlert: DataAlert | null = await DataAlertService.findOneBy({
       query: { projectId: data.projectId, alertId: data.alertId },
@@ -203,8 +211,9 @@ export default class DataAlertContext {
      * names itself. Its lineage, its writers and its table's dashboards
      * are all read through it.
      */
-    const scope: DataObservabilityScope =
-      DataObservabilityReadScope.nobodyInParticular(data.projectId);
+    const scope: DataObservabilityScope = data.readAudience
+      ? DataObservabilityReadScope.forAudience(data.readAudience)
+      : DataObservabilityReadScope.nobodyInParticular(data.projectId);
     const named: DataLineageNamed = getDataAlertNamed(dataAlert);
     const readable: DataLineageReadable = withNamedReadable(
       DataTableLineageReader.getReadable(scope),

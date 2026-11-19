@@ -301,6 +301,7 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
         formSteps={getSsoProviderFormSteps<GlobalOIDC>()}
         formFields={getOidcProviderFormFields<GlobalOIDC>({
           withGlobalAccessSwitches: true,
+          withIdentityProviderSignOut: true,
         })}
         /*
          * As for SAML: the new provider's page holds its redirect URI, the

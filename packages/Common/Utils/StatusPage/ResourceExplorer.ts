@@ -898,21 +898,23 @@ export default class StatusPageResourceExplorerUtil {
   }
 
   /*
-   * The `order` to write when a resource is dragged from one position to
-   * another.
+   * The resource whose place a dragged resource takes: the one standing where
+   * it was dropped, by id.
    *
-   * The server renumbers the group's siblings around whatever order it is
-   * given, so the write is "take the place of the resource currently sitting
-   * there" rather than an index - the same write the old table's drag and drop
-   * made, and the only one StatusPageResourceService knows how to rebalance.
+   * The move is "take the place of the resource currently sitting there"
+   * rather than an index - the server moves the resource there and steps the
+   * rest of the group aside (POST /status-page-resource/:id/move,
+   * Types/Database/MoveInList). Named by id, not by that resource's number:
+   * a group numbered through the API can have two resources at one number,
+   * or one with none, and a drop must still land where it was made.
    *
    * Null when the move is a no-op or the positions are not real.
    */
-  public static getReorderTargetOrder(data: {
+  public static getReorderTargetId(data: {
     statusPageResources: Array<StatusPageResource>;
     fromIndex: number;
     toIndex: number;
-  }): number | null {
+  }): string | null {
     const { statusPageResources, fromIndex, toIndex } = data;
 
     if (fromIndex === toIndex) {
@@ -930,11 +932,11 @@ export default class StatusPageResourceExplorerUtil {
 
     const target: StatusPageResource | undefined = statusPageResources[toIndex];
 
-    if (!target || target.order === undefined || target.order === null) {
+    if (!target || !target.id) {
       return null;
     }
 
-    return target.order;
+    return target.id.toString();
   }
 
   /*

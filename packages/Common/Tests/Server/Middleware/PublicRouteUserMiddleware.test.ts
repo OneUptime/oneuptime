@@ -23,6 +23,7 @@ import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import jwt from "jsonwebtoken";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * getPublicRouteUserMiddleware: getUserMiddleware for the public dashboard and
@@ -244,6 +245,7 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   // A blocked user's token is BlockedUserMiddleware.test.ts; here nobody is blocked.
   getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  treatEverySessionAsLive();
   // A token that says master admin is one whose person still is one.
   getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
 });

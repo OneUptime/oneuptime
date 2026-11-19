@@ -259,6 +259,12 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 6. Open de link in de kaart **Test Single Sign On (SSO)** en kies de provider, om u er via aan te melden voordat u voor het project SSO verplicht.
 :::
 
+### Ook afmelden bij de identiteitsprovider
+
+Afmelden bij OneUptime laat iemand aangemeld bij de identiteitsprovider, dus op een gedeelde computer, zoals een NOC-scherm of een kiosk, komt de volgende persoon die op de aanmeldpagina de provider kiest binnen als degene die wegging. Zet **Ook afmelden bij de identiteitsprovider** aan onder **Meer velden** om bij een afmelding bij OneUptime ook de sessie bij de provider te beëindigen. Het staat standaard uit: op een persoonlijke laptop zou het iemand ook afmelden bij elke andere app die de provider gebruikt.
+
+Staat het aan, dan gaat de browser naar de afmelding van de provider zodra OneUptime hem heeft afgemeld, en de provider stuurt hem terug naar de aanmeldpagina van OneUptime. Registreer die pagina bij uw provider: het dialoogvenster **OIDC-configuratie** toont haar als omleidings-URI na afmelden, die providers een post-logout redirect URI noemen. Een provider waarvan het discovery-document geen `end_session_endpoint` noemt, zoals Google, kan het niet aanzetten. Het geldt voor mensen die zich na het aanzetten in een browser aanmelden; de mobiele app meldt alleen af bij OneUptime. SAML-providers melden nooit iemand af bij de identiteitsprovider.
+
 ## Rollen en teams voor SSO-gebruikers
 
 OneUptime neemt geen rollen of groepen over van uw identiteitsprovider. Wat iemand mag, volgt uit de teams waarin de persoon zit: een provider voegt nieuwkomers toe aan zijn **Teams**, en u beheert teams en hun machtigingen in OneUptime, zoals [Gebruikers, teams en machtigingen](/docs/permissions/index) beschrijft. Gebruik [SCIM](/docs/identity/scim) om het teamlidmaatschap gelijk te houden met uw identiteitsprovider. Elk team waar iemand bij het aanmelden lid van wordt, wordt vastgelegd op de pagina **Auditlogboeken** van dat team, als een wijziging van de persoon die zich aanmeldde.

@@ -4,6 +4,7 @@ import SecurityCaseContextAPI, {
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import SecurityCaseImpact from "../../../Server/Utils/SecurityCase/Context/SecurityCaseImpact";
+import SecurityCaseMatches from "../../../Server/Utils/SecurityCase/Context/SecurityCaseMatches";
 import SecurityCaseStory from "../../../Server/Utils/SecurityCase/Context/SecurityCaseStory";
 import {
   ExpressRequest,
@@ -25,9 +26,14 @@ import {
   SecurityCaseInternetExposure,
   SecurityCaseStoryJson,
 } from "../../../Types/SecurityCase/SecurityCaseContext";
+import {
+  SECURITY_CASE_MATCHES_API_PATH,
+  SecurityCaseMatchesJson,
+} from "../../../Types/SecurityCase/SecurityCaseMatches";
 
 /*
- * The routes behind a case's Story and Impact: who may call them (a reader
+ * The routes behind a case's Story, Impact and Matches (why it was opened,
+ * and what its detections matched, #9556): who may call them (a reader
  * without Security access sees no security data), that each reads inside the
  * caller's project with the caller's own permissions, and what each refuses.
  */
@@ -78,6 +84,13 @@ const IMPACT: SecurityCaseImpactJson = {
   statusPages: [],
   flowPeers: [],
   internet: { exposure: SecurityCaseInternetExposure.Unknown, evidence: [] },
+  unreadableSources: [],
+  failedSources: [],
+};
+
+const MATCHES: SecurityCaseMatchesJson = {
+  detections: [],
+  detectionCount: 0,
   unreadableSources: [],
   failedSources: [],
 };
@@ -142,7 +155,11 @@ afterEach(() => {
 });
 
 describe("route registration", () => {
-  test.each([SECURITY_CASE_STORY_API_PATH, SECURITY_CASE_IMPACT_API_PATH])(
+  test.each([
+    SECURITY_CASE_STORY_API_PATH,
+    SECURITY_CASE_IMPACT_API_PATH,
+    SECURITY_CASE_MATCHES_API_PATH,
+  ])(
     "%s resolves the user and requires authentication first",
     (uri: string) => {
       const found: { uri: string; handlers: Array<Handler> } | undefined =
@@ -161,6 +178,9 @@ describe("route registration", () => {
   test("the routes are where the Dashboard asks for them", () => {
     expect(SECURITY_CASE_STORY_API_PATH).toBe("/security-case-context/story");
     expect(SECURITY_CASE_IMPACT_API_PATH).toBe("/security-case-context/impact");
+    expect(SECURITY_CASE_MATCHES_API_PATH).toBe(
+      "/security-case-context/matches",
+    );
   });
 });
 
@@ -184,6 +204,16 @@ describe.each([
         .mockResolvedValue(IMPACT as never);
     },
     answer: IMPACT as unknown as JSONObject,
+  },
+  {
+    uri: SECURITY_CASE_MATCHES_API_PATH,
+    name: "matches",
+    spy: (): jest.SpyInstance => {
+      return jest
+        .spyOn(SecurityCaseMatches, "build")
+        .mockResolvedValue(MATCHES as never);
+    },
+    answer: MATCHES as unknown as JSONObject,
   },
 ])(
   "POST $uri",

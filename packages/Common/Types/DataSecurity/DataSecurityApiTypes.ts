@@ -219,10 +219,53 @@ export enum DataSecurityOccurrencesUnavailableReason {
   NoOwner = "NoOwner",
 }
 
+// What a part of a record's excerpt is.
+export enum DataSecurityOccurrenceExcerptPartKind {
+  // The record's own text, as it reads.
+  Text = "Text",
+  // The finding's data, masked: what the excerpt is about.
+  Match = "Match",
+  // Other sensitive data beside it, masked too.
+  Masked = "Masked",
+}
+
+export interface DataSecurityOccurrenceExcerptPart {
+  kind: DataSecurityOccurrenceExcerptPartKind;
+  text: string;
+}
+
+/*
+ * What a record holds at a finding's location, around the finding's data:
+ * a log line, an exception's message, an attribute's value, a prompt - cut
+ * to the part that matters, with every sensitive value in it masked as a
+ * finding's samples are, and the finding's own data marked. Shown only to
+ * someone who may read that telemetry; the record itself shows it whole.
+ */
+export interface DataSecurityOccurrenceExcerpt {
+  // The attribute the value is under, as the record names it: user.email.
+  field?: string | undefined;
+  // For a span event's attribute: the event's name.
+  event?: string | undefined;
+  parts: Array<DataSecurityOccurrenceExcerptPart>;
+  // The value goes on before the first part, or after the last.
+  isCutAtStart: boolean;
+  isCutAtEnd: boolean;
+}
+
+// Which records a finding's records were read from.
+export enum DataSecurityOccurrencesSource {
+  // The very records the last scan found it in (DataStoreFinding.sampleRecords).
+  SampledRecords = "SampledRecords",
+  // The records written in the hour the last scan read, before scans kept them.
+  SampleWindow = "SampleWindow",
+  // The newest records of the last days: when no scan has seen it.
+  Recent = "Recent",
+}
+
 /*
  * One record a telemetry finding's data was seen in: enough to open it -
  * the trace, the log line, the exception, the session - and the data,
- * masked as a finding's samples are. Never the record's other contents.
+ * masked as a finding's samples are, in its place in the record (excerpt).
  */
 export interface DataSecurityFindingOccurrence {
   // When the record was written (ISO 8601).
@@ -242,6 +285,7 @@ export interface DataSecurityFindingOccurrence {
   fingerprint?: string | undefined;
   sessionId?: string | undefined;
   maskedValue: string;
+  excerpt?: DataSecurityOccurrenceExcerpt | undefined;
 }
 
 export interface DataSecurityFindingOccurrences {
@@ -255,6 +299,10 @@ export interface DataSecurityFindingOccurrences {
   // Every such record in the window was read.
   isComplete: boolean;
   unavailableReason?: DataSecurityOccurrencesUnavailableReason | undefined;
+  // Which records were read; Recent when absent (a server of the release before).
+  source?: DataSecurityOccurrencesSource | undefined;
+  // When a scan last saw the finding (ISO 8601): the records it was found in are from then.
+  lastSeenAt?: string | undefined;
 }
 
 export interface DataSecurityExplainResult {

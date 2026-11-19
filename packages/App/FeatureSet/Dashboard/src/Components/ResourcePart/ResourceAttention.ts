@@ -39,6 +39,53 @@ export interface ResourceAttentionText {
   plural?: { one: string; count: number } | undefined;
 }
 
+/*
+ * A fact about the part that a list of what failed shows under its name -
+ * its namespace, its owner, the node it ran on - so the reader knows which
+ * one it is without opening it. The value is the resource's own and reads
+ * as written; the fact links to the value's own page where it has one (the
+ * Deployment a pod belongs to).
+ */
+export interface ResourceAttentionFact {
+  key: string;
+  // What the fact is, in English, looked up where it is drawn: "Namespace".
+  label: string;
+  // Its value, as the resource writes it: never translated.
+  value: string;
+  /*
+   * A kind before the value, as the product writes it in every language -
+   * "Deployment" in "Deployment checkout".
+   */
+  valueKind?: string | undefined;
+  // The value is a count, written in the reader's digits ("۱۴").
+  isCount?: boolean | undefined;
+  route?: Route | undefined;
+}
+
+/*
+ * Something the resource itself reported about the part lately - a
+ * Kubernetes warning Event: "BackOff", "Back-off restarting failed
+ * container", 12 times, the last 2 minutes ago - in its own words.
+ */
+export interface ResourceAttentionEvent {
+  key: string;
+  reason: string;
+  message: string;
+  // How many times it happened; 1 or less draws no count.
+  count: number;
+  lastSeenAt?: Date | undefined;
+}
+
+/*
+ * When what is wrong began, and the sentence that says it: an English
+ * template with {{time}} ("Failing since {{time}}", "Failed {{time}}"),
+ * looked up where it is drawn, the time relative ("2 hours ago").
+ */
+export interface ResourceAttentionSince {
+  at: Date;
+  template: string;
+}
+
 export interface ResourceAttentionItem {
   // Unique within the list, stable across reloads (a test id reads it).
   key: string;
@@ -70,6 +117,15 @@ export interface ResourceAttentionItem {
   lastReportAt?: Date | undefined;
   // The part's own page.
   route?: Route | undefined;
+  /*
+   * What a list of what failed says about each part besides why - which
+   * one it is, since when, what the resource reported lately. The Needs
+   * attention card leaves them out; a dialog that answers "what failed?"
+   * (ResourceAttentionDialog) draws them.
+   */
+  facts?: Array<ResourceAttentionFact> | undefined;
+  since?: ResourceAttentionSince | undefined;
+  events?: Array<ResourceAttentionEvent> | undefined;
 }
 
 export interface ResourceAttentionCounts {

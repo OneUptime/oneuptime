@@ -1069,7 +1069,10 @@ import { AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000 } fr
 import { AddDataCheckMonitorIdIndex1809184560000 } from "./1809184560000-AddDataCheckMonitorIdIndex";
 import { AddTableHealthAttemptedAt1809184570000 } from "./1809184570000-AddTableHealthAttemptedAt";
 import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "./1809184620000-AddBiLineageSummaryAndDashboardUpstream";
-import { AddDataSecurityComplianceSettings1809184700000 } from "./1809184700000-AddDataSecurityComplianceSettings";
+import { AddDataStoreFindingSampleRecords1809184700000 } from "./1809184700000-AddDataStoreFindingSampleRecords";
+import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIdentityProviderSignOut";
+import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000-AddSecurityCaseTaskResponseStepKey";
+import { AddDataSecurityComplianceSettings1809184730000 } from "./1809184730000-AddDataSecurityComplianceSettings";
 
 export default [
   InitialMigration,
@@ -2143,5 +2146,8 @@ export default [
   AddDataCheckMonitorIdIndex1809184560000,
   AddTableHealthAttemptedAt1809184570000,
   AddBiLineageSummaryAndDashboardUpstream1809184620000,
-  AddDataSecurityComplianceSettings1809184700000,
+  AddDataStoreFindingSampleRecords1809184700000,
+  AddIdentityProviderSignOut1809184710000,
+  AddSecurityCaseTaskResponseStepKey1809184720000,
+  AddDataSecurityComplianceSettings1809184730000,
 ];

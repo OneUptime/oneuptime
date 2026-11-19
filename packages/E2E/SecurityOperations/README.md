@@ -92,8 +92,11 @@ Stubbed:
 - `POST /security-case-priority/:id/usage` and `/security-case-status/:id/usage`, which the
   Archive and Delete dialogs ask first, answer what uses the value as the server counts it: the
   cases that have it, and for a priority the playbooks that run from it.
-- A case's Story and Impact: `POST /security-case-context/story` and `/impact` answer as the
-  server would (`Fixture/CaseContextFixture.js`), around the case's window, from its own rows (its
+- A case's Story, Impact and Why This Case Was Opened: `POST /security-case-context/story`,
+  `/impact` and `/matches` answer as the server would (`Fixture/CaseContextFixture.js`); `/matches`
+  explains the case's detections with their rules and the events naming each one's group in the
+  windows it fired in (the spray's failed sign-ins, and the success after them). Story and Impact
+  read around the case's window, from its own rows (its
   detections, playbook runs, notes and milestones), the records Connected Signals lists for it and
   the security events naming each open case's entities - the spray's 412 failed Okta sign-ins and
   the success among them, build-runner-07's lookups of the known-bad domain, the PowerShell under

@@ -68,7 +68,7 @@ const OIDC_FORMS: Array<OidcForm> = [
     label: "ModelTable: Settings > Project OIDC",
     host: "ModelTable",
     builderCall:
-      "formFields={getOidcProviderFormFields<ProjectOIDC>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, })}",
+      "formFields={getOidcProviderFormFields<ProjectOIDC>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, withIdentityProviderSignOut: true, })}",
   },
   {
     file: `${DASHBOARD}/Pages/StatusPages/View/OIDC.tsx`,
@@ -82,14 +82,14 @@ const OIDC_FORMS: Array<OidcForm> = [
     label: "ModelTable: Settings > Single Sign-On > OpenID Connect",
     host: "ModelTable",
     builderCall:
-      "formFields={getOidcProviderFormFields<GlobalOIDC>({ withGlobalAccessSwitches: true, })}",
+      "formFields={getOidcProviderFormFields<GlobalOIDC>({ withGlobalAccessSwitches: true, withIdentityProviderSignOut: true, })}",
   },
   {
     file: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalOIDC/View.tsx`,
     label: "CardModelDetail: Global OIDC Configuration",
     host: "CardModelDetail",
     builderCall:
-      "formFields={getOidcProviderFormFields<GlobalOIDC>({ withGlobalAccessSwitches: true, })}",
+      "formFields={getOidcProviderFormFields<GlobalOIDC>({ withGlobalAccessSwitches: true, withIdentityProviderSignOut: true, })}",
   },
 ];
 
@@ -121,10 +121,12 @@ const PROVIDER_STEP_OPEN: Array<string> = [
 const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "isEnabled"];
 
 /*
- * Everything with an answer, folded. The last two only on the Global form:
- * its two questions, People without an account and Where this sign-in counts as SSO,
- * by the keys the form keeps them under. The columns they write
- * (disableSignUpWithSso, restrictToAttachedProjects) are registered unseen.
+ * Everything with an answer, folded. The Global form's two questions, People
+ * without an account and Where this sign-in counts as SSO, by the keys the
+ * form keeps them under; the columns they write (disableSignUpWithSso,
+ * restrictToAttachedProjects) are registered unseen. Last, on a project's
+ * and the Global form, Sign Out of the Identity Provider Too (#9535), off
+ * by default.
  */
 const SIGN_IN_STEP_FOLDED: Array<string> = [
   "discoveryURL",
@@ -134,6 +136,7 @@ const SIGN_IN_STEP_FOLDED: Array<string> = [
   "description",
   "SSO_GLOBAL_SIGN_UP_FIELD_KEY",
   "SSO_GLOBAL_REACH_FIELD_KEY",
+  "signOutOfIdentityProvider",
 ];
 
 const SCANNED: Array<FormFacts> = scanFormFiles({
@@ -306,6 +309,21 @@ describe("the OIDC provider forms ask for the issuer, client ID and secret; the 
         return call.includes("withGlobalAccessSwitches: true");
       }),
     ).toEqual([OIDC_FORMS[2]!.builderCall, OIDC_FORMS[3]!.builderCall]);
+  });
+
+  /*
+   * A status page's provider signs its readers in to the status page, not
+   * to OneUptime, so only a project's and the Global forms ask whether a
+   * sign-out ends the provider's session too (#9535).
+   */
+  test("only the providers people sign in to OneUptime with ask whether to sign out of the provider too", () => {
+    expect(
+      OIDC_FORMS.filter((oidcForm: OidcForm): boolean => {
+        return oidcForm.builderCall.includes(
+          "withIdentityProviderSignOut: true",
+        );
+      }),
+    ).toEqual([OIDC_FORMS[0], OIDC_FORMS[2], OIDC_FORMS[3]]);
   });
 
   /*

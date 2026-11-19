@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The table is new and empty, so its indexes and foreign keys are built
  * here; no existing table changes.
  */
-export class AddDataSecurityComplianceSettings1809184700000
+export class AddDataSecurityComplianceSettings1809184730000
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityComplianceSettings1809184700000";
+  public name: string = "AddDataSecurityComplianceSettings1809184730000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

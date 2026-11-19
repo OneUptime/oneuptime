@@ -26,7 +26,7 @@ Klik på dit billede øverst til højre i dashboardet.
 | **Profil** | Åbner **Brugerprofil**: dit navn, din e-mail, din tidszone, dit sprog, dit billede og sikkerheden ved dit login. |
 | **Admin-indstillinger** | Åbner Admin Dashboard. Kun hovedadministratorer på en selvhostet installation ser det. |
 | **Tema** | Vælger dashboardets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt, alt efter hvordan din enhed er indstillet. |
-| **Log ud** | Logger dig ud. |
+| **Log ud** | Logger dig ud, med det samme på alle OneUptime-servere. Hvor din administrator har sat det op, logger den dig også ud af din identitetsudbyder. |
 
 **Brugerprofil** har sin egen sidemenu. **Grundlæggende** indeholder **Oversigt** og **Profilbillede**. **Sikkerhed** og **Farezone** er foldet sammen: klik på et afsnits titel for at åbne det.
 

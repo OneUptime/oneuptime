@@ -12,9 +12,10 @@ import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/StatusPageResource";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
@@ -41,18 +42,14 @@ interface StatusPageResourceTarget {
 }
 
 /*
- * A resource moved to another place by a non-root update: where it was, where
- * it goes, and its list. Read before the update (onBeforeUpdate) and acted on
- * after it (onUpdateSuccess), only if the update wrote that resource.
+ * The columns that name the list a resource is numbered in: its status page
+ * and its group (or no group), in its project.
  */
-interface ResourceMove {
-  resourceId: ObjectID;
-  previousOrder: number;
-  newOrder: number;
-  statusPageId: ObjectID;
-  statusPageGroupId: ObjectID | null;
-  projectId: ObjectID;
-}
+const ORDER_LIST_COLUMNS: Array<string> = [
+  "statusPageId",
+  "statusPageGroupId",
+  "projectId",
+];
 
 /*
  * A resource shows one thing: a monitor, or a monitor group. A row that named
@@ -373,19 +370,20 @@ export class Service extends ProjectReferencesService<Model> {
       throw duplicateResourceException(target);
     }
 
+    /*
+     * A resource created at a number keeps it, and moves no other resource
+     * (ContiguousOrder): one created without a number goes after the last
+     * resource of its list.
+     */
     if (!createBy.data.order) {
-      const count: PositiveNumber = await this.countBy({
-        query: this.getOrderList({
+      createBy.data.order = await ContiguousOrder.getAppendOrder({
+        service: this,
+        list: this.getOrderList({
           statusPageId: statusPageId,
           statusPageGroupId: statusPageGroupId,
           projectId: projectId,
         }),
-        props: {
-          isRoot: true,
-        },
       });
-
-      createBy.data.order = count.toNumber() + 1;
     }
 
     return {
@@ -395,33 +393,35 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The resources at the new resource's place and after it move one place
-   * down - now that it exists, so a create that is refused or fails leaves
-   * the status page's order as it was.
+   * Moves a resource to the place another resource of its list holds (POST
+   * /status-page-resource/:id/move, Types/Database/MoveInList): the
+   * resources between them step one place towards where it was, in one
+   * transaction holding the list's resources. What a drag in the
+   * Dashboard's list sends; a write of `order` places the resource alone.
    */
+  @CaptureSpan()
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const moved: { changedRows: Array<{ id: string; order: number }> } =
+      await ContiguousOrder.move({
+        service: this,
+        rowId: data.id,
+        placeOfId: data.placeOfId,
+        listColumns: ORDER_LIST_COLUMNS,
+        props: data.props,
+      });
+
+    return { changedRows: moved.changedRows };
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    if (
-      createdItem.id &&
-      createdItem.order &&
-      createdItem.statusPageId &&
-      createdItem.projectId
-    ) {
-      await ContiguousOrder.afterCreate({
-        service: this,
-        list: this.getOrderList({
-          statusPageId: createdItem.statusPageId,
-          statusPageGroupId: createdItem.statusPageGroupId || null,
-          projectId: createdItem.projectId,
-        }),
-        createdItemId: createdItem.id,
-        order: createdItem.order,
-      });
-    }
-
     /*
      * The project's first status page that shows a monitor (issue #6830): a
      * monitor, or a monitor group, put on a page. A resource that shows
@@ -447,19 +447,15 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    let resource: Model | null = null;
-
     if (!deleteBy.props.isRoot) {
       /*
-       * The one resource the delete removes, and the delete held to
-       * it: the resources after it move up a place once it is gone.
+       * The one resource the delete removes, and the delete held to it.
+       * The resources after it keep their numbers (ContiguousOrder): a gap
+       * is read past like any other.
        */
       const found: { row: Model | null; deletesMore: boolean } =
         await this.findOneRowAndHoldDeleteToIt(deleteBy, {
-          order: true,
-          statusPageId: true,
-          statusPageGroupId: true,
-          projectId: true,
+          _id: true,
         });
 
       if (found.deletesMore) {
@@ -467,52 +463,10 @@ export class Service extends ProjectReferencesService<Model> {
           "Delete one status page resource at a time.",
         );
       }
-
-      resource = found.row;
     }
 
     return {
       deleteBy,
-      carryForward: resource,
-    };
-  }
-
-  /*
-   * The resources after a deleted one close its gap - only when the resource
-   * was actually deleted, within its own list and project.
-   */
-  @CaptureSpan()
-  protected override async onDeleteSuccess(
-    onDelete: OnDelete<Model>,
-    itemIdsBeforeDelete: ObjectID[],
-  ): Promise<OnDelete<Model>> {
-    const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
-    const resource: Model | null = onDelete.carryForward;
-
-    if (
-      !deleteBy.props.isRoot &&
-      resource &&
-      resource.id &&
-      resource.order &&
-      resource.statusPageId &&
-      resource.projectId &&
-      itemIdsBeforeDelete.some((id: ObjectID): boolean => {
-        return id.toString() === resource.id!.toString();
-      })
-    ) {
-      await ContiguousOrder.afterDelete({
-        service: this,
-        list: this.getOrderList({
-          statusPageId: resource.statusPageId,
-          statusPageGroupId: resource.statusPageGroupId || null,
-          projectId: resource.projectId,
-        }),
-        order: resource.order,
-      });
-    }
-
-    return {
-      deleteBy: deleteBy,
       carryForward: null,
     };
   }
@@ -639,82 +593,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * A resource moved to another place: where it is now is read here, and
-     * the resources it passes step aside once the update has moved it - only
-     * those strictly between its old and new place. Nothing is written before
-     * the update.
+     * A resource given another number takes it, and no other resource moves
+     * (ContiguousOrder): Terraform numbers a list's resources one write
+     * each, all at once. Moving a resource past others is moveInList.
      */
-    let move: ResourceMove | null = null;
-
-    // The one row an update names by its id is the one it moves.
-    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
-
-    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
-      const resource: Model | null = await this.findOneBy({
-        query: {
-          _id: movedId,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          statusPageId: true,
-          statusPageGroupId: true,
-          projectId: true,
-          _id: true,
-        },
-      });
-
-      if (
-        resource &&
-        resource.id &&
-        resource.order &&
-        resource.statusPageId &&
-        resource.projectId
-      ) {
-        move = {
-          resourceId: resource.id,
-          previousOrder: resource.order,
-          newOrder: updateBy.data.order as number,
-          statusPageId: resource.statusPageId,
-          statusPageGroupId: resource.statusPageGroupId || null,
-          projectId: resource.projectId,
-        };
-      }
-    }
-
-    return { updateBy, carryForward: move };
-  }
-
-  @CaptureSpan()
-  protected override async onUpdateSuccess(
-    onUpdate: OnUpdate<Model>,
-    updatedItemIds: Array<ObjectID>,
-  ): Promise<OnUpdate<Model>> {
-    const move: ResourceMove | null =
-      (onUpdate.carryForward as ResourceMove) || null;
-
-    if (
-      move &&
-      updatedItemIds.some((id: ObjectID): boolean => {
-        return id.toString() === move.resourceId.toString();
-      })
-    ) {
-      await ContiguousOrder.afterMove({
-        service: this,
-        list: this.getOrderList({
-          statusPageId: move.statusPageId,
-          statusPageGroupId: move.statusPageGroupId,
-          projectId: move.projectId,
-        }),
-        movedItemId: move.resourceId,
-        previousOrder: move.previousOrder,
-        newOrder: move.newOrder,
-      });
-    }
-
-    return onUpdate;
+    return { updateBy, carryForward: null };
   }
 
   /*

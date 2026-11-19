@@ -18,6 +18,26 @@ import Incident from "../../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ReadAudienceReader, {
+  ReadAudienceSubject,
+} from "../../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../../../Helpers/ReadAudienceFixtures";
+
+/*
+ * Who reads the report: everyone who may see its incident or alert, worked
+ * out before the starting context is read (ReadAudienceReader, #9576) - here
+ * a project whose roles narrow nobody.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockImplementation(
+      async (subject: ReadAudienceSubject): Promise<ReadAudience> => {
+        return readAudienceOf({ projectId: subject.projectId });
+      },
+    );
+});
 
 /*
  * An incident a security case declared is investigated knowing so: its
@@ -96,7 +116,12 @@ describe("an incident's investigation reads the security case that declared it",
 
     await investigateIncident();
 
-    expect(read).toHaveBeenCalledWith({ projectId, incidentId });
+    // For everyone who may see the incident (#9576).
+    expect(read).toHaveBeenCalledWith({
+      projectId,
+      incidentId,
+      readAudience: readAudienceOf({ projectId }),
+    });
     expect(sentRequest(executeRun).contextSummary).toContain(
       "## The security case behind this incident",
     );

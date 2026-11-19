@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "{{email}}(으)로 초대 이메일을 다시 보낼까요?",
   "Send their invitation email again?": "초대 이메일을 다시 보낼까요?",
   "Invitation sent to {{email}}": "{{email}}(으)로 초대를 보냈습니다",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다.",
+  "Sign Out of the Identity Provider Too": "ID 공급자에서도 로그아웃",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime에서 로그아웃하면 이 공급자와 이를 사용하는 다른 모든 앱에서도 로그아웃됩니다. 공용 컴퓨터에서는 켜세요.",
+  "Sign-out Redirect URI:": "로그아웃 후 리디렉션 URI:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "리디렉션 URI를 OIDC ID 공급자에 등록하고, 'ID 공급자에서도 로그아웃'이 켜져 있으면 로그아웃 후 리디렉션 URI도 등록하세요."
 }

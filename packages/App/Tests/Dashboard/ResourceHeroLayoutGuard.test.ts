@@ -807,21 +807,34 @@ describe("rule 6: ResourceOverview's hero row is every hero's", () => {
  * Rule 7: the connection pill, then the health pill
  * ---------------------------------------------------------------------------
  */
-// Each hero with a health pill: how its source writes the two pills.
+/*
+ * Each hero with a health pill: how its source writes the two pills. Every
+ * health pill is the shared ResourceHealthPill (a Docker or Podman host's
+ * through ContainerHostHealthPill, which draws it): Degraded or Unhealthy
+ * opens why (#9537).
+ */
 const HEALTH_HEROES: Array<[string, string, string]> = [
   // A Ceph cluster's health by its rules: Ceph's verdict, OSDs, pools.
-  ["Pages/Ceph/View/Index.tsx", "{statusLabel}", "{healthLabel}"],
+  ["Pages/Ceph/View/Index.tsx", "{statusLabel}", "<ResourceHealthPill"],
   /*
    * A storage array's health by its rules: its own alerts, how full and
    * how slow it is, and its parts.
    */
-  ["Pages/StorageArray/View/Index.tsx", "{statusLabel}", "{healthLabel}"],
-  ["Pages/DockerSwarm/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/StorageArray/View/Index.tsx", "{statusLabel}", "<ResourceHealthPill"],
+  [
+    "Pages/DockerSwarm/View/Index.tsx",
+    "{connectionLabel}",
+    "<ResourceHealthPill",
+  ],
   // A host's health by HostHealth's rules, beside its collector's pill.
-  ["Pages/Host/View/Overview.tsx", "{statusLabel}", "{healthLabel}"],
-  ["Pages/Kubernetes/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
-  ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
-  ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/Host/View/Overview.tsx", "{statusLabel}", "<ResourceHealthPill"],
+  [
+    "Pages/Kubernetes/View/Index.tsx",
+    "{connectionLabel}",
+    "<ResourceHealthPill",
+  ],
+  ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "<ResourceHealthPill"],
+  ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "<ResourceHealthPill"],
   // A Docker or Podman host's health by its containers' rules.
   [
     "Pages/Docker/View/Overview.tsx",
@@ -1102,24 +1115,69 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
     expect(withPill.sort()).toEqual([...CONNECTION_PILL_HEROES].sort());
   });
 
-  test("the seven heroes that work out a health draw it from getResourceHealthLabel", () => {
-    const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
+  /*
+   * A health pill said "Degraded" and nothing else; the reasons were a card
+   * further down (#9537). Every hero now draws its health through one
+   * component, whose words are getResourceHealthLabel's and whose Degraded
+   * or Unhealthy opens what needs attention - never a pill of its own.
+   */
+  test("every hero that works out a health draws it through ResourceHealthPill, in getResourceHealthLabel's words", () => {
+    const byHand: Array<string> = HEROES.filter((hero: Hero): boolean => {
       return pillVariablesDrawn(hero).includes("healthLabel");
     }).map((hero: Hero): string => {
       return relative(hero.file);
     });
+    expect(byHand).toEqual([]);
 
-    expect(withHealth.sort()).toEqual(
-      [
-        "Pages/Ceph/View/Index.tsx",
-        "Pages/DockerSwarm/View/Index.tsx",
-        "Pages/Host/View/Overview.tsx",
-        "Pages/Kubernetes/View/Index.tsx",
-        "Pages/Proxmox/View/Index.tsx",
-        "Pages/StorageArray/View/Index.tsx",
-        "Pages/VMware/View/Index.tsx",
-      ].sort(),
+    for (const [file, , health] of HEALTH_HEROES) {
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      expect(hero).toBeDefined();
+      expect({
+        file,
+        draws: identityOf(hero!).getText().includes(health),
+      }).toEqual({ file, draws: true });
+    }
+
+    const containerHostPill: string = fs.readFileSync(
+      path.join(
+        DASHBOARD_SRC,
+        "Components/ContainerHost/ContainerHostHealthPill.tsx",
+      ),
+      "utf8",
     );
+    expect(containerHostPill).toContain("<ResourceHealthPill");
+    expect(containerHostPill).toContain("items={props.items}");
+
+    const pill: string = fs.readFileSync(
+      path.join(
+        DASHBOARD_SRC,
+        "Components/ResourcePart/ResourceHealthPill.tsx",
+      ),
+      "utf8",
+    );
+    expect(pill).toContain("getResourceHealthLabel({");
+    // Degraded or Unhealthy, with something to list, opens it.
+    expect(pill).toContain("<ResourceAttentionPill");
+  });
+
+  test("each hero hands its health pill what needs attention, the list its health was worked out from", () => {
+    for (const [file, , health] of HEALTH_HEROES) {
+      if (health !== "<ResourceHealthPill") {
+        continue;
+      }
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      const identity: string = identityOf(hero!).getText();
+      const pillAt: number = identity.indexOf(health);
+      const pillEnd: number = identity.indexOf("/>", pillAt);
+      expect({
+        file,
+        hasItems: identity.slice(pillAt, pillEnd).includes("items={"),
+      }).toEqual({ file, hasItems: true });
+    }
   });
 
   /*

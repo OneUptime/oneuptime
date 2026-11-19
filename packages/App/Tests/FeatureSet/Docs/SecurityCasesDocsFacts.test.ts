@@ -85,6 +85,27 @@ import {
   RESPONSE_TARGET_DURATION_COPY,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/ResponseTargetsCopy";
 import { SECURITY_CASE_TASKS_COPY } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Tasks/SecurityCaseTasksCopy";
+import {
+  EVENT_LINK_EXCEPTION,
+  EVENT_LINK_LOGS,
+  EVENT_LINK_TRACE,
+  LOOK_NEXT_HEADING,
+  OTHER_DETECTIONS_HEADING,
+  WHAT_MATCHED_HEADING,
+  WHY_OPENED_TITLE,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseMatchesCopy";
+import {
+  ACTION_ADD_EXCEPTION,
+  ACTION_ASSIGN_TO_ME,
+  ACTION_CLOSE_CASE,
+  ACTION_DECLARE_INCIDENT,
+  ACTION_MARK_CONTAINED,
+  ACTION_RUN_PLAYBOOK,
+  RESPONSE_BY_HAND,
+  RESPONSE_PHASE_TITLES,
+  RESPONSE_TITLE,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseCopy";
+import { RESPONSE_PHASES } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseTypes";
 import { SECURITY_CASE_EVIDENCE_COPY } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Evidence/SecurityCaseEvidenceCopy";
 import {
   MAX_SECURITY_CASE_TARGET_IN_MINUTES,
@@ -633,7 +654,9 @@ describe("Security Cases and Playbooks docs", () => {
         return (
           title !== "OneUptime AI" &&
           title !== "Impact" &&
-          title !== "MITRE ATT&CK"
+          title !== "MITRE ATT&CK" &&
+          title !== WHY_OPENED_TITLE &&
+          title !== RESPONSE_TITLE
         );
       });
 
@@ -646,6 +669,71 @@ describe("Security Cases and Playbooks docs", () => {
         },
       ),
     );
+  });
+
+  /*
+   * Why a case was opened and what to do about it (#9556, #9557): the
+   * Overview's two cards, in the words they draw.
+   */
+  it("says what the Overview's Why This Case Was Opened card shows, in its own words", () => {
+    const work: string = flat(section(page, "Work a case"));
+
+    for (const words of [
+      `**${WHY_OPENED_TITLE}**, on the **Overview**`,
+      `**${WHAT_MATCHED_HEADING}**`,
+      `**${EVENT_LINK_TRACE}**`,
+      `**${EVENT_LINK_LOGS}**`,
+      `**${EVENT_LINK_EXCEPTION}**`,
+      `**${LOOK_NEXT_HEADING}**`,
+      `**${OTHER_DETECTIONS_HEADING}**`,
+    ]) {
+      expect({ words, said: work.includes(words) }).toEqual({
+        words,
+        said: true,
+      });
+    }
+  });
+
+  it("says what the Overview's Response Plan does, its sections in their order and its buttons by their words", () => {
+    const work: string = flat(section(page, "Work a case"));
+
+    expect(work).toContain(`**${RESPONSE_TITLE}**, on the **Overview**`);
+
+    const phases: Array<string> = RESPONSE_PHASES.map(
+      (phase: (typeof RESPONSE_PHASES)[number]): string => {
+        return `**${RESPONSE_PHASE_TITLES[phase]}**`;
+      },
+    );
+    const at: Array<number> = phases.map((words: string): number => {
+      return work.indexOf(words);
+    });
+
+    expect(
+      at.every((index: number): boolean => {
+        return index > -1;
+      }),
+    ).toBe(true);
+    expect(
+      [...at].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(at);
+
+    for (const words of [
+      ACTION_ASSIGN_TO_ME,
+      ACTION_ADD_EXCEPTION,
+      ACTION_RUN_PLAYBOOK,
+      ACTION_DECLARE_INCIDENT,
+      ACTION_MARK_CONTAINED,
+      ACTION_CLOSE_CASE,
+      RESPONSE_BY_HAND,
+      SECURITY_CASE_TASKS_COPY.title,
+    ]) {
+      expect({ words, said: work.includes(`**${words}**`) }).toEqual({
+        words,
+        said: true,
+      });
+    }
   });
 
   it("says what the case's header keeps on every page, and where a link to the case lands", () => {

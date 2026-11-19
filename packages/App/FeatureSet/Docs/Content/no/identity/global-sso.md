@@ -91,6 +91,12 @@ To spørsmål på leverandøren endrer dette, foldet sammen under **Flere felt**
 
 Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til.
 
+## Logg også ut av identitetsleverandøren
+
+Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin kommer den neste som logger inn med den leverandøren, inn som den som gikk. Klikk på **Rediger konfigurasjon** for en OpenID Connect-leverandør, og slå på **Logg også ut av identitetsleverandøren** under **Flere felt**: Når man logger ut av OneUptime, avsluttes da også økten hos leverandøren, og leverandøren sender nettleseren tilbake til påloggingssiden til OneUptime. Den er slått av som standard, siden den på en personlig bærbar også ville logge personen ut av alle andre apper som bruker leverandøren.
+
+Registrer omdirigerings-URI-en etter utlogging som kortet **URL-en til identitetsleverandøren** viser, hos leverandøren din som en tillatt post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på.
+
 ## Håndhev SSO
 
 Å sette opp en global leverandør tvinger ingen til å bruke den; pålogging med passord fungerer fortsatt. For å kreve SSO slår du på kravet for et prosjekt eller for hele instansen:

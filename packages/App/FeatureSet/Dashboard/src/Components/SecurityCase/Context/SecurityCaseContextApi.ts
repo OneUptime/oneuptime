@@ -14,12 +14,18 @@ import {
   SecurityCaseImpactJson,
   SecurityCaseStoryJson,
 } from "Common/Types/SecurityCase/SecurityCaseContext";
+import {
+  SECURITY_CASE_MATCHES_API_PATH,
+  SecurityCaseMatchesJson,
+  parseSecurityCaseMatches,
+} from "Common/Types/SecurityCase/SecurityCaseMatches";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /*
- * A case's Story and Impact, from Common/Server/API/SecurityCaseContextAPI.ts.
+ * A case's Story, Impact and Matches - why it was opened and what its
+ * detections matched - from Common/Server/API/SecurityCaseContextAPI.ts.
  * Each answer is read defensively (SecurityCaseContextModel), and a refusal or
  * failure comes back as the API's sentence with its status, as the rest of
  * the Security product's routes do (SecurityApiError).
@@ -61,6 +67,14 @@ export default class SecurityCaseContextApi {
   ): Promise<SecurityCaseImpactJson> {
     return parseSecurityCaseImpact(
       await post(SECURITY_CASE_IMPACT_API_PATH, { caseId: caseId.toString() }),
+    );
+  }
+
+  public static async getMatches(
+    caseId: ObjectID,
+  ): Promise<SecurityCaseMatchesJson> {
+    return parseSecurityCaseMatches(
+      await post(SECURITY_CASE_MATCHES_API_PATH, { caseId: caseId.toString() }),
     );
   }
 }

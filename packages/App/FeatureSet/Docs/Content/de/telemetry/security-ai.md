@@ -53,6 +53,8 @@ Eine Triage liest:
 
 Den Rest von OneUptime kann sie ebenfalls lesen, so wie es die Untersuchung eines Vorfalls tut: Logs, Traces, Metriken, Hosts und die schreibgeschützten Werkzeuge der MCP-Server des Projekts.
 
+Alle, die den Fall sehen dürfen, lesen seine Triage, daher liest eine Triage nur, was alle von ihnen lesen dürfen, so wie es die Untersuchung eines Vorfalls tut. Eine Art von Datensatz, die kein Team, keine benutzerdefinierte Rolle und kein API-Schlüssel nur nach Eigentümer oder Label liest, wird ganz gelesen; wo einige das tun, wird ein Host, Cluster, Dienst oder anderer Datensatz, den ein Eigentümer oder ein Label abgrenzt, ausgelassen und nie genannt oder mitgezählt. Der Fall wird immer gelesen, ebenso der Vorfall, den er ausgelöst hat, es sei denn, dieser Vorfall ist privat. Private Vorfälle und Warnungen werden nie gelesen.
+
 ### Was sie folgert
 
 | Einschätzung | Bedeutet | Schlägt zum Schließen vor |

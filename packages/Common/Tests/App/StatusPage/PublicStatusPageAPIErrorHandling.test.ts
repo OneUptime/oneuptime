@@ -48,7 +48,7 @@ describe("public Status Page API authentication errors", () => {
 
     dashboardLogoutSpy = jest
       .spyOn(DashboardUser, "logout")
-      .mockResolvedValue(undefined) as unknown as RecordedSpy;
+      .mockResolvedValue(null) as unknown as RecordedSpy;
     statusPageLogoutSpy = jest
       .spyOn(StatusPageUser, "logout")
       .mockResolvedValue(undefined) as unknown as RecordedSpy;

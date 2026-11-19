@@ -383,3 +383,15 @@ export const PENDING_DEVICES_FACET_SELECTION: FacetTileSelection = {
   values: [DeviceStatusFacetValue.Pending],
   operator: "is",
 };
+
+/**
+ * "Devices that are down" - the Status chip on Down. The Devices page's
+ * Devices Down tile sets it, and the Network Overview's Devices tile links
+ * here with it set while any device is down: "2 down" opens those two
+ * (#9537).
+ */
+export const DOWN_DEVICES_FACET_SELECTION: FacetTileSelection = {
+  facetKey: DEVICE_STATUS_FACET_KEY,
+  values: [DeviceStatusFacetValue.Down],
+  operator: "is",
+};

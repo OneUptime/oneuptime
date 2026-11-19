@@ -6,8 +6,10 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { ParsedKubernetesResource } from "../../Types/Kubernetes/KubernetesInventoryExtractor";
 import {
+  KUBERNETES_FAILING_WAIT_REASONS,
   KubernetesAttentionFinding,
   KubernetesHealthRow,
+  KubernetesHealthSeverity,
   KubernetesObjectRef,
   getKubernetesAttentionFindings,
   getKubernetesPodWorkload,
@@ -68,6 +70,14 @@ export interface InventorySummary {
     succeeded: number;
     unknown: number;
   };
+  /*
+   * Each pod once, by what kubectl's STATUS column would say of it
+   * (KubernetesHealth.getKubernetesPodStatusBucket): a pod whose container
+   * cannot run is counted under that word - CrashLoopBackOff,
+   * ImagePullBackOff - and not as Running or Pending, which its phase still
+   * says. What the cluster's hero shows; podPhaseCounts stays the phases.
+   */
+  podStatusCounts: KubernetesPodStatusCounts;
   nodeReadyCounts: {
     ready: number;
     notReady: number;
@@ -78,6 +88,45 @@ export interface InventorySummary {
     pidPressure: number;
   };
 }
+
+export interface KubernetesPodStatusCounts {
+  // Running, no container that cannot run.
+  running: number;
+  // Pending, no container that cannot run.
+  pending: number;
+  failed: number;
+  succeeded: number;
+  // Kubernetes' Unknown phase: the pod's node stopped reporting it.
+  unknown: number;
+  /*
+   * The pods a container of which cannot run, by kubectl's word for it
+   * ("CrashLoopBackOff", "Init:Error"), the most first; "" when no word
+   * could be read.
+   */
+  cannotRun: Array<{ reason: string; count: number }>;
+}
+
+/*
+ * The word kubectl's STATUS shows for a pod whose container cannot run -
+ * the same word KubernetesHealth.assessKubernetesPod gives it: the first
+ * container waiting for a reason that means it cannot run, else the first
+ * init container waiting so or ended in failure, as "Init:<reason>". Read
+ * only for the pods ingest flagged critical, which are exactly those
+ * (healthSeverity); $3 is { reasons: KUBERNETES_FAILING_WAIT_REASONS }.
+ */
+export const POD_CANNOT_RUN_REASON_SQL: string = `COALESCE(
+  jsonb_path_query_first(
+    "status",
+    '$.containerStatuses[*] ? (@.state == "waiting" && @.reason == $reasons[*]).reason',
+    $3::jsonb
+  ) #>> '{}',
+  'Init:' || (jsonb_path_query_first(
+    "status",
+    '$.initContainerStatuses[*] ? ((@.state == "waiting" && @.reason == $reasons[*]) || (@.state == "terminated" && @.reason != "" && @.reason != "Completed")).reason',
+    $3::jsonb
+  ) #>> '{}'),
+  ''
+)`;
 
 /*
  * What a cluster's Needs attention reads (getNeedsAttention). The objects
@@ -526,7 +575,12 @@ export class Service extends DatabaseService<Model> {
 
     const [kindRows, podRows, nodeRows, containerRows]: [
       Array<{ kind: string; count: string }>,
-      Array<{ phase: string | null; count: string }>,
+      Array<{
+        phase: string | null;
+        // Null unless ingest flagged the pod critical: a container can't run.
+        cannotRunReason: string | null;
+        count: string;
+      }>,
       Array<{
         ready: string;
         notReady: string;
@@ -544,11 +598,28 @@ export class Service extends DatabaseService<Model> {
         [data.projectId.toString(), data.kubernetesClusterId.toString()],
       ),
       manager.query(
-        `SELECT "phase", COUNT(*)::text AS count
+        /*
+         * One pass for both the phases and each pod's kubectl status: a
+         * pod ingest flagged critical has a container that cannot run, and
+         * its word is read from its status (POD_CANNOT_RUN_REASON_SQL) -
+         * only for those few rows, as CASE reads it for no other.
+         */
+        `SELECT "phase",
+           CASE WHEN "healthSeverity" = '${KubernetesHealthSeverity.Critical}'
+             THEN ${POD_CANNOT_RUN_REASON_SQL}
+             ELSE NULL
+           END AS "cannotRunReason",
+           COUNT(*)::text AS count
          FROM "KubernetesResource"
          WHERE "projectId" = $1 AND "kubernetesClusterId" = $2 AND "kind" = 'Pod' AND "deletedAt" IS NULL
-         GROUP BY "phase"`,
-        [data.projectId.toString(), data.kubernetesClusterId.toString()],
+         GROUP BY 1, 2`,
+        [
+          data.projectId.toString(),
+          data.kubernetesClusterId.toString(),
+          JSON.stringify({
+            reasons: Array.from(KUBERNETES_FAILING_WAIT_REASONS),
+          }),
+        ],
       ),
       manager.query(
         `SELECT
@@ -589,21 +660,76 @@ export class Service extends DatabaseService<Model> {
       succeeded: 0,
       unknown: 0,
     };
+    const podStatusCounts: KubernetesPodStatusCounts = {
+      running: 0,
+      pending: 0,
+      failed: 0,
+      succeeded: 0,
+      unknown: 0,
+      cannotRun: [],
+    };
+    const cannotRunByReason: Map<string, number> = new Map<string, number>();
+
     for (const row of podRows) {
       const phase: string = row.phase || "Unknown";
       const count: number = parseInt(row.count, 10) || 0;
       if (phase === "Running") {
-        podPhaseCounts.running = count;
+        podPhaseCounts.running += count;
       } else if (phase === "Pending") {
-        podPhaseCounts.pending = count;
+        podPhaseCounts.pending += count;
       } else if (phase === "Failed") {
-        podPhaseCounts.failed = count;
+        podPhaseCounts.failed += count;
       } else if (phase === "Succeeded") {
-        podPhaseCounts.succeeded = count;
+        podPhaseCounts.succeeded += count;
       } else {
         podPhaseCounts.unknown += count;
       }
+
+      /*
+       * A pod that cannot run never ended (the rules call a Failed or
+       * Succeeded pod by its phase); a verdict stored by older rules that
+       * says otherwise is counted by its phase too.
+       */
+      if (
+        row.cannotRunReason !== null &&
+        row.cannotRunReason !== undefined &&
+        phase !== "Failed" &&
+        phase !== "Succeeded"
+      ) {
+        const reason: string = row.cannotRunReason;
+        cannotRunByReason.set(
+          reason,
+          (cannotRunByReason.get(reason) || 0) + count,
+        );
+        continue;
+      }
+
+      if (phase === "Running") {
+        podStatusCounts.running += count;
+      } else if (phase === "Pending") {
+        podStatusCounts.pending += count;
+      } else if (phase === "Failed") {
+        podStatusCounts.failed += count;
+      } else if (phase === "Succeeded") {
+        podStatusCounts.succeeded += count;
+      } else if (row.phase === "Unknown") {
+        // Kubernetes' own Unknown; a pod with no phase yet is no problem.
+        podStatusCounts.unknown += count;
+      }
     }
+
+    podStatusCounts.cannotRun = Array.from(cannotRunByReason.entries())
+      .map(([reason, count]: [string, number]) => {
+        return { reason: reason, count: count };
+      })
+      .sort(
+        (
+          a: { reason: string; count: number },
+          b: { reason: string; count: number },
+        ): number => {
+          return b.count - a.count || a.reason.localeCompare(b.reason);
+        },
+      );
 
     const nodeRow:
       | {
@@ -622,6 +748,7 @@ export class Service extends DatabaseService<Model> {
       countsByKind,
       containerCount,
       podPhaseCounts,
+      podStatusCounts,
       nodeReadyCounts: {
         ready: parseInt(nodeRow?.ready || "0", 10) || 0,
         notReady: parseInt(nodeRow?.notReady || "0", 10) || 0,

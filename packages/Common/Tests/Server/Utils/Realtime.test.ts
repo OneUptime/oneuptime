@@ -40,6 +40,7 @@ import {
   test,
 } from "@jest/globals";
 import jwt from "jsonwebtoken";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * Contract under test - what the server does with a ListenToModelEvent.
@@ -441,6 +442,8 @@ describe("Realtime (server) ListenToModelEvent", () => {
     instanceRequiresSso.mockResolvedValue(false);
     userBlocked.mockReset();
     userBlocked.mockResolvedValue(false);
+    // Its session is live: what an ended one does is EndedSessionAccessToken.test.ts.
+    treatEverySessionAsLive();
     // A handshake that says master admin is one whose person still is one.
     userIsMasterAdmin.mockReset();
     userIsMasterAdmin.mockResolvedValue(true);

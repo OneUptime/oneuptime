@@ -70,6 +70,7 @@ import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * A real Express app: an error that walks the routes registered after the
@@ -343,6 +344,7 @@ function record(what: string, props: JSONObject): void {
 
 beforeAll(async () => {
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+  treatEverySessionAsLive();
   jest
     .spyOn(UserService, "updateLastActive")
     .mockResolvedValue(undefined as never);
