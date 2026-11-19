@@ -135,6 +135,16 @@ export interface ResourceAttentionItem {
   events?: Array<ResourceAttentionEvent> | undefined;
 }
 
+/*
+ * The item that is the part whose page this is, and how its row names it
+ * (English, looked up in the reader's language): "This node". Its hero
+ * above already names it, and a step to its page would go nowhere.
+ */
+export interface ResourceAttentionCurrent {
+  key: string;
+  label: string;
+}
+
 export interface ResourceAttentionCounts {
   critical: number;
   warning: number;
@@ -209,6 +219,24 @@ export function getResourceAttentionHealth(
     return "Degraded";
   }
   return "Healthy";
+}
+
+/*
+ * The tone of a count of these parts, as its pill draws it: red when any
+ * of them is broken, amber when they only need a look. Every count that
+ * opens what failed reads it here, so a hero's chips, a tile's pill and a
+ * card's figure agree.
+ */
+export function getResourceAttentionTone(
+  items: Array<Pick<ResourceAttentionItem, "severity">>,
+): "danger" | "warning" {
+  return items.some(
+    (item: Pick<ResourceAttentionItem, "severity">): boolean => {
+      return item.severity === ResourceAttentionSeverity.Critical;
+    },
+  )
+    ? "danger"
+    : "warning";
 }
 
 /*

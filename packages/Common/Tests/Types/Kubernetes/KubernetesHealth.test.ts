@@ -1442,7 +1442,8 @@ describe("volumes, autoscalers and the rest", () => {
     );
   });
 
-  test("a namespace reads Active or Terminating, and is never a problem", () => {
+  // One stuck deleting is a problem: KubernetesWhyItFailed pins why.
+  test("a namespace reads Active or Terminating; terminating with nothing said to hold it is no problem", () => {
     const terminating: KubernetesHealthAssessment = assessKubernetesNamespace({
       kind: "Namespace",
       name: "old",

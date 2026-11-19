@@ -10,7 +10,17 @@ import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import { withSentenceDigits } from "./SentenceDigits";
 import {
+  NEEDS_ATTENTION_DESCRIPTION,
+  NEEDS_ATTENTION_TITLE,
+} from "./NeedsAttentionCard";
+import ResourceAttentionPill from "./ResourceAttentionPill";
+import {
+  RESOURCE_HEALTH_EMPTY_MESSAGE,
+  RESOURCE_HEALTH_HINT,
+} from "./ResourceHealthPill";
+import {
   ResourcePartAccent,
+  ResourcePartAttention,
   ResourcePartBadge,
   ResourcePartChip,
   ResourcePartStatus,
@@ -23,6 +33,12 @@ import {
  * up, where it sits in its resource, its size and the facts a reader looks
  * for first. Shared by every resource product, so a part's page opens the
  * same way wherever it lives (the ESXi host page's hero, generalized).
+ *
+ * A status that says something is wrong - "Offline", "CrashLoopBackOff",
+ * "1 of 3 available" - opens why (ResourceAttentionPill): what needs
+ * attention on the part and what it runs, the list its Needs attention card
+ * draws, where the pill only said the word on hover (#9594). So does a chip
+ * that counts something wrong ("3 pods failed"): exactly what it counts.
  *
  * The words come from the product, in English; the hero looks them up in
  * the reader's language. A part's name, tags and location values are
@@ -43,6 +59,24 @@ export interface ComponentProps {
   chips?: Array<ResourcePartChip> | undefined;
   // Labels the product's own users gave the part (Proxmox tags).
   tags?: Array<string> | undefined;
+  /*
+   * What needs attention on the part: a warning or danger status opens it.
+   * Every part page hands its hero the list its Needs attention card draws.
+   */
+  attention?: ResourcePartAttention | undefined;
+}
+
+// A status that says something is wrong opens why.
+export function isResourcePartStatusExplained(data: {
+  status: ResourcePartStatus | undefined;
+  attention: ResourcePartAttention | undefined;
+}): boolean {
+  return Boolean(
+    data.status &&
+      (data.status.tone === "warning" || data.status.tone === "danger") &&
+      data.attention &&
+      data.attention.items.length > 0,
+  );
 }
 
 export const RESOURCE_PART_TONE_CLASS_NAMES: Record<
@@ -111,6 +145,67 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
     return tag.trim().length > 0;
   });
 
+  const renderStatus: (status: ResourcePartStatus) => ReactElement = (
+    status: ResourcePartStatus,
+  ): ReactElement => {
+    const words: string = status.values
+      ? translator.translateTemplate(
+          status.label,
+          withSentenceDigits(status.values),
+        )
+      : tx(status.label);
+    const description: string | undefined = status.description
+      ? tx(status.description)
+      : undefined;
+    // What the word means, after it, for a screen reader.
+    const meaning: ReactElement = description ? (
+      <span className="sr-only">{` ${description}`}</span>
+    ) : (
+      <></>
+    );
+    const attention: ResourcePartAttention | undefined = props.attention;
+
+    if (attention && isResourcePartStatusExplained({ status, attention })) {
+      return (
+        <ResourceAttentionPill
+          testId={`${props.testId}-status`}
+          tone={status.tone}
+          label={
+            <>
+              {words}
+              {meaning}
+            </>
+          }
+          hint={RESOURCE_HEALTH_HINT}
+          dialog={{
+            title: tx(NEEDS_ATTENTION_TITLE),
+            description: attention.description || NEEDS_ATTENTION_DESCRIPTION,
+            items: attention.items,
+            emptyMessage: RESOURCE_HEALTH_EMPTY_MESSAGE,
+            showKind: attention.showKind,
+            current: attention.current,
+          }}
+        />
+      );
+    }
+
+    return (
+      <span
+        data-testid={`${props.testId}-status`}
+        data-tone={status.tone}
+        title={description}
+        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].badge}`}
+      >
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].dot}`}
+          aria-hidden="true"
+        />
+        {words}
+        {meaning}
+      </span>
+    );
+  };
+
   return (
     <div
       data-testid={props.testId}
@@ -142,34 +237,7 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
               >
                 <BreakableName text={props.name} />
               </h2>
-              {status ? (
-                <span
-                  data-testid={`${props.testId}-status`}
-                  data-tone={status.tone}
-                  title={
-                    status.description ? tx(status.description) : undefined
-                  }
-                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].badge}`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].dot}`}
-                    aria-hidden="true"
-                  />
-                  {status.values
-                    ? translator.translateTemplate(
-                        status.label,
-                        withSentenceDigits(status.values),
-                      )
-                    : tx(status.label)}
-                  {status.description ? (
-                    <span className="sr-only">{` ${tx(status.description)}`}</span>
-                  ) : (
-                    <></>
-                  )}
-                </span>
-              ) : (
-                <></>
-              )}
+              {status ? renderStatus(status) : <></>}
               {(props.badges || []).map(
                 (badge: ResourcePartBadge): ReactElement => {
                   return (
@@ -232,6 +300,23 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
             data-testid={`${props.testId}-chips`}
           >
             {chips.map((chip: ResourcePartChip): ReactElement => {
+              // A count of something wrong opens what it counts, and why.
+              if (chip.attention) {
+                return (
+                  <ResourceAttentionPill
+                    key={chip.key}
+                    testId={
+                      chip.attention.testId ||
+                      `${props.testId}-chip-${chip.key}`
+                    }
+                    dataAttributes={{ "data-chip": chip.key }}
+                    tone={chip.attention.tone}
+                    label={chip.label}
+                    hint={chip.attention.hint}
+                    dialog={chip.attention.dialog}
+                  />
+                );
+              }
               return (
                 <Pill
                   key={chip.key}

@@ -240,9 +240,21 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "{{count}} reporting no usage",
     "{{count}} off or in standby",
   ],
-  "Components/VMware/Part/VMwareVirtualMachineOverview.tsx": [
+  /*
+   * What needs attention on a part's page, read once for its Needs
+   * attention card and its hero's status (#9594).
+   */
+  "Pages/VMware/Utils/VMwarePartAttention.ts": [
+    "This host",
+    "What about this host and the VMs it runs is broken or needs a look.",
+    "This cluster",
+    "What in this cluster is broken or needs a look: the cluster, its hosts and the VMs on them.",
+    "This datastore",
+    "What about this datastore is broken or needs a look.",
     "This VM",
     "What about this virtual machine is broken or needs a look.",
+  ],
+  "Components/VMware/Part/VMwareVirtualMachineOverview.tsx": [
     "waits for a free CPU",
     "Open on this VM",
     "Unresolved incidents and alerts about this virtual machine, incidents first.",
@@ -255,8 +267,6 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "Last report",
   ],
   "Components/VMware/Part/VMwareDatastoreOverview.tsx": [
-    "This datastore",
-    "What about this datastore is broken or needs a look.",
     "Growth Forecast",
     "Full now",
     "Open on this datastore",
@@ -266,8 +276,6 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "What vCenter reports about this datastore.",
   ],
   "Components/VMware/Part/VMwareClusterOverview.tsx": [
-    "This cluster",
-    "What in this cluster is broken or needs a look: the cluster, its hosts and the VMs on them.",
     "Effective hosts",
     "Host failure",
     "Covered",
@@ -321,8 +329,6 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "vCenter stopped reporting this host",
   ],
   "Components/VMware/Host/VMwareHostOverviewTab.tsx": [
-    "This host",
-    "What about this host and the VMs it runs is broken or needs a look.",
     "As vCenter reports this host, over the selected time range",
     "Disk latency",
     "Slowest disk",

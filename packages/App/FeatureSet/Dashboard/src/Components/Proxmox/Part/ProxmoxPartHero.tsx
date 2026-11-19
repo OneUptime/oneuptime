@@ -9,6 +9,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
 import {
   ResourcePartAccent,
+  ResourcePartAttention,
   ResourcePartBadge,
   ResourcePartChip,
   ResourcePartStatus,
@@ -50,6 +51,11 @@ export interface ComponentProps {
   getPartRoute: (kind: ProxmoxPartKind, externalId: string) => Route;
   // A node's guests, for its "running" chip.
   guestSummary?: ProxmoxGuestSummary | undefined;
+  /*
+   * What its Needs attention card lists (getProxmoxPartAttention), which
+   * an Offline, Stopped or Unavailable status opens.
+   */
+  attention?: ResourcePartAttention | undefined;
 }
 
 const STATUS_DESCRIPTIONS: Record<ProxmoxPartKind, string> = {
@@ -309,6 +315,7 @@ const ProxmoxPartHero: FunctionComponent<ComponentProps> = (
       lastReportAt={toProxmoxDate(row?.lastSeenAt)}
       chips={chips}
       tags={props.kind === "Guest" ? parseProxmoxTags(row?.tags) : []}
+      attention={props.attention}
     />
   );
 };

@@ -10,7 +10,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import { openStackIdFromRouteParam } from "../../../Components/OpenStack/Part/OpenStackPartRoutes";
 import OpenStackServiceOverview, {
+  OpenStackServiceAttention,
   OpenStackServiceMetrics,
+  useOpenStackServiceAttention,
 } from "../../../Components/OpenStack/Part/OpenStackServiceOverview";
 import useOpenStackPart, {
   OpenStackPart,
@@ -41,6 +43,12 @@ const OpenStackCloudServiceDetail: FunctionComponent<
     : OpenStackResourceKind.Service;
   const part: OpenStackPart = useOpenStackPart(kind);
   const row: OpenStackResource | null = part.row;
+  /*
+   * What needs attention on it, read once: the Overview's card lists it,
+   * the hero's status opens it.
+   */
+  const serviceAttention: OpenStackServiceAttention =
+    useOpenStackServiceAttention(part);
 
   const chips: Array<ResourcePartChip> = [];
   if (row && kind === OpenStackResourceKind.Service) {
@@ -82,9 +90,16 @@ const OpenStackCloudServiceDetail: FunctionComponent<
             ? getOpenStackServiceTitle(row.name)
             : undefined,
         chips: chips,
+        attention: serviceAttention.attention,
       }}
       overview={(loaded: OpenStackResource): ReactElement => {
-        return <OpenStackServiceOverview part={part} row={loaded} />;
+        return (
+          <OpenStackServiceOverview
+            part={part}
+            row={loaded}
+            serviceAttention={serviceAttention}
+          />
+        );
       }}
       tabs={(loaded: OpenStackResource): Array<Tab> => {
         return [

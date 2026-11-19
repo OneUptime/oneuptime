@@ -273,6 +273,36 @@ describe("the Overview's strip", () => {
       to: ROUTES.costs,
     });
   });
+
+  /*
+   * The one tile of four that opened nothing (#9594): it opens the list it
+   * counts, as the others open theirs - read or not yet, as they do.
+   */
+  test("Needs attention opens the resources it counts, a click away like the tiles beside it", () => {
+    const attentionRoute: Route = new Route(
+      "/dashboard/p/cloud/resources?cloud-monitored-resources-table-filter=x",
+    );
+    for (const attention of [
+      { unhealthy: 2, degraded: 1, isMore: false },
+      { unhealthy: 0, degraded: 0, isMore: false },
+      null,
+    ]) {
+      expect(
+        tile(
+          getCloudOverviewTiles({
+            accounts: [READING],
+            resources: 12,
+            costs: totalCloudCosts([summary()]),
+            attention: attention,
+            now: NOW,
+            translator: T,
+            routes: { ...ROUTES, attention: attentionRoute },
+          }),
+          "attention",
+        ).to,
+      ).toBe(attentionRoute);
+    }
+  });
 });
 
 describe("the Costs and Savings strips", () => {

@@ -10,6 +10,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import {
+  ResourcePartAttention,
   ResourcePartChip,
   ResourcePartStatus,
 } from "../../ResourcePart/ResourcePartTypes";
@@ -78,6 +79,11 @@ export interface ComponentProps {
    */
   showLastReport?: boolean | undefined;
   now: Date;
+  /*
+   * What its Needs attention card lists (getVMwarePartAttention), which a
+   * status that says something is wrong opens.
+   */
+  attention?: ResourcePartAttention | undefined;
 }
 
 const NOT_IN_INVENTORY: ResourcePartStatus = {
@@ -470,6 +476,7 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
       location={location}
       lastReportAt={lastReportAt}
       chips={chips}
+      attention={props.attention}
     />
   );
 };

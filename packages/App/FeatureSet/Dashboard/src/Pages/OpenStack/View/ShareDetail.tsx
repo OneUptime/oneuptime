@@ -12,7 +12,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
-import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import OpenStackServicePartOverview, {
+  OpenStackServicePartWords,
+  getOpenStackServicePartAttention,
+} from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
@@ -33,14 +37,36 @@ const WHY_NOT_KNOWN: string = translationKey(
   "Nothing OneUptime reads says why a share failed. Run openstack share message list for this share, and check manila-share's log on the backend it was asked of.",
 );
 
+const WORDS: OpenStackServicePartWords = {
+  thisOne: translationKey("This share"),
+  attentionDescription: translationKey(
+    "What about this share is broken or needs a look.",
+  ),
+  openTitle: translationKey("Open on this share"),
+  openDescription: translationKey(
+    "Unresolved incidents and alerts about this share, incidents first.",
+  ),
+  alertsTitle: translationKey("Share alerts"),
+  alertsDescription: translationKey(
+    "The cloud's alerts that watch every share, this one included: each is one monitor on the cloud.",
+  ),
+  detailsDescription: translationKey("What Manila reports about this share."),
+};
+
 const OpenStackCloudShareDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Share);
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackServicePartAttention({
+    part: part,
+    words: WORDS,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
         const detailRows: Array<ResourcePartDetailRow> = [
           {
@@ -144,23 +170,8 @@ const OpenStackCloudShareDetail: FunctionComponent<
             alertTemplateIds={OPENSTACK_SHARE_ALERT_TEMPLATE_IDS}
             detailRows={detailRows}
             whyNotKnown={WHY_NOT_KNOWN}
-            words={{
-              thisOne: translationKey("This share"),
-              attentionDescription: translationKey(
-                "What about this share is broken or needs a look.",
-              ),
-              openTitle: translationKey("Open on this share"),
-              openDescription: translationKey(
-                "Unresolved incidents and alerts about this share, incidents first.",
-              ),
-              alertsTitle: translationKey("Share alerts"),
-              alertsDescription: translationKey(
-                "The cloud's alerts that watch every share, this one included: each is one monitor on the cloud.",
-              ),
-              detailsDescription: translationKey(
-                "What Manila reports about this share.",
-              ),
-            }}
+            words={WORDS}
+            attention={attention}
             tiles={
               <>
                 <GoldenMetricTile

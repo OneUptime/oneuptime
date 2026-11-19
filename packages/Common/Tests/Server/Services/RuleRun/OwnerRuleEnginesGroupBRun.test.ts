@@ -181,8 +181,6 @@ interface EngineCase {
   resourceIdColumn: string;
   // The legacy rule field that matches on the resource's name (or title).
   namePatternField: string;
-  // Service owner rows have no isOwnerNotified column at all.
-  hasNotificationFlag: boolean;
   // The resource service whose addOwners the engine adds owners through.
   addOwnersService: Record<string, any> | null;
   mockFeed: () => jest.SpyInstance | null;
@@ -248,7 +246,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: PodmanHostOwnerTeam,
     resourceIdColumn: "podmanHostId",
     namePatternField: "podmanHostNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: feedMock({
       linkService: PodmanHostService,
@@ -270,7 +267,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: ProxmoxClusterOwnerTeam,
     resourceIdColumn: "proxmoxClusterId",
     namePatternField: "proxmoxClusterNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: feedMock({
       linkService: ProxmoxClusterService,
@@ -292,7 +288,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: RumApplicationOwnerTeam,
     resourceIdColumn: "rumApplicationId",
     namePatternField: "nameRegexPattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: noFeed,
     prepare: noop,
@@ -309,7 +304,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: RunbookOwnerTeam,
     resourceIdColumn: "runbookId",
     namePatternField: "runbookNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: noFeed,
     prepare: noop,
@@ -326,7 +320,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: ServerlessFunctionOwnerTeam,
     resourceIdColumn: "serverlessFunctionId",
     namePatternField: "nameRegexPattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: noFeed,
     prepare: noop,
@@ -343,7 +336,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: ServiceOwnerTeam,
     resourceIdColumn: "serviceId",
     namePatternField: "serviceNamePattern",
-    hasNotificationFlag: false,
     addOwnersService: null,
     mockFeed: feedMock({
       linkService: ServiceService,
@@ -365,7 +357,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: ServiceLevelObjectiveOwnerTeam,
     resourceIdColumn: "serviceLevelObjectiveId",
     namePatternField: "serviceLevelObjectiveNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: feedMock({
       linkService: ServiceLevelObjectiveService,
@@ -387,7 +378,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: StatusPageOwnerTeam,
     resourceIdColumn: "statusPageId",
     namePatternField: "statusPageNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: StatusPageService,
     mockFeed: noFeed,
     prepare: noop,
@@ -404,7 +394,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: VMwareVCenterOwnerTeam,
     resourceIdColumn: "vmwareVCenterId",
     namePatternField: "vmwareVCenterNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: feedMock({
       linkService: VMwareVCenterService,
@@ -426,7 +415,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: WorkflowOwnerTeam,
     resourceIdColumn: "workflowId",
     namePatternField: "workflowNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: noFeed,
     prepare: noop,
@@ -443,7 +431,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: MessageQueueOwnerTeam,
     resourceIdColumn: "messageQueueId",
     namePatternField: "messageQueueNamePattern",
-    hasNotificationFlag: true,
     addOwnersService: null,
     mockFeed: noFeed,
     prepare: (): void => {
@@ -465,7 +452,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: AlertEpisodeOwnerTeam,
     resourceIdColumn: "alertEpisodeId",
     namePatternField: "episodeTitlePattern",
-    hasNotificationFlag: true,
     addOwnersService: AlertEpisodeService,
     mockFeed: (): jest.SpyInstance => {
       return spy(
@@ -487,7 +473,6 @@ const ENGINE_CASES: Array<EngineCase> = [
     ownerTeamModel: IncidentEpisodeOwnerTeam,
     resourceIdColumn: "incidentEpisodeId",
     namePatternField: "episodeTitlePattern",
-    hasNotificationFlag: true,
     addOwnersService: IncidentEpisodeService,
     mockFeed: (): jest.SpyInstance => {
       return spy(
@@ -743,20 +728,16 @@ function isNotificationPending(write: OwnerWrite): boolean {
   return write.isOwnerNotified !== true;
 }
 
-function expectSilent(testCase: EngineCase, write: OwnerWrite): void {
-  if (testCase.hasNotificationFlag) {
-    expect(write.isOwnerNotified).toBe(true);
-  } else {
-    expect(write.isOwnerNotified).toBeUndefined();
-  }
+/*
+ * Every engine here writes the flag: a service's owner rows too, since they
+ * got the column and a job that reads it (#9700).
+ */
+function expectSilent(write: OwnerWrite): void {
+  expect(write.isOwnerNotified).toBe(true);
 }
 
-function expectNotifying(testCase: EngineCase, write: OwnerWrite): void {
-  if (testCase.hasNotificationFlag) {
-    expect(isNotificationPending(write)).toBe(true);
-  } else {
-    expect(write.isOwnerNotified).toBeUndefined();
-  }
+function expectNotifying(write: OwnerWrite): void {
+  expect(isNotificationPending(write)).toBe(true);
 }
 
 beforeEach(() => {
@@ -805,7 +786,7 @@ describe.each(ENGINE_CASES)(
       expect(describeWrites(harness.writes)).toEqual([
         `user:${USER_A.toString()}`,
       ]);
-      expectNotifying(testCase, harness.writes[0]!);
+      expectNotifying(harness.writes[0]!);
     });
 
     it("adds a matching rule's owners and counts them", async () => {
@@ -952,7 +933,7 @@ describe.each(ENGINE_CASES)(
       expect(harness.writes).toHaveLength(2);
 
       for (const write of harness.writes) {
-        expectSilent(testCase, write);
+        expectSilent(write);
       }
     });
 
@@ -974,7 +955,7 @@ describe.each(ENGINE_CASES)(
       expect(harness.writes).toHaveLength(2);
 
       for (const write of harness.writes) {
-        expectNotifying(testCase, write);
+        expectNotifying(write);
       }
     });
 
@@ -988,7 +969,7 @@ describe.each(ENGINE_CASES)(
 
       expect(result).toEqual(RuleApplicationResultUtil.updated(1));
       expect(harness.writes).toHaveLength(1);
-      expectSilent(testCase, harness.writes[0]!);
+      expectSilent(harness.writes[0]!);
     });
 
     it("adds an owner two matching rules disagree about once, and notified", async () => {
@@ -1006,7 +987,7 @@ describe.each(ENGINE_CASES)(
       expect(describeWrites(harness.writes)).toEqual([
         `user:${USER_A.toString()}`,
       ]);
-      expectNotifying(testCase, harness.writes[0]!);
+      expectNotifying(harness.writes[0]!);
     });
 
     it("reports alreadyApplied for a matching rule that names no owners", async () => {

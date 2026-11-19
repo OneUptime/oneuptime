@@ -1,5 +1,7 @@
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
+import ServerSetColumns from "../Database/ServerSetColumns";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
@@ -678,6 +680,18 @@ class ApplyRun {
     });
   }
 
+  /*
+   * The same for the owner teams an import gives services, on-call policies
+   * and on-call schedules: each row is written told, so the owner-added jobs
+   * (Workers ResourceOwnersAdded, #9700) send no "you were added as an
+   * owner" message per imported record to every member of the team. Marked
+   * as OneUptime's on the row (ServerSetColumns): nobody may write the
+   * column, the person importing included.
+   */
+  private markImportedOwnerTold(owner: BaseModel): void {
+    ServerSetColumns.set(owner, { isOwnerNotified: true });
+  }
+
   private async markStatusPageAnnounced(statusPageId: ObjectID): Promise<void> {
     await StatusPageService.updateOneById({
       id: statusPageId,
@@ -1153,6 +1167,8 @@ class ApplyRun {
       owner.projectId = this.input.projectId;
       owner.serviceId = created.id!;
       owner.teamId = new ObjectID(teamId.id);
+      // Imported, not added: told by the import's report alone (markImportedOwnerTold).
+      this.markImportedOwnerTold(owner);
 
       await this.addPart(notes, teamId.name, async () => {
         await ServiceOwnerTeamService.create({
@@ -1420,6 +1436,7 @@ class ApplyRun {
         owner.projectId = this.input.projectId;
         owner.onCallDutyPolicyScheduleId = created.id!;
         owner.teamId = new ObjectID(team.id);
+        this.markImportedOwnerTold(owner);
 
         await this.addPart(
           groupIndex === 0 ? notes : [],
@@ -1594,6 +1611,7 @@ class ApplyRun {
       owner.projectId = this.input.projectId;
       owner.onCallDutyPolicyId = created.id!;
       owner.teamId = new ObjectID(team.id);
+      this.markImportedOwnerTold(owner);
 
       await this.addPart(notes, team.name, async () => {
         await OnCallDutyPolicyOwnerTeamService.create({
