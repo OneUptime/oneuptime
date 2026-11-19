@@ -1074,7 +1074,7 @@ const HostSystemdUnitView: FunctionComponent<
                 {translator.translateText(OPEN_IN_LOGS)}
                 <Icon
                   icon={IconProp.ChevronRight}
-                  className="h-3.5 w-3.5 rtl:-scale-x-100"
+                  className="h-3.5 w-3.5"
                 />
               </>
             </Link>

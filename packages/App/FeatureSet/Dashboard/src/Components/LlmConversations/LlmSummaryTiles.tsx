@@ -111,7 +111,7 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
                 {props.hint}
                 <Icon
                   icon={IconProp.ChevronRight}
-                  className="h-3 w-3 flex-none rtl:-scale-x-100"
+                  className="h-3 w-3 flex-none"
                 />
               </>
             </Link>
