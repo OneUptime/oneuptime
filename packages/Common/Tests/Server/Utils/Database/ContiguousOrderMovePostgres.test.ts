@@ -51,6 +51,8 @@ import { DataSource, EntityManager, QueryRunner } from "typeorm";
  *     step's event type, compared as text), its twins put the older first,
  *     and a list that counts down numbered from its top.
  *
+ * Synthetic text is cut to the length its column holds.
+ *
  * Opt in with RUN_POSTGRES_CONTIGUOUS_ORDER_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
  * database. The tables' STRUCTURE is cloned into a schema of the
@@ -114,6 +116,8 @@ interface FillColumn {
   name: string;
   dataType: string;
   udtName: string;
+  // The longest text the column holds (a colour's varchar(10)), when it says.
+  maxLength: number | null;
 }
 
 describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
@@ -154,7 +158,10 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
       case "USER-DEFINED":
         return enumLabels.get(column.udtName) || "";
       default:
-        return `synthetic-${ObjectID.generate().toString().slice(0, 8)}`;
+        return `synthetic-${ObjectID.generate().toString().slice(0, 8)}`.slice(
+          0,
+          column.maxLength || undefined,
+        );
     }
   };
 
@@ -356,8 +363,9 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
         column_name: string;
         data_type: string;
         udt_name: string;
+        character_maximum_length: number | null;
       }> = await database.query(
-        `SELECT "column_name", "data_type", "udt_name" FROM information_schema.columns WHERE "table_schema" = $1 AND "table_name" = $2 AND "is_nullable" = 'NO' AND "column_default" IS NULL`,
+        `SELECT "column_name", "data_type", "udt_name", "character_maximum_length" FROM information_schema.columns WHERE "table_schema" = $1 AND "table_name" = $2 AND "is_nullable" = 'NO' AND "column_default" IS NULL`,
         [schema, listTable.table],
       );
 
@@ -368,6 +376,10 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
             name: column.column_name,
             dataType: column.data_type,
             udtName: column.udt_name,
+            maxLength:
+              column.character_maximum_length === null
+                ? null
+                : Number(column.character_maximum_length),
           };
         }),
       );
@@ -711,30 +723,35 @@ describePostgres("a move in a numbered list, on Postgres (issue #9573)", () => {
       expect(changed).toHaveLength(4);
     });
 
-    test("twins are put the older first, a row without a number last, and the list comes out numbered", async () => {
+    /*
+     * Twins as a Terraform apply can leave them, read the older first. (A
+     * row without a number cannot be stored here - these columns are NOT
+     * NULL - and the unit suites move such rows.)
+     */
+    test("twins are put the older first, and the list comes out numbered", async () => {
       const top: number = fromTheTop(4)[0]!;
       const seeded: { ids: Array<string>; list: Array<ListColumnValue> } =
         await seed({
-          // Two at the top number (the older first), one other, one without.
-          numbers: [top, top, fromTheTop(4)[2]!, null],
+          // Two at the top number (the older first), then two others.
+          numbers: [top, top, fromTheTop(4)[2]!, fromTheTop(4)[3]!],
           listValues: listValuesOf(),
           projectId: ObjectID.generate().toString(),
         });
-      const [older, younger, other, unnumbered] = seeded.ids as [
+      const [older, younger, third, last] = seeded.ids as [
         string,
         string,
         string,
         string,
       ];
 
-      // The row without a number, last, moved to the younger twin's place.
+      // The last row moved to the younger twin's place: just above it.
       await moveIn({
         list: seeded.list,
-        rowId: unnumbered,
+        rowId: last,
         placeOfId: younger,
       });
 
-      expect(await numbersOf([older, unnumbered, younger, other])).toEqual(
+      expect(await numbersOf([older, last, younger, third])).toEqual(
         fromTheTop(4),
       );
     });
