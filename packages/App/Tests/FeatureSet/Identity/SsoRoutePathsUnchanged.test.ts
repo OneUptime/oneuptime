@@ -34,7 +34,9 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  * six that were registered in packages/App/FeatureSet/Identity/API/*.ts at
  * commit 2eeec4a847, read from the live routers' stacks (not from the source
  * text) before they moved to ee/ and back, plus the confirmation page added
- * while they were in ee/. The order is the registration order, which is also
+ * while they were in ee/, and the SAML Single Logout URLs and the signing
+ * certificate a project's and the instance's SAML providers give identity
+ * providers since #9603. The order is the registration order, which is also
  * Express's match order. Changing this list is changing a public contract: it
  * needs a migration plan for every configured identity provider, not just an
  * updated test. (The SCIM routes are the Enterprise Edition's and are pinned
@@ -90,6 +92,11 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
       ["GET", "/sso/:projectId/:projectSsoId"],
       ["GET", "/idp-login/:projectId/:projectSsoId"],
       ["POST", "/idp-login/:projectId/:projectSsoId"],
+      // The Single Logout URL (#9603), on the HTTP-Redirect and HTTP-POST bindings.
+      ["GET", "/idp-logout/:projectId/:projectSsoId"],
+      ["POST", "/idp-logout/:projectId/:projectSsoId"],
+      // The certificate identity providers check sign-out requests against.
+      ["GET", "/saml-signing-certificate"],
     ],
   },
   {
@@ -107,6 +114,9 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
       ["GET", "/global-sso/:globalSsoId"],
       ["GET", "/global-idp-login/:globalSsoId"],
       ["POST", "/global-idp-login/:globalSsoId"],
+      // The Single Logout URL (#9603), on the HTTP-Redirect and HTTP-POST bindings.
+      ["GET", "/global-idp-logout/:globalSsoId"],
+      ["POST", "/global-idp-logout/:globalSsoId"],
     ],
   },
   {
@@ -294,7 +304,7 @@ describe("core SSO routers", () => {
     },
   );
 
-  test("together serve all 20 SSO routes, in mount order", () => {
+  test("together serve all 25 SSO routes, in mount order", () => {
     const served: Array<PinnedRoute> = SSO_ROUTERS.flatMap(
       (entry: SsoRouterEntry): Array<PinnedRoute> => {
         return getRoutes(entry.router);
@@ -302,7 +312,7 @@ describe("core SSO routers", () => {
     );
 
     expect(served).toEqual(ALL_PINNED);
-    expect(served).toHaveLength(20);
+    expect(served).toHaveLength(25);
   });
 
   test("each is a distinct router, and no (method, path) is served twice", () => {
@@ -384,6 +394,8 @@ describe("core SSO routers", () => {
 describe("the URLs the product hands out are all served", () => {
   const SIGN_IN_HEADS: ReadonlyArray<string> = [
     "idp-login",
+    "idp-logout",
+    "global-idp-logout",
     "oidc-callback",
     "global-idp-login",
     "global-oidc-callback",
@@ -400,7 +412,11 @@ describe("the URLs the product hands out are all served", () => {
   const SCREENS: Array<{ file: Array<string>; prints: Array<PathShape> }> = [
     {
       file: ["FeatureSet", "Dashboard", "src", "Pages", "Settings", "SSO.tsx"],
-      prints: [{ head: "idp-login", parameters: 2 }],
+      prints: [
+        { head: "idp-login", parameters: 2 },
+        // The Single Logout URL (#9603).
+        { head: "idp-logout", parameters: 2 },
+      ],
     },
     {
       // A project's OIDC providers, drawn on its SSO page.
@@ -451,6 +467,8 @@ describe("the URLs the product hands out are all served", () => {
       prints: [
         { head: "global-idp-login", parameters: 1 },
         { head: "global-sso", parameters: 1 },
+        // The Single Logout URL (#9603).
+        { head: "global-idp-logout", parameters: 1 },
       ],
     },
     {
@@ -591,6 +609,50 @@ describe("the URLs the product hands out are all served", () => {
       expect(isServed(callback, method)).toBe(true);
     },
   );
+
+  /*
+   * The Single Logout URL each SAML router hands an identity provider - the
+   * Destination of a LogoutResponse it takes, and where it answers - is a
+   * route it serves on both bindings (#9603). A status page's provider has
+   * none: it signs readers in to the status page, not to OneUptime.
+   */
+  test.each([
+    [
+      "SSO.ts",
+      (): string | undefined => {
+        return SamlServiceProviders.forProjectSso({
+          projectId: "11111111-1111-4111-8111-111111111111",
+          projectSsoId: "22222222-2222-4222-8222-222222222222",
+        }).singleLogoutUrl;
+      },
+      { head: "idp-logout", parameters: 2 },
+    ],
+    [
+      "GlobalSSO.ts",
+      (): string | undefined => {
+        return SamlServiceProviders.forGlobalSso({
+          globalSsoId: "22222222-2222-4222-8222-222222222222",
+        }).singleLogoutUrl;
+      },
+      { head: "global-idp-logout", parameters: 1 },
+    ],
+  ] as Array<[string, () => string | undefined, PathShape]>)(
+    "%s gives identity providers a Single Logout URL it serves on both bindings",
+    (_file: string, singleLogoutUrl: () => string | undefined, shape: PathShape) => {
+      expect(shapeAfterIdentity(singleLogoutUrl()!)).toEqual(shape);
+      expect(isServed(shape, "GET")).toBe(true);
+      expect(isServed(shape, "POST")).toBe(true);
+    },
+  );
+
+  test("a status page's SAML provider has no Single Logout URL", () => {
+    expect(
+      SamlServiceProviders.forStatusPageSso({
+        statusPageId: "11111111-1111-4111-8111-111111111111",
+        statusPageSsoId: "22222222-2222-4222-8222-222222222222",
+      }).singleLogoutUrl,
+    ).toBeUndefined();
+  });
 
   test.each([ProjectSsoKind.SAML, ProjectSsoKind.OIDC])(
     "the %s confirmation email links to a served page, which continues to a served sign-in",
