@@ -300,6 +300,19 @@
     "cancel": "取消並返回應用程式",
     "setup": "在網頁控制台的「使用者設定檔 → 安全性 → 通行密鑰」中建立通行密鑰。"
   },
+  "mobilePasskeyEnrolment": {
+    "title": "設定通行密鑰",
+    "description": "使用此手機的臉部、指紋或螢幕鎖定，或使用安全金鑰。下次你將用它登入 OneUptime On-Call。",
+    "create": "建立通行密鑰",
+    "tryAgain": "再試一次",
+    "notCompleted": "通行密鑰未建立：提示已取消或逾時。準備好後請重試。",
+    "expired": "此設定已過期或已被使用。請返回應用程式重新開始。",
+    "failed": "無法建立通行密鑰。請重試，或返回應用程式改為設定驗證器應用程式。",
+    "complete": "通行密鑰已就緒。請返回應用程式完成登入。",
+    "invalid": "請從 OneUptime 行動應用程式開始設定通行密鑰。此請求缺失或無效。",
+    "insecure": "通行密鑰需要 HTTPS。請返回應用程式，改為設定驗證器應用程式。",
+    "unsupported": "此瀏覽器無法建立通行密鑰。請返回應用程式，改為設定驗證器應用程式。"
+  },
   "mcpAuthorize": {
     "title": "連接 MCP 用戶端",
     "wantsAccess": "{{clientName}} 想要代表您存取 OneUptime。",

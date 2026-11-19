@@ -42,6 +42,7 @@ const PAGE_MODULES: Array<string> = [
   "ForgotPassword",
   "Login",
   "MobilePasskey",
+  "MobilePasskeyEnrolment",
   "LoginWithSSO",
   "NotFound",
   "Register",

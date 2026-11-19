@@ -300,6 +300,19 @@
     "cancel": "Avbryt och återgå till appen",
     "setup": "Skapa en passnyckel i webbpanelen under Användarprofil → Säkerhet → Passnycklar."
   },
+  "mobilePasskeyEnrolment": {
+    "title": "Konfigurera en passnyckel",
+    "description": "Använd den här telefonens ansikte, fingeravtryck eller skärmlås, eller en säkerhetsnyckel. Nästa gång loggar du in på OneUptime On-Call med den.",
+    "create": "Skapa passnyckel",
+    "tryAgain": "Försök igen",
+    "notCompleted": "Passnyckeln skapades inte: förfrågan avbröts eller tog för lång tid. Försök igen när du är redo.",
+    "expired": "Den här konfigurationen har gått ut eller har redan använts. Gå tillbaka till appen och börja om.",
+    "failed": "Passnyckeln kunde inte skapas. Försök igen, eller gå tillbaka till appen och konfigurera en autentiseringsapp i stället.",
+    "complete": "Din passnyckel är klar. Gå tillbaka till appen för att slutföra inloggningen.",
+    "invalid": "Starta konfigurationen av en passnyckel från OneUptimes mobilapp. Begäran saknas eller är ogiltig.",
+    "insecure": "Passnycklar kräver HTTPS. Gå tillbaka till appen för att konfigurera en autentiseringsapp i stället.",
+    "unsupported": "Den här webbläsaren kan inte skapa en passnyckel. Gå tillbaka till appen för att konfigurera en autentiseringsapp i stället."
+  },
   "mcpAuthorize": {
     "title": "Anslut en MCP-klient",
     "wantsAccess": "{{clientName}} vill få åtkomst till OneUptime för din räkning.",

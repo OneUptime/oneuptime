@@ -300,6 +300,19 @@
     "cancel": "Annuleren en terug naar de app",
     "setup": "Maak een passkey in het webdashboard, onder Gebruikersprofiel → Beveiliging → Passkeys."
   },
+  "mobilePasskeyEnrolment": {
+    "title": "Passkey instellen",
+    "description": "Gebruik het gezicht, de vingerafdruk of de schermvergrendeling van deze telefoon, of een beveiligingssleutel. De volgende keer meld je je hiermee aan bij OneUptime On-Call.",
+    "create": "Passkey maken",
+    "tryAgain": "Opnieuw proberen",
+    "notCompleted": "De passkey is niet gemaakt: de melding is geannuleerd of verlopen. Probeer het opnieuw wanneer je klaar bent.",
+    "expired": "Deze instelling is verlopen of al gebruikt. Ga terug naar de app en begin opnieuw.",
+    "failed": "De passkey kon niet worden gemaakt. Probeer het opnieuw, of ga terug naar de app en stel in plaats daarvan een authenticator-app in.",
+    "complete": "Je passkey is klaar. Ga terug naar de app om het aanmelden te voltooien.",
+    "invalid": "Start het instellen van een passkey vanuit de mobiele OneUptime-app. Dit verzoek ontbreekt of is ongeldig.",
+    "insecure": "Passkeys vereisen HTTPS. Ga terug naar de app om in plaats daarvan een authenticator-app in te stellen.",
+    "unsupported": "Deze browser kan geen passkey maken. Ga terug naar de app om in plaats daarvan een authenticator-app in te stellen."
+  },
   "mcpAuthorize": {
     "title": "Een MCP-client koppelen",
     "wantsAccess": "{{clientName}} wil namens u toegang tot OneUptime.",
