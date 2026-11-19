@@ -1,3 +1,5 @@
+import { translationKey } from "../Translator";
+
 /*
  * Whether a managed device is there, in one word, decided the same way
  * wherever it is shown: the device's row on Inventory > Managed Devices, its
@@ -81,51 +83,6 @@ export const ESPER_PROVISIONING_STATES: ReadonlySet<number> = new Set<number>([
   EsperDeviceState.Registered,
 ]);
 
-/*
- * Esper's own name for a state, as its API reference words it: shown beside
- * the status on a device's card ("Provisioning · Configuring Google Play").
- * English keys, translated where they are drawn. Undefined for a state this
- * version does not know.
- */
-const ESPER_STATE_LABELS: ReadonlyMap<number, string> = new Map<number, string>(
-  [
-    [EsperDeviceState.Unspecified, "State not specified"],
-    [EsperDeviceState.Online, "Online"],
-    [EsperDeviceState.Disabled, "Disabled"],
-    [EsperDeviceState.BeginningProvisioning, "Beginning provisioning"],
-    [EsperDeviceState.ConfiguringGooglePlay, "Configuring Google Play"],
-    [
-      EsperDeviceState.ApplyingPoliciesAndInstallingApps,
-      "Applying policies and installing apps",
-    ],
-    [EsperDeviceState.Offline, "Offline"],
-    [EsperDeviceState.FactoryResetInProgress, "Factory reset in progress"],
-    [EsperDeviceState.OnboardingInProgress, "Onboarding in progress"],
-    [EsperDeviceState.OnboardingFailed, "Onboarding failed"],
-    [EsperDeviceState.Onboarded, "Onboarded"],
-    [EsperDeviceState.AndroidForWorkAccountAdded, "Work account added"],
-    [EsperDeviceState.AppsInstalled, "Apps installed"],
-    [EsperDeviceState.BrandingProcessed, "Branding applied"],
-    [EsperDeviceState.PermissionPolicyProcessed, "Permission policy applied"],
-    [EsperDeviceState.DevicePolicyProcessed, "Device policy applied"],
-    [EsperDeviceState.DeviceSettingsProcessed, "Device settings applied"],
-    [EsperDeviceState.SecurityPolicyProcessed, "Security policy applied"],
-    [EsperDeviceState.PhonePolicyProcessed, "Phone policy applied"],
-    [EsperDeviceState.CustomSettingsProcessed, "Custom settings applied"],
-    [EsperDeviceState.Registered, "Registered"],
-  ],
-);
-
-export function getEsperDeviceStateLabel(
-  state: number | undefined | null,
-): string | undefined {
-  if (typeof state !== "number") {
-    return undefined;
-  }
-
-  return ESPER_STATE_LABELS.get(state);
-}
-
 export interface ManagedDeviceStatusInput {
   providerState?: number | undefined | null;
   lastCheckInAt?: Date | string | undefined | null;
@@ -201,13 +158,13 @@ export function getManagedDeviceStatus(
 export const MANAGED_DEVICE_STATUS_LABELS: Readonly<
   Record<ManagedDeviceStatus, string>
 > = {
-  [ManagedDeviceStatus.Online]: "Online",
-  [ManagedDeviceStatus.Offline]: "Offline",
-  [ManagedDeviceStatus.Provisioning]: "Provisioning",
-  [ManagedDeviceStatus.OnboardingFailed]: "Onboarding Failed",
-  [ManagedDeviceStatus.Disabled]: "Disabled",
-  [ManagedDeviceStatus.Wiping]: "Factory Reset",
-  [ManagedDeviceStatus.Removed]: "Removed",
+  [ManagedDeviceStatus.Online]: translationKey("Online"),
+  [ManagedDeviceStatus.Offline]: translationKey("Offline"),
+  [ManagedDeviceStatus.Provisioning]: translationKey("Provisioning"),
+  [ManagedDeviceStatus.OnboardingFailed]: translationKey("Onboarding Failed"),
+  [ManagedDeviceStatus.Disabled]: translationKey("Disabled"),
+  [ManagedDeviceStatus.Wiping]: translationKey("Factory Reset"),
+  [ManagedDeviceStatus.Removed]: translationKey("Removed"),
 };
 
 export type ManagedDeviceStatusTone = "success" | "danger" | "info" | "paused";

@@ -110,6 +110,11 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
       },
       {},
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_MANAGED_DEVICES, [
+      "Project",
+      "Inventory",
+      "Managed Devices",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_ARCHIVED, [
       "Project",
       "Inventory",

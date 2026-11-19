@@ -101,7 +101,7 @@ function getTestFailureWords(
       return {
         message: `The API key's user may not read devices in the Esper tenant ${tenant}.`,
         remediation:
-          "Use a key of a user whose role can read devices, groups and apps, such as the Viewer role.",
+          "Use a key of a user whose Esper role can read devices, groups and apps.",
       };
     case LlmConnectionFailureKind.Settings:
       return {

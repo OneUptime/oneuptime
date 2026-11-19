@@ -3237,6 +3237,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           allListPage(PageMap.INVENTORY_ITEMS, "All Items"),
           {
+            page: PageMap.INVENTORY_MANAGED_DEVICES,
+            title: "Managed Devices",
+            icon: IconProp.DevicePhoneMobile,
+            keywords: [
+              "esper",
+              "mdm",
+              "device management",
+              "android devices",
+              "kiosks",
+              "connect esper",
+            ],
+          },
+          {
             page: PageMap.TOPOLOGY,
             title: "Topology Map",
             icon: IconProp.FlowDiagram,
@@ -3246,11 +3259,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.INVENTORY_ITEMS,
             title: "Gone Quiet",
             icon: IconProp.ExclaimationCircle,
-            queryString: buildInventoryScopeQueryString({
-              source: EntitySource.Discovered,
-              staleOnly: true,
-            }),
-            keywords: ["stale", "no recent telemetry"],
+            queryString: buildInventoryScopeQueryString({ staleOnly: true }),
+            keywords: ["stale", "no recent telemetry", "offline devices"],
           },
         ],
       },

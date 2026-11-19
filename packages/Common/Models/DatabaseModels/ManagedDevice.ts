@@ -48,9 +48,9 @@ const READ_PERMISSIONS: Array<Permission> = [
  * so it is never silently left behind; it goes for good 30 days later.
  *
  * Each device is ONE host in Inventory (inventoryItemId): the host telemetry
- * names by the device's Esper name, or found by its Esper ID or serial
- * number, or made for it (ManagedDeviceIdentity), so a device whose apps or
- * agent send telemetry is one row with what they send.
+ * names by the device's Esper name, or found by its serial number, or made
+ * for it (ManagedDeviceIdentity), so a device whose apps or Android agent
+ * send telemetry is one row with what they send.
  */
 @TableBillingAccessControl({
   create: PlanType.Free,
@@ -163,8 +163,7 @@ export default class ManagedDevice extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Device ID",
-    description:
-      "The service's own ID for the device: Esper's device UUID, which the managed configuration placeholder ${esper.uuid} fills in.",
+    description: "The service's own ID for the device: Esper's device UUID.",
     example: "811a2d27-13fd-4358-8dc3-aed049e73ce7",
   })
   @Column({
@@ -582,7 +581,7 @@ export default class ManagedDevice extends BaseModel {
     allowedValues: Object.values(ManagedDeviceHostMatch),
     title: "Inventory Match",
     description:
-      "How the device's host in Inventory was found: 'name' (the host telemetry names by the device's Esper name), 'device-id' (its host.id), 'serial-number' (its host.serial_number) or 'created' (none was found, so OneUptime made one).",
+      "How the device's host in Inventory was found: 'name' (the host telemetry names by the device's Esper name), 'serial-number' (the one host whose host.serial_number or host.name is the device's serial number) or 'created' (none was found, so OneUptime made one).",
   })
   @Column({
     nullable: true,

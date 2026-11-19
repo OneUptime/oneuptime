@@ -32,7 +32,9 @@ import {
   MAX_INVENTORY_HOST_IP_ADDRESS_COUNT,
   normalizeHostIpAddresses,
 } from "../../../Utils/Telemetry/HostIpAddresses";
-import InventoryItemService from "../../Services/InventoryItemService";
+import InventoryItemService, {
+  SerialNumberHost,
+} from "../../Services/InventoryItemService";
 import ManagedDeviceService from "../../Services/ManagedDeviceService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
@@ -44,8 +46,11 @@ import { truncateDescriptiveAttributeValue } from "../Telemetry/TelemetryEntity"
  *
  * After every read of a connection, each of its devices is given its host:
  * found by the identity contract (ManagedDeviceIdentity) among the hosts
- * telemetry reports - by its Esper name, else its Esper ID, else its serial
- * number - or made for it. The host then carries what the service knows:
+ * telemetry reports - by its Esper name, else its serial number - or made
+ * for it. A device the Android agent reports under its Esper name (the
+ * agent's documented `device_name: ${esper.deviceName}`) is that very host,
+ * the one its Host in Hosts is keyed by too. The host then carries what the
+ * service knows:
  *
  *   - its asset details, under the keys every machine in Inventory uses
  *     (InventoryAssetDetails): serial number, make, model, build, Android
@@ -88,13 +93,13 @@ export const KIOSK_DEVICE_TYPE: string = "kiosk";
 
 /*
  * The keys only the import writes: let go with the host, since nothing
- * else keeps them current.
+ * else keeps them current. Not the patch level, which the Android agent
+ * sends under the same key.
  */
 export const IMPORT_ONLY_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
   ESPER_DEVICE_ID_ATTRIBUTE,
   ESPER_DEVICE_NAME_ATTRIBUTE,
   ESPER_GROUP_ATTRIBUTE,
-  ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE,
 ];
 
 // What the import wrote to a device's host last time (ManagedDevice.inventoryAttributes).
@@ -343,8 +348,8 @@ export function isImportOnlyHost(
  * and which host it lets go of. Pure: every candidate is read before.
  *
  *   byName      the host whose key is the device's host.name
- *   byDeviceId  hosts whose host.id is the device's Esper ID
- *   bySerial    hosts whose host.serial_number is the device's serial
+ *   bySerial    hosts whose host.serial_number, or host.name, is the
+ *               device's serial number
  *   current     the host the device held after the last read, if it is there
  *   heldByOthers  hosts other devices hold: never taken
  */
@@ -352,7 +357,6 @@ export function chooseManagedDeviceHost(data: {
   device: ManagedDeviceHostSubject;
   current: ManagedDeviceHostCandidate | undefined;
   byName: ManagedDeviceHostCandidate | undefined;
-  byDeviceId: Array<ManagedDeviceHostCandidate>;
   bySerial: Array<ManagedDeviceHostCandidate>;
   heldByOthers: ReadonlySet<string>;
 }): ManagedDeviceHostChoice {
@@ -385,7 +389,7 @@ export function chooseManagedDeviceHost(data: {
       free.push(candidate);
     }
 
-    // Two hosts claiming one device's ID or serial say nothing certain.
+    // Two hosts claiming one device's serial number say nothing certain.
     return free.length === 1 ? free[0] : undefined;
   };
 
@@ -394,19 +398,11 @@ export function chooseManagedDeviceHost(data: {
   if (nameHost && !isOwnMadeHost) {
     choice = { match: ManagedDeviceHostMatch.Name, itemId: nameHost.id };
   } else {
-    const byDeviceId: ManagedDeviceHostCandidate | undefined = pickOne(
-      data.byDeviceId,
+    const bySerial: ManagedDeviceHostCandidate | undefined = pickOne(
+      data.bySerial,
     );
-    const bySerial: ManagedDeviceHostCandidate | undefined = byDeviceId
-      ? undefined
-      : pickOne(data.bySerial);
 
-    if (byDeviceId) {
-      choice = {
-        match: ManagedDeviceHostMatch.DeviceId,
-        itemId: byDeviceId.id,
-      };
-    } else if (bySerial) {
+    if (bySerial) {
       choice = {
         match: ManagedDeviceHostMatch.SerialNumber,
         itemId: bySerial.id,
@@ -675,27 +671,18 @@ export default class ManagedDeviceInventory {
       }
     }
 
-    const deviceIds: Array<string> = present
-      .map((device: ManagedDevice): string => {
-        return canonicalizeManagedDeviceIdentity(device.providerDeviceId);
-      })
-      .filter(Boolean);
     const serials: Array<string> = present
       .map((device: ManagedDevice): string => {
         return getUsableSerialNumber(device.serialNumber) || "";
       })
       .filter(Boolean);
 
-    const identityHosts: Array<{
-      id: string;
-      hostId: string;
-      serialNumber: string;
-    }> = await InventoryItemService.findHostsByIdentity({
-      projectId: data.projectId,
-      hostIds: deviceIds,
-      serialNumbers: serials,
-      limit: (deviceIds.length + serials.length) * 2 + 10,
-    });
+    const serialHosts: Array<SerialNumberHost> =
+      await InventoryItemService.findHostsBySerialNumber({
+        projectId: data.projectId,
+        serialNumbers: serials,
+        limit: serials.length * 2 + 10,
+      });
 
     const linkedIds: Array<string> = data.devices
       .map((device: ManagedDevice): string => {
@@ -705,11 +692,9 @@ export default class ManagedDeviceInventory {
     const toRead: Array<string> = Array.from(
       new Set<string>([
         ...linkedIds,
-        ...identityHosts.map(
-          (host: { id: string; hostId: string; serialNumber: string }) => {
-            return host.id;
-          },
-        ),
+        ...serialHosts.map((host: SerialNumberHost): string => {
+          return host.id;
+        }),
       ]),
     ).filter((id: string): boolean => {
       return !byId.has(id);
@@ -774,9 +759,6 @@ export default class ManagedDeviceInventory {
           return item ? toCandidate(item) : undefined;
         };
 
-        const canonicalId: string = canonicalizeManagedDeviceIdentity(
-          device.providerDeviceId,
-        );
         const serial: string = getUsableSerialNumber(device.serialNumber) || "";
 
         const choice: ManagedDeviceHostChoice = chooseManagedDeviceHost({
@@ -787,27 +769,12 @@ export default class ManagedDeviceInventory {
               : undefined,
           ),
           byName: candidate(byKey.get(keyByDevice.get(deviceId) || "")),
-          byDeviceId: identityHosts
-            .filter((host: { id: string; hostId: string }): boolean => {
-              return Boolean(canonicalId) && host.hostId === canonicalId;
-            })
-            .map(
-              (host: {
-                id: string;
-              }): ManagedDeviceHostCandidate | undefined => {
-                return candidate(byId.get(host.id));
-              },
-            )
-            .filter(
-              (
-                host: ManagedDeviceHostCandidate | undefined,
-              ): host is ManagedDeviceHostCandidate => {
-                return host !== undefined;
-              },
-            ),
-          bySerial: identityHosts
-            .filter((host: { serialNumber: string }): boolean => {
-              return Boolean(serial) && host.serialNumber === serial;
+          bySerial: serialHosts
+            .filter((host: SerialNumberHost): boolean => {
+              return (
+                Boolean(serial) &&
+                (host.serialNumber === serial || host.hostName === serial)
+              );
             })
             .map(
               (host: {

@@ -203,6 +203,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
   /*
+   * A managed device's status - Online, Offline, Provisioning and the rest -
+   * as Inventory > Managed Devices and a device's Inventory page draw it.
+   * Only the names the file marks are read: the server words nothing here.
+   */
+  {
+    directory: "packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts",
+    kind: "keys",
+  },
+  /*
    * What a monitor's pages are told by the shared monitor helpers: the
    * overview's hero, facts and sections, its uptime windows and its metric
    * groups - each helper writes them with the reader's Translator.

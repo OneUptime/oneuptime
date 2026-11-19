@@ -30,6 +30,12 @@ export const MAX_IP_ADDRESSES: number = 10;
 // Hex digits that are all zeros: the placeholder MAC some devices report.
 const ALL_ZEROS: RegExp = /^0+$/;
 
+/*
+ * What Android answers for a MAC address to anyone not allowed to read it
+ * (since Android 6): a placeholder, never the device's.
+ */
+const ANDROID_PLACEHOLDER_MAC: string = "020000000000";
+
 // An ID Esper gives: a UUID's characters only, so it can go into a URL path.
 const ESPER_ID: RegExp = /^[0-9a-fA-F-]{8,64}$/;
 
@@ -92,8 +98,8 @@ function readDate(value: unknown): Date | null {
 
 /*
  * A MAC address as OneUptime keeps one: lowercase, colon-separated. ""
- * for anything that is not six bytes, or for the all-zero placeholder some
- * devices report.
+ * for anything that is not six bytes, or for a placeholder: all zeros, or
+ * Android's 02:00:00:00:00:00.
  */
 export function normalizeMacAddress(value: unknown): string {
   if (typeof value !== "string") {
@@ -113,7 +119,11 @@ export function normalizeMacAddress(value: unknown): string {
     }
   }
 
-  if (hex.length !== 12 || ALL_ZEROS.test(hex)) {
+  if (
+    hex.length !== 12 ||
+    ALL_ZEROS.test(hex) ||
+    hex === ANDROID_PLACEHOLDER_MAC
+  ) {
     return "";
   }
 

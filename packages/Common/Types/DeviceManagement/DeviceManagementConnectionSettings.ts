@@ -226,9 +226,14 @@ export function getEsperApiHost(tenant: string): string {
   return `${tenant}-api.${ESPER_CLOUD_DOMAIN}`;
 }
 
+// The console's host for a tenant: acme.esper.cloud.
+export function getEsperConsoleHost(tenant: string): string {
+  return `${tenant}.${ESPER_CLOUD_DOMAIN}`;
+}
+
 // The console's address for a tenant: https://acme.esper.cloud.
 export function getEsperConsoleUrl(tenant: string): string {
-  return `https://${tenant}.${ESPER_CLOUD_DOMAIN}`;
+  return `https://${getEsperConsoleHost(tenant)}`;
 }
 
 /*
@@ -295,7 +300,7 @@ export function validateDeviceManagementConfig(
 
     if (!DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES.includes(minutes)) {
       throw new BadDataException(
-        `Read every must be one of ${DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES.join(", ")} minutes.`,
+        `Read every takes a number of minutes: one of ${DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES.join(", ")}.`,
       );
     }
   }

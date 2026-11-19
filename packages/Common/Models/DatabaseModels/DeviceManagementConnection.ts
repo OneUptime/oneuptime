@@ -77,7 +77,7 @@ const readPermissions: Array<Permission> = [
   pluralName: "Device Management Connections",
   icon: IconProp.DevicePhoneMobile,
   tableDescription:
-    "Esper tenants OneUptime imports Android devices from through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.",
+    "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.",
 })
 @TableAccessControl({
   create: adminPermissions,

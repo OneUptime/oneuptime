@@ -44,6 +44,35 @@ const PORT_REGEX: RegExp = /^\d{1,5}$/;
 // A bare IPv6 address - bracketed before a port.
 const IPV6_LITERAL_REGEX: RegExp = /^[0-9a-f:.]+$/i;
 
+// A host a device's serial number names: what findHostsBySerialNumber reads.
+export interface SerialNumberHost {
+  id: string;
+  // Its host.serial_number, trimmed and lowercased; "" when it has none.
+  serialNumber: string;
+  // Its host.name, trimmed and lowercased.
+  hostName: string;
+}
+
+/*
+ * findHostsBySerialNumber's query: $1 the project, $2 the host entity type,
+ * $3 the serial numbers (trimmed and lowercased), $4 the limit. Exported so
+ * InventoryHostsBySerialNumberPostgres runs this very text.
+ */
+export const FIND_HOSTS_BY_SERIAL_NUMBER_SQL: string = `
+      SELECT ii."_id",
+        lower(btrim(ii."descriptiveAttributes" ->> 'host.serial_number')) AS "serialNumber",
+        lower(btrim(ii."identifyingAttributes" ->> 'host.name')) AS "hostName"
+      FROM "InventoryItem" AS ii
+      WHERE ii."projectId" = $1
+        AND ii."entityType" = $2
+        AND ii."deletedAt" IS NULL
+        AND (
+          lower(btrim(ii."descriptiveAttributes" ->> 'host.serial_number')) = ANY($3::text[])
+          OR lower(btrim(ii."identifyingAttributes" ->> 'host.name')) = ANY($3::text[])
+        )
+      LIMIT $4
+    `;
+
 export class InventoryItemService extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -156,6 +185,67 @@ export class InventoryItemService extends DatabaseService<Model> {
   }
 
   /**
+   * The hosts of a project that carry one of these serial numbers: as their
+   * `host.serial_number`, or as their `host.name` (an Android agent told
+   * `device_name: ${esper.serialNumber}`), compared trimmed and lowercased.
+   * How a device management connection finds the host a device's apps or
+   * the Android agent report under a name that is not the device's
+   * (ManagedDeviceInventory, issue #9586).
+   *
+   * One query over the project's hosts, by the (projectId, entityType)
+   * index; the serial number is read from each host's descriptive bag, the
+   * name from its identity.
+   */
+  @CaptureSpan()
+  public async findHostsBySerialNumber(data: {
+    projectId: ObjectID;
+    serialNumbers: Array<string>;
+    limit: number;
+  }): Promise<Array<SerialNumberHost>> {
+    const serialNumbers: Array<string> = Array.from(
+      new Set<string>(
+        data.serialNumbers
+          .map((value: string): string => {
+            return canonicalizeEntityValue(value);
+          })
+          .filter(Boolean),
+      ),
+    );
+
+    if (serialNumbers.length === 0) {
+      return [];
+    }
+
+    const rows: Array<{
+      _id: string;
+      serialNumber: string | null;
+      hostName: string | null;
+    }> = await this.getRepository().manager.query(
+      FIND_HOSTS_BY_SERIAL_NUMBER_SQL,
+      [
+        data.projectId.toString(),
+        EntityType.Host,
+        serialNumbers,
+        Math.max(1, Math.floor(data.limit)),
+      ],
+    );
+
+    return rows.map(
+      (row: {
+        _id: string;
+        serialNumber: string | null;
+        hostName: string | null;
+      }): SerialNumberHost => {
+        return {
+          id: String(row._id),
+          serialNumber: row.serialNumber || "",
+          hostName: row.hostName || "",
+        };
+      },
+    );
+  }
+
+  /**
    * The Inventory Overview's tiles and per-type breakdown, counted over the
    * project's whole unarchived estate. See INVENTORY_OVERVIEW_SELECT.
    *
@@ -167,88 +257,6 @@ export class InventoryItemService extends DatabaseService<Model> {
    * ingest maps to a fixed set of types, manual creates are confined to
    * MANUAL_ENTITY_TYPES, and the column is not updatable.
    */
-  /**
-   * The hosts of a project that name a device by its ID or serial number
-   * (`host.id`, `host.serial_number`, compared trimmed and lowercased): how
-   * a device management connection finds the host a device's apps or agent
-   * report under another name (ManagedDeviceInventory, issue #9586).
-   *
-   * One query over the project's hosts, by the (projectId, entityType)
-   * index; the attributes are read from each host's descriptive bag.
-   */
-  @CaptureSpan()
-  public async findHostsByIdentity(data: {
-    projectId: ObjectID;
-    hostIds: Array<string>;
-    serialNumbers: Array<string>;
-    limit: number;
-  }): Promise<Array<{ id: string; hostId: string; serialNumber: string }>> {
-    const hostIds: Array<string> = Array.from(
-      new Set<string>(
-        data.hostIds
-          .map((value: string): string => {
-            return canonicalizeEntityValue(value);
-          })
-          .filter(Boolean),
-      ),
-    );
-    const serialNumbers: Array<string> = Array.from(
-      new Set<string>(
-        data.serialNumbers
-          .map((value: string): string => {
-            return canonicalizeEntityValue(value);
-          })
-          .filter(Boolean),
-      ),
-    );
-
-    if (hostIds.length === 0 && serialNumbers.length === 0) {
-      return [];
-    }
-
-    const rows: Array<{
-      _id: string;
-      hostId: string | null;
-      serialNumber: string | null;
-    }> = await this.getRepository().manager.query(
-      `
-      SELECT ii."_id",
-        lower(btrim(ii."descriptiveAttributes" ->> 'host.id')) AS "hostId",
-        lower(btrim(ii."descriptiveAttributes" ->> 'host.serial_number')) AS "serialNumber"
-      FROM "InventoryItem" AS ii
-      WHERE ii."projectId" = $1
-        AND ii."entityType" = $2
-        AND ii."deletedAt" IS NULL
-        AND (
-          lower(btrim(ii."descriptiveAttributes" ->> 'host.id')) = ANY($3::text[])
-          OR lower(btrim(ii."descriptiveAttributes" ->> 'host.serial_number')) = ANY($4::text[])
-        )
-      LIMIT $5
-    `,
-      [
-        data.projectId.toString(),
-        EntityType.Host,
-        hostIds,
-        serialNumbers,
-        Math.max(1, Math.floor(data.limit)),
-      ],
-    );
-
-    return rows.map(
-      (row: {
-        _id: string;
-        hostId: string | null;
-        serialNumber: string | null;
-      }): { id: string; hostId: string; serialNumber: string } => {
-        return {
-          id: String(row._id),
-          hostId: row.hostId || "",
-          serialNumber: row.serialNumber || "",
-        };
-      },
-    );
-  }
-
   @CaptureSpan()
   public async getOverviewCounts(data: {
     projectId: ObjectID;
