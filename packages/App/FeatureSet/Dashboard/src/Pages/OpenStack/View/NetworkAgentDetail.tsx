@@ -26,11 +26,11 @@ import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
-import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { getOpenStackPartAttention } from "../Utils/OpenStackPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
   OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS,
   OpenStackNetworkBackend,
@@ -53,19 +53,18 @@ const DHCP_NETWORKS_NOT_COLLECTED: string = translationKey(
   "Which networks this DHCP agent serves isn't in what's collected: the agent's exporter doesn't say, and a probe only reads it with a credential that may, on a cloud under the summary size. openstack network list --agent {{id}} has them.",
 );
 
-const AgentOverview: FunctionComponent<{
+interface AgentOverviewProps {
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const AgentOverview: FunctionComponent<AgentOverviewProps> = (
+  props: AgentOverviewProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
-  const now: Date = OneUptimeDate.getCurrentDate();
-
-  const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: [row],
-    now,
-    routeFor: part.routes.routeFor,
-  });
 
   const host: string = getOpenStackFactText(row, "host");
   const agentId: string = getOpenStackFactText(row, "agentId");
@@ -138,12 +137,9 @@ const AgentOverview: FunctionComponent<{
     <div data-testid="openstack-network-agent-overview">
       <NeedsAttentionCard
         testId="openstack-network-agent-attention"
-        items={attention}
-        current={{
-          key: `${OpenStackResourceKind.Service}/${part.externalId}`,
-          label: translationKey("This agent"),
-        }}
-        description="What about this agent is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       {isOpenStackL3Agent(row) ||
@@ -207,11 +203,20 @@ const OpenStackCloudNetworkAgentDetail: FunctionComponent<
   );
   const row: OpenStackResource | null = part.row;
   const host: string = row ? getOpenStackFactText(row, "host") : "";
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackPartAttention({
+    kind: OpenStackResourceKind.Service,
+    externalId: part.externalId,
+    row: row,
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: part.routes.routeFor,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
       hero={{
+        attention,
         location: host ? (
           <TranslatedSentence
             template="On host {{host}} of cloud {{cloud}}, and on its {{services}} page"
@@ -238,7 +243,9 @@ const OpenStackCloudNetworkAgentDetail: FunctionComponent<
         ) : undefined,
       }}
       overview={(overviewRow: OpenStackResource): ReactElement => {
-        return <AgentOverview part={part} row={overviewRow} />;
+        return (
+          <AgentOverview part={part} row={overviewRow} attention={attention} />
+        );
       }}
       tabs={(tabRow: OpenStackResource): Array<Tab> => {
         const agentId: string = getOpenStackFactText(tabRow, "agentId");

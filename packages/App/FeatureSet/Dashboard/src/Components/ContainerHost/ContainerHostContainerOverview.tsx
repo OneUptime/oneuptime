@@ -13,19 +13,16 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../ResourceTopology/ResourceTopologyIssues";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import ObjectID from "Common/Types/ObjectID";
 import {
   ContainerHostAssessment,
   ContainerHostContainer,
-  THIS_CONTAINER_LABEL,
   assessContainer,
-  getContainerAttentionKey,
   getContainerComposeProject,
   getContainerComposeService,
-  getContainerHostAttentionItems,
   isContainerIssueAbout,
 } from "./ContainerHostHealth";
 import {
@@ -60,6 +57,11 @@ export interface ComponentProps {
   hostIdentifier: string;
   container: ContainerHostContainer | null;
   hostLatestReadingAt: Date | null;
+  /*
+   * What needs attention on the container: the page reads it once
+   * (getContainerHostPartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   // Whether the agent sends restart counts (an older agent does not).
   hasRestartCounts: boolean;
   routes: ContainerHostRoutes;
@@ -117,12 +119,6 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
   );
   const isRunning: boolean =
     assessment.state === "running" || assessment.state === "restart-loop";
-
-  const attentionItems: Array<ResourceAttentionItem> =
-    getContainerHostAttentionItems({
-      containers: [container],
-      hostLatestReadingAt: props.hostLatestReadingAt,
-    });
 
   const restarts: number | null = props.hasRestartCounts
     ? Math.max(0, Math.round(container.restarts || 0))
@@ -231,12 +227,9 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
     <div data-testid={CONTAINER_HOST_CONTAINER_OVERVIEW_TEST_ID}>
       <NeedsAttentionCard
         testId="container-host-container-attention"
-        items={attentionItems}
-        current={{
-          key: getContainerAttentionKey(container.name),
-          label: THIS_CONTAINER_LABEL,
-        }}
-        description="What about this container is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       {/*

@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -15,12 +15,11 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
   PROXMOX_STORAGE_FULL_PERCENT,
   PROXMOX_STORAGE_NEAR_FULL_PERCENT,
-  getProxmoxAttentionItems,
   getProxmoxStoragePercent,
   isProxmoxIssueAbout,
 } from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
@@ -44,14 +43,16 @@ import { joinList } from "Common/UI/Utils/ListSeparator";
  * whether anyone will hear when it fills or goes away, and its details.
  */
 
-// How the storage's own row reads in its Needs attention card.
-const THIS_STORAGE: string = translationKey("This storage");
-
 export interface ComponentProps {
   clusterId: ObjectID;
   clusterName: string;
   externalId: string;
   row: ProxmoxResource | null;
+  /*
+   * What needs attention on the storage: the page reads it once
+   * (getProxmoxPartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: ProxmoxPartRoutes;
   /*
    * Days until the storage is full at its growth over the forecast window;
@@ -85,13 +86,6 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
-
-  const attentionItems: Array<ResourceAttentionItem> = getProxmoxAttentionItems(
-    {
-      rows: [row],
-      routeFor: props.routes.getPartRoute,
-    },
-  );
 
   const used: number | null = toProxmoxNumber(row.latestDiskBytes);
   const total: number | null = toProxmoxNumber(row.maxDiskBytes);
@@ -170,9 +164,9 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="proxmox-storage-overview">
       <NeedsAttentionCard
         testId="proxmox-storage-attention"
-        items={attentionItems}
-        current={{ key: `Storage:${props.externalId}`, label: THIS_STORAGE }}
-        description="What about this storage is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div

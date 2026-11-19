@@ -793,6 +793,111 @@ describe("a storage's page", () => {
 });
 
 /*
+ * #9594: "Offline", "Stopped" or "Unavailable" beside a part's name said
+ * what was wrong and nothing else: why was the Overview's Needs attention
+ * card, under the tabs. Pressed, the status opens that same list, under
+ * the card's words, the part itself as the card names it.
+ */
+function heroDialogRows(heroTestId: string): Array<string> {
+  return screen
+    .getAllByTestId(`${heroTestId}-status-dialog-item`)
+    .map((item: HTMLElement): string => {
+      const reasons: Array<string> = within(item)
+        .queryAllByTestId(`${heroTestId}-status-dialog-reason`)
+        .map((reason: HTMLElement): string => {
+          return reason.textContent || "";
+        });
+      const name: string =
+        within(item).getByTestId(`${heroTestId}-status-dialog-name`)
+          .textContent || "";
+      return `${name}: ${reasons.join(", ")}`;
+    });
+}
+
+describe("a part's status opens what its Needs attention card lists", () => {
+  test("an offline node: the node as This node, then its storage and guests, each a step from its page", async () => {
+    mockInventory = mockInventory.map((row: Row): Row => {
+      return row["externalId"] === "node/pve1" ? { ...row, isUp: false } : row;
+    });
+    await renderPage(
+      ProxmoxClusterNodeDetail,
+      "node%2Fpve1",
+      "proxmox-node-hero",
+    );
+
+    const status: HTMLElement = screen.getByTestId("proxmox-node-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveAttribute("data-tone", "danger");
+    expect(status).toHaveTextContent("Offline");
+
+    fireEvent.click(status);
+
+    // The card's list, word for word, in the card's order.
+    expect(heroDialogRows("proxmox-node-hero")).toEqual(
+      attentionRows("proxmox-node-attention"),
+    );
+    expect(heroDialogRows("proxmox-node-hero")[0]).toBe("This node: Offline");
+    // Under the card's own words.
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What on this node, its guests and its storage is broken or needs a look, the most urgent first.",
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "proxmox-node-hero-status-dialog-item",
+    );
+    // The node itself is the page the reader is on: no View.
+    expect(rows[0]!).toHaveAttribute("data-current", "true");
+    expect(
+      within(rows[0]!).queryByTestId("proxmox-node-hero-status-dialog-view"),
+    ).toBeNull();
+    expect(
+      within(rows[1]!).getByTestId("proxmox-node-hero-status-dialog-view"),
+    ).toHaveAttribute("href", expect.stringContaining("/storage/"));
+  });
+
+  test("an online node's status is a plain pill, though its storage and guests need a look", async () => {
+    await renderPage(
+      ProxmoxClusterNodeDetail,
+      "node%2Fpve1",
+      "proxmox-node-hero",
+    );
+
+    expect(attentionRows("proxmox-node-attention").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("proxmox-node-hero-status").tagName).toBe("SPAN");
+  });
+
+  test("a stopped guest that starts on boot: its status opens why", async () => {
+    await renderPage(
+      ProxmoxClusterGuestDetail,
+      "qemu%2F104",
+      "proxmox-guest-hero",
+    );
+
+    const status: HTMLElement = screen.getByTestId("proxmox-guest-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    expect(heroDialogRows("proxmox-guest-hero")).toEqual([
+      "This guest: Stopped, but starts on boot, In no backup job",
+    ]);
+  });
+
+  test("an unavailable storage: its status opens why", async () => {
+    await renderPage(
+      ProxmoxClusterStorageDetail,
+      "storage%2Fpve1%2Fpbs",
+      "proxmox-storage-hero",
+    );
+
+    fireEvent.click(screen.getByTestId("proxmox-storage-hero-status"));
+
+    expect(heroDialogRows("proxmox-storage-hero")).toEqual([
+      "This storage: Unavailable",
+    ]);
+  });
+});
+
+/*
  * #5524's follow-up: a node's, a guest's and a storage's page swallowed a
  * failed read of the inventory and drew their empty state - "Node details
  * not reported yet. Make sure the Proxmox agent is sending metrics." and

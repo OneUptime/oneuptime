@@ -7,7 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, configure, screen } from "@testing-library/react";
+import {
+  cleanup,
+  configure,
+  fireEvent,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import {
   OpenStackResourceKind,
@@ -167,5 +173,41 @@ describe("Barbican's API page", () => {
     await settle();
     expect(attentionRowsOf("openstack-service-attention")).toHaveLength(1);
     expect(screen.queryByTestId("openstack-service-closed")).toBeNull();
+  });
+
+  /*
+   * "Down" beside the API's name said nothing of what it took with it: that
+   * was Needs attention, under the hero (#9594). Pressed, it opens it.
+   */
+  test("its Down opens why: the card's list, read once for the hero too", async () => {
+    server.rows = [row({ status: "down" })];
+
+    await renderPage(OpenStackCloudServiceDetail, partPath("services", API));
+    await screen.findByTestId("openstack-service-tiles");
+    await settle();
+
+    const status: HTMLElement = screen.getByTestId(
+      "openstack-service-hero-status",
+    );
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const dialogKeys: Array<string | null> = screen
+      .getAllByTestId("openstack-service-hero-status-dialog-item")
+      .map((item: HTMLElement): string | null => {
+        return item.getAttribute("data-key");
+      });
+    const cardKeys: Array<string | null> = within(
+      screen.getByTestId("openstack-service-attention"),
+    )
+      .getAllByTestId("openstack-service-attention-item")
+      .map((item: HTMLElement): string | null => {
+        return item.getAttribute("data-key");
+      });
+    expect(dialogKeys).toEqual(cardKeys);
+    expect(dialogKeys).toHaveLength(1);
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What is wrong with this API and the workers it answers for, the most urgent first.",
+    );
   });
 });
