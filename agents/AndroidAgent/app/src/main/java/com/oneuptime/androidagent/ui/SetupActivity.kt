@@ -30,6 +30,7 @@ import com.oneuptime.androidagent.agent.AgentStatusText
 import com.oneuptime.androidagent.agent.Health
 import com.oneuptime.androidagent.collect.CollectorCapabilities
 import com.oneuptime.androidagent.config.AgentConfig
+import com.oneuptime.androidagent.config.ConfigProblem
 import com.oneuptime.androidagent.config.EndpointParser
 import com.oneuptime.androidagent.config.EndpointResult
 import com.oneuptime.androidagent.config.LocalSettings
@@ -51,6 +52,7 @@ class SetupActivity : Activity() {
     private lateinit var statusHeadline: TextView
     private lateinit var statusDetail: TextView
     private lateinit var statusLastReport: TextView
+    private lateinit var configProblems: TextView
     private lateinit var managedNotice: TextView
     private lateinit var url: EditText
     private lateinit var urlHelp: TextView
@@ -81,6 +83,7 @@ class SetupActivity : Activity() {
         statusHeadline = findViewById(R.id.status_headline)
         statusDetail = findViewById(R.id.status_detail)
         statusLastReport = findViewById(R.id.status_last_report)
+        configProblems = findViewById(R.id.config_problems)
         managedNotice = findViewById(R.id.managed_notice)
         url = findViewById(R.id.url)
         urlHelp = findViewById(R.id.url_help)
@@ -225,6 +228,16 @@ class SetupActivity : Activity() {
             } else {
                 lastReport
             }
+
+        val problems: List<String> =
+            config.problems.map { problem ->
+                when (problem.kind) {
+                    ConfigProblem.Kind.UNRESOLVED_PLACEHOLDER -> getString(R.string.setup_problem_placeholder, problem.key, problem.detail)
+                    ConfigProblem.Kind.INVALID -> getString(R.string.setup_problem_invalid, problem.key, problem.detail)
+                }
+            }
+        configProblems.text = problems.joinToString("\n")
+        configProblems.visibility = if (problems.isEmpty()) View.GONE else View.VISIBLE
 
         renderReadings(config)
     }

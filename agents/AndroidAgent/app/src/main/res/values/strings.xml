@@ -12,6 +12,8 @@
     <string name="setup_no_report_yet">Nothing sent yet</string>
     <string name="setup_waiting">%1$s waiting to be sent</string>
     <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: your device manager sent %2$s as it is, without filling it in.</string>
+    <string name="setup_problem_invalid">%1$s: %2$s cannot be used, so the default applies.</string>
     <string name="setup_connection">Connection</string>
     <string name="setup_managed_notice">Your organization\'s device manager sets the settings shown as locked.</string>
     <string name="setup_url_label">OneUptime URL</string>

@@ -81,6 +81,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp" />
+
+            <!-- Settings the device manager sent that the agent cannot use, one per line. -->
+            <TextView
+                android:id="@+id/config_problems"
+                style="@style/AgentText.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/status_warn"
+                android:textIsSelectable="true"
+                android:visibility="gone" />
         </LinearLayout>
 
         <TextView

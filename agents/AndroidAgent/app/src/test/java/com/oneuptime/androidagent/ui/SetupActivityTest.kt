@@ -139,6 +139,37 @@ class SetupActivityTest {
     }
 
     @Test
+    fun `a placeholder the device manager did not fill in, or a value it cannot use, is shown`() {
+        val restrictions: RestrictionsManager = context.getSystemService(RestrictionsManager::class.java)
+        shadowOf(restrictions).setApplicationRestrictions(
+            Bundle().apply {
+                putString("oneuptime_token", "managed")
+                putString("device_name", "\${esper.deviceName}")
+                putString("logcat_min_level", "loud")
+            },
+        )
+
+        val activity: SetupActivity = launch()
+        val problems: TextView = activity.findViewById(R.id.config_problems)
+
+        assertEquals(View.VISIBLE, problems.visibility)
+        assertEquals(
+            listOf(
+                "device_name: your device manager sent \${esper.deviceName} as it is, without filling it in.",
+                "logcat_min_level: loud cannot be used, so the default applies.",
+            ),
+            problems.text.toString().split("\n").sorted(),
+        )
+    }
+
+    @Test
+    fun `no problems, no problem line`() {
+        val activity: SetupActivity = launch()
+
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.config_problems).visibility)
+    }
+
+    @Test
     fun `it lists what the device lets the agent read, and how to turn on Logcat`() {
         val activity: SetupActivity = launch()
         val readings: LinearLayout = activity.findViewById(R.id.readings)
