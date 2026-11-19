@@ -29,7 +29,6 @@ import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
-import UserService from "Common/Server/Services/UserService";
 import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";

@@ -38,7 +38,6 @@ import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
-import UserService from "Common/Server/Services/UserService";
 import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
