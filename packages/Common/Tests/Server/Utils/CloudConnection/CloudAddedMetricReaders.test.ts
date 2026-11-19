@@ -80,7 +80,7 @@ function identifierOf(name: string): string {
 
 function query(
   metricName: string,
-  attributes: unknown,
+  attributes: JSONObject,
   variable: string = "a",
 ): JSONObject {
   return {
