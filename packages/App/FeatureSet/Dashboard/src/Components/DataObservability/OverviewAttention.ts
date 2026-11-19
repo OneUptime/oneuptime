@@ -68,6 +68,16 @@ export const DATA_ATTENTION_COPY: Readonly<
     actionTitle: "Open Pipeline",
     caption: "Failed {{time}}",
   },
+  // Its circuit breaker held it back (#6548): the reason is a table it reads.
+  [DataAttentionKind.PipelineStopped]: {
+    label: "Stopped",
+    sentence:
+      "Its circuit breaker stopped a run: a table it reads failed a check or is late, so what it writes waits.",
+    icon: IconProp.Workflow,
+    tone: AttentionTone.Danger,
+    actionTitle: "Open Circuit Breaker",
+    caption: "Stopped {{time}}",
+  },
   [DataAttentionKind.CheckFailing]: {
     label: "Failing",
     sentence: "The data broke this check, and its alert is open.",
@@ -155,6 +165,14 @@ export function getAttentionRoute(item: DataAttentionItem): Route {
     case DataAttentionKind.PipelineLate:
       return item.dataPipelineId
         ? routeOf(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW, item.dataPipelineId)
+        : routeOf(PageMap.DATA_OBSERVABILITY_PIPELINES);
+    // Why it stopped, and what stops it: its Circuit Breaker page.
+    case DataAttentionKind.PipelineStopped:
+      return item.dataPipelineId
+        ? routeOf(
+            PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER,
+            item.dataPipelineId,
+          )
         : routeOf(PageMap.DATA_OBSERVABILITY_PIPELINES);
     case DataAttentionKind.CheckFailing:
     case DataAttentionKind.CheckCouldNotRun:

@@ -228,8 +228,8 @@ describe("module quality", () => {
   /*
    * OneUptime seeds monitor statuses and incident severities per project. A
    * module instantiated once per service must look them up, not create them —
-   * creating them duplicates the taxonomy, and a status created with a
-   * `priority` another one holds takes its place and moves the rest down.
+   * creating them duplicates the taxonomy, once for every service, each copy
+   * at the `priority` it was given beside the status that already holds it.
    */
   test("the module looks the project taxonomy up instead of creating it", () => {
     const mainHcl: string = read(path.join(MODULE_DIR, "main.tf"));

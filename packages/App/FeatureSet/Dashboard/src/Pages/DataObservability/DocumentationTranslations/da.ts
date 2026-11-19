@@ -202,7 +202,7 @@ En backfill eller en migrering bør ikke tilkalde nogen. Angiv databasen under *
 
 ## Ejere og etiketter
 
-En tabels fane **Ejere** angiver de personer og teams, den tilhører, og tabellens advarsler går til dem; uden ejere til ejerne af dens database. **Ejerregler** og **Etiketregler** gælder for hver tabel, så snart den dukker op første gang, ud fra dens etiketter eller et regulært udtryk på dens navn, skema eller database. En tilladelse, der er afgrænset til \`Owned\`, rækker kun til de tabeller, som dens indehaver eller deres teams ejer, med disses kontroller, aktivitet og rapporterede problemer. At eje en database gør ikke nogen til ejer af dens tabeller: brug en ejerregel til at give et team en hel database.
+En tabels fane **Ejere** angiver de personer og teams, den tilhører, og tabellens advarsler går til dem; uden ejere til ejerne af dens database. **Ejerregler** og **Etiketregler** gælder for hver tabel, så snart den dukker op første gang, ud fra dens etiketter eller et regulært udtryk på dens navn, skema eller database. En tilladelse, der er afgrænset til \`Owned\`, rækker kun til de tabeller, som dens indehaver eller deres teams ejer, med disses kontroller, aktivitet og rapporterede problemer. At eje en database gør ikke nogen til ejer af dens tabeller: brug en ejerregel til at give et team en hel database. På deres fane **Pipelineregler** navngiver ejerregler også en pipelines ejere, matchet med et regulært udtryk på dens navn eller dens navnerum, når OneUptime første gang ser pipelinen.
 
 ## Når en advarsel åbnes
 
@@ -322,6 +322,8 @@ De læser disse metrikker, hver mærket med \`oneuptime.data.pipeline.id\` og \`
 - \`oneuptime.data.pipeline.overdue_seconds\`: hvor længe den næste kørsel er forbi sin tidsplan, hvert femte minut; 0, så længe den er til tiden.
 
 En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel fejler eller er forsinket: de tabeller, den læser, til venstre, de tabeller, den skriver, til højre, og hvordan hver af dem står nu. Vælg flere trin for at se, hvad de tabeller er bygget ud fra, og hvad der er bygget ud fra dem; et antal ikke-tegnede tabeller, på pipelinens kort eller en tabels, tegner flere af dem på stedet. Den samme afstamning findes på \`POST /api/data-observability/pipelines/lineage\`, til dine egne værktøjer. Vælg en af de kolonner, den skriver, for at følge den hen over pipelinen: op til kolonnen i hver læst tabel, den er bygget fra, og ned til hver tabel, den skriver den til. Send \`"withColumns": true\` for de kolonner, dens kørsler flyttede, til dine egne værktøjer.
+
+En pipelines side **Circuit breaker** sætter et trin op, der før pipelinen kører spørger, om de tabeller, den læser, er sunde: en kontrol, der fejler, stopper kørslen, og en forsinket tabel også, så længe **Stop, når en tabel, den læser, er forsinket** er slået til. En stoppet pipeline står under **Kræver handling**, indtil circuit breakeren igen siger go, eller en kørsel starter.
 
 
 

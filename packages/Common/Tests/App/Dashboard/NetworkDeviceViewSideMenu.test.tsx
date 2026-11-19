@@ -1,4 +1,22 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import ProjectProducts from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectProducts/ProjectProductsStore";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { ProductUsage } from "../../../Types/Product/ProductUsage";
+import {
+  ProjectProductsAnswer,
+  getEmptyProjectProductsAnswer,
+} from "../../../Types/Product/ProjectProductsAnswer";
+import { ServerProductOffReason } from "../../../Types/Product/ServerProducts";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 import "@testing-library/jest-dom";
 import { act, cleanup, fireEvent } from "@testing-library/react";
 import * as React from "react";
@@ -71,8 +89,27 @@ async function renderDeviceMenu(): Promise<void> {
   await renderMenu(<NetworkDeviceViewSideMenu modelId={DEVICE_ID} />);
 }
 
+/*
+ * The project's products answer: Security Events in use, unless a test
+ * says otherwise, and the reader allowed to read security events
+ * (ProductsInResources).
+ */
+function givenProducts(extra: Partial<ProjectProductsAnswer> = {}): void {
+  ProjectProducts.setAnswer(PROJECT_ID, {
+    ...getEmptyProjectProductsAnswer(),
+    usage: { [ProductKey.SecurityEvents]: ProductUsage.InUse },
+    ...extra,
+  });
+}
+
 describe("a network device's own menu", () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    ProjectProducts.reset();
+    givenProducts();
+    jest.spyOn(PermissionGate, "check").mockImplementation(() => {
+      return { isAllowed: true } as PermissionGateResult;
+    });
     setViewportWidth(DESKTOP_WIDTH);
     // In the project first: the menu's routes take its id from the address.
     goTo(`/dashboard/${PROJECT_ID}/network-devices`);
@@ -81,6 +118,8 @@ describe("a network device's own menu", () => {
 
   afterEach(() => {
     cleanup();
+    jest.restoreAllMocks();
+    ProjectProducts.reset();
   });
 
   test("is Device, Activity, More, Developer and Manage, in that order", async () => {
@@ -238,6 +277,47 @@ describe("a network device's own menu", () => {
       expect(isExpanded("More")).toBe(false);
     },
   );
+
+  /*
+   * The Security Events entry stood on every device's menu, even on a
+   * server that had switched Security Events off (#9547). Now it follows
+   * the product, as every resource's does.
+   */
+  test.each([
+    [
+      "switched off on the server",
+      {
+        offOnServer: {
+          [ProductKey.SecurityEvents]: ServerProductOffReason.SwitchedOff,
+        },
+      },
+    ],
+    ["hidden in the project", { hidden: [ProductKey.SecurityEvents] }],
+    ["never set up", { usage: {} }],
+  ])(
+    "leaves Security Events out while it is %s",
+    async (
+      _label: string,
+      extra: Partial<ProjectProductsAnswer>,
+    ): Promise<void> => {
+      givenProducts(extra);
+
+      await renderDeviceMenu();
+
+      expect(titles(linksIn("Device"))).not.toContain("Security Events");
+      expect(titles(linksIn("Device"))).toContain("Logs");
+    },
+  );
+
+  test("leaves Security Events out for someone who may not read security events", async () => {
+    jest.spyOn(PermissionGate, "check").mockImplementation(() => {
+      return { isAllowed: false } as PermissionGateResult;
+    });
+
+    await renderDeviceMenu();
+
+    expect(titles(linksIn("Device"))).not.toContain("Security Events");
+  });
 
   test("the device's pages all stay on this device, in this project", async () => {
     await renderDeviceMenu();

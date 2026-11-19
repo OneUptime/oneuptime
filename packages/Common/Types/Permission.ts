@@ -403,6 +403,12 @@ enum Permission {
   EditDataAssetOwnerRule = "EditDataAssetOwnerRule",
   ReadDataAssetOwnerRule = "ReadDataAssetOwnerRule",
 
+  // Pipeline Owner Rules: owners assigned to matching pipelines (#9527)
+  CreateDataPipelineOwnerRule = "CreateDataPipelineOwnerRule",
+  DeleteDataPipelineOwnerRule = "DeleteDataPipelineOwnerRule",
+  EditDataPipelineOwnerRule = "EditDataPipelineOwnerRule",
+  ReadDataPipelineOwnerRule = "ReadDataPipelineOwnerRule",
+
   // Table Label Rules: labels added to matching stores
   CreateDataAssetLabelRule = "CreateDataAssetLabelRule",
   DeleteDataAssetLabelRule = "DeleteDataAssetLabelRule",
@@ -9854,6 +9860,48 @@ export class PermissionHelper {
         title: "Read Table Owner Rule",
         description:
           "This permission can read Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Pipeline Owner Rule Permissions
+      {
+        permission: Permission.CreateDataPipelineOwnerRule,
+        title: "Create Pipeline Owner Rule",
+        description:
+          "This permission can create Pipeline Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataPipelineOwnerRule,
+        title: "Delete Pipeline Owner Rule",
+        description:
+          "This permission can delete Pipeline Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataPipelineOwnerRule,
+        title: "Edit Pipeline Owner Rule",
+        description:
+          "This permission can edit Pipeline Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataPipelineOwnerRule,
+        title: "Read Pipeline Owner Rule",
+        description:
+          "This permission can read Pipeline Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

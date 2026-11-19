@@ -81,8 +81,10 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
   }
 
   /*
-   * A state can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the scheduled, ongoing, ended and completed states keep their order.
+   * A state can be given another number through the API, or another built-in
+   * flag, as long as the scheduled, ongoing, ended and completed states keep
+   * their order. The number written places it and moves no other state; a drag
+   * on the settings page is a move (onBeforeMoveInList).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -103,6 +105,25 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     });
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A move of a state - a drag on the settings page, or POST <list>/:id/move -
+   * keeps the scheduled, ongoing, ended and completed states in their order
+   * too, checked on the list as the move renumbers it.
+   */
+  @CaptureSpan()
+  protected override async onBeforeMoveInList(data: {
+    id: ObjectID;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
+      changedRows: data.changedRows,
+      props: data.props,
+    });
   }
 
   @CaptureSpan()

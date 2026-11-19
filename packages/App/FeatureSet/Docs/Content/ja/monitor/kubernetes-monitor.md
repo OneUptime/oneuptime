@@ -86,7 +86,7 @@ flowchart TB
 
 | カテゴリ | メトリクス |
 | --- | --- |
-| Pod | Pod の CPU 使用量, Pod のメモリ使用量, Pod のフェーズ（コード）, Pod のファイルシステム使用量, Pod のメモリ制限使用率, Pod の CPU 制限使用率, Pod のネットワーク I/O（累積、双方向） |
+| Pod | Pod の CPU 使用量, Pod のメモリ使用量, Pod のフェーズ（コード）, Pod のファイルシステム使用量, ボリューム容量, ボリュームの空き容量, Pod のメモリ制限使用率, Pod の CPU 制限使用率, Pod のネットワーク I/O（累積、双方向） |
 | ノード | ノード CPU 使用量, ノードの割り当て可能 CPU, ノードメモリ使用量, ノードメモリワーキングセット, ノードファイルシステム使用量, ノードの割り当て可能メモリ, ノードの Ready 状態, ノードの MemoryPressure 状態, ノードの DiskPressure 状態, ノードの PIDPressure 状態, ノードファイルシステム空き容量 |
 | コンテナ | コンテナの再起動回数, コンテナの再起動回数（増加分）, コンテナの CPU 制限, コンテナの CPU 要求, コンテナのメモリ制限, コンテナのメモリ要求, コンテナ準備完了 |
 | ワークロード | Deployment の利用可能レプリカ数, Deployment の希望レプリカ数, DaemonSet の希望ノード数, DaemonSet の誤スケジュールノード数, DaemonSet の準備完了ノード数, StatefulSet の希望レプリカ数, StatefulSet の準備完了レプリカ数, Job の失敗 Pod 数, Job の失敗 Pod 数（増加分）, Job の成功 Pod 数 |
@@ -150,6 +150,7 @@ flowchart TB
 | API Server Request Saturation | コントロールプレーン | API サーバーが期間全体にわたって 200 件以上の処理中リクエストを抱えている | 重大 |
 | Scheduler Backlog | スケジューリング | スケジューラーの保留中 Pod のキューが 5 分間空にならない | 警告 |
 | High Node Disk Usage | ストレージ | ノードのファイルシステムの使用率が 90% を超えた | 警告 |
+| PVC Almost Full | ストレージ | 永続ボリュームクレームの使用率が 90% を超えた | 警告 |
 | DaemonSet Pods Not Ready | ワークロード | DaemonSet の準備完了 Pod がないノードが 15 分間ある | 警告 |
 | DaemonSet Misscheduled Nodes | ワークロード | DaemonSet が、ノードセレクター、アフィニティ、トレレーションに合わなくなったノードで Pod を実行している | 警告 |
 | High Node CPU Request Commitment | ノード | ノード上のコンテナの CPU リクエストの合計が割り当て可能な CPU の 90% を超えた | 警告 |

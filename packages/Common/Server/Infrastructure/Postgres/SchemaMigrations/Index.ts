@@ -1074,7 +1074,11 @@ import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIden
 import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000-AddSecurityCaseTaskResponseStepKey";
 import { AddIncidentCallTranscriptPostsAndSignIn1809184830000 } from "./1809184830000-AddIncidentCallTranscriptPostsAndSignIn";
 import { AddIncidentCallTranscriptSignInIndexes1809184840000 } from "./1809184840000-AddIncidentCallTranscriptSignInIndexes";
-import { AddTableHealthSkippedTables1809184859541 } from "./1809184859541-AddTableHealthSkippedTables";
+import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-AddDataSecurityComplianceSettings";
+import { AddKubernetesVolumeClaimUsage1809184859539 } from "./1809184859539-AddKubernetesVolumeClaimUsage";
+import { AddDataPipelineOwnerRules1809184860000 } from "./1809184860000-AddDataPipelineOwnerRules";
+import { AddDataPipelineCircuitBreaker1809184870000 } from "./1809184870000-AddDataPipelineCircuitBreaker";
+import { AddTableHealthSkippedTables1809184889541 } from "./1809184889541-AddTableHealthSkippedTables";
 
 export default [
   InitialMigration,
@@ -2153,5 +2157,9 @@ export default [
   AddSecurityCaseTaskResponseStepKey1809184720000,
   AddIncidentCallTranscriptPostsAndSignIn1809184830000,
   AddIncidentCallTranscriptSignInIndexes1809184840000,
-  AddTableHealthSkippedTables1809184859541,
+  AddDataSecurityComplianceSettings1809184850000,
+  AddKubernetesVolumeClaimUsage1809184859539,
+  AddDataPipelineOwnerRules1809184860000,
+  AddDataPipelineCircuitBreaker1809184870000,
+  AddTableHealthSkippedTables1809184889541,
 ];

@@ -15,8 +15,9 @@ export interface ComponentProps {
 }
 
 /*
- * One pipeline's pages: its runs, the monitors recommended for them, who
- * owns it (#6551) and, folded under Advanced, who changed it (Audit Logs).
+ * One pipeline's pages: its runs, the monitors recommended for them, its
+ * circuit breaker (#6548), who owns it (#6551) and, folded under Advanced,
+ * who changed it (Audit Logs).
  */
 const PipelineViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -46,6 +47,15 @@ const PipelineViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           resourceType={MonitorRecommendationResourceType.DataPipeline}
           resourceId={props.modelId}
+        />
+        <SideMenuItem
+          link={{
+            title: "Circuit Breaker",
+            to: routeOf(
+              PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER,
+            ),
+          }}
+          icon={IconProp.ShieldCheck}
         />
         <SideMenuItem
           link={{

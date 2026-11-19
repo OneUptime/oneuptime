@@ -12,6 +12,7 @@ import {
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
 import Model from "../../Models/DatabaseModels/IncidentPostmortemStatus";
@@ -135,9 +136,10 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A status can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the not started, draft and completed
-   * statuses keep their order.
+   * A status can be given another number through the API, or another built-in
+   * flag, as long as the not started, draft and completed statuses keep their
+   * order. The number written places it and moves no other status; a drag on
+   * the settings page is a move (onBeforeMoveInList).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -158,6 +160,25 @@ export class Service extends DatabaseService<Model> {
     });
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A move of a status - a drag on the settings page, or POST <list>/:id/move -
+   * keeps the not started, draft and completed statuses in their order too,
+   * checked on the list as the move renumbers it.
+   */
+  @CaptureSpan()
+  protected override async onBeforeMoveInList(data: {
+    id: ObjectID;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.IncidentPostmortemStatus],
+      changedRows: data.changedRows,
+      props: data.props,
+    });
   }
 
   /*

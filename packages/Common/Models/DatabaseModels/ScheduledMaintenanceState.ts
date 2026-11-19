@@ -632,7 +632,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     title: "Order",
     required: false,
     description:
-      "Where this state sits in the project's list of scheduled maintenance states: 1 is the top. Events only ever move down the list, so the scheduled, ongoing, ended and completed states have to stay in that order. A new state without a number goes just above the completed state. Setting a number moves the state to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
+      "Where this state sits in the project's list of scheduled maintenance states: 1 is the top. Events only ever move down the list, so the scheduled, ongoing, ended and completed states have to stay in that order. A new state without a number goes just above the completed state. Setting a number places the state there and moves no other: two at one number are read the older first. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.SmallNumber,

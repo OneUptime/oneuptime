@@ -1,38 +1,53 @@
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import { ListOrderSettings } from "./ListOrderColumn";
 
 /*
- * MOVING A ROW OF A NUMBERED LIST TO ANOTHER ROW'S PLACE (issue #9573).
+ * MOVING A ROW OF AN ORDERED LIST TO ANOTHER ROW'S PLACE (issues #9573,
+ * #9609).
  *
- * Five lists are numbered by an `order` column: the escalation rules of an
- * on-call policy, the layers of a schedule, the people of a layer, the
- * groups of a status page and the resources of a status page (or of one of
- * its groups). Lower numbers come first; rows that share a number come in
- * the order of their ids, as the database reads them.
+ * Two kinds of list are numbered by a column of their own, lower numbers
+ * first:
  *
- * Writing a row's `order` - creating it at a number, changing its number -
- * places that row and moves no other (Server/Utils/Database/
- * ContiguousOrder). That is what Terraform, and anything else that numbers a
- * whole list, needs: it writes every row's number on its own, all at once,
- * in no set order, and every row must end at the number written.
+ *   - five lists numbered by `order` (NUMBERED_LIST_TABLES): the escalation
+ *     rules of an on-call policy, the layers of a schedule, the people of a
+ *     layer, the groups of a status page and the resources of a status page
+ *     (or of one of its groups). Rows that share a number come in the order
+ *     of their ids, as the database reads them (Server/Utils/Database/
+ *     ContiguousOrder);
+ *   - every list people put in order by dragging its rows, which a model
+ *     marks with @ListOrderColumn and names the column of: severities,
+ *     states and monitor statuses (`priority`), custom fields, pipelines and
+ *     filters (`sortOrder`), rules, status page links and the rest. Rows that
+ *     share a number come the older first (Common/Utils/ListOrder), and a
+ *     list may count down (site assignment rules: the highest number is the
+ *     top).
+ *
+ * Writing a row's number - creating it at a number, changing its number -
+ * places that row and moves no other. That is what Terraform, and anything
+ * else that numbers a whole list, needs: it writes every row's number on its
+ * own, all at once, in no set order, and every row must end at the number
+ * written.
  *
  * Moving a row is a request of its own, which the Dashboard sends when
  * someone drags a row, or moves it up or down:
  *
  *   POST /<the list's path>/:id/move
  *   { "placeOfId": "<the row whose place it takes>" }
- *   -> { "changedRows": [{ "_id": "<id>", "order": 2 }, ...] }
+ *   -> { "changedRows": [{ "_id": "<id>", "<its number column>": 2 }, ...] }
  *
  * The row takes the place of the row named, and the rows between them step
  * one place towards where it was - so a row moved up lands just above the
  * row named, and a row moved down just below it. The list is then numbered
- * 1..n in its new order, which in a list numbered 1..n changes only the
- * rows between the two places; a list with gaps or shared numbers (written
- * through the API) comes out tidy. The server does it in one transaction
- * holding the list's rows, so moves at once run one after another and
- * never leave two rows at one number. `changedRows` are the rows given
- * another number, the moved row among them; none when it was there already.
+ * 1..n in its new order (n..1 for a list that counts down), which in a list
+ * numbered 1..n changes only the rows between the two places; a list with
+ * gaps or shared numbers (written through the API) comes out tidy. The
+ * server does it in one transaction holding the list's rows, so moves at
+ * once run one after another and never leave two rows at one number.
+ * `changedRows` are the rows given another number, the moved row among
+ * them, each with its new number under the list's own column (`order`,
+ * `priority`, `sortOrder`); none when it was there already.
  *
  * Read by the server and the Dashboard, so it imports nothing that needs a
  * server or React.
@@ -48,6 +63,28 @@ export const getMoveInListRoute: (rowId: string) => string = (
   return `/${rowId}/move`;
 };
 
+/*
+ * The tables of the five lists numbered by `order` that ContiguousOrder keeps
+ * (issue #9573). Their services move a row in their own way - the on-call
+ * policies' cache, the schedule's roster - so each overrides moveInList.
+ */
+export const NUMBERED_LIST_TABLES: ReadonlyArray<string> = [
+  "OnCallDutyPolicyEscalationRule",
+  "OnCallDutyPolicyScheduleLayer",
+  "OnCallDutyPolicyScheduleLayerUser",
+  "StatusPageGroup",
+  "StatusPageResource",
+];
+
+// The column the five lists are numbered by.
+export const NUMBERED_LIST_COLUMN: string = "order";
+
+// What MoveInListUtil reads of a model: its table, and its list order if any.
+export interface MovableModel {
+  tableName?: string | null | undefined;
+  getListOrder(): ListOrderSettings | null;
+}
+
 export interface MoveInListRequest {
   // The row whose place the moved row takes.
   placeOfId: ObjectID;
@@ -57,6 +94,12 @@ export interface MoveInListRequest {
 export interface ListPlace {
   id: string;
   order: number | null | undefined;
+  /*
+   * When the row was created: of two rows at one number, a drag-ordered
+   * list shows the older first (Common/Utils/ListOrder). The five numbered
+   * lists go by id instead, and need not say.
+   */
+  createdAt?: Date | string | null | undefined;
 }
 
 export interface MoveInListResult {
@@ -94,6 +137,26 @@ const toNumber: (order: unknown) => number | null = (
 };
 
 export default class MoveInListUtil {
+  /*
+   * The column a model's rows are numbered by in a list whose rows can be
+   * moved - its @ListOrderColumn's, or `order` for the five numbered lists -
+   * or null when its rows make up no such list. Every such model's API
+   * answers the move (BaseAPI), and its API Reference page describes it.
+   */
+  public static getListColumn(model: MovableModel): string | null {
+    const listOrder: ListOrderSettings | null = model.getListOrder();
+
+    if (listOrder?.column) {
+      return listOrder.column;
+    }
+
+    if (model.tableName && NUMBERED_LIST_TABLES.includes(model.tableName)) {
+      return NUMBERED_LIST_COLUMN;
+    }
+
+    return null;
+  }
+
   /*
    * The order a list is read in: by number, lowest first, rows without one
    * last; rows that share a number by id - as the database reads them
@@ -211,17 +274,30 @@ export default class MoveInListUtil {
     return { placeOfId: request.placeOfId.toString() };
   }
 
-  public static resultToJSON(result: MoveInListResult): JSONObject {
+  /*
+   * A move's answer as the API writes it: each row given another number by
+   * its id, and its new number under the list's own column (`column`: the
+   * five numbered lists' `order`, a drag-ordered list's own), as the row's
+   * own JSON names it.
+   */
+  public static resultToJSON(
+    result: MoveInListResult,
+    column: string = NUMBERED_LIST_COLUMN,
+  ): JSONObject {
     return {
       changedRows: result.changedRows.map(
         (row: { id: string; order: number }): JSONObject => {
-          return { _id: row.id, order: row.order };
+          return { _id: row.id, [column]: row.order };
         },
       ),
     };
   }
 
-  public static resultFromJSON(json: unknown): MoveInListResult {
+  // A move's answer as the API wrote it, its numbers under `column`.
+  public static resultFromJSON(
+    json: unknown,
+    column: string = NUMBERED_LIST_COLUMN,
+  ): MoveInListResult {
     const record: Record<string, unknown> | null =
       json && typeof json === "object" && !Array.isArray(json)
         ? (json as Record<string, unknown>)
@@ -242,7 +318,7 @@ export default class MoveInListUtil {
 
       const id: unknown = (item as Record<string, unknown>)["_id"];
       const order: number | null = toNumber(
-        (item as Record<string, unknown>)["order"],
+        (item as Record<string, unknown>)[column],
       );
 
       if (typeof id === "string" && order !== null) {

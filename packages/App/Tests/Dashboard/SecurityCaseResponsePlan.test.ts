@@ -946,6 +946,22 @@ describe("OneUptime AI", () => {
     expect(steps[0]).toHaveLength(plan.RESPONSE_AI_STEP_MAX_LENGTH);
   });
 
+  /*
+   * A decision line is what the server reads as one
+   * (isSecurityCaseTriageDecisionLine): any case, "=" for ":", in "**" or
+   * not. A step that only starts with one of its words is a step.
+   */
+  test("never a decision line, in any shape the server reads one", () => {
+    expect(
+      plan.readAiSuggestedSteps(
+        "**Summary** - x.\n\n**Suggested next steps**\n- **Verdict:** malicious\n- PRIORITY = high\n- Playbook : none\n- Verdicts on this host are kept for a year.\n- Block the address.",
+      ),
+    ).toEqual([
+      "Verdicts on this host are kept for a year.",
+      "Block the address.",
+    ]);
+  });
+
   test("its steps join the plan as its own, ticked off as any other", () => {
     const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
       input({ ai: { report: REPORT } }),

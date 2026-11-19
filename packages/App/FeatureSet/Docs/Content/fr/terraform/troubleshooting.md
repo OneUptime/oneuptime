@@ -131,9 +131,13 @@ Cela arrive quand la clé qui gère une ressource ne peut plus la lire : sa perm
 
 ### Une priorité ou un ordre qui bouge
 
-Les statuts de moniteur, les états et gravités d'incidents et d'alertes, et les autres listes que vous ordonnez dans le tableau de bord ne détiennent chaque numéro qu'une fois. Un numéro qu'aucun autre ne détient est conservé tel qu'écrit. Un numéro qu'un autre détient déjà est repris, et ceux qui se trouvent sur le chemin descendent d'un rang, comme le fait un glisser-déposer dans le tableau de bord. Ainsi, deux d'entre eux configurés avec le même numéro échangent leurs places à chaque apply.
+Chaque liste que vous ordonnez dans le tableau de bord garde le numéro que reçoit chaque ressource : les statuts de moniteur (`priority`), les états et gravités d'incidents et d'alertes, les champs personnalisés, les pipelines de journaux et les filtres de rejet (`sort_order`), les groupes et ressources des pages de statut, les règles d'escalade, les couches des plannings et les autres. Fixer un numéro place cette ressource et n'en déplace aucune autre, si bien qu'une configuration qui numérote une liste entière, comme `order = index(local.severities, each.key) + 1` sur un `for_each` de `local.severities`, s'applique exactement telle qu'écrite, dans quelque ordre qu'arrivent les écritures du provider, et le plan suivant est vide.
 
-Donnez à chacun son propre numéro avec des écarts entre eux, comme `101`, `102` et `103`, et réordonnez ceux que gère Terraform dans Terraform, pas en les faisant glisser dans le tableau de bord.
+- Donnez à chaque ressource son propre numéro : deux au même numéro le gardent toutes les deux, côte à côte, dans un ordre que vous ne choisissez pas.
+- Une ressource créée sans numéro va à la fin de sa liste. Un nouvel état d'incident ou d'alerte se place plutôt juste au-dessus de l'état résolu, et un nouveau statut de moniteur juste au-dessus du statut hors ligne.
+- Supprimer une ressource laisse un trou dans les numéros, ce qui ne change rien : une liste suit ses numéros, pas un décompte.
+- Faire glisser une ressource dans le tableau de bord de OneUptime renumérote toute sa liste depuis le haut, et le plan suivant le montre comme des changements. Ordonnez dans Terraform les ressources que gère Terraform.
+- Les états intégrés gardent leur ordre : un changement qui mettrait deux d'entre eux au même numéro, ou hors de leur ordre, est refusé, avec la raison. Quand un apply déplace des états intégrés au-delà des anciens numéros des autres, l'une de ses écritures peut arriver la première et se heurter à ce refus ; relancez l'apply et il se termine.
 
 ### Attributs en lecture seule
 

@@ -218,6 +218,7 @@ import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
 import DataSecurityScan from "./DataSecurityScan";
 import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
+import DataSecurityComplianceSetting from "./DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
 import DataSecuritySetting from "./DataSecuritySetting";
 import DataAsset from "./DataAsset";
@@ -237,6 +238,7 @@ import DataAssetOwnerTeam from "./DataAssetOwnerTeam";
 import DataAssetOwnerRule from "./DataAssetOwnerRule";
 import DataPipelineOwnerUser from "./DataPipelineOwnerUser";
 import DataPipelineOwnerTeam from "./DataPipelineOwnerTeam";
+import DataPipelineOwnerRule from "./DataPipelineOwnerRule";
 import DataAssetLabelRule from "./DataAssetLabelRule";
 import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
@@ -731,6 +733,7 @@ const AllModelTypes: Array<{
   DataSecurityScan,
   DataSecurityCustomDataType,
   DataSecurityCheckSetting,
+  DataSecurityComplianceSetting,
   DataSecurityResidencyRule,
   DataSecuritySetting,
   DataAsset,
@@ -750,6 +753,7 @@ const AllModelTypes: Array<{
   DataAssetOwnerRule,
   DataPipelineOwnerUser,
   DataPipelineOwnerTeam,
+  DataPipelineOwnerRule,
   DataAssetLabelRule,
   DataObservabilitySetting,
   DataAssetLineage,

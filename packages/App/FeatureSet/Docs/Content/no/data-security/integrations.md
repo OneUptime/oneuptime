@@ -127,7 +127,7 @@ Alt Datasikkerhet tar vare på, er en post i OneUptime-API-et, som leses med de 
 | Datalagre, tidslinjene deres, funnene deres, hvem som kan nå dem og hver identitet som kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemer, tidslinjene deres og dataflyter | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Skanninger | `/data-security-scan` |
-| Egendefinerte datatyper, kontrollinnstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Egendefinerte datatyper, kontrollinnstillinger, samsvarsinnstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Prosjektets innstillinger | `/data-security-setting` |
 | Eiere, eierregler og etikettregler | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,6 +137,8 @@ Noen få svar beregnes ved forespørsel i stedet for å lagres. Hver av dem er e
 | --- | --- |
 | `/data-security/overview` | Tallene på Oversikt-siden: datalagre etter sensitivitet og kategori, åpne problemer etter alvorlighetsgrad, de mest risikable problemene og de siste 30 dagene av dem |
 | `/data-security/compliance` | Scoren og kravene for hvert rammeverk |
+| `/data-security/resource-scope` | Datalagrene til én ressurs – en Kubernetes-klynge, en Docker- eller Podman-vert, en database, en tjeneste eller en skyressurs – og hvilken ressurs' samsvarsbrytere de følger |
+| `/data-security/resource-compliance` | Rammeverkene til én ressurs: scorene deres for datalagrene til ressursen, og hva som er slått av for den |
 | `/data-security/record-of-processing` | GDPR-behandlingsprotokollen, en rad for hvert datalager som inneholder personopplysninger |
 | `/data-store/<id>/scan-now` | **Skann nå**: tar stikkprøver av innholdet i datalageret nå |
 | `/data-store/<id>/check-now` | **Kontroller nå**: leser konfigurasjonen til datalageret på nytt og kjører kontrollene |
@@ -146,9 +148,9 @@ Noen få svar beregnes ved forespørsel i stedet for å lagres. Hver av dem er e
 | `/data-store/<id>/response-actions` | Hvilke responshandlinger datalageret kan utføre nå, og hvorfor ikke |
 | `/data-store/<id>/respond` | Én responshandling på datalageret, for eksempel **Blokker offentlig tilgang** eller **Slå på versjonskontroll**, med problemet den ble kjørt fra |
 
-[Terraform-provideren](/docs/terraform/index) har en ressurs for hver type post du oppretter – datalagre du legger til selv, egendefinerte datatyper, kontrollinnstillinger, residensregler, eier- og etikettregler – oppkalt etter posten, for eksempel `oneuptime_residency_rule`.
+[Terraform-provideren](/docs/terraform/index) har en ressurs for hver type post du oppretter – datalagre du legger til selv, egendefinerte datatyper, kontrollinnstillinger, samsvarsinnstillinger, residensregler, eier- og etikettregler – oppkalt etter posten, for eksempel `oneuptime_residency_rule`.
 
-[MCP-serveren](/docs/ai/mcp-server) har verktøy for å opprette, hente, liste, oppdatere, slette og telle for disse postene: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule og Data Security Setting. En AI-assistent kan da spørre hvilke datalagre som inneholder kortnumre, eller hva som er åpent på en bucket, med dine tillatelser.
+[MCP-serveren](/docs/ai/mcp-server) har verktøy for å opprette, hente, liste, oppdatere, slette og telle for disse postene: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule og Data Security Setting. En AI-assistent kan da spørre hvilke datalagre som inneholder kortnumre, eller hva som er åpent på en bucket, med dine tillatelser.
 
 ## Neste steg
 

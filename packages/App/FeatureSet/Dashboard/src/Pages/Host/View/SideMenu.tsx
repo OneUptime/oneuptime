@@ -32,6 +32,7 @@ import React, {
 } from "react";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useResourceSecurityEventsMenu } from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -41,6 +42,9 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Security Events inside the host (#9547).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -288,6 +292,25 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Terminal}
         />
+        {/*
+         * The security events naming this host, beside the logs they are
+         * often read from (#9547): only in a project that uses Security
+         * Events, for whoever may read them.
+         */}
+        {showSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Traces",

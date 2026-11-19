@@ -358,7 +358,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | --- | --- | --- |
 | `hostMetrics.enabled` | 开启 | 每个节点来自 `/proc` 和 `/sys` 的操作系统指标：磁盘 I/O 队列、文件系统 inode、网络接口错误、分页和平均负载。在节点采集器中运行，不需要额外的 Pod。 |
 | `kubeletstats.utilizationMetrics.enabled` | 开启 | 容器和 Pod 的 CPU 与内存占其 request 和 limit 的百分比，Pod CPU Saturating Container Limit 和 Pod Memory Saturating Container Limit 模板读取这些数据。没有 limit（或 request）的容器没有这些序列，Pod 只有在其每个容器都设置了时才有。 |
-| `kubeletstats.volumeMetrics.enabled` | 开启 | 每个 PVC 的可用空间和总空间(`k8s.volume.available`、`k8s.volume.capacity`)，供你自己的图表和指标监视器使用：没有内置模板读取它们。每个 Pod 的每个 PVC 一个序列。 |
+| `kubeletstats.volumeMetrics.enabled` | 开启 | 每个 PVC 的可用空间和总空间(`k8s.volume.available`、`k8s.volume.capacity`)，按其声明命名：持久卷声明页面上的已用、可用和容量，以及 PVC Almost Full 模板读取的数据。每个卷、每个 Pod 几个序列。 |
 | `cadvisor.enabled` | 开启 | 来自每个 kubelet 的 `/metrics/cadvisor` 的 CPU 节流和 OOM 终止：`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total` 和 `container_oom_events_total`，没有其他内容。 |
 | `kubeStateMetrics.enabled` | 关闭 | 来自 kube-state-metrics 的 Pod 阶段(Pending、Terminating)、无法调度的 Pod、容器等待原因(CrashLoopBackOff、ImagePullBackOff)和资源配额使用情况。`kubeStateMetrics.mode: bundled`(默认)会为你运行一个小型 kube-state-metrics；`external` 则读取你已在运行的实例，位于 `kubeStateMetrics.endpoint`。 |
 | `auditLogs.enabled` | 关闭 | Kubernetes 审计日志 `/var/log/kubernetes/audit.log`：对 API 的每个请求，由谁发出、针对什么。仅限自管理集群：托管集群(EKS、GKE、AKS、DOKS)会把它发送给云服务商。 |

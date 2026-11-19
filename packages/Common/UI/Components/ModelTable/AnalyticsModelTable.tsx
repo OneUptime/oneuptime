@@ -45,6 +45,14 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
           });
         },
 
+        moveInList: async (_args: {
+          id: ObjectID;
+          placeOfId: ObjectID;
+        }): Promise<void> => {
+          // Telemetry rows are no list anyone puts in order.
+          throw new NotImplementedException();
+        },
+
         showCreateEditModal: (_data: {
           modalType: ModalType;
           modelIdToEdit?: ObjectID | undefined;

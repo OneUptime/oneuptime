@@ -131,9 +131,13 @@ Isso acontece quando a chave que gerencia um recurso não consegue mais lê-lo: 
 
 ### Uma prioridade ou ordem que se move
 
-Status de monitor, estados e severidades de incidentes e alertas, e as outras listas que você ordena no painel guardam cada número uma vez. Um número que nenhum outro tem é mantido como escrito. Um número que outro já tem é tomado, e os que estão no caminho descem uma posição, como faz um arrastar no painel. Então dois deles configurados com o mesmo número trocam de lugar a cada apply.
+Cada lista que você ordena no painel guarda o número que cada recurso recebe: status de monitor (`priority`), estados e severidades de incidentes e alertas, campos personalizados, pipelines de logs e filtros de descarte (`sort_order`), grupos e recursos de páginas de status, regras de escalonamento, camadas de escalas e o resto. Definir um número posiciona esse recurso e não move nenhum outro, então uma configuração que numera uma lista inteira, como `order = index(local.severities, each.key) + 1` sobre um `for_each` de `local.severities`, é aplicada exatamente como escrita, seja qual for a ordem em que chegam as escritas do provider, e o próximo plan fica vazio.
 
-Dê a cada um o seu próprio número com intervalos entre eles, como `101`, `102` e `103`, e reordene os que o Terraform gerencia no Terraform, não arrastando-os no painel.
+- Dê a cada recurso o seu próprio número: dois com o mesmo número o mantêm ambos, lado a lado, numa ordem que você não escolhe.
+- Um recurso criado sem número vai para o fim da sua lista. Um novo estado de incidente ou de alerta vai, em vez disso, para logo acima do estado resolvido, e um novo status de monitor para logo acima do status offline.
+- Excluir um recurso deixa uma lacuna nos números, o que não muda nada: uma lista segue os seus números, não uma contagem.
+- Arrastar um recurso no painel do OneUptime numera de novo toda a sua lista a partir do topo, e o próximo plan mostra isso como alterações. Ordene no Terraform os recursos que o Terraform gerencia.
+- Os estados embutidos mantêm a sua ordem: uma alteração que colocaria dois deles no mesmo número, ou fora de ordem, é recusada, com o motivo. Quando um apply move estados embutidos para além dos números antigos uns dos outros, uma das suas escritas pode chegar primeiro e esbarrar nessa recusa; execute o apply de novo e ele termina.
 
 ### Atributos somente leitura
 

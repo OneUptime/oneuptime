@@ -2,11 +2,12 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
   ListOrderChange,
   ListOrderItem,
+  ListOrderMove,
   compareListOrderItems,
-  getDropTargetValue,
   getListOrderAppendValue,
   getListOrderChanges,
   getListOrderCollisionChanges,
+  getListOrderMoveChanges,
   getListOrderValue,
   moveListItem,
   needsListOrderNormalization,
@@ -18,16 +19,21 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * The arithmetic every drag-ordered list shares (custom fields, rules,
  * pipelines, status page links): the server keeps the numbers with it and
- * the dashboard's tables decide what a drop sends with it.
+ * the dashboard's tables show the list with it.
  *
- * The contract pinned here:
- *   - lower numbers first (highest first for a list that counts down);
+ * The contract pinned here (issue #9609):
+ *   - lower numbers first (highest first for a list that counts down), two
+ *     rows at one number the older first;
  *   - a row without a number goes to the end;
- *   - a row given a number another row holds takes its place, and the rows in
- *     the way step aside one place, along a run, until a free number - which
- *     for a list numbered 1..n is "take that row's place and shift the ones
- *     in between", what a drop onto a row means;
- *   - numbers nobody collides with are left exactly as written.
+ *   - a move (getListOrderMoveChanges, what a drop sends) takes the row to
+ *     the place of the row named, the rows between stepping aside, and
+ *     numbers the list 1..n (n..1 counting down) - so every drop lands where
+ *     it was dropped, gaps, twins and rows without a number included;
+ *   - a row the server places just above another (a new state above the
+ *     resolved state) makes room for itself: the rows in the way step aside
+ *     one place, along a run, until a free number
+ *     (getListOrderCollisionChanges). A number a caller writes is never
+ *     taken that way: it is kept as written, beside whoever holds it.
  */
 
 type Row = ListOrderItem & { name: string };
@@ -669,12 +675,24 @@ describe("getListOrderCollisionChanges in a list that counts down (highest wins)
   });
 });
 
+// A move's changes, or a failure of the test when it is no move.
+const changesOf: (move: ListOrderMove) => Array<ListOrderChange> = (
+  move: ListOrderMove,
+): Array<ListOrderChange> => {
+  if (move.kind !== "moved") {
+    throw new Error(`Expected a move, got ${move.kind}`);
+  }
+
+  return move.changes;
+};
+
 describe("every drop in a 1..n list lands where it was dropped", () => {
   /*
    * Exhaustive over a five-row list: every row dropped on every other row,
    * both directions, both ways of counting. The result has to be exactly
-   * what the table showed when the row was let go (moveListItem), and the
-   * numbers have to stay unique.
+   * what the table showed when the row was let go (moveListItem), the
+   * numbers have to stay unique, and only the rows between the two places
+   * may be written.
    */
   for (const sortOrder of [SortOrder.Ascending, SortOrder.Descending]) {
     const rows: Array<Row> = ["A", "B", "C", "D", "E"].map(
@@ -698,24 +716,14 @@ describe("every drop in a 1..n list lands where it was dropped", () => {
 
         test(`${sortOrder}: row ${from + 1} dropped on row ${to + 1}`, () => {
           const moved: Row = rows[from]!;
-          const requested: number | null = getDropTargetValue<Row>({
-            items: rows,
-            sourceIndex: from,
-            destinationIndex: to,
-            getValue: (item: Row): unknown => {
-              return item.value;
-            },
-          });
-
-          expect(requested).not.toBeNull();
-
-          const changes: Array<ListOrderChange> = getListOrderCollisionChanges({
-            siblings: rows,
-            itemId: moved.id,
-            previousValue: moved.value,
-            requestedValue: requested,
-            sortOrder: sortOrder,
-          });
+          const changes: Array<ListOrderChange> = changesOf(
+            getListOrderMoveChanges({
+              items: rows,
+              itemId: moved.id,
+              placeOfId: rows[to]!.id,
+              sortOrder: sortOrder,
+            }),
+          );
 
           const expected: Array<string> = moveListItem(rows, from, to).map(
             (item: Row) => {
@@ -723,23 +731,266 @@ describe("every drop in a 1..n list lands where it was dropped", () => {
             },
           );
 
-          expect(
-            applyChanges(
-              rows,
-              changes,
-              { id: moved.id, value: requested! },
-              sortOrder,
-            ),
-          ).toEqual(expected);
+          expect(applyChanges(rows, changes, undefined, sortOrder)).toEqual(
+            expected,
+          );
 
           const values: Array<number | null> = Object.values(
-            valuesAfter(rows, changes, { id: moved.id, value: requested! }),
+            valuesAfter(rows, changes),
           );
           expect(new Set(values).size).toBe(rows.length);
+
+          // The rows between the two places, the moved one among them, and no other.
+          expect(changes).toHaveLength(Math.abs(from - to) + 1);
         });
       }
     }
   }
+});
+
+describe("getListOrderMoveChanges in a list that is not numbered 1..n", () => {
+  /*
+   * Every arrangement a list written through the API can be in - gaps,
+   * twins (read the older first), rows without a number (at the bottom) -
+   * for lists of one to five rows, both ways of counting: every row moved
+   * to every other row's place lands exactly where the list showed that
+   * row, and the list comes out numbered 1..n (n..1 counting down), only
+   * the rows whose number changes written.
+   */
+  const NUMBERINGS: Array<Array<number | null>> = [
+    [1],
+    [null],
+    [1, 1],
+    [5, null],
+    [10, 20, 30],
+    [2, 2, 2],
+    [1, null, 1],
+    [3, 1, 2, 2],
+    [10, null, 10, 4],
+    [1, 2, 3, 4, 5],
+    [7, 7, null, 2, 9],
+    [null, null, 3, 3, 1],
+  ];
+
+  for (const sortOrder of [SortOrder.Ascending, SortOrder.Descending]) {
+    for (const numbering of NUMBERINGS) {
+      const rows: Array<Row> = numbering.map(
+        (value: number | null, index: number): Row => {
+          // Created one minute apart, the first row first.
+          return row(
+            `R${index}`,
+            value,
+            new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+          );
+        },
+      );
+      const shown: Array<Row> = sortListOrderItems(rows, sortOrder);
+
+      for (let from: number = 0; from < shown.length; from++) {
+        for (let to: number = 0; to < shown.length; to++) {
+          test(`${sortOrder} [${numbering.join(", ")}]: shown row ${from + 1} moved to shown row ${to + 1}`, () => {
+            const changes: Array<ListOrderChange> = changesOf(
+              getListOrderMoveChanges({
+                items: rows,
+                itemId: shown[from]!.id,
+                placeOfId: shown[to]!.id,
+                sortOrder: sortOrder,
+              }),
+            );
+
+            if (from === to) {
+              expect(changes).toEqual([]);
+              return;
+            }
+
+            const expected: Array<string> = moveListItem(shown, from, to).map(
+              (item: Row): string => {
+                return item.id;
+              },
+            );
+
+            expect(applyChanges(rows, changes, undefined, sortOrder)).toEqual(
+              expected,
+            );
+
+            const values: Record<string, number | null> = valuesAfter(
+              rows,
+              changes,
+            );
+
+            expected.forEach((id: string, index: number) => {
+              expect([id, values[id]]).toEqual([
+                id,
+                getListOrderValue({
+                  position: index + 1,
+                  count: expected.length,
+                  sortOrder: sortOrder,
+                }),
+              ]);
+            });
+
+            // Only the rows whose number changes are written.
+            for (const change of changes) {
+              const before: Row = rows.find((item: Row): boolean => {
+                return item.id === change.id;
+              })!;
+
+              expect(toListOrderNumber(before.value)).not.toBe(change.value);
+            }
+          });
+        }
+      }
+    }
+  }
+});
+
+describe("getListOrderMoveChanges", () => {
+  const rows: Array<Row> = [row("a", 1), row("b", 2), row("c", 3)];
+
+  test("names the rows by id, however a caller wrote one", () => {
+    const upper: Array<Row> = [
+      row("1c000000-0000-4000-8000-0000000000aa", 1),
+      row("1c000000-0000-4000-8000-0000000000bb", 2),
+    ];
+
+    expect(
+      getListOrderMoveChanges({
+        items: upper,
+        itemId: " 1C000000-0000-4000-8000-0000000000BB ",
+        placeOfId: "1C000000-0000-4000-8000-0000000000AA",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({
+      kind: "moved",
+      changes: [
+        { id: "1c000000-0000-4000-8000-0000000000bb", value: 1 },
+        { id: "1c000000-0000-4000-8000-0000000000aa", value: 2 },
+      ],
+    });
+  });
+
+  test("moves a row up to just above the row named, and down to just below it", () => {
+    expect(
+      getListOrderMoveChanges({
+        items: rows,
+        itemId: "c",
+        placeOfId: "a",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({
+      kind: "moved",
+      changes: [
+        { id: "c", value: 1 },
+        { id: "a", value: 2 },
+        { id: "b", value: 3 },
+      ],
+    });
+
+    expect(
+      getListOrderMoveChanges({
+        items: rows,
+        itemId: "a",
+        placeOfId: "b",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({
+      kind: "moved",
+      changes: [
+        { id: "b", value: 1 },
+        { id: "a", value: 2 },
+      ],
+    });
+  });
+
+  test("changes nothing for a move to the row's own place", () => {
+    expect(
+      getListOrderMoveChanges({
+        items: rows,
+        itemId: "b",
+        placeOfId: "b",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({ kind: "moved", changes: [] });
+  });
+
+  test("says when the moved row is not in the list", () => {
+    expect(
+      getListOrderMoveChanges({
+        items: rows,
+        itemId: "gone",
+        placeOfId: "a",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({ kind: "rowNotInList" });
+  });
+
+  test("says when the row whose place it takes is not in the list", () => {
+    expect(
+      getListOrderMoveChanges({
+        items: rows,
+        itemId: "a",
+        placeOfId: "elsewhere",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({ kind: "placeNotInList" });
+  });
+
+  test("puts the older of two rows at one number first, as the list shows them", () => {
+    const twins: Array<Row> = [
+      row("younger", 1, "2026-01-02T00:00:00.000Z"),
+      row("older", 1, "2026-01-01T00:00:00.000Z"),
+      row("last", 2, "2026-01-01T00:00:00.000Z"),
+    ];
+
+    // The younger twin, second on screen, dropped on the older one.
+    expect(
+      getListOrderMoveChanges({
+        items: twins,
+        itemId: "younger",
+        placeOfId: "older",
+        sortOrder: SortOrder.Ascending,
+      }),
+    ).toEqual({
+      kind: "moved",
+      changes: [
+        { id: "older", value: 2 },
+        { id: "last", value: 3 },
+      ],
+    });
+  });
+
+  test("numbers a list that counts down from the top, n..1", () => {
+    const rules: Array<Row> = [row("a", 30), row("b", 20), row("c", 10)];
+
+    expect(
+      getListOrderMoveChanges({
+        items: rules,
+        itemId: "c",
+        placeOfId: "a",
+        sortOrder: SortOrder.Descending,
+      }),
+    ).toEqual({
+      kind: "moved",
+      changes: [
+        { id: "c", value: 3 },
+        { id: "a", value: 2 },
+        { id: "b", value: 1 },
+      ],
+    });
+  });
+
+  test("leaves the rows it is handed as they are", () => {
+    const list: Array<Row> = [row("a", 1), row("b", 2)];
+
+    getListOrderMoveChanges({
+      items: list,
+      itemId: "b",
+      placeOfId: "a",
+      sortOrder: SortOrder.Ascending,
+    });
+
+    expect(list).toEqual([row("a", 1), row("b", 2)]);
+  });
 });
 
 describe("getListOrderValue and getListOrderChanges", () => {
@@ -850,40 +1101,5 @@ describe("moveListItem", () => {
 
     expect(moved).not.toBe(list);
     expect(list).toEqual(["a", "b", "c"]);
-  });
-});
-
-describe("getDropTargetValue", () => {
-  const rows: Array<Row> = [row("a", 1), row("b", 2), row("c", null)];
-
-  const target: (from: number, to: number) => number | null = (
-    from: number,
-    to: number,
-  ): number | null => {
-    return getDropTargetValue<Row>({
-      items: rows,
-      sourceIndex: from,
-      destinationIndex: to,
-      getValue: (item: Row): unknown => {
-        return item.value;
-      },
-    });
-  };
-
-  test("is the number of the row that sat where the row was dropped", () => {
-    expect(target(1, 0)).toBe(1);
-    expect(target(0, 1)).toBe(2);
-  });
-
-  test("is null for a drop back where the row started", () => {
-    expect(target(1, 1)).toBeNull();
-  });
-
-  test("is null when the row there has no number yet", () => {
-    expect(target(0, 2)).toBeNull();
-  });
-
-  test("is null for a drop past the end of the list", () => {
-    expect(target(0, 5)).toBeNull();
   });
 });
