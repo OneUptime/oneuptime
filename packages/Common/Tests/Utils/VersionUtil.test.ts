@@ -180,6 +180,52 @@ describe("VersionUtil", () => {
     });
   });
 
+  /*
+   * By the release alone: a test or pre-release build is numbered after the
+   * release it leads up to, so its tag says nothing of whether it is older
+   * or newer than that release (#9815).
+   */
+  describe("compareReleases", () => {
+    it("orders releases by major, minor and patch, as numbers", () => {
+      expect(VersionUtil.compareReleases("17.1.9", "17.2.0")).toBe(-1);
+      expect(VersionUtil.compareReleases("17.2.0", "17.1.9")).toBe(1);
+      expect(VersionUtil.compareReleases("16.9.99", "17.0.0")).toBe(-1);
+      expect(VersionUtil.compareReleases("18.0.0", "17.99.99")).toBe(1);
+      // As text, these would sort the other way.
+      expect(VersionUtil.compareReleases("17.9.0", "17.10.0")).toBe(-1);
+      expect(VersionUtil.compareReleases("9.0.0", "17.0.0")).toBe(-1);
+    });
+
+    it("counts a test or pre-release build as the release it leads up to", () => {
+      expect(VersionUtil.compareReleases("17.1.0-test", "17.1.0")).toBe(0);
+      expect(VersionUtil.compareReleases("17.1.0", "17.1.0-test")).toBe(0);
+      expect(VersionUtil.compareReleases("17.1.0-rc.1", "17.1.0-rc.7")).toBe(0);
+      expect(VersionUtil.compareReleases("17.0.0-test", "17.1.0")).toBe(-1);
+      expect(VersionUtil.compareReleases("17.2.0-alpha", "17.1.0")).toBe(1);
+
+      // compare() still orders them by semver.
+      expect(VersionUtil.compare("17.1.0-test", "17.1.0")).toBe(-1);
+    });
+
+    it("leaves a leading v and build metadata out", () => {
+      expect(VersionUtil.compareReleases("v17.1.0", "17.1.0+build.9")).toBe(0);
+      expect(VersionUtil.compareReleases(" V17.1.0 ", "17.1.1")).toBe(-1);
+    });
+
+    it("cannot tell when either side is no version, and never says equal then", () => {
+      for (const [a, b] of [
+        ["unknown", "17.1.0"],
+        ["17.1.0", ""],
+        [null, "17.1.0"],
+        ["17.1.0", undefined],
+        ["17.1", "17.1.0"],
+        [17, "17.0.0"],
+      ] as Array<[unknown, unknown]>) {
+        expect([a, b, VersionUtil.compareReleases(a, b)]).toEqual([a, b, null]);
+      }
+    });
+  });
+
   describe("isUpdateAvailable", () => {
     it("is true only when the latest release is strictly newer", () => {
       expect(

@@ -16,6 +16,12 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import {
+  PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+  PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+  PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE,
+  PROJECT_SSO_SIGN_IN_REFUSED_TITLE,
+} from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
 import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
@@ -127,6 +133,10 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
         return teamMemberCreate(...args);
       },
       findBy: jest.fn(),
+      // Signing in accepts an invitation into the project still pending (#9819).
+      updateBy: (): Promise<number> => {
+        return Promise.resolve(0);
+      },
     },
   };
 });
@@ -678,7 +688,7 @@ beforeEach(() => {
 });
 
 describe.each(FLOWS)("$name — a blocked user", (flow: Flow) => {
-  test("is shown the blocked-account page and given no session", async () => {
+  test("is refused and given no session - by a project's provider, in the words everyone it does not sign in gets", async () => {
     storeUser({ isBlocked: true });
 
     const result: RunResult = await runFlow(flow, { isMobile: false });
@@ -686,10 +696,29 @@ describe.each(FLOWS)("$name — a blocked user", (flow: Flow) => {
     expect(result.nextError).toBeUndefined();
     expect(sendErrorResponse).not.toHaveBeenCalled();
     expect(render).toHaveBeenCalledTimes(1);
-    expect(render.mock.calls[0]![3]).toEqual({
-      title: "Account blocked.",
-      message: ExceptionMessages.UserBlocked,
-    });
+    /*
+     * The server's own providers say so. A project's provider is its
+     * admins', who must not learn that the address has an account, or that
+     * it is blocked (#9824, ProjectSsoSignInGate): the hosted service tells
+     * everyone it does not sign in to check their email, a self-hosted
+     * server gives a blocked account and an administrator's one refusal.
+     */
+    expect(render.mock.calls[0]![3]).toEqual(
+      flow.isGlobal
+        ? {
+            title: "Account blocked.",
+            message: ExceptionMessages.UserBlocked,
+          }
+        : flow.billing
+          ? {
+              title: PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE,
+              message: PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
+            }
+          : {
+              title: PROJECT_SSO_SIGN_IN_REFUSED_TITLE,
+              message: PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE,
+            },
+    );
 
     expectNoSessionAndNothingProvisioned();
     expect(resRedirect).not.toHaveBeenCalled();

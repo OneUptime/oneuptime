@@ -1,6 +1,6 @@
 import { isScimEmailChanging } from "./SCIMUtils";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import BadRequestException from "Common/Types/Exception/BadRequestException";
+import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
@@ -42,8 +42,18 @@ import User from "Common/Models/DatabaseModels/User";
  *      - on the hosted service, SCIM never changes an email address;
  *      - everywhere, SCIM changes the email address or the name only of an
  *        account this project manages: one that has joined this project,
- *        belongs to no other project, and is not a master admin.
+ *        belongs to no other project, and is not a master admin;
+ *      - and an address only to one no other account signs in with.
  *    An invitee who has not accepted is not managed by this project yet.
+ *
+ * How either rule came out for an account is never said to the project
+ * (#9825). Its SCIM log, which its members and viewers read, and the
+ * answers its identity provider reads would otherwise say which accounts
+ * existed before SCIM created them, belong to other projects or are
+ * administrators, and which addresses other accounts have. The identity
+ * provider is answered with what it sent, and the log says the same words
+ * whether or not the account took a new address or name
+ * (SELF_HOSTED_EMAIL_CHANGE_STEP, NAME_CHANGE_STEP).
  * ---------------------------------------------------------------------------
  */
 
@@ -64,17 +74,34 @@ export enum ProjectSCIMTeamAddOutcome {
   UserNotFound = "user-not-found",
 }
 
-/*
- * SCIM asked to change an email address it may not change. A 400 with the
- * SCIM "mutability" error type: the attribute cannot be modified here.
- */
-export class ProjectSCIMEmailChangeRefusedException extends BadRequestException {}
-
+// Why the account keeps its address on the hosted service: the same for every account there.
 export const HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE: string =
   "SCIM cannot change the email address of a OneUptime account on this service, because the address is how the person signs in to every project they belong to. The user can change their email address from their own OneUptime profile.";
 
-export const UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE: string =
-  "SCIM can only change the email address of an account that has joined this project, belongs to no other project, and is not a OneUptime administrator. The user can change their email address from their own OneUptime profile.";
+/*
+ * What the connection's SCIM log says when the identity provider gives a
+ * user a new address on the hosted service, where no account takes one.
+ */
+export const HOSTED_EMAIL_CHANGE_STEP: string = `Email change not applied to the OneUptime account: ${HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE} The SCIM user keeps the address the identity provider sent.`;
+
+/*
+ * What the connection's SCIM log says when the identity provider gives a
+ * user a new address on a self-hosted install: the same words whether the
+ * account took it or not, and whatever kept it from taking it - an account
+ * this project does not manage, or an address another account signs in
+ * with. The log is read by the project's members and viewers, and which it
+ * was would say whether the account belongs to other projects or is an
+ * administrator, or whether another account has the address (#9825).
+ */
+export const SELF_HOSTED_EMAIL_CHANGE_STEP: string =
+  "The SCIM user keeps the new address the identity provider sent. The OneUptime account signs in with it only if this project's SCIM may give the account that address; if not, the person keeps the address they have, and can change it from their own OneUptime profile.";
+
+/*
+ * The same for a new name, everywhere: whether the account took it would say
+ * whether this project manages it (rule 2 above).
+ */
+export const NAME_CHANGE_STEP: string =
+  "The SCIM user keeps the new name the identity provider sent. The OneUptime account takes it only if this project's SCIM may rename the account; if not, the person keeps the name they have.";
 
 export default class ProjectSCIMAccountPolicy {
   /*
@@ -283,35 +310,59 @@ export default class ProjectSCIMAccountPolicy {
   }
 
   /*
-   * Why SCIM may not change this account's email address, or null when it
-   * may. Only asked when the address would actually change: an IdP that sends
-   * the address the account already has is not changing anything.
+   * Whether SCIM may give this account `newEmail`: never on the hosted
+   * service; on a self-hosted install, only to an account this project
+   * manages, and only an address no other account signs in with. Only asked
+   * when the address would actually change: an IdP that sends the address
+   * the account already has is not changing anything.
+   *
+   * Which of these it was is never said (SELF_HOSTED_EMAIL_CHANGE_STEP).
    */
-  public static async getEmailChangeRefusal(data: {
+  public static async mayChangeEmail(data: {
     projectId: ObjectID;
     userId: ObjectID;
-  }): Promise<string | null> {
+    newEmail: string;
+  }): Promise<boolean> {
     if (this.isHostedService()) {
-      return HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE;
+      return false;
     }
 
     if (!(await this.isAccountManagedByProject(data))) {
-      return UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE;
+      return false;
     }
 
-    return null;
+    return !(await this.isAddressOfAnotherAccount({
+      userId: data.userId,
+      email: data.newEmail,
+    }));
   }
 
-  // Throws ProjectSCIMEmailChangeRefusedException when the change is refused.
-  public static async assertMayChangeEmail(data: {
-    projectId: ObjectID;
+  /*
+   * Whether another account signs in with `email`. An address belongs to one
+   * account, so this one cannot take it - and an attempt would be refused
+   * with words that say the address is taken.
+   */
+  public static async isAddressOfAnotherAccount(data: {
     userId: ObjectID;
-  }): Promise<void> {
-    const refusal: string | null = await this.getEmailChangeRefusal(data);
+    email: string;
+  }): Promise<boolean> {
+    const holder: User | null = await UserService.findOneBy({
+      query: {
+        email: new Email(data.email),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-    if (refusal) {
-      throw new ProjectSCIMEmailChangeRefusedException(refusal);
-    }
+    return (
+      Boolean(holder?.id) &&
+      holder!.id!.toString().toLowerCase() !==
+        data.userId.toString().toLowerCase()
+    );
   }
 
   /*

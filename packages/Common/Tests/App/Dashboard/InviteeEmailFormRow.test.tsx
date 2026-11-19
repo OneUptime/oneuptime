@@ -22,7 +22,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * THE EMAIL ROW OF AN INVITATION FORM, IN A REAL FORM (#9701).
  *
  * Invite New Team Member and Invite New User draw their "email" row with
- * InviteeEmailField (Components/Team/InviteeEmailFormField). Inside the
+ * InviteeEmailField (Common/UI/Components/InviteeEmailField). Inside the
  * shared form, as the two pages build the row:
  *
  *   - what is typed is the row's value, sent under "email" as before, and
@@ -68,8 +68,8 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import {
   drawInviteeEmailField,
   getInviteeEmailError,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Team/InviteeEmailFormField";
-import { INVITE_SUGGESTIONS_DEBOUNCE_IN_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Team/InviteeEmailField";
+} from "../../../UI/Components/InviteeEmailField/InviteeEmailFormField";
+import { INVITE_SUGGESTIONS_DEBOUNCE_IN_MS } from "../../../UI/Components/InviteeEmailField/InviteeEmailField";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import {

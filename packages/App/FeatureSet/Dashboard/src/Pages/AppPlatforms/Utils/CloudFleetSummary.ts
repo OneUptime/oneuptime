@@ -1,3 +1,4 @@
+import Route from "Common/Types/API/Route";
 import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "./CloudResourceTelemetryScope";
 import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
@@ -83,6 +84,25 @@ export interface CloudFleetSummaryTile {
   sublabelParts?: Array<string> | undefined;
   // What the number counts, shown in the (i) tooltip beside the title.
   description: string;
+  /*
+   * Where the line under the number leads, when it counts something wrong:
+   * "2 environments disconnected" opens All Environments on those (#9751).
+   * The line is the link, never the whole tile: the tile's number counts
+   * every environment.
+   */
+  sublabelRoute?: Route | undefined;
+  // What that link opens, in English: its tooltip.
+  sublabelRouteTitle?: string | undefined;
+}
+
+// What the disconnected environments' line opens, for its tooltip.
+export const SHOW_DISCONNECTED_ENVIRONMENTS: string = translationKey(
+  "Show which environments are disconnected",
+);
+
+export interface CloudFleetSummaryOptions {
+  // All Environments with its Status chip on Disconnected (AppPlatformsListRoutes).
+  disconnectedEnvironmentsRoute?: Route | undefined;
 }
 
 interface ProviderCount {
@@ -139,6 +159,7 @@ export function getProviderBreakdownParts(
 
 export function summarizeCloudFleet(
   counts: CloudFleetCounts,
+  options: CloudFleetSummaryOptions = {},
 ): Array<CloudFleetSummaryTile> {
   const total: number = Math.max(0, counts.total);
   const connected: number = Math.min(total, Math.max(0, counts.connected));
@@ -169,12 +190,22 @@ export function summarizeCloudFleet(
             count: formatCount(apps - runningApps),
           });
 
-  const environmentsLine: string =
-    total > 0 && disconnected > 0
-      ? translatePlural(ENVIRONMENTS_DISCONNECTED, disconnected)
-      : total > 0 && waiting > 0
-        ? translatePlural(ENVIRONMENTS_WAITING, waiting)
-        : breakdown || "none discovered yet";
+  const isDisconnectedLine: boolean = total > 0 && disconnected > 0;
+
+  const environmentsLine: string = isDisconnectedLine
+    ? translatePlural(ENVIRONMENTS_DISCONNECTED, disconnected)
+    : total > 0 && waiting > 0
+      ? translatePlural(ENVIRONMENTS_WAITING, waiting)
+      : breakdown || "none discovered yet";
+
+  // While any went quiet, the line opens which (#9751).
+  const environmentsLink: Partial<CloudFleetSummaryTile> =
+    isDisconnectedLine && options.disconnectedEnvironmentsRoute
+      ? {
+          sublabelRoute: options.disconnectedEnvironmentsRoute,
+          sublabelRouteTitle: SHOW_DISCONNECTED_ENVIRONMENTS,
+        }
+      : {};
 
   return [
     {
@@ -190,6 +221,7 @@ export function summarizeCloudFleet(
       ...(environmentsLine === breakdown && breakdownParts.length > 1
         ? { sublabelParts: breakdownParts }
         : {}),
+      ...environmentsLink,
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.environments,
     },
     {

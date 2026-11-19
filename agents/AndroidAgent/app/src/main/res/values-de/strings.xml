@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- German: the strings of res/values/strings.xml, in the same order. -->
+<resources>
+
+    <string name="notification_channel_name">Agent-Status</string>
+    <string name="notification_channel_description">Zeigt, ob dieses Gerät an OneUptime sendet.</string>
+
+    <string name="notification_requests_channel_name">Anfragen von OneUptime</string>
+    <string name="notification_requests_channel_description">Anfragen von OneUptime, die Protokolle dieses Geräts zur Fehlerbehebung zu lesen.</string>
+    <string name="notification_request_title">OneUptime bittet um die Protokolle dieses Geräts</string>
+
+    <string name="status_not_set_up">Noch nicht eingerichtet</string>
+    <string name="status_not_set_up_detail">Geben Sie den Ingestion-Schlüssel ein oder senden Sie ihn aus Ihrer Geräteverwaltung als oneuptime_token.</string>
+    <string name="status_unreachable">OneUptime nicht erreichbar</string>
+    <string name="status_unreachable_detail">Prüfen Sie das Netzwerk des Geräts. Der Agent versucht es automatisch erneut.</string>
+    <string name="status_key_refused">OneUptime hat den Ingestion-Schlüssel abgelehnt</string>
+    <string name="status_key_refused_detail">Verwenden Sie einen Server-Ingestion-Schlüssel, der eingeschaltet und nicht abgelaufen ist (HTTP %1$d).</string>
+    <string name="status_not_found">Kein OneUptime unter dieser Adresse</string>
+    <string name="status_not_found_detail">Prüfen Sie die OneUptime-URL: %1$s.</string>
+    <string name="status_server_error">OneUptime nimmt gerade keine Telemetrie an</string>
+    <string name="status_server_error_detail">OneUptime hat mit %1$d geantwortet. Der Agent versucht es automatisch erneut.</string>
+    <string name="status_server_error_unknown_detail">OneUptime hat mit einem Fehler geantwortet. Der Agent versucht es automatisch erneut.</string>
+    <string name="status_sending_failed">Senden fehlgeschlagen</string>
+    <string name="status_retrying">Der Agent versucht es automatisch erneut.</string>
+    <string name="status_kept">Die Telemetrie bleibt auf dem Gerät, bis sie gesendet werden kann.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">Sendet an OneUptime</string>
+    <string name="status_as_device">Als %1$s</string>
+    <string name="status_starting">Wird gestartet</string>
+    <string name="status_starting_detail">Als %1$s. Der erste Bericht wird innerhalb einer Minute gesendet.</string>
+
+    <string name="address_empty">Geben Sie Ihre OneUptime-URL ein.</string>
+    <string name="address_not_a_url">Die OneUptime-URL ist keine Webadresse.</string>
+    <string name="address_not_https">Die OneUptime-URL muss mit https:// beginnen, damit der Ingestion-Schlüssel nie unverschlüsselt gesendet wird.</string>
+    <string name="address_query_or_fragment">Entfernen Sie den Teil mit ? oder # aus der OneUptime-URL.</string>
+    <string name="address_credentials">Entfernen Sie Benutzername und Passwort aus der OneUptime-URL.</string>
+
+    <string name="setup_subtitle">Sendet Zustand, Neustarts, Apps und Protokolle dieses Geräts an OneUptime.</string>
+    <string name="setup_last_report">Letzter Bericht gesendet: %1$s</string>
+    <string name="setup_no_report_yet">Noch nichts gesendet</string>
+    <string name="setup_waiting">Noch zu senden: %1$s</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: Ihre Geräteverwaltung hat %2$s unverändert gesendet, ohne den Platzhalter auszufüllen.</string>
+    <string name="setup_problem_invalid">%1$s: %2$s kann nicht verwendet werden, daher gilt der Standardwert.</string>
+    <string name="setup_connection">Verbindung</string>
+    <string name="setup_managed_notice">Die als gesperrt angezeigten Einstellungen legt die Geräteverwaltung Ihrer Organisation fest.</string>
+    <string name="setup_url_label">OneUptime-URL</string>
+    <string name="setup_url_help">Ändern Sie sie nur, wenn Sie OneUptime selbst hosten.</string>
+    <string name="setup_token_label">Ingestion-Schlüssel</string>
+    <string name="setup_token_hint">Server-Ingestion-Schlüssel einfügen</string>
+    <string name="setup_token_stored_hint">Gespeichert. Fügen Sie einen neuen Schlüssel ein, um ihn zu ersetzen.</string>
+    <string name="setup_token_help">In OneUptime: Projekteinstellungen, Telemetrie &amp; APM, Ingestion-Schlüssel. Verwenden Sie einen Server-Schlüssel.</string>
+    <string name="setup_token_unreadable">Der gespeicherte Schlüssel kann auf diesem Gerät nicht mehr gelesen werden. Fügen Sie ihn erneut ein.</string>
+    <string name="setup_device_name_label">Gerätename</string>
+    <string name="setup_device_name_help">So wird dieses Gerät unter Hosts und Inventar aufgeführt.</string>
+    <string name="setup_set_by_organization">Von Ihrer Organisation festgelegt</string>
+    <string name="setup_save">Speichern und verbinden</string>
+    <string name="setup_saved">Gespeichert. Der Agent sendet jetzt einen Bericht.</string>
+    <string name="setup_token_required">Fügen Sie den Ingestion-Schlüssel ein.</string>
+    <string name="setup_save_failed">Dieses Gerät konnte den Schlüssel nicht sicher speichern: %1$s</string>
+    <string name="setup_readings">Was der Agent auf diesem Gerät lesen darf</string>
+    <string name="setup_reading_yes">Ja</string>
+    <string name="setup_reading_cpu">CPU-Auslastung</string>
+    <string name="setup_reading_cpu_device_owner">Ja, als Geräteinhaber</string>
+    <string name="setup_reading_cpu_not_device_owner">Nur wenn der Agent Geräteinhaber ist</string>
+    <string name="setup_reading_cpu_not_supported">Nicht auf diesem Gerät: Android meldet hier keine CPU-Auslastung</string>
+    <string name="setup_reading_memory">Arbeitsspeicher, Speicher und Netzwerk</string>
+    <string name="setup_reading_battery">Akku</string>
+    <string name="setup_reading_no_battery">Kein Akku</string>
+    <string name="setup_reading_thermal">Temperatur und Drosselung</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 und höher</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">Absturz-Stack-Traces und Neustartgründe</string>
+    <string name="setup_reading_crash_details_yes">Ja, für jede App</string>
+    <string name="setup_reading_crash_details_not_granted">Aus: READ_LOGS wurde nicht erteilt</string>
+    <string name="setup_reading_crash_details_no_usage_access">Aus: Nutzungsdatenzugriff ist nicht erlaubt</string>
+    <string name="setup_reading_apps">Installierte Apps</string>
+    <string name="setup_reading_off_by_manager">Aus: von Ihrer Geräteverwaltung ausgeschaltet</string>
+    <string name="setup_reading_unknown">Nach dem ersten Bericht</string>
+    <string name="setup_grants">Damit der Agent die Protokolle und Absturz-Stack-Traces anderer Apps senden kann, erteilen Sie diese Berechtigungen einmalig, mit adb oder über Remote-ADB Ihrer Geräteverwaltung:</string>
+    <string name="setup_usage_access">Nutzungsdatenzugriff erlauben</string>
+
+    <string name="logcat_not_started">Nicht gestartet</string>
+    <string name="logcat_not_granted">Aus: READ_LOGS wurde nicht erteilt</string>
+    <string name="logcat_crashes_and_anrs">Abstürze und ANRs aller Apps</string>
+    <string name="logcat_full">Protokolle, Abstürze und ANRs aller Apps</string>
+
+    <string name="log_session_title">Protokolle zur Fehlerbehebung</string>
+    <string name="log_session_request_by">%1$s bittet in OneUptime um die Protokolle aller Apps auf diesem Gerät für %2$s, ab Stufe %3$s.</string>
+    <string name="log_session_request">OneUptime bittet um die Protokolle aller Apps auf diesem Gerät für %1$s, ab Stufe %2$s.</string>
+    <string name="log_session_android_prompt">Android fragt Sie dann, ob Sie den Zugriff auf alle Geräteprotokolle zulassen möchten. Wählen Sie auch dort Zulassen.</string>
+    <string name="log_session_allow">Zulassen</string>
+    <string name="log_session_decline">Ablehnen</string>
+    <string name="log_session_stop">Senden beenden</string>
+    <string name="log_session_starting">Lassen Sie im Android-Dialog den Zugriff auf alle Geräteprotokolle zu.</string>
+    <string name="log_session_collecting_until">Sendet die Protokolle aller Apps bis %1$s.</string>
+    <string name="log_session_collecting">Sendet die Protokolle aller Apps.</string>
+    <string name="log_session_declined_here">Abgelehnt. Es wird nichts mehr gesendet.</string>
+    <string name="log_session_declined_by_android">Der Zugriff auf alle Geräteprotokolle wurde nicht zugelassen, daher wird nichts mehr gesendet.</string>
+    <string name="log_session_no_answer">Niemand hat auf den Android-Dialog reagiert, daher wird nichts mehr gesendet.</string>
+    <string name="log_session_time_up">Fertig: Die Protokolle aller Apps wurden für die angefragte Dauer gesendet.</string>
+    <string name="log_session_stopped">Gestoppt. Es wird nichts mehr gesendet.</string>
+    <string name="log_session_agent_restarted">Beendet, als der Agent neu gestartet wurde.</string>
+    <string name="log_session_logcat_stopped">Beendet: Logcat liest nicht mehr.</string>
+    <string name="log_session_logcat_disabled">Dieses Gerät kann sie nicht senden: Ihre Geräteverwaltung hat Logcat ausgeschaltet.</string>
+    <string name="log_session_not_granted">Dieses Gerät kann sie nicht senden: READ_LOGS wurde nicht erteilt.</string>
+    <string name="log_session_expired">Niemand hat es rechtzeitig zugelassen.</string>
+    <string name="log_session_cancelled">In OneUptime abgebrochen.</string>
+    <string name="log_session_ended">Beendet.</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d Minute</item>
+        <item quantity="other">%d Minuten</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d Stunde</item>
+        <item quantity="other">%d Stunden</item>
+    </plurals>
+
+    <string name="device_admin_description">Lässt den Agenten als Geräteinhaber die CPU-Auslastung dieses Geräts lesen. Er sperrt, löscht oder beschränkt das Gerät nie.</string>
+
+    <string name="restriction_url_title">OneUptime-URL</string>
+    <string name="restriction_url_description">Wohin die Telemetrie gesendet wird. Lassen Sie https://oneuptime.com eingetragen, außer Sie hosten OneUptime selbst.</string>
+    <string name="restriction_token_title">Ingestion-Schlüssel</string>
+    <string name="restriction_token_description">Ein Server-Ingestion-Schlüssel aus Projekteinstellungen, Telemetrie und APM, Ingestion-Schlüssel.</string>
+    <string name="restriction_device_name_title">Gerätename</string>
+    <string name="restriction_device_name_description">Der Name des Geräts in OneUptime, zum Beispiel ${esper.deviceName}. Verwenden Sie denselben Namen als host.name in Ihrer App, damit beide als ein Gerät erscheinen.</string>
+    <string name="restriction_device_serial_title">Seriennummer</string>
+    <string name="restriction_device_serial_description">Die Seriennummer des Geräts, zum Beispiel ${esper.serialNumber}. Android gibt sie selbst nicht an Apps weiter.</string>
+    <string name="restriction_device_type_title">Gerätetyp</string>
+    <string name="restriction_device_type_description">Was das Gerät ist: Kiosk, Kassenterminal, Handheld, Digital Signage.</string>
+    <string name="restriction_device_location_title">Standort</string>
+    <string name="restriction_device_location_description">Wo sich das Gerät befindet, zum Beispiel eine Filialnummer.</string>
+    <string name="restriction_labels_title">Beschriftungen</string>
+    <string name="restriction_labels_description">Beschriftungen für das Gerät in OneUptime, als kommagetrennte Paare Name=Wert: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">Erfassungsintervall (Sekunden)</string>
+    <string name="restriction_interval_description">Wie oft der Agent sendet, von 30 bis 600 Sekunden. Standardmäßig 60.</string>
+    <string name="restriction_logcat_enabled_title">Logcat senden</string>
+    <string name="restriction_logcat_enabled_description">Abstürze, ANRs und Protokolle anderer Apps senden und die Protokollsitzungen zulassen, um die OneUptime bittet. Erfordert READ_LOGS, erteilt mit adb.</string>
+    <string name="restriction_logcat_level_title">Niedrigste Logcat-Stufe</string>
+    <string name="restriction_logcat_level_description">Ab welcher Stufe Logcat-Zeilen gesendet werden, unter Android 12 und älter. Standardmäßig Warnung.</string>
+    <string name="restriction_apps_enabled_title">Installierte Apps senden</string>
+    <string name="restriction_apps_enabled_description">Die installierten Apps und ihre Versionen einmal täglich senden, dazu jede Installation, Aktualisierung und Deinstallation.</string>
+    <string name="logcat_level_verbose">Ausführlich</string>
+    <string name="logcat_level_debug">Debug</string>
+    <string name="logcat_level_info">Info</string>
+    <string name="logcat_level_warn">Warnung</string>
+    <string name="logcat_level_error">Fehler</string>
+    <string name="logcat_level_fatal">Fatal</string>
+</resources>

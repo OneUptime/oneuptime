@@ -44,6 +44,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 import { formatHostContainerCounts } from "./HostListFigures";
+import HostOperatingSystem from "Common/Utils/Host/HostOperatingSystem";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardPodmanHostListComponent;
@@ -209,7 +210,7 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
             },
             {
               label: "OS",
-              value: `${osType}${osVersion ? ` ${osVersion}` : ""}`,
+              value: HostOperatingSystem.describe({ osType, osVersion }) || "",
             },
           ],
         },
@@ -286,7 +287,7 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
           ) : null}
         </td>
         <ResourceListNameCell
-          name={osVersion ? `${osType} ${osVersion}` : osType}
+          name={HostOperatingSystem.describe({ osType, osVersion })}
           className="px-3 py-2 text-xs text-gray-500 truncate"
         />
       </tr>

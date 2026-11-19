@@ -771,7 +771,11 @@ ${PROVISION_SSL_LISTEN_DIRECTIVE}
 ${PROVISION_SSL_IPV6_LISTEN_DIRECTIVE}
 ${PROVISION_SSL_CERTIFICATE_DIRECTIVE}
 ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
-    http2  on;
+    # HTTP/2 for HOST over TLS, which OTLP over gRPC needs: "on" unless the
+    # NGINX_HTTP2 setting says off (envsubst-on-templates.sh says why one
+    # would). Only the PROVISION_SSL listen above negotiates it: on 7849 the
+    # status-page default server decides, and leaves it off.
+    http2  ${NGINX_HTTP2};
 
     # localhost, ingress, and HOST without its port (envsubst-on-templates.sh):
     # nginx compares a server name with the Host a request names minus its
@@ -1295,7 +1299,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # so a plaintext (h2c) exporter's connection preface is parsed as an
         # HTTP/1.x request and refused with a 400. Over TLS, ALPN is settled
         # by the server the SNI names, which is this one for the primary host
-        # when PROVISION_SSL is on.
+        # when PROVISION_SSL is on, and offers h2 unless NGINX_HTTP2 is off.
         client_max_body_size 4M;
 
         grpc_pass ${BACKEND_APP_GRPC_TARGET};

@@ -48,7 +48,7 @@ Chaque réponse ne connecte qu'une seule fois. Envoyée de nouveau, par exemple 
 Les personnes qui se connectent pour la première fois rejoignent les **Équipes** du fournisseur, qui décident de ce qu'elles peuvent faire : voir [Rôles et équipes des utilisateurs SSO](#rôles-et-équipes-des-utilisateurs-sso).
 
 > [!NOTE]
-> Sur OneUptime Cloud, la première fois qu'une personne se connecte au projet avec l'un de ses fournisseurs SAML ou OIDC, OneUptime lui envoie un lien par e-mail au lieu de la connecter. Elle l'ouvre, confirme que l'authentification unique du projet peut la connecter, puis poursuit la connexion. Le lien est valable 24 heures. Cela se produit une fois par projet, et de nouveau si la personne quitte le projet puis revient. Les installations auto-hébergées connectent les personnes immédiatement.
+> Sur OneUptime Cloud, la première fois qu'une personne se connecte au projet avec l'un de ses fournisseurs SAML ou OIDC, OneUptime lui envoie un lien par e-mail au lieu de la connecter. Elle l'ouvre, confirme que l'authentification unique du projet peut la connecter, puis poursuit la connexion. Le lien est valable 24 heures. Cela se produit une fois par projet, et de nouveau si la personne quitte le projet puis revient. Les installations auto-hébergées connectent les personnes immédiatement. Sur OneUptime Cloud, toute connexion qui n'aboutit pas directement reçoit cette même réponse, que l'adresse ait un compte ou non : une personne sans compte reçoit aussi l'e-mail, et son compte est créé quand elle confirme, tandis qu'un compte bloqué ou un administrateur OneUptime ne reçoit aucun e-mail. Une installation auto-hébergée refuse plutôt ces deux cas avec un seul message.
 
 Sur OneUptime Cloud, une personne qui rejoint le projet via le SSO occupe un siège, comme une personne que vous invitez. Si votre plan comprend un nombre fixe de sièges et qu'ils sont tous pris, les nouvelles personnes ne peuvent pas rejoindre le projet via le SSO tant qu'aucun siège ne s'est libéré.
 
@@ -292,6 +292,15 @@ Un fournisseur chez qui elle n'est pas enregistrée affiche sa propre page d'err
 OneUptime ne reprend pas les rôles ni les groupes de votre fournisseur d'identité. Ce qu'une personne peut faire dépend des équipes dont elle fait partie : un fournisseur ajoute les nouveaux venus à ses **Équipes**, et vous gérez les équipes et leurs autorisations dans OneUptime, comme le décrit [Utilisateurs, équipes et autorisations](/docs/permissions/index). Pour garder l'appartenance aux équipes alignée sur votre fournisseur d'identité, utilisez [SCIM](/docs/identity/scim). Chaque équipe que quelqu'un rejoint en se connectant est enregistrée sur la page **Journaux d'audit** de cette équipe, comme une modification faite par la personne qui s'est connectée.
 
 Les équipes d'un fournisseur décident de ce que peuvent faire les personnes qui se connectent avec lui ; un fournisseur n'est donc enregistré qu'avec des équipes dans lesquelles la personne qui l'enregistre pourrait inviter quelqu'un. Chaque enregistrement les vérifie de nouveau : un fournisseur dont les équipes donnent plus d'accès que vous n'en avez ne peut être modifié que par quelqu'un dont l'accès les couvre, comme un Propriétaire du projet. Les fournisseurs enregistrés avant cette vérification continuent de connecter les personnes à leurs équipes. Toute personne autorisée à modifier un fournisseur peut toujours le désactiver, afin de pouvoir l'arrêter immédiatement.
+
+## Domaines
+
+**Connexion avec SSO** demande une adresse e-mail et propose les fournisseurs qui servent le domaine de cette adresse. Elle ne lit aucun compte : une adresse qui a un compte dans votre projet et une adresse sans aucun compte reçoivent la même réponse, la page ne dit donc rien de qui a un compte. Pour y être proposé, un fournisseur indique les domaines qu'il sert :
+
+1. Ajoutez votre domaine dans **Paramètres du projet** > **Avancé** > **Domaines**, cliquez sur **Vérifier le domaine** sur sa ligne, puis ajoutez l'enregistrement TXT affiché au DNS du domaine. Dès que l'enregistrement est trouvé, le domaine est vérifié.
+2. Modifiez le fournisseur et choisissez le domaine sous **Domaines** à l'étape **Connexion**. Seuls les domaines vérifiés du projet sont listés.
+
+**Connexion avec SSO** propose alors le fournisseur à toute adresse de ce domaine, quelle que soit la personne qui la saisit. Le domaine doit correspondre exactement : `acme.com` ne couvre pas `eu.acme.com`, ajoutez donc chaque domaine avec lequel on se connecte. Un fournisseur sans domaine, comme un fournisseur configuré avant l'arrivée des domaines, n'y est proposé à personne, et connecte toujours les personnes depuis votre fournisseur d'identité et depuis le lien de la carte **Test Single Sign On (SSO)**.
 
 ## Exiger le SSO pour votre projet
 

@@ -51,6 +51,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
 import { getStorageUsage } from "Common/Utils/Storage/StorageUsage";
+import CephClusterHealthPill from "../../Components/Ceph/CephClusterHealthPill";
 
 /*
  * Health pill rendered from the CephCluster.healthStatus snapshot column
@@ -313,9 +314,38 @@ const CephClusters: FunctionComponent<
             headerTooltip: CEPH_METRIC_DESCRIPTIONS.clusterHealth,
             type: FieldType.Element,
             getElement: (item: CephCluster): ReactElement => {
+              const isConnected: boolean =
+                item.otelCollectorStatus === "connected";
+
+              /*
+               * WARN and ERR open what Ceph reports and why, as the
+               * cluster's Overview lists it (#9751); OK and a verdict no
+               * longer true (a cluster that stopped reporting) say no more.
+               */
+              if (
+                isConnected &&
+                item._id &&
+                typeof item.healthStatus === "number" &&
+                item.healthStatus >= 1
+              ) {
+                return (
+                  <CephClusterHealthPill
+                    cluster={{
+                      id: new ObjectID(item._id.toString()),
+                      name: (item.name as string) || "",
+                      healthStatus: item.healthStatus,
+                      capacityUsedPercent:
+                        typeof item.capacityUsedPercent === "number"
+                          ? item.capacityUsedPercent
+                          : null,
+                    }}
+                  />
+                );
+              }
+
               return renderHealthPill({
                 healthStatus: item.healthStatus,
-                isConnected: item.otelCollectorStatus === "connected",
+                isConnected: isConnected,
                 translator: translator,
               });
             },

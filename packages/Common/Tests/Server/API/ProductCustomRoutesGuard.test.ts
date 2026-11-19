@@ -553,6 +553,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-classes/:cloudId`":
         READ,
+      // A class's failed nodes, which its "Failed: N" opens (#9751).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-failed-nodes/:cloudId`":
+        READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/needs-attention/:cloudId`":
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/blast-radius/:cloudId`":
@@ -1057,10 +1060,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
         /*
-         * Its invite suggestions read only (#9701); is-user-registered is
-         * gone (#9745).
+         * Its invite suggestions read only (#9701), and so do the Admin
+         * Dashboard's, in the project the path names (#9826);
+         * is-user-registered is gone (#9745).
          */
-        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
+        "packages/Common/Server/API/TeamMemberAPI.ts": 11,
         // #9762: a master admin clearing one person's sign-in settings.
         "packages/Common/Server/API/UserAPI.ts": 8,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
@@ -1188,6 +1192,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Telemetry arriving, by its ingestion key: it keeps arriving while its product is switched off, unless the server stops ingestion (DISABLE_TELEMETRY_INGESTION), as switching a product off promises.",
       {
+        "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
@@ -1227,9 +1232,9 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement on the status pages picked shows and notifies anyone.",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone.",
       {
-        "packages/Common/Server/API/AnnouncementReachRoute.ts": 1,
+        "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,

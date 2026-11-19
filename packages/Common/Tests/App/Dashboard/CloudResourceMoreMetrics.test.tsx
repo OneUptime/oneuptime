@@ -296,6 +296,11 @@ describe("listing what the resource publishes", () => {
       ).toBeInTheDocument();
     });
 
+    // A search, never work to keep: a new version's reload does not wait on it.
+    expect(screen.getByTestId("cloud-more-metrics-search")).toHaveAttribute(
+      "data-unsaved-changes-ignore",
+    );
+
     await act(async () => {
       fireEvent.change(screen.getByTestId("cloud-more-metrics-search"), {
         target: { value: "swap" },

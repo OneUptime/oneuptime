@@ -7,6 +7,7 @@ De Android-agent van OneUptime rapporteert aan OneUptime over een Android-appara
 - [Uitrollen met Esper](#uitrollen-met-esper): Upload de APK, push de instellingen, start hem één keer.
 - [Instellingen](#instellingen): Elke sleutel van zijn beheerde configuratie.
 - [Logs van andere apps lezen](#logs-van-andere-apps-lezen): Verleen READ_LOGS één keer, met adb of met je MDM.
+- [Logsessies](#logsessies): De logs van elke app, een tijdlang, toegestaan door de persoon bij het apparaat.
 :::
 
 ## Zo werkt het
@@ -93,6 +94,8 @@ De agent leest deze sleutels uit zijn beheerde configuratie. Een apparaat zonder
 
 Een placeholder die je MDM niet heeft ingevuld, zoals `${esper.deviceName}` dat letterlijk zo wordt verstuurd, wordt genegeerd, en het scherm van de agent meldt dat. Houd `device_name` hetzelfde zodra een apparaat rapporteert: een nieuwe naam is een nieuwe host.
 
+Het scherm van de agent, zijn meldingen en de titels en beschrijvingen die je MDM voor deze sleutels toont, zijn in de taal van het apparaat, in elke taal die het dashboard van OneUptime spreekt.
+
 ## Logs van andere apps lezen
 
 Android laat een app de logs van andere apps alleen lezen met de toestemming READ_LOGS, en alleen adb kan die verlenen: niet de app zelf, en ook geen apparaatbeleid. Verleen ze één keer op elk apparaat, en ze blijft verleend na herstarts en updates:
@@ -105,10 +108,51 @@ Voer die opdracht met Esper uit via **Secure Remote ADB**: zet ADB-toegang aan v
 
 Wat de agent daarna leest, hangt af van de Android-versie:
 
-- Android 13 en later: de crashes en ANR's van elke app. Android toont de logregels van andere apps alleen aan een app die op het scherm staat, nadat de persoon bij het apparaat dat toestaat, dus een agent die op de achtergrond draait, kan ze niet lezen.
+- Android 13 en later: de crashes en ANR's van elke app. Android toont de logregels van andere apps alleen aan een app die op het scherm staat, nadat de persoon bij het apparaat dat toestaat, dus een agent die op de achtergrond draait, kan ze niet lezen. Vraag ze een tijdlang op met een [logsessie](#logsessies).
 - Android 12 en eerder: de crashes en ANR's van elke app, en de logregels van elke app vanaf `logcat_min_level`.
 
 Zonder READ_LOGS rapporteert de agent al het andere, en zijn scherm en de logs van het apparaat vertellen hoe je de toestemming verleent.
+
+### Stack traces van crashes en redenen voor herstarts
+
+Android bewaart het volledige rapport van elke appcrash, native crash en ANR, en de reden van elke herstart, in zijn DropBox. De agent leest ze voor elke app als hij READ_LOGS en gebruikstoegang heeft, en op Android 15 en later READ_DROPBOX_DATA. Verleen ze één keer met adb, net als READ_LOGS:
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+De eerste opdracht is voor Android 15 en later; gebruikstoegang kun je ook aanzetten in **Instellingen → Gebruikstoegang** van het apparaat. Geen apparaatbeleid kan ze verlenen, en het scherm van de agent toont de opdrachten die je nog moet uitvoeren. Daarmee heeft elke crash in **Uitzonderingen** zijn volledige stacktrace, een native crash zijn signaal en de bibliotheek waarin hij crashte, een ANR de stack van zijn hoofdthread, en een herstart in **Logboeken** de reden die Android ervoor geeft. Kaartnummers, e-mailadressen, tokens en wachtwoorden in wat de agent leest, worden vervangen door `[card number]`, `[email]`, `[token]` en `[redacted]` voordat het wordt verstuurd.
+
+### CPU-gebruik
+
+Vanaf Android 8 houdt Android het CPU-gebruik van een apparaat verborgen voor apps. Alleen een app die apparaateigenaar is, kan het lezen, en alleen op apparaten waarvan de hardware het meldt. De agent leest het als hij de apparaateigenaar is, wat je met adb instelt op een apparaat zonder accounts en zonder andere apparaateigenaar:
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+Een apparaat waarvan je MDM al eigenaar is, kan geen tweede eigenaar hebben, dus is zijn CPU-gebruik niet beschikbaar, en het scherm van de agent meldt dat. Zijn CPU-gebruik ontbreekt dan in de hostlijst, en het sjabloon **High CPU Utilization** wordt er niet voor aangeboden.
+
+## Logsessies
+
+Een logsessie stuurt een tijdlang de logs van elke app van een apparaat, om problemen ermee op te lossen. Op Android 13 en later is dat de enige manier om de logregels van andere apps te lezen, omdat Android ze alleen toont aan een app die op het scherm staat, nadat de persoon bij het apparaat dat toestaat.
+
+:::steps
+### Een logsessie aanvragen
+
+Open het apparaat in **Hosts**, dan **Logboeken**, en klik op **Logsessie aanvragen** in **Logsessies**. Kies hoe lang het apparaat zijn logs verstuurt, van 15 minuten tot 4 uur, en het laagste niveau dat het verstuurt: **Info**, **Debug** of **Uitgebreid**.
+
+### Toestaan op het apparaat
+
+Binnen een minuut toont het apparaat een melding dat iemand om zijn logs heeft gevraagd, met diens naam. De persoon bij het apparaat opent de agent en tikt op **Toestaan**. Op Android 13 en later vraagt Android daarna om toegang tot alle apparaatlogboeken toe te staan, en ook dat staat die persoon toe.
+
+### De regels lezen
+
+De sessie staat op **Wordt verzameld**, en de regels van elke app komen binnen in de logs van het apparaat. Klik op **Regels tonen** om de regels van de sessie apart te zien. De sessie eindigt als de tijd om is, of als iemand haar op het apparaat stopt of in OneUptime annuleert.
+:::
+
+Een sessie heeft READ_LOGS en `logcat_enabled` nodig; zonder die staat ze op **Niet beschikbaar**. Er draait één sessie tegelijk op een apparaat. Een verzoek dat niemand binnen een uur toestaat, verloopt, en een sessie waarin het apparaat herstart, eindigt daarmee, omdat de toestemming van Android eindigt met het proces van de agent. Een sessie aanvragen vereist toestemming om de host te bewerken, en de **Auditlogboeken** van de host houden bij wie erom vroeg, en wanneer.
 
 ## Wat de agent rapporteert
 
@@ -117,14 +161,15 @@ Zonder READ_LOGS rapporteert de agent al het andere, en zijn scherm en de logs v
 | Geheugen, opslag, netwerk en uptime | De pagina van het apparaat in **Hosts**: dezelfde metrieken die de collector van een server verstuurt, zodat de waarschuwingssjablonen voor hosts werken |
 | Batterijlading en -temperatuur, en of het apparaat op externe voeding is aangesloten | De metrieken `hw.battery.charge`, `hw.temperature` en `android.battery.plugged` |
 | Thermische toestand | De metrieken `android.thermal.status` en `android.thermal.headroom` |
-| Herstarts | **Logboeken**, met `@event.name:device.boot`: hoe lang het apparaat aan stond, of het netjes is afgesloten, hoe lang het uit stond, en herstartlussen |
+| CPU-gebruik | De metriek `system.cpu.utilization`: op Android 7, en op Android 8 en later als de agent de [apparaateigenaar](#cpu-gebruik) is |
+| Herstarts | **Logboeken**, met `@event.name:device.boot`: hoe lang het apparaat aan stond, of het netjes is afgesloten, hoe lang het uit stond, waarom het herstartte, en herstartlussen |
 | Geïnstalleerde apps | **Logboeken**, met `@event.name:android.package.inventory` één keer per dag, en elke installatie, update en verwijdering |
-| Crashes en ANR's van elke app | **Uitzonderingen**, als niet-afgehandeld, genoemd naar de app |
-| Merk, model, serienummer, OS-versie en firmware | Het item van het apparaat in **Inventaris** |
+| Crashes en ANR's van elke app | **Uitzonderingen**, als niet-afgehandeld, genoemd naar de app, met hun stacks als de agent [DropBox](#stack-traces-van-crashes-en-redenen-voor-herstarts) leest |
+| Merk, model, serienummer, OS-versie, beveiligingspatchniveau en firmware | Het item van het apparaat in **Inventaris** |
 
-Vanaf Android 8 houdt Android het CPU-gebruik van het apparaat verborgen voor apps, dus de agent rapporteert CPU-gebruik alleen op Android 7, en op builds die het toestaan.
+In **Hosts** staat als OS van het apparaat Android, met het logo van Android.
 
-De waarschuwingssjablonen voor hosts die bij een apparaat passen, zijn Host Stopped Reporting, High Memory Utilization, High Filesystem Usage en Host Restarted. Een apparaat dat blijft herstarten, logt bij elke start een waarschuwing, met `android.boot.recent_count` ingesteld op het aantal starts in het afgelopen uur.
+Het aantal starts van het apparaat in het afgelopen uur is de metriek `android.boot.recent_count`, en een apparaat dat blijft herstarten, logt bij elke start een waarschuwing. In **Hosts** krijgt een Android-apparaat eigen waarschuwingssjablonen aangeboden: Device Unplugged, Low Battery, Device Overheating, Restart Loop en Storage Nearly Full, met Host Stopped Reporting, Host Restarted en High Memory Utilization, en High CPU Utilization zodra het CPU-gebruik meldt. De eerste debugopdrachten van elke waarschuwing zijn adb-opdrachten. Zie [Host-monitor](/docs/monitor/host-monitor#android-apparaten).
 
 ## Probleemoplossing
 
@@ -137,7 +182,11 @@ Gebruik een **Server**-sleutel die aanstaat en niet is verlopen. Een **Browser**
 :::
 
 :::details Geen logs van andere apps
-Verleen READ_LOGS, zoals [Logs van andere apps lezen](#logs-van-andere-apps-lezen) beschrijft. Op Android 13 en later worden van andere apps alleen de crashes en ANR's gelezen.
+Verleen READ_LOGS, zoals [Logs van andere apps lezen](#logs-van-andere-apps-lezen) beschrijft. Op Android 13 en later worden van andere apps alleen de crashes en ANR's gelezen, tenzij er een [logsessie](#logsessies) loopt.
+:::
+
+:::details Een logsessie blijft op Wacht op goedkeuring staan
+Nog niemand bij het apparaat heeft haar toegestaan. Iemand moet de agent op het apparaat openen en op **Toestaan** tikken, en op Android 13 en later ook de vraag van Android toestaan, terwijl de agent op het scherm staat. Een sessie die in de vraag van Android is geweigerd, staat op **Geweigerd**: vraag een nieuwe aan.
 :::
 
 :::details Twee apparaten verschijnen als één host

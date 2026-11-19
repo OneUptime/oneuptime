@@ -964,8 +964,9 @@ describe("BigQuery asks again what its error reference says may pass", () => {
     expect(error).toMatchObject({
       kind: LlmConnectionFailureKind.Authentication,
       statusCode: 400,
+      // Google's code and words, and what to do, never its raw JSON (#9680).
       message:
-        'Google BigQuery sign-in failed with HTTP 400: {"error":"invalid_grant","error_description":"Invalid JWT Signature."}',
+        "Google BigQuery refused the service account oneuptime@my-project.iam.gserviceaccount.com (400, invalid_grant) while signing in: Invalid JWT Signature. The key may have been deleted or disabled, or may have expired: create a new key and save it again.",
     });
   });
 

@@ -48,7 +48,7 @@ Each response signs someone in once. Sent again, for example by going back in th
 People who sign in for the first time join the provider's **Teams**, which decide what they can do: see [Roles and teams for SSO users](#roles-and-teams-for-sso-users).
 
 > [!NOTE]
-> On OneUptime Cloud, the first time someone signs in to the project with one of its SAML or OIDC providers, OneUptime emails them a link instead of signing them in. They open it, confirm that the project's single sign-on may sign them in, and continue to sign in. The link works for 24 hours. This happens once per project, and again if they leave the project and come back. Self-hosted installations sign people in straight away.
+> On OneUptime Cloud, the first time someone signs in to the project with one of its SAML or OIDC providers, OneUptime emails them a link instead of signing them in. They open it, confirm that the project's single sign-on may sign them in, and continue to sign in. The link works for 24 hours. This happens once per project, and again if they leave the project and come back. Self-hosted installations sign people in straight away. Every sign-in that does not go straight through gets this same answer on OneUptime Cloud, whether or not the address has an account: someone with no account yet gets the email too, and their account is made when they confirm, while a blocked account or a OneUptime administrator gets no email. A self-hosted installation refuses those two with one message instead.
 
 On OneUptime Cloud, someone who joins the project through SSO takes a seat, just like someone you invite. If your plan includes a fixed number of seats and all of them are taken, new people cannot join through SSO until a seat is free.
 
@@ -292,6 +292,15 @@ A provider that does not have it registered shows its own error page after someo
 OneUptime does not map roles or groups from your identity provider. What someone can do comes from the teams they are in: a provider adds newcomers to its **Teams**, and you manage teams and their permissions in OneUptime, as [Users, Teams & Permissions](/docs/permissions/index) describes. To keep team membership in step with your identity provider, use [SCIM](/docs/identity/scim). Each team someone joins when they sign in is recorded on that team's **Audit Logs** page, as a change made by the person who signed in.
 
 A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a Project Owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.
+
+## Domains
+
+**Sign in with SSO** asks for an email address and offers the providers that serve the address's domain. It reads no account: an address with an account in your project and one with no account at all get the same answer, so the page says nothing about who has an account. To be offered there, a provider lists the domains it serves:
+
+1. Add your domain under **Project Settings** > **Advanced** > **Domains**, click **Verify Domain** on its row, and add the TXT record it shows to the domain's DNS. Once the record is found, the domain is verified.
+2. Edit the provider, and pick the domain under **Domains** on the **Sign-in** step. Only the project's verified domains are listed.
+
+**Sign in with SSO** then offers the provider to every address on that domain, whoever types it. The domain must match exactly: `acme.com` does not cover `eu.acme.com`, so add each domain people sign in with. A provider with no domains, such as one set up before domains existed, is offered to nobody there, and still signs people in from your identity provider and from the link in the **Test Single Sign On (SSO)** card.
 
 ## Requiring SSO for Your Project
 

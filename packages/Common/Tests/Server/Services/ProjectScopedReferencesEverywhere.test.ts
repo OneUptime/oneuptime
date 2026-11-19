@@ -137,16 +137,6 @@ const SERVICES_WITH_ANOTHER_CHECK: Record<string, AnotherCheck> = {
   "UserTelegramService.ts": { kind: "owner-is-the-caller" },
   "UserWebhookService.ts": { kind: "owner-is-the-caller" },
   "UserWhatsAppService.ts": { kind: "owner-is-the-caller" },
-  "ProjectSsoService.ts": {
-    kind: "own-check",
-    reason:
-      "SsoProviderTeamGrant reads the provider's teams pinned to the project for every caller, root and master admin included, and refuses another project's team like a missing one (SsoProviderTeamGrant.test.ts)",
-  },
-  "ProjectOidcService.ts": {
-    kind: "own-check",
-    reason:
-      "SsoProviderTeamGrant checks the provider's teams for every caller (SsoProviderTeamGrant.test.ts)",
-  },
   "ProjectSCIMService.ts": {
     kind: "own-check",
     reason:
@@ -200,6 +190,16 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "TeamComplianceSettingService.test.ts (severities, after the rule type drops the options it does not use)",
   "TeamMemberService.ts":
     "the invited user is not a member until the row exists (TeamMemberService.test.ts)",
+  /*
+   * A provider's teams are SsoProviderTeamGrant's: it reads them pinned to
+   * the project for every caller, root and master admin included, and
+   * refuses another project's team like a missing one. Its domains (#9824)
+   * get the project check.
+   */
+  "ProjectSsoService.ts":
+    "SsoProviderTeamGrant.test.ts (the teams), SsoProviderDomainsInProject.test.ts (the domains, by the project check)",
+  "ProjectOidcService.ts":
+    "SsoProviderTeamGrant.test.ts (the teams), SsoProviderDomainsInProject.test.ts (the domains, by the project check)",
   "OpenStackCloudService.ts":
     "OpenStackCloudConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
   "OpenStackCloudConnectionTestService.ts":

@@ -48,7 +48,7 @@ Jede Antwort gilt für genau eine Anmeldung. Wird sie erneut gesendet, etwa weil
 Wer sich zum ersten Mal anmeldet, kommt in die **Teams** des Anbieters, und diese bestimmen, was die Person tun darf: siehe [Rollen und Teams für SSO-Benutzer](#rollen-und-teams-für-sso-benutzer).
 
 > [!NOTE]
-> Auf OneUptime Cloud meldet OneUptime jemanden, der sich zum ersten Mal mit einem SAML- oder OIDC-Anbieter des Projekts anmeldet, nicht sofort an, sondern schickt ihm einen Link per E-Mail. Die Person öffnet ihn, bestätigt, dass das Single Sign-On des Projekts sie anmelden darf, und setzt die Anmeldung fort. Der Link gilt 24 Stunden. Das geschieht einmal pro Projekt und erneut, wenn jemand das Projekt verlässt und zurückkommt. Selbst gehostete Installationen melden Personen sofort an.
+> Auf OneUptime Cloud meldet OneUptime jemanden, der sich zum ersten Mal mit einem SAML- oder OIDC-Anbieter des Projekts anmeldet, nicht sofort an, sondern schickt ihm einen Link per E-Mail. Die Person öffnet ihn, bestätigt, dass das Single Sign-On des Projekts sie anmelden darf, und setzt die Anmeldung fort. Der Link gilt 24 Stunden. Das geschieht einmal pro Projekt und erneut, wenn jemand das Projekt verlässt und zurückkommt. Selbst gehostete Installationen melden Personen sofort an. Jede Anmeldung, die nicht direkt durchgeht, erhält auf OneUptime Cloud diese selbe Antwort, ob die Adresse ein Konto hat oder nicht: Wer noch kein Konto hat, erhält die E-Mail ebenfalls, und das Konto wird angelegt, wenn die Person bestätigt, während ein gesperrtes Konto oder ein OneUptime-Administrator keine E-Mail erhält. Eine selbst gehostete Installation weist diese beiden stattdessen mit einer einzigen Meldung ab.
 
 Auf OneUptime Cloud belegt jemand, der über SSO in das Projekt kommt, einen Platz, genau wie jemand, den Sie einladen. Enthält Ihr Plan eine feste Anzahl an Plätzen und sind alle belegt, können neue Personen erst über SSO beitreten, wenn ein Platz frei wird.
 
@@ -292,6 +292,15 @@ Ein Anbieter, bei dem sie nicht registriert ist, zeigt nach einer Abmeldung von 
 OneUptime übernimmt keine Rollen oder Gruppen aus Ihrem Identitätsanbieter. Was jemand tun darf, ergibt sich aus den Teams, in denen die Person ist: Ein Anbieter fügt Neue seinen **Teams** hinzu, und Teams und ihre Berechtigungen verwalten Sie in OneUptime, wie es [Benutzer, Teams & Berechtigungen](/docs/permissions/index) beschreibt. Um die Teammitgliedschaft mit Ihrem Identitätsanbieter abzugleichen, verwenden Sie [SCIM](/docs/identity/scim). Jedes Team, dem jemand bei der Anmeldung beitritt, wird auf der Seite **Audit-Protokolle** dieses Teams als Änderung der Person erfasst, die sich angemeldet hat.
 
 Die Teams eines Anbieters bestimmen, was Personen tun dürfen, die sich mit ihm anmelden. Deshalb wird ein Anbieter nur mit Teams gespeichert, in die die speichernde Person jemanden einladen könnte. Jedes Speichern prüft sie erneut: Einen Anbieter, dessen Teams mehr Zugriff geben, als Sie haben, kann nur jemand ändern, dessen Zugriff sie abdeckt, etwa ein Projektinhaber. Anbieter, die vor dieser Prüfung gespeichert wurden, melden Personen weiter in ihren Teams an. Wer einen Anbieter bearbeiten darf, kann ihn weiterhin ausschalten, sodass er sich sofort stoppen lässt.
+
+## Domänen
+
+**Mit SSO anmelden** fragt nach einer E-Mail-Adresse und bietet die Anbieter an, die die Domain dieser Adresse bedienen. Es liest kein Konto: Eine Adresse mit einem Konto in Ihrem Projekt und eine ganz ohne Konto erhalten dieselbe Antwort, die Seite verrät also nicht, wer ein Konto hat. Damit ein Anbieter dort angeboten wird, nennt er die Domänen, die er bedient:
+
+1. Fügen Sie Ihre Domain unter **Projekteinstellungen** > **Erweitert** > **Domänen** hinzu, klicken Sie in ihrer Zeile auf **Domain verifizieren** und tragen Sie den angezeigten TXT-Eintrag in das DNS der Domain ein. Sobald der Eintrag gefunden wird, ist die Domain verifiziert.
+2. Bearbeiten Sie den Anbieter und wählen Sie die Domain im Schritt **Anmeldung** unter **Domänen** aus. Nur die verifizierten Domänen des Projekts werden aufgeführt.
+
+**Mit SSO anmelden** bietet den Anbieter dann jeder Adresse in dieser Domain an, egal wer sie eingibt. Die Domain muss genau übereinstimmen: `acme.com` umfasst nicht `eu.acme.com`, fügen Sie also jede Domain hinzu, mit der sich Personen anmelden. Ein Anbieter ohne Domänen, etwa einer, der eingerichtet wurde, bevor es Domänen gab, wird dort niemandem angeboten und meldet Personen weiterhin über Ihren Identitätsanbieter und über den Link in der Karte **Single Sign-On (SSO) testen** an.
 
 ## SSO für Ihr Projekt verlangen
 

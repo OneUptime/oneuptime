@@ -323,7 +323,11 @@ export function getCloudTopologyFacts(data: {
       value: formatCloudTopologyFigure({
         format: headline.format,
         value: found.reading.value,
-        periodSeconds: getCloudReadingPeriodSeconds(data.provider, found.key),
+        periodSeconds: getCloudReadingPeriodSeconds(
+          data.provider,
+          found.key,
+          data.type,
+        ),
       }),
     });
   }

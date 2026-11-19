@@ -170,16 +170,29 @@ class SetupActivityTest {
     }
 
     @Test
-    fun `it lists what the device lets the agent read, and how to turn on Logcat`() {
+    fun `it lists what the device lets the agent read, and every grant still missing`() {
         val activity: SetupActivity = launch()
         val readings: LinearLayout = activity.findViewById(R.id.readings)
 
-        assertEquals(6, readings.childCount)
-        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.logcat_command).visibility)
-        assertEquals(
-            "adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS",
-            activity.text(R.id.logcat_command),
-        )
+        // CPU, memory, battery, temperature, Logcat, crash stacks, installed apps.
+        assertEquals(7, readings.childCount)
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.grant_commands).visibility)
+        val commands: List<String> = activity.text(R.id.grant_commands).split("\n")
+        assertEquals("adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS", commands.first())
+        val usageAccess: Boolean = com.oneuptime.androidagent.dropbox.AndroidDropBoxAccess(activity).usageAccessGranted()
+        assertEquals(!usageAccess, commands.contains("adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow"))
+        assertEquals(if (usageAccess) View.GONE else View.VISIBLE, activity.findViewById<View>(R.id.usage_access).visibility)
         assertNull(activity.findViewById<EditText>(R.id.url).error)
+    }
+
+    @Test
+    fun `with Logcat switched off by the device manager, nothing is to grant`() {
+        val restrictions: RestrictionsManager = context.getSystemService(RestrictionsManager::class.java)
+        shadowOf(restrictions).setApplicationRestrictions(Bundle().apply { putBoolean("logcat_enabled", false) })
+
+        val activity: SetupActivity = launch()
+
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.grant_commands).visibility)
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.usage_access).visibility)
     }
 }

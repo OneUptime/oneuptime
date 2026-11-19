@@ -45,9 +45,11 @@ import { CloudKeyMetricCondition } from "./CloudKeyMetricCondition";
  *     projects where an agent reports them.
  *
  * A metric its provider deprecates is no key metric: a type that read one
- * reads what replaces it, and still reads the old one as it did before
- * (`retired`), so a monitor someone built on it keeps working until it is
- * moved.
+ * reads what replaces it. It can stay read for a while as `retired`, so a
+ * monitor someone built on it keeps working until it is moved; then it is
+ * read no more. Cosmos DB's ServerSideLatency and Pub/Sub's
+ * send_message_operation_count were, until their monitors were moved to
+ * what replaces them (#9739, MoveMonitorsOffRetiredCloudMetrics).
  *
  * Each metric is filed under a CloudKeyMetricGroup, and a type's metrics
  * come most telling first within it: a resource's Metrics card shows them
@@ -1575,17 +1577,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure5("IndexUsageV2", G.Storage),
       azure5("DocumentCountV2", G.Storage),
     ],
-    retired: [
-      /*
-       * Microsoft's table: "will be removed from Azure Monitor at the end
-       * of August 2025. Please use Server Side Latency Direct and Server
-       * Side Latency Gateway to monitor the latency instead."
-       */
-      {
-        name: "ServerSideLatency",
-        replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
-      },
-    ],
+    /*
+     * ServerSideLatency, which Microsoft removes from Azure Monitor ("Please
+     * use Server Side Latency Direct and Server Side Latency Gateway to
+     * monitor the latency instead"), is read no more: the monitors built on
+     * it were moved to one of the two (#9739).
+     */
     notExportedByDiagnosticSettings: [
       "TotalRequests",
       "TotalRequestUnits",
@@ -2901,21 +2898,11 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         G.Traffic,
       ),
     ],
-    retired: [
-      /*
-       * Google's list: "This metric is deprecated. Apply a count aggregator
-       * on topic/message_sizes instead."
-       */
-      {
-        metric: gcp(
-          "pubsub.googleapis.com/topic/send_message_operation_count",
-          "ALIGN_RATE",
-          "1/s",
-          G.Traffic,
-        ),
-        replacedBy: "pubsub.googleapis.com/topic/message_sizes_count",
-      },
-    ],
+    /*
+     * topic/send_message_operation_count, which Google deprecates ("Apply a
+     * count aggregator on topic/message_sizes instead"), is read no more:
+     * the monitors built on it were moved to the count above (#9739).
+     */
   },
   {
     resourceType: "redis_instance",

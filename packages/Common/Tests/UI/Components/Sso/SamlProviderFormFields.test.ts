@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import GlobalSSO from "../../../../Models/DatabaseModels/GlobalSso";
+import Domain from "../../../../Models/DatabaseModels/Domain";
 import ProjectSSO from "../../../../Models/DatabaseModels/ProjectSso";
 import StatusPageSSO from "../../../../Models/DatabaseModels/StatusPageSso";
 import Team from "../../../../Models/DatabaseModels/Team";
@@ -44,6 +45,7 @@ import {
   isSamlAdvancedAtDefaults,
 } from "../../../../UI/Components/Sso/SamlProviderFormFields";
 import {
+  SSO_PROVIDER_DOMAINS_EMPTY_LIST,
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
   SSO_GLOBAL_REACH_CHOICES,
   SSO_GLOBAL_REACH_TITLE,
@@ -58,7 +60,7 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
  * status page's SSO, Admin > Global SSO), create and edit alike:
  *
  *   Provider   Name, Sign On URL, Issuer, Public Certificate;
- *   Sign-in    Teams (a project's provider), Enabled, then one folded
+ *   Sign-in    Teams and Domains (a project's provider), Enabled, then one folded
  *              Advanced section - the signature method, the digest method,
  *              the description and (Global) the two questions: who can
  *              sign in, and where the sign-in counts as SSO.
@@ -149,8 +151,12 @@ function optionValues(
   });
 }
 
+// As Settings > SSO builds it.
 const PROJECT_FIELDS: Array<Field<ProjectSSO>> =
-  getSamlProviderFormFields<ProjectSSO>({ withTeams: true });
+  getSamlProviderFormFields<ProjectSSO>({
+    withTeams: true,
+    withDomains: true,
+  });
 const STATUS_PAGE_FIELDS: Array<Field<StatusPageSSO>> =
   getSamlProviderFormFields<StatusPageSSO>();
 const GLOBAL_FIELDS: Array<Field<GlobalSSO>> =
@@ -167,7 +173,7 @@ afterEach(() => {
 });
 
 describe("the fields each form gets", () => {
-  test("a project's provider: what the identity provider gives, then the teams newcomers join, Enabled and Advanced", () => {
+  test("a project's provider: what the identity provider gives, then the teams newcomers join, the domains it serves, Enabled and Advanced", () => {
     expect(keysOn(PROJECT_FIELDS, "provider")).toEqual([
       "name",
       "signOnURL",
@@ -176,6 +182,7 @@ describe("the fields each form gets", () => {
     ]);
     expect(keysOn(PROJECT_FIELDS, "sign-in")).toEqual([
       "teams",
+      "domains",
       "isEnabled",
       "signatureMethod",
       "digestMethod",
@@ -360,6 +367,47 @@ describe("the fields each form gets", () => {
     expect(teams.description).toBe(
       "Add users to these teams when they sign up.",
     );
+  });
+
+  /*
+   * Sign in with SSO finds a project's provider by an address's domain
+   * (#9824): the field lists only the domains the project has verified - an
+   * unverified one serves nobody - is never required (a provider with none
+   * still signs people in from the identity provider), and says what it does
+   * and where a domain is verified.
+   */
+  test("domains pick from the project's verified domains, are optional, and say what they do and where to verify one", () => {
+    const domains: Field<ProjectSSO> = fieldFor(PROJECT_FIELDS, "domains");
+
+    expect(domains.title).toBe("Domains");
+    expect(domains.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+    expect(domains.dropdownModal).toEqual({
+      type: Domain,
+      labelField: "domain",
+      valueField: "_id",
+      query: { isVerified: true },
+      emptyListText: SSO_PROVIDER_DOMAINS_EMPTY_LIST,
+    });
+    expect(Boolean(domains.required)).toBe(false);
+    expect(domains.collapsibleSection).toBeUndefined();
+    expect(domains.description).toBe(
+      "Sign in with SSO offers this provider to anyone whose email is on one of these domains, which you verify in Project Settings > Advanced > Domains.",
+    );
+    expect(SSO_PROVIDER_DOMAINS_EMPTY_LIST).toBe(
+      "No verified domains yet. Verify one in Project Settings > Advanced > Domains.",
+    );
+  });
+
+  test("only a project's provider asks for its domains", () => {
+    for (const fields of [STATUS_PAGE_FIELDS, GLOBAL_FIELDS] as Array<
+      Array<Field<unknown>>
+    >) {
+      expect(
+        fields.some((field: Field<unknown>): boolean => {
+          return keyOf(field) === "domains";
+        }),
+      ).toBe(false);
+    }
   });
 
   test("Enabled is the switch every provider form has: off, as its column, until the identity provider knows OneUptime", () => {

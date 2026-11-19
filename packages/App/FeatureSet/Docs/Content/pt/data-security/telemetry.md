@@ -8,6 +8,7 @@ Não há nada a configurar: a telemetria de cada serviço é varrida a cada hora
 - [O que é lido](#o-que-é-lido): Os atributos, corpos, mensagens e prompts de cada sinal.
 - [Como uma varredura coleta amostras](#como-uma-varredura-coleta-amostras): Os registros mais recentes de cada serviço, a cada hora.
 - [Limpar](#limpar): Mascare uma descoberta na ingestão, com um clique.
+- [Descartar esta métrica](#descartar-esta-métrica): Pare de armazenar as métricas cujos nomes contêm dados sensíveis.
 - [O que conta como limpo](#o-que-conta-como-limpo): Quando uma regra de limpeza já cobre uma descoberta.
 :::
 
@@ -42,8 +43,9 @@ As chaves numeradas são reunidas em um único local: `gen_ai.prompt.3.content` 
 
 Os atributos de uma métrica são os rótulos das suas séries. Eles são os mesmos em todos os pontos de dados de uma série, então uma métrica que grava mil pontos por minuto pode ter só três valores, e um rótulo que vaza o e-mail de um usuário acrescenta uma série, não um ponto. Por isso uma métrica é amostrada pelas suas séries, não pelos seus pontos:
 
-- **O seu minuto mais recente.** Cada métrica é lida no minuto mais recente em que gravou na última hora: até 100 pontos de dados desse minuto, o que, para uma métrica enviada uma vez por minuto, como o OpenTelemetry envia por padrão, é um ponto de cada série. Um valor é classificado uma só vez, por mais pontos que o repitam, então uma descoberta conta os valores distintos no seu local.
-- **As mais movimentadas primeiro, as outras em revezamento.** As métricas que um serviço gravou são conhecidas pelo agregado por minuto que a tabela de métricas mantém, nunca pelos pontos dela. Cada varredura lê as métricas mais movimentadas de um serviço, as que têm mais chance de ter muitas séries, e algumas das outras, as seguintes a cada hora, para que toda métrica tenha a sua vez.
+- **Um ponto de cada série.** Cada métrica é lida no minuto mais recente em que gravou na última hora: um ponto de dados de cada uma de até 100 séries desse minuto, seja qual for a frequência com que a métrica é enviada, de modo que uma série movimentada nunca toma o lugar de uma tranquila. Um valor é classificado uma vez, por mais séries que o repitam, então uma descoberta conta os valores distintos no seu local.
+- **As métricas novas primeiro, depois as outras em revezamento.** As métricas que um serviço gravou, e quando cada uma gravou pela primeira vez no último dia, são conhecidas pelo agregado por minuto que a tabela de métricas mantém, nunca pelos pontos dela. Cada varredura lê as métricas mais movimentadas de um serviço, as mais propensas a ter muitas séries. Depois vêm as métricas que ele começou a gravar nas últimas 2 horas, já que um vazamento novo costuma vir de código novo, e então as próximas das outras métricas dele, em uma ordem fixa, a partir de onde a última varredura parou. As métricas novas ocupam no máximo metade dessas vezes, então as outras sempre mantêm as delas.
+- **Cada métrica dentro de um tempo definido.** Em um serviço de M métricas, do qual cada varredura lê 10, cada uma é lida pelo menos uma vez a cada M ÷ 5 horas, arredondado para cima: 60 horas para um serviço de 300 métricas. Enquanto ele continuar começando métricas novas a cada hora, esse tempo é no máximo o dobro.
 - **O intervalo próprio de cada métrica.** As métricas são lidas juntas, cada uma pelo seu próprio intervalo da chave primária da tabela. Uma métrica cujo minuto mais recente contém mais de 16.384 pontos, como uma rotulada com o e-mail de cada usuário, é lida à parte, e a leitura para nos primeiros pontos dela, então ela não custa mais do que qualquer outra métrica.
 
 Uma descoberta nomeia o atributo, como `attributes.user.email`, ou `name` para dados no nome de uma métrica. As entradas dela são os pontos de dados em que foi encontrada: cada uma mostra a sua métrica e o valor do atributo, mascarado, e abre em **Métricas** nessa métrica, agrupada por esse atributo. Quando o nome de uma métrica contém dados sensíveis, o nome também é mascarado, e a entrada abre as métricas do serviço em vez disso.
@@ -73,8 +75,9 @@ A cada hora, os registros mais recentes de cada sinal na última hora são lidos
 | Atributos de um registro | 128; 64 para uma chamada de IA |
 | Eventos de um span, e atributos de um evento | 16 e 32 |
 | Locais de um repositório | 500 |
-| Métricas lidas em uma varredura | 100, divididas entre os serviços, pelo menos uma de cada; no máximo 10 de um serviço, metade entre as mais movimentadas dele e metade entre as outras, em revezamento |
-| Pontos de dados de uma métrica | Os do seu minuto mais recente, no máximo 100 |
+| Métricas lidas em uma varredura | 100, divididas entre os serviços, pelo menos uma de cada; no máximo 10 de um serviço, metade entre as mais movimentadas dele e metade entre as novas e as outras, em revezamento |
+| Uma métrica nova | Uma cujo primeiro ponto das últimas 24 horas chegou nas últimas 2 horas |
+| Séries de uma métrica | Um ponto de dados de cada uma, do seu minuto mais recente, no máximo 100 |
 
 Todo valor é encurtado dentro do banco de dados, então nenhum valor longo sai dele, e cada leitura para depois de 30 segundos. Uma leitura que falha vira um aviso nos repositórios a que se destinava; a varredura continua com a próxima.
 
@@ -114,9 +117,20 @@ Algumas descobertas não podem ser limpas por uma regra, e **Limpar** diz por qu
 - Uma marcação de documento: ocultar a palavra não ocultaria o documento.
 - Um dos seus próprios tipos de dados: adicione você mesmo uma regra de limpeza personalizada com o padrão dele.
 - Os detalhes da própria sessão (`sessions.*`): a ingestão de replays de sessão não executa regras de limpeza.
-- O nome de uma métrica (`name`): quem o define é o código que cria a métrica, e uma regra de pipeline só consegue renomear uma métrica por inteiro. Renomeie a métrica e envie como atributo o que varia no nome dela.
+- O nome de uma métrica (`name`): quem o define é o código que cria a métrica, e uma regra de pipeline só consegue renomear uma métrica por inteiro. Renomeie a métrica e envie como atributo o que varia no nome dela. Até lá, **Descartar esta métrica** pode parar de armazenar essas métricas.
 
 **Limpar** cria a regra em seu nome, com as suas próprias permissões: Proprietários do projeto e Administradores do projeto podem pressioná-lo, assim como uma equipe que pode criar regras de limpeza de logs, regras de limpeza de traces para spans, exceções e chamadas de IA, e regras de pipeline de métricas para métricas.
+
+## Descartar esta métrica
+
+Nenhuma regra tira os dados do nome de uma métrica, então, até que o código que dá nome à métrica seja corrigido, os dados continuam chegando. **Descartar esta métrica** em uma descoberta no nome de uma métrica para de armazenar as métricas cujos nomes os contêm, ao custo dos dados delas, por isso só acontece quando você pede:
+
+- **As métricas de um serviço.** Cria uma regra de pipeline de métricas **Descartar** para o serviço da descoberta: cada ponto de dados novo de uma métrica cujo nome contém esse tipo de dado é descartado antes de ser armazenado. O filtro dela é o padrão que **Limpar** usa para o tipo, então um tipo que nenhum padrão consegue encontrar, como o nome de uma pessoa, não pode ser descartado, e a caixa de diálogo diz por quê.
+- **Dito antes de ser feito.** A caixa de diálogo diz que esses pontos de dados se perdem para sempre, quantas das métricas do serviço gravadas no último dia têm um nome assim, quais monitores e painéis as leem e por isso deixam de receber dados novos, que o que já está armazenado permanece até o fim da sua retenção, e como desfazer. Nada é descartado até você marcar que entende.
+- **Em seu nome, e registrado.** A regra é criada com a sua própria permissão de criar regras de pipeline de métricas: Proprietários do projeto e Administradores do projeto podem criá-la, assim como uma equipe que pode criar regras de pipeline de métricas. Os registros de auditoria guardam quem a criou.
+- **Desfeito ao excluir a regra.** A regra recebe o nome do que descarta, como "Data Security: drop metrics named with Email address", e aparece junto às suas outras regras de pipeline de métricas em **Métricas → Configurações → Regras de pipeline**. Exclua-a ou desative-a, e essas métricas voltam a ser armazenadas a partir de então. O que foi descartado nesse meio-tempo não volta.
+
+A descoberta passa então a ser marcada como **Descartadas**, e conta como limpa: nada mais desses dados é armazenado.
 
 ## O que conta como limpo
 
@@ -127,6 +141,7 @@ Uma descoberta só é marcada como limpa quando a ingestão executaria sobre ela
 - **Um padrão que encontra o tipo.** Um **Tipo de padrão** integrado encontra o próprio tipo de dados: **Endereço de e-mail** encontra endereços de e-mail, **Número do cartão de crédito** números de cartão, **SSN (Número de Seguro Social)** números de Seguro Social dos EUA, **Número de telefone** números de telefone e **Endereço IP** endereços IP. **Chaves de atributos sensíveis** cobre todo valor sob uma chave que parece sensível, seja qual for o valor.
 - **Os seus próprios padrões personalizados nunca contam.** Um **Regex personalizado** só cobre uma descoberta quando é exatamente o padrão que **Limpar** cria para o tipo dela. Uma descoberta guarda só amostras mascaradas, nas quais nenhum padrão pode ser testado, então o OneUptime não conseguiria provar que o seu padrão oculta os dados, e uma descoberta dada como limpa por engano é um vazamento que ninguém olha.
 - **O atributo de uma métrica.** Uma regra de pipeline de métricas **Ocultar Atributo** ou **Remover Atributo** da chave desse atributo, para o serviço da descoberta ou para o projeto inteiro, cobre a descoberta quando não tem filtro, ou quando tem exatamente o filtro que **Limpar** cria. Um filtro escrito por você nunca conta, pelo mesmo motivo.
+- **O nome de uma métrica.** Uma regra de pipeline de métricas **Descartar** para o serviço da descoberta ou para o projeto inteiro cobre a descoberta quando tem exatamente o filtro que **Descartar esta métrica** cria, ou nenhum filtro, caso em que não armazena nenhuma métrica do serviço. Uma regra assim sem filtro cobre todas as descobertas nessas métricas.
 
 Uma regra desativada, ou que não limpa nada, nunca conta. A cobertura é calculada de novo depois de cada varredura, então uma regra que você adiciona ou remove manualmente muda o que está marcado como limpo em até uma hora.
 

@@ -48,7 +48,7 @@ Cada resposta faz o login uma única vez. Enviada de novo, por exemplo ao voltar
 Quem faz login pela primeira vez entra nas **Equipes** do provedor, que decidem o que a pessoa pode fazer: veja [Funções e equipes dos usuários de SSO](#funções-e-equipes-dos-usuários-de-sso).
 
 > [!NOTE]
-> No OneUptime Cloud, na primeira vez que alguém faz login no projeto com um dos provedores SAML ou OIDC dele, o OneUptime envia um link por email em vez de fazer o login. A pessoa abre o link, confirma que o single sign-on do projeto pode fazer o login dela e continua. O link vale por 24 horas. Isso acontece uma vez por projeto, e de novo se a pessoa sair do projeto e voltar. As instalações auto-hospedadas fazem o login imediatamente.
+> No OneUptime Cloud, na primeira vez que alguém faz login no projeto com um dos provedores SAML ou OIDC dele, o OneUptime envia um link por email em vez de fazer o login. A pessoa abre o link, confirma que o single sign-on do projeto pode fazer o login dela e continua. O link vale por 24 horas. Isso acontece uma vez por projeto, e de novo se a pessoa sair do projeto e voltar. As instalações auto-hospedadas fazem o login imediatamente. No OneUptime Cloud, todo login que não é concluído direto recebe esta mesma resposta, tenha ou não o endereço uma conta: quem ainda não tem conta também recebe o e-mail, e a conta é criada quando a pessoa confirma, enquanto uma conta bloqueada ou um administrador do OneUptime não recebe e-mail. Uma instalação auto-hospedada recusa esses dois casos com uma única mensagem.
 
 No OneUptime Cloud, quem entra no projeto pelo SSO ocupa um assento, assim como alguém que você convida. Se o seu plano inclui um número fixo de assentos e todos estão ocupados, novas pessoas não podem entrar pelo SSO até que um assento fique livre.
 
@@ -292,6 +292,15 @@ Um provedor em que ele não está registrado mostra a própria página de erro d
 O OneUptime não mapeia funções nem grupos do seu provedor de identidade. O que alguém pode fazer depende das equipes em que está: um provedor adiciona os recém-chegados às **Equipes** dele, e você gerencia as equipes e suas permissões no OneUptime, como descreve [Usuários, equipes e permissões](/docs/permissions/index). Para manter a participação nas equipes alinhada ao seu provedor de identidade, use o [SCIM](/docs/identity/scim). Cada equipe em que alguém entra ao fazer login é registrada na página **Registros de auditoria** dessa equipe, como uma alteração feita pela pessoa que fez login.
 
 As equipes de um provedor decidem o que as pessoas que fazem login com ele podem fazer, por isso um provedor só é salvo com equipes para as quais quem o salva poderia convidar alguém. Cada salvamento as verifica de novo: um provedor cujas equipes dão mais acesso do que você tem só pode ser alterado por alguém cujo acesso as cubra, como um Proprietário do projeto. Provedores salvos antes dessa verificação continuam fazendo o login das pessoas nas equipes deles. Quem pode editar um provedor sempre pode desativá-lo, para que ele possa ser interrompido na hora.
+
+## Domínios
+
+**Login com SSO** pede um endereço de e-mail e oferece os provedores que atendem ao domínio desse endereço. Ele não lê nenhuma conta: um endereço com conta no seu projeto e um sem conta nenhuma recebem a mesma resposta, então a página não diz nada sobre quem tem conta. Para ser oferecido ali, um provedor lista os domínios que atende:
+
+1. Adicione o seu domínio em **Configurações do projeto** > **Avançado** > **Domínios**, clique em **Verificar domínio** na linha dele e adicione o registro TXT exibido ao DNS do domínio. Assim que o registro é encontrado, o domínio está verificado.
+2. Edite o provedor e escolha o domínio em **Domínios**, na etapa **Login**. Só os domínios verificados do projeto são listados.
+
+**Login com SSO** passa então a oferecer o provedor a qualquer endereço desse domínio, seja quem for que o digite. O domínio precisa corresponder exatamente: `acme.com` não cobre `eu.acme.com`, então adicione cada domínio com que as pessoas fazem login. Um provedor sem domínios, como um configurado antes de os domínios existirem, não é oferecido a ninguém ali, e continua fazendo o login das pessoas pelo seu provedor de identidade e pelo link do cartão **Test Single Sign On (SSO)**.
 
 ## Exigir SSO no seu projeto
 

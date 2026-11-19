@@ -12,6 +12,9 @@ import CoreAuditLogService from "Common/Server/Services/AuditLogService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "Common/Server/Utils/TeamMember/PendingInviteeProfiles";
 import UserService from "Common/Server/Services/UserService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -2174,10 +2177,25 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     const relatedModel: BaseModel = new data.modelType();
 
     if (relatedModel instanceof User) {
+      /*
+       * Someone only invited to the project is named as the project knows
+       * them - the name typed for them, else their address - never by
+       * their account's own name, which it does not see until they join
+       * (#9823, PendingInviteeProfiles).
+       */
+      const withheld: Map<string, WithheldProfile> =
+        await PendingInviteeProfiles.readWithheldProfilesInProject({
+          userIds: ids,
+          projectId: data.projectId,
+        });
+
       for (const id of ids) {
         const user: { name: string | null; email: string | null } | null =
           await this.getUserInfo(new ObjectID(id));
-        const name: string | null = user?.name || user?.email || null;
+        const profile: WithheldProfile | undefined = withheld.get(id);
+        const name: string | null = profile
+          ? profile.inviteeName || user?.email || null
+          : user?.name || user?.email || null;
 
         if (name) {
           names.set(id, name);

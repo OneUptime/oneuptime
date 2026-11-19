@@ -5,27 +5,36 @@ import ClickhouseDatabase, {
   ClickhouseClient,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import { ClickHouseSettings } from "Common/Server/Services/AnalyticsDatabaseService";
-import SecurityEventService from "Common/Server/Services/SecurityEventService";
+import SecurityEventService, {
+  DetectionMatchGroup,
+} from "Common/Server/Services/SecurityEventService";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import {
   SQL,
   Statement,
 } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import SecurityDetectionMatchedEventsReader from "Common/Server/Utils/SecurityCase/SecurityDetectionMatchedEventsReader";
+import DetectionRuleEvaluator from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
 import SigmaClickhouseCompiler, {
   buildSigmaFieldExpression,
 } from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
   SECURITY_DETECTION_MATCHED_EVENTS_MAX,
   SecurityDetectionMatchedEvent,
   SecurityDetectionMatchedEvents,
+  getSecurityDetectionMatchedEventsShare,
 } from "Common/Types/SecurityCase/SecurityDetectionMatchedEvents";
+import { DETECTION_MAX_GROUPS_PER_EVALUATION } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import SigmaRuleSetParser, {
+  detectionRuleHeader,
+} from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import {
   afterAll,
   beforeAll,
@@ -47,6 +56,9 @@ import {
  *   one group            a rule that does not group;
  *   a feed's indicators  every event carrying one, in any case, but the
  *                        Detection Findings;
+ *   a correlation's      every group it fires for at once - a run's 100 -
+ *   groups               by its own group-by, each keeping its share of
+ *                        the firing, in one read (#9795);
  *
  * each only the project's own events, in the window the source read. Run
  * on a table built from the SecurityEvent model.
@@ -149,6 +161,7 @@ function eventRow(data: {
   time: Date;
   uid: string;
   principalIp?: string | undefined;
+  principalUser?: string | undefined;
   statusName?: string | undefined;
   classUid?: number | undefined;
   observables?: Array<string> | undefined;
@@ -173,6 +186,7 @@ function eventRow(data: {
     severityName: "Medium",
     message: `Failed sign-in ${data.uid}`,
     principalIp: data.principalIp ?? "",
+    principalUser: data.principalUser ?? "",
     observables: data.observables ?? [data.principalIp ?? ""],
     requestOutcome: data.requestOutcome ?? "",
     attributes: attributes,
@@ -190,6 +204,87 @@ type ConnectableService = {
 
 const service: ConnectableService =
   SecurityEventService as unknown as ConnectableService;
+
+/*
+ * A correlation over failed and successful sign-ins (#9795): failures, then
+ * a success, from one address - or, by two fields, one user from one
+ * address - within ten minutes.
+ */
+function signInSequence(groupBy: Array<string>): string {
+  return `title: Failed sign-in
+id: 7c0f2a51-0000-4000-8000-000000000002
+name: failed_sign_in
+level: low
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+id: 7c0f2a51-0000-4000-8000-000000000003
+name: successful_sign_in
+level: low
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+---
+title: Failed then successful sign-in
+id: 7c0f2a51-0000-4000-8000-000000000004
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_in
+    - successful_sign_in
+  group-by:
+${groupBy
+  .map((field: string): string => {
+    return `    - ${field}`;
+  })
+  .join("\n")}
+  timespan: 10m
+`;
+}
+
+// What a correlation's run keeps for its groups, read as the evaluator reads it.
+async function readCorrelationGroups(data: {
+  projectId: ObjectID;
+  groupBy: Array<string>;
+  groupValues: Array<string>;
+}): Promise<Map<string, SecurityDetectionMatchedEvents>> {
+  const yaml: string = signInSequence(data.groupBy);
+  const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(yaml);
+  const rule: DetectionRule = new DetectionRule();
+
+  rule._id = ObjectID.generate().toString();
+  rule.projectId = data.projectId;
+  rule.name = "Failed then successful sign-in";
+  rule.sigmaRuleYaml = yaml;
+
+  return DetectionRuleEvaluator.readMatchedEvents({
+    rule,
+    definition,
+    parsedRule: detectionRuleHeader(definition),
+    matchedGroups: data.groupValues.map(
+      (groupValue: string): DetectionMatchGroup => {
+        return {
+          groupValue,
+          matchCount: 1,
+          distinctCount: 0,
+          sampleMessage: "",
+          sampleObservables: [],
+        };
+      },
+    ),
+    startTime: START,
+    endTime: END,
+    restrictTo: undefined,
+    exceptionsFilter: null,
+  });
+}
 
 function failedSignInsCondition(): Statement {
   const definition: DetectionRuleDefinition =
@@ -301,6 +396,21 @@ integration("the events a detection keeps, against ClickHouse", () => {
     const busy: string = "203.0.113.7";
     const quiet: string = "198.51.100.9";
     const prefix: string = `run${position}`;
+    // A project of its own for the correlation's events, kept out of the rule's reads.
+    const correlationProjectId: ObjectID = ObjectID.generate();
+    // A run's most groups at once: each address fails twelve times, then signs in.
+    const sequenceAddresses: Array<string> = Array.from(
+      { length: DETECTION_MAX_GROUPS_PER_EVALUATION },
+      (_: unknown, index: number): string => {
+        return `198.18.${Math.floor(index / 250)}.${index % 250}`;
+      },
+    );
+    const sequenceUid: (address: string, step: string) => string = (
+      address: string,
+      step: string,
+    ): string => {
+      return `${prefix}-seq-${address}-${step}`;
+    };
 
     beforeAll(async (): Promise<void> => {
       const connection: Connection = connections[position]!;
@@ -387,6 +497,82 @@ integration("the events a detection keeps, against ClickHouse", () => {
           classUid: 2004,
           principalIp: "",
           observables: ["evil.example.com"],
+        }),
+      );
+
+      // A correlation's groups: twelve failures from each address, then a success.
+      for (const address of sequenceAddresses) {
+        for (let index: number = 11; index >= 0; index--) {
+          rows.push(
+            eventRow({
+              projectId: correlationProjectId,
+              sourceId,
+              time: at(400 + index),
+              uid: sequenceUid(address, String(index).padStart(2, "0")),
+              principalIp: address,
+              requestOutcome: "Rejected",
+            }),
+          );
+        }
+
+        rows.push(
+          eventRow({
+            projectId: correlationProjectId,
+            sourceId,
+            time: at(450),
+            uid: sequenceUid(address, "ok"),
+            principalIp: address,
+            statusName: "Success",
+            requestOutcome: "Reached App",
+          }),
+        );
+      }
+
+      // One user from one address, by two fields: alice and bob there, alice elsewhere.
+      rows.push(
+        ...[0, 1, 2].map((index: number): JSONObject => {
+          return eventRow({
+            projectId: correlationProjectId,
+            sourceId,
+            time: at(500 + index),
+            uid: `${prefix}-alice-${index}`,
+            principalUser: "alice",
+            principalIp: "198.19.0.1",
+          });
+        }),
+        eventRow({
+          projectId: correlationProjectId,
+          sourceId,
+          time: at(510),
+          uid: `${prefix}-alice-ok`,
+          principalUser: "alice",
+          principalIp: "198.19.0.1",
+          statusName: "Success",
+        }),
+        eventRow({
+          projectId: correlationProjectId,
+          sourceId,
+          time: at(501),
+          uid: `${prefix}-bob-0`,
+          principalUser: "bob",
+          principalIp: "198.19.0.1",
+        }),
+        eventRow({
+          projectId: correlationProjectId,
+          sourceId,
+          time: at(511),
+          uid: `${prefix}-bob-ok`,
+          principalUser: "bob",
+          principalIp: "198.19.0.1",
+          statusName: "Success",
+        }),
+        eventRow({
+          projectId: correlationProjectId,
+          sourceId,
+          time: at(505),
+          uid: `${prefix}-alice-elsewhere`,
+          principalUser: "alice",
+          principalIp: "198.19.0.2",
         }),
       );
 
@@ -504,6 +690,74 @@ integration("the events a detection keeps, against ClickHouse", () => {
         `${prefix}-indicator`,
       ]);
       expect(kept.get("evil.example.com")!.outcomes).toEqual({ "": 1 });
+    });
+
+    test("a correlation's groups: every one of a run's 100 at once, each its share, the earliest first, in one read", async () => {
+      const executeQuery: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        SecurityEventService,
+        "executeQuery",
+      );
+
+      const kept: Map<string, SecurityDetectionMatchedEvents> =
+        await readCorrelationGroups({
+          projectId: correlationProjectId,
+          groupBy: ["principalIp"],
+          groupValues: sequenceAddresses,
+        });
+
+      // The events and their outcomes: two reads, however many groups.
+      expect(executeQuery).toHaveBeenCalledTimes(2);
+      executeQuery.mockRestore();
+
+      // Every group keeps its events, the hundredth as the first.
+      expect(kept.size).toBe(DETECTION_MAX_GROUPS_PER_EVALUATION);
+
+      const share: number = getSecurityDetectionMatchedEventsShare(
+        DETECTION_MAX_GROUPS_PER_EVALUATION,
+      ).maxEvents;
+      let total: number = 0;
+
+      for (const address of sequenceAddresses) {
+        expect(uids(kept.get(address))).toEqual(
+          Array.from({ length: share }, (_: unknown, index: number) => {
+            return sequenceUid(address, String(index).padStart(2, "0"));
+          }),
+        );
+        // How far every one of its requests got: the failures and the success.
+        expect(kept.get(address)!.outcomes).toEqual({
+          Rejected: 12,
+          "Reached App": 1,
+        });
+        total += uids(kept.get(address)).length;
+      }
+
+      expect(total).toBeLessThanOrEqual(
+        SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
+      );
+    });
+
+    test("a correlation by two fields keeps each pair as its own group, and an event of another pair in none", async () => {
+      const kept: Map<string, SecurityDetectionMatchedEvents> =
+        await readCorrelationGroups({
+          projectId: correlationProjectId,
+          groupBy: ["principalUser", "principalIp"],
+          groupValues: ["alice / 198.19.0.1", "bob / 198.19.0.1"],
+        });
+
+      expect(Array.from(kept.keys()).sort()).toEqual([
+        "alice / 198.19.0.1",
+        "bob / 198.19.0.1",
+      ]);
+      expect(uids(kept.get("alice / 198.19.0.1"))).toEqual([
+        `${prefix}-alice-0`,
+        `${prefix}-alice-1`,
+        `${prefix}-alice-2`,
+        `${prefix}-alice-ok`,
+      ]);
+      expect(uids(kept.get("bob / 198.19.0.1"))).toEqual([
+        `${prefix}-bob-0`,
+        `${prefix}-bob-ok`,
+      ]);
     });
 
     test("a group nobody's event is in keeps nothing, and a value is never SQL", async () => {

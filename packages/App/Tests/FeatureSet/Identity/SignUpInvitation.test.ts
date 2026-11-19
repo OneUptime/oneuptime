@@ -1,4 +1,9 @@
 import SignUpInvitationUtil from "../../../FeatureSet/Identity/Utils/SignUpInvitation";
+import SsoManagedSignIn from "Common/Server/Utils/SsoManagedSignIn";
+import SsoSignInMethods from "Common/Server/Utils/SsoSignInMethods";
+import { SsoSignInProvider } from "Common/Types/SSO/SignInMethods";
+import { SsoManagedBy } from "Common/Types/SSO/SsoManagedSignIn";
+import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserService from "Common/Server/Services/UserService";
 import InvitationInviterUtil from "Common/Server/Utils/TeamMember/InvitationInviter";
@@ -101,6 +106,17 @@ let tokenLiveSpy: SpyInstance<
 let findUserSpy: SpyInstance<typeof UserService.findOneBy>;
 let findMembershipsSpy: SpyInstance<typeof TeamMemberService.findBy>;
 let readInviterSpy: SpyInstance<typeof InvitationInviterUtil.readById>;
+let managedOnceInSpy: SpyInstance<typeof SsoManagedSignIn.getManagedByOnceIn>;
+let projectSignInMethodsSpy: SpyInstance<
+  typeof SsoSignInMethods.getProjectSignInMethods
+>;
+
+const OKTA: SsoSignInProvider = {
+  type: SsoProviderType.ProjectSSO,
+  id: "73400000-0000-4000-8000-000000000001",
+  name: "Okta",
+  description: "",
+};
 
 beforeEach(() => {
   tokenLiveSpy = jest
@@ -115,6 +131,12 @@ beforeEach(() => {
   readInviterSpy = jest
     .spyOn(InvitationInviterUtil, "readById")
     .mockResolvedValue({ name: "Ada Walker", email: "ada@walk.example" });
+  managedOnceInSpy = jest
+    .spyOn(SsoManagedSignIn, "getManagedByOnceIn")
+    .mockResolvedValue(null);
+  projectSignInMethodsSpy = jest
+    .spyOn(SsoSignInMethods, "getProjectSignInMethods")
+    .mockResolvedValue({ ssoProviders: [OKTA] });
 });
 
 afterEach(() => {
@@ -142,6 +164,7 @@ describe("what the sign-up page may say", () => {
       inviterName: "Ada Walker",
       name: "Grace Member",
       isAccepted: false,
+      ssoSignIn: null,
     });
   });
 
@@ -382,6 +405,7 @@ describe("the answer, as the route sends it and the page reads it", () => {
     inviterName: "Ada Walker",
     name: "Grace Member",
     isAccepted: false,
+    ssoSignIn: null,
   };
 
   test("is read back as it was sent", () => {
@@ -425,6 +449,99 @@ describe("the answer, as the route sends it and the page reads it", () => {
       inviterName: null,
       name: null,
       isAccepted: false,
+      ssoSignIn: null,
     });
+  });
+
+  test("an invitation whose sign-in is single sign-on carries its providers there and back (#9819)", () => {
+    const withSso: SignUpInvitation = {
+      ...INVITATION,
+      ssoSignIn: { providers: [OKTA] },
+    };
+
+    expect(
+      readSignUpInvitationAnswer(toSignUpInvitationAnswerJSON(withSso)),
+    ).toEqual(withSso);
+  });
+
+  test.each([
+    ["no SSO at all (an older server)", undefined, null],
+    ["SSO of another shape", "yes", null],
+    ["a list", [], null],
+    [
+      "providers that are not providers",
+      { providers: [{ name: "x" }, "y", null] },
+      { providers: [] },
+    ],
+  ])(
+    "reads %s as what the page can use",
+    (_case: string, ssoSignIn: unknown, expected: unknown) => {
+      expect(
+        readSignUpInvitationAnswer({
+          invitation: {
+            projectId: WALK_CO.toString(),
+            projectName: "Walk Co",
+            ...(ssoSignIn === undefined ? {} : { ssoSignIn: ssoSignIn }),
+          },
+        })?.ssoSignIn,
+      ).toEqual(expected);
+    },
+  );
+});
+
+describe("an invitation whose person signs in with single sign-on (#9819)", () => {
+  test("when SSO would manage their sign-in once they join, the page is given the project's providers", async () => {
+    managedOnceInSpy.mockResolvedValue(SsoManagedBy.Projects);
+
+    const invitation: SignUpInvitation | null = await ask();
+
+    expect(invitation?.ssoSignIn).toEqual({ providers: [OKTA] });
+    expect(managedOnceInSpy).toHaveBeenCalledWith({
+      userId: GRACE_ID,
+      isMasterAdmin: false,
+      joiningProjectId: WALK_CO,
+    });
+    expect(String(projectSignInMethodsSpy.mock.calls[0]![0])).toBe(
+      WALK_CO.toString(),
+    );
+  });
+
+  test("a project with no provider turned on yet: SSO all the same, with none to offer", async () => {
+    managedOnceInSpy.mockResolvedValue(SsoManagedBy.Projects);
+    projectSignInMethodsSpy.mockResolvedValue({ ssoProviders: [] });
+
+    expect((await ask())?.ssoSignIn).toEqual({ providers: [] });
+  });
+
+  test("someone who also belongs to a project that keeps their own sign-in: the sign-up page it always was", async () => {
+    managedOnceInSpy.mockResolvedValue(null);
+
+    expect((await ask())?.ssoSignIn).toBeNull();
+    expect(projectSignInMethodsSpy).not.toHaveBeenCalled();
+  });
+
+  test("a server that requires SSO for everyone is the page's own to offer, not this", async () => {
+    managedOnceInSpy.mockResolvedValue(SsoManagedBy.Server);
+
+    expect((await ask())?.ssoSignIn).toBeNull();
+  });
+
+  test("a rule or providers that cannot be read leave the plain sign-up page, never an error", async () => {
+    managedOnceInSpy.mockRejectedValue(new Error("database down"));
+
+    await expect(ask()).resolves.toMatchObject({ ssoSignIn: null });
+
+    managedOnceInSpy.mockResolvedValue(SsoManagedBy.Projects);
+    projectSignInMethodsSpy.mockRejectedValue(new Error("database down"));
+
+    await expect(ask()).resolves.toMatchObject({ ssoSignIn: null });
+  });
+
+  test("the name the page starts with is the one typed with this invitation (#9823)", async () => {
+    const typed: TeamMember = membership({ projectId: WALK_CO });
+    typed.inviteeName = "Grace (typed for Walk Co)";
+    findMembershipsSpy.mockResolvedValue([typed]);
+
+    expect((await ask())?.name).toBe("Grace (typed for Walk Co)");
   });
 });

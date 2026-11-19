@@ -282,7 +282,7 @@ describe("Admin Dashboard > Project > Users > Invite User", () => {
       "hasAcceptedInvitation",
     ]);
     expect(foldedFields(form)).toEqual([]);
-    // The name only for an address with no account yet.
+    // The name only for a whole address, never for a person picked.
     expect(
       form.fields
         .filter((field: FormFieldFacts): boolean => {

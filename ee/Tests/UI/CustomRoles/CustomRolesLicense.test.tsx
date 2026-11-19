@@ -79,6 +79,10 @@ jest.mock("../../../Dashboard/CustomRoles/CustomRoleTeamsTable", () => {
   return { __esModule: true, default: mockRecorder("teams-table") };
 });
 
+jest.mock("../../../Dashboard/CustomRoles/CustomRoleWorkflowsTable", () => {
+  return { __esModule: true, default: mockRecorder("workflows-table") };
+});
+
 jest.mock("@oneuptime/dashboard/Components/CustomRole/CustomRoleReach", () => {
   return {
     __esModule: true,
@@ -87,6 +91,32 @@ jest.mock("@oneuptime/dashboard/Components/CustomRole/CustomRoleReach", () => {
     },
   };
 });
+
+/*
+ * What the role's Delete asks about the workflows that run as it (#9767):
+ * none here. It read them over the network, which the suite's setup
+ * refuses.
+ */
+jest.mock(
+  "@oneuptime/dashboard/Components/CustomRole/CustomRoleDeleteWorkflows",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "@oneuptime/dashboard/Components/CustomRole/CustomRoleDeleteWorkflows",
+    ) as Record<string, unknown>;
+
+    return {
+      ...actual,
+      __esModule: true,
+      loadCustomRoleDeleteWorkflows: (): Promise<unknown> => {
+        return Promise.resolve({
+          workflows: [],
+          roles: [],
+          canEditWorkflows: true,
+        });
+      },
+    };
+  },
+);
 
 // The trail a role's page draws needs a router; it is not what is tested here.
 jest.mock("@oneuptime/dashboard/Utils/Breadcrumbs/TeamsBreadcrumbs", () => {
@@ -255,5 +285,14 @@ describe("a custom role's page", () => {
 
     expect(lastOf("permission-table")["customRoleId"]).toEqual(ROLE_ID);
     expect(lastOf("teams-table")["customRoleId"]).toEqual(ROLE_ID);
+    expect(lastOf("workflows-table")["customRoleId"]).toEqual(ROLE_ID);
+  });
+
+  test("with a lapsed license, the workflows that run as it are still listed: nothing there changes the role", async () => {
+    store.licenseMode = "read-only";
+
+    await renderInAct(<RoleViewPage {...PAGE_PROPS} />);
+
+    expect(lastOf("workflows-table")["customRoleId"]).toEqual(ROLE_ID);
   });
 });

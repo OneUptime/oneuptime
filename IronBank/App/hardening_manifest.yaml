@@ -10,7 +10,7 @@ name: "oneuptime/app"
 
 # The first tag is the release the Dockerfile copies.
 tags:
-  - "14.0.102"
+  - "16.0.0"
   - "latest"
 
 # The Iron Bank image the Dockerfile builds on. renovate.json moves BASE_TAG
@@ -27,7 +27,7 @@ labels:
   org.opencontainers.image.licenses: "Apache-2.0 AND LicenseRef-OneUptime-Enterprise"
   org.opencontainers.image.url: "https://oneuptime.com"
   org.opencontainers.image.vendor: "OneUptime"
-  org.opencontainers.image.version: "14.0.102"
+  org.opencontainers.image.version: "16.0.0"
   mil.dso.ironbank.image.keywords: "observability, monitoring, status page, incident management, on-call, logs, metrics, traces"
   # ee/ is under the OneUptime Enterprise License, not an open-source one.
   mil.dso.ironbank.image.type: "commercial"
@@ -37,8 +37,8 @@ labels:
 # Bank's pipeline pulls it and gives it the name in `tag`, which the
 # Dockerfile's release stage starts from.
 resources:
-  - tag: "oneuptime/app:enterprise-14.0.102"
-    url: "docker://docker.io/oneuptime/app@sha256:354b1eb3a069d8c2f33d6aaf1edfd9c39e2f71140db3c1c4224b07cc5b3d9b63"
+  - tag: "oneuptime/app:enterprise-16.0.0"
+    url: "docker://docker.io/oneuptime/app@sha256:f5e73433cd750cb36e6328a404c862eeb7ea0318f9384d7a02183204533ef410"
 
 # The engineers the onboarding request names, by their Platform One (Repo1)
 # usernames.

@@ -24,10 +24,32 @@
   workflow made - reads as it always did.
 --}}
 
+{{!--
+  `isSsoSignIn` is "true" when every project the person would be in manages
+  their sign-in with single sign-on, or the server requires it (#9819,
+  SsoManagedSignIn.getManagedByOnceIn): they have no password to create, so
+  the email offers SSO instead, linking to `ssoSignInLink` - the sign-up page
+  an invitation opens, which then offers the project's own providers, or the
+  Sign in with SSO page for someone signed up already.
+--}}
+
 {{#ifCond isInvitationAccepted "true"}}
 
 {{> EmailTitle title=(concat "You've Been Added to " projectName) }}
 
+{{#ifCond isSsoSignIn "true"}}
+{{#if inviterLabel}}
+{{> InfoBlock plainInfo=(concat inviterLabel " added you to " projectName " on " (brandName) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{else}}
+{{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{/if}}
+
+{{> ButtonBlock buttonUrl=ssoSignInLink buttonText="Sign In with SSO"}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=ssoSignInLink linkLabel="Or copy and paste this link into your browser:"}}
+{{else}}
 {{#ifCond isNewUser "true"}}
 {{#if inviterLabel}}
 {{> InfoBlock plainInfo=(concat inviterLabel " added you to " projectName " on " (brandName) ". Create your account to get started - your access is already waiting for you.")}}
@@ -53,11 +75,25 @@
 
 {{> LinkBlock linkUrl=signInLink linkLabel="Or copy and paste this link into your browser:"}}
 {{/ifCond}}
+{{/ifCond}}
 
 {{else}}
 
 {{> EmailTitle title=(concat "You're Invited to " projectName) }}
 
+{{#ifCond isSsoSignIn "true"}}
+{{#if inviterLabel}}
+{{> InfoBlock plainInfo=(concat inviterLabel " invited you to join " projectName " on " (brandName) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{else}}
+{{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{/if}}
+
+{{> ButtonBlock buttonUrl=ssoSignInLink buttonText="Sign In with SSO"}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=ssoSignInLink linkLabel="Or copy and paste this link into your browser:"}}
+{{else}}
 {{#ifCond isNewUser "true"}}
 {{#if inviterLabel}}
 {{> InfoBlock plainInfo=(concat inviterLabel " invited you to join " projectName " on " (brandName) ". Create your account to get started.")}}
@@ -82,6 +118,7 @@
 {{> VerticalSpace this}}
 
 {{> LinkBlock linkUrl=signInLink linkLabel="Or copy and paste this link into your browser:"}}
+{{/ifCond}}
 {{/ifCond}}
 
 {{/ifCond}}
