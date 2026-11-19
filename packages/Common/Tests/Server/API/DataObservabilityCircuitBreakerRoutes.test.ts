@@ -91,7 +91,7 @@ const VIEWER_PROPS: DatabaseCommonInteractionProps = {
 
 // A key that may do nothing in Data Observability.
 const NO_DATA_KEY_PROPS: DatabaseCommonInteractionProps = {
-  ...grants(Permission.ReadIncident),
+  ...grants(Permission.ReadIncidentState),
   apiKeyId: API_KEY,
   userType: UserType.API,
 } as DatabaseCommonInteractionProps;

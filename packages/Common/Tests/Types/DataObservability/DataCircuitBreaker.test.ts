@@ -107,7 +107,7 @@ describe("what a request asks", () => {
       readDataCircuitBreakerRequest({
         pipeline: "  airflow://prod/orders_daily.load_orders  ",
       }),
-    ).toEqual<DataCircuitBreakerRequest>({
+    ).toEqual({
       pipeline: "airflow://prod/orders_daily.load_orders",
       tables: [],
       stopsOnLateTables: null,
@@ -133,7 +133,7 @@ describe("what a request asks", () => {
         dryRun: true,
         failWithStatusCode: true,
       }),
-    ).toEqual<DataCircuitBreakerRequest>({
+    ).toEqual({
       pipeline: ORDERS,
       tables: ["public.customers"],
       stopsOnLateTables: true,

@@ -313,9 +313,11 @@ describe("how the breaker stands", () => {
     const status: HTMLElement = await open();
 
     await waitFor(() => {
-      expect(within(status).getByText("Go")).toBeInTheDocument();
+      expect(within(status).getByText("Clear to Run")).toBeInTheDocument();
     });
-    expect(within(status).getByText(/^Said go /)).toBeInTheDocument();
+    expect(
+      within(status).getByText(/^Cleared the pipeline to run /),
+    ).toBeInTheDocument();
     expect(within(status).queryByText("Why it stopped")).toBeNull();
   });
 
@@ -369,10 +371,10 @@ describe("Test Now", () => {
       CIRCUIT_BREAKER_TEST_RESULT_TEST_ID,
     );
 
-    expect(within(result).getByText("Stop")).toBeInTheDocument();
+    expect(within(result).getByText("Would Stop")).toBeInTheDocument();
     expect(
       within(result).getByText(
-        "Stop: it would stop the pipeline now. Testing keeps nothing on the pipeline.",
+        "It would stop the pipeline now. Testing keeps nothing on the pipeline.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -399,7 +401,9 @@ describe("Test Now", () => {
     );
 
     expect(
-      within(result).getByText(/^Go: OneUptime knows none of the tables/),
+      within(result).getByText(
+        /^Clear to run: OneUptime knows none of the tables/,
+      ),
     ).toBeInTheDocument();
   });
 });

@@ -63,7 +63,7 @@ const STATUS_PILLS: Readonly<
     tone: PillTone.Danger,
   },
   [CircuitBreakerStatus.Go]: {
-    text: translationKey("Go"),
+    text: translationKey("Clear to Run"),
     tone: PillTone.Success,
   },
   [CircuitBreakerStatus.NotSetUp]: {
@@ -71,6 +71,9 @@ const STATUS_PILLS: Readonly<
     tone: PillTone.Neutral,
   },
 };
+
+// What Test Now's pill says of a stop: what the breaker would do, not what it did.
+const WOULD_STOP: string = translationKey("Would Stop");
 
 /*
  * One reason the breaker stopped, or would stop, the pipeline: what is
@@ -324,8 +327,8 @@ const DataPipelineCircuitBreaker: FunctionComponent<
                     <Pill
                       text={
                         test.verdict === DataCircuitBreakerVerdict.Stop
-                          ? "Stop"
-                          : "Go"
+                          ? WOULD_STOP
+                          : STATUS_PILLS[CircuitBreakerStatus.Go].text
                       }
                       tone={
                         test.verdict === DataCircuitBreakerVerdict.Stop

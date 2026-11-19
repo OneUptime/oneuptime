@@ -20,7 +20,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * project API key from the environment, never one written into the code.
  */
 
-// How the breaker stands, as its status pill says it.
+/*
+ * How the breaker stands, as its status pill says it. The pill's words are
+ * their own keys: "Go" is a programming language's name in every locale,
+ * and "Stop" a button's verb.
+ */
 export enum CircuitBreakerStatus {
   // It stopped the pipeline, and has not said go since.
   Stopped = "Stopped",
@@ -75,7 +79,7 @@ export const CIRCUIT_BREAKER_COPY: {
     "Before this pipeline runs, a step of it asks whether the tables it reads are healthy, and stops it when one is not.",
   ),
   stoppedSince: translationKey("Stopped the pipeline {{time}}"),
-  lastAskedGo: translationKey("Said go {{time}}"),
+  lastAskedGo: translationKey("Cleared the pipeline to run {{time}}"),
   notSetUp: translationKey(
     "No step of this pipeline has asked yet. Add the step below to the start of the pipeline.",
   ),
@@ -85,13 +89,13 @@ export const CIRCUIT_BREAKER_COPY: {
   ),
   testNow: translationKey("Test Now"),
   testGo: translationKey(
-    "Go: none of the tables it reads would stop it now. Testing keeps nothing on the pipeline.",
+    "Clear to run: none of the tables it reads would stop it now. Testing keeps nothing on the pipeline.",
   ),
   testStop: translationKey(
-    "Stop: it would stop the pipeline now. Testing keeps nothing on the pipeline.",
+    "It would stop the pipeline now. Testing keeps nothing on the pipeline.",
   ),
   testNoTables: translationKey(
-    "Go: OneUptime knows none of the tables this pipeline reads yet, so nothing would be checked. Its lineage fills in as its runs report what they read.",
+    "Clear to run: OneUptime knows none of the tables this pipeline reads yet, so nothing would be checked. Its lineage fills in as its runs report what they read.",
   ),
   switchCardTitle: translationKey("What Stops It"),
   switchCardDescription: translationKey(
@@ -106,7 +110,7 @@ export const CIRCUIT_BREAKER_COPY: {
   ),
   setupTitle: translationKey("Add It to Your Pipeline"),
   setupDescription: translationKey(
-    "Ask the circuit breaker as the pipeline's first step, and run the rest only when it says go.",
+    "Ask the circuit breaker as the pipeline's first step, and run the rest only when it clears the pipeline to run.",
   ),
   setupKey: translationKey(
     "Create a project API key that may read Data Observability under Project Settings > API Keys, and give it to the step as ONEUPTIME_API_KEY.",
@@ -120,7 +124,7 @@ export const CIRCUIT_BREAKER_COPY: {
   dbtNote: translationKey(
     "dbt's hooks run SQL in your warehouse, not web requests, so ask the circuit breaker in the step that starts dbt.",
   ),
-  readTheDocs: translationKey("Read the docs"),
+  readTheDocs: translationKey("Read the circuit breaker docs"),
   overviewBanner: translationKey(
     "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.",
   ),
