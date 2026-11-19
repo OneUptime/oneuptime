@@ -35,6 +35,15 @@ import {
   isAzureKeyMetricStoredName,
   isAzureStreamedKeyMetric,
   isAzureStreamedKeyMetricStoredName,
+  AWS_STREAM_TEMPLATE_UNVERSIONED,
+  AWS_STREAM_TEMPLATE_VERSION,
+  countAwsKeyMetricsAddedSince,
+  getAwsKeyMetric,
+  getAwsKeyMetricOfStoredName,
+  getAwsProbeMetricNames,
+  isAwsKeyMetricInTemplate,
+  isAwsKeyMetricSeries,
+  isAwsKeyMetricStreamable,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { MESSAGE_QUEUE_METRICS } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
@@ -146,7 +155,8 @@ describe("AWS", () => {
           unit: "None",
           group: CloudKeyMetricGroup.Availability,
           periodSeconds: HOURLY_PERIOD_SECONDS,
-          isStreamed: true,
+          // No stream writes it: an hour sooner is nothing to a count of days.
+          streamedSince: null,
         },
       ],
     });
@@ -217,6 +227,209 @@ describe("AWS", () => {
       getAwsNamespaceOfType("AWS::ElasticLoadBalancingV2::LoadBalancer"),
     ).toBe("AWS/ApplicationELB");
     expect(getAwsNamespaceOfType("AWS::Nope::Thing")).toBeUndefined();
+  });
+});
+
+/*
+ * A stream's stack is made once, from the template of its day, and carries
+ * the key metrics of its template's version (AwsKeyMetric.streamedSince):
+ * 1 for those every stack has carried since streams began, 2 for every
+ * other one read every five minutes. A metric read once an hour or a day
+ * is the read's alone.
+ */
+describe("AWS key metrics a stream carries", () => {
+  test("each is streamed since template 1 or 2 - or, read less often than every five minutes, never", () => {
+    expect(AWS_STREAM_TEMPLATE_UNVERSIONED).toBe(1);
+    expect(AWS_STREAM_TEMPLATE_VERSION).toBe(2);
+
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const where: string = `${entry.namespace}/${metric.metricName}`;
+
+        if (metric.periodSeconds > AWS_DEFAULT_PERIOD_SECONDS) {
+          expect({ where, streamedSince: metric.streamedSince }).toEqual({
+            where,
+            streamedSince: null,
+          });
+          expect(isAwsKeyMetricStreamable(metric)).toBe(false);
+          continue;
+        }
+
+        expect({
+          where,
+          known: [1, 2].includes(metric.streamedSince as number),
+        }).toEqual({ where, known: true });
+        expect(isAwsKeyMetricStreamable(metric)).toBe(true);
+      }
+    }
+  });
+
+  test("a template carries its own version's metrics and every older one's, never a newer one's", () => {
+    const cpu: AwsKeyMetric = getAwsKeyMetric("AWS/EC2", "CPUUtilization")!;
+    const credits: AwsKeyMetric = getAwsKeyMetric(
+      "AWS/EC2",
+      "CPUCreditBalance",
+    )!;
+    const size: AwsKeyMetric = getAwsKeyMetric("AWS/S3", "BucketSizeBytes")!;
+
+    expect(cpu.streamedSince).toBe(1);
+    expect(credits.streamedSince).toBe(2);
+    expect(isAwsKeyMetricInTemplate(cpu, 1)).toBe(true);
+    expect(isAwsKeyMetricInTemplate(cpu, 2)).toBe(true);
+    expect(isAwsKeyMetricInTemplate(credits, 1)).toBe(false);
+    expect(isAwsKeyMetricInTemplate(credits, 2)).toBe(true);
+    expect(isAwsKeyMetricInTemplate(credits, 3)).toBe(true);
+    // S3's daily storage is in no template.
+    expect(isAwsKeyMetricInTemplate(size, AWS_STREAM_TEMPLATE_VERSION)).toBe(
+      false,
+    );
+  });
+
+  test("running the command again streams every metric added since the stack's template", () => {
+    let addedSinceTheFirst: number = 0;
+
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        if (metric.streamedSince === 2) {
+          addedSinceTheFirst++;
+        }
+      }
+    }
+
+    expect(addedSinceTheFirst).toBeGreaterThan(100);
+    expect(countAwsKeyMetricsAddedSince(1)).toBe(addedSinceTheFirst);
+    expect(countAwsKeyMetricsAddedSince(AWS_STREAM_TEMPLATE_VERSION)).toBe(0);
+  });
+});
+
+describe("an AWS key metric by its stored name, and the series it is read from", () => {
+  test("a stored name's key metric and its namespace as the catalog spells them, whatever the case", () => {
+    expect(
+      getAwsKeyMetricOfStoredName("amazonaws.com/aws/ec2/cpuutilization"),
+    ).toEqual({
+      namespace: "AWS/EC2",
+      metric: getAwsKeyMetric("AWS/EC2", "CPUUtilization"),
+    });
+    // A metric name with dots: the namespace ends at the last slash.
+    expect(
+      getAwsKeyMetricOfStoredName(
+        "amazonaws.com/AWS/Kinesis/GetRecords.IteratorAgeMilliseconds",
+      )?.metric.metricName,
+    ).toBe("GetRecords.IteratorAgeMilliseconds");
+    expect(
+      getAwsKeyMetricOfStoredName("amazonaws.com/AWS/EC2/DiskReadOps"),
+    ).toBeNull();
+    expect(getAwsKeyMetricOfStoredName("system.cpu.utilization")).toBeNull();
+  });
+
+  test("an HTTP API's errors and a REST API's are each their own metric", () => {
+    expect(getAwsKeyMetric("AWS/ApiGateway", "5xx")?.metricName).toBe("5xx");
+    expect(getAwsKeyMetric("AWS/ApiGateway", "5XXError")?.metricName).toBe(
+      "5XXError",
+    );
+    expect(getAwsKeyMetric("AWS/ApiGateway", "4xx")?.metricName).toBe("4xx");
+  });
+
+  test("a metric read from some series only is read from those, or from a series without the dimension", () => {
+    const received: AwsKeyMetric = getAwsKeyMetric(
+      "AWS/NetworkFirewall",
+      "ReceivedPackets",
+    )!;
+    const dropped: AwsKeyMetric = getAwsKeyMetric(
+      "AWS/NetworkFirewall",
+      "DroppedPackets",
+    )!;
+    const place: Record<string, string> = {
+      FirewallName: "edge",
+      AvailabilityZone: "eu-west-1a",
+    };
+
+    expect(received.onlyDimensionValues).toEqual({
+      Engine: ["Stateless", "System"],
+    });
+    // A Classic policy's Stateless engine, a Next Generation policy's System.
+    expect(
+      isAwsKeyMetricSeries(received, { ...place, Engine: "Stateless" }),
+    ).toBe(true);
+    expect(isAwsKeyMetricSeries(received, { ...place, Engine: "System" })).toBe(
+      true,
+    );
+    // The Firewall engine's would count some of the packets again.
+    expect(
+      isAwsKeyMetricSeries(received, { ...place, Engine: "Firewall" }),
+    ).toBe(false);
+    expect(
+      isAwsKeyMetricSeries(received, { ...place, Engine: "Stateful" }),
+    ).toBe(false);
+    expect(isAwsKeyMetricSeries(received, place)).toBe(true);
+    // A packet is dropped by one engine: every engine's drops are read.
+    expect(isAwsKeyMetricSeries(dropped, { ...place, Engine: "IPS" })).toBe(
+      true,
+    );
+  });
+});
+
+/*
+ * #9567: services customers run widely that read no metrics before, each
+ * from its own CloudWatch reference (CloudKeyMetricsProviderReference).
+ */
+describe("AWS services read since #9567", () => {
+  test("each has its namespace, swept for with what every resource of it publishes", () => {
+    const expected: Record<string, Array<string>> = {
+      "AWS/WAFV2": ["AllowedRequests", "BlockedRequests"],
+      "AWS/NetworkFirewall": ["ReceivedPackets"],
+      "AWS/AppRunner": ["CPUUtilization"],
+      "AWS/AutoScaling": ["GroupInServiceInstances"],
+      "AWS/GlobalAccelerator": ["HealthyEndpointCount"],
+      "AWS/Cognito": [
+        "SignInSuccesses",
+        "TokenRefreshSuccesses",
+        "SignUpSuccesses",
+      ],
+      "AWS/ElasticBeanstalk": ["EnvironmentHealth"],
+      "AWS/AppSync": ["Latency"],
+      "AWS/SageMaker": ["Invocations"],
+    };
+
+    for (const [namespace, probes] of Object.entries(expected)) {
+      const entry: AwsNamespaceKeyMetrics | undefined =
+        getAwsKeyMetrics(namespace);
+
+      expect({ namespace, read: Boolean(entry) }).toEqual({
+        namespace,
+        read: true,
+      });
+      expect(getAwsProbeMetricNames(entry!)).toEqual(probes);
+
+      // Added since streams began: template 2 on carries them.
+      for (const metric of entry!.metrics) {
+        expect(metric.streamedSince).toBe(2);
+      }
+    }
+  });
+
+  test("Global Accelerator is read where it publishes, in US West (Oregon) alone", () => {
+    expect(getAwsKeyMetrics("AWS/GlobalAccelerator")?.onlyRegion).toBe(
+      "us-west-2",
+    );
+  });
+
+  test("each new type is read from its own namespace, and counted for the cost estimate", () => {
+    for (const [type, namespace] of [
+      ["AWS::WAFv2::WebACL", "AWS/WAFV2"],
+      ["AWS::NetworkFirewall::Firewall", "AWS/NetworkFirewall"],
+      ["AWS::AppRunner::Service", "AWS/AppRunner"],
+      ["AWS::GlobalAccelerator::Accelerator", "AWS/GlobalAccelerator"],
+      ["AWS::Cognito::UserPool", "AWS/Cognito"],
+      ["AWS::ElasticBeanstalk::Environment", "AWS/ElasticBeanstalk"],
+      ["AWS::AppSync::GraphQLApi", "AWS/AppSync"],
+      ["AWS::SageMaker::Endpoint", "AWS/SageMaker"],
+    ] as Array<[string, string]>) {
+      expect(getAwsNamespaceOfType(type)).toBe(namespace);
+      expect(getKeyMetricCount(CloudProvider.AWS, type)).toBe(
+        getAwsKeyMetrics(namespace)!.metrics.length,
+      );
+    }
   });
 });
 

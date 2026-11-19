@@ -799,6 +799,45 @@ describe("CloudWatch, OpenTelemetry 1.0 shape", () => {
     ).toBe("arn:aws:cloudfront::123456789012:distribution/E1A2B3C4D5E6F7");
   });
 
+  /*
+   * AWS WAF publishes a web ACL's requests with Rule ALL for the whole ACL,
+   * and with each rule's name, and per label without a Rule. The ACL is its
+   * total alone: its metric filter names Rule ALL, so its charts and
+   * monitors never add a rule's requests to it.
+   */
+  test("a WAF web ACL: its total alone, whose Rule its filter names", () => {
+    const resource: CloudMonitoredResource = resolve(
+      cloudWatchDatapoint("AWS/WAFV2", "AllowedRequests", {
+        WebACL: "checkout",
+        Rule: "ALL",
+        Region: "us-east-1",
+      }),
+    );
+
+    expect(resource.resourceType).toBe("AWS::WAFv2::WebACL");
+    expect(resource.name).toBe("checkout");
+    expect(resource.telemetryAttributes["Dimensions.WebACL"]).toBe("checkout");
+    expect(resource.telemetryAttributes["Dimensions.Rule"]).toBe("ALL");
+    // The ACL's identity is its name: the same resource whatever its Rule.
+    expect(resource.identityKey).not.toContain("rule=");
+
+    for (const dimensions of [
+      { WebACL: "checkout", Rule: "RateLimit", Region: "us-east-1" },
+      {
+        WebACL: "checkout",
+        LabelNamespace: "awswaf:managed:token",
+        Label: "accepted",
+        Region: "us-east-1",
+      },
+    ]) {
+      expect(
+        resolveCloudMonitoredResource(
+          cloudWatchDatapoint("AWS/WAFV2", "AllowedRequests", dimensions),
+        ),
+      ).toBeNull();
+    }
+  });
+
   test("an MSK cluster: a dimension name with a space", () => {
     const resource: CloudMonitoredResource = resolve(
       cloudWatchDatapoint("AWS/Kafka", "ActiveControllerCount", {

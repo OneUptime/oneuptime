@@ -1,5 +1,9 @@
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
+import {
+  AwsStreamStack,
+  UNVERSIONED_AWS_STREAM_STACK,
+} from "Common/Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "Common/Types/JSON";
 import {
   CLOUDWATCH_LOGS_DATA_MESSAGE,
@@ -47,12 +51,17 @@ import {
  * two are one series (shapeStreamedMetrics).
  */
 
+export interface DeliveredMetricsSighting {
+  accountId: string;
+  region: string;
+  namespaces: Set<string>;
+  // The stack that delivered them (CloudStreamStack).
+  stack: AwsStreamStack;
+}
+
 export interface DeliverySightings {
-  // "account|region": the namespaces its metrics carried.
-  metrics: Map<
-    string,
-    { accountId: string; region: string; namespaces: Set<string> }
-  >;
+  // "account|region": the namespaces its metrics carried, and its stack.
+  metrics: Map<string, DeliveredMetricsSighting>;
   // "account|region": the log groups its logs came from.
   logs: Map<
     string,
@@ -220,7 +229,13 @@ export async function decodeFirehoseRecords(data: {
   budget: DecodeBudget;
   // What the connection's earlier deliveries carried (tests give their own).
   seriesMemory?: StreamedSeriesMemory | undefined;
+  /*
+   * The stack that sent it, from its common attributes (CloudStreamStack):
+   * one that says nothing of itself when left out.
+   */
+  stack?: AwsStreamStack | undefined;
 }): Promise<DecodedDelivery> {
+  const stack: AwsStreamStack = data.stack || UNVERSIONED_AWS_STREAM_STACK;
   const delivery: DecodedDelivery = {
     resourceMetrics: [],
     resourceLogs: [],
@@ -289,6 +304,7 @@ export async function decodeFirehoseRecords(data: {
     connectionId: data.connectionId,
     now: data.now,
     memory: data.seriesMemory,
+    stack,
   });
 
   for (const stamped of shapedResources) {
@@ -306,12 +322,13 @@ export async function decodeFirehoseRecords(data: {
 
     if (facts.accountId) {
       const key: string = `${facts.accountId}|${facts.region}`;
-      const sighting:
-        | { accountId: string; region: string; namespaces: Set<string> }
-        | undefined = delivery.sightings.metrics.get(key) || {
+      const sighting: DeliveredMetricsSighting = delivery.sightings.metrics.get(
+        key,
+      ) || {
         accountId: facts.accountId,
         region: facts.region,
         namespaces: new Set<string>(),
+        stack,
       };
 
       for (const namespace of facts.namespaces) {
