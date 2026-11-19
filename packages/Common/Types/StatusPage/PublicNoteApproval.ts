@@ -1,4 +1,6 @@
+import SortOrder from "../BaseDatabase/SortOrder";
 import { JSONObject, JSONValue } from "../JSON";
+import { compareListOrderItems } from "../../Utils/ListOrder";
 
 /*
  * PUBLIC NOTE APPROVAL.
@@ -86,7 +88,13 @@ export interface PublicNoteApprovalStepRule {
   id: string;
   // What the step is called ("Legal"); none for most.
   name?: string | undefined;
-  order: number;
+  /*
+   * Its place among the steps, lowest first. Null when it has none: it
+   * comes after every step that has one (Utils/ListOrder).
+   */
+  order: number | null;
+  // When it was made: of two steps at one place, the older comes first.
+  createdAt?: Date | string | null | undefined;
   // The people who may approve for it, and the teams whose members may.
   userIds: Array<string>;
   teamIds: Array<string>;
@@ -264,17 +272,21 @@ export default class PublicNoteApproval {
     );
   }
 
-  // The steps in the order a note goes through them.
+  /*
+   * The steps in the order a note goes through them: the order the steps'
+   * list shows (a drag-ordered list, Utils/ListOrder) - by place, a step
+   * without one last, two steps at one place the older first, then by id.
+   */
   public static sortSteps(
     steps: ReadonlyArray<PublicNoteApprovalStepRule>,
   ): Array<PublicNoteApprovalStepRule> {
     return [...steps].sort(
       (a: PublicNoteApprovalStepRule, b: PublicNoteApprovalStepRule) => {
-        if (a.order !== b.order) {
-          return a.order - b.order;
-        }
-
-        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+        return compareListOrderItems(
+          { id: a.id, value: a.order, createdAt: a.createdAt },
+          { id: b.id, value: b.order, createdAt: b.createdAt },
+          SortOrder.Ascending,
+        );
       },
     );
   }

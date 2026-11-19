@@ -1731,30 +1731,14 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: episode.projectId,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Created incident state not found for this project.",
-      );
-    }
+    // The project's created state: the topmost, as a new episode starts in.
+    const createdIncidentStateId: ObjectID =
+      await IncidentStateService.getCreatedIncidentStateId(episode.projectId);
 
     await this.changeEpisodeState({
       projectId: episode.projectId,
       episodeId: episodeId,
-      incidentStateId: incidentState.id,
+      incidentStateId: createdIncidentStateId,
       notifyOwners: true,
       rootCause: reopenedByUserId ? `Reopened by user.` : "Reopened via API.",
       props: {
