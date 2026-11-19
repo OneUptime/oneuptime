@@ -423,6 +423,20 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("import_plan_test.go", "internal/provider");
 
     /*
+     * What changes only together with a new value of another attribute (a
+     * monitor secret's secret_type, with secret_value): the plan's refusal
+     * of a change of the one alone, and its tests - the refusal on its own,
+     * and type-only, value-only and type-and-value changes of a monitor
+     * secret through the real protocol server against a fake API (#9814).
+     */
+    await this.copyStaticFile("changestogether.go", "internal/provider");
+    await this.copyStaticFile("changestogether_test.go", "internal/provider");
+    await this.copyStaticFile(
+      "changestogether_plan_test.go",
+      "internal/provider",
+    );
+
+    /*
      * People named by email address beside their user IDs (user_email
      * beside user_id): the lookups, plan modifiers and validators every
      * resource that names a person shares, and their tests - the lookups
@@ -1617,6 +1631,12 @@ ${this.generateValidObjectTypesMap()}
    * person needs where the API cannot change them, so the ID attribute has
    * no RequiresReplace of its own.
    *
+   * Then what changes only together with a new value of another attribute
+   * (TerraformAttribute.changesOnlyWith, changestogether.go): a plan that
+   * changes a monitor secret's secret_type and keeps its secret_value fails
+   * here, before anything is written, instead of in an update the server
+   * refuses half-way through an apply (#9814).
+   *
    * Then, for every resource, keepStateWhenNothingChanges
    * (importsettle.go): a plan whose every attribute a configuration sets
    * came out the same as the state - a timestamp, number, JSON value or
@@ -1642,6 +1662,16 @@ ${this.generateValidObjectTypesMap()}
     })`;
       });
 
+    const changedTogether: Array<[string, string]> =
+      ResourceGenerator.getChangedTogetherAttributes(resource).map(
+        ([name, companion]: [string, string]): [string, string] => {
+          return [
+            this.sanitizeAttributeName(name),
+            this.sanitizeAttributeName(companion),
+          ];
+        },
+      );
+
     const label: string = resource.name.replace(/_/g, " ");
 
     return `
@@ -1651,16 +1681,42 @@ ${this.generateValidObjectTypesMap()}
 // and keeps`
         : "keeps"
     } the state when nothing a configuration sets changes (see
-// importsettle.go).
+// importsettle.go).${changedTogether
+      .map(([name, companion]: [string, string]): string => {
+        return `\n// It refuses a plan that changes ${name} and keeps ${companion} (see\n// changestogether.go).`;
+      })
+      .join("")}
 func (r *${resourceTypeName}Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
     // Destroying: nothing to plan.
     if req.Plan.Raw.IsNull() {
         return
     }
-${people.length > 0 ? `\n${people.join("\n")}\n` : ""}
+${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
+      .map(([name, companion]: [string, string]): string => {
+        return `\n    requireChangedTogether(ctx, req, resp, "${name}", "${companion}")\n`;
+      })
+      .join("")}
     keepStateWhenNothingChanges(ctx, req, resp)
 }
 `;
+  }
+
+  /*
+   * The attributes that change only together with a new value of another,
+   * each with that other one: [secret_type, secret_value] for a monitor
+   * secret (the spec's x-oneuptime-changes-only-with, resolved by the
+   * parser).
+   */
+  public static getChangedTogetherAttributes(
+    resource: TerraformResource,
+  ): Array<[string, string]> {
+    return Object.entries(resource.schema)
+      .filter(([, attr]: [string, TerraformAttribute]): boolean => {
+        return Boolean(attr.changesOnlyWith);
+      })
+      .map(([name, attr]: [string, TerraformAttribute]): [string, string] => {
+        return [name, attr.changesOnlyWith as string];
+      });
   }
 
   /*

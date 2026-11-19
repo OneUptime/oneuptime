@@ -138,6 +138,20 @@ export interface TableColumnMetadata {
    */
   allowedValues?: ReadonlyArray<string>;
   ordered?: boolean;
+  /*
+   * The column whose new value a write of this one must carry: the column
+   * changes only together with a new value of that one, in the same write.
+   * A monitor secret's secretType changes only together with a new
+   * secretValue, which the server reads for the new type (#9760): the value
+   * it held means something else in the other type. The model's service
+   * refuses a write that breaks it (MonitorSecretService), and the OpenAPI
+   * spec says it (x-oneuptime-changes-only-with: ModelSchema), so the
+   * Terraform and OpenTofu provider refuses, at plan time, a plan that
+   * changes this attribute and keeps that one (#9814), instead of an apply
+   * that fails half-way. Name a column of the same model that a write may
+   * set (Tests/Types/Database/ChangesOnlyWithColumns holds every one to it).
+   */
+  changesOnlyWith?: string;
 }
 
 /*
