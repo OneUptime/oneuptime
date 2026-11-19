@@ -408,7 +408,7 @@ export const DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON: string =
  * and which one this host is cannot be known, so none is given a monitor.
  */
 export const DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON: string =
-  "More than one device has this address, and this scan's probe cannot tell which of them this host is, so none was given a monitor. Give the right device its monitor from its own page.";
+  "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.";
 
 export const DISCOVERY_IMPORT_OWN_REASONS: ReadonlyArray<string> = [
   DISCOVERY_IMPORT_STOPPED_REASON,
