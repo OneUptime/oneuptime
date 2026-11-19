@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, RefObject } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
@@ -8,8 +8,11 @@ import KeyboardShortcut, {
 import KeyboardKey, {
   KeyboardShortcutKey,
 } from "../../KeyboardShortcut/KeyboardKey";
+import LayeredPopover from "../../Tooltip/LayeredPopover";
 
 export interface KeyboardShortcutsHelpProps {
+  // The toolbar's "?" button, which it opens from.
+  anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
 }
 
@@ -41,74 +44,83 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
   const translator: Translator = useTranslator();
   return (
     /*
-     * From md up this hangs off the trigger's right edge. Below md it spans
-     * the toolbar row the trigger sits in instead (the trigger's wrapper is
-     * not positioned there) and drops below the trigger, since an 18rem panel
-     * hung off a trigger mid-row could run off the side of a phone.
+     * Drawn over the page from the "?" button, its end on the button's end
+     * (LayeredPopover): inside the toolbar it was cut off by the list's card
+     * around a list with no filter bar (#9859). It stays inside the window's
+     * sides on a phone, where an 18rem panel hung off a button mid-row could
+     * run off the screen.
      */
-    <div
-      className="absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg md:left-auto md:top-full md:w-72"
-      data-testid={KEYBOARD_SHORTCUTS_HELP_TEST_ID}
+    <LayeredPopover
+      anchorRef={props.anchorRef}
+      align="end"
+      onClose={props.onClose}
     >
-      <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-          {translator.translateText("Keyboard shortcuts")}
-        </span>
-        <button
-          type="button"
-          className="text-gray-400 transition-colors hover:text-gray-600"
-          onClick={props.onClose}
-        >
-          <svg
-            className="h-3.5 w-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
+      <div
+        className="w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
+        data-testid={KEYBOARD_SHORTCUTS_HELP_TEST_ID}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            {translator.translateText("Keyboard shortcuts")}
+          </span>
+          {/* Its X alone: named, so a screen reader says what it does. */}
+          <button
+            type="button"
+            className="text-gray-400 transition-colors hover:text-gray-600"
+            aria-label={translator.translateText("Close")}
+            onClick={props.onClose}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18 18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      </div>
-
-      <div className="py-1">
-        {SHORTCUT_ROWS.map((row: ShortcutRow) => {
-          return (
-            <div
-              key={row.description}
-              className="flex items-center justify-between px-3 py-1.5"
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
             >
-              <span className="text-xs text-gray-600">
-                {translator.translateText(row.description)}
-              </span>
-              <KeyboardShortcut
-                keys={row.keys}
-                size={KeyboardShortcutSize.Small}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18 18 6M6 6l12 12"
               />
-            </div>
-          );
-        })}
-      </div>
+            </svg>
+          </button>
+        </div>
 
-      <div className="border-t border-gray-100 px-3 py-1.5">
-        <span className="text-[10px] text-gray-400">
-          <TranslatedSentence
-            template="Press {{key}} to toggle this panel"
-            slots={{
-              key: (
-                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-xs">
-                  ?
-                </kbd>
-              ),
-            }}
-          />
-        </span>
+        <div className="py-1">
+          {SHORTCUT_ROWS.map((row: ShortcutRow) => {
+            return (
+              <div
+                key={row.description}
+                className="flex items-center justify-between px-3 py-1.5"
+              >
+                <span className="text-xs text-gray-600">
+                  {translator.translateText(row.description)}
+                </span>
+                <KeyboardShortcut
+                  keys={row.keys}
+                  size={KeyboardShortcutSize.Small}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-gray-100 px-3 py-1.5">
+          <span className="text-[10px] text-gray-400">
+            <TranslatedSentence
+              template="Press {{key}} to toggle this panel"
+              slots={{
+                key: (
+                  <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-xs">
+                    ?
+                  </kbd>
+                ),
+              }}
+            />
+          </span>
+        </div>
       </div>
-    </div>
+    </LayeredPopover>
   );
 };
 

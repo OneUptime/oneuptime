@@ -41,7 +41,7 @@ Haz clic en tu foto, arriba a la derecha, y elige **Perfil**. La página **Vista
 
 Haz clic en **Editar Usuario** y cambia lo que necesites:
 
-- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, vuelves a verificar la nueva dirección.
+- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, OneUptime envía un enlace a la nueva dirección, y tu dirección cambia cuando lo abres. Hasta entonces inicias sesión con la actual, y **Cancelar cambio** detiene el cambio. La dirección propia de un administrador principal cambia de inmediato.
 - **Nombre completo**: el nombre que tu equipo ve en todo OneUptime.
 - **Zona horaria**: la zona horaria en la que el panel muestra y lee las horas, y la de las horas de las notificaciones que se te envían.
 - **Idioma**: el idioma del panel en cada navegador en el que inicies sesión, y el de tus avisos de guardia. Sin definir, tus avisos están en inglés y el panel sigue a tu navegador.
@@ -184,6 +184,14 @@ Abre **Zona de peligro → Eliminar cuenta**. Solo puedes eliminar tu cuenta cua
 
 :::details No recibí el correo para verificar mi dirección
 Volver a iniciar sesión envía un enlace nuevo: revisa también tu carpeta de spam. Si no puedes iniciar sesión, usa **¿Olvidó su contraseña?** en la página de inicio de sesión. Su enlace de restablecimiento también verifica tu dirección.
+:::
+
+:::details Al registrarme recibí un correo que dice que ya tengo una cuenta
+Esa dirección ya tiene una cuenta de OneUptime, así que el registro no creó ni cambió nada. Inicia sesión con ella, o usa **¿Olvidó su contraseña?** en la página de inicio de sesión si no recuerdas tu contraseña. La página de registro dice lo mismo para cualquier dirección, así que no le dice a nadie qué direcciones tienen una cuenta.
+:::
+
+:::details Mi dirección de correo electrónico no ha cambiado
+Tu dirección cambia solo cuando abres el enlace que OneUptime envió a la nueva dirección. El enlace funciona durante 24 horas: si ha caducado, vuelve a cambiar tu correo para recibir uno nuevo. Si otra cuenta ya usa esa dirección, el correo enviado allí lo dice, y tu dirección se queda como está.
 :::
 
 :::details Perdí mi aplicación de autenticación

@@ -14,6 +14,9 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import SelfSignedCertificate, {
+  SelfSignedKeyPair,
+} from "Common/Server/Utils/SelfSignedCertificate";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
@@ -22,10 +25,20 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   IDENTITY_PROVIDER_SIGN_OUT_URL_FIELD,
   IdentityProviderSignOutRecord,
+  SamlIdentityProviderSignOutRecord,
 } from "Common/Types/SSO/IdentityProviderSignOut";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
-import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "@jest/globals";
+import crypto from "crypto";
+import zlib from "zlib";
 
 /*
  * ---------------------------------------------------------------------------
@@ -105,6 +118,17 @@ const ID_TOKEN: string =
 const END_SESSION_ENDPOINT: string =
   "https://idp.example.com/realms/acme/protocol/openid-connect/logout";
 
+// The SAML providers' (#9603), and a project's provider's project.
+const GLOBAL_SAML_PROVIDER_ID: string = "5d5d0000-0000-4000-8000-0000000000d1";
+const PROJECT_SAML_PROVIDER_ID: string = "5d5d0000-0000-4000-8000-0000000000d2";
+const PROJECT_ID: string = "5d5d0000-0000-4000-8000-0000000000e1";
+
+const SAML_SIGN_OUT_URL: string =
+  "https://acme.okta.com/app/acme_oneuptime_1/exk1fcia6d6EMsf331d8/slo/saml";
+
+const SAML_SESSION_INDEX: string =
+  "_be9967abd904ddcae3c0eb4189adbe3f71e327cf93";
+
 // What happened, in the order it happened.
 const events: Array<string> = [];
 
@@ -123,7 +147,12 @@ const table: Array<SessionRow> = [];
 const failures: {
   readingWhatTheSessionKept: boolean;
   readingTheProvider: boolean;
-} = { readingWhatTheSessionKept: false, readingTheProvider: false };
+  readingTheSigningKey: boolean;
+} = {
+  readingWhatTheSessionKept: false,
+  readingTheProvider: false,
+  readingTheSigningKey: false,
+};
 
 // The providers, by id: their client ID, whether they are on, and the switch.
 interface ProviderRow {
@@ -299,6 +328,108 @@ jest.mock("Common/Server/Services/ProjectOidcService", () => {
   };
 });
 
+/*
+ * The SAML providers (#9603), by id: whether they are on, the switch, their
+ * identity provider's Sign Out URL, and a project's provider's project.
+ */
+interface SamlProviderRow {
+  isEnabled: boolean;
+  signOutOfIdentityProvider: boolean;
+  singleLogoutURL: string | null;
+  projectId?: string | undefined;
+}
+
+const samlProviders: Map<string, SamlProviderRow> = new Map();
+
+const samlProviderLookup: (query: {
+  _id: string;
+  isEnabled: boolean;
+}) => Promise<unknown> = async (query: {
+  _id: string;
+  isEnabled: boolean;
+}): Promise<unknown> => {
+  events.push("read the provider");
+
+  if (failures.readingTheProvider) {
+    throw new Error("connect ECONNREFUSED 10.0.0.5:5432");
+  }
+
+  const provider: SamlProviderRow | undefined = samlProviders.get(query._id);
+
+  if (!provider || provider.isEnabled !== query.isEnabled) {
+    return null;
+  }
+
+  const { default: ObjectIDType } = jest.requireActual(
+    "Common/Types/ObjectID",
+  ) as { default: typeof ObjectID };
+
+  return {
+    issuerURL: "http://www.okta.com/exk1fcia6d6EMsf331d8",
+    publicCertificate:
+      "-----BEGIN CERTIFICATE-----\nMIIC\n-----END CERTIFICATE-----",
+    singleLogoutURL: provider.singleLogoutURL
+      ? {
+          toString: (): string => {
+            return provider.singleLogoutURL!;
+          },
+        }
+      : undefined,
+    signOutOfIdentityProvider: provider.signOutOfIdentityProvider,
+    projectId: provider.projectId
+      ? new ObjectIDType(provider.projectId)
+      : undefined,
+  };
+};
+
+jest.mock("Common/Server/Services/GlobalSsoService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: (data: {
+        query: { _id: string; isEnabled: boolean };
+      }): Promise<unknown> => {
+        return samlProviderLookup(data.query);
+      },
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/ProjectSsoService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: (data: {
+        query: { _id: string; isEnabled: boolean };
+      }): Promise<unknown> => {
+        return samlProviderLookup(data.query);
+      },
+    },
+  };
+});
+
+// The installation's SAML signing key, made once for the suite.
+const signingKeys: { pair: SelfSignedKeyPair | null } = { pair: null };
+
+jest.mock("Common/Server/Services/InstanceSamlSigningKeyService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getKeyPair: async (): Promise<unknown> => {
+        events.push("read the signing key");
+
+        if (failures.readingTheSigningKey) {
+          throw new Error(
+            "The InstanceSamlSigningKey table holds no usable SAML signing key.",
+          );
+        }
+
+        return signingKeys.pair;
+      },
+    },
+  };
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -428,11 +559,31 @@ function providerSignOutUrl(result: SignOutResult): globalThis.URL {
   );
 }
 
+beforeAll(async () => {
+  signingKeys.pair = await SelfSignedCertificate.create({
+    commonName: "OneUptime SAML Service Provider",
+    validForDays: 365,
+  });
+});
+
 beforeEach(() => {
   events.length = 0;
   table.length = 0;
   failures.readingWhatTheSessionKept = false;
   failures.readingTheProvider = false;
+  failures.readingTheSigningKey = false;
+  samlProviders.clear();
+  samlProviders.set(GLOBAL_SAML_PROVIDER_ID, {
+    isEnabled: true,
+    signOutOfIdentityProvider: true,
+    singleLogoutURL: SAML_SIGN_OUT_URL,
+  });
+  samlProviders.set(PROJECT_SAML_PROVIDER_ID, {
+    isEnabled: true,
+    signOutOfIdentityProvider: true,
+    singleLogoutURL: SAML_SIGN_OUT_URL,
+    projectId: PROJECT_ID,
+  });
   providers.clear();
   providers.set(GLOBAL_PROVIDER_ID, {
     clientId: "oneuptime-global",
@@ -643,6 +794,229 @@ describe("the provider's sign-out never fails OneUptime's", () => {
 
   it("a provider that cannot be read still signs out, to the sign-in page", async () => {
     signedIn(keptFor(SsoProviderType.GlobalOIDC));
+    failures.readingTheProvider = true;
+
+    const result: SignOutResult = await signOut({ cookies: REFRESH_COOKIE() });
+
+    expect(table[0]!.isRevoked).toBe(true);
+    expect(result.answeredEmpty).toBe(true);
+    expect(result.next).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A SAML SESSION (#9603): THE SAME ORDER, AND A SIGNED LOGOUTREQUEST.
+ *
+ * A session a SAML sign-in gave, through a provider with the switch on,
+ * kept the assertion's Name ID and SessionIndex. Once POST /identity/logout
+ * has ended it, the answer is the identity provider's Sign Out URL with a
+ * LogoutRequest naming that person and that session, from OneUptime's
+ * Entity ID for the provider, signed with the installation's key - and only
+ * while the provider is on, still asks for it, and has a Sign Out URL.
+ * ---------------------------------------------------------------------------
+ */
+
+function samlKeptFor(
+  providerType: SsoProviderType.GlobalSSO | SsoProviderType.ProjectSSO,
+): SamlIdentityProviderSignOutRecord {
+  return {
+    providerType: providerType,
+    providerId:
+      providerType === SsoProviderType.GlobalSSO
+        ? GLOBAL_SAML_PROVIDER_ID
+        : PROJECT_SAML_PROVIDER_ID,
+    nameId: "night.shift@example.com",
+    nameIdFormat: "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+    sessionIndex: SAML_SESSION_INDEX,
+  };
+}
+
+// The LogoutRequest a sign-out sends the browser with, and whether OneUptime signed it.
+function logoutRequestIn(url: globalThis.URL): {
+  xml: string;
+  isSigned: boolean;
+} {
+  const raw: string = url.search.substring(1);
+  const signedOctets: string = raw.substring(0, raw.indexOf("&Signature="));
+
+  return {
+    xml: zlib
+      .inflateRawSync(
+        Buffer.from(url.searchParams.get("SAMLRequest")!, "base64"),
+      )
+      .toString("utf8"),
+    isSigned: crypto.verify(
+      "sha256",
+      Buffer.from(signedOctets, "utf8"),
+      crypto.createPublicKey(signingKeys.pair!.certificate),
+      Buffer.from(url.searchParams.get("Signature")!, "base64"),
+    ),
+  };
+}
+
+describe("a sign-out of a SAML session whose provider signs people out too", () => {
+  it.each<[SsoProviderType.GlobalSSO | SsoProviderType.ProjectSSO, string]>([
+    [
+      SsoProviderType.GlobalSSO,
+      `https://oneuptime.example.com/global-sso/${GLOBAL_SAML_PROVIDER_ID}`,
+    ],
+    [
+      SsoProviderType.ProjectSSO,
+      `https://oneuptime.example.com/${PROJECT_ID}/${PROJECT_SAML_PROVIDER_ID}`,
+    ],
+  ])(
+    "through %s: ends the session, then answers the identity provider's Sign Out URL with a signed LogoutRequest naming the person and their session",
+    async (
+      providerType: SsoProviderType.GlobalSSO | SsoProviderType.ProjectSSO,
+      entityId: string,
+    ) => {
+      signedIn(samlKeptFor(providerType));
+
+      const result: SignOutResult = await signOut({
+        cookies: REFRESH_COOKIE(),
+      });
+
+      expect(table[0]!.isRevoked).toBe(true);
+      expect(table[0]!.cause).toBe(SessionEndCause.SignedOut);
+
+      const url: globalThis.URL = providerSignOutUrl(result);
+
+      expect(`${url.origin}${url.pathname}`).toBe(SAML_SIGN_OUT_URL);
+
+      const { xml, isSigned } = logoutRequestIn(url);
+
+      expect(isSigned).toBe(true);
+      expect(xml).toContain("<samlp:LogoutRequest ");
+      expect(xml).toContain(`<saml:Issuer>${entityId}</saml:Issuer>`);
+      expect(xml).toContain(
+        '<saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">night.shift@example.com</saml:NameID>',
+      );
+      expect(xml).toContain(
+        `<samlp:SessionIndex>${SAML_SESSION_INDEX}</samlp:SessionIndex>`,
+      );
+      expect(xml).toContain(`Destination="${SAML_SIGN_OUT_URL}"`);
+      expect(result.answeredEmpty).toBe(false);
+      expect(result.next).not.toHaveBeenCalled();
+    },
+  );
+
+  it("ends the OneUptime session first, then asks the provider, signs, forgets and answers", async () => {
+    signedIn(samlKeptFor(SsoProviderType.GlobalSSO));
+
+    await signOut({ cookies: REFRESH_COOKIE() });
+
+    expect(events).toEqual([
+      "read what the session kept",
+      "ended the session",
+      "read the provider",
+      "read the signing key",
+      "forgot the ID token",
+      "answered",
+    ]);
+  });
+
+  it("forgets the Name ID and the session index once it has used them", async () => {
+    signedIn(samlKeptFor(SsoProviderType.ProjectSSO));
+
+    await signOut({ cookies: REFRESH_COOKIE() });
+
+    expect(table[0]!.identityProviderSignOut).toBeNull();
+  });
+
+  it("names OneUptime's own address, never a Host header's", async () => {
+    signedIn(samlKeptFor(SsoProviderType.GlobalSSO));
+
+    const result: SignOutResult = await signOut({
+      cookies: REFRESH_COOKIE(),
+      host: "evil.example.com",
+    });
+
+    const { xml } = logoutRequestIn(providerSignOutUrl(result));
+
+    expect(xml).not.toContain("evil.example.com");
+    expect(xml).toContain(
+      `<saml:Issuer>https://oneuptime.example.com/global-sso/${GLOBAL_SAML_PROVIDER_ID}</saml:Issuer>`,
+    );
+  });
+
+  it("by the session's access token, when its refresh token was rotated", async () => {
+    signedIn(samlKeptFor(SsoProviderType.ProjectSSO), "rotated-refresh-token");
+
+    const result: SignOutResult = await signOut({
+      cookies: {
+        [CookieUtil.getRefreshTokenKey()]: "replaced-refresh-token",
+        [CookieUtil.getUserTokenKey()]: accessToken(),
+      },
+    });
+
+    expect(table[0]!.isRevoked).toBe(true);
+    expect(logoutRequestIn(providerSignOutUrl(result)).isSigned).toBe(true);
+  });
+});
+
+describe("a SAML session's sign-out goes to the sign-in page", () => {
+  it.each<[string, (row: SamlProviderRow) => void]>([
+    [
+      "once the switch was turned off",
+      (row: SamlProviderRow): void => {
+        row.signOutOfIdentityProvider = false;
+      },
+    ],
+    [
+      "once the provider was turned off",
+      (row: SamlProviderRow): void => {
+        row.isEnabled = false;
+      },
+    ],
+    [
+      "once the Sign Out URL is gone",
+      (row: SamlProviderRow): void => {
+        row.singleLogoutURL = null;
+      },
+    ],
+    [
+      "when the Sign Out URL is no address a browser may be sent to",
+      (row: SamlProviderRow): void => {
+        row.singleLogoutURL = "javascript:alert(document.cookie)";
+      },
+    ],
+  ])("%s", async (_: string, change: (row: SamlProviderRow) => void) => {
+    signedIn(samlKeptFor(SsoProviderType.GlobalSSO));
+    change(samlProviders.get(GLOBAL_SAML_PROVIDER_ID)!);
+
+    const result: SignOutResult = await signOut({ cookies: REFRESH_COOKIE() });
+
+    expect(table[0]!.isRevoked).toBe(true);
+    expect(result.answeredEmpty).toBe(true);
+    expect(events).not.toContain("read the signing key");
+    // Nothing more to keep it for.
+    expect(table[0]!.identityProviderSignOut).toBeNull();
+  });
+
+  it("once the provider was deleted", async () => {
+    signedIn(samlKeptFor(SsoProviderType.ProjectSSO));
+    samlProviders.delete(PROJECT_SAML_PROVIDER_ID);
+
+    const result: SignOutResult = await signOut({ cookies: REFRESH_COOKIE() });
+
+    expect(result.answeredEmpty).toBe(true);
+  });
+
+  it("when the signing key cannot be read: signed out of OneUptime alone, with no error", async () => {
+    signedIn(samlKeptFor(SsoProviderType.GlobalSSO));
+    failures.readingTheSigningKey = true;
+
+    const result: SignOutResult = await signOut({ cookies: REFRESH_COOKIE() });
+
+    expect(table[0]!.isRevoked).toBe(true);
+    expect(result.answeredEmpty).toBe(true);
+    expect(result.next).not.toHaveBeenCalled();
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+  });
+
+  it("when the provider cannot be read: signed out of OneUptime alone, with no error", async () => {
+    signedIn(samlKeptFor(SsoProviderType.ProjectSSO));
     failures.readingTheProvider = true;
 
     const result: SignOutResult = await signOut({ cookies: REFRESH_COOKIE() });

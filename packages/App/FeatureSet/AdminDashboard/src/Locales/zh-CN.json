@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "如果此人还没有 OneUptime 账户，将用这个名字创建账户。",
   "Suggest every account on this server?": "要建议此服务器上的所有帐户吗？",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "任何可以邀请他人的人在输入时都会看到每个帐户的名称和邮箱。只有当这里的每个帐户都属于同一个组织时，才开启此项。",
-  "Suggest Every Account": "建议所有帐户"
+  "Suggest Every Account": "建议所有帐户",
+  "Sign Out URL": "退出登录 URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "身份提供商的单点退出登录 URL。要让用户同时退出身份提供商的登录时需要它。",
+  "Single Logout URL:": "单点注销 URL：",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "要让用户同时退出身份提供商的登录，还需将单点注销 URL 和 OneUptime 的签名证书提供给身份提供商。",
+  "Download Signing Certificate": "下载签名证书"
 }

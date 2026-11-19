@@ -97,6 +97,34 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import EmailChangeConfirmation from "../Utils/EmailChange/EmailChangeConfirmation";
+import RequestOrigin from "../../Types/RequestOrigin";
+
+/*
+ * A person's own change of address, held for the new address to confirm
+ * (#9821, Utils/EmailChange/EmailChangeConfirmation): found by
+ * onBeforeUpdate, sent for by onUpdateSuccess once the update has been
+ * answered. Keyed by the update, which both hooks are handed.
+ */
+interface PendingEmailChange {
+  userId: ObjectID;
+  newEmail: Email;
+  timezone: Timezone | null | undefined;
+  origin: RequestOrigin | undefined;
+}
+
+const pendingEmailChanges: WeakMap<
+  UpdateBy<Model>,
+  PendingEmailChange
+> = new WeakMap<UpdateBy<Model>, PendingEmailChange>();
+
+// What a person is told who writes a pending address themselves.
+export const PENDING_EMAIL_NOT_WRITABLE_MESSAGE: string =
+  "A new email address waits until it is confirmed, so it cannot be set directly. Change your email address to send a new address a link.";
+
+// What a person is told who names an account other than their own.
+export const OWN_EMAIL_ONLY_MESSAGE: string =
+  "You can only change your own email address.";
 
 /*
  * Names the Redis mutex that serializes the first-Master-Admin election across
@@ -654,6 +682,9 @@ export class Service extends DatabaseService<Model> {
      */
     NewPasswordRule.assertMet(updateBy.data.password);
 
+    // A new address waiting for its link is OneUptime's to write (#9821).
+    this.assertPendingEmailIsNotWritten(updateBy);
+
     let carryForward: Array<Model> = [];
 
     if (updateBy.data.password || updateBy.data.email) {
@@ -676,6 +707,15 @@ export class Service extends DatabaseService<Model> {
       carryForward = users;
     }
 
+    /*
+     * A person's own new address waits for the address to confirm it
+     * (#9821): it is kept as pending and the email is left as it is, so the
+     * answer is the same whether or not another account has the address.
+     * Before anything below acts on `email`, which it may take out: the
+     * address does not change yet, so neither do the links sent to it.
+     */
+    await this.holdOwnEmailChangeForConfirmation(updateBy, carryForward);
+
     if (updateBy.data.email) {
       await this.expirePasswordResetTokensForEmailChange({
         newEmail: updateBy.data.email as Email,
@@ -684,6 +724,138 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * CHANGING YOUR OWN EMAIL ADDRESS SAYS NOTHING ABOUT THE NEW ONE (#9821).
+   *
+   * Somebody signed in who writes a new `email` to their own account (the
+   * profile's Basic Info, or PUT /api/user/:id) no longer has it written:
+   * an address another account uses was refused on the unique index, and
+   * that refusal told any signed-in account - on OneUptime Cloud, anybody -
+   * which addresses have an account. Instead:
+   *
+   *   - the change is counted, for the account and for the address, and
+   *     refused on a server that cannot send the email that confirms it
+   *     (EmailChangeConfirmation.assertMayAsk) - the same for every address;
+   *   - `email` is taken out of the write, and `newUnverifiedTemporaryEmail`
+   *     put in, so the account keeps its address and the profile shows the
+   *     new one waiting. The update succeeds as any other does;
+   *   - once it has been answered (onUpdateSuccess), the new address is
+   *     emailed: a link that confirms it (Identity's /verify-email swaps the
+   *     account to it), or, when another account has it, word that it
+   *     cannot be used.
+   *
+   * Not held: the address the account already has (every save of the
+   * profile's form sends it), a master admin's change (they see every
+   * account already, and the Admin Dashboard changes it at once), and a
+   * change the server makes itself (root: SCIM, single sign-on, the
+   * confirmation's own swap).
+   *
+   * `rows` are the update's rows, as onBeforeUpdate read them: only those
+   * the caller may write, so a person's own.
+   */
+  private async holdOwnEmailChangeForConfirmation(
+    updateBy: UpdateBy<Model>,
+    rows: Array<Model>,
+  ): Promise<void> {
+    if (
+      !updateBy.data.email ||
+      updateBy.props.isRoot ||
+      updateBy.props.isMasterAdmin
+    ) {
+      return;
+    }
+
+    const requested: Email = new Email(String(updateBy.data.email));
+
+    const changing: Array<Model> = rows.filter((row: Model): boolean => {
+      return (
+        row.email?.toString().toLowerCase() !==
+        requested.toString().toLowerCase()
+      );
+    });
+
+    // The address it already has: nothing to confirm, and nothing changes.
+    if (changing.length === 0) {
+      return;
+    }
+
+    const own: Model | undefined = changing[0];
+
+    if (
+      changing.length !== 1 ||
+      !own?.id ||
+      !updateBy.props.userId ||
+      own.id.toString().toLowerCase() !==
+        updateBy.props.userId.toString().toLowerCase()
+    ) {
+      throw new BadDataException(OWN_EMAIL_ONLY_MESSAGE);
+    }
+
+    await EmailChangeConfirmation.assertMayAsk({
+      userId: own.id,
+      newEmail: requested,
+    });
+
+    delete (updateBy.data as unknown as Record<string, unknown>)["email"];
+    (updateBy.data as unknown as Record<string, unknown>)[
+      "newUnverifiedTemporaryEmail"
+    ] = requested;
+
+    pendingEmailChanges.set(updateBy, {
+      userId: own.id,
+      newEmail: requested,
+      timezone: own.timezone,
+      origin: updateBy.props.requestOrigin,
+    });
+  }
+
+  /*
+   * `newUnverifiedTemporaryEmail` is OneUptime's to set: a person may clear
+   * it (Cancel Change), never write an address into it, or they could name
+   * an address the link would then move their account to unproven.
+   */
+  private assertPendingEmailIsNotWritten(updateBy: UpdateBy<Model>): void {
+    const pendingAddress: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["newUnverifiedTemporaryEmail"];
+
+    if (
+      !updateBy.props.isRoot &&
+      pendingAddress !== undefined &&
+      pendingAddress !== null &&
+      pendingAddress !== ""
+    ) {
+      throw new BadDataException(PENDING_EMAIL_NOT_WRITABLE_MESSAGE);
+    }
+  }
+
+  /*
+   * What a held change of address sends, after the update that asked for
+   * it has been answered: whether another account has the address is read
+   * only now, so the answer could not wait on it. Never throws.
+   */
+  private async sendForPendingEmailChange(
+    pending: PendingEmailChange,
+  ): Promise<void> {
+    try {
+      const holder: Model | null = await this.findOneBy({
+        query: { email: pending.newEmail },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      await EmailChangeConfirmation.sendForPendingChange({
+        userId: pending.userId,
+        newEmail: pending.newEmail,
+        isTaken: Boolean(holder),
+        origin: pending.origin,
+        timezone: pending.timezone,
+      });
+    } catch (err) {
+      logger.error(err, { userId: pending.userId.toString() } as LogAttributes);
+    }
   }
 
   /*
@@ -1177,7 +1349,50 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    if (onUpdate && onUpdate.updateBy.data.email) {
+    /*
+     * A person's own new address, held for confirmation (#9821): the new
+     * address is emailed once this update has been answered - not awaited,
+     * so how long the answer takes says nothing about whether another
+     * account has the address.
+     */
+    const pendingEmailChange: PendingEmailChange | undefined = onUpdate
+      ? pendingEmailChanges.get(onUpdate.updateBy)
+      : undefined;
+
+    if (onUpdate && pendingEmailChange) {
+      pendingEmailChanges.delete(onUpdate.updateBy);
+
+      // Only once the account's row has the new address waiting.
+      const isWritten: boolean = updatedItemIds.some(
+        (id: ObjectID): boolean => {
+          return (
+            id.toString().toLowerCase() ===
+            pendingEmailChange.userId.toString().toLowerCase()
+          );
+        },
+      );
+
+      if (isWritten) {
+        void this.sendForPendingEmailChange(pendingEmailChange);
+      }
+    }
+
+    /*
+     * An address written straight away - by a master admin, single sign-on,
+     * SCIM - is proven by a link to it, as before. Except:
+     *   - one the write itself says is verified: the swap a confirmed change
+     *     makes (#9821), whose link proved the mailbox;
+     *   - on a server that cannot send email, which cannot ask for proof:
+     *     marking the address unverified there would lock its person out,
+     *     as signing in would wait for a link that never comes. Its
+     *     addresses are taken as verified, as its sign-ups are.
+     */
+    if (
+      onUpdate &&
+      onUpdate.updateBy.data.email &&
+      onUpdate.updateBy.data.isEmailVerified !== true &&
+      (await EmailChangeConfirmation.canSendEmail())
+    ) {
       const newUsers: Array<Model> = await this.findBy({
         query: onUpdate.updateBy.query,
         select: {

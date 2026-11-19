@@ -18,6 +18,17 @@ const statuses = [
 ];
 const critical = { _id: "critical", name: "Critical", color: { r: 255, g: 133, b: 133 } };
 const warning = { _id: "warning", name: "Warning", color: { r: 255, g: 196, b: 100 } };
+const severities = [{ ...critical, order: 1 }, { ...warning, order: 2 }];
+// Owners, labels and teams, for the lists' filters and the records' Owners row.
+const priyaUser = { _id: "responder-2", name: "Priya Shah", email: "priya@example.test" };
+const platformTeam = { _id: "team-platform", name: "Platform" };
+const databaseTeam = { _id: "team-database", name: "Database reliability" };
+const teams = [databaseTeam, platformTeam];
+const labels = [
+  { _id: "label-checkout", name: "checkout", color: { r: 79, g: 70, b: 229 } },
+  { _id: "label-database", name: "database", color: { r: 14, g: 165, b: 233 } },
+  { _id: "label-payments", name: "payments", color: { r: 22, g: 163, b: 74 } },
+];
 
 function dataFor(projectId) {
   const staging = projectId === projects[1]._id;
@@ -34,10 +45,49 @@ function dataFor(projectId) {
     { _id: "incident-3", projectId, title: "Dashboard availability recovered", incidentNumber: 1040, incidentNumberWithPrefix: "INC-1040", currentIncidentState: states[2], incidentSeverity: warning, monitors: [monitors[1]], createdAt: "2026-09-10T08:00:00Z" },
   ];
   const alerts = incidents.map((incident, index) => ({ ...incident, _id: `alert-${index + 1}`, title: index === 0 ? (staging ? "Staging CPU usage above 80%" : "Database CPU usage above 80%") : incident.title, alertNumber: 208 + index, alertNumberWithPrefix: `ALT-${208 + index}`, currentAlertState: incident.currentIncidentState, alertSeverity: incident.incidentSeverity }));
+  // Who owns what, and how it is labelled: the reader owns the first of each kind.
+  const ownership = { "incident-1": { users: [user], teams: [platformTeam] }, "incident-2": { users: [priyaUser], teams: [databaseTeam] }, "alert-1": { users: [user], teams: [] }, "alert-2": { users: [], teams: [databaseTeam] }, "monitor-1": { users: [user], teams: [platformTeam] }, "monitor-3": { users: [priyaUser], teams: [] } };
+  const labelled = { "incident-1": [labels[0], labels[2]], "incident-2": [labels[1]], "alert-1": [labels[1]], "monitor-1": [labels[0]] };
+  for (const record of [...incidents, ...alerts, ...monitors]) {
+    record.labels = labelled[record._id] || [];
+  }
   const incidentEpisodes = [{ ...incidents[0], _id: "incident-episode-1", title: "Checkout service degradation", episodeNumber: 36, episodeNumberWithPrefix: "IE-36", incidentCount: 2, incidents, lastIncidentAddedAt: now }];
   const alertEpisodes = [{ ...alerts[0], _id: "alert-episode-1", title: "Database resource pressure", episodeNumber: 18, episodeNumberWithPrefix: "AE-18", alertCount: 2, alerts, lastAlertAddedAt: now }];
-  return { monitors, incidents, alerts, incidentEpisodes, alertEpisodes };
+  return { monitors, incidents, alerts, incidentEpisodes, alertEpisodes, ownership };
 }
+
+// A list's filters as the app sends them (api/recordFilters.ts), answered as the server would.
+function applyListFilters(rows, query, ownership) {
+  const includes = (value) => { return value && value._type === "Includes" ? value.value : null; };
+  let result = rows;
+  const ids = includes(query._id);
+  if (ids) { result = result.filter((item) => { return ids.includes(item._id); }); }
+  for (const [column, read] of [
+    ["incidentSeverityId", (item) => item.incidentSeverity?._id],
+    ["alertSeverityId", (item) => item.alertSeverity?._id],
+    ["monitorId", (item) => item.monitor?._id],
+    ["monitorType", (item) => item.monitorType],
+    ["currentMonitorStatusId", (item) => item.currentMonitorStatus?._id],
+  ]) {
+    const values = includes(query[column]);
+    if (values) { result = result.filter((item) => { return values.includes(read(item)); }); }
+  }
+  const labelIds = includes(query.labels);
+  if (labelIds) { result = result.filter((item) => { return (item.labels || []).some((label) => labelIds.includes(label._id)); }); }
+  const monitorIds = includes(query.monitors);
+  if (monitorIds) { result = result.filter((item) => { return (item.monitors || []).some((monitor) => monitorIds.includes(monitor._id)); }); }
+  if (query.owners && query.owners._type === "OwnedBy") {
+    const { userIds = [], teamIds = [] } = query.owners;
+    result = result.filter((item) => {
+      const owners = ownership[item._id] || { users: [], teams: [] };
+      return owners.users.some((owner) => userIds.includes(owner._id)) || owners.teams.some((team) => teamIds.includes(team._id));
+    });
+  }
+  return result;
+}
+
+const OWNER_TABLE = /^\/api\/(incident|alert|monitor|incident-episode|alert-episode)-owner-(user|team)\/get-list$/;
+
 
 
 /*
@@ -309,8 +359,29 @@ async function installFixtures(page, { signedIn = true, loginMode = "normal", re
       { _id: "schedule-2", name: "Infrastructure backup", currentUserOnRoster: null, nextUserOnRoster: { _id: "responder-3", name: "Jordan Lee" }, rosterNextStartAt: later },
     ], count: 2 }); }
     if (url.pathname.includes("user-notification-log/get-list")) { return reply({ data: [{ _id: "page-1", createdAt: "2026-09-10T09:42:00Z", status: "Sent", onCallDutyPolicy: { name: "Primary response" }, triggeredByIncident: data.incidents[0] }, { _id: "page-2", createdAt: "2026-09-10T09:10:00Z", status: "Sent", acknowledgedAt: "2026-09-10T09:12:00Z", triggeredByAlert: data.alerts[1] }], count: 2 }); }
+    if (url.pathname.includes("team-member/get-list") && body.query?.userId === user._id) { return reply({ data: [{ _id: "membership-1", teamId: platformTeam._id }], count: 1 }); }
     if (url.pathname.includes("team-member/get-list")) { return reply(security ? { data: [user, priya, jordan].map((member) => { return { user: member }; }), count: 3 } : { data: [{ user }, { user: { _id: "responder-2", name: "Priya Shah", email: "priya@example.test" } }], count: 2 }); }
     if (url.pathname.includes("on-call-duty-policy-user-override/get-list")) { const rows = overrides.get(projectId) || []; return reply({ data: rows, count: rows.length }); }
+    if (url.pathname.includes("incident-severity/get-list") || url.pathname.includes("alert-severity/get-list")) { return reply({ data: severities, count: severities.length }); }
+    if (url.pathname === "/api/label/get-list") { return reply({ data: labels, count: labels.length }); }
+    if (url.pathname === "/api/team/get-list") { return reply({ data: teams, count: teams.length }); }
+    const ownerTable = OWNER_TABLE.exec(url.pathname);
+    if (ownerTable) {
+      const query = body.query || {};
+      const kind = ownerTable[1].replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      const recordColumn = `${kind}Id`;
+      const ownerKind = ownerTable[2] === "user" ? "users" : "teams";
+      const rowsOfOwners = Object.entries(data.ownership).flatMap(([recordId, owners]) => {
+        return owners[ownerKind].map((owner) => {
+          return ownerKind === "users" ? { _id: `${recordId}-${owner._id}`, [recordColumn]: recordId, userId: owner._id, user: owner } : { _id: `${recordId}-${owner._id}`, [recordColumn]: recordId, teamId: owner._id, team: owner };
+        });
+      }).filter((row) => {
+        if (query[recordColumn]) { return row[recordColumn] === query[recordColumn]; }
+        const ownerIds = (query.userId || query.teamId || {}).value || [];
+        return ownerIds.includes(row.userId || row.teamId);
+      });
+      return reply({ data: rowsOfOwners, count: rowsOfOwners.length });
+    }
     let rows = [];
     if (url.pathname.includes("/incident/get-list")) { rows = data.incidents; }
     else if (url.pathname.includes("/alert/get-list")) { rows = data.alerts; }
@@ -320,7 +391,8 @@ async function installFixtures(page, { signedIn = true, loginMode = "normal", re
     else if (url.pathname.includes("/incident-state/get-list") || url.pathname.includes("/alert-state/get-list")) { rows = states; }
     else if (url.pathname.includes("/monitor-status/get-list")) { rows = statuses; }
     else if (url.pathname.includes("-note/get-list")) { rows = [{ _id: "note-1", note: "Investigating database connections. Next update in 15 minutes.", createdAt: "2026-09-10T09:50:00Z", createdByUser: user }]; }
-    if (body.query?._id) { rows = rows.filter((item) => { return item._id === body.query._id; }); }
+    if (typeof body.query?._id === "string") { rows = rows.filter((item) => { return item._id === body.query._id; }); }
+    if (body.query && /\/(incident|alert|monitor|incident-episode|alert-episode)\/get-list$/.test(url.pathname)) { rows = applyListFilters(rows, body.query, data.ownership); }
     // Open records are asked for by state id (utils/resolvedState): { _type: "Includes", value: [open state ids] }.
     for (const [idKey, stateKey] of [["currentIncidentStateId", "currentIncidentState"], ["currentAlertStateId", "currentAlertState"]]) {
       const stateIds = body.query?.[idKey];

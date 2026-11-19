@@ -1487,7 +1487,7 @@ describe("Passwordless passkey login", () => {
           posted.push({ url: url, data: options.data });
           return new HTTPResponse<JSONObject>(
             200,
-            url.endsWith("/generate-authentication-options")
+            url.endsWith("/identity/security-key-sign-in-options")
               ? { options: authenticationOptions }
               : { ...USER_JSON, _miscData: { token: "security-key-session" } },
             {},
@@ -1508,8 +1508,21 @@ describe("Passwordless passkey login", () => {
     await act(async () => {
       await user.click(await screen.findByText("Personal security key"));
     });
-    expect(posted[0]?.url).toContain(
-      "/user-webauthn/generate-authentication-options",
+    /*
+     * The key's options are asked for by the sign-in, with the email and
+     * password again, as the key's answer is sent: never for an address
+     * alone (#9822).
+     */
+    expect(posted[0]?.url).toContain("/identity/security-key-sign-in-options");
+    expect(posted[0]?.data).toEqual({
+      data: expect.objectContaining({
+        email: "ada@example.com",
+        password: { _type: "HashedString", value: "correct-password" },
+      }),
+    });
+    // The same credentials the key's answer is sent with, below.
+    expect((posted[1]?.data as JSONObject)["data"]).toMatchObject(
+      (posted[0]?.data as JSONObject)["data"] as JSONObject,
     );
     expect(posted[1]?.url).toContain("/identity/verify-webauthn-auth");
     expect(posted[1]?.data).toMatchObject({

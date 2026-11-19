@@ -1107,6 +1107,8 @@ import { AddServiceAINote1809185918000 } from "./1809185918000-AddServiceAINote"
 import { AddKubernetesDiskReadings1809186000000 } from "./1809186000000-AddKubernetesDiskReadings";
 import { AddComplianceSettingNamespace1809186100000 } from "./1809186100000-AddComplianceSettingNamespace";
 import { AddTeamScimGroupLinkedAt1809186200000 } from "./1809186200000-AddTeamScimGroupLinkedAt";
+import { AddSamlSingleLogout1809186300000 } from "./1809186300000-AddSamlSingleLogout";
+import { AddDataAssetEntitySetName1809186396960 } from "./1809186396960-AddDataAssetEntitySetName";
 
 export default [
   InitialMigration,
@@ -2218,4 +2220,6 @@ export default [
   AddKubernetesDiskReadings1809186000000,
   AddComplianceSettingNamespace1809186100000,
   AddTeamScimGroupLinkedAt1809186200000,
+  AddSamlSingleLogout1809186300000,
+  AddDataAssetEntitySetName1809186396960,
 ];

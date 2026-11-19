@@ -205,7 +205,7 @@ Voer de opdracht opnieuw uit om een van deze te wijzigen, of om over te stappen 
 | `--key KEY` | `-Key KEY` | Een telemetrie-ingestiesleutel van je project. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Labelt de host. Herhaal het voor meer labels; op Windows som je ze op met komma's. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Geeft de collector een omgevingsvariabele, voor configuraties die `${env:NAME}` lezen. |
-| `--version VERSION` | `-Version VERSION` | De collectorrelease die wordt geïnstalleerd, standaard 0.161.0. |
+| `--version VERSION` | `-Version VERSION` | De collectorrelease die wordt geïnstalleerd, standaard 0.165.0. |
 | `--download-url URL` | `-DownloadUrl URL` | Downloadt de releases van een mirror met dezelfde mappenstructuur als die van GitHub. |
 | `--proxy URL` | `-Proxy URL` | Stuurt de downloads en al het verkeer van de collector via een HTTP-proxy. |
 | `--replace-existing` | `-ReplaceExisting` | Stopt en schakelt een handmatig geïnstalleerde collector uit. |

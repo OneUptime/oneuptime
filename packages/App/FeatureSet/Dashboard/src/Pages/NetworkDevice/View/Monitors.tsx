@@ -33,10 +33,23 @@ const NetworkDeviceMonitors: FunctionComponent<
 
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
   const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
+  // The monitors only a person's tie lists here (issue #9676).
+  const [removableMonitorIds, setRemovableMonitorIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  // Bumped when a monitor is added to the device, to read its monitors again.
+  /*
+   * Bumped when a monitor is added to the device or taken off it, to read
+   * its monitors again.
+   */
   const [readCount, setReadCount] = useState<number>(0);
+
+  const readMonitorsAgain: () => void = (): void => {
+    setReadCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   /*
    * "Monitor web UI" is for a reader who may create monitors - hidden, not
@@ -54,6 +67,7 @@ const NetworkDeviceMonitors: FunctionComponent<
           await DeviceMonitorLookupUtil.getDeviceMonitorContext(modelId);
         setMonitors(context.monitors);
         setIsMonitorBacked(context.isMonitorBacked);
+        setRemovableMonitorIds(context.removableMonitorIds);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -76,11 +90,9 @@ const NetworkDeviceMonitors: FunctionComponent<
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
         canCreateMonitor={canCreateMonitor}
-        onMonitorAdded={() => {
-          setReadCount((count: number): number => {
-            return count + 1;
-          });
-        }}
+        onMonitorAdded={readMonitorsAgain}
+        removableMonitorIds={removableMonitorIds}
+        onMonitorRemoved={readMonitorsAgain}
       />
     </Fragment>
   );

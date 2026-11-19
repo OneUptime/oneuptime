@@ -105,6 +105,10 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Monitors",
     "Inbox",
     "Acknowledge",
+    // The actions under a page's push (src/notifications/categories.ts), from the release after 1.6.0.
+    "Escalate",
+    "I've seen it",
+    "Acknowledge test page",
     "Resolve",
     "Add Note",
     "Security",

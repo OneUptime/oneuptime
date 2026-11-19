@@ -6,7 +6,11 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Gray500 } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -66,6 +70,18 @@ export interface ComponentProps {
    * out, the card offers no way to add one.
    */
   onMonitorAdded?: (() => void) | undefined;
+  /*
+   * The monitors a person's tie alone lists here, by id (lower case): the
+   * ones Remove takes off the device (issue #9676). One made for the
+   * device, bound to it or watching it is the device's for that reason,
+   * and is never offered.
+   */
+  removableMonitorIds?: ReadonlySet<string> | undefined;
+  /*
+   * Read the device's monitors again: one was just taken off the device.
+   * Left out, the card offers no way to remove one.
+   */
+  onMonitorRemoved?: (() => void) | undefined;
 }
 
 /*
@@ -88,6 +104,32 @@ export function canAddExistingMonitor(): boolean {
   return PermissionGate.checkColumnUpdate(new Monitor(), "networkDeviceId")
     .isAllowed;
 }
+
+/*
+ * Whether the reader may take a monitor off a device (issue #9676): write
+ * the same column, as the monitor's Details card does to clear it.
+ */
+export function canRemoveTiedMonitor(): boolean {
+  return canAddExistingMonitor();
+}
+
+// The words of taking a monitor someone tied off the device (issue #9676).
+export const REMOVE_TIED_MONITOR_COPY: {
+  button: string;
+  buttonAriaLabel: string;
+  dialogTitle: string;
+  dialogDescription: string;
+  removed: string;
+} = {
+  // Written as the literal "Remove" where it is drawn, as other lists do.
+  button: translationKey("Remove"),
+  buttonAriaLabel: translationKey("Remove {{monitorName}} from this device"),
+  dialogTitle: translationKey("Remove from Device"),
+  dialogDescription: translationKey(
+    "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.",
+  ),
+  removed: translationKey("Monitor removed from this device."),
+};
 
 /*
  * Create Monitor on a Website monitor of a device's web UI: the device link
@@ -137,6 +179,81 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
   const [isSavingAddExisting, setIsSavingAddExisting] =
     useState<boolean>(false);
   const [addExistingError, setAddExistingError] = useState<string>("");
+  // The monitor being taken off the device, while Remove asks (issue #9676).
+  const [monitorToRemove, setMonitorToRemove] = useState<Monitor | null>(null);
+  const [isRemoving, setIsRemoving] = useState<boolean>(false);
+  const [removeError, setRemoveError] = useState<string>("");
+
+  /*
+   * Remove is for a reader who may tie monitors, on a page that reads the
+   * monitors again after: hidden otherwise, as Add Existing Monitor is.
+   */
+  const mayRemove: boolean =
+    Boolean(props.networkDeviceId && props.onMonitorRemoved) &&
+    canRemoveTiedMonitor();
+
+  const isRemovable: (monitor: Monitor) => boolean = (
+    monitor: Monitor,
+  ): boolean => {
+    const monitorId: string = (
+      monitor._id?.toString() ||
+      monitor.id?.toString() ||
+      ""
+    ).toLowerCase();
+
+    return (
+      mayRemove &&
+      Boolean(monitorId) &&
+      Boolean(props.removableMonitorIds?.has(monitorId))
+    );
+  };
+
+  const closeRemove: () => void = (): void => {
+    setMonitorToRemove(null);
+    setRemoveError("");
+  };
+
+  /*
+   * Unties the monitor from the device (Monitor.networkDeviceId), and
+   * nothing else about it: it keeps checking. The duplicate check reads the
+   * tie each time it runs, so imports stop counting the monitor at once,
+   * and the page reads its monitors again. The dialog stays open while it
+   * saves, and says why when the server refuses.
+   */
+  const removeTiedMonitor: () => Promise<void> = async (): Promise<void> => {
+    const monitorId: string =
+      monitorToRemove?._id?.toString() || monitorToRemove?.id?.toString() || "";
+
+    if (!monitorId) {
+      closeRemove();
+      return;
+    }
+
+    setIsRemoving(true);
+    setRemoveError("");
+
+    try {
+      await ModelAPI.updateById<Monitor>({
+        modelType: Monitor,
+        id: new ObjectID(monitorId),
+        data: {
+          networkDeviceId: null,
+        },
+      });
+    } catch (err) {
+      setRemoveError(API.getFriendlyMessage(err));
+      setIsRemoving(false);
+      return;
+    }
+
+    setIsRemoving(false);
+    closeRemove();
+    Toast.success(
+      translator.translateText(REMOVE_TIED_MONITOR_COPY.removed) ||
+        REMOVE_TIED_MONITOR_COPY.removed,
+    );
+    props.onMonitorRemoved?.();
+  };
 
   type GetCardContentFunction = () => ReactElement;
 
@@ -213,9 +330,9 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
           return (
             <div
               key={monitor._id?.toString()}
-              className="flex items-center justify-between py-3"
+              className="flex items-center justify-between gap-3 py-3"
             >
-              <div className="text-sm font-medium text-gray-900">
+              <div className="min-w-0 text-sm font-medium text-gray-900">
                 <MonitorElement monitor={monitor} />
                 {/*
                  * A policy-owned monitor is created and removed by the alert
@@ -232,23 +349,67 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
               </div>
-              {monitor.currentMonitorStatus?.name && (
-                <Pill
-                  text={monitor.currentMonitorStatus.name}
-                  isUserContent={isRecordNameAsWritten(
-                    StateListType.MonitorStatus,
-                    monitor.currentMonitorStatus.name,
-                  )}
-                  color={monitor.currentMonitorStatus.color || Gray500}
-                  isMinimal={true}
-                />
-              )}
+              <div className="flex flex-shrink-0 items-center gap-2">
+                {monitor.currentMonitorStatus?.name && (
+                  <Pill
+                    text={monitor.currentMonitorStatus.name}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.MonitorStatus,
+                      monitor.currentMonitorStatus.name,
+                    )}
+                    color={monitor.currentMonitorStatus.color || Gray500}
+                    isMinimal={true}
+                  />
+                )}
+                {/*
+                 * A monitor a person tied to the device, and nothing else
+                 * puts here (issue #9676): taken off the device, it keeps
+                 * checking.
+                 */}
+                {isRemovable(monitor) && (
+                  <Button
+                    title={REMOVE_TIED_MONITOR_COPY.button}
+                    buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                    buttonSize={ButtonSize.Small}
+                    ariaLabel={translator.translateTemplate(
+                      REMOVE_TIED_MONITOR_COPY.buttonAriaLabel,
+                      { monitorName: monitor.name || "" },
+                    )}
+                    isAriaLabelTranslated={true}
+                    dataTestId={`device-monitors-remove-${monitor._id?.toString()}`}
+                    onClick={() => {
+                      setRemoveError("");
+                      setMonitorToRemove(monitor);
+                    }}
+                  />
+                )}
+              </div>
             </div>
           );
         })}
       </div>
     );
   };
+
+  // Asks before a monitor is taken off the device, saying what that changes.
+  const removeModal: ReactElement | null =
+    monitorToRemove && props.networkDeviceId ? (
+      <ConfirmModal
+        title={REMOVE_TIED_MONITOR_COPY.dialogTitle}
+        description={translator.translateTemplate(
+          REMOVE_TIED_MONITOR_COPY.dialogDescription,
+          { monitorName: monitorToRemove.name || "" },
+        )}
+        error={removeError || undefined}
+        isLoading={isRemoving}
+        submitButtonType={ButtonStyleType.DANGER}
+        submitButtonText={REMOVE_TIED_MONITOR_COPY.button}
+        onClose={closeRemove}
+        onSubmit={() => {
+          void removeTiedMonitor();
+        }}
+      />
+    ) : null;
 
   /*
    * "Monitor web UI": Create Monitor on a Website monitor of the device's
@@ -418,6 +579,7 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
         {getCardContent()}
       </Card>
       {addExistingModal}
+      {removeModal}
     </Fragment>
   );
 };

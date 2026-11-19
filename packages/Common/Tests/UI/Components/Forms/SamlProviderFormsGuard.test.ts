@@ -71,7 +71,7 @@ const SAML_FORMS: Array<SamlForm> = [
     label: "ModelTable: Settings > Project SSO",
     host: "ModelTable",
     builderCall:
-      "formFields={getSamlProviderFormFields<ProjectSSO>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, })}",
+      "formFields={getSamlProviderFormFields<ProjectSSO>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, withIdentityProviderSignOut: true, })}",
   },
   {
     file: `${DASHBOARD}/Pages/StatusPages/View/SSO.tsx`,
@@ -85,14 +85,14 @@ const SAML_FORMS: Array<SamlForm> = [
     label: "ModelTable: Settings > Single Sign-On > SAML",
     host: "ModelTable",
     builderCall:
-      "formFields={getSamlProviderFormFields<GlobalSSO>({ withGlobalAccessSwitches: true, })}",
+      "formFields={getSamlProviderFormFields<GlobalSSO>({ withGlobalAccessSwitches: true, withIdentityProviderSignOut: true, })}",
   },
   {
     file: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalSSO/View.tsx`,
     label: "CardModelDetail: Global SSO Configuration",
     host: "CardModelDetail",
     builderCall:
-      "formFields={getSamlProviderFormFields<GlobalSSO>({ withGlobalAccessSwitches: true, })}",
+      "formFields={getSamlProviderFormFields<GlobalSSO>({ withGlobalAccessSwitches: true, withIdentityProviderSignOut: true, })}",
   },
 ];
 
@@ -124,10 +124,12 @@ const PROVIDER_STEP_OPEN: Array<string> = [
 const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "isEnabled"];
 
 /*
- * Everything with an answer, folded. The last two only on the Global form:
- * its two questions, People without an account and Where this sign-in counts as SSO,
+ * Everything with an answer, folded. Two only on the Global form: its two
+ * questions, People without an account and Where this sign-in counts as SSO,
  * by the keys the form keeps them under. The columns they write
  * (disableSignUpWithSso, restrictToAttachedProjects) are registered unseen.
+ * Last, on a project's and the Global form, the identity provider's Sign
+ * Out URL and Sign Out of the Identity Provider Too (#9603), off by default.
  */
 const SIGN_IN_STEP_FOLDED: Array<string> = [
   "signatureMethod",
@@ -135,6 +137,8 @@ const SIGN_IN_STEP_FOLDED: Array<string> = [
   "description",
   "SSO_GLOBAL_SIGN_UP_FIELD_KEY",
   "SSO_GLOBAL_REACH_FIELD_KEY",
+  "singleLogoutURL",
+  "signOutOfIdentityProvider",
 ];
 
 // What the four forms asked for, and how, before (none of it may come back).
@@ -362,6 +366,21 @@ describe("the SAML provider forms ask only for what the identity provider gives;
         return call.includes("withGlobalAccessSwitches: true");
       }),
     ).toEqual([SAML_FORMS[2]!.builderCall, SAML_FORMS[3]!.builderCall]);
+  });
+
+  /*
+   * A status page's provider signs its readers in to the status page, not
+   * to OneUptime, so only a project's and the Global forms ask whether a
+   * sign-out ends the identity provider's session too (#9603).
+   */
+  test("only the providers people sign in to OneUptime with ask whether to sign out of the provider too", () => {
+    expect(
+      SAML_FORMS.filter((samlForm: SamlForm): boolean => {
+        return samlForm.builderCall.includes(
+          "withIdentityProviderSignOut: true",
+        );
+      }),
+    ).toEqual([SAML_FORMS[0], SAML_FORMS[2], SAML_FORMS[3]]);
   });
 
   test("the project's form starts on the members team", () => {

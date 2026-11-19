@@ -127,7 +127,7 @@ Keycloak은 널리 쓰이는 오픈 소스 ID 및 액세스 관리 솔루션입�
 4. **클라이언트 설정 조정**
 
    - **Name ID Format**을 `email`로 설정하고 **Force Name ID Format**을 켜서 Keycloak이 항상 이메일을 Name ID로 보내도록 합니다
-   - 클라이언트의 **Keys** 탭에서 **Client signature required**(**Signing keys config** 안)를 끕니다. OneUptime은 요청에 서명하지 않습니다
+   - 클라이언트의 **Keys** 탭에서 **Client signature required**(**Signing keys config** 안)를 끕니다. OneUptime은 로그인 요청에 서명하지 않습니다
 
 5. **공급자를 켜고 테스트**
 
@@ -259,11 +259,33 @@ OneUptime의 SSO는 SAML 2.0을 사용하며 규격을 준수하는 모든 ID �
 6. 프로젝트에 SSO를 필수로 지정하기 전에 **Test Single Sign On (SSO)** 카드의 링크를 열고 공급자를 골라 그 공급자로 로그인해 보세요.
 :::
 
-### ID 공급자에서도 로그아웃
+## ID 공급자에서도 로그아웃
 
-OneUptime에서 로그아웃해도 ID 공급자에는 로그인된 상태로 남습니다. 그래서 NOC 화면이나 키오스크 같은 공용 컴퓨터에서는 다음에 로그인 페이지에서 그 공급자를 고른 사람이 떠난 사람으로 들어가게 됩니다. OneUptime에서 로그아웃할 때 공급자의 세션도 끝내려면 **추가 필드**에서 **ID 공급자에서도 로그아웃**을 켜세요. 기본값은 꺼짐입니다. 개인 노트북에서는 그 공급자를 쓰는 다른 모든 앱에서도 로그아웃되기 때문입니다.
+OneUptime에서 로그아웃해도 ID 공급자에는 로그인된 상태로 남습니다. 그래서 NOC 화면이나 키오스크 같은 공용 컴퓨터에서는 다음에 로그인 페이지에서 그 공급자를 고른 사람이 떠난 사람으로 들어가게 됩니다. OneUptime에서 로그아웃할 때 공급자의 세션도 끝내려면 SAML 또는 OIDC 공급자의 **추가 필드**에서 **ID 공급자에서도 로그아웃**을 켜세요. 기본값은 꺼짐입니다. 개인 노트북에서는 그 공급자를 쓰는 다른 모든 앱에서도 로그아웃되기 때문입니다. 켠 뒤 브라우저로 로그인한 사람에게 적용되며, 모바일 앱은 OneUptime에서만 로그아웃합니다.
 
-켜면 OneUptime이 로그아웃시킨 뒤 브라우저가 공급자 자체의 로그아웃으로 가고, 공급자가 OneUptime 로그인 페이지로 돌려보냅니다. 그 페이지를 공급자에 등록하세요. **OIDC 구성** 대화 상자에 로그아웃 후 리디렉션 URI로 표시되며, 공급자는 이를 post-logout redirect URI라고 부릅니다. Google처럼 검색 문서에 `end_session_endpoint`가 없는 공급자는 이 설정을 켤 수 없습니다. 켠 뒤 브라우저로 로그인한 사람에게 적용되며, 모바일 앱은 OneUptime에서만 로그아웃합니다. SAML 공급자는 ID 공급자에서 누구도 로그아웃시키지 않습니다.
+:::tabs
+@tab SAML
+ID 공급자의 로그아웃 URL을 **추가 필드**에서 공급자의 **로그아웃 URL**로 입력하세요. 이 값이 없으면 스위치를 켤 수 없습니다. 그런 다음 **SSO 구성** 대화 상자의 **단일 로그아웃 URL**과, OneUptime이 로그아웃 요청에 서명하는 인증서를 ID 공급자에 등록하세요. 인증서는 같은 대화 상자의 **서명 인증서 다운로드**에서 받을 수 있습니다.
+
+| ID 공급자 | 로그아웃 URL | 단일 로그아웃 URL과 인증서를 넣는 곳 |
+| --- | --- | --- |
+| Okta | **Sign On** 탭의 **View SAML setup instructions**에 있는 **Identity Provider Single Logout URL** | **General** 탭에서 **SAML Settings**를 편집하고 **Show Advanced Settings**를 클릭한 뒤 **Allow application to initiate Single Logout**를 선택하세요. **Single Logout URL**에는 단일 로그아웃 URL을, **SP Issuer**에는 식별자(Entity ID)를 설정하고 인증서를 **Signature Certificate**로 업로드하세요. |
+| Microsoft Entra ID | **Set up OneUptime**에 있는 **Logout URL** | **Basic SAML Configuration**에서 **Logout Url (Optional)** 항목을 단일 로그아웃 URL로 설정하세요. Entra ID에는 인증서가 필요하지 않습니다. |
+| Keycloak | 렐름의 SAML 엔드포인트로, 로그인 URL과 같습니다 | 클라이언트의 **Advanced** 탭에서 **Logout Service Redirect Binding URL**을 단일 로그아웃 URL로 설정하세요. **Front channel logout**은 켠 상태로 두세요. 위에서 설정한 대로 **Client signature required**가 꺼져 있는 동안 Keycloak에는 인증서가 필요하지 않습니다. |
+
+그곳에서 로그아웃하면 ID 공급자가 브라우저를 단일 로그아웃 URL로 돌려보내고, 로그인 페이지가 열리거나 ID 공급자가 로그아웃을 확인하지 않았다는 안내가 표시됩니다. 사용자가 ID 공급자나 그 공급자를 쓰는 다른 앱에서 로그아웃하면, Keycloak과 Microsoft Entra ID처럼 자신의 앱에 로그아웃 요청을 보내는 ID 공급자는 OneUptime에서도 로그아웃시킵니다. OneUptime은 ID 공급자가 서명한 요청만 받아들입니다.
+@tab OpenID Connect
+OneUptime이 로그아웃시킨 뒤 브라우저가 공급자 자체의 로그아웃으로 가고, 공급자가 OneUptime 로그인 페이지로 돌려보냅니다. 그 페이지를 공급자에 등록하세요. **OIDC 구성** 대화 상자에 로그아웃 후 리디렉션 URI로 표시되며, 공급자는 이를 post-logout redirect URI라고 부릅니다. Google처럼 검색 문서에 `end_session_endpoint`가 없는 공급자는 이 설정을 켤 수 없습니다.
+
+| ID 공급자 | 로그아웃 후 리디렉션 URI를 등록하는 곳 |
+| --- | --- |
+| Okta | 앱 통합의 **General** 탭에서 **General Settings**의 **Edit**를 클릭하고 **Sign-out redirect URIs**에 추가하세요. |
+| Microsoft Entra ID | 앱 등록의 **Authentication**에서 **Web** 플랫폼의 **Redirect URIs**에 추가하세요. **Front-channel logout URL**은 OneUptime이 쓰지 않는 다른 설정입니다. |
+| Auth0 | 애플리케이션의 **Settings**에서 **Allowed Logout URLs**에 추가하세요. 2023년 11월 14일 이전에 만든 테넌트는 검색 문서에 `end_session_endpoint`가 나오도록 테넌트의 **Advanced** 설정에서 **RP-Initiated Logout End Session Endpoint Discovery**도 켜야 합니다. |
+| Keycloak | 클라이언트 설정에서 **Valid post logout redirect URIs**에 추가하세요(Keycloak 19 이상). |
+
+등록하지 않은 공급자는 OneUptime에서 로그아웃한 사람을 돌려보내지 않고 자체 오류 페이지를 보여 줍니다. 그래도 OneUptime에서는 로그아웃된 상태입니다.
+:::
 
 ## SSO 사용자의 역할과 팀
 

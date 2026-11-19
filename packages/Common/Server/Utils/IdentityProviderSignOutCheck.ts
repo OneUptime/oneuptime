@@ -6,7 +6,10 @@ import type DatabaseService from "../Services/DatabaseService";
 import UpdateBy from "../Types/Database/UpdateBy";
 import type BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { isUsableEndSessionEndpoint } from "../../Types/SSO/IdentityProviderSignOut";
+import {
+  isUsableEndSessionEndpoint,
+  isUsableSingleLogoutUrl,
+} from "../../Types/SSO/IdentityProviderSignOut";
 
 /*
  * A PROVIDER THAT CANNOT SIGN PEOPLE OUT SAYS SO WHERE THE SWITCH IS TURNED ON,
@@ -25,6 +28,10 @@ import { isUsableEndSessionEndpoint } from "../../Types/SSO/IdentityProviderSign
  * in words the provider form shows, when the document names no usable
  * end_session_endpoint or cannot be read. A save that leaves it as it was
  * reads nothing.
+ *
+ * A SAML provider (Global SSO, Project SSO) has the same switch since #9603,
+ * and is held to its Sign Out URL instead (beforeSamlProviderCreate,
+ * beforeSamlProviderUpdate).
  */
 
 // How long the discovery document is waited for: a save is a person waiting.
@@ -36,10 +43,21 @@ export const NO_END_SESSION_ENDPOINT_MESSAGE: string =
 export const DISCOVERY_UNREADABLE_MESSAGE: string =
   "OneUptime could not read this identity provider's discovery document, so it cannot tell whether the provider can sign people out. Check the discovery URL and try again, or leave Sign out of the identity provider too off.";
 
+/*
+ * A SAML provider (Global SSO, Project SSO, #9603) names where it signs
+ * people out with its Sign Out URL, which the admin enters: OneUptime reads
+ * no SAML metadata. Without one, the switch could only fail later, quietly,
+ * at someone's sign-out, so turning it on - or clearing the URL of a
+ * provider that has it on - is refused, in words the provider form shows.
+ */
+export const NO_SINGLE_LOGOUT_URL_MESSAGE: string =
+  "This identity provider has no Sign Out URL, so OneUptime cannot sign people out of it. Enter the identity provider's single sign-out URL as the Sign Out URL, or leave Sign Out of the Identity Provider Too off.";
+
 // The provider columns this check reads and writes.
 interface ProviderSignOutColumns {
   _id?: unknown;
   discoveryURL?: unknown;
+  singleLogoutURL?: unknown;
   signOutOfIdentityProvider?: unknown;
 }
 
@@ -183,7 +201,83 @@ export default class IdentityProviderSignOutCheck {
     }
   }
 
-  // A discovery URL as text: a URL column holds a URL, a write may hold text.
+  /*
+   * A SAML provider created with the switch on needs a Sign Out URL a
+   * browser may be sent to. Nothing is fetched: OneUptime reads no SAML
+   * metadata.
+   */
+  public static beforeSamlProviderCreate(data: unknown): void {
+    const provider: ProviderSignOutColumns = (data ||
+      {}) as ProviderSignOutColumns;
+
+    if (provider.signOutOfIdentityProvider !== true) {
+      return;
+    }
+
+    IdentityProviderSignOutCheck.assertSamlProviderSignsOut(
+      provider.singleLogoutURL,
+    );
+  }
+
+  /*
+   * A SAML provider update that leaves the switch on needs a Sign Out URL:
+   * one that turns it on, and one that changes or clears the URL of a
+   * provider that has it on. A write that turns the switch off is let
+   * through, whatever else it writes. Each provider the update reaches is
+   * read as it is now, with the update held to them, so a save that sends
+   * everything back as it was - an edit form sends every field it shows -
+   * of a provider whose Sign Out URL is already there, passes.
+   */
+  public static async beforeSamlProviderUpdate<
+    TBaseModel extends BaseModel,
+  >(data: {
+    service: DatabaseService<TBaseModel>;
+    updateBy: UpdateBy<TBaseModel>;
+  }): Promise<void> {
+    const written: ProviderSignOutColumns = (data.updateBy.data ||
+      {}) as ProviderSignOutColumns;
+
+    const turnsOn: boolean = written.signOutOfIdentityProvider === true;
+    const movesUrl: boolean = written.singleLogoutURL !== undefined;
+    const turnsOff: boolean = written.signOutOfIdentityProvider === false;
+
+    if ((!turnsOn && !movesUrl) || turnsOff) {
+      return;
+    }
+
+    const providers: Array<TBaseModel> =
+      await data.service.findRowsAndHoldUpdateToThem(data.updateBy, {
+        _id: true,
+        singleLogoutURL: true,
+        signOutOfIdentityProvider: true,
+      } as never);
+
+    for (const row of providers) {
+      const provider: ProviderSignOutColumns =
+        row as unknown as ProviderSignOutColumns;
+
+      if (!turnsOn && provider.signOutOfIdentityProvider !== true) {
+        continue;
+      }
+
+      IdentityProviderSignOutCheck.assertSamlProviderSignsOut(
+        movesUrl ? written.singleLogoutURL : provider.singleLogoutURL,
+      );
+    }
+  }
+
+  // Refuses, with what to do, a Sign Out URL no browser may be sent to.
+  public static assertSamlProviderSignsOut(singleLogoutURL: unknown): void {
+    if (
+      !isUsableSingleLogoutUrl(
+        IdentityProviderSignOutCheck.toText(singleLogoutURL),
+      )
+    ) {
+      throw new BadDataException(NO_SINGLE_LOGOUT_URL_MESSAGE);
+    }
+  }
+
+  // A URL as text: a URL column holds a URL, a write may hold text.
   private static toText(value: unknown): string {
     if (value === null || value === undefined) {
       return "";

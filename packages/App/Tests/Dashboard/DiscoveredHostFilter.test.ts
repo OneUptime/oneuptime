@@ -9,7 +9,8 @@ import {
   countDiscoveredHosts,
   countSelectableShownHosts,
   filterDiscoveredHosts,
-  getAlreadyAddedAddresses,
+  getAlreadyAddedDeviceIds,
+  getRegisteredDeviceIdOf,
   getDiscoveredHostFilterLabel,
   getDiscoveredHostFilterOptions,
   getDiscoveredHostsToImport,
@@ -478,15 +479,20 @@ describe("isSelectableDiscoveredHost", () => {
  * Results opens; until then none is offered.
  */
 describe("a device already added, picked to get a monitor (#9544)", () => {
+  // The devices the server named each host as (issue #9677).
+  const ADDED_DEVICE_ID: string = "d0000000-0000-4000-8000-000000000005";
+  const MONITORED_DEVICE_ID: string = "d0000000-0000-4000-8000-000000000006";
   const added: DiscoveredNetworkDevice = snmpHost("10.0.0.5", {
     isAlreadyRegistered: true,
+    registeredDeviceId: ADDED_DEVICE_ID,
   });
   const monitored: DiscoveredNetworkDevice = pingOnlyHost("10.0.0.6", {
     isAlreadyRegistered: true,
+    registeredDeviceId: MONITORED_DEVICE_ID,
   });
   const fresh: DiscoveredNetworkDevice = snmpHost("10.0.0.7");
   const known: DiscoveredHostSelectability = {
-    monitoredAddresses: new Set<string>(["10.0.0.6"]),
+    monitoredDeviceIds: new Set<string>([MONITORED_DEVICE_ID]),
   };
 
   test("one with no monitor can be picked once the monitors are known, and one with a monitor never can", () => {
@@ -504,7 +510,7 @@ describe("a device already added, picked to get a monitor (#9544)", () => {
 
   test("a read that failed knows of no monitor: every device already added is offered, and the server's duplicate rule keeps each to one", () => {
     const failed: DiscoveredHostSelectability = {
-      monitoredAddresses: new Set<string>(),
+      monitoredDeviceIds: new Set<string>(),
     };
 
     expect(isSelectableDiscoveredHost(added, failed)).toBe(true);
@@ -583,16 +589,98 @@ describe("a device already added, picked to get a monitor (#9544)", () => {
     ).toBe(true);
   });
 
-  test("the addresses whose monitors are read are the devices already added, each once and in order", () => {
+  test("the devices whose monitors are read are the ones the hosts already are, each once and in order", () => {
+    const NINE: string = "d0000000-0000-4000-8000-000000000009";
+
     expect(
-      getAlreadyAddedAddresses([
-        snmpHost("10.0.0.9", { isAlreadyRegistered: true }),
+      getAlreadyAddedDeviceIds([
+        snmpHost("10.0.0.9", {
+          isAlreadyRegistered: true,
+          registeredDeviceId: NINE,
+        }),
         fresh,
         added,
-        snmpHost(" 10.0.0.9 ", { isAlreadyRegistered: true }),
-        { ipAddress: "", snmpReachable: true, isAlreadyRegistered: true },
+        snmpHost(" 10.0.0.9 ", {
+          isAlreadyRegistered: true,
+          registeredDeviceId: NINE.toUpperCase(),
+        }),
+        // A device, but which one the scan's probe cannot tell.
+        snmpHost("10.0.0.10", { isAlreadyRegistered: true }),
+        // Not a device: a stale id is never read.
+        snmpHost("10.0.0.11", { registeredDeviceId: NINE }),
       ]),
-    ).toEqual(["10.0.0.5", "10.0.0.9"]);
+    ).toEqual([ADDED_DEVICE_ID, NINE]);
+  });
+});
+
+/*
+ * ISSUE #9677: two sites can each have a 10.0.0.5. A host is offered by the
+ * device the server says it is, never by its address: another site's device
+ * at the same address having a monitor does not make this one monitored, and
+ * a host whose device cannot be told apart is never offered.
+ */
+describe("two sites' devices at one address (#9677)", () => {
+  const BRANCH_A_DEVICE_ID: string = "a3000000-0000-4000-8000-000000000001";
+  const BRANCH_B_DEVICE_ID: string = "b3000000-0000-4000-8000-000000000001";
+
+  test("a host whose own device has no monitor is offered though another site's device at its address has one", () => {
+    const branchBHost: DiscoveredNetworkDevice = snmpHost("10.0.0.5", {
+      isAlreadyRegistered: true,
+      registeredDeviceId: BRANCH_B_DEVICE_ID,
+    });
+
+    expect(
+      isSelectableDiscoveredHost(branchBHost, {
+        monitoredDeviceIds: new Set<string>([BRANCH_A_DEVICE_ID]),
+      }),
+    ).toBe(true);
+    expect(
+      isAddingMonitorToExistingHost(branchBHost, {
+        monitoredDeviceIds: new Set<string>([BRANCH_A_DEVICE_ID]),
+      }),
+    ).toBe(true);
+  });
+
+  test("a host whose own device has a monitor is not offered, whatever its case", () => {
+    expect(
+      isSelectableDiscoveredHost(
+        snmpHost("10.0.0.5", {
+          isAlreadyRegistered: true,
+          registeredDeviceId: BRANCH_A_DEVICE_ID.toUpperCase(),
+        }),
+        { monitoredDeviceIds: new Set<string>([BRANCH_A_DEVICE_ID]) },
+      ),
+    ).toBe(false);
+  });
+
+  test("a host whose devices the scan's probe cannot tell apart is never offered", () => {
+    const ambiguous: DiscoveredNetworkDevice = snmpHost("10.0.0.5", {
+      isAlreadyRegistered: true,
+    });
+
+    expect(
+      isSelectableDiscoveredHost(ambiguous, {
+        monitoredDeviceIds: new Set<string>(),
+      }),
+    ).toBe(false);
+    expect(getRegisteredDeviceIdOf(ambiguous)).toBe("");
+  });
+
+  test("reads the device of a host only when it is a device", () => {
+    expect(
+      getRegisteredDeviceIdOf(
+        snmpHost("10.0.0.5", {
+          isAlreadyRegistered: true,
+          registeredDeviceId: ` ${BRANCH_A_DEVICE_ID.toUpperCase()} `,
+        }),
+      ),
+    ).toBe(BRANCH_A_DEVICE_ID);
+    expect(
+      getRegisteredDeviceIdOf(
+        snmpHost("10.0.0.5", { registeredDeviceId: BRANCH_A_DEVICE_ID }),
+      ),
+    ).toBe("");
+    expect(getRegisteredDeviceIdOf(null)).toBe("");
   });
 });
 
@@ -622,6 +710,38 @@ describe("markDiscoveredHostsAsRegistered", () => {
     expect(marked[0]!.isAlreadyRegistered).toBe(true);
     expect(marked[1]!.isAlreadyRegistered).toBeUndefined();
     expect(marked[2]!.isAlreadyRegistered).toBe(true);
+  });
+
+  test("an imported host names the device the import made, unless the scan already named one (#9677)", () => {
+    const IMPORTED: string = "d0000000-0000-4000-8000-000000000001";
+    const NAMED_BY_SCAN: string = "d0000000-0000-4000-8000-000000000003";
+
+    const marked: Array<DiscoveredNetworkDevice> =
+      markDiscoveredHostsAsRegistered({
+        hosts: [
+          snmpHost("10.0.0.1"),
+          snmpHost("10.0.0.3", {
+            isAlreadyRegistered: true,
+            registeredDeviceId: NAMED_BY_SCAN,
+          }),
+          snmpHost("10.0.0.4"),
+        ],
+        importedIpAddresses: new Set<string>([
+          "10.0.0.1",
+          "10.0.0.3",
+          "10.0.0.4",
+        ]),
+        importedDeviceIds: new Map<string, string>([
+          ["10.0.0.1", IMPORTED],
+          ["10.0.0.3", "d0000000-0000-4000-8000-0000000000ff"],
+        ]),
+      });
+
+    expect(marked[0]!.registeredDeviceId).toBe(IMPORTED);
+    expect(marked[1]!.registeredDeviceId).toBe(NAMED_BY_SCAN);
+    // Imported, but which device it is was not named: none is guessed.
+    expect(marked[2]!.isAlreadyRegistered).toBe(true);
+    expect(marked[2]!.registeredDeviceId).toBeUndefined();
   });
 
   test("the scan's own objects are not mutated", () => {

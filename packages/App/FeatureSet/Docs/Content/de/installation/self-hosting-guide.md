@@ -114,7 +114,7 @@ Klicken Sie auf **E-Mail einrichten**. Es öffnet **Einstellungen > Benachrichti
 
 ### Festlegen, wer sich registrieren kann
 
-Jeder, der Ihre Adresse öffnen kann, kann sich registrieren. Sobald Ihr Team seine Konten hat, schalten Sie **Registrierung erlauben** unter **Einstellungen > Authentifizierung** aus: Wen Sie in ein Projekt einladen, kann trotzdem beitreten. Um Registrierungen offen zu lassen, klicken Sie auf **Registrierungen offen lassen**.
+Jeder, der Ihre Adresse öffnen kann, kann sich registrieren. Sobald Ihr Server E-Mails senden kann, öffnet ein neues Konto den Link, den OneUptime ihm sendet, bevor es sich anmelden kann, und eine Adresse, die schon ein Konto hat, erfährt das per E-Mail. Sobald Ihr Team seine Konten hat, schalten Sie **Registrierung erlauben** unter **Einstellungen > Authentifizierung** aus: Wen Sie in ein Projekt einladen, kann trotzdem beitreten. Um Registrierungen offen zu lassen, klicken Sie auf **Registrierungen offen lassen**.
 
 **Es hat funktioniert, wenn** die Checkliste Registrierungen als erledigt markiert.
 

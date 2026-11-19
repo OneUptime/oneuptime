@@ -42,7 +42,7 @@ Set **Alert When** to alert on a check:
 
 Saving the check makes a metric monitor for it, as you and with your permissions. Clearing the condition removes the monitor.
 
-A check's **Status**, on **Checks** and on its table's **Checks** tab, says how it stands: **Failing** while its alert is open, **Passing** while it is not, and **Could Not Run** when its query failed. A check with no alert says only that it **Ran**. A failing check, and one that could not run, is on the **Overview** too. **Checks** lists the failing checks first, then the ones that could not run, then the passing ones, and its **Status** filter shows the checks of one status. **Failing Checks** on the **Overview** opens **Checks** showing only the failing ones.
+A check's **Status**, on **Checks** and on its table's **Checks** tab, says how it stands: **Failing** while its alert is open, **Passing** while it is not, and **Could Not Run** when its query failed. A check with no alert says only that it **Ran**. A query the warehouse fails for a moment, which its own docs say may pass (busy, unavailable for now, or under maintenance), is started again once, 10 seconds later, and the check says it ran at its second try, or that it failed again. A failing check, and one that could not run, is on the **Overview** too. **Checks** lists the failing checks first, then the ones that could not run, then the passing ones, and its **Status** filter shows the checks of one status. **Failing Checks** on the **Overview** opens **Checks** showing only the failing ones.
 
 ## What a check costs
 

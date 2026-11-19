@@ -93,9 +93,16 @@ Met **Elk project** voldoet aanmelden met de provider in elk project waar de per
 
 ## Ook afmelden bij de identiteitsprovider
 
-Afmelden bij OneUptime laat iemand aangemeld bij de identiteitsprovider, dus op een gedeelde computer komt de volgende persoon die zich met die provider aanmeldt binnen als degene die wegging. Klik bij een OpenID Connect-provider op **Configuratie bewerken** en zet **Ook afmelden bij de identiteitsprovider** aan onder **Meer velden**: een afmelding bij OneUptime beëindigt dan ook de sessie bij de provider, en de provider stuurt de browser terug naar de aanmeldpagina van OneUptime. Het staat standaard uit, omdat het op een persoonlijke laptop iemand ook zou afmelden bij elke andere app die de provider gebruikt.
+Afmelden bij OneUptime laat iemand aangemeld bij de identiteitsprovider, dus op een gedeelde computer komt de volgende persoon die zich met die provider aanmeldt binnen als degene die wegging. Klik bij een SAML- of OpenID Connect-provider op **Configuratie bewerken** en zet **Ook afmelden bij de identiteitsprovider** aan onder **Meer velden**: een afmelding bij OneUptime beëindigt dan ook de sessie bij de provider, en de provider stuurt de browser terug naar OneUptime. Het staat standaard uit, omdat het op een persoonlijke laptop iemand ook zou afmelden bij elke andere app die de provider gebruikt.
 
+:::tabs
+@tab SAML
+Vul de afmeldings-URL van uw identiteitsprovider in als **Afmeldings-URL**, onder **Meer velden**: zonder kan de schakelaar niet aan. Geef uw identiteitsprovider daarna de **Single Logout URL** die de kaart **URL's van de identiteitsprovider** toont, en het certificaat waarmee OneUptime zijn afmeldverzoeken ondertekent, via **Ondertekeningscertificaat downloaden** op dezelfde kaart. Meldt iemand zich af bij de identiteitsprovider, of bij een andere app die hem gebruikt, dan meldt een identiteitsprovider die zijn apps afmeldverzoeken stuurt diegene ook af bij OneUptime.
+@tab OpenID Connect
 Registreer de omleidings-URI na afmelden die de kaart **URL van de identiteitsprovider** toont bij uw provider, als toegestane post-logout redirect URI. Een provider waarvan het discovery-document geen `end_session_endpoint` noemt, zoals Google, kan het niet aanzetten.
+:::
+
+Waar Okta, Microsoft Entra ID, Auth0 en Keycloak deze instellingen bewaren, staat op de pagina [SSO](/docs/identity/sso).
 
 ## SSO afdwingen
 

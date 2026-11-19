@@ -3,6 +3,7 @@ import TelemetryTimeRangePicker, {
 } from "../../../UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import "@testing-library/jest-dom";
 import {
@@ -91,6 +92,37 @@ function hasClass(element: HTMLElement, className: string): boolean {
   return element.classList.contains(className);
 }
 
+/*
+ * The edge of the button the dropdown hangs from, as the picker decided it
+ * (data-align): "left" is the line's start, "right" its end. The dropdown
+ * is drawn over the page from the button (LayeredPopover), not positioned
+ * by classes inside the picker any more (#9859).
+ */
+function isAligned(element: HTMLElement, edge: "left" | "right"): boolean {
+  return element.getAttribute("data-align") === edge;
+}
+
+// The layer's element the dropdown is drawn in: Tippy's root, on the body.
+function layerOf(element: HTMLElement): HTMLElement {
+  const layer: HTMLElement | null = element.closest<HTMLElement>(
+    `.${LAYERED_POPOVER_CLASS_NAME}`,
+  );
+
+  expect(layer).not.toBeNull();
+
+  return layer as HTMLElement;
+}
+
+// Where Popper placed the dropdown, once its first placement has run.
+async function placementOf(element: HTMLElement): Promise<string | null> {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  return layerOf(element).getAttribute("data-popper-placement");
+}
+
 describe("TelemetryTimeRangePicker", () => {
   beforeEach(() => {
     setViewportWidth(1440);
@@ -115,8 +147,8 @@ describe("TelemetryTimeRangePicker", () => {
 
       const dropdown: HTMLElement = openDropdown();
 
-      expect(hasClass(dropdown, "left-0")).toBe(true);
-      expect(hasClass(dropdown, "right-0")).toBe(false);
+      expect(isAligned(dropdown, "left")).toBe(true);
+      expect(isAligned(dropdown, "right")).toBe(false);
       expect(dropdown.getAttribute("data-align")).toBe("left");
     });
 
@@ -124,14 +156,14 @@ describe("TelemetryTimeRangePicker", () => {
       stubTriggerRect(0, 116);
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
-      expect(hasClass(openDropdown(), "left-0")).toBe(true);
+      expect(isAligned(openDropdown(), "left")).toBe(true);
     });
 
     test("stays left aligned for a trigger in the middle of a wide toolbar", () => {
       stubTriggerRect(500, 616);
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
-      expect(hasClass(openDropdown(), "left-0")).toBe(true);
+      expect(isAligned(openDropdown(), "left")).toBe(true);
     });
 
     test("flips to right alignment when the trigger is near the right edge", () => {
@@ -140,20 +172,19 @@ describe("TelemetryTimeRangePicker", () => {
 
       const dropdown: HTMLElement = openDropdown();
 
-      expect(hasClass(dropdown, "right-0")).toBe(true);
-      expect(hasClass(dropdown, "left-0")).toBe(false);
+      expect(isAligned(dropdown, "right")).toBe(true);
+      expect(isAligned(dropdown, "left")).toBe(false);
       expect(dropdown.getAttribute("data-align")).toBe("right");
     });
 
-    test("never emits both positioning classes at once", () => {
+    test("hangs from one edge at a time: the one it picked, as Popper places it", async () => {
       stubTriggerRect(1310, 1430);
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
       const dropdown: HTMLElement = openDropdown();
 
-      expect(
-        hasClass(dropdown, "left-0") && hasClass(dropdown, "right-0"),
-      ).toBe(false);
+      expect(isAligned(dropdown, "right")).toBe(true);
+      expect(await placementOf(dropdown)).toBe("bottom-end");
     });
 
     test("stays left aligned on a narrow mobile viewport", () => {
@@ -161,14 +192,14 @@ describe("TelemetryTimeRangePicker", () => {
       stubTriggerRect(12, 128);
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
-      expect(hasClass(openDropdown(), "left-0")).toBe(true);
+      expect(isAligned(openDropdown(), "left")).toBe(true);
     });
 
     test("re-measures alignment when the window is resized", () => {
       stubTriggerRect(1000, 1116);
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
-      expect(hasClass(openDropdown(), "left-0")).toBe(true);
+      expect(isAligned(openDropdown(), "left")).toBe(true);
 
       // Shrink the window so the same trigger no longer has room to its right.
       act(() => {
@@ -176,7 +207,7 @@ describe("TelemetryTimeRangePicker", () => {
         window.dispatchEvent(new Event("resize"));
       });
 
-      expect(hasClass(getDropdown(), "right-0")).toBe(true);
+      expect(isAligned(getDropdown(), "right")).toBe(true);
     });
 
     test("keeps the panel on screen when neither edge fits the viewport", () => {
@@ -190,33 +221,33 @@ describe("TelemetryTimeRangePicker", () => {
 
       const dropdown: HTMLElement = openDropdown();
 
-      expect(hasClass(dropdown, "left-0")).toBe(true);
+      expect(isAligned(dropdown, "left")).toBe(true);
       expect(hasClass(dropdown, "max-w-[calc(100vw-1rem)]")).toBe(true);
     });
 
     test("re-measures alignment when scrolling moves the trigger sideways", () => {
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
-      expect(hasClass(openDropdown(), "left-0")).toBe(true);
+      expect(isAligned(openDropdown(), "left")).toBe(true);
 
       act(() => {
         stubTriggerRect(1310, 1430);
         window.dispatchEvent(new Event("scroll"));
       });
 
-      expect(hasClass(getDropdown(), "right-0")).toBe(true);
+      expect(isAligned(getDropdown(), "right")).toBe(true);
     });
 
     test("re-evaluates alignment each time the dropdown is reopened", () => {
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
-      expect(hasClass(openDropdown(), "left-0")).toBe(true);
+      expect(isAligned(openDropdown(), "left")).toBe(true);
 
       fireEvent.click(getTrigger());
       expect(screen.queryByTestId(DROPDOWN_TEST_ID)).toBeNull();
 
       stubTriggerRect(1310, 1430);
-      expect(hasClass(openDropdown(), "right-0")).toBe(true);
+      expect(isAligned(openDropdown(), "right")).toBe(true);
     });
 
     test("stops listening for layout changes once closed", () => {
@@ -262,16 +293,23 @@ describe("TelemetryTimeRangePicker", () => {
       expect(screen.queryByTestId(DROPDOWN_TEST_ID)).toBeNull();
     });
 
-    test("keeps the panel anchored below the trigger inside a relative container", () => {
+    test("keeps the panel anchored below the trigger, drawn over the page outside any box", async () => {
       renderPicker({ range: TimeRange.PAST_ONE_HOUR });
 
       const dropdown: HTMLElement = openDropdown();
+      const layer: HTMLElement = layerOf(dropdown);
 
-      expect(hasClass(dropdown, "absolute")).toBe(true);
-      expect(hasClass(dropdown, "top-full")).toBe(true);
+      /*
+       * On the page's body: an investigation drawer's scrolling body, or a
+       * card around the toolbar, cannot cut it off (#9859).
+       */
+      expect(layer.parentElement).toBe(document.body);
       expect(
-        dropdown.parentElement?.classList.contains("relative") ?? false,
-      ).toBe(true);
+        (layer as HTMLElement & { _tippy?: { reference: Element } })._tippy
+          ?.reference,
+      ).toBe(getTrigger());
+      expect(await placementOf(dropdown)).toBe("bottom-start");
+      expect(hasClass(dropdown, "absolute")).toBe(false);
     });
 
     test("caps the panel width so it cannot exceed the viewport", () => {
@@ -387,7 +425,7 @@ describe("TelemetryTimeRangePicker", () => {
 
       const dropdown: HTMLElement = openDropdown();
 
-      expect(hasClass(dropdown, "left-0")).toBe(true);
+      expect(isAligned(dropdown, "left")).toBe(true);
       expect(dropdown.querySelectorAll("input").length).toBe(0);
     });
 

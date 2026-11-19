@@ -5,6 +5,9 @@ import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
+import MonitorProbeService from "../../../Server/Services/MonitorProbeService";
+import ProbeService from "../../../Server/Services/ProbeService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ActiveMonitorLimit from "../../../Server/Utils/Billing/ActiveMonitorLimit";
@@ -163,7 +166,27 @@ beforeEach(() => {
   deviceFindOneBy = jest
     .spyOn(NetworkDeviceService, "findOneBy")
     .mockResolvedValue(null);
+
+  /*
+   * The probes a monitor runs on (issue #9677): none of a site's unless a
+   * test says so, so the one device in no site at an address is the
+   * monitor's, as before.
+   */
+  newMonitorProbes = jest
+    .spyOn(MonitorService, "getProbeIdsOfNewMonitor")
+    .mockResolvedValue([]);
+  storedMonitorProbes = jest
+    .spyOn(MonitorService, "getProbeIdsOfMonitor")
+    .mockResolvedValue([]);
+  jest.spyOn(NetworkSiteService, "findOneBy").mockResolvedValue(null);
 });
+
+let newMonitorProbes: SpyInstance<
+  typeof MonitorService.getProbeIdsOfNewMonitor
+>;
+let storedMonitorProbes: SpyInstance<
+  typeof MonitorService.getProbeIdsOfMonitor
+>;
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -424,5 +447,269 @@ describe("a tie when a person changes the monitor's address", () => {
 
     expect(result.updateBy.data["networkDeviceId"]).toBeUndefined();
     expect(deviceFindOneBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * TWO SITES' DEVICES AT ONE ADDRESS (OneUptime issue #9677).
+ *
+ * Every branch can have a 10.0.0.5. A monitor is tied to the device its
+ * probes see at the address it checks: the device they poll, else the one in
+ * a site they look into. A monitor whose probes are no site's is never tied
+ * to a device in a site.
+ */
+describe("a monitor created on an address two sites share", () => {
+  const SITE_A: string = "a1000000-0000-4000-8000-000000000001";
+  const SITE_B: string = "b1000000-0000-4000-8000-000000000001";
+  const PROBE_A: ObjectID = new ObjectID(
+    "a2000000-0000-4000-8000-000000000001",
+  );
+  const PROBE_B: ObjectID = new ObjectID(
+    "b2000000-0000-4000-8000-000000000001",
+  );
+
+  function deviceIn(
+    id: ObjectID,
+    hostname: string,
+    siteId: string,
+    probeId: ObjectID,
+  ): NetworkDevice {
+    const item: NetworkDevice = device(id, hostname);
+    item.siteId = new ObjectID(siteId);
+    item.probeId = probeId;
+    return item;
+  }
+
+  it("is tied to the device its probe polls there, never the other site's", async () => {
+    devicesAt = [
+      deviceIn(PRINTER_ID, "10.0.0.5", SITE_A, PROBE_A),
+      deviceIn(OTHER_PRINTER_ID, "10.0.0.5", SITE_B, PROBE_B),
+    ];
+
+    newMonitorProbes.mockResolvedValue([PROBE_B]);
+    const onSiteB: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.0.0.5"),
+    );
+    await rootCreate(onSiteB);
+
+    newMonitorProbes.mockResolvedValue([PROBE_A]);
+    const onSiteA: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.0.0.5"),
+    );
+    await rootCreate(onSiteA);
+
+    expect(onSiteB.networkDeviceId?.toString()).toBe(
+      OTHER_PRINTER_ID.toString(),
+    );
+    expect(onSiteA.networkDeviceId?.toString()).toBe(PRINTER_ID.toString());
+  });
+
+  it("is not tied to site A's device when its probe looks into site B", async () => {
+    devicesAt = [deviceIn(PRINTER_ID, "10.0.0.5", SITE_A, PROBE_A)];
+    newMonitorProbes.mockResolvedValue([PROBE_B]);
+    jest.spyOn(NetworkDeviceService, "readProbeReach").mockResolvedValue({
+      probeIds: new Set<string>([PROBE_B.toString()]),
+      siteKeys: new Set<string>(),
+      isKnown: true,
+    });
+
+    const monitor: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.0.0.5"),
+    );
+    await rootCreate(monitor);
+
+    expect(monitor.networkDeviceId).toBeUndefined();
+  });
+
+  it("is not tied to a device in a site when its probes are no site's", async () => {
+    devicesAt = [deviceIn(PRINTER_ID, "10.0.0.5", SITE_A, PROBE_A)];
+
+    const monitor: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.0.0.5"),
+    );
+    await rootCreate(monitor);
+
+    expect(monitor.networkDeviceId).toBeUndefined();
+  });
+
+  it("asks which probes the monitor runs on, from what the create sends, only when a device is at the address", async () => {
+    const miscDataProps: Record<string, unknown> = {
+      probes: [PROBE_A.toString()],
+    };
+
+    devicesAt = [];
+    await (MonitorService as any).onBeforeCreate({
+      data: newMonitor(MonitorType.Ping, IP.fromString("10.0.0.5")),
+      miscDataProps: miscDataProps,
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    });
+    expect(newMonitorProbes).not.toHaveBeenCalled();
+
+    devicesAt = [deviceIn(PRINTER_ID, "10.0.0.5", SITE_A, PROBE_A)];
+    newMonitorProbes.mockResolvedValue([PROBE_A]);
+    const monitor: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.0.0.5"),
+    );
+    await (MonitorService as any).onBeforeCreate({
+      data: monitor,
+      miscDataProps: miscDataProps,
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    });
+
+    expect(newMonitorProbes).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      miscDataProps: miscDataProps,
+    });
+    expect(monitor.networkDeviceId?.toString()).toBe(PRINTER_ID.toString());
+  });
+
+  it("follows a changed address to the device the stored monitor's probes see", async () => {
+    const stored: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.20.0.7"),
+    );
+    stored.id = ObjectID.generate();
+    stored.projectId = PROJECT_ID;
+    stored.networkDeviceId = PRINTER_ID;
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([stored]);
+    deviceFindOneBy.mockResolvedValue(device(PRINTER_ID, "10.20.0.7"));
+    devicesAt = [
+      deviceIn(PRINTER_ID, "10.0.0.5", SITE_A, PROBE_A),
+      deviceIn(OTHER_PRINTER_ID, "10.0.0.5", SITE_B, PROBE_B),
+    ];
+    storedMonitorProbes.mockResolvedValue([PROBE_B]);
+
+    const result: { updateBy: { data: Record<string, unknown> } } = await (
+      MonitorService as any
+    ).onBeforeUpdate({
+      query: { _id: stored.id },
+      data: {
+        monitorSteps: steps(MonitorType.Ping, IP.fromString("10.0.0.5")),
+      },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    });
+
+    expect(storedMonitorProbes).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      monitorId: stored.id,
+    });
+    expect(String(result.updateBy.data["networkDeviceId"])).toBe(
+      OTHER_PRINTER_ID.toString(),
+    );
+  });
+});
+
+describe("the probes a monitor runs on", () => {
+  const PROBE_A: ObjectID = new ObjectID(
+    "a2000000-0000-4000-8000-000000000001",
+  );
+  const PROBE_GLOBAL: ObjectID = new ObjectID(
+    "f2000000-0000-4000-8000-000000000001",
+  );
+
+  function probe(id: ObjectID): unknown {
+    return { id: id, _id: id.toString() };
+  }
+
+  it("are the ones a new monitor's create picked, that the project may use", async () => {
+    newMonitorProbes.mockRestore();
+    const attachable: SpyInstance<
+      typeof ProbeService.getProbesAttachableToProject
+    > = jest
+      .spyOn(ProbeService, "getProbesAttachableToProject")
+      .mockResolvedValue([probe(PROBE_A)] as never);
+
+    const probeIds: Array<ObjectID> =
+      await MonitorService.getProbeIdsOfNewMonitor({
+        projectId: PROJECT_ID,
+        miscDataProps: {
+          probes: [PROBE_A.toString(), "a2000000-0000-4000-8000-0000000000ff"],
+        },
+      });
+
+    expect(probeIds.map(String)).toEqual([PROBE_A.toString()]);
+    expect(attachable.mock.calls[0]![0].projectId).toBe(PROJECT_ID);
+    expect(attachable.mock.calls[0]![0].probeIds.map(String)).toEqual([
+      PROBE_A.toString(),
+      "a2000000-0000-4000-8000-0000000000ff",
+    ]);
+  });
+
+  it("are the project's defaults when the create picked none", async () => {
+    newMonitorProbes.mockRestore();
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      doNotAddGlobalProbesByDefaultOnNewMonitors: false,
+    } as never);
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([probe(PROBE_GLOBAL)] as never)
+      .mockResolvedValueOnce([probe(PROBE_A)] as never);
+
+    const probeIds: Array<ObjectID> =
+      await MonitorService.getProbeIdsOfNewMonitor({
+        projectId: PROJECT_ID,
+        miscDataProps: undefined,
+      });
+
+    expect(probeIds.map(String)).toEqual([
+      PROBE_GLOBAL.toString(),
+      PROBE_A.toString(),
+    ]);
+  });
+
+  it("are none when the create picked none on purpose", async () => {
+    newMonitorProbes.mockRestore();
+    const attachable: SpyInstance<
+      typeof ProbeService.getProbesAttachableToProject
+    > = jest
+      .spyOn(ProbeService, "getProbesAttachableToProject")
+      .mockResolvedValue([] as never);
+
+    expect(
+      await MonitorService.getProbeIdsOfNewMonitor({
+        projectId: PROJECT_ID,
+        miscDataProps: { probes: [] },
+      }),
+    ).toEqual([]);
+    expect(attachable).toHaveBeenCalled();
+  });
+
+  it("are the stored monitor's MonitorProbe rows, enabled or not", async () => {
+    storedMonitorProbes.mockRestore();
+    const monitorId: ObjectID = ObjectID.generate();
+    const rows: SpyInstance<typeof MonitorProbeService.findBy> = jest
+      .spyOn(MonitorProbeService, "findBy")
+      .mockResolvedValue([
+        { probeId: PROBE_A },
+        { probeId: undefined },
+      ] as never);
+
+    expect(
+      (
+        await MonitorService.getProbeIdsOfMonitor({
+          projectId: PROJECT_ID,
+          monitorId: monitorId,
+        })
+      ).map(String),
+    ).toEqual([PROBE_A.toString()]);
+    expect(rows.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, monitorId: monitorId },
+      select: { probeId: true },
+      props: { isRoot: true },
+    });
+
+    expect(
+      await MonitorService.getProbeIdsOfMonitor({
+        projectId: PROJECT_ID,
+        monitorId: null,
+      }),
+    ).toEqual([]);
   });
 });

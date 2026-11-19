@@ -13,6 +13,7 @@ import { useContentGutters } from "../layout/WindowLayout";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
+import RecordOwnersAndLabels from "../components/RecordOwnersAndLabels";
 import {
   useIncidentEpisodeDetail,
   useIncidentEpisodeStates,
@@ -525,6 +526,11 @@ export default function IncidentEpisodeDetailScreen({
           value={formatDateTime(episode.createdAt)}
         />
         <ResponseInfoRow label="Incidents" value={episode.incidentCount ?? 0} />
+        <RecordOwnersAndLabels
+          list="incidentEpisodes"
+          projectId={projectId}
+          recordId={episodeId}
+        />
       </ResponseSection>
       <ResponseSection title="Root Cause" iconName="bulb-outline">
         <RootCauseCard rootCauseText={rootCauseText} />

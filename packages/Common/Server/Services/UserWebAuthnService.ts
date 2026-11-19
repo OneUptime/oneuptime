@@ -38,29 +38,19 @@ interface RegistrationChallenge {
 }
 
 /*
- * One answer for both ways of having no security key to offer, because the
- * route that asks is anonymous.
+ * What a sign-in asking for a security key's options is told when the
+ * account it proved has none to offer.
  *
- * `generateAuthenticationOptions` is reached by POSTing an email address and
- * nothing else. It used to answer "User not found" for an address nobody has
- * registered and "No WebAuthn credentials found for this user" for one that
- * exists but has no key -- two distinguishable replies, which together are a
- * free account-existence oracle for anyone who can send a request, and a
- * second oracle telling them which of those accounts is protected by hardware.
- *
- * Every other door on this surface already refuses to say that much: the login
- * routes deliberately do not reveal which half of a credential was wrong, and
- * IdentityRateLimit answers identically for a real address and an invented
- * one specifically so that being throttled does not give back the enumeration
- * the handlers withhold. This route was the exception.
- *
- * Nothing legitimate is lost. A real user only reaches this after signing in
- * with their password, from a list of their OWN registered keys returned by
- * /login -- so they cannot arrive here with an account that has none, and the
- * message they would never see is not worth an oracle to everyone else.
+ * Only ever said to somebody who has proved the account: the options are
+ * asked for with the email and password again, or the sign-in link's token
+ * (POST /identity/security-key-sign-in-options, Types/Accounts/
+ * SecurityKeySignIn), and an address with no account, or a wrong password,
+ * is refused before this is reached, as a wrong password is (#9822). The
+ * anonymous route that once asked with an address alone, and said this to
+ * anyone who named one, is gone.
  */
-const NO_SECURITY_KEY_AVAILABLE: string =
-  "No security key is available for this account.";
+export const NO_SECURITY_KEY_AVAILABLE: string =
+  "No security key is available for this account. Choose another way to sign in.";
 
 /*
  * How much a security key is asked to prove about the person holding it.
@@ -495,28 +485,21 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * The options for a security key's prompt at sign-in, for the account the
+   * sign-in has proved - by its id, never by an address a caller typed
+   * (#9822). Its keys are named in `allowCredentials`, because a security
+   * key is not discoverable, and the challenge is kept for that account
+   * alone: only its own sign-in writes it.
+   */
   @CaptureSpan()
   public async generateAuthenticationOptions(data: {
-    email: string;
+    userId: ObjectID;
   }): Promise<{ options: any; challenge: string }> {
-    const user: User | null = await UserService.findOneBy({
-      query: { email: data.email },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!user) {
-      throw new BadDataException(NO_SECURITY_KEY_AVAILABLE);
-    }
-
     // Get user's WebAuthn credentials
     const credentials: Array<Model> = await this.findBy({
       query: {
-        userId: user.id!,
+        userId: data.userId,
         isVerified: true,
       },
       select: {
@@ -564,25 +547,16 @@ export class Service extends DatabaseService<Model> {
     });
 
     await this.storeChallenge(
-      `${AUTHENTICATION_CHALLENGE_PREFIX}${user.id!.toString()}`,
+      `${AUTHENTICATION_CHALLENGE_PREFIX}${data.userId.toString()}`,
       options.challenge,
     );
 
     /*
-     * The anonymous caller gets the ceremony and nothing else.
-     *
-     * This used to hand back `userId` too -- the account's real row id, to
-     * anybody who could name an email address with a key on it. Nothing ever
-     * read it: the browser posts the assertion to /verify-webauthn-auth along
-     * with the email and password again, and that route takes the user from
-     * the password it has just verified
-     * (App/FeatureSet/Identity/API/Authentication.ts), never from the body.
-     *
-     * So it was an identifier handed to strangers for free, on the one route
-     * that has just been made careful about what it tells them -- and it would
-     * have undone half of that: unifying the two refusals stops a caller
-     * learning whether an account exists, while a success that carries its
-     * internal id tells them rather more than that.
+     * The ceremony and nothing else - never the account's id. The browser
+     * posts the key's answer to /verify-webauthn-auth with the email and
+     * password again, and that route takes the account from the password it
+     * has just checked (App/FeatureSet/Identity/API/Authentication.ts),
+     * never from the body.
      */
     return {
       options: options as any,

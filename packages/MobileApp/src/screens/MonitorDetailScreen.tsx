@@ -14,6 +14,7 @@ import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import { useNow } from "../hooks/useNow";
 import QueryErrorNotice from "../components/QueryErrorNotice";
+import RecordOwnersAndLabels from "../components/RecordOwnersAndLabels";
 import {
   useMonitorDetail,
   useMonitorStatusTimeline,
@@ -435,6 +436,11 @@ export default function MonitorDetailScreen({
         <ResponseInfoRow
           label="Created"
           value={formatDateTime(monitor.createdAt)}
+        />
+        <RecordOwnersAndLabels
+          list="monitors"
+          projectId={projectId}
+          recordId={monitorId}
         />
       </ResponseSection>
       {timelineError ? (
