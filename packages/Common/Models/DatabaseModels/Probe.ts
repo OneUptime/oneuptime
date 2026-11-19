@@ -14,6 +14,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -353,6 +354,7 @@ export default class Probe extends BaseModel {
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     description: "When the probe last checked in. Set by OneUptime.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

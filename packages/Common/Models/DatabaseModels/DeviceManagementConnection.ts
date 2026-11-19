@@ -46,19 +46,21 @@ const readPermissions: Array<Permission> = [
 /*
  * One device management service (MDM) OneUptime reads a fleet of devices
  * from, through the service's API, on a schedule, with nothing to install on
- * the devices (OneUptime issue #9586): today an Esper tenant, read through
- * Esper's API with a key made in its console.
+ * the devices (OneUptime issue #9586): an Esper tenant, read through Esper's
+ * API with a key made in its console, or a Microsoft Intune tenant, read
+ * through Microsoft Graph as an app registration of its own (#9837).
  *
- * Each read lists the tenant's Android devices, their groups and their last
+ * Each read lists the tenant's devices, their groups and their last
  * check-ins - and, on a slower clock, each device's installed apps - into
  * ManagedDevice and ManagedDeviceApp rows, and each device is one host in
- * Inventory (ManagedDeviceIdentity). Esper has no webhooks, so it is read on
- * a schedule. What a read found, what went wrong and when it reads next are
- * kept here, so a failure shows on the connection, never silently.
+ * Inventory (ManagedDeviceIdentity). Neither service sends anything on its
+ * own, so each is read on a schedule. What a read found, what went wrong and
+ * when it reads next are kept here, so a failure shows on the connection,
+ * never silently.
  *
  * `config` holds what is not secret (DeviceManagementConnectionSettings: the
- * tenant and how often to read) and `secrets` the API key, encrypted at rest
- * and never returned.
+ * tenant, an Intune tenant's client ID and cloud, and how often to read) and
+ * `secrets` the service's secret, encrypted at rest and never returned.
  */
 @TableBillingAccessControl({
   create: PlanType.Free,
@@ -77,7 +79,7 @@ const readPermissions: Array<Permission> = [
   pluralName: "Device Management Connections",
   icon: IconProp.DevicePhoneMobile,
   tableDescription:
-    "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.",
+    "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.",
 })
 @TableAccessControl({
   create: adminPermissions,
@@ -164,7 +166,7 @@ export default class DeviceManagementConnection extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Service",
     description:
-      "Which device management service this connection reads: 'esper' (Esper's API). Fixed once created.",
+      "Which device management service this connection reads: 'esper' (Esper's API) or 'intune' (Microsoft Intune, through Microsoft Graph). Fixed once created.",
   })
   @Column({
     nullable: false,
@@ -183,7 +185,7 @@ export default class DeviceManagementConnection extends BaseModel {
     type: TableColumnType.JSON,
     title: "Settings",
     description:
-      "What is not secret: the Esper tenant (the name before .esper.cloud in the console's address) and how often the devices are read (readIntervalInMinutes: 5, 10, 15, 30 or 60).",
+      "What is not secret: the tenant (Esper's: the name before .esper.cloud in the console's address; Intune's: the Microsoft Entra directory ID, or a domain of it), for Intune the app registration's clientId and the cloud (public, gcc, usgov or dod), and how often the devices are read (readIntervalInMinutes: 5, 10, 15, 30 or 60).",
     example: {
       tenant: "acme",
       readIntervalInMinutes: 15,
@@ -206,7 +208,7 @@ export default class DeviceManagementConnection extends BaseModel {
     encrypted: true,
     title: "Credentials",
     description:
-      'The Esper API key, as a JSON object: {"apiKey": "..."}. Encrypted at rest and never returned by the API. On an update, a key left empty keeps the stored one.',
+      'The service\'s secret, as a JSON object: {"apiKey": "..."} for Esper, {"clientSecret": "..."} for Intune. Encrypted at rest and never returned by the API. On an update, a secret left empty keeps the stored one.',
   })
   @Column({
     nullable: false,

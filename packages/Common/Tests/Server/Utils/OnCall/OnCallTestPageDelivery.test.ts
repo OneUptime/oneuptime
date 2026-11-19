@@ -102,7 +102,6 @@ const CHANNEL_ID: ObjectID = new ObjectID(
 );
 
 const ACK_PAGE_URL: string = "https://oneuptime.test/acknowledge-page/row";
-const EMAIL_ACK_URL: string = "https://oneuptime.test/acknowledge-page/email";
 const CALL_RESPONSE_URL: string = "https://oneuptime.test/call/gather-input";
 const SHORT_URL: string = "https://oneuptime.test/l/abcd";
 
@@ -231,9 +230,6 @@ beforeEach(() => {
     .spyOn(OnCallPageLinks, "getAcknowledgePageUrl")
     .mockResolvedValue(URL.fromString(ACK_PAGE_URL) as never);
   jest
-    .spyOn(OnCallPageLinks, "getEmailAcknowledgePageUrl")
-    .mockResolvedValue(URL.fromString(EMAIL_ACK_URL) as never);
-  jest
     .spyOn(OnCallPageLinks, "getCallResponseUrl")
     .mockResolvedValue(URL.fromString(CALL_RESPONSE_URL) as never);
 
@@ -289,7 +285,8 @@ describe("email", () => {
     expect((message["toEmail"] as Email).toString()).toBe("ana@example.com");
 
     const vars: JSONObject = message["vars"] as JSONObject;
-    expect(vars["acknowledgeLink"]).toBe(EMAIL_ACK_URL);
+    // The acknowledge page with the page's token, as every message's link is (#10025).
+    expect(vars["acknowledgeLink"]).toBe(ACK_PAGE_URL);
     expect(vars["whatItTests"]).toBe(
       "Nothing is wrong. This tests how Acme pages you for an incident of severity Critical.",
     );

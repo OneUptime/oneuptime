@@ -15,6 +15,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -372,6 +373,7 @@ export default class PodmanHost extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -407,6 +409,7 @@ export default class PodmanHost extends BaseModel {
     description:
       "Version of the OneUptime Podman agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -439,6 +442,7 @@ export default class PodmanHost extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this host",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -468,6 +472,7 @@ export default class PodmanHost extends BaseModel {
     type: TableColumnType.Number,
     title: "Containers Running",
     description: "Cached count of running containers on this host",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -498,6 +503,7 @@ export default class PodmanHost extends BaseModel {
     type: TableColumnType.Number,
     title: "Containers Stopped",
     description: "Cached count of stopped containers on this host",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -528,6 +534,7 @@ export default class PodmanHost extends BaseModel {
     type: TableColumnType.Number,
     title: "Containers Paused",
     description: "Cached count of paused containers on this host",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -561,6 +568,7 @@ export default class PodmanHost extends BaseModel {
     title: "OS Type",
     description: "Operating system type of the Podman host",
     example: "linux",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -594,6 +602,7 @@ export default class PodmanHost extends BaseModel {
     title: "OS Version",
     description: "Operating system version of the Podman host",
     example: "Ubuntu 22.04",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

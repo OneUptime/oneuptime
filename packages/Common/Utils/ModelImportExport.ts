@@ -7,7 +7,10 @@ import { TableColumnMetadata } from "../Types/Database/TableColumn";
 import TableColumnType from "../Types/Database/TableColumnType";
 import OneUptimeDate from "../Types/Date";
 import Dictionary from "../Types/Dictionary";
-import Recurring from "../Types/Events/Recurring";
+import MaintenanceTemplateSchedule, {
+  MaintenanceTemplateEventTimes,
+  MaintenanceTemplateScheduleData,
+} from "../Types/ScheduledMaintenance/MaintenanceTemplateSchedule";
 import BadDataException from "../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../Types/JSON";
 
@@ -332,9 +335,12 @@ export default class ModelImportExport {
    *
    * ScheduledMaintenanceTemplate: recurring templates are rejected on create
    * when their first-event dates are in the past (the normal case for an
-   * export taken from an established template), so the dates are advanced by
-   * the recurrence interval until they are in the future, preserving the
-   * offsets between them.
+   * export taken from an established template), so the first event becomes
+   * the schedule's first one whose times are all in the future: each of its
+   * times moved on the same whole intervals of the template's own clock
+   * (MaintenanceTemplateSchedule), so a 02:00 window is still at 02:00 and
+   * a monthly one on the 1st still on the 1st. An export from before
+   * templates had a time zone is read in UTC, as the template was.
    */
   private static normalizeImportItem(item: BaseModel): void {
     if (item.tableName === "Workflow") {
@@ -353,61 +359,72 @@ export default class ModelImportExport {
       return;
     }
 
-    const dateColumns: Array<string> = [
-      "firstEventScheduledAt",
-      "firstEventStartsAt",
-      "firstEventEndsAt",
-    ];
+    const schedule: MaintenanceTemplateScheduleData | null =
+      MaintenanceTemplateSchedule.read({
+        firstEventScheduledAt: item.getValue("firstEventScheduledAt"),
+        firstEventStartsAt: item.getValue("firstEventStartsAt"),
+        firstEventEndsAt: item.getValue("firstEventEndsAt"),
+        recurringInterval: recurringInterval,
+        timezone: item.getValue("timezone"),
+      });
 
-    const dates: Array<Date> = [];
-
-    for (const dateColumn of dateColumns) {
-      const value: unknown = item.getValue(dateColumn);
-
-      if (value instanceof Date) {
-        dates.push(value);
-      }
-    }
-
-    if (dates.length === 0) {
+    if (!schedule) {
       return;
     }
 
     /*
-     * Anchor the advance on the earliest date so every date ends up in the
-     * future once shifted by the same amount.
+     * The first event whose earliest time is ahead: the times are each moved
+     * on the same intervals, and the earliest is the one that has to be in
+     * the future for every one of them to be.
      */
-    const earliestDate: Date = dates.reduce((a: Date, b: Date) => {
-      return a.getTime() <= b.getTime() ? a : b;
-    });
+    const earliestOf: (event: MaintenanceTemplateEventTimes) => number = (
+      event: MaintenanceTemplateEventTimes,
+    ): number => {
+      return Math.min(
+        event.scheduledAt.getTime(),
+        event.startsAt.getTime(),
+        event.endsAt.getTime(),
+      );
+    };
 
-    if (OneUptimeDate.isInTheFuture(earliestDate)) {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    if (
+      earliestOf(MaintenanceTemplateSchedule.getEvent(schedule, 0)) >
+      now.getTime()
+    ) {
       return;
     }
 
-    const interval: Recurring =
-      recurringInterval instanceof Recurring
-        ? recurringInterval
-        : Recurring.fromJSON(recurringInterval as JSONObject);
-
-    const nextEarliestDate: Date = Recurring.getNextDate(
-      earliestDate,
-      interval,
+    /*
+     * Jump close with the creation times' own steps, then walk to the first
+     * event whose earliest time is ahead.
+     */
+    let index: number = MaintenanceTemplateSchedule.getEventIndexAfter(
+      schedule,
+      now,
     );
 
-    const advanceByMs: number =
-      nextEarliestDate.getTime() - earliestDate.getTime();
-
-    if (advanceByMs <= 0) {
-      return;
+    while (
+      index > 0 &&
+      earliestOf(MaintenanceTemplateSchedule.getEvent(schedule, index - 1)) >
+        now.getTime()
+    ) {
+      index--;
     }
 
-    for (const dateColumn of dateColumns) {
-      const value: unknown = item.getValue(dateColumn);
-
-      if (value instanceof Date) {
-        (item as any)[dateColumn] = new Date(value.getTime() + advanceByMs);
-      }
+    while (
+      earliestOf(MaintenanceTemplateSchedule.getEvent(schedule, index)) <=
+      now.getTime()
+    ) {
+      index++;
     }
+
+    const event: MaintenanceTemplateEventTimes =
+      MaintenanceTemplateSchedule.getEvent(schedule, index);
+
+    (item as any)["firstEventScheduledAt"] = event.scheduledAt;
+    (item as any)["firstEventStartsAt"] = event.startsAt;
+    (item as any)["firstEventEndsAt"] = event.endsAt;
   }
 }

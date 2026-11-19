@@ -12,7 +12,11 @@ import (
 )
 
 // FrameworkProvider returns a new instance of the provider, as Terraform
-// starts it: unconfigured, with every resource and data source.
+// starts it: unconfigured, with every resource and data source. It plans as
+// Crossplane reads a manifest from then on (internalprovider
+// .RunUnderCrossplane): a field a manifest leaves out of a record that
+// exists is the record's, even one with a default.
 func FrameworkProvider(version string) provider.Provider {
+	internalprovider.RunUnderCrossplane()
 	return internalprovider.New(version)()
 }

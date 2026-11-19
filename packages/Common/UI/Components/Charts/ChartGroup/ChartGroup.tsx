@@ -47,6 +47,13 @@ export const CHART_TITLE_GROUP_CLASS_NAME: string =
 export const CHART_TITLE_ROW_HINT_CLASS_NAME: string =
   "ml-auto max-w-full truncate";
 
+/*
+ * A chart's card, and the box its plot is drawn in, when the charts are
+ * drawn as cards (not hideCard): a reader's measure of how tall a chart is.
+ */
+export const CHART_CARD_TEST_ID: string = "chart-group-card";
+export const CHART_CARD_PLOT_TEST_ID: string = "chart-group-card-plot";
+
 export enum ChartType {
   LINE = "line",
   BAR = "bar",
@@ -495,6 +502,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
           return (
             <div
               key={index}
+              data-testid={CHART_CARD_TEST_ID}
               className={`flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
             >
               {/* Header strip — title, meta icons, the always-visible zoom hint */}
@@ -536,7 +544,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   </p>
                 )}
               </div>
-              <div className="flex-1 flex flex-col min-h-80 px-4 pt-3 pb-2">
+              <div
+                data-testid={CHART_CARD_PLOT_TEST_ID}
+                className="flex-1 flex flex-col min-h-80 px-4 pt-3 pb-2"
+              >
                 {getChartContent(chart, index)}
               </div>
               {chart.seriesControls ? (

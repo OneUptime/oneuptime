@@ -6,6 +6,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import { DEVICE_TARGET_MONITOR_TYPES } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import NetworkDeviceTieSource from "../../../Types/NetworkDevice/NetworkDeviceTieSource";
 import {
   DeviceSeenFrom,
   ProbeReach,
@@ -47,8 +48,10 @@ import logger from "../Logger";
  * site's is tied only to a device in no site alone at its address; devices
  * its probes cannot tell apart, a monitor checking two hosts, or a host
  * written as a variable, tie nothing; a monitor an import made for a device
- * (provenance) or one already tied is left as it is. So it only ever writes
- * what a person creating that monitor today would get.
+ * (provenance) or one already tied is left as it is, and so is one a person
+ * took a tie off. So it only ever writes what a person creating that
+ * monitor today would get: a tie OneUptime made (networkDeviceTieSource
+ * Automatic), which follows the monitor's probes from then on (#9904).
  *
  * Why a backfill rather than matching monitors to devices each time a page
  * or an import asks: the address of a monitor is inside its steps (JSON),
@@ -434,6 +437,10 @@ export default class MonitorDeviceLinkBackfill {
           monitorType: QueryHelper.any([...DEVICE_TARGET_MONITOR_TYPES]),
           networkDeviceId: QueryHelper.isNull(),
           autoProvisionedNetworkDeviceId: QueryHelper.isNull(),
+          // A tie a person took off stays off (issue #9904).
+          networkDeviceTieSource: QueryHelper.notInOrNull([
+            NetworkDeviceTieSource.Person,
+          ]),
           ...(afterId ? { _id: QueryHelper.greaterThan(afterId) } : {}),
         },
         select: {
@@ -493,9 +500,17 @@ export default class MonitorDeviceLinkBackfill {
             // Tied meanwhile, or made for a device meanwhile: left alone.
             networkDeviceId: QueryHelper.isNull(),
             autoProvisionedNetworkDeviceId: QueryHelper.isNull(),
+            networkDeviceTieSource: QueryHelper.notInOrNull([
+              NetworkDeviceTieSource.Person,
+            ]),
           },
           data: {
             networkDeviceId: new ObjectID(deviceId),
+            /*
+             * OneUptime's, by the address rule: it follows the monitor's
+             * probes from now on (issue #9904).
+             */
+            networkDeviceTieSource: NetworkDeviceTieSource.Automatic,
           },
           limit: monitorIds.length,
           skip: 0,

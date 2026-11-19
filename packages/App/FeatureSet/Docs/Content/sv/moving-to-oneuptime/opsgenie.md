@@ -55,9 +55,9 @@ Rapporten räknar vad som skapades, bjöds in och inte fördes över, och visar 
 | I Opsgenie | I OneUptime | Hur |
 | --- | --- | --- |
 | Användare | Projektmedlemmar | Matchas på e-postadress. Alla som inte är med i projektet ännu bjuds in till teamet du väljer. Blockerade användare förs inte över. |
-| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. |
-| Scheman | Jourscheman | Varje rotation blir ett lager med samma personer, samma start, samma passlängd och samma tidsbegränsning, i schemats tidszon, ägt av schemats team. |
-| Eskaleringar | Jourpolicyer | Varje regel blir en eskaleringsregel som larmar samma schema, användare eller team. Regler med samma fördröjning larmar tillsammans, och väntetiden före nästa eskaleringsregel är skillnaden mellan fördröjningarna. Eskaleringens upprepningar blir policyns upprepningar. |
+| Team | Team | Skapas med sina medlemmar. Ett team vars namn projektet redan har används som det är, och dess medlemmar lämnas orörda. Har två team samma namn, förs det andra objektet över med ett nummer, till exempel `Platform 2`, och rapporten visar namnet det skapades med. |
+| Scheman | Jourscheman | Varje rotation blir ett lager med samma personer, samma start, samma passlängd och samma tidsbegränsning, i schemats tidszon, ägt av schemats team. Har två scheman samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
+| Eskaleringar | Jourpolicyer | Varje regel blir en eskaleringsregel som larmar samma schema, användare eller team. Regler med samma fördröjning larmar tillsammans, och väntetiden före nästa eskaleringsregel är skillnaden mellan fördröjningarna. Eskaleringens upprepningar blir policyns upprepningar. Har två eskaleringar samma namn, förs det andra objektet över med ett nummer, till exempel `Primary 2`, och rapporten visar namnet det skapades med. |
 | Tjänster | Tjänster | Skapas i tjänstekatalogen, ägda av sitt team. |
 
 Ett schema vars rotationer sätter två personer i jour samtidigt blir ett OneUptime-schema per rotation, eftersom ett OneUptime-schema har en person i jour åt gången. Varje jourpolicy som larmade schemat larmar alla.

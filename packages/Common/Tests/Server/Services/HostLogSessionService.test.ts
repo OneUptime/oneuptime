@@ -80,8 +80,6 @@ const hooks: Hooks = HostLogSessionService as unknown as Hooks;
 let host: Host | null = null;
 let sessions: Array<HostLogSession> = [];
 let updates: Array<{ id: string; data: Record<string, unknown> }> = [];
-// The updates whose rows a hook read through findRowsAndHoldUpdateToThem.
-let heldUpdates: Array<UpdateBy<HostLogSession>> = [];
 
 function session(data: Partial<HostLogSession>): HostLogSession {
   const row: HostLogSession = new HostLogSession();
@@ -141,7 +139,6 @@ beforeEach(() => {
   host = androidHost();
   sessions = [];
   updates = [];
-  heldUpdates = [];
 
   jest
     .spyOn(
@@ -172,10 +169,10 @@ beforeEach(() => {
   }) => {
     return matching(args.query);
   }) as never);
+  // The sessions a cancel writes, as the update path reads and holds them.
   jest
     .spyOn(HostLogSessionService, "findRowsAndHoldUpdateToThem")
     .mockImplementation((async (updateBy: UpdateBy<HostLogSession>) => {
-      heldUpdates.push(updateBy);
       return matching(updateBy.query as Record<string, unknown>);
     }) as never);
   jest
@@ -514,26 +511,23 @@ describe("changing a log session", () => {
     expect(data.endedAt).toBeInstanceOf(Date);
   });
 
-  /*
-   * UpdateChecksReadHeldRows: the sessions a cancel is judged by are the
-   * ones it writes, read in the update's own query and window, and the
-   * update held to them - never a findBy of its query of its own.
-   */
-  test("a cancel judges the very sessions it writes, read and held through the update", async () => {
+  test("the sessions it checks are the ones it cancels: read held, never by its query", async () => {
     const open: HostLogSession = session({
       status: HostLogSessionStatus.Collecting,
     });
     sessions = [open];
-    const cancel: UpdateBy<HostLogSession> = updateBy(
+
+    const update: UpdateBy<HostLogSession> = updateBy(
       { status: HostLogSessionStatus.Cancelled },
       open._id!.toString(),
     );
 
-    await hooks.onBeforeUpdate(cancel);
+    await hooks.onBeforeUpdate(update);
 
-    expect(heldUpdates).toHaveLength(1);
-    expect(heldUpdates[0]).toBe(cancel);
-    // findBy is the spy beforeEach set: no read of the query of its own.
+    // UpdateChecksReadHeldRows: the cancel is held to the sessions read.
+    expect(
+      HostLogSessionService.findRowsAndHoldUpdateToThem,
+    ).toHaveBeenCalledWith(update, { _id: true, status: true });
     expect(HostLogSessionService.findBy).not.toHaveBeenCalled();
   });
 
@@ -547,7 +541,9 @@ describe("changing a log session", () => {
       ),
     );
 
-    expect(heldUpdates).toHaveLength(1);
+    expect(
+      HostLogSessionService.findRowsAndHoldUpdateToThem,
+    ).toHaveBeenCalledTimes(1);
     expect((result.updateBy.data as unknown as HostLogSession).status).toBe(
       HostLogSessionStatus.Cancelled,
     );
@@ -560,7 +556,9 @@ describe("changing a log session", () => {
       props: { isRoot: true },
     } as unknown as UpdateBy<HostLogSession>);
 
-    expect(heldUpdates).toEqual([]);
+    expect(
+      HostLogSessionService.findRowsAndHoldUpdateToThem,
+    ).not.toHaveBeenCalled();
     expect((result.updateBy.data as unknown as HostLogSession).status).toBe(
       HostLogSessionStatus.Collecting,
     );

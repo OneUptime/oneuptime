@@ -1,7 +1,7 @@
 # Measuring OneUptime AI
 
 When you change OneUptime AI — its persona, its prompt, its tools, or the model it runs on — these tools tell you
-whether investigations got better or worse. Run them before and after the change, and compare.
+whether investigations and Ask AI's answers got better or worse. Run them before and after the change, and compare.
 
 | Tool                                   | What it answers                                                                                 | What it needs                                |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------- |
@@ -9,9 +9,10 @@ whether investigations got better or worse. Run them before and after the change
 | `npm run ai-eval -- --replay`          | On real incidents and alerts, does the changed AI find the root cause people wrote?             | A database with recordings, and a model key. |
 | `npm run ai-eval`                      | How did past runs score, from what was recorded? (No model is called.)                          | A database.                                  |
 | `npm run benchmark` in packages/Runner | Does the Code agent fix customer-shaped tasks, and how many rounds, tools, tokens and minutes?  | A model key. No database, no project.        |
+| `npm run ask-ai-eval`                  | Does Ask AI propose the right setup plan, and answer a how-do-I from the right docs page?       | A model key. No database, no project.        |
 | **Project Settings → AI → AI Results** | What came of the AI's work in production: pages avoided, fixes verified, root causes confirmed. | Nothing: it is a page in the product.        |
 
-All three commands read their model key from the environment only: `AI_EVAL_LLM_API_KEY` for the model under test and
+Every command here reads its model key from the environment only: `AI_EVAL_LLM_API_KEY` for the model under test and
 `AI_EVAL_JUDGE_API_KEY` for a judge. They refuse `--api-key` and the like, which would stay in the shell's history
 and show in the process list. They call the model you name directly: no project is billed, and nothing is written to
 the database.
@@ -193,12 +194,61 @@ the table in the run's summary. It runs only once a maintainer adds the model's 
 2. Run its tests (`packages/Runner/Tests/Benchmark`). They hold every task's check to failing on the repository as the
    task finds it and passing once `solve` made the fix.
 
+## Ask AI: setup requests and how-do-I questions
+
+`npm run ask-ai-eval` asks a real model what people ask Ask AI, through Ask AI's own chat turn (`ChatAgentRunner`, in
+**Ask to act**): today's prompt, tools and limits. It grades each answer against two lists:
+
+- **Setup requests** (`packages/Common/Tests/Server/Utils/AI/AskAiSetupRequests.ts`, #7246). Each request is asked in
+  the project it names: one that pages nobody yet, one that pages people already, one with a monitor of example.com,
+  or one on the Free plan with its status page (`AskAiEvalProject`). It passes when the plan the model proposed in one
+  answer, for one approval card, is the request's. The plan must use the same setup tools, with the arguments the list
+  names present and not contradicted (other arguments the schema takes are allowed). It fails if the model proposes
+  anything for a request no setup action answers, proposes `set_up_paging` in a project that pages people already,
+  asks a question in place of a plan, or asks for a phone number.
+- **How-do-I questions** (`packages/App/Tests/FeatureSet/Docs/AskAiHowDoIQuestions.ts`, #7066): the English ones,
+  the German and Persian ones, three the docs do not cover, and ten asked on a page (#7062, #7065), each with the
+  context that page sends: a status page, a monitor, an on-call policy, Home, a settings page, On-Call, Status Pages
+  and Create Monitor. A question passes when the answer cites the docs page that answers it (or another the list
+  names) and, when it is done on a Dashboard page, ends with that page's **Go to** button. Asked on a record, the
+  button must open that record's own page, such as this status page's **Custom Domains**. A question the docs do not
+  cover passes when the answer says "The docs do not cover this."
+
+Nothing reads a database and no action runs: the setup actions' checks before the card read the project from the
+eval, the docs tools read the docs in this repository, and a plan stops at its card (`AskAiEvalTurn`).
+
+```bash
+export AI_EVAL_LLM_API_KEY=...
+npm run ask-ai-eval -- --llm-type=Anthropic --model=claude-opus-5-5
+npm run ask-ai-eval -- --list                        # every case, with its id
+npm run ask-ai-eval -- --suite=setup --repeat=3 --llm-type=Anthropic --model=claude-opus-5-5
+npm run ask-ai-eval -- --case=setup-1,how-do-i-12 --llm-type=Anthropic --model=claude-opus-5-5
+```
+
+`--suite=setup|how-do-i` asks one list. `--case` asks only the cases it names. `--repeat`, `--fail-under` and
+`--report-markdown` work as they do for the benchmark. A case passes when more than half its runs pass. Every answer
+and grade goes to `ask-ai-eval-results.json`, and the report says what each case proposed or cited and why it failed.
+Without `AI_EVAL_LLM_API_KEY`, for a provider that needs one, it says so and exits 0, having called nothing.
+
+The Ask AI Eval workflow (`.github/workflows/ask-ai-eval.yml`) runs it by hand only (**Run workflow**), with the same
+repository secret as the AI Benchmark. Its job summary is the Markdown report, ready to post on an issue. A request
+the model keeps failing becomes a prompt fix (`SETUP_SECTION` in `Chat/ObservabilityChatPrompt.ts`) or a new entry.
+
+### Adding a case
+
+Add the request or the question to its list. A setup request asked in a new kind of project needs that project in
+`AskAiEvalProject`. `AskAiEvalTurn.test.ts` asks every setup request of a model that proposes the expected plan,
+offline, and fails if a check before the card reads anything the eval does not answer.
+
 ## Where the code is
 
 - `packages/Common/Server/Utils/AI/Eval/`: the recorder (`InvestigationRecorder`), the replay
   (`ReplayInvestigation`, `RecordedToolAnswers`, `ReplayCorpus`, `ReplayRunner`), the judge (`EvalJudge`), the
   model a run is pinned to (`PinnedModel`), the command line (`EvalCommandLine`), and the benchmark (`Benchmark/`).
 - `Scripts/AI/RunInvestigationEval.ts` and `Scripts/AI/RunInvestigationBenchmark.ts`: the two commands.
+- `packages/Common/Server/Utils/AI/Eval/AskAi/` and `packages/App/scripts/ask-ai-eval.ts`: the Ask AI eval, its
+  projects (`AskAiEvalProject`), the turn it asks (`AskAiEvalTurn`), its grades (`AskAiEvalGrades`) and its report
+  (`AskAiEvalReport`).
 - `packages/Runner/Benchmark/` and `packages/Runner/Scripts/RunCodeAgentBenchmark.ts`: the Code agent benchmark, its
   tasks (`CodeAgentBenchmarkTasks`), the server it stands in for (`CodeAgentBenchmarkServer`) and its command line.
 - `packages/Common/Server/Utils/AI/Outcomes/` and `POST /ai-activity/outcomes`: what the AI Results page counts.

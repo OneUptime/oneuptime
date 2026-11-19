@@ -106,7 +106,7 @@ Solo los monitores que el evento nombra en **Monitores** dejan de comprobarse, y
 :::
 
 :::details El evento no aparece en mi página de estado
-Comprueba que el evento nombra la página en **Mostrar evento en estas páginas de estado** y que **Visible en la página de estado** está activado en los **Ajustes** del evento. Si su encabezado dice **Aún no está en las páginas de estado**, se muestra desde su **Publicar el**: consulta [Publicarlo más tarde](/docs/scheduled-maintenance/creating-events#publicarlo-más-tarde). Después revisa la propia página de estado: debe mostrar eventos de mantenimiento, y un evento que empezó hace más tiempo que la ventana de historial de la página, 14 días salvo que la hayas cambiado, ya no aparece.
+Comprueba que el evento nombra la página en **Mostrar evento en estas páginas de estado** y que **Visible en la página de estado** está activado en los **Ajustes** del evento. Si su encabezado dice **Aún no está en las páginas de estado**, se muestra desde su **Publicar el**: consulta [Publicarlo más tarde](/docs/scheduled-maintenance/creating-events#publicarlo-más-tarde). Después revisa la propia página de estado: debe mostrar eventos de mantenimiento (la tarjeta **Detalles del mantenimiento** del evento lo dice cuando ninguna de sus páginas de estado lo hace), y un evento que empezó hace más tiempo que la ventana de historial de la página, 14 días salvo que la hayas cambiado, ya no aparece.
 :::
 
 ## Próximos pasos

@@ -106,9 +106,11 @@ En datakilde finner nøyaktig én post, eller den stopper planen. `Not Found` si
 
 ### Navn som en annen post allerede har
 
-Team, etiketter, vaktpolicyer og vaktplaner har hvert sitt eget navn i et prosjekt, uavhengig av store og små bokstaver og mellomrom. En oppretting eller et navnebytte til et navn som en annen post av samme slag allerede har, får svaret `400`, for eksempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkivert vaktpolicy beholder navnet sitt: fjern den fra arkivet, eller velg et annet navn. Poster som allerede delte et navn, beholder det, og dashbordets lister over team, vaktpolicyer og vaktplaner merker dem.
+Team, etiketter, vaktpolicyer og vaktplaner har hvert sitt eget navn i et prosjekt, uavhengig av store og små bokstaver og mellomrom. En oppretting eller et navnebytte til et navn som en annen post av samme slag allerede har, får svaret `400`, for eksempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkivert vaktpolicy beholder navnet sitt: fjern den fra arkivet, eller velg et annet navn. Poster som allerede delte et navn, beholder det, og dashbordets lister over team, etiketter, vaktpolicyer og vaktplaner merker dem.
 
-Terraform utfører endringene i én apply side om side, så et navnebytte til et navn som en annen ressurs gir fra seg i samme apply, kan bli avvist mens den andre fortsatt har det: ta i bruk på nytt, eller legg til en `depends_on` fra ressursen som tar navnet, til den som gir det fra seg. Et bytte, A til B og B til A, eller en hvilken som helst kjede av navnebytter som ender der den startet, kan ikke gjøres i én apply: gi én av dem et navn som ingen har, ta i bruk, og gjør så resten av endringen.
+Terraform utfører endringene i én apply side om side, så et navnebytte til et navn som en annen ressurs gir fra seg i samme apply, kan bli avvist mens den andre fortsatt har det. Provideren spør da på nytt i opptil 30 sekunder, så en kjede av navnebytter, for eksempel A til B mens B blir til C, går gjennom i én apply. Et bytte, A til B og B til A, eller en hvilken som helst kjede av navnebytter som ender der den startet, går aldri gjennom: etter 30 sekunder mislykkes applyen med `The name was still taken after asking again for 30 seconds.` Gi én av dem et navn som ingen har, ta i bruk, og gjør så resten av endringen.
+
+Med en eldre provider eller en eldre OneUptime får allerede det første avslaget applyen til å mislykkes: ta i bruk på nytt, eller legg til en `depends_on` fra ressursen som tar navnet, til den som gir det fra seg.
 
 ## Planer som ikke faller til ro
 

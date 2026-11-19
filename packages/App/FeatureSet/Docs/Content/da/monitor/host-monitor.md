@@ -7,6 +7,7 @@ En værts-monitor overvåger én maskine – dens CPU, hukommelse, diske, belast
 - [Skabeloner](#færdige-advarselsskabeloner): Ti færdige advarsler for en tavs eller genstartet vært, CPU, hukommelse, swap, disk, inodes, belastning, processer og mislykkede systemd-units.
 - [Metrikker](#indsamlede-metrikker): De værtsmetrikker, du kan advare på, og deres enheder.
 - [Vært eller Server / VM?](#værts-monitor-eller-server-vm-monitor): Hvilken af de to maskinmonitorer du skal bruge.
+- [Flere diske](#værter-med-flere-diske): Én monitor til alle diske, én hændelse pr. disk.
 :::
 
 ## Sådan virker det
@@ -221,6 +222,26 @@ En monitor, som du ikke bygger ud fra en skabelon, starter med to kriterier:
 > [!IMPORTANT]
 > En værdi på `0` er data, så en metrik, der ofte er nul, som genstarter eller fejl, gør ikke monitoren offline. For at få en advarsel om en værdi skal du starte fra en skabelon eller tilføje et kriterium med en tærskel. Når der slet ikke kommer data, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: stilhed er ikke en bedring. Tid, hvor OneUptime selv ikke modtog data, tæller aldrig som manglende data: en kontrol, hvis vindue indeholder den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
+## Værter med flere diske
+
+Én værts-monitor dækker alle de diske, værten rapporterer. Skabelonerne High Filesystem Usage og Running Out of Inodes grupperer deres forespørgsel efter `mountpoint` og `device`, så monitoren kontrollerer hver disk for sig og åbner én hændelse pr. disk: en anden disk, der er ved at blive fyldt op, skjules ikke bag den første disks åbne hændelse.
+
+| Hvor | Hvad det viser for hver disk |
+| --- | --- |
+| Monitorens side **Metrikker** | Én linje pr. disk, navngivet efter dens `mountpoint` og `device`. |
+| **Overvågningslogs** | Kolonnen **Observeret** tæller de serier, hver kontrol læste: én pr. disk. |
+| **Hændelser** og **Advarsler** | Én pr. disk, der nævner diskens montering og enhed. |
+| Værtens tabel **Filsystemer** | Alle diske, collectoren rapporterer, uanset hvad dine monitorer overvåger. |
+
+Hvert kriterium kontrolleres for hver disk:
+
+- Mens en disks hændelse er åben, åbner det kriterium, der åbnede den, ingen anden for den disk. En anden disk, der opfylder det, åbner sin egen.
+- En disk, der opfylder to kriterier, f.eks. et over 98 % og et over 90 %, får én hændelse, fra det første af dem på listen. Sæt det strengeste først.
+- En disks hændelse løses, når den disk ikke længere opfylder det kriterium, der åbnede den, uanset hvad de andre diske gør.
+- Monitoren har én status, der sættes af det første kriterium på listen, som en af diskene opfylder. Når ingen disk opfylder et kriterium, der udløses, er én disk ved eller under genopretningstærsklen nok til det kriterium, der genopretter, så genopretningsmarginen på 10 % gælder ikke på en vært med en disk, der aldrig er tæt på at være fuld.
+
+For kun at overvåge nogle af diskene skal du åbne **Avanceret** og i **Filtrer efter attributter** tilføje et filter på `mountpoint` til forespørgslen under **Vælg metrikker**: **er en af** de diske, der skal overvåges, eller **er ingen af** de diske, der skal udelades. Behold **Gruppér efter**, og skriv hver disk, som tabellen **Filsystemer** viser den, f.eks. `C:` eller `/var`. For helt at stoppe indsamlingen af en disk, så den også forsvinder fra værtens sider, skal du angive `include_mount_points` eller `exclude_mount_points` i collectorens scraper `filesystem` ([Værtsmetrikker](/docs/telemetry/host-otel-collector#værtsmetrikker)).
+
 ## Fejlfinding
 
 :::details Værten er ikke på listen Vært
@@ -237,6 +258,10 @@ Monitoren afgrænser hver forespørgsel med `resource.host.name` lig med den væ
 
 :::details High Filesystem Usage udløses for en montering, der altid er fuld
 Skrivebeskyttede pseudofilsystemer, som snap-loop-monteringer af typen `squashfs` under `/snap` eller `devfs` på macOS, er 100 % fulde med vilje og kommer sig aldrig. De konfigurationer, OneUptime kører og udleverer, udelader dem med `exclude_fs_types`; en konfiguration, du selv skriver, eller en Collector-konfiguration, der blev lavet før de gjorde det, skal have det samme: kopiér det fra [Værtsmetrikker](/docs/telemetry/host-otel-collector#værtsmetrikker). Udelad en anden montering, der altid er fuld, såsom en monteret `.dmg`, med `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage viser én serie på en vært med flere diske
+Forespørgslen har ingen **Gruppér efter**. Hver kontrol læser så kun den mest fyldte disk, og én hændelse gælder for alle diske: monitorens side **Metrikker** tegner én linje, navngivet efter forespørgslen, og kolonnen **Observeret** i **Overvågningslogs** tæller datapunkter i stedet for serier. Klik på **Rediger kriterier** på monitorens side **Kriterier**, åbn **Avanceret** under **Flere felter**, og sæt **Gruppér efter** for forespørgslen under **Vælg metrikker** til `mountpoint` og `device`. Vælger du skabelonen igen under **Hvad der skal advares om**, sættes det også, men så erstattes dine kriterier med skabelonens. Ved den næste kontrol åbner hver disk over tærsklen sin egen hændelse, og den, der var åben for hele monitoren, løses, hvis dens kriterium løser hændelser automatisk.
 :::
 
 ## Næste trin

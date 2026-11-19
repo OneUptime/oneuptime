@@ -14,10 +14,12 @@ import { DeviceManagementTestResult } from "../../../../Types/DeviceManagement/D
 import DeviceManagementProvider from "../../../../Types/DeviceManagement/DeviceManagementProvider";
 import { JSONObject } from "../../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
+import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import {
   ESPER_ENTERPRISE_ID,
   ESPER_TENANT,
   buildEsperApp,
+  buildEsperAppleDevice,
   buildEsperDevice,
   buildEsperGroup,
 } from "./EsperFixtures";
@@ -42,6 +44,7 @@ const MINUTE: number = 60 * 1000;
 const DEVICE_A: string = "11111111-aaaa-4aaa-8aaa-000000000001";
 const DEVICE_B: string = "11111111-aaaa-4aaa-8aaa-000000000002";
 const DEVICE_C: string = "11111111-aaaa-4aaa-8aaa-000000000003";
+const DEVICE_D: string = "11111111-aaaa-4aaa-8aaa-000000000004";
 const GROUP_WEST: string = "22222222-bbbb-4bbb-8bbb-000000000001";
 
 const connector: EsperConnector = new EsperConnector();
@@ -66,10 +69,17 @@ function fleet(clock: TestClock): FakeEsperApi {
         groupId: GROUP_WEST,
         state: 60,
       }),
-      buildEsperDevice({
+      buildEsperAppleDevice({
         id: DEVICE_C,
         name: "ESP-ID-IPAD1",
-        platform: "APPLE",
+        os: "iPadOS",
+        lastSeen: new Date(START.getTime() - 150 * MINUTE).toISOString(),
+      }),
+      // Esper's Windows devices are not imported.
+      buildEsperDevice({
+        id: DEVICE_D,
+        name: "ESP-ID-WIN01",
+        platform: "WINDOWS",
       }),
     ],
     groups: [
@@ -131,7 +141,7 @@ function session(
 }
 
 describe("test", () => {
-  test("a key Esper accepts: who it is, and how many Android devices a read imports", async () => {
+  test("a key Esper accepts: who it is, and how many Android and Apple devices a read imports", async () => {
     const clock: TestClock = createTestClock(START);
     const api: FakeEsperApi = fleet(clock);
 
@@ -146,10 +156,10 @@ describe("test", () => {
     expect(result.status).toBe("pass");
     expect(result.tenant).toBe(ESPER_TENANT);
     expect(result.role).toBe("Viewer");
-    // The iPad is not an Android device.
-    expect(result.deviceCount).toBe(2);
+    // Two kiosks and the iPad; the Windows device is not imported.
+    expect(result.deviceCount).toBe(3);
     expect(result.message).toBe(
-      "Connected to the Esper tenant acme: 2 Android devices to import.",
+      "Connected to the Esper tenant acme: 3 devices to import, Android and Apple.",
     );
 
     // Two read-only calls, and the device list asked for one device.
@@ -158,8 +168,28 @@ describe("test", () => {
         return `${request.method} ${request.path}`;
       }),
     ).toEqual(["GET /api/user_info/", "GET /api/v2/devices/"]);
-    expect(api.requests[1]!.query.get("platform")).toBe("ANDROID");
+    expect(api.requests[1]!.query.get("platform")).toBe("ANDROID,APPLE");
     expect(api.requests[1]!.query.get("limit")).toBe("1");
+  });
+
+  test("one device a read imports is one device, not devices", async () => {
+    const clock: TestClock = createTestClock(START);
+    const api: FakeEsperApi = createFakeEsperApi({
+      now: clock.now,
+      devices: [buildEsperDevice({ id: DEVICE_A, name: "ESP-ID-AAAAW" })],
+    });
+
+    const result: DeviceManagementTestResult = await connector.testConnection(
+      {
+        apiKey: FAKE_ESPER_API_KEY,
+        config: { tenant: ESPER_TENANT, readIntervalInMinutes: 15 },
+      },
+      { transport: api.transport, now: clock.now, sleep: clock.sleep },
+    );
+
+    expect(result.message).toBe(
+      "Connected to the Esper tenant acme: 1 device to import, Android and Apple.",
+    );
   });
 
   test("a refused key fails, with what to do, and never the key", async () => {
@@ -260,7 +290,7 @@ describe("test", () => {
 });
 
 describe("a read's session", () => {
-  test("the fleet: Android devices only, with every documented fact", async () => {
+  test("the fleet: its Android and Apple devices, with every documented fact, and no Windows device", async () => {
     const clock: TestClock = createTestClock(START);
     const api: FakeEsperApi = fleet(clock);
 
@@ -274,9 +304,13 @@ describe("a read's session", () => {
     expect(read.isGroupListComplete).toBe(true);
     expect(
       read.devices.map((device: ProviderDevice): string => {
-        return device.providerDeviceId;
+        return `${device.providerDeviceId} ${device.platform}`;
       }),
-    ).toEqual([DEVICE_A, DEVICE_B]);
+    ).toEqual([
+      `${DEVICE_A} ${ManagedDevicePlatform.Android}`,
+      `${DEVICE_B} ${ManagedDevicePlatform.Android}`,
+      `${DEVICE_C} ${ManagedDevicePlatform.IPadOS}`,
+    ]);
 
     const kiosk: ProviderDevice = read.devices[0]!;
 
@@ -327,21 +361,68 @@ describe("a read's session", () => {
       api.requestsTo("/api/v2/heartbeat/")[0]!;
 
     expect(heartbeat.query.get("last_seen_gt")).toBe("2026-11-19T11:00:00Z");
+    // The heartbeat list takes one platform: an Apple device's came with its record.
     expect(heartbeat.query.get("platform")).toBe("ANDROID");
     expect(
       Date.parse(heartbeat.query.get("last_seen_lt")!),
     ).toBeGreaterThanOrEqual(START.getTime());
-    // Only device A checked in within the hour; B three hours ago.
+    /*
+     * Only device A checked in within the hour, B three hours ago; the
+     * iPad's last_seen, two and a half hours ago, is in its own record.
+     */
     expect(read.checkIns).toEqual([
       {
         providerDeviceId: DEVICE_A,
         lastCheckInAt: new Date(START.getTime() - 4 * MINUTE),
       },
+      {
+        providerDeviceId: DEVICE_C,
+        lastCheckInAt: new Date(START.getTime() - 150 * MINUTE),
+      },
     ]);
     expect(read.checkInWindowEnd).toBeDefined();
+    expect(api.requestsTo("/api/v2/heartbeat/")).toHaveLength(1);
   });
 
-  test("the device list asked: Android, 1,000 a page, in a stable order", async () => {
+  test("an Apple device with no last_seen has no check-in from the list, to be asked about on its own", async () => {
+    const clock: TestClock = createTestClock(START);
+    const api: FakeEsperApi = createFakeEsperApi({
+      now: clock.now,
+      devices: [
+        buildEsperAppleDevice({
+          id: DEVICE_C,
+          name: "ESP-ID-IPAD1",
+          lastSeen: null,
+        }),
+      ],
+    });
+
+    const read: DeviceManagementFleetRead = await session(api, clock).readFleet(
+      { checkInSince: new Date(START.getTime() - 60 * MINUTE) },
+    );
+
+    expect(read.devices).toHaveLength(1);
+    expect(read.checkIns).toEqual([]);
+  });
+
+  test("an Android device's apps are read, an Apple device's are not: Esper lists those by ID alone", () => {
+    const clock: TestClock = createTestClock(START);
+    const reader: DeviceManagementSession = session(fleet(clock), clock);
+
+    expect(
+      reader.readsAppsOf({ platform: ManagedDevicePlatform.Android }),
+    ).toBe(true);
+
+    for (const platform of [
+      ManagedDevicePlatform.IOS,
+      ManagedDevicePlatform.IPadOS,
+      ManagedDevicePlatform.TvOS,
+    ]) {
+      expect(reader.readsAppsOf({ platform })).toBe(false);
+    }
+  });
+
+  test("the device list asked: Android and Apple, 1,000 a page, in a stable order", async () => {
     const clock: TestClock = createTestClock(START);
     const api: FakeEsperApi = fleet(clock);
 
@@ -349,7 +430,7 @@ describe("a read's session", () => {
 
     const list: FakeEsperRequest = api.requestsTo("/api/v2/devices/")[0]!;
 
-    expect(list.query.get("platform")).toBe("ANDROID");
+    expect(list.query.get("platform")).toBe("ANDROID,APPLE");
     expect(list.query.get("limit")).toBe("1000");
     expect(list.query.get("ordering")).toBe("created_at");
     expect(
@@ -394,12 +475,14 @@ describe("a read's session", () => {
     const api: FakeEsperApi = fleet(clock);
     const reader: DeviceManagementSession = session(api, clock);
 
-    expect(await reader.readCheckIn(DEVICE_B)).toEqual(
+    // Esper answers one device's check-in on its own.
+    expect(reader.readCheckIn).toBeDefined();
+    expect(await reader.readCheckIn!(DEVICE_B)).toEqual(
       new Date(START.getTime() - 3 * 60 * MINUTE),
     );
-    expect(await reader.readCheckIn(DEVICE_C)).toBeNull();
+    expect(await reader.readCheckIn!(DEVICE_C)).toBeNull();
     // An ID that could not be one never reaches a URL.
-    expect(await reader.readCheckIn("../../user_info")).toBeNull();
+    expect(await reader.readCheckIn!("../../user_info")).toBeNull();
     expect(
       api.requests.some((request: FakeEsperRequest): boolean => {
         return (
@@ -415,7 +498,7 @@ describe("a read's session", () => {
 
     api.state.heartbeats[DEVICE_A] = new Date(START.getTime() + 10 * MINUTE);
 
-    expect(await session(api, clock).readCheckIn(DEVICE_A)).toEqual(START);
+    expect(await session(api, clock).readCheckIn!(DEVICE_A)).toEqual(START);
   });
 
   test("one device's apps: every page, each package once", async () => {

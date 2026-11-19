@@ -9,10 +9,12 @@ import { isSupportedDocsLanguage } from "../../Types/Docs/DocsLanguage";
  * A DOCS PAGE OPENED FROM THE PRODUCT (issue #7207): which pages of the
  * product send people to the docs, and to which docs page.
  *
- * Sent as `docs/link_opened` (Types/Analytics/ProductEvent) by the three
- * ways the Dashboard opens the docs: a form's "Learn more" (LearnMoreLink,
+ * Sent as `docs/link_opened` (Types/Analytics/ProductEvent) by the ways
+ * the Dashboard opens the docs: a form's "Learn more" (LearnMoreLink,
  * source learn_more), a list's or a card's View Documentation
- * (view_documentation) and a docs result of Search, Cmd/Ctrl+K (search).
+ * (view_documentation), a docs result of Search, Cmd/Ctrl+K (search), and
+ * a docs result Ask AI shows for a question it could not answer
+ * (ask_ai_unavailable, #7063).
  * It carries the docs page and where it was opened from, nothing else, and
  * goes where every Dashboard event goes: to product analytics only where it
  * is set up (OneUptime Cloud), with the visitor's consent
@@ -23,6 +25,7 @@ export enum DocsLinkSource {
   LearnMore = "learn_more",
   ViewDocumentation = "view_documentation",
   Search = "search",
+  AskAiUnavailable = "ask_ai_unavailable",
 }
 
 const DOCS_PATH_START: string = "/docs/";

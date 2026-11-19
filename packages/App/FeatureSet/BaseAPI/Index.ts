@@ -2131,6 +2131,7 @@ import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
 import NetworkDeviceWatchingMonitorsAPI from "Common/Server/API/NetworkDeviceWatchingMonitorsAPI";
+import NetworkDeviceUntiedMonitorsAPI from "Common/Server/API/NetworkDeviceUntiedMonitorsAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
@@ -6853,6 +6854,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceWatchingMonitorsAPI,
     );
+
+    /*
+     * The monitors that check a device's address but are tied to no
+     * device, for its Monitors card (NetworkDeviceUntiedMonitorsAPI, issue
+     * #9903): each with what its probes see at the address, so the card
+     * offers a one-click tie or says why not.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDeviceUntiedMonitorsAPI);
 
     /*
      * On-call calendar feeds. The custom router carries the public

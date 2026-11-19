@@ -143,7 +143,7 @@ flowchart TB
 | `/data-store/<id>/scan-now` | **지금 스캔**: 저장소의 콘텐츠를 지금 샘플링 |
 | `/data-store/<id>/check-now` | **지금 검사**: 저장소의 구성을 다시 읽고 검사를 실행 |
 | `/data-store-finding/<id>/scrub` | 텔레메트리 발견 사항의 **정리** |
-| `/data-store-finding/<id>/drop-metric-impact` | 메트릭 이름에 있는 발견 사항에서 **이 메트릭 삭제** 가 삭제할 대상: 메트릭 수와, 그 메트릭을 읽는 모니터와 대시보드 |
+| `/data-store-finding/<id>/drop-metric-impact` | 메트릭 이름에 있는 발견 사항에서 **이 메트릭 삭제** 가 삭제할 대상: 메트릭 수와, 그 메트릭을 읽는 모니터, 대시보드, SLO, 기록 규칙 |
 | `/data-store-finding/<id>/drop-metric` | **이 메트릭 삭제**: 서비스의 해당 메트릭의 새 데이터 포인트를 영구히 삭제하는 메트릭 파이프라인 규칙. `{"confirmDataLoss": true}` 를 받습니다 |
 | `/data-security-issue/<id>/explain` | 이슈의 **AI로 설명** |
 | `/data-security-issue/<id>/fix-with-ai` | 이슈의 **AI로 수정** |

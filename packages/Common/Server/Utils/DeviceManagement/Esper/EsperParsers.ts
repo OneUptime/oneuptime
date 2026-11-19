@@ -1,3 +1,7 @@
+import {
+  ManagedDevicePlatform,
+  readManagedDevicePlatformFromName,
+} from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   ProviderApp,
@@ -10,7 +14,8 @@ import {
  * ESPER'S ANSWERS, READ WITHOUT TRUSTING THEM.
  *
  * Every field below is named as Esper's API reference (api.esper.io)
- * documents it - the v2 device schema (device_AndroidDeviceV2), the
+ * documents it - the v2 device schemas (device_AndroidDeviceV2 and, since
+ * #9837, device_AppleDeviceV2: an iPhone, an iPad or an Apple TV), the
  * heartbeat (device_EsperDeviceHeartbeat), the group (DeviceGroup) and the
  * device app (DeviceApp) - including Esper's own spelling of the security
  * patch level, `security_path_level`. The correct spelling is read too, so
@@ -148,9 +153,118 @@ function readBatteryLevel(value: unknown): number | null {
 }
 
 /*
+ * The platforms a read lists, as Esper's v2 device list takes them: a CSV
+ * of ANDROID, APPLE, LINUX and WINDOWS. An Esper Windows or Linux device is
+ * not imported yet.
+ */
+export const ESPER_IMPORTED_PLATFORMS: ReadonlyArray<string> = [
+  "ANDROID",
+  "APPLE",
+];
+
+/*
+ * The platform of an Esper Apple device (device_AppleDeviceV2): its `os` -
+ * "iOS", "iPadOS" or "tvOS" in Esper's schema, "macOS" should Esper ever
+ * manage a Mac (its help center says it does not) - else its model, else
+ * iOS, which most of Esper's Apple devices run.
+ */
+export function readEsperApplePlatform(data: {
+  os: unknown;
+  model: unknown;
+}): ManagedDevicePlatform {
+  for (const name of [data.os, data.model]) {
+    const platform: ManagedDevicePlatform =
+      readManagedDevicePlatformFromName(name);
+
+    if (
+      platform !== ManagedDevicePlatform.Other &&
+      platform !== ManagedDevicePlatform.Android
+    ) {
+      return platform;
+    }
+
+    // A model is named by its line: "iPad Pro (11-inch)", "Apple TV 4K".
+    const text: string = typeof name === "string" ? name.toLowerCase() : "";
+
+    if (text.startsWith("ipad")) {
+      return ManagedDevicePlatform.IPadOS;
+    }
+
+    if (text.startsWith("apple tv")) {
+      return ManagedDevicePlatform.TvOS;
+    }
+
+    if (text.startsWith("mac")) {
+      return ManagedDevicePlatform.MacOS;
+    }
+  }
+
+  return ManagedDevicePlatform.IOS;
+}
+
+/*
+ * The platform a device of Esper's v2 device list runs, or null for one
+ * that is not imported: a Windows or Linux device, or a platform Esper
+ * names that OneUptime does not know. A device that names no platform is
+ * Android, as every device of the list asked for Android only was.
+ */
+export function readEsperPlatform(
+  device: JSONObject,
+): ManagedDevicePlatform | null {
+  const platform: string =
+    typeof device["platform"] === "string"
+      ? (device["platform"] as string).trim().toUpperCase()
+      : "";
+
+  if (!platform || platform === "ANDROID") {
+    return ManagedDevicePlatform.Android;
+  }
+
+  if (platform === "APPLE") {
+    return readEsperApplePlatform({
+      os: device["os"],
+      model: asObject(device["hardware_info"])["model"],
+    });
+  }
+
+  return null;
+}
+
+// Bytes as gigabytes, as a device's storage is sold: 64000000000 is "64".
+function bytesToGigabytes(value: unknown): string {
+  const bytes: number | null = readNumber(value);
+
+  if (bytes === null || bytes <= 0) {
+    return "";
+  }
+
+  return String(Math.round((bytes / 1e9) * 10) / 10);
+}
+
+/*
+ * When an Esper Apple device last checked in (its last_seen), never later
+ * than `now`; null when it says nothing. An Android device's check-ins are
+ * read from the heartbeat list instead: its v2 record has no last_seen.
+ */
+export function parseEsperDeviceLastSeen(
+  value: unknown,
+  now: Date,
+): Date | null {
+  const seen: Date | null = readDate(asObject(value)["last_seen"]);
+
+  if (!seen) {
+    return null;
+  }
+
+  return seen.getTime() > now.getTime() ? now : seen;
+}
+
+/*
  * One device of Esper's v2 device list, or null when it is not one: no ID,
- * or another platform's (the list is asked for Android only, and a device
- * that says otherwise is left out rather than read wrongly).
+ * or a platform that is not imported (readEsperPlatform) - left out rather
+ * than read wrongly. An Android device is read by device_AndroidDeviceV2,
+ * an Apple one by device_AppleDeviceV2: the same names for what both have,
+ * and its UDID, supervision and memory in bytes beside them.
  */
 export function parseEsperDevice(value: unknown): ProviderDevice | null {
   const device: JSONObject = asObject(value);
@@ -160,16 +274,13 @@ export function parseEsperDevice(value: unknown): ProviderDevice | null {
     return null;
   }
 
-  const platform: unknown = device["platform"];
+  const platform: ManagedDevicePlatform | null = readEsperPlatform(device);
 
-  if (
-    typeof platform === "string" &&
-    platform.trim() &&
-    platform.trim().toUpperCase() !== "ANDROID"
-  ) {
+  if (!platform) {
     return null;
   }
 
+  const isAndroid: boolean = platform === ManagedDevicePlatform.Android;
   const hardware: JSONObject = asObject(device["hardware_info"]);
   const software: JSONObject = asObject(device["software_info"]);
   const network: JSONObject = asObject(device["network_info"]);
@@ -241,14 +352,45 @@ export function parseEsperDevice(value: unknown): ProviderDevice | null {
   putDetail("activeConnection", networkStats["current_active_connection"]);
   putDetail("wifiSsid", wifi["wifi_ssid"]);
   putDetail("wifiSignalStrength", readNumber(wifi["wifi_signal_strength"]));
-  putDetail("totalRam", memory["total_ram"]);
-  putDetail("totalStorage", memory["total_internal_storage"]);
-  putDetail("memoryUnits", memory["units"]);
-  putDetail("availableRam", readNumber(memoryStats["available_ram"]));
-  putDetail(
-    "availableStorage",
-    readNumber(memoryStats["available_internal_storage"]),
-  );
+  if (isAndroid) {
+    putDetail("totalRam", memory["total_ram"]);
+    putDetail("totalStorage", memory["total_internal_storage"]);
+    putDetail("memoryUnits", memory["units"]);
+    putDetail("availableRam", readNumber(memoryStats["available_ram"]));
+    putDetail(
+      "availableStorage",
+      readNumber(memoryStats["available_internal_storage"]),
+    );
+  } else {
+    /*
+     * An Apple device's memory comes in bytes (memory_stats), its
+     * capacity sometimes in memory_info as Android's does: kept in
+     * gigabytes, as Apple sells it, beside the bytes free.
+     */
+    const totalRam: string =
+      cleanText(memory["total_ram"]) ||
+      bytesToGigabytes(memoryStats["total_memory"]);
+    const totalStorage: string =
+      cleanText(memory["total_internal_storage"]) ||
+      bytesToGigabytes(memoryStats["total_internal_storage"]);
+
+    putDetail("totalRam", totalRam);
+    putDetail("totalStorage", totalStorage);
+    putDetail(
+      "memoryUnits",
+      cleanText(memory["units"]) || (totalRam || totalStorage ? "GB" : ""),
+    );
+    putDetail("availableRamBytes", readNumber(memoryStats["available_ram"]));
+    putDetail(
+      "availableStorageBytes",
+      readNumber(memoryStats["available_internal_storage"]),
+    );
+    putDetail("udid", device["udid"]);
+    putDetail("isSupervised", readBoolean(device["is_supervised"]));
+    putDetail("deviceSource", device["device_source"]);
+  }
+
+  putDetail("operatingSystem", device["os"]);
   putDetail("kioskAppId", appMode["app_id"]);
   putDetail("timezone", device["timezone_string"]);
 
@@ -256,21 +398,28 @@ export function parseEsperDevice(value: unknown): ProviderDevice | null {
 
   return {
     providerDeviceId: id,
+    platform: platform,
     deviceName: cleanText(device["name"]),
     alias: cleanText(device["alias"] ?? device["alias_name"]),
     serialNumber: cleanText(device["serial"]) || cleanText(hardware["serial"]),
     imei: cleanText(network["imei1"]),
-    manufacturer: cleanText(hardware["manufacturer"]),
+    // Every Apple device is Apple's, whether or not Esper says so.
+    manufacturer:
+      cleanText(hardware["manufacturer"]) || (isAndroid ? "" : "Apple"),
     brand: cleanText(hardware["brand"]),
     model: cleanText(hardware["model"]) || cleanText(hardware["model_number"]),
     osVersion:
       cleanText(software["os_version"]) || cleanText(device["os_version"]),
     buildNumber: cleanText(software["os_build_number"]),
-    securityPatchLevel:
-      cleanText(software["security_path_level"]) ||
-      cleanText(software["security_patch_level"]),
-    agentVersion:
-      cleanText(agent["version_name"]) || cleanText(device["dpc_version"]),
+    // Android's alone: Esper's schema has the field for every platform.
+    securityPatchLevel: isAndroid
+      ? cleanText(software["security_path_level"]) ||
+        cleanText(software["security_patch_level"])
+      : "",
+    // The Esper agent runs on Android; an Apple device has none.
+    agentVersion: isAndroid
+      ? cleanText(agent["version_name"]) || cleanText(device["dpc_version"])
+      : "",
     state: state === null ? null : Math.round(state),
     groupId: cleanText(device["group_id"]),
     isKioskMode: readBoolean(appMode["is_kiosk"]),

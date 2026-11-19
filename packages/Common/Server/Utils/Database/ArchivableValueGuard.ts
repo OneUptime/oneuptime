@@ -6,6 +6,7 @@ import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../Types/Exception/NameTakenException";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -126,8 +127,12 @@ export default class ArchivableValueGuard {
         },
       });
 
+      /*
+       * The name is taken, as by a value in use, and nothing was written:
+       * said with its code beside its words (NameTakenException, #9855).
+       */
       if (archivedNamesake) {
-        throw new BadDataException(
+        throw new NameTakenException(
           ArchivableValueGuard.getArchivedNamesakeRefusal({
             definition: data.definition,
             name: name,

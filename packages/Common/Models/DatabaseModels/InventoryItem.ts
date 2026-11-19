@@ -10,6 +10,7 @@ import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
@@ -227,6 +228,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     description:
       "Stable identity hash derived from the entity's identifying attributes (matches the keys stamped into signal entityKeys columns).",
     example: "210dac24142f1baa",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -269,6 +271,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     description:
       "How this row came to exist: discovered from telemetry, mirrored from a OneUptime inventory table, or created manually by a user. Determines whether stale-entity pruning applies.",
     example: "discovered",
+    serverOwned: ServerOwned.Always,
   })
   @Index()
   @Column({
@@ -310,6 +313,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     title: "Identifying Attributes",
     description:
       "The immutable identifying attribute set (the entity's identity). Descriptive attributes are deliberately excluded so they can change without changing the entity key.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public identifyingAttributes?: JSONObject = undefined;
@@ -325,6 +329,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     title: "Descriptive Attributes",
     description:
       "Mutable descriptive metadata (image tag, version, IP, ...) merged last-writer-wins. Never part of the identity.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public descriptiveAttributes?: JSONObject = undefined;
@@ -340,6 +345,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     title: "Labels",
     description:
       "Labels observed on this entity's telemetry (e.g. promoted from oneuptime.label.* resource attributes), merged as a set union. Simple string array in v1 — a relation to the Label table is a follow-up.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public labels?: Array<string> = undefined;
@@ -356,6 +362,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     description:
       "Polymorphic pointer type to a rich typed row, if one exists (Service / Host / DockerHost / KubernetesCluster).",
     example: "Host",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -376,6 +383,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     description:
       "Polymorphic pointer id to the rich typed row named by resourceType, if any.",
     example: "d4e5f6a7-b8c9-0123-def1-234567890123",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -395,6 +403,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     title: "First Seen At",
     description: "When this entity was first observed in telemetry.",
     example: "2025-12-10T08:15:00.000Z",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public firstSeenAt?: Date = undefined;
@@ -412,6 +421,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     description:
       "Most recent time this entity was observed in telemetry (bumped, throttled). Drives staleness pruning.",
     example: "2025-12-12T16:20:00.000Z",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastSeenAt?: Date = undefined;

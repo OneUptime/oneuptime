@@ -229,10 +229,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * The sessions the cancel writes, read as the update reads them - the
-     * ones the person may change, in the update's own query and project -
-     * with the cancel held to them (findRowsAndHoldUpdateToThem), so a
-     * session judged still open is the session cancelled.
+     * The sessions the cancel writes, read in its own query and window -
+     * those the person may change - and the cancel held to them
+     * (findRowsAndHoldUpdateToThem): a session judged still open is the
+     * session cancelled.
      */
     const sessions: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,

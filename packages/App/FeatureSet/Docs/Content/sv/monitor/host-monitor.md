@@ -7,6 +7,7 @@ En värdmonitor övervakar en maskin – dess CPU, minne, diskar, belastning och
 - [Mallar](#färdiga-larmmallar): Tio färdiga larm för en tyst eller omstartad värd, CPU, minne, swap, disk, inoder, belastning, processer och misslyckade systemd-enheter.
 - [Mätvärden](#insamlade-mätvärden): De värdmätvärden som du kan varna på, och deras enheter.
 - [Värd eller Server / VM?](#värdmonitor-eller-server-vm-monitor): Vilken av de två maskinmonitorerna du ska använda.
+- [Flera diskar](#värdar-med-flera-diskar): En monitor för alla diskar, en incident per disk.
 :::
 
 ## Så fungerar det
@@ -221,6 +222,26 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 > [!IMPORTANT]
 > Ett värde på `0` är data, så ett mätvärde som ofta är noll, som omstarter eller fel, gör inte monitorn offline. För att larma på ett värde, börja från en mall eller lägg till ett kriterium med ett tröskelvärde. När inga data alls kommer och inget kriterium stämmer behåller monitorn sin status, och öppna incidenter förblir öppna: tystnad är ingen återhämtning. Tid då OneUptime självt inte tog emot data räknas aldrig som saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
+## Värdar med flera diskar
+
+En värdmonitor täcker alla diskar som värden rapporterar. Mallarna High Filesystem Usage och Running Out of Inodes grupperar sin fråga efter `mountpoint` och `device`, så monitorn kontrollerar varje disk för sig och öppnar en incident per disk: en andra disk som håller på att fyllas döljs inte bakom den första diskens öppna incident.
+
+| Var | Vad det visar för varje disk |
+| --- | --- |
+| Monitorns sida **Mätvärden** | En linje per disk, namngiven efter dess `mountpoint` och `device`. |
+| **Övervakningsloggar** | Kolumnen **Observerad** räknar de serier som varje kontroll läste: en per disk. |
+| **Incidenter** och **Larm** | En per disk, som nämner diskens montering och enhet. |
+| Värdens sida **Filsystem** | Alla diskar som collectorn rapporterar, oavsett vad dina monitorer övervakar. |
+
+Varje kriterium kontrolleras för varje disk:
+
+- Medan en disks incident är öppen öppnar kriteriet som öppnade den ingen annan för den disken. En annan disk som uppfyller kriteriet öppnar en egen.
+- En disk som uppfyller två kriterier, till exempel ett över 98 % och ett över 90 %, får en incident, från det första av dem i listan. Lägg det strängare först.
+- En disks incident löses när just den disken slutar uppfylla kriteriet som öppnade den, oavsett vad de andra diskarna gör.
+- Monitorn har en enda status, som sätts av det första kriteriet i listan som någon disk uppfyller. När ingen disk uppfyller ett kriterium som utlöses räcker det med en disk vid eller under återställningströskeln för återställningskriteriet, så återställningsmarginalen på 10 % gäller inte på en värd med en disk som aldrig är nära full.
+
+För att bara övervaka vissa diskar öppnar du **Avancerad** och lägger till ett filter på `mountpoint` med **Filtrera på attribut** i frågan under **Välj mätvärden**: välj **är en av** och de diskar som ska övervakas, eller **är ingen av** och de diskar som ska utelämnas. Behåll **Gruppera efter**, och skriv varje disk så som sidan **Filsystem** visar den, till exempel `C:` eller `/var`. För att inte samla in en disk alls, så att den också försvinner från värdens sidor, anger du `include_mount_points` eller `exclude_mount_points` på collectorns skrapa `filesystem` ([Värdmätvärden](/docs/telemetry/host-otel-collector#värdmätvärden)).
+
 ## Felsökning
 
 :::details Värden finns inte i listan Värd
@@ -237,6 +258,10 @@ Monitorn begränsar varje fråga med `resource.host.name` lika med värden du va
 
 :::details High Filesystem Usage utlöses för en montering som alltid är full
 Skrivskyddade pseudofilsystem, som snap-loopmonteringar av typen `squashfs` under `/snap` eller `devfs` på macOS, är 100 % fulla med avsikt och återhämtar sig aldrig. Konfigurationerna som OneUptime kör och delar ut utelämnar dem med `exclude_fs_types`; en egen konfiguration, eller en Insamlarkonfiguration som skapades innan de gjorde det, behöver detsamma: kopiera det från [Värdmätvärden](/docs/telemetry/host-otel-collector#värdmätvärden). Utelämna en annan montering som alltid är full, till exempel en monterad `.dmg`, med `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage visar en enda serie på en värd med flera diskar
+Frågan har ingen gruppering under **Gruppera efter**. Varje kontroll läser då bara den fullaste disken, och en enda incident gäller för alla diskar: monitorns sida **Mätvärden** ritar en enda linje, namngiven efter frågan, och kolumnen **Observerad** i **Övervakningsloggar** räknar datapunkter i stället för serier. Klicka på **Redigera kriterier** på monitorns sida **Kriterier**, öppna **Avancerad** under **Fler fält** och ställ in **Gruppera efter** på `mountpoint` och `device` för frågan under **Välj mätvärden**. Att välja mallen igen under **Vad som ska larmas om** ställer också in grupperingen, men ersätter dina kriterier med mallens. Vid nästa kontroll öppnar varje disk över tröskeln en egen incident, och den incident som är öppen för hela monitorn löses om dess kriterium löser incidenter automatiskt.
 :::
 
 ## Nästa steg

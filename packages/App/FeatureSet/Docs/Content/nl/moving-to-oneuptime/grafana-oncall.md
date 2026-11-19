@@ -56,9 +56,9 @@ Het rapport telt wat is aangemaakt, uitgenodigd en niet overgenomen, en toont el
 | In Grafana OnCall | In OneUptime | Hoe |
 | --- | --- | --- |
 | Gebruikers | Projectleden | Gekoppeld op e-mailadres. Wie nog niet in het project zit, wordt uitgenodigd voor het team dat u kiest. |
-| Teams | Teams | Aangemaakt met hun leden. Een team waarvan het project de naam al heeft, wordt gebruikt zoals het is, en de leden blijven ongewijzigd. |
-| Schema's | Bereikbaarheidsschema's | Elke rotatie wordt een laag met dezelfde personen, hetzelfde begin, dezelfde overdracht en dezelfde uren van dienst, in de tijdzone van het schema, met het team van het schema als eigenaar. Een rotatie op een hogere laag gaat nog steeds voor de lagen eronder. |
-| Escalatieketens | Bereikbaarheidsbeleid | De stappen die personen, een team of wie in een schema dienst heeft waarschuwen, worden escalatieregels, en een wachtstap wordt de wachttijd voor de volgende regel. Een stap die de keten herhaalt, wordt de herhalingen van het beleid. |
+| Teams | Teams | Aangemaakt met hun leden. Een team waarvan het project de naam al heeft, wordt gebruikt zoals het is, en de leden blijven ongewijzigd. Hebben twee ervan dezelfde naam, dan komt het tweede item genummerd over, bijvoorbeeld `Platform 2`, en het rapport noemt de naam waarmee het is aangemaakt. |
+| Schema's | Bereikbaarheidsschema's | Elke rotatie wordt een laag met dezelfde personen, hetzelfde begin, dezelfde overdracht en dezelfde uren van dienst, in de tijdzone van het schema, met het team van het schema als eigenaar. Een rotatie op een hogere laag gaat nog steeds voor de lagen eronder. Hebben twee ervan dezelfde naam, dan komt het tweede item genummerd over, bijvoorbeeld `Primary 2`, en het rapport noemt de naam waarmee het is aangemaakt. |
+| Escalatieketens | Bereikbaarheidsbeleid | De stappen die personen, een team of wie in een schema dienst heeft waarschuwen, worden escalatieregels, en een wachtstap wordt de wachttijd voor de volgende regel. Een stap die de keten herhaalt, wordt de herhalingen van het beleid. Hebben twee ervan dezelfde naam, dan komt het tweede item genummerd over, bijvoorbeeld `Primary 2`, en het rapport noemt de naam waarmee het is aangemaakt. |
 
 Rotaties op dezelfde laag die tegelijk dienst hebben, en een rotatie die meerdere personen tegelijk dienst geeft, worden elk een eigen OneUptime-schema, omdat een OneUptime-schema één persoon tegelijk met dienst heeft. Elk bereikbaarheidsbeleid dat het schema opriep, roept ze allemaal op.
 

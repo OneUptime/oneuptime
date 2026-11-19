@@ -7,6 +7,7 @@ Een Host-monitor bewaakt één machine – de CPU, het geheugen, de schijven, de
 - [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Tien kant-en-klare waarschuwingen voor een stille of herstarte host, CPU, geheugen, swap, schijf, inodes, belasting, processen en mislukte systemd-units.
 - [Metrieken](#verzamelde-metrieken): De hostmetrieken waarop u kunt waarschuwen, en hun eenheden.
 - [Host of Server / VM?](#host-monitor-of-server-vm-monitor): Welke van de twee machinemonitoren u gebruikt.
+- [Meerdere schijven](#hosts-met-meerdere-schijven): Eén monitor voor alle schijven, één incident per schijf.
 :::
 
 ## Hoe het werkt
@@ -221,6 +222,26 @@ Een monitor die u niet vanuit een sjabloon maakt, begint met twee criteria:
 > [!IMPORTANT]
 > Een waarde van `0` is ook data: een metric die vaak nul is, zoals herstarts of fouten, zet de monitor niet offline. Wilt u een melding bij een waarde, begin dan met een sjabloon of voeg een criterium met een drempel toe. Komt er helemaal geen data binnen en past geen enkel criterium, dan houdt de monitor zijn status en blijven open incidenten open: stilte is geen herstel. Tijd waarin OneUptime zelf geen data ontving, telt nooit als geen data: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
+## Hosts met meerdere schijven
+
+Eén Host-monitor bewaakt elke schijf die de host meldt. De sjablonen High Filesystem Usage en Running Out of Inodes groeperen hun query op `mountpoint` en `device`, dus de monitor controleert elke schijf afzonderlijk en opent één incident per schijf: een tweede schijf die volloopt, gaat niet schuil achter het open incident van de eerste.
+
+| Waar | Wat het voor elke schijf toont |
+| --- | --- |
+| De pagina **Metrieken** van de monitor | Eén lijn per schijf, genoemd naar `mountpoint` en `device`. |
+| **Monitoringlogboeken** | De kolom **Waargenomen** telt de reeksen die elke controle las: één per schijf. |
+| **Incidenten** en **Waarschuwingen** | Eén per schijf, met vermelding van de mount en het apparaat van de schijf. |
+| De tabel **Bestandssystemen** van de host | Elke schijf die de collector meldt, wat uw monitoren ook bewaken. |
+
+Elk criterium wordt voor elke schijf gecontroleerd:
+
+- Zolang het incident van een schijf open is, opent het criterium dat het opende, geen ander incident voor die schijf. Een andere schijf die eraan voldoet, opent een eigen incident.
+- Een schijf die aan twee criteria voldoet, zoals één boven 98% en één boven 90%, krijgt één incident, van het eerste van de twee in de lijst. Zet het strengere vooraan.
+- Het incident van een schijf wordt opgelost zodra die schijf niet meer voldoet aan het criterium dat het opende, wat de andere schijven ook doen.
+- De monitor heeft één status, bepaald door het eerste criterium in de lijst waaraan een schijf voldoet. Voldoet geen enkele schijf aan een criterium dat afgaat, dan is één schijf op of onder de hersteldrempel genoeg voor het criterium dat herstelt, dus de herstelmarge van 10% geldt niet op een host met een schijf die nooit bijna vol raakt.
+
+Om alleen bepaalde schijven te bewaken, opent u **Geavanceerd** en voegt u in **Filteren op attributen** een filter op `mountpoint` toe aan de query onder **Selecteer metrieken**: **is een van** de schijven die u wilt bewaken, of **is geen van** de schijven die u wilt weglaten. Laat **Groeperen op** staan en schrijf elke schijf zoals die in de tabel **Bestandssystemen** staat, bijvoorbeeld `C:` of `/var`. Om een schijf helemaal niet meer te verzamelen, zodat die ook van de pagina's van de host verdwijnt, stelt u `include_mount_points` of `exclude_mount_points` in bij de scraper `filesystem` van de collector ([Hostmetrics](/docs/telemetry/host-otel-collector#hostmetrics)).
+
 ## Problemen oplossen
 
 :::details De host staat niet in de lijst Host
@@ -237,6 +258,10 @@ De monitor beperkt elke query met `resource.host.name` gelijk aan de host die u 
 
 :::details High Filesystem Usage gaat af voor een mount die altijd vol is
 Alleen-lezen pseudobestandssystemen, zoals snap-loopmounts van het type `squashfs` onder `/snap` of `devfs` op macOS, zijn bewust 100% vol en herstellen nooit. De configuraties die OneUptime draait en uitdeelt, laten ze weg met `exclude_fs_types`; een eigen configuratie, of een Collectorconfiguratie die daarvoor is gemaakt, heeft hetzelfde nodig: kopieer het uit [Hostmetrics](/docs/telemetry/host-otel-collector#hostmetrics). Laat een andere mount die altijd vol is, zoals een gemounte `.dmg`, weg met `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage toont één reeks op een host met meerdere schijven
+De query heeft geen **Groeperen op**. Elke controle leest dan alleen de volste schijf, en één incident staat voor alle schijven: de pagina **Metrieken** van de monitor tekent één lijn, genoemd naar de query, en de kolom **Waargenomen** in **Monitoringlogboeken** telt gegevenspunten in plaats van reeksen. Ga naar de pagina **Criteria** van de monitor, klik op **Criteria bewerken**, open **Geavanceerd** onder **Meer velden** en stel **Groeperen op** van de query onder **Selecteer metrieken** in op `mountpoint` en `device`. Het sjabloon opnieuw kiezen onder **Waarover te waarschuwen** stelt het ook in, maar vervangt uw criteria door die van het sjabloon. Bij de volgende controle opent elke schijf boven de drempel een eigen incident, en het incident dat voor de hele monitor openstond, wordt opgelost als zijn criterium incidenten automatisch oplost.
 :::
 
 ## Volgende stappen

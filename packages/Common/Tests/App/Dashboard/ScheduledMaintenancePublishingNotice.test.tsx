@@ -68,6 +68,8 @@ import ScheduledMaintenanceStatusPagesCell, {
   SHOWS_FROM_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceStatusPagesCell";
 import { PublishingNoticeCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
+import { MaintenanceStatusPagesReason } from "../../../Types/ScheduledMaintenance/ScheduledMaintenanceSubscriberReach";
+import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import OneUptimeDate from "../../../Types/Date";
@@ -150,6 +152,11 @@ function shownTime(date: Date): string {
 
 function renderNotice(options?: {
   areSubscribersTold?: boolean;
+  /*
+   * The server's answer for the status pages it is on (#9974): one of them
+   * shows maintenance events and notifies, unless a test says otherwise.
+   */
+  statusPagesReason?: MaintenanceStatusPagesReason;
   onPublished?: () => void;
   language?: i18n;
 }): void {
@@ -158,6 +165,11 @@ function renderNotice(options?: {
       scheduledMaintenanceId={EVENT_ID}
       publishAt={PUBLISH_AT}
       areSubscribersTold={options?.areSubscribersTold !== false}
+      statusPagesReason={
+        options && "statusPagesReason" in options
+          ? options.statusPagesReason
+          : null
+      }
       onPublished={options?.onPublished || ((): void => {})}
     />
   );
@@ -412,6 +424,122 @@ describe("the header's band while an event waits for its publish time", () => {
         .trim(),
     );
   });
+});
+
+/*
+ * #9974: the band said "It shows on its status pages from <time>" even when
+ * none of the pages it is on shows maintenance events. It says so only once
+ * the server has said one of them does: until then that it can, and when
+ * none does, that instead - and Publish Now's dialog says the same.
+ */
+describe("what the band says of the status pages it is on", () => {
+  test("none of them shows maintenance events: that, in place of the time", () => {
+    renderNotice({
+      areSubscribersTold: false,
+      statusPagesReason: PublicNoteNothingSentReason.NoStatusPages,
+    });
+
+    const notice: HTMLElement = screen.getByTestId(PUBLISHING_NOTICE_TEST_ID);
+
+    expect(notice).toHaveTextContent("Not on status pages yet");
+    expect(notice).toHaveTextContent(
+      "None of the status pages picked shows maintenance events.",
+    );
+    expect(notice).not.toHaveTextContent("It shows on its status pages");
+    expect(
+      within(notice).queryByTestId("scheduled-maintenance-publish-at"),
+    ).toBeNull();
+  });
+
+  test("not known yet: that it can show on them from its publish time, promising nothing", () => {
+    renderNotice({ areSubscribersTold: false, statusPagesReason: undefined });
+
+    const notice: HTMLElement = screen.getByTestId(PUBLISHING_NOTICE_TEST_ID);
+
+    expect(notice).toHaveTextContent(
+      `It can show on its status pages from ${shownTime(PUBLISH_AT)}.`,
+    );
+    expect(notice).not.toHaveTextContent("It shows on its status pages");
+    expect(notice).not.toHaveTextContent("subscribers");
+  });
+
+  test("they show it but notify nobody: that it shows on them from then, and nothing of subscribers", () => {
+    renderNotice({
+      areSubscribersTold: false,
+      statusPagesReason: PublicNoteNothingSentReason.NotificationsOff,
+    });
+
+    expect(screen.getByTestId(PUBLISHING_NOTICE_TEST_ID)).toHaveTextContent(
+      `It shows on its status pages from ${shownTime(PUBLISH_AT)}.`,
+    );
+  });
+
+  test.each([
+    [
+      "none of them shows maintenance events",
+      PublicNoteNothingSentReason.NoStatusPages,
+      "None of the status pages picked shows maintenance events.",
+    ],
+    [
+      "it is not known yet",
+      undefined,
+      "It can show on its status pages at once.",
+    ],
+  ] as Array<[string, MaintenanceStatusPagesReason, string]>)(
+    "Publish Now's dialog says the same when %s",
+    async (
+      _label: string,
+      reason: MaintenanceStatusPagesReason,
+      sentence: string,
+    ) => {
+      renderNotice({ areSubscribersTold: false, statusPagesReason: reason });
+
+      fireEvent.click(screen.getByTestId(PUBLISH_NOW_BUTTON_TEST_ID));
+      await flush();
+
+      const dialog: HTMLElement = screen.getByRole("dialog");
+
+      expect(dialog).toHaveTextContent(sentence);
+      expect(dialog).not.toHaveTextContent("It shows on its status pages");
+    },
+  );
+
+  /*
+   * The sentence with no time is drawn without the time's slot: handed one
+   * it does not name, it would read as a translation that lost it, and fall
+   * back to English.
+   */
+  test.each([
+    [
+      "none of them shows maintenance events",
+      PublicNoteNothingSentReason.NoStatusPages,
+      "None of the status pages picked shows maintenance events.",
+    ],
+    [
+      "it is not known yet",
+      undefined,
+      "It can show on its status pages from {{time}}.",
+    ],
+  ] as Array<[string, MaintenanceStatusPagesReason, string]>)(
+    "in German, when %s",
+    (_label: string, reason: MaintenanceStatusPagesReason, key: string) => {
+      renderNotice({
+        areSubscribersTold: false,
+        statusPagesReason: reason,
+        language: german,
+      });
+
+      const inGerman: string = german.t(key);
+
+      expect(inGerman).not.toBe(key);
+      expect(screen.getByTestId(PUBLISHING_NOTICE_TEST_ID)).toHaveTextContent(
+        inGerman.split("{{time}}")[0]!.trim(),
+      );
+      expect(
+        screen.getByTestId(PUBLISHING_NOTICE_TEST_ID),
+      ).not.toHaveTextContent(key.split("{{time}}")[0]!.trim());
+    },
+  );
 });
 
 describe("the Shown on Status Page cell of the list of events", () => {

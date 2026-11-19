@@ -7,6 +7,7 @@ Un monitor de host vigila una máquina – su CPU, su memoria, sus discos, su ca
 - [Plantillas](#plantillas-de-alerta-listas-para-usar): Diez alertas listas para usar para un host silencioso o reiniciado, CPU, memoria, swap, disco, inodos, carga, procesos y unidades de systemd fallidas.
 - [Métricas](#métricas-recopiladas): Las métricas de host sobre las que puede alertar, y sus unidades.
 - [¿Host o servidor / VM?](#monitor-de-host-o-monitor-de-servidor-vm): Cuál de los dos monitores de máquinas usar.
+- [Varios discos](#hosts-con-varios-discos): Un monitor para todos los discos, un incidente por disco.
 :::
 
 ## Cómo funciona
@@ -221,6 +222,26 @@ Un monitor que no crea a partir de una plantilla empieza con dos criterios:
 > [!IMPORTANT]
 > Un valor de `0` son datos, así que una métrica que suele valer cero, como los reinicios o los errores, no deja el monitor fuera de línea. Para recibir alertas sobre un valor, empiece con una plantilla o añada un criterio con un umbral. Cuando no llega ningún dato y no se cumple ningún criterio, el monitor conserva su estado y los incidentes abiertos siguen abiertos: el silencio no es una recuperación. El tiempo en que OneUptime no recibía datos nunca cuenta como falta de datos: una comprobación cuya ventana lo incluye espera, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
+## Hosts con varios discos
+
+Un solo monitor de host cubre todos los discos que informa el host. Las plantillas High Filesystem Usage y Running Out of Inodes agrupan su consulta por `mountpoint` y `device`, así que el monitor comprueba cada disco por separado y abre un incidente por disco: un segundo disco que se está llenando no queda oculto tras el incidente abierto del primero.
+
+| Dónde | Qué muestra para cada disco |
+| --- | --- |
+| La página **Métricas** del monitor | Una línea por disco, con el nombre de su `mountpoint` y su `device`. |
+| **Registros de monitoreo** | La columna **Observado** cuenta las series que leyó cada comprobación: una por disco. |
+| **Incidentes** y **Alertas** | Un incidente o una alerta por disco, que nombra el montaje y el dispositivo del disco. |
+| La tarjeta **Sistemas de archivos** del host | Todos los discos que informa el colector, vigilen lo que vigilen sus monitores. |
+
+Cada criterio se comprueba para cada disco:
+
+- Mientras el incidente de un disco está abierto, el criterio que lo abrió no abre ningún otro para ese disco. Otro disco que lo cumpla abre el suyo.
+- Un disco que cumple dos criterios, como uno por encima del 98 % y otro por encima del 90 %, recibe un solo incidente, el del primero de ellos en la lista. Ponga primero el más estricto.
+- El incidente de un disco se resuelve cuando ese disco deja de cumplir el criterio que lo abrió, hagan lo que hagan los demás discos.
+- El monitor tiene un solo estado, que fija el primer criterio de la lista que cumpla cualquier disco. Cuando ningún disco cumple un criterio que se dispara, basta con un disco en el umbral de recuperación o por debajo para que se cumpla el criterio que se recupera, así que el margen de recuperación del 10 % no se mantiene en un host con un disco que nunca está cerca de llenarse.
+
+Para vigilar solo algunos discos, abra **Avanzado** y, en la consulta de **Seleccionar métricas**, añada con **Filtrar por atributos** un filtro sobre `mountpoint`: **es cualquiera de** los discos que vigilar, o **no es ninguno de** los discos que dejar fuera. Mantenga el **Agrupar por**, y escriba cada disco como lo muestra la tarjeta **Sistemas de archivos**, por ejemplo `C:` o `/var`. Para dejar de recopilar un disco por completo, de modo que también desaparezca de las páginas del host, configure `include_mount_points` o `exclude_mount_points` en el scraper `filesystem` del colector ([Métricas del host](/docs/telemetry/host-otel-collector#métricas-del-host)).
+
 ## Solución de problemas
 
 :::details El host no aparece en la lista Host
@@ -237,6 +258,10 @@ El monitor limita cada consulta con `resource.host.name` igual al host que eligi
 
 :::details High Filesystem Usage se dispara por un montaje que siempre está lleno
 Los pseudo sistemas de archivos de solo lectura, como los montajes en bucle snap `squashfs` bajo `/snap` o `devfs` de macOS, están llenos al 100 % por diseño y nunca se recuperan. Las configuraciones que OneUptime ejecuta y proporciona los dejan fuera con `exclude_fs_types`; una configuración propia, o una Configuración del recolector creada antes de que lo hicieran, necesita lo mismo: cópielo de [Métricas del host](/docs/telemetry/host-otel-collector#métricas-del-host). Deje fuera otro montaje siempre lleno, como un `.dmg` montado, con `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage muestra una sola serie en un host con varios discos
+La consulta no tiene **Agrupar por**. Cada comprobación lee entonces solo el disco más lleno, y un solo incidente habla por todos los discos: la página **Métricas** del monitor dibuja una sola línea con el nombre de la consulta, y la columna **Observado** de **Registros de monitoreo** cuenta puntos de datos en lugar de series. En la página **Criterios** del monitor, haga clic en **Editar criterios**, abra **Avanzado** en **Más campos** y, en la consulta de **Seleccionar métricas**, fije **Agrupar por** en `mountpoint` y `device`. Volver a elegir la plantilla en **Sobre qué alertar** también lo fija, pero sustituye sus criterios por los de la plantilla. En la siguiente comprobación, cada disco por encima del umbral abre su propio incidente, y el que estaba abierto para todo el monitor se resuelve si su criterio resuelve los incidentes automáticamente.
 :::
 
 ## Próximos pasos

@@ -274,6 +274,13 @@ export interface ComponentProps {
   analyticsServiceIds?: Array<string> | undefined;
   analyticsSessionIds?: Array<string> | undefined;
   analyticsAppliedFacetFilters?: Map<string, Set<string>> | undefined;
+  /*
+   * Everything the list is narrowed by but its window - the page's scope,
+   * the chips and what the search bar typed - as the aggregate endpoints
+   * read it: the rows the Analytics chart reads (LogsAnalyticsView's
+   * requestScope, #7716).
+   */
+  analyticsScope?: JSONObject | undefined;
   signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
   /*
    * Which explorer this is — names the explorer in the locked chips'
@@ -1608,6 +1615,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           serviceIds={props.analyticsServiceIds}
           sessionIds={props.analyticsSessionIds}
           appliedFacetFilters={props.analyticsAppliedFacetFilters || new Map()}
+          requestScope={props.analyticsScope}
           logAttributes={logAttributes}
         />
       ) : (

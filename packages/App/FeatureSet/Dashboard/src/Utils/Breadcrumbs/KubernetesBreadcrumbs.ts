@@ -17,6 +17,11 @@ export function getKubernetesBreadcrumbs(
       "Kubernetes",
       "Costs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_COMPLIANCE, [
+      "Project",
+      "Kubernetes",
+      "Compliance",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_ARCHIVED, [
       "Project",
       "Kubernetes",

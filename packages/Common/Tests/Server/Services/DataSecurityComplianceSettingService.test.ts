@@ -53,6 +53,8 @@ const hooks: Hooks = DataSecurityComplianceSettingService as unknown as Hooks;
 
 let existing: Array<DataSecurityComplianceSetting>;
 let findBySpy: jest.SpyInstance;
+// The rows an update writes, as the update path reads and holds them.
+let heldSpy: jest.SpyInstance;
 let resourceSpies: Record<string, jest.SpyInstance>;
 let resourceFound: boolean;
 
@@ -94,6 +96,11 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never);
   findBySpy = jest
     .spyOn(DataSecurityComplianceSettingService, "findBy")
+    .mockImplementation((async () => {
+      return existing;
+    }) as never);
+  heldSpy = jest
+    .spyOn(DataSecurityComplianceSettingService, "findRowsAndHoldUpdateToThem")
     .mockImplementation((async () => {
       return existing;
     }) as never);
@@ -538,11 +545,40 @@ describe("who turned it off, and when", () => {
     expect(
       (updateBy.data as { turnedOffAt?: Date }).turnedOffAt,
     ).toBeInstanceOf(Date);
-    // What it was is read as OneUptime, by the update's own query.
-    expect(findBySpy.mock.calls[0]![0]).toMatchObject({
-      query: { _id: SETTING_ID.toString() },
-      props: { isRoot: true },
+    /*
+     * What it was is read from the rows the update writes, and the update
+     * held to them: never a read of its own by the update's query
+     * (UpdateChecksReadHeldRows).
+     */
+    expect(heldSpy).toHaveBeenCalledTimes(1);
+    expect(heldSpy.mock.calls[0]![0]).toBe(updateBy);
+    expect(heldSpy.mock.calls[0]![1]).toMatchObject({
+      _id: true,
+      isEnabled: true,
     });
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  test("a row the update does not write never decides the stamp", async () => {
+    /*
+     * The query names a setting that is off already, but the update path
+     * holds the write to the rows its caller may change: none here. With
+     * no row read the update writes nothing, and nothing says it was
+     * already off, so the stamp is not kept from a row it never writes.
+     */
+    existing = [];
+
+    const updateBy: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      isEnabled: false,
+    });
+
+    await permitted.onUpdatePermitted(updateBy);
+
+    expect(heldSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (updateBy.data as { turnedOffAt?: Date }).turnedOffAt,
+    ).toBeInstanceOf(Date);
+    expect(findBySpy).not.toHaveBeenCalled();
   });
 
   test("turned off by an API key, it says when and names nobody", async () => {
@@ -589,6 +625,7 @@ describe("who turned it off, and when", () => {
       turnedOffByUserId: null,
     });
     expect(findBySpy).not.toHaveBeenCalled();
+    expect(heldSpy).not.toHaveBeenCalled();
   });
 
   test("a reason written while it is off changes neither", async () => {
@@ -600,6 +637,7 @@ describe("who turned it off, and when", () => {
 
     expect(updateBy.data).toEqual({ note: "No card data here." });
     expect(findBySpy).not.toHaveBeenCalled();
+    expect(heldSpy).not.toHaveBeenCalled();
   });
 });
 

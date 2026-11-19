@@ -44,8 +44,10 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayAxisReading,
+  OverlayChartAxes,
   OverlayUnitFit,
-  OverlayUnitReading,
 } from "Common/Utils/Metrics/MetricQueryOverlay";
 import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
 import HintChip from "./HintChip";
@@ -55,11 +57,18 @@ export const METRIC_QUERY_OVERLAY_TOGGLE_TEST_ID: string =
   "metric-query-overlay-toggle";
 
 /*
- * Under that switch, while it is on: this query's unit cannot be read on the
- * axis of the chart it joins (MetricQueryOverlay.readUnit).
+ * Under that switch, while it is on: this query's unit cannot be read on
+ * either axis of the chart it joins (MetricQueryOverlay.readChartAxes).
  */
 export const METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID: string =
   "metric-query-overlay-unit-note";
+
+/*
+ * Under that switch, while it is on: this query is in a unit of another kind
+ * than the chart's, so it is drawn against the chart's right axis (#10042).
+ */
+export const METRIC_QUERY_OVERLAY_AXIS_NOTE_TEST_ID: string =
+  "metric-query-overlay-axis-note";
 
 export interface ComponentProps {
   data: MetricQueryConfigData;
@@ -94,12 +103,14 @@ export interface ComponentProps {
    */
   canOverlayWithPreviousQuery?: boolean | undefined;
   /*
-   * The first query of the chart this query joins when it overlays the
-   * previous one (MetricQueryOverlay.getChartLead). That chart's value axis
-   * is in its unit, so the switch says when this query's unit cannot be
-   * read there.
+   * The queries of the chart this query joins when it overlays the previous
+   * one, its first query first (MetricQueryOverlay.getChartQueriesBefore).
+   * The chart's left axis is in its first query's unit, and its right axis,
+   * when it has one, in the unit of its first query of another kind, so the
+   * switch says when this query is drawn against the right axis, and when
+   * neither axis can read it.
    */
-  overlayChartQuery?: MetricQueryConfigData | undefined;
+  overlayChartQueries?: Array<MetricQueryConfigData> | undefined;
   // Initial state of the "Filters & grouping" section (see MetricQuery).
   defaultShowAdvancedFilters?: boolean | undefined;
 }
@@ -303,32 +314,53 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
     "";
 
   /*
-   * While this query is overlaid, how its values read on the axis of the
-   * chart it joins, which is in that chart's first query's unit. Only a unit
-   * of another kind needs saying: one of the same kind is converted into the
-   * chart's unit, and draws right (MetricQueryOverlay).
+   * While this query is overlaid, which axis of the chart it joins it is
+   * read on (MetricQueryOverlay.readChartAxes): the left one, in the chart's
+   * first query's unit, where a unit of the same kind is converted and draws
+   * right, so there is nothing to say; the right one, for a unit of another
+   * kind; or neither, for a third kind of unit.
    */
-  const overlayChartUnit: string = getDrawnUnit(
-    props.overlayChartQuery,
-    props.metricTypes,
-  );
-  const overlayChartMetricName: string =
-    props.overlayChartQuery?.metricQueryData?.filterData?.metricName?.toString() ||
-    "";
-  const ownMetricName: string =
-    props.data?.metricQueryData?.filterData?.metricName?.toString() || "";
-  const ownUnit: string = getDrawnUnit(props.data, props.metricTypes);
-  const overlayUnitReading: OverlayUnitReading | null =
+  const overlayChartQueries: Array<MetricQueryConfigData> =
+    props.overlayChartQueries || [];
+  const metricNameOf: (queryConfig: MetricQueryConfigData) => string = (
+    queryConfig: MetricQueryConfigData,
+  ): string => {
+    return (
+      queryConfig?.metricQueryData?.filterData?.metricName?.toString() || ""
+    );
+  };
+  const overlayChart: Array<MetricQueryConfigData> = [
+    ...overlayChartQueries,
+    props.data,
+  ];
+  const overlayAxes: OverlayChartAxes | null =
     props.canOverlayWithPreviousQuery &&
     props.data?.overlayWithPreviousQuery === true &&
-    props.overlayChartQuery
-      ? MetricQueryOverlay.readUnit({
-          chartUnit: overlayChartUnit,
-          chartMetricName: overlayChartMetricName,
-          queryUnit: ownUnit,
-          queryMetricName: ownMetricName,
-        })
+    overlayChartQueries.length > 0
+      ? MetricQueryOverlay.readChartAxes(
+          overlayChart.map(
+            (
+              queryConfig: MetricQueryConfigData,
+            ): { unit: string; metricName: string } => {
+              return {
+                unit: getDrawnUnit(queryConfig, props.metricTypes),
+                metricName: metricNameOf(queryConfig),
+              };
+            },
+          ),
+        )
       : null;
+  const overlayAxisReading: OverlayAxisReading | null = overlayAxes
+    ? overlayAxes.readings[overlayAxes.readings.length - 1] || null
+    : null;
+  const overlayChartLead: MetricQueryConfigData | undefined =
+    overlayChartQueries[0];
+  const overlaySecondAxisLead: MetricQueryConfigData | undefined =
+    overlayAxes && overlayAxes.secondAxisLeadIndex !== null
+      ? overlayChart[overlayAxes.secondAxisLeadIndex]
+      : undefined;
+  const ownMetricName: string = metricNameOf(props.data);
+  const ownUnit: string = getDrawnUnit(props.data, props.metricTypes);
 
   /*
    * A unit by the name the chart's unit badge gives it, else as written, in
@@ -880,23 +912,56 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                         }}
                       />
                       {/*
-                       * Said here, before it is saved, as the chart says it
-                       * once drawn: one value axis cannot read two kinds of
-                       * unit.
+                       * Said here, before it is saved, as the chart draws it:
+                       * a unit of another kind than the chart's goes on the
+                       * chart's right axis, and a third kind fits neither.
                        */}
-                      {overlayUnitReading?.fit === OverlayUnitFit.Different ? (
+                      {overlayAxisReading?.axis === OverlayAxis.Second &&
+                      overlayChartLead ? (
+                        <p
+                          className="text-xs text-gray-500"
+                          data-testid={METRIC_QUERY_OVERLAY_AXIS_NOTE_TEST_ID}
+                        >
+                          {translator.translateTemplate(
+                            "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.",
+                            {
+                              unit: getUnitName(ownUnit, ownMetricName),
+                              chartUnit: getUnitName(
+                                getDrawnUnit(
+                                  overlayChartLead,
+                                  props.metricTypes,
+                                ),
+                                metricNameOf(overlayChartLead),
+                              ),
+                            },
+                          )}
+                        </p>
+                      ) : null}
+                      {overlayAxisReading?.fit === OverlayUnitFit.Different &&
+                      overlayChartLead &&
+                      overlaySecondAxisLead ? (
                         <HintChip variant="amber">
                           <span
                             className="min-w-0 break-words"
                             data-testid={METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID}
                           >
                             {translator.translateTemplate(
-                              "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.",
+                              "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.",
                               {
                                 unit: getUnitName(ownUnit, ownMetricName),
                                 chartUnit: getUnitName(
-                                  overlayChartUnit,
-                                  overlayChartMetricName,
+                                  getDrawnUnit(
+                                    overlayChartLead,
+                                    props.metricTypes,
+                                  ),
+                                  metricNameOf(overlayChartLead),
+                                ),
+                                secondUnit: getUnitName(
+                                  getDrawnUnit(
+                                    overlaySecondAxisLead,
+                                    props.metricTypes,
+                                  ),
+                                  metricNameOf(overlaySecondAxisLead),
                                 ),
                               },
                             )}

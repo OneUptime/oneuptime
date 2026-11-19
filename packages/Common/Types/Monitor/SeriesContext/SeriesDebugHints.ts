@@ -237,7 +237,11 @@ export default class SeriesDebugHints {
        * The kubelet's own reading, as the agent collects it: the node's
        * root and image filesystems, and each pod's ephemeral storage - the
        * pod filling a node's disk (High Node Disk Usage), or using its
-       * memory. Read-only, through the API server's node proxy.
+       * memory. Read-only, through the API server's node proxy. The image
+       * filesystem (node.runtime.imageFs, and containerFs when the kubelet
+       * splits it) is only here: the agent's collector does not export it,
+       * and Node Image Disk Almost Full reads the containers' filesystem in
+       * its place.
        */
       commands.push({
         purpose:

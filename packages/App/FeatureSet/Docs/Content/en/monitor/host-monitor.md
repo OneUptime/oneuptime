@@ -7,6 +7,7 @@ A Host monitor watches one machine — its CPU, memory, disks, load and processe
 - [Templates](#pre-built-alert-templates): Ten ready-made alerts for a silent or restarted host, CPU, memory, swap, disk, inodes, load, processes and failed systemd units.
 - [Metrics](#collected-metrics): The host metrics you can alert on, and their units.
 - [Host or Server / VM?](#host-monitor-or-server-vm-monitor): Which of the two machine monitors to use.
+- [Several disks](#hosts-with-several-disks): One monitor for every disk, one incident per disk.
 :::
 
 ## How it works
@@ -221,6 +222,26 @@ A monitor you do not build from a template starts with two criteria:
 > [!IMPORTANT]
 > A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
+## Hosts with several disks
+
+One Host monitor covers every disk the host reports. The High Filesystem Usage and Running Out of Inodes templates group their query by `mountpoint` and `device`, so the monitor checks each disk on its own and opens one incident per disk: a second disk filling up is not hidden behind the first one's open incident.
+
+| Where | What it shows for each disk |
+| --- | --- |
+| The monitor's **Metrics** | One line per disk, named after its `mountpoint` and `device`. |
+| **Monitoring Logs** | **Observed** counts the series each check read: one per disk. |
+| **Incidents** and **Alerts** | One per disk, naming the disk's mount and device. |
+| The host's **Filesystems** | Every disk the collector reports, whatever your monitors watch. |
+
+Each criteria is checked for each disk:
+
+- While a disk's incident is open, the criteria that opened it opens no other for that disk. Another disk that meets it opens its own.
+- A disk that meets two criteria, such as one above 98% and one above 90%, gets one incident, from the first of them in the list. Put the stricter one first.
+- A disk's incident resolves when that disk stops meeting the criteria that opened it, whatever the other disks do.
+- The monitor has one status, set by the first criteria in the list that any disk meets. When no disk meets a criteria that fires, one disk at or below the recovery threshold is enough for the recovery criteria, so the 10% recovery margin does not hold on a host with a disk that is never near full.
+
+To watch only some disks, open **Advanced** and add a **Filter by attributes** on `mountpoint` to the query under **Select Metrics**: **is any of** the disks to watch, or **is none of** the disks to leave out. Keep the **Group by**, and write each disk as **Filesystems** shows it, such as `C:` or `/var`. To stop collecting a disk at all, so it also leaves the host's pages, set `include_mount_points` or `exclude_mount_points` on the collector's `filesystem` scraper ([Host metrics](/docs/telemetry/host-otel-collector#host-metrics)).
+
 ## Troubleshooting
 
 :::details The host is not in the Host list
@@ -237,6 +258,10 @@ The monitor scopes every query with `resource.host.name` equal to the host you p
 
 :::details High Filesystem Usage fires for a mount that is always full
 Read-only pseudo-filesystems, such as snap `squashfs` loop mounts under `/snap` or macOS `devfs`, are 100% full by design and never recover. The configs OneUptime runs and hands out leave them out with `exclude_fs_types`; a config of your own, or a Collector Config made before they did, needs the same: copy it from [Host metrics](/docs/telemetry/host-otel-collector#host-metrics). Leave out another always-full mount, such as a mounted `.dmg`, with `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage shows one series on a host with several disks
+The query has no **Group by**. Each check then reads the fullest disk only, and one incident speaks for every disk: the monitor's **Metrics** draws one line named after the query, and **Observed** in **Monitoring Logs** counts data points instead of series. On the monitor's **Criteria**, click **Edit Criteria**, open **Advanced** under **More fields**, and set **Group by** on the query under **Select Metrics** to `mountpoint` and `device`. Picking the template again under **What to alert on** sets it too, but replaces your criteria with the template's. At the next check, each disk above the threshold opens its own incident, and the one open for the whole monitor resolves if its criteria auto-resolves incidents.
 :::
 
 ## Next steps

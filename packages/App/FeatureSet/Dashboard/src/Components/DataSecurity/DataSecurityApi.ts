@@ -12,6 +12,7 @@ import {
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
   DataSecurityMetricUser,
+  DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
   DataSecurityOverview,
@@ -201,7 +202,9 @@ export default class DataSecurityApi {
 
   /*
    * What dropping the metrics whose names hold a finding's data would do
-   * (#9757): asked before the drop, which it never makes.
+   * (#9757, #9946): asked before the drop, which it never makes. Read
+   * defensively: a reader without an id is no reader, a widget without an
+   * id no widget, and a count that is no count is none.
    */
   public static async getDropMetricImpact(
     findingId: ObjectID,
@@ -209,24 +212,73 @@ export default class DataSecurityApi {
     const answer: JSONObject = await post(
       DATA_SECURITY_API_ROUTES.dropMetricImpact(findingId.toString()),
     );
+    const textOf: (value: unknown) => string = (value: unknown): string => {
+      return typeof value === "string" ? value : "";
+    };
+    const widgetsOf: (value: unknown) => Array<DataSecurityMetricUserWidget> = (
+      value: unknown,
+    ): Array<DataSecurityMetricUserWidget> => {
+      return (Array.isArray(value) ? value : [])
+        .map((widget: unknown): JSONObject => {
+          return (
+            widget && typeof widget === "object" ? widget : {}
+          ) as JSONObject;
+        })
+        .filter((widget: JSONObject): boolean => {
+          return Boolean(textOf(widget["id"]));
+        })
+        .map((widget: JSONObject): DataSecurityMetricUserWidget => {
+          return {
+            id: textOf(widget["id"]),
+            title: textOf(widget["title"]),
+            type: textOf(widget["type"]),
+          };
+        });
+    };
     const usersOf: (
       value: JSONValue | undefined,
     ) => Array<DataSecurityMetricUser> = (
       value: JSONValue | undefined,
     ): Array<DataSecurityMetricUser> => {
-      return Array.isArray(value)
-        ? (value as Array<unknown>).filter(
-            (user: unknown): user is DataSecurityMetricUser => {
-              const entry: JSONObject = (user || {}) as JSONObject;
+      const users: Array<DataSecurityMetricUser> = [];
 
-              return (
-                typeof entry["id"] === "string" &&
-                ObjectID.isValidUUID(entry["id"]) &&
-                typeof entry["name"] === "string"
-              );
-            },
-          )
-        : [];
+      for (const user of Array.isArray(value) ? value : []) {
+        const entry: JSONObject = (
+          user && typeof user === "object" ? user : {}
+        ) as JSONObject;
+
+        if (
+          typeof entry["id"] !== "string" ||
+          !ObjectID.isValidUUID(entry["id"]) ||
+          typeof entry["name"] !== "string"
+        ) {
+          continue;
+        }
+
+        const read: DataSecurityMetricUser = {
+          id: entry["id"],
+          name: entry["name"],
+        };
+
+        if (Array.isArray(entry["widgets"])) {
+          read.widgets = widgetsOf(entry["widgets"]);
+        }
+
+        if (typeof entry["outputMetricName"] === "string") {
+          read.outputMetricName = entry["outputMetricName"];
+        }
+
+        users.push(read);
+      }
+
+      return users;
+    };
+    const countOf: (value: JSONValue | undefined) => number = (
+      value: JSONValue | undefined,
+    ): number => {
+      return typeof value === "number" && Number.isInteger(value) && value > 0
+        ? value
+        : 0;
     };
 
     return {
@@ -240,8 +292,16 @@ export default class DataSecurityApi {
       metricsCounted: answer["metricsCounted"] === true,
       monitors: usersOf(answer["monitors"]),
       dashboards: usersOf(answer["dashboards"]),
+      slos: usersOf(answer["slos"]),
+      recordingRules: usersOf(answer["recordingRules"]),
       monitorsChecked: answer["monitorsChecked"] === true,
       dashboardsChecked: answer["dashboardsChecked"] === true,
+      slosChecked: answer["slosChecked"] === true,
+      recordingRulesChecked: answer["recordingRulesChecked"] === true,
+      monitorsHidden: countOf(answer["monitorsHidden"]),
+      dashboardsHidden: countOf(answer["dashboardsHidden"]),
+      slosHidden: countOf(answer["slosHidden"]),
+      recordingRulesHidden: countOf(answer["recordingRulesHidden"]),
     };
   }
 
