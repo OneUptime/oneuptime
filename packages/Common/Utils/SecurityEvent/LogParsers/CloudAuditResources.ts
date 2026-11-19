@@ -21,6 +21,7 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   MAX_RESOURCE_ID_LENGTH,
   isCloudResourceIdLike,
+  readCloudEndpointHosts,
 } from "../../SecurityCase/SecurityConnectionMatch";
 import { MAX_EVENT_RESOURCE_IDS } from "../SecurityRecordReading";
 
@@ -1693,30 +1694,54 @@ export function getServerlessFunctionCloudResourceId(data: {
 
 /*
  * Whether a cloud resource can have security events of its own (#9779),
- * and so a Security Events page: an ID its cloud's audit log names it by -
- * an ARN, an Azure resource ID, a Google Cloud full resource name - or logs
- * of its own, which its connection's stream files under it.
+ * and so a Security Events page - by the identities its Security card
+ * counts by (ResourceSecurity):
+ *
+ *   - an ID its cloud's audit log names it by: an ARN, an Azure resource
+ *     ID, a Google Cloud full resource name (isCloudResourceNamedByItsId);
+ *   - logs of its own, which its connection's stream files under it,
+ *     stamped with its ID;
+ *   - a name or address it answers on (its endpoints), which any source
+ *     can name it by.
  *
  * A resource OneUptime knows only by a readable stand-in its metrics give
- * it ("AWS/AmazonMQ Broker=orders", a Google Cloud VPN gateway's labels)
- * and that sends no logs of its own has neither: no audit record names the
- * stand-in, and nothing else is its. It has no page, rather than one that
- * would always be empty.
+ * it ("AWS/AmazonMQ Broker=orders", a Google Cloud VPN gateway's labels),
+ * that sends no logs of its own and answers on no name or address of its
+ * own, has none of them: no record names the stand-in, and nothing else is
+ * its. It has no page, rather than one that would always be empty.
  */
 export function canCloudResourceHaveSecurityEvents(data: {
   provider: string | null | undefined;
   type: string | null | undefined;
   providerResourceId: string | null | undefined;
+  cloudEndpoints?: unknown;
 }): boolean {
   const provider: string = (data.provider || "").toLowerCase();
   const id: string = (data.providerResourceId || "").trim();
+  const endpoints: { names: Array<string>; addresses: Array<string> } =
+    readCloudEndpointHosts(data.cloudEndpoints);
+
+  if (endpoints.names.length > 0 || endpoints.addresses.length > 0) {
+    return true;
+  }
 
   if (!id) {
     return false;
   }
 
   return (
-    isCloudProviderOwnResourceId(provider, id) ||
+    isCloudResourceNamedByItsId(id) ||
     canCloudResourceHaveStreamedLogs({ provider, type: data.type })
   );
+}
+
+/*
+ * Whether a cloud resource's audit log can name it: its row keeps its own
+ * ID at its cloud, as ResourceSecurity searches for it, not a readable
+ * stand-in no record names.
+ */
+export function isCloudResourceNamedByItsId(
+  providerResourceId: string | null | undefined,
+): boolean {
+  return isCloudResourceIdLike(providerResourceId);
 }

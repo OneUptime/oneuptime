@@ -54,8 +54,9 @@ export interface ComponentProps {
   hasRecommendations?: boolean | undefined;
   /*
    * A resource an event can reach: one its cloud's audit log names by its
-   * own ID, or with logs of its own (canCloudResourceHaveSecurityEvents).
-   * Its menu has Security Events, after Logs.
+   * own ID, with logs of its own, or answering on a name or address of its
+   * own (canCloudResourceHaveSecurityEvents). Its menu has Security
+   * Events, after Logs.
    */
   hasSecurityEvents?: boolean | undefined;
 }

@@ -44,7 +44,9 @@ export const RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID: string =
  * A cloud resource's (#9779) comes first from its account's audit log, read
  * with no pipeline once Cloud audit logs is on; then its own logs, for a
  * kind that has some; and for an AWS resource its data events, from a
- * CloudTrail trail its account streams. A serverless function's (#9780)
+ * CloudTrail trail its account streams. One kept by a readable stand-in no
+ * audit record names comes from its own logs, and from the names and
+ * addresses it answers on, alone. A serverless function's (#9780)
  * comes from its own logs and traces, and from its cloud's audit log once
  * its telemetry says the ID the log names it by - or, until it does, what
  * to set so it does.
@@ -116,6 +118,15 @@ export const RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE: Readonly<
 
 const WHAT_LANDS_HERE_OTHERWISE: string = translationKey(
   "They appear here when events from any source Security Events reads name this record.",
+);
+
+/*
+ * A cloud resource its audit log cannot name - kept by a readable stand-in
+ * its metrics give it - reached by its own logs, or by a name or address
+ * it answers on.
+ */
+export const CLOUD_RESOURCE_WITHOUT_ID_LANDS_HERE: string = translationKey(
+  "They appear here when OneUptime reads them in its own logs, or when a source names it by a name or address it answers on.",
 );
 
 export const OPENSTACK_AUDIT_TRAIL_STEP: string = translationKey(
@@ -235,9 +246,11 @@ export interface ComponentProps {
   // A cloud resource of a kind its connection's stream sends logs of: its own logs are read too.
   hasOwnLogs?: boolean | undefined;
   /*
-   * A function: whether its cloud's audit log can name it - its telemetry
-   * says its account and Region - and whether it is of a cloud whose
-   * functions it could (AWS, Google Cloud), to say what to set when not.
+   * A cloud resource or a function: whether its cloud's audit log can name
+   * it - a resource's row keeps its own ID, not a stand-in; a function's
+   * telemetry says its account and Region. And for a function, whether it
+   * is of a cloud whose functions it could name (AWS, Google Cloud), to
+   * say what to set when not.
    */
   isNamedByAuditLog?: boolean | undefined;
   canBeNamedByAuditLog?: boolean | undefined;
@@ -263,9 +276,9 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
     SecurityTelemetrySourceKind.Traces,
     isService || isFunction,
   );
-  // A cloud resource's, and a function's its audit log can name, come from its account's audit log.
+  // A cloud resource's and a function's its audit log can name come from its account's audit log.
   const isNamedByAuditLog: boolean =
-    isCloudResource || (isFunction && Boolean(props.isNamedByAuditLog));
+    (isCloudResource || isFunction) && Boolean(props.isNamedByAuditLog);
   const cloudAuditState: SecurityEventsLogsState = useSourceState(
     SecurityTelemetrySourceKind.CloudAudit,
     isNamedByAuditLog,
@@ -356,7 +369,7 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
   };
 
   // A cloud resource's account's audit log names it first.
-  if (isCloudResource) {
+  if (isCloudResource && isNamedByAuditLog) {
     steps.push(cloudAuditStep);
   }
 
@@ -403,12 +416,12 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (isFunction && props.isNamedByAuditLog) {
+  if (isFunction && isNamedByAuditLog) {
     steps.push(cloudAuditStep);
   }
 
   // A function its cloud's audit log could name, once its telemetry says how.
-  if (isFunction && !props.isNamedByAuditLog && props.canBeNamedByAuditLog) {
+  if (isFunction && !isNamedByAuditLog && props.canBeNamedByAuditLog) {
     steps.push({
       id: "function-account",
       content: <span>{translator.translateText(FUNCTION_ACCOUNT_STEP)}</span>,
@@ -416,7 +429,11 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
   }
 
   // An AWS resource's data events are no management event: a trail its account streams brings them.
-  if (isCloudResource && props.cloudProvider === CloudProvider.AWS) {
+  if (
+    isCloudResource &&
+    isNamedByAuditLog &&
+    props.cloudProvider === CloudProvider.AWS
+  ) {
     steps.push({
       id: "cloudtrail-data-events",
       content: (
@@ -460,34 +477,40 @@ const ResourceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
         </h3>
         <p className="mt-2 text-sm text-gray-500">
           {translator.translateText(
-            RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE[props.kind] ||
-              WHAT_LANDS_HERE_OTHERWISE,
+            isCloudResource && !isNamedByAuditLog
+              ? CLOUD_RESOURCE_WITHOUT_ID_LANDS_HERE
+              : RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE[props.kind] ||
+                  WHAT_LANDS_HERE_OTHERWISE,
           )}
         </p>
       </div>
 
-      <ol className="mt-6 space-y-3 text-left text-sm text-gray-600">
-        {steps.map(
-          (
-            step: { id: string; content: ReactElement; state?: string },
-            index: number,
-          ): ReactElement => {
-            return (
-              <li
-                key={step.id}
-                className="flex gap-3 rounded-lg border border-gray-200 bg-white p-4"
-                data-testid={`${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-${step.id}`}
-                {...(step.state ? { "data-state": step.state } : {})}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
-                  {translator.formatNumber(index + 1)}
-                </span>
-                {step.content}
-              </li>
-            );
-          },
-        )}
-      </ol>
+      {steps.length === 0 ? (
+        <></>
+      ) : (
+        <ol className="mt-6 space-y-3 text-left text-sm text-gray-600">
+          {steps.map(
+            (
+              step: { id: string; content: ReactElement; state?: string },
+              index: number,
+            ): ReactElement => {
+              return (
+                <li
+                  key={step.id}
+                  className="flex gap-3 rounded-lg border border-gray-200 bg-white p-4"
+                  data-testid={`${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-${step.id}`}
+                  {...(step.state ? { "data-state": step.state } : {})}
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
+                    {translator.formatNumber(index + 1)}
+                  </span>
+                  {step.content}
+                </li>
+              );
+            },
+          )}
+        </ol>
+      )}
     </div>
   );
 };

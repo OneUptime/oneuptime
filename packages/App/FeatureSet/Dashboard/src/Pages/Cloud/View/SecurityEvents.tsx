@@ -17,7 +17,10 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { canCloudResourceHaveSecurityEvents } from "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources";
+import {
+  canCloudResourceHaveSecurityEvents,
+  isCloudResourceNamedByItsId,
+} from "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -34,9 +37,9 @@ import React, {
  *
  * Its empty state says where its events come from, in its cloud's words.
  * A resource no event can reach - known only by a stand-in name its
- * metrics give it, with no logs of its own - has no menu entry; opened by
- * its address, it says why instead of showing an explorer that would stay
- * empty.
+ * metrics give it, with no logs of its own and no name or address it
+ * answers on - has no menu entry; opened by its address, it says why
+ * instead of showing an explorer that would stay empty.
  */
 
 export const CLOUD_RESOURCE_NO_SECURITY_EVENTS_TITLE: string = translationKey(
@@ -69,6 +72,7 @@ const CloudResourceSecurityEvents: FunctionComponent<PageComponentProps> = (
         cloudProvider: true,
         cloudResourceType: true,
         providerResourceId: true,
+        cloudEndpoints: true,
       },
     })
       .then((item: CloudResource | null) => {
@@ -107,6 +111,7 @@ const CloudResourceSecurityEvents: FunctionComponent<PageComponentProps> = (
       provider: resource.cloudProvider,
       type: resource.cloudResourceType,
       providerResourceId: resource.providerResourceId,
+      cloudEndpoints: resource.cloudEndpoints,
     })
   ) {
     return (
@@ -128,6 +133,9 @@ const CloudResourceSecurityEvents: FunctionComponent<PageComponentProps> = (
         <ResourceSecurityEventsEmptyState
           kind={SecurityConnectionKind.CloudResource}
           cloudProvider={(resource.cloudProvider || "").toLowerCase()}
+          isNamedByAuditLog={isCloudResourceNamedByItsId(
+            resource.providerResourceId,
+          )}
           hasOwnLogs={canCloudResourceHaveStreamedLogs({
             provider: resource.cloudProvider,
             type: resource.cloudResourceType,

@@ -60,7 +60,8 @@ const CloudResourceViewLayout: FunctionComponent<
   const [hasRecommendations, setHasRecommendations] = useState<boolean>(false);
   /*
    * Whether its menu has Security Events: a resource an event can reach,
-   * by its own ID in its cloud's audit log or by logs of its own (#9779).
+   * by its own ID in its cloud's audit log, by logs of its own, or by a
+   * name or address it answers on (#9779).
    */
   const [hasSecurityEvents, setHasSecurityEvents] = useState<boolean>(false);
 
@@ -79,6 +80,7 @@ const CloudResourceViewLayout: FunctionComponent<
         cloudProvider: true,
         cloudResourceType: true,
         providerResourceId: true,
+        cloudEndpoints: true,
       },
     })
       .then((item: CloudResource | null): void => {
@@ -94,6 +96,7 @@ const CloudResourceViewLayout: FunctionComponent<
               provider: item?.cloudProvider,
               type: item?.cloudResourceType,
               providerResourceId: item?.providerResourceId,
+              cloudEndpoints: item?.cloudEndpoints,
             }),
           );
           setHasRecommendations(
