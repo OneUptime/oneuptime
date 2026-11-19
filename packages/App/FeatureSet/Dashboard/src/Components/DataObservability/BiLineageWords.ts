@@ -8,6 +8,7 @@ import {
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * WHY A BI TOOL'S DASHBOARDS ARE, OR ARE NOT, TIED TO WATCHED TABLES, IN
@@ -220,7 +221,8 @@ export function getBiLineageStep(
           SCHEMA_ERRORS_TEXT,
           summary.datasets?.withSchemaError || 0,
           {
-            error: summary.datasets?.schemaError || "",
+            // What Power BI said, put in the sentence as every error is (#7307).
+            error: errorInSentence(summary.datasets?.schemaError),
           },
         ),
       };
