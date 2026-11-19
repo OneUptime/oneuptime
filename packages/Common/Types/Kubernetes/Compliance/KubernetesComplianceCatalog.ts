@@ -128,7 +128,12 @@ const POD_SECURITY_WORDS: Readonly<Record<PodSecurityControl, ControlWords>> = {
     ),
   },
   [PodSecurityControl.Capabilities]: {
-    title: translationKey("Capabilities"),
+    /*
+     * Linux's capabilities, which English calls by the standard's name and
+     * each language words as that meaning: the bare "Capabilities" is what a
+     * Runner or a recording can do, worded as features (MeaningKeys).
+     */
+    title: translationKey("Capabilities (Linux capabilities)"),
     description: translationKey(
       "Containers may add only the capabilities the Baseline policy lists, such as NET_BIND_SERVICE or CHOWN.",
     ),

@@ -58672,5 +58672,6 @@
   "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with {{setting}}.": "Ein kubelet älter als Kubernetes 1.33 lässt den Agenten die Pods seines Knotens nur über nodes/proxy lesen. Sobald jeder Knoten 1.33 oder neuer ausführt, aktualisieren Sie den Agenten mit {{setting}}.",
   "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with {{setting}}.": "Das Kosten-Prometheus des Agenten liest das cAdvisor jedes Knotens über den API-Server, wie es EKS Fargate erfordert. Wo Pods das kubelet jedes Knotens erreichen können, aktualisieren Sie den Agenten mit {{setting}}.",
   "This binding is the OneUptime Kubernetes agent's own.": "Diese Rollenbindung gehört dem OneUptime-Kubernetes-Agenten selbst.",
-  "Upgrade the agent: newer versions grant nodes/proxy only where a node's kubelet needs it.": "Aktualisieren Sie den Agenten: Neuere Versionen gewähren nodes/proxy nur dort, wo das kubelet eines Knotens es braucht."
+  "Upgrade the agent: newer versions grant nodes/proxy only where a node's kubelet needs it.": "Aktualisieren Sie den Agenten: Neuere Versionen gewähren nodes/proxy nur dort, wo das kubelet eines Knotens es braucht.",
+  "Capabilities (Linux capabilities)": "Fähigkeiten"
 }
