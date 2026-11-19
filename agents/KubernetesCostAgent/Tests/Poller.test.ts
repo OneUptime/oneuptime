@@ -145,6 +145,60 @@ test("mapAllocationToRow marks unallocated capacity with its sentinel", (): void
   assert.strictEqual(row.namespace, "__unallocated__");
 });
 
+/*
+ * A Kubecost asked per container (CostEngineClient's CONTAINER_AGGREGATE)
+ * names its idle row "__idle__" in every field, as Kubecost 2.8.7 did on
+ * kind: it is idle capacity, not a workload, pod or node called __idle__.
+ */
+test("mapAllocationToRow keeps a Kubecost's idle row to its sentinel namespace alone", (): void => {
+  const row: KubernetesCostAllocationIngestRow = mapAllocationToRow({
+    allocation: {
+      name: "__idle__/__idle__/__idle__/__idle__/__idle__/__idle__/__idle__",
+      properties: {
+        cluster: "__idle__",
+        node: "__idle__",
+        container: "__idle__",
+        controller: "__idle__",
+        controllerKind: "__idle__",
+        namespace: "__idle__",
+        pod: "__idle__",
+      },
+      totalCost: 0.12238,
+    },
+    windowStart: new Date("2026-11-19T15:00:00Z"),
+    windowEnd: new Date("2026-11-19T16:00:00Z"),
+  });
+
+  assert.strictEqual(row.namespace, "__idle__");
+  assert.strictEqual(row.controllerKind, "");
+  assert.strictEqual(row.controllerName, "");
+  assert.strictEqual(row.podName, "");
+  assert.strictEqual(row.containerName, "");
+  assert.strictEqual(row.nodeName, "");
+  assert.strictEqual(row.totalCost, 0.12238);
+});
+
+test("mapAllocationToRow keeps a workload that only starts like a sentinel", (): void => {
+  const row: KubernetesCostAllocationIngestRow = mapAllocationToRow({
+    allocation: {
+      name: "c/n/prod/deployment/__idle__-checker/pod-1/main",
+      properties: {
+        namespace: "prod",
+        controllerKind: "deployment",
+        controller: "__idle__-checker",
+        pod: "pod-1",
+        container: "main",
+      },
+      totalCost: 1,
+    },
+    windowStart: new Date("2026-11-19T15:00:00Z"),
+    windowEnd: new Date("2026-11-19T16:00:00Z"),
+  });
+
+  assert.strictEqual(row.controllerName, "__idle__-checker");
+  assert.strictEqual(row.containerName, "main");
+});
+
 test("mapAllocationToRow keeps a real namespace even when the name contains a sentinel", (): void => {
   const row: KubernetesCostAllocationIngestRow = mapAllocationToRow({
     allocation: {
