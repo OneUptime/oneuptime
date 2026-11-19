@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Titel och sökmotorbeskrivning",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Besökare läser detta högst upp på din statussida, till exempel vad den täcker och var de får support.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Det besökare läser först, högst upp på din statussida, ovanför allt annat. Markdown stöds.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Händelser från den här mallen visas bara på dessa statussidor och meddelar bara deras prenumeranter. Utan val visas de inte på någon statussida.",
   "Events from this template will not appear on any status page.": "Händelser från den här mallen visas inte på någon statussida.",
   "Not shown on any status page": "Visas inte på någon statussida",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bara dessa statussidor visar den här händelsen och meddelar sina prenumeranter. Till skillnad från en incident visas en händelse utan val inte på någon statussida.",
   "Show event on these status pages": "Visa händelse på dessa statussidor",
   "This event will not appear on any status page.": "Den här händelsen visas inte på någon statussida.",
   "Change sharing": "Ändra delning",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "Larma mig vid varje ny incident och varje nytt larm.",
   "Publish a status page that shows my monitors.": "Publicera en statussida som visar mina monitorer.",
   "Publish a status page called {{name}} that shows my monitors.": "Publicera en statussida som heter {{name}} och visar mina monitorer.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjälp mig att skicka min tjänsts loggar, mätvärden och spår till OneUptime, och larma mig när den har fel."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjälp mig att skicka min tjänsts loggar, mätvärden och spår till OneUptime, och larma mig när den har fel.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "Händelser från den här mallen behåller samma tid på dagen i den här tidszonen hela året, även efter att klockan har ställts om.",
+  "First Event": "Första händelsen",
+  "It can show on its status pages at once.": "Den kan visas direkt på sina statussidor.",
+  "It can show on its status pages from {{time}}.": "Den kan visas på sina statussidor från {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Bara dessa statussidor kan visa händelser från den här mallen eller meddela sina prenumeranter. Utan val visas de inte på någon statussida.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bara dessa statussidor kan visa den här händelsen eller meddela sina prenumeranter. Till skillnad från en incident visas en händelse utan val inte på någon statussida."
 }

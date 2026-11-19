@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Tittel og søkemotorbeskrivelse",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Besøkende leser dette øverst på statussiden din, for eksempel hva den dekker og hvor de får støtte.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Det besøkende leser først, øverst på statussiden din, over alt annet. Markdown støttes.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Vedlikeholdshendelser fra denne malen vises bare på disse statussidene og varsler bare abonnentene deres. Uten valg vises de ikke på noen statusside.",
   "Events from this template will not appear on any status page.": "Vedlikeholdshendelser fra denne malen vises ikke på noen statusside.",
   "Not shown on any status page": "Vises ikke på noen statusside",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bare disse statussidene viser denne vedlikeholdshendelsen og varsler abonnentene sine. I motsetning til en hendelse vises en vedlikeholdshendelse uten valg ikke på noen statusside.",
   "Show event on these status pages": "Vis hendelse på disse statussidene",
   "This event will not appear on any status page.": "Denne vedlikeholdshendelsen vises ikke på noen statusside.",
   "Change sharing": "Endre deling",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "Tilkall meg ved hver ny hendelse og hvert nytt varsel.",
   "Publish a status page that shows my monitors.": "Publiser en statusside som viser monitorene mine.",
   "Publish a status page called {{name}} that shows my monitors.": "Publiser en statusside som heter {{name}} og viser monitorene mine.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjelp meg med å sende loggene, målingene og sporene fra tjenesten min til OneUptime, og varsle meg når den har feil."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjelp meg med å sende loggene, målingene og sporene fra tjenesten min til OneUptime, og varsle meg når den har feil.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "Vedlikeholdshendelser fra denne malen holder samme tid på dagen i denne tidssonen hele året, også etter at klokken er stilt om.",
+  "First Event": "Første hendelse",
+  "It can show on its status pages at once.": "Den kan vises straks på statussidene sine.",
+  "It can show on its status pages from {{time}}.": "Den kan vises på statussidene sine fra {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Bare disse statussidene kan vise vedlikeholdshendelser fra denne malen eller varsle abonnentene sine. Uten valg vises de ikke på noen statusside.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bare disse statussidene kan vise denne vedlikeholdshendelsen eller varsle abonnentene sine. I motsetning til en hendelse vises en vedlikeholdshendelse uten valg ikke på noen statusside."
 }

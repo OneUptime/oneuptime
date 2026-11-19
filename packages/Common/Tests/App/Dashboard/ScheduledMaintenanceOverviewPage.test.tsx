@@ -360,7 +360,13 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   };
 });
 
-import ScheduledMaintenanceView from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/Index";
+import ScheduledMaintenanceView, {
+  STATUS_PAGES_NOT_SHOWN_NOTE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/Index";
+import {
+  MaintenanceRemindersReason,
+  MaintenanceStatusPagesReason,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReachLines";
 import ChangeMonitorStatusToElement from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorStatus/ChangeMonitorStatusToElement";
 import StartedEventMonitorStatus from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/StartedEventMonitorStatus";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -734,6 +740,13 @@ describe("Scheduled maintenance overview page", () => {
     for (const key of Object.keys(detailItemsByCardName)) {
       delete detailItemsByCardName[key];
     }
+
+    /*
+     * The page asks what the status pages an event is on do with it, for
+     * its header's band and its details card (#9920, #9974): they show it
+     * and notify, unless a test says otherwise.
+     */
+    answerScheduledMaintenanceReach();
   });
 
   afterEach(() => {
@@ -1464,6 +1477,77 @@ describe("Scheduled maintenance overview page", () => {
   });
 
   describe("details card", () => {
+    /*
+     * #9974: "Shown on Status Pages" lists the pages the event was put on,
+     * and says - once the server has - that none of them shows it.
+     */
+    describe("the status pages it is on", () => {
+      const PAGE_IDS: Array<string> = [
+        "c0000000-0000-4000-8000-000000000001",
+        "c0000000-0000-4000-8000-000000000002",
+      ];
+
+      function eventOnPages(): ScheduledMaintenance {
+        const event: ScheduledMaintenance = makeEvent();
+
+        (event.statusPages || []).forEach(
+          (statusPage: StatusPage, index: number): void => {
+            statusPage._id = PAGE_IDS[index]!;
+          },
+        );
+
+        return event;
+      }
+
+      async function renderDetails(
+        answer: ScheduledMaintenanceReachAnswer,
+      ): Promise<HTMLElement> {
+        answerScheduledMaintenanceReach(answer);
+        const event: ScheduledMaintenance = eventOnPages();
+        detailItemsByCardName["Scheduled Maintenance Details"] = event;
+        getItemMock.mockResolvedValue(event as never);
+
+        await renderPage();
+        await flush();
+
+        return screen.getByTestId("card-Scheduled Maintenance Details");
+      }
+
+      test("none of them shows maintenance events: the card says so under them", async () => {
+        const card: HTMLElement = await renderDetails(
+          maintenanceNothingSent(PublicNoteNothingSentReason.NoStatusPages),
+        );
+
+        expect(
+          within(card).getByTestId(STATUS_PAGES_NOT_SHOWN_NOTE_TEST_ID),
+        ).toHaveTextContent(
+          "None of the status pages picked shows maintenance events.",
+        );
+      });
+
+      test.each([
+        ["they show it and notify", MAINTENANCE_NOTIFIES],
+        [
+          "they show it but notify nobody",
+          maintenanceNothingSent(PublicNoteNothingSentReason.NotificationsOff),
+        ],
+        ["the answer is not known yet", "never"],
+        [
+          "they could not be asked about",
+          new HTTPErrorResponse(403, { message: "No." }, {}),
+        ],
+      ] as Array<[string, ScheduledMaintenanceReachAnswer]>)(
+        "%s: no note",
+        async (_label: string, answer: ScheduledMaintenanceReachAnswer) => {
+          const card: HTMLElement = await renderDetails(answer);
+
+          expect(
+            within(card).queryByTestId(STATUS_PAGES_NOT_SHOWN_NOTE_TEST_ID),
+          ).toBeNull();
+        },
+      );
+    });
+
     test("uses the compact style, one column, no timeline pre-fetch and the agreed field order", async () => {
       getItemMock.mockResolvedValue(makeEvent() as never);
 
@@ -2567,10 +2651,24 @@ describe("Scheduled maintenance overview page", () => {
       );
 
       expect(footer).toBeDefined();
-      expect(footer!.type).toBe(RecordStatusPageSuggestions);
 
-      const props: RecordStatusPageSuggestionsProps = footer!
-        .props as RecordStatusPageSuggestionsProps;
+      /*
+       * The note that says what the pages picked will do (#9974), then the
+       * suggestions.
+       */
+      const children: Array<React.ReactElement> = React.Children.toArray(
+        (footer!.props as { children?: React.ReactNode }).children,
+      ) as Array<React.ReactElement>;
+
+      expect(
+        children.map((child: React.ReactElement): unknown => {
+          return child.type;
+        }),
+      ).toEqual([MaintenanceStatusPagesReason, RecordStatusPageSuggestions]);
+
+      const suggestions: React.ReactElement = children[1]!;
+      const props: RecordStatusPageSuggestionsProps =
+        suggestions.props as RecordStatusPageSuggestionsProps;
 
       expect(props.modelType).toBe(ScheduledMaintenance);
       expect(props.modelId.toString()).toBe(EVENT_ID);
@@ -2590,14 +2688,23 @@ describe("Scheduled maintenance overview page", () => {
         "99999999-9999-4999-8999-999999999999",
       ]);
 
-      // Nothing else on the dialog suggests anything.
+      /*
+       * Nothing else on the dialog suggests anything: the reminders' footer
+       * says which of them are not sent (#9974).
+       */
       expect(
         card.formFields
           .filter((field: EditField): boolean => {
             return Boolean(field.getFooterElement);
           })
           .map(keyOf),
-      ).toEqual(["statusPages"]);
+      ).toEqual(["statusPages", "sendSubscriberNotificationsOnBeforeTheEvent"]);
+      expect(
+        fieldOf(card, "sendSubscriberNotificationsOnBeforeTheEvent")
+          .getFooterElement!({}, undefined, {
+          setValue: setValue as unknown as (value: unknown) => void,
+        })!.type,
+      ).toBe(MaintenanceRemindersReason);
     });
 
     test("shows the event's own window: no default times on an Edit", async () => {
@@ -2799,7 +2906,7 @@ describe("Scheduled maintenance overview page", () => {
       },
     );
 
-    test("an event with no band asks nothing about its status pages", async () => {
+    test("an event with no band asks about its status pages once, for its details card", async () => {
       const event: ScheduledMaintenance = waitingEvent();
       event.publishOnStatusPageAt = new Date(Date.now() - HOUR);
       getItemMock.mockResolvedValue(event as never);
@@ -2808,8 +2915,66 @@ describe("Scheduled maintenance overview page", () => {
       await flush();
 
       expect(noticeElement()).toBeUndefined();
+      expect(reachAsks).toHaveLength(1);
+      expect(reachAsks[0]).toMatchObject({
+        route: SCHEDULED_MAINTENANCE_REACH_ROUTE,
+        statusPageIds: PAGE_IDS,
+        recordId: EVENT_ID,
+      });
+    });
+
+    test("an event on no status page asks nothing", async () => {
+      const event: ScheduledMaintenance = waitingEvent();
+      event.statusPages = [];
+      getItemMock.mockResolvedValue(event as never);
+
+      await renderPage();
+      await flush();
+
+      expect(noticeElement()).toBeUndefined();
       expect(reachAsks).toEqual([]);
     });
+
+    /*
+     * #9974: the band says it shows on its pages from the publish time only
+     * once the server has said one of them shows maintenance events - and
+     * that none does, when none does.
+     */
+    test.each([
+      ["show maintenance events and notify", MAINTENANCE_NOTIFIES, null],
+      [
+        "never notify",
+        maintenanceNothingSent(PublicNoteNothingSentReason.NotificationsOff),
+        PublicNoteNothingSentReason.NotificationsOff,
+      ],
+      [
+        "hide maintenance events",
+        maintenanceNothingSent(PublicNoteNothingSentReason.NoStatusPages),
+        PublicNoteNothingSentReason.NoStatusPages,
+      ],
+      ["are not known yet", "never", undefined],
+    ] as Array<[string, ScheduledMaintenanceReachAnswer, unknown]>)(
+      "status pages that %s: the band is handed what the server said",
+      async (
+        _label: string,
+        answer: ScheduledMaintenanceReachAnswer,
+        handed: unknown,
+      ) => {
+        reachAnswer = answer;
+        getItemMock.mockResolvedValue(waitingEvent() as never);
+
+        await renderPage();
+        await flush();
+
+        expect(
+          (
+            noticeElement()!.props as NoticeProps & {
+              statusPagesReason: unknown;
+            }
+          ).statusPagesReason,
+        ).toBe(handed);
+      },
+    );
 
     test("an event whose subscribers are told nothing has a band that promises them nothing", async () => {
       const event: ScheduledMaintenance = waitingEvent();

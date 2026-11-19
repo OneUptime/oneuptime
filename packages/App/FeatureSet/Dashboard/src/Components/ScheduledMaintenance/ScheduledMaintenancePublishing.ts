@@ -9,6 +9,7 @@ import ScheduledMaintenanceSubscriberReach, {
   MaintenanceStatusPagesReason,
   MaintenanceSubscriberMoment,
 } from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceSubscriberReach";
+import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
 import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
 import {
   translateTemplate,
@@ -116,14 +117,24 @@ export const PUBLISH_AT_NOT_BEFORE_START_ERROR: string = translationKey(
  * that they hear about it then - with one button to publish it now, which
  * asks first, as it tells customers.
  */
+/*
+ * None of the pages picked shows the event - they hide maintenance events,
+ * or are archived (#9920, #9974). Said by the Subscriber Notifications line
+ * (ScheduledMaintenanceReach), and by the band below.
+ */
+export const MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT: string =
+  translationKey("None of the status pages picked shows maintenance events.");
+
 export const PublishingNoticeCopy: {
   title: string;
   showsFrom: string;
   showsFromAndTold: string;
+  mayShowFrom: string;
   publishNow: string;
   confirmTitle: string;
   confirmDescription: string;
   confirmDescriptionAndTold: string;
+  confirmMayShow: string;
   noPermission: string;
 } = {
   title: translationKey("Not on status pages yet"),
@@ -131,15 +142,80 @@ export const PublishingNoticeCopy: {
   showsFromAndTold: translationKey(
     "It shows on its status pages from {{time}}, when their subscribers are told it is scheduled.",
   ),
+  /*
+   * While the server has not said what its status pages do (#9974): from
+   * its publish time it shows on those that show maintenance events, which
+   * may be none, so the band promises nothing.
+   */
+  mayShowFrom: translationKey("It can show on its status pages from {{time}}."),
   publishNow: translationKey("Publish Now"),
   confirmTitle: translationKey("Publish this event now?"),
   confirmDescription: translationKey("It shows on its status pages at once."),
   confirmDescriptionAndTold: translationKey(
     "It shows on its status pages at once, and their subscribers are told it is scheduled.",
   ),
+  confirmMayShow: translationKey("It can show on its status pages at once."),
   noPermission: translationKey(
     "You do not have permission to publish this event.",
   ),
+};
+
+// What the band and Publish Now's confirmation say, by what the event's pages do.
+export interface PublishingNoticeSentences {
+  // The band's sentence: a template, with the publish time's slot when it names the time.
+  band: string;
+  // Whether the band's sentence names the publish time ({{time}}).
+  namesTheTime: boolean;
+  confirmation: string;
+}
+
+/*
+ * The band's sentence and Publish Now's confirmation for an event waiting
+ * for its publish time, by the server's answer for the status pages it is
+ * on (#9974):
+ *
+ *   - none of them shows maintenance events (or they are archived): that,
+ *     in place of when it shows - it shows on none of them;
+ *   - not known yet, or not answered: that it can show on them from then,
+ *     promising nothing;
+ *   - otherwise: that it shows on them from then, and that their
+ *     subscribers are told it is scheduled when they are
+ *     (areSubscribersToldWhenPublished).
+ */
+export const getPublishingNoticeSentences: (data: {
+  statusPagesReason: MaintenanceStatusPagesReason;
+  areSubscribersTold: boolean;
+}) => PublishingNoticeSentences = (data: {
+  statusPagesReason: MaintenanceStatusPagesReason;
+  areSubscribersTold: boolean;
+}): PublishingNoticeSentences => {
+  if (data.statusPagesReason === PublicNoteNothingSentReason.NoStatusPages) {
+    return {
+      band: MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT,
+      namesTheTime: false,
+      confirmation: MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT,
+    };
+  }
+
+  if (data.statusPagesReason === undefined) {
+    return {
+      band: PublishingNoticeCopy.mayShowFrom,
+      namesTheTime: true,
+      confirmation: PublishingNoticeCopy.confirmMayShow,
+    };
+  }
+
+  return data.areSubscribersTold
+    ? {
+        band: PublishingNoticeCopy.showsFromAndTold,
+        namesTheTime: true,
+        confirmation: PublishingNoticeCopy.confirmDescriptionAndTold,
+      }
+    : {
+        band: PublishingNoticeCopy.showsFrom,
+        namesTheTime: true,
+        confirmation: PublishingNoticeCopy.confirmDescription,
+      };
 };
 
 /*

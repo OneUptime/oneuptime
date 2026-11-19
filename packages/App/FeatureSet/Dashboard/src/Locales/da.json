@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Titel og søgemaskinebeskrivelse",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Besøgende læser dette øverst på din statusside, fx hvad den dækker, og hvor man får support.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Det, besøgende læser først, øverst på din statusside, over alt andet. Markdown understøttes.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Begivenheder fra denne skabelon vises kun på disse statussider og underretter kun deres abonnenter. Uden valg vises de ikke på nogen statusside.",
   "Events from this template will not appear on any status page.": "Begivenheder fra denne skabelon vises ikke på nogen statusside.",
   "Not shown on any status page": "Vises ikke på nogen statusside",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Kun disse statussider viser denne begivenhed og underretter deres abonnenter. I modsætning til en hændelse vises en begivenhed uden valg ikke på nogen statusside.",
   "Show event on these status pages": "Vis begivenhed på disse statussider",
   "This event will not appear on any status page.": "Denne begivenhed vises ikke på nogen statusside.",
   "Change sharing": "Skift deling",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "Tilkald mig ved hver ny hændelse og hver ny advarsel.",
   "Publish a status page that shows my monitors.": "Udgiv en statusside, der viser mine monitorer.",
   "Publish a status page called {{name}} that shows my monitors.": "Udgiv en statusside med navnet {{name}}, der viser mine monitorer.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjælp mig med at sende min tjenestes logs, metrikker og traces til OneUptime, og advar mig, når den har fejl."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjælp mig med at sende min tjenestes logs, metrikker og traces til OneUptime, og advar mig, når den har fejl.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "Begivenheder fra denne skabelon holder samme tidspunkt af dagen i denne tidszone hele året, også efter at uret er stillet om.",
+  "First Event": "Første begivenhed",
+  "It can show on its status pages at once.": "Den kan vises straks på sine statussider.",
+  "It can show on its status pages from {{time}}.": "Den kan vises på sine statussider fra {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Kun disse statussider kan vise begivenheder fra denne skabelon eller underrette deres abonnenter. Uden valg vises de ikke på nogen statusside.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Kun disse statussider kan vise denne begivenhed eller underrette deres abonnenter. I modsætning til en hændelse vises en begivenhed uden valg ikke på nogen statusside."
 }

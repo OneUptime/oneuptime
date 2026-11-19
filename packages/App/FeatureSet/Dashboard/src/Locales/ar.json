@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "العنوان ووصف محركات البحث",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "يقرأ الزوار هذا أعلى صفحة الحالة، مثل ما تغطيه وأين يحصلون على الدعم.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "أول ما يقرؤه الزوار، أعلى صفحة الحالة، فوق كل شيء آخر. يدعم Markdown.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "تظهر الأحداث المنشأة من هذا القالب على صفحات الحالة هذه فقط، ولا تُخطر إلا مشتركيها. إن لم تُختر أي صفحة، فلن تظهر على أي صفحة حالة.",
   "Events from this template will not appear on any status page.": "لن تظهر الأحداث المنشأة من هذا القالب على أي صفحة حالة.",
   "Not shown on any status page": "لا يظهر على أي صفحة حالة",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "صفحات الحالة هذه وحدها تعرض هذا الحدث وتُخطر مشتركيها. على خلاف الحادثة، لا يظهر الحدث الذي لم تُختر له أي صفحة على أي صفحة حالة.",
   "Show event on these status pages": "عرض الحدث على صفحات الحالة هذه",
   "This event will not appear on any status page.": "لن يظهر هذا الحدث على أي صفحة حالة.",
   "Change sharing": "تغيير المشاركة",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "استدعني عند كل حادثة جديدة وكل تنبيه جديد.",
   "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
   "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "تجري الأحداث المنشأة من هذا القالب في الوقت نفسه من اليوم بهذه المنطقة الزمنية طوال العام، حتى بعد تغيير الساعة.",
+  "First Event": "الحدث الأول",
+  "It can show on its status pages at once.": "قد يظهر على صفحات الحالة الخاصة به فورًا.",
+  "It can show on its status pages from {{time}}.": "قد يظهر على صفحات الحالة الخاصة به ابتداءً من {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "صفحات الحالة هذه وحدها يمكنها عرض الأحداث المنشأة من هذا القالب أو إخطار مشتركيها. إن لم تُختر أي صفحة، فلن تظهر على أي صفحة حالة.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "صفحات الحالة هذه وحدها يمكنها عرض هذا الحدث أو إخطار مشتركيها. على خلاف الحادثة، لا يظهر الحدث الذي لم تُختر له أي صفحة على أي صفحة حالة."
 }

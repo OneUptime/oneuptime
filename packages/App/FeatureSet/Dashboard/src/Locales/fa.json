@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "عنوان و توضیحات موتور جستجو",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "بازدیدکنندگان این را بالای صفحه وضعیت شما می‌خوانند، مثلاً اینکه چه چیزهایی را پوشش می‌دهد و از کجا پشتیبانی بگیرند.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "آنچه بازدیدکنندگان اول می‌خوانند، بالای صفحه وضعیت شما و پیش از همه چیز. از Markdown پشتیبانی می‌شود.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "رویدادهای این الگو فقط در این صفحات وضعیت نمایش داده می‌شوند و فقط به مشترکان آن‌ها اطلاع می‌دهند. اگر هیچ صفحه‌ای انتخاب نشود، در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شوند.",
   "Events from this template will not appear on any status page.": "رویدادهای این الگو در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شوند.",
   "Not shown on any status page": "در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "فقط این صفحات وضعیت این رویداد را نمایش می‌دهند و به مشترکان خود اطلاع می‌دهند. برخلاف حادثه، رویدادی که هیچ صفحه‌ای برایش انتخاب نشده در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود.",
   "Show event on these status pages": "نمایش رویداد در این صفحات وضعیت",
   "This event will not appear on any status page.": "این رویداد در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود.",
   "Change sharing": "تغییر اشتراک‌گذاری",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "برای هر حادثه و هر هشدار تازه مرا فرا بخوان.",
   "Publish a status page that shows my monitors.": "یک صفحهٔ وضعیت منتشر کن که مانیتورهایم را نشان دهد.",
   "Publish a status page called {{name}} that shows my monitors.": "یک صفحهٔ وضعیت به نام {{name}} منتشر کن که مانیتورهایم را نشان دهد.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "رویدادهای این الگو در تمام سال در همان ساعت روز در این منطقه زمانی برگزار می‌شوند، حتی پس از تغییر ساعت رسمی.",
+  "First Event": "اولین رویداد",
+  "It can show on its status pages at once.": "ممکن است بی‌درنگ در صفحات وضعیت آن نمایش داده شود.",
+  "It can show on its status pages from {{time}}.": "ممکن است از {{time}} در صفحات وضعیت آن نمایش داده شود.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "فقط این صفحات وضعیت می‌توانند رویدادهای این الگو را نمایش دهند یا به مشترکان خود اطلاع دهند. اگر هیچ صفحه‌ای انتخاب نشود، در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شوند.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "فقط این صفحات وضعیت می‌توانند این رویداد را نمایش دهند یا به مشترکان خود اطلاع دهند. برخلاف حادثه، رویدادی که هیچ صفحه‌ای برایش انتخاب نشده در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود."
 }

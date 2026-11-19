@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "제목 및 검색 엔진 설명",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "방문자가 상태 페이지 상단에서 읽는 내용입니다. 예: 다루는 범위와 지원을 받을 수 있는 곳.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "방문자가 가장 먼저 읽는 내용으로, 상태 페이지 상단의 다른 모든 항목 위에 표시됩니다. Markdown을 지원합니다.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "이 템플릿으로 만든 이벤트는 이 상태 페이지에만 표시되고 해당 구독자에게만 알림을 보냅니다. 아무것도 선택하지 않으면 어떤 상태 페이지에도 표시되지 않습니다.",
   "Events from this template will not appear on any status page.": "이 템플릿으로 만든 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
   "Not shown on any status page": "어떤 상태 페이지에도 표시되지 않음",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "이 상태 페이지만 이 이벤트를 표시하고 구독자에게 알립니다. 인시던트와 달리, 아무것도 선택하지 않은 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
   "Show event on these status pages": "이 상태 페이지에 이벤트 표시",
   "This event will not appear on any status page.": "이 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
   "Change sharing": "공유 설정 변경",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "새 인시던트와 새 경고마다 나를 호출해 주세요.",
   "Publish a status page that shows my monitors.": "내 모니터를 보여 주는 상태 페이지를 게시해 주세요.",
   "Publish a status page called {{name}} that shows my monitors.": "내 모니터를 보여 주는 {{name}}(이)라는 상태 페이지를 게시해 주세요.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "내 서비스의 로그, 메트릭, 트레이스를 OneUptime으로 보내도록 도와주고, 오류가 생기면 경고해 주세요."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "내 서비스의 로그, 메트릭, 트레이스를 OneUptime으로 보내도록 도와주고, 오류가 생기면 경고해 주세요.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "이 템플릿으로 만든 이벤트는 일 년 내내 이 시간대의 같은 시각에 진행되며, 서머타임으로 시계가 바뀐 뒤에도 마찬가지입니다.",
+  "First Event": "첫 번째 이벤트",
+  "It can show on its status pages at once.": "즉시 상태 페이지에 표시될 수 있습니다.",
+  "It can show on its status pages from {{time}}.": "{{time}}부터 상태 페이지에 표시될 수 있습니다.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "이 상태 페이지만 이 템플릿으로 만든 이벤트를 표시하거나 구독자에게 알릴 수 있습니다. 아무것도 선택하지 않으면 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "이 상태 페이지만 이 이벤트를 표시하거나 구독자에게 알릴 수 있습니다. 인시던트와 달리, 아무것도 선택하지 않은 이벤트는 어떤 상태 페이지에도 표시되지 않습니다."
 }

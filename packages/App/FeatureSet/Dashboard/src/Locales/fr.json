@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Titre et description pour les moteurs de recherche",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Les visiteurs lisent ceci en haut de votre page de statut, par exemple ce qu'elle couvre et où obtenir de l'aide.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Ce que les visiteurs lisent en premier, en haut de votre page de statut, avant tout le reste. Markdown est pris en charge.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Les événements créés à partir de ce modèle s'affichent uniquement sur ces pages de statut et ne notifient que leurs abonnés. Sans sélection, ils ne s'affichent sur aucune page de statut.",
   "Events from this template will not appear on any status page.": "Les événements créés à partir de ce modèle n'apparaîtront sur aucune page de statut.",
   "Not shown on any status page": "Affiché sur aucune page de statut",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Seules ces pages de statut affichent cet événement et notifient leurs abonnés. Contrairement à un incident, un événement sans page choisie ne s'affiche sur aucune.",
   "Show event on these status pages": "Afficher l'événement sur ces pages de statut",
   "This event will not appear on any status page.": "Cet événement n'apparaîtra sur aucune page de statut.",
   "Change sharing": "Modifier le partage",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "Alerte-moi pour chaque nouvel incident et chaque nouvelle alerte.",
   "Publish a status page that shows my monitors.": "Publie une page de statut qui montre mes moniteurs.",
   "Publish a status page called {{name}} that shows my monitors.": "Publie une page de statut nommée {{name}} qui montre mes moniteurs.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aide-moi à envoyer les logs, métriques et traces de mon service à OneUptime, et alerte-moi quand il a des erreurs."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aide-moi à envoyer les logs, métriques et traces de mon service à OneUptime, et alerte-moi quand il a des erreurs.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "Les événements créés à partir de ce modèle gardent la même heure dans ce fuseau horaire toute l'année, y compris après le changement d'heure.",
+  "First Event": "Premier événement",
+  "It can show on its status pages at once.": "Il peut s'afficher aussitôt sur ses pages de statut.",
+  "It can show on its status pages from {{time}}.": "Il peut s'afficher sur ses pages de statut à partir du {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Seules ces pages de statut peuvent afficher les événements créés à partir de ce modèle ou notifier leurs abonnés. Sans sélection, ils ne s'affichent sur aucune page de statut.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Seules ces pages de statut peuvent afficher cet événement ou notifier leurs abonnés. Contrairement à un incident, un événement sans page choisie ne s'affiche sur aucune."
 }

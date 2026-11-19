@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "タイトルと検索エンジン向けの説明",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "訪問者はこれをステータスページの上部で読みます。たとえば、対象範囲やサポートの窓口などです。",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "訪問者が最初に読む内容で、ステータスページの上部、ほかのすべての上に表示されます。Markdown が使えます。",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "このテンプレートから作成したイベントは、これらのステータスページにのみ表示され、その購読者にのみ通知されます。何も選択しない場合、どのステータスページにも表示されません。",
   "Events from this template will not appear on any status page.": "このテンプレートから作成したイベントは、どのステータスページにも表示されません。",
   "Not shown on any status page": "どのステータスページにも表示されません",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "このイベントを表示し購読者に通知するのは、ここで選んだステータスページだけです。インシデントと異なり、何も選択しないイベントはどのステータスページにも表示されません。",
   "Show event on these status pages": "これらのステータスページにイベントを表示",
   "This event will not appear on any status page.": "このイベントはどのステータスページにも表示されません。",
   "Change sharing": "共有設定を変更",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "新しいインシデントやアラートのたびに私を呼び出してください。",
   "Publish a status page that shows my monitors.": "私のモニターを表示するステータスページを公開してください。",
   "Publish a status page called {{name}} that shows my monitors.": "私のモニターを表示する {{name}} という名前のステータスページを公開してください。",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "サービスのログ、メトリクス、トレースを OneUptime に送れるよう手伝い、エラーが起きたら私に通知してください。"
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "サービスのログ、メトリクス、トレースを OneUptime に送れるよう手伝い、エラーが起きたら私に通知してください。",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "このテンプレートから作成したイベントは、このタイムゾーンで一年中同じ時刻に行われます。夏時間で時計が切り替わった後も同じです。",
+  "First Event": "最初のイベント",
+  "It can show on its status pages at once.": "すぐにステータスページに表示される場合があります。",
+  "It can show on its status pages from {{time}}.": "{{time}} からステータスページに表示される場合があります。",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "このテンプレートから作成したイベントを表示したり購読者に通知したりできるのは、ここで選んだステータスページだけです。何も選択しない場合、どのステータスページにも表示されません。",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "このイベントを表示したり購読者に通知したりできるのは、ここで選んだステータスページだけです。インシデントと異なり、何も選択しないイベントはどのステータスページにも表示されません。"
 }

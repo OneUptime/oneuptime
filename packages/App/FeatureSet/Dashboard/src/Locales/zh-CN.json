@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "标题和搜索引擎描述",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "访客会在状态页顶部读到这段文字，例如它涵盖的范围以及获取支持的途径。",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "访客最先读到的内容，显示在状态页顶部，位于所有其他内容之上。支持 Markdown。",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "通过此模板创建的维护事件仅显示在这些状态页面上，并且只通知其订阅者。未选择任何页面时，不会显示在任何状态页面上。",
   "Events from this template will not appear on any status page.": "通过此模板创建的维护事件不会显示在任何状态页面上。",
   "Not shown on any status page": "不在任何状态页面上显示",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有这些状态页面会显示此维护事件并通知其订阅者。与事件不同，未选择任何页面的维护事件不会显示在任何状态页面上。",
   "Show event on these status pages": "在这些状态页上显示事件",
   "This event will not appear on any status page.": "此维护事件不会显示在任何状态页面上。",
   "Change sharing": "更改共享",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "在每个新事件和每个新警报时呼叫我。",
   "Publish a status page that shows my monitors.": "发布一个显示我的监视器的状态页。",
   "Publish a status page called {{name}} that shows my monitors.": "发布一个名为 {{name}} 并显示我的监视器的状态页。",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。"
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "通过此模板创建的维护事件全年都在此时区的同一时间进行，夏令时调整时钟后也一样。",
+  "First Event": "首次事件",
+  "It can show on its status pages at once.": "可能会立即显示在其状态页面上。",
+  "It can show on its status pages from {{time}}.": "可能从 {{time}} 起显示在其状态页面上。",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "只有这些状态页面可以显示通过此模板创建的维护事件或通知其订阅者。未选择任何页面时，不会显示在任何状态页面上。",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有这些状态页面可以显示此维护事件或通知其订阅者。与事件不同，未选择任何页面的维护事件不会显示在任何状态页面上。"
 }

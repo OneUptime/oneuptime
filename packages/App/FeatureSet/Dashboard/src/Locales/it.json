@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Titolo e descrizione per i motori di ricerca",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "I visitatori leggono questo testo in cima alla tua pagina di stato, ad esempio cosa copre e dove trovare supporto.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Ciò che i visitatori leggono per primo, in cima alla tua pagina di stato, prima di tutto il resto. Markdown è supportato.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Gli eventi di questo modello compaiono solo su queste pagine di stato e notificano solo i loro iscritti. Senza alcuna selezione, non compaiono su nessuna pagina di stato.",
   "Events from this template will not appear on any status page.": "Gli eventi di questo modello non compariranno su nessuna pagina di stato.",
   "Not shown on any status page": "Non mostrato su nessuna pagina di stato",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Solo queste pagine di stato mostrano questo evento e notificano i loro iscritti. A differenza di un incidente, un evento senza pagine scelte non compare su nessuna.",
   "Show event on these status pages": "Mostra evento su queste pagine di stato",
   "This event will not appear on any status page.": "Questo evento non comparirà su nessuna pagina di stato.",
   "Change sharing": "Modifica la condivisione",
@@ -59021,5 +59019,11 @@
   "Page me for every new incident and alert.": "Avvisami per ogni nuovo incidente e ogni nuovo avviso.",
   "Publish a status page that shows my monitors.": "Pubblica una pagina di stato che mostri i miei monitor.",
   "Publish a status page called {{name}} that shows my monitors.": "Pubblica una pagina di stato chiamata {{name}} che mostri i miei monitor.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "Gli eventi di questo modello restano alla stessa ora del giorno in questo fuso orario tutto l'anno, anche dopo il cambio dell'ora.",
+  "First Event": "Primo evento",
+  "It can show on its status pages at once.": "Può comparire subito sulle sue pagine di stato.",
+  "It can show on its status pages from {{time}}.": "Può comparire sulle sue pagine di stato dal {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Solo queste pagine di stato possono mostrare gli eventi di questo modello o notificare i loro iscritti. Senza alcuna selezione, non compaiono su nessuna pagina di stato.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Solo queste pagine di stato possono mostrare questo evento o notificare i loro iscritti. A differenza di un incidente, un evento senza pagine scelte non compare su nessuna."
 }
