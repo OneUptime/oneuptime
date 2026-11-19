@@ -620,6 +620,7 @@ export default class NetworkEndpoint extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Network Site ID",
     description: "ID of the Network Site this endpoint belongs to",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ObjectID,

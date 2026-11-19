@@ -411,6 +411,7 @@ export default class DataAsset extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter tables by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

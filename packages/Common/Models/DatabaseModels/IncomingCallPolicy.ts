@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import Label from "./Label";
 import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
@@ -730,6 +731,7 @@ export default class IncomingCallPolicy extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

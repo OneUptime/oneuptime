@@ -156,6 +156,7 @@ export default class MetricType extends BaseModel {
     modelType: Service,
     title: "Services",
     description: "List of services this metric is related to",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -275,6 +276,7 @@ export default class MetricType extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Description",
     description: "Metric description",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,
@@ -310,6 +312,7 @@ export default class MetricType extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Description",
     description: "Metric description",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,

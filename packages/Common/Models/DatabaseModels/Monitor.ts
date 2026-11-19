@@ -735,6 +735,7 @@ export default class Monitor extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -790,6 +791,7 @@ export default class Monitor extends BaseModel {
     title: "Depends On Monitors",
     description:
       "Parent monitors this monitor depends on. When a parent is offline (or in one of the configured suppression statuses), alerts and incidents from this monitor are suppressed at creation time — the monitor keeps evaluating and its status timeline still updates.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

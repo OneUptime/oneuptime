@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import CloudAccount from "./CloudAccount";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
@@ -276,6 +277,7 @@ export default class DataStore extends BaseModel {
     title: "Name",
     description:
       "The store's name: a bucket, database, dataset or service name.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.LongText,
@@ -644,6 +646,7 @@ export default class DataStore extends BaseModel {
       "Which environment the store serves: Production, Staging, Development, Test or Unknown. Read from its tags and name; people may set it.",
     defaultValue: "Unknown",
     isDefaultValueColumn: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1447,6 +1450,7 @@ export default class DataStore extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

@@ -1101,6 +1101,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1140,6 +1141,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Boolean,
     defaultValue: false,
     example: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1646,6 +1648,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     example: "v1.4.0",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,
