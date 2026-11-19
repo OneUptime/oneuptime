@@ -544,11 +544,14 @@ export const getAnnouncementUpdateBoxReason: (data: {
     ANNOUNCEMENT_STARTS_AT_KEY
   ];
 
+  // The form's clock, as its schedule line reads it.
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+
   const notSentReason: AnnouncementUpdateNotSentReason | null =
     AnnouncementUpdateNotification.getNotSentReason({
       originalStatus: data.reach?.originalNotificationStatus,
       showAnnouncementAt: showAnnouncementAt,
-      now: data.now,
+      now: now,
     });
 
   if (notSentReason) {
@@ -556,7 +559,7 @@ export const getAnnouncementUpdateBoxReason: (data: {
 
     if (
       startsAt &&
-      AnnouncementUpdateNotification.isNotShownYet(startsAt, data.now)
+      AnnouncementUpdateNotification.isNotShownYet(startsAt, now)
     ) {
       return translateTemplate(ANNOUNCEMENT_UPDATE_NOT_SHOWN_YET, {
         time: formatTime(startsAt),
