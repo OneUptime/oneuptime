@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "../../../Models/DatabaseModels/File";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -371,10 +372,9 @@ describe("adding a task", () => {
   });
 
   test("made from a response plan step: the step kept, trimmed", async () => {
-    const count: jest.SpiedFunction<typeof SecurityCaseTaskService.countBy> =
-      jest
-        .spyOn(SecurityCaseTaskService, "countBy")
-        .mockResolvedValue(new PositiveNumber(0));
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
     const data: SecurityCaseTask = task({
       responseStepKey: "  contain:block-ip:203.0.113.7  ",
       isDone: true,
@@ -408,10 +408,9 @@ describe("adding a task", () => {
   });
 
   test("a task with no step reads no other task, and keeps no step", async () => {
-    const count: jest.SpiedFunction<typeof SecurityCaseTaskService.countBy> =
-      jest
-        .spyOn(SecurityCaseTaskService, "countBy")
-        .mockResolvedValue(new PositiveNumber(0));
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
     const data: SecurityCaseTask = task({ responseStepKey: "   " });
 
     await taskHooks.onBeforeCreate({ data, props: MAYA });

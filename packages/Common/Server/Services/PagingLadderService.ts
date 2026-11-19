@@ -521,76 +521,82 @@ export class PagingLadderService extends BaseService {
       updatedFields?: JSONObject | undefined;
     }> = [];
 
-    // New rows first, so the person is never without a rule in between.
-    for (const toCreate of plan.create) {
-      const created: UserNotificationRule =
-        await UserNotificationRuleService.create({
-          data: this.buildRule({
-            projectId: data.projectId,
-            userId: data.targetUserId,
-            actorUserId: actorUserId,
-            rule: toCreate,
-          }),
+    try {
+      // New rows first, so the person is never without a rule in between.
+      for (const toCreate of plan.create) {
+        const created: UserNotificationRule =
+          await UserNotificationRuleService.create({
+            data: this.buildRule({
+              projectId: data.projectId,
+              userId: data.targetUserId,
+              actorUserId: actorUserId,
+              rule: toCreate,
+            }),
+            props: { isRoot: true },
+          });
+
+        changes.push({
+          action: AuditLogAction.Create,
+          ruleId: created.id || undefined,
+          after: created,
+        });
+      }
+
+      for (const update of plan.update) {
+        const updatedFields: JSONObject = this.getUpdatedFields(update);
+
+        await UserNotificationRuleService.updateOneById({
+          id: new ObjectID(update.id),
+          data: updatedFields as never,
           props: { isRoot: true },
         });
 
-      changes.push({
-        action: AuditLogAction.Create,
-        ruleId: created.id || undefined,
-        after: created,
-      });
-    }
-
-    for (const update of plan.update) {
-      const updatedFields: JSONObject = this.getUpdatedFields(update);
-
-      await UserNotificationRuleService.updateOneById({
-        id: new ObjectID(update.id),
-        data: updatedFields as never,
-        props: { isRoot: true },
-      });
-
-      changes.push({
-        action: AuditLogAction.Update,
-        ruleId: new ObjectID(update.id),
-        before: rulesById.get(update.id),
-        updatedFields: updatedFields,
-      });
-    }
-
-    for (const ruleId of plan.delete) {
-      await UserNotificationRuleService.deleteOneById({
-        id: new ObjectID(ruleId),
-        props: { isRoot: true },
-      });
-
-      changes.push({
-        action: AuditLogAction.Delete,
-        ruleId: new ObjectID(ruleId),
-        before: rulesById.get(ruleId),
-      });
-    }
-
-    if (isForSomebodyElse && actorUserId) {
-      /*
-       * One audit entry per row; one email to the member, however many of
-       * their cards changed.
-       */
-      for (let i: number = 0; i < changes.length; i++) {
-        const change: (typeof changes)[number] = changes[i]!;
-
-        await UserNotificationRuleAdminService.recordAdminRuleChange({
-          action: change.action,
-          actorUserId: actorUserId,
-          ownerUserId: data.targetUserId,
-          projectId: data.projectId,
-          ruleId: change.ruleId,
-          before: change.before,
-          after: change.after,
-          updatedFields: change.updatedFields,
-          notifyOwner: i === 0,
-          props: { ...data.props, tenantId: data.projectId },
+        changes.push({
+          action: AuditLogAction.Update,
+          ruleId: new ObjectID(update.id),
+          before: rulesById.get(update.id),
+          updatedFields: updatedFields,
         });
+      }
+
+      for (const ruleId of plan.delete) {
+        await UserNotificationRuleService.deleteOneById({
+          id: new ObjectID(ruleId),
+          props: { isRoot: true },
+        });
+
+        changes.push({
+          action: AuditLogAction.Delete,
+          ruleId: new ObjectID(ruleId),
+          before: rulesById.get(ruleId),
+        });
+      }
+    } finally {
+      if (isForSomebodyElse && actorUserId) {
+        /*
+         * One audit entry per row written; one email to the member, however
+         * many of their cards changed. Also when a write after them failed
+         * and the save with it: each row is written on its own, and the ones
+         * written stay - so they are in the audit log, which used to be
+         * written only once every row was (#9616). Never throws
+         * (recordAdminRuleChange), so the failure is still the one thrown.
+         */
+        for (let i: number = 0; i < changes.length; i++) {
+          const change: (typeof changes)[number] = changes[i]!;
+
+          await UserNotificationRuleAdminService.recordAdminRuleChange({
+            action: change.action,
+            actorUserId: actorUserId,
+            ownerUserId: data.targetUserId,
+            projectId: data.projectId,
+            ruleId: change.ruleId,
+            before: change.before,
+            after: change.after,
+            updatedFields: change.updatedFields,
+            notifyOwner: i === 0,
+            props: { ...data.props, tenantId: data.projectId },
+          });
+        }
       }
     }
 
