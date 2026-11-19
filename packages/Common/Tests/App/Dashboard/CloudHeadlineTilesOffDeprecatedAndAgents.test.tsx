@@ -213,6 +213,23 @@ describe("a Compute Engine VM's memory and disk tiles", () => {
     );
   });
 
+  /*
+   * A stopped VM, or one the reads lost, reports nothing: that says nothing
+   * of its agent, so its page draws no tiles at all rather than ask for
+   * one it may run.
+   */
+  test("a VM whose readings are stale is not told it needs the agent", () => {
+    expect(
+      getCloudHeadlineTiles({
+        provider: "gcp",
+        type: "gce_instance",
+        readings: { [CPU]: reading(0.42) },
+        hasFreshReadings: false,
+        translator: ENGLISH,
+      }),
+    ).toEqual([]);
+  });
+
   test("the words are the Dashboard's own, in every language it ships", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       for (const english of [
