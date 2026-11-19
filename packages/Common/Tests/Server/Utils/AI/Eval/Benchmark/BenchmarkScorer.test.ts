@@ -1,10 +1,13 @@
 import BenchmarkScorer, {
   BenchmarkScore,
+  INCONCLUSIVE_WORDS,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScorer";
 import {
+  BenchmarkExpectationKind,
   BenchmarkFaultKind,
   BenchmarkScenario,
 } from "../../../../../../Server/Utils/AI/Eval/Benchmark/BenchmarkScenario";
+import { ConfidenceClassificationToken } from "../../../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import { AIChatCitation } from "../../../../../../Types/AI/AIChatTypes";
 import AIRunAutoGrade from "../../../../../../Types/AI/AIRunAutoGrade";
 import { JSONObject } from "../../../../../../Types/JSON";
@@ -396,4 +399,224 @@ describe("an answer passes with both the cause and its evidence", () => {
       expect(result.passed).toBe(result.namesCause && result.citesKeyEvidence);
     },
   );
+});
+
+describe("foundCause says whether the answer found what was planted", () => {
+  test("with no judge, by its words", () => {
+    expect(score(report(`${RIGHT_CAUSE} [C1]`)).foundCause).toBe(true);
+    expect(score(report("Disk latency. [C1]")).foundCause).toBe(false);
+  });
+
+  test("with a judge, by its grade alone", () => {
+    expect(
+      score(report("Other words. [C1]"), {
+        judgeGrade: AIRunAutoGrade.Match,
+      }).foundCause,
+    ).toBe(true);
+    expect(
+      score(report(`${RIGHT_CAUSE} [C1]`), {
+        judgeGrade: AIRunAutoGrade.Partial,
+      }).foundCause,
+    ).toBe(false);
+  });
+
+  test("an answer that found the cause but cites none of its evidence found it, and still fails", () => {
+    const result: BenchmarkScore = score(
+      report(`${RIGHT_CAUSE} [C2]`, "- Logs [C2]"),
+    );
+
+    expect(result.foundCause).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+
+  test("a judge's classification is no reading of a scenario that names a cause", () => {
+    const result: BenchmarkScore = BenchmarkScorer.score({
+      scenario: SCENARIO,
+      analysisMarkdown: report(`${RIGHT_CAUSE} [C1]`),
+      citations: CITATIONS,
+      judgeClassification: "INCONCLUSIVE",
+    });
+
+    expect("judgeClassification" in result).toBe(false);
+    expect(BenchmarkScorer.isJudged(result)).toBe(false);
+    expect(result.passed).toBe(true);
+  });
+});
+
+/*
+ * A SCENARIO WHOSE EVIDENCE NAMES NO CAUSE (#7766): the right answer says it
+ * could not tell, and cites what it checked. A confident answer fails,
+ * whatever it names; so does a hedged guess at a planted wrong cause.
+ */
+const NO_CAUSE_SCENARIO: BenchmarkScenario = {
+  ...SCENARIO,
+  id: "scorer-no-cause-test",
+  faultKind: BenchmarkFaultKind.NoEvidence,
+  plantedFault: "Nothing the telemetry shows explains the slow orders.",
+  expectation: {
+    kind: BenchmarkExpectationKind.Inconclusive,
+    rootCause:
+      "Inconclusive: nothing the telemetry shows explains the slow orders.",
+    mustMention: [INCONCLUSIVE_WORDS],
+    distractors: SCENARIO.expectation.distractors,
+  },
+};
+
+function scoreNoCause(
+  analysisMarkdown: string,
+  judgeClassification?: ConfidenceClassificationToken | null,
+): BenchmarkScore {
+  return BenchmarkScorer.score({
+    scenario: NO_CAUSE_SCENARIO,
+    analysisMarkdown,
+    citations: CITATIONS,
+    ...(judgeClassification !== undefined ? { judgeClassification } : {}),
+  });
+}
+
+describe("where the evidence names no cause, saying so is the right answer", () => {
+  test.each([
+    "Inconclusive: no log line, trace or change explains it.",
+    "I could not determine the cause from the telemetry.",
+    "The cause could not be determined: the service sends no traces.",
+    "There is not enough evidence to name a cause.",
+    "Insufficient data: orders-api sends no logs.",
+    "I can’t determine what caused it.",
+    "Undetermined.",
+  ])("%s", (rootCause: string) => {
+    const result: BenchmarkScore = scoreNoCause(report(`${rootCause} [C1]`));
+
+    expect(result.namesCause).toBe(true);
+    expect(result.namedDistractors).toEqual([]);
+    expect(result.foundCause).toBe(true);
+    expect(result.passed).toBe(true);
+  });
+
+  test("a confident answer fails, whatever it names", () => {
+    for (const rootCause of [
+      RIGHT_CAUSE,
+      "The storefront-web deploy v5.9.0 broke orders.",
+      "A slow disk.",
+    ]) {
+      const result: BenchmarkScore = scoreNoCause(report(`${rootCause} [C1]`));
+
+      expect(result.namesCause).toBe(false);
+      expect(result.missingTerms).toEqual(["inconclusive"]);
+      expect(result.foundCause).toBe(false);
+      expect(result.passed).toBe(false);
+    }
+  });
+
+  test("a hedged guess at a planted wrong cause fails, though it says it could not tell", () => {
+    const result: BenchmarkScore = scoreNoCause(
+      report(
+        "Inconclusive, but the storefront-web deploy v5.9.0 is the likely cause. [C1]",
+      ),
+    );
+
+    expect(result.namesCause).toBe(true);
+    expect(result.namedDistractors).toEqual(["storefront deploy"]);
+    expect(result.foundCause).toBe(false);
+    expect(result.passed).toBe(false);
+  });
+
+  test("saying so without citing what it checked fails", () => {
+    const result: BenchmarkScore = scoreNoCause(
+      report("Inconclusive. [C2]", "- Logs [C2]"),
+    );
+
+    expect(result.foundCause).toBe(true);
+    expect(result.citesKeyEvidence).toBe(false);
+    expect(result.passed).toBe(false);
+  });
+
+  test("a planted wrong cause named only outside the root cause is no guess", () => {
+    const analysis: string = [
+      "## Summary",
+      "Not the storefront-web deploy.",
+      "",
+      "## Most likely root cause",
+      "Inconclusive: nothing explains it. [C1]",
+    ].join("\n");
+
+    expect(scoreNoCause(analysis).passed).toBe(true);
+  });
+
+  test("an empty answer says nothing", () => {
+    expect(scoreNoCause("").foundCause).toBe(false);
+    expect(scoreNoCause("  \n").passed).toBe(false);
+  });
+});
+
+describe("where the evidence names no cause, a judge's classification outranks the words", () => {
+  test("INCONCLUSIVE passes an answer in other words, and the judge's reading is reported", () => {
+    const result: BenchmarkScore = scoreNoCause(
+      report("Nothing I read explains it. [C1]"),
+      "INCONCLUSIVE",
+    );
+
+    expect(result.namesCause).toBe(false);
+    expect(result.judgeClassification).toBe("INCONCLUSIVE");
+    expect("judgeGrade" in result).toBe(false);
+    expect(BenchmarkScorer.isJudged(result)).toBe(true);
+    expect(result.passed).toBe(true);
+  });
+
+  test("INCONCLUSIVE passes an answer whose root cause rules a planted wrong cause out: the judge read its meaning", () => {
+    expect(
+      scoreNoCause(
+        report(
+          "Inconclusive: the storefront-web deploy changed nothing the slow orders touch. [C1]",
+        ),
+        "INCONCLUSIVE",
+      ).passed,
+    ).toBe(true);
+  });
+
+  test.each([["CODE_FIX"], ["NO_CODE_FIX"], [null]] as Array<
+    [ConfidenceClassificationToken | null]
+  >)(
+    "%s fails an answer however right its words",
+    (verdict: ConfidenceClassificationToken | null) => {
+      const result: BenchmarkScore = scoreNoCause(
+        report("Inconclusive. [C1]"),
+        verdict,
+      );
+
+      expect(result.namesCause).toBe(true);
+      expect(result.judgeClassification).toBe(verdict);
+      expect(result.passed).toBe(false);
+    },
+  );
+
+  test("a judge's grade is no reading of a scenario whose evidence names no cause", () => {
+    const result: BenchmarkScore = BenchmarkScorer.score({
+      scenario: NO_CAUSE_SCENARIO,
+      analysisMarkdown: report("Inconclusive. [C1]"),
+      citations: CITATIONS,
+      judgeGrade: AIRunAutoGrade.Mismatch,
+    });
+
+    expect("judgeGrade" in result).toBe(false);
+    expect(result.passed).toBe(true);
+  });
+});
+
+describe("the words an answer that could not tell uses", () => {
+  test("each is lower case, trimmed, and its own", () => {
+    for (const word of INCONCLUSIVE_WORDS) {
+      expect(word).toBe(word.trim().toLowerCase());
+    }
+
+    expect(new Set(INCONCLUSIVE_WORDS).size).toBe(INCONCLUSIVE_WORDS.length);
+  });
+
+  test("none is found in the root cause of a scenario that names a cause", () => {
+    expect(
+      BenchmarkScorer.holdsAny(
+        SCENARIO.expectation.rootCause,
+        INCONCLUSIVE_WORDS,
+      ),
+    ).toBe(false);
+  });
 });

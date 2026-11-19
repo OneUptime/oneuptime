@@ -7,6 +7,9 @@ import {
 import InvestigationGrader, {
   GRADING_MAX_TOKENS,
 } from "../../../../../Server/Utils/AI/SRE/InvestigationGrader";
+import AIConfidenceSignal, {
+  CONFIDENCE_CLASSIFICATION_MAX_TOKENS,
+} from "../../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import { describe, expect, test } from "@jest/globals";
 
@@ -151,6 +154,110 @@ describe("EvalJudge.grade", () => {
       EvalJudge.grade({
         rootCause: ROOT_CAUSE,
         analysisMarkdown: ANALYSIS,
+        callModel: async (): Promise<ObservabilityAssistantModelReply> => {
+          throw new Error("529 Overloaded");
+        },
+      }),
+    ).rejects.toThrow("529 Overloaded");
+  });
+});
+
+/*
+ * Where a benchmark scenario's evidence names no cause (#7766), there is no
+ * cause to match: the judge reads the answer as production's confidence
+ * classifier reads an investigation's (ConfidenceSignal), in its very
+ * words, and INCONCLUSIVE is the right answer.
+ */
+describe("EvalJudge.classify", () => {
+  const COULD_NOT_TELL: string =
+    "**Most likely root cause** — inconclusive: nothing explains it [C1].";
+
+  test("asks in production's words: the classifier's messages, no tools, its token cap, temperature 0", async () => {
+    const judge: FakeJudge = judgeAnswering("INCONCLUSIVE");
+
+    await EvalJudge.classify({
+      analysisMarkdown: COULD_NOT_TELL,
+      callModel: judge.callModel,
+    });
+
+    expect(judge.calls).toEqual([
+      {
+        messages: AIConfidenceSignal.getClassificationMessages({
+          analysisMarkdown: COULD_NOT_TELL,
+        }),
+        tools: undefined,
+        maxTokens: CONFIDENCE_CLASSIFICATION_MAX_TOKENS,
+        temperature: 0,
+      },
+    ]);
+    expect(CONFIDENCE_CLASSIFICATION_MAX_TOKENS).toBe(20);
+  });
+
+  test.each([
+    ["INCONCLUSIVE", "INCONCLUSIVE"],
+    ["CODE_FIX", "CODE_FIX"],
+    ["NO_CODE_FIX", "NO_CODE_FIX"],
+    ["inconclusive", "INCONCLUSIVE"],
+    ["Verdict: NO_CODE_FIX.", "NO_CODE_FIX"],
+  ])("the judge's %p reads as %p", async (content: string, verdict: string) => {
+    expect(
+      await EvalJudge.classify({
+        analysisMarkdown: COULD_NOT_TELL,
+        callModel: judgeAnswering(content).callModel,
+      }),
+    ).toBe(verdict);
+  });
+
+  test.each([
+    ["", "an empty answer"],
+    ["I cannot tell.", "no verdict"],
+    ["CODE_FIX or INCONCLUSIVE", "two verdicts"],
+    ["INCONCLUSIVELY", "a verdict inside a longer word"],
+  ])(
+    "a judge's answer that cannot be read is no verdict (%p: %s)",
+    async (content: string) => {
+      expect(
+        await EvalJudge.classify({
+          analysisMarkdown: COULD_NOT_TELL,
+          callModel: judgeAnswering(content).callModel,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("nothing to read asks no model", async () => {
+    for (const analysisMarkdown of ["", " \n\t ", undefined]) {
+      const judge: FakeJudge = judgeAnswering("INCONCLUSIVE");
+
+      expect(
+        await EvalJudge.classify({
+          analysisMarkdown: analysisMarkdown as string,
+          callModel: judge.callModel,
+        }),
+      ).toBeNull();
+      expect(judge.calls).toHaveLength(0);
+    }
+  });
+
+  test("reads the analysis trimmed", async () => {
+    const judge: FakeJudge = judgeAnswering("INCONCLUSIVE");
+
+    await EvalJudge.classify({
+      analysisMarkdown: `\n${COULD_NOT_TELL}  `,
+      callModel: judge.callModel,
+    });
+
+    expect(judge.calls[0]!.messages).toEqual(
+      AIConfidenceSignal.getClassificationMessages({
+        analysisMarkdown: COULD_NOT_TELL,
+      }),
+    );
+  });
+
+  test("a judge that fails fails the reading: the caller says so", async () => {
+    await expect(
+      EvalJudge.classify({
+        analysisMarkdown: COULD_NOT_TELL,
         callModel: async (): Promise<ObservabilityAssistantModelReply> => {
           throw new Error("529 Overloaded");
         },
