@@ -118,7 +118,13 @@ export default class DashboardRequestsOverHttp {
   }
 
   public async stop(): Promise<void> {
-    axios.defaults.adapter = this.previousAdapter;
+    if (this.previousAdapter === undefined) {
+      delete axios.defaults.adapter;
+    } else {
+      axios.defaults.adapter = this.previousAdapter;
+    }
+
+    this.previousAdapter = undefined;
 
     if (!this.server) {
       return;
