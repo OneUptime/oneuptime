@@ -212,7 +212,7 @@ describe("what a request asks", () => {
 
   test("stopsOnLateTables that is not true or false is refused", () => {
     expect(thrown({ pipeline: "a", stopsOnLateTables: "yes" })).toBe(
-      "stopsOnLateTables is true or false.",
+      "Send stopsOnLateTables as true or false, or leave it out to use the pipeline's setting.",
     );
   });
 

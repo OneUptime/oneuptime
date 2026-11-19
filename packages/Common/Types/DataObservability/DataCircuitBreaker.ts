@@ -206,7 +206,9 @@ export function readDataCircuitBreakerRequest(
     stopsOnLateTables !== null &&
     typeof stopsOnLateTables !== "boolean"
   ) {
-    throw new BadDataException("stopsOnLateTables is true or false.");
+    throw new BadDataException(
+      "Send stopsOnLateTables as true or false, or leave it out to use the pipeline's setting.",
+    );
   }
 
   return {
