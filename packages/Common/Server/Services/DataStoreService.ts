@@ -777,6 +777,23 @@ export class Service extends ProjectReferencesService<Model> {
     );
   }
 
+  /*
+   * The store's page in Data Observability, where a database it watches is
+   * read: for a link while Data Security, whose page the store's owners are
+   * on, is switched off on the server.
+   */
+  @CaptureSpan()
+  public async getDataObservabilityDatabaseLinkInDashboard(
+    projectId: ObjectID,
+    dataStoreId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/data-observability/stores/${dataStoreId.toString()}`,
+    );
+  }
+
   /**
    * "[Data Store customers-prod](https://…)" - the form every feed item uses
    * to name the store it is about.

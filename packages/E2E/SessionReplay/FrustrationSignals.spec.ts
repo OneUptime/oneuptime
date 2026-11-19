@@ -52,8 +52,14 @@ type SavedSettings = Record<string, Record<string, unknown>> & {
   customSignals: Array<Record<string, unknown>>;
 };
 
+interface FixtureRequest {
+  route: string;
+  data: Record<string, unknown>;
+}
+
 interface FixtureState {
   frustrationSaves: Array<SavedSettings>;
+  requests: Array<FixtureRequest>;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -105,6 +111,23 @@ const openPage: (page: Page, query?: string) => Promise<void> = async (
 ): Promise<void> => {
   await page.goto(`${pageRoute}${query}`);
   await expect(page.getByTestId("frustration-signals-built-in")).toBeVisible();
+};
+
+// The filters the session list sent with its latest request.
+const lastListFilters: (page: Page) => Promise<unknown> = async (
+  page: Page,
+): Promise<unknown> => {
+  return page.evaluate((): unknown => {
+    const lists: Array<FixtureRequest> = (
+      window as unknown as { __sessionReplayFixture: FixtureState }
+    ).__sessionReplayFixture.requests.filter(
+      (request: FixtureRequest): boolean => {
+        return request.route === "list";
+      },
+    );
+
+    return lists[lists.length - 1]?.data["filters"];
+  });
 };
 
 const definition: (page: Page, key: string) => Locator = (
@@ -170,7 +193,7 @@ test("opens from the side menu and states the default rules, with nothing of the
   ).toHaveText("Add one to mark a moment that matters to you.");
   await expect(page.getByRole("button", { name: "Add signal" })).toHaveCount(1);
   await expect(page.getByTestId("frustration-signals-mobile-note")).toHaveText(
-    "The React Native recorder detects your page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
+    "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.",
   );
   expect(await saves(page)).toEqual([]);
 });
@@ -453,6 +476,38 @@ test("lists the stored signals with their kinds, and the stored rules", async ({
     page.getByTestId("custom-signal-signal-support-chat-kind"),
   ).toHaveText("Marker");
   await expect(chat).toContainText("A click on #open-support-chat");
+});
+
+/*
+ * A signal's See sessions (issue #6515) opens the session list on the
+ * sessions that hit it: the URL carries the signal's name, as Signal of
+ * your own in the Filter form does, and the list asks for those sessions.
+ */
+test("See sessions on a signal of the application's own opens the session list filtered to it", async ({
+  page,
+}: {
+  page: Page;
+}): Promise<void> => {
+  await openPage(page, "?frustration=custom");
+
+  await page
+    .getByTestId("custom-signal-signal-payment-failed")
+    .getByTestId("row-actions-more-button")
+    .click();
+  await page
+    .getByRole("menu")
+    .getByRole("menuitem", { name: "See sessions", exact: true })
+    .click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`${listRoute}\\?signalName=Payment(\\+|%20)failed$`),
+  );
+  await expect(page.getByTestId("session-row").first()).toBeVisible();
+  await expect
+    .poll(async (): Promise<unknown> => {
+      return lastListFilters(page);
+    })
+    .toMatchObject({ customSignalName: "Payment failed" });
 });
 
 test("a failed read says so, and Refresh reads again", async ({

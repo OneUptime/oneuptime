@@ -521,12 +521,19 @@ export default class ProductAnalytics {
 
     let request: Promise<Response>;
 
+    /*
+     * sentAt is when this request goes, not when the batch was first built:
+     * the server moves every time in the batch by the gap between it and
+     * its own clock (receivedAt - sentAt), so a batch sent again after a
+     * back-off under its first sentAt would be filed as if it all happened
+     * at the moment it finally arrived.
+     */
     try {
       request = fetch(this.host.url, {
         method: "POST",
         keepalive: final,
         headers: headers,
-        body: JSON.stringify(batch),
+        body: JSON.stringify({ ...batch, sentAt: now }),
         credentials: "omit",
         mode: "cors",
       });
