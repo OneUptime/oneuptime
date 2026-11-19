@@ -86,7 +86,7 @@ With `cost.engine.url=auto` nothing is bundled, and the agent reads your engine 
 | Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 | Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-The Allocation API path is found by itself (`/model/allocation` for Kubecost, `/allocation/compute` or `/allocation` for OpenCost). Set `cost.engine.allocationPath` only for an unusual install. With `auto` or a URL nothing is bundled, so for memory recommendations also set `cost.engine.prometheusUrl` (see [The data behind it](#the-data-behind-it)). The price metrics are found the same way, whichever of the engine's Services you name: the agent tries its `/metrics`, then the `/model/metrics` a Kubecost 2 frontend or OpenCost's UI passes on to the engine, then Kubecost 3's FinOps agent, and the collector scrapes the first that has price series. To name them yourself, set `cost.metrics.endpoint`.
+The Allocation API path is found by itself (`/model/allocation` for Kubecost, `/allocation/compute` or `/allocation` for OpenCost). Set `cost.engine.allocationPath` only for an unusual install. With `auto` or a URL nothing is bundled, so for memory recommendations also set `cost.engine.prometheusUrl` (see [The data behind it](#the-data-behind-it)). The price metrics are found by themselves too, whichever of the engine's Services you name: the agent tries its `/metrics`, then the `/model/metrics` a Kubecost 2 frontend or OpenCost's UI passes on to the engine, then Kubecost 3's FinOps agent, and the collector scrapes the first that has price series. To name them yourself, set `cost.metrics.endpoint`.
 
 ## On-prem and bare-metal pricing
 
