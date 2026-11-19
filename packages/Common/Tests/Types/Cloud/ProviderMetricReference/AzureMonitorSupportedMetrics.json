@@ -216,9 +216,6 @@
         "DataUsageV2": {"displayName": "Data Usage", "unit": "Bytes", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false},
         "IndexUsageV2": {"displayName": "Index Usage", "unit": "Bytes", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false},
         "DocumentCountV2": {"displayName": "Document Count", "unit": "Count", "aggregations": ["Total", "Average"], "timeGrains": ["PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false}
-      },
-      "retired": {
-        "ServerSideLatency": {"displayName": "(deprecated) Server Side Latency", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
       }
     },
     "Microsoft.Cache/redis": {
