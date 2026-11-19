@@ -904,13 +904,14 @@ describe("asking for an import", () => {
       "was not found",
     );
 
-    // A Website, API or SSL Certificate template checks a URL, not a device.
+    /*
+     * A DNS template checks a name and a Manual one nothing; a Website, API
+     * or SSL Certificate template checks a URL on each device since #9546.
+     */
     for (const monitorType of [
-      MonitorType.Website,
-      MonitorType.API,
-      MonitorType.SSLCertificate,
       MonitorType.DNS,
       MonitorType.Manual,
+      MonitorType.IncomingRequest,
     ]) {
       db.template = networkDeviceTemplate();
       db.template.monitorType = monitorType;
@@ -1648,12 +1649,12 @@ describe("a Ping, IP, Port or NTP template (issue #5145)", () => {
       settings: WITH_TEMPLATE,
     });
 
-    db.template.monitorType = MonitorType.Website;
+    db.template.monitorType = MonitorType.DNS;
     await runAll();
 
     expect(stored(row).status).toBe(DiscoveryImportStatus.Failed);
     expect(stored(row).error).toBe(
-      "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
+      "The monitor template this import uses was deleted, or is no longer a kind of template that can check a device. Start the import again with another template.",
     );
     expect(db.createdMonitors).toHaveLength(0);
   });
