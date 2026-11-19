@@ -169,7 +169,7 @@ describe("AIRunLimitsReader.fromProject", () => {
 });
 
 describe("AIRunLimitsReader.read", () => {
-  test("reads the four limits and both lanes' time limits, as root", async () => {
+  test("reads the four limits, the time limit per command and both lanes' time limits, as root", async () => {
     const calls: Array<unknown> = mockProject(new Project());
 
     await AIRunLimitsReader.read({ projectId: PROJECT_ID });
@@ -182,6 +182,7 @@ describe("AIRunLimitsReader.read", () => {
           aiRunMaxToolCalls: true,
           aiRunMaxTokens: true,
           aiRunTimeLimitInMinutes: true,
+          aiRunCommandTimeLimitInMinutes: true,
           incidentAiInvestigationTimeLimitInMinutes: true,
           alertAiInvestigationTimeLimitInMinutes: true,
         },
@@ -196,6 +197,33 @@ describe("AIRunLimitsReader.read", () => {
     await expect(
       AIRunLimitsReader.read({ projectId: PROJECT_ID }),
     ).resolves.toEqual(AIAgentRunLimitsHelper.getDefault());
+  });
+
+  /*
+   * Issue #6532: the time limit per command reaches the code agent with the
+   * run's limits (CodeAgentRunLimits), so a project's own setting is the most
+   * a command may run - and a project with none reads as it always did.
+   */
+  test("a project's time limit per command is read with the limits; none is the default", async () => {
+    mockProject(projectWith({ aiRunCommandTimeLimitInMinutes: 30 }));
+
+    const limits: AIAgentRunLimits = await AIRunLimitsReader.read({
+      projectId: PROJECT_ID,
+    });
+
+    expect(limits.commandTimeLimitInMinutes).toBe(30);
+    expect(AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes(limits)).toBe(
+      30,
+    );
+
+    mockProject(new Project());
+
+    const none: AIAgentRunLimits = await AIRunLimitsReader.read({
+      projectId: PROJECT_ID,
+    });
+
+    expect(none.commandTimeLimitInMinutes).toBeUndefined();
+    expect(AIAgentRunLimitsHelper.getCommandTimeLimitInMinutes(none)).toBe(10);
   });
 
   test("the lane is passed through", async () => {

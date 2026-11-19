@@ -17,7 +17,8 @@ import ObjectID from "../../../Types/ObjectID";
  * the caps the project set for every run (Project Settings → AI → AI
  * Features → More settings → Limits per run), and the most specific time
  * limit - the lane's for an incident or alert investigation, then the
- * project's, then the default (Types/AI/AIAgentRunLimits).
+ * project's, then the default (Types/AI/AIAgentRunLimits) - and how long one
+ * command of a code task may run, when the project set it (issue #6532).
  *
  * Read once when a run starts (and again when an Ask AI answer resumes after
  * an approval), so a limit changed mid-run applies from the next run on.
@@ -64,6 +65,7 @@ export default class AIRunLimitsReader {
           aiRunMaxToolCalls: true,
           aiRunMaxTokens: true,
           aiRunTimeLimitInMinutes: true,
+          aiRunCommandTimeLimitInMinutes: true,
           incidentAiInvestigationTimeLimitInMinutes: true,
           alertAiInvestigationTimeLimitInMinutes: true,
         },
@@ -101,6 +103,7 @@ export default class AIRunLimitsReader {
       maxToolCalls: project?.aiRunMaxToolCalls,
       maxTokens: project?.aiRunMaxTokens,
       timeLimitInMinutes: project?.aiRunTimeLimitInMinutes,
+      commandTimeLimitInMinutes: project?.aiRunCommandTimeLimitInMinutes,
       lane:
         data.lane === "Incident"
           ? {

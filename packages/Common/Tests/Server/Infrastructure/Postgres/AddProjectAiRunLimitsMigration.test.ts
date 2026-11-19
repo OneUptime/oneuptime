@@ -51,14 +51,15 @@ describe("AddProjectAiRunLimits1809080210000", () => {
     ]);
   });
 
-  test("they are the model's columns, the same four the settings card writes", async () => {
+  test("they are the model's columns, the first four the settings card writes", async () => {
     const added: Array<string> = (await record("up")).map(
       (statement: string): string => {
         return ADDED_COLUMN.exec(statement)![1]!;
       },
     );
 
-    expect(added).toEqual([...PROJECT_AI_RUN_LIMIT_COLUMNS]);
+    // The fifth, the time limit per command, came later (AddProjectAiRunCommandTimeLimit).
+    expect(added).toEqual([...PROJECT_AI_RUN_LIMIT_COLUMNS].slice(0, 4));
 
     const project: Project = new Project();
 

@@ -45,6 +45,18 @@ export const DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES: number = 120;
 export const MIN_AI_RUN_TIME_LIMIT_IN_MINUTES: number = 1;
 export const MAX_AI_RUN_TIME_LIMIT_IN_MINUTES: number = 24 * 60;
 
+/*
+ * The longest one command of a code task may run on a Runner of the
+ * project's own (issue #6532): an install, a build or a test suite the code
+ * agent runs to check its change. Ten minutes unless the project set its own
+ * Time Limit per Command, at most two hours - and never past the run's own
+ * time limit, which the Runner holds every command to. Only the code agent
+ * runs such commands: no other run reads it.
+ */
+export const DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES: number = 10;
+export const MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES: number = 1;
+export const MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES: number = 120;
+
 // The lane settings' names for the same bounds.
 export const MIN_AI_INVESTIGATION_TIME_LIMIT_IN_MINUTES: number =
   MIN_AI_RUN_TIME_LIMIT_IN_MINUTES;
@@ -128,6 +140,14 @@ export interface AIAgentRunLimits {
   // Every run has a time limit.
   maxWallClockMs: number;
   timeLimitSource: AIRunTimeLimitSource;
+  /*
+   * The longest one command of a code task may run on a Runner of the
+   * project's own, in minutes: the project's Time Limit per Command, or
+   * undefined for the default (DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+   * getCommandTimeLimitInMinutes). Not a cap on the run: it says how long a
+   * command may be given, inside the run's own time limit.
+   */
+  commandTimeLimitInMinutes?: number | undefined;
 }
 
 // What a run has done so far, as its loop counts it.
@@ -235,15 +255,51 @@ export default class AIAgentRunLimitsHelper {
   }
 
   /*
+   * A Time Limit per Command a project set, as stored: whole minutes within
+   * MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES and
+   * MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES, or undefined for none - the
+   * default. Like the caps, anything the server would never have saved
+   * (empty, not a number, below a minute) is the default rather than a
+   * command cut short; a value past the ceiling is held to it.
+   */
+  public static normalizeCommandTimeLimitInMinutes(
+    value: unknown,
+  ): number | undefined {
+    const minutes: number | undefined = this.normalizeCap(value);
+
+    if (minutes === undefined) {
+      return undefined;
+    }
+
+    return Math.min(
+      MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+      Math.max(MIN_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES, minutes),
+    );
+  }
+
+  // How long one command of a code task may run, in minutes: the project's, or the default.
+  public static getCommandTimeLimitInMinutes(
+    limits: Pick<AIAgentRunLimits, "commandTimeLimitInMinutes">,
+  ): number {
+    return (
+      this.normalizeCommandTimeLimitInMinutes(
+        limits.commandTimeLimitInMinutes,
+      ) ?? DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES
+    );
+  }
+
+  /*
    * A run's limits from what the project set: its caps, and the most
    * specific time limit - the lane's, for an investigation of that lane,
-   * then the project's, then the default.
+   * then the project's, then the default - and how long one command of a
+   * code task may run, when the project set that.
    */
   public static fromSettings(data: {
     maxModelCalls?: unknown;
     maxToolCalls?: unknown;
     maxTokens?: unknown;
     timeLimitInMinutes?: number | string | null | undefined;
+    commandTimeLimitInMinutes?: unknown;
     lane?:
       | {
           timeLimitInMinutes: number | string | null | undefined;
@@ -271,12 +327,19 @@ export default class AIAgentRunLimitsHelper {
       source = AIRunTimeLimitSource.Project;
     }
 
+    const commandMinutes: number | undefined =
+      this.normalizeCommandTimeLimitInMinutes(data.commandTimeLimitInMinutes);
+
     return {
       maxLlmCalls: this.normalizeCap(data.maxModelCalls),
       maxToolCalls: this.normalizeCap(data.maxToolCalls),
       maxTokens: this.normalizeCap(data.maxTokens),
       maxWallClockMs: minutes * MILLISECONDS_IN_A_MINUTE,
       timeLimitSource: source,
+      // Only when set: a run with none reads as it always did.
+      ...(commandMinutes !== undefined
+        ? { commandTimeLimitInMinutes: commandMinutes }
+        : {}),
     };
   }
 

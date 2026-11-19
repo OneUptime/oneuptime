@@ -20,10 +20,10 @@ import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
 import {
   AGENT_COMMAND_OUTPUT_DRAIN_GRACE_MS,
   AGENT_COMMAND_TIMEOUT_ARGUMENT,
-  DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS,
-  MAX_AGENT_COMMAND_TIMEOUT_SECONDS,
   describeAgentCommandTimedOut,
+  getAgentCommandMaxSeconds,
   getAgentCommandTimeoutMs,
+  getRequestedAgentCommandTimeoutSeconds,
   startAgentCommandKeepAlive,
 } from "../Utils/AgentCommandLimits";
 import RepositoryInstructions, {
@@ -198,7 +198,8 @@ interface CommandOutput {
  * context lines), git (read-only: status, diff, log, show, blame),
  * read_tool_output (the rest of a long output), update_plan - and
  * run_command (workspace cwd, 2 minutes unless the model asks for up to
- * 10, the run kept alive while it runs, a long output shown as its start
+ * 10, or up to the project's Time Limit per Command, never past the run's
+ * time; the run kept alive while it runs, a long output shown as its start
  * and end: Utils/AgentCommandLimits) on a Runner of the project's own.
  * For a task that asks (CodeAgentTask.productionTelemetry), the server's
  * read-only production telemetry tools too, which run on the server, held
@@ -925,6 +926,27 @@ export default class InHouseCodeAgent implements CodeAgent {
         : this.runDeadlineAtMs;
   }
 
+  /*
+   * The most one command may be given, in seconds (issue #6532): the
+   * project's Time Limit per Command as the server last said it - ten
+   * minutes until it has, or from a server that does not say - and never
+   * more than the run's own time limit, or this step's. run_command's
+   * definition says it, and every command is held to it.
+   */
+  private getCommandMaxSeconds(): number {
+    const runTimeLimitMs: number =
+      (this.runLimits?.timeLimitInMinutes ??
+        DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES) * MILLISECONDS_IN_A_MINUTE;
+
+    return getAgentCommandMaxSeconds({
+      commandTimeLimitInMinutes: this.runLimits?.commandTimeLimitInMinutes,
+      atMostMs:
+        this.stepTimeLimitMs !== null
+          ? Math.min(runTimeLimitMs, this.stepTimeLimitMs)
+          : runTimeLimitMs,
+    });
+  }
+
   private getStepTimeLimitInMinutes(): number {
     return Math.max(
       1,
@@ -1269,11 +1291,20 @@ export default class InHouseCodeAgent implements CodeAgent {
       "  blame). Look over your whole change with git diff before you finish.",
       ...(runsProjectAuthoredCommands()
         ? [
+            /*
+             * How long a command gets, and the most it may ask for, are in
+             * run_command's definition, which says the cap that applies -
+             * the project's own Time Limit per Command, which the server
+             * sends with its first answer. The prompt is written before
+             * that and kept for the whole task, so it names no number that
+             * could contradict it.
+             */
             "- run_command runs a shell command in the repository root. Use it to",
             "  set up, build and run the tests the way the repository says to. A",
-            `  command stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds; for a slow install, build or test`,
-            `  suite, set ${AGENT_COMMAND_TIMEOUT_ARGUMENT} (at most ${MAX_AGENT_COMMAND_TIMEOUT_SECONDS}). Never start a command that`,
-            "  waits forever (a dev server, a watch mode).",
+            "  command stops at a time limit, which run_command's description gives;",
+            `  for a slow install, build or test suite, set ${AGENT_COMMAND_TIMEOUT_ARGUMENT} to give it`,
+            "  longer, up to the most it allows. Never start a command that waits",
+            "  forever (a dev server, a watch mode).",
           ]
         : [
             "- There is no command-running tool on this Runner: make your change",
@@ -1328,7 +1359,9 @@ export default class InHouseCodeAgent implements CodeAgent {
      * toolRunCommand refuses it when it is not offered, so an unadvertised
      * call never spawns a process.
      */
-    const runCommandTool: LLMToolDefinition = buildRunCommandToolDefinition();
+    const runCommandTool: LLMToolDefinition = buildRunCommandToolDefinition(
+      this.getCommandMaxSeconds(),
+    );
 
     return [
       ...buildWorkspaceToolDefinitions(),
@@ -1624,14 +1657,22 @@ export default class InHouseCodeAgent implements CodeAgent {
     );
 
     /*
-     * What the model asked for (two minutes when it asked for nothing, ten
-     * at most), never past the time this task has left.
+     * What the model asked for (two minutes when it asked for nothing; ten
+     * at most, or the project's own Time Limit per Command), never past the
+     * time this task has left.
      */
+    const maxSeconds: number = this.getCommandMaxSeconds();
+    const requestedMs: number =
+      getRequestedAgentCommandTimeoutSeconds(
+        args[AGENT_COMMAND_TIMEOUT_ARGUMENT],
+        maxSeconds,
+      ) * 1000;
     const timeoutMs: number = getAgentCommandTimeoutMs({
       requested: args[AGENT_COMMAND_TIMEOUT_ARGUMENT],
       remainingMs: this.deadlineAtMs
         ? this.deadlineAtMs - Date.now()
         : undefined,
+      maxSeconds,
     });
 
     const result: CommandOutput = await this.runShellCommand(
@@ -1647,7 +1688,11 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     const header: string = result.timedOut
-      ? describeAgentCommandTimedOut(timeoutMs)
+      ? describeAgentCommandTimedOut({
+          timeoutMs,
+          maxSeconds,
+          heldToTimeLeft: timeoutMs < requestedMs,
+        })
       : `Exit code: ${result.exitCode ?? "unknown"}`;
 
     /*

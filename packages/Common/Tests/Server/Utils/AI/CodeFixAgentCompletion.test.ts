@@ -661,6 +661,7 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
         maxModelCalls: 60,
         maxTokens: 1_000_000,
         timeLimitInMinutes: 90,
+        commandTimeLimitInMinutes: 30,
       }),
     });
 
@@ -676,6 +677,8 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
       maxTokens: 1_000_000,
       timeLimitInMinutes: 90,
       timeLimitSource: AIRunTimeLimitSource.Project,
+      // The project's Time Limit per Command (issue #6532): the Runner holds each command to it.
+      commandTimeLimitInMinutes: 30,
       deadlineAt: new Date(startedAt.getTime() + 90 * MINUTE).toISOString(),
       timeLeftMs: expect.any(Number),
       modelCallsUsed: 6,
@@ -705,6 +708,8 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
     expect(result.limits.maxTokens).toBeNull();
     expect(result.limits.timeLimitInMinutes).toBe(120);
     expect(result.limits.timeLimitSource).toBe(AIRunTimeLimitSource.Default);
+    // Ten minutes a command, as a command always had (issue #6532).
+    expect(result.limits.commandTimeLimitInMinutes).toBe(10);
     // A run whose start is not recorded has no deadline the server gives.
     expect(result.limits.deadlineAt).toBeNull();
     expect(result.limits.timeLeftMs).toBeNull();
