@@ -57590,7 +57590,7 @@
   "Frozen frames by screen": "فریم‌های یخ‌زده به تفکیک صفحه",
   "Hot start": "شروع داغ",
   "Hot starts": "شروع‌های داغ",
-  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "مدت زمانی که شروع‌های سرد طول کشیدند، از آغاز فرایند برنامه تا آماده شدن نخستین صفحه‌اش. p95 یعنی ۹۵٪ شروع‌های سرد در بازه انتخاب‌شده سریع‌تر از این بودند؛ میانه زیر آن، شروع سرد معمول است. Android vitals شروع سردی را که ۵ ثانیه یا بیشتر طول بکشد بیش از حد طولانی می‌داند.",
+  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means the 95th percentile: 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "مدت زمانی که شروع‌های سرد طول کشیدند، از آغاز فرایند برنامه تا آماده شدن نخستین صفحه‌اش. p95 یعنی صدک ۹۵ام: ۹۵٪ شروع‌های سرد در بازه انتخاب‌شده سریع‌تر از این بودند؛ میانه زیر آن، شروع سرد معمول است. Android vitals شروع سردی را که ۵ ثانیه یا بیشتر طول بکشد بیش از حد طولانی می‌داند.",
   "Init container": "کانتینر init",
   "It shows here once a pod runs it and the Kubernetes agent reports that pod.": "به‌محض اینکه پادی آن را اجرا کند و عامل Kubernetes آن پاد را گزارش دهد، اینجا نمایش داده می‌شود.",
   "Last backup failed for {{count}} guests": "آخرین پشتیبان {{count}} مهمان ناموفق بود",

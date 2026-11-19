@@ -114,7 +114,7 @@ export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
     "Times the app started in the selected range, from the AppStart spans OpenTelemetry Android records: cold (started from scratch), warm (its first screen created again) and hot (brought back to the front).",
   ),
   coldStartTime: translationKey(
-    "How long cold starts took, from the app's process starting to its first screen being ready. p95 means 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.",
+    "How long cold starts took, from the app's process starting to its first screen being ready. p95 means the 95th percentile: 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.",
   ),
   frozenFrames: translationKey(
     "Frames that took longer than 700 ms to draw in the selected range, so the app looked stuck. The line below counts the frames slower than 16 ms, frozen ones included. OpenTelemetry Android reports both on Android 7.0 and later.",

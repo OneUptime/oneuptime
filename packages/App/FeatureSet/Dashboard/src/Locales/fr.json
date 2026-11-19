@@ -57590,7 +57590,7 @@
   "Frozen frames by screen": "Images figées par écran",
   "Hot start": "Démarrage à chaud",
   "Hot starts": "Démarrages à chaud",
-  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "La durée des démarrages à froid, du lancement du processus de l'application jusqu'à ce que son premier écran soit prêt. p95 signifie que 95 % des démarrages à froid sur la plage sélectionnée ont été plus rapides que cette valeur ; la médiane en dessous est le démarrage typique. Android vitals considère comme excessif un démarrage à froid de 5 secondes ou plus.",
+  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means the 95th percentile: 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "La durée des démarrages à froid, du lancement du processus de l'application jusqu'à ce que son premier écran soit prêt. p95 désigne le 95e centile : 95 % des démarrages à froid sur la plage sélectionnée ont été plus rapides que cette valeur ; la médiane en dessous est le démarrage typique. Android vitals considère comme excessif un démarrage à froid de 5 secondes ou plus.",
   "Init container": "Init container",
   "It shows here once a pod runs it and the Kubernetes agent reports that pod.": "It shows here once a pod runs it and the Kubernetes agent reports that pod.",
   "Last backup failed for {{count}} guests": "Last backup failed for {{count}} guests",

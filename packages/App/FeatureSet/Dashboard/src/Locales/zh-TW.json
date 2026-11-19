@@ -57590,7 +57590,7 @@
   "Frozen frames by screen": "依畫面統計的凍結影格",
   "Hot start": "熱啟動",
   "Hot starts": "熱啟動",
-  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "冷啟動所花的時間，從應用程式的處理程序啟動到第一個畫面就緒為止。p95 表示所選範圍內 95% 的冷啟動比這個值更快；下方的中位數是典型的冷啟動時間。Android vitals 將 5 秒或更久的冷啟動視為過長。",
+  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means the 95th percentile: 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "冷啟動所花的時間，從應用程式的處理程序啟動到第一個畫面就緒為止。p95 表示第 95 百分位數：所選範圍內 95% 的冷啟動比這個值更快；下方的中位數是典型的冷啟動時間。Android vitals 將 5 秒或更久的冷啟動視為過長。",
   "Init container": "Init container",
   "It shows here once a pod runs it and the Kubernetes agent reports that pod.": "It shows here once a pod runs it and the Kubernetes agent reports that pod.",
   "Last backup failed for {{count}} guests": "Last backup failed for {{count}} guests",

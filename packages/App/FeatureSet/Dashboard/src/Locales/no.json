@@ -57590,7 +57590,7 @@
   "Frozen frames by screen": "Frosne rammer per skjerm",
   "Hot start": "Hetstart",
   "Hot starts": "Hetstarter",
-  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "Hvor lang tid kaldstartene tok, fra appens prosess startet til den første skjermen var klar. p95 betyr at 95 % av kaldstartene i det valgte tidsrommet var raskere enn dette; medianen under er den typiske. Android vitals regner en kaldstart på 5 sekunder eller mer som overdreven.",
+  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means the 95th percentile: 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "Hvor lang tid kaldstartene tok, fra appens prosess startet til den første skjermen var klar. p95 betyr 95. persentil: 95 % av kaldstartene i det valgte tidsrommet var raskere enn dette; medianen under er den typiske. Android vitals regner en kaldstart på 5 sekunder eller mer som overdreven.",
   "Init container": "Init container",
   "It shows here once a pod runs it and the Kubernetes agent reports that pod.": "It shows here once a pod runs it and the Kubernetes agent reports that pod.",
   "Last backup failed for {{count}} guests": "Last backup failed for {{count}} guests",

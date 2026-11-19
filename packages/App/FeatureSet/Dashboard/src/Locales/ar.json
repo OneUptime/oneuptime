@@ -57590,7 +57590,7 @@
   "Frozen frames by screen": "الإطارات المتجمّدة حسب الشاشة",
   "Hot start": "البدء الساخن",
   "Hot starts": "مرات البدء الساخن",
-  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "المدة التي استغرقتها مرات البدء البارد، من بدء عملية التطبيق حتى جاهزية شاشته الأولى. يعني p95 أن 95% من مرات البدء البارد في النطاق المحدد كانت أسرع من هذه القيمة؛ والوسيط أدناه هو المعتاد منها. ويَعُدّ Android vitals البدء البارد الذي يستغرق 5 ثوانٍ أو أكثر مفرطًا.",
+  "How long cold starts took, from the app's process starting to its first screen being ready. p95 means the 95th percentile: 95% of cold starts in the selected range were faster than this; the median below is the typical one. Android vitals counts a cold start of 5 seconds or more as excessive.": "المدة التي استغرقتها مرات البدء البارد، من بدء عملية التطبيق حتى جاهزية شاشته الأولى. يعني p95 المئين 95، أي أن 95% من مرات البدء البارد في النطاق المحدد كانت أسرع من هذه القيمة؛ والوسيط أدناه هو المعتاد منها. ويَعُدّ Android vitals البدء البارد الذي يستغرق 5 ثوانٍ أو أكثر مفرطًا.",
   "Init container": "حاوية التهيئة",
   "It shows here once a pod runs it and the Kubernetes agent reports that pod.": "تظهر هنا بمجرد أن يشغّلها pod ويُبلغ وكيل Kubernetes عن ذلك الـ pod.",
   "Last backup failed for {{count}} guests": "الضيوف الذين فشل آخر نسخ احتياطي لهم: {{count}}",
