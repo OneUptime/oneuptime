@@ -30,7 +30,7 @@ Din server behöver ett eget värdnamn med en A-post som pekar på den, till exe
 
 ![Hem frågar ”Vad vill du göra först?”, med ”Berätta för mina kunder med en statussida” ikryssat](screen:home-goal-status-page)
 
-På projektets sida **Hem** klickar du på **Publicera en statussida** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Berätta för mina kunder med en statussida** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `status page` och väljer **Publicera en statussida**.
+På projektets sida **Hem** klickar du på **Publicera en statussida** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Berätta för mina kunder med en statussida** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `status page` och väljer **Publicera en statussida**. Eller klicka på **Beskriv det i stället**: Fråga AI öppnas med uppgiften skriven i rutan, redo att skickas.
 
 Även **Statussidor** öppnar den: klicka på **Guidad installation** i den tomma listan, eller under **Så fungerar det** när projektet har en statussida.
 

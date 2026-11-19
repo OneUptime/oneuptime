@@ -207,6 +207,20 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 > [!CAUTION]
 > `delete` رکورد را بی‌درنگ حذف می‌کند. CLI از شما تأیید نمی‌خواهد، و هیچ بازگشتی وجود ندارد. این دستور `--force` را برای اسکریپت‌هایی که با آن نوشته شده‌اند می‌پذیرد، و `--force` چیزی را تغییر نمی‌دهد.
 
+### نقش سفارشی‌ای که گردش‌های کاری به‌عنوان آن اجرا می‌شوند
+
+نقش سفارشی‌ای را که گردش‌های کاری به‌عنوان آن اجرا می‌شوند، OneUptime فقط وقتی حذف می‌کند که حذف بگوید به‌جای آن به چه عنوانی اجرا شوند، و حذفی را که این را نگوید، با نام بردن از گردش‌های کاری، رد می‌کند. این را با `--workflows-run-as` بگویید: `Default`، یعنی دسترسی‌های پیش‌فرض، یا `CustomRole`، یعنی نقش سفارشی دیگری که شما بتوانید به یک تیم بدهید، با شناسهٔ آن در `--workflows-run-as-custom-role-id`. هرگز Project Owner: حذف یک نقش هرگز کارهایی را که یک گردش کاری می‌تواند بکند بیشتر نمی‌کند.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+حذفِ ردشده، پاسخ رد OneUptime را که نام گردش‌های کاری را می‌برد چاپ می‌کند و پس از آن پرچم‌هایی را که باید دوباره با آن‌ها اجرایش کنید. نقشی که هیچ گردش کاری به‌عنوان آن اجرا نمی‌شود به هیچ‌کدام از این دو پرچم نیاز ندارد.
+
 ## شمردن رکوردها
 
 ```bash

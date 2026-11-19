@@ -40,7 +40,7 @@ Alt annet ligger under **Flere felt**, slått sammen til du åpner det:
 | Felt | Hva det gjør |
 | --- | --- |
 | **Hver vakt varer** | **1 dag**, **1 uke**, **2 uker** eller **1 måned**, og **1 uke** hvis du ikke endrer det. Det spørres om så snart noen bytter på. Hver person har vakt så lenge, og så tar den neste over, på det tidspunktet på dagen da vaktplanen ble opprettet. |
-| **Tidssone** | Tidssonen overleveringstider og vakttimer holdes i. Den starter på din. |
+| **Tidssone** | Tidssonen overleveringstider og vakttimer holdes i. Den starter på din. Hver tidssone følger de gjeldende reglene i sin region: America/Vancouver (British Columbia) holder seg på UTC-7 hele året fra 2026. |
 | **Beskrivelse** | Notater om vaktplanen. |
 | **Etiketter** | Etiketter for å finne og gruppere vaktplanen. |
 

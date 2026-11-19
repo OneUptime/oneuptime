@@ -31,6 +31,11 @@ import {
 } from "./StatusPageSetup";
 import StatusPageSetupPicker from "./StatusPageSetupPicker";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
+import {
+  GUIDED_SETUP_NAME_QUERY,
+  getDescribeItPrompt,
+  readGuidedSetupPrefill,
+} from "../AskAiGuidedSetupLinks";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
   getFirstOpenStepKey,
@@ -169,12 +174,20 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     StatusPageSetupStep.Pick,
   );
 
-  // Step 1's form: the project's name, to start with, and nothing picked.
+  /*
+   * Step 1's form: the project's name, to start with, and nothing picked -
+   * or the name an Ask AI plan opened it with (?name=, Open in guided
+   * setup, #7245): a page of the project's by that name is picked once the
+   * pages are read, and a new page takes it otherwise.
+   */
   const defaultName: string = getDefaultStatusPageName({
     translator: translator,
     projectName: ProjectUtil.getCurrentProject()?.name,
   });
-  const [name, setName] = useState<string>(defaultName);
+  const nameFromAskAi: string = readGuidedSetupPrefill(
+    Navigation.getQueryStringByName(GUIDED_SETUP_NAME_QUERY),
+  );
+  const [name, setName] = useState<string>(nameFromAskAi || defaultName);
   const [nameError, setNameError] = useState<string>("");
   const [picked, setPicked] = useState<Array<string>>([]);
   const [pickedGroups, setPickedGroups] = useState<Array<string>>([]);
@@ -293,11 +306,28 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       setMonitors(loadedMonitors);
       setMonitorGroups(loadedGroups);
       setExistingPages(loadedPages);
-      // A project with pages this person may change goes on with the newest.
-      setIsNewPage(loadedPages.length === 0);
 
-      if (!loadedPage && loadedPages[0]) {
-        choosePage(loadedPages[0].id);
+      /*
+       * A project with pages this person may change goes on with the
+       * newest - or, opened from an Ask AI plan, with the page it names,
+       * and a new page by that name when the project has none of it.
+       */
+      const namedPage: StatusPageSetupPage | undefined = nameFromAskAi
+        ? loadedPages.find((page: StatusPageSetupPage): boolean => {
+            return (
+              (page.name || "").trim().toLowerCase() ===
+              nameFromAskAi.toLowerCase()
+            );
+          })
+        : undefined;
+      const goesOnWith: StatusPageSetupPage | undefined = nameFromAskAi
+        ? namedPage
+        : loadedPages[0];
+
+      setIsNewPage(!goesOnWith);
+
+      if (!loadedPage && goesOnWith) {
+        choosePage(goesOnWith.id);
       }
       setPicked(
         getMonitorPickedOnOpen({
@@ -1138,6 +1168,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       isFinished={isStatusPageSetupFinished(facts)}
       guideDocsPath={STATUS_PAGE_SETUP_GUIDE_DOCS_PATH}
       minutes={WELCOME_STEP_MINUTES[WelcomeStep.StatusPage]}
+      describeItPrompt={getDescribeItPrompt({
+        setup: STATUS_PAGE_SETUP,
+        facts: { name: isNewPage ? name : "" },
+        translator: translator,
+      })}
     />
   );
 };

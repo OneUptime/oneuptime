@@ -19,8 +19,13 @@ import {
   CephPgStateReadings,
   loadCephHealthChecks,
   loadCephLatestPerLabel,
+  loadCephPgReasonStates,
   loadCephPgStates,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephReadings";
+import {
+  CEPH_PG_REASON_STATES,
+  CephPgReasonStates,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephHealth";
 import { getCephShortVersion } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephResourceUtils";
 
 /*
@@ -216,6 +221,56 @@ describe("each pool's placement groups", () => {
   test("with nothing read, there are no totals", async () => {
     const readings: CephPgStateReadings = await loadCephPgStates("ceph-prod");
     expect(readings.totals).toBeNull();
+  });
+});
+
+/*
+ * Ceph's own reason for a pool's degraded or undersized placement groups
+ * (#9727): the other states the mgr reports for them, per pool, read when
+ * the bar is pressed.
+ */
+describe("what Ceph is doing about each pool's missing copies", () => {
+  test("is each pool's newest count of every state that says so, by Ceph's word", async () => {
+    series["ceph_pg_recovering"] = [
+      point(1, 3, { pool_id: "1" }),
+      // An older reading of the same series is not the newest.
+      point(2, 9, { pool_id: "1" }),
+    ];
+    series["ceph_pg_backfill_toofull"] = [point(1, 2, { pool_id: "2" })];
+    series["ceph_pg_backfill_wait"] = [
+      point(1, 0, { pool_id: "1" }),
+      point(1, 1, { pool_id: "2" }),
+    ];
+
+    const byPool: Map<string, CephPgReasonStates> =
+      await loadCephPgReasonStates("ceph-prod");
+
+    expect(byPool.get("1")).toEqual({ recovering: 3, backfill_wait: 0 });
+    expect(byPool.get("2")).toEqual({ backfill_toofull: 2, backfill_wait: 1 });
+    expect(byPool.has("3")).toBe(false);
+
+    // One read per state, each on the cluster's series, by pool.
+    expect(
+      requests.map((request: MetricRequest): string => {
+        return request.query.name;
+      }),
+    ).toEqual(
+      CEPH_PG_REASON_STATES.map((state: string): string => {
+        return `ceph_pg_${state}`;
+      }),
+    );
+    for (const request of requests) {
+      expect(request.query.attributes).toEqual({
+        "resource.ceph.cluster.name": "ceph-prod",
+      });
+    }
+  });
+
+  test("an older Ceph's cluster-wide states name no pool", async () => {
+    series["ceph_pg_recovering"] = [point(1, 3, {})];
+    const byPool: Map<string, CephPgReasonStates> =
+      await loadCephPgReasonStates("ceph-prod");
+    expect(byPool.size).toBe(0);
   });
 });
 

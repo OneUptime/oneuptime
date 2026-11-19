@@ -98,6 +98,7 @@ enum Timezone {
   AmericaCoral_Harbour = "America/Coral_Harbour",
   AmericaCordoba = "America/Cordoba",
   AmericaCosta_Rica = "America/Costa_Rica",
+  AmericaCoyhaique = "America/Coyhaique",
   AmericaCreston = "America/Creston",
   AmericaCuiaba = "America/Cuiaba",
   AmericaCuracao = "America/Curacao",

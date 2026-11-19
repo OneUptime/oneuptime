@@ -1102,9 +1102,11 @@ export class Service extends ProjectReferencesService<Model> {
           });
 
         if (followed !== undefined) {
-          (updateBy.data as unknown as Record<string, unknown>)[
-            "networkDeviceId"
-          ] = followed;
+          RelationIdUtil.stamp(
+            updateBy.data as unknown as Record<string, unknown>,
+            NETWORK_DEVICE_KEYS,
+            followed,
+          );
         }
       }
     }
@@ -2582,7 +2584,11 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (deviceAtAddress) {
-        createBy.data.networkDeviceId = deviceAtAddress;
+        RelationIdUtil.stamp(
+          createBy.data as unknown as Record<string, unknown>,
+          NETWORK_DEVICE_KEYS,
+          deviceAtAddress,
+        );
       }
     }
 

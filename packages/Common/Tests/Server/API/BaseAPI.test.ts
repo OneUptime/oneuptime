@@ -85,6 +85,14 @@ jest.mock(
         getTableColumnMetadata: jest.fn().mockImplementation(() => {
           return null;
         }),
+        /*
+         * BaseAPI asks every model whether its rows make up an ordered list
+         * (Types/Database/MoveInList) before it adds the move route. This
+         * table's make up none, so it has no move route.
+         */
+        getListOrder: jest.fn().mockImplementation(() => {
+          return null;
+        }),
       };
     });
   },

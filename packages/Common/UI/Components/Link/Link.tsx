@@ -42,6 +42,11 @@ export interface ComponentProps {
    */
   ariaCurrent?: LinkAriaCurrent | undefined;
   /*
+   * The id of what says more about where it leads, read after its name: a
+   * list row's facts, when only the row's name is its link.
+   */
+  ariaDescribedBy?: string | undefined;
+  /*
    * The way its words read when that is not the page's (getIsolatedLine): a
    * link that is a name on a line of its own, cut short at its own end.
    */
@@ -134,6 +139,7 @@ const Link: FunctionComponent<ComponentProps> = (
       title={title}
       aria-label={title}
       aria-current={ariaCurrent}
+      aria-describedby={props.ariaDescribedBy}
       onKeyDown={(event: React.KeyboardEvent<HTMLAnchorElement>) => {
         /*
          * For onClick-only links (no href) we render role="button"; activate them

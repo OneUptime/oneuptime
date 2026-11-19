@@ -1323,15 +1323,30 @@ export default class ChatAgentRunner {
             : undefined;
 
           /*
-           * A setup action (#6829) that cannot be made - the person may not,
-           * the address is not one, the project pages people already - is
-           * never shown to be approved and then refused: no card, and the
-           * model is told what is needed, in every mode.
+           * Asked for approval: every action in Ask to act, and a setup
+           * action (#6829) in every mode - it makes something that pages
+           * people or that customers see, so Auto-run asks for it too.
            */
           const isSetupAction: boolean =
             isMutation && AIToolbox.isSetupAction(toolCall.name);
+          const asksForApproval: boolean =
+            isMutation &&
+            (request.permissionMode === AIChatPermissionMode.AskForApproval ||
+              isSetupAction);
 
-          if (isSetupAction && !toolCall.argumentsParseError) {
+          /*
+           * An action that cannot be made - the person's role may not make
+           * it, a team of theirs blocks it, its product is switched off on
+           * the server (#7248), or, for a setup action (#6829), the address
+           * is not one or the project pages people already - is never
+           * shown to be approved and then refused: no card, the model is
+           * told what is needed, and the answer's steps say it was not
+           * done, and why. The checks are the ones running it makes
+           * (AIToolbox.checkBeforeApproval), with the arguments it would
+           * run with; they are made again when it runs. Auto-run shows no
+           * card: its actions are refused by the same checks as they run.
+           */
+          if (asksForApproval && !toolCall.argumentsParseError) {
             const refused: ToolCallOutcome | null =
               await AIToolbox.checkBeforeApproval({
                 name: toolCall.name,
@@ -1363,16 +1378,7 @@ export default class ChatAgentRunner {
             }
           }
 
-          /*
-           * Asked for approval: every action in Ask to act, and a setup
-           * action (#6829) in every mode - it makes something that pages
-           * people or that customers see, so Auto-run asks for it too.
-           */
-          if (
-            isMutation &&
-            (request.permissionMode === AIChatPermissionMode.AskForApproval ||
-              isSetupAction)
-          ) {
+          if (asksForApproval) {
             // Defer the action for the user to approve; do not run it yet.
             this.upsertToolAction(
               state,

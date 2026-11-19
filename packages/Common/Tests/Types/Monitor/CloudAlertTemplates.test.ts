@@ -66,6 +66,8 @@ import {
   getCloudConnectionsThreshold,
   getCloudResourceTypesWithAlertTemplates,
   isCloudSlowMetricTemplate,
+  isCloudFiveMinuteMetricTemplate,
+  CLOUD_FIVE_MINUTE_METRIC_WINDOW,
   quoteCloudShellArgument,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
@@ -306,12 +308,16 @@ describe("the cloud alert template library", () => {
       expect(cloudTemplate.monitorType).toBe(MonitorType.Metrics);
       /*
        * Every five minutes over its cloud's window - but a metric published
-       * a few times a day, read once an hour: over 2 days, once an hour.
+       * a few times a day, read once an hour: over 2 days, once an hour;
+       * and an Azure metric kept at five minutes, read every 15: over 30
+       * minutes, still every five (#9981).
        */
       expect(cloudTemplate.rollingTime).toBe(
         isSlow
           ? CLOUD_SLOW_METRIC_WINDOW
-          : CLOUD_ALERT_WINDOWS[cloudTemplate.provider],
+          : isCloudFiveMinuteMetricTemplate(cloudTemplate)
+            ? CLOUD_FIVE_MINUTE_METRIC_WINDOW
+            : CLOUD_ALERT_WINDOWS[cloudTemplate.provider],
       );
       expect(cloudTemplate.monitoringInterval).toBe(
         isSlow

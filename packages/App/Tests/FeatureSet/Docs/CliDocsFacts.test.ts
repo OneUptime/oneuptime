@@ -54,8 +54,10 @@ import {
   CLI_FIELDS_SUBCOMMAND,
   CLI_OPERATIONS,
   CliAction,
+  CliDeleteChoiceFlag,
   CliFieldFlag,
   CliOperation,
+  getCliDeleteChoiceFlags,
   getCliFieldFlags,
   getCliNoteTarget,
   getCliResourceName,
@@ -1475,16 +1477,21 @@ describe("Resource Operations", () => {
     );
 
     expect(remove).toContain('.option("--force", "Skip confirmation")');
-    // The action never reads the option, and nothing asks the terminal.
-    expect(remove).toContain(
-      ".action(async (id: string, _options: { force?: boolean }, cmd: Command) => {",
+    /*
+     * The action never reads the option, and nothing asks the terminal: it
+     * reads its options only for what the delete says besides the record
+     * (#9949).
+     */
+    expect(flat(remove)).toContain(
+      ".action( async ( id: string, options: { force?: boolean } & Record<string, unknown>, cmd: Command, ) => {",
     );
+    expect(remove).not.toMatch(/options\.force|options\["force"\]/);
     expect(resources).not.toContain("readline");
     expect(remove).toContain(
       "printSuccess(`${resource.singularName} ${id} deleted successfully.`);",
     );
-    expect(remove).toContain(
-      "formatOutput({ _id: id, deleted: true }, resolveOutputFormat(cmd)),",
+    expect(flat(remove)).toContain(
+      "formatOutput( { _id: id, deleted: true }, resolveOutputFormat(cmd), ),",
     );
     expect(
       rowOfCode(
@@ -1492,6 +1499,71 @@ describe("Resource Operations", () => {
         "--force",
       )[2],
     ).toBe("Accepted and changes nothing: `delete` never asks to confirm");
+  });
+
+  /*
+   * A custom role that workflows run as is deleted only by a delete that
+   * says what they run as instead (#9949). Its `delete` says it with two
+   * flags, named for the keys the API reads, and sends them in the body
+   * the pages name; any other delete sends none.
+   */
+  it("deletes a custom role that workflows run as with the flags the pages name, sent in the body they name", () => {
+    const remove: string = resources.slice(
+      resources.indexOf("function registerDeleteCommand("),
+      resources.indexOf("function registerCountCommand("),
+    );
+    const flags: Array<CliDeleteChoiceFlag> =
+      getCliDeleteChoiceFlags("CustomRole");
+    const reference: string = englishSection(
+      COMMAND_REFERENCE,
+      "### `oneuptime <resource> delete`",
+    );
+    const operations: string = englishSection(
+      RESOURCE_OPERATIONS,
+      "### A custom role that workflows run as",
+    );
+
+    expect(
+      flags.map((flag: CliDeleteChoiceFlag): string => {
+        return `${flag.flag} ${flag.valueName}`;
+      }),
+    ).toEqual([
+      "--workflows-run-as <value>",
+      "--workflows-run-as-custom-role-id <id>",
+    ]);
+    expect(getCliDeleteChoiceFlags("Team")).toEqual([]);
+    expect(remove).toContain("addDeleteChoiceFlags(command, resource);");
+    expect(remove).toContain(
+      "miscDataProps = readDeleteChoiceFlags({ resource, options, id });",
+    );
+
+    for (const flag of flags) {
+      expect(rowOfCode(reference, `${flag.flag} ${flag.valueName}`)[1]).toBe(
+        "No",
+      );
+      expect(operations).toContain(`\`${flag.flag}\``);
+    }
+
+    expect(operations).toContain(
+      "OneUptime deletes a custom role that workflows run as only when the delete says what they run as instead, and refuses one that does not, naming the workflows.",
+    );
+    expect(operations).toContain(
+      "Never Project Owner: deleting a role never raises what a workflow can do.",
+    );
+
+    // A delete sends its body only when it says something besides the record.
+    expect(flat(cliSource("Core/ApiClient.ts"))).toContain(
+      'case "delete": return options.miscDataProps && Object.keys(options.miscDataProps).length > 0 ? ({ miscDataProps: options.miscDataProps } as JSONObject) : undefined;',
+    );
+    expect(
+      rowStartingWith(
+        tableWithHeader(
+          englishSection(COMMAND_REFERENCE, "### API requests"),
+          "Operation",
+        ),
+        "`delete`",
+      )[2],
+    ).toBe("None, or `miscDataProps` with `--workflows-run-as`");
   });
 
   it("asks for every field a key may read, for telemetry never a column its table lacks, and leaves out a refused one", () => {

@@ -129,6 +129,7 @@ import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
 import MoveMonitorsOffRetiredCloudMetrics from "./MoveMonitorsOffRetiredCloudMetrics";
+import MoveChartsAndSlosOffRetiredCloudMetrics from "./MoveChartsAndSlosOffRetiredCloudMetrics";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
@@ -1500,12 +1501,25 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new MoveMonitorsOffRetiredCloudMetrics(),
   /*
+   * Moves the dashboard widgets and SLOs that read one of the same two
+   * metrics as MoveMonitorsOffRetiredCloudMetrics moves monitors (#9980):
+   * a Cosmos DB account's latency by what it reported, Pub/Sub's thresholds
+   * 60 times what they were. One it cannot move stays, read for what still
+   * reads it, and is moved again every hour (MoveOffRetiredCloudMetrics).
+   * Postgres and the metric store's reads only, idempotent, a page at a
+   * time by id; after the monitors' move, before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new MoveChartsAndSlosOffRetiredCloudMetrics(),
+  /*
    * Records when this server was upgraded to on-call links that carry the
    * page's own token (#10025): it changes no data, and its row says when.
    * A link without a token acknowledges a page sent before that, for a week
-   * after it was sent (OnCallAcknowledgeLink). Before
-   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
-   * before the last one AddAuditLogMcpClientColumns keeps.
+   * after it was sent (OnCallAcknowledgeLink). Independent of the moves
+   * before it; before BackfillIncidentCallTranscriptSignInAccount, which
+   * keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
    */
   new RequireTokenToAcknowledgeOnCallPages(),
   /*

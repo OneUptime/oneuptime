@@ -49,7 +49,11 @@ Diese vier Widgets lesen eine Metrikabfrage, aufgebaut wie im Metrik-Explorer: W
 
 ### Diagramm
 
-Eine Zeitreihe aus einer oder mehreren Metrikabfragen über den Zeitbereich des Dashboards. **Diagrammtyp** zeichnet sie als Linien-, Balken-, Flächen-, gestapeltes Flächen- oder Kreisdiagramm. **Weitere Abfragen** legen weitere Metriken auf dieselben Achsen, und **Formeln** kombinieren sie mit `+`, `-`, `*`, `/`, `%`, `^` und Klammern, etwa `(1 - a) * 100`. Die Anzeigeeinstellungen jeder Abfrage fügen eine Legende und eine Einheit, eine Farbe, Warn- und kritische Linien sowie eine Rate pro Sekunde für Zähler hinzu, die nur wachsen.
+Eine Zeitreihe aus einer oder mehreren Metrikabfragen über den Zeitbereich des Dashboards. **Diagrammtyp** zeichnet sie als Linien-, Balken-, Flächen-, gestapeltes Flächen- oder Kreisdiagramm. **Abfrage hinzufügen** fügt eine weitere Metrikabfrage hinzu, und **Formel hinzufügen** eine Formel, die sie mit `+`, `-`, `*`, `/`, `%`, `^` und Klammern kombiniert, etwa `(1 - a) * 100`. Die **Anzeigeeinstellungen** jeder Abfrage fügen eine Legende und eine Einheit, eine Farbe, Warn- und kritische Linien sowie eine Rate pro Sekunde für Zähler hinzu, die nur wachsen.
+
+Jede Abfrage zeichnet ein eigenes Diagramm, untereinander im Widget. Um eine Abfrage stattdessen im Diagramm der Abfrage davor zu zeichnen, als weitere Linien auf denselben Achsen, schalten Sie **Mit vorheriger Abfrage überlagern** in ihren **Anzeigeeinstellungen** ein: zum Beispiel `mem_used` und `mem_total` in einem Diagramm. Jede Abfrage nach der ersten hat diesen Schalter, und jede Abfrage, bei der er eingeschaltet ist, kommt in dasselbe Diagramm, sodass sich drei oder mehr Abfragen eines teilen können. Schalten Sie ihn aus, damit die Abfrage wieder ein eigenes Diagramm bekommt.
+
+Ein überlagertes Diagramm übernimmt Titel, Diagrammtyp und Werteachse von seiner ersten Abfrage, also wird jede Abfrage darin in deren Einheit gelesen. Eine Abfrage in einer anderen Einheit derselben Art wird in der Einheit des Diagramms gezeichnet, etwa Megabyte in einem Diagramm in Gigabyte oder Sekunden in einem Diagramm in Millisekunden. Eine Einheit anderer Art lässt sich auf dieser Achse nicht ablesen, etwa Bytes in einem Diagramm in Prozent: Die Abfrage wird trotzdem dort gezeichnet, und Diagramm und Schalter sagen beide, dass sich die Einheiten unterscheiden. Geben Sie einer solchen Abfrage daher ein eigenes Diagramm.
 
 Nutzen Sie es, wenn die Form der Linie die Geschichte erzählt: Latenz, Fehler, Durchsatz oder Warteschlangentiefe.
 

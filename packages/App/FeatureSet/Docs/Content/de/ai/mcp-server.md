@@ -343,6 +343,18 @@ Das Tool **`get_data_table_lineage`** sagt einem Agenten, woraus eine überwacht
 
 Das Tool **`oneuptime_move_in_list`** verschiebt eine Zeile einer geordneten Liste, etwa einen Schweregrad, einen Vorfallstatus oder einen Monitorstatus, an die Stelle einer anderen Zeile, wie es das Ziehen im Dashboard tut: Die Zeilen dazwischen rücken um eine Stelle, und es antwortet mit jeder Zeile, deren Nummer sich geändert hat. Übergeben Sie `resource` (etwa `Incident Severity`), die `id` der Zeile und `placeOfId`, die ID der Zeile, deren Stelle sie einnimmt. Wer die Nummer einer Zeile mit ihrem `update_`-Tool schreibt, platziert nur diese Zeile, neben jeder Zeile, die diese Nummer schon hat.
 
+## Tools zum Einrichten
+
+Der Server hat auch die Einrichtungsaktionen von KI fragen, je ein Aufruf: das, was Sie einrichten, statt eines Datensatzes nach dem anderen. Jede legt die Datensätze an, die KI fragen und die geführten Einrichtungen für dieselben Antworten anlegen, mit denselben Prüfungen:
+
+- **`set_up_website_monitoring`**: eine Website- oder API-Überwachung für eine Adresse, die einen Vorfall eröffnet, wenn die Adresse nicht antwortet oder mit einem Fehler antwortet. Sie gehört Ihnen, und eine Adresse, die bereits ein Monitor prüft, bekommt keinen zweiten
+- **`set_up_paging`**: in einem Projekt, das noch niemanden alarmiert, seine erste Bereitschaftsrichtlinie, die Sie und die genannten Personen und Teams bei jedem neuen Vorfall und jeder neuen Warnung alarmiert
+- **`publish_status_page`**: eine öffentliche Statusseite, die die genannten Monitore zeigt
+- **`add_monitors_to_status_page`**: Monitore auf einer Statusseite, die das Projekt bereits hat
+- **`who_is_told`**: wer informiert wird, wenn ein Monitor ausfällt, und was verhindern würde, dass jemand erreicht wird. Es ändert nichts
+
+Sie handeln als Sie, angemeldet mit OAuth: Ein API-Schlüssel eines Projekts kann die vier nicht nutzen, die etwas anlegen. Ihr Client fragt Sie vor jedem davon, und seine Antwort sagt, was angelegt wurde. Was fehlt, etwa eine Berechtigung, eine Adresse oder Platz im Tarif, wird gesagt, bevor etwas angelegt wird.
+
 ## Telemetrie abfragen
 
 Logs, Metriken, Traces (Spans), Ausnahmen, Monitor-Logs und die anderen Arten von Telemetrie gibt es als nur lesende Tools `list_` und `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie kommt über OpenTelemetry herein, daher gibt es keine Tools zum Anlegen.
