@@ -39,6 +39,8 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import {
   SecondYAxis,
+  ValueAxisFormatter,
+  ValueAxisPrecision,
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YScaleMaxMin from "Common/UI/Components/Charts/Types/YAxis/YAxisMaxMin";
@@ -1067,18 +1069,20 @@ function getPanelAxes(members: Array<PanelMember>): PanelAxes {
 
 /*
  * How a member writes a value in its own unit: the page's formatter for its
- * query when it has one, else its unit's, in the reader's language.
+ * query when it has one, else its unit's, in the reader's language. On an
+ * axis the chart steps itself, its unit's formatter writes the figures the
+ * axis's step needs (issue #10079); a page's own formatter writes its own.
  */
 function getMemberValueFormatter(
   member: PanelMember,
   language: string,
-): (value: number) => string {
+): ValueAxisFormatter {
   const formatterOptions: ValueFormatterOptions = {
     metricName: member.metricName,
     language: language,
   };
 
-  return (value: number): string => {
+  return (value: number, precision?: ValueAxisPrecision): string => {
     if (member.queryConfig.yAxisValueFormatter) {
       // The page writes its figure in English; the chart, in the reader's digits.
       return writeFigureInLanguage(
@@ -1087,7 +1091,10 @@ function getMemberValueFormatter(
       );
     }
 
-    return ValueFormatter.formatValue(value, member.unit, formatterOptions);
+    return ValueFormatter.formatValue(value, member.unit, {
+      ...formatterOptions,
+      step: precision?.step,
+    });
   };
 }
 
@@ -2258,6 +2265,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     valuesAtBucket: Record<string, number | string>;
     seriesNames: Array<string>;
     formatValue: (value: number, seriesName: string) => string;
+    /*
+     * A series' value as the chart's tooltip writes it, by the name the
+     * chart draws it with: to the figures its axis's ticks are written
+     * with, when the chart steps that axis itself (issue #10079).
+     */
+    formatValueAsDrawn?:
+      | ((drawnName: string, value: number) => string)
+      | undefined;
   }) => void = useCallback(
     (input: {
       title: string;
@@ -2266,6 +2281,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       valuesAtBucket: Record<string, number | string>;
       seriesNames: Array<string>;
       formatValue: (value: number, seriesName: string) => string;
+      formatValueAsDrawn?:
+        | ((drawnName: string, value: number) => string)
+        | undefined;
     }): void => {
       /*
        * Highest value first — the same "which series is spiking?"
@@ -2295,6 +2313,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
 
       const pointer: { x: number; y: number } = lastPointerPositionRef.current;
+      const formatValueAsDrawn:
+        | ((drawnName: string, value: number) => string)
+        | undefined = input.formatValueAsDrawn;
       const maxX: number =
         window.innerWidth -
         BUCKET_INSPECTOR_WIDTH_PX -
@@ -2311,7 +2332,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         bucketEnd: input.bucketEnd,
         entries: entries.slice(0, BUCKET_INSPECTOR_MAX_ROWS),
         hiddenCount: Math.max(0, entries.length - BUCKET_INSPECTOR_MAX_ROWS),
-        formatValue: input.formatValue,
+        // As the tooltip wrote them a moment before the click.
+        formatValue: formatValueAsDrawn
+          ? (value: number, seriesName: string): string => {
+              return formatValueAsDrawn(
+                getSeriesNameForReader(seriesName, translator),
+                value,
+              );
+            }
+          : input.formatValue,
         position: {
           x: Math.max(
             EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
@@ -3074,9 +3103,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       let secondYAxisMax: YScaleMaxMin = "auto";
 
       // How each axis writes a value: in its lead's unit.
-      const firstAxisValueFormatter: (value: number) => string =
+      const firstAxisValueFormatter: ValueAxisFormatter =
         getMemberValueFormatter(firstMember, translator.language);
-      const secondAxisValueFormatter: ((value: number) => string) | undefined =
+      const secondAxisValueFormatter: ValueAxisFormatter | undefined =
         secondAxisLead
           ? getMemberValueFormatter(secondAxisLead, translator.language)
           : undefined;
@@ -3088,9 +3117,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
        */
       const getMemberAxisValueFormatter: (
         member: PanelMember,
-      ) => (value: number) => string = (
-        member: PanelMember,
-      ): ((value: number) => string) => {
+      ) => ValueAxisFormatter = (member: PanelMember): ValueAxisFormatter => {
         const reading: OverlayAxisReading = readingOf(member);
 
         if (reading.fit === OverlayUnitFit.Different) {
@@ -3781,6 +3808,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 bucketStart: Date,
                 bucketEnd: Date,
                 valuesAtBucket: Record<string, number | string>,
+                formatValueAsDrawn?: (
+                  drawnName: string,
+                  value: number,
+                ) => string,
               ): void => {
                 openBucketInspector({
                   title: chart.title,
@@ -3793,6 +3824,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                     },
                   ),
                   formatValue: seriesValueFormatter,
+                  formatValueAsDrawn: formatValueAsDrawn,
                 });
               }
             : undefined,
@@ -4073,9 +4105,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             legend: formulaUnit,
             options: {
               type: YAxisType.Number,
-              formatter: (value: number) => {
+              // To the figures its step needs, when the chart steps it (#10079).
+              formatter: (
+                value: number,
+                precision?: ValueAxisPrecision,
+              ): string => {
                 return ValueFormatter.formatValue(value, formulaUnit, {
                   language: translator.language,
+                  step: precision?.step,
                 });
               },
               precision: YAxisPrecision.NoDecimals,
@@ -4097,6 +4134,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 bucketStart: Date,
                 bucketEnd: Date,
                 valuesAtBucket: Record<string, number | string>,
+                formatValueAsDrawn?: (
+                  drawnName: string,
+                  value: number,
+                ) => string,
               ): void => {
                 openBucketInspector({
                   title: formulaChart.title,
@@ -4113,6 +4154,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                       language: translator.language,
                     });
                   },
+                  formatValueAsDrawn: formatValueAsDrawn,
                 });
               }
             : undefined,
