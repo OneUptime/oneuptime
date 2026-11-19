@@ -1086,6 +1086,8 @@ import { MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000 } from "./180
 import { AddServiceOwnerIsOwnerNotified1809185000000 } from "./1809185000000-AddServiceOwnerIsOwnerNotified";
 import { MarkOwnersAddedBeforeNotificationsAsTold1809185010000 } from "./1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
 import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020000-AddServiceOwnerIsOwnerNotifiedIndexes";
+import { MarkMonitorGroupAndRunnerOwnersAsTold1809185100000 } from "./1809185100000-MarkMonitorGroupAndRunnerOwnersAsTold";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185110000 } from "./1809185110000-DropIncidentTemplateOwnerNotifiedFlag";
 
 export default [
   InitialMigration,
@@ -2176,4 +2178,6 @@ export default [
   AddServiceOwnerIsOwnerNotified1809185000000,
   MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
   AddServiceOwnerIsOwnerNotifiedIndexes1809185020000,
+  MarkMonitorGroupAndRunnerOwnersAsTold1809185100000,
+  DropIncidentTemplateOwnerNotifiedFlag1809185110000,
 ];
