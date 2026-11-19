@@ -4,6 +4,8 @@ import { ZodType } from "zod";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
+import StatusPageSCIM from "../../../Models/DatabaseModels/StatusPageSCIM";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ServerOwned from "../../../Types/Database/ServerOwned";
 import {
@@ -244,6 +246,32 @@ describe("columns OneUptime keeps once a record exists", () => {
         column,
         undefined,
       ]);
+    }
+  });
+
+  /*
+   * Rotating a SCIM connection's client secret sets when the new one and the
+   * one it replaced stop working (ee/Server/Identity/API/
+   * SCIMOAuthClientSecret.ts), for a project's connection and a status
+   * page's alike.
+   */
+  test("a SCIM connection's client secrets expire when OneUptime says, for a project and a status page", () => {
+    for (const [table, model] of [
+      ["ProjectSCIM", new ProjectSCIM()],
+      ["StatusPageSCIM", new StatusPageSCIM()],
+    ] as Array<[string, DatabaseBaseModel]>) {
+      const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+
+      for (const column of [
+        "oauthClientSecretExpiresAt",
+        "oauthPreviousClientSecretExpiresAt",
+      ]) {
+        expect([table, column, columns[column]?.serverOwned]).toEqual([
+          table,
+          column,
+          ServerOwned.Always,
+        ]);
+      }
     }
   });
 
