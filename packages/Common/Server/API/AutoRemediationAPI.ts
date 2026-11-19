@@ -1,4 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import AutoRemediationRoundRateLimit, {
+  AutoRemediationRoundRateLimitBucket,
+} from "../Middleware/AutoRemediationRoundRateLimit";
 import CommonAPI from "./CommonAPI";
 import Express, {
   ExpressRequest,
@@ -338,6 +341,10 @@ export async function findTryAgainSubject(data: {
 router.post(
   "/auto-remediation/try-again",
   UserMiddleware.getUserMiddleware,
+  // Every Try again a person presses, this one and a round's (#6525).
+  AutoRemediationRoundRateLimit.getMiddleware(
+    AutoRemediationRoundRateLimitBucket.TryAgain,
+  ),
   ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
   async (
     req: ExpressRequest,
@@ -400,7 +407,10 @@ router.post(
  *     why not.
  *
  * Both read the fix under the person's own permissions, in the tenant they
- * asked in: the multi-tenant header never widens the read.
+ * asked in: the multi-tenant header never widens the read. Both are held to
+ * a limit per signed-in user (AutoRemediationRoundRateLimit, #6525): the
+ * reads the step polls, loosely, and Try again - this one and the record's
+ * together - at 30 presses in 15 minutes.
  */
 async function getTenantViewer(req: ExpressRequest): Promise<{
   tenantId: ObjectID;
@@ -415,6 +425,9 @@ async function getTenantViewer(req: ExpressRequest): Promise<{
 router.post(
   REMEDIATION_ROUND_PATH,
   UserMiddleware.getUserMiddleware,
+  AutoRemediationRoundRateLimit.getMiddleware(
+    AutoRemediationRoundRateLimitBucket.Read,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -445,6 +458,9 @@ router.post(
 router.post(
   REMEDIATION_ROUND_TRY_AGAIN_PATH,
   UserMiddleware.getUserMiddleware,
+  AutoRemediationRoundRateLimit.getMiddleware(
+    AutoRemediationRoundRateLimitBucket.TryAgain,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

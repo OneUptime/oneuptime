@@ -12,11 +12,9 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
-  getDockerSwarmAttentionItems,
-  getDockerSwarmAttentionKey,
   getDockerSwarmAttribute,
   getDockerSwarmNodeRows,
   isDockerSwarmIssueAbout,
@@ -37,9 +35,6 @@ import DockerSwarmTasksTable from "./DockerSwarmTasksTable";
  * need attention, those tasks, what is open on it, whether anyone hears when
  * it goes down, and what Swarm reports about it.
  */
-
-// How the node's own row reads in its Needs attention card.
-const THIS_NODE: string = translationKey("This node");
 
 // A manager's standing and a node's availability, as `docker node ls` says them.
 const MANAGER_STATUS_WORDS: Record<string, string> = {
@@ -62,6 +57,12 @@ export interface ComponentProps {
   row: DockerSwarmResource | null;
   // The cluster's inventory, for the node's tasks.
   rows: Array<DockerSwarmResource>;
+  /*
+   * What needs attention on the node and the tasks it runs: the page
+   * reads it once (getDockerSwarmPartAttention) for this card and for the
+   * hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: DockerSwarmPartRoutes;
   now: Date;
   refreshToken?: number | undefined;
@@ -95,14 +96,6 @@ const DockerSwarmNodeOverview: FunctionComponent<ComponentProps> = (
     rows: props.rows,
     node: row,
   });
-
-  const attentionItems: Array<ResourceAttentionItem> =
-    getDockerSwarmAttentionItems({
-      rows: nodeRows,
-      routeFor: props.routes.getPartRoute,
-      now: props.now,
-      scope: "part",
-    });
 
   const detailRows: Array<ResourcePartDetailRow> = [
     {
@@ -216,12 +209,9 @@ const DockerSwarmNodeOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="docker-swarm-node-overview">
       <NeedsAttentionCard
         testId="docker-swarm-node-attention"
-        items={attentionItems}
-        current={{
-          key: getDockerSwarmAttentionKey("Node", props.externalId),
-          label: THIS_NODE,
-        }}
-        description="What about this node and the tasks it runs is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <DockerSwarmTasksTable

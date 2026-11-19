@@ -163,19 +163,21 @@ const resource = defaultResource().merge(
 
 ## 針對 RUM 資料設定警示
 
-RUM 遙測就是一般的日誌、指標與追蹤，因此沒有獨立的 RUM 監測器：一般的監測器都適用於它。最快的入門方式是應用程式的 **建議** 頁面，它會提供已限定到該應用程式的監測器：
+RUM 遙測就是一般的日誌、指標與追蹤，因此沒有獨立的 RUM 監測器：一般的監測器都適用於它。最快的入門方式是應用程式的 **建議** 頁面，它會提供已限定到該應用程式、適合 Web 應用程式或行動應用程式的監測器：
 
 | 群組 | 建議 |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 與 Slow Time to First Byte。請參閱 [Core Web Vitals](/docs/rum/web-vitals) 。 |
-| 錯誤 | Failed User Operations 與 Unhandled Browser Exceptions。 |
+| Core Web Vitals | 適用於 Web 應用程式：Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 與 Slow Time to First Byte。請參閱 [Core Web Vitals](/docs/rum/web-vitals) 。 |
+| 錯誤 | 適用於行動應用程式的 App Crashes 與 App Not Responding (ANR)，兩者皆適用的 Failed User Operations，以及適用於 Web 應用程式的 Unhandled Browser Exceptions。 |
+| 效能 | 適用於行動應用程式：Slow Cold Start，在冷啟動耗時 5 秒或更久時觸發，Android vitals 將這種情況視為過長；以及 Frozen Frames，在某個影格的繪製時間超過 700 ms 時觸發。 |
+| 可用性 | 適用於行動應用程式：App Stopped Reporting，在應用程式 30 分鐘內沒有傳送任何 span 時觸發。 |
 | 工作階段重播 | 四個 [儲存預算警示](/docs/telemetry/session-replay#儲存預算警示) ，會在專案的每日上限或應用程式的每月預算用盡之前發出警告。應用程式錄製過重播後就會提供它們，每月那一組則在應用程式也設定了每月預算後提供。 |
 
 若要自行建立監測器，請選擇讀取相應訊號的那一種：
 
 - [指標監控](/docs/monitor/metrics-monitor) ：某個 Core Web Vitals 指標，或你的應用程式傳送的任何指標。
-- [追蹤監控](/docs/monitor/traces-monitor) ：用戶端錯誤率或延遲。
-- [日誌監控](/docs/monitor/logs-monitor) ：瀏覽器日誌中的某種模式。
+- [追蹤監控](/docs/monitor/traces-monitor) ：用戶端錯誤率或延遲，或慢於你所設定時長的應用程式啟動。
+- [日誌監控](/docs/monitor/logs-monitor) ：瀏覽器日誌中的某種模式，或行動應用程式的 `app.crash` 、 `device.anr` 和 `app.jank` 事件。
 - [例外狀況監控](/docs/monitor/exceptions-monitor) ：新出現或急遽增加的用戶端例外狀況。
 
 將你建立的監測器限定到該應用程式，這樣具有類似特徵的後端服務就不會觸發它。

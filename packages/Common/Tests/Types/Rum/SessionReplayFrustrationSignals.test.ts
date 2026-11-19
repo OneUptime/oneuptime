@@ -1,14 +1,18 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  SESSION_REPLAY_CUSTOM_SIGNAL_TRIGGERS,
   SESSION_REPLAY_FRUSTRATION_LIMITS,
   SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
   SESSION_REPLAY_MAX_IGNORED_SELECTORS,
   SessionReplayFrustrationSettings,
   SessionReplayFrustrationSignalsConfig,
   getDefaultSessionReplayFrustrationSettings,
+  isSessionReplayCustomSignalTrigger,
+  isSessionReplayTapPatternUsable,
   matchesSessionReplayErrorText,
   matchesSessionReplayEventName,
   matchesSessionReplayPagePattern,
+  matchesSessionReplayTapTarget,
   normalizeSessionReplayFrustrationSettings,
   readSessionReplayFrustrationSignalsConfig,
   toSessionReplayFrustrationSignalsConfig,
@@ -468,5 +472,102 @@ describe("the error and event matchers", () => {
     expect(matchesSessionReplayEventName("payment", "payment_failed")).toBe(
       false,
     );
+  });
+});
+
+/*
+ * Tap signals (issue #6517): a React Native view named by its testID. The
+ * recorder that detects them (MobileRecorder/src/CustomSignals.ts) carries
+ * a copy of these, held to them by its ContractParity test.
+ */
+describe("tap signals", () => {
+  it("are a trigger of their own, after the click", () => {
+    expect(SESSION_REPLAY_CUSTOM_SIGNAL_TRIGGERS).toEqual([
+      "click",
+      "tap",
+      "page",
+      "event",
+      "error",
+    ]);
+    expect(isSessionReplayCustomSignalTrigger("tap")).toBe(true);
+    expect(isSessionReplayCustomSignalTrigger("touch")).toBe(false);
+  });
+
+  it("name a testID: some of it, and a star at most at its end", () => {
+    expect(isSessionReplayTapPatternUsable("pay-button")).toBe(true);
+    expect(isSessionReplayTapPatternUsable("product-card-*")).toBe(true);
+    expect(isSessionReplayTapPatternUsable("*")).toBe(false);
+    expect(isSessionReplayTapPatternUsable("*-card")).toBe(false);
+    expect(isSessionReplayTapPatternUsable("a*b")).toBe(false);
+    expect(isSessionReplayTapPatternUsable("ab**")).toBe(false);
+  });
+
+  it("match a testID exactly, or by the start before the star, ignoring case", () => {
+    expect(matchesSessionReplayTapTarget("pay-button", "pay-button")).toBe(
+      true,
+    );
+    expect(matchesSessionReplayTapTarget("PAY-button", "pay-BUTTON")).toBe(
+      true,
+    );
+    expect(matchesSessionReplayTapTarget(" pay-button ", "pay-button")).toBe(
+      true,
+    );
+    expect(
+      matchesSessionReplayTapTarget("pay-button", "pay-button-label"),
+    ).toBe(false);
+    expect(
+      matchesSessionReplayTapTarget("product-card-*", "product-card-42"),
+    ).toBe(true);
+    expect(
+      matchesSessionReplayTapTarget("product-card-*", "product-card-"),
+    ).toBe(true);
+    expect(matchesSessionReplayTapTarget("product-card-*", "product")).toBe(
+      false,
+    );
+    expect(matchesSessionReplayTapTarget("*", "anything")).toBe(false);
+    expect(matchesSessionReplayTapTarget("a*b", "a*b")).toBe(false);
+    expect(matchesSessionReplayTapTarget("", "pay-button")).toBe(false);
+    expect(matchesSessionReplayTapTarget("pay-button", "")).toBe(false);
+  });
+
+  it("are kept when they can match, and dropped when their star cannot", () => {
+    const settings: SessionReplayFrustrationSettings =
+      normalizeSessionReplayFrustrationSettings({
+        customSignals: [
+          { id: "a", name: "Pay tapped", trigger: "tap", match: "pay-button" },
+          { id: "b", name: "Cards", trigger: "tap", match: "product-card-*" },
+          { id: "c", name: "Every tap", trigger: "tap", match: "*" },
+          { id: "d", name: "Inside", trigger: "tap", match: "a*b" },
+        ],
+      });
+
+    expect(
+      settings.customSignals.map(
+        (signal: { name: string; trigger: string; match: string }) => {
+          return [signal.name, signal.trigger, signal.match];
+        },
+      ),
+    ).toEqual([
+      ["Pay tapped", "tap", "pay-button"],
+      ["Cards", "tap", "product-card-*"],
+    ]);
+  });
+
+  it("reach every recorder on the wire, which a recorder that cannot detect them ignores", () => {
+    const config: SessionReplayFrustrationSignalsConfig =
+      readSessionReplayFrustrationSignalsConfig({
+        customSignals: [
+          { name: "Pay tapped", trigger: "tap", match: "pay-button" },
+        ],
+      });
+
+    expect(config.customSignals).toEqual([
+      {
+        name: "Pay tapped",
+        trigger: "tap",
+        match: "pay-button",
+        isFrustration: true,
+      },
+    ]);
   });
 });

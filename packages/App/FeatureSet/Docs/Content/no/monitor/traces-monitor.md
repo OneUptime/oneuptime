@@ -48,7 +48,7 @@ I **Spans å følge med på** angir du **Span-status** og **Span-navnet innehold
 
 ### Snevre dem inn (valgfritt)
 
-Åpne **Flere felt** for å filtrere etter telemetritjeneste, infrastrukturentitet eller attributt.
+Åpne **Flere felt** for å filtrere etter telemetritjeneste, infrastrukturentitet eller attributt, eller for å telle bare spans som tok minst en gitt tid.
 
 ### Si når det skal varsles
 
@@ -76,6 +76,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Filtrer etter tjeneste** (under **Flere felt**) | Spans fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Spans fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Filtrer etter attributter** (under **Flere felt**) | Spans der attributtene oppfyller alle vilkår. Hvert vilkår har sin egen operator, som «er lik» eller «inneholder». | Tom: ingen vilkår |
+| **Tar minst (ms)** (under **Flere felt**) | Spans som tok så lang tid eller lenger, i millisekunder, for eksempel 5000 for en kaldstart på fem sekunder. | Tom: hvilken som helst varighet |
 
 Alle filtrene du angir, må samsvare for at et span skal telles.
 

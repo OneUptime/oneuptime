@@ -33,7 +33,7 @@ flowchart TB
 
 ## 有何不同
 
-- **你的遙測也是資料儲存區。** 每個服務的日誌、追蹤、例外、工作階段重播和 AI 對話，都會像儲存貯體一樣每小時檢查一次。日誌行中的電子郵件地址就是一項發現，而 **清除** 會從那時起在擷取時將它遮罩。請參閱 [遙測中的敏感資料](/docs/data-security/telemetry)。
+- **你的遙測也是資料儲存區。** 每個服務的日誌、追蹤、指標、例外、工作階段重播和 AI 對話，都會像儲存貯體一樣每小時檢查一次。日誌行中的電子郵件地址就是一項發現，而 **清除** 會從那時起在擷取時將它遮罩。請參閱 [遙測中的敏感資料](/docs/data-security/telemetry)。
 - **資料流來自真實流量。** 服務地圖會說明哪個服務使用哪個資料庫，AI 呼叫會指明它們連到的供應商，正式環境資料的複本則是透過比對指紋找到的。請參閱 [資料流、存取與資料落地](/docs/data-security/flows-access-residency)。
 - **從兩端讀取存取權。** 資料安全會讀取每個資料儲存區自身的設定允許誰進入，在 AWS 上還會讀取每個角色和每個使用者透過其 IAM 政策可以存取什麼，以及各自上次使用的時間。**存取** 會依可能造成的損害為每個身分排序，90 天未使用卻仍能存取敏感資料的權限會成為一個問題。請參閱 [誰可以存取資料儲存區](/docs/data-security/flows-access-residency#誰可以存取資料儲存區)。
 - **證據一律經過遮罩。** 一項發現只保留計數和最多三個遮罩樣本，例如 `j***@e******.com`，這些樣本在離開掃描器之前就已在掃描器內部完成遮罩。關閉樣本後，它只保留計數。
@@ -70,7 +70,7 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話 | 日誌、追蹤、例外、工作階段重播、AI 對話 |
+| OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 |
 
 每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。
 

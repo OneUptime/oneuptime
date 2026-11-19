@@ -392,6 +392,41 @@ import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/DataSecurity/DataSecurityJobs";
 import "./Jobs/DataObservability/DataObservabilityJobs";
+/*
+ * The new owners of Data Observability's tables and pipelines, and of the
+ * data stores it shares with Data Security, told (#9681).
+ */
+import "./Jobs/DataAssetOwners/SendOwnerAddedNotification";
+import "./Jobs/DataPipelineOwners/SendOwnerAddedNotification";
+import "./Jobs/DataStoreOwners/SendOwnerAddedNotification";
+/*
+ * The new owners of services, apps and infrastructure, of dashboards,
+ * workflows and runbooks, and of on-call policies, schedules and incoming
+ * call policies, told (#9700; Utils/ResourceOwnersAdded).
+ */
+import "./Jobs/ServiceOwners/SendOwnerAddedNotification";
+import "./Jobs/DatabaseServerOwners/SendOwnerAddedNotification";
+import "./Jobs/MessageQueueOwners/SendOwnerAddedNotification";
+import "./Jobs/RumApplicationOwners/SendOwnerAddedNotification";
+import "./Jobs/HostOwners/SendOwnerAddedNotification";
+import "./Jobs/KubernetesClusterOwners/SendOwnerAddedNotification";
+import "./Jobs/DockerHostOwners/SendOwnerAddedNotification";
+import "./Jobs/DockerSwarmClusterOwners/SendOwnerAddedNotification";
+import "./Jobs/PodmanHostOwners/SendOwnerAddedNotification";
+import "./Jobs/ProxmoxClusterOwners/SendOwnerAddedNotification";
+import "./Jobs/OpenStackCloudOwners/SendOwnerAddedNotification";
+import "./Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
+import "./Jobs/CephClusterOwners/SendOwnerAddedNotification";
+import "./Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "./Jobs/IoTFleetOwners/SendOwnerAddedNotification";
+import "./Jobs/CloudResourceOwners/SendOwnerAddedNotification";
+import "./Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
+import "./Jobs/DashboardOwners/SendOwnerAddedNotification";
+import "./Jobs/WorkflowOwners/SendOwnerAddedNotification";
+import "./Jobs/RunbookOwners/SendOwnerAddedNotification";
+import "./Jobs/OnCallDutyPolicyOwners/SendOwnerAddedNotification";
+import "./Jobs/OnCallDutyPolicyScheduleOwners/SendOwnerAddedNotification";
+import "./Jobs/IncomingCallPolicyOwners/SendOwnerAddedNotification";
 // Network controller connections (Meraki): traffic read on a schedule.
 import "./Jobs/Network/ReadNetworkControllerConnections";
 // ...and their devices added as network devices, when someone asks.

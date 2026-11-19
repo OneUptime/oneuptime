@@ -193,10 +193,19 @@ export interface KubernetesPartRow extends KubernetesHealthRow {
 export interface KubernetesPart {
   // Null when the cluster's inventory holds no such object.
   part: KubernetesPartRow | null;
-  // Its pods, the most recently seen first.
+  /*
+   * Its pods, the most recently seen first. A namespace's: the ones in it
+   * that need attention, the worst first.
+   */
   pods: Array<KubernetesPartRow>;
   // A CronJob's Jobs; empty for any other kind.
   jobs: Array<KubernetesPartRow>;
+  /*
+   * A namespace's other objects that need attention, with the workloads in
+   * it a pod's finding folds into (as the cluster's Needs attention reads
+   * them); empty for any other kind.
+   */
+  objects: Array<KubernetesPartRow>;
   // It runs more pods than one read takes.
   isPodsTruncated: boolean;
 }
@@ -994,8 +1003,62 @@ export class Service extends DatabaseService<Model> {
 
     const part: KubernetesPartRow | null = parts[0] || null;
 
+    /*
+     * A namespace's page counts what in it needs attention and lists it
+     * (#9595): its flagged pods, worst first, and its other flagged objects
+     * with the workloads a pod folds into - read only when a pod needs them
+     * - through the same partial index the cluster's Needs attention reads.
+     */
+    if (part && data.kind === "Namespace") {
+      const namespaceName: string = part.name || data.name;
+      const flaggedPods: Array<KubernetesPartRow> = await manager.query(
+        `SELECT ${columns}
+         FROM "KubernetesResource"
+         WHERE ${live}
+           AND "namespaceKey" = $3
+           AND "kind" = 'Pod'
+           AND "healthSeverity" IS NOT NULL
+         ORDER BY
+           CASE "healthSeverity" WHEN 'critical' THEN 0 ELSE 1 END,
+           "lastSeenAt" DESC
+         LIMIT ${PART_POD_LIMIT + 1}`,
+        [...scope, namespaceName],
+      );
+      const objects: Array<KubernetesPartRow> = await manager.query(
+        `SELECT ${columns}
+         FROM "KubernetesResource"
+         WHERE ${live}
+           AND "namespaceKey" = $3
+           AND "kind" <> 'Pod'
+           AND (
+             "healthSeverity" IS NOT NULL
+             ${flaggedPods.length > 0 ? `OR "kind" = ANY($4)` : ""}
+           )
+         ORDER BY
+           CASE "healthSeverity" WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
+           "lastSeenAt" DESC
+         LIMIT ${PART_CANDIDATE_LIMIT}`,
+        flaggedPods.length > 0
+          ? [...scope, namespaceName, NEEDS_ATTENTION_WORKLOAD_KINDS]
+          : [...scope, namespaceName],
+      );
+      return {
+        part: part,
+        pods: flaggedPods.slice(0, PART_POD_LIMIT),
+        jobs: [],
+        objects: objects,
+        isPodsTruncated: flaggedPods.length > PART_POD_LIMIT,
+      };
+    }
+
     if (!part || !KINDS_WITH_PODS.has(data.kind)) {
-      return { part: part, pods: [], jobs: [], isPodsTruncated: false };
+      return {
+        part: part,
+        pods: [],
+        jobs: [],
+        objects: [],
+        isPodsTruncated: false,
+      };
     }
 
     const namespace: string = part.namespaceKey || "";
@@ -1119,6 +1182,7 @@ export class Service extends DatabaseService<Model> {
       part: part,
       pods: pods.slice(0, PART_POD_LIMIT),
       jobs: jobs,
+      objects: [],
       isPodsTruncated: pods.length > PART_POD_LIMIT,
     };
   }

@@ -61,7 +61,9 @@ import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionC
 import {
   ResourceAttentionItem,
   ResourceHealth,
+  getResourceAttentionTone,
 } from "../../../Components/ResourcePart/ResourceAttention";
+import { ComponentProps as ResourceAttentionPillProps } from "../../../Components/ResourcePart/ResourceAttentionPill";
 import {
   StorageArrayPartRoutes,
   getStorageArrayPartRoutes,
@@ -71,6 +73,7 @@ import {
   STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS,
   StorageArrayPartRow,
   getStorageArrayAttentionItems,
+  getStorageArrayHardwareItems,
   getStorageArrayHealth,
 } from "../Utils/StorageArrayHealth";
 import {
@@ -89,6 +92,7 @@ import {
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
 import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import ResourceHealthPill, {
+  RESOURCE_HEALTH_HINT,
   ResourceHealthDialogWords,
 } from "../../../Components/ResourcePart/ResourceHealthPill";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -105,13 +109,66 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 // What a Degraded or Unhealthy array's pill opens (ResourceHealthPill).
 export const STORAGE_ARRAY_HEALTH_WORDS: ResourceHealthDialogWords = {
   degradedTitle: translationKey("Why this storage array is Degraded"),
   unhealthyTitle: translationKey("Why this storage array is Unhealthy"),
 };
+
+/*
+ * What the Unhealthy Hardware tile opens (#9594): each component the array
+ * says is failed or degraded, and why.
+ */
+export const STORAGE_ARRAY_HARDWARE_HINT: string = translationKey(
+  "Show which components and why",
+);
+export const STORAGE_ARRAY_HARDWARE_TITLE: PluralTemplate = {
+  one: "{{count}} unhealthy hardware component",
+  other: "{{count}} unhealthy hardware components",
+};
+export const STORAGE_ARRAY_NO_UNHEALTHY_HARDWARE: string = translationKey(
+  "Every hardware component is healthy now.",
+);
+
+/*
+ * The Unhealthy Hardware tile's pill, or none while the array reports no
+ * part to list: red while one has failed, amber while they are degraded.
+ */
+export function getStorageArrayHardwarePill(data: {
+  items: Array<ResourceAttentionItem>;
+  translator: Translator;
+}): ResourceAttentionPillProps | undefined {
+  const items: Array<ResourceAttentionItem> = getStorageArrayHardwareItems(
+    data.items,
+  );
+  if (items.length === 0) {
+    return undefined;
+  }
+  return {
+    testId: "storage-array-tile-unhealthy-hardware",
+    label:
+      data.translator.translateText(RESOURCE_HEALTH_HINT) ||
+      RESOURCE_HEALTH_HINT,
+    tone: getResourceAttentionTone(items),
+    hint: STORAGE_ARRAY_HARDWARE_HINT,
+    dialog: {
+      title: data.translator.translatePlural(
+        STORAGE_ARRAY_HARDWARE_TITLE,
+        items.length,
+      ),
+      description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.unhealthyHardware,
+      items: items,
+      emptyMessage: STORAGE_ARRAY_NO_UNHEALTHY_HARDWARE,
+      showKind: true,
+    },
+  };
+}
 
 /*
  * Storage array overview hero — the Ceph View/Index.tsx analog. Health,
@@ -1360,6 +1417,18 @@ const StorageArrayOverview: FunctionComponent<
                   hardwareTotal,
                 )
               : translator.translateText("hardware components")
+          }
+          /*
+           * Which components and why, while the array reports: a
+           * disconnected array's last picture is no longer the truth.
+           */
+          attention={
+            isArrayConnected && !isAttentionLoading && !attentionError
+              ? getStorageArrayHardwarePill({
+                  items: attentionItems,
+                  translator: translator,
+                })
+              : undefined
           }
         />
         {isFlashBlade ? (

@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns and a store's free space, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space and a mobile app's screen, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -131,6 +131,7 @@ describe("the keys that name their meaning", () => {
         "Open (pull request)",
         "Open (status)",
         "Push (push notification)",
+        "Screen (app screen)",
         "Table (database object)",
         "Test (dbt test)",
         "Test (environment)",
@@ -147,6 +148,9 @@ describe("the keys that name their meaning", () => {
       "Insights",
     );
     expect(getWordOfMeaningKey("Insights")).toBeUndefined();
+    // #9588: a mobile app's screen, apart from a device's display.
+    expect(getWordOfMeaningKey("Screen (app screen)")).toBe("Screen");
+    expect(getWordOfMeaningKey("Screen")).toBeUndefined();
     // #9539: a store's room left, apart from a plan's price.
     expect(getWordOfMeaningKey("Free (storage space)")).toBe("Free");
     expect(getWordOfMeaningKey("Free")).toBeUndefined();

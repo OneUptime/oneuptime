@@ -1,0 +1,30 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Pipeline: " pipelineName) }}
+
+{{> InfoBlock info="You have been added as an owner of this pipeline."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Pipeline:" plainText=pipelineName }}
+{{> DetailBoxField title="Namespace:" plainText=pipelineNamespace }}
+{{> DetailBoxField title="Description:" text=pipelineDescription }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this pipeline by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=pipelineViewLink buttonText="View on Dashboard"}}
+
+{{> LinkBlock linkUrl=pipelineViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> InfoBlock info="Alerts on this pipeline, such as a failed or late run, now come to you."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

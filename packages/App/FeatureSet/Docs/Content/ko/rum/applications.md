@@ -163,19 +163,21 @@ const resource = defaultResource().merge(
 
 ## RUM 데이터 경고
 
-RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별도의 RUM 모니터는 없습니다. 일반 모니터가 그대로 작동합니다. 가장 빠르게 시작하는 방법은 애플리케이션의 **권장 사항** 페이지로, 이미 애플리케이션 범위로 지정된 모니터를 제안합니다.
+RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별도의 RUM 모니터는 없습니다. 일반 모니터가 그대로 작동합니다. 가장 빠르게 시작하는 방법은 애플리케이션의 **권장 사항** 페이지로, 이미 애플리케이션 범위로 지정된 모니터 중 웹 앱이나 모바일 앱에 맞는 모니터를 제안합니다.
 
 | 그룹 | 권장 사항 |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint, Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals)를 참고하세요. |
-| 오류 | Failed User Operations와 Unhandled Browser Exceptions. |
+| Core Web Vitals | 웹 앱용: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint, Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals)를 참고하세요. |
+| 오류 | 모바일 앱에는 App Crashes와 App Not Responding (ANR), 두 앱 모두에는 Failed User Operations, 웹 앱에는 Unhandled Browser Exceptions. |
+| 성능 | 모바일 앱용: 콜드 스타트가 5초 이상 걸릴 때(Android vitals가 과도하다고 보는 기준) 알리는 Slow Cold Start, 프레임을 그리는 데 700 ms보다 오래 걸릴 때 알리는 Frozen Frames. |
+| 가용성 | 모바일 앱용: 앱이 30분 동안 스팬을 보내지 않을 때 알리는 App Stopped Reporting. |
 | 세션 리플레이 | 네 가지 [스토리지 예산 경고](/docs/telemetry/session-replay#스토리지-예산-경고)으로, 프로젝트의 일일 한도나 애플리케이션의 월간 예산이 소진되기 전에 경고합니다. 애플리케이션이 리플레이를 녹화하면 제안되고, 월간 쌍은 월간 예산도 있을 때 제안됩니다. |
 
 직접 모니터를 만들려면 해당 신호를 읽는 모니터를 고르세요.
 
 - [메트릭 모니터](/docs/monitor/metrics-monitor): Core Web Vitals 지표나 앱이 보내는 모든 메트릭.
-- [트레이스 모니터](/docs/monitor/traces-monitor): 클라이언트 측 오류율이나 지연 시간.
-- [로그 모니터](/docs/monitor/logs-monitor): 브라우저 로그의 패턴.
+- [트레이스 모니터](/docs/monitor/traces-monitor): 클라이언트 측 오류율이나 지연 시간, 또는 설정한 시간보다 느린 앱 시작.
+- [로그 모니터](/docs/monitor/logs-monitor): 브라우저 로그의 패턴, 또는 모바일 앱의 `app.crash`, `device.anr`, `app.jank` 이벤트.
 - [예외 모니터](/docs/monitor/exceptions-monitor): 새롭거나 급증하는 클라이언트 측 예외.
 
 비슷한 시그니처를 가진 백엔드 서비스가 모니터를 트리거하지 않도록, 만든 모니터의 범위를 애플리케이션으로 지정하세요.

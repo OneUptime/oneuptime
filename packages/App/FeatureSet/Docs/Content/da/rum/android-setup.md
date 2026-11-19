@@ -107,6 +107,8 @@ OpenTelemetry Android registrerer alt dette af sig selv. De enhedsattributter, d
 
 Nedbrud og ANR'er når **Undtagelser** som ikke-håndterede, grupperet efter deres stack traces, med den session, de skete i. Agenten gemmer et nedbrud på disk, mens appen dør, og sender det derfra, så et nedbrud, der sker offline, stadig kommer frem, når appen kører igen med netværk.
 
+Applikationens side **Oversigt** læser dem for dig: **Sessioner**, **Sessioner uden nedbrud**, **Nedbrud**, **ANR'er**, **Appstarter**, **Koldstart (p95)** og **Frosne frames**, og hvert felt åbner de undtagelser, spans eller hændelser, det tæller. Indtil appen sender appstarter eller frames, fortæller de tilhørende diagrammer, hvordan du slår dem til. Siden **Anbefalinger** tilbyder monitorer for nedbrud, ANR'er, langsomme koldstarter, frosne frames og en app, der holder op med at rapportere.
+
 En session slutter efter 15 minutter i baggrunden eller efter 4 timer. En app, der aldrig går i baggrunden, som en kiosk, beholder én session i 4 timer, så spor hver kundes besøg som sit eget span, som [Spor dine egne arbejdsgange](#spor-dine-egne-arbejdsgange) viser.
 
 Din apps egne `android.util.Log`-kald bliver også til logs, når du tilføjer `android-log-library` og `android-log-agent` ved siden af OkHttp-modulerne nedenfor: Hvert kalds tag havner i `android.log.tag`, og et kald med en throwable er en undtagelse i **Undtagelser**. OpenTelemetry Android læser ikke Logcat.

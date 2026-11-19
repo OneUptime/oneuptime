@@ -428,6 +428,18 @@ Når undersøgelsen finder årsagen i koden, siger trinnet, hvad der kom ud af d
 
 Hændelsens eller advarslens tidslinje fører en fortegnelse over hver ændring. Når en godkendt plan har kørt, viser dens post hver kommando i den rækkefølge, den kørte i, med hvor den kørte, og hvordan den endte, og en rollbacks post viser hver kommando, der ruller en ændring tilbage, på samme måde, med den kommando, den rullede tilbage. Listen ligger under postens **Vis detaljer**, kun på tidslinjen: hændelsens eller advarslens Slack- og Microsoft Teams-kanaler får højst postens ene linje, aldrig listen.
 
+### Hvorfor OneUptime AI ikke fandt nogen rettelse eller stoppede
+
+En rettelse, der slutter uden en, siger hvorfor under sit plantrin. **Fandt ingen sikker rettelse** (**Fandt ingen runbook, der passer** for en runbook) åbner med grunden, med OneUptime AI's egne ord, og hele svaret ligger under **Vis hele begrundelsen**. Under grunden kommer **Rettelser, den udelukkede**, hver med hvorfor ikke og de kommandoer, den ville have kørt, og **Hvad den tjekkede**: hver kommando, den kørte på clusteren eller ressourcen, og hvert værktøj fra projektets MCP-servere, den læste med, med hvorfor, hvornår og hvordan det gik, og hvor mange gange den derudover forespurgte projektets telemetri. Til sidst siger trinnet, at ingen rettelse blev kørt, og at ingen blev bedt om at godkende en: OneUptime AI beder kun om godkendelse, når den foreslår en rettelse.
+
+En rettelse, hvis AI-kørsel fejlede, holdt op med at svare eller udløb i køen, siger aldrig, at den intet fandt: Dens plantrin viser **Stoppede, før den fandt en rettelse** (**Stoppede, før den valgte en runbook** for en runbook), og trinnets status **Blev ikke færdig**. Åbnet siger det, hvorfor den stoppede, hvor mange gange OneUptime prøvede, og hvad du skal gøre, med et link til der, hvor det rettes, og udbyderens egen fejl under **Detaljer**, og derefter, hvad den tjekkede, og at ingen rettelse blev kørt. **Prøv igen** starter rettelsen igen med en ny kørsel for alle, der må redigere hændelsen eller advarslen. Det afvises med grunden:
+
+- når rettelsen foretog en ændring, før den stoppede, da en ny start kunne foretage den samme ændring to gange: Tjek, hvad den ændrede, og gør så rettelsen færdig selv;
+- mens rettelsen stadig arbejder, eller når den er færdig;
+- når hændelsen eller advarslen er løst;
+- når AI er slået fra, projektet ikke har nogen LLM-udbyder, dets AI-kreditter er brugt op, eller det har nået en daglig AI-grænse;
+- når en anden lige har trykket på det, eller du har trykket på Prøv igen 30 gange på 15 minutter.
+
 ### Før du godkender en rettelse
 
 Hver rettelse vises som de trin, den gik igennem, i den rækkefølge, de skete i, ét trin pr. linje: hvad OneUptime AI planlagde – hvor mange kommandoer den kører og hvor, eller hvor mange ændringer den foretager og via hvilke MCP-servere – og derefter, om den venter på din godkendelse, eller hvem der godkendte eller afviste den, hvordan den kørte, om hændelsen kom sig, og hvad der blev rullet tilbage. Hver linje siger, hvornår det skete, og hvorfor eller hvad der gik galt, og en rettelse siger med rødt, hvor mange af dens kommandoer eller ændringer der mislykkedes. Åbn et trin for at se mere: planen viser begrundelsen og hver kommando, kørslen hver kommandos output og exitkode, og rollbacken hver kommando, der ruller en ændring tilbage. **Gennemse og godkend** åbner planen for en rettelse, der venter på godkendelse, med **Godkend og kør** nedenunder, for godkendelse kører præcis det viste. En rettelse, der venter på godkendelse, viser under hver ændring, hvad du skal bruge for at beslutte:

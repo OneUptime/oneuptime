@@ -979,6 +979,60 @@ describe("ProductAnalytics", (): void => {
       expect(sent[1]!.batch.events).toEqual(sent[0]!.batch.events);
     });
 
+    /*
+     * The server moves a batch's times by receivedAt - sentAt. A batch sent
+     * again under the sentAt of its first try read the back-off as clock
+     * skew, and its events were filed when the retry arrived, not when they
+     * happened.
+     */
+    it("says when each try is sent, so a batch sent again files its events when they happened", async (): Promise<void> => {
+      answers.push("network-error", "network-error");
+
+      const tracker: ProductAnalytics = makeTracker();
+
+      tracker.start();
+      tracker.track("Paid");
+
+      const trackedAt: number = Date.now();
+
+      for (let step: number = 0; step < 8; step++) {
+        await jest.advanceTimersByTimeAsync(
+          PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
+        );
+      }
+
+      expect(sent.length).toBeGreaterThanOrEqual(3);
+
+      const first: ProductAnalyticsWireBatch = sent[0]!.batch;
+      const last: ProductAnalyticsWireBatch = sent[sent.length - 1]!.batch;
+
+      expect(last.batchId).toBe(first.batchId);
+      expect(last.sentAt).toBeGreaterThan(first.sentAt);
+
+      /* As the server reads the last try, on its arrival. */
+      const parsed: ProductAnalyticsBatchParseResult =
+        parseProductAnalyticsBatch(
+          JSON.parse(sent[sent.length - 1]!.init.body as string),
+          {
+            receivedAtUnixMs: last.sentAt,
+            allowedUserPropertyKeys: [],
+          },
+        );
+
+      expect(parsed.isValid).toBe(true);
+
+      if (!parsed.isValid) {
+        return;
+      }
+
+      const paid: { name: string; time: number } | undefined =
+        parsed.batch.events.find((event: { name: string }): boolean => {
+          return event.name === "Paid";
+        });
+
+      expect(paid?.time).toBe(trackedAt);
+    });
+
     it.each([429, 503])(
       "waits as long as a %d's Retry-After says before sending the same batch again",
       async (status: number): Promise<void> => {

@@ -9,6 +9,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
 import {
   ResourcePartAccent,
+  ResourcePartAttention,
   ResourcePartBadge,
   ResourcePartChip,
   ResourcePartStatus,
@@ -58,6 +59,11 @@ export interface ComponentProps {
   serviceExternalId?: string | undefined;
   nodeExternalId?: string | undefined;
   now: Date;
+  /*
+   * What its Needs attention card lists (getDockerSwarmPartAttention),
+   * which a Down, a short service or a Failed task opens.
+   */
+  attention?: ResourcePartAttention | undefined;
 }
 
 const STATUS_DESCRIPTIONS: Record<DockerSwarmPartKind, string> = {
@@ -301,6 +307,7 @@ const DockerSwarmPartHero: FunctionComponent<ComponentProps> = (
       location={location}
       lastReportAt={toDockerSwarmDate(row?.lastSeenAt)}
       chips={chips}
+      attention={props.attention}
     />
   );
 };

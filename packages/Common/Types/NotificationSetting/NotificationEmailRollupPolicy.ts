@@ -51,7 +51,7 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
   ]);
 
 /*
- * SHRINK-ONLY. These two carry ON_CALL in their member name and are still
+ * SHRINK-ONLY. These carry ON_CALL in their member name and are still
  * rollup-eligible, which is the one place in this feature where the obvious
  * reading of "never delay on-call mail" is deliberately not followed. The
  * reasoning, in full, because anyone auditing this file will stop here:
@@ -75,11 +75,20 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
  * Common/Tests/Types/NotificationSetting/NotificationEmailRollupPolicy.test.ts,
  * which pins its exact membership. That is on purpose: the next member someone
  * is tempted to add here is far more likely to be a page than these two are.
+ *
+ * Two were added that way (#9700), and they are no pages either: being made
+ * an OWNER of an on-call policy or of an on-call schedule. They carry ON_CALL
+ * because of what they are about, not because anyone is paged: no deadline,
+ * nothing to acknowledge, and the same fan-out - an owner rule adding a team
+ * to fifty policies is fifty emails per member. Being made the owner of an
+ * incoming call policy is the same notice, without ON_CALL in its name.
  */
 export const ROLLUP_ELIGIBLE_ON_CALL_ADMIN_EVENT_TYPES: ReadonlySet<NotificationSettingEventType> =
   new Set<NotificationSettingEventType>([
     NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
     NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+    NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
   ]);
 
 /*

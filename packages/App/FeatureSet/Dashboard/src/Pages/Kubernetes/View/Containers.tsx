@@ -16,31 +16,13 @@ import API from "Common/UI/Utils/API/API";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { getKubernetesContainerRoute } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesContainerRowStatus } from "../Utils/KubernetesContainerFacts";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 const METRIC_STALE_MS: number = 15 * 60 * 1000;
-
-function deriveDisplayStatus(row: KubernetesContainerModel): string {
-  const reason: string = row.reason || "";
-  const state: string = row.state || "";
-  if (state === "running") {
-    return row.isReady ? "Running" : "NotReady";
-  }
-  if (state === "waiting") {
-    return reason || "Waiting";
-  }
-  if (state === "terminated") {
-    return reason || "Terminated";
-  }
-  if (state) {
-    return state.charAt(0).toUpperCase() + state.slice(1);
-  }
-  return "Unknown";
-}
 
 const KubernetesClusterContainers: FunctionComponent<
   PageComponentProps
@@ -117,7 +99,7 @@ const KubernetesClusterContainers: FunctionComponent<
               row.memoryLimitBytes !== undefined
                 ? Number(row.memoryLimitBytes)
                 : null,
-            status: deriveDisplayStatus(row),
+            status: getKubernetesContainerRowStatus(row),
             age: "",
             additionalAttributes: {
               "resource.k8s.pod.name": row.podName || "",
@@ -173,14 +155,16 @@ const KubernetesClusterContainers: FunctionComponent<
           isCount: true,
         },
       ]}
-      getViewRoute={(resource: KubernetesResource) => {
-        return RouteUtil.populateRouteParams(
-          RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL] as Route,
-          {
-            modelId: modelId,
-            subModelId: new ObjectID(resource.name),
-          },
-        );
+      getViewRoute={(resource: KubernetesResource): Route => {
+        /*
+         * Which pod's: a container is named within its pod, and its page
+         * reads that pod's status to say why it is not running.
+         */
+        return getKubernetesContainerRoute(modelId, {
+          name: resource.name,
+          pod: resource.additionalAttributes["resource.k8s.pod.name"],
+          namespace: resource.namespace,
+        });
       }}
     />
   );

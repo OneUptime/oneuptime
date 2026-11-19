@@ -48,6 +48,8 @@ import {
   VMwarePartRoutes,
   getVMwarePartRoutes,
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
 import {
   VMwareHostsTable,
   VMwareVirtualMachinesTable,
@@ -464,6 +466,21 @@ const VMwareVCenterClusterDetail: FunctionComponent<
   const clusterHosts: Array<VMwareResourceModel> = row
     ? getVMwareHostsOfCluster(hostRows, row)
     : hostRows;
+  /*
+   * What needs attention in the cluster, its hosts and the VMs on them,
+   * read once: the Overview's card lists it, the hero's status opens it.
+   */
+  const attention: ResourcePartAttention = getVMwarePartAttention({
+    kind: VMwareResourceKind.Cluster,
+    externalId: externalId,
+    row: row,
+    hosts: clusterHosts,
+    virtualMachines: attentionVmRows,
+    datacenters: datacenterRows,
+    now: now,
+    routeFor: routes.getPartRoute,
+    listRouteFor: routes.getListRoute,
+  });
   // The cluster's VMs as vCenter counts them, templates left out.
   const virtualMachineCount: number | undefined =
     vmRows !== null
@@ -499,6 +516,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
           hosts={clusterHosts}
           attentionVirtualMachines={attentionVmRows}
           datacenters={datacenterRows}
+          attention={attention}
           routes={routes}
           onShowHosts={showHosts}
           now={now}
@@ -592,6 +610,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
         datacenters={datacenterRows}
         hosts={clusterHosts}
         now={now}
+        attention={attention}
       />
       <Tabs
         label="Cluster"

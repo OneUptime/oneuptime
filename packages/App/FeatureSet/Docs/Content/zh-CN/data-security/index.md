@@ -33,7 +33,7 @@ flowchart TB
 
 ## 有何不同
 
-- **你的遥测也是数据存储。** 每个服务的日志、追踪、异常、会话回放和 AI 对话都会像存储桶一样每小时检查一次。日志行中的电子邮件地址就是一个发现，而 **清除** 会从此在摄取时对它脱敏。请参阅 [遥测中的敏感数据](/docs/data-security/telemetry)。
+- **你的遥测也是数据存储。** 每个服务的日志、追踪、指标、异常、会话回放和 AI 对话都会像存储桶一样每小时检查一次。日志行中的电子邮件地址就是一个发现，而 **清除** 会从此在摄取时对它脱敏。请参阅 [遥测中的敏感数据](/docs/data-security/telemetry)。
 - **数据流来自真实流量。** 服务地图说明哪个服务使用哪个数据库，AI 调用会写明它们访问的提供商，生产数据的副本则通过比较指纹找出。请参阅 [数据流、访问与数据驻留](/docs/data-security/flows-access-residency)。
 - **从两边读取访问权限。** 数据安全会读取每个数据存储自身的设置允许谁进入，在 AWS 上还会读取每个角色和每个用户通过其 IAM 策略可以访问什么，以及各自上次使用的时间。**访问** 按可能造成的危害对每个身份排序，90 天未使用却仍能访问敏感数据的权限会成为一个问题。请参阅 [谁可以访问数据存储](/docs/data-security/flows-access-residency#谁可以访问数据存储)。
 - **证据始终经过脱敏。** 一个发现只保留计数和最多三个脱敏样本，例如 `j***@e******.com`，这些样本在任何内容离开扫描器之前就已在扫描器内部完成脱敏。关闭样本后，它只保留计数。
@@ -70,7 +70,7 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 你运行的数据库 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | 日志、追踪、异常、会话回放、AI 对话 | 日志、追踪、异常、会话回放、AI 对话 |
+| OneUptime | 日志、追踪、异常、会话回放、AI 对话、指标 | 日志、追踪、异常、会话回放、AI 对话、指标 |
 
 每个数据存储都会接受适用于其类型的检查。无法对内容抽样的数据存储仍会被检查：公开的存储桶或未加密的数据库，无论其中保存着什么，都是隐患。
 

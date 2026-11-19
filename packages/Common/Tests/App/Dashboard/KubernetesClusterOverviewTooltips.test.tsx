@@ -981,6 +981,78 @@ describe("the cluster overview page", () => {
     expect(screen.queryByText("1 node: Disk Pressure")).not.toBeInTheDocument();
   });
 
+  /*
+   * The Pod Health bar's "Failed (1)" and "Can't run (2)" were words and
+   * numbers nobody could press (#9595): each count of something wrong opens
+   * the pods the hero's chip for it opens.
+   */
+  test("the Pod Health bar's counts of something wrong open those pods; Running and Succeeded are only words", async () => {
+    await renderOverview();
+
+    const legend: Array<HTMLElement> = screen.getAllByTestId(
+      "stacked-progress-bar-legend-button",
+    );
+    expect(
+      legend.map((button: HTMLElement): string => {
+        return button.textContent || "";
+      }),
+    ).toEqual([
+      "Can't run (2) Show which pods and why",
+      "Pending (2) Show which pods and why",
+      "Failed (1) Show which pods and why",
+    ]);
+
+    await act(async () => {
+      fireEvent.click(legend[0]!);
+    });
+    let dialog: HTMLElement = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("2 pods with a container that can't run");
+    // Every pod that cannot run, whatever its word.
+    expect(mockProblemReads[0]?.["query"]).toMatchObject({
+      kind: "Pod",
+      healthSeverity: "critical",
+    });
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("close-button"));
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await act(async () => {
+      fireEvent.click(legend[2]!);
+    });
+    dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("1 failed pod");
+    expect(mockProblemReads[1]?.["query"]).toMatchObject({
+      kind: "Pod",
+      phase: "Failed",
+    });
+  });
+
+  test("the Nodes card's not ready opens those nodes, and the card itself still opens every node", async () => {
+    await renderOverview();
+
+    const notReady: HTMLElement = screen.getByTestId(
+      "kubernetes-nodes-card-not-ready",
+    );
+    expect(notReady.tagName).toBe("BUTTON");
+    expect(notReady).toHaveTextContent("1 not ready");
+    expect(notReady).toHaveAttribute("data-tone", "danger");
+    // Beside the card's own button, never inside it.
+    expect(notReady.closest("a")).toBeNull();
+    expect(notReady.parentElement?.closest("button")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(notReady);
+    });
+    expect(screen.getByRole("dialog")).toHaveTextContent("1 node not ready");
+    expect(mockProblemReads[0]?.["query"]).toMatchObject({
+      kind: "Node",
+      isReady: false,
+    });
+    // Opening the dialog went nowhere.
+    expect(mockNavigations).toEqual([]);
+  });
+
   test("one node not ready reads as one, many as many: never '1 Nodes Not Ready'", async () => {
     await renderOverview();
 

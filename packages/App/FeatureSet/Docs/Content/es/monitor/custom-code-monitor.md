@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 Un valor de secreto que contiene un carácter de comillas rompe la cadena que lo rodea. Una referencia que el monitor no puede usar queda en el script tal como está escrita. Para crear un secreto y elegir qué monitores pueden usarlo, consulte [Secretos del monitor](/docs/monitor/monitor-secrets).
 
+Un secreto de código de un solo uso guarda la clave de configuración de dos factores de un sitio en lugar de un valor. Su `{{monitorSecrets.NAME}}` es el código válido en el momento en que empieza el script, y `await oneuptime.getTotpCode("NAME")` genera un código nuevo cuando el script lo pide. Consulte [Iniciar sesión con un código de un solo uso](/docs/monitor/monitor-secrets#iniciar-sesión-con-un-código-de-un-solo-uso).
+
 ## Métricas personalizadas
 
 Puede capturar métricas personalizadas desde su script con la función `oneuptime.captureMetric()`. Estas métricas se guardan en OneUptime y se pueden graficar en paneles con el explorador de métricas.
@@ -226,6 +228,7 @@ Añada un filtro por cada campo que quiera comprobar; cada uno puede tener su pr
 | `http`, `https` | Solo su clase `Agent`, para pasarla a `axios`; por ejemplo, `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. No hay `request` ni `get`. |
 | `console.log` | Registra datos para depurar. Solo existe `console.log`; `console.error` y los demás no existen. |
 | `oneuptime.captureMetric` | Captura una métrica personalizada. Consulte [Métricas personalizadas](#métricas-personalizadas). |
+| `oneuptime.getTotpCode` | Genera el código actual de un secreto de código de un solo uso: `await oneuptime.getTotpCode("NAME")`. Consulte [Usar secretos de monitor](#usar-secretos-de-monitor). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Esperar dentro del script. Una espera nunca supera el tiempo límite del script. |
 
 ## Aspectos a tener en cuenta

@@ -72,11 +72,25 @@ export class FakeNativeViewTree implements NativeViewTreeAdapter {
     };
   }
 
+  /* Targets inside a masked or opaque view, which the replay never records. */
+  public privateTargets: Set<number> = new Set<number>();
+  /* Each target's testID and those around it, out to the replay root. */
+  public testIds: Map<number, Array<string>> = new Map<number, Array<string>>();
+  public testIdLookups: number = 0;
+
   public async isTouchTargetPrivate(
-    _targetTag: number,
+    targetTag: number,
     _replayRootTag: number,
   ): Promise<boolean> {
-    return false;
+    return this.privateTargets.has(targetTag);
+  }
+
+  public async touchTargetTestIds(
+    targetTag: number,
+    _replayRootTag: number,
+  ): Promise<Array<string>> {
+    this.testIdLookups += 1;
+    return this.testIds.get(targetTag) ?? [];
   }
 }
 

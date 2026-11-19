@@ -776,6 +776,40 @@ describe("an OSD's page", () => {
     expect(screen.queryByTestId("ceph-osd-tiles")).toBeNull();
   });
 
+  /*
+   * "Down" in red beside the OSD's name said nothing of why it matters -
+   * still in the cluster, its data unreachable: that was Needs attention,
+   * under the tabs (#9594). Pressed, the status opens the same list.
+   */
+  test("its Down opens why: This OSD, still in the cluster, with no View", async () => {
+    await openOsd("osd.3");
+
+    const status: HTMLElement = screen.getByTestId("ceph-osd-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveAttribute("aria-haspopup", "dialog");
+    fireEvent.click(status);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "ceph-osd-hero-status-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["Osd:osd.3"]);
+    expect(rows[0]!).toHaveAttribute("data-current", "true");
+    expect(
+      within(rows[0]!).getByTestId("ceph-osd-hero-status-dialog-name"),
+    ).toHaveTextContent("This OSD");
+    expect(rows[0]!).toHaveTextContent("Down, still in the cluster");
+    expect(
+      within(rows[0]!).queryByTestId("ceph-osd-hero-status-dialog-view"),
+    ).toBeNull();
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What about this OSD is broken or needs a look.",
+    );
+  });
+
   test("one past the full ratio: Up in red, its tiles at their lines, its chips and its details", async () => {
     await openOsd("osd.5");
 
@@ -956,6 +990,23 @@ describe("a pool's page", () => {
     expect(tiles).toHaveTextContent("300 GiB of 1000 GiB");
     expect(tiles).toHaveTextContent("128");
     expect(tiles).toHaveTextContent("12 not active + clean");
+  });
+
+  test("its amber Available opens why: This pool's degraded placement groups", async () => {
+    await openPool("1");
+
+    const status: HTMLElement = screen.getByTestId("ceph-pool-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const row: HTMLElement = screen.getByTestId(
+      "ceph-pool-hero-status-dialog-item",
+    );
+    expect(row).toHaveAttribute("data-key", "Pool:1");
+    expect(
+      within(row).getByTestId("ceph-pool-hero-status-dialog-name"),
+    ).toHaveTextContent("This pool");
+    expect(row).toHaveTextContent("12 placement groups degraded");
   });
 
   test("one past 95% of its writable space: Available in red", async () => {

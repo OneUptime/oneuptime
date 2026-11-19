@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
   ResourceAttentionText,
@@ -1411,6 +1412,117 @@ export function getVMwareHealth(
   items: Array<ResourceAttentionItem>,
 ): ResourceHealth {
   return getResourceAttentionHealth(items);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What the Overview's counts open
+ * ---------------------------------------------------------------------------
+ *
+ * "2/3 ESXi hosts connected" says one host is out of reach, never which or
+ * why (#9594). Beside it, a count of the hosts in each state that needs
+ * attention - not responding (vCenter cannot reach it), or reporting no
+ * usage (vCenter's counts cannot tell whether it is not responding, off or
+ * in standby) - opens exactly those hosts: why, by the same rules as Needs
+ * attention, their cluster and datacenter, each a step from its page. A
+ * host off or in standby is someone's choice, or DPM's: no count.
+ */
+export type VMwareHostProblemState =
+  | VMwareHostState.NotResponding
+  | VMwareHostState.NoUsage;
+
+// The states the hero counts, the most urgent first.
+export const VMWARE_HOST_PROBLEM_STATES: Array<VMwareHostProblemState> = [
+  VMwareHostState.NotResponding,
+  VMwareHostState.NoUsage,
+];
+
+const FACT_CLUSTER: string = translationKey("Cluster");
+const FACT_DATACENTER: string = translationKey("Datacenter");
+
+export function getVMwareHostProblemItems(data: {
+  // The inventory as the Overview read it: its hosts, clusters, datacenters.
+  rows: Array<VMwareResource>;
+  state: VMwareHostProblemState;
+  now: Date;
+  routeFor: VMwareRouteFor;
+}): Array<ResourceAttentionItem> {
+  const ofKind: (kind: VMwareResourceKind) => Array<VMwareResource> = (
+    kind: VMwareResourceKind,
+  ): Array<VMwareResource> => {
+    return data.rows.filter((row: VMwareResource): boolean => {
+      return row.kind === kind;
+    });
+  };
+  const datacenters: Array<VMwareResource> = ofKind(
+    VMwareResourceKind.Datacenter,
+  );
+  const clustersByName: Map<string, VMwareResource> = new Map();
+  for (const cluster of ofKind(VMwareResourceKind.Cluster)) {
+    if (cluster.name) {
+      clustersByName.set(cluster.name, cluster);
+    }
+  }
+
+  const items: Array<ResourceAttentionItem> = [];
+  for (const host of ofKind(VMwareResourceKind.Host)) {
+    const datacenter: VMwareResource | null = findVMwareDatacenter(
+      datacenters,
+      host.datacenterName,
+    );
+    const state: VMwareHostState = getVMwareHostState({
+      host: host,
+      datacenter: datacenter,
+      now: data.now,
+    });
+    if (state !== data.state) {
+      continue;
+    }
+    const assessment: VMwareAssessment = assessVMwareHost({
+      host: host,
+      datacenter: datacenter,
+      now: data.now,
+    });
+    const externalId: string = host.externalId || "";
+    const cluster: VMwareResource | undefined = host.clusterName
+      ? clustersByName.get(host.clusterName)
+      : undefined;
+
+    // Which one it is: where it sits, its cluster a step from its page.
+    const facts: Array<ResourceAttentionFact> = [];
+    if (host.clusterName) {
+      facts.push({
+        key: "cluster",
+        label: FACT_CLUSTER,
+        value: host.clusterName,
+        route: cluster?.externalId
+          ? data.routeFor(VMwareResourceKind.Cluster, cluster.externalId)
+          : undefined,
+      });
+    }
+    if (host.datacenterName) {
+      facts.push({
+        key: "datacenter",
+        label: FACT_DATACENTER,
+        value: host.datacenterName,
+      });
+    }
+
+    items.push({
+      key: getVMwareAttentionKey(VMwareResourceKind.Host, externalId),
+      kind: KIND_HOST,
+      icon: getVMwareKindIcon(VMwareResourceKind.Host),
+      name: getVMwareDisplayName(host),
+      severity: assessment.severity || ResourceAttentionSeverity.Warning,
+      reasons: assessment.reasons,
+      route: externalId
+        ? data.routeFor(VMwareResourceKind.Host, externalId)
+        : undefined,
+      facts: facts,
+    });
+  }
+
+  return sortResourceAttention(items, VMWARE_ATTENTION_KIND_ORDER);
 }
 
 // The worst of several findings' severities, none counting as nothing.

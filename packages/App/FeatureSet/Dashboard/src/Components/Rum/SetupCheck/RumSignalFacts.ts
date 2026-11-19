@@ -4,9 +4,12 @@ import {
   WebVitalDefinition,
   WebVitalDefinitions,
 } from "Common/Types/Rum/WebVitals";
+import {
+  RumClientKind,
+  getRumClientKind as getRumClientKindFromType,
+} from "Common/Types/Rum/RumClientKind";
 import isReplayOnlyInstrumented from "../../SessionReplay/RumInstrumentation";
 import { RumApplicationArrivalFacts } from "./RumSignalDiagnosis";
-import { RumClientKind } from "./RumSignalWords";
 
 /*
  * What a RUM application's own record says about what arrives from it
@@ -64,13 +67,12 @@ export function getRumApplicationArrivalFacts(
   };
 }
 
-// "browser" or "mobile", as ingest records it; browser until it is known.
+/*
+ * "browser" or "mobile", as ingest records it; browser until it is known
+ * (Common/Types/Rum/RumClientKind, which Recommendations read too).
+ */
 export function getRumClientKind(app: RumApplication): RumClientKind {
-  return String(app.clientType || "")
-    .trim()
-    .toLowerCase() === "mobile"
-    ? "mobile"
-    : "browser";
+  return getRumClientKindFromType(app.clientType);
 }
 
 // The application's own telemetry retention, when it has one.

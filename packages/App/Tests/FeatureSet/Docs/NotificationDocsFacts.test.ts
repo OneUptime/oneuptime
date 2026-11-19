@@ -2364,7 +2364,7 @@ describe("notification settings", () => {
       "and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned**",
     );
     expect(settings).toContain(
-      "| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |",
+      "| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |",
     );
   });
 
@@ -2392,12 +2392,52 @@ describe("notification settings", () => {
       tabSections("onCall").map((card: SettingsSection): string => {
         return card.title;
       }),
-    ).toEqual(["On-Call", "Incoming Call Policies"]);
+    ).toEqual([
+      "On-Call",
+      "On-Call Policies and Schedules",
+      "Incoming Call Policies",
+    ]);
     expect(settings).toContain(
       "such as **Incident Episodes** on the **Incidents** tab.",
     );
     expect(settings).toContain(
       "- **Missed call**, on the **Incoming Call Policies** card,",
+    );
+  });
+
+  /*
+   * #9700: one switch for being made an owner of any service or piece of
+   * infrastructure, on a card of its own; and the On-Call tab is about the
+   * on-call records the person owns too, not only about their shifts.
+   */
+  it("says what the one switch for services and infrastructure covers, and that the On-Call tab is about owned records too", () => {
+    const labels: Record<string, string> = eventLabels();
+
+    expect(
+      labels["SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION"],
+    ).toBe("Added as service or infrastructure owner");
+    expect(
+      tabSections("monitoring").find((card: SettingsSection): boolean => {
+        return card.title === "Services and Infrastructure";
+      })?.eventTypes,
+    ).toEqual(["SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION"]);
+    expect(settings).toContain(
+      "**Added as service or infrastructure owner**, on the **Services and Infrastructure** card, is one switch for every service, RUM application, database, queue, host, cluster, cloud resource and other piece of infrastructure you are made an owner of.",
+    );
+
+    expect(
+      tabSections("onCall").find((card: SettingsSection): boolean => {
+        return card.title === "On-Call Policies and Schedules";
+      })?.eventTypes,
+    ).toEqual([
+      "SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION",
+      "SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION",
+    ]);
+    expect(settings).toContain(
+      "The **On-Call** tab is about you, and about the on-call records you own:",
+    );
+    expect(settings).toContain(
+      `- **${labels["SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION"]}**, **${labels["SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION"]}** and **${labels["SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION"]}** tell you when you are made an owner of one,`,
     );
   });
 

@@ -1393,7 +1393,18 @@ describe("Ceph cluster overview: the count chips", () => {
     ).toBeInTheDocument();
     expect(within(chipRow()).getByText("3 pools")).toBeInTheDocument();
     expect(within(chipRow()).getByText("18.2.4")).toBeInTheDocument();
-    expect(within(chipRow()).getAllByRole("button")).toHaveLength(1);
+    /*
+     * One (i) for the counts, and beside "3/4 OSDs up" the pill that opens
+     * the OSD that is down and why (#9594): the only two buttons.
+     */
+    const buttons: Array<HTMLElement> =
+      within(chipRow()).getAllByRole("button");
+    expect(
+      buttons.map((button: HTMLElement): string | null => {
+        return button.getAttribute("data-testid");
+      }),
+    ).toEqual(["ceph-hero-osds-down", null]);
+    expect(buttons[0]!).toHaveTextContent("1 down");
     await expectExplained("Cluster inventory counts", "inventoryCounts");
   });
 
@@ -1691,10 +1702,14 @@ describe("Pool detail", () => {
     for (const title of ["Pool", "Pool ID", "Last report"]) {
       expectNoInfo(title);
     }
-    expect(screen.getByTestId("ceph-pool-hero-status")).toHaveAttribute(
-      "title",
-      CEPH_METRIC_DESCRIPTIONS.poolStatus,
-    );
+    /*
+     * Amber, its status opens why (#9594): what the word means is read
+     * after it, and a pointer is told what a press shows.
+     */
+    const status: HTMLElement = screen.getByTestId("ceph-pool-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveTextContent(CEPH_METRIC_DESCRIPTIONS.poolStatus);
+    expect(status).toHaveAttribute("title", "Show why");
   });
 
   test("Time to Full projects the 24-hour stored trend to Stored plus Max Available", async () => {

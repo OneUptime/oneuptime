@@ -16,7 +16,21 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
 import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
-import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import {
+  isRecordNameAsWritten,
+  recordNameInSentence,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
+import ResourceAttentionPill from "../../../Components/ResourcePart/ResourceAttentionPill";
+import { ResourceAttentionDialogRead } from "../../../Components/ResourcePart/ResourceAttentionDialog";
+import {
+  MONITOR_GROUP_STATUS_DESCRIPTION,
+  MONITOR_GROUP_STATUS_EMPTY,
+  MONITOR_GROUP_STATUS_HINT,
+  MONITOR_GROUP_STATUS_LOAD_FAILED,
+  MONITOR_GROUP_STATUS_TITLE,
+  loadMonitorGroupStatusReason,
+} from "../../../Components/MonitorGroup/MonitorGroupStatusReason";
 import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
@@ -197,6 +211,59 @@ const MonitorGroupView: FunctionComponent<
       return <MonitorGroupDisabledStatus />;
     }
 
+    /*
+     * Its monitors' worst status, when that is not operational, says which
+     * monitors and why (#9596): read when it is pressed.
+     */
+    if (
+      currentGroupStatus?.name &&
+      currentGroupStatus.isOperationalState === false
+    ) {
+      const isOffline: boolean = Boolean(
+        monitorStatuses.find((status: MonitorStatus): boolean => {
+          return status._id?.toString() === currentGroupStatus._id?.toString();
+        })?.isOfflineState,
+      );
+
+      return (
+        <ResourceAttentionPill
+          label={translateRecordName(
+            translator,
+            StateListType.MonitorStatus,
+            currentGroupStatus.name,
+          )}
+          tone={isOffline ? "danger" : "warning"}
+          testId="monitor-group-status-why"
+          hint={MONITOR_GROUP_STATUS_HINT}
+          dialog={{
+            title: translator.translateTemplate(MONITOR_GROUP_STATUS_TITLE, {
+              status: recordNameInSentence(
+                StateListType.MonitorStatus,
+                currentGroupStatus.name,
+                { inSentence: true },
+              ),
+            }),
+            description: MONITOR_GROUP_STATUS_DESCRIPTION,
+            load: (): Promise<ResourceAttentionDialogRead> => {
+              return loadMonitorGroupStatusReason({
+                monitorGroupId: modelId,
+                translator: translator,
+                getMonitorRoute: (monitorId: string): Route => {
+                  return RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.MONITOR_VIEW] as Route,
+                    { modelId: new ObjectID(monitorId) },
+                  );
+                },
+              });
+            },
+            emptyMessage: MONITOR_GROUP_STATUS_EMPTY,
+            whatFailed: MONITOR_GROUP_STATUS_LOAD_FAILED,
+            showKind: false,
+          }}
+        />
+      );
+    }
+
     return (
       <Statusbubble
         text={currentGroupStatus?.name || "Operational"}
@@ -335,6 +402,8 @@ const MonitorGroupView: FunctionComponent<
             _id: true,
             priority: true,
             isOperationalState: true,
+            // How bad the group's status is, when it opens why.
+            isOfflineState: true,
             name: true,
             color: true,
           },

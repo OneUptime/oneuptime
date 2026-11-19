@@ -54,6 +54,7 @@ import MonitorStepViewModel, {
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AttributeFilterSentences from "./AttributeFilterSentences";
+import SignalMonitorSessionsLink from "./SignalMonitorSessionsLink";
 import { JSONObject } from "Common/Types/JSON";
 
 export interface ComponentProps {
@@ -493,6 +494,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
               fields={fields}
             />
           </div>
+          {/*
+           * A monitor on one of a RUM application's own signals (issue
+           * #6518) names the signal as it is called now, with its sessions.
+           */}
+          <SignalMonitorSessionsLink
+            monitorType={props.monitorType}
+            monitorStep={props.monitorStep}
+          />
         </div>
       )}
 

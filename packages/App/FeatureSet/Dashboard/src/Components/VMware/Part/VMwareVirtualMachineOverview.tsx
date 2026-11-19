@@ -3,16 +3,15 @@ import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
@@ -22,8 +21,6 @@ import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
   VMWARE_CPU_READY_WARNING_PERCENT,
   VMWARE_HOST_SATURATION_PERCENT,
-  getVMwareAttentionItems,
-  getVMwareAttentionKey,
   hasFreshVMwareReadings,
   isVMwareIssueAbout,
   isVMwareVirtualMachineDisconnected,
@@ -48,9 +45,6 @@ import { VMwarePartRoutes } from "./VMwarePartRoutes";
  * trouble, and its details. A template never runs: it shows its disk alone.
  */
 
-// How the VM's own row reads in its Needs attention card.
-const THIS_VM: string = translationKey("This VM");
-
 // A tile's bar turns amber where the VM's alerts and Needs attention do.
 const SATURATION_THRESHOLDS: { warn: number; danger: number } = {
   warn: VMWARE_HOST_SATURATION_PERCENT,
@@ -72,6 +66,12 @@ export interface ComponentProps {
    */
   hostRow?: VMwareResource | null | undefined;
   datacenters?: Array<VMwareResource> | undefined;
+  /*
+   * What needs attention on the VM (and, on a host vCenter cannot reach,
+   * that host): the page reads it once (getVMwarePartAttention) for this
+   * card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: VMwarePartRoutes;
   // The page of the ESXi host the VM runs on.
   hostRoute?: Route | undefined;
@@ -116,21 +116,6 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
     row.isPoweredOn === true &&
     hasFreshVMwareReadings(row, props.now) &&
     !isDisconnected;
-
-  /*
-   * A disconnected VM's trouble is its host's: Needs attention lists the
-   * host vCenter cannot reach, one step from its page.
-   */
-  const attentionItems: Array<ResourceAttentionItem> = getVMwareAttentionItems({
-    rows: isDisconnected ? [row, ...hosts] : [row],
-    contextRows: [
-      ...(isDisconnected ? [] : hosts),
-      ...(props.datacenters || []),
-    ],
-    now: props.now,
-    routeFor: props.routes.getPartRoute,
-    listRouteFor: props.routes.getListRoute,
-  });
 
   const cpuPercent: number | null = isRunning
     ? toVMwareNumber(row.latestCpuPercent)
@@ -266,15 +251,9 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="vmware-vm-overview">
       <NeedsAttentionCard
         testId="vmware-vm-attention"
-        items={attentionItems}
-        current={{
-          key: getVMwareAttentionKey(
-            VMwareResourceKind.VirtualMachine,
-            props.externalId,
-          ),
-          label: THIS_VM,
-        }}
-        description="What about this virtual machine is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
