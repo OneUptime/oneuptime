@@ -1,5 +1,7 @@
 import ProductKey from "../../../Types/Product/ProductKey";
 import { SWITCHABLE_PRODUCTS } from "../../../Types/Product/ServerProducts";
+import { SETUP_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AISetupActions";
+import { getToolProducts } from "../../../Server/Utils/AI/Toolbox/ToolProducts";
 import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
   PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
@@ -123,6 +125,17 @@ interface ProductRouteFile {
 
 // A refusal the file may hold whatever its product: a rule's table names it.
 const ANY_PRODUCT: ReadonlyArray<ProductKey> = SWITCHABLE_PRODUCTS;
+
+// The products of every setup action the API runs outside Ask AI's chat (#7241).
+const SETUP_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
+  new Set<ProductKey>(
+    SETUP_ACTIONS_RUN_OUTSIDE_CHAT.flatMap(
+      (action: string): ReadonlyArray<ProductKey> => {
+        return getToolProducts(action);
+      },
+    ),
+  ),
+);
 
 const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/StatusPageAPI.ts": {
@@ -259,6 +272,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/call/gather-input/:itemId`":
         PAGE_LINK,
       "`${new this.entityType().getCrudApiPath()?.toString()}/pass-on/:itemId`":
+        PAGE_LINK,
+      // The acknowledge page's button: a form, which posts the page's token (#10025).
+      "`${new this.entityType().getCrudApiPath()?.toString()}/acknowledge/:itemId`":
         PAGE_LINK,
     },
   },
@@ -660,6 +676,15 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         "Refused in its handler, once the caller is known to be a member (ServerProducts.assertProductIsOn).",
       '"/ai-chat/providers"': READ,
     },
+  },
+  /*
+   * Ask AI's setup actions, one call each, for the MCP server (#7241): the
+   * products of the action the body names, as Ask AI's tool names them
+   * (ProductsOfRequest.setupAction).
+   */
+  "packages/Common/Server/API/SetupActionAPI.ts": {
+    products: SETUP_ACTION_PRODUCTS,
+    leftAlone: {},
   },
   /*
    * OneUptime AI on an incident or an alert: the record's product
@@ -1488,6 +1513,7 @@ const productsOfRefusal: (
       "ProductsOfRequest.aiResource": Object.values(
         PRODUCT_OF_AI_RESOURCE_TYPE,
       ),
+      "ProductsOfRequest.setupAction": SETUP_ACTION_PRODUCTS,
     };
 
     return resolvers[refusal.argument] || handed[refusal.argument] || null;

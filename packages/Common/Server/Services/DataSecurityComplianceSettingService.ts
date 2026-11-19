@@ -9,6 +9,7 @@ import Model from "../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
@@ -30,6 +31,15 @@ import {
   isKubernetesNamespaceName,
   isKubernetesObjectName,
 } from "../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
+
+/*
+ * Who turned a setting off (#9629), under each name of the reference: the
+ * hooks below write it with RelationIdUtil.stamp, so it is the one stored.
+ */
+const TURNED_OFF_BY_KEYS: Array<string> = [
+  "turnedOffByUserId",
+  "turnedOffByUser",
+];
 
 /*
  * What a resource turned off of a compliance framework (#9555,
@@ -412,7 +422,11 @@ export class Service extends ProjectReferencesService<Model> {
     data.turnedOffAt = OneUptimeDate.getCurrentDate();
 
     if (onCreate.createBy.props.userId) {
-      data.turnedOffByUserId = onCreate.createBy.props.userId;
+      RelationIdUtil.stamp(
+        data as unknown as Record<string, unknown>,
+        TURNED_OFF_BY_KEYS,
+        onCreate.createBy.props.userId,
+      );
     }
   }
 
@@ -438,27 +452,18 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    const data: {
-      isEnabled?: unknown;
-      note?: unknown;
-      expiresAt?: unknown;
-      turnedOffAt?: Date | null;
-      turnedOffByUserId?: ObjectID | null;
-    } = updateBy.data as unknown as {
-      isEnabled?: unknown;
-      note?: unknown;
-      expiresAt?: unknown;
-      turnedOffAt?: Date | null;
-      turnedOffByUserId?: ObjectID | null;
-    };
-    const isEnabled: unknown = data.isEnabled;
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const isEnabled: unknown = data["isEnabled"];
     const writesExpiry: boolean =
-      data.expiresAt !== undefined && data.expiresAt !== null;
-    const clearsNote: boolean = data.note !== undefined && !data.note;
+      data["expiresAt"] !== undefined && data["expiresAt"] !== null;
+    const clearsNote: boolean = data["note"] !== undefined && !data["note"];
 
     if (isEnabled === true) {
-      data.turnedOffAt = null;
-      data.turnedOffByUserId = null;
+      data["turnedOffAt"] = null;
+      RelationIdUtil.stamp(data, TURNED_OFF_BY_KEYS, null);
     }
 
     if (isEnabled !== false && !writesExpiry && !clearsNote) {
@@ -491,7 +496,7 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
-      Service.assertExpiryToCome(data.expiresAt as Date);
+      Service.assertExpiryToCome(data["expiresAt"] as Date);
     }
 
     // An acceptance that stays accepted keeps its reason.
@@ -513,7 +518,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (
-      !data.note &&
+      !data["note"] &&
       current.some((row: Model): boolean => {
         return isAcceptance(row) && !Service.readNote(row.note);
       })
@@ -537,8 +542,12 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    data.turnedOffAt = now;
-    data.turnedOffByUserId = updateBy.props.userId || null;
+    data["turnedOffAt"] = now;
+    RelationIdUtil.stamp(
+      data,
+      TURNED_OFF_BY_KEYS,
+      updateBy.props.userId || null,
+    );
   }
 
   // Whether the record a setting names is the project's own.

@@ -12,8 +12,6 @@ import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   EXACT_SECURITY_CONNECTION_REASONS,
@@ -67,6 +65,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../TeamMember/PendingInviteeProfiles";
+import { isRefusedRead } from "./RefusedRead";
 
 /*
  * WHICH OF THE PROJECT'S OWN RECORDS A SECURITY CASE, EVENT OR ENTITY NAMES.
@@ -191,13 +190,12 @@ export function getLogResourceKind(
   );
 }
 
-// Whether a read was refused for who is asking (a role, a plan), not failed.
-export function isRefusedRead(error: unknown): boolean {
-  return (
-    error instanceof NotAuthorizedException ||
-    error instanceof PaymentRequiredException
-  );
-}
+/*
+ * Whether a read was refused for who is asking (a role, a plan), not
+ * failed: kept in RefusedRead, which a security case's context reads
+ * without loading the connections (ConnectionsLoadOrder).
+ */
+export { isRefusedRead };
 
 // The order a record's matches are listed in, within one certainty.
 const REASON_ORDER: ReadonlyArray<SecurityConnectionReason> = [

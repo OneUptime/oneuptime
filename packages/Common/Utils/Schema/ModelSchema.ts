@@ -1,5 +1,6 @@
 import z, { ZodSchema } from "./Zod";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import {
   getTableColumns,
   TableColumnMetadata,
@@ -681,10 +682,11 @@ export class ModelSchema extends BaseSchema {
         description: finalDescription,
         relation: relations[key],
         changesOnlyWith: column.changesOnlyWith,
+        serverOwned: column.serverOwned,
       });
 
       // Mark computed fields as readOnly in OpenAPI spec
-      if (column.computed) {
+      if (ModelSchema.isWrittenOnlyByOneUptime(column)) {
         zodType = zodType.openapi({ readOnly: true });
       }
 
@@ -717,12 +719,18 @@ export class ModelSchema extends BaseSchema {
    * (TableColumnMetadata.changesOnlyWith) names that column
    * (`x-oneuptime-changes-only-with`), so the Terraform provider refuses,
    * at plan time, a plan that changes it alone (#9814).
+   *
+   * A column OneUptime keeps once the record exists (TableColumnMetadata
+   * .serverOwned) says so, and how (`x-oneuptime-server-owned`: "always" or
+   * "after-create"), so the Terraform and Crossplane providers leave it to
+   * OneUptime (#9985).
    */
   private static annotateColumn(data: {
     zodType: ZodTypes.ZodTypeAny;
     description: string;
     relation?: ModelRelationReference | undefined;
     changesOnlyWith?: string | undefined;
+    serverOwned?: ServerOwned | undefined;
     disableOpenApiSchema?: boolean | undefined;
   }): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny = data.zodType;
@@ -751,7 +759,25 @@ export class ModelSchema extends BaseSchema {
       } as any);
     }
 
+    if (data.serverOwned) {
+      zodType = zodType.openapi({
+        "x-oneuptime-server-owned": data.serverOwned,
+      } as any);
+    }
+
     return zodType;
+  }
+
+  /*
+   * Whether only OneUptime writes the column, so no create or update
+   * schema offers it and every schema marks it read only: a computed column,
+   * which OneUptime fills in, and one OneUptime keeps from the record's
+   * creation on (ServerOwned.Always).
+   */
+  public static isWrittenOnlyByOneUptime(column: TableColumnMetadata): boolean {
+    return (
+      Boolean(column.computed) || column.serverOwned === ServerOwned.Always
+    );
   }
 
   /*
@@ -1622,9 +1648,12 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
-      // Skip computed fields for create and update operations
+      /*
+       * Skip computed fields for create and update operations, and the
+       * fields only OneUptime keeps (ServerOwned.Always).
+       */
       if (
-        column.computed &&
+        ModelSchema.isWrittenOnlyByOneUptime(column) &&
         (data.schemaType === "create" || data.schemaType === "update")
       ) {
         continue;
@@ -1735,6 +1764,7 @@ export class ModelSchema extends BaseSchema {
         description: finalDescription,
         relation: relations[key],
         changesOnlyWith: column.changesOnlyWith,
+        serverOwned: column.serverOwned,
         disableOpenApiSchema: data.disableOpenApiSchema || false,
       });
 
@@ -2103,7 +2133,7 @@ export class ModelSchema extends BaseSchema {
     }
 
     // Mark computed fields as readOnly in OpenAPI spec
-    if (column.computed && !disableOpenApiSchema) {
+    if (ModelSchema.isWrittenOnlyByOneUptime(column) && !disableOpenApiSchema) {
       zodType = zodType.openapi({ readOnly: true });
     }
 
@@ -2328,6 +2358,14 @@ export class ModelSchema extends BaseSchema {
 
       // Skip default value columns in create schema examples
       if (data.schemaType === "create" && column.isDefaultValueColumn) {
+        continue;
+      }
+
+      // A create or an update never writes what only OneUptime keeps.
+      if (
+        (data.schemaType === "create" || data.schemaType === "update") &&
+        ModelSchema.isWrittenOnlyByOneUptime(column)
+      ) {
         continue;
       }
 

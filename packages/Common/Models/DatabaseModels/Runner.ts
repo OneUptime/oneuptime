@@ -12,6 +12,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -353,6 +354,7 @@ export default class Runner extends BaseModel {
     title: "Runner Version",
     description:
       "Self-reported version of the Runner binary. Updated on each heartbeat.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -426,6 +428,7 @@ export default class Runner extends BaseModel {
     title: "Connection Status",
     description: "Connected if the agent has heartbeated recently.",
     canReadOnRelationQuery: true,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,

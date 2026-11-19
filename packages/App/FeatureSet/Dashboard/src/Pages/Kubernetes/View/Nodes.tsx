@@ -129,7 +129,7 @@ const KubernetesClusterNodes: FunctionComponent<
       /*
        * Its disk beside its CPU and memory (#9645): the fullest node is a
        * click on Disk away, and amber and red at the lines the claims list
-       * uses - the red one where the kubelet starts evicting pods.
+       * uses - the red one where the kubelet's nodefs eviction starts.
        */
       storageUsageColumns={{
         usedTitle: translationKey("Disk"),

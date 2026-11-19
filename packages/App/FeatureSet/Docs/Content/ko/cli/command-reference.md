@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 묻지 않고 레코드를 바로 삭제합니다.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | 인수 또는 옵션 | 필수 | 설명 |
 | --- | --- | --- |
 | `<id>` | 예 | 레코드의 ID |
 | `--force` | 아니요 | 받지만 아무것도 바꾸지 않습니다: `delete`는 확인을 묻지 않습니다 |
+| `--workflows-run-as <value>` | 아니요 | 사용자 지정 역할만: 역할을 삭제한 뒤 그 역할로 실행되던 워크플로를 무엇으로 실행할지, `Default` 또는 `CustomRole`. 워크플로가 실행에 쓰는 역할은 이 플래그를 줄 때만 삭제됩니다 |
+| `--workflows-run-as-custom-role-id <id>` | 아니요 | 사용자 지정 역할만: `--workflows-run-as CustomRole`과 함께, 워크플로를 실행할 다른 사용자 지정 역할 |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ CLI는 OneUptime과 함께 릴리스되므로 `oneuptime resources`는 설치한
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | 없음 |
+| `delete` | `DELETE /api/<path>/<id>/` | 없음, 또는 `--workflows-run-as`를 주면 `miscDataProps` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 동작은 프로젝트의 상태와 레코드를 읽은 다음, 대시보드 버튼처럼 레코드의 상태 타임라인에 행을 만듭니다. 인시던트에 대한 `acknowledge`는 `incident-state-timeline`을 만듭니다. `add-note`는 `incident-internal-note`를 만들고, `--public`을 붙이면 `incident-public-note`를 만듭니다. 이메일 플래그는 먼저 그 주소를 가진 프로젝트의 팀 구성원을 나열합니다. 키가 읽을 수 없는 필드를 OneUptime이 거부하면, 목록이나 읽기는 그 필드를 빼고 다시 요청합니다.

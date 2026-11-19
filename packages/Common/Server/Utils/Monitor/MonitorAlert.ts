@@ -64,6 +64,7 @@ import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
 import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
@@ -729,15 +730,29 @@ export default class MonitorAlert {
             const renderedAlertTitle: string =
               alreadyOpenAlert?.title || criteriaAlert.title;
 
+            /*
+             * The open alert that blocks this one is the one for this
+             * criteria AND this series. Name the series, or "for this
+             * criteria" reads as if one disk's open alert held back the
+             * alerts of every other disk on the host.
+             */
+            const seriesSummary: string =
+              SeriesLabelDisplay.buildInlineSummary(seriesLabels);
+
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
               ...EvaluationEventText.from({
                 title: translatableSentence("Alert already active: {{title}}", {
                   title: String(renderedAlertTitle),
                 }),
-                message: translatableSentence(
-                  "Skipped creating a new alert because an active alert exists for this criteria.",
-                ),
+                message: seriesSummary
+                  ? translatableSentence(
+                      "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+                      { series: seriesSummary },
+                    )
+                  : translatableSentence(
+                      "Skipped creating a new alert because an active alert exists for this criteria.",
+                    ),
               }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               relatedAlertId: alreadyOpenAlert?.id?.toString(),

@@ -40,7 +40,7 @@ Tout le reste se trouve sous **Plus de champs**, replié jusqu'à ce que vous l'
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Chaque tour dure** | **1 jour**, **1 semaine**, **2 semaines** ou **1 mois**, et **1 semaine** si vous ne le changez pas. Il est demandé dès que quelqu'un assure l'astreinte à tour de rôle. Chaque personne est d'astreinte pendant cette durée, puis la suivante prend le relais, à l'heure de la journée à laquelle le planning a été créé. |
-| **Fuseau horaire** | Le fuseau horaire des heures de passation et des heures d'astreinte. Il commence avec le vôtre. |
+| **Fuseau horaire** | Le fuseau horaire des heures de passation et des heures d'astreinte. Il commence avec le vôtre. Chaque fuseau horaire suit les règles actuelles de sa région : America/Vancouver (Colombie-Britannique) reste à UTC-7 toute l'année à partir de 2026. |
 | **Description** | Des notes sur le planning. |
 | **Étiquettes** | Des étiquettes pour retrouver et regrouper le planning. |
 

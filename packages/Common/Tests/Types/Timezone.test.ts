@@ -128,6 +128,7 @@ describe("enum Timezone", () => {
     expect(Timezone["AmericaCoral_Harbour"]).toEqual("America/Coral_Harbour");
     expect(Timezone["AmericaCordoba"]).toEqual("America/Cordoba");
     expect(Timezone["AmericaCosta_Rica"]).toEqual("America/Costa_Rica");
+    expect(Timezone["AmericaCoyhaique"]).toEqual("America/Coyhaique");
     expect(Timezone["AmericaCreston"]).toEqual("America/Creston");
     expect(Timezone["AmericaCuiaba"]).toEqual("America/Cuiaba");
     expect(Timezone["AmericaCuracao"]).toEqual("America/Curacao");

@@ -14,6 +14,7 @@ import {
   HEADLINE_DOCUMENTS,
   HEADLINE_HEALTH,
   HEADLINE_INDEX_SIZE,
+  HEADLINE_STORAGE_USED,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import {
   Translator,
@@ -204,6 +205,61 @@ describe("a Cosmos DB account's storage tiles", () => {
       [HEADLINE_INDEX_SIZE, expect.stringContaining("GiB")],
     ]);
   });
+});
+
+/*
+ * #9982: a Storage account's used capacity, which Azure Monitor keeps at an
+ * hour and a connection reads once an hour, is kept between those reads:
+ * its tile shows at every read, says how old its figure is, and says "Not
+ * reported" once it stops coming, as any level every account reports.
+ */
+describe("a Storage account's used capacity tile", () => {
+  const STORAGE_ACCOUNT: string = "Microsoft.Storage/storageAccounts";
+
+  test("shows between its hourly reads, with its age in hours", () => {
+    const tiles: Array<CloudHeadlineTile> = tilesOf(STORAGE_ACCOUNT, {
+      availability: minutesAgo(4, 100),
+      usedcapacity: minutesAgo(150, 5 * GIB),
+    });
+    const used: CloudHeadlineTile | undefined = tiles.find(
+      (tile: CloudHeadlineTile): boolean => {
+        return tile.title === HEADLINE_STORAGE_USED;
+      },
+    );
+
+    // Held to its figure by a no-break space (#8669).
+    expect(used?.value?.replace(/\s/g, " ")).toBe("5 GiB");
+    expect(used?.sublabel).toBe("2h ago");
+  });
+
+  test("a fresh read without it says it was not reported, never nothing", () => {
+    const tiles: Array<CloudHeadlineTile> = tilesOf(STORAGE_ACCOUNT, {
+      availability: minutesAgo(4, 100),
+    });
+
+    expect(
+      rowsOf(tiles).find((row: [string, string, string | undefined]) => {
+        return row[0] === HEADLINE_STORAGE_USED;
+      }),
+    ).toEqual([HEADLINE_STORAGE_USED, NOT_REPORTED, undefined]);
+  });
+
+  test.each(DASHBOARD_LANGUAGES as Array<string>)(
+    "%s says its age as every list does",
+    (language: string) => {
+      const used: CloudHeadlineTile | undefined = tilesOf(
+        STORAGE_ACCOUNT,
+        { usedcapacity: minutesAgo(150, 5 * GIB) },
+        language,
+      ).find((tile: CloudHeadlineTile): boolean => {
+        return tile.value !== undefined && tile.value !== "";
+      });
+
+      expect(used?.sublabel).toBe(
+        formatCompactDurationAgo(translatorOf(language), { hours: 2 }),
+      );
+    },
+  );
 });
 
 describe("the line under a tile's value", () => {

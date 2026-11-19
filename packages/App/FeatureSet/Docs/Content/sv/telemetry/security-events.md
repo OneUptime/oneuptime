@@ -218,6 +218,7 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 - Varje post läses som **Dina loggar** läser den från en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- och Azure-regler träffar den.
 - En händelse får tiden då den lagras, med postens egen tid i `oneuptime.cloud.record_time`: en granskningslogg når OneUptime minuter för sent, och en regel läser händelser efter deras tid.
 - Kontots egen läsning ger inget mer: datahändelser, Data Access-loggar och Microsoft Entra ID:s loggar behöver fortfarande **Dina loggar** eller en [anslutning](/docs/integrations/microsoft-entra-id).
+- Varje händelse nämner de molnresurser som dess post gäller med deras egna ID:n - ett ARN, ett Azure-resurs-ID, ett resursnamn från Google Cloud - så den visas på sidan **Säkerhetshändelser** för var och en av dem, och på en serverlös funktions sida så snart dess telemetri anger `cloud.account.id` och `cloud.region`.
 
 ### Anslut en säkerhetsprodukt
 

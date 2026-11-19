@@ -229,7 +229,7 @@ OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 
 
 각 실행은 무엇으로, 누구의 권한으로 실행되었는지 기록하며, 실행 창과 다운로드한 로그에 표시됩니다. [감사 로그](/docs/configuration/audit-logs)에는 누가 워크플로의 **Run As**를 바꿨는지가 사람이나 API 키의 이름과 함께 기록되며, 워크플로의 단계가 만든 모든 변경에는 그 단계가 무엇으로, 누구의 권한으로 실행되었는지가 기록됩니다. 감사 로그의 **워크플로 실행 권한** 및 **워크플로 권한 부여자** 필터로 그런 변경을 찾을 수 있습니다.
 
-워크플로가 실행에 쓰는 사용자 지정 역할을 삭제하면 그 워크플로들이 멈추므로, 삭제할 때 그것들을 나열하고 앞으로 무엇으로 실행할지 묻습니다. **기본 권한** 또는 내가 팀에 줄 수 있는 다른 사용자 지정 역할입니다. 워크플로를 편집할 수 없는 사람은 그것들의 Run As가 바뀔 때까지 역할을 삭제할 수 없습니다. API에서는 대신 무엇으로 실행할지 요청에 적지 않으면 그런 역할의 삭제가 거부됩니다. `miscDataProps`에서 `workflowsRunAs`를 `Default`로 하거나, `CustomRole`로 하고 역할의 id를 `workflowsRunAsCustomRoleId`에 넣습니다. Terraform에서는 `oneuptime_custom_role`에 `workflows_run_as_on_delete`를, 다른 역할로 하려면 `workflows_run_as_custom_role_id_on_delete`도 설정하고, 역할을 제거하기 전에 적용하세요. 역할 페이지의 **이 역할로 실행되는 워크플로**에 이 역할로 실행되는 워크플로가 나열됩니다.
+워크플로가 실행에 쓰는 사용자 지정 역할을 삭제하면 그 워크플로들이 멈추므로, 삭제할 때 그것들을 나열하고 앞으로 무엇으로 실행할지 묻습니다. **기본 권한** 또는 내가 팀에 줄 수 있는 다른 사용자 지정 역할입니다. 워크플로를 편집할 수 없는 사람은 그것들의 Run As가 바뀔 때까지 역할을 삭제할 수 없습니다. API에서는 대신 무엇으로 실행할지 요청에 적지 않으면 그런 역할의 삭제가 거부됩니다. `miscDataProps`에서 `workflowsRunAs`를 `Default`로 하거나, `CustomRole`로 하고 역할의 id를 `workflowsRunAsCustomRoleId`에 넣습니다. Terraform에서는 `oneuptime_custom_role`에 `workflows_run_as_on_delete`를, 다른 역할로 하려면 `workflows_run_as_custom_role_id_on_delete`도 설정하고, 역할을 제거하기 전에 적용하세요. CLI에서는 `oneuptime custom-role delete`에 `--workflows-run-as Default`를, 또는 `--workflows-run-as CustomRole`과 `--workflows-run-as-custom-role-id`를 붙입니다. 역할 페이지의 **이 역할로 실행되는 워크플로**에 이 역할로 실행되는 워크플로가 나열됩니다.
 
 ## 플랜 한도
 

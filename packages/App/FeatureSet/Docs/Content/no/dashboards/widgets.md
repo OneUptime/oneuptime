@@ -49,7 +49,11 @@ Disse fire widgetene leser en målingsspørring, bygget slik målingsutforskeren
 
 ### Diagram
 
-En tidsserie med én eller flere målingsspørringer over dashbordets tidsintervall. **Diagramtype** tegner den som et linje-, stolpe-, areal-, stablet areal- eller kakediagram. **Flere spørringer** legger flere målinger på de samme aksene, og **Formler** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver spørrings visningsinnstillinger legger til en forklaring og en enhet, en farge, varsel- og kritiske linjer og en rate per sekund for tellere som bare vokser.
+En tidsserie med én eller flere målingsspørringer over dashbordets tidsintervall. **Diagramtype** tegner den som et linje-, stolpe-, areal-, stablet areal- eller kakediagram. **Legg til spørring** legger til enda en målingsspørring, og **Legg til formel** en formel som kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver spørrings **Visningsinnstillinger** legger til en forklaring og en enhet, en farge, varsel- og kritiske linjer og en rate per sekund for tellere som bare vokser.
+
+Hver spørring tegner sitt eget diagram, under hverandre i widgeten. For å tegne en spørring i diagrammet til spørringen før den i stedet, som flere linjer på de samme aksene, slår du på **Legg over forrige spørring** i dens **Visningsinnstillinger**: for eksempel `mem_used` og `mem_total` i ett diagram. Alle spørringer etter den første har bryteren, og hver spørring som har den på, kommer i samme diagram, så tre eller flere spørringer kan dele ett. Slå den av for å gi spørringen sitt eget diagram igjen.
+
+Et overlagt diagram tar tittelen, diagramtypen og verdiaksen fra sin første spørring, så hver spørring i det leses i den spørringens enhet. En spørring i en annen enhet av samme slag tegnes i diagrammets enhet, som megabyte i et diagram i gigabyte, eller sekunder i et diagram i millisekunder. En enhet av et annet slag kan ikke leses på den aksen, som byte i et diagram i prosent: spørringen tegnes der likevel, og både diagrammet og bryteren sier at enhetene er ulike, så gi en slik spørring sitt eget diagram.
 
 Bruk den når formen på linjen forteller historien: ventetid, feil, gjennomstrømning eller kødybde.
 

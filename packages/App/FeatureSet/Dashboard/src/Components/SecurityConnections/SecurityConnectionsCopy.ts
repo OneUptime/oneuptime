@@ -429,6 +429,11 @@ export const RESOURCE_SECURITY_SERVICE_QUIET: string = translationKey(
   "No security event was read from its logs in the last 7 days.",
 );
 
+// A record whose own logs count beside what names it: a device, a container host, a cloud resource.
+export const RESOURCE_SECURITY_OWN_LOGS_QUIET: string = translationKey(
+  "No security event named it or was read from its logs in the last 7 days.",
+);
+
 // A monitor's: about what it checks, not about itself.
 export const RESOURCE_SECURITY_MONITOR_DESCRIPTION: string = translationKey(
   "What Security Events found about what it checks in the last 7 days.",

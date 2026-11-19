@@ -6,6 +6,7 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import StandardWebhookSignature from "../Utils/Webhook/StandardWebhookSignature";
 import WorkflowRunAsAuthority, {
   WorkflowRunAsAction,
@@ -81,6 +82,24 @@ interface GraphSaveRevisionHold {
  * counts the save in the write itself (getRowWriteSql): never stored.
  */
 const GRAPH_REVISION_COUNTED_BY_DATABASE: number = 0;
+
+/*
+ * The references of a Run As (#9695, #9765), each under its names: the
+ * hooks below clear one with RelationIdUtil.stamp, so the null they write
+ * is the one stored.
+ */
+const RUN_AS_CUSTOM_ROLE_KEYS: Array<string> = [
+  "runAsCustomRoleId",
+  "runAsCustomRole",
+];
+const RUN_AS_GIVEN_BY_USER_KEYS: Array<string> = [
+  "runAsGivenByUserId",
+  "runAsGivenByUser",
+];
+const RUN_AS_GIVEN_BY_API_KEY_KEYS: Array<string> = [
+  "runAsGivenByApiKeyId",
+  "runAsGivenByApiKey",
+];
 
 export class Service extends ProjectReferencesService<Model> {
   /*
@@ -172,7 +191,7 @@ export class Service extends ProjectReferencesService<Model> {
     data["runAs"] = runAs;
 
     if (runAs !== WorkflowRunAs.CustomRole) {
-      data["runAsCustomRoleId"] = null;
+      RelationIdUtil.stamp(data, RUN_AS_CUSTOM_ROLE_KEYS, null);
     }
   }
 
@@ -342,7 +361,7 @@ export class Service extends ProjectReferencesService<Model> {
         readWorkflowRunAs(next.runAs) || WorkflowRunAs.ProjectOwner;
 
       if (nextRunAs !== WorkflowRunAs.CustomRole && sendsRunAs) {
-        data["runAsCustomRoleId"] = null;
+        RelationIdUtil.stamp(data, RUN_AS_CUSTOM_ROLE_KEYS, null);
       }
 
       let role: WorkflowRunAsRole | null = null;
@@ -396,8 +415,8 @@ export class Service extends ProjectReferencesService<Model> {
       readWorkflowRunAs(data["runAs"] ?? rows[0]?.runAs) ===
         WorkflowRunAs.Default
     ) {
-      data["runAsGivenByUserId"] = null;
-      data["runAsGivenByApiKeyId"] = null;
+      RelationIdUtil.stamp(data, RUN_AS_GIVEN_BY_USER_KEYS, null);
+      RelationIdUtil.stamp(data, RUN_AS_GIVEN_BY_API_KEY_KEYS, null);
       data["runAsGivenAt"] = null;
     }
   }
