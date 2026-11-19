@@ -69,9 +69,12 @@ describe("the cost card's tooltips", () => {
     }
   });
 
-  test.each(TITLED)("%s is explained by the text beside it", (title, text) => {
-    expectTitleExplained(title, text);
-  });
+  test.each(TITLED)(
+    "%s is explained by the text beside it",
+    (title: string, text: string) => {
+      expectTitleExplained(title, text);
+    },
+  );
 
   test("every text sits beside a tile", () => {
     const shown: Set<string> = new Set<string>(
