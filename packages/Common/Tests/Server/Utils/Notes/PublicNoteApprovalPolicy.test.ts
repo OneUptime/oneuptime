@@ -17,7 +17,7 @@ import PublicNoteApprovalPolicy, {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import {
+import PublicNoteApproval, {
   PublicNoteApprovalEventType,
   PublicNoteApprovalStepRule,
 } from "../../../../Types/StatusPage/PublicNoteApproval";
@@ -173,11 +173,13 @@ describe("PublicNoteApprovalPolicy.getSteps", () => {
         id: "s1",
         name: "Support",
         order: 1,
+        createdAt: null,
         userIds: [ALICE],
         teamIds: [TEAM],
       },
-      { id: "s2", order: 2, userIds: [], teamIds: [] },
-      { id: "s3", order: 0, userIds: [], teamIds: [] },
+      { id: "s2", order: 2, createdAt: null, userIds: [], teamIds: [] },
+      // A step without a place keeps none: not 0, which put it first.
+      { id: "s3", order: null, createdAt: null, userIds: [], teamIds: [] },
     ]);
 
     const query: any = (find.mock.calls[0]![0] as any).query;
@@ -185,6 +187,59 @@ describe("PublicNoteApprovalPolicy.getSteps", () => {
       projectId: PROJECT_ID,
       eventType: PublicNoteApprovalEventType.ScheduledMaintenance,
     });
+    // When each was made, for the order of two steps at one place.
+    expect((find.mock.calls[0]![0] as any).select.createdAt).toBe(true);
+  });
+
+  /*
+   * Issue #9655: a step without a place went first (it was read as 0), and
+   * two steps at one place went by id, where the steps' list shows a step
+   * without a place last and twins the older first.
+   */
+  test("a note goes through a step without a place last, and through two steps at one place the older first, as the list shows them", async () => {
+    const older: PublicNoteApprovalStep = storedStep({
+      id: "s9",
+      order: 2,
+      users: [ALICE],
+    });
+    older.createdAt = new Date("2026-01-01T00:00:00.000Z");
+    const newer: PublicNoteApprovalStep = storedStep({
+      id: "s1",
+      order: 2,
+      users: [ALICE],
+    });
+    newer.createdAt = new Date("2026-03-01T00:00:00.000Z");
+    const unplaced: PublicNoteApprovalStep = storedStep({
+      id: "s0",
+      users: [ALICE],
+    });
+    unplaced.createdAt = new Date("2025-01-01T00:00:00.000Z");
+    const first: PublicNoteApprovalStep = storedStep({
+      id: "s5",
+      order: 1,
+      users: [ALICE],
+    });
+
+    getJestSpyOn(PublicNoteApprovalStepService, "findBy").mockResolvedValue([
+      unplaced,
+      newer,
+      first,
+      older,
+    ] as never);
+
+    const steps: Array<PublicNoteApprovalStepRule> =
+      await PublicNoteApprovalPolicy.getSteps({
+        projectId: PROJECT_ID,
+        eventType: PublicNoteApprovalEventType.Incident,
+      });
+
+    expect(
+      PublicNoteApproval.sortSteps(steps).map(
+        (step: PublicNoteApprovalStepRule): string => {
+          return step.id;
+        },
+      ),
+    ).toEqual(["s5", "s9", "s1", "s0"]);
   });
 });
 

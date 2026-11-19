@@ -23,6 +23,7 @@ import {
   DEFAULT_DISCOVERY_REVIEW_QUERY,
   DISCOVERY_REVIEW_SCAN_SELECT,
   getImportedAddresses,
+  getImportedDeviceIds,
   getPickedTemplate,
   getReviewHosts,
   keepPickedTemplate,
@@ -219,6 +220,80 @@ describe("what an import put in the inventory", () => {
 
     expect(getImportedAddresses(results)).toEqual(["10.0.0.1", "10.0.0.2"]);
     expect(getImportedAddresses(undefined)).toEqual([]);
+  });
+
+  /*
+   * The device each host is, from the import's own results (issue #9677):
+   * its monitors are read by it before the scan is read again, and a host
+   * whose devices could not be told apart names none.
+   */
+  test("names the device it created or found for each host, and none for the rest", () => {
+    const results: Array<DiscoveryImportHostResult> = [
+      {
+        ipAddress: "10.0.0.1",
+        name: "a",
+        isPingOnly: false,
+        device: DiscoveryImportDeviceOutcome.Created,
+        deviceId: "d0000000-0000-4000-8000-000000000001",
+        monitor: DiscoveryImportMonitorOutcome.NotRequested,
+      },
+      {
+        ipAddress: "10.0.0.2",
+        name: "b",
+        isPingOnly: true,
+        device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+        deviceId: "d0000000-0000-4000-8000-000000000002",
+        monitor: DiscoveryImportMonitorOutcome.Created,
+      },
+      // Already added, but which device it is could not be told.
+      {
+        ipAddress: "10.0.0.3",
+        name: "c",
+        isPingOnly: true,
+        device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+        monitor: DiscoveryImportMonitorOutcome.Skipped,
+      },
+      {
+        ipAddress: "10.0.0.4",
+        name: "d",
+        isPingOnly: true,
+        device: DiscoveryImportDeviceOutcome.Failed,
+        deviceId: "d0000000-0000-4000-8000-000000000004",
+        monitor: DiscoveryImportMonitorOutcome.Skipped,
+      },
+    ];
+
+    expect(Array.from(getImportedDeviceIds(results))).toEqual([
+      ["10.0.0.1", "d0000000-0000-4000-8000-000000000001"],
+      ["10.0.0.2", "d0000000-0000-4000-8000-000000000002"],
+    ]);
+    expect(getImportedDeviceIds(undefined).size).toBe(0);
+  });
+
+  test("the review lists an imported host as the device the import named", () => {
+    const scan: NetworkDeviceDiscoveryScan = Object.assign(
+      new NetworkDeviceDiscoveryScan(),
+      {
+        status: "Completed",
+        discoveredDevices: [{ ipAddress: "10.0.0.1", snmpReachable: true }],
+      },
+    );
+
+    expect(
+      getReviewHosts({
+        scan: scan,
+        importedAddresses: new Set<string>(["10.0.0.1"]),
+        importedDeviceIds: new Map<string, string>([
+          ["10.0.0.1", "d0000000-0000-4000-8000-000000000001"],
+        ]),
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        ipAddress: "10.0.0.1",
+        isAlreadyRegistered: true,
+        registeredDeviceId: "d0000000-0000-4000-8000-000000000001",
+      }),
+    ]);
   });
 });
 

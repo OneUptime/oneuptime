@@ -410,7 +410,7 @@ Hændelser over flere linjer samles igen før filtreringen i begge tilstande, s�
 Drop nogle få støjende metrikker (en denylist, som regel det, du vil have):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Send kun et fast sæt (en tilladelsesliste: alt andet droppes):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinalitet, antallet af forskellige serier, betyder lige så meget som hyppighed, fordi hver serie gemmes og faktureres for sig.
 
 - cAdvisor er med vilje begrænset af en tilladelsesliste. Receiveren cAdvisor (slået til som standard) kan udsende hundredvis af metrikker; chartet videresender kun tællerne for CPU-throttling og OOM-kills i `cadvisor.metricsAllowlist`, til dine egne grafer og metrikmonitorer: ingen indbygget skabelon læser dem. Hold listen kort: hver post beholdes pr. container, så én metrik mere ganges med klyngens antal containere. kube-state-metrics er slået fra som standard; slår du den til (`kubeStateMetrics.enabled=true`), virker dens `kubeStateMetrics.metricsAllowlist` på samme måde, og hver post skal matche hele navnet på en metrik.
-- Volumenmetrikker (`kubeletstats.volumeMetrics.enabled`, slået til som standard) udsender et par serier pr. volumen pr. pod og fylder brugt, ledigt og kapacitet på siderne for Persistent Volume Claims og skabelonen PVC Almost Full: fint for de fleste klynger, meget på tilstandsfulde workloads (Kafka, databaser) med tusindvis af PVC'er. Slå dem fra der, hvis du ikke overvåger PVC-diskplads, med `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volumenmetrikker (`kubeletstats.volumeMetrics.enabled`, slået til som standard) udsender fem serier for hvert volumen med data i hver pod (et claim, en emptyDir, en hostPath), fylder brugt, ledigt og kapacitet på siderne for Persistent Volume Claims og skabelonen PVC Almost Full og viser et næsten fuldt claim under klyngens Kræver opmærksomhed. En pods configMap-, secret-, downwardAPI- og serviceaccount-token-volumener, som udgjorde de fleste af disse serier, droppes på noden. Stadig meget på tilstandsfulde workloads (Kafka, databaser) med tusindvis af PVC'er: slå dem fra der, hvis du ikke overvåger PVC-diskplads, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Mætningsmetrikker (`kubeletstats.utilizationMetrics.enabled`, slået til som standard) tilføjer 8 afledte familier for "% af request eller limit". De koster intet ekstra scrape, men bruger du ikke monitorerne for CPU og hukommelse i forhold til limit, så drop dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Drop metrikker efter navn med `filters.metrics.exclude`, som gælder for alle receivers, for alt, hvad receivernes tilladelseslister ikke kan udtrykke (se [Inkludering eller udelukkelse af metrikker efter navn](#inkludering-eller-udelukkelse-af-metrikker-efter-navn)):
 

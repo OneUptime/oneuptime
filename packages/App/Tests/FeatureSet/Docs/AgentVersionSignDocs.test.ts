@@ -596,7 +596,12 @@ describe("the Docker Swarm page says the agent's version is its files'", () => {
       path.join(CONTENT_DIR, "en", "telemetry", "docker-swarm.md"),
       "utf8",
     );
-    const oldVersion: string = DOCKER_SWARM_AGENT_COLLECTOR_VERSION;
+    /*
+     * What the files before #5076's CPU processors report: collector
+     * 0.161.0's first set. Not the collector the files pin now, which moved
+     * on (0.165.0) and is the version of the newest files.
+     */
+    const oldVersion: string = "0.161.0";
 
     expect(page).toContain(
       `Such an agent reports version ${oldVersion} or earlier, so a warning sign shows beside its version`,

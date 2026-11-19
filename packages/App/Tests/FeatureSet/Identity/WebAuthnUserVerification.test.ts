@@ -1,5 +1,7 @@
 import "Common/Tests/Server/TestingUtils/WebAuthnServiceMocks";
-import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
+import UserWebAuthnService, {
+  NO_SECURITY_KEY_AVAILABLE,
+} from "Common/Server/Services/UserWebAuthnService";
 import UserService from "Common/Server/Services/UserService";
 import Redis from "Common/Server/Infrastructure/Redis";
 import { getJestSpyOn } from "Common/Tests/Spy";
@@ -282,7 +284,7 @@ const authenticate: AuthenticateFunction = async (
   key: SecurityKey,
 ): Promise<User> => {
   const { options } = await UserWebAuthnService.generateAuthenticationOptions({
-    email: USER_EMAIL.toString(),
+    userId: USER_ID,
   });
 
   const challengeTheAuthenticatorSigns: string = Buffer.from(
@@ -426,7 +428,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       expect(options.userVerification).toBe("preferred");
@@ -534,7 +536,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       const assertion: AuthenticationResponse = impostor.authenticate({
@@ -764,7 +766,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       const assertion: AuthenticationResponse = impostor.authenticate({
@@ -847,7 +849,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
       /* Tab two -- or an anonymous caller -- asks for a sign-in challenge. */
       seedRegisteredKey(key);
       await UserWebAuthnService.generateAuthenticationOptions({
-        email: USER_EMAIL.toString(),
+        userId: USER_ID,
       });
 
       /* Tab one finishes. Before the split this threw. */
@@ -873,7 +875,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options: authenticationOptions } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       await UserWebAuthnService.generateRegistrationOptions({
@@ -902,7 +904,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options: authenticationOptions } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       const { options: registrationOptions } =
@@ -938,7 +940,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options: authenticationOptions } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       await expect(
@@ -1016,7 +1018,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
       await withHost("oneuptime.example.com:8443", async () => {
         const { options } =
           await UserWebAuthnService.generateAuthenticationOptions({
-            email: USER_EMAIL.toString(),
+            userId: USER_ID,
           });
 
         expect(options.rpId).toBe("oneuptime.example.com");
@@ -1164,7 +1166,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       expect(options.allowCredentials[0].transports).toEqual(["internal"]);
@@ -1190,7 +1192,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       expect(options.allowCredentials[0].transports).toBeUndefined();
@@ -1215,66 +1217,54 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const { options } =
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
 
       expect(options.allowCredentials[0].transports).toBeUndefined();
     });
   });
 
-  describe("what the anonymous sign-in options route will say about an account", () => {
+  describe("the sign-in options are for the account a sign-in proved (#9822)", () => {
     /*
-     * POST /user-webauthn/generate-authentication-options takes an email and
-     * nothing else, from anyone. It used to answer "User not found" for an
-     * address nobody has registered and "No WebAuthn credentials found for
-     * this user" for one that exists without a key -- an account-existence
-     * oracle, plus a second one saying which accounts are protected by
-     * hardware, free to anybody who can send a POST.
+     * POST /user-webauthn/generate-authentication-options took an email and
+     * nothing else, from anyone: a refusal for an address with no account or
+     * no key, the options for one with a key. The options are now made by
+     * the account's id, once the sign-in has proved it with the password or
+     * a sign-in link (POST /identity/security-key-sign-in-options), and no
+     * address is looked up at all.
      */
 
-    it("answers identically for an unknown account and one with no security key", async () => {
-      const unknownAccount: unknown = await (async (): Promise<unknown> => {
-        UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
+    it("looks up no address, only the account it is given", async () => {
+      const findOneBy: jest.Mock = jest.fn().mockResolvedValue(null);
+      UserService.findOneBy = findOneBy as never;
+      seedRegisteredKey(makeKey(false));
 
-        try {
-          await UserWebAuthnService.generateAuthenticationOptions({
-            email: "nobody@example.com",
-          });
-        } catch (error) {
-          return error;
-        }
+      await UserWebAuthnService.generateAuthenticationOptions({
+        userId: USER_ID,
+      });
 
-        throw new Error("Expected this to reject");
-      })();
+      expect(findOneBy).not.toHaveBeenCalled();
+    });
 
-      const knownAccountWithoutAKey: unknown =
-        await (async (): Promise<unknown> => {
-          UserService.findOneBy = jest.fn().mockImplementation(async () => {
-            return buildUser();
-          }) as never;
-          existingCredentials = [];
+    it("tells an account with no key so, and how to sign in instead", async () => {
+      existingCredentials = [];
 
-          try {
-            await UserWebAuthnService.generateAuthenticationOptions({
-              email: USER_EMAIL.toString(),
-            });
-          } catch (error) {
-            return error;
-          }
+      let thrown: unknown = null;
 
-          throw new Error("Expected this to reject");
-        })();
+      try {
+        await UserWebAuthnService.generateAuthenticationOptions({
+          userId: USER_ID,
+        });
+      } catch (error) {
+        thrown = error;
+      }
 
       /*
-       * Identical text is the whole point -- a caller must not be able to tell
-       * the two apart -- and both must still be Exceptions so the handler
-       * answers 400 rather than the 500 that would itself be a tell.
+       * Still an Exception, so the sign-in answers 400 rather than a 500,
+       * and only ever said to whoever proved the account.
        */
-      expect((unknownAccount as Exception).message).toBe(
-        (knownAccountWithoutAKey as Exception).message,
-      );
-      expect(unknownAccount).toBeInstanceOf(BadDataException);
-      expect(knownAccountWithoutAKey).toBeInstanceOf(BadDataException);
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect((thrown as Exception).message).toBe(NO_SECURITY_KEY_AVAILABLE);
     });
 
     it("hands back the ceremony and nothing else on success", async () => {
@@ -1295,7 +1285,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       const result: Record<string, unknown> =
         (await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         })) as unknown as Record<string, unknown>;
 
       expect(Object.keys(result).sort()).toEqual(["challenge", "options"]);
@@ -1303,13 +1293,13 @@ describe("WebAuthn user verification (issue #3652)", () => {
     });
 
     it("does not name the account in what it says", async () => {
-      UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
+      existingCredentials = [];
 
       let thrown: unknown = null;
 
       try {
         await UserWebAuthnService.generateAuthenticationOptions({
-          email: USER_EMAIL.toString(),
+          userId: USER_ID,
         });
       } catch (error) {
         thrown = error;

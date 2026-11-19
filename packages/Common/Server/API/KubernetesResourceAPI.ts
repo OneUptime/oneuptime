@@ -22,6 +22,8 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
+import { KubernetesComplianceResponse } from "../../Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
+import KubernetesClusterCompliance from "../Utils/Kubernetes/KubernetesClusterCompliance";
 
 // The kinds the inventory holds, and so the only ones a part read asks for.
 export const KUBERNETES_PART_KINDS: ReadonlySet<string> = new Set<string>([
@@ -111,6 +113,25 @@ export default class KubernetesResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getPart(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * How the cluster itself stands against the Pod Security Standards and
+     * the CIS Kubernetes Benchmark, for its Compliance page (#9627,
+     * KubernetesClusterCompliance): read by whoever may read the cluster.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/compliance/:clusterId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getCompliance(req, res);
         } catch (err) {
           next(err);
         }
@@ -224,6 +245,46 @@ export default class KubernetesResourceAPI extends BaseAPI<
       };
     }
     return out;
+  }
+
+  private async getCompliance(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, kubernetesClusterId } =
+      await this.resolveClusterForRequest(req);
+
+    // The caller may read it (above): its name and platform, as OneUptime.
+    const cluster: KubernetesCluster | null =
+      await KubernetesClusterService.findOneById({
+        id: kubernetesClusterId,
+        select: {
+          _id: true,
+          name: true,
+          clusterIdentifier: true,
+          provider: true,
+        },
+        props: { isRoot: true },
+      });
+
+    const compliance: KubernetesComplianceResponse =
+      await KubernetesClusterCompliance.readCompliance({
+        projectId,
+        cluster: {
+          id: kubernetesClusterId,
+          name:
+            cluster?.name ||
+            cluster?.clusterIdentifier ||
+            kubernetesClusterId.toString(),
+          provider: cluster?.provider || null,
+        },
+      });
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      compliance as unknown as JSONObject,
+    );
   }
 
   private async getLatestPodMetricsByNamespace(

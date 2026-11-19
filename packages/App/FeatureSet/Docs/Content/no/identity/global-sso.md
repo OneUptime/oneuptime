@@ -93,9 +93,16 @@ Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle
 
 ## Logg også ut av identitetsleverandøren
 
-Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin kommer den neste som logger inn med den leverandøren, inn som den som gikk. Klikk på **Rediger konfigurasjon** for en OpenID Connect-leverandør, og slå på **Logg også ut av identitetsleverandøren** under **Flere felt**: Når man logger ut av OneUptime, avsluttes da også økten hos leverandøren, og leverandøren sender nettleseren tilbake til påloggingssiden til OneUptime. Den er slått av som standard, siden den på en personlig bærbar også ville logge personen ut av alle andre apper som bruker leverandøren.
+Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin kommer den neste som logger inn med den leverandøren, inn som den som gikk. Klikk på **Rediger konfigurasjon** på en SAML- eller OpenID Connect-leverandør, og slå på **Logg også ut av identitetsleverandøren** under **Flere felt**: Utlogging av OneUptime avslutter da også økten hos leverandøren, og leverandøren sender nettleseren tilbake til OneUptime. Den er slått av som standard, siden den på en personlig bærbar også ville logge personen ut av alle andre apper som bruker leverandøren.
 
-Registrer omdirigerings-URI-en etter utlogging som kortet **URL-en til identitetsleverandøren** viser, hos leverandøren din som en tillatt post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på.
+:::tabs
+@tab SAML
+Skriv inn utloggings-URL-en til identitetsleverandøren din som **Utloggings-URL** under **Flere felt**: Uten den kan bryteren ikke slås på. Gi deretter identitetsleverandøren **Single Logout URL** som kortet **URL-ene til identitetsleverandøren** viser, og sertifikatet som OneUptime signerer utloggingsforespørslene sine med, via **Last ned signeringssertifikat** på samme kort. Når personen logger ut hos identitetsleverandøren eller av en annen app som bruker den, logger en identitetsleverandør som sender utloggingsforespørsler til appene sine, også personen ut av OneUptime.
+@tab OpenID Connect
+Registrer omdirigerings-URI-en etter utlogging som kortet **URL-en til identitetsleverandøren** viser, hos leverandøren din som tillatt post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på.
+:::
+
+Hvor Okta, Microsoft Entra ID, Auth0 og Keycloak har disse innstillingene, står på siden [SSO](/docs/identity/sso).
 
 ## Håndhev SSO
 

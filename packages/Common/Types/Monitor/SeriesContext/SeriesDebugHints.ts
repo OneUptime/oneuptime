@@ -228,6 +228,18 @@ export default class SeriesDebugHints {
         purpose: "Everything scheduled on this node",
         command: `kubectl get pods --all-namespaces --field-selector spec.nodeName=${quotedNode} -o wide`,
       });
+
+      /*
+       * The kubelet's own reading, as the agent collects it: the node's
+       * root and image filesystems, and each pod's ephemeral storage - the
+       * pod filling a node's disk (High Node Disk Usage), or using its
+       * memory. Read-only, through the API server's node proxy.
+       */
+      commands.push({
+        purpose:
+          "The kubelet's reading of the node's disks, memory and CPU, and of each pod's ephemeral storage on it",
+        command: `kubectl get --raw /api/v1/nodes/${quotedNode}/proxy/stats/summary`,
+      });
     }
 
     if (pod) {

@@ -13,7 +13,7 @@ Una policy di reperibilità decide chi viene avvisato per un incidente o un avvi
 
 :::steps
 1. Andate in **Reperibilità → Policy di reperibilità** e fate clic su **Crea policy di reperibilità**.
-2. Inserite un **Nome**, per esempio «Pagamenti primaria».
+2. Inserite un **Nome**, per esempio «Pagamenti primaria». Un nome già usato da un'altra policy del progetto, anche archiviata, viene rifiutato, comunque siano scritte maiuscole, minuscole e spazi, così ogni selettore distingue le policy tra loro.
 3. In **Chi viene avvisato per primo?**, fate clic su **Aggiungi destinatario** e scegliete le pianificazioni di reperibilità, i team e le persone da avvisare per primi.
 4. Fate clic su **Crea policy di reperibilità**. La policy si apre sulla sua pagina **Regole di escalation**, con **Level 1** già al suo posto.
 :::
@@ -26,7 +26,7 @@ Il modulo chiede anche **Attivarla per ogni nuovo incidente e ogni nuovo avviso*
 
 Per farvi guidare passo dopo passo, dal telefono fino a una chiamata di prova, fate clic su **Configurazione guidata**: nell'elenco vuoto **Policy di reperibilità** o in **Come funziona**. Vedi [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 
-L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Chiamati per primi**, **Descrizione**, **Etichette** e **Proprietari**. **Chiamati per primi** indica chi viene avvisato dalla prima regola di escalation della policy: le sue pianificazioni, ciascuna con chi vi è reperibile in questo momento, i suoi team e le persone che nomina, oppure **Nessuna regola di escalation** o **Nessun destinatario** quando non avvisa nessuno. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta JSON** o per eliminarle. **Importa JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
+L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Chiamati per primi**, **Descrizione**, **Etichette** e **Proprietari**. **Chiamati per primi** indica chi viene avvisato dalla prima regola di escalation della policy: le sue pianificazioni, ciascuna con chi vi è reperibile in questo momento, i suoi team e le persone che nomina, oppure **Nessuna regola di escalation** o **Nessun destinatario** quando non avvisa nessuno. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta JSON** o per eliminarle. **Importa JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari. Una policy che ha lo stesso nome di un'altra policy, da prima che i nomi dovessero essere diversi, è contrassegnata con **Stesso nome di un'altra policy**, e l'elenco indica quante sono: confrontate le loro regole di escalation, poi rinominatene una con **Rinomina** nella sua riga.
 
 ## Che cosa esegue una policy
 
@@ -157,7 +157,7 @@ Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e ch
 Archiviare toglie una policy dal servizio e conserva tutto: aprite le **Impostazioni** della policy e fate clic su **Archivia** nella sua scheda di archiviazione, oppure selezionate delle policy nell'elenco e scegliete **Archivia**.
 
 - Una policy archiviata non avvisa nessuno. Gli incidenti e gli avvisi che la usano la saltano, e un'esecuzione ancora in escalation si ferma al passo successivo.
-- Esce dall'elenco **Policy di reperibilità** e passa in **Reperibilità → Avanzato → Policy archiviate**, dove **Annulla archiviazione** la rimette in servizio.
+- Esce dall'elenco **Policy di reperibilità** e passa in **Reperibilità → Avanzato → Policy archiviate**, dove **Annulla archiviazione** la rimette in servizio. Mantiene il suo nome: a chi crea una nuova policy con quel nome viene chiesto di annullare invece l'archiviazione di questa.
 
 **Elimina policy**, in **Avanzato**, elimina la policy insieme alle sue regole di escalation e alle sue sostituzioni utente. L'eliminazione dall'elenco chiede prima conferma e propone di archiviare invece.
 

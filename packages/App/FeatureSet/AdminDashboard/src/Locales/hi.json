@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "अगर इस व्यक्ति का अभी OneUptime खाता नहीं है, तो यह खाता इसी नाम से बनेगा।",
   "Suggest every account on this server?": "इस सर्वर के हर खाते को सुझाएँ?",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "लोगों को आमंत्रित कर सकने वाला हर व्यक्ति टाइप करते समय हर खाते का नाम और ईमेल देखेगा। इसे तभी चालू करें जब यहाँ का हर खाता एक ही संगठन का हो।",
-  "Suggest Every Account": "हर खाता सुझाएँ"
+  "Suggest Every Account": "हर खाता सुझाएँ",
+  "Sign Out URL": "साइन आउट URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "आपके पहचान प्रदाता का सिंगल साइन आउट URL। लोगों को वहां से भी साइन आउट करने के लिए ज़रूरी है।",
+  "Single Logout URL:": "सिंगल लॉगआउट URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "लोगों को पहचान प्रदाता से भी साइन आउट करने के लिए उसे सिंगल लॉगआउट URL और OneUptime का साइनिंग प्रमाणपत्र भी दें।",
+  "Download Signing Certificate": "साइनिंग प्रमाणपत्र डाउनलोड करें"
 }

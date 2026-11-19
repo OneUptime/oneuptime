@@ -112,9 +112,15 @@ describe("email subjects", () => {
   });
 
   test.each([
+    // A sign-up that proves its address by email welcomes it after answering (#9816).
     [
-      "App/FeatureSet/Identity/API/Authentication.ts",
+      "App/FeatureSet/Identity/Utils/EmailProvedSignUp.ts",
       "subject: `Welcome to ${ProductBrandingText.getProductName()}. Please verify your email.`",
+    ],
+    // A sign-up with an address that already has an account tells its owner (#9816).
+    [
+      "App/FeatureSet/Identity/Utils/AuthenticationEmail.ts",
+      "subject: `You already have a ${ProductBrandingText.getProductName()} account`",
     ],
     [
       "App/FeatureSet/Identity/API/Authentication.ts",

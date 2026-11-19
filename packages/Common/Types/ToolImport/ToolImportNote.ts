@@ -82,6 +82,11 @@ export enum ToolImportNoteCode {
   ScheduleLeftOut = "ScheduleLeftOut",
   CustomFieldOptionsTrimmed = "CustomFieldOptionsTrimmed",
   PartNotAdded = "PartNotAdded",
+  /*
+   * {name}: the name a team, a schedule or a policy was made with, numbered
+   * because another record of the project had its name (#9742).
+   */
+  NameNumbered = "NameNumbered",
 
   // ---- About the whole read.
   CouldNotRead = "CouldNotRead",

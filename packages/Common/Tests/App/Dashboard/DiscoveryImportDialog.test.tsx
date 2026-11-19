@@ -170,6 +170,8 @@ const HOSTS: Array<DiscoveredNetworkDevice> = [
     sysName: "core-sw-03",
     snmpReachable: true,
     isAlreadyRegistered: true,
+    // The device the scan's probe sees there, as the server names it (#9677).
+    registeredDeviceId: "e1a2b3c4-0000-4000-8000-000000000003",
   },
 ];
 
@@ -476,13 +478,17 @@ beforeEach(() => {
   }) => {
     const data: Array<unknown> =
       request.modelType === NetworkDevice
-        ? // The devices at the addresses asked about, as the server answers.
+        ? // The devices with the ids asked about, as the server answers.
           lists.devices.filter((device: NetworkDevice): boolean => {
-            const asked: unknown = request.query?.["hostname"];
+            const asked: unknown = request.query?.["_id"];
 
             return (
               !(asked instanceof Includes) ||
-              (asked.values as Array<string>).includes(device.hostname || "")
+              (asked.values as Array<string>)
+                .map((id: string): string => {
+                  return String(id).toLowerCase();
+                })
+                .includes(String(device._id).toLowerCase())
             );
           })
         : request.modelType === Monitor
@@ -1699,16 +1705,16 @@ describe("the import as it runs", () => {
      * read the dialog makes when the import ends finds them (#9544).
      */
     lists.devices = [
-      deviceAt("10.48.11.1", "e1a2b3c4-0000-4000-8000-000000000001"),
-      deviceAt("10.48.11.2", "e1a2b3c4-0000-4000-8000-000000000002"),
+      deviceAt("10.48.11.1", "device-10.48.11.1"),
+      deviceAt("10.48.11.2", "device-10.48.11.2"),
     ];
     lists.monitorsMadeForDevices = [
       monitorMadeFor(
-        "e1a2b3c4-0000-4000-8000-000000000001",
+        "device-10.48.11.1",
         "f1a2b3c4-0000-4000-8000-000000000001",
       ),
       monitorMadeFor(
-        "e1a2b3c4-0000-4000-8000-000000000002",
+        "device-10.48.11.2",
         "f1a2b3c4-0000-4000-8000-000000000002",
       ),
     ];

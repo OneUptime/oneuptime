@@ -1714,7 +1714,7 @@ The images are pinned in `docker-compose.yml`, so what you mirror is exactly wha
 
 | Image | Where it comes from | What for |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | The collector. Always, and the [logs](#service-logs) and [traces](#trace-requests-through-the-control-plane) profiles run the same one |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | The collector. Always, and the [logs](#service-logs) and [traces](#trace-requests-through-the-control-plane) profiles run the same one |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | The bundled exporter, and the one that reads project quotas. Not needed if you [run your own exporter](#install-and-start-the-agent) |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | The [AI agent](#ai-agent). Not needed if you take its service out of `docker-compose.yml`. The `release` tag moves with each OneUptime release, so copy it again when you upgrade |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | Only the [database path](/docs/telemetry/openstack-very-large-clouds#the-database-path) |
@@ -1722,7 +1722,7 @@ The images are pinned in `docker-compose.yml`, so what you mirror is exactly wha
 The two that name a digest are copied by digest, so a mirror that keeps the digest holds the same bytes. On a machine that reaches the internet and your registry, `crane copy` keeps it (`skopeo copy --all --preserve-digests` does too). Or save them to a file with `docker save`, carry it across, and `docker load` it on the agent's machine.
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

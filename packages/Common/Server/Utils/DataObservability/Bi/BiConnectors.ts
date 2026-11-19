@@ -29,11 +29,14 @@ import {
   readPowerBiRefreshes,
 } from "./PowerBiRefreshes";
 import { PowerBiDataflowsRead, readPowerBiDataflows } from "./PowerBiDataflows";
+import { BiReadKeptStateError } from "./BiReadState";
 import {
+  getPowerBiPickUps,
   mergePowerBiWorkspaces,
   planPowerBiScan,
   POWER_BI_READ_STATE_VERSION,
   PowerBiReadState,
+  PowerBiScanMerge,
   PowerBiScanPlan,
   readPowerBiReadState,
   writePowerBiReadState,
@@ -51,15 +54,19 @@ import {
   readPowerBiWorkspaces,
 } from "./PowerBiScan";
 import {
+  describeRunningScans,
   describeUnscannedWorkspaces,
   listPowerBiWorkspaces,
   POWER_BI_ASKED_SCAN_WAIT_IN_MS,
   POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
-  PowerBiScanChunk,
+  PowerBiPendingScan,
   PowerBiScannerApi,
+  PowerBiScanOutcome,
   PowerBiScanRun,
   PowerBiScanTiming,
+  PowerBiUnscanned,
   runPowerBiScans,
+  settlePowerBiScans,
 } from "./PowerBiScanner";
 
 /*
@@ -903,7 +910,9 @@ export class PowerBiConnector {
     /*
      * Only the workspaces that changed since the last read, and those it
      * could not scan; the whole tenant when nothing is kept, and once a day
-     * for the hourly read (PowerBiReadState, #9552).
+     * for the hourly read (PowerBiReadState, #9552). The scans earlier
+     * reads stopped waiting for are picked up first, while Power BI keeps
+     * their results (#9697).
      */
     const kept: PowerBiReadState | null = readPowerBiReadState(input.readState);
     const plan: PowerBiScanPlan = planPowerBiScan({
@@ -916,39 +925,98 @@ export class PowerBiConnector {
       modifiedSince: plan.modifiedSince,
       timing,
     });
+    const pickUps: ReturnType<typeof getPowerBiPickUps> = getPowerBiPickUps({
+      state: kept,
+      now,
+    });
     const requestedIds: Array<string> = plan.isFull
       ? listed
-      : Array.from(new Set([...listed, ...(kept?.pendingWorkspaceIds || [])]));
+      : Array.from(
+          new Set([
+            ...listed,
+            ...(kept?.pendingWorkspaceIds || []),
+            ...pickUps.expiredWorkspaceIds,
+          ]),
+        );
+    const waitInMs: number = input.isScheduled
+      ? POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS
+      : POWER_BI_ASKED_SCAN_WAIT_IN_MS;
     const run: PowerBiScanRun = await runPowerBiScans({
       api,
       workspaceIds: requestedIds,
+      pickUp: pickUps.pickUp,
       timing,
-      waitInMs: input.isScheduled
-        ? POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS
-        : POWER_BI_ASKED_SCAN_WAIT_IN_MS,
+      waitInMs,
     });
-
-    // Nothing scanned, and nothing kept to stand in for it: the read fails, with Power BI's reason.
-    if (run.scanned.length === 0 && run.unscanned.length > 0 && !kept) {
-      throw new Error(run.unscanned[0]!.reason);
-    }
-
     const merged: ReturnType<typeof mergePowerBiWorkspaces> =
       mergePowerBiWorkspaces({
         kept: kept?.workspaces || [],
         isFull: plan.isFull,
-        requestedIds,
-        scannedIds: run.scanned.flatMap(
-          (chunk: PowerBiScanChunk): Array<string> => {
-            return chunk.workspaceIds;
+        listedIds: listed,
+        scans: run.outcomes.map(
+          (outcome: PowerBiScanOutcome): PowerBiScanMerge => {
+            if (outcome.kind === "scanned") {
+              return {
+                workspaceIds: outcome.workspaceIds,
+                read: readPowerBiWorkspaces([outcome.result]),
+              };
+            }
+
+            return outcome.kind === "running"
+              ? {
+                  workspaceIds: outcome.workspaceIds,
+                  pending: {
+                    scanId: outcome.scanId,
+                    workspaceIds: outcome.workspaceIds,
+                    startedAt: outcome.startedAt,
+                  },
+                }
+              : { workspaceIds: outcome.workspaceIds };
           },
         ),
-        scanned: readPowerBiWorkspaces(
-          run.scanned.map((chunk: PowerBiScanChunk): JSONObject => {
-            return chunk.result;
-          }),
-        ),
       });
+    // What the next read starts from, kept even when this one shows nothing yet.
+    const nextState: (
+      dataflows: Pick<PowerBiReadState, "dataflows" | "dataflowExports">,
+    ) => JSONObject | null = (
+      dataflows: Pick<PowerBiReadState, "dataflows" | "dataflowExports">,
+    ): JSONObject | null => {
+      return writePowerBiReadState({
+        version: POWER_BI_READ_STATE_VERSION,
+        scannedFrom: now.toISOString(),
+        fullScanAt: plan.isFull || !kept ? now.toISOString() : kept.fullScanAt,
+        pendingWorkspaceIds: merged.pendingWorkspaceIds,
+        pendingScans: merged.pendingScans,
+        workspaces: merged.workspaces,
+        ...dataflows,
+      });
+    };
+    const settled: {
+      unscanned: Array<PowerBiUnscanned>;
+      running: Array<PowerBiPendingScan>;
+    } = settlePowerBiScans(run.outcomes);
+
+    /*
+     * Nothing read, and nothing kept to stand in for it: the read fails,
+     * with Power BI's reason. Scans still running are kept all the same,
+     * so the next read picks them up rather than starting over.
+     */
+    if (
+      !kept &&
+      run.scanned.length === 0 &&
+      (settled.unscanned.length > 0 || settled.running.length > 0)
+    ) {
+      if (settled.running.length > 0) {
+        throw new BiReadKeptStateError(
+          describeRunningScans(settled.running, waitInMs, {
+            isFirstRead: true,
+          })!,
+          nextState({ dataflows: new Map(), dataflowExports: [] }),
+        );
+      }
+
+      throw new Error(settled.unscanned[0]!.reason);
+    }
     /*
      * The dataflows the charted datasets read: each one's definition, kept
      * or exported now within Power BI's hourly limit, says which tables its
@@ -975,9 +1043,12 @@ export class PowerBiConnector {
       MAX_BI_DASHBOARDS,
       dataflowRead.definitions,
     );
-    const scanWarning: string | null = describeUnscannedWorkspaces(
-      run.unscanned,
-    );
+    const scanWarnings: Array<string> = [
+      describeUnscannedWorkspaces(settled.unscanned),
+      describeRunningScans(settled.running, waitInMs),
+    ].filter((warning: string | null): warning is string => {
+      return Boolean(warning);
+    });
     const datasets: Map<string, PowerBiDataset> = scanned.datasets;
     const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> =
       scanned.items.map(
@@ -1120,11 +1191,7 @@ export class PowerBiConnector {
     return {
       dashboards,
       usage,
-      warnings: [
-        ...(scanWarning ? [scanWarning] : []),
-        ...refreshRead.warnings,
-        ...warnings,
-      ],
+      warnings: [...scanWarnings, ...refreshRead.warnings, ...warnings],
       datasets: datasetReads,
       datasetFacts: getPowerBiDatasetFacts(chartedDatasets),
       sources: collectBiSources(
@@ -1133,12 +1200,7 @@ export class PowerBiConnector {
         }),
       ),
       // What the next read starts from: null for a tenant too big to keep, scanned whole each time.
-      readState: writePowerBiReadState({
-        version: POWER_BI_READ_STATE_VERSION,
-        scannedFrom: now.toISOString(),
-        fullScanAt: plan.isFull || !kept ? now.toISOString() : kept.fullScanAt,
-        pendingWorkspaceIds: merged.pendingWorkspaceIds,
-        workspaces: merged.workspaces,
+      readState: nextState({
         dataflows: dataflowRead.kept,
         dataflowExports: dataflowRead.exportedAt,
       }),

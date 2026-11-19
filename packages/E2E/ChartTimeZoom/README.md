@@ -573,6 +573,16 @@ paragraph between the Span Type title and its three options. It covers:
 Screenshots: `span-type-1440`, `span-type-help-1440`, `span-type-option-1440`,
 `span-type-help-dark-1440` and `span-type-help-390`.
 
+## Explorers: a glossary term's definition in the facet sidebar
+
+`FacetDefinitionWhole.spec.ts` (same fixture and command) pins #9863: the Span Type's
+title is the Glossary's Span, and its 288px definition was drawn inside the 224px facet
+list, which cut its end off. It is drawn on the page's body now (the tooltip layer): whole
+at its four corners and past the list's edge at the sidebar's default width, beside a
+tablet's list and on a phone, on the dark surface with readable words, and the keyboard
+still goes from the word to Read more and on from the word to the (i); Escape puts it
+away and leaves the focus on the word.
+
 ## The Security card of a host, a cluster, a Docker host and a Podman host
 
 `ResourceSecurityCard.spec.ts` (15 tests, same fixture and command) opens the host's, the

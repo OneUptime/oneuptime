@@ -1,4 +1,5 @@
 import UserService from "../../../Server/Services/UserService";
+import EmailChangeConfirmation from "../../../Server/Utils/EmailChange/EmailChangeConfirmation";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import User from "../../../Models/DatabaseModels/User";
@@ -127,13 +128,26 @@ function currentUserProps(): DatabaseCommonInteractionProps {
   };
 }
 
+/*
+ * The write that moves an account to a new address. A person's own change
+ * waits for a link to the new address (#9821, UserServiceOwnEmailChange
+ * .test.ts), and it is the write that link makes - OneUptime's own, root -
+ * that moves the account; so does single sign-on's, SCIM's and a master
+ * admin's. That is the write whose old links must die.
+ */
+function addressMovingProps(): DatabaseCommonInteractionProps {
+  return {
+    isRoot: true,
+  };
+}
+
 function updatePayload(data: UpdatePayloadData): UpdateBy<User> {
   return {
     query: (data.query || {
       _id: USER_ID.toString(),
     }) as unknown as UpdateBy<User>["query"],
     data: data.patch as unknown as UpdateBy<User>["data"],
-    props: data.props || currentUserProps(),
+    props: data.props || addressMovingProps(),
     limit: 10,
     skip: 0,
   };
@@ -343,16 +357,38 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
       expect(Object.keys(payload.data)).toEqual(["email"]);
     });
 
-    test("an ordinary user changing their own address still gets the token cleared", async () => {
+    test("an ordinary user's link dies when their new address is confirmed, not before", async () => {
       /*
-       * The victim in the report is not an admin. The clearing write must not
-       * inherit the caller's props, or it would be refused for exactly the
-       * person the fix exists to protect.
+       * The victim in the report is not an admin. Their own change waits for
+       * the new address to confirm it (#9821): until then the account still
+       * answers to the old address, so nothing is cleared. The write the
+       * confirmation link makes moves the account, and that write clears the
+       * link - as OneUptime, so it is never refused for the person the fix
+       * exists to protect.
        */
+      jest
+        .spyOn(EmailChangeConfirmation, "assertMayAsk")
+        .mockResolvedValue(undefined);
+
+      const asked: UpdateBy<User> = updatePayload({
+        patch: { email: new Email(NEW_EMAIL) },
+        props: currentUserProps(),
+      });
+
+      await userService().onBeforeUpdate(asked);
+
+      expect(asked.data.email).toBeUndefined();
+      expect(stubs.updateOneById).not.toHaveBeenCalled();
+
+      // The new address's link is opened: the account moves, the link dies.
       await userService().onBeforeUpdate(
         updatePayload({
-          patch: { email: new Email(NEW_EMAIL) },
-          props: currentUserProps(),
+          patch: {
+            email: new Email(NEW_EMAIL),
+            isEmailVerified: true,
+            newUnverifiedTemporaryEmail: null,
+          },
+          props: addressMovingProps(),
         }),
       );
 
@@ -519,6 +555,7 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
           updatePayload({
             patch: { enableTwoFactorAuth: false },
             query: { _id: OTHER_USER_ID.toString() },
+            props: currentUserProps(),
           }),
         ),
       ).rejects.toThrow(

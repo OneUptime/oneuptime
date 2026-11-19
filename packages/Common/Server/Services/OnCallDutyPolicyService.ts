@@ -88,6 +88,16 @@ import {
   ON_CALL_POLICY_REPEAT_COLUMNS,
   getOnCallPolicyRepeatRefusal,
 } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
+import UniqueNameInProject, {
+  UniqueNameRules,
+} from "../Utils/Database/UniqueNameInProject";
+import {
+  ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  ON_CALL_POLICIES_RENAMED_TOGETHER_REFUSAL,
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+} from "../../Types/Database/UniqueName";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 
 // A join row of a new policy's first escalation rule, and its model.
 interface FirstResponderJoin {
@@ -872,6 +882,68 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       service: this,
       updateBy: updateBy,
       rule: ON_CALL_POLICY_REPEAT_RULE,
+    });
+  }
+
+  /*
+   * A POLICY'S NAME IS ONE POLICY'S IN ITS PROJECT (#9742), as a team's is
+   * (#9674): a policy is picked by its name alone - an incident or alert
+   * on-call rule's policies, a monitor criteria's, a workflow that pages
+   * one, Readiness, the Slack and Microsoft Teams commands - so two policies
+   * called "Primary" could not be told apart in any of them. Compared as it
+   * reads, whatever its case or spacing (Types/Database/UniqueName).
+   *
+   * Asked of a person's or an API key's create and rename - the Dashboard,
+   * the API, Terraform, a workflow, an import - once they may make it
+   * (UniqueNameInProject). OneUptime's own writes are trusted. An archived
+   * policy keeps its name, and the refusal says where to unarchive it:
+   * unarchived, it would be a twin of the new one. Policies that already
+   * share a name keep it, can still be edited, and are marked on the list
+   * so they can be renamed apart.
+   */
+  private getUniqueNameRules(): UniqueNameRules<OnCallDutyPolicy> {
+    return {
+      service: this,
+      takenRefusal: ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+      renamedTogetherRefusal: ON_CALL_POLICIES_RENAMED_TOGETHER_REFUSAL,
+      clashSelect: {
+        isArchived: true,
+      },
+      // A policy in service is named before an archived one.
+      clashSort: {
+        isArchived: SortOrder.Ascending,
+      },
+      describeClash: (data: {
+        clash: OnCallDutyPolicy;
+        name: string;
+      }): string | null => {
+        return data.clash.isArchived
+          ? getNameTakenRefusalText(
+              ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+              data.name,
+            )
+          : null;
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<OnCallDutyPolicy>,
+  ): Promise<void> {
+    await UniqueNameInProject.refuseCreateClash({
+      rules: this.getUniqueNameRules(),
+      createBy: createBy,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<OnCallDutyPolicy>,
+  ): Promise<void> {
+    await UniqueNameInProject.refuseRenameClash({
+      rules: this.getUniqueNameRules(),
+      updateBy: updateBy,
     });
   }
 

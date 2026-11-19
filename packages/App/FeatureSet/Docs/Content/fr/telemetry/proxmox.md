@@ -254,7 +254,7 @@ Décommentez le receiver `journald` et le pipeline `logs` dans `otel-collector-c
 L'image standard `otel/opentelemetry-collector-contrib` est construite `FROM scratch` : elle n'a pas de `journalctl`, que le receiver journald exécute, et s'exécute sous un utilisateur qui ne peut pas lire le journal. Construisez ce wrapper et pointez dessus l'`image:` de `docker-compose.yml` :
 
 ```dockerfile title="Dockerfile"
-FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends systemd \

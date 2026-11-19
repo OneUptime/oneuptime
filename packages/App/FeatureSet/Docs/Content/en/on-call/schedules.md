@@ -18,7 +18,7 @@ When you create a schedule on the **On-Call Schedules** page, the form asks for 
 
 :::steps
 1. Go to **On-Call** > **On-Call Schedules** and click **Create On-Call Schedule**.
-2. Enter a **Name**.
+2. Enter a **Name**. A name another schedule of the project has is refused, whatever its case or spacing, so every picker tells the schedules apart.
 3. Under **Who takes turns?**, click **Add user** and pick the people, in the order they take turns.
 4. Optionally, open **More fields** to change how long each turn lasts, the time zone, the description or the labels.
 5. Click **Create On-Call Schedule**. The new schedule then opens on its **Layers** page, where you can change the rotation or add more layers.
@@ -101,7 +101,7 @@ Time away added this way applies to every on-call policy, so it takes the overri
 
 With the API, a user override (`/api/on-call-duty-policy-user-override`) created without `routeAlertsToUserId` skips the person in `overrideUserId` from `startsAt` to `endsAt`.
 
-A schedule's **Overview** has a **Used by** card: the on-call policies whose escalation rules page whoever is on call, with the rules that do. When none does, it says so and links to the on-call policies. Deleting the schedule, on its page or from the list, says first which policies page it. Policies you may not open are counted, not named.
+A schedule's **Overview** has a **Used by** card: the on-call policies whose escalation rules page whoever is on call, with the rules that do. When none does, it says so and links to the on-call policies. Deleting the schedule, on its page or from the list, says first which policies page it. Policies you may not open are counted, not named. A schedule that has the same name as another schedule, from before names had to differ, is marked **Same name as another schedule** on the **On-Call Schedules** list, which says how many there are: compare their layers, then rename one with **Rename** on its row.
 
 ## Creating schedules with the API or Terraform
 

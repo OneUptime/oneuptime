@@ -36,18 +36,6 @@ jest.mock("../../../Server/Middleware/UserAuthorization", () => {
   };
 });
 
-jest.mock("../../../Server/Middleware/IdentityRateLimit", () => {
-  return {
-    __esModule: true,
-    IdentityRateLimitBucket: { WebAuthnChallenge: "webauthn-challenge" },
-    default: {
-      getMiddleware: jest.fn(() => {
-        return jest.fn();
-      }),
-    },
-  };
-});
-
 jest.mock("../../../Server/Services/UserWebAuthnService", () => {
   return {
     __esModule: true,

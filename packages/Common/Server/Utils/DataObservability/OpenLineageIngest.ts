@@ -939,7 +939,14 @@ export default class OpenLineageIngest {
 
     const assets: Array<DataAsset> = await DataAssetService.findBy({
       query: { projectId, isDropped: false },
-      select: { _id: true, dataStoreId: true, schemaName: true, name: true },
+      select: {
+        _id: true,
+        dataStoreId: true,
+        schemaName: true,
+        name: true,
+        // What Power BI's OData connectors name a Dataverse table by (#9696).
+        entitySetName: true,
+      },
       limit: MAX_ASSETS_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
@@ -958,6 +965,9 @@ export default class OpenLineageIngest {
             dataStoreId: asset.dataStoreId!.toString(),
             schemaName: asset.schemaName || "",
             name: asset.name!,
+            ...(asset.entitySetName
+              ? { entitySetName: asset.entitySetName }
+              : {}),
           };
         }),
     };

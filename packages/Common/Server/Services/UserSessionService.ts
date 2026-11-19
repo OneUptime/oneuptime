@@ -61,8 +61,11 @@ import {
 } from "../../Types/UserSession/SessionSignIn";
 import {
   IdentityProviderSignOutRecord,
+  isSamlIdentityProviderSignOutRecord,
   readIdentityProviderSignOutRecord,
+  SamlIdentityProviderSignOutRecord,
 } from "../../Types/SSO/IdentityProviderSignOut";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 
 export interface SessionMetadata {
   session: Model;
@@ -229,9 +232,9 @@ export interface CreateSessionOptions {
   requestOrigin?: RequestOrigin | undefined;
   /*
    * What signing its person out of their identity provider too takes, for a
-   * browser sign-in through an OpenID Connect provider that asks for it
-   * (Types/SSO/IdentityProviderSignOut): kept with the session, its ID token
-   * encrypted, and read at the session's sign-out.
+   * browser sign-in through an OpenID Connect or SAML provider that asks for
+   * it (Types/SSO/IdentityProviderSignOut): kept with the session, its
+   * secrets encrypted, and read at the session's sign-out.
    */
   identityProviderSignOut?: IdentityProviderSignOutRecord | undefined;
 }
@@ -240,6 +243,12 @@ export interface CreateSessionOptions {
 export interface SessionIdentityProviderSignOut {
   sessionId: ObjectID;
   record: IdentityProviderSignOutRecord;
+}
+
+// A live session a SAML sign-in gave, and what it kept of that sign-in.
+export interface SessionSignedInThroughSamlProvider {
+  sessionId: ObjectID;
+  record: SamlIdentityProviderSignOutRecord;
 }
 
 export interface RenewSessionOptions {
@@ -1874,8 +1883,9 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * Kept only as a whole record of the shape a sign-out reads back
-     * (readIdentityProviderSignOutRecord); its ID token is encrypted on the
-     * way in (UserSession.identityProviderSignOut).
+     * (readIdentityProviderSignOutRecord); its ID token, or its SAML Name ID
+     * and SessionIndex, are encrypted on the way in
+     * (UserSession.identityProviderSignOut).
      */
     const identityProviderSignOut: IdentityProviderSignOutRecord | null =
       readIdentityProviderSignOutRecord(options.identityProviderSignOut);
@@ -1953,6 +1963,60 @@ export class Service extends DatabaseService<Model> {
         identityProviderSignOut: null,
       } as any,
     );
+  }
+
+  /*
+   * The live sessions of a person that a browser sign-in through this SAML
+   * provider gave while its "Sign out of the identity provider too" switch
+   * was on, with what each kept of the sign-in (#9603): what the identity
+   * provider's own sign-out request may end - the person signed out there,
+   * or of another app that uses it. Only a session that kept a record of
+   * this very provider is one: a sign-in through another provider, or
+   * without SSO, is never ended by this one.
+   */
+  @CaptureSpan()
+  public async findLiveSessionsSignedInThroughSamlProvider(data: {
+    userId: ObjectID;
+    providerType: SsoProviderType.GlobalSSO | SsoProviderType.ProjectSSO;
+    providerId: ObjectID;
+  }): Promise<Array<SessionSignedInThroughSamlProvider>> {
+    const sessions: Array<Model> = await this.findBy({
+      query: {
+        userId: data.userId,
+        isRevoked: false,
+      },
+      select: {
+        _id: true,
+        identityProviderSignOut: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const found: Array<SessionSignedInThroughSamlProvider> = [];
+
+    for (const session of sessions) {
+      const record: IdentityProviderSignOutRecord | null =
+        readIdentityProviderSignOutRecord(session.identityProviderSignOut);
+
+      if (
+        !session.id ||
+        !record ||
+        !isSamlIdentityProviderSignOutRecord(record) ||
+        record.providerType !== data.providerType ||
+        record.providerId.toLowerCase() !==
+          data.providerId.toString().toLowerCase()
+      ) {
+        continue;
+      }
+
+      found.push({ sessionId: session.id, record: record });
+    }
+
+    return found;
   }
 
   /*

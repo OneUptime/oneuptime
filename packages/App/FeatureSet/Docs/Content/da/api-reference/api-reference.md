@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Begge navne kontrolleres på samme måde. Reglerne for den post, du nævner, gælder, uanset hvilket navn du sender den under: en statussidegruppes overordnede gruppe skal ligge på samme statusside, en statusside tager højst tre headerlinks, og en gruppes navn skal være unikt på dens statusside.
 
+#### Navne, som en anden post allerede har
+
+Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et projekt, uanset store og små bogstaver og mellemrum: `Primary`, ` primary` og `PRIMARY` er ét navn. En oprettelse, eller en opdatering, der omdøber en af dem, til et navn, som en anden af samme slags har, afvises med en `400`, der siger det:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig. For teams, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens.
+
 ### Kontakter
 
 Et felt, der er til eller fra - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` og ethvert andet `true`- eller `false`-felt - tager `true` eller `false`. Tekst og tal, som databasen læser som en af dem, tages som den værdi, på samme måde for API'et, Terraform og arbejdsgange: `"true"`, `"yes"`, `"on"`, `"1"` og `1` er `true`, og `"false"`, `"no"`, `"off"`, `"0"` og `0` er `false`, uanset store og små bogstaver. Alt, hvad OneUptime gør med posten, behandler den også som den værdi: en vedligeholdelseshændelse, der sendes med `"isVisibleOnStatusPage": "true"`, viser sine billeder på statussiden, og `"isEnabled": "false"` slår en ressource fra under dens abonnement, ligesom `false` gør. Enhver anden værdi, som `"maybe"`, `""` eller `2`, afvises med en `400`, der nævner feltet:

@@ -115,7 +115,7 @@ Laden Sie den Collector, die Konfiguration und die Unit herunter und installiere
 
 ```bash
 cd "$(mktemp -d)"
-VERSION=0.161.0   # the collector release the agent pins
+VERSION=0.165.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
@@ -386,7 +386,7 @@ Führen Sie die Installationsbefehle erneut aus: Sie laden das Release, das dies
 
 ```bash
 cd "$(mktemp -d)"
-VERSION=0.161.0   # the collector release the agent pins
+VERSION=0.165.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz

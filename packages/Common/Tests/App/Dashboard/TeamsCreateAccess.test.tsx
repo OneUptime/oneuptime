@@ -63,6 +63,24 @@ let enterpriseEditionForTest: boolean = true;
   return enterpriseEditionForTest;
 };
 
+/*
+ * The list asks the server which of its records share a name (#9746,
+ * Components/SharedName): none here.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SharedName/SharedNamesApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        read: async (): Promise<{ groups: Array<Array<string>> }> => {
+          return { groups: [] };
+        },
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../UI/Config",

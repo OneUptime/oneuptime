@@ -1714,7 +1714,7 @@ sudo userdel oneuptime-openstack
 
 | इमेज | यह कहाँ से आती है | किसलिए |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | कलेक्टर। हमेशा, और [लॉग](#सेवा-लॉग) और [ट्रेस](#कंट्रोल-प्लेन-के-पार-अनुरोध-ट्रेस-करें) प्रोफ़ाइल वही चलाती हैं |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | कलेक्टर। हमेशा, और [लॉग](#सेवा-लॉग) और [ट्रेस](#कंट्रोल-प्लेन-के-पार-अनुरोध-ट्रेस-करें) प्रोफ़ाइल वही चलाती हैं |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | साथ आने वाला एक्सपोर्टर, और वह जो प्रोजेक्ट कोटा पढ़ता है। अगर आप [अपना एक्सपोर्टर चलाते हैं](#एजेंट-इंस्टॉल-करें-और-शुरू-करें) तो ज़रूरी नहीं |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | [AI एजेंट](#ai-एजेंट)। अगर आप उसकी सेवा `docker-compose.yml` से हटा दें तो ज़रूरी नहीं। `release` टैग हर OneUptime रिलीज़ के साथ हिलता है, इसलिए अपग्रेड करते समय फिर कॉपी करें |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | केवल [डेटाबेस पथ](/docs/telemetry/openstack-very-large-clouds#डेटाबेस-का-रास्ता) |
@@ -1722,7 +1722,7 @@ sudo userdel oneuptime-openstack
 जो दो डाइजेस्ट का नाम लेती हैं वे डाइजेस्ट से कॉपी की जाती हैं, इसलिए डाइजेस्ट रखने वाला मिरर वही बाइट रखता है। इंटरनेट और आपकी रजिस्ट्री तक पहुँचने वाली मशीन पर, `crane copy` इसे रखता है (`skopeo copy --all --preserve-digests` भी)। या उन्हें `docker save` से फ़ाइल में सहेजें, पार ले जाएँ, और एजेंट की मशीन पर `docker load` करें।
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

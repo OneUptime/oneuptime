@@ -31,7 +31,7 @@ import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import Permission from "../../Types/Permission";
+import Permission, { UserPermission } from "../../Types/Permission";
 import GlobalUserOverrideAccess, {
   GLOBAL_USER_OVERRIDE_ADD_REFUSAL,
   GLOBAL_USER_OVERRIDE_DELETE_REFUSAL,
@@ -56,6 +56,27 @@ import UserOverrideEdit, {
   UserOverrideTimesChange,
 } from "../../Types/OnCallDutyPolicy/UserOverrideEdit";
 import { fillTemplate } from "../../Types/Translator";
+import UserOverrideTeamAccess, {
+  USER_OVERRIDE_TEAM_AWAY_REFUSAL,
+  USER_OVERRIDE_TEAM_COVER_REFUSAL,
+  USER_OVERRIDE_TEAM_DELETE_REFUSAL,
+  USER_OVERRIDE_TEAM_EDIT_REFUSAL,
+  USER_OVERRIDE_TEAM_NO_TEAM_REFUSAL,
+  USER_OVERRIDE_TEAM_PERMISSION,
+} from "../../Types/OnCallDutyPolicy/UserOverrideTeamAccess";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+  TeamGrant,
+  TeamGrants,
+} from "../../Types/HeldPermissions";
+import PropsHoldingOnly from "../Utils/Permission/PropsHoldingOnly";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Query from "../../Types/BaseDatabase/Query";
+import TeamMemberService from "./TeamMemberService";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Exception from "../../Types/Exception/Exception";
 import {
   EntityManager,
   FindOptionsWhere,
@@ -97,6 +118,26 @@ interface OverrideUpdateCarryForward {
   pairs: Array<OverrideUserPair>;
   before: Array<OverrideBeforeEdit>;
 }
+
+// A write of overrides, as the team rule asks about it (checkTeamAccess).
+type UserOverrideWrite = "create" | "update" | "delete";
+
+/*
+ * An override a write adds, edits or deletes, as the team rule weighs it:
+ * the people it names - as saved, or as an add sends them - and where.
+ */
+interface OverrideNamingPeople {
+  // Its id; null for one being added.
+  id: string | null;
+  // Its policy; null for a global override.
+  onCallDutyPolicyId: string | null;
+  awayUserId: string | null;
+  // Null for a skip: the rotation covers.
+  coverUserId: string | null;
+}
+
+// The key an override being added is asked about under.
+const NEW_OVERRIDE_KEY: string = "new";
 
 /*
  * The lock every add of an override, and every edit of its times, takes in
@@ -148,6 +189,22 @@ const toOverlapTimes: (
     startsAt: OneUptimeDate.fromString(row.startsAt!),
     endsAt: OneUptimeDate.fromString(row.endsAt!),
     createdAt: row.createdAt ? OneUptimeDate.fromString(row.createdAt) : null,
+  };
+};
+
+// An override an edit or a delete read, as the team rule weighs it.
+const toOverrideNamingPeople: (
+  row: OnCallDutyPolicyUserOverride,
+) => OverrideNamingPeople = (
+  row: OnCallDutyPolicyUserOverride,
+): OverrideNamingPeople => {
+  return {
+    id: idText(row._id) || null,
+    onCallDutyPolicyId:
+      idText(row.onCallDutyPolicyId || row.onCallDutyPolicy?.id) || null,
+    awayUserId: idText(row.overrideUserId || row.overrideUser?.id) || null,
+    coverUserId:
+      idText(row.routeAlertsToUserId || row.routeAlertsToUser?.id) || null,
   };
 };
 
@@ -335,6 +392,491 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     }
 
     throw new NotAuthorizedException(GLOBAL_USER_OVERRIDE_DELETE_REFUSAL);
+  }
+
+  /*
+   * USER OVERRIDES FOR THE PEOPLE OF ONE'S OWN TEAM (issue #9733,
+   * Types/OnCallDutyPolicy/UserOverrideTeamAccess). Manage On-Call Policy
+   * User Overrides for Own Team writes overrides as the table's other
+   * permissions do, and only for the people of the teams that give it. Each
+   * override a write adds, edits or deletes is refused when the caller
+   * reaches it only through that permission and it names somebody - away or
+   * covering, as saved, or as the edit leaves it - who is not an accepted
+   * member of a team whose grant of it reaches the override.
+   *
+   * Asked of a caller who holds the team permission and no permission of
+   * the write's list that reaches every person over the whole project:
+   * anyone else writes as before. Such a permission narrowed to some labels,
+   * or to owned policies, still reaches the overrides on those policies, so
+   * the write's own checks are asked first with every row of the caller's
+   * but the team permission's (PropsHoldingOnly.buildWithout): what those
+   * reach is written as before. A team's grant over the whole project
+   * reaches every override the write's checks let through; one narrowed to
+   * labels or owned policies reaches no global override, and the overrides
+   * on the policies it reaches - asked with the caller's rows less the
+   * other teams' grants of it. A grant no team gives (an API key's) reaches
+   * nobody.
+   *
+   * `getReached` is the write's own checks asked with fewer of the
+   * caller's rows: the keys (getTeamCheckKey) of `overrides` a caller with
+   * those rows may write. `sentAwayUserId` and `sentCoverUserId` are the
+   * people an edit names instead - whoever covers from now on - held to
+   * the same teams.
+   */
+  private async checkTeamAccess(data: {
+    write: UserOverrideWrite;
+    props: DatabaseCommonInteractionProps;
+    overrides: Array<OverrideNamingPeople>;
+    sentAwayUserId?: string | null | undefined;
+    sentCoverUserId?: string | null | undefined;
+    getReached: (props: DatabaseCommonInteractionProps) => Promise<Set<string>>;
+  }): Promise<void> {
+    const props: DatabaseCommonInteractionProps = data.props;
+    const projectId: ObjectID | undefined = props.tenantId;
+
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !projectId ||
+      data.overrides.length === 0
+    ) {
+      return;
+    }
+
+    const held: HeldPermissions = CallerPermission.getHeld(props);
+    const modelPermissions: Array<Permission> = this.getWritePermissions(
+      data.write,
+    );
+
+    if (
+      !UserOverrideTeamAccess.holdsTeamPermission(held) ||
+      UserOverrideTeamAccess.reachesEveryone(held, modelPermissions)
+    ) {
+      return;
+    }
+
+    // What the caller's other permissions reach on their own: as before.
+    const reachedWithoutTeams: Set<string> =
+      UserOverrideTeamAccess.holdsEveryonePermission(held, modelPermissions)
+        ? await data.getReached(
+            PropsHoldingOnly.buildWithout({
+              databaseProps: props,
+              projectId: projectId,
+              isLeftOut: (row: UserPermission): boolean => {
+                return row.permission === USER_OVERRIDE_TEAM_PERMISSION;
+              },
+            }),
+          )
+        : new Set<string>();
+
+    const limited: Array<OverrideNamingPeople> = data.overrides.filter(
+      (override: OverrideNamingPeople): boolean => {
+        return !reachedWithoutTeams.has(this.getTeamCheckKey(override));
+      },
+    );
+
+    if (limited.length === 0) {
+      return;
+    }
+
+    const teamsByOverride: Map<
+      string,
+      Array<string>
+    > = await this.getReachingTeams({
+      props: props,
+      projectId: projectId,
+      overrides: limited,
+      getReached: data.getReached,
+    });
+
+    // Every person named, and the teams of theirs among those.
+    const people: Array<string> = [];
+
+    for (const userId of [
+      ...limited.flatMap((override: OverrideNamingPeople) => {
+        return [override.awayUserId, override.coverUserId];
+      }),
+      data.sentAwayUserId,
+      data.sentCoverUserId,
+    ]) {
+      const key: string = idText(userId).toLowerCase();
+
+      if (key && !people.includes(key)) {
+        people.push(key);
+      }
+    }
+
+    const teamIds: Array<string> = Array.from(
+      new Set(Array.from(teamsByOverride.values()).flat()),
+    );
+
+    const teamsOfPerson: Map<string, Set<string>> = await this.getTeamsOfPeople(
+      {
+        projectId: projectId,
+        teamIds: teamIds,
+        userIds: people,
+      },
+    );
+
+    for (const override of limited) {
+      const teams: Array<string> =
+        teamsByOverride.get(this.getTeamCheckKey(override)) || [];
+
+      if (teams.length === 0) {
+        throw this.getTeamRefusal(
+          data.write,
+          USER_OVERRIDE_TEAM_NO_TEAM_REFUSAL,
+        );
+      }
+
+      // Nobody named (a skip's cover) is no one outside.
+      const isInTeams: (userId: string | null | undefined) => boolean = (
+        userId: string | null | undefined,
+      ): boolean => {
+        const key: string = idText(userId).toLowerCase();
+
+        if (!key) {
+          return true;
+        }
+
+        const ofPerson: Set<string> | undefined = teamsOfPerson.get(key);
+
+        return Boolean(
+          ofPerson &&
+            teams.some((teamId: string): boolean => {
+              return ofPerson.has(teamId);
+            }),
+        );
+      };
+
+      if (data.write === "create") {
+        if (!isInTeams(override.awayUserId)) {
+          throw this.getTeamRefusal(
+            data.write,
+            USER_OVERRIDE_TEAM_AWAY_REFUSAL,
+          );
+        }
+
+        if (!isInTeams(override.coverUserId)) {
+          throw this.getTeamRefusal(
+            data.write,
+            USER_OVERRIDE_TEAM_COVER_REFUSAL,
+          );
+        }
+
+        continue;
+      }
+
+      // The override as saved names somebody else: it is not theirs to touch.
+      if (!isInTeams(override.awayUserId) || !isInTeams(override.coverUserId)) {
+        throw this.getTeamRefusal(
+          data.write,
+          data.write === "update"
+            ? USER_OVERRIDE_TEAM_EDIT_REFUSAL
+            : USER_OVERRIDE_TEAM_DELETE_REFUSAL,
+        );
+      }
+
+      // Nor is the edit's: whoever it names instead.
+      if (!isInTeams(data.sentAwayUserId)) {
+        throw this.getTeamRefusal(data.write, USER_OVERRIDE_TEAM_AWAY_REFUSAL);
+      }
+
+      if (!isInTeams(data.sentCoverUserId)) {
+        throw this.getTeamRefusal(data.write, USER_OVERRIDE_TEAM_COVER_REFUSAL);
+      }
+    }
+  }
+
+  // The table's permissions for a write: its create, update or delete list.
+  private getWritePermissions(write: UserOverrideWrite): Array<Permission> {
+    const model: OnCallDutyPolicyUserOverride =
+      new OnCallDutyPolicyUserOverride();
+
+    if (write === "create") {
+      return model.getCreatePermissions() || [];
+    }
+
+    if (write === "update") {
+      return model.getUpdatePermissions() || [];
+    }
+
+    return model.getDeletePermissions() || [];
+  }
+
+  // What the team rule calls an override: its id, or NEW_OVERRIDE_KEY.
+  private getTeamCheckKey(override: OverrideNamingPeople): string {
+    return (override.id || NEW_OVERRIDE_KEY).toLowerCase();
+  }
+
+  /*
+   * The teams whose grant of the team permission reaches each of
+   * `overrides` (by getTeamCheckKey): one over the whole project reaches
+   * every one of them; one narrowed to labels or owned policies, the ones
+   * on the policies its rows reach - and no global override. In lower case.
+   */
+  private async getReachingTeams(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    overrides: Array<OverrideNamingPeople>;
+    getReached: (props: DatabaseCommonInteractionProps) => Promise<Set<string>>;
+  }): Promise<Map<string, Array<string>>> {
+    const grants: TeamGrants = CallerPermission.getTeamGrants(
+      data.props,
+      USER_OVERRIDE_TEAM_PERMISSION,
+    );
+
+    const teamsByOverride: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    for (const override of data.overrides) {
+      teamsByOverride.set(this.getTeamCheckKey(override), []);
+    }
+
+    const onPolicies: Array<OverrideNamingPeople> = data.overrides.filter(
+      (override: OverrideNamingPeople): boolean => {
+        return Boolean(override.onCallDutyPolicyId);
+      },
+    );
+
+    for (const grant of grants.teams) {
+      let reached: Array<OverrideNamingPeople> = data.overrides;
+
+      if (!grant.isProjectWide) {
+        reached = await this.getReachedByNarrowGrant({
+          grant: grant,
+          props: data.props,
+          projectId: data.projectId,
+          overrides: onPolicies,
+          getReached: data.getReached,
+        });
+      }
+
+      for (const override of reached) {
+        teamsByOverride.get(this.getTeamCheckKey(override))?.push(grant.teamId);
+      }
+    }
+
+    return teamsByOverride;
+  }
+
+  /*
+   * The overrides on a policy that one team's grant narrowed to labels or
+   * owned policies reaches: the write's own checks, asked with the caller's
+   * rows less the other teams' grants of the team permission. The rows of
+   * the permissions that reach every person stay, so the policy is read as
+   * the caller reads it; they reach none of these overrides on their own
+   * (checkTeamAccess asked first), so whatever is reached, this team's
+   * grant reaches.
+   */
+  private async getReachedByNarrowGrant(data: {
+    grant: TeamGrant;
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    overrides: Array<OverrideNamingPeople>;
+    getReached: (props: DatabaseCommonInteractionProps) => Promise<Set<string>>;
+  }): Promise<Array<OverrideNamingPeople>> {
+    if (data.overrides.length === 0) {
+      return [];
+    }
+
+    const reached: Set<string> = await data.getReached(
+      PropsHoldingOnly.buildWithout({
+        databaseProps: data.props,
+        projectId: data.projectId,
+        isLeftOut: (row: UserPermission): boolean => {
+          return (
+            row.permission === USER_OVERRIDE_TEAM_PERMISSION &&
+            HeldPermissionsUtil.readTeamId(row.teamId) !== data.grant.teamId
+          );
+        },
+      }),
+    );
+
+    return data.overrides.filter((override: OverrideNamingPeople): boolean => {
+      return reached.has(this.getTeamCheckKey(override));
+    });
+  }
+
+  /*
+   * Of `userIds`, the teams among `teamIds` each is an accepted member of,
+   * in the project - by lower-cased user id, the team ids lower-cased. A
+   * pending invitation is no membership: it gives the team's permissions to
+   * no one, and puts no one in the team's reach.
+   */
+  private async getTeamsOfPeople(data: {
+    projectId: ObjectID;
+    teamIds: Array<string>;
+    userIds: Array<string>;
+  }): Promise<Map<string, Set<string>>> {
+    const teamsOfPerson: Map<string, Set<string>> = new Map<
+      string,
+      Set<string>
+    >();
+
+    if (data.teamIds.length === 0 || data.userIds.length === 0) {
+      return teamsOfPerson;
+    }
+
+    const members: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        projectId: data.projectId,
+        teamId: QueryHelper.any(data.teamIds),
+        userId: QueryHelper.any(data.userIds),
+        hasAcceptedInvitation: true,
+      },
+      select: {
+        userId: true,
+        teamId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const member of members) {
+      const userId: string = idText(member.userId).toLowerCase();
+      const teamId: string = idText(member.teamId).toLowerCase();
+
+      if (!userId || !teamId || !data.teamIds.includes(teamId)) {
+        continue;
+      }
+
+      const teams: Set<string> = teamsOfPerson.get(userId) || new Set<string>();
+      teams.add(teamId);
+      teamsOfPerson.set(userId, teams);
+    }
+
+    return teamsOfPerson;
+  }
+
+  /*
+   * A refusal of the team rule: an add's is a create outside the caller's
+   * reach (CreateScopeException), an edit's or a delete's a refused write.
+   */
+  private getTeamRefusal(write: UserOverrideWrite, message: string): Exception {
+    if (write === "create") {
+      return new CreateScopeException(message);
+    }
+
+    return new NotAuthorizedException(message);
+  }
+
+  /*
+   * The overrides an update or a delete writes that a caller with `props`
+   * may write, by the write's own checks: the query of the rows they may
+   * update (with `updateData`) or delete, read as OneUptime, and - for a
+   * global override - this service's rule that a global one takes a grant
+   * over the whole project. None when the checks refuse them all.
+   */
+  private getRowsReach(data: {
+    write: "update" | "delete";
+    ids: Array<string>;
+    updateData?: unknown;
+  }): (props: DatabaseCommonInteractionProps) => Promise<Set<string>> {
+    return async (
+      props: DatabaseCommonInteractionProps,
+    ): Promise<Set<string>> => {
+      if (data.ids.length === 0) {
+        return new Set<string>();
+      }
+
+      try {
+        const query: Query<OnCallDutyPolicyUserOverride> = {
+          _id: QueryHelper.any(data.ids),
+        } as Query<OnCallDutyPolicyUserOverride>;
+
+        const writable: Query<OnCallDutyPolicyUserOverride> =
+          data.write === "update"
+            ? await ModelPermission.getUpdatableQuery(
+                this.modelType,
+                query,
+                props,
+                data.updateData,
+              )
+            : await ModelPermission.checkDeleteQueryPermission(
+                this.modelType,
+                query,
+                props,
+              );
+
+        const rows: Array<OnCallDutyPolicyUserOverride> = await this.findBy({
+          query: writable,
+          select: {
+            _id: true,
+            onCallDutyPolicyId: true,
+          },
+          skip: 0,
+          limit: data.ids.length,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+
+        const mayChangeGlobal: boolean = GlobalUserOverrideAccess.mayChange(
+          CallerPermission.getHeld(props),
+          this.getWritePermissions(data.write),
+        );
+
+        return new Set<string>(
+          rows
+            .filter((row: OnCallDutyPolicyUserOverride): boolean => {
+              return Boolean(row.onCallDutyPolicyId) || mayChangeGlobal;
+            })
+            .map((row: OnCallDutyPolicyUserOverride): string => {
+              return idText(row._id).toLowerCase();
+            }),
+        );
+      } catch (error) {
+        if (this.isRefusal(error)) {
+          return new Set<string>();
+        }
+
+        throw error;
+      }
+    };
+  }
+
+  // Whether `error` is a check's refusal, rather than something that went wrong.
+  private isRefusal(error: unknown): boolean {
+    return (
+      error instanceof NotAuthorizedException ||
+      error instanceof BadDataException ||
+      error instanceof PaymentRequiredException ||
+      error instanceof ForbiddenException ||
+      error instanceof NotFoundException
+    );
+  }
+
+  /*
+   * The people an override names, as a write reads them: under either name
+   * of each column (`overrideUserId` or `overrideUser`), as text - null for
+   * nobody. RelationIdUtil refuses one that names two people.
+   */
+  private readOverridePeople(
+    data: Record<string, unknown>,
+  ): Pick<OverrideNamingPeople, "awayUserId" | "coverUserId"> {
+    const awayUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ["overrideUserId", "overrideUser"],
+      "Override User",
+    );
+
+    const coverUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ["routeAlertsToUserId", "routeAlertsToUser"],
+      "Route Alerts To User",
+    );
+
+    return {
+      awayUserId: awayUserId ? awayUserId.toString() : null,
+      coverUserId: coverUserId ? coverUserId.toString() : null,
+    };
   }
 
   /*
@@ -584,6 +1126,54 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * An add, once every permission check has let it through (the table, the
+   * policy, its scope, the global rule): held to the team rule - who is
+   * away and who covers, each in a team that lets the caller manage their
+   * user overrides - for a caller who reaches every person through no
+   * other permission (checkTeamAccess). Asked here, after the checks, so a
+   * create the checks refuse says why in their words.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<OnCallDutyPolicyUserOverride>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const record: Record<string, unknown> = onCreate.createBy
+      .data as unknown as Record<string, unknown>;
+
+    const onCallDutyPolicyId: ObjectID | null = RelationIdUtil.readConsistent(
+      record,
+      ["onCallDutyPolicyId", "onCallDutyPolicy"],
+      "On-Call Policy",
+    );
+
+    await this.checkTeamAccess({
+      write: "create",
+      props: onCreate.createBy.props,
+      overrides: [
+        {
+          id: null,
+          onCallDutyPolicyId: onCallDutyPolicyId
+            ? onCallDutyPolicyId.toString()
+            : null,
+          ...this.readOverridePeople(record),
+        },
+      ],
+      getReached: async (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Set<string>> => {
+        return (await this.mayCallerAdd({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          props: props,
+        }))
+          ? new Set<string>([NEW_OVERRIDE_KEY])
+          : new Set<string>();
+      },
+    });
   }
 
   protected override async onCreateSuccess(
@@ -1083,6 +1673,31 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       this.checkGlobalOverrideAccess(updateBy.props, "update");
     }
 
+    /*
+     * The team rule (issue #9733): the people each override names, and
+     * whoever the edit names instead - its new cover, and who is away,
+     * which no edit changes (its column takes none).
+     */
+    const sent: Pick<OverrideNamingPeople, "awayUserId" | "coverUserId"> =
+      this.readOverridePeople(
+        (updateBy.data || {}) as unknown as Record<string, unknown>,
+      );
+
+    await this.checkTeamAccess({
+      write: "update",
+      props: updateBy.props,
+      overrides: rows.map(toOverrideNamingPeople),
+      sentAwayUserId: sent.awayUserId,
+      sentCoverUserId: sent.coverUserId,
+      getReached: this.getRowsReach({
+        write: "update",
+        ids: rows.map((row: OnCallDutyPolicyUserOverride): string => {
+          return idText(row._id);
+        }),
+        updateData: updateBy.data,
+      }),
+    });
+
     this.checkEdit(updateBy, rows);
 
     const carryForward: OverrideUpdateCarryForward = {
@@ -1573,6 +2188,22 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     ) {
       this.checkGlobalOverrideAccess(deleteBy.props, "delete");
     }
+
+    /*
+     * The team rule (issue #9733): the people each override names. Asked
+     * before the feed says anything: a delete it refuses is never said.
+     */
+    await this.checkTeamAccess({
+      write: "delete",
+      props: deleteBy.props,
+      overrides: itemsToDelete.map(toOverrideNamingPeople),
+      getReached: this.getRowsReach({
+        write: "delete",
+        ids: itemsToDelete.map((item: OnCallDutyPolicyUserOverride): string => {
+          return idText(item._id);
+        }),
+      }),
+    });
 
     /*
      * Capture the project + override-user of each row being deleted so

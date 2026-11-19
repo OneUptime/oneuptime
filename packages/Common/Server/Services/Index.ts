@@ -19,6 +19,7 @@ import ServerEmailLogService from "./ServerEmailLogService";
 import ProductFeedbackService from "./ProductFeedbackService";
 import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
 import InstanceTokenSigningKeyService from "./InstanceTokenSigningKeyService";
+import InstanceSamlSigningKeyService from "./InstanceSamlSigningKeyService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -662,6 +663,7 @@ const services: Array<BaseService> = [
   ProductFeedbackService,
   InstanceReceivingPeriodService,
   InstanceTokenSigningKeyService,
+  InstanceSamlSigningKeyService,
   DomainService,
 
   EmailLogService,

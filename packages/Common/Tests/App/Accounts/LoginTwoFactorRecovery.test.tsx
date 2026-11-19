@@ -363,7 +363,7 @@ const installMocks: InstallMocksFunction = (): void => {
          * and keep the recovery link on screen -- which is precisely the
          * screen somebody with a broken key is standing on.
          */
-        if (url.includes("/user-webauthn/generate-authentication-options")) {
+        if (url.includes("/identity/security-key-sign-in-options")) {
           throw new Error("No authenticator is available on this device.");
         }
 

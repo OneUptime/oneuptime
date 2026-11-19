@@ -1,7 +1,9 @@
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
   DeviceNamingOutcome,
   DeviceNamingResult,
 } from "../../../Types/NetworkDevice/DeviceNaming";
+import { compareListOrderValues } from "../../ListOrder";
 import { MAX_DEVICE_NAME_LENGTH } from "../../NetworkDiscovery/DiscoveredDeviceBuilder";
 import {
   NamePatternProblem,
@@ -115,20 +117,22 @@ function toTime(value: unknown): number {
 
 /*
  * The order rules are tried in, as the rules page lists them: the highest
- * priority first, then the oldest, then by id - so two rules with the same
- * place never swap between runs.
+ * priority first (a rule without one after every rule that has one: the one
+ * rule of Utils/ListOrder, for a list that counts down), then the oldest,
+ * then by id - so two rules with the same place never swap between runs.
  */
 export function compareNamingRules(
   left: NamingRuleCandidate,
   right: NamingRuleCandidate,
 ): number {
-  const leftPriority: number =
-    typeof left.priority === "number" ? left.priority : 0;
-  const rightPriority: number =
-    typeof right.priority === "number" ? right.priority : 0;
+  const byPriority: number = compareListOrderValues(
+    left.priority,
+    right.priority,
+    SortOrder.Descending,
+  );
 
-  if (leftPriority !== rightPriority) {
-    return rightPriority - leftPriority;
+  if (byPriority !== 0) {
+    return byPriority;
   }
 
   const leftTime: number = toTime(left.createdAt);

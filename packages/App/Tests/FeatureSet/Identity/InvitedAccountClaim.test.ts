@@ -834,13 +834,19 @@ describe("Identity /signup - the paths that must not have changed", () => {
     expectNothingHappened();
   });
 
-  it("does not go looking for a token when the account already has a password", async () => {
+  it("never claims an account that already has a password, even with a valid token", async () => {
     /*
-     * A registered account is not claimable at all, so the token branch must be
-     * unreachable -- otherwise a valid token for one's own old invitation would
-     * be a way back into an account that has since been given a password.
+     * A registered account is not claimable at all -- otherwise a valid token
+     * for one's own old invitation would be a way back into an account that
+     * has since been given a password.
+     *
+     * The token is still looked up, and spent, as every token sent with a
+     * sign-up is (#9816): one lookup by the token, whoever the address
+     * belongs to, so how long the answer takes says nothing about whether the
+     * address had an account. Spending it claims nothing here.
      */
     userFindOneBy.mockResolvedValue(registeredUser());
+    consumeRegistrationToken.mockResolvedValue(true);
 
     await invoke(
       "/signup",
@@ -851,8 +857,38 @@ describe("Identity /signup - the paths that must not have changed", () => {
       }),
     );
 
-    expect(consumeRegistrationToken).not.toHaveBeenCalled();
+    expect(consumeRegistrationToken).toHaveBeenCalledTimes(1);
     expect(sendCompleteRegistrationEmail).not.toHaveBeenCalled();
+    expectNothingHappened();
+  });
+
+  it("looks a token up the same way whether or not the address has an account", async () => {
+    consumeRegistrationToken.mockResolvedValue(false);
+
+    userFindOneBy.mockResolvedValue(null);
+    await invoke(
+      "/signup",
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "a-long-enough-passphrase",
+        registrationToken: VALID_TOKEN,
+      }),
+    );
+
+    userFindOneBy.mockResolvedValue(registeredUser());
+    await invoke(
+      "/signup",
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "a-long-enough-passphrase",
+        registrationToken: VALID_TOKEN,
+      }),
+    );
+
+    expect(consumeRegistrationToken).toHaveBeenCalledTimes(2);
+    expect(consumeRegistrationToken.mock.calls[0]).toEqual(
+      consumeRegistrationToken.mock.calls[1],
+    );
   });
 
   it("signs a brand-new person up with no token in sight", async () => {

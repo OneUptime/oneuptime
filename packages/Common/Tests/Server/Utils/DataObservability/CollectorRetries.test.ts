@@ -36,6 +36,7 @@ import DataSourceHttpRetry, {
 } from "../../../../Server/Utils/DataSource/HttpRetry";
 import { DataSourceRequestError } from "../../../../Server/Utils/DataSource/HttpFailure";
 import { JSONObject } from "../../../../Types/JSON";
+import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
 
 /*
  * ISSUE #9540: THE WAREHOUSE COLLECTORS ASKED NOTHING AGAIN.
@@ -931,6 +932,41 @@ describe("BigQuery asks again what its error reference says may pass", () => {
     ]);
     expect(signIns).toBe(2);
     expect(waits).toEqual([2_000]);
+  });
+
+  test("a refused sign-in is said in Google's words, as a refused key and not a service that is down", async () => {
+    let signIns: number = 0;
+    const api: BigQueryApi = new BigQueryApi({
+      connection: readBigQueryConnection(BIGQUERY_CONNECTION),
+      transport: async (
+        request: DataSourceHttpRequest,
+      ): Promise<DataSourceHttpResponse> => {
+        if (request.url === "https://oauth2.googleapis.com/token") {
+          signIns++;
+          return json(
+            {
+              error: "invalid_grant",
+              error_description: "Invalid JWT Signature.",
+            },
+            400,
+          );
+        }
+
+        return json(QUERY_DONE);
+      },
+      sleep: async (): Promise<void> => {},
+    });
+    const error: Error = await rejectionOf(
+      api.query({ statement: "SELECT 1" }),
+    );
+
+    expect(signIns).toBe(1);
+    expect(error).toMatchObject({
+      kind: LlmConnectionFailureKind.Authentication,
+      statusCode: 400,
+      message:
+        'Google BigQuery sign-in failed with HTTP 400: {"error":"invalid_grant","error_description":"Invalid JWT Signature."}',
+    });
   });
 
   test("a failure says what was being read, Google's reason and message and the tries, never the token", async () => {

@@ -10,3 +10,12 @@
   visibility: hidden;
   pointer-events: none;
 }
+
+/*
+ * So does a menu or a panel drawn on the same layer (LayeredPopover): Popper
+ * marks the layer's own element itself there.
+ */
+.layered-popover[data-popper-reference-hidden] {
+  visibility: hidden;
+  pointer-events: none;
+}

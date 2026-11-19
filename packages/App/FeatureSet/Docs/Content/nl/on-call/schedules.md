@@ -18,7 +18,7 @@ Wanneer u op de pagina **Bereikbaarheidsschema's** een schema maakt, vraagt het 
 
 :::steps
 1. Ga naar **Bereikbaarheid** > **Bereikbaarheidsschema's** en klik op **Bereikbaarheidsschema maken**.
-2. Vul een **Naam** in.
+2. Vul een **Naam** in. Een naam die een ander schema van het project al heeft, wordt geweigerd, ongeacht hoofdletters en spaties, zodat elke keuzelijst de schema's uit elkaar houdt.
 3. Klik onder **Wie wisselen elkaar af?** op **Gebruiker toevoegen** en kies de mensen, in de volgorde waarin ze elkaar afwisselen.
 4. Open desgewenst **Meer velden** om te wijzigen hoe lang elke beurt duurt, de tijdzone, de beschrijving of de labels.
 5. Klik op **Bereikbaarheidsschema maken**. Het nieuwe schema opent daarna op de pagina **Lagen** ervan, waar u de rotatie kunt wijzigen of meer lagen kunt toevoegen.
@@ -101,7 +101,7 @@ Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraa
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
-Het **Overzicht** van een schema heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels oproepen wie er bereikbaar is, met de regels die dat doen. Doet geen enkel dat, dan zegt de kaart het en linkt naar het bereikbaarheidsbeleid. Het schema verwijderen, op zijn pagina of vanuit de lijst, zegt eerst welk beleid via het schema oproept. Beleid dat u niet mag openen, wordt geteld maar niet genoemd.
+Het **Overzicht** van een schema heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels oproepen wie er bereikbaar is, met de regels die dat doen. Doet geen enkel dat, dan zegt de kaart het en linkt naar het bereikbaarheidsbeleid. Het schema verwijderen, op zijn pagina of vanuit de lijst, zegt eerst welk beleid via het schema oproept. Beleid dat u niet mag openen, wordt geteld maar niet genoemd. Een schema met dezelfde naam als een ander schema, uit de tijd dat namen nog niet hoefden te verschillen, is in de lijst **Bereikbaarheidsschema's** gemarkeerd met **Zelfde naam als een ander schema**, en die lijst zegt hoeveel het er zijn: vergelijk hun lagen en hernoem er dan één met **Hernoemen** in de rij ervan.
 
 ## Schema's maken met de API of Terraform
 

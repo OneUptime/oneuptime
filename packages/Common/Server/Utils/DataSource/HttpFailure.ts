@@ -1,4 +1,5 @@
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import {
   ProbeFailureCause,
   writeProbeFailureCause,
@@ -172,11 +173,26 @@ export function isRequestId(value: unknown): value is string {
 }
 
 /*
+ * A failure the provider's own docs say may pass (#9679): the warehouse
+ * was busy, unavailable for now or under maintenance - an answer the
+ * shared retry asked again until its tries or its budget ran out, or a
+ * statement the warehouse took and then failed for a moment. A data check
+ * that met one is started again once (DataCheckRestart).
+ */
+export interface DataSourceBusy {
+  // The provider's own word for it, where it gave one: TEMPORARILY_UNAVAILABLE, backendError.
+  code: string | null;
+  // How long it asked to wait before the next try, where it said.
+  waitInMs?: number | undefined;
+}
+
+/*
  * An answer of a data source that is no success: its status, the
  * provider's own error code, the ID its support finds it by and how many
  * times it was asked. The message says what was being read and what the
  * provider answered; reason says only the answer, for a warning that names
- * what it was about itself. Neither ever holds a credential.
+ * what it was about itself. Neither ever holds a credential. busy says the
+ * provider's docs call it passing, when they do.
  */
 export class DataSourceRequestError extends Error {
   public readonly statusCode: number;
@@ -184,6 +200,7 @@ export class DataSourceRequestError extends Error {
   public readonly requestId: string | null;
   public readonly attempts: number;
   public readonly reason: string;
+  public readonly busy: DataSourceBusy | null;
 
   public constructor(data: {
     message: string;
@@ -192,6 +209,7 @@ export class DataSourceRequestError extends Error {
     errorCode: string | null;
     requestId: string | null;
     attempts: number;
+    busy?: DataSourceBusy | null | undefined;
   }) {
     super(data.message);
     this.reason = data.reason;
@@ -199,7 +217,33 @@ export class DataSourceRequestError extends Error {
     this.errorCode = data.errorCode;
     this.requestId = data.requestId;
     this.attempts = data.attempts;
+    this.busy = data.busy || null;
   }
+}
+
+/*
+ * A statement the warehouse took and then failed for a moment, as its own
+ * docs call it (#9679): a Databricks statement FAILED with
+ * TEMPORARILY_UNAVAILABLE, an Athena query whose error is Retryable. The
+ * message says it as the collector always did; busy says why it may pass.
+ */
+export class DataSourceBusyError extends Error {
+  public readonly busy: DataSourceBusy;
+
+  public constructor(message: string, busy: DataSourceBusy) {
+    super(message);
+    this.name = "DataSourceBusyError";
+    this.busy = busy;
+  }
+}
+
+// Whether a failure may pass, as its provider's docs say: why, or null for one that would fail again.
+export function readDataSourceBusy(error: unknown): DataSourceBusy | null {
+  if (error instanceof DataSourceBusyError) {
+    return error.busy;
+  }
+
+  return error instanceof DataSourceRequestError ? error.busy : null;
 }
 
 export interface FailedAnswer {
@@ -220,6 +264,8 @@ export interface FailedAnswer {
   refused?: { who: string; advice?: string | undefined } | undefined;
   // The connection's secrets, taken out of the provider's message.
   secrets?: Array<string> | undefined;
+  // Why the provider's docs say it may pass, when they do (#9679).
+  busy?: DataSourceBusy | null | undefined;
 }
 
 /*
@@ -271,6 +317,30 @@ export function describeFailedAnswer(answer: FailedAnswer): {
 }
 
 /*
+ * An answer outside 2xx, thrown by the transport DataSourceHttpRetry hands a
+ * caller that reads no answer itself (asTransport): a BadDataException, as
+ * DataSourceHttpFetch throws one, whose message says who answered which
+ * request with what status, then the provider's own words. The status and
+ * those words are kept as they came, so a caller that tells failures apart
+ * by their status (LlmProviderError: a refused key from a service that is
+ * down) reads them here, never out of the sentence.
+ */
+export class DataSourceStatusException extends BadDataException {
+  public readonly statusCode: number;
+  // The provider's own words: the start of the answer's body, trimmed.
+  public readonly bodyText: string;
+
+  public constructor(
+    message: string,
+    answer: { statusCode: number; bodyText: string },
+  ) {
+    super(message);
+    this.statusCode = answer.statusCode;
+    this.bodyText = answer.bodyText;
+  }
+}
+
+/*
  * A request that got no answer at all: the transport threw (a network that
  * failed, a timeout, an address the egress guard refused). Its message is
  * the transport's own, so a caller that reads the message reads it as
@@ -306,6 +376,7 @@ export function failedAnswerError(
     errorCode: answer.errorCode,
     requestId: answer.requestId,
     attempts: answer.attempts,
+    busy: answer.busy,
   });
 }
 
