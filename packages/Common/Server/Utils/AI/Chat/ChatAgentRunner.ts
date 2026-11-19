@@ -58,7 +58,10 @@ import {
   ToolContext,
 } from "../Toolbox/ToolTypes";
 import { buildObservabilityChatSystemPrompt } from "./ObservabilityChatPrompt";
-import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
+import {
+  ExtraToolCall,
+  ObservabilityAssistantExtraTool,
+} from "./ObservabilityAssistant";
 import {
   compactAgentContext,
   CompactionResult,
@@ -610,6 +613,14 @@ interface TurnState {
   toolActions: Array<AIChatToolAction>;
   egressToolEntries: Array<AIRunEgressManifestToolEntry>;
   startedAtMs: number;
+  /*
+   * When the turn's time limit ends (epoch ms): what its loop stops at,
+   * set once the loop has read its limits, and handed to every extra tool
+   * call, so a kubectl or infrastructure command started near the end
+   * waits no longer than the turn has left (issue #6496). A turn resumed
+   * after an approval sets it again, from its new start.
+   */
+  runDeadlineAtMs?: number | undefined;
   // The turn's extra tools, so an action card can title an extra mutation.
   extraTools?: Array<ChatExtraTool> | undefined;
   /*
@@ -1020,6 +1031,11 @@ export default class ChatAgentRunner {
     const runLimits: AIAgentRunLimits = await AIRunLimitsReader.read({
       projectId: request.projectId,
     });
+    // The deadline the loop stops at, which its commands plan their waits by.
+    state.runDeadlineAtMs = AIAgentRunLimitsHelper.getDeadlineAtMs(
+      runLimits,
+      state.startedAtMs,
+    );
     const loopDetector: AgentLoopDetector = new AgentLoopDetector();
     // The tokens of the latest call: the least the next one adds.
     let lastCallTokens: number = 0;
@@ -2118,6 +2134,7 @@ export default class ChatAgentRunner {
       request,
       toolContext,
       toolCall,
+      { runDeadlineAtMs: state.runDeadlineAtMs },
     );
 
     const durationInMs: number = Date.now() - toolStartMs;
@@ -2236,12 +2253,14 @@ export default class ChatAgentRunner {
   /*
    * Run one tool: the turn's extra tool of that name (its execute owns its
    * own authorization and timeouts; a throw becomes an error the model can
-   * correct from, never a crashed turn), or the toolbox tool.
+   * correct from, never a crashed turn), handed what the turn knows at the
+   * call - its deadline - or the toolbox tool.
    */
   private static async runTool(
     request: ChatTurnRequest,
     toolContext: ToolContext,
     toolCall: LLMToolCall,
+    call: ExtraToolCall,
   ): Promise<ToolCallOutcome> {
     const extraTool: ChatExtraTool | undefined = this.getExtraTool(
       request,
@@ -2257,7 +2276,7 @@ export default class ChatAgentRunner {
     }
 
     try {
-      return await extraTool.execute(toolCall.arguments);
+      return await extraTool.execute(toolCall.arguments, call);
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);

@@ -292,7 +292,24 @@ export interface ObservabilityAssistantTransport {
  */
 export interface ObservabilityAssistantExtraTool {
   definition: LLMToolDefinition;
-  execute: (args: JSONObject) => Promise<ToolCallOutcome>;
+  execute: (
+    args: JSONObject,
+    call?: ExtraToolCall | undefined,
+  ) => Promise<ToolCallOutcome>;
+}
+
+/*
+ * What the loop that calls an extra tool knows at the call (issue #6496):
+ * when the run's time limit ends, in epoch milliseconds - the deadline the
+ * loop itself stops at. A tool that waits on something outside OneUptime
+ * (a kubectl or infrastructure command) plans its wait to end before it.
+ * An Ask AI turn hands it each call, since its clock starts again when it
+ * resumes after an approval and its tools are built before its loop reads
+ * its limits; a runner that knows its deadline when it builds a toolkit
+ * passes it there too (runDeadlineAtMs), and the earlier of the two holds.
+ */
+export interface ExtraToolCall {
+  runDeadlineAtMs?: number | undefined;
 }
 
 export interface ObservabilityAssistantResult {
@@ -706,7 +723,17 @@ export default class ObservabilityAssistant {
             };
           } else if (extraTool) {
             try {
-              outcome = await extraTool.execute(toolCall.arguments);
+              /*
+               * The deadline this loop stops at, which a command plans its
+               * wait by (issue #6496): the runner may have built the tool
+               * with its own, and the earlier holds.
+               */
+              outcome = await extraTool.execute(toolCall.arguments, {
+                runDeadlineAtMs: AIAgentRunLimitsHelper.getDeadlineAtMs(
+                  runLimits,
+                  startedAtMs,
+                ),
+              });
             } catch (err) {
               const errorMessage: string =
                 err instanceof Error ? err.message : String(err);
