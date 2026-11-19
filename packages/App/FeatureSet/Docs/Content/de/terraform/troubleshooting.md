@@ -131,9 +131,13 @@ Das passiert, wenn der Schlüssel, der eine Ressource verwaltet, sie nicht mehr 
 
 ### Eine Priorität oder Reihenfolge, die wandert
 
-Monitorstatus, Status und Schweregrade von Vorfällen und Warnungen sowie die anderen Listen, die Sie im Dashboard ordnen, vergeben jede Nummer nur einmal. Eine Nummer, die keine andere hat, bleibt so, wie sie geschrieben ist. Eine Nummer, die eine andere schon hat, wird übernommen, und die, die im Weg stehen, rücken eine Stelle nach unten, wie beim Ziehen im Dashboard. Zwei, die mit derselben Nummer konfiguriert sind, tauschen also bei jedem Apply die Plätze.
+Jede Liste, die Sie im Dashboard ordnen, behält die Nummer, die jede Ressource bekommt: Monitorstatus (`priority`), Status und Schweregrade von Vorfällen und Warnungen, benutzerdefinierte Felder, Log-Pipelines und Drop-Filter (`sort_order`), Gruppen und Ressourcen von Statusseiten, Eskalationsregeln, Ebenen von Dienstplänen und die übrigen. Eine gesetzte Nummer platziert diese Ressource und verschiebt keine andere, sodass eine Konfiguration, die eine ganze Liste nummeriert, etwa `order = index(local.severities, each.key) + 1` über ein `for_each` von `local.severities`, genau so angewendet wird, wie sie geschrieben ist, in welcher Reihenfolge die Schreibvorgänge des Providers auch ankommen, und der nächste Plan leer ist.
 
-Geben Sie jeder eine eigene Nummer mit Lücken dazwischen, etwa `101`, `102` und `103`, und ordnen Sie die, die Terraform verwaltet, in Terraform neu, nicht durch Ziehen im Dashboard.
+- Geben Sie jeder Ressource eine eigene Nummer: Zwei mit derselben Nummer behalten sie beide, nebeneinander, in einer Reihenfolge, die Sie nicht bestimmen.
+- Eine ohne Nummer angelegte Ressource kommt ans Ende ihrer Liste. Ein neuer Status von Vorfällen oder Warnungen kommt stattdessen direkt über den behobenen Status, ein neuer Monitorstatus direkt über den Offline-Status.
+- Das Löschen einer Ressource hinterlässt eine Lücke in den Nummern, was nichts ändert: Eine Liste richtet sich nach ihren Nummern, nicht nach dem Abzählen.
+- Das Ziehen einer Ressource im OneUptime-Dashboard nummeriert ihre ganze Liste von oben neu, und der nächste Plan zeigt das als Änderungen. Ordnen Sie die Ressourcen, die Terraform verwaltet, in Terraform.
+- Die eingebauten Status behalten ihre Reihenfolge: Eine Änderung, die zwei von ihnen auf dieselbe Nummer oder aus der Reihenfolge brächte, wird mit Begründung abgelehnt. Verschiebt ein Apply eingebaute Status über die alten Nummern der anderen hinweg, kann einer seiner Schreibvorgänge zuerst ankommen und auf diese Ablehnung treffen; führen Sie das Apply erneut aus, dann wird es abgeschlossen.
 
 ### Schreibgeschützte Attribute
 

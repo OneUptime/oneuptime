@@ -131,9 +131,13 @@ Succede quando la chiave che gestisce una risorsa non può più leggerla: la sua
 
 ### Una priorità o un ordine che si sposta
 
-Gli stati dei monitor, gli stati e le gravità di incidenti e avvisi, e gli altri elenchi che metti in ordine nella dashboard tengono ogni numero una sola volta. Un numero che nessun altro ha viene mantenuto come scritto. Un numero che un altro ha già viene preso, e quelli che si trovano in mezzo scendono di un posto, come fa un trascinamento nella dashboard. Così due di essi configurati con lo stesso numero si scambiano di posto a ogni apply.
+Ogni elenco che metti in ordine nella dashboard mantiene il numero che riceve ciascuna risorsa: gli stati dei monitor (`priority`), gli stati e le gravità di incidenti e avvisi, i campi personalizzati, le pipeline dei log e i filtri di scarto (`sort_order`), i gruppi e le risorse delle pagine di stato, le regole di escalation, i livelli delle pianificazioni e il resto. Impostare un numero colloca quella risorsa e non ne sposta nessun'altra, così una configurazione che numera un intero elenco, come `order = index(local.severities, each.key) + 1` su un `for_each` di `local.severities`, viene applicata esattamente come è scritta, in qualunque ordine arrivino le scritture del provider, e il piano successivo è vuoto.
 
-Dai a ciascuno il proprio numero con degli spazi tra l'uno e l'altro, come `101`, `102` e `103`, e riordina quelli che Terraform gestisce in Terraform, non trascinandoli nella dashboard.
+- Dai a ciascuna risorsa il proprio numero: due con lo stesso numero lo mantengono entrambe, una accanto all'altra, in un ordine che non scegli tu.
+- Una risorsa creata senza numero va in fondo al suo elenco. Un nuovo stato di incidente o di avviso va invece appena sopra lo stato risolto, e un nuovo stato del monitor appena sopra lo stato offline.
+- Eliminare una risorsa lascia un vuoto nei numeri, il che non cambia nulla: un elenco segue i suoi numeri, non il conteggio.
+- Trascinare una risorsa nella dashboard di OneUptime rinumera tutto il suo elenco dall'alto, e il piano successivo lo mostra come modifiche. Metti in ordine in Terraform le risorse che Terraform gestisce.
+- Gli stati predefiniti mantengono il loro ordine: una modifica che metterebbe due di essi allo stesso numero, o fuori ordine, viene rifiutata, spiegando il perché. Quando un apply sposta stati predefiniti oltre i vecchi numeri degli altri, una delle sue scritture può arrivare per prima e incontrare quel rifiuto; esegui di nuovo l'apply e si completa.
 
 ### Attributi di sola lettura
 

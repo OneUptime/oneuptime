@@ -188,7 +188,7 @@ export default class PublicNoteApprovalStep extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this step sits among the approval steps, lowest number first: a public note goes through them in this order. A new step is added to the end. Setting a number another step already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
+      "Where this step sits among the approval steps, lowest number first: a public note goes through them in this order. A new step is added to the end. Setting a number places the step there and moves no other: two steps at one number are read the older first. In the dashboard, drag the rows to reorder them.",
     canReadOnRelationQuery: true,
     example: 1,
   })

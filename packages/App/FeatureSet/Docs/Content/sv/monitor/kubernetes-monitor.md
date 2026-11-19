@@ -5,7 +5,7 @@ En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent 
 :::cards
 - [Installera agenten](/docs/monitor/kubernetes-agent): Ett Helm-kommando tar in klustret i OneUptime.
 - [Skapa monitorn](#skapa-en-kubernetes-monitor): Välj klustret, sedan en mall, ett mätvärde eller en fråga.
-- [Larmmallar](#färdiga-larmmallar): Tjugoett färdiga larm, från ett tyst kluster till etcd.
+- [Larmmallar](#färdiga-larmmallar): Tjugofyra färdiga larm, från ett tyst kluster till etcd.
 - [Kriterier](#övervakningskriterier): Statiska trösklar och avvikelseidentifiering.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - OneUptimes Kubernetes-agent körs i klustret. Se [Kubernetes-agent (Helm-installation)](/docs/monitor/kubernetes-agent); klustret visas under **Kubernetes** några minuter efter installationen.
 - För kontrollplansmallarna (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): agentens insamling från kontrollplanet, `controlPlane.enabled`, som läser API-servern direkt; etcd och schemaläggaren behöver dessutom sina slutpunkter angivna (se [Aktivera övervakning av kontrollplanet](/docs/telemetry/kubernetes-agent#aktivera-övervakning-av-kontrollplanet)). Hanterade kluster (EKS, GKE, AKS) exponerar inte de här slutpunkterna, så där får de monitorerna aldrig några data.
+- För kostnadsmallarna (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): agentens kostnadsövervakning, som är på som standard utom med presetarna `gke-autopilot` och `eks-fargate` (se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost)).
 
 ## Skapa en Kubernetes-monitor
 
@@ -85,12 +86,13 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 
 | Kategori | Mätvärden |
 | --- | --- |
-| Podd | Poddens CPU-förbrukning, Pod-minnesanvändning, Poddens fas (kod), Poddens filsystemsanvändning, Poddens utnyttjande av minnesgränsen, Poddens utnyttjande av CPU-gränsen, Poddens nätverks-I/O (ackumulerad, båda riktningarna) |
+| Podd | Poddens CPU-förbrukning, Pod-minnesanvändning, Poddens fas (kod), Poddens filsystemsanvändning, Volymkapacitet, Ledigt utrymme på volym, Poddens utnyttjande av minnesgränsen, Poddens utnyttjande av CPU-gränsen, Poddens nätverks-I/O (ackumulerad, båda riktningarna) |
 | Nod | Nodens CPU-förbrukning, Nodens allokerbara CPU, Minnesanvändning för nod, Nodens working set för minne, Filsystemsanvändning för nod, Nodens allokerbara minne, Nodens Ready-villkor, Nodens MemoryPressure-villkor, Nodens DiskPressure-villkor, Nodens PIDPressure-villkor, Nodens tillgängliga filsystem |
 | Container | Containerns omstarter, Containerns omstarter (ökning), Containerns CPU-gräns, Containerns CPU-begäran, Containerns minnesgräns, Containerns minnesbegäran, Container redo |
 | Arbetsbelastning | Deploymentens tillgängliga repliker, Deploymentens önskade repliker, DaemonSetets önskade noder, DaemonSetets felschemalagda noder, DaemonSetets redo noder, StatefulSetets önskade repliker, StatefulSetets redo repliker, Jobbets misslyckade poddar, Jobbets misslyckade poddar (ökning), Jobbets lyckade poddar |
 | HPA | HPA:ns aktuella repliker, HPA:ns önskade repliker, HPA:ns maximala repliker, HPA:ns minimala repliker |
 | Kontrollplan | etcd har en ledare, API-serverns pågående förfrågningar, Schemaläggarens väntande poddar |
+| Kostnad | Klusterkostnad, Inaktiv kostnad, Arbetsbelastningens kostnad, Arbetsbelastningens kostnadseffektivitet |
 
 > [!NOTE]
 > **Poddens CPU-förbrukning** och **Nodens CPU-förbrukning** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Poddens fas (kod)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmätvärden kommer bara när agentens insamling från kontrollplanet är påslagen. **Nodens Ready-villkor** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Containerns omstarter** är containerns löpande omstartsräknare; **Containerns omstarter (ökning)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det. Den bär det som **Containerns omstarter** bär, inklusive arbetsbelastningsnamnen för containerns podd, men inte containerns ID, som ändras vid varje omstart. **Jobbets misslyckade poddar** är ett Jobs löpande räknare för misslyckade poddar; **Jobbets misslyckade poddar (ökning)** är det agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet, så summan över ett fönster är felen i det. Den bär det som **Jobbets misslyckade poddar** bär: Jobbets namn och namnrymd.
@@ -148,6 +150,7 @@ Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter 
 | API Server Request Saturation | Kontrollplan | API-servern håller 200 eller fler pågående begäranden under hela fönstret | Kritisk |
 | Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Varning |
 | High Node Disk Usage | Lagring | En nods filsystem är mer än 90 % fullt | Varning |
+| PVC Almost Full | Lagring | Ett persistent volume claim är mer än 90 % fullt | Varning |
 | DaemonSet Pods Not Ready | Arbetsbelastning | Ett DaemonSet har noder utan en redo podd från det i 15 minuter | Varning |
 | DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Varning |
 | High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Varning |
@@ -155,8 +158,13 @@ Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter 
 | HPA Saturated at Max Replicas | Arbetsbelastning | En HPA som skalats över sin `minReplicas` kör på 90 % eller mer av sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars minnesgräns | Kritisk |
 | Pod CPU Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars CPU-gräns | Varning |
+| Cluster Daily Cost Over Budget | Kostnad | Klustrets kostnad under det senaste dygnet överstiger 100, en budget som du ändrar till din egen | Varning |
+| Namespace Daily Cost Over Budget | Kostnad | En namnrymds kostnad under det senaste dygnet överstiger 20, en budget som du ändrar till din egen | Varning |
+| High Idle Spend | Kostnad | Mer än 40 % av klustrets kostnad under det senaste dygnet gick till ledig kapacitet | Varning |
 
 Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, DaemonSet eller HPA för sig, så att ett kluster med flera ohälsosamma poddar får en incident per podd i stället för en för hela klustret.
+
+Kostnadsmallarna läser de mätvärden som OneUptime skriver utifrån agentens kostnadsrader per timme, en punkt i timmen, så de summerar det senaste dygnet; deras budgetar anges i klustrets valuta, USD som standard.
 
 **High Node CPU Request Commitment** och **High Node Memory Request Commitment** räknar bara requests från poddar som inte är klara, så som schemaläggaren gör. Klustret fortsätter att rapportera requests från en podd som är Succeeded eller Failed, till exempel från ett avslutat Job, tills podden tas bort: de räknas inte.
 

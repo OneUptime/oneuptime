@@ -747,6 +747,9 @@ import DataSecurityCustomDataTypeService, {
 import DataSecurityCheckSettingService, {
   Service as DataSecurityCheckSettingServiceType,
 } from "Common/Server/Services/DataSecurityCheckSettingService";
+import DataSecurityComplianceSettingService, {
+  Service as DataSecurityComplianceSettingServiceType,
+} from "Common/Server/Services/DataSecurityComplianceSettingService";
 import DataSecurityResidencyRuleService, {
   Service as DataSecurityResidencyRuleServiceType,
 } from "Common/Server/Services/DataSecurityResidencyRuleService";
@@ -1212,7 +1215,6 @@ import MonitorTimelineStatusService, {
 // user override
 import OnCallDutyPolicyUserOverrideAPI from "Common/Server/API/OnCallDutyPolicyUserOverrideAPI";
 import OnCallDutyPolicyScheduleAPI from "Common/Server/API/OnCallDutyPolicyScheduleAPI";
-import MoveInListAPI from "Common/Server/API/MoveInListAPI";
 import OnCallDutyPolicyCustomFieldService, {
   Service as OnCallDutyPolicyCustomFieldServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyCustomFieldService";
@@ -1943,6 +1945,7 @@ import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssu
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
+import DataSecurityComplianceSetting from "Common/Models/DatabaseModels/DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataAssetFeed from "Common/Models/DatabaseModels/DataAssetFeed";
@@ -4331,7 +4334,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A schedule's layers, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyScheduleLayer,
         OnCallDutyPolicyScheduleLayerServiceType
       >(
@@ -4343,7 +4346,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A layer's people, and moving one to another's turn (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyScheduleLayerUser,
         OnCallDutyPolicyScheduleLayerUserServiceType
       >(
@@ -4843,6 +4846,17 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
+        DataSecurityComplianceSetting,
+        DataSecurityComplianceSettingServiceType
+      >(
+        DataSecurityComplianceSetting,
+        DataSecurityComplianceSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
         DataSecurityResidencyRule,
         DataSecurityResidencyRuleServiceType
       >(
@@ -5207,7 +5221,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A status page's resources, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<StatusPageResource, StatusPageResourceServiceType>(
+      new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
         StatusPageResource,
         StatusPageResourceService,
       ).getRouter(),
@@ -5413,7 +5427,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A status page's groups, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<StatusPageGroup, StatusPageGroupServiceType>(
+      new BaseAPI<StatusPageGroup, StatusPageGroupServiceType>(
         StatusPageGroup,
         StatusPageGroupService,
       ).getRouter(),
@@ -7466,7 +7480,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // An on-call policy's escalation rules, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyEscalationRule,
         OnCallDutyPolicyEscalationRuleServiceType
       >(

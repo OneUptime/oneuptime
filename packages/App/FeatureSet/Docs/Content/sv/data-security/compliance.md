@@ -1,10 +1,11 @@
 # Efterlevnad i Datasäkerhet
 
-Datasäkerhet poängsätter nio ramverk utifrån det som dess skanningar hittade. Varje ramverk omfattar de datalager som dess regler handlar om – GDPR de datalager som innehåller personuppgifter, PCI DSS de datalager där kortdata hittades, SOC 2 varje datalager – och vart och ett av dess krav uppfylls eller underkänns av de kontroller som är bevis för det. **Datasäkerhet → Efterlevnad** visar varje ramverks poäng, hur många datalager det omfattar, och varje krav med hur många öppna problem som underkänner det. En poäng är bevis inför en revision, inte ett certifikat: den säger vad OneUptime kan se av de datalager som det läser.
+Datasäkerhet poängsätter nio ramverk utifrån det som dess skanningar hittade. Varje ramverk omfattar de datalager som dess regler handlar om – GDPR de datalager som innehåller personuppgifter, PCI DSS de datalager där kortdata hittades, SOC 2 varje datalager – och vart och ett av dess krav uppfylls eller underkänns av de kontroller som är bevis för det. **Datasäkerhet → Efterlevnad** visar varje ramverks poäng, hur många datalager det omfattar, och varje krav med hur många öppna problem som underkänner det. Varje resurs som innehåller datalager – ett Kubernetes-kluster, en Docker- eller Podman-värd, en databas, en tjänst eller en molnresurs – har en egen sådan sida, där det som inte gäller för den kan stängas av. En poäng är bevis inför en revision, inte ett certifikat: den säger vad OneUptime kan se av de datalager som det läser.
 
 :::cards
 - [Ramverken](#ramverken): De nio, och vilka datalager vart och ett omfattar.
 - [Hur ett ramverk poängsätts](#hur-ett-ramverk-poängsätts): Krav som godkänns, underkänns eller inte utvärderas.
+- [På en resurs sida](#på-en-resurs-sida): Efterlevnaden för ett kluster, en värd, en databas, en tjänst eller en molnresurs, och vad som är avstängt för den.
 - [Krav och deras kontroller](#krav-och-deras-kontroller): Varje krav, och de kontroller som är bevis för det.
 - [Register över behandling](#register-över-behandling): GDPR artikel 30, skrivet utifrån dina datalager.
 :::
@@ -47,9 +48,31 @@ flowchart TB
 - **Ett krav godkänns** när inget öppet problem från de kontroller som är kopplade till det ligger på ett datalager som ramverket omfattar, och **underkänns** när ett gör det.
 - **Det utvärderas inte** så länge inget omfattat datalager har fått sin konfiguration läst eller sitt innehåll skannat.
 - **Två krav uppfylls av Datasäkerhet själv**: GDPR artikel 30, register över behandling, och ISO 27001 A.5.12, klassificering av information. De godkänns när varje omfattat datalager har lästs eller skannats, och underkänns så länge något inte har det.
-- **Poängen** är andelen av ett ramverks utvärderade krav som godkänns, som ett heltal i procent. Ett ramverk där inget har utvärderats har ingen poäng.
+- **Det är avstängt** när varje omfattat datalager tillhör en resurs som har stängt av kravet (se [På en resurs sida](#på-en-resurs-sida)).
+- **Poängen** är andelen av ett ramverks utvärderade krav som godkänns, som ett heltal i procent: ett avstängt krav räknas varken för eller emot. Ett ramverk där inget har utvärderats har ingen poäng.
 
 Bara öppna problem räknas. Ett problem vars risk har accepterats, eller som inte är ett problem, underkänner inte sina krav, så en accepterad risk är ett beslut som din revision kan se på problemet: vem som accepterade den, varför och till när.
+
+## På en resurs sida
+
+En resurs meny får ett **Säkerhet**-avsnitt, ihopfällt tills du öppnar det, så snart resursen innehåller ett datalager som Datasäkerhet känner till, i ett projekt som använder Datasäkerhet och för den som får läsa datalager:
+
+| Resurs | Dess datalager |
+| --- | --- |
+| Kubernetes-kluster | Databaserna som körs på det |
+| Docker- eller Podman-värd | Databaserna som körs på den |
+| Databas | Själva databasen |
+| Tjänst | Dess telemetri: loggarna, spåren och undantagen som den skickar |
+| Molnresurs | Resursen själv: en bucket, en databas eller ett datavaruhus |
+
+- **Datasäkerhet** listar dessa datalager, de mest riskfyllda först, och de öppna problemen på dem. Vart och ett öppnas i Datasäkerhet, där det hanteras.
+- **Efterlevnad** poängsätter ramverken för enbart dessa datalager. De ramverk som deras data gör tillämpliga kommer först; de avstängda, och de som inget av datalagren innehåller data för, är ihopfällda nedanför.
+
+Varje ramverk har ett reglage, **Applies Here**, och det har vart och ett av dess krav också. Stänger du av ett, hålls resursens datalager utanför det ramverket, eller utanför det kravet, både på resursens sida och på **Datasäkerhet → Efterlevnad**, som anger hur många datalager som har stängts av på sina resurser. Slår du på det igen, räknas de med igen. Varje reglage sparas direkt, och varje ändring förs in i projektets [Granskningsloggar](/docs/configuration/audit-logs).
+
+Ett datalager följer en enda resurs reglage. En databas som körs på ett Kubernetes-kluster, eller på en Docker- eller Podman-värd, följer det klustrets eller den värdens: stäng av ett ramverk för klustret, så är det avstängt för varje databas på det. Databasens egen efterlevnadssida säger det och länkar dit, med reglagen låsta.
+
+Rollerna Säkerhetsmedlem, Säkerhetsadministratör, Projektadministratör och Projektägare kan slå på och stänga av ramverk och krav, precis som de kan justera en kontroll. Rollen Säkerhetstittare ser vad som är avstängt.
 
 ## Krav och deras kontroller
 
@@ -162,7 +185,7 @@ GDPR artikel 30 kräver att du för ett register över dina behandlingar. Datas�
 | Lagringstid | Det som du skriver i datalagrets **Lagringstid**: hur länge data sparas i det |
 | Ramverk | De ramverk som dess datatyper gör tillämpliga |
 
-Fyll i **Syfte** och **Lagringstid** i varje datalagers **Inställningar**: det är de två saker som ingen skanning kan veta. Registret och poängen går också att hämta via Datasäkerhets API, på `/data-security/record-of-processing` och `/data-security/compliance`, för alla som får läsa datalager (se [Integrationer för Datasäkerhet](/docs/data-security/integrations#api-terraform-och-mcp)).
+Fyll i **Syfte** och **Lagringstid** i varje datalagers **Inställningar**: det är de två saker som ingen skanning kan veta. Registret och poängen går också att hämta via Datasäkerhets API, på `/data-security/record-of-processing`, `/data-security/compliance` och, för en enskild resurs, `/data-security/resource-compliance`, för alla som får läsa datalager (se [Integrationer för Datasäkerhet](/docs/data-security/integrations#api-terraform-och-mcp)).
 
 ## Nästa steg
 

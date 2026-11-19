@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * three tables are new and empty, so their indexes and keys are made here,
  * and a server of the release before ignores them.
  */
-export class AddDataPipelineOwnerRules1809184800000
+export class AddDataPipelineOwnerRules1809184860000
   implements MigrationInterface
 {
-  public name: string = "AddDataPipelineOwnerRules1809184800000";
+  public name: string = "AddDataPipelineOwnerRules1809184860000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "このエンドポイントは、進行中のオーバーライドをサーバーの時計で終了します。終了時刻が現在になり、それ以降の呼び出しは不在だった人に再び届きます。更新と同じ権限が必要で、オーバーライドの新しい endsAt を返します。",
       "userOverrideEndNowRequestTitle": "今すぐ終了リクエスト",
       "userOverrideIdDescription": "ユーザーオーバーライドのID",
-      "userOverrideEndNowRefused": "400 Bad Request: オーバーライドがまだ始まっていない（代わりに削除してください）、すでに終了している、またはいずれにせよ1分以内に終了します。"
+      "userOverrideEndNowRefused": "400 Bad Request: オーバーライドがまだ始まっていない（代わりに削除してください）、すでに終了している、またはいずれにせよ1分以内に終了します。",
+      "moveInListHeading": "移動",
+      "moveInListIntro": "このエンドポイントは、レコードを、同じリスト内で placeOfId が示すレコードの位置へ移動します。上へ移動するとそのレコードのすぐ上に、下へ移動するとすぐ下に入り、その間にあるレコードは元の位置の方向へ 1 つずつずれます。その後、リストは上から 1、2、3 と番号を振り直されます (下へ数えるリストでは最大の番号から下へ)。これは 1 つのトランザクションで行われるため、同時に移動しても 2 つのレコードが同じ番号になることはありません。応答は changedRows です。別の番号になった各レコードを、その _id と、リスト自身の番号列の新しい番号で示します。その番号を書き込む作成や更新はそのレコードだけを配置し、ほかを動かしません。これは Terraform に必要な動作です。レコードをほかのレコードを越えて移動するには、このリクエストを送ってください。レコードの番号を更新するのと同じ権限が必要です。",
+      "moveInListRequestTitle": "移動リクエスト",
+      "moveInListIdDescription": "移動するレコードのID",
+      "placeOfIdDescription": "このレコードが位置を引き継ぐ、同じリストのレコードのID。",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId がない、ID ではない、または移動するレコードと同じリストにないレコードを示しています（別の親、別のプロジェクト、または別の種類のもの）。",
+      "moveInListRecordNotFound": "404 Not Found: 移動するレコードがありません。削除されたか、呼び出し元が読み取れません。",
+      "moveInListNotAllowed": "422 Unprocessable Entity: 呼び出し元はレコードを読み取れますが、その番号は変更できません。更新も同じく拒否されます。",
+      "moveInListBuiltInOrder": "400 Bad Request: この移動はプロジェクトの組み込みの状態の順序を崩します（たとえば解決状態を確認状態と同じかそれより上にする）。応答でそれらの名前を示します。"
     },
     "dataType": {
       "enumBadge": "列挙型",

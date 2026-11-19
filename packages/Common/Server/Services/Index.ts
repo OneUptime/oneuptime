@@ -450,6 +450,7 @@ import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
 import DataSecurityScanService from "./DataSecurityScanService";
 import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeService";
 import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
+import DataSecurityComplianceSettingService from "./DataSecurityComplianceSettingService";
 import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
 import DataSecuritySettingService from "./DataSecuritySettingService";
 import DataAssetService from "./DataAssetService";
@@ -1052,6 +1053,7 @@ const services: Array<BaseService> = [
   DataSecurityScanService,
   DataSecurityCustomDataTypeService,
   DataSecurityCheckSettingService,
+  DataSecurityComplianceSettingService,
   DataSecurityResidencyRuleService,
   DataSecuritySettingService,
   DataAssetService,

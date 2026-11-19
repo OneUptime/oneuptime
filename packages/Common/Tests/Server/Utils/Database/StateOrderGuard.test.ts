@@ -1,3 +1,4 @@
+import ListOrderMaintainer from "../../../../Server/Utils/Database/ListOrderMaintainer";
 import StateOrderGuard from "../../../../Server/Utils/Database/StateOrderGuard";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../../Server/Types/Database/DeleteBy";
@@ -22,9 +23,10 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * as. The service is faked - a project's rows in memory - so these pin the
  * guard's own decisions and the reads it makes:
  *
- *   - a row created without a place goes where its list wants a new one;
- *   - a signed-in write that puts the built-in states of a path out of order
- *     is refused before anything is written, with why;
+ *   - a row created without a place goes where its list wants a new one,
+ *     a place the server picked, which the rows in it step aside for;
+ *   - a signed-in write, or move, that puts the built-in states of a path
+ *     out of order is refused before anything is written, with why;
  *   - a signed-in delete may not take away the last row of a built-in kind;
  *   - root writes (seeding, migrations) are only placed, never refused;
  *   - writes that cannot change any of that cost no read at all;
@@ -294,6 +296,42 @@ describe("StateOrderGuard.beforeCreate", () => {
     });
 
     expect(state.order).toBe(4);
+  });
+
+  /*
+   * A number a caller writes is kept beside whoever holds it (issue
+   * #9609); this place is the server's own pick, so the resolved state and
+   * the rows behind it step aside for the new row once it is saved.
+   */
+  test("the resolved state's place is one the server picked: the rows in it step aside", async () => {
+    const state: IncidentState = newIncidentState({});
+
+    await StateOrderGuard.beforeCreate({
+      service: fake.service,
+      definition: INCIDENT,
+      createBy: {
+        data: state,
+        props: SIGNED_IN,
+      } as unknown as CreateBy<IncidentState>,
+    });
+
+    expect(ListOrderMaintainer.isPlacedByServer(state)).toBe(true);
+  });
+
+  test("a place the caller wrote is the caller's: nothing steps aside for it", async () => {
+    const state: IncidentState = newIncidentState({ order: 2 });
+
+    await StateOrderGuard.beforeCreate({
+      service: fake.service,
+      definition: INCIDENT,
+      createBy: {
+        data: state,
+        props: SIGNED_IN,
+      } as unknown as CreateBy<IncidentState>,
+    });
+
+    expect(state.order).toBe(2);
+    expect(ListOrderMaintainer.isPlacedByServer(state)).toBe(false);
   });
 
   test("the list is read in the new row's project, with its places and flags", async () => {
@@ -670,6 +708,136 @@ describe("StateOrderGuard.beforeUpdate", () => {
 
     expect(statuses.holds).toHaveLength(0);
     expect(statuses.findByQueries).toHaveLength(0);
+  });
+});
+
+describe("StateOrderGuard.beforeMove", () => {
+  let fake: FakeService;
+
+  /*
+   * A move renumbers the list in its new order (getListOrderMoveChanges);
+   * the guard is handed the rows it would give another number.
+   */
+  const move: (
+    changedRows: Array<{ id: string; order: number }>,
+    props?: Record<string, unknown>,
+    definition?: StateListDefinition,
+  ) => Promise<void> = (
+    changedRows: Array<{ id: string; order: number }>,
+    props: Record<string, unknown> = SIGNED_IN,
+    definition: StateListDefinition = INCIDENT,
+  ): Promise<void> => {
+    return StateOrderGuard.beforeMove({
+      service: fake.service,
+      definition: definition,
+      changedRows: changedRows,
+      props: props as never,
+    });
+  };
+
+  beforeEach(() => {
+    fake = fakeService(IncidentState, incidentStates());
+  });
+
+  test("a state the project added can be moved anywhere", async () => {
+    // Postmortem moved to Identified's place: everyone steps down one.
+    await expect(
+      move([
+        { id: id(5), order: 1 },
+        { id: id(1), order: 2 },
+        { id: id(2), order: 3 },
+        { id: id(3), order: 4 },
+        { id: id(4), order: 5 },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  test("the resolved state moved to the acknowledged state's place is refused, with why", async () => {
+    await expect(
+      move([
+        { id: id(4), order: 3 },
+        { id: id(3), order: 4 },
+      ]),
+    ).rejects.toThrow(
+      new BadDataException(
+        'Incidents only ever move down this list, so the resolved state ("Resolved") has to stay below the acknowledged state ("Acknowledged").',
+      ),
+    );
+  });
+
+  test("the list is read in the caller's project, with its places and flags", async () => {
+    await move([
+      { id: id(2), order: 3 },
+      { id: id(3), order: 2 },
+    ]);
+
+    expect(fake.findAllByQueries).toHaveLength(1);
+    expect(String(fake.findAllByQueries[0]!["projectId"])).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(fake.findAllBySelects[0]).toMatchObject({
+      order: true,
+      isCreatedState: true,
+      isAcknowledgedState: true,
+      isResolvedState: true,
+    });
+  });
+
+  test("a list that is already out of order can still be put right one move at a time", async () => {
+    fake.rows = [
+      incidentState(1, "Identified", 1, { isCreatedState: true }),
+      incidentState(4, "Resolved", 2, { isResolvedState: true }),
+      incidentState(3, "Acknowledged", 3, { isAcknowledgedState: true }),
+    ];
+
+    await expect(
+      move([
+        { id: id(3), order: 2 },
+        { id: id(4), order: 3 },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  test("root moves, and moves that change nothing, are not checked and read nothing", async () => {
+    await expect(
+      move(
+        [
+          { id: id(4), order: 3 },
+          { id: id(3), order: 4 },
+        ],
+        { isRoot: true, tenantId: PROJECT_ID },
+      ),
+    ).resolves.toBeUndefined();
+    await expect(move([])).resolves.toBeUndefined();
+
+    expect(fake.findAllByQueries).toEqual([]);
+  });
+
+  test("a list with no path to keep - monitor statuses, severities - is not checked", async () => {
+    await expect(
+      move(
+        [
+          { id: id(4), order: 3 },
+          { id: id(3), order: 4 },
+        ],
+        SIGNED_IN,
+        STATE_LISTS[StateListType.MonitorStatus],
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(fake.findAllByQueries).toEqual([]);
+  });
+
+  test("a move that names no project is refused", async () => {
+    await expect(
+      move(
+        [
+          { id: id(2), order: 3 },
+          { id: id(3), order: 2 },
+        ],
+        { userId: SIGNED_IN.userId },
+      ),
+    ).rejects.toThrow(BadDataException);
   });
 });
 

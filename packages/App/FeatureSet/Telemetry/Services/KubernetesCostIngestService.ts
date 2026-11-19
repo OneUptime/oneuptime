@@ -19,8 +19,26 @@ import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import { JSONObject } from "Common/Types/JSON";
+import Dictionary from "Common/Types/Dictionary";
 import logger from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
+import MetricService from "Common/Server/Services/MetricService";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
+import {
+  AggregationTemporality,
+  MetricPointType,
+} from "Common/Models/AnalyticsModels/Metric";
+import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import {
+  KUBERNETES_COST_METRICS,
+  KubernetesCostMetricPoint,
+  KubernetesCostMetricSourceRow,
+  buildKubernetesCostMetricPoints,
+  getKubernetesCostMetricDescription,
+  getKubernetesCostMetricUnit,
+  isKubernetesCostMoneyMetric,
+} from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import { writeOwnValue } from "Common/Utils/LookupTable";
 
 /** Rows per fan-in submission — same order of magnitude as exceptions. */
@@ -39,7 +57,24 @@ export class KubernetesCostStorageFlushError extends Error {
   }
 }
 
+interface BuiltCostRow {
+  row: JSONObject;
+  metricSource: KubernetesCostMetricSourceRow;
+}
+
 export default class KubernetesCostIngestService {
+  /*
+   * (project, unit) pairs this process has put the cost metrics in the
+   * metric catalog for, so a busy cluster registers them once, not on every
+   * window.
+   */
+  private static registeredCatalogs: Set<string> = new Set<string>();
+
+  // Tests: forget which catalogs this process has registered.
+  public static resetCatalogRegistrationsForTests(): void {
+    this.registeredCatalogs.clear();
+  }
+
   private static sanitizeString(value: unknown): string {
     if (typeof value !== "string") {
       return "";
@@ -218,9 +253,10 @@ export default class KubernetesCostIngestService {
     }
 
     const rows: Array<JSONObject> = [];
+    const metricSourceRows: Array<KubernetesCostMetricSourceRow> = [];
 
     for (const allocation of payload.allocations) {
-      const row: JSONObject | null = this.buildRow({
+      const built: BuiltCostRow | null = this.buildRow({
         allocation,
         projectId,
         kubernetesClusterId: cluster.id,
@@ -234,8 +270,9 @@ export default class KubernetesCostIngestService {
         alreadyIngestedWindows,
       });
 
-      if (row) {
-        rows.push(row);
+      if (built) {
+        rows.push(built.row);
+        metricSourceRows.push(built.metricSource);
       }
     }
 
@@ -267,6 +304,187 @@ export default class KubernetesCostIngestService {
     }
 
     await Promise.all(pendingAcks);
+
+    /*
+     * The cost metrics (Common/Types/Kubernetes/KubernetesCostMetrics), only
+     * once the rows they are worked out from have landed, and only from
+     * those rows: a window another shipment already delivered made its
+     * metrics then.
+     *
+     * Best effort, never the job's failure. A retry would find this chunk
+     * stored and skip it, metrics and all, so failing the job here could
+     * not write them - it would only put the allocation rows through a
+     * retry they do not need. A lost write costs a chart and a monitor one
+     * window of one batch; a write made twice would double the cost they
+     * read, which is why the metrics follow the rows rather than lead them.
+     */
+    await this.writeCostMetrics({
+      projectId: projectId,
+      kubernetesClusterId: cluster.id,
+      clusterName: clusterIdentifier,
+      k8sClusterEntityKey: k8sClusterEntityKey,
+      currency: currency,
+      serviceMetadata: serviceMetadata,
+      ingestionTimestamp: ingestionTimestamp,
+      sourceRows: metricSourceRows,
+    });
+  }
+
+  /*
+   * One metric row per point: a Delta Sum for a cost, a Gauge for
+   * efficiency, stamped at its window's start (its window's end is when the
+   * cost stopped accruing), under the cluster, with the cluster's entity key
+   * so the cluster's Metrics page and every entity-scoped query find it.
+   */
+  public static buildMetricRows(data: {
+    points: Array<KubernetesCostMetricPoint>;
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    k8sClusterEntityKey: string;
+    retentionDays: number;
+    ingestionTimestamp: string;
+  }): Array<JSONObject> {
+    return data.points.map((point: KubernetesCostMetricPoint): JSONObject => {
+      const isCost: boolean = isKubernetesCostMoneyMetric(point.metric);
+      const time: string = OneUptimeDate.toClickhouseDateTime(
+        point.windowStart,
+      );
+      const timeUnixNano: string = OneUptimeDate.toUnixNano(
+        point.windowStart,
+      ).toString();
+
+      return {
+        _id: ObjectID.generateTimeOrdered().toString(),
+        createdAt: data.ingestionTimestamp,
+        projectId: data.projectId.toString(),
+        primaryEntityId: data.kubernetesClusterId.toString(),
+        primaryEntityType: ServiceType.KubernetesCluster,
+        entityKeys: [data.k8sClusterEntityKey],
+        k8sClusterEntityKey: data.k8sClusterEntityKey,
+        name: point.metric,
+        aggregationTemporality: isCost ? AggregationTemporality.Delta : null,
+        metricPointType: isCost ? MetricPointType.Sum : MetricPointType.Gauge,
+        time: time,
+        startTime: time,
+        timeUnixNano: timeUnixNano,
+        startTimeUnixNano: timeUnixNano,
+        attributes: point.attributes,
+        attributeKeys: TelemetryUtil.getAttributeKeys(point.attributes),
+        // A refund or a reconciliation can bring a window's cost down.
+        isMonotonic: isCost ? false : null,
+        count: null,
+        sum: null,
+        min: null,
+        max: null,
+        bucketCounts: [],
+        explicitBounds: [],
+        value: point.value,
+        retentionDate: OneUptimeDate.toClickhouseDateTime(
+          OneUptimeDate.addRemoveDurationInDays(
+            point.windowStart,
+            data.retentionDays,
+          ),
+        ),
+      } as JSONObject;
+    });
+  }
+
+  private static async writeCostMetrics(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    clusterName: string;
+    k8sClusterEntityKey: string;
+    currency: string;
+    serviceMetadata: TelemetryServiceMetadata;
+    ingestionTimestamp: string;
+    sourceRows: Array<KubernetesCostMetricSourceRow>;
+  }): Promise<void> {
+    try {
+      const points: Array<KubernetesCostMetricPoint> =
+        buildKubernetesCostMetricPoints({
+          clusterName: data.clusterName,
+          rows: data.sourceRows,
+        });
+
+      if (points.length === 0) {
+        return;
+      }
+
+      // Kept as long as the cluster's other metrics.
+      const retentionDays: number = resolveTelemetryRetentionInDays({
+        pillar: "metrics",
+        serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+        serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
+        projectConfig: data.serviceMetadata.projectRetentionConfig,
+        projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
+      });
+
+      await MetricService.insertJsonRows(
+        this.buildMetricRows({
+          points: points,
+          projectId: data.projectId,
+          kubernetesClusterId: data.kubernetesClusterId,
+          k8sClusterEntityKey: data.k8sClusterEntityKey,
+          retentionDays: retentionDays,
+          ingestionTimestamp: data.ingestionTimestamp,
+        }),
+      );
+
+      await this.registerCostMetrics({
+        projectId: data.projectId,
+        currency: data.currency,
+      });
+    } catch (err) {
+      logger.error(
+        `KubernetesCostIngestService: could not write the cost metrics of cluster "${data.clusterName}" for project ${data.projectId.toString()}.`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * Put the cost metrics in the project's metric catalog, with what each
+   * one is and its unit, so the Metrics explorer, dashboards and monitors
+   * list them by name. Once a process for each project and currency.
+   */
+  private static async registerCostMetrics(data: {
+    projectId: ObjectID;
+    currency: string;
+  }): Promise<void> {
+    const key: string = JSON.stringify([
+      data.projectId.toString(),
+      data.currency,
+    ]);
+
+    if (this.registeredCatalogs.has(key)) {
+      return;
+    }
+
+    const map: Dictionary<MetricType> = {};
+
+    for (const metric of KUBERNETES_COST_METRICS) {
+      const metricType: MetricType = new MetricType();
+      metricType.name = metric;
+      metricType.description = getKubernetesCostMetricDescription(metric);
+      metricType.unit = getKubernetesCostMetricUnit({
+        metric: metric,
+        currency: data.currency,
+      });
+
+      if (isKubernetesCostMoneyMetric(metric)) {
+        metricType.aggregationTemporality = AggregationTemporality.Delta;
+        metricType.isMonotonic = false;
+      }
+
+      map[metric] = metricType;
+    }
+
+    await TelemetryUtil.indexMetricNameServiceNameMap({
+      projectId: data.projectId,
+      metricNameServiceNameMap: map,
+    });
+
+    this.registeredCatalogs.add(key);
   }
 
   /**
@@ -349,7 +567,7 @@ export default class KubernetesCostIngestService {
     retentionDays: number;
     ingestionTimestamp: string;
     alreadyIngestedWindows: Set<string>;
-  }): JSONObject | null {
+  }): BuiltCostRow | null {
     const allocation: KubernetesCostAllocationIngestRow = data.allocation;
 
     if (!allocation || typeof allocation !== "object") {
@@ -378,7 +596,7 @@ export default class KubernetesCostIngestService {
       data.retentionDays,
     );
 
-    return {
+    const row: JSONObject = {
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: data.ingestionTimestamp,
       projectId: data.projectId.toString(),
@@ -434,5 +652,21 @@ export default class KubernetesCostIngestService {
       shipmentChunk: data.shipmentChunk,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
+
+    // What the cost metrics read of it, as stored.
+    const metricSource: KubernetesCostMetricSourceRow = {
+      windowStart: windowStart,
+      windowEnd: windowEnd,
+      namespace: row["namespace"] as string,
+      controllerKind: row["controllerKind"] as string,
+      controllerName: row["controllerName"] as string,
+      podName: row["podName"] as string,
+      totalCost: row["totalCost"] as number,
+      cpuCost: row["cpuCost"] as number,
+      ramCost: row["ramCost"] as number,
+      totalEfficiency: row["totalEfficiency"] as number,
+    };
+
+    return { row: row, metricSource: metricSource };
   }
 }

@@ -76,6 +76,7 @@ import ResourceHealthPill, {
   ResourceHealthDialogWords,
 } from "../../../Components/ResourcePart/ResourceHealthPill";
 import KubernetesRecentWarningsCard from "../../../Components/Kubernetes/KubernetesRecentWarningsCard";
+import KubernetesCostOverviewCard from "./KubernetesCostOverviewCard";
 import OpenShiftHealthCard from "../../../Components/Kubernetes/OpenShiftHealthCard";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
@@ -3006,6 +3007,16 @@ const KubernetesClusterOverview: FunctionComponent<
           </div>
         )}
       </Card>
+
+      {/*
+       * What the cluster costs, beside what its pods use: spend, idle
+       * spend, efficiency and the costliest namespaces and workloads, or
+       * how to turn cost monitoring on (KubernetesCostOverviewCard).
+       */}
+      <KubernetesCostOverviewCard
+        clusterId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
 
       {/*
        * What the cluster reported about itself, and only that

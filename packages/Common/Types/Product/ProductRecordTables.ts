@@ -358,6 +358,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   ],
   [ProductKey.DataSecurity]: [
     "DataSecurityCheckSetting",
+    "DataSecurityComplianceSetting",
     "DataSecurityCustomDataType",
     "DataSecurityFlow",
     "DataSecurityIdentity",

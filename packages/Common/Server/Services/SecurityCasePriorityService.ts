@@ -12,6 +12,7 @@ import Model from "../../Models/DatabaseModels/SecurityCasePriority";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import {
   ARCHIVABLE_VALUES,
@@ -101,9 +102,11 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A priority can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the five built-in priorities keep
-   * their order: a more severe detection never lands lower.
+   * A priority can be given another number through the API, or another built-in
+   * flag, as long as the five built-in priorities keep their order: a more
+   * severe detection never lands lower. The number written places it and moves
+   * no other priority; a drag on the settings page is a move
+   * (onBeforeMoveInList).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -125,6 +128,25 @@ export class Service extends DatabaseService<Model> {
     });
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A move of a priority - a drag on the settings page, or POST <list>/:id/move
+   * - keeps the five built-in priorities in their order too, checked on the
+   * list as the move renumbers it.
+   */
+  @CaptureSpan()
+  protected override async onBeforeMoveInList(data: {
+    id: ObjectID;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.SecurityCasePriority],
+      changedRows: data.changedRows,
+      props: data.props,
+    });
   }
 
   @CaptureSpan()

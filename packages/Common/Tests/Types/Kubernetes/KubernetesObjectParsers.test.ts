@@ -593,6 +593,26 @@ describe("parsePVCObject", () => {
     expect(result!.spec.resources.requests.storage).toBe("10Gi");
     expect(result!.status.phase).toBe("Bound");
     expect(result!.status.capacity.storage).toBe("10Gi");
+    // Kubernetes leaves volumeMode out for a filesystem claim.
+    expect(result!.spec.volumeMode).toBeUndefined();
+  });
+
+  test("keeps a raw block claim's volumeMode, which says why it reports no usage (#9539)", () => {
+    const pvc: JSONObject = kv([
+      ["metadata", obj(kv([["name", str("raw-0")]]))],
+      [
+        "spec",
+        obj(
+          kv([
+            ["volumeMode", str("Block")],
+            ["accessModes", arrOfStrings(["ReadWriteOnce"])],
+          ]),
+        ),
+      ],
+      ["status", obj(kv([["phase", str("Bound")]]))],
+    ]);
+
+    expect(parsePVCObject(pvc)!.spec.volumeMode).toBe("Block");
   });
 });
 

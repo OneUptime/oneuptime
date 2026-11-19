@@ -53,6 +53,12 @@ export enum IncidentFeedEventType {
   VideoCallFailed = "VideoCallFailed",
   // A call's transcript added, or read from its provider (IncidentVideoCallAPI).
   VideoCallTranscriptAdded = "VideoCallTranscriptAdded",
+  /*
+   * A call's transcript removed, with what OneUptime AI read in it: by a
+   * person, or because the account whose sign-in read it removed OneUptime
+   * (IncidentCallTranscriptRemoval).
+   */
+  VideoCallTranscriptRemoved = "VideoCallTranscriptRemoved",
   // What OneUptime AI read in a call's transcript (IncidentCallSummaryFeed).
   VideoCallSummary = "VideoCallSummary",
   ChannelMemberAdded = "ChannelMemberAdded",

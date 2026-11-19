@@ -32,7 +32,7 @@ flowchart TB
 | Instrumentation eBPF (OBI) | DaemonSet | Traces et métriques de requêtes HTTP, gRPC, SQL et Redis de chaque pod, et la carte des services. | Par défaut, sauf sur GKE Autopilot et EKS Fargate |
 | Agent IA Kubernetes | Deployment | `kubectl` en lecture seule pour OneUptime AI pendant qu'elle enquête sur un incident ou une alerte. | Par défaut |
 | Lecteur de journaux | Deployment | Journaux de pods via l'API Kubernetes, là où le collecteur de nœud ne peut pas les lire. | Avec les presets `gke-autopilot`, `eks-fargate` et `openshift-restricted` |
-| Moteur de coûts et collecteur de coûts | Deployments | Dépenses par namespace, charge de travail et pod. | Avec `cost.enabled=true` |
+| Moteur de coûts et collecteur de coûts | Deployments | Dépenses par namespace, charge de travail et pod. | Par défaut, sauf sur GKE Autopilot et EKS Fargate |
 
 Toutes les images de l'agent sont réservées à Linux : chaque charge de travail est donc épinglée sur des nœuds Linux.
 
@@ -199,7 +199,8 @@ Définissez-les dans les **Optional configuration settings** de la console EKS, 
 - `oneuptime.labels` : des étiquettes de projet pour tout ce que ce cluster envoie, comme `{"team": "payments"}`.
 - `preset` : `eks-fargate` pour un cluster qui s'exécute uniquement sur Fargate, sinon `standard`, la valeur par défaut.
 - `logs.enabled`, `ebpf.enabled` et `aiAgent.enabled` : les journaux de pods, les traces eBPF et l'[agent IA Kubernetes](#agent-ia-kubernetes), chacun activé par défaut.
-- `kubeStateMetrics.enabled` et `cost.enabled` : kube-state-metrics et l'[observabilité des coûts](/docs/telemetry/kubernetes-cost), chacun désactivé par défaut.
+- `kubeStateMetrics.enabled` : kube-state-metrics, désactivé par défaut.
+- `cost.enabled` : l'[observabilité des coûts](/docs/telemetry/kubernetes-cost), `auto` par défaut : activée, sauf avec le preset `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ Pour les retrouver, passez à `openshift` avec `--set preset=openshift` lors d'u
 | Graphe de services (eBPF) | Arêtes de débit de requêtes, de latence et d'erreurs entre appelant et appelé, qui dessinent la carte des services |
 | Métriques de flux réseau (eBPF) | Compteurs d'octets et de paquets TCP et UDP de pod à pod, avec les métadonnées Kubernetes |
 | Statistiques TCP (eBPF) | Compteurs de temps aller-retour, de connexions échouées et de retransmissions par nœud |
-| Coûts des charges de travail (optionnel, `cost.enabled=true`) | Dépenses par namespace, charge de travail et pod, avec la capacité inutilisée et l'efficacité, ainsi que le coût horaire des nœuds et des volumes : voir [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost) |
+| Coûts des charges de travail (activés par défaut, sauf sur GKE Autopilot et EKS Fargate) | Dépenses par namespace, charge de travail et pod, avec la capacité inutilisée et l'efficacité, également sous forme de métriques sur lesquelles déclencher des alertes, ainsi que le coût horaire des nœuds et des volumes : voir [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost) |
 
 ## Événements Kubernetes
 
@@ -409,7 +410,7 @@ Les événements sur plusieurs lignes sont reconstitués avant le filtrage dans 
 Supprimer quelques métriques bruyantes (une liste de refus, généralement ce que vous voulez) :
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 N'envoyer qu'un ensemble fixe (une liste d'autorisation : tout le reste est supprimé) :
@@ -594,7 +595,7 @@ Certains graphiques affichent des métriques que l'agent ne collecte pas : **kub
 
 ### Activer l'observabilité des coûts
 
-Voyez sur la page **Coûts** du cluster ce que coûte chaque namespace, chaque charge de travail et chaque pod, avec la capacité inutilisée et la part de chaque requête effectivement utilisée :
+L'observabilité des coûts est activée par défaut : la vue d'ensemble du cluster et sa page **Coûts** affichent ce que coûte chaque namespace, chaque charge de travail et chaque pod, avec la capacité inutilisée et la part de chaque requête effectivement utilisée, et les métriques de coûts peuvent être représentées dans des graphiques et déclencher des alertes. Elle est désactivée par défaut avec les presets `gke-autopilot` et `eks-fargate`, dont les plateformes facturent chaque pod selon ce qu'il demande, ainsi que sur un agent installé avant qu'elle ne soit activée par défaut. Activez-la dans ces cas :
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Cela suffit pour une installation complète : le chart embarque le moteur open source [OpenCost](https://opencost.io) (avec le petit Prometheus dont il a besoin) et calcule le prix de vos nœuds et de vos volumes à partir des prix catalogue publics de votre fournisseur cloud, sans identifiants. Cela ajoute deux petits pods, et les premiers coûts apparaissent après la première heure clôturée. Vous utilisez déjà Kubecost ou OpenCost ? Ajoutez plutôt `--set cost.engine.url=<its service URL>`, et rien n'est embarqué. Les clusters sur site peuvent définir une grille tarifaire avec `cost.opencost.customPricing`. Le guide complet, avec la tarification sur site et le dépannage, se trouve dans [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost).
+Cela suffit pour une installation complète : le chart embarque le moteur open source [OpenCost](https://opencost.io) (avec le petit Prometheus dont il a besoin) et calcule le prix de vos nœuds et de vos volumes à partir des prix catalogue publics de votre fournisseur cloud, sans identifiants. Cela ajoute trois petits pods, et les premiers coûts apparaissent après la première heure clôturée. Pour la désactiver, définissez `--set cost.enabled=false` de la même manière. Vous utilisez déjà Kubecost ou OpenCost ? Ajoutez plutôt `--set cost.engine.url=<its service URL>`, et rien n'est embarqué. Les clusters sur site peuvent définir une grille tarifaire avec `cost.opencost.customPricing`. Le guide complet, avec la tarification sur site et le dépannage, se trouve dans [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost).
 
 ### Étiqueter automatiquement avec des étiquettes de projet
 
@@ -959,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 La cardinalité, c'est-à-dire le nombre de séries distinctes, compte autant que la fréquence, car chaque série est stockée et facturée séparément.
 
 - cAdvisor est délibérément soumis à une liste d'autorisation. Le receiver cAdvisor (activé par défaut) peut émettre des centaines de métriques ; le chart ne transmet que les compteurs de throttling du CPU et d'OOM kills de `cadvisor.metricsAllowlist`, pour vos propres graphiques et moniteurs de métriques : aucun modèle intégré ne les lit. Gardez la liste courte : chaque entrée est conservée par conteneur, si bien qu'une métrique de plus est multipliée par le nombre de conteneurs du cluster. kube-state-metrics est désactivé par défaut ; si vous l'activez (`kubeStateMetrics.enabled=true`), sa `kubeStateMetrics.metricsAllowlist` fonctionne de la même façon, et chaque entrée doit correspondre au nom entier d'une métrique.
-- Les métriques de volume par PVC (`kubeletstats.volumeMetrics.enabled`, activées par défaut) émettent une série par PVC et par pod : c'est acceptable pour la plupart des clusters, mais beaucoup pour les charges de travail avec état (Kafka, bases de données) dotées de milliers de PVC. Désactivez-les-y si vous ne surveillez pas l'espace disque des PVC, avec `--set kubeletstats.volumeMetrics.enabled=false`.
+- Les métriques de volume (`kubeletstats.volumeMetrics.enabled`, activées par défaut) émettent quelques séries par volume et par pod, et alimentent l'espace utilisé, libre et la capacité sur les pages des revendications de volume persistant ainsi que le modèle PVC Almost Full : c'est acceptable pour la plupart des clusters, mais beaucoup pour les charges de travail avec état (Kafka, bases de données) dotées de milliers de PVC. Désactivez-les-y si vous ne surveillez pas l'espace disque des PVC, avec `--set kubeletstats.volumeMetrics.enabled=false`.
 - Les métriques de saturation (`kubeletstats.utilizationMetrics.enabled`, activées par défaut) ajoutent 8 familles dérivées « % de la request ou de la limit ». Elles ne coûtent aucune collecte supplémentaire, mais si vous n'utilisez pas les moniteurs de CPU et de mémoire par rapport à la limit, supprimez-les avec `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Supprimez des métriques par nom avec `filters.metrics.exclude`, qui couvre tous les receivers, pour tout ce que les listes d'autorisation des receivers ne savent pas exprimer (voir [Inclure ou exclure des métriques par nom](#inclure-ou-exclure-des-métriques-par-nom)) :
 
@@ -990,7 +991,8 @@ Elles sont désactivées par défaut, car elles ajoutent de la charge. N'en acti
 | `kubeStateMetrics.enabled` | Des métriques sur CrashLoop, ImagePull et les motifs de planification (ajoute un Deployment kube-state-metrics et une collecte) |
 | `ebpf.features.networkInterZoneMetrics` | Double les séries de flux réseau |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Davantage de jobs de collecte Prometheus |
-| `cost.enabled` | Coûts des charges de travail (embarque OpenCost et un petit Prometheus ; des lignes de coûts horaires et une collecte de métriques strictement limitée par liste d'autorisation ; une ingestion modeste, deux pods de plus) |
+
+L'observabilité des coûts (`cost.enabled`) est en revanche activée par défaut : trois petits pods, une ligne de coûts horaire par conteneur et une collecte d'une série de prix par nœud, volume et load balancer. Désactivez-la avec `--set cost.enabled=false` si vous ne l'utilisez pas.
 
 ### Échantillonner les traces plutôt que les supprimer
 
@@ -1058,7 +1060,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Resserrez davantage si besoin : passez `minSeverity` à `ERROR`, ajoutez `metrics` aux périmètres d'une règle de namespace, ou définissez `ebpf.enabled=false` si vous envoyez déjà des traces depuis des SDK OpenTelemetry.
 
 > [!CAUTION]
-> Faites attention à ce que vous supprimez. Certains moniteurs dépendent de signaux précis : désactiver `kubeletstats.utilizationMetrics` fait taire les deux modèles qui surveillent les pods par rapport aux limites de leurs conteneurs, désactiver les journaux retire les alertes basées sur les journaux, et désactiver `cadvisor` ou `kubeletstats.volumeMetrics` retire les séries de throttling, d'OOM kills et de PVC que vos propres graphiques et moniteurs de métriques peuvent lire. `sampling.traces.percentage` ne retire aucun moniteur, mais réduit ceux qui reposent sur les spans (**Traces** sur `Span Count`, **Exceptions** sur `Exception Count`) : réajustez donc leurs seuils. Supprimez les signaux sur lesquels vous n'agissez pas, pas ceux qu'un moniteur surveille.
+> Faites attention à ce que vous supprimez. Certains moniteurs dépendent de signaux précis : désactiver `kubeletstats.utilizationMetrics` fait taire les deux modèles qui surveillent les pods par rapport aux limites de leurs conteneurs, désactiver les journaux retire les alertes basées sur les journaux, désactiver `kubeletstats.volumeMetrics` fait taire le modèle PVC Almost Full et laisse les pages des revendications sans leur utilisation, et désactiver `cadvisor` retire les séries de throttling et d'OOM kills que vos propres graphiques et moniteurs de métriques peuvent lire. `sampling.traces.percentage` ne retire aucun moniteur, mais réduit ceux qui reposent sur les spans (**Traces** sur `Span Count`, **Exceptions** sur `Exception Count`) : réajustez donc leurs seuils. Supprimez les signaux sur lesquels vous n'agissez pas, pas ceux qu'un moniteur surveille.
 
 ### Mesurer l'effet
 

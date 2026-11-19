@@ -94,6 +94,15 @@ jobs:
         if: ${{ !cancelled() && steps.install-common.outcome == 'success' && steps.install-app.outcome == 'success' }}
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit
+      # Common's guard that holds every route file of the server to a decision
+      # while its product is off, with ee/ in the checkout: ee/ decides its own
+      # route files (ee/Tests/Server/ProductRouteDecisions.ts), which the guard
+      # reads and walks only when ee/ is there, and Common Test deletes ee/
+      # before it runs, so this is where they are checked. It only reads files.
+      - name: Run Common's product route guard with ee/ present
+        if: ${{ !cancelled() && steps.install-common.outcome == 'success' && steps.install-app.outcome == 'success' }}
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/API/ProductCustomRoutesGuard.test.ts --forceExit
       # App's UI source guards that walk ee/Dashboard and ee/AdminDashboard as
       # well as the core frontends: every More (⋯) menu item has an icon, a
       # details card shows the record's own ID on its ID line, every Show ID

@@ -13,6 +13,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -23,6 +24,26 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 
 export const NOT_EVALUATED: string = translationKey("Not evaluated");
+
+/*
+ * Each requirement's status in the tone the product's chips use for it: a
+ * requirement a resource turned off is someone's choice, grey with a hollow
+ * dot, never red (Docs/ux/README.md#side-menus).
+ */
+export const REQUIREMENT_STATUS_TONES: Readonly<
+  Record<ComplianceRequirementStatus, PillTone>
+> = {
+  [ComplianceRequirementStatus.Passing]: PillTone.Success,
+  [ComplianceRequirementStatus.Failing]: PillTone.Danger,
+  [ComplianceRequirementStatus.NotEvaluated]: PillTone.Neutral,
+  [ComplianceRequirementStatus.TurnedOff]: PillTone.Paused,
+};
+
+// Stores a framework covers by their data, left out by the resources they are on.
+export const STORES_TURNED_OFF: PluralTemplate = {
+  one: "{{count}} store turned off on its resource",
+  other: "{{count}} stores turned off on their resources",
+};
 
 const STORES_IN_SCOPE: PluralTemplate = {
   one: "{{count}} store in scope",

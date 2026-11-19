@@ -53,39 +53,23 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
 import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
+import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import { getStorageUsage } from "Common/Utils/Storage/StorageUsage";
 
 /*
- * Pure raises its own capacity alerts at 80% and 90% used, so the bar
- * turns amber and red at the same levels.
+ * Pure raises its own capacity alerts at 80% and 90% used - the shared
+ * storage bar's own lines - so the bar turns amber and red at the same
+ * levels, its percent in the reader's digits (#9539). Only the share is
+ * read here, so no amounts under it.
  */
 const renderCapacityBar: (
   capacityUsedPercent: number | undefined,
 ) => ReactElement = (capacityUsedPercent: number | undefined): ReactElement => {
-  if (
-    capacityUsedPercent === null ||
-    capacityUsedPercent === undefined ||
-    !Number.isFinite(Number(capacityUsedPercent))
-  ) {
-    return <TableEmptyValue />;
-  }
-
-  const pct: number = Number(capacityUsedPercent);
-  const clamped: number = Math.min(100, Math.max(0, pct));
-  const barColor: string =
-    pct >= 90 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500";
-
   return (
-    <div className="flex items-center gap-2 min-w-[120px]">
-      <div className="flex-1 bg-gray-200 rounded-full h-2">
-        <div
-          className={`h-2 rounded-full ${barColor}`}
-          style={{ width: `${clamped}%` }}
-        />
-      </div>
-      <span className="text-xs text-gray-600 whitespace-nowrap w-12 text-right">
-        {pct.toFixed(1)}%
-      </span>
-    </div>
+    <StorageUsageBar
+      usage={getStorageUsage({ capacity: 100, used: capacityUsedPercent })}
+      showAmount={false}
+    />
   );
 };
 

@@ -86,6 +86,16 @@ export function getDatabaseBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Databases", "View Database", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,
+      ["Project", "Databases", "View Database", "Data Security"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_COMPLIANCE, [
+      "Project",
+      "Databases",
+      "View Database",
+      "Compliance",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_FEED, [
       "Project",
       "Databases",

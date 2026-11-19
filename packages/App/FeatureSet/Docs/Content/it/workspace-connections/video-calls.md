@@ -86,7 +86,7 @@ Le connessioni che hanno effettuato l'accesso con lo stesso account condividono 
 
 Eliminare una connessione revoca l'accesso di OneUptime presso Zoom e Google non appena nessun'altra connessione usa quell'accesso. Per Microsoft, rimuovi OneUptime in **My Apps** (myapps.microsoft.com) dell'account. Rimuovere OneUptime dal tuo account Zoom nello Zoom App Marketplace elimina il suo accesso da tutte le connessioni che lo usavano con quell'account, che mostrano **Non funziona** finché non vengono ricollegate.
 
-Le trascrizioni che OneUptime ha già letto restano sui loro incidenti: eliminare una connessione mantiene le chiamate che ha avviato, con le loro trascrizioni, e lo stesso vale per la rimozione di OneUptime dall'account su Zoom, Google o Microsoft. **Rimuovi trascrizione** su una chiamata elimina la sua trascrizione e ciò che OneUptime AI vi ha letto, ma non ciò che OneUptime AI ha pubblicato nel feed dell'incidente e nei suoi canali. Eliminare un incidente elimina le sue chiamate e le loro trascrizioni.
+Rimuovere OneUptime dal tuo account Zoom elimina anche, entro pochi minuti, le trascrizioni delle chiamate che OneUptime ha letto con il suo accesso, e ciò che OneUptime AI vi ha letto: dalle loro chiamate, dai feed degli incidenti e dai messaggi che OneUptime ha pubblicato nei canali Slack, Microsoft Teams e Mattermost degli incidenti. Il feed di ogni incidente lo dice, e una trascrizione aggiunta da qualcuno resta. Eliminare una connessione mantiene le chiamate che ha avviato, con le loro trascrizioni, e lo stesso vale per la rimozione di OneUptime da un account Google o Microsoft. **Rimuovi trascrizione** su una chiamata elimina la sua trascrizione e ciò che OneUptime AI vi ha letto dagli stessi posti. Se OneUptime non può più eliminare un messaggio, perché il suo workspace è stato scollegato o l'app è stata rimossa dal canale, indica dove resta il messaggio. Una causa principale o un post-mortem che qualcuno ha scritto a partire dalla chiamata resta. Eliminare un incidente elimina le sue chiamate e le loro trascrizioni.
 
 ### Se Microsoft chiede un amministratore
 
@@ -100,7 +100,7 @@ Per collegarti con un'identità di servizio invece che con l'accesso di una pers
 
 La scheda **Video Call** sulla pagina di un incidente o di un avviso ha **Start call** (o **Start another** quando ce n'è già una). Scegli una delle connessioni del progetto, l'huddle del canale Slack dell'incidente, oppure incolla un tuo link di riunione. La chiamata viene pubblicata nei canali e nel feed dell'incidente come una avviata da una regola.
 
-**Rimuovi** sulla scheda toglie una chiamata dalla pagina dell'incidente. La riunione in sé non viene eliminata, e chiunque abbia il link può ancora unirsi.
+**Rimuovi** sulla scheda toglie una chiamata dalla pagina dell'incidente, con la sua trascrizione e ciò che OneUptime AI vi ha letto. La riunione in sé non viene eliminata, e chiunque abbia il link può ancora unirsi.
 
 Avviare e rimuovere chiamate richiede il permesso di lavorare sugli incidenti (o sugli avvisi): **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore degli incidenti** o **Membro degli incidenti**, oppure **Create Incident Video Call** e **Delete Incident Video Call** in un ruolo personalizzato. Tutti quelli che possono leggere l'incidente vedono le sue chiamate.
 
@@ -152,7 +152,7 @@ Ottenere, aggiungere, sostituire e rimuovere una trascrizione, farla rileggere e
 
 ### Cosa legge OneUptime AI
 
-Leggere una trascrizione è lavoro di IA come un'indagine: viene eseguito solo mentre l'IA è attiva per il progetto, e conta nell'uso dell'IA e nei limiti giornalieri del progetto (vedi [Controllo dei costi](/docs/ai/ai-sre#controllo-dei-costi)). Una trascrizione lunga viene letta in parti. Quando l'IA è disattivata, la trascrizione viene conservata e la scheda dice che non è stata letta. Rimuovere una trascrizione rimuove ciò che OneUptime AI vi ha letto, e mantiene la causa principale dell'incidente. Anche una bozza di post-mortem dell'IA legge ciò che si è detto nelle chiamate dell'incidente (vedi [Post-mortem](/docs/incidents/postmortems)).
+Leggere una trascrizione è lavoro di IA come un'indagine: viene eseguito solo mentre l'IA è attiva per il progetto, e conta nell'uso dell'IA e nei limiti giornalieri del progetto (vedi [Controllo dei costi](/docs/ai/ai-sre#controllo-dei-costi)). Una trascrizione lunga viene letta in parti. Quando l'IA è disattivata, la trascrizione viene conservata e la scheda dice che non è stata letta. Rimuovere una trascrizione rimuove ciò che OneUptime AI vi ha letto, dalla chiamata, dal feed dell'incidente e dai suoi canali, e mantiene la causa principale dell'incidente. Anche una bozza di post-mortem dell'IA legge ciò che si è detto nelle chiamate dell'incidente (vedi [Post-mortem](/docs/incidents/postmortems)).
 
 ## Provider
 

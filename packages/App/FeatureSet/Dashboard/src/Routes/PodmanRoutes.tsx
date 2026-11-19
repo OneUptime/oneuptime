@@ -25,6 +25,8 @@ import PodmanHostProfiles from "../Pages/Podman/View/Profiles";
 import PodmanHostIncidents from "../Pages/Podman/View/Incidents";
 import PodmanHostAlerts from "../Pages/Podman/View/Alerts";
 import PodmanHostScheduledMaintenance from "../Pages/Podman/View/ScheduledMaintenance";
+import PodmanHostDataSecurity from "../Pages/Podman/View/DataSecurity";
+import PodmanHostCompliance from "../Pages/Podman/View/Compliance";
 import PodmanHostOwners from "../Pages/Podman/View/Owners";
 import PodmanHostFeed from "../Pages/Podman/View/Feed";
 import PodmanHostAuditLogs from "../Pages/Podman/View/AuditLogs";
@@ -313,6 +315,34 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
                   PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE
                 ] as Route
               }
+            />
+          }
+        />
+
+        {/* Data Security: the databases running on this host, and what to fix on them */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_DATA_SECURITY,
+          )}
+          element={
+            <PodmanHostDataSecurity
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_HOST_VIEW_DATA_SECURITY] as Route
+              }
+            />
+          }
+        />
+
+        {/* Compliance: how those databases stand, and what is turned off for the host */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_COMPLIANCE,
+          )}
+          element={
+            <PodmanHostCompliance
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_COMPLIANCE] as Route}
             />
           }
         />

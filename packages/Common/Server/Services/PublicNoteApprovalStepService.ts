@@ -2,6 +2,7 @@ import Model from "../../Models/DatabaseModels/PublicNoteApprovalStep";
 import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
 import CreateBy from "../Types/Database/CreateBy";
@@ -150,6 +151,29 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /*
+   * A step moved in its list: the notes waiting for its project's steps of
+   * its kind follow the new order, as after any change of a step.
+   */
+  @CaptureSpan()
+  protected override async onMoveInListSuccess(data: {
+    row: Model;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const projectId: ObjectID | undefined = data.row.projectId;
+    const eventType: PublicNoteApprovalEventType | undefined =
+      data.row.eventType;
+
+    if (projectId && eventType) {
+      Service.followUpWaitingNotes((changes: ApproverChanges): void => {
+        changes.afterStepsChanged([
+          { projectId: projectId, eventType: eventType },
+        ]);
+      });
+    }
   }
 
   /*

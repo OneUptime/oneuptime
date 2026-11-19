@@ -1139,11 +1139,20 @@ describe("the Kubernetes agent page, against the setup guide and the chart", () 
       "controlPlane.enabled",
       "kubeStateMetrics.enabled",
       "ebpf.features.networkInterZoneMetrics",
-      "cost.enabled",
     ]) {
       expect([option, at(chartValues, option)]).toEqual([option, false]);
       rowOf(KUBERNETES_PAGE, `\`${option}\``);
     }
+    // Cost is on by default now (#9548), and the page says so under the table.
+    expect(at(chartValues, "cost.enabled")).toBe("auto");
+    expect(() => {
+      rowOf(KUBERNETES_PAGE, "`cost.enabled`");
+    }).toThrow();
+    lineWith(
+      KUBERNETES_PAGE,
+      "Cost observability (`cost.enabled`) is on by default instead",
+      "`--set cost.enabled=false`",
+    );
     expect(at(chartValues, "kubeletstats.volumeMetrics.enabled")).toBe(true);
     lineWith(
       KUBERNETES_PAGE,

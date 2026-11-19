@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "Sí, ha quedado claro",
   "No, it was not clear": "No, no estaba claro",
   "Thanks for telling us.": "Gracias por contárnoslo.",
+  "Thanks for your answer.": "Gracias por tu respuesta.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" supera el límite de {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Estos archivos superan el límite de {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "«{{fileName}}» no es un tipo de archivo que admita este campo.",

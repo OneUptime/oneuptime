@@ -54,7 +54,7 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   "OpenStackCloudOwnerRule",
   // 1809100066190-AddNetworkDeviceNamingRules
   "NetworkDeviceNamingRule",
-  // 1809184800000-AddDataPipelineOwnerRules
+  // 1809184860000-AddDataPipelineOwnerRules
   "DataPipelineOwnerRule",
 ];
 

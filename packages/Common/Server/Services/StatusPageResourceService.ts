@@ -400,7 +400,7 @@ export class Service extends ProjectReferencesService<Model> {
    * Dashboard's list sends; a write of `order` places the resource alone.
    */
   @CaptureSpan()
-  public async moveInList(data: {
+  public override async moveInList(data: {
     id: ObjectID;
     placeOfId: ObjectID;
     props: DatabaseCommonInteractionProps;

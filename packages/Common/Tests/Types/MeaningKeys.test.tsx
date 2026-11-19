@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target and Notification Settings' phone call and push columns, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns and a store's free space, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -121,6 +121,7 @@ describe("the keys that name their meaning", () => {
         "Deleted (invoice status)",
         "Expired (rule exception)",
         "Expired (threat indicator)",
+        "Free (storage space)",
         "From (range start)",
         "Insights (explorer analytics)",
         "Missed (target)",
@@ -146,6 +147,9 @@ describe("the keys that name their meaning", () => {
       "Insights",
     );
     expect(getWordOfMeaningKey("Insights")).toBeUndefined();
+    // #9539: a store's room left, apart from a plan's price.
+    expect(getWordOfMeaningKey("Free (storage space)")).toBe("Free");
+    expect(getWordOfMeaningKey("Free")).toBeUndefined();
     // #8181: an invoice's Deleted and Undefined, worded for the invoice.
     expect(getWordOfMeaningKey("Deleted (invoice status)")).toBe("Deleted");
     expect(getWordOfMeaningKey("Undefined (invoice status)")).toBe("Undefined");

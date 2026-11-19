@@ -1098,6 +1098,8 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Passing"),
   translationKey("Failing"),
   translationKey("Not evaluated"),
+  // A requirement every store of which a resource turned off (#9555)
+  translationKey("Turned off"),
   // What each response action changes, by the kind of store it acts on
   translationKey(
     "Turns off anonymous blob access on the storage account, so no container is readable by anyone on the internet. Anything that reads it without a key stops working. No blob is changed.",

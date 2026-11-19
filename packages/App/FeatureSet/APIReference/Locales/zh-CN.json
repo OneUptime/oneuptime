@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "此端点按服务器的时钟结束进行中的覆盖：其结束时间变为现在，从那时起呼叫重新归不在岗的人所有。它需要与更新相同的权限，并返回覆盖新的 endsAt。",
       "userOverrideEndNowRequestTitle": "立即结束请求",
       "userOverrideIdDescription": "用户覆盖的 ID",
-      "userOverrideEndNowRefused": "400 Bad Request：覆盖尚未开始（请改为删除它）、已经结束，或者无论如何都会在一分钟内结束。"
+      "userOverrideEndNowRefused": "400 Bad Request：覆盖尚未开始（请改为删除它）、已经结束，或者无论如何都会在一分钟内结束。",
+      "moveInListHeading": "移动",
+      "moveInListIntro": "此端点把记录移到同一列表中 placeOfId 所指记录的位置：向上移动时落在该记录正上方；向下移动时落在其正下方；中间的记录朝它原来的位置依次移动一位。随后列表在一个事务中从顶部重新编号为 1、2、3 等（对于倒序计数的列表，则从最大编号往下），因此同时进行的移动绝不会让两条记录处于同一编号。响应为 changedRows：每条编号发生变化的记录，带有其 _id，以及列表自身编号列中的新编号。写入该编号的创建或更新只放置这条记录，不会移动其他记录，这正是 Terraform 所需要的；若要把一条记录移过其他记录，请发送此请求。它需要与更新记录编号相同的权限。",
+      "moveInListRequestTitle": "移动请求",
+      "moveInListIdDescription": "要移动的记录的 ID",
+      "placeOfIdDescription": "同一列表中、本记录将占据其位置的那条记录的 ID。",
+      "moveInListPlaceRefused": "400 Bad Request：缺少 placeOfId 或其不是 ID，或它所指的记录与被移动的记录不在同一列表中：属于另一个父项、另一个项目或另一种类型。",
+      "moveInListRecordNotFound": "404 Not Found：没有可移动的记录：它已被删除，或调用者无权读取它。",
+      "moveInListNotAllowed": "422 Unprocessable Entity：调用者可以读取该记录，但不能更改其编号，正如对它的更新会被拒绝一样。",
+      "moveInListBuiltInOrder": "400 Bad Request：此移动会打乱项目内置状态的顺序，例如让解决状态与确认状态同级或更靠上。响应会说明是哪些状态。"
     },
     "dataType": {
       "enumBadge": "枚举",

@@ -23,6 +23,10 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 import TelemetryIngestionBudgetMetricType from "Common/Types/Telemetry/TelemetryIngestionBudgetMetricType";
 import TelemetryIngestionBudgetMetricTypeUtil from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
+import {
+  KUBERNETES_COST_METRICS,
+  KubernetesCostMetric,
+} from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -472,6 +476,66 @@ describe("OTLP metric ingest refuses the telemetry ingestion budget names", () =
     "custom.oneuptime.telemetry.budget.used.bytes",
     "telemetry.budget.used.bytes",
   ])("keeps the near miss %s", async (name: string) => {
+    await ingest([resource([gaugeMetric(name)])]);
+
+    expect(rowNames()).toEqual([name]);
+  });
+});
+
+/*
+ * The Kubernetes cost metrics (#9548) are reserved the same way: the cost
+ * ingest works them out from a cluster's allocation rows and billing leaves
+ * them out by name, so a sender must never be able to write one - a forged
+ * point would also move every cost chart and cost alert of the cluster.
+ */
+describe("OTLP metric ingest refuses the Kubernetes cost names", () => {
+  test.each([...KUBERNETES_COST_METRICS])(
+    "%s writes no row and no catalog entry",
+    async (name: string) => {
+      await ingest([
+        resource([gaugeMetric(name), gaugeMetric("k8s.pod.cpu.utilization")]),
+      ]);
+
+      expect(rowNames()).toEqual(["k8s.pod.cpu.utilization"]);
+      expect(catalogNames()).toEqual(["k8s.pod.cpu.utilization"]);
+    },
+  );
+
+  test("refuses the whole prefix, in any letter case", async () => {
+    await ingest([
+      resource([
+        gaugeMetric("oneuptime.kubernetes.cost.future.series"),
+        gaugeMetric("OneUptime.Kubernetes.Cost.Workload"),
+        gaugeMetric("node_total_hourly_cost"),
+      ]),
+    ]);
+
+    expect(rowNames()).toEqual(["node_total_hourly_cost"]);
+  });
+
+  test("a RenameMetric rule into the prefix drops the row", async () => {
+    loadRules.mockResolvedValue(
+      renameRule({
+        from: "node_total_hourly_cost",
+        to: KubernetesCostMetric.Total,
+      }),
+    );
+
+    await ingest([resource([gaugeMetric("node_total_hourly_cost")])]);
+
+    expect(rowNames()).toEqual([]);
+  });
+
+  test.each([
+    // The cost engine's own metrics, which the agent's collector scrapes.
+    "node_total_hourly_cost",
+    "pv_hourly_cost",
+    // The prefix ends in a dot: near misses are ordinary names.
+    "oneuptime.kubernetes.cost",
+    "oneuptime.kubernetes.costs.total",
+    "custom.oneuptime.kubernetes.cost.total",
+    "kubernetes.cost.total",
+  ])("keeps %s", async (name: string) => {
     await ingest([resource([gaugeMetric(name)])]);
 
     expect(rowNames()).toEqual([name]);

@@ -32,6 +32,11 @@ import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import TableEmptyValue, {
   isDashPlaceholder,
 } from "Common/UI/Components/Table/TableEmptyValue";
+import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import {
+  StorageUsage,
+  formatStorageBytes,
+} from "Common/Utils/Storage/StorageUsage";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -84,6 +89,53 @@ export interface InfrastructureResource {
   statusReasons?: Array<ResourceStatusReason> | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
+  /*
+   * How full the row's store is, in a list of storage - a Kubernetes claim,
+   * a Proxmox storage, a VMware datastore, a Ceph OSD: drawn in the Used and
+   * Free columns when the table is handed storageUsageColumns.
+   */
+  storageUsage?: ResourceStorageUsage | undefined;
+}
+
+export interface ResourceStorageUsage {
+  // What the store reported (StorageUsage); null when it reported nothing.
+  usage: StorageUsage | null;
+  /*
+   * English, looked up: what the Used cell says when there is no usage -
+   * "Not reported", "Not mounted" - so a row never reads as a blank. Left
+   * out, the cell draws the quiet dash.
+   */
+  noUsageText?: string | undefined;
+}
+
+/*
+ * The Used and Free columns of a list of storage (StorageUsageBar): how
+ * much of each store is used, as a bar and a percent that turn amber when
+ * it is nearly full and red when it is almost out of space, and how much is
+ * left. Both sort, so the fullest store is a click away.
+ */
+export interface ResourceStorageUsageColumns {
+  // What the Used column means, in an (i) beside its header.
+  usedDescription?: string | undefined;
+  // What the Free column means, in an (i) beside its header.
+  freeDescription?: string | undefined;
+  // How an amount is written: binary bytes ("36.2 GiB") by default.
+  formatAmount?: ((amount: number) => string) | undefined;
+}
+
+export const STORAGE_USED_COLUMN_KEY: string = "storageUsage";
+export const STORAGE_FREE_COLUMN_KEY: string = "storageFree";
+
+// A row's usage, -1 when it has none, so a store that reported nothing sorts last.
+export function getStorageSortValue(
+  resource: Pick<InfrastructureResource, "storageUsage">,
+  column: "used" | "free",
+): number {
+  const usage: StorageUsage | null | undefined = resource.storageUsage?.usage;
+  if (!usage) {
+    return -1;
+  }
+  return column === "used" ? usage.usedPercent : usage.free;
 }
 
 export interface ResourceStatusReason {
@@ -262,6 +314,12 @@ export interface ComponentProps {
    * and TiB, as vSphere does.
    */
   formatMemory?: ((bytes: number) => string) | undefined;
+  /*
+   * A list of storage: Used and Free columns right after Status, drawn from
+   * each row's storageUsage (ResourceStorageUsageColumns). The page's own
+   * columns follow, its Capacity first.
+   */
+  storageUsageColumns?: ResourceStorageUsageColumns | undefined;
 }
 
 const PAGE_SIZE: number = 25;
@@ -558,6 +616,10 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           cmp = (a.cpuUtilization ?? -1) - (b.cpuUtilization ?? -1);
         } else if (sortBy === "memoryUsageBytes") {
           cmp = (a.memoryUsageBytes ?? -1) - (b.memoryUsageBytes ?? -1);
+        } else if (sortBy === STORAGE_USED_COLUMN_KEY) {
+          cmp = getStorageSortValue(a, "used") - getStorageSortValue(b, "used");
+        } else if (sortBy === STORAGE_FREE_COLUMN_KEY) {
+          cmp = getStorageSortValue(a, "free") - getStorageSortValue(b, "free");
         } else if (sortBy === "age") {
           cmp = a.age.localeCompare(b.age);
         }
@@ -674,6 +736,55 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         return <ResourceStatusCell resource={resource} />;
       },
     });
+  }
+
+  const storageColumns: ResourceStorageUsageColumns | undefined =
+    props.storageUsageColumns;
+
+  if (storageColumns) {
+    tableColumns.push(
+      {
+        title: "Used",
+        type: FieldType.Element,
+        // STORAGE_USED_COLUMN_KEY, written out: a page's column folds into it.
+        key: "storageUsage",
+        headerTooltip: storageColumns.usedDescription,
+        getElement: (resource: InfrastructureResource): ReactElement => {
+          return (
+            <StorageUsageBar
+              usage={resource.storageUsage?.usage || null}
+              noUsageText={resource.storageUsage?.noUsageText}
+              formatAmount={storageColumns.formatAmount}
+            />
+          );
+        },
+      },
+      {
+        // The room left, never the price (MeaningKeys).
+        title: "Free (storage space)",
+        type: FieldType.Element,
+        // STORAGE_FREE_COLUMN_KEY: no field of the row, as a custom column's key.
+        key: "storageFree" as keyof InfrastructureResource,
+        headerTooltip: storageColumns.freeDescription,
+        hideBelowLargeScreen: true,
+        foldInto: STORAGE_USED_COLUMN_KEY,
+        showTitleWhenFolded: true,
+        getElement: (resource: InfrastructureResource): ReactElement => {
+          const usage: StorageUsage | null | undefined =
+            resource.storageUsage?.usage;
+          if (!usage) {
+            return <TableEmptyValue />;
+          }
+          return (
+            <span className="text-sm tabular-nums text-gray-700" dir="auto">
+              {storageColumns.formatAmount
+                ? storageColumns.formatAmount(usage.free)
+                : formatStorageBytes(usage.free, translator.language)}
+            </span>
+          );
+        },
+      },
+    );
   }
 
   if (props.columns) {

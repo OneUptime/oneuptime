@@ -35,6 +35,7 @@ flowchart LR
 | नोड कलेक्टर | DaemonSet | `/var/log/pods` से पॉड लॉग, kubelet और cAdvisor मेट्रिक्स, और नोड के OS मेट्रिक्स। | हाँ |
 | eBPF इंस्ट्रूमेंटेशन (OBI) | DaemonSet | हर पॉड से HTTP, gRPC, SQL और Redis ट्रेस और अनुरोध मेट्रिक्स, और सर्विस मैप। | हाँ |
 | Kubernetes AI एजेंट | Deployment | इस क्लस्टर पर किसी घटना या अलर्ट की जाँच करते समय OneUptime AI को केवल-पढ़ने वाला `kubectl` चलाने देता है। | हाँ |
+| लागत इंजन और पोलर | Deployments | हर नेमस्पेस और वर्कलोड की लागत: OpenCost, उसके लिए ज़रूरी छोटा Prometheus, और लागत एजेंट जो उनका निकाला गया हिसाब भेजता है। | हाँ, `gke-autopilot` और `eks-fargate` प्रीसेट को छोड़कर |
 | लॉग टेलर | Deployment | जहाँ नोड कलेक्टर पॉड लॉग नहीं पढ़ सकता, वहाँ उन्हें Kubernetes API से पढ़ता है। | `gke-autopilot`, `eks-fargate` और `openshift-restricted` प्रीसेट के साथ |
 | eBPF प्रोफ़ाइलर | DaemonSet | हर प्रोसेस के निरंतर CPU फ़्लेम ग्राफ़। | नहीं |
 | kube-state-metrics | Deployment | पॉड फ़ेज़, कंटेनर के प्रतीक्षा कारण और रिसोर्स कोटा। | नहीं |
@@ -357,14 +358,14 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 | --- | --- | --- |
 | `hostMetrics.enabled` | चालू | `/proc` और `/sys` से हर नोड के OS मेट्रिक्स: डिस्क I/O क्यू, फ़ाइल सिस्टम inode, नेटवर्क इंटरफ़ेस त्रुटियाँ, पेजिंग और लोड एवरेज। नोड कलेक्टर में चलता है, बिना अतिरिक्त पॉड के। |
 | `kubeletstats.utilizationMetrics.enabled` | चालू | कंटेनर और पॉड का CPU और मेमोरी, उनके request और limit के प्रतिशत के रूप में, जिन्हें Pod CPU Saturating Container Limit और Pod Memory Saturating Container Limit टेम्पलेट पढ़ते हैं। बिना limit (या request) वाले कंटेनर को इनमें से कोई सीरीज़ नहीं मिलती, और पॉड को तभी जब उसके हर कंटेनर में यह हो। |
-| `kubeletstats.volumeMetrics.enabled` | चालू | हर PVC की खाली और कुल जगह (`k8s.volume.available`, `k8s.volume.capacity`), आपके अपने चार्ट और मेट्रिक मॉनिटर के लिए: कोई बिल्ट-इन टेम्पलेट इसे नहीं पढ़ता। हर पॉड के हर PVC के लिए एक सीरीज़। |
+| `kubeletstats.volumeMetrics.enabled` | चालू | हर PVC की खाली और कुल जगह (`k8s.volume.available`, `k8s.volume.capacity`), उसके क्लेम के नाम के साथ: Persistent Volume Claims पेजों पर उपयोग, खाली जगह और क्षमता, और PVC Almost Full टेम्पलेट जो पढ़ता है। हर वॉल्यूम और Pod के लिए कुछ सीरीज़। |
 | `cadvisor.enabled` | चालू | हर kubelet के `/metrics/cadvisor` से CPU थ्रॉटलिंग और OOM किल: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` और `container_oom_events_total`, और कुछ नहीं। |
 | `kubeStateMetrics.enabled` | बंद | kube-state-metrics से पॉड फ़ेज़ (Pending, Terminating), शेड्यूल न हो सकने वाले पॉड, कंटेनर के प्रतीक्षा कारण (CrashLoopBackOff, ImagePullBackOff) और रिसोर्स कोटा का उपयोग। `kubeStateMetrics.mode: bundled` (डिफ़ॉल्ट) आपके लिए एक छोटा kube-state-metrics चलाता है; `external` उसे पढ़ता है जो आप पहले से चलाते हैं, `kubeStateMetrics.endpoint` पर। |
 | `auditLogs.enabled` | बंद | Kubernetes ऑडिट लॉग, `/var/log/kubernetes/audit.log`: API को हर अनुरोध, किसने, किस पर। केवल सेल्फ़-मैनेज्ड क्लस्टर: मैनेज्ड क्लस्टर (EKS, GKE, AKS, DOKS) इसे क्लाउड प्रदाता को भेजते हैं। |
 | `csi.enabled` | बंद | `app=csi-driver` या `app.kubernetes.io/component=csi-driver` लेबल वाले पॉड से CSI स्टोरेज ड्राइवर के मेट्रिक्स: वॉल्यूम अटैच और डिटैच समय, प्रोविज़निंग विफलताएँ, IOPS। |
 | `coreDns.enabled` | बंद | `:9153/metrics` पर CoreDNS के मेट्रिक्स: क्वेरी दर, लेटेंसी, कैश हिट और त्रुटियाँ। |
 | `controlPlane.enabled` | बंद | API सर्वर, क्लस्टर के भीतर के अपने पते पर, और etcd, शेड्यूलर और कंट्रोलर मैनेजर, आपके दिए एंडपॉइंट पर ([कंट्रोल प्लेन निगरानी चालू करें](/docs/telemetry/kubernetes-agent#कंट्रोल-प्लेन-निगरानी-चालू-करें))। केवल सेल्फ़-मैनेज्ड क्लस्टर: मैनेज्ड क्लस्टर इन्हें उजागर नहीं करते। |
-| `cost.enabled` | बंद | हर वर्कलोड की लागत। देखें [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost)। |
+| `cost.enabled` | `auto` | हर नेमस्पेस और वर्कलोड की लागत, निष्क्रिय क्षमता और दक्षता के साथ, अलर्ट करने लायक मेट्रिक्स के रूप में भी: `gke-autopilot` और `eks-fargate` प्रीसेट को छोड़कर चालू; `false` इसे बंद करता है। देखें [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost)। |
 
 ## सामान्य विकल्प
 

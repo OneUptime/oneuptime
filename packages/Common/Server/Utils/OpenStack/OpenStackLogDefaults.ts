@@ -159,8 +159,11 @@ export default class OpenStackLogDefaults {
       return;
     }
 
-    let sortOrder: number = existing.length;
-
+    /*
+     * After the project's own, in the order listed: each is created without
+     * a number, so the server puts it at the end of the list (a number
+     * written is kept beside whoever holds it, issue #9609).
+     */
     for (const filter of OPENSTACK_DEFAULT_DROP_FILTERS) {
       const row: LogDropFilter = new LogDropFilter();
       row.projectId = projectId;
@@ -169,7 +172,6 @@ export default class OpenStackLogDefaults {
       row.filterQuery = filter.filterQuery;
       row.action = LogDropFilterAction.Drop;
       row.isEnabled = true;
-      row.sortOrder = sortOrder++;
 
       await LogDropFilterService.create({
         data: row,
@@ -195,8 +197,7 @@ export default class OpenStackLogDefaults {
       return;
     }
 
-    let sortOrder: number = existing.length;
-
+    // After the project's own, in the order listed, as the filters are.
     for (const rule of OPENSTACK_DEFAULT_SCRUB_RULES) {
       const row: LogScrubRule = new LogScrubRule();
       row.projectId = projectId;
@@ -207,7 +208,6 @@ export default class OpenStackLogDefaults {
       row.scrubAction = LogScrubAction.Redact;
       row.fieldsToScrub = LogScrubField.Both;
       row.isEnabled = true;
-      row.sortOrder = sortOrder++;
 
       await LogScrubRuleService.create({
         data: row,

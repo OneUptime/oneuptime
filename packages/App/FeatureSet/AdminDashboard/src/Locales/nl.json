@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "Ja, het was duidelijk",
   "No, it was not clear": "Nee, het was niet duidelijk",
   "Thanks for telling us.": "Bedankt dat je het ons laat weten.",
+  "Thanks for your answer.": "Bedankt voor je antwoord.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" is groter dan de limiet van {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Deze bestanden zijn groter dan de limiet van {{size}}: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" is geen bestandstype dat dit veld accepteert.",

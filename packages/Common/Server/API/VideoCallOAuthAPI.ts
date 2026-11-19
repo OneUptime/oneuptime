@@ -25,6 +25,7 @@ import IncidentCallRecordingSetting from "../Utils/VideoCall/Transcripts/Inciden
 import ZoomOAuthEvents, {
   ZOOM_DEAUTHORIZED_EVENT,
   ZOOM_SIGNATURE_HEADER,
+  ZOOM_SIGN_IN_REMOVED_MESSAGE,
   ZOOM_TIMESTAMP_HEADER,
   ZOOM_URL_VALIDATION_EVENT,
   ZoomDeauthorization,
@@ -77,7 +78,8 @@ import {
  *
  * Zoom also sends events here: someone removing the app from their Zoom
  * account (ZoomOAuthEvents), after which the account's sign-in is deleted
- * from every connection that held it. And it sends a sign-in it started
+ * from every connection that held it, and the call transcripts read through
+ * it are deleted (IncidentCallTranscriptRemoval). And it sends a sign-in it started
  * itself, from the Zoom App Marketplace, to the Zoom callback with no state
  * of ours: that connects nothing, and the Video Calls page offers Connect
  * (isSignInZoomStarted).
@@ -94,7 +96,7 @@ export default class VideoCallOAuthAPI {
 
   // What a connection signed out by the account at Zoom says until it is reconnected.
   public static readonly ZOOM_REMOVED_MESSAGE: string =
-    "OneUptime was removed from the Zoom account this connection signed in with, so its sign-in was deleted. Reconnect Zoom in Project Settings > Workspace > Video Calls to start calls again.";
+    ZOOM_SIGN_IN_REMOVED_MESSAGE;
 
   /*
    * The last step of a callback, once the provider's own error has been
@@ -487,8 +489,11 @@ export default class VideoCallOAuthAPI {
      * Zoom's events for this server's Zoom app: the endpoint check when the
      * URL is saved on the app, and app_deauthorized when someone removes the
      * app from their Zoom account - after which Zoom requires their data to
-     * be deleted, so every connection signed in as them loses its sign-in.
-     * Signed by Zoom with the app's secret token, or refused.
+     * be deleted, so every connection signed in as them loses its sign-in,
+     * and every call transcript OneUptime read through it is deleted, with
+     * what OneUptime AI read in it, within minutes (removeSignIn). Signed by
+     * Zoom with the app's secret token, or refused. Zoom may send an event
+     * more than once: a second one finds nothing left to do.
      */
     router.post(
       "/video-call-oauth/zoom/events",

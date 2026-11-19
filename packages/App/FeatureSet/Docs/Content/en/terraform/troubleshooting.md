@@ -131,9 +131,13 @@ That happens when the key that manages a resource can no longer read it: its rea
 
 ### A priority or order that moves
 
-Monitor statuses, incident and alert states and severities, and the other lists you put in order in the dashboard hold each number once. A number nobody else holds is kept as written. A number another one already holds is taken over, and the ones in the way step down one place, as a drag in the dashboard does. So two of them configured with the same number trade places on every apply.
+Every list you put in order in the dashboard keeps the number each resource is given: monitor statuses (`priority`), incident and alert states and severities, custom fields, log pipelines and drop filters (`sort_order`), status page groups and resources, escalation rules, schedule layers and the rest. Setting a number places that resource and moves no other, so a configuration that numbers a whole list, such as `order = index(local.severities, each.key) + 1` over a `for_each` of `local.severities`, is applied exactly as written, whatever order the provider's writes land in, and the next plan is empty.
 
-Give each one its own number with gaps between them, such as `101`, `102` and `103`, and reorder the ones Terraform manages in Terraform, not by dragging them in the dashboard.
+- Give each resource a number of its own: two at one number both keep it, side by side, in an order you do not choose.
+- A resource created without a number goes to the end of its list. A new incident or alert state goes just above the resolved state instead, and a new monitor status just above the offline status.
+- Deleting a resource leaves a gap in the numbers, which changes nothing: a list goes by its numbers, not by counting.
+- Dragging a resource in the OneUptime dashboard numbers its whole list again from the top, and the next plan shows that as changes. Put the resources Terraform manages in order in Terraform.
+- The built-in states keep their order: a change that would put two of them at one number, or out of order, is refused, with why. When an apply moves built-in states past each other's old numbers, one of its writes can land first and meet that refusal; apply again and it finishes.
 
 ### Read-only attributes
 

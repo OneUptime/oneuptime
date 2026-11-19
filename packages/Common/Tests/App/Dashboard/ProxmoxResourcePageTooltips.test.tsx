@@ -940,22 +940,31 @@ describe("Proxmox guests list", () => {
 });
 
 describe("Proxmox storage list", () => {
-  test("Status and Used / Total explain themselves; there are no CPU, memory or Age columns", async () => {
+  test("Status, Used and Free explain themselves; there are no CPU, memory or Age columns", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    expect(infoLabels()).toEqual(["Status", "Used / Total"]);
+    expect(infoLabels()).toEqual(["Status", "Used", "Free"]);
     await expectExplained([
       ["Status", "storageTableStatus"],
-      ["Used / Total", "storageTableUsage"],
+      ["Used", "storageUsedPercent"],
+      ["Free", "storageFree"],
     ]);
     expect(screen.queryByText("CPU")).not.toBeInTheDocument();
   });
 
-  test("usage shows used, total and percentage, or N/A when a figure is missing", async () => {
+  test("usage is a bar and a percent, what is free and the total, or says it was not reported (#9539)", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    expect(rowOf("local")).toHaveTextContent("50.0 GiB / 100 GiB (50.0%)");
-    expect(rowOf("backup")).toHaveTextContent("N/A");
+    const local: HTMLElement = rowOf("local");
+    expect(within(local).getByRole("meter")).toHaveAttribute(
+      "aria-valuenow",
+      "50",
+    );
+    expect(local.textContent).toContain("50%");
+    // Used and free, then the total, each held to its unit.
+    expect(local.textContent).toContain("50\u00A0GiB");
+    expect(local.textContent).toContain("100\u00A0GiB");
+    expect(rowOf("backup")).toHaveTextContent("Not reported");
   });
 
   test("storage reports no uptime, so there is no Age column of dashes", async () => {

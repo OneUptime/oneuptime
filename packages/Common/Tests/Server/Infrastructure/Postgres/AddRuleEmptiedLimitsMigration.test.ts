@@ -60,7 +60,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
  * ever append here.
  */
 const RULE_TABLES_CREATED_AFTER_MIGRATION: ReadonlyArray<string> = [
-  // 1809184800000-AddDataPipelineOwnerRules
+  // 1809184860000-AddDataPipelineOwnerRules
   "DataPipelineOwnerRule",
 ];
 

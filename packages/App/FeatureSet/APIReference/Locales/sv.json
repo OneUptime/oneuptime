@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Den här slutpunkten avslutar en pågående åsidosättning enligt serverns klocka: dess slut blir nu, och från och med då är utlarmningarna den frånvarande personens egna igen. Den kräver samma behörighet som en uppdatering och returnerar åsidosättningens nya endsAt.",
       "userOverrideEndNowRequestTitle": "Begäran om att avsluta nu",
       "userOverrideIdDescription": "ID för användaråsidosättningen",
-      "userOverrideEndNowRefused": "400 Bad Request: åsidosättningen har inte börjat än (ta bort den i stället), har redan slutat eller slutar ändå inom minuten."
+      "userOverrideEndNowRefused": "400 Bad Request: åsidosättningen har inte börjat än (ta bort den i stället), har redan slutat eller slutar ändå inom minuten.",
+      "moveInListHeading": "Flytta",
+      "moveInListIntro": "Den här endpointen flyttar posten till platsen för den post som placeOfId nämner, i listan de delar: flyttad uppåt hamnar den precis ovanför den posten; nedåt precis under den; posterna emellan flyttas en plats mot där den var. Därefter numreras listan från toppen, 1, 2, 3 och så vidare (från sitt högsta tal och nedåt för en lista som räknar nedåt), i en transaktion, så att flyttar samtidigt aldrig lämnar två poster på samma tal. Den svarar med changedRows: varje post som fick ett annat tal, med sitt _id och sitt nya tal under listans egen talkolumn. Att skapa eller uppdatera med det talet placerar posten ensam och flyttar ingen annan, vilket Terraform behöver; skicka den här begäran för att flytta en post förbi andra. Den kräver samma behörighet som en uppdatering av postens tal.",
+      "moveInListRequestTitle": "Begäran om att flytta",
+      "moveInListIdDescription": "ID för posten som flyttas",
+      "placeOfIdDescription": "ID för den post i samma lista vars plats den här posten tar.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId saknas eller är inget ID, eller nämner en post som inte finns i samma lista som den flyttade posten: en annan överordnads, ett annat projekts eller en annan sorts.",
+      "moveInListRecordNotFound": "404 Not Found: posten finns inte att flytta: den togs bort, eller den som anropar får inte läsa den.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: den som anropar får läsa posten men inte ändra dess tal, precis som en uppdatering av den skulle nekas.",
+      "moveInListBuiltInOrder": "400 Bad Request: flytten skulle rubba ordningen på projektets inbyggda tillstånd, till exempel det lösta tillståndet i höjd med eller ovanför det kvitterade. Svaret nämner dem."
     },
     "dataType": {
       "enumBadge": "Enum",

@@ -218,6 +218,7 @@ import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
 import DataSecurityScan from "./DataSecurityScan";
 import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
+import DataSecurityComplianceSetting from "./DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
 import DataSecuritySetting from "./DataSecuritySetting";
 import DataAsset from "./DataAsset";
@@ -732,6 +733,7 @@ const AllModelTypes: Array<{
   DataSecurityScan,
   DataSecurityCustomDataType,
   DataSecurityCheckSetting,
+  DataSecurityComplianceSetting,
   DataSecurityResidencyRule,
   DataSecuritySetting,
   DataAsset,

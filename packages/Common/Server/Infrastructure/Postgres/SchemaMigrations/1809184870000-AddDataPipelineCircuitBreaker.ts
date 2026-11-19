@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewritten or scanned and no write waits. A server of the release before
  * ignores them.
  */
-export class AddDataPipelineCircuitBreaker1809184810000
+export class AddDataPipelineCircuitBreaker1809184870000
   implements MigrationInterface
 {
-  public name: string = "AddDataPipelineCircuitBreaker1809184810000";
+  public name: string = "AddDataPipelineCircuitBreaker1809184870000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

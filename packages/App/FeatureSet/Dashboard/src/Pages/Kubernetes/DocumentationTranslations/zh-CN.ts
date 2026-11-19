@@ -62,8 +62,16 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** 如上所述，在 kubeadm 的 `--listen-metrics-urls`（端口 2381，在你添加节点地址之前绑定到 `127.0.0.1`）上以明文 HTTP 提供指标。也可以用它要求的客户端证书抓取它的 HTTPS 客户端端口 2379：把 `ca.crt`、`tls.crt` 和 `tls.key` 放进 `oneuptime-agent` 中的一个 Secret，并在 `controlPlane.etcd.clientCertSecret` 中指定它。",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "仅适用于自管理集群：托管服务（EKS、GKE、AKS）不会公开其控制平面指标。",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "仅此一项就是完整的安装：chart 内置开源的 OpenCost 引擎（以及它所需的小型 Prometheus），并按云服务商公开的目录价格为你的节点和卷定价，无需凭据。它会添加两个小型 Pod；第一个完整小时之后会出现首批数据。",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "成本监控默认开启：代理内置开源的 OpenCost 引擎（以及它所需的小型 Prometheus），按云服务商公开的目录价格为你的节点和卷定价，无需凭据，并发送每个命名空间和工作负载的成本。第一个完整小时之后，集群的概览和“成本”页面上会出现首批数据。",
+  "On an agent installed before it was on by default, upgrade it:":
+    "对于在默认开启之前安装的代理，请升级它：",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **关闭它：** 在同一次升级中添加 `--set cost.enabled=false`。",
+  "Cost monitoring is off by default on this platform: it bills every pod by what it requests, so the three cost pods would add to your bill, and OpenCost prices nodes rather than pods. To turn it on anyway:":
+    "此平台上的成本监控默认关闭：该平台按每个 Pod 请求的资源计费，因此开启后这三个成本 Pod 会增加你的账单，而且 OpenCost 按节点而不是按 Pod 定价。如仍要开启：",
+  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
+    "仅此一项就是完整的安装：chart 内置开源的 OpenCost 引擎（以及它所需的小型 Prometheus），并按云服务商公开的目录价格为你的节点和卷定价，无需凭据。它会添加三个小型 Pod；第一个完整小时之后会出现首批数据。",
   "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
     "- **已经在运行 Kubecost 或 OpenCost？** 改为让代理指向它，这样就不会内置任何组件：添加 `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003`（或你的 Kubecost 服务）。",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
@@ -122,6 +130,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **网络流** *(eBPF)* | Pod 之间的 TCP/UDP 字节和数据包计数器 |",
   "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
     "| **工作负载成本** *(可选，`cost.enabled=true`)* | 每个命名空间、工作负载和 Pod 的支出，以及闲置容量和效率 |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **工作负载成本** *(默认开启)* | 每个命名空间、工作负载和 Pod 的支出，以及闲置容量和效率，也以可设置警报的指标形式提供 |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "你的集群阻止了 `hostPath` 卷或特权 Pod。这在 **GKE Autopilot** 和 **EKS Fargate** 上很正常：请在本指南顶部选择该平台并按其步骤操作。而在 **OpenShift** 上，安装会成功，但代理的节点 Pod 永远不会启动：请选择 **Red Hat OpenShift**。",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

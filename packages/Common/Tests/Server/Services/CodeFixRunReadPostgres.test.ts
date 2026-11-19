@@ -118,10 +118,11 @@ import { DataSource, Logger } from "typeorm";
  * Everything runs in a uniquely named schema holding structure-only clones
  * (LIKE ... INCLUDING ALL) of the tables it reads: the AI runs, their pull
  * requests, the fixes they name, the incidents and alerts, their owners and
- * the team members. The clones carry no foreign keys, so a seeded row needs
- * only its NOT NULL columns, read from the migrated schema and filled in by
- * kind. Every statement Postgres rejects is recorded and fails the test,
- * even one a caller would have caught.
+ * the team members, and the server's settings, where no product is switched
+ * off. The clones carry no foreign keys, so a seeded row needs only its NOT
+ * NULL columns, read from the migrated schema and filled in by kind. Every
+ * statement Postgres rejects is recorded and fails the test, even one a
+ * caller would have caught.
  */
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_CODE_FIX_RUN_TESTS"] === "true"
@@ -182,6 +183,11 @@ const TABLES: Array<string> = [
   "AIConversationMessage",
   // The steps a task's page reads for each turn it shows.
   "AIRunEvent",
+  /*
+   * The server's settings: AIRunService reads the products switched off on
+   * the server there before it writes a run (assertProductsAreOn).
+   */
+  "GlobalConfig",
 ];
 
 describePostgres(
@@ -308,6 +314,21 @@ describePostgres(
           hasAcceptedInvitation: member.accepted,
         });
       }
+
+      /*
+       * The server's settings, with no product switched off: AIRunService
+       * refuses a run on a product switched off on the server, and the runs
+       * this suite writes work on Code and on the incidents and alerts they
+       * carry.
+       */
+      await insert("GlobalConfig", {
+        _id: ObjectID.getZeroObjectID().toString(),
+        serverProducts: JSON.stringify({
+          off: [],
+          changedAt: null,
+          changedByUserId: null,
+        }),
+      });
     });
 
     afterEach(() => {

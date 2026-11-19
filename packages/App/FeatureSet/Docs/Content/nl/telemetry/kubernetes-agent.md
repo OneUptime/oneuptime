@@ -32,7 +32,7 @@ flowchart TB
 | eBPF-instrumentatie (OBI) | DaemonSet | HTTP-, gRPC-, SQL- en Redis-traces en requestmetrics van elke pod, en de servicemap. | Standaard, behalve op GKE Autopilot en EKS Fargate |
 | Kubernetes-AI-agent | Deployment | Alleen-lezen `kubectl` voor OneUptime AI terwijl die een incident of waarschuwing onderzoekt. | Standaard |
 | Logtailer | Deployment | Podlogs via de Kubernetes-API, waar de nodecollector ze niet kan lezen. | Met de presets `gke-autopilot`, `eks-fargate` en `openshift-restricted` |
-| Kostenengine en poller | Deployments | Uitgaven per namespace, workload en pod. | Met `cost.enabled=true` |
+| Kostenengine en poller | Deployments | Uitgaven per namespace, workload en pod. | Standaard, behalve op GKE Autopilot en EKS Fargate |
 
 Elke agentimage is alleen voor Linux, dus elke workload is vastgezet op Linux-nodes.
 
@@ -199,7 +199,8 @@ Stel ze in bij **Optional configuration settings** in de EKS-console, of met `--
 - `oneuptime.labels`: projectlabels voor alles wat dit cluster stuurt, zoals `{"team": "payments"}`.
 - `preset`: `eks-fargate` voor een cluster dat alleen op Fargate draait, anders `standard`, de standaardwaarde.
 - `logs.enabled`, `ebpf.enabled` en `aiAgent.enabled`: podlogs, eBPF-traces en de [Kubernetes-AI-agent](#kubernetes-ai-agent), alle drie standaard aan.
-- `kubeStateMetrics.enabled` en `cost.enabled`: kube-state-metrics en [kostenobservability](/docs/telemetry/kubernetes-cost), allebei standaard uit.
+- `kubeStateMetrics.enabled`: kube-state-metrics, standaard uit.
+- `cost.enabled`: [kostenobservability](/docs/telemetry/kubernetes-cost), standaard `auto`: aan, behalve met de preset `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -271,7 +272,7 @@ Om ze terug te krijgen, stap je bij een upgrade als cluster-admin over op `opens
 | Servicegraaf (eBPF) | Randen met requestrate, latentie en fouten tussen aanroeper en aangeroepene, die de servicemap tekenen |
 | Netwerkflowmetrics (eBPF) | TCP- en UDP-tellers voor bytes en pakketten van pod naar pod, met Kubernetes-metadata |
 | TCP-statistieken (eBPF) | Tellers voor round-trip-tijd, mislukte verbindingen en retransmissies per node |
-| Workloadkosten (opt-in, `cost.enabled=true`) | Uitgaven per namespace, workload en pod, met inactiviteit en efficiëntie, en de uurkosten van nodes en volumes: zie [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost) |
+| Workloadkosten (standaard aan, behalve op GKE Autopilot en EKS Fargate) | Uitgaven per namespace, workload en pod, met inactiviteit en efficiëntie, ook als metrics om op te waarschuwen, en de uurkosten van nodes en volumes: zie [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes-events
 
@@ -409,7 +410,7 @@ Gebeurtenissen over meerdere regels worden in beide modi vóór het filteren wee
 Laat een paar luidruchtige metrics vallen (een denylist, meestal wat je wilt):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Stuur alleen een vaste set (een allowlist: al het andere wordt weggelaten):
@@ -594,7 +595,7 @@ Sommige grafieken tonen metrics waarvoor de agent geen scrape heeft: **kube-prox
 
 ### Kostenobservability inschakelen
 
-Zie op de pagina **Kosten** van het cluster wat elke namespace, workload en pod kost, met inactieve capaciteit en hoeveel van elk request wordt gebruikt:
+Kostenobservability staat standaard aan: het overzicht van het cluster en de pagina **Kosten** tonen wat elke namespace, workload en pod kost, met inactieve capaciteit en hoeveel van elk request wordt gebruikt, en je kunt de kostenmetrics in grafieken zetten en erop waarschuwen. Het staat standaard uit bij de presets `gke-autopilot` en `eks-fargate`, die elke pod afrekenen op zijn requests, en op een agent die werd geïnstalleerd voordat het standaard aan stond. Zet het daar aan:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +604,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Dat alleen is al een volledige installatie: de chart levert de opensource-engine [OpenCost](https://opencost.io) mee (met de kleine Prometheus die hij nodig heeft) en prijst je nodes en volumes op basis van de openbare catalogusprijzen van je cloudprovider, zonder inloggegevens. Er komen twee kleine pods bij, en de eerste kosten verschijnen na het eerste afgesloten uur. Draai je al Kubecost of OpenCost? Voeg in plaats daarvan `--set cost.engine.url=<its service URL>` toe, dan wordt er niets meegeleverd. On-premises clusters kunnen een tarievenkaart instellen met `cost.opencost.customPricing`. De volledige handleiding, met on-premises prijzen en probleemoplossing, is [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost).
+Dat alleen is al een volledige installatie: de chart levert de opensource-engine [OpenCost](https://opencost.io) mee (met de kleine Prometheus die hij nodig heeft) en prijst je nodes en volumes op basis van de openbare catalogusprijzen van je cloudprovider, zonder inloggegevens. Er komen drie kleine pods bij, en de eerste kosten verschijnen na het eerste afgesloten uur. Om kostenobservability uit te zetten, stel je op dezelfde manier `--set cost.enabled=false` in. Draai je al Kubecost of OpenCost? Voeg in plaats daarvan `--set cost.engine.url=<its service URL>` toe, dan wordt er niets meegeleverd. On-premises clusters kunnen een tarievenkaart instellen met `cost.opencost.customPricing`. De volledige handleiding, met on-premises prijzen en probleemoplossing, is [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost).
 
 ### Automatisch taggen met projectlabels
 
@@ -959,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinaliteit, het aantal verschillende series, telt even zwaar als frequentie, omdat elke serie afzonderlijk wordt opgeslagen en gefactureerd.
 
 - cAdvisor heeft bewust een allowlist. De cAdvisor-receiver (standaard aan) kan honderden metrics uitgeven; de chart stuurt alleen de tellers voor CPU-throttling en OOM-kills in `cadvisor.metricsAllowlist` door, voor je eigen grafieken en metric-monitors: geen ingebouwd sjabloon leest ze. Houd de lijst kort: elke vermelding wordt per container behouden, dus één metric meer vermenigvuldigt zich met het aantal containers in het cluster. kube-state-metrics staat standaard uit; zet je het aan (`kubeStateMetrics.enabled=true`), dan werkt zijn `kubeStateMetrics.metricsAllowlist` op dezelfde manier, en moet elke vermelding de hele naam van een metric dekken.
-- Volumemetrics per PVC (`kubeletstats.volumeMetrics.enabled`, standaard aan) geven één serie per PVC per pod: prima voor de meeste clusters, veel op stateful workloads (Kafka, databases) met duizenden PVC's. Zet ze daar uit als je de schijfruimte van PVC's niet bewaakt, met `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volumemetrics (`kubeletstats.volumeMetrics.enabled`, standaard aan) geven een paar series per volume per pod, en vullen het gebruik, de vrije ruimte en de capaciteit op de pagina's van de Persistent Volume Claims en de sjabloon PVC Almost Full: prima voor de meeste clusters, veel op stateful workloads (Kafka, databases) met duizenden PVC's. Zet ze daar uit als je de schijfruimte van PVC's niet bewaakt, met `--set kubeletstats.volumeMetrics.enabled=false`.
 - Verzadigingsmetrics (`kubeletstats.utilizationMetrics.enabled`, standaard aan) voegen 8 afgeleide families "% van request of limit" toe. Ze kosten geen extra scrape, maar gebruik je de monitors voor CPU en geheugen ten opzichte van de limit niet, laat ze dan vallen met `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Laat metrics op naam vallen met `filters.metrics.exclude`, dat over alle receivers heen werkt, voor alles wat de allowlists van de receivers niet kunnen uitdrukken (zie [Metrics op naam opnemen of uitsluiten](#metrics-op-naam-opnemen-of-uitsluiten)):
 
@@ -990,7 +991,8 @@ Deze staan standaard uit omdat ze belasting toevoegen. Zet er een alleen aan als
 | `kubeStateMetrics.enabled` | Metrics voor CrashLoop, ImagePull en scheduling-redenen (voegt een kube-state-metrics-Deployment en een scrape toe) |
 | `ebpf.features.networkInterZoneMetrics` | Verdubbelt de netwerkflowseries |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Meer Prometheus-scrapejobs |
-| `cost.enabled` | Workloadkosten (levert OpenCost en een kleine Prometheus mee; kostenrijen per uur en een strak begrensde metricscrape; bescheiden ingestie, twee pods meer) |
+
+Kostenobservability (`cost.enabled`) staat daarentegen standaard aan: drie kleine pods, een kostenrij per uur per container en een scrape van één prijsreeks per node, volume en load balancer. Zet het uit met `--set cost.enabled=false` als je het niet gebruikt.
 
 ### Traces samplen in plaats van ze te laten vallen
 
@@ -1058,7 +1060,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Scherp verder aan als dat nodig is: verhoog `minSeverity` naar `ERROR`, voeg `metrics` toe aan de scopes van een namespaceregel, of stel `ebpf.enabled=false` in als je al traces vanuit OpenTelemetry-SDK's stuurt.
 
 > [!CAUTION]
-> Let op wat je wegsnoeit. Sommige monitors hangen af van bepaalde signalen: `kubeletstats.utilizationMetrics` uitzetten legt de twee sjablonen stil die pods tegen hun containerlimieten afzetten, logs uitzetten verwijdert op logs gebaseerde waarschuwingen, en `cadvisor` of `kubeletstats.volumeMetrics` uitzetten verwijdert de reeksen voor throttling, OOM-kills en PVC's die je eigen grafieken en metric-monitors kunnen lezen. `sampling.traces.percentage` verwijdert geen monitor, maar schaalt de op spans gebaseerde monitors omlaag (**Traces** op `Span Count`, **Uitzonderingen** op `Exception Count`), dus stel hun drempels bij. Snoei de signalen waarop je niet handelt, niet de signalen waar een monitor naar kijkt.
+> Let op wat je wegsnoeit. Sommige monitors hangen af van bepaalde signalen: `kubeletstats.utilizationMetrics` uitzetten legt de twee sjablonen stil die pods tegen hun containerlimieten afzetten, logs uitzetten verwijdert op logs gebaseerde waarschuwingen, `kubeletstats.volumeMetrics` uitzetten legt de sjabloon PVC Almost Full stil en laat de pagina's van de claims zonder hun gebruik, en `cadvisor` uitzetten verwijdert de reeksen voor throttling en OOM-kills die je eigen grafieken en metric-monitors kunnen lezen. `sampling.traces.percentage` verwijdert geen monitor, maar schaalt de op spans gebaseerde monitors omlaag (**Traces** op `Span Count`, **Uitzonderingen** op `Exception Count`), dus stel hun drempels bij. Snoei de signalen waarop je niet handelt, niet de signalen waar een monitor naar kijkt.
 
 ### Het effect meten
 

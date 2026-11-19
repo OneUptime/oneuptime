@@ -28,6 +28,15 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import KubernetesVolumeUsageCard from "../../../Components/Kubernetes/KubernetesVolumeUsageCard";
+import { KubernetesVolumeClaimUsage } from "../Utils/KubernetesVolumeUsage";
+import { fetchKubernetesVolumeClaimUsage } from "../Utils/KubernetesVolumeUsageFetcher";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+// A volume no claim is bound to: nothing mounts it, so nothing measures it.
+const VOLUME_NOT_CLAIMED: string = translationKey(
+  "No claim is bound to this volume, so no pod mounts it and there is no usage to measure.",
+);
 
 const KubernetesClusterPVDetail: FunctionComponent<
   PageComponentProps
@@ -40,6 +49,10 @@ const KubernetesClusterPVDetail: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [pvObject, setPvObject] = useState<KubernetesPVObject | null>(null);
   const [isLoadingObject, setIsLoadingObject] = useState<boolean>(true);
+  // The usage of the claim bound to it (KubernetesVolumeUsage).
+  const [usage, setUsage] = useState<KubernetesVolumeClaimUsage | null>(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState<boolean>(true);
+  const [usageError, setUsageError] = useState<string>("");
 
   const fetchCluster: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -87,6 +100,40 @@ const KubernetesClusterPVDetail: FunctionComponent<
 
     fetchPvObject().catch(() => {});
   }, [cluster?.clusterIdentifier, pvName]);
+
+  const claimName: string = pvObject?.spec.claimRef.name || "";
+  const claimNamespace: string = pvObject?.spec.claimRef.namespace || "";
+
+  useEffect(() => {
+    if (isLoadingObject) {
+      return;
+    }
+
+    if (!claimName) {
+      setUsage(null);
+      setIsLoadingUsage(false);
+      return;
+    }
+
+    const fetchUsage: () => Promise<void> = async (): Promise<void> => {
+      setIsLoadingUsage(true);
+      setUsageError("");
+      try {
+        setUsage(
+          await fetchKubernetesVolumeClaimUsage({
+            kubernetesClusterId: modelId,
+            name: claimName,
+            namespace: claimNamespace || undefined,
+          }),
+        );
+      } catch (err) {
+        setUsageError(API.getFriendlyMessage(err));
+      }
+      setIsLoadingUsage(false);
+    };
+
+    fetchUsage().catch(() => {});
+  }, [isLoadingObject, claimName, claimNamespace]);
 
   /*
    * The PV's Events, read as the page opens: the Events tab says how
@@ -187,12 +234,23 @@ const KubernetesClusterPVDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={pvObject?.metadata.labels || {}}
-          annotations={pvObject?.metadata.annotations || {}}
-          isLoading={isLoadingObject}
-        />
+        <>
+          <KubernetesVolumeUsageCard
+            usage={usage}
+            isLoading={isLoadingUsage}
+            error={usageError}
+            description="How much of this volume is used and free, measured on the claim bound to it."
+            noUsageExplanation={
+              !isLoadingObject && !claimName ? VOLUME_NOT_CLAIMED : undefined
+            }
+          />
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={pvObject?.metadata.labels || {}}
+            annotations={pvObject?.metadata.annotations || {}}
+            isLoading={isLoadingObject}
+          />
+        </>
       ),
     },
     eventsTab,

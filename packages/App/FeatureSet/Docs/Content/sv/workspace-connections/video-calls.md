@@ -86,7 +86,7 @@ Anslutningar som är inloggade som samma konto delar en inloggning, i alla proje
 
 Att ta bort en anslutning drar tillbaka OneUptimes åtkomst hos Zoom och Google så snart ingen annan anslutning använder inloggningen. För Microsoft tar du bort OneUptime under kontots **My Apps** (myapps.microsoft.com). Att ta bort OneUptime från ditt Zoom-konto i Zoom App Marketplace tar bort dess inloggning från alla anslutningar som är inloggade som det kontot, och de visar **Fungerar inte** tills de ansluts igen.
 
-Transkriptioner som OneUptime redan har läst stannar på sina incidenter: Att ta bort en anslutning behåller samtalen den startade, med deras transkriptioner, och det gör även att ta bort OneUptime från kontot hos Zoom, Google eller Microsoft. **Ta bort transkription** på ett samtal tar bort dess transkription och det OneUptime AI läste i den, men inte det OneUptime AI publicerade i incidentens flöde och kanaler. Att ta bort en incident tar bort dess samtal och deras transkriptioner.
+Att ta bort OneUptime från ditt Zoom-konto tar också inom några minuter bort de samtalstranskriptioner som OneUptime läste via dess inloggning, och det OneUptime AI läste i dem: från deras samtal, från incidenternas flöden och från de meddelanden som OneUptime publicerade i incidenternas Slack-, Microsoft Teams- och Mattermost-kanaler. Varje incidents flöde säger det, och en transkription som någon har lagt till stannar. Att ta bort en anslutning behåller samtalen den startade, med deras transkriptioner, och det gör även att ta bort OneUptime från ett Google- eller Microsoft-konto. **Ta bort transkription** på ett samtal tar bort dess transkription och det OneUptime AI läste i den från samma platser. Om OneUptime inte längre kan ta bort ett meddelande där, eftersom dess arbetsyta kopplades från eller appen togs bort från kanalen, säger den var meddelandet stannar. En rotorsak eller en efteranalys som någon skrev utifrån samtalet stannar. Att ta bort en incident tar bort dess samtal och deras transkriptioner.
 
 ### Om Microsoft ber om en administratör
 
@@ -100,7 +100,7 @@ För att ansluta med en tjänsteidentitet i stället för en persons inloggning 
 
 Kortet **Video Call** på en incidents eller ett larms sida har **Start call** (eller **Start another** när det redan finns ett). Välj en av projektets anslutningar, huddlen i incidentens Slack-kanal, eller klistra in en egen möteslänk. Samtalet publiceras i incidentens kanaler och feed precis som ett som en regel startar.
 
-**Ta bort** på kortet tar bort ett samtal från incidentens sida. Själva mötet tas inte bort, och alla med länken kan fortfarande ansluta till det.
+**Ta bort** på kortet tar bort ett samtal från incidentens sida, med dess transkription och det OneUptime AI läste i den. Själva mötet tas inte bort, och alla med länken kan fortfarande ansluta till det.
 
 Att starta och ta bort samtal kräver behörighet att arbeta med incidenter (eller larm): **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Incidentadministratör** eller **Incidentmedlem**, eller **Create Incident Video Call** och **Delete Incident Video Call** i en anpassad roll. Alla som kan läsa incidenten ser dess samtal.
 
@@ -152,7 +152,7 @@ Att hämta, lägga till, ersätta och ta bort en transkription, låta den läsas
 
 ### Vad OneUptime AI läser
 
-Att läsa en transkription är AI-arbete som en utredning: Det körs bara medan AI är påslaget för projektet, och räknas in i projektets AI-användning och dagliga gränser (se [Kostnadskontroll](/docs/ai/ai-sre#kostnadskontroll)). En lång transkription läses i delar. När AI är avstängt behålls transkriptionen, och kortet säger att den inte lästes. Att ta bort en transkription tar bort det OneUptime AI läste i den, och behåller incidentens rotorsak. Ett AI-utkast till efteranalys läser också vad som sades i incidentens samtal (se [Efteranalyser](/docs/incidents/postmortems)).
+Att läsa en transkription är AI-arbete som en utredning: Det körs bara medan AI är påslaget för projektet, och räknas in i projektets AI-användning och dagliga gränser (se [Kostnadskontroll](/docs/ai/ai-sre#kostnadskontroll)). En lång transkription läses i delar. När AI är avstängt behålls transkriptionen, och kortet säger att den inte lästes. Att ta bort en transkription tar bort det OneUptime AI läste i den, från samtalet, incidentens flöde och dess kanaler, och behåller incidentens rotorsak. Ett AI-utkast till efteranalys läser också vad som sades i incidentens samtal (se [Efteranalyser](/docs/incidents/postmortems)).
 
 ## Leverantörer
 
