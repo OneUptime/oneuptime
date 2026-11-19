@@ -28,7 +28,7 @@ L'adresse est vérifiée par la propre sonde de votre serveur : elle doit donc �
 
 ![Accueil demande « Que voulez-vous faire en premier ? », avec « Savoir quand mon site web ou mon API est en panne » coché](screen:home-goal-website)
 
-Dans un nouveau projet, la page **Accueil** demande d'abord **Que voulez-vous faire en premier ?** : cochez **Savoir quand mon site web ou mon API est en panne** et cliquez sur **Continuer**. Cliquez ensuite sur **Créez votre premier moniteur** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Si la liste de vérification n'affiche pas cette étape, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `website down` et choisissez **Savoir quand mon site web ou mon API est en panne**. **Moniteurs** la propose aussi : **Configuration guidée** dans la liste vide et sous **Fonctionnement**, et une ligne dans **Créer un moniteur** dès que vous choisissez **Site web** ou **API**.
+Dans un nouveau projet, la page **Accueil** demande d'abord **Que voulez-vous faire en premier ?** : cochez **Savoir quand mon site web ou mon API est en panne** et cliquez sur **Continuer**. Cliquez ensuite sur **Créez votre premier moniteur** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Si la liste de vérification n'affiche pas cette étape, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `website down` et choisissez **Savoir quand mon site web ou mon API est en panne**. **Moniteurs** la propose aussi : **Configuration guidée** dans la liste vide et sous **Fonctionnement**, et une ligne dans **Créer un moniteur** dès que vous choisissez **Site web** ou **API**. Ou cliquez sur **Le décrire plutôt** : Demander à l'IA s'ouvre avec la tâche écrite dans sa zone de saisie, prête à envoyer.
 
 ### Saisir l'adresse
 

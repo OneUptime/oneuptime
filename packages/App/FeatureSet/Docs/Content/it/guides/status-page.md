@@ -30,7 +30,7 @@ Il tuo server ha bisogno di un suo nome host, come `oneuptime.example.com`, con 
 
 ![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con «Informare i clienti con una pagina di stato» selezionato](screen:home-goal-status-page)
 
-Nella **Home** del tuo progetto, fai clic su **Pubblica una pagina di stato** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Informare i clienti con una pagina di stato** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `status page` e scegli **Pubblica una pagina di stato**.
+Nella **Home** del tuo progetto, fai clic su **Pubblica una pagina di stato** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Informare i clienti con una pagina di stato** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `status page` e scegli **Pubblica una pagina di stato**. Oppure fai clic su **Descrivilo invece**: Chiedi all'IA si apre con il compito scritto nella sua casella, pronto da inviare.
 
 Anche **Pagine di stato** la apre: fate clic su **Configurazione guidata** nel suo elenco vuoto, o in **Come funziona** quando il progetto ha già una pagina di stato.
 
