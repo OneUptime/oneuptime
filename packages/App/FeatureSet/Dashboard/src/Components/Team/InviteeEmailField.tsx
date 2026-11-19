@@ -38,18 +38,21 @@ import { createPortal } from "react-dom";
  * finding their address somewhere else. As two letters or more are typed,
  * the box now lists the people they could mean - the project's people the
  * reader may see, and on a server somebody runs, its other accounts for its
- * master admin (Common/Types/Team/InviteSuggestions says who, and why
- * nobody of another project ever is) - each by name and address, with
- * where they stand:
+ * master admin, or for anyone who may invite once a master admin lets them
+ * (#9744; Common/Types/Team/InviteSuggestions says who, and why nobody of
+ * another project is otherwise) - each by name and address, with where
+ * they stand:
  *
  *   - Invited: in the project, their invitation not accepted yet;
  *   - Not in this project yet: an account of the server's;
  *   - Already in this team, or Already invited to this team: listed so the
  *     reader knows, and not offered: the invitation would be refused.
  *
- * Picking one fills their address in. Typing any other address works as it
- * always did: nothing has to be picked, and a failed or refused read just
- * suggests nobody.
+ * Picking one fills their address in, and tells the form (onPick): someone
+ * with an account, so it asks no name for them (#9745,
+ * Common/UI/Utils/InviteeName). Typing any other address works as it always
+ * did: nothing has to be picked, and a failed or refused read just suggests
+ * nobody.
  *
  * It is the form's own text box (Input), as a combobox: the arrow keys move
  * through the list, Enter picks, Escape closes the list (and not the dialog

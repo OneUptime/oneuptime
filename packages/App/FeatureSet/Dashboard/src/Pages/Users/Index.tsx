@@ -168,6 +168,14 @@ const Users: FunctionComponent<PageComponentProps> = (
   const [isPreparingInvite, setIsPreparingInvite] =
     React.useState<boolean>(false);
 
+  /*
+   * The address of the person last picked from the email box's
+   * suggestions: someone with an account the reader may see, so Invite
+   * New User asks no name for them (Common/UI/Utils/InviteeName).
+   */
+  const [pickedInviteeEmail, setPickedInviteeEmail] =
+    React.useState<string>("");
+
   const openInviteUserModal: () => Promise<void> = async (): Promise<void> => {
     setIsPreparingInvite(true);
 
@@ -178,6 +186,8 @@ const Users: FunctionComponent<PageComponentProps> = (
       : null;
 
     setDefaultInviteTeam(team);
+    // A new invitation: nobody is picked yet.
+    setPickedInviteeEmail("");
     setIsPreparingInvite(false);
     setShowInviteUserModal(true);
   };
@@ -193,14 +203,6 @@ const Users: FunctionComponent<PageComponentProps> = (
         team: defaultInviteTeam.id,
       } as FormValues<TeamMember>;
     }, [defaultInviteTeam]);
-
-  /*
-   * The address of the person last picked from the email box's
-   * suggestions: someone with an account the reader may see, so Invite
-   * New User asks no name for them (Common/UI/Utils/InviteeName).
-   */
-  const [pickedInviteeEmail, setPickedInviteeEmail] =
-    React.useState<string>("");
 
   const userExtraFacets: Array<ResourceFacet> = [
     {
