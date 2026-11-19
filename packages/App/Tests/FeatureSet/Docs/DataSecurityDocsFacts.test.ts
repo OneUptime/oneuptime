@@ -1925,6 +1925,59 @@ describe("Data Security Compliance", () => {
       "A database running on a Kubernetes cluster, or on a Docker or Podman host, follows that cluster's or host's",
     );
   });
+
+  it("says a switch turned off asks why, and where the reason, who and when are read (#9629)", () => {
+    const onResource: string = section(page, "## On a resource's page");
+    const model: string = source(
+      "App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ResourceComplianceModel.ts",
+    );
+    const note: string = source(
+      "App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ComplianceTurnedOffNote.tsx",
+    );
+    const projectPage: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Compliance.tsx",
+    );
+    const exported: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/ComplianceExport.ts",
+    );
+
+    // The question, and the buttons that answer it or put it off, as drawn.
+    expect(model).toContain('"Why does this not apply here?"');
+    expect(onResource).toContain("**Why does this not apply here?**");
+    for (const button of [
+      "Save Reason",
+      "Not Now",
+      "Add Reason",
+      "Edit Reason",
+    ]) {
+      expect(note).toContain(`"${button}"`);
+      expect(onResource).toContain(`**${button}**`);
+    }
+
+    // The reason is the setting's note, which the audit log keeps.
+    expect(
+      source("Common/Models/DatabaseModels/DataSecurityComplianceSetting.ts"),
+    ).toMatch(/@EnableAuditLog\(\{[^)]*update: true/);
+    expect(onResource).toContain("the reason is kept in the audit log");
+
+    // The project's page: the whole framework's list, and each requirement's.
+    expect(projectPage).toContain('"Turned Off for the Whole Framework"');
+    expect(onResource).toContain("**Turned Off for the Whole Framework**");
+
+    // The exports: the CSV's column and the JSON's list, by their names.
+    expect(exported).toContain('"Turned Off On",');
+    expect(exported).toContain("turnedOff: framework.turnedOff || [],");
+    expect(projectPage).toContain('title: "Export CSV",');
+    expect(projectPage).toContain('title: "Export JSON",');
+    expect(onResource).toContain(
+      "Its **Export CSV** has them in a `Turned Off On` column, and **Export JSON** in a `turnedOff` list.",
+    );
+
+    // Whoever may read the page reads why; only who may change it writes it.
+    expect(onResource).toContain(
+      "Security Viewers see what is turned off, and why.",
+    );
+  });
 });
 
 describe("Closing an exposure", () => {

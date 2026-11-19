@@ -70,9 +70,13 @@ A resource's menu has a **Security** section, folded until you open it, once it 
 
 Each framework has a switch, **Applies Here**, and so does each of its requirements. Turning one off leaves the resource's stores out of that framework, or out of that requirement, on the resource's page and on **Data Security → Compliance**, which says how many stores were turned off on their resources. Turning it on again puts them back. Every switch is saved at once, and each change is kept in the project's [Audit Logs](/docs/configuration/audit-logs).
 
+Turning one off then asks, under it, **Why does this not apply here?** A reason is optional: write a short one and choose **Save Reason**, or **Not Now** to leave it. From then on it says who turned it off and when, and the reason, with **Add Reason** or **Edit Reason** to write or change it later. Like the switch, the reason is kept in the audit log.
+
+**Data Security → Compliance** says the same for every resource. A framework picked lists, under **Turned Off for the Whole Framework**, the resources that turned all of it off, and each requirement names, under its status, the resources that turned that requirement off: each linked to its own Compliance page, with who turned it off, when and why. Its **Export CSV** has them in a `Turned Off On` column, and **Export JSON** in a `turnedOff` list.
+
 A store follows one resource's switches. A database running on a Kubernetes cluster, or on a Docker or Podman host, follows that cluster's or host's: turn a framework off for the cluster, and it is off for every database on it. The database's own Compliance page says so and links there, its switches locked.
 
-Security Members, Security Admins, Project Admins and Project Owners can turn frameworks and requirements on and off, as they can tune a check. Security Viewers see what is turned off.
+Security Members, Security Admins, Project Admins and Project Owners can turn frameworks and requirements on and off, as they can tune a check. Security Viewers see what is turned off, and why.
 
 ## Requirements and their checks
 

@@ -68,11 +68,15 @@ En resurs meny får ett **Säkerhet**-avsnitt, ihopfällt tills du öppnar det, 
 - **Datasäkerhet** listar dessa datalager, de mest riskfyllda först, och de öppna problemen på dem. Vart och ett öppnas i Datasäkerhet, där det hanteras.
 - **Efterlevnad** poängsätter ramverken för enbart dessa datalager. De ramverk som deras data gör tillämpliga kommer först; de avstängda, och de som inget av datalagren innehåller data för, är ihopfällda nedanför.
 
-Varje ramverk har ett reglage, **Applies Here**, och det har vart och ett av dess krav också. Stänger du av ett, hålls resursens datalager utanför det ramverket, eller utanför det kravet, både på resursens sida och på **Datasäkerhet → Efterlevnad**, som anger hur många datalager som har stängts av på sina resurser. Slår du på det igen, räknas de med igen. Varje reglage sparas direkt, och varje ändring förs in i projektets [Granskningsloggar](/docs/configuration/audit-logs).
+Varje ramverk har ett reglage, **Gäller här**, och det har vart och ett av dess krav också. Stänger du av ett, hålls resursens datalager utanför det ramverket, eller utanför det kravet, både på resursens sida och på **Datasäkerhet → Efterlevnad**, som anger hur många datalager som har stängts av på sina resurser. Slår du på det igen, räknas de med igen. Varje reglage sparas direkt, och varje ändring förs in i projektets [Granskningsloggar](/docs/configuration/audit-logs).
+
+Stänger du av ett, frågar sidan sedan under det: **Varför gäller detta inte här?** En orsak är valfri: skriv en kort orsak och välj **Spara orsak**, eller **Inte nu** för att låta bli. Därefter står det vem som stängde av det och när, och orsaken, med **Lägg till orsak** eller **Redigera orsak** för att skriva eller ändra den senare. Precis som reglaget förs orsaken in i granskningsloggen.
+
+**Datasäkerhet → Efterlevnad** visar detsamma för varje resurs. Ett valt ramverk listar under **Avstängt för hela ramverket** de resurser som har stängt av hela ramverket, och varje krav anger under sin status de resurser som har stängt av just det kravet: var och en länkad till sin egen efterlevnadssida, med vem som stängde av det, när och varför. Sidans **Exportera CSV** har dem i kolumnen `Turned Off On`, och **Exportera JSON** i listan `turnedOff`.
 
 Ett datalager följer en enda resurs reglage. En databas som körs på ett Kubernetes-kluster, eller på en Docker- eller Podman-värd, följer det klustrets eller den värdens: stäng av ett ramverk för klustret, så är det avstängt för varje databas på det. Databasens egen efterlevnadssida säger det och länkar dit, med reglagen låsta.
 
-Rollerna Säkerhetsmedlem, Säkerhetsadministratör, Projektadministratör och Projektägare kan slå på och stänga av ramverk och krav, precis som de kan justera en kontroll. Rollen Säkerhetstittare ser vad som är avstängt.
+Rollerna Säkerhetsmedlem, Säkerhetsadministratör, Projektadministratör och Projektägare kan slå på och stänga av ramverk och krav, precis som de kan justera en kontroll. Rollen Säkerhetstittare ser vad som är avstängt, och varför.
 
 ## Krav och deras kontroller
 
