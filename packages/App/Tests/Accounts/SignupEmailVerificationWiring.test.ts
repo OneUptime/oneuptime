@@ -465,6 +465,9 @@ const NEW_KEYS: Array<string> = [
   "register.resendEmailFailed",
   "verifyEmail.successTitle",
   "verifyEmail.successDescription",
+  // The link confirmed a new address for an account (#9821).
+  "verifyEmail.emailChangedTitle",
+  "verifyEmail.emailChangedDescription",
   "verifyEmail.continueToSignIn",
   "verifyEmail.linkInvalidTitle",
   "verifyEmail.requestNewLinkDescription",

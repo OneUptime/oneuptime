@@ -76,7 +76,8 @@ const PendingEmailChange: FunctionComponent<ComponentProps> = (
       });
 
       Toast.success(
-        translator.translateText(PENDING_EMAIL_CHANGE_COPY.cancelled),
+        translator.translateText(PENDING_EMAIL_CHANGE_COPY.cancelled) ||
+          PENDING_EMAIL_CHANGE_COPY.cancelled,
       );
       props.onCancelled();
     } catch (err) {

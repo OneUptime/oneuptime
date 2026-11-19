@@ -1454,38 +1454,36 @@ const registerSelfHostedDeploymentIfAsked: RegisterSelfHostedDeploymentIfAskedFu
     miscDataProps: JSONObject;
   }): void => {
     if (
-      IsBillingEnabled ||
-      DisableInstanceCheckIn ||
-      data.miscDataProps["notifySelfHosted"] !== true
+      !IsBillingEnabled &&
+      !DisableInstanceCheckIn &&
+      data.miscDataProps["notifySelfHosted"] === true
     ) {
-      return;
-    }
+      void (async (): Promise<void> => {
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+        const instanceUrl: string = new URL(httpProtocol, host).toString();
 
-    void (async (): Promise<void> => {
-      const host: Hostname = await DatabaseConfig.getHost();
-      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-      const instanceUrl: string = new URL(httpProtocol, host).toString();
-
-      await API.post({
-        url: URL.fromString(
-          "https://oneuptime.com/api/open-source-deployment/register",
-        ),
-        data: {
-          email: data.account.email?.toString() || "",
-          name: data.account.name?.toString() || "",
-          companyName:
-            (data.miscDataProps["selfHostedCompanyName"] as string) ||
-            undefined,
-          companyPhoneNumber:
-            (data.miscDataProps["selfHostedPhoneNumber"] as string) ||
-            undefined,
-          oneuptimeVersion: AppVersion,
-          instanceUrl: instanceUrl,
-        },
+        await API.post({
+          url: URL.fromString(
+            "https://oneuptime.com/api/open-source-deployment/register",
+          ),
+          data: {
+            email: data.account.email?.toString() || "",
+            name: data.account.name?.toString() || "",
+            companyName:
+              (data.miscDataProps["selfHostedCompanyName"] as string) ||
+              undefined,
+            companyPhoneNumber:
+              (data.miscDataProps["selfHostedPhoneNumber"] as string) ||
+              undefined,
+            oneuptimeVersion: AppVersion,
+            instanceUrl: instanceUrl,
+          },
+        });
+      })().catch((err: Error) => {
+        logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
       });
-    })().catch((err: Error) => {
-      logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
-    });
+    }
   };
 
 /*
