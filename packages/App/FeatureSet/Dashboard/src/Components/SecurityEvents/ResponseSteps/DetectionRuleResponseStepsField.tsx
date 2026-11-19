@@ -136,6 +136,16 @@ interface PendingFocus {
 // The attribute a line is found by (data-step-id), its step's id: letters, digits and dashes.
 const STEP_ID_ATTRIBUTE: string = "data-step-id";
 
+/*
+ * A line's picker and words, without the space a form field keeps above
+ * and below it (mt-2 mb-1): the line spaces its controls itself, so its
+ * grip and its buttons sit level with them.
+ */
+const RESPONSE_STEP_PICKER_CLASS_NAME: string =
+  "relative w-full overflow-visible rounded-md";
+const RESPONSE_STEP_WORDS_CLASS_NAME: string =
+  "relative w-full rounded-md shadow-sm";
+
 function getOrder(steps: ReadonlyArray<DetectionRuleResponseStep>): string {
   return steps
     .map((step: DetectionRuleResponseStep): string => {
@@ -390,10 +400,21 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
           })}
           className="mt-1.5"
         />
-        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start">
-          <div className="shrink-0 sm:w-56">
+        {/*
+         * One line from a tablet up: the part, the words, the buttons. On a
+         * phone, two: the part with Move Up and Move Down, then the words
+         * with the bin, so each has the room to be read.
+         */}
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex">
+          <div className="min-w-0 sm:w-56 sm:shrink-0">
+            {/*
+             * A line's controls share one line: without the gap a form
+             * field's picker and words keep above and below them, the
+             * grip and the buttons sit level with them.
+             */}
             <Dropdown
               dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.part}-${index}`}
+              className={RESPONSE_STEP_PICKER_CLASS_NAME}
               inputId={getPartInputId(step.id)}
               isClearable={false}
               ariaLabel={translator.translateTemplate(
@@ -423,22 +444,23 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
-          <div className="flex min-w-0 flex-1 items-start gap-1">
-            <div className="min-w-0 flex-1">
-              <Input
-                dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.text}-${index}`}
-                ariaLabel={translator.translateTemplate(
-                  RESPONSE_STEP_TEXT_LABEL,
-                  { number },
-                )}
-                value={step.text}
-                maxLength={DETECTION_RULE_RESPONSE_STEP_TEXT_MAX_LENGTH}
-                placeholder={RESPONSE_STEP_PLACEHOLDER}
-                onChange={(text: string) => {
-                  emit(changeResponseStep(steps, index, { text }));
-                }}
-              />
-            </div>
+          <div className="row-start-2 min-w-0 sm:flex-1">
+            <Input
+              dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.text}-${index}`}
+              outerDivClassName={RESPONSE_STEP_WORDS_CLASS_NAME}
+              ariaLabel={translator.translateTemplate(
+                RESPONSE_STEP_TEXT_LABEL,
+                { number },
+              )}
+              value={step.text}
+              maxLength={DETECTION_RULE_RESPONSE_STEP_TEXT_MAX_LENGTH}
+              placeholder={RESPONSE_STEP_PLACEHOLDER}
+              onChange={(text: string) => {
+                emit(changeResponseStep(steps, index, { text }));
+              }}
+            />
+          </div>
+          <div className="col-start-2 row-start-1 flex items-center gap-1">
             <Button
               dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.moveUp}-${index}`}
               ariaLabel={translator.translateTemplate(
@@ -471,6 +493,8 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
                 move(index, ResponseStepMove.Down);
               }}
             />
+          </div>
+          <div className="col-start-2 row-start-2 flex items-center justify-end">
             <Button
               dataTestId={`${DETECTION_RULE_RESPONSE_STEPS_TEST_IDS.remove}-${index}`}
               ariaLabel={translator.translateTemplate(
@@ -530,7 +554,7 @@ const DetectionRuleResponseStepsField: FunctionComponent<ComponentProps> = (
         <ol
           ref={provided?.innerRef}
           {...(provided?.droppableProps || {})}
-          className="space-y-2"
+          className="space-y-3"
           aria-labelledby={headingId}
         >
           {part.steps.map(

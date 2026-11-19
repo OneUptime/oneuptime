@@ -434,7 +434,7 @@ describe("putting the steps in order", () => {
           getResponseStepsInPlanOrder(getDetectionRuleLibraryResponseSteps(id));
 
         return steps.some(
-          (step: DetectionRuleResponseStep, place: number): boolean => {
+          (_step: DetectionRuleResponseStep, place: number): boolean => {
             return canMoveResponseStep(steps, place, ResponseStepMove.Down);
           },
         );
