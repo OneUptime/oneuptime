@@ -80,6 +80,7 @@ describe("toKubernetesCostEngine", () => {
       bundledEngineUnused: true,
       pricingSource: KubernetesCostPricingSource.ListPrices,
       pricingProvider: "AWS",
+      memoryPeaksFrom: "",
     });
   });
 
@@ -126,6 +127,7 @@ describe("toKubernetesCostEngine", () => {
       bundledEngineUnused: false,
       pricingSource: KubernetesCostPricingSource.ListPrices,
       pricingProvider: "",
+      memoryPeaksFrom: "",
     });
   });
 });
@@ -158,6 +160,7 @@ describe("fetchKubernetesCostEngine", () => {
       bundledEngineUnused: false,
       pricingSource: KubernetesCostPricingSource.DefaultRates,
       pricingProvider: "",
+      memoryPeaksFrom: "",
     });
 
     const request: any = mockGetList.mock.calls[0]![0];

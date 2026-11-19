@@ -4,7 +4,10 @@ import OneUptimeDate from "Common/Types/Date";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
-import { KubernetesCostPricingSource } from "Common/Types/Kubernetes/KubernetesCostPricing";
+import {
+  KubernetesCostMemoryPeaksSource,
+  KubernetesCostPricingSource,
+} from "Common/Types/Kubernetes/KubernetesCostPricing";
 import { keyForKubernetesCluster } from "Common/Utils/Telemetry/EntityKey";
 import {
   KubernetesCostAllocationIngestRow,
@@ -500,6 +503,7 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
           bundledEngineUnused: true,
           pricingSource: KubernetesCostPricingSource.ListPrices,
           pricingProvider: "AWS",
+          memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Bundled,
         },
         allocations: [
           makeAllocation(),
@@ -514,6 +518,10 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
       expect(row["bundledEngineUnused"]).toBe(true);
       expect(row["pricingSource"]).toBe("list-prices");
       expect(row["pricingProvider"]).toBe("AWS");
+      // #9970: where its memory peak came from.
+      expect(row["memoryPeaksFrom"]).toBe("bundled");
+      // A first reading of its window, not a correction (#9969).
+      expect(row["isCostAdjustment"]).toBe(false);
     }
   });
 
@@ -532,6 +540,29 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
     expect(row["bundledEngineUnused"]).toBe(false);
     expect(row["pricingSource"]).toBe("");
     expect(row["pricingProvider"]).toBe("");
+    expect(row["memoryPeaksFrom"]).toBe("");
+    expect(row["isCostAdjustment"]).toBe(false);
+  });
+
+  test("an agent older than #9970 says nothing of its memory peaks: none named", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        costEngine: {
+          engine: "Kubecost",
+          service: "kubecost/kubecost-frontend",
+          bundledEngineUnused: true,
+          pricingSource: "default-rates",
+          pricingProvider: "",
+        } as unknown as KubernetesCostIngestPayload["costEngine"],
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    const row: JSONObject = getSubmittedRows()[0]!;
+
+    expect(row["bundledEngineUnused"]).toBe(true);
+    expect(row["memoryPeaksFrom"]).toBe("");
   });
 
   test("keeps only what an agent could have said of its engine", async () => {
@@ -545,6 +576,7 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
           bundledEngineUnused: "yes",
           pricingSource: "free",
           pricingProvider: "AWS",
+          memoryPeaksFrom: "thanos",
         } as unknown as KubernetesCostIngestPayload["costEngine"],
         allocations: [makeAllocation()],
       }),
@@ -558,6 +590,7 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
     // A source the server does not know is unknown, and names no cloud.
     expect(row["pricingSource"]).toBe("unknown");
     expect(row["pricingProvider"]).toBe("");
+    expect(row["memoryPeaksFrom"]).toBe("");
   });
 
   test("sanitizes numbers: non-finite and non-numeric become 0, numeric strings parse", async () => {

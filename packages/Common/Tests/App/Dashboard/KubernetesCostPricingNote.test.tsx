@@ -11,6 +11,7 @@ import KubernetesCostPricingNote, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/KubernetesCostPricingNote";
 import {
   KubernetesCostEngineInfo,
+  KubernetesCostMemoryPeaksSource,
   KubernetesCostPricingSource,
 } from "../../../Types/Kubernetes/KubernetesCostPricing";
 
@@ -32,6 +33,7 @@ function engine(
     bundledEngineUnused: false,
     pricingSource: KubernetesCostPricingSource.ListPrices,
     pricingProvider: "AWS",
+    memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Engine,
     ...overrides,
   };
 }

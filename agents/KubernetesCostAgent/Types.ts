@@ -127,6 +127,12 @@ export interface KubernetesCostIngestPayload {
    */
   shipmentId?: string | undefined;
   shipmentChunk?: number | undefined;
+  /*
+   * True when the rows are a later reading of windows shipped before
+   * (#9969, EngineCorrections): the server brings what it holds for each
+   * window in line with them instead of skipping a window it has.
+   */
+  correction?: boolean | undefined;
   allocations: Array<KubernetesCostAllocationIngestRow>;
 }
 

@@ -674,6 +674,8 @@ export default class KubernetesCostIngestService {
       bundledEngineUnused: data.costEngine?.bundledEngineUnused === true,
       pricingSource: data.costEngine?.pricingSource || "",
       pricingProvider: data.costEngine?.pricingProvider || "",
+      memoryPeaksFrom: data.costEngine?.memoryPeaksFrom || "",
+      isCostAdjustment: false,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
 
