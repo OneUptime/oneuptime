@@ -166,12 +166,8 @@ const FILLED_IN_BY_THE_CREATE: ReadonlyArray<{ column: string; why: string }> =
       why: "Only the incoming-call webhook makes these items, each one Ringing, and the call provider's dial status moves it.",
     },
     {
-      column: "IncidentSla.incidentSlaRuleId",
-      why: "Only OneUptime makes an incident's SLA record, from the SLA rule that matches the incident (IncidentSlaService).",
-    },
-    {
       column: "IncidentSla.slaStartedAt",
-      why: "Only OneUptime makes an incident's SLA record, started when the incident was declared or reopened (IncidentSlaService).",
+      why: "IncidentSlaService.onBeforeCreate starts an SLA a person adds when its incident was declared; the SLA OneUptime starts for the rule an incident matches comes started.",
     },
     {
       column: "RunbookExecution.runbookNameSnapshot",
