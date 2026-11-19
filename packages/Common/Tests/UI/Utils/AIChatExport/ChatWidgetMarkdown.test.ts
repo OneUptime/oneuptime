@@ -175,7 +175,8 @@ describe("ChatWidgetMarkdown", () => {
     test("its name and its line are text, never Markdown: a heading of their own, a link or an image", () => {
       const markdown: string = widgetToMarkdown(
         monitorCard({
-          heading: "pay_ments [docs](https://example.com) ![x](https://example.com/t.png)",
+          heading:
+            "pay_ments [docs](https://example.com) ![x](https://example.com/t.png)",
           subheading: "Degraded *now*\n# Not a heading",
         }),
       );
