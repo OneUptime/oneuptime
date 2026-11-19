@@ -16,6 +16,7 @@ import {
   engineKindOfService,
   serviceOfUrl,
 } from "./EngineDiscovery";
+import { readKubecostCollectedThrough } from "./EngineCollection";
 import { MetricsEngine } from "./EngineMetrics";
 import { PrometheusEngine } from "./EnginePrometheus";
 import { EnginePricing, readEnginePricing } from "./EnginePricing";
@@ -61,7 +62,52 @@ interface SelectedEngine {
   candidate: EngineCandidate | null;
   pricing: EnginePricing | null;
   pricingReadAtMs: number;
+  /*
+   * The engine's name for this cluster, as its allocations give it, once
+   * read: what a Kubecost that answers for several is asked about.
+   */
+  clusterId: string;
 }
+
+// An engine's sentinel in a row's fields: "__idle__", "__unallocated__", ...
+const SENTINEL_PATTERN: RegExp = /^__[a-z]+__$/;
+
+/*
+ * The clusters a window's allocations name (their engine's IDs for them).
+ * A sentinel names none: a Kubecost asked per container writes "__idle__" as
+ * its idle row's cluster.
+ */
+export const clustersOfAllocations: (
+  allocations: Array<EngineAllocation>,
+) => Set<string> = (allocations: Array<EngineAllocation>): Set<string> => {
+  const clusters: Set<string> = new Set<string>();
+
+  for (const allocation of allocations) {
+    const cluster: string = (allocation.properties?.cluster || "").trim();
+    if (cluster && !SENTINEL_PATTERN.test(cluster)) {
+      clusters.add(cluster);
+    }
+  }
+
+  return clusters;
+};
+
+// The one cluster a window's allocations name, or "" for none or several.
+export const clusterOfAllocations: (
+  allocations: Array<EngineAllocation>,
+) => string = (allocations: Array<EngineAllocation>): string => {
+  const clusters: Set<string> = clustersOfAllocations(allocations);
+
+  return clusters.size === 1 ? Array.from(clusters)[0]! : "";
+};
+
+/*
+ * How long after a window closes it is read whatever a Kubecost says of it
+ * (EngineCollection): an aggregator that has stopped collecting must not
+ * hold every later hour back for good. Its /healthz already reads degraded
+ * by then (no window completed in three).
+ */
+const MAX_COLLECTION_WAIT_MS: number = 3 * 60 * 60 * 1000;
 
 type Discovery =
   | { status: "found"; engine: SelectedEngine }
@@ -137,6 +183,7 @@ export class CostEngineResolver implements CostEngineSource {
       candidate: null,
       pricing: null,
       pricingReadAtMs: 0,
+      clusterId: "",
     };
   }
 
@@ -162,14 +209,7 @@ export class CostEngineResolver implements CostEngineSource {
           windowEnd: new Date(windowEnd),
         });
 
-      const clusters: Set<string> = new Set<string>();
-
-      for (const allocation of allocations) {
-        const cluster: string = (allocation.properties?.cluster || "").trim();
-        if (cluster) {
-          clusters.add(cluster);
-        }
-      }
+      const clusters: Set<string> = clustersOfAllocations(allocations);
 
       if (clusters.size > 1) {
         return {
@@ -216,6 +256,7 @@ export class CostEngineResolver implements CostEngineSource {
             candidate: candidate,
             pricing: null,
             pricingReadAtMs: 0,
+            clusterId: "",
           },
         };
       }
@@ -375,10 +416,7 @@ export class CostEngineResolver implements CostEngineSource {
    * Kubecost 3 says nothing until its aggregator has collected the cluster,
    * some twenty minutes after it is installed.
    */
-  private async refreshPricing(
-    engine: SelectedEngine,
-    allocations: Array<EngineAllocation>,
-  ): Promise<void> {
+  private async refreshPricing(engine: SelectedEngine): Promise<void> {
     if (
       engine.pricing &&
       engine.pricing.source !== "unknown" &&
@@ -387,21 +425,12 @@ export class CostEngineResolver implements CostEngineSource {
       return;
     }
 
-    const clusters: Set<string> = new Set<string>();
-
-    for (const allocation of allocations) {
-      const cluster: string = (allocation.properties?.cluster || "").trim();
-      if (cluster && cluster !== "__idle__") {
-        clusters.add(cluster);
-      }
-    }
-
     try {
       engine.pricing = await readEnginePricing({
         client: engine.client,
         rateCardHint:
           engine.origin === "bundled" ? this.options.rateCardHint : "",
-        clusterId: clusters.size === 1 ? Array.from(clusters)[0] : "",
+        clusterId: engine.clusterId,
       });
       engine.pricingReadAtMs = this.now();
     } catch (err: unknown) {
@@ -422,7 +451,8 @@ export class CostEngineResolver implements CostEngineSource {
         await engine.client.fetchAllocations(data);
 
       this.consecutiveFailures = 0;
-      await this.refreshPricing(engine, allocations);
+      engine.clusterId = clusterOfAllocations(allocations) || engine.clusterId;
+      await this.refreshPricing(engine);
 
       return allocations;
     } catch (err: unknown) {
@@ -455,27 +485,25 @@ export class CostEngineResolver implements CostEngineSource {
   }
 
   /*
-   * The engine whose price metrics the collector should scrape (#9776): the
-   * one the allocations are read from, so the Cost dashboard and the Costs
-   * pages are priced alike. The engine cost.engine.url names from the start;
-   * otherwise the one in use, the bundled one before the first look, and in
-   * auto mode none until one is found. Its namespace, when it is an
-   * in-cluster Service, is where a Kubecost 3 finops agent would be.
+   * The engine whose price metrics the collector should scrape (#9776,
+   * #9852): the one the allocations are read from, so the Cost dashboard and
+   * the Costs pages are priced alike. The engine cost.engine.url names from
+   * the start; otherwise the one in use, and none before the first look: the
+   * bundled engine's prices are not the ones to scrape until the agent knows
+   * the cluster runs no engine of its own, the first tick after it starts.
+   * Its namespace, when it is an in-cluster Service, is where a Kubecost 3
+   * finops agent would be.
    */
   public metricsEngine(): MetricsEngine | null {
     if (this.options.mode === "configured") {
       return this.metricsEngineAt(this.options.engineUrl, null);
     }
 
-    if (this.selected) {
-      return this.metricsEngineAt(
-        this.selected.client.baseUrl,
-        this.selected.candidate,
-      );
-    }
-
-    return this.options.mode === "bundled"
-      ? this.metricsEngineAt(this.options.engineUrl, null)
+    return this.selected
+      ? this.metricsEngineAt(
+          this.selected.client.baseUrl,
+          this.selected.candidate,
+        )
       : null;
   }
 
@@ -540,6 +568,64 @@ export class CostEngineResolver implements CostEngineSource {
     };
   }
 
+  // Which engine an engine in use is, by the best word there is for it.
+  private kindOf(engine: SelectedEngine): EngineKind | null {
+    return (
+      engine.candidate?.kind ||
+      (engine.origin === "configured" ? this.configuredKind : null) ||
+      engine.client.engineKind()
+    );
+  }
+
+  /*
+   * Whether the engine has collected all of a closed window yet
+   * (EngineCollection): a Kubecost once its aggregator has collected this
+   * cluster up to the window's end, or three hours after it, whichever comes
+   * first; any other engine, and a Kubecost that does not say, at once.
+   * Never throws: an engine that cannot be reached is the next read's to
+   * report.
+   */
+  public async isWindowReady(data: {
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<boolean> {
+    if (this.now() - data.windowEnd.getTime() >= MAX_COLLECTION_WAIT_MS) {
+      return true;
+    }
+
+    let engine: SelectedEngine;
+
+    try {
+      engine = await this.resolve();
+    } catch {
+      return true;
+    }
+
+    if (this.kindOf(engine) !== "Kubecost") {
+      return true;
+    }
+
+    const collected: Date | null = await readKubecostCollectedThrough({
+      client: engine.client,
+      clusterId: engine.clusterId,
+    });
+
+    if (!collected || collected.getTime() >= data.windowEnd.getTime()) {
+      return true;
+    }
+
+    Logger.info(
+      "the cost engine has not collected this window yet; it is read once it has",
+      {
+        windowStart: data.windowStart.toISOString(),
+        windowEnd: data.windowEnd.toISOString(),
+        collectedThrough: collected.toISOString(),
+      },
+    );
+
+    return false;
+  }
+
   public describe(): KubernetesCostEngineInfo | undefined {
     const engine: SelectedEngine | null = this.selected;
 
@@ -547,10 +633,7 @@ export class CostEngineResolver implements CostEngineSource {
       return undefined;
     }
 
-    const kind: EngineKind | null =
-      engine.candidate?.kind ||
-      (engine.origin === "configured" ? this.configuredKind : null) ||
-      engine.client.engineKind();
+    const kind: EngineKind | null = this.kindOf(engine);
 
     return {
       engine: kind || "",

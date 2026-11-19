@@ -224,6 +224,15 @@ export interface CostEngineSource {
   describe?(): KubernetesCostEngineInfo | undefined;
   // Where the engine in use answers, for /healthz and troubleshoot.sh.
   engineUrl?(): string | undefined;
+  /*
+   * Whether the engine has collected all of a closed window yet
+   * (EngineCollection): false holds the window for a later tick, without
+   * counting as a failure. Absent: always.
+   */
+  isWindowReady?(data: {
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<boolean>;
 }
 
 // One http_sd target group, as Prometheus reads it.

@@ -2,7 +2,11 @@ import "./TestEnv";
 import * as assert from "assert";
 import { test } from "node:test";
 import { CostEngineClient } from "../CostEngineClient";
-import { CostEngineMode, CostEngineResolver } from "../CostEngineResolver";
+import {
+  CostEngineMode,
+  CostEngineResolver,
+  clusterOfAllocations,
+} from "../CostEngineResolver";
 import { KubernetesService, ServiceQuery } from "../KubernetesApi";
 import { EngineAllocation, KubernetesCostEngineInfo } from "../Types";
 
@@ -401,6 +405,64 @@ test("a Kubecost that answers for several clusters is never read automatically",
   assert.strictEqual(resolver.describe()?.service, "");
 });
 
+/*
+ * Asked per container, a Kubecost writes "__idle__" as its idle row's
+ * cluster, as Kubecost 2.8.7 did on kind: that is one cluster, not two, or
+ * every Kubecost would be passed over as a primary that federates others.
+ */
+test("a Kubecost's idle row is no second cluster", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.engine(KUBECOST_URL, {
+    kind: "Kubecost",
+    answer: [
+      {
+        name: "cost-metrics/cost-9852-control-plane/kubecost/deployment/kubecost-cost-analyzer/kubecost-cost-analyzer-86d48d7474-7ljpl/cost-model",
+        properties: {
+          cluster: "cost-metrics",
+          node: "cost-9852-control-plane",
+          namespace: "kubecost",
+          pod: "kubecost-cost-analyzer-86d48d7474-7ljpl",
+          container: "cost-model",
+        },
+        totalCost: 0.01,
+      },
+      {
+        name: "__idle__/__idle__/__idle__/__idle__/__idle__/__idle__/__idle__",
+        properties: {
+          cluster: "__idle__",
+          node: "__idle__",
+          namespace: "__idle__",
+          pod: "__idle__",
+          container: "__idle__",
+        },
+        totalCost: 0.12238,
+      },
+      {
+        name: "__unmounted__",
+        properties: { cluster: "__unmounted__", namespace: "__unmounted__" },
+      },
+    ],
+  });
+  const bundled: FakeEngine = world.engine(BUNDLED_URL, {});
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(bundled.fetches, 0);
+  assert.strictEqual(
+    resolver.describe()?.service,
+    "kubecost/kubecost-cost-analyzer",
+  );
+  assert.strictEqual(
+    clusterOfAllocations([
+      { properties: { cluster: "cost-metrics" } },
+      { properties: { cluster: "__idle__" } },
+    ]),
+    "cost-metrics",
+  );
+});
+
 test("an engine installed later is found at the next hourly look, not before", async (): Promise<void> => {
   const world: World = new World();
   world.engine(BUNDLED_URL, {});
@@ -614,11 +676,11 @@ test("the price metrics follow the engine the allocations are read from", async 
 
   const resolver: CostEngineResolver = world.resolver("bundled");
 
-  // Before the first look: the bundled engine.
-  assert.deepStrictEqual(resolver.metricsEngine(), {
-    url: BUNDLED_URL,
-    namespace: "oneuptime",
-  });
+  /*
+   * #9852: before the first look, none - not the bundled engine, whose
+   * prices are not the cluster's when it runs its own engine.
+   */
+  assert.strictEqual(resolver.metricsEngine(), null);
 
   await resolver.fetchAllocations(WINDOW);
 
@@ -626,6 +688,38 @@ test("the price metrics follow the engine the allocations are read from", async 
     url: KUBECOST_URL,
     namespace: "kubecost",
   });
+});
+
+test("the bundled engine's price metrics are scraped once the agent knows it reads it, and again after a fallback", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [OPENCOST];
+  const opencost: FakeEngine = world.engine(OPENCOST_URL, {});
+  world.engine(BUNDLED_URL, {});
+
+  const nothing: World = new World();
+  nothing.engine(BUNDLED_URL, {});
+  const alone: CostEngineResolver = nothing.resolver("bundled");
+  await alone.fetchAllocations(WINDOW);
+
+  // No engine of the cluster's own: the bundled one's.
+  assert.deepStrictEqual(alone.metricsEngine(), {
+    url: BUNDLED_URL,
+    namespace: "oneuptime",
+  });
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+  await resolver.fetchAllocations(WINDOW);
+  assert.strictEqual(resolver.metricsEngine()?.url, OPENCOST_URL);
+
+  // The cluster's own engine goes: back to the bundled one's prices.
+  world.services = [];
+  opencost.answer = new Error("ECONNREFUSED");
+  for (let i: number = 0; i < 3; i++) {
+    await assert.rejects(resolver.fetchAllocations(WINDOW));
+  }
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.metricsEngine()?.url, BUNDLED_URL);
 });
 
 test("auto has no price metrics to scrape until it has an engine, nor after losing it", async (): Promise<void> => {
@@ -650,6 +744,124 @@ test("auto has no price metrics to scrape until it has an engine, nor after losi
   }
 
   assert.strictEqual(resolver.metricsEngine(), null);
+});
+
+// --- whether a Kubecost has collected the window yet --------------------------
+
+/*
+ * A Kubecost answers from what its aggregator has collected, ten minutes or
+ * more behind the clock (on kind, Kubecost 3.3.2 had collected up to 16:05 at
+ * 16:20): an hour is read once the aggregator has reached its end.
+ */
+const COLLECTED: {
+  windowStart: Date;
+  windowEnd: Date;
+} = {
+  windowStart: new Date("2026-11-18T11:00:00Z"),
+  windowEnd: new Date("2026-11-18T12:00:00Z"),
+};
+
+test("a Kubecost's hour is read once its aggregator has collected it", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  const kubecost: FakeEngine = world.engine(KUBECOST_URL, {
+    kind: "Kubecost",
+    api: {
+      "clusters/status": [
+        { id: "prod-eu", lastCollectedTime: "2026-11-18T11:50:00Z" },
+      ],
+    },
+  });
+  world.engine(BUNDLED_URL, {});
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+
+  // 12:30: collected to 11:50, so 11:00-12:00 waits.
+  assert.strictEqual(await resolver.isWindowReady(COLLECTED), false);
+  assert.deepStrictEqual(kubecost.asked?.pop(), {
+    name: "clusters/status",
+    params: { window: "2d" },
+  });
+
+  kubecost.api = {
+    "clusters/status": [
+      { id: "prod-eu", lastCollectedTime: "2026-11-18T12:00:00Z" },
+    ],
+  };
+  assert.strictEqual(await resolver.isWindowReady(COLLECTED), true);
+});
+
+test("a Kubecost that answers for several clusters is asked about the one its rows name", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.engine(KUBECOST_URL, {
+    kind: "Kubecost",
+    answer: [{ name: "a", properties: { cluster: "prod-eu" }, totalCost: 1 }],
+    api: {
+      "clusters/status": [
+        { id: "prod-us", lastCollectedTime: "2026-11-18T12:10:00Z" },
+        { id: "prod-eu", lastCollectedTime: "2026-11-18T11:40:00Z" },
+      ],
+    },
+  });
+
+  const resolver: CostEngineResolver = world.resolver("auto");
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(await resolver.isWindowReady(COLLECTED), false);
+});
+
+test("OpenCost works an hour out when asked: it is read at once, with nothing asked", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [OPENCOST];
+  const opencost: FakeEngine = world.engine(OPENCOST_URL, { kind: "OpenCost" });
+
+  const resolver: CostEngineResolver = world.resolver("auto");
+
+  assert.strictEqual(await resolver.isWindowReady(COLLECTED), true);
+  assert.deepStrictEqual(opencost.asked || [], []);
+});
+
+test("a Kubecost that does not say how far it has collected is read at once", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.engine(KUBECOST_URL, {
+    kind: "Kubecost",
+    api: { "clusters/status": null },
+  });
+
+  assert.strictEqual(
+    await world.resolver("auto").isWindowReady(COLLECTED),
+    true,
+  );
+});
+
+test("an hour three hours closed is read whatever the Kubecost says", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  const kubecost: FakeEngine = world.engine(KUBECOST_URL, {
+    kind: "Kubecost",
+    api: {
+      "clusters/status": [
+        { id: "prod-eu", lastCollectedTime: "2026-11-18T09:00:00Z" },
+      ],
+    },
+  });
+
+  const resolver: CostEngineResolver = world.resolver("auto");
+  world.nowMs = Date.parse("2026-11-18T15:00:00Z");
+
+  assert.strictEqual(await resolver.isWindowReady(COLLECTED), true);
+  assert.deepStrictEqual(kubecost.asked || [], []);
+});
+
+test("with no engine to read, the window is the read's to fail, not this check's", async (): Promise<void> => {
+  const world: World = new World();
+
+  assert.strictEqual(
+    await world.resolver("auto").isWindowReady(COLLECTED),
+    true,
+  );
 });
 
 // --- where a Kubecost 3's prices come from (#9851) ---------------------------

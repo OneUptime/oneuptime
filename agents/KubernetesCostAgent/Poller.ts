@@ -130,6 +130,19 @@ export class Poller {
         const windowStart: Date = new Date(windowStartMs);
         const windowEnd: Date = new Date(windowEndMs);
 
+        /*
+         * A Kubecost answers from what its aggregator has collected, which
+         * runs ten minutes or more behind: read too soon, the hour is only
+         * partly there, and it is shipped once. Wait for it, without counting
+         * a failure (EngineCollection).
+         */
+        if (
+          typeof this.engine.isWindowReady === "function" &&
+          !(await this.engine.isWindowReady({ windowStart, windowEnd }))
+        ) {
+          break;
+        }
+
         const allocations: Array<EngineAllocation> =
           await this.engine.fetchAllocations({ windowStart, windowEnd });
 
