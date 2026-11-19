@@ -81,7 +81,8 @@ type RowInit = Partial<{
   name: string;
   state: string;
   role: string;
-  isReady: boolean;
+  // Undefined is a node that has not said yet: its own case.
+  isReady: boolean | undefined;
   serviceMode: string;
   runningReplicas: number;
   desiredReplicas: number;
