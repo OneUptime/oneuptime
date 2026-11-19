@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import { And, Equal, FindOperator, ILike } from "typeorm";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
@@ -49,7 +50,6 @@ function personRead(id: string): User {
   const user: User = new User();
   user._id = id;
   user.name = new Name("Their Own Name");
-  user.email = undefined;
   user.profilePictureId = new ObjectID("dddddddd-dddd-4ddd-8ddd-dddddddddddd");
   user.twoFactorAuthEnabled = true;
   user.createdAt = new Date("2020-01-01T00:00:00Z");
@@ -168,7 +168,7 @@ describe("what a read returns of a person reached through a relation", () => {
   });
 
   test("the reader reading themselves keeps everything, and is never asked about", async () => {
-    const asked: jest.SpiedFunction<
+    const asked: SpyInstance<
       typeof PendingInviteeProfiles.readPendingMemberships
     > = jest
       .spyOn(PendingInviteeProfiles, "readPendingMemberships")
@@ -197,7 +197,7 @@ describe("what a read returns of a person reached through a relation", () => {
   ])(
     "%s sees every profile, and nothing is read for it",
     async (_case: string, props: DatabaseCommonInteractionProps) => {
-      const asked: jest.SpiedFunction<
+      const asked: SpyInstance<
         typeof PendingInviteeProfiles.readPendingMemberships
       > = jest.spyOn(PendingInviteeProfiles, "readPendingMemberships");
 
@@ -217,7 +217,7 @@ describe("what a read returns of a person reached through a relation", () => {
   );
 
   test("a read that names people by id alone, or not at all, reads nothing more", async () => {
-    const asked: jest.SpiedFunction<
+    const asked: SpyInstance<
       typeof PendingInviteeProfiles.readPendingMemberships
     > = jest.spyOn(PendingInviteeProfiles, "readPendingMemberships");
 
@@ -268,7 +268,7 @@ describe("what a read returns of a person reached through a relation", () => {
   });
 
   test("an API key reads as its one project", async () => {
-    const asked: jest.SpiedFunction<
+    const asked: SpyInstance<
       typeof PendingInviteeProfiles.readPendingMemberships
     > = jest
       .spyOn(PendingInviteeProfiles, "readPendingMemberships")
@@ -338,7 +338,7 @@ describe("which of a person's invitations names them", () => {
   });
 
   test("nobody to ask about: no person and no project", async () => {
-    const asked: jest.SpiedFunction<
+    const asked: SpyInstance<
       typeof PendingInviteeProfiles.readPendingMemberships
     > = jest.spyOn(PendingInviteeProfiles, "readPendingMemberships");
 
@@ -354,7 +354,7 @@ describe("which of a person's invitations names them", () => {
   });
 
   test("a project as the reader, for its audit log", async () => {
-    const asked: jest.SpiedFunction<
+    const asked: SpyInstance<
       typeof PendingInviteeProfiles.readPendingMemberships
     > = jest
       .spyOn(PendingInviteeProfiles, "readPendingMemberships")
@@ -636,7 +636,7 @@ describe("who sees a person's picture", () => {
   const person: ObjectID = new ObjectID(PENDING_ID);
 
   test("nobody signed in sees none, and nothing is read", async () => {
-    const shares: jest.SpiedFunction<
+    const shares: SpyInstance<
       typeof PendingInviteeProfiles.sharesJoinedProject
     > = jest.spyOn(PendingInviteeProfiles, "sharesJoinedProject");
 
@@ -650,7 +650,7 @@ describe("who sees a person's picture", () => {
   });
 
   test("the person themselves, however their id is spelled, and a master admin", async () => {
-    const shares: jest.SpiedFunction<
+    const shares: SpyInstance<
       typeof PendingInviteeProfiles.sharesJoinedProject
     > = jest.spyOn(PendingInviteeProfiles, "sharesJoinedProject");
 
@@ -678,7 +678,7 @@ describe("who sees a person's picture", () => {
   ])(
     "anyone else, when the person %s: %p",
     async (_case: string, shared: boolean) => {
-      const shares: jest.SpiedFunction<
+      const shares: SpyInstance<
         typeof PendingInviteeProfiles.sharesJoinedProject
       > = jest
         .spyOn(PendingInviteeProfiles, "sharesJoinedProject")
