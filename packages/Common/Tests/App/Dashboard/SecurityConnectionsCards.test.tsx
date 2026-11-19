@@ -2283,10 +2283,9 @@ describe("a record's Security card", () => {
     expect(
       within(card).getByTestId(IDS.resourceSecurityOpen),
     ).toHaveTextContent("42");
-    expect(events.pathname).toBe(`${BASE}/security-events`);
-    expect(decodeURIComponent(events.searchParams.get("search") || "")).toBe(
-      "observable:web-1",
-    );
+    // The host's own Security Events page (#9547), which carries its scope.
+    expect(events.pathname).toBe(`${BASE}/host/${HOST_ID}/security-events`);
+    expect(events.searchParams.get("search")).toBeNull();
 
     const cases: HTMLElement = within(card).getByTestId(
       IDS.resourceSecurityCases,

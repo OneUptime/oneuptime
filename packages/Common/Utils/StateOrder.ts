@@ -566,9 +566,10 @@ const applyChanges: (
 };
 
 /**
- * The list as it will be once row `id` is given `requestedValue`, moved the
- * way the server moves it (Common/Utils/ListOrder): the rows in the way step
- * aside, and a cleared number sends the row to the end.
+ * The list as it will be once row `id` is given `requestedValue`, as the
+ * server writes it (Common/Utils/ListOrder, issue #9609): the row takes the
+ * number - beside any row that holds it already - and no other row moves;
+ * a cleared number sends the row to the end.
  */
 export const getStateListRowsAfterMove: (data: {
   rows: Array<StateListRow>;
@@ -604,30 +605,49 @@ export const getStateListRowsAfterMove: (data: {
     return applyChanges(data.rows, [{ id: data.id, value: appendValue }]);
   }
 
-  const changes: Array<ListOrderChange> = getListOrderCollisionChanges({
-    siblings: data.rows.map(toListOrderItem),
-    itemId: data.id,
-    previousValue: row.order,
-    requestedValue: requested,
-    sortOrder: SortOrder.Ascending,
-  });
-
-  return applyChanges(data.rows, [
-    ...changes,
-    { id: data.id, value: requested },
-  ]);
+  return applyChanges(data.rows, [{ id: data.id, value: requested }]);
 };
 
 /**
- * The list as it will be once `newRow` is created in it: at the number it
- * carries (the rows in the way stepping aside), or at the end without one.
+ * The list as it will be once a move gives the rows in `changedRows` their
+ * new numbers (POST <list>/:id/move, which renumbers the list in its new
+ * order: Common/Utils/ListOrder's getListOrderMoveChanges).
+ */
+export const getStateListRowsAfterRenumbering: (data: {
+  rows: Array<StateListRow>;
+  changedRows: Array<{ id: string; order: number }>;
+}) => Array<StateListRow> = (data: {
+  rows: Array<StateListRow>;
+  changedRows: Array<{ id: string; order: number }>;
+}): Array<StateListRow> => {
+  const byId: Map<string, number> = new Map();
+
+  for (const changed of data.changedRows) {
+    byId.set(changed.id.toLowerCase(), changed.order);
+  }
+
+  return data.rows.map((row: StateListRow): StateListRow => {
+    const order: number | undefined = byId.get(row.id.toLowerCase());
+
+    return order === undefined ? row : { ...row, order: order };
+  });
+};
+
+/**
+ * The list as it will be once `newRow` is created in it: at the end without
+ * a number; at the number it carries, beside any row that holds it, moving
+ * no other row; or - `makesRoom`, for a row whose place the server picked
+ * (getStateListInsertValue) - at that number, the row holding it and the
+ * run of rows behind it stepping down one.
  */
 export const getStateListRowsAfterCreate: (data: {
   rows: Array<StateListRow>;
   newRow: StateListRow;
+  makesRoom?: boolean | undefined;
 }) => Array<StateListRow> = (data: {
   rows: Array<StateListRow>;
   newRow: StateListRow;
+  makesRoom?: boolean | undefined;
 }): Array<StateListRow> => {
   if (data.newRow.order === null) {
     return [
@@ -640,6 +660,10 @@ export const getStateListRowsAfterCreate: (data: {
         }),
       },
     ];
+  }
+
+  if (!data.makesRoom) {
+    return [...data.rows, data.newRow];
   }
 
   const changes: Array<ListOrderChange> = getListOrderCollisionChanges({
@@ -656,8 +680,9 @@ export const getStateListRowsAfterCreate: (data: {
 /**
  * The number a row created without a place is given: the number of the
  * first row carrying the definition's insertAboveFlag, so the new row takes
- * its place and it steps down one. Null means the end of the list - the
- * definition has no such flag, or no row carries it.
+ * its place and it steps down one (the server makes room for a place it
+ * picked: ListOrderMaintainer.placeOnCreate). Null means the end of the
+ * list - the definition has no such flag, or no row carries it.
  */
 export const getStateListInsertValue: (
   definition: StateListDefinition,

@@ -127,7 +127,7 @@ Alt, hvad Datasikkerhed gemmer, er en post i OneUptime-API'et, som læses med de
 | Datalagre, deres tidslinjer, deres fund, hvem der kan nå dem, og hver identitet, der kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemer, deres tidslinjer og datastrømme | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scanninger | `/data-security-scan` |
-| Brugerdefinerede datatyper, kontrolindstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Brugerdefinerede datatyper, kontrolindstillinger, overholdelsesindstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets indstillinger | `/data-security-setting` |
 | Ejere, ejerregler og etiketregler | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,6 +137,8 @@ Nogle få svar beregnes på forespørgsel i stedet for at blive gemt. Hver af de
 | --- | --- |
 | `/data-security/overview` | Tallene i Oversigt: datalagre efter følsomhed og kategori, åbne problemer efter alvorlighed, de mest risikable problemer og de seneste 30 dage af dem |
 | `/data-security/compliance` | Hver rammes score og krav |
+| `/data-security/resource-scope` | Datalagrene for én ressource - en Kubernetes-klynge, en Docker- eller Podman-vært, en database, en tjeneste eller en cloud-ressource - og hvilken ressources overholdelseskontakter de følger |
+| `/data-security/resource-compliance` | Én ressources rammer: deres scorer for dens datalagre, og hvad der er slået fra for den |
 | `/data-security/record-of-processing` | GDPR-fortegnelsen over behandlingsaktiviteter, en række for hvert datalager, der indeholder persondata |
 | `/data-store/<id>/scan-now` | **Scan nu**: tager prøver af datalagerets indhold nu |
 | `/data-store/<id>/check-now` | **Kontrollér nu**: læser datalagerets konfiguration igen og kører dets kontroller |
@@ -146,9 +148,9 @@ Nogle få svar beregnes på forespørgsel i stedet for at blive gemt. Hver af de
 | `/data-store/<id>/response-actions` | Hvilke responshandlinger datalageret kan udføre nu, og hvorfor ikke |
 | `/data-store/<id>/respond` | Én responshandling på datalageret, f.eks. **Bloker offentlig adgang** eller **Slå versionsstyring til**, med det problem, den blev kørt fra |
 
-[Terraform-provideren](/docs/terraform/index) har en ressource for hver slags post, du opretter - datalagre, du selv tilføjer, brugerdefinerede datatyper, kontrolindstillinger, residensregler, ejer- og etiketregler - opkaldt efter posten, f.eks. `oneuptime_residency_rule`.
+[Terraform-provideren](/docs/terraform/index) har en ressource for hver slags post, du opretter - datalagre, du selv tilføjer, brugerdefinerede datatyper, kontrolindstillinger, overholdelsesindstillinger, residensregler, ejer- og etiketregler - opkaldt efter posten, f.eks. `oneuptime_residency_rule`.
 
-[MCP-serveren](/docs/ai/mcp-server) har værktøjer til at oprette, hente, liste, opdatere, slette og tælle disse poster: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule og Data Security Setting. En AI-assistent kan så spørge, hvilke datalagre der indeholder kortnumre, eller hvad der er åbent på en bucket, med dine tilladelser.
+[MCP-serveren](/docs/ai/mcp-server) har værktøjer til at oprette, hente, liste, opdatere, slette og tælle disse poster: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule og Data Security Setting. En AI-assistent kan så spørge, hvilke datalagre der indeholder kortnumre, eller hvad der er åbent på en bucket, med dine tilladelser.
 
 ## Næste trin
 

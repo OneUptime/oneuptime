@@ -2945,7 +2945,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * places the rule alone. The levels the header shows change with it.
    */
   @CaptureSpan()
-  public async moveInList(data: {
+  public override async moveInList(data: {
     id: ObjectID;
     placeOfId: ObjectID;
     props: DatabaseCommonInteractionProps;

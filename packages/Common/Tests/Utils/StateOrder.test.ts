@@ -31,6 +31,7 @@ import {
   getStateListReachedBuiltIn,
   getStateListRowsAfterCreate,
   getStateListRowsAfterMove,
+  getStateListRowsAfterRenumbering,
   sortStateListRows,
   toStateListRow,
 } from "../../Utils/StateOrder";
@@ -615,8 +616,11 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
     row("Investigating", 4),
   ];
 
-  test("a drop onto a row takes its place, and the rows in between step down", () => {
-    // Investigating dropped onto Acknowledged: what the dashboard sends.
+  /*
+   * A write of a number places its row and moves no other (issue #9609):
+   * Terraform numbers a whole list one write per row, all at once.
+   */
+  test("a number another row holds is shared: the row is placed beside it, and no other row moves", () => {
     expect(
       namesInOrder(
         getStateListRowsAfterMove({
@@ -627,13 +631,13 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
       ),
     ).toEqual([
       "Identified:1",
+      "Acknowledged:2",
       "Investigating:2",
-      "Acknowledged:3",
-      "Resolved:4",
+      "Resolved:3",
     ]);
   });
 
-  test("moving down steps the rows in between up", () => {
+  test("a higher number another row holds is shared too, and the rows in between stay", () => {
     expect(
       namesInOrder(
         getStateListRowsAfterMove({
@@ -644,10 +648,24 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
       ),
     ).toEqual([
       "Identified:1",
-      "Resolved:2",
-      "Investigating:3",
+      "Resolved:3",
       "Acknowledged:4",
+      "Investigating:4",
     ]);
+  });
+
+  test("a number given to the acknowledged state that the resolved state holds puts the path out of order", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: INCIDENT,
+        rowsBefore: rows,
+        rowsAfter: getStateListRowsAfterMove({
+          rows: rows,
+          id: "Acknowledged",
+          requestedValue: 3,
+        }),
+      })?.later.name,
+    ).toBe("Resolved");
   });
 
   test("a number nobody holds is kept as written", () => {
@@ -695,13 +713,107 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
   });
 });
 
+describe("getStateListRowsAfterRenumbering - the list as a move leaves it", () => {
+  const rows: Array<StateListRow> = [
+    ...SEEDED_INCIDENT_STATES,
+    row("Investigating", 4),
+  ];
+
+  test("gives the rows a move renumbered their new numbers, and leaves the rest", () => {
+    // Investigating moved to Acknowledged's place: 1..n in the new order.
+    expect(
+      namesInOrder(
+        getStateListRowsAfterRenumbering({
+          rows: rows,
+          changedRows: [
+            { id: "Investigating", order: 2 },
+            { id: "Acknowledged", order: 3 },
+            { id: "Resolved", order: 4 },
+          ],
+        }),
+      ),
+    ).toEqual([
+      "Identified:1",
+      "Investigating:2",
+      "Acknowledged:3",
+      "Resolved:4",
+    ]);
+  });
+
+  test("names the rows by id, however a caller wrote one", () => {
+    const states: Array<StateListRow> = [
+      row("1c000000-0000-4000-8000-0000000000aa", 1),
+      row("1c000000-0000-4000-8000-0000000000bb", 2),
+    ];
+
+    expect(
+      getStateListRowsAfterRenumbering({
+        rows: states,
+        changedRows: [{ id: "1C000000-0000-4000-8000-0000000000BB", order: 1 }],
+      }).map((state: StateListRow): number | null => {
+        return state.order;
+      }),
+    ).toEqual([1, 1]);
+  });
+
+  test("a move that takes the resolved state above the acknowledged one puts the path out of order", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: INCIDENT,
+        rowsBefore: rows,
+        rowsAfter: getStateListRowsAfterRenumbering({
+          rows: rows,
+          changedRows: [
+            { id: "Resolved", order: 2 },
+            { id: "Acknowledged", order: 3 },
+          ],
+        }),
+      })?.later.name,
+    ).toBe("Resolved");
+  });
+
+  test("a move of a state of the project's own between built-in ones keeps the path", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: INCIDENT,
+        rowsBefore: rows,
+        rowsAfter: getStateListRowsAfterRenumbering({
+          rows: rows,
+          changedRows: [
+            { id: "Investigating", order: 2 },
+            { id: "Acknowledged", order: 3 },
+            { id: "Resolved", order: 4 },
+          ],
+        }),
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("getStateListRowsAfterCreate", () => {
-  test("a new row with a number takes that place, and the rows in its way step down", () => {
+  test("a new row with a number another row holds is placed beside it, and no other row moves", () => {
     expect(
       namesInOrder(
         getStateListRowsAfterCreate({
           rows: SEEDED_INCIDENT_STATES,
           newRow: row("Investigating", 3),
+        }),
+      ),
+    ).toEqual([
+      "Identified:1",
+      "Acknowledged:2",
+      "Investigating:3",
+      "Resolved:3",
+    ]);
+  });
+
+  test("a new row whose place the server picked takes it, and the rows in its way step down", () => {
+    expect(
+      namesInOrder(
+        getStateListRowsAfterCreate({
+          rows: SEEDED_INCIDENT_STATES,
+          newRow: row("Investigating", 3),
+          makesRoom: true,
         }),
       ),
     ).toEqual([
@@ -749,6 +861,7 @@ describe("getStateListInsertValue - where a row created without a place goes", (
         "Mitigated",
         getStateListInsertValue(INCIDENT, SEEDED_INCIDENT_STATES),
       ),
+      makesRoom: true,
     });
 
     expect(namesInOrder(after)).toEqual([
@@ -1053,6 +1166,7 @@ describe("postmortem statuses", () => {
     const rows: Array<StateListRow> = getStateListRowsAfterCreate({
       rows: SEEDED_POSTMORTEM_STATUSES,
       newRow: row("In Review", 3),
+      makesRoom: true,
     });
 
     expect(namesInOrder(rows)).toEqual([
@@ -1148,6 +1262,7 @@ describe("security case statuses", () => {
         getStateListRowsAfterCreate({
           rows: SEEDED_CASE_STATUSES,
           newRow: row("Eradicating", 4),
+          makesRoom: true,
         }),
       ),
     ).toEqual([

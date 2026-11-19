@@ -379,7 +379,7 @@ export class Service extends ProjectReferencesService<Model> {
    * changes (save-layers); a write of `order` places the person alone.
    */
   @CaptureSpan()
-  public async moveInList(data: {
+  public override async moveInList(data: {
     id: ObjectID;
     placeOfId: ObjectID;
     props: DatabaseCommonInteractionProps;

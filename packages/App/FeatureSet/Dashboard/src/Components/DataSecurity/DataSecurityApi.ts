@@ -13,10 +13,16 @@ import {
   DataSecurityFixResult,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
+  DataSecurityResourceComplianceResponse,
+  DataSecurityResourceScope,
   DataSecurityResponseAvailability,
   DataSecurityResponseResult,
   DataSecurityScrubResult,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DataStoreResourceKind,
+  isDataStoreResourceKind,
+} from "Common/Types/DataSecurity/DataStoreResource";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -61,6 +67,63 @@ async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
     : {};
 }
 
+function readIds(value: JSONValue | undefined): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const ids: Array<string> = [];
+
+  for (const id of value as Array<unknown>) {
+    if (typeof id === "string" && ObjectID.isValidUUID(id)) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
+}
+
+/*
+ * A resource's scope read defensively: ids that are not ids are dropped,
+ * and an answer without one lists no store, so a page never reads every
+ * store of the project in its place.
+ */
+export function parseResourceScope(
+  body: JSONObject,
+): DataSecurityResourceScope {
+  const owner: JSONValue | undefined = body["complianceOwner"];
+  const ownerObject: JSONObject | null =
+    owner && typeof owner === "object" && !Array.isArray(owner)
+      ? (owner as JSONObject)
+      : null;
+  const ownerKind: JSONValue | undefined = ownerObject?.["kind"];
+  const ownerId: JSONValue | undefined = ownerObject?.["id"];
+
+  return {
+    kind: isDataStoreResourceKind(body["kind"])
+      ? body["kind"]
+      : DataStoreResourceKind.KubernetesCluster,
+    id: typeof body["id"] === "string" ? body["id"] : "",
+    name: typeof body["name"] === "string" ? body["name"] : "",
+    dataStoreIds: readIds(body["dataStoreIds"]),
+    ownedDataStoreIds: readIds(body["ownedDataStoreIds"]),
+    complianceOwner:
+      isDataStoreResourceKind(ownerKind) &&
+      typeof ownerId === "string" &&
+      ObjectID.isValidUUID(ownerId)
+        ? {
+            kind: ownerKind,
+            id: ownerId,
+            name:
+              typeof ownerObject?.["name"] === "string"
+                ? (ownerObject["name"] as string)
+                : "",
+          }
+        : null,
+    isTruncated: body["isTruncated"] === true,
+  };
+}
+
 export default class DataSecurityApi {
   /*
    * In the reader's zone: the issue trend counts the reader's days, as every
@@ -81,6 +144,34 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.compliance,
     )) as unknown as DataSecurityComplianceResponse;
+  }
+
+  /*
+   * A resource's own pages (#9547, #9555): the stores they show - a
+   * cluster's or a container host's databases', a database's, a cloud
+   * resource's, a service's telemetry - and how they stand against each
+   * framework.
+   */
+  public static async getResourceScope(data: {
+    kind: DataStoreResourceKind;
+    id: ObjectID;
+  }): Promise<DataSecurityResourceScope> {
+    return parseResourceScope(
+      await post(DATA_SECURITY_API_ROUTES.resourceScope, {
+        kind: data.kind,
+        id: data.id.toString(),
+      }),
+    );
+  }
+
+  public static async getResourceCompliance(data: {
+    kind: DataStoreResourceKind;
+    id: ObjectID;
+  }): Promise<DataSecurityResourceComplianceResponse> {
+    return (await post(DATA_SECURITY_API_ROUTES.resourceCompliance, {
+      kind: data.kind,
+      id: data.id.toString(),
+    })) as unknown as DataSecurityResourceComplianceResponse;
   }
 
   public static async getRecordOfProcessing(): Promise<DataSecurityRecordOfProcessingResponse> {

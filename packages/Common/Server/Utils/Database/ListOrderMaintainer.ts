@@ -1,11 +1,20 @@
 import type DatabaseService from "../../Services/DatabaseService";
+import ContiguousOrder, {
+  ContiguousOrderMoved,
+  ListMoveCheckFunction,
+} from "./ContiguousOrder";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import Sort from "../../Types/Database/Sort";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
+import {
+  ListPlace,
+  MoveInListChanges,
+} from "../../../Types/Database/MoveInList";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
@@ -13,9 +22,11 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   ListOrderChange,
   ListOrderItem,
+  ListOrderMove,
   getListOrderAppendValue,
   getListOrderChanges,
   getListOrderCollisionChanges,
+  getListOrderMoveChanges,
   needsListOrderNormalization,
   sortListOrderItems,
   toListOrderNumber,
@@ -24,14 +35,28 @@ import {
 /*
  * Keeps the number column of a drag-ordered list (a model with
  * @ListOrderColumn) true for every caller. DatabaseService calls into this
- * around its create and update; the arithmetic itself is
- * Common/Utils/ListOrder.ts, which the dashboard's tables use as well.
+ * around its create and update, and for a move (moveInList); the arithmetic
+ * itself is Common/Utils/ListOrder.ts, which the dashboard's tables use as
+ * well.
  *
- * Writes made here go through updateColumnsByIdWithoutHooks: stepping the
- * rows around a moved one aside is bookkeeping, not an edit of those rows, so
- * it must not fire their workflows, audit entries or service hooks one by
- * one. The row the caller actually created or moved goes through the normal
- * path and fires all of those as usual.
+ * A write places its own row and moves no other (issue #9609): a row
+ * created or given a number keeps it, even one another row holds, so
+ * Terraform's writes - every changed row's number, all at once, in no set
+ * order - land exactly as written. What this keeps is the numbers nobody
+ * wrote: a row created without one goes to the end of its list (or where
+ * its list's rules put a new one: StateOrderGuard places a new state just
+ * above the resolved state, and the rows from there down step aside for
+ * it), and a row whose number is cleared, or that moves to another list
+ * without one, goes to the end there. Moving a row past others is a request
+ * of its own (move), which renumbers its list in one transaction holding
+ * the list's rows (ContiguousOrder).
+ *
+ * Writes made here go through updateColumnsByIdWithoutHooks: putting a row
+ * at the end of its list, or stepping rows aside for a new one, is
+ * bookkeeping, not an edit of those rows, so it must not fire their
+ * workflows, audit entries or service hooks one by one. The row the caller
+ * actually created or changed goes through the normal path and fires all of
+ * those as usual.
  */
 
 export interface ListOrderScope<TBaseModel extends BaseModel> {
@@ -43,7 +68,10 @@ export interface ListOrderScope<TBaseModel extends BaseModel> {
 export interface ListOrderCreatePlan {
   // The number the new row is saved with.
   value: number;
-  // The rows that step aside to make room for it. Written once it is saved.
+  /*
+   * The rows that step aside to make room for it - only for a row whose
+   * place the server picked (placeOnCreate). Written once it is saved.
+   */
   siblingChanges: Array<ListOrderChange>;
 }
 
@@ -52,7 +80,37 @@ const NEW_ROW_ID: string = "__new-list-order-row__";
 
 type ServiceOf<TBaseModel extends BaseModel> = DatabaseService<TBaseModel>;
 
+/*
+ * The rows about to be created at a place the server picked for them,
+ * because their caller named none (placeOnCreate). Held weakly: a row is
+ * forgotten with the create that made it.
+ */
+const placedByServer: WeakSet<BaseModel> = new WeakSet<BaseModel>();
+
 export default class ListOrderMaintainer {
+  /*
+   * Gives a row about to be created, whose caller named no place for it,
+   * the place its list wants a new row at: `value`, the number of the row it
+   * goes just above - a new state just above the resolved state
+   * (StateOrderGuard). Unlike a number a caller wrote, which the row only
+   * shares with the row holding it, the row takes this place: once it is
+   * saved, the row holding the number, and any run of rows behind it, step
+   * one place aside (planCreate).
+   */
+  public static placeOnCreate<TBaseModel extends BaseModel>(data: {
+    row: TBaseModel;
+    settings: ListOrderSettings;
+    value: number;
+  }): void {
+    data.row.setColumnValue(data.settings.column, data.value);
+    placedByServer.add(data.row);
+  }
+
+  // Whether the server picked the place of a row about to be created.
+  public static isPlacedByServer(row: BaseModel): boolean {
+    return placedByServer.has(row);
+  }
+
   public static getSettings<TBaseModel extends BaseModel>(
     model: TBaseModel,
   ): ListOrderSettings | null {
@@ -302,8 +360,10 @@ export default class ListOrderMaintainer {
 
   /*
    * Where a row about to be created goes: to the end of its list when it has
-   * no number, or to the number it was given - with the rows in the way
-   * stepping aside. Null when the row does not say which list it is in.
+   * no number, or to the number it was given - which it keeps, moving no
+   * other row, even when another row holds it. A row whose place the server
+   * picked (placeOnCreate) takes that place, the rows in the way stepping
+   * aside. Null when the row does not say which list it is in.
    */
   public static async planCreate<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
@@ -326,15 +386,24 @@ export default class ListOrderMaintainer {
       return null;
     }
 
+    const requested: number | null = toListOrderNumber(
+      record[data.settings.column],
+    );
+
+    const isPlacedByServer: boolean = ListOrderMaintainer.isPlacedByServer(
+      data.row,
+    );
+
+    // A number the caller wrote is kept as written: no list to read.
+    if (requested !== null && !isPlacedByServer) {
+      return { value: requested, siblingChanges: [] };
+    }
+
     const siblings: Array<ListOrderItem> = await ListOrderMaintainer.loadList({
       service: data.service,
       settings: data.settings,
       scope: scope,
     });
-
-    const requested: number | null = toListOrderNumber(
-      record[data.settings.column],
-    );
 
     if (requested === null) {
       return {
@@ -359,35 +428,86 @@ export default class ListOrderMaintainer {
   }
 
   /*
-   * After a row's number was written: the rows of its list that held that
-   * number step aside. `previousValue` is the number the row had (null for a
-   * row that just arrived in this list).
+   * Moves a row of a drag-ordered list to the place of another row of its
+   * list (POST <list>/:id/move, Types/Database/MoveInList): the rows between
+   * step one place towards where it was, and the list is numbered 1..n (n..1
+   * for a list that counts down) in its new order - in one transaction that
+   * locks the list's rows first (ContiguousOrder.move), its rows put in
+   * order as the list shows them (getListOrderMoveChanges: the older of two
+   * rows at one number first). The caller must be allowed to give the row
+   * another number. `beforeWrite` may refuse the move before it is written
+   * (a project's built-in states keep their order).
    */
-  public static async makeRoomForRow<TBaseModel extends BaseModel>(data: {
+  public static async move<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
     settings: ListOrderSettings;
-    scope: ListOrderScope<TBaseModel>;
-    id: ObjectID;
-    previousValue: unknown;
-    requestedValue: unknown;
-  }): Promise<void> {
-    const rows: Array<ListOrderItem> = await ListOrderMaintainer.loadList({
+    rowId: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    beforeWrite?: ListMoveCheckFunction | undefined;
+  }): Promise<ContiguousOrderMoved<TBaseModel>> {
+    return await ContiguousOrder.move({
       service: data.service,
-      settings: data.settings,
-      scope: data.scope,
+      rowId: data.rowId,
+      placeOfId: data.placeOfId,
+      listColumns: ListOrderMaintainer.getScopeColumns({
+        model: data.service.getModel(),
+        settings: data.settings,
+      }),
+      orderColumn: data.settings.column,
+      getChanges: (move: {
+        places: Array<ListPlace>;
+        rowId: string;
+        placeOfId: string;
+      }): MoveInListChanges => {
+        return ListOrderMaintainer.getMoveChanges({
+          settings: data.settings,
+          places: move.places,
+          rowId: move.rowId,
+          placeOfId: move.placeOfId,
+        });
+      },
+      beforeWrite: data.beforeWrite,
+      props: data.props,
+    });
+  }
+
+  /*
+   * A move of a drag-ordered list's rows as the move in its transaction
+   * writes it: the list's rows as its lock hands them over, put in order and
+   * moved by Common/Utils/ListOrder.
+   */
+  public static getMoveChanges(data: {
+    settings: ListOrderSettings;
+    places: Array<ListPlace>;
+    rowId: string;
+    placeOfId: string;
+  }): MoveInListChanges {
+    const move: ListOrderMove = getListOrderMoveChanges({
+      items: data.places.map((place: ListPlace): ListOrderItem => {
+        return {
+          id: place.id,
+          value: place.order,
+          createdAt: place.createdAt,
+        };
+      }),
+      itemId: data.rowId,
+      placeOfId: data.placeOfId,
+      sortOrder: data.settings.sortOrder,
     });
 
-    await ListOrderMaintainer.writeChanges({
-      service: data.service,
-      settings: data.settings,
-      changes: getListOrderCollisionChanges({
-        siblings: rows,
-        itemId: data.id.toString(),
-        previousValue: data.previousValue,
-        requestedValue: data.requestedValue,
-        sortOrder: data.settings.sortOrder,
-      }),
-    });
+    if (move.kind !== "moved") {
+      return move;
+    }
+
+    return {
+      kind: "moved",
+      changedRows: move.changes.map(
+        (change: ListOrderChange): { id: string; order: number } => {
+          return { id: change.id, order: change.value };
+        },
+      ),
+    };
   }
 
   /*

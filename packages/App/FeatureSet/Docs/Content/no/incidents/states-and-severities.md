@@ -130,7 +130,7 @@ En episode flytter bare hendelsene sine dit de kan gå. Når en episode endrer t
 
 For å rette opp en tilstand som er satt ved en feil, sletter du raden dens på siden med postens tilstandstidslinje (se [Tilstandstidslinjen](#tilstandstidslinjen)). Posten går tilbake til tilstanden i den siste gjenværende raden; en episode der du sletter raden som løste den, er åpen igjen, og løsningstidspunktet dens tømmes.
 
-Via API-et og Terraform er rekkefølgen kolonnen `order`: lavere tall kommer først. En tilstand som opprettes uten, havner rett over den løste tilstanden; en som opprettes eller oppdateres med et tall, tar den plassen, og tilstandene i veien flytter én plass ned. Tall ingen andre har, beholdes slik de er skrevet, så en tilstand som styres av Terraform, leser tilbake tallet den fikk.
+Via API-et og Terraform er rekkefølgen kolonnen `order`: lavere tall kommer først. En tilstand som opprettes uten, havner rett over den løste tilstanden. Et tall du skriver, beholdes slik det er skrevet, og flytter ingen annen tilstand, så en tilstand som styres av Terraform, leser tilbake tallet den fikk; av to tilstander med samme tall vises den eldste først. De innebygde tilstandene beholder likevel rekkefølgen sin: en skriving som ville gi to av dem samme tall eller bringe dem ut av rekkefølge, avvises.
 
 ## De forhåndsopprettede alvorlighetsgradene
 

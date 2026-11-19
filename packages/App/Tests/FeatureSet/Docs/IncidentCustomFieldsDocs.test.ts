@@ -460,6 +460,13 @@ describe("incident custom fields docs", () => {
             ? "Leave `sort_order` out and a new field goes to the end of the list."
             : "اگر `sort_order` را ننویسید، فیلد تازه به انتهای فهرست می‌رود.",
         );
+        // A number given is kept, and moves no other field (issue #9609).
+        expect(terraform).toContain(
+          language === "en"
+            ? "A number you give is kept as you wrote it, and no other field moves for it, even when another field already has it"
+            : "شماره‌ای که می‌دهید همان‌طور که نوشته‌اید می‌ماند و هیچ فیلد دیگری برایش جابه‌جا نمی‌شود",
+        );
+        expect(terraform).not.toContain("takes that place");
       },
     );
 

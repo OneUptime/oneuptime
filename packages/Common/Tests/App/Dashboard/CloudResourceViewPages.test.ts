@@ -168,6 +168,36 @@ describe("each kind's pages are in its own product", () => {
     ).toBe("scheduled-maintenance");
   });
 
+  test("a resource has its Data Security and Compliance; an environment neither", () => {
+    /*
+     * What Data Security reads of a bucket or a database a resource is
+     * (#9547, #9555). An environment holds no data store: its address of
+     * either opens its Overview.
+     */
+    expect(RESOURCE_VIEW_PAGES[CloudResourceViewTab.DataSecurity]).toBe(
+      PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+    );
+    expect(RESOURCE_VIEW_PAGES[CloudResourceViewTab.Compliance]).toBe(
+      PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE,
+    );
+
+    for (const tab of [
+      CloudResourceViewTab.DataSecurity,
+      CloudResourceViewTab.Compliance,
+    ]) {
+      expect(ENVIRONMENT_VIEW_PAGES[tab]).toBeUndefined();
+      expect(
+        getCloudResourceViewPageKey(CloudResourceKind.Environment, tab),
+      ).toBe(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW);
+      expect(
+        getCloudResourceViewTabOfPath({
+          pathname: `${CLOUD}/${ROW_ID}/${CLOUD_RESOURCE_VIEW_TAB_PATHS[tab]}`,
+          modelId: ROW_ID,
+        }),
+      ).toBe(tab);
+    }
+  });
+
   test("a tab the kind does not have opens its Overview", () => {
     expect(
       getCloudResourceViewPageKey(

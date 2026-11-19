@@ -29,6 +29,11 @@ import React, {
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  ResourceDataSecurityMenu,
+  useResourceDataSecurityMenu,
+} from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
+import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
@@ -61,6 +66,11 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const dataSecurityMenu: ResourceDataSecurityMenu | null =
+    useResourceDataSecurityMenu({
+      kind: DataStoreResourceKind.CloudResource,
+      modelId: props.modelId,
+    });
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -285,6 +295,34 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Activity}
         />
       </SideMenuSection>
+
+      {/*
+       * What Data Security says about this resource (#9547): the sensitive
+       * data a bucket or a database holds and what to fix on it, and how it
+       * stands against each framework (#9555) - only for a resource Data
+       * Security has read, in a project that uses Data Security. Folded by
+       * its title, and open by itself on its own pages.
+       */}
+      {dataSecurityMenu ? (
+        <SideMenuSection title="Security">
+          <SideMenuItem
+            link={{
+              title: "Data Security",
+              to: dataSecurityMenu.dataSecurityRoute,
+            }}
+            icon={IconProp.Fingerprint}
+          />
+          <SideMenuItem
+            link={{
+              title: "Compliance",
+              to: dataSecurityMenu.complianceRoute,
+            }}
+            icon={IconProp.ClipboardDocumentCheck}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       {getDeveloperSideMenuSection({
         modelType: CloudResource,

@@ -28,8 +28,8 @@ const MIGRATION_BASE_NAME: string = "AddKubernetesVolumeClaimUsage";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "AddIncidentCallTranscriptSignInIndexes1809184840000";
-const PREVIOUS_TIMESTAMP: number = 1809184840000;
+  "AddDataSecurityComplianceSettings1809184850000";
+const PREVIOUS_TIMESTAMP: number = 1809184850000;
 
 const COLUMNS: Array<string> = [
   "latestVolumeCapacityBytes",

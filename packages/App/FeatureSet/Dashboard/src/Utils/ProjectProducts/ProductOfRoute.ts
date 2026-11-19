@@ -6,6 +6,7 @@ import {
   ServerProductOffReason,
   ServerProductsOff,
 } from "Common/Types/Product/ServerProducts";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * WHICH PRODUCT A DASHBOARD ADDRESS BELONGS TO (#6815).
@@ -120,6 +121,35 @@ export const GUIDED_SETUP_PRODUCTS: Readonly<
     ProductKey.Metrics,
     ProductKey.Traces,
   ],
+};
+
+/*
+ * The pages of a resource that show another product's records (#9547): a
+ * device's, a host's or a cluster's Security Events, and the Data Security
+ * and Compliance of a cluster, a container host, a database, a service or a
+ * cloud resource. They live under the resource's own product, and need the
+ * other product on too: while it is switched off on the server, the page
+ * says so, as a guided setup's does, and the resource's menu leaves its
+ * entry out (ProductsInResources).
+ */
+export const RESOURCE_PAGE_PRODUCTS: Readonly<
+  Partial<Record<PageMap, ProductKey>>
+> = {
+  [PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+  [PageMap.HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.SERVICE_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.SERVICE_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
+  [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
+  [PageMap.DOCKER_HOST_VIEW_COMPLIANCE]: ProductKey.DataSecurity,
 };
 
 /*
@@ -306,7 +336,46 @@ const getGuidedSetupOfPath: (pathname: string) => PageMap | null = (
   return null;
 };
 
-// Every product an address needs on: its own, and a guided setup's others.
+// A route's path under its project, as a pattern its addresses match.
+const getPathPattern: (path: string) => RegExp = (path: string): RegExp => {
+  const pattern: string = path
+    .split("/")
+    .map((segment: string): string => {
+      return segment.startsWith(":") ? "[^/]+" : escapeRegExp(segment);
+    })
+    .join("/");
+
+  return new RegExp(`^${pattern}$`);
+};
+
+// The resource page an address opens, if it opens one of RESOURCE_PAGE_PRODUCTS.
+export const getResourcePageOfPath: (pathname: string) => PageMap | null = (
+  pathname: string,
+): PageMap | null => {
+  const address: string | null = getAddressUnderProject(pathname);
+
+  if (address === null) {
+    return null;
+  }
+
+  for (const page of Object.keys(RESOURCE_PAGE_PRODUCTS) as Array<PageMap>) {
+    const route: Route | undefined = RouteMap[page];
+    const path: string | null = route
+      ? getPathUnderProject(route.toString())
+      : null;
+
+    if (path && getPathPattern(path).test(address)) {
+      return page;
+    }
+  }
+
+  return null;
+};
+
+/*
+ * Every product an address needs on: its own, a guided setup's others, and
+ * the product a resource's page shows.
+ */
 export const getProductsOfPath: (pathname: string) => Array<ProductKey> = (
   pathname: string,
 ): Array<ProductKey> => {
@@ -323,6 +392,15 @@ export const getProductsOfPath: (pathname: string) => Array<ProductKey> = (
     if (!products.includes(product)) {
       products.push(product);
     }
+  }
+
+  const resourcePage: PageMap | null = getResourcePageOfPath(pathname);
+  const shown: ProductKey | undefined = resourcePage
+    ? RESOURCE_PAGE_PRODUCTS[resourcePage]
+    : undefined;
+
+  if (shown && !products.includes(shown)) {
+    products.push(shown);
   }
 
   return products;

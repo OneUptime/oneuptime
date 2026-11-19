@@ -1885,10 +1885,45 @@ describe("Data Security Compliance", () => {
   });
 
   it("counts only open issues against a requirement, as the score does", () => {
+    // The project's scores and a resource's are read by the same code.
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "query: { projectId, status: DataSecurityIssueStatus.Open },",
+      "await ResourceDataSecurity.readProjectCompliance(",
     );
+    expect(
+      source("Common/Server/Utils/DataSecurity/ResourceDataSecurity.ts"),
+    ).toContain("status: DataSecurityIssueStatus.Open,");
     expect(page).toContain("Only open issues count.");
+  });
+
+  it("says what a resource's switches change, and whose switches a database follows", () => {
+    const onResource: string = section(page, "## On a resource's page");
+
+    expect(
+      rows(tables(onResource)[0]).map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      "Kubernetes cluster",
+      "Docker or Podman host",
+      "Database",
+      "Service",
+      "Cloud resource",
+    ]);
+    expect(onResource).toContain("**Applies Here**");
+    // A requirement every store of which is turned off reads Turned off, and is not scored.
+    expect(
+      source("Common/Types/DataSecurity/ComplianceRequirementCatalog.ts"),
+    ).toContain('TurnedOff = "Turned off",');
+    expect(section(page, "## How a framework is scored")).toContain(
+      "one turned off counts neither way",
+    );
+    // A database on a cluster or container host follows that resource's switches.
+    expect(source("Common/Types/DataSecurity/DataStoreResource.ts")).toContain(
+      "DATABASE_PLATFORM_KINDS",
+    );
+    expect(onResource).toContain(
+      "A database running on a Kubernetes cluster, or on a Docker or Podman host, follows that cluster's or host's",
+    );
   });
 });
 
@@ -2273,6 +2308,8 @@ describe("Data Security Integrations", () => {
     ).toEqual([
       DATA_SECURITY_API_ROUTES.overview,
       DATA_SECURITY_API_ROUTES.compliance,
+      DATA_SECURITY_API_ROUTES.resourceScope,
+      DATA_SECURITY_API_ROUTES.resourceCompliance,
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
       DATA_SECURITY_API_ROUTES.scanNow("<id>"),
       DATA_SECURITY_API_ROUTES.checkNow("<id>"),

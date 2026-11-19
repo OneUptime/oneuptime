@@ -130,7 +130,7 @@ Un seul passage remonte la liste : la réouverture par une règle de regroupemen
 
 Pour corriger un état mis par erreur, supprimez sa ligne sur la page de la chronologie d'état de l'enregistrement (voir [La chronologie d'état](#la-chronologie-détat)). L'enregistrement revient à l'état de sa dernière ligne restante ; un épisode dont vous supprimez la ligne de résolution est de nouveau ouvert, et son heure de résolution est effacée.
 
-Par l'API et Terraform, l'ordre est la colonne `order` : les plus petits nombres viennent en premier. Un état créé sans ordre se place juste au-dessus de l'état résolu ; un état créé ou mis à jour avec un nombre prend cette place, et les états qui la gênent descendent d'un rang. Les nombres que personne d'autre ne détient sont conservés tels qu'écrits, si bien qu'un état géré par Terraform relit le nombre qu'on lui a donné.
+Par l'API et Terraform, l'ordre est la colonne `order` : les plus petits nombres viennent en premier. Un état créé sans ordre se place juste au-dessus de l'état résolu. Un nombre que vous écrivez est conservé tel qu'écrit et ne déplace aucun autre état, si bien qu'un état géré par Terraform relit le nombre qu'on lui a donné ; de deux états au même nombre, le plus ancien s'affiche en premier. Les états intégrés gardent malgré tout leur ordre : une écriture qui mettrait deux d'entre eux au même nombre, ou hors de leur ordre, est refusée.
 
 ## Les gravités créées d'office
 

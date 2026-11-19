@@ -1,10 +1,11 @@
 # Cumplimiento de Seguridad de datos
 
-Seguridad de datos puntúa nueve marcos a partir de lo que encontraron sus escaneos. Cada marco abarca los almacenes de los que tratan sus normas (el RGPD, los almacenes que contienen datos personales; PCI DSS, los almacenes donde se encontraron datos de tarjetas; SOC 2, todos los almacenes), y cada uno de sus requisitos se cumple o no según las comprobaciones que son evidencia de él. **Seguridad de datos → Cumplimiento** muestra la puntuación de cada marco, cuántos almacenes abarca y cada requisito con cuántos problemas abiertos lo incumplen. Una puntuación es evidencia para una auditoría, no un certificado: dice lo que OneUptime puede ver de los almacenes que lee.
+Seguridad de datos puntúa nueve marcos a partir de lo que encontraron sus escaneos. Cada marco abarca los almacenes de los que tratan sus normas (el RGPD, los almacenes que contienen datos personales; PCI DSS, los almacenes donde se encontraron datos de tarjetas; SOC 2, todos los almacenes), y cada uno de sus requisitos se cumple o no según las comprobaciones que son evidencia de él. **Seguridad de datos → Cumplimiento** muestra la puntuación de cada marco, cuántos almacenes abarca y cada requisito con cuántos problemas abiertos lo incumplen. Cada recurso que contiene almacenes de datos (un clúster de Kubernetes, un host de Docker o Podman, una base de datos, un servicio o un recurso en la nube) tiene su propia página como esta, donde puedes desactivar lo que no se aplica a él. Una puntuación es evidencia para una auditoría, no un certificado: dice lo que OneUptime puede ver de los almacenes que lee.
 
 :::cards
 - [Los marcos](#los-marcos): Los nueve, y qué almacenes abarca cada uno.
 - [Cómo se puntúa un marco](#cómo-se-puntúa-un-marco): Requisitos que se cumplen, que no se cumplen y sin evaluar.
+- [En la página de un recurso](#en-la-página-de-un-recurso): El cumplimiento de un clúster, un host, una base de datos, un servicio o un recurso en la nube, y lo que está desactivado para él.
 - [Requisitos y sus comprobaciones](#requisitos-y-sus-comprobaciones): Cada requisito, y las comprobaciones que son evidencia de él.
 - [Registro de actividades de tratamiento](#registro-de-actividades-de-tratamiento): El artículo 30 del RGPD, redactado a partir de tus almacenes.
 :::
@@ -47,9 +48,31 @@ flowchart TB
 - **Un requisito se cumple** cuando ningún problema abierto de las comprobaciones asociadas a él está en un almacén del alcance del marco, y **no se cumple** cuando alguno lo está.
 - **No se evalúa** mientras no se haya leído la configuración ni escaneado el contenido de ningún almacén del alcance.
 - **Seguridad de datos cumple por sí misma dos requisitos**: el artículo 30 del RGPD, registro de las actividades de tratamiento, e ISO 27001 A.5.12, clasificación de la información. Se cumplen en cuanto se han leído o escaneado todos los almacenes del alcance, y no se cumplen mientras falte alguno.
-- **La puntuación** es la proporción de los requisitos evaluados de un marco que se cumplen, como porcentaje entero. Un marco sin nada evaluado no tiene puntuación.
+- **Está desactivado** cuando todos los almacenes del alcance pertenecen a un recurso que desactivó el requisito (consulta [En la página de un recurso](#en-la-página-de-un-recurso)).
+- **La puntuación** es la proporción de los requisitos evaluados de un marco que se cumplen, como porcentaje entero: uno desactivado no cuenta ni a favor ni en contra. Un marco sin nada evaluado no tiene puntuación.
 
 Solo cuentan los problemas abiertos. Un problema cuyo riesgo se aceptó, o que no es un problema, no hace que sus requisitos dejen de cumplirse, así que un riesgo aceptado es una decisión que tu auditoría puede ver en el problema: quién lo aceptó, por qué y hasta cuándo.
+
+## En la página de un recurso
+
+El menú de un recurso tiene una sección **Seguridad**, plegada hasta que la abres, en cuanto el recurso contiene un almacén de datos que Seguridad de datos conoce, en un proyecto que usa Seguridad de datos y para quien pueda leer almacenes de datos:
+
+| Recurso | Sus almacenes de datos |
+| --- | --- |
+| Clúster de Kubernetes | Las bases de datos que se ejecutan en él |
+| Host de Docker o Podman | Las bases de datos que se ejecutan en él |
+| Base de datos | La propia base de datos |
+| Servicio | Su telemetría: los registros, las trazas y las excepciones que envía |
+| Recurso en la nube | El propio recurso: un bucket, una base de datos o un data warehouse |
+
+- **Seguridad de datos** enumera esos almacenes, primero los de mayor riesgo, y los problemas abiertos en ellos. Cada uno se abre en Seguridad de datos, donde se gestiona.
+- **Cumplimiento** puntúa los marcos solo para esos almacenes. Primero aparecen los marcos que sus datos incluyen en el alcance; los desactivados, y aquellos para los que ninguno de esos almacenes contiene datos, aparecen plegados debajo.
+
+Cada marco tiene un interruptor, **Applies Here**, y también lo tiene cada uno de sus requisitos. Desactivar uno deja los almacenes del recurso fuera de ese marco, o de ese requisito, en la página del recurso y en **Seguridad de datos → Cumplimiento**, que indica cuántos almacenes se desactivaron en sus recursos. Volver a activarlo los incluye de nuevo. Cada interruptor se guarda al momento, y cada cambio queda en los [Registros de auditoría](/docs/configuration/audit-logs) del proyecto.
+
+Un almacén sigue los interruptores de un solo recurso. Una base de datos que se ejecuta en un clúster de Kubernetes, o en un host de Docker o Podman, sigue los de ese clúster o host: desactiva un marco para el clúster y quedará desactivado para todas las bases de datos que se ejecutan en él. La propia página de Cumplimiento de la base de datos lo indica y enlaza a la del clúster o el host, con sus interruptores bloqueados.
+
+Los Miembros de seguridad, los Administradores de seguridad, los Administradores del proyecto y los Propietarios del proyecto pueden activar y desactivar marcos y requisitos, igual que pueden ajustar una comprobación. Los Visores de seguridad ven lo que está desactivado.
 
 ## Requisitos y sus comprobaciones
 
@@ -162,7 +185,7 @@ El artículo 30 del RGPD te pide llevar un registro de tus actividades de tratam
 | Retención | Lo que escribas en la **Retención** del almacén: cuánto tiempo se guardan los datos en él |
 | Marcos | Los marcos que sus tipos de datos incluyen en el alcance |
 
-Rellena **Finalidad** y **Retención** en los **Ajustes** de cada almacén: son las dos cosas que ningún escaneo puede saber. La API de Seguridad de datos también devuelve el registro y las puntuaciones, en `/data-security/record-of-processing` y `/data-security/compliance`, a quien pueda leer almacenes de datos (consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations#api-terraform-y-mcp)).
+Rellena **Finalidad** y **Retención** en los **Ajustes** de cada almacén: son las dos cosas que ningún escaneo puede saber. La API de Seguridad de datos también devuelve el registro y las puntuaciones, en `/data-security/record-of-processing`, `/data-security/compliance` y, para un solo recurso, `/data-security/resource-compliance`, a quien pueda leer almacenes de datos (consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations#api-terraform-y-mcp)).
 
 ## Próximos pasos
 

@@ -1,10 +1,11 @@
 # Overholdelse i Datasikkerhed
 
-Datasikkerhed scorer ni compliancerammer ud fra det, dens scanninger fandt. Hver ramme dækker de datalagre, dens regler handler om - GDPR de datalagre, der indeholder persondata, PCI DSS de datalagre, hvor der blev fundet kortdata, SOC 2 hvert datalager - og hvert af dens krav er opfyldt eller fejler ud fra de kontroller, der er bevis for det. **Datasikkerhed → Overholdelse** viser hver rammes score, hvor mange datalagre den dækker, og hvert krav med, hvor mange åbne problemer der får det til at fejle. En score er bevis til en revision, ikke et certifikat: den siger, hvad OneUptime kan se af de datalagre, den læser.
+Datasikkerhed scorer ni compliancerammer ud fra det, dens scanninger fandt. Hver ramme dækker de datalagre, dens regler handler om - GDPR de datalagre, der indeholder persondata, PCI DSS de datalagre, hvor der blev fundet kortdata, SOC 2 hvert datalager - og hvert af dens krav er opfyldt eller fejler ud fra de kontroller, der er bevis for det. **Datasikkerhed → Overholdelse** viser hver rammes score, hvor mange datalagre den dækker, og hvert krav med, hvor mange åbne problemer der får det til at fejle. Hver ressource, der indeholder datalagre - en Kubernetes-klynge, en Docker- eller Podman-vært, en database, en tjeneste eller en cloud-ressource - har sin egen udgave af siden, hvor det, der ikke gælder for den, kan slås fra. En score er bevis til en revision, ikke et certifikat: den siger, hvad OneUptime kan se af de datalagre, den læser.
 
 :::cards
 - [Rammerne](#rammerne): De ni, og hvilke datalagre hver af dem dækker.
 - [Sådan scores en ramme](#sådan-scores-en-ramme): Krav, der består, fejler eller ikke er vurderet.
+- [På en ressources side](#på-en-ressources-side): Overholdelse for én klynge, vært, database, tjeneste eller cloud-ressource, og hvad der er slået fra for den.
 - [Krav og deres kontroller](#krav-og-deres-kontroller): Hvert krav og de kontroller, der er bevis for det.
 - [Fortegnelse over behandlingsaktiviteter](#fortegnelse-over-behandlingsaktiviteter): GDPR artikel 30, skrevet ud fra dine datalagre.
 :::
@@ -47,9 +48,31 @@ flowchart TB
 - **Et krav består**, når intet åbent problem fra de kontroller, der er knyttet til det, ligger på et datalager i rammens omfang, og det **fejler**, når et gør.
 - **Det er ikke vurderet**, så længe intet omfattet datalager har fået sin konfiguration læst eller sit indhold scannet.
 - **To krav opfyldes af Datasikkerhed selv**: GDPR artikel 30, fortegnelser over behandlingsaktiviteter, og ISO 27001 A.5.12, klassificering af information. De består, når hvert omfattet datalager er blevet læst eller scannet, og fejler, så længe et ikke er.
-- **Scoren** er den andel af en rammes vurderede krav, der består, som en hel procentdel. En ramme, hvor intet er vurderet, har ingen score.
+- **Det er slået fra**, når hvert omfattet datalager tilhører en ressource, der har slået kravet fra (se [På en ressources side](#på-en-ressources-side)).
+- **Scoren** er den andel af en rammes vurderede krav, der består, som en hel procentdel: et krav, der er slået fra, tæller hverken for eller imod. En ramme, hvor intet er vurderet, har ingen score.
 
 Kun åbne problemer tæller. Et problem, hvis risiko er accepteret, eller som ikke er et problem, får ikke sine krav til at fejle, så en accepteret risiko er en beslutning, som din revision kan se på problemet: hvem der accepterede den, hvorfor, og indtil hvornår.
+
+## På en ressources side
+
+En ressources menu får en **Sikkerhed**-sektion, foldet sammen, indtil du åbner den, når ressourcen indeholder et datalager, som Datasikkerhed kender, i et projekt, der bruger Datasikkerhed, og for den, der må læse datalagre:
+
+| Ressource | Dens datalagre |
+| --- | --- |
+| Kubernetes-klynge | De databaser, der kører på den |
+| Docker- eller Podman-vært | De databaser, der kører på den |
+| Database | Selve databasen |
+| Tjeneste | Dens telemetri: de logs, traces og undtagelser, den sender |
+| Cloud-ressource | Ressourcen selv: en bucket, en database eller et datavarehus |
+
+- **Datasikkerhed** viser disse datalagre, de mest risikable først, og de åbne problemer på dem. Hvert af dem åbnes i Datasikkerhed, hvor det behandles.
+- **Overholdelse** scorer rammerne ud fra disse datalagre alene. De rammer, som deres data gør dem omfattet af, kommer først; dem, der er slået fra, og dem, som ingen af datalagrene indeholder data til, er foldet sammen nedenunder.
+
+Hver ramme har en kontakt, **Applies Here**, og det har hvert af dens krav også. Slår du en fra, holdes ressourcens datalagre uden for den ramme eller det krav, både på ressourcens side og på **Datasikkerhed → Overholdelse**, som viser, hvor mange datalagre der er slået fra på deres ressourcer. Slår du den til igen, kommer de med igen. Hver kontakt gemmes med det samme, og hver ændring registreres i projektets [Auditlogs](/docs/configuration/audit-logs).
+
+Et datalager følger én ressources kontakter. En database, der kører på en Kubernetes-klynge eller på en Docker- eller Podman-vært, følger den klynges eller værts kontakter: slå en ramme fra for klyngen, og den er slået fra for hver database på den. Databasens egen overholdelsesside siger det og linker dertil, med kontakterne låst.
+
+Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projektejere kan slå rammer og krav til og fra, ligesom de kan tilpasse en kontrol. Sikkerhedsseere ser, hvad der er slået fra.
 
 ## Krav og deres kontroller
 
@@ -162,7 +185,7 @@ GDPR artikel 30 kræver, at du fører en fortegnelse over dine behandlingsaktivi
 | Opbevaring | Det, du skriver i datalagerets **Opbevaring**: hvor længe data opbevares i det |
 | Rammer | De rammer, som dets datatyper gør det omfattet af |
 
-Udfyld **Formål** og **Opbevaring** under hvert datalagers **Indstillinger**: det er de to ting, ingen scanning kan vide. Fortegnelsen og scorerne kan også hentes fra Datasikkerheds API på `/data-security/record-of-processing` og `/data-security/compliance` af alle, der må læse datalagre (se [Datasikkerhedsintegrationer](/docs/data-security/integrations#api-terraform-og-mcp)).
+Udfyld **Formål** og **Opbevaring** under hvert datalagers **Indstillinger**: det er de to ting, ingen scanning kan vide. Fortegnelsen og scorerne kan også hentes fra Datasikkerheds API på `/data-security/record-of-processing`, `/data-security/compliance` og, for én ressource, `/data-security/resource-compliance` af alle, der må læse datalagre (se [Datasikkerhedsintegrationer](/docs/data-security/integrations#api-terraform-og-mcp)).
 
 ## Næste trin
 

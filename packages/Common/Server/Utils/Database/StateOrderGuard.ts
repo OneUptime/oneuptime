@@ -1,4 +1,5 @@
 import type DatabaseService from "../../Services/DatabaseService";
+import ListOrderMaintainer from "./ListOrderMaintainer";
 import CreateBy from "../../Types/Database/CreateBy";
 import DeleteBy from "../../Types/Database/DeleteBy";
 import Query from "../../Types/Database/Query";
@@ -6,7 +7,9 @@ import Select from "../../Types/Database/Select";
 import Sort from "../../Types/Database/Sort";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -22,23 +25,25 @@ import {
   getStateListOrderViolationMessage,
   getStateListRowsAfterCreate,
   getStateListRowsAfterMove,
+  getStateListRowsAfterRenumbering,
   toStateListRow,
 } from "../../../Utils/StateOrder";
 
 /*
  * The server half of Common/Utils/StateOrder: what the incident, alert and
  * scheduled maintenance state services, the monitor status service and the
- * two severity services do around a create, an update and a delete, so that
- * a project's lists keep meaning what OneUptime reads them as.
+ * two severity services do around a create, an update, a move and a delete,
+ * so that a project's lists keep meaning what OneUptime reads them as.
  *
  * Their order itself is kept by DatabaseService (@ListOrderColumn), for every
- * caller. On top of that:
+ * caller: a number written places its row and moves no other (issue #9609),
+ * and a move renumbers the list. On top of that:
  *
  *   - a row created without a place goes where the list wants a new one
  *     (just above the resolved state, just above the offline status), not
- *     after it;
- *   - a signed-in create or update that would put the built-in states of a
- *     path out of order is refused, with why;
+ *     after it - the rows from there down stepping aside for it;
+ *   - a signed-in create, update or move that would put the built-in states
+ *     of a path out of order is refused, with why;
  *   - a signed-in delete that would take away the last row of a built-in
  *     kind is refused, with why.
  *
@@ -132,15 +137,26 @@ export default class StateOrderGuard {
       projectId: projectId,
     });
 
+    // Whether the server picks the row's place: then the rows in it step aside.
+    let isPlacedByServer: boolean = false;
+
     if (needsPlace) {
       const insertValue: number | null = getStateListInsertValue(
         definition,
         rows,
       );
+      const settings: ListOrderSettings | null = data.service
+        .getModel()
+        .getListOrder();
 
-      if (insertValue !== null) {
-        row.setColumnValue(definition.orderColumn, insertValue);
+      if (insertValue !== null && settings) {
+        ListOrderMaintainer.placeOnCreate({
+          row: row,
+          settings: settings,
+          value: insertValue,
+        });
         newRow.order = insertValue;
+        isPlacedByServer = true;
       }
     }
 
@@ -152,6 +168,7 @@ export default class StateOrderGuard {
           rowsAfter: getStateListRowsAfterCreate({
             rows: rows,
             newRow: { ...newRow, id: newRow.id || "__new-state-row__" },
+            makesRoom: isPlacedByServer,
           }),
         });
 
@@ -265,6 +282,60 @@ export default class StateOrderGuard {
           getStateListOrderViolationMessage(definition, violation),
         );
       }
+    }
+  }
+
+  /*
+   * Before a signed-in move in a path's list is written (moveInList's
+   * onBeforeMoveInList, inside its transaction): refused when the list
+   * renumbered as the move renumbers it - `changedRows` - would put the
+   * built-in rows out of order. Moves in every other list, and internal
+   * ones, cost nothing extra.
+   */
+  public static async beforeMove<TBaseModel extends BaseModel>(data: {
+    service: ServiceOf<TBaseModel>;
+    definition: StateListDefinition;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const definition: StateListDefinition = data.definition;
+
+    if (
+      !definition.keepsBuiltInOrder ||
+      data.props.isRoot ||
+      data.changedRows.length === 0
+    ) {
+      return;
+    }
+
+    const projectId: ObjectID | undefined = StateOrderGuard.toObjectId(
+      data.props.tenantId,
+    );
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const rowsBefore: Array<StateListRow> = await StateOrderGuard.loadRows({
+      service: data.service,
+      definition: definition,
+      projectId: projectId,
+    });
+
+    const violation: StateListOrderViolation | null =
+      getStateListOrderViolationIntroduced({
+        definition: definition,
+        rowsBefore: rowsBefore,
+        rowsAfter: getStateListRowsAfterRenumbering({
+          rows: rowsBefore,
+          changedRows: data.changedRows,
+        }),
+      });
+
+    if (violation) {
+      throw new BadDataException(
+        getStateListOrderViolationMessage(definition, violation),
+      );
     }
   }
 

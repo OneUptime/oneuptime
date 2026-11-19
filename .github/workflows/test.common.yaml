@@ -123,6 +123,11 @@ jobs:
       # now() lands, a millisecond off is refused (DatabaseServiceTimestamp
       # GuardPostgres, #8173). A schema of its own, dropped after.
       RUN_POSTGRES_TIMESTAMP_GUARD_TESTS: "true"
+      # What every reader of an investigation's subject may read
+      # (ReadAudiencePermission) is read by Postgres from a kind's owner,
+      # label and private tables (ReadAudiencePostgres, #9576). A schema of
+      # its own, dropped after.
+      RUN_POSTGRES_READ_AUDIENCE_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
