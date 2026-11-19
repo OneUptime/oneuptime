@@ -192,7 +192,8 @@ const HOST: string = "ip-10-0-12-34.eu-west-1.compute.internal";
 const IMAGE: string = "registry.example.com/shop/checkout:1.4.2";
 const IMAGE_ID: string = "sha256:3f4e9b2c7a1d";
 const DRIVER_AND_SCOPE: string = "bridge / local";
-const OS: string = "linux 6.8.0-124-generic";
+// The OS as people write it, then its version (HostOperatingSystem).
+const OS: string = "Linux 6.8.0-124-generic";
 const PROXMOX_NODE: string = "pve-eu-west-1";
 const STORAGE_ARRAY: string = "flasharray-eu-west";
 const VCENTER: string = "vcenter.eu-west.example.com";

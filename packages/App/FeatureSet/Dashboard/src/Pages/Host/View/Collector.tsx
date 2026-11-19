@@ -28,6 +28,15 @@ import {
 } from "../../../Components/HostCollector/HostCollectorStatus";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import IconProp from "Common/Types/Icon/IconProp";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
+import URL from "Common/Types/API/URL";
+import { DOCS_URL } from "Common/UI/Config";
+import HostOperatingSystem from "Common/Utils/Host/HostOperatingSystem";
+
+// The Android agent's docs page: how it is deployed, what it reads, and how to grant it more.
+export const ANDROID_AGENT_DOCS_PATH: string = "/telemetry/android-agent";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -132,6 +141,38 @@ const HostCollector: FunctionComponent<
   }
 
   const hostName: string = host.hostIdentifier || host.name || "";
+
+  /*
+   * An Android device runs no collector: it reports through the OneUptime
+   * Android agent, which its device manager installs and configures. The
+   * menu leaves this page out for it; a link to it says so, rather than
+   * telling someone to install a collector on a kiosk (#9804).
+   */
+  if (HostOperatingSystem.isAndroid(host.osType)) {
+    return (
+      <EmptyState
+        id="host-collector-android"
+        icon={IconProp.Android}
+        title="This device reports through the Android agent"
+        description={translator.translateText(
+          "An Android device runs no OpenTelemetry Collector: the OneUptime Android agent sends its health, restarts, apps and logs. Your device manager installs and configures the agent, and its own screen on the device says what it can read.",
+        )}
+        footer={
+          <Link
+            to={URL.fromString(
+              `${DOCS_URL.toString()}${ANDROID_AGENT_DOCS_PATH}`,
+            )}
+            openInNewTab={true}
+            className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-indigo-600"
+          >
+            {translator.translateText("Android Agent docs") ||
+              "Android Agent docs"}
+            <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+          </Link>
+        }
+      />
+    );
+  }
 
   if (isHostCollectorManaged(host)) {
     return (

@@ -12,6 +12,7 @@ import MattermostMark from "../../../Types/ProviderLogo/Marks/mattermost";
 import TerraformMark from "../../../Types/ProviderLogo/Marks/terraform";
 import SlackMark from "../../../Types/ProviderLogo/Marks/slack";
 import KubernetesMark from "../../../Types/ProviderLogo/Marks/kubernetes";
+import AndroidMark from "../../../Types/ProviderLogo/Marks/android";
 import DockerMark from "../../../Types/ProviderLogo/Marks/docker";
 import ProxmoxMark from "../../../Types/ProviderLogo/Marks/proxmox";
 import CephMark from "../../../Types/ProviderLogo/Marks/ceph";
@@ -2893,6 +2894,8 @@ const Icon: FunctionComponent<ComponentProps> = ({
     );
   } else if (icon === IconProp.Kubernetes) {
     return drawBrandMark(ProviderLogo.Kubernetes, KubernetesMark);
+  } else if (icon === IconProp.Android) {
+    return drawBrandMark(ProviderLogo.Android, AndroidMark);
   } else if (icon === IconProp.Docker) {
     return drawBrandMark(ProviderLogo.Docker, DockerMark);
   } else if (icon === IconProp.DockerSwarm) {

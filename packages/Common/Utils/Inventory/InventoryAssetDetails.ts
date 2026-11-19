@@ -1,5 +1,6 @@
 import EntityType from "../../Types/Telemetry/EntityType";
 import { ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE } from "../../Types/DeviceManagement/ManagedDeviceIdentity";
+import { getOperatingSystemName } from "../Host/HostOperatingSystem";
 import { NetworkTopologyDeviceRole } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import NetworkControllerProvider, {
   getNetworkControllerProviderTitle,
@@ -258,27 +259,8 @@ export function getInventoryAssetKind(
   return ASSET_KIND_BY_ENTITY_TYPE.get(entityType);
 }
 
-/*
- * OpenTelemetry's `os.type` values, as people write them. A value outside the
- * list is shown as it came.
- */
-const OPERATING_SYSTEM_NAMES: ReadonlyMap<string, string> = new Map<
-  string,
-  string
->([
-  ["windows", "Windows"],
-  ["linux", "Linux"],
-  ["darwin", "macOS"],
-  ["freebsd", "FreeBSD"],
-  ["netbsd", "NetBSD"],
-  ["openbsd", "OpenBSD"],
-  ["dragonflybsd", "DragonFly BSD"],
-  ["hpux", "HP-UX"],
-  ["aix", "AIX"],
-  ["solaris", "Solaris"],
-  ["z_os", "z/OS"],
-  ["zos", "z/OS"],
-]);
+// `os.type` as people write it lives with the rest of a host's OS: Utils/Host/HostOperatingSystem.
+export { getOperatingSystemName };
 
 // OpenTelemetry's `cloud.provider` values, as people write them.
 const CLOUD_PROVIDER_NAMES: ReadonlyMap<string, string> = new Map<
@@ -313,17 +295,6 @@ function readText(value: unknown): string | undefined {
 
   const text: string = value.trim();
   return text ? text : undefined;
-}
-
-/** `os.type` as people write it: "windows" is "Windows", "darwin" "macOS". */
-export function getOperatingSystemName(
-  osType: string | undefined,
-): string | undefined {
-  if (!osType) {
-    return undefined;
-  }
-
-  return OPERATING_SYSTEM_NAMES.get(osType.toLowerCase()) || osType;
 }
 
 /**
