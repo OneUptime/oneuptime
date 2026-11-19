@@ -57998,5 +57998,7 @@
   "Never record these pages": "ये पेज कभी रिकॉर्ड न करें",
   "Readable event properties": "पढ़ने योग्य इवेंट प्रॉपर्टी",
   "Record only these pages": "केवल ये पेज रिकॉर्ड करें",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "अगर इस व्यक्ति का अभी OneUptime खाता नहीं है, तो यह खाता इसी नाम से बनेगा।",
+  "Suggest Every Account When Inviting": "आमंत्रित करते समय हर खाता सुझाएँ"
 }

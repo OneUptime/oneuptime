@@ -57998,5 +57998,7 @@
   "Never record these pages": "لا تسجّل هذه الصفحات أبدًا",
   "Readable event properties": "خصائص الأحداث المقروءة",
   "Record only these pages": "سجّل هذه الصفحات فقط",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "إن لم يكن لديهم حساب OneUptime بعد، فسيُعدّ بهذا الاسم.",
+  "Suggest Every Account When Inviting": "اقتراح كل الحسابات عند الدعوة"
 }

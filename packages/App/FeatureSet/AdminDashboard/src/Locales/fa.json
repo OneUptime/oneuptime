@@ -538,7 +538,12 @@
         "projectCreationCardDescription": "تعیین کنید چه کسانی می‌توانند روی این سرور OneUptime پروژه جدید بسازند.",
         "projectCreationSwitchTitle": "اجازه ساخت پروژه به کاربران",
         "projectCreationSwitchOnDescription": "هر کسی که وارد این سرور شده باشد می‌تواند پروژه بسازد.",
-        "projectCreationSwitchOffDescription": "فقط مدیران ارشد می‌توانند پروژه بسازند."
+        "projectCreationSwitchOffDescription": "فقط مدیران ارشد می‌توانند پروژه بسازند.",
+        "inviteSuggestionsCardTitle": "پیشنهادهای دعوت",
+        "inviteSuggestionsCardDescription": "اینکه آیا کسانی که به پروژه دعوت می‌کنند می‌توانند هر کسی را که در این سرور حساب دارد پیدا کنند. اگر سرور میزبان بیش از یک سازمان است، آن را خاموش بگذارید.",
+        "inviteSuggestionsSwitchTitle": "پیشنهاد همه حساب‌های این سرور",
+        "inviteSuggestionsSwitchOnDescription": "هر کسی که می‌تواند افراد را به پروژه‌ای دعوت کند، هنگام تایپ نام و ایمیل هر حساب را با برچسب «هنوز در این پروژه نیست» می‌بیند.",
+        "inviteSuggestionsSwitchOffDescription": "فرم‌های دعوت افراد خود پروژه را پیشنهاد می‌کنند. به مدیران ارشد حساب‌های دیگر سرور هم پیشنهاد می‌شود."
       },
       "email": {
         "adminNotificationCardTitle": "ایمیل اعلان مدیریت",
@@ -4284,5 +4289,9 @@
   "Sign Out of the Identity Provider Too": "از ارائه‌دهندهٔ هویت هم خارج شود",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "خروج از OneUptime افراد را از این ارائه‌دهنده و از هر برنامهٔ دیگری که از آن استفاده می‌کند هم خارج می‌کند. برای رایانه‌های مشترک روشن کنید.",
   "Sign-out Redirect URI:": "URI هدایت پس از خروج:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "URI هدایت را نزد ارائه‌دهندهٔ هویت OIDC خود ثبت کنید، و وقتی «از ارائه‌دهندهٔ هویت هم خارج شود» روشن است، URI هدایت پس از خروج را هم."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "URI هدایت را نزد ارائه‌دهندهٔ هویت OIDC خود ثبت کنید، و وقتی «از ارائه‌دهندهٔ هویت هم خارج شود» روشن است، URI هدایت پس از خروج را هم.",
+  "If they have no OneUptime account yet, it is set up with this name.": "اگر این فرد هنوز حساب OneUptime ندارد، حساب با همین نام ساخته می‌شود.",
+  "Suggest every account on this server?": "همه حساب‌های این سرور پیشنهاد شوند؟",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "هر کسی که می‌تواند افراد را دعوت کند، هنگام تایپ نام و ایمیل همه حساب‌ها را می‌بیند. فقط وقتی این را روشن کنید که همه حساب‌های اینجا متعلق به یک سازمان باشند.",
+  "Suggest Every Account": "پیشنهاد همه حساب‌ها"
 }

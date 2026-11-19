@@ -57998,5 +57998,7 @@
   "Never record these pages": "Optag aldrig disse sider",
   "Readable event properties": "Læsbare hændelsesegenskaber",
   "Record only these pages": "Optag kun disse sider",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "Har personen endnu ingen OneUptime-konto, oprettes den med dette navn.",
+  "Suggest Every Account When Inviting": "Foreslå alle konti ved invitation"
 }

@@ -57998,5 +57998,7 @@
   "Never record these pages": "永不錄製這些頁面",
   "Readable event properties": "可讀的事件屬性",
   "Record only these pages": "只錄製這些頁面",
-  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]"
+  "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
+  "If they have no OneUptime account yet, it is set up with this name.": "如果此人還沒有 OneUptime 帳戶，將用這個名稱建立帳戶。",
+  "Suggest Every Account When Inviting": "邀請時建議所有帳戶"
 }
