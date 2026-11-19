@@ -1,0 +1,119 @@
+# The node collector sends only the volume series worth storing (issue #9644).
+#
+# The kubeletstats receiver's volume group reports every volume a pod mounts,
+# five series each, on every pod: its service account token (projected), and
+# its configMap, secret and downwardAPI volumes. Those are a few small files on
+# a memory-backed filesystem, so their capacity says nothing about any disk:
+# OneUptime reads none of them, and they were most of the group's series.
+# filter/volume-series drops them on the node.
+#
+# What it must never drop, since that shows up as missing data rather than a
+# failed deploy: a claim's volume (k8s.persistentvolumeclaim.name, the Persistent
+# Volume Claims pages and the PVC Almost Full template), an emptyDir or a
+# hostPath (they fill a node's disk), and a volume the receiver leaves
+# unlabelled - a generic ephemeral volume's claim, which OneUptime's ingest
+# names `<pod>-<volume>`. The receiver labels no projected volume, so a token
+# is told by its name.
+#
+# The same OTTL ran unchanged through collector 0.161.0 and 0.96.0 (which
+# --reuse-values keeps): both validate the rendered config and keep and drop
+# the same synthetic volumes.
+#
+# The patterns read the rendered collector config with the ConfigMap's own
+# indent stripped: `processors:` at 0, a processor at 2, its keys at 4. They are
+# single-quoted, so a backslash is the regex's own.
+suite: node collector drops the volume series nobody reads
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+tests:
+  - it: drops the configMap, secret and downwardAPI volumes, and the projected tokens, by default
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  filter/volume-series:\n    error_mode: ignore\n    metrics:\n      metric:\n        - ''resource\.attributes\["k8s\.volume\.name"\] != nil and resource\.attributes\["k8s\.persistentvolumeclaim\.name"\] == nil and \('
+      # The types the receiver gives them, from the pod's spec.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - ''[^\n]*\(resource\.attributes\["k8s\.volume\.type"\] == "configMap" or resource\.attributes\["k8s\.volume\.type"\] == "secret" or resource\.attributes\["k8s\.volume\.type"\] == "downwardAPI" or \(resource\.attributes\["k8s\.volume\.type"\] == nil and IsMatch\('
+      # A projected token has no type: its name says what it is, whole.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'IsMatch\(resource\.attributes\["k8s\.volume\.name"\], "\^\(kube-api-access-\[a-z0-9\]\+\|aws-iam-token\|eks-pod-identity-token\|azure-identity-token\|istio-token\|linkerd-identity-token\)\$"\)\)\)''\n'
+
+  - it: runs first in the metrics pipeline, so a dropped series costs nothing further down
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      processors:\n        - memory_limiter\n(?:        #[^\n]*\n)*        - filter/volume-series\n(?:        #[^\n]*\n)*        - filter/cpu-utilization\n'
+      # Before k8sattributes: it reads only what the receiver itself stamps.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '- filter/volume-series\n(?:        [^\n]*\n)*?        - k8sattributes\n'
+
+  - it: never drops a claim's volume, an emptyDir or a hostPath
+    set:
+      clusterName: prod-us
+    asserts:
+      # Only the volumes that name no claim are looked at.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'resource\.attributes\["k8s\.persistentvolumeclaim\.name"\] == nil and \('
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  filter/volume-series:\n(?:    [^\n]*\n)*?        - ''[^\n]*"(persistentVolumeClaim|emptyDir|hostPath)"'
+      # A volume with no type is dropped only by a token's name, never as such.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'resource\.attributes\["k8s\.volume\.type"\] == nil\)'
+
+  - it: leaves the filter out with the volume group, which is the off switch
+    set:
+      clusterName: prod-us
+      kubeletstats.volumeMetrics.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'filter/volume-series'
+      # The pipeline still starts with the memory limiter and the CPU copies.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      processors:\n        - memory_limiter\n(?:        #[^\n]*\n)*        - filter/cpu-utilization\n'
+
+  - it: renders the same filter for collector 0.96.0, which --reuse-values keeps
+    set:
+      clusterName: prod-us
+      image.tag: "0.96.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  filter/volume-series:\n    error_mode: ignore\n    metrics:\n      metric:\n        - ''resource\.attributes\["k8s\.volume\.name"\] != nil and '
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - memory_limiter\n(?:        #[^\n]*\n)*        - filter/volume-series\n'
+
+  - it: filters on the OpenShift preset too, whose node collector still reads the kubelet
+    set:
+      clusterName: prod-us
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  filter/volume-series:\n    error_mode: ignore\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - memory_limiter\n(?:        #[^\n]*\n)*        - filter/volume-series\n'
+
+  - it: keeps it out of the logs pipeline, which carries no volume series
+    set:
+      clusterName: prod-us
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n    logs:\n(?:      [^\n]*\n|        [^\n]*\n)*?        - filter/volume-series\n'

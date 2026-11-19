@@ -614,18 +614,23 @@ kubeletstats:
   # vs. node allocatable (e.g. via kube-state-metrics).
   utilizationMetrics:
     enabled: true
-  # Disk usage of every volume a running pod mounts (`k8s.volume.capacity`,
+  # Disk usage of the volumes running pods mount (`k8s.volume.capacity`,
   # `k8s.volume.available`, `k8s.volume.inodes`, `k8s.volume.inodes.free`),
   # each persistent volume claim's named by `k8s.persistentvolumeclaim.name`.
   # OneUptime shows each claim's used, free and capacity on its Persistent
-  # Volume Claims and Persistent Volumes pages, and the "PVC Almost Full"
-  # monitor template reads them: running out of PVC space is otherwise a
-  # silent killer. Turned off, those pages say no usage is reported.
+  # Volume Claims and Persistent Volumes pages, lists a nearly full claim
+  # under the cluster's Needs attention, and the "PVC Almost Full" monitor
+  # template reads them: running out of PVC space is otherwise a silent
+  # killer. Turned off, those pages say no usage is reported.
   #
-  # Emits a few series per volume per pod (its configMap, secret and service
-  # account token volumes too), which is bounded for most clusters but can be
-  # substantial on stateful workloads (Kafka, databases) with thousands of
-  # PVCs — turn off there if cardinality is a concern.
+  # Five series per volume per pod, for the volumes that hold data: claims
+  # (generic ephemeral ones too), emptyDirs and hostPaths. A pod's
+  # configMap, secret and downwardAPI volumes and its projected service
+  # account tokens (`kube-api-access-*`, and the EKS, Azure Workload
+  # Identity, Istio and Linkerd tokens) are dropped on the node: a few small
+  # files in memory, whose capacity says nothing. Still a lot on stateful
+  # workloads (Kafka, databases) with thousands of PVCs: turn it off there if
+  # you do not watch PVC disk space.
   volumeMetrics:
     enabled: true
 
