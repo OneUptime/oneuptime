@@ -36,7 +36,8 @@ import {
 
 const { Confirm, Contain, Fix } = DetectionRuleResponsePhase;
 
-type LibraryStepId = keyof typeof LIBRARY_STEP_TEXTS;
+// A step's id in LIBRARY_STEP_TEXTS: the test checks every one a rule names is there.
+type LibraryStepId = string;
 
 /*
  * Every step a library rule carries, by its id, with the part of the plan
@@ -1366,6 +1367,13 @@ export function getDetectionRuleLibraryStepCatalog(): Array<DetectionRuleRespons
 // The library rule ids that have steps: for the test that checks each is a library rule.
 export function getDetectionRuleLibraryIdsWithSteps(): Array<string> {
   return Object.keys(LIBRARY_RULE_STEPS);
+}
+
+// The step ids a library rule names, as written: for the test that checks each is in the catalog.
+export function getDetectionRuleLibraryStepIdsNamed(
+  libraryRuleId: string,
+): Array<string> {
+  return [...(LIBRARY_RULE_STEPS[libraryRuleId] || [])];
 }
 
 /*

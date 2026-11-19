@@ -13,6 +13,9 @@ import SecurityCaseMatches, {
   buildMatchedOutcomesStatement,
   buildRuleCondition,
   getGroupValues,
+  getKeptEventsForReader,
+  getRuleResponseSteps,
+  isKeptEventReadable,
   pickDetectionsToExplain,
   readOutcomeRows,
   toMatchRule,
@@ -33,6 +36,12 @@ import {
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
 import { DETECTION_RULE_LIBRARY } from "../../../../../Types/SecurityEvent/DetectionRuleLibrary";
+import { getDetectionRuleLibraryResponseSteps } from "../../../../../Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
+import {
+  DetectionRuleResponsePhase,
+  DetectionRuleResponseStep,
+} from "../../../../../Types/SecurityEvent/DetectionRuleResponseSteps";
+import { buildSecurityDetectionMatchedEvent } from "../../../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import OcsfSeverity from "../../../../../Types/SecurityEvent/OcsfSeverity";
 import SigmaRuleSetParser from "../../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -717,5 +726,327 @@ describe("the pieces", () => {
     expect(rule.description).toBe(
       "Requests trying to read files outside the web root.",
     );
+  });
+});
+
+/*
+ * What a detection kept when it fired (#9619): listed first, exactly as it
+ * matched - whatever its rule says now, and after the events pass their
+ * retention - each only when the reader's role reads its source. A
+ * detection that kept nothing has its events read again, as before.
+ */
+describe("what a detection kept when it fired", () => {
+  const OTHER_SOURCE_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+  function keptEvents(
+    rows: Array<JSONObject>,
+    outcomes: Record<string, number> = { Rejected: 12 },
+  ): JSONObject {
+    return {
+      events: rows.map((row: JSONObject) => {
+        return buildSecurityDetectionMatchedEvent(row);
+      }),
+      outcomes,
+    } as unknown as JSONObject;
+  }
+
+  function keptRows(): Array<JSONObject> {
+    return [
+      eventRow({ eventUid: "kept:0", retentionDate: "2026-11-24 19:22:20" }),
+      eventRow({
+        eventUid: "kept:1",
+        time: "2026-11-17 19:22:15.000000000",
+        retentionDate: "2026-11-24 19:22:21",
+      }),
+    ];
+  }
+
+  function uids(detection: SecurityCaseMatchedDetectionJson): Array<string> {
+    return detection.events.map((event: { eventUid: string }): string => {
+      return event.eventUid;
+    });
+  }
+
+  test("lists what it kept, exactly as it matched, without reading the events table", async () => {
+    detections = [detectionRow({ matchedEvents: keptEvents(keptRows()) })];
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    expect(detection.isKept).toBe(true);
+    expect(uids(detection)).toEqual(["kept:0", "kept:1"]);
+    expect(detection.events[0]!.retentionDate).toBe("2026-11-24T19:22:20.000Z");
+    expect(detection.outcomes).toEqual({ Rejected: 12 });
+    // What it counted as it fired, never fewer than it lists.
+    expect(detection.matchedEventCount).toBe(12);
+    expect(detection.hiddenEventCount).toBe(0);
+    expect(detection.keptPastRetentionCount).toBe(0);
+    // The rule's window still says when, and its basis what they are.
+    expect(detection.windowStart).toBe("2026-11-17T19:22:00.000Z");
+    expect(detection.basis).toBe(SecurityCaseMatchBasis.RuleCondition);
+    expect(executeQuery).not.toHaveBeenCalled();
+  });
+
+  test("lists what it matched then, not what its rule matches now", async () => {
+    detections = [detectionRow({ matchedEvents: keptEvents(keptRows()) })];
+    rules = [
+      ruleRow({
+        sigmaRuleYaml: PATH_TRAVERSAL_YAML.replace(
+          "../../",
+          "a value nothing matched then",
+        ),
+      }),
+    ];
+
+    expect(uids((await matches()).detections[0]!)).toEqual([
+      "kept:0",
+      "kept:1",
+    ]);
+    expect(executeQuery).not.toHaveBeenCalled();
+  });
+
+  test("events past their retention are still listed, and counted as such", async () => {
+    detections = [
+      detectionRow({
+        matchedEvents: keptEvents([
+          eventRow({ eventUid: "gone", retentionDate: "2026-11-10 00:00:00" }),
+          eventRow({ eventUid: "kept", retentionDate: "2026-12-10 00:00:00" }),
+        ]),
+      }),
+    ];
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    expect(detection.events).toHaveLength(2);
+    expect(detection.keptPastRetentionCount).toBe(1);
+  });
+
+  test("shows only the events of sources the reader's role reads, and counts the rest", async () => {
+    detections = [
+      detectionRow({
+        matchedEvents: keptEvents([
+          eventRow({ eventUid: "readable" }),
+          eventRow({ eventUid: "hidden", primaryEntityId: OTHER_SOURCE_ID }),
+          eventRow({ eventUid: "no source", primaryEntityId: "" }),
+        ]),
+      }),
+    ];
+    jest.spyOn(TelemetryReadAccess, "getServiceFilter").mockResolvedValue({
+      serviceIds: [new ObjectID(SERVICE_ID)],
+    } as never);
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    expect(uids(detection)).toEqual(["readable"]);
+    expect(detection.hiddenEventCount).toBe(2);
+  });
+
+  test("a source the reader's role is kept from is hidden, whatever else it reads", async () => {
+    detections = [
+      detectionRow({
+        matchedEvents: keptEvents([
+          eventRow({ eventUid: "readable", primaryEntityId: OTHER_SOURCE_ID }),
+          eventRow({ eventUid: "blocked" }),
+        ]),
+      }),
+    ];
+    jest.spyOn(TelemetryReadAccess, "getServiceFilter").mockResolvedValue({
+      excludedServiceIds: [new ObjectID(SERVICE_ID)],
+    } as never);
+
+    expect(uids((await matches()).detections[0]!)).toEqual(["readable"]);
+  });
+
+  test("a reader who may read no security events sees none of them, said so", async () => {
+    detections = [detectionRow({ matchedEvents: keptEvents(keptRows()) })];
+    jest
+      .spyOn(TelemetryReadAccess, "getServiceFilter")
+      .mockRejectedValue(new NotAuthorizedException("No."));
+
+    const answer: SecurityCaseMatchesJson = await matches();
+
+    expect(answer.unreadableSources).toEqual([
+      SecurityCaseMatchesSource.Events,
+    ]);
+    expect(answer.detections[0]!.isKept).toBe(true);
+    expect(answer.detections[0]!.events).toEqual([]);
+    expect(answer.detections[0]!.hiddenEventCount).toBe(2);
+  });
+
+  test("is read as OneUptime - no role reads the column - and the reader's own reads never ask for it", async () => {
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockImplementation(async (): Promise<Array<SecurityDetection>> => {
+        return [detectionRow({ matchedEvents: keptEvents(keptRows()) })];
+      });
+
+    await matches();
+
+    const reads: Array<{
+      props: DatabaseCommonInteractionProps;
+      select: Record<string, unknown>;
+    }> = findBy.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as {
+        props: DatabaseCommonInteractionProps;
+        select: Record<string, unknown>;
+      };
+    });
+    const keptReads: Array<{ props: DatabaseCommonInteractionProps }> =
+      reads.filter((read: { select: Record<string, unknown> }): boolean => {
+        return "matchedEvents" in read.select;
+      });
+
+    expect(keptReads).toHaveLength(1);
+    expect(keptReads[0]!.props).toEqual({ isRoot: true });
+
+    for (const read of reads) {
+      if (!read.props.isRoot) {
+        expect("matchedEvents" in read.select).toBe(false);
+      }
+    }
+  });
+
+  test("a detection that kept nothing has its events read again, beside one that kept them", async () => {
+    detections = [
+      detectionRow({ matchedEvents: keptEvents(keptRows()) }),
+      detectionRow(
+        { firstSeenAt: NOW, lastSeenAt: NOW, matchedEvents: undefined },
+        LATER_ID,
+      ),
+    ];
+
+    const answer: SecurityCaseMatchesJson = await matches();
+
+    expect(answer.detections[0]!.isKept).toBe(true);
+    expect(answer.detections[1]!.isKept).toBe(false);
+    expect(answer.detections[1]!.events).toHaveLength(2);
+    expect(
+      statements.filter((statement: Statement): boolean => {
+        return statement.query.includes("ORDER BY time ASC");
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("when what they kept cannot be read, the events are read again, as before", async () => {
+    jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockImplementation(
+        async (findBy: unknown): Promise<Array<SecurityDetection>> => {
+          if (
+            "matchedEvents" in
+            (findBy as { select: Record<string, unknown> }).select
+          ) {
+            throw new Error("Postgres is down");
+          }
+
+          return [detectionRow({ matchedEvents: keptEvents(keptRows()) })];
+        },
+      );
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    expect(detection.isKept).toBe(false);
+    expect(uids(detection)).toEqual(["log:abc:0", "log:abc:1"]);
+  });
+
+  test("a kept event's source is read as an id, whatever its case", () => {
+    expect(
+      isKeptEventReadable({
+        event: { sourceId: SERVICE_ID.toUpperCase() },
+        serviceFilter: { serviceIds: [new ObjectID(SERVICE_ID)] },
+      }),
+    ).toBe(true);
+    expect(
+      isKeptEventReadable({
+        event: { sourceId: "" },
+        serviceFilter: {},
+      }),
+    ).toBe(true);
+    expect(
+      isKeptEventReadable({
+        event: { sourceId: "" },
+        serviceFilter: { serviceIds: [new ObjectID(SERVICE_ID)] },
+      }),
+    ).toBe(false);
+  });
+
+  test("the reader's events and the ones past retention are counted from what it kept", () => {
+    const kept: ReturnType<typeof getKeptEventsForReader> =
+      getKeptEventsForReader({
+        kept: keptEvents([
+          eventRow({ eventUid: "a", retentionDate: "2026-11-01 00:00:00" }),
+          eventRow({
+            eventUid: "b",
+            primaryEntityId: OTHER_SOURCE_ID,
+            retentionDate: "2026-11-01 00:00:00",
+          }),
+        ]) as never,
+        serviceFilter: { serviceIds: [new ObjectID(SERVICE_ID)] },
+        now: NOW,
+      });
+
+    expect(kept.events).toHaveLength(1);
+    expect(kept.hiddenEventCount).toBe(1);
+    expect(kept.pastRetentionCount).toBe(1);
+  });
+});
+
+/*
+ * A rule's own response steps (#9621) come with the rule: its own, once it
+ * has any; a library rule added before rules had steps reads its library
+ * entry's; an author who took them all out has none.
+ */
+describe("a rule's response steps", () => {
+  test("are the rule's own, once it has any", async () => {
+    rules = [
+      ruleRow({
+        responseSteps: [
+          {
+            id: "page-payments",
+            phase: DetectionRuleResponsePhase.Contain,
+            text: "Page the payments on-call.",
+          },
+        ] as never,
+      }),
+    ];
+
+    expect((await matches()).detections[0]!.rule!.responseSteps).toEqual([
+      {
+        id: "page-payments",
+        phase: DetectionRuleResponsePhase.Contain,
+        text: "Page the payments on-call.",
+      },
+    ]);
+  });
+
+  test("a library rule added before rules had steps reads its library entry's", async () => {
+    const steps: Array<DetectionRuleResponseStep> = (await matches())
+      .detections[0]!.rule!.responseSteps;
+    const entry: { id: string } = DETECTION_RULE_LIBRARY.find(
+      (candidate: { title: string }): boolean => {
+        return candidate.title === "Path traversal attempts";
+      },
+    )!;
+
+    expect(steps.length).toBeGreaterThan(0);
+    expect(steps).toEqual(getDetectionRuleLibraryResponseSteps(entry.id));
+  });
+
+  test("an author who took them all out has none, library rule or not", () => {
+    expect(
+      getRuleResponseSteps({
+        responseSteps: [] as never,
+        sigmaRuleYaml: PATH_TRAVERSAL_YAML,
+      }),
+    ).toEqual([]);
+    expect(
+      getRuleResponseSteps({
+        responseSteps: undefined,
+        sigmaRuleYaml: CORRELATION_YAML,
+      }),
+    ).toEqual([]);
   });
 });
