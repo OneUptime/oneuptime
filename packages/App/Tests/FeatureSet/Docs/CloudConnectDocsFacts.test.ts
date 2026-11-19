@@ -10,11 +10,17 @@ import { tables } from "./DocsPageShape";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   AZURE_ENTITY_NAME_DIMENSION,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AzureTypeKeyMetrics,
+  GCP_OPS_AGENT_INSTALL_URL,
   getAzureKeyMetrics,
+  hasAzureFiveMinuteKeyMetrics,
 } from "Common/Types/Cloud/CloudKeyMetrics";
+import { GCP_OPS_AGENT_ASK_EVERY_MS } from "Common/Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
+import { CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION } from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
   CloudConnectionAuthMethod,
   CloudConnectionCatalog,
@@ -57,6 +63,7 @@ import {
   AZURE_USD_PER_THOUSAND_METRIC_READS,
   GCP_FREE_TIME_SERIES_PER_MONTH,
   GCP_USD_PER_MILLION_TIME_SERIES,
+  getAzureFiveMinuteReadsPerMonth,
 } from "Common/Types/CloudConnection/CloudConnectionCost";
 import {
   CLOUD_BUDGET_DEFAULT_THRESHOLDS,
@@ -618,6 +625,70 @@ describe("Connect a Cloud Account", () => {
     expect(paragraph).toContain("](/docs/telemetry/queues#azure-service-bus)");
     expect(paragraph).toContain(
       "where that receiver also reads a metric of a queue, its figures are kept and the connection's left out",
+    );
+  });
+
+  /*
+   * A metric Azure Monitor keeps at five minutes at its finest takes a call
+   * of its own (#9566): the few marked as earning it are read every 15
+   * minutes, three points a call, which the page states with what it costs
+   * an hour at the default read interval.
+   */
+  it("says which Azure metrics are read at five minutes, how often and what that costs an hour", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A few key metrics Azure Monitor keeps");
+      });
+    const minutes: number = definition(
+      CloudProvider.Azure,
+    ).defaultReadIntervalInMinutes;
+
+    expect(paragraph).toBeDefined();
+    expect(AZURE_FIVE_MINUTE_GRAIN).toBe("PT5M");
+    expect(paragraph).toContain(
+      "keeps at five minutes at their finest, such as an App Service app's health check and an Azure Cosmos DB account's storage",
+    );
+    expect(hasAzureFiveMinuteKeyMetrics("Microsoft.Web/sites")).toBe(true);
+    expect(
+      hasAzureFiveMinuteKeyMetrics("Microsoft.DocumentDB/databaseAccounts"),
+    ).toBe(true);
+    expect(paragraph).toContain(
+      `are read in a call of their own every ${AZURE_FIVE_MINUTE_READ_MINUTES} minutes, ${AZURE_FIVE_MINUTE_READ_MINUTES / 5} points a call`,
+    );
+    // An hour's reads at the default interval: one five-minute call each 15.
+    expect(
+      (60 / (60 * 24 * 30)) * getAzureFiveMinuteReadsPerMonth(minutes),
+    ).toBe(60 / AZURE_FIVE_MINUTE_READ_MINUTES);
+    expect(paragraph).toContain(
+      `read every ${minutes} minutes, such a resource costs ${60 / AZURE_FIVE_MINUTE_READ_MINUTES} more calls an hour, and a resource without them nothing more`,
+    );
+    // Its row on the resource's page says so (CloudMonitoredResourceScope).
+    expect(paragraph).toContain(
+      `says it comes ${CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION}`,
+    );
+  });
+
+  /*
+   * A Compute Engine VM's memory and disks come from the Ops Agent (#9568):
+   * the page says so with Google's install link, and how often a project
+   * without it is asked.
+   */
+  it("says a VM's memory and disk use need the Ops Agent, with Google's install link, and how often a project without it is asked", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A Compute Engine VM's memory and disk use");
+      });
+
+    expect(paragraph).toBeDefined();
+    expect(paragraph).toContain(`[Ops Agent](${GCP_OPS_AGENT_INSTALL_URL})`);
+    expect(paragraph).toContain(
+      "and links to Google's instructions for installing it",
+    );
+    expect(GCP_OPS_AGENT_ASK_EVERY_MS).toBe(60 * 60 * 1000);
+    expect(paragraph).toContain(
+      "A project none of whose VMs runs it is asked once an hour, not every read.",
     );
   });
 
