@@ -20,17 +20,17 @@ import OwnerNotificationDeliveries, {
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
 import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
 import {
-  DataOwnerAdded,
-  isDataOwnerWorkOff,
-  tellDataOwnerAdded,
-} from "../../Utils/DataOwnersAdded";
+  OwnerAddedMessage,
+  isOwnerWorkOff,
+  tellOwnerAdded,
+} from "../../Utils/ResourceOwnersAdded";
 
 /*
  * Tells the people a data store owner rule, or a person on the store's
  * Owners page, made owners of a data store (#9681): a database Data
  * Observability watches, or a bucket, database or warehouse Data Security
  * found. The owner-added job every other record has (OwnersAdded), with
- * what the data owner jobs share (DataOwnersAdded): a data store is both
+ * what the owner-added jobs share (ResourceOwnersAdded): a data store is both
  * products', so it waits only while both are switched off on the server.
  */
 
@@ -52,7 +52,7 @@ RunCron(
   DATA_STORE_OWNER_ADDED_JOB_NAME,
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
-    if (await isDataOwnerWorkOff("DataStoreOwnerUser")) {
+    if (await isOwnerWorkOff("DataStoreOwnerUser")) {
       return;
     }
 
@@ -170,7 +170,7 @@ async function notifyOwnersAdded(data: {
     dataStoreViewLink: dataStoreViewLink,
   };
 
-  const added: DataOwnerAdded = {
+  const added: OwnerAddedMessage = {
     noun: "data store",
     name: dataStoreName,
     link: dataStoreViewLink,
@@ -187,7 +187,7 @@ async function notifyOwnersAdded(data: {
        * to the next owner, who is told all the same.
        */
       await delivery.tell(user, async (): Promise<void> => {
-        await tellDataOwnerAdded({
+        await tellOwnerAdded({
           user: user,
           projectId: projectId,
           eventType:

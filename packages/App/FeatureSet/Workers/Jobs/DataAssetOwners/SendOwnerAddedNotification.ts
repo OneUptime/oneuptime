@@ -16,18 +16,18 @@ import OwnerNotificationDeliveries, {
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
 import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
+import { getDataTableName } from "../../Utils/DataOwnersAdded";
 import {
-  DataOwnerAdded,
-  getDataTableName,
-  isDataOwnerWorkOff,
-  tellDataOwnerAdded,
-} from "../../Utils/DataOwnersAdded";
+  OwnerAddedMessage,
+  isOwnerWorkOff,
+  tellOwnerAdded,
+} from "../../Utils/ResourceOwnersAdded";
 
 /*
  * Tells the people a table owner rule, or a person on the table's Owners
  * page, made owners of a Data Observability table (#9681): the owner-added
  * job every other record has (OwnersAdded), with what the data owner jobs
- * share (DataOwnersAdded) - it waits while Data Observability is switched
+ * share (ResourceOwnersAdded) - it waits while Data Observability is switched
  * off on the server.
  */
 
@@ -51,7 +51,7 @@ RunCron(
   DATA_ASSET_OWNER_ADDED_JOB_NAME,
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
-    if (await isDataOwnerWorkOff("DataAssetOwnerUser")) {
+    if (await isOwnerWorkOff("DataAssetOwnerUser")) {
       return;
     }
 
@@ -148,7 +148,7 @@ async function notifyOwnersAdded(data: {
     tableViewLink: tableViewLink,
   };
 
-  const added: DataOwnerAdded = {
+  const added: OwnerAddedMessage = {
     noun: "table",
     name: tableName,
     link: tableViewLink,
@@ -165,7 +165,7 @@ async function notifyOwnersAdded(data: {
        * to the next owner, who is told all the same.
        */
       await delivery.tell(user, async (): Promise<void> => {
-        await tellDataOwnerAdded({
+        await tellOwnerAdded({
           user: user,
           projectId: projectId,
           eventType:
