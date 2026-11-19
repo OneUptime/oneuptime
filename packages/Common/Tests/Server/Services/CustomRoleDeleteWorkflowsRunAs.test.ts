@@ -169,7 +169,7 @@ describe("deleting a custom role that workflows run as", () => {
     ).mockImplementation((async (data: { customRoleId: ObjectID }) => {
       const permission: CustomRolePermission = new CustomRolePermission();
       permission.permission =
-        ROLE_PERMISSIONS[data.customRoleId.toString().toLowerCase()];
+        ROLE_PERMISSIONS[data.customRoleId.toString().toLowerCase()]!;
       permission.scope = PermissionScope.All;
       permission.labels = [];
       return [permission];
