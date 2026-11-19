@@ -87,8 +87,8 @@ Abra **Plantão** pelo menu **Produtos** na barra superior. Ele abre em **Polít
 | Seção | Páginas |
 | --- | --- |
 | **Políticas** | **Políticas de plantão**, **Prontidão**: quem suas políticas realmente alcançam, e **Políticas de chamadas recebidas**: um número de telefone que toca para quem está de plantão |
-| **Agendamentos** | **Agendamentos de plantão**, **Linha do tempo de plantões** e **Feeds de calendário** |
-| **Avançado** | **Substituições de usuário**, **Registros de execução** e **Políticas arquivadas** |
+| **Agendamentos** | **Agendamentos de plantão**, **Linha do tempo de plantões**, **Substituições de usuário**: quem cobre alguém enquanto essa pessoa está ausente, e **Feeds de calendário** |
+| **Avançado** | **Registros de execução** e **Políticas arquivadas** |
 | **Relatórios** | **Tempo de plantão do usuário**: quanto tempo cada pessoa ficou de plantão |
 | **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**: regras que publicam eventos de plantão em um canal |
 | **Configurações** | **Campos personalizados**, **Regras de Rótulos** e **Regras de proprietário** |
@@ -109,7 +109,7 @@ Abra **Plantão → Prontidão** e clique em **Cobertura** na linha da pessoa. A
 :::
 
 :::details Uma pessoa de férias continua sendo acionada
-Adicione uma substituição de usuário com ela em **Quem está ausente?**. Uma em **Plantão → Avançado → Substituições de usuário** cobre todas as políticas; uma na página **Substituições de usuário** de uma política cobre só essa política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
+Adicione uma substituição de usuário com ela em **Quem está ausente?**. Uma em **Plantão → Agendamentos → Substituições de usuário** cobre todas as políticas; uma na página **Substituições de usuário** de uma política cobre só essa política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 :::
 
 ## Próximos passos

@@ -26,7 +26,7 @@ El formulario también pregunta **Activarla con cada nuevo incidente y cada nuev
 
 Para que te guíen paso a paso, desde tu teléfono hasta un aviso de prueba, haz clic en **Configuración guiada**: en la lista vacía de **Políticas de guardia** o en **Cómo funciona**. Consulta [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
 
-La lista **Políticas de guardia** muestra de cada política su **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**. Selecciona políticas para **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Archivar**, **Exportar JSON** o eliminarlas. **Importar JSON** crea políticas a partir de una exportación: una exportación contiene los ajustes propios de una política, no sus reglas de escalado ni sus propietarios.
+La lista **Políticas de guardia** muestra de cada política su **Nombre**, **Avisados primero**, **Descripción**, **Etiquetas** y **Propietarios**. **Avisados primero** indica a quién avisa la primera regla de escalado de la política: sus programaciones de guardia, cada una con quien está de guardia en ella ahora mismo, sus equipos y las personas que nombra, o **Sin reglas de escalado** o **Sin respondedores** cuando no avisa a nadie. Selecciona políticas para **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Archivar**, **Exportar JSON** o eliminarlas. **Importar JSON** crea políticas a partir de una exportación: una exportación contiene los ajustes propios de una política, no sus reglas de escalado ni sus propietarios.
 
 ## Qué ejecuta una política
 

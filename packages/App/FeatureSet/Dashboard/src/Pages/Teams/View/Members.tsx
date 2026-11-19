@@ -22,6 +22,11 @@ import UserUtil from "Common/UI/Utils/User";
 import Banner from "Common/UI/Components/Banner/Banner";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  drawInviteeEmailField,
+  getInviteeEmailError,
+} from "../../../Components/Team/InviteeEmailFormField";
 import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import {
@@ -237,12 +242,27 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
                 ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
                 : SERVER_EMAIL_COPY.inviteEmailDescription
               : "We email them an invitation to this team.",
-            fieldType: FormFieldSchemaType.Email,
+            /*
+             * The form's text box, which suggests the project's people as
+             * it is typed in, each with where they stand for this team
+             * (#9701, Components/Team/InviteeEmailFormField).
+             */
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
             placeholder: "member@company.com",
             overrideFieldKey: "email",
             onChange: (value: string) => {
               checkEmail(value);
+            },
+            customValidation: getInviteeEmailError,
+            getCustomElement: (
+              _values: FormValues<TeamMember>,
+              customProps: CustomElementProps,
+            ): ReactElement => {
+              return drawInviteeEmailField({
+                customProps: customProps,
+                teamId: modelId.toString(),
+              });
             },
           },
           {
