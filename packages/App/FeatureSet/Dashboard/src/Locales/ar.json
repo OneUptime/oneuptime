@@ -57461,6 +57461,7 @@
   "Test Now": "اختبر الآن",
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "أوقف قاطع الدائرة مسار المعالجة هذا {{time}}: جدول يقرؤه فشل في فحص أو تأخر.",
   "The tables that stopped it are not ones you may read.": "الجداول التي أوقفته ليست جداول يمكنك قراءتها.",
+  "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "يُزال النص المكتوب لـ {{call}} وما قرأه فيه OneUptime AI، ومن موجز الحادثة وقنوات الدردشة أيضًا. ويُحتفظ بالسبب الجذري للحادثة.",
   "View Pipeline Rule": "عرض قاعدة مسار المعالجة",
   "What Stops It": "ما يوقفه",
   "Where the pipeline runs": "مكان تشغيل مسار المعالجة",

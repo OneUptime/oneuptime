@@ -1148,7 +1148,7 @@ describe("the transcript's menu", () => {
     expect(screen.getByText("Remove the transcript?")).toBeVisible();
     expect(
       screen.getByText(
-        "The transcript of the Zoom meeting and what OneUptime AI read in it are removed from this incident: from the call, from its feed and from the incident's Slack, Microsoft Teams and Mattermost channels. The incident's root cause is kept.",
+        "The transcript of the Zoom meeting and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.",
       ),
     ).toBeVisible();
     expect(remove).not.toHaveBeenCalled();

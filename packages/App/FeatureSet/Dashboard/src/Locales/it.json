@@ -57461,6 +57461,7 @@
   "Test Now": "Testa ora",
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "Il circuit breaker ha fermato questa pipeline {{time}}: una tabella che legge non ha superato un controllo o è in ritardo.",
   "The tables that stopped it are not ones you may read.": "Le tabelle che l'hanno fermata non sono tabelle che puoi leggere.",
+  "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "La trascrizione ({{call}}) e ciò che OneUptime AI vi ha letto vengono rimossi, anche dal feed e dai canali di chat dell'incidente. La causa principale dell'incidente viene mantenuta.",
   "View Pipeline Rule": "Visualizza regola pipeline",
   "What Stops It": "Cosa la ferma",
   "Where the pipeline runs": "Dove viene eseguita la pipeline",

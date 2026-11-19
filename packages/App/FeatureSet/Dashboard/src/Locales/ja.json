@@ -57461,6 +57461,7 @@
   "Test Now": "今すぐテスト",
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "サーキットブレーカーが {{time}} にこのパイプラインを停止しました。読み取るテーブルがチェックに失敗したか遅延しています。",
   "The tables that stopped it are not ones you may read.": "停止の原因となったテーブルは、あなたが読み取れるテーブルではありません。",
+  "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "文字起こし ({{call}}) と、OneUptime AI がそこから読み取った内容は削除され、インシデントのフィードとチャットチャンネルからも削除されます。インシデントの根本原因は保持されます。",
   "View Pipeline Rule": "パイプラインのルールを表示",
   "What Stops It": "停止する条件",
   "Where the pipeline runs": "パイプラインの実行場所",

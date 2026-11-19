@@ -57461,6 +57461,7 @@
   "Test Now": "Test Now",
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.",
   "The tables that stopped it are not ones you may read.": "The tables that stopped it are not ones you may read.",
+  "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.",
   "View Pipeline Rule": "View Pipeline Rule",
   "What Stops It": "What Stops It",
   "Where the pipeline runs": "Where the pipeline runs",

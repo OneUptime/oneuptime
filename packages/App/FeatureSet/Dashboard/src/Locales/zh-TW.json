@@ -57461,6 +57461,7 @@
   "Test Now": "立即測試",
   "The circuit breaker stopped this pipeline {{time}}: a table it reads failed a check or is late.": "斷路器已於 {{time}} 停止此管道：它讀取的某張資料表檢查失敗或已延遲。",
   "The tables that stopped it are not ones you may read.": "導致停止的資料表不是你可以讀取的資料表。",
+  "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.": "逐字稿 ({{call}}) 以及 OneUptime AI 從中讀取的內容將被移除，事件動態消息和聊天頻道中的相關內容也會移除。事件的根本原因會保留。",
   "View Pipeline Rule": "檢視管道規則",
   "What Stops It": "停止條件",
   "Where the pipeline runs": "管道執行的位置",
