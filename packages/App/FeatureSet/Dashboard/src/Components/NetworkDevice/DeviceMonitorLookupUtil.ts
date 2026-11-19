@@ -94,9 +94,12 @@ export const WATCHING_MONITORS_PER_READ: number = 500;
  *    (1) can never find it.
  *
  * 3. A monitor was MADE FOR the device (Monitor.autoProvisionedNetworkDeviceId)
- *    from a Ping, IP, Port or NTP template, by a discovery import
- *    (OneUptime issue #5145): it checks the device's address, so it too is
- *    not of type NetworkDevice. Its provenance is queryable and indexed.
+ *    from a Ping, IP, Port or NTP template - or, since issue #9546, a
+ *    Website, API or SSL Certificate one - by a discovery import (OneUptime
+ *    issue #5145): it checks the device's address, or a URL on it, so it too
+ *    is not of type NetworkDevice. Its provenance is queryable and indexed.
+ *    A monitor a person made and TIED to the device (Monitor.networkDeviceId,
+ *    issue #9545) is read by that tie the same way.
  *
  * Returning only (1) is what made a ping-only device that HAS a bound monitor
  * still render "No monitors are alerting on this device yet" next to a green

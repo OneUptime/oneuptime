@@ -253,7 +253,8 @@ export default class DeviceMonitorDuplicateCheck {
   }
 
   /*
-   * The probe a Ping, IP, Port or NTP monitor made for a device runs on: the
+   * The probe a monitor made for a device to check its address or a URL on
+   * it (Ping, IP, Port, NTP, Website, API, SSL Certificate) runs on: the
    * one that polls the device, else the scan's - each reached the address.
    * The project's default probes would be global ones, which cannot reach a
    * device on a private network, so they are what a device with neither

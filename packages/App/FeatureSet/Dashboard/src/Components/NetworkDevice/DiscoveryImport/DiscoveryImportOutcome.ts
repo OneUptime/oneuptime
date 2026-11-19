@@ -157,8 +157,9 @@ export interface DiscoveryImportOutcome {
   /*
    * Ping-only devices whose monitor can raise nothing: every check of the
    * template that opens an incident or an alert reads an SNMP walk, and
-   * these devices are only pinged. Never any for a Ping, IP, Port or NTP
-   * template: its monitors check the address themselves.
+   * these devices are only pinged. Never any for a Ping, IP, Port, NTP,
+   * Website, API or SSL Certificate template: its monitors check the device
+   * themselves.
    */
   pingOnlyHostsWithoutAlerts: number;
   // Enabled policies that cover every device, by name.

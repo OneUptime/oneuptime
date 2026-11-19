@@ -348,10 +348,11 @@ export interface ExistingMonitorProvisioningState {
   // Set once this run gives up on provisioning monitors at all.
   isProvisioningHalted: boolean;
   /*
-   * The Ping, IP, Port and NTP monitors this run made - or, in a dry run,
-   * would have made - per device id. A second address template a host's
-   * rules pick is asked against these as well as the database, so a dry
-   * run predicts the duplicate its real run would skip (issue #9510).
+   * The Ping, IP, Port, NTP, Website, API and SSL Certificate monitors this
+   * run made - or, in a dry run, would have made - per device id. A second
+   * such template a host's rules pick is asked against these as well as the
+   * database, so a dry run predicts the duplicate its real run would skip
+   * (issues #9510, #9546).
    */
   runAddressMonitorsByDeviceId: Map<string, Array<DeviceMonitorFacts>>;
 }
@@ -1872,10 +1873,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         hostname: true,
         monitoringMethod: true,
         /*
-         * What a Ping, IP, Port or NTP template's monitor needs of a device
-         * that already exists (issue #9510): the probe that polls it, which
-         * the monitor runs on, and the monitor bound to it, which a second
-         * Ping or IP monitor would duplicate (DeviceMonitorDuplicateCheck).
+         * What a Ping, IP, Port, NTP, Website, API or SSL Certificate
+         * template's monitor needs of a device that already exists (issues
+         * #9510, #9546): the probe that polls it, which the monitor runs on,
+         * and the monitor bound to it, which a second monitor checking the
+         * same thing would duplicate (DeviceMonitorDuplicateCheck).
          */
         probeId: true,
         monitorId: true,

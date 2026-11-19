@@ -77,11 +77,15 @@ import {
  *   - Who hears about a problem: nobody but the device's own status, or a
  *     monitor per device from a template - the recommended alert pack, or
  *     any of the project's templates a device's monitor can be made from: a
- *     Network Device one, whose monitor reads each device's polls, or a
- *     Ping, IP, Port or NTP one, whose monitor checks each device's address
- *     from the scan's probe (#5145: a customer's own Ping template never
- *     showed). One line under the list says which kinds are listed, beside
- *     a link to the templates. The picked one is previewed check by check:
+ *     Network Device one, whose monitor reads each device's polls, a Ping,
+ *     IP, Port or NTP one, whose monitor checks each device's address from
+ *     the scan's probe (#5145: a customer's own Ping template never showed),
+ *     or a Website, API or SSL Certificate one, whose monitor checks the
+ *     template's URL with each device's address as the host (#9546). A
+ *     device already added with no monitor, picked to get one (#9544), is
+ *     counted apart. One line under the list says which kinds are listed,
+ *     beside a link to the templates. The picked one is previewed check by
+ *     check:
  *     what each device gets, when it is checked, what each check raises and
  *     at what severity, and, for a Network Device template, which checks
  *     need an SNMP walk a device that only answers ping does not get.

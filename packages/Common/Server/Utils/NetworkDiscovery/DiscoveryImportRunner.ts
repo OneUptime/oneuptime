@@ -280,9 +280,10 @@ export const DEVICE_NOT_REACHED_FAILED: string =
 /*
  * What the import reads of a device it created or found: its name and
  * address for its monitor, how its health is established, the probe that
- * polls it - the probe a Ping, IP, Port or NTP monitor made for it runs on -
- * and the monitor bound to it, which a second Ping or IP monitor would
- * duplicate (DeviceMonitorDuplicateCheck).
+ * polls it - the probe a Ping, IP, Port, NTP, Website, API or SSL
+ * Certificate monitor made for it runs on - and the monitor bound to it,
+ * which a second monitor checking the same thing would duplicate
+ * (DeviceMonitorDuplicateCheck).
  */
 const IMPORTED_DEVICE_SELECT: {
   _id: true;
@@ -1583,8 +1584,9 @@ export default class DiscoveryImportRunner {
     /*
      * A Network Device template's monitor reads each device's polls; a
      * Ping, IP, Port or NTP template's checks each device's address
-     * (#5145). No other kind of template has anything of a device's to
-     * check.
+     * (#5145), and a Website, API or SSL Certificate template's checks its
+     * URL with each device's address as the host (#9546). No other kind of
+     * template has anything of a device's to check.
      */
     if (!isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
