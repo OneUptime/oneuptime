@@ -57,6 +57,8 @@ import ServiceType from "../../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import TelemetryIngestionBudgetMetricType from "../../../Types/Telemetry/TelemetryIngestionBudgetMetricType";
 import TelemetryIngestionBudgetMetricTypeUtil from "../../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
+import TelemetryUsageMetricType from "../../../Types/Telemetry/TelemetryUsageMetricType";
+import TelemetryUsageMetricTypeUtil from "../../../Utils/Telemetry/TelemetryUsageMetricType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -385,10 +387,15 @@ const EVERY_EXCLUDED_METRIC_NAME: Array<string> = [
    * counted from recordings the project already sent.
    */
   SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
+  /*
+   * And the telemetry usage readings (#6355): each resource's usage of the
+   * telemetry the project already sent, written by the usage sweep.
+   */
+  ...(Object.values(TelemetryUsageMetricType) as Array<string>),
 ].sort();
 
 describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
-  test("is exactly the session replay and ingestion budget series, the product analytics event counts, the Kubernetes cost metrics and the signal session counts, every one of them", () => {
+  test("is exactly the session replay and ingestion budget series, the product analytics event counts, the Kubernetes cost metrics, the signal session counts and the telemetry usage readings, every one of them", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort()).toEqual(
       EVERY_EXCLUDED_METRIC_NAME,
     );
@@ -399,6 +406,7 @@ describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
       expect(
         SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name) ||
           TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name) ||
+          TelemetryUsageMetricTypeUtil.isReservedMetricName(name) ||
           isProductAnalyticsDerivedMetricName(name) ||
           isKubernetesCostMetricName(name),
       ).toBe(true);
