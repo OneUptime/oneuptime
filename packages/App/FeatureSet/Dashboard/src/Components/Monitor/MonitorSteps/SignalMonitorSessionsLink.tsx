@@ -45,6 +45,8 @@ export const SIGNAL_MONITOR_GONE_SENTENCE: string = translationKey(
   "This monitor's signal is no longer on the application's Frustration Signals page, so no session counts toward it.",
 );
 
+export const SEE_SESSIONS: string = translationKey("See sessions");
+
 export interface ComponentProps {
   monitorType: MonitorType;
   monitorStep: MonitorStep;
@@ -165,7 +167,7 @@ const SignalMonitorSessionsLink: FunctionComponent<ComponentProps> = (
           className="font-medium text-indigo-600 hover:underline"
           dataTestId="monitor-signal-see-sessions"
         >
-          {translator.translateText("See sessions") || "See sessions"}
+          {translator.translateText(SEE_SESSIONS) || SEE_SESSIONS}
         </AppLink>
       )}
     </div>
