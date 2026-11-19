@@ -1,4 +1,5 @@
 import UserNotificationStatus from "../UserNotification/UserNotificationStatus";
+import { CallOutcomeLine } from "./OnCallSentLine";
 
 /*
  * HOW A PAGE REACHES SOMEBODY, AND HOW THEY ANSWER IT.
@@ -354,6 +355,14 @@ export interface OnCallPageNotificationNews {
    * rules page later, or the first ones could not be sent.
    */
   isPagedBefore: boolean;
+  /*
+   * A call not answered that a machine answered - it went to voicemail, a
+   * message left or not, or a fax machine picked up (#6594): the feed says
+   * so after "did not answer the phone call", so a responder knows the
+   * person may hear the message. Unset for a call that rang out or found
+   * the line busy, and for every other news.
+   */
+  callOutcome?: CallOutcomeLine | undefined;
 }
 
 // Whether two notifications are the same one.

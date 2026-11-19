@@ -147,6 +147,12 @@ Wat geen standaard verstuurt, gaat zoals het zonder configuratie zou gaan: zolan
 
 Statuspagina's bieden alleen de configuraties aan die sms versturen, en **Test-sms verzenden** en **Testoproep verzenden** verschijnen alleen voor wat een configuratie verstuurt. Elke bestaande configuratie staat, zoals voorheen, op **Oproepen en sms**. Via de API en Terraform is de keuze het veld `usedFor`, en een configuratie zonder de nummers die haar keuze nodig heeft, wordt geweigerd.
 
+### Voicemail bij oproepen voor dienst
+
+Voor Twilio is een oproep die de voicemail aanneemt, beantwoord, net als een oproep die een persoon aanneemt. Daarom vraagt elke oproep voor dienst Twilio op de achtergrond of een persoon of de voicemail opnam, met [antwoordapparaatdetectie](https://www.twilio.com/docs/voice/answering-machine-detection): wie opneemt, hoort de melding meteen. Een oproep die de voicemail aanneemt, telt als niet beantwoord, net als een oproep die onbeantwoord blijft, en de melding gaat verder zoals bij een gemiste oproep. Zodra de begroeting eindigt, spreekt OneUptime een kort bericht in met wat de oproep zei. Het log van de oproep zegt of er een bericht is ingesproken, en de feed van het incident ook: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio rekent antwoordapparaatdetectie aan voor elke beantwoorde oproep die het controleert, op het account dat de oproep plaatst: het account van de hele installatie of de eigen configuratie van het project. Het staat voor elk project aan. Zet **Voicemail bij oproepen voor dienst** uit onder **Meer instellingen** op **Projectinstellingen > Meldingen > Meldingskanalen** om het uit te zetten: een oproep die de voicemail aanneemt, telt dan weer als beantwoord, zoals voorheen. **Testoproep verzenden** en inkomende oproepen worden nooit gecontroleerd. Net als de afloop van oproepen heeft het nodig dat Twilio uw server kan bereiken: zie de volgende sectie.
+
 ## 3. Configureer netwerktoegang
 
 Versturen werkt met alleen uitgaande toegang. Bezorgupdates, de afloop van oproepen, bevestigen met het toetsenblok en inkomende oproepen hebben nodig dat Twilio uw server kan bereiken.
@@ -171,7 +177,7 @@ Inkomende toegang hangt af van de functie:
 | --- | --- |
 | Sms indienen | Nee. Updates van de bezorgstatus hebben wel een callback nodig. |
 | Een eenvoudige spraakoproep als test | Nee. OneUptime levert de gesproken instructies mee met het uitgaande API-verzoek. |
-| Weten of een on-call-oproep is beantwoord | Ja. Twilio meldt hoe elke oproep eindigde, zodat de feed van het incident kan zeggen wanneer iemand niet opnam. Zonder dit gaan oproepen nog steeds uit. |
+| Weten of een on-call-oproep is beantwoord | Ja. Twilio meldt hoe elke oproep eindigde, en of een persoon of de voicemail opnam, zodat de feed van het incident kan zeggen wanneer iemand niet opnam. Zonder dit gaan oproepen nog steeds uit. |
 | Op 1 drukken om een on-call-melding te bevestigen | Ja. Twilio stuurt de toetsinvoer naar OneUptime. |
 | Beleid voor inkomende oproepen | Ja. Twilio vraagt de oproepinstructies op en meldt de resultaten van het kiezen. |
 
@@ -181,13 +187,17 @@ Dit zijn de externe paden, via de Nginx-gateway van OneUptime. De placeholders v
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Bezorgstatus van de sms |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Afloop van de oproep |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Of een persoon of de voicemail een on-call-oproep aannam |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bevestigen met het toetsenblok |
 | POST | `/notification/incoming-call/voice` | Optionele instructies voor inkomende oproepen |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Optionele resultaten van het routeren van inkomende oproepen |
 
 OneUptime maakt de URL's voor sms, de afloop van oproepen en bevestiging automatisch aan. Vervang hun tokens niet door een vaste webhook-URL. Volg voor inkomende oproepen [het beleid voor inkomende oproepen](/docs/on-call/incoming-call-policy), dat de webhook van het nummer configureert wanneer u een nummer koppelt.
 
-Twilio vereist [openbaar bereikbare webhook-URL's](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Gebruik een openbaar vertrouwd TLS-certificaat en behoud via proxy's de oorspronkelijke host, het protocol, het pad, de queryparameters, de body en de header `X-Twilio-Signature`. De handlers voor inkomende oproepen valideren de handtekeningen van Twilio; sms-bezorging en de afloop van oproepen gebruiken een URL-token per bericht of oproep, en bevestigen met het toetsenblok een ondertekend querytoken. Stel tokens niet bloot in gedeelde logs of schermafbeeldingen. Zie [Twilio-webhookbeveiliging](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio vereist [openbaar bereikbare webhook-URL's](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Gebruik een openbaar vertrouwd TLS-certificaat en behoud via proxy's de oorspronkelijke host, het protocol, het pad, de queryparameters, de body en de header `X-Twilio-Signature`. Elke callback in de tabel controleert de handtekening van Twilio, gemaakt met het Auth Token van het Twilio-account dat de sms verstuurde of de oproep plaatste: de Twilio-configuratie van het project of het account voor de hele installatie. De callbacks voor sms-bezorging, de afloop van oproepen en voicemail controleren ook het token in hun URL, en bevestigen met het toetsenblok het ondertekende token in de query: de handtekening laat zien dat een verzoek van Twilio komt, en het token over welke sms of oproep het gaat. Een callback waarvan de handtekening niet klopt, wordt met een 403 geweigerd en verandert niets. Stel tokens niet bloot in gedeelde logs of schermafbeeldingen. Zie [Twilio-webhookbeveiliging](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+
+> [!IMPORTANT]
+> Twilio ondertekent precies de URL die het aanroept en elke parameter die het verstuurt, dus OneUptime weigert een callback die een proxy onderweg heeft gewijzigd, en dan worden de bezorgstatussen van sms'en, de afloop van oproepen en bevestigingen met het toetsenblok niet meer bijgewerkt. Controleer dat elke proxy tussen Twilio en OneUptime het pad, de querystring, de body en de header `X-Twilio-Signature` ongewijzigd en zonder omleiding doorgeeft. OneUptime controleert de handtekening tegen de URL die `HOST` en `HTTP_PROTOCOL` opleveren, en tegen de URL die de headers `Host`, `X-Forwarded-Host` en `X-Forwarded-Proto` van het verzoek noemen, dus het is genoeg als een van beide de openbare URL is die Twilio aanriep. Voor elke geweigerde callback staat in het log van de server een regel die begint met `Twilio callback refused` en de reden noemt, zonder de tokens of het Auth Token.
 
 ### Callbacks publiceren vanuit een privé-installatie
 
@@ -224,7 +234,7 @@ Voor ontwikkeling beschrijft de [handleiding voor het testen van webhooks](https
 | Er wordt niets verzonden | Inloggegevens, de mogelijkheden van het nummer, beperkingen van het account en de uitgaande verbinding. |
 | Twilio weigert sms met fout 21606 | Het nummer kan geen sms versturen. Voeg bij **Twilio sms-telefoonnummers** een nummer toe dat het wel kan: zie [Aparte nummers voor oproepen en sms](#aparte-nummers-voor-oproepen-en-sms). |
 | Oproepen of sms gaan via een ander account dan dat van het project | Geen configuratie is de projectstandaard ervoor: de kolom **Projectstandaard** toont waarvoor elke configuratie de standaard is. Zie [Een account alleen voor sms, of alleen voor oproepen](#een-account-alleen-voor-sms-of-alleen-voor-oproepen). |
-| De sms of oproep komt aan, maar de status of de bevestiging wordt niet bijgewerkt | De callback-URL en de logs van de openbare ingress. De [uitleg van Twilio over HTTP-ophaalfouten](https://www.twilio.com/docs/api/errors/11200) helpt bij onbereikbare callbacks, TLS-problemen en HTTP-fouten. |
+| De sms of oproep komt aan, maar de status of de bevestiging wordt niet bijgewerkt | De callback-URL en de logs van de openbare ingress. De [uitleg van Twilio over HTTP-ophaalfouten](https://www.twilio.com/docs/api/errors/11200) helpt bij onbereikbare callbacks, TLS-problemen en HTTP-fouten. Een 403 betekent dat OneUptime de callback heeft geweigerd: het log van de server noemt de reden, in een regel die begint met `Twilio callback refused`. |
 
 Een geslaagde testoproep alleen bewijst niet dat callbacks bereikbaar zijn.
 

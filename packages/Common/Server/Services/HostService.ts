@@ -52,6 +52,7 @@ import Select from "../Types/Database/Select";
 import Sort from "../Types/Database/Sort";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { HostCollectorConfigStatus } from "../../Types/HostCollector/HostCollector";
+import HostOperatingSystem from "../../Utils/Host/HostOperatingSystem";
 import {
   HOST_DISK_NEAR_FULL_PERCENT,
   HOST_INODES_NEAR_FULL_PERCENT,
@@ -563,6 +564,8 @@ export class Service extends ProjectReferencesService<Model> {
     hostId: ObjectID,
     extra?: {
       osType?: string | undefined;
+      // os.name: "Android" makes the host's OS type android (HostOperatingSystem).
+      osName?: string | undefined;
       osVersion?: string | undefined;
       hostId?: string | undefined;
       hostArch?: string | undefined;
@@ -608,8 +611,16 @@ export class Service extends ProjectReferencesService<Model> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata: any = {};
 
-    if (extra?.osType) {
-      metadata.osType = extra.osType;
+    /*
+     * An Android device sends os.type=linux, the kernel's name, and
+     * os.name=Android: the host's OS is Android (#9804).
+     */
+    const osType: string | undefined = HostOperatingSystem.getOsType({
+      osType: extra?.osType,
+      osName: extra?.osName,
+    });
+    if (osType) {
+      metadata.osType = osType;
     }
     if (extra?.osVersion) {
       metadata.osVersion = extra.osVersion;
@@ -707,6 +718,7 @@ export class Service extends ProjectReferencesService<Model> {
 
   private fingerprintExtras(extra?: {
     osType?: string | undefined;
+    osName?: string | undefined;
     osVersion?: string | undefined;
     hostId?: string | undefined;
     hostArch?: string | undefined;
@@ -729,6 +741,7 @@ export class Service extends ProjectReferencesService<Model> {
   }): string {
     const normalized: Record<string, string | number | null> = {
       osType: extra?.osType ?? null,
+      osName: extra?.osName ?? null,
       osVersion: extra?.osVersion ?? null,
       hostId: extra?.hostId ?? null,
       hostArch: extra?.hostArch ?? null,

@@ -71,7 +71,7 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 
 ### Tillgångsdetaljer
 
-En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriver båda på samma sätt: värdnamn, IP-adress, MAC-adress, serienummer, tillverkare, modell, firmwareversion, operativsystem, OS-version, enhetstyp och plats. En uppgift som inget har rapporterat står som **Okänd**, och kortet förklarar varför det är så och hur de okända fylls i: en enhet som inte rapporterar dem över SNMP, en enhet som inte har lästs ännu, eller en Meraki-enhet vars dashboard har dem.
+En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriver båda på samma sätt: värdnamn, IP-adress, MAC-adress, serienummer, tillverkare, modell, firmwareversion, operativsystem, OS-version, enhetstyp och plats. Kortet för en Android-enhet har också dess säkerhetspatchnivå, från Android-agenten eller Esper. En uppgift som inget har rapporterat står som **Okänd**, och kortet förklarar varför det är så och hur de okända fylls i: en enhet som inte rapporterar dem över SNMP, en enhet som inte har lästs ännu, eller en Meraki-enhet vars dashboard har dem.
 
 - En värds uppgifter kommer från resursattributen i dess telemetri: dess IP- och MAC-adresser, arkitektur och operativsystem från början, och dess serienummer, märke, modell och firmware när du stämplar på dem.
 - En nätverksenhets uppgifter kommer från dess SNMP-pollning, dess roll och dess plats. Det som dess pollning inte har läst kommer från discovery: den senaste skanningen av dess adress, en routers ARP-tabell eller dess sonds DNS-uppslag. En enhet utan ENTITY-MIB, som en Meraki MX, får ändå sitt märke, sin modell och sitt operativsystem från sin systembeskrivning och sin MAC-adress från sina egna portar. Dess IP-adress visas aldrig som dess värdnamn.
@@ -127,6 +127,12 @@ OneUptime hittar en enhets objekt efter dess namn i Esper och sedan efter dess s
 En enhet som inte har checkat in på 30 minuter är **Offline** och visar hur länge sedan den senast gjorde det. Objektets **Status** följer enhetens senaste incheckning, eller dess telemetri när den är nyare, så en enhet som har varit tyst i ett dygn finns på sidan **Tystnat**.
 
 En enhet som tas bort från Esper markeras som **Borttagen**, och dess objekt arkiveras: det försvinner från listan och väntar under **Avancerad → Arkiverad**. En enhet som kommer tillbaka till Esper kommer tillbaka till listan. 30 dagar efter att den försvann raderas enheten, och dess objekt likaså, såvida inte telemetri eller du har lagt till något i det.
+
+### Få ett larm när en enhet slutar checka in
+
+Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Esper på mer än en timme, namngivet efter enheten, och löser det så snart enheten checkar in igen.
+
+Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting, så inget larm öppnas eller löses förrän vid nästa. Höj monitorns tröskel för en flotta som stängs av på natten.
 
 ## Lägg till något manuellt
 

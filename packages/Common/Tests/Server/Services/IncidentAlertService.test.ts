@@ -57,6 +57,10 @@ import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  OwnerAddOutcome,
+  OwnersAdded,
+} from "../../../Server/Utils/Rules/OwnerRuleAssignment";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import { idsNamedBy } from "../TestingUtils/QueryConditions";
 import {
@@ -2135,9 +2139,17 @@ describe("copyAlertOwnersToIncident", () => {
         ownerTeam(OTHER_TEAM_ID),
         ownerTeam(TEAM_ID),
       ] as never);
+    // Adds everyone it is asked to, as a project's members and teams are.
     addOwners = jest
       .spyOn(IncidentService, "addOwners")
-      .mockResolvedValue(undefined as never);
+      .mockImplementation((async (
+        _projectId: ObjectID,
+        _incidentId: ObjectID,
+        userIds: Array<ObjectID>,
+        teamIds: Array<ObjectID>,
+      ): Promise<OwnersAdded> => {
+        return { userIds: userIds, teamIds: teamIds, notAdded: [] };
+      }) as never);
     stubProjectDirectory({});
   });
 
@@ -2233,6 +2245,42 @@ describe("copyAlertOwnersToIncident", () => {
     expect(ownerUsers).not.toHaveBeenCalled();
     expect(ownerTeams).not.toHaveBeenCalled();
     expect(addOwners).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #9933: an alert's owner who has since left the project, or a team that
+   * is not one of its teams, is skipped by addOwners - and is not answered
+   * as an owner the incident got.
+   */
+  test("answers only the owners the incident got, not the ones skipped", async () => {
+    addOwners.mockResolvedValue({
+      userIds: [USER_ID],
+      teamIds: [TEAM_ID],
+      notAdded: [
+        {
+          ownerColumn: "userId",
+          id: OTHER_USER_ID,
+          reason: OwnerAddOutcome.NotProjectMember,
+        },
+        {
+          ownerColumn: "teamId",
+          id: OTHER_TEAM_ID,
+          reason: OwnerAddOutcome.NotProjectRecord,
+        },
+      ],
+    } as never);
+
+    const result: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> } =
+      await copy();
+
+    // Asked for all of them...
+    expect(addOwners.mock.calls[0]![2].map(String)).toEqual([
+      USER_ID.toString(),
+      OTHER_USER_ID.toString(),
+    ]);
+    // ...and answered with the ones added.
+    expect(result.userIds.map(String)).toEqual([USER_ID.toString()]);
+    expect(result.teamIds.map(String)).toEqual([TEAM_ID.toString()]);
   });
 });
 

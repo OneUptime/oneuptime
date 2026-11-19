@@ -23,6 +23,11 @@ import GcpMonitoring from "../../../../Server/Utils/CloudConnection/Gcp/GcpMonit
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import {
+  PUBSUB_PUBLISH_OPERATIONS_METRIC,
+  RetiredCloudMetric,
+} from "../../../../Utils/Metrics/RetiredCloudMetricMoves";
+import { getRetiredCloudMetricReads } from "../../../../Utils/Metrics/RetiredCloudMetricReads";
+import {
   GCP_KEY_METRICS,
   GCP_OPS_AGENT,
   GcpKeyMetric,
@@ -1255,7 +1260,12 @@ describe("a distribution's count", () => {
     ).toBe(false);
   });
 
-  test("the deprecated publish operations are still read where a project has topics, under their own name, for the monitors built on them", async () => {
+  /*
+   * The deprecated publish operations were read for the monitors built on
+   * them until those moved to the count of the message sizes (#9739): read
+   * no more, of a project with topics or without.
+   */
+  test("the deprecated publish operations are read no more, even where a project has topics", async () => {
     const fake: FakeGcp = createFakeGcp({
       series: {
         [OPERATIONS]: [topicSeries(OPERATIONS, { doubleValue: 3.5 })],
@@ -1272,16 +1282,12 @@ describe("a distribution's count", () => {
         },
       }),
     );
-    const call: URL | undefined = fake.seriesCalls.find((url: URL): boolean => {
-      return metricTypeOf(url.searchParams.get("filter") || "") === OPERATIONS;
-    });
 
-    expect(call?.searchParams.get("aggregation.perSeriesAligner")).toBe(
-      "ALIGN_RATE",
-    );
-    expect(result.pointsWritten).toBe(1);
+    expect(calledMetricTypes(fake)).not.toContain(OPERATIONS);
+    // A topic's messages are its message sizes' count.
+    expect(calledMetricTypes(fake)).toContain(SIZES);
+    expect(result.pointsWritten).toBe(0);
 
-    // Never asked of a project with no topic: it is no type's first metric.
     const empty: FakeGcp = createFakeGcp({});
 
     await connector.read(settings(), readOptions(empty));
@@ -1836,5 +1842,102 @@ describe("metrics a person added to the reads", () => {
     // Stored under its metric type, read with its aligner.
     expect(asks[0]!.metric.storedName).toBe(UPTIME);
     expect(asks[0]!.metric.aligner).toBe("ALIGN_RATE");
+  });
+});
+
+/*
+ * #9739's gap: a monitor the move left on a topic's publish operations -
+ * one of a response code, which what replaces them does not have - keeps
+ * them read until it is moved (RetiredCloudMetricReads): of its topic
+ * alone, a series per response code, where they used to cost a series per
+ * topic of every project that has topics.
+ */
+describe("a deprecated metric a monitor still reads", () => {
+  const TOPIC: Record<string, string> = {
+    "resource.gcp.resource_type": "pubsub_topic",
+    "resource.project_id": PROJECT_ID,
+    "resource.topic_id": "orders",
+  };
+
+  function asksFor(data: {
+    attributes: unknown;
+    projectId: string;
+    seen: Array<string>;
+  }): Array<{
+    metricType: string;
+    aligner: string;
+    storedName: string;
+    resourceType: string;
+    resourceLabels: Record<string, string> | undefined;
+  }> {
+    return getGcpAddedMetricsToAsk({
+      added: getRetiredCloudMetricReads([
+        {
+          metric: RetiredCloudMetric.PubSubPublishOperations,
+          metricVariable: "a",
+          metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+          attributes: data.attributes,
+        },
+        // Another cloud's read is never Google Cloud's to ask.
+        {
+          metric: RetiredCloudMetric.CosmosServerSideLatency,
+          metricVariable: "b",
+          metricName: "azure_serversidelatency_average",
+          attributes: {},
+        },
+      ]),
+      projectId: data.projectId,
+      seenResourceTypes: new Set<string>(data.seen),
+    }).map((ask: GcpAddedMetricAsk) => {
+      return {
+        metricType: ask.metric.metricType,
+        aligner: ask.metric.aligner,
+        storedName: ask.metric.storedName,
+        resourceType: ask.resourceType,
+        resourceLabels: ask.resourceLabels,
+      };
+    });
+  }
+
+  test("is asked of its topic's project, narrowed to the topic, as a rate a second under its own name", () => {
+    expect(
+      asksFor({ attributes: TOPIC, projectId: PROJECT_ID, seen: [] }),
+    ).toEqual([
+      {
+        metricType: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+        aligner: "ALIGN_RATE",
+        storedName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+        resourceType: "pubsub_topic",
+        resourceLabels: { project_id: PROJECT_ID, topic_id: "orders" },
+      },
+    ]);
+    expect(
+      asksFor({ attributes: TOPIC, projectId: OTHER_PROJECT, seen: [] }),
+    ).toEqual([]);
+  });
+
+  test("of every topic of a project that has topics, for a monitor of every topic", () => {
+    expect(
+      asksFor({
+        attributes: {},
+        projectId: PROJECT_ID,
+        seen: ["pubsub_topic"],
+      }),
+    ).toEqual([
+      {
+        metricType: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+        aligner: "ALIGN_RATE",
+        storedName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+        resourceType: "pubsub_topic",
+        resourceLabels: undefined,
+      },
+    ]);
+    expect(
+      asksFor({
+        attributes: {},
+        projectId: PROJECT_ID,
+        seen: ["gce_instance"],
+      }),
+    ).toEqual([]);
   });
 });

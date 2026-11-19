@@ -700,6 +700,35 @@ describe("a resource's health pill", () => {
 
     expect(screen.getByTestId("health").tagName).toBe("SPAN");
   });
+
+  /*
+   * A pill in a list of several - a cloud's regions (#9728) - says whose
+   * health its dialog is about: the name as written, the sentence in the
+   * reader's words.
+   */
+  test("a pill among several names whose health its dialog is about", () => {
+    render(
+      <ResourceHealthPill
+        health="Degraded"
+        isConnected={true}
+        items={[pendingPod()]}
+        testId="health"
+        words={{
+          degradedTitle: "Why region {{name}} is Degraded",
+          unhealthyTitle: "Why region {{name}} is Unhealthy",
+          titleValues: { name: "RegionTwo" },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("health"));
+
+    expect(
+      within(screen.getByRole("dialog")).getByText(
+        "Why region RegionTwo is Degraded",
+      ),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("the Needs attention card draws the same row", () => {

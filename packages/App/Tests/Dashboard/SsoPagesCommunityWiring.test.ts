@@ -102,24 +102,25 @@ const STATUS_PAGE_SIGN_IN_TEST: Array<string> = [
 ];
 
 /*
- * The project's sign-in link to test a provider with, printed by the card
- * Settings > SSO draws under its SAML and OIDC providers - once there is
- * one to test.
+ * The project's SSO sign-in link, to share and to test a provider with,
+ * printed by the card Settings > SSO draws under its SAML and OIDC
+ * providers - once there is one to sign in with (#9918). It was the Test
+ * Single Sign On (SSO) card, which linked to the Dashboard.
  */
-describe("Settings > SSO > Test Single Sign On (SSO)", () => {
+describe("Settings > SSO > SSO Sign-in Link", () => {
   const card: string = readCode(
     "Components",
     "Sso",
-    "ProjectSignInTestCard.tsx",
+    "ProjectSsoSignInLinkCard.tsx",
   );
   const page: string = readCode("Pages", "Settings", "SSO.tsx");
 
-  test("prints the project's sign-in link byte for byte", () => {
+  test("prints the project's SSO sign-in link byte for byte", () => {
     expect(card).toContain(
-      "`${DASHBOARD_URL.toString()}/${projectId.toString()}/sso`",
+      "return URL.fromString(ACCOUNTS_URL.toString()) .addRoute(getProjectSsoSignInRoute(projectId)) .toString();",
     );
     expect(page).toContain(
-      "<ProjectSignInTestCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+      "<ProjectSsoSignInLinkCard projectId={ProjectUtil.getCurrentProjectId()!} />",
     );
   });
 
@@ -128,7 +129,7 @@ describe("Settings > SSO > Test Single Sign On (SSO)", () => {
       "const hasProviderToTest: boolean = samlProviderCount + oidcProviderCount > 0;",
     );
     expect(page).toContain(
-      "{hasProviderToTest ? ( <ProjectSignInTestCard projectId={ProjectUtil.getCurrentProjectId()!} /> ) : ( <></> )}",
+      "{hasProviderToTest ? ( <ProjectSsoSignInLinkCard projectId={ProjectUtil.getCurrentProjectId()!} /> ) : ( <></> )}",
     );
     expect(page).toContain("setSamlProviderCount(totalCount);");
     expect(page).toContain("onProviderCountChange={setOidcProviderCount}");
@@ -316,7 +317,7 @@ describe("Settings > SSO's OpenID Connect providers", () => {
     );
     expect(countOf(page, "<ProjectOidcProviders ")).toBe(1);
     expect(page.indexOf("<ProjectOidcProviders ")).toBeLessThan(
-      page.indexOf("<ProjectSignInTestCard"),
+      page.indexOf("<ProjectSsoSignInLinkCard"),
     );
     expect(page.indexOf("<ProjectOidcProviders ")).toBeLessThan(
       page.indexOf("<RequireSsoForLoginCard"),

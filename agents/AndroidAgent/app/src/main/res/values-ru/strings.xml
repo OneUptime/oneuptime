@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Russian. Every string of values/strings.xml, in the same order; keys, permission names and adb commands stay as they are. -->
+<resources>
+
+    <string name="notification_channel_name">Состояние агента</string>
+    <string name="notification_channel_description">Показывает, отправляет ли это устройство отчёты в OneUptime.</string>
+
+    <string name="notification_requests_channel_name">Запросы от OneUptime</string>
+    <string name="notification_requests_channel_description">Запросы OneUptime на чтение журналов этого устройства для устранения неполадок.</string>
+    <string name="notification_request_title">OneUptime запрашивает журналы этого устройства</string>
+
+    <string name="status_not_set_up">Ещё не настроено</string>
+    <string name="status_not_set_up_detail">Введите ключ приёма или передайте его из службы управления устройствами в параметре oneuptime_token.</string>
+    <string name="status_unreachable">Нет связи с OneUptime</string>
+    <string name="status_unreachable_detail">Проверьте сеть устройства. Агент сам повторит попытку.</string>
+    <string name="status_key_refused">OneUptime отклонил ключ приёма</string>
+    <string name="status_key_refused_detail">Используйте включённый ключ приёма типа «Сервер», срок действия которого не истёк (HTTP %1$d).</string>
+    <string name="status_not_found">По этому адресу нет OneUptime</string>
+    <string name="status_not_found_detail">Проверьте URL OneUptime: %1$s.</string>
+    <string name="status_server_error">OneUptime сейчас не принимает телеметрию</string>
+    <string name="status_server_error_detail">OneUptime ответил кодом %1$d. Агент сам повторит попытку.</string>
+    <string name="status_server_error_unknown_detail">OneUptime ответил ошибкой. Агент сам повторит попытку.</string>
+    <string name="status_sending_failed">Не удалось отправить</string>
+    <string name="status_retrying">Агент сам повторит попытку.</string>
+    <string name="status_kept">Телеметрия хранится на устройстве, пока её не удастся отправить.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">Отправка отчётов в OneUptime</string>
+    <string name="status_as_device">Под именем %1$s</string>
+    <string name="status_starting">Запуск</string>
+    <string name="status_starting_detail">Под именем %1$s. Первый отчёт будет отправлен в течение минуты.</string>
+
+    <string name="address_empty">Введите URL OneUptime.</string>
+    <string name="address_not_a_url">URL OneUptime не является веб-адресом.</string>
+    <string name="address_not_https">URL OneUptime должен начинаться с https://, чтобы ключ приёма никогда не передавался в открытом виде.</string>
+    <string name="address_query_or_fragment">Удалите из URL OneUptime часть с ? или #.</string>
+    <string name="address_credentials">Удалите из URL OneUptime имя пользователя и пароль.</string>
+
+    <string name="setup_subtitle">Передаёт в OneUptime состояние этого устройства, перезагрузки, приложения и журналы.</string>
+    <string name="setup_last_report">Последний отчёт отправлен %1$s</string>
+    <string name="setup_no_report_yet">Пока ничего не отправлено</string>
+    <string name="setup_waiting">Ожидает отправки: %1$s</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: служба управления устройствами передала %2$s как есть, не подставив значение.</string>
+    <string name="setup_problem_invalid">%1$s: значение %2$s использовать нельзя, поэтому действует значение по умолчанию.</string>
+    <string name="setup_connection">Подключение</string>
+    <string name="setup_managed_notice">Заблокированные настройки задаёт служба управления устройствами вашей организации.</string>
+    <string name="setup_url_label">URL OneUptime</string>
+    <string name="setup_url_help">Меняйте его, только если размещаете OneUptime сами.</string>
+    <string name="setup_token_label">Ключ приёма</string>
+    <string name="setup_token_hint">Вставьте ключ приёма типа «Сервер»</string>
+    <string name="setup_token_stored_hint">Сохранён. Вставьте новый ключ, чтобы заменить его.</string>
+    <string name="setup_token_help">В OneUptime: Настройки проекта, Телеметрия и APM, Ключи приёма. Используйте ключ сервера.</string>
+    <string name="setup_token_unreadable">Сохранённый ключ больше не читается на этом устройстве. Вставьте его снова.</string>
+    <string name="setup_device_name_label">Имя устройства</string>
+    <string name="setup_device_name_help">Под этим именем устройство отображается в разделах «Хосты» и «Инвентарь».</string>
+    <string name="setup_set_by_organization">Задаётся вашей организацией</string>
+    <string name="setup_save">Сохранить и подключить</string>
+    <string name="setup_saved">Сохранено. Агент сейчас отправит отчёт.</string>
+    <string name="setup_token_required">Вставьте ключ приёма.</string>
+    <string name="setup_save_failed">Этому устройству не удалось надёжно сохранить ключ: %1$s</string>
+    <string name="setup_readings">Что это устройство разрешает агенту читать</string>
+    <string name="setup_reading_yes">Да</string>
+    <string name="setup_reading_cpu">Загрузка CPU</string>
+    <string name="setup_reading_cpu_device_owner">Да, как владелец устройства</string>
+    <string name="setup_reading_cpu_not_device_owner">Только если агент — владелец устройства</string>
+    <string name="setup_reading_cpu_not_supported">Не на этом устройстве: Android здесь не сообщает загрузку CPU</string>
+    <string name="setup_reading_memory">Память, хранилище и сеть</string>
+    <string name="setup_reading_battery">Батарея</string>
+    <string name="setup_reading_no_battery">Нет батареи</string>
+    <string name="setup_reading_thermal">Температура и троттлинг</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 и новее</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">Трассировки стека при сбоях и причины перезагрузок</string>
+    <string name="setup_reading_crash_details_yes">Да, для всех приложений</string>
+    <string name="setup_reading_crash_details_not_granted">Выкл.: разрешение READ_LOGS не предоставлено</string>
+    <string name="setup_reading_crash_details_no_usage_access">Выкл.: нет доступа к истории использования</string>
+    <string name="setup_reading_apps">Установленные приложения</string>
+    <string name="setup_reading_off_by_manager">Выкл.: отключено службой управления устройствами</string>
+    <string name="setup_reading_unknown">После первого отчёта</string>
+    <string name="setup_grants">Чтобы отправлять журналы и трассировки стека при сбоях других приложений, один раз выдайте эти разрешения через adb или удалённый ADB службы управления устройствами:</string>
+    <string name="setup_usage_access">Разрешить доступ к истории использования</string>
+
+    <string name="logcat_not_started">Не запущен</string>
+    <string name="logcat_not_granted">Выкл.: разрешение READ_LOGS не предоставлено</string>
+    <string name="logcat_crashes_and_anrs">Сбои и ANR всех приложений</string>
+    <string name="logcat_full">Журналы, сбои и ANR всех приложений</string>
+
+    <string name="log_session_title">Журналы для устранения неполадок</string>
+    <string name="log_session_request_by">%1$s запрашивает в OneUptime журналы всех приложений на этом устройстве (%2$s, уровень %3$s и выше).</string>
+    <string name="log_session_request">OneUptime запрашивает журналы всех приложений на этом устройстве (%1$s, уровень %2$s и выше).</string>
+    <string name="log_session_android_prompt">Затем Android попросит разрешить доступ ко всем журналам устройства. Там тоже выберите «Разрешить».</string>
+    <string name="log_session_allow">Разрешить</string>
+    <string name="log_session_decline">Отклонить</string>
+    <string name="log_session_stop">Остановить отправку</string>
+    <string name="log_session_starting">В окне Android разрешите доступ ко всем журналам устройства.</string>
+    <string name="log_session_collecting_until">Отправка журналов всех приложений до %1$s.</string>
+    <string name="log_session_collecting">Отправка журналов всех приложений.</string>
+    <string name="log_session_declined_here">Отклонено. Больше ничего не отправляется.</string>
+    <string name="log_session_declined_by_android">Доступ ко всем журналам устройства не разрешён, поэтому больше ничего не отправляется.</string>
+    <string name="log_session_no_answer">Никто не ответил в окне Android, поэтому больше ничего не отправляется.</string>
+    <string name="log_session_time_up">Готово: журналы всех приложений отправлялись всё запрошенное время.</string>
+    <string name="log_session_stopped">Остановлено. Больше ничего не отправляется.</string>
+    <string name="log_session_agent_restarted">Завершено при перезапуске агента.</string>
+    <string name="log_session_logcat_stopped">Завершено: Logcat прекратил чтение.</string>
+    <string name="log_session_logcat_disabled">Это устройство не может их отправить: служба управления устройствами отключила Logcat.</string>
+    <string name="log_session_not_granted">Это устройство не может их отправить: разрешение READ_LOGS не предоставлено.</string>
+    <string name="log_session_expired">Никто не разрешил вовремя.</string>
+    <string name="log_session_cancelled">Отменено в OneUptime.</string>
+    <string name="log_session_ended">Завершено.</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d минута</item>
+        <item quantity="few">%d минуты</item>
+        <item quantity="many">%d минут</item>
+        <item quantity="other">%d минуты</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d час</item>
+        <item quantity="few">%d часа</item>
+        <item quantity="many">%d часов</item>
+        <item quantity="other">%d часа</item>
+    </plurals>
+
+    <string name="device_admin_description">Позволяет агенту как владельцу устройства читать загрузку CPU. Агент никогда не блокирует, не стирает и не ограничивает устройство.</string>
+
+    <string name="restriction_url_title">URL OneUptime</string>
+    <string name="restriction_url_description">Куда отправлять телеметрию. Оставьте https://oneuptime.com, если вы не размещаете OneUptime сами.</string>
+    <string name="restriction_token_title">Ключ приёма</string>
+    <string name="restriction_token_description">Ключ приёма типа «Сервер» из раздела Настройки проекта, Телеметрия и APM, Ключи приёма.</string>
+    <string name="restriction_device_name_title">Имя устройства</string>
+    <string name="restriction_device_name_description">Имя устройства в OneUptime, например ${esper.deviceName}. Укажите то же имя в host.name вашего приложения, чтобы оба отображались как одно устройство.</string>
+    <string name="restriction_device_serial_title">Серийный номер</string>
+    <string name="restriction_device_serial_description">Серийный номер устройства, например ${esper.serialNumber}. Сам Android не сообщает его приложениям.</string>
+    <string name="restriction_device_type_title">Тип устройства</string>
+    <string name="restriction_device_type_description">Что это за устройство: киоск, POS-терминал, портативный терминал, цифровая вывеска.</string>
+    <string name="restriction_device_location_title">Расположение</string>
+    <string name="restriction_device_location_description">Где находится устройство, например номер магазина.</string>
+    <string name="restriction_labels_title">Метки</string>
+    <string name="restriction_labels_description">Метки устройства в OneUptime в виде пар имя=значение через запятую: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">Интервал сбора (секунды)</string>
+    <string name="restriction_interval_description">Как часто агент отправляет отчёты: от 30 до 600 секунд. По умолчанию 60.</string>
+    <string name="restriction_logcat_enabled_title">Отправлять Logcat</string>
+    <string name="restriction_logcat_enabled_description">Отправлять сбои, ANR и журналы других приложений и разрешать сеансы сбора журналов, которые запрашивает OneUptime. Нужно разрешение READ_LOGS, выданное через adb.</string>
+    <string name="restriction_logcat_level_title">Минимальный уровень Logcat</string>
+    <string name="restriction_logcat_level_description">Наименее серьёзные строки Logcat, которые отправляются, на Android 12 и более ранних версиях. По умолчанию — Предупреждение.</string>
+    <string name="restriction_apps_enabled_title">Отправлять список установленных приложений</string>
+    <string name="restriction_apps_enabled_description">Раз в день отправлять установленные приложения и их версии, а также каждую установку, обновление и удаление.</string>
+    <string name="logcat_level_verbose">Подробности</string>
+    <string name="logcat_level_debug">Отладка</string>
+    <string name="logcat_level_info">Информация</string>
+    <string name="logcat_level_warn">Предупреждение</string>
+    <string name="logcat_level_error">Ошибка</string>
+    <string name="logcat_level_fatal">Фатальная ошибка</string>
+</resources>

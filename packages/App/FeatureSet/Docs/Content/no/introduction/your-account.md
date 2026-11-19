@@ -137,14 +137,14 @@ Har du ingen reservekoder ennå, viser OneUptime dem deretter én gang, og du er
 
 ### Når organisasjonen din styrer påloggingen din
 
-På en server som krever enkel pålogging, logger du bare på gjennom organisasjonens identitetsleverandør, for eksempel Okta eller Microsoft Entra ID, og OneUptime setter ikke opp passord, passnøkkel eller tofaktorautentisering for deg. **Brukerprofil** har da ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandøren din under **Enkel pålogging**. Endre passordet og det andre trinnet hos identitetsleverandøren din. Det du har satt opp før, blir lagret: Det virker først igjen hvis serveren slutter å kreve enkel pålogging, med mindre en serveradministrator fjerner det. Hovedadministratorer beholder sine egne innstillinger under **Sikkerhet**.
+På en server som krever enkel pålogging, logger du bare på gjennom organisasjonens identitetsleverandør, for eksempel Okta eller Microsoft Entra ID, og OneUptime setter ikke opp passord, passnøkkel eller tofaktorautentisering for deg. **Brukerprofil** har da ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandøren din under **Enkel pålogging**. Endre passordet og det andre trinnet hos identitetsleverandøren din. Det du har satt opp før, blir lagret: Det virker først igjen hvis serveren slutter å kreve enkel pålogging, med mindre en serveradministrator fjerner det, og da får du en e-post. Hovedadministratorer beholder sine egne innstillinger under **Sikkerhet**.
 
 Det samme skjer når alle prosjektene du hører til, krever enkel pålogging og har **Styr pålogging med SSO** slått på. Passordet ditt logger deg fortsatt på OneUptime, men alle prosjektene ber om SSO, så OneUptime setter ikke opp nytt passord, ny passnøkkel eller nytt andre trinn for deg:
 
 - **Et prosjekt som ikke gjør det**: Så snart du er medlem av eller invitert til et prosjekt som ikke krever SSO eller ikke har **Styr pålogging med SSO** slått på, kommer delen **Sikkerhet** tilbake. **Oversikt** viser da disse prosjektene under **Enkel pålogging**, som grunnen til at innstillingene er dine. Forlater du det prosjektet, mister du dem igjen.
 - **Prosjekter med ulike leverandører**: Styrer alle prosjektene dine påloggingen, hvert med sin egen identitetsleverandør, viser **Oversikt** hver leverandør.
 - **Hovedadministratorer** beholder alltid sine egne innstillinger under **Sikkerhet**.
-- **Det du har satt opp før**, blir lagret, og en serveradministrator kan fjerne det.
+- **Det du har satt opp før**, blir lagret. En serveradministrator kan fjerne det, og det kan også en eier av alle prosjektene du hører til; du får en e-post når det skjer.
 
 ## Prosjektene dine
 

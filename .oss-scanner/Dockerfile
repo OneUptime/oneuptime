@@ -24,12 +24,12 @@
 # Pinned by digest, so the image is reproducible. The tags are the ones the
 # repository itself runs: node:26-bookworm-slim is the Probe image's base (the
 # one image that can run every part of OneUptime: the Probe's browsers need
-# glibc), ClickHouse 26.7 is docker-compose.base.yml's, and Go 1.25.0 is the
-# Infrastructure Agent's go.mod. The images built from those tags take each
+# glibc), ClickHouse 26.7.38.18 is docker-compose.base.yml's, and Go 1.25.0 is
+# the Infrastructure Agent's go.mod. The images built from those tags take each
 # Node.js security release when they are rebuilt; a digest does not, so this
 # one is moved by hand. It is Node.js 26.12.1, the October 2026 security
 # release (CVE-2026-111497, the Brotli decoder's out-of-bounds write).
-FROM clickhouse/clickhouse-server:26.7@sha256:8397e27eebf1adf972fcd3728b37682c66fbf969ba675782a1d0ab22119a6986 AS clickhouse
+FROM clickhouse/clickhouse-server:26.7.38.18@sha256:503d89887bcc767ad3f00864259f57a6ee842c3ebedc53a62889f5ed6cdc1360 AS clickhouse
 FROM public.ecr.aws/docker/library/golang:1.25.0-bookworm@sha256:81dc45d05a7444ead8c92a389621fafabc8e40f8fd1a19d7e5df14e61e98bc1a AS go
 FROM public.ecr.aws/docker/library/node:26-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe
 

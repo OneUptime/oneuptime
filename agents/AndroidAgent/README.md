@@ -9,9 +9,10 @@ device.
 
 In OneUptime each device is a **host**, beside your servers and your Windows
 machines: listed in **Hosts** with its CPU, memory and disk, alertable with the
-host alert templates (stopped reporting, high memory, low storage, restarted),
-and one item in **Inventory** with its make, model, serial number, OS and
-firmware. An app instrumented with OpenTelemetry Android that names the device
+Android host alert templates (unplugged, low battery, overheating, restart
+loop, storage nearly full, stopped reporting, restarted, high memory),
+and one item in **Inventory** with its make, model, serial number, OS, security
+patch level and firmware. An app instrumented with OpenTelemetry Android that names the device
 the same way (`host.name`) reports into the same Inventory item.
 
 The [Android Agent docs](https://oneuptime.com/docs/telemetry/android-agent)
@@ -26,13 +27,16 @@ Server ingestion key in `x-oneuptime-token`:
 | What | How | Notes |
 | --- | --- | --- |
 | Uptime, memory, storage, network | `system.uptime`, `system.memory.*`, `system.filesystem.*`, `system.network.*` | The OpenTelemetry hostmetrics receiver's names, so the Hosts product reads them as it reads a server's |
-| CPU | `system.cpu.utilization`, `system.cpu.load_average.*` | Only where Android lets an app read `/proc/stat`: Android 7, and builds that allow it. Android 8 and later keep it from apps |
+| CPU | `system.cpu.utilization`, `system.cpu.load_average.*` | From `/proc/stat` where Android lets an app read it: Android 7, and builds that allow it. On Android 8 and later, from `HardwarePropertiesManager.getCpuUsages()` when the agent is the device owner and the hardware reports it (`user` is busy, `idle` the rest); otherwise none, and an `oneuptime.agent.cpu` event and the setup screen say why |
 | Battery and temperature | `hw.battery.charge`, `hw.temperature`, `android.battery.plugged` | When the device has a battery |
 | Thermal state | `android.thermal.status`, `android.thermal.headroom` | Android 10 and 11 and later |
 | Restarts | `device.boot` and `device.shutdown` log events | How long the device was up, how it went down (cleanly or not), how long it was off, and restart loops |
 | Installed apps | `android.package.inventory`, `.installed`, `.updated`, `.removed` log events | Every app installed on the device and every updated system app, once a day and on each change |
 | Crashes and ANRs of every app | `app.crash` and `device.anr` log events, with `exception.*` | Unhandled exceptions in OneUptime. Needs READ_LOGS |
+| Crash stacks, native crashes, ANR traces, watchdogs, reboot reasons | The same events from DropBox (`android.dropbox.tag`), with the whole stack; `device.boot` with `android.boot.reason` | Every app's, read from DropBox (`dropbox/`). Needs READ_LOGS (READ_DROPBOX_DATA on Android 15 and later) and usage access. Redacted (`logs/Redactor.kt`) |
+| Restart loops | `android.boot.recent_count` | Boots in the last hour, for the Restart Loop template |
 | Logcat | Log records with `android.log.tag`, `android.package.name` | Android 12 and earlier, at Warning and above by default. Needs READ_LOGS |
+| Log sessions | Every app's lines, with `oneuptime.agent.log_session.id` | For the minutes OneUptime asks, once the person at the device allows it (`logsession/`) |
 
 The resource (`otlp/DeviceResource.kt`) names the device in `host.name`, sets
 `os.type=linux`, and never sets `device.id`, `device.model.identifier` or
@@ -51,17 +55,28 @@ ANRs, unattended; on Android 12 and earlier it also reads the main, system and
 crash buffers. Granting READ_LOGS restarts the agent's process (Android adds
 the `log` group to it), and the agent picks it up at once.
 
+Every app's log lines on Android 13 and later come from a log session: asked
+for in OneUptime (POST `/telemetry/android-agent/v1/log-sessions`, every
+cycle), allowed on the agent's screen, which starts a `logcat` of its own
+while it is in front so Android shows its prompt, and reported back as it goes
+(`logsession/LogSessionManager.kt`). Lines from other apps arriving are how
+the agent knows Android allowed it. Android's permission lasts as long as that
+`logcat` process, so a session ends when the agent or the device restarts.
+
 ## Layout
 
 ```
 app/src/main/java/com/oneuptime/androidagent/
+  admin/      the device admin receiver that lets the agent be a device owner (CPU use)
   agent/      the foreground service, the boot receiver, the watchdog, the cycle (AgentCore)
   apps/       installed apps and their changes
-  boot/       restarts: boot id, previous uptime, clean or not, restart loops
-  collect/    /proc parsers, the snapshot, and its hostmetrics mapping
+  boot/       restarts: boot id, previous uptime, clean or not, why, restart loops
+  collect/    /proc parsers, CPU from the hardware properties, the snapshot, its hostmetrics mapping
   config/     managed configuration, the setup screen's settings, the Keystore vault
   device/     what the device says about itself
-  logs/       Logcat: the line parser, the crash and ANR decoder, the sessions
+  dropbox/    DropBox: crash stacks, tombstones, ANR traces, reboot reasons
+  logs/       Logcat: the line parser, the crash and ANR decoder, the sessions, redaction
+  logsession/ log sessions OneUptime asks for, allowed at the device
   otlp/       OTLP/JSON: attributes, the resource, metrics and logs
   transport/  the disk outbox, backoff, the HTTP client, the uploader
   ui/         the setup screen
@@ -69,7 +84,10 @@ app/src/main/res/xml/app_restrictions.xml   the managed configuration schema
 app/src/test/                               JVM and Robolectric tests
 app/src/test/resources/otlp/                the golden OTLP requests OneUptime's ingest tests read too
 app/src/androidTest/                        tests that run on a device or an emulator
+app/src/main/play/                          the Google Play listing, release notes and graphics
 scripts/sign-release.sh                     signs a release APK (v1, v2 and v3)
+scripts/sign-bundle.sh                      signs a release bundle with the Google Play upload key
+scripts/PlayGraphics.java                   draws the Play icon and feature graphic from the launcher icon
 ```
 
 ## Building and testing
@@ -120,5 +138,7 @@ the agent reports as a restart without a shutdown.
 ## Releasing
 
 Every OneUptime release builds the agent with the release's version, signs it
-and attaches `oneuptime-android-agent.apk` to the GitHub release. See
-[RELEASING.md](RELEASING.md).
+and attaches `oneuptime-android-agent.apk` to the GitHub release. Once its
+repository secrets are set, the release also uploads a signed bundle to
+Google Play, as a draft on the internal track; until then that job is skipped
+with a notice. See [RELEASING.md](RELEASING.md).

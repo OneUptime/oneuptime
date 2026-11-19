@@ -12,6 +12,11 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ServiceMonitorDefaultMissing,
+  ServiceMonitorDefaults,
+  pickServiceMonitorDefaults,
+} from "Common/Utils/GuidedSetup/ServiceMonitorRecords";
 
 /*
  * Why a member whose role may not create monitors cannot add the
@@ -42,14 +47,26 @@ export const CREATE_MONITORS_LOCKED_SENTENCE: string = translationKey(
  * criteria name nothing.
  */
 
-// The ids every recommended monitor's step is built with.
-export interface MonitorRecommendationProjectDefaults {
-  onlineMonitorStatusId: ObjectID;
-  offlineMonitorStatusId: ObjectID;
-  defaultMonitorStatusId: ObjectID;
-  defaultIncidentSeverityId: ObjectID;
-  defaultAlertSeverityId: ObjectID;
-}
+// The ids every recommended monitor's step is built with (Common's ServiceMonitorDefaults).
+export type MonitorRecommendationProjectDefaults = ServiceMonitorDefaults;
+
+// What a project missing one of them is told: where to add it.
+const MISSING_DEFAULT_MESSAGES: Readonly<
+  Record<ServiceMonitorDefaultMissing, string>
+> = {
+  [ServiceMonitorDefaultMissing.OperationalStatus]: translationKey(
+    "This project has no operational monitor status. Add one under Monitors → Settings → Monitor Status.",
+  ),
+  [ServiceMonitorDefaultMissing.OfflineStatus]: translationKey(
+    "This project has no offline monitor status. Add one under Monitors → Settings → Monitor Status.",
+  ),
+  [ServiceMonitorDefaultMissing.IncidentSeverity]: translationKey(
+    "This project has no incident severity. Add one under Incidents → Settings → Incident Severity.",
+  ),
+  [ServiceMonitorDefaultMissing.AlertSeverity]: translationKey(
+    "This project has no alert severity. Add one under Alerts → Settings → Alert Severity.",
+  ),
+};
 
 export interface MonitorRecommendationProjectSetup {
   defaults: MonitorRecommendationProjectDefaults;
@@ -80,17 +97,6 @@ export async function loadMonitorRecommendationProjectSetup(
     },
   });
 
-  const onlineStatus: MonitorStatus | undefined = monitorStatusList.data.find(
-    (item: MonitorStatus) => {
-      return item.isOperationalState;
-    },
-  );
-  const offlineStatus: MonitorStatus | undefined = monitorStatusList.data.find(
-    (item: MonitorStatus) => {
-      return item.isOfflineState;
-    },
-  );
-
   const incidentSeverityList: ListResult<IncidentSeverity> =
     await ModelAPI.getList({
       modelType: IncidentSeverity,
@@ -116,34 +122,33 @@ export async function loadMonitorRecommendationProjectSetup(
    * Every one of these is required to build a valid monitor step. A project
    * missing any of them cannot create monitors at all, so fail with a
    * specific message rather than letting a non-null assertion throw an
-   * opaque one (which is what the monitor create form does today).
+   * opaque one (which is what the monitor create form does today). Picked
+   * by Common's rule (pickServiceMonitorDefaults), which Ask AI's
+   * set_up_service_monitor picks them by too (#7243).
    */
-  if (!onlineStatus?._id) {
+  const picked:
+    | { defaults: MonitorRecommendationProjectDefaults }
+    | { missing: ServiceMonitorDefaultMissing } = pickServiceMonitorDefaults({
+    statuses: monitorStatusList.data.map((item: MonitorStatus) => {
+      return {
+        id: item._id ? new ObjectID(item._id.toString()) : null,
+        isOperationalState: item.isOperationalState,
+        isOfflineState: item.isOfflineState,
+      };
+    }),
+    incidentSeverities: incidentSeverityList.data.map(
+      (item: IncidentSeverity) => {
+        return { id: item._id ? new ObjectID(item._id.toString()) : null };
+      },
+    ),
+    alertSeverities: alertSeverityList.data.map((item: AlertSeverity) => {
+      return { id: item._id ? new ObjectID(item._id.toString()) : null };
+    }),
+  });
+
+  if ("missing" in picked) {
     throw new Error(
-      translator.translateTemplate(
-        "This project has no operational monitor status. Add one under Monitors → Settings → Monitor Status.",
-      ),
-    );
-  }
-  if (!offlineStatus?._id) {
-    throw new Error(
-      translator.translateTemplate(
-        "This project has no offline monitor status. Add one under Monitors → Settings → Monitor Status.",
-      ),
-    );
-  }
-  if (!incidentSeverityList.data[0]?._id) {
-    throw new Error(
-      translator.translateTemplate(
-        "This project has no incident severity. Add one under Incidents → Settings → Incident Severity.",
-      ),
-    );
-  }
-  if (!alertSeverityList.data[0]?._id) {
-    throw new Error(
-      translator.translateTemplate(
-        "This project has no alert severity. Add one under Alerts → Settings → Alert Severity.",
-      ),
+      translator.translateTemplate(MISSING_DEFAULT_MESSAGES[picked.missing]),
     );
   }
 
@@ -169,13 +174,7 @@ export async function loadMonitorRecommendationProjectSetup(
   });
 
   return {
-    defaults: {
-      onlineMonitorStatusId: new ObjectID(onlineStatus._id),
-      offlineMonitorStatusId: new ObjectID(offlineStatus._id),
-      defaultMonitorStatusId: new ObjectID(onlineStatus._id),
-      defaultIncidentSeverityId: new ObjectID(incidentSeverityList.data[0]._id),
-      defaultAlertSeverityId: new ObjectID(alertSeverityList.data[0]._id),
-    },
+    defaults: picked.defaults,
     incidentSeverityOptions: incidentSeverityList.data.map(
       (item: IncidentSeverity): MonitorRecommendationSeverityOption => {
         return {

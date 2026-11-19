@@ -38,6 +38,7 @@ import WorkflowStatus, {
   getWorkflowStatusLabel,
 } from "../Workflow/WorkflowStatus";
 import { PROBE_AGREEMENT_SENTENCES } from "../../Utils/Monitor/ProbeAgreementRule";
+import { OnCallPageChannel } from "../OnCallDutyPolicy/OnCallPageChannel";
 
 /*
  * WHAT AN AI ACTION'S CARD SAYS, IN EVERY READER'S LANGUAGE.
@@ -221,6 +222,13 @@ export const AI_ACTION_TITLES: {
   publishStatusPage: string;
   addMonitorsToStatusPage: string;
   addMonitorsToStatusPageUnnamed: string;
+  addToOnCallPolicy: string;
+  addToOnCallPolicyUnnamed: string;
+  setHowToReachMe: string;
+  invitePeople: string;
+  invitePeopleUnnamed: string;
+  setUpServiceMonitor: string;
+  setUpServiceMonitorUnnamed: string;
 } = {
   createIncident: translationKey("Create incident: {{title}}"),
   acknowledgeIncident: translationKey("Acknowledge incident {{incident}}"),
@@ -307,6 +315,22 @@ export const AI_ACTION_TITLES: {
   addMonitorsToStatusPageUnnamed: translationKey(
     "Add monitors to a status page",
   ),
+  /*
+   * People added to an on-call policy the project has (#7244), by the
+   * policy's name; how pages reach the person asking (#7454); people
+   * invited to the project, by address ({{people}}: a list of
+   * AI_ACTION_NAME) (#7242); one of a service's recommended monitors, by
+   * the name it will have (#7243).
+   */
+  addToOnCallPolicy: translationKey("Add to on-call policy {{policy}}"),
+  addToOnCallPolicyUnnamed: translationKey("Add to an on-call policy"),
+  setHowToReachMe: translationKey("Set how pages reach you"),
+  invitePeople: translationKey("Invite {{people}} to this project"),
+  invitePeopleUnnamed: translationKey("Invite people to this project"),
+  setUpServiceMonitor: translationKey("Create monitor {{monitor}}"),
+  setUpServiceMonitorUnnamed: translationKey(
+    "Create a recommended monitor for a service",
+  ),
 };
 
 export const AI_ACTION_PLURAL_TITLES: {
@@ -361,6 +385,17 @@ export const AI_ACTION_LINES: {
   statusPageShows: string;
   monitorsNotFound: string;
   alreadyOnStatusPage: string;
+  addsToEscalationRule: string;
+  alreadyPagedThere: string;
+  reachAtOnce: string;
+  reachLeftOut: string;
+  reachReplaces: string;
+  invitationsToTeam: string;
+  invitationsJoinTeam: string;
+  invitationsWithoutEmail: string;
+  alreadyInProject: string;
+  invitedPagedOnceTheyJoin: string;
+  serviceMonitorOpensAlerts: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
   linkedTo: translationKey("Linked to {{resources}}."),
@@ -479,6 +514,55 @@ export const AI_ACTION_LINES: {
     "Not in this project, so not shown: {{names}}.",
   ),
   alreadyOnStatusPage: translationKey("Already on it: {{monitors}}."),
+  /*
+   * add_to_on_call_policy (#7244): who is added to a level of a policy the
+   * project has, by the escalation rule's name ({{rule}}, in quotes), and
+   * who it pages there already.
+   */
+  addsToEscalationRule: translationKey(
+    "Adds {{responders}} to escalation rule {{rule}}.",
+  ),
+  alreadyPagedThere: translationKey("Already paged there: {{names}}."),
+  /*
+   * set_how_to_reach_me (#7454): the person's ladder, a step a line - the
+   * ways a page reaches them at once ({{methods}}: a list of the
+   * channels' names), then after a wait (AI_ACTION_PLURAL_LINES.reachAfter)
+   * - the ways they asked for and have not verified, and what it replaces.
+   */
+  reachAtOnce: translationKey("At once: {{methods}}."),
+  reachLeftOut: translationKey(
+    "Left out until you verify one in Notification Methods: {{methods}}.",
+  ),
+  reachReplaces: translationKey(
+    "This replaces how pages reach you now, for every incident and alert at every severity.",
+  ),
+  /*
+   * invite_people (#7242): the team the invited join, as Users invites
+   * them, and the email that invites them - or, on a server that sends
+   * no email, who hands them the link. A person invited in the same plan
+   * is paged once they join (set_up_paging, add_to_on_call_policy).
+   */
+  invitationsToTeam: translationKey(
+    "They join the {{team}} team, and each gets an email to accept the invitation.",
+  ),
+  invitationsJoinTeam: translationKey("They join the {{team}} team."),
+  // The invite dialogs' own sentence (Dashboard Utils/ServerEmail), said as they say it.
+  invitationsWithoutEmail: translationKey(
+    "This server cannot send email yet, so they get no invitation email. The invitation is still created: ask your server's admin to set up email.",
+  ),
+  alreadyInProject: translationKey(
+    "Already in this project, so not invited: {{names}}.",
+  ),
+  invitedPagedOnceTheyJoin: translationKey(
+    "Invited in this plan, and paged once they join: {{names}}.",
+  ),
+  /*
+   * set_up_service_monitor (#7243): what a service's recommended monitor
+   * opens - an alert, for the team, as the telemetry guided setup's do.
+   */
+  serviceMonitorOpensAlerts: translationKey(
+    "It reads the data {{service}} sends and opens an alert for your team: alerts never appear on a status page.",
+  ),
 };
 
 /*
@@ -510,6 +594,13 @@ export const AI_ACTION_PLURAL_LINES: {
   apiMonitorChecks: PluralTemplate;
   checkedFromLocations: PluralTemplate;
   checkedEveryMinutes: PluralTemplate;
+  escalatesAfter: PluralTemplate;
+  eachRoundWaits: PluralTemplate;
+  policyStartsOver: PluralTemplate;
+  reachAfter: PluralTemplate;
+  pagesNextAfter: PluralTemplate;
+  startsOverUpTo: PluralTemplate;
+  reachAfterOnCard: PluralTemplate;
 } = {
   // Pushed to, deleted or renamed away on the branch after Ask AI read it there.
   codeFilesChangedSinceRead: {
@@ -650,6 +741,62 @@ export const AI_ACTION_PLURAL_LINES: {
     one: translationKey("Checked every minute"),
     other: translationKey("Checked every {{count}} minutes"),
   },
+  /*
+   * set_up_paging and add_to_on_call_policy (#7244): what a policy does
+   * when nobody acknowledges - who it pages next after the first level's
+   * wait ({{count}}: minutes; {{responders}}: a list of AI_ACTION_NAME and
+   * AI_ACTION_TEAM), how long that level waits when it pages the same
+   * people again, and how many more times the policy starts over - as
+   * the guided on-call setup's "What if nobody answers?" sets them.
+   */
+  escalatesAfter: {
+    one: translationKey(
+      "If no one acknowledges within {{count}} minute, it pages {{responders}}.",
+    ),
+    other: translationKey(
+      "If no one acknowledges within {{count}} minutes, it pages {{responders}}.",
+    ),
+  },
+  eachRoundWaits: {
+    one: translationKey(
+      "Each round waits {{count}} minute for someone to acknowledge.",
+    ),
+    other: translationKey(
+      "Each round waits {{count}} minutes for someone to acknowledge.",
+    ),
+  },
+  policyStartsOver: {
+    one: translationKey(
+      "If no one acknowledges, the policy starts over, up to {{count}} more time.",
+    ),
+    other: translationKey(
+      "If no one acknowledges, the policy starts over, up to {{count}} more times.",
+    ),
+  },
+  /*
+   * set_how_to_reach_me (#7454): a step of the person's ladder after a
+   * wait ({{count}}: minutes; {{methods}}: the channels' names).
+   */
+  reachAfter: {
+    one: translationKey("After {{count}} minute: {{methods}}."),
+    other: translationKey("After {{count}} minutes: {{methods}}."),
+  },
+  /*
+   * The lines of the cards they leave, with no full stop: the level a new
+   * policy pages next, its repeats, and a ladder's step after a wait.
+   */
+  pagesNextAfter: {
+    one: translationKey("Then pages {{responders}} after {{count}} minute"),
+    other: translationKey("Then pages {{responders}} after {{count}} minutes"),
+  },
+  startsOverUpTo: {
+    one: translationKey("Starts over up to {{count}} more time"),
+    other: translationKey("Starts over up to {{count}} more times"),
+  },
+  reachAfterOnCard: {
+    one: translationKey("After {{count}} minute: {{methods}}"),
+    other: translationKey("After {{count}} minutes: {{methods}}"),
+  },
 };
 
 /*
@@ -721,6 +868,35 @@ export const AI_ACTION_TERMS: {
 };
 
 /*
+ * The ways a page reaches a person, by channel (#7454): the names
+ * Notification Methods draws them by (Common/UI/Utils/NotificationMethodUtil's
+ * NOTIFICATION_METHOD_NAMES - a test holds the two equal), so a ladder's
+ * card says them as that page does, cased for the middle of a sentence.
+ */
+export const AI_ACTION_CHANNEL_TERMS: Readonly<
+  Record<OnCallPageChannel, string>
+> = {
+  [OnCallPageChannel.Call]: translationKey("Phone call"),
+  [OnCallPageChannel.SMS]: translationKey("SMS"),
+  [OnCallPageChannel.WhatsApp]: translationKey("WhatsApp"),
+  [OnCallPageChannel.Telegram]: translationKey("Telegram"),
+  [OnCallPageChannel.Push]: translationKey("Push notification"),
+  [OnCallPageChannel.Email]: translationKey("Email"),
+  [OnCallPageChannel.Slack]: translationKey("Slack"),
+  [OnCallPageChannel.MicrosoftTeams]: translationKey("Microsoft Teams"),
+  [OnCallPageChannel.Mattermost]: translationKey("Mattermost"),
+  [OnCallPageChannel.Webhook]: translationKey("Webhook"),
+  [OnCallPageChannel.CustomChannel]: translationKey("Custom channel"),
+};
+
+// A channel's name as a sentence of a list: "SMS and phone call".
+export function aiActionChannel(channel: OnCallPageChannel): AIActionSentence {
+  return aiActionSentence(AI_ACTION_NAME, {
+    name: aiActionTerm(AI_ACTION_CHANNEL_TERMS[channel], { inSentence: true }),
+  });
+}
+
+/*
  * ---------------------------------------------------------------------------
  * The card an action leaves under the answer once it ran.
  *
@@ -748,6 +924,8 @@ export const AI_ACTION_CARD_KINDS: {
   workflow: string;
   monitor: string;
   statusPage: string;
+  howToReachMe: string;
+  invitation: string;
 } = {
   incident: translationKey("Incident"),
   alert: translationKey("Alert"),
@@ -757,6 +935,10 @@ export const AI_ACTION_CARD_KINDS: {
   workflow: translationKey("Workflow"),
   monitor: translationKey("Monitor"),
   statusPage: translationKey("Status page"),
+  // The person's ladder (#7454), by the page's own name.
+  howToReachMe: translationKey("How to Reach Me"),
+  // People invited to the project (#7242).
+  invitation: translationKey("Invitation"),
 };
 
 // The line under a card's heading: what happened to the record.
@@ -788,6 +970,11 @@ export const AI_ACTION_CARD_LINES: {
   pagesOthersForEveryNewEvent: string;
   statusPagePublished: string;
   monitorsAdded: string;
+  addedToEscalationRule: string;
+  reachAtOnce: string;
+  invitedToTeam: string;
+  invitedToTeamWithoutEmail: string;
+  opensAlertsForTeam: string;
 } = {
   // The severity a new record took, or the one it was changed to.
   severity: translationKey("Severity: {{severity}}"),
@@ -860,6 +1047,19 @@ export const AI_ACTION_CARD_LINES: {
   ),
   statusPagePublished: translationKey("Published, public at its link"),
   monitorsAdded: translationKey("Added {{monitors}}"),
+  /*
+   * People added to a level of a policy (#7244), a ladder's first step
+   * (#7454), an invitation (#7242) and a service's monitor (#7243).
+   */
+  addedToEscalationRule: translationKey(
+    "Added {{responders}} to escalation rule {{rule}}",
+  ),
+  reachAtOnce: translationKey("At once: {{methods}}"),
+  invitedToTeam: translationKey("Invited to the {{team}} team, email sent"),
+  invitedToTeamWithoutEmail: translationKey(
+    "Invited to the {{team}} team, no email sent",
+  ),
+  opensAlertsForTeam: translationKey("Opens alerts for your team"),
 };
 
 // The names of a card's facts.
@@ -1388,6 +1588,7 @@ export const AI_ACTION_RESOURCE_NOUNS: ReadonlyArray<string> =
 
 export const AI_ACTION_TERM_WORDS: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_TERMS),
+  ...Object.values(AI_ACTION_CHANNEL_TERMS),
   ...AI_ACTION_RESOURCE_NOUNS,
   ...Object.values(AI_ACTION_CARD_KINDS),
   ...Object.values(AI_ACTION_CARD_FACTS),

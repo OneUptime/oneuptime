@@ -281,7 +281,9 @@ describe("the owners picked when a status page is created", () => {
     const events: Array<string> = [];
     stubTheCreate(events);
 
-    getJestSpyOn(StatusPageService, "addOwners").mockResolvedValue(undefined);
+    getJestSpyOn(StatusPageService, "addOwners").mockResolvedValue(
+      OwnerRuleAssignment.noOwnersAdded(),
+    );
 
     await StatusPageService.create({
       data: new StatusPage(),

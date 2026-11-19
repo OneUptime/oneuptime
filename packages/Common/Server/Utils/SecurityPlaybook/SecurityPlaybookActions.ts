@@ -118,6 +118,7 @@ import SecurityPlaybookDataStoreOwners from "./SecurityPlaybookDataStoreOwners";
 import SecurityPlaybookDataStoreResponse from "./SecurityPlaybookDataStoreResponse";
 import SecurityPlaybookResponseSteps from "./SecurityPlaybookResponseSteps";
 import logger from "../Logger";
+import PendingInviteeProfiles from "../TeamMember/PendingInviteeProfiles";
 import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
 import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
 import { AiAffectedResourceRef } from "../../../Types/AI/AiAffectedResources";
@@ -553,6 +554,18 @@ export default class SecurityPlaybookActions {
           ])
         )[0]
       : undefined;
+
+    /*
+     * The case's timeline names them as the project knows them: someone
+     * only invited by the name typed for them, else their address - never
+     * their account's own name, which it does not see until they join
+     * (#9823, #9934). A step can hand tasks to someone only invited: the
+     * people pickers offer them.
+     */
+    await PendingInviteeProfiles.nameInProject({
+      users: [assignee],
+      projectId: context.projectId,
+    });
 
     for (const title of toAdd) {
       const task: SecurityCaseTask = new SecurityCaseTask();
@@ -1431,6 +1444,17 @@ export default class SecurityPlaybookActions {
         id: securityCase.assignedToUserId,
         select: { name: true, email: true },
         props: ROOT,
+      });
+
+      /*
+       * {{assignee}} goes into notes, emails, channel posts, incidents and
+       * pages the project's people read: someone the case is assigned to
+       * but who has only been invited is named as the project knows them,
+       * by the name typed for them, else their address (#9934).
+       */
+      await PendingInviteeProfiles.nameInProject({
+        users: [user],
+        projectId: context.projectId,
       });
 
       assignee = user?.name?.toString() || user?.email?.toString() || assignee;

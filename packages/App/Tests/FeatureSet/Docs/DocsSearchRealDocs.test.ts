@@ -595,6 +595,25 @@ describe("docs search, on the real docs", () => {
   );
 
   /*
+   * A Russian question meets the page named for it in another case:
+   * "Как настроить уведомления?" (how do I set up notifications?) is
+   * Notification Settings, "Настройки уведомлений", named in the genitive
+   * plural. The plural cases of a noun in "-ние" were read as a word of
+   * their own, so the page counted as named for half the question, and
+   * came 9th to 11th as other Russian pages came and went: the Android
+   * device agent's page (#9785) pushed it out of the first ten.
+   */
+  test(
+    'ru: "Как настроить уведомления?" opens Notification Settings first, the page named for it',
+    async () => {
+      expect(urls(await search("ru", "Как настроить уведомления?"))[0]).toBe(
+        "/docs/ru/notifications/notification-settings",
+      );
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
    * Every question asked in another language than English, in the
    * search box as in Ask AI (AskAiHowDoIQuestions): its page is in the
    * first ten, but for the ones in NOT_IN_THE_BOX_FIRST_TEN.

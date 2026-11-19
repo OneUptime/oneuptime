@@ -2,7 +2,7 @@
   "expo": {
     "name": "OneUptime On-Call",
     "slug": "oneuptime-on-call",
-    "version": "1.7.0",
+    "version": "1.7.1",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "oneuptime",
@@ -24,7 +24,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.oneuptime.oncall",
-      "versionCode": 9,
+      "versionCode": 10,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.USE_BIOMETRIC",
@@ -74,10 +74,14 @@
         {
           "ios": {
             "enableSceneSupport": true
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
-      "./plugins/withFoldableContinuity"
+      "./plugins/withFoldableContinuity",
+      "./plugins/withOptionalHardwareFeatures"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

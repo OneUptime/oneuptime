@@ -50,6 +50,11 @@ import {
   OWNER_USERS_ON_CREATE_KEY,
   takesOwnersOnCreate,
 } from "Common/Types/Database/OwnersOnCreate";
+import {
+  DeleteChoice,
+  DeleteChoicesOfTable,
+  getDeleteChoices,
+} from "Common/Utils/DeveloperDocs/DeleteChoices";
 
 /*
  * tools/list is one answer that many clients load whole, before anything is
@@ -710,7 +715,66 @@ function createUpdateTool(
   };
 }
 
-function createDeleteTool(
+/*
+ * WHAT A DELETE SAYS BESIDES THE RECORD (#9949). A few deletes also say what
+ * becomes of something that depends on the record, in the DELETE's
+ * miscDataProps (Common/Utils/DeveloperDocs/DeleteChoices.ts): OneUptime
+ * deletes a custom role that workflows run as only when the delete says
+ * what they run as instead. A table's delete tool takes an input for each
+ * of its choices, named by its key as the API takes it (workflowsRunAs),
+ * its values as an enum, described with the other choices named by their
+ * inputs; OneUptimeApiService sends them, checked the way the CLI checks its
+ * flags. None for most tables, and none for any MCP tool today: custom
+ * roles have no MCP tools. The day a table with choices gets them, its
+ * delete tool takes its choices from that one copy, as the API reference,
+ * the Terraform provider and the CLI do.
+ */
+export function buildDeleteChoiceProperties(
+  tableName: string,
+): Record<string, JSONSchemaProperty> {
+  const choices: DeleteChoicesOfTable | null = getDeleteChoices(tableName);
+  const properties: Record<string, JSONSchemaProperty> = {};
+
+  for (const choice of choices?.choices || []) {
+    properties[choice.key] = {
+      type: "string",
+      ...(choice.values ? { enum: [...choice.values] } : {}),
+      description: choice.describe((key: string): string => {
+        return key;
+      }),
+    };
+  }
+
+  return properties;
+}
+
+/*
+ * A delete tool's description: the record, by ID, and for a table whose
+ * delete takes choices, when it needs them and that the user chooses: a
+ * choice changes what depends on the record, so an agent asks rather than
+ * picks.
+ */
+export function describeDeleteTool(
+  singularName: string,
+  tableName: string,
+): string {
+  const choices: DeleteChoicesOfTable | null = getDeleteChoices(tableName);
+  const description: string = `Permanently delete one ${singularName} by ID.`;
+
+  if (!choices) {
+    return description;
+  }
+
+  const inputs: string = choices.choices
+    .map((choice: DeleteChoice): string => {
+      return choice.key;
+    })
+    .join(" and ");
+
+  return `${description} ${choices.whenNeeded} Leave ${inputs} out unless the user chose them: a delete that needs them is refused, saying why.`;
+}
+
+export function createDeleteTool(
   modelName: string,
   singularName: string,
   pluralName: string,
@@ -719,7 +783,7 @@ function createDeleteTool(
   return {
     name: `delete_${sanitizeToolName(singularName)}`,
     title: `Delete ${singularName}`,
-    description: `Permanently delete one ${singularName} by ID.`,
+    description: describeDeleteTool(singularName, modelName),
     inputSchema: {
       type: "object",
       properties: {
@@ -727,6 +791,7 @@ function createDeleteTool(
           type: "string",
           description: "ID.",
         },
+        ...buildDeleteChoiceProperties(modelName),
       },
       required: ["id"],
       additionalProperties: false,

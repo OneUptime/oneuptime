@@ -1002,9 +1002,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         /*
          * #9764: a security key set up at sign-in - its options, and the
          * key's answer. #9822: a security key's sign-in options, asked for
-         * with the password again rather than by an address alone.
+         * with the password again rather than by an address alone. #9817:
+         * the phone's browser reads a mobile app's passkey options once,
+         * by the one-time hand-off the app was given at sign-in.
          */
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 21,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 22,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
@@ -1049,7 +1051,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       "The project, its people and its settings - Users, Teams and Project Settings, which are always on.",
       {
         "packages/Common/Server/API/ApiKeyAPI.ts": 1,
-        "packages/Common/Server/API/ProjectAPI.ts": 8,
+        /*
+         * #9820: a project's owners counting and clearing the sign-in
+         * settings its people saved before it managed sign-in with SSO.
+         */
+        "packages/Common/Server/API/ProjectAPI.ts": 9,
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
@@ -1111,7 +1117,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "How OneUptime sends a message - a call, a text, an email, a push, a chat - for every product, and what the provider says of how it went.",
       {
-        "packages/App/FeatureSet/Notification/API/Call.ts": 3,
+        /*
+         * #6594: Twilio's answering machine callback - who answered an
+         * on-call call, a person or voicemail - beside its status callback.
+         * Twilio calls it for a call already placed, as it calls an incoming
+         * call policy's routes: what already runs keeps running while On-Call
+         * is switched off.
+         */
+        "packages/App/FeatureSet/Notification/API/Call.ts": 4,
         "packages/App/FeatureSet/Notification/API/SMS.ts": 3,
         "packages/App/FeatureSet/Notification/API/Mail.ts": 1,
         "packages/App/FeatureSet/Notification/API/Webhook.ts": 1,
@@ -1186,6 +1199,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Telemetry arriving, by its ingestion key: it keeps arriving while its product is switched off, unless the server stops ingestion (DISABLE_TELEMETRY_INGESTION), as switching a product off promises.",
       {
+        "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
@@ -1225,9 +1239,9 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement on the status pages picked shows and notifies anyone.",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone.",
       {
-        "packages/Common/Server/API/AnnouncementReachRoute.ts": 1,
+        "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,

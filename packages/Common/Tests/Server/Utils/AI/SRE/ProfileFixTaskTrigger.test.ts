@@ -19,7 +19,6 @@ import SourceLocator, {
 } from "../../../../../Server/Utils/CodeRepository/SourceLocator";
 import { ProfileFunctionEvidence } from "../../../../../Server/Utils/Profile/ProfileEvidence";
 import AIInsightService from "../../../../../Server/Services/AIInsightService";
-import AIRunService from "../../../../../Server/Services/AIRunService";
 import AIService, {
   AI_DISABLED_MESSAGE,
 } from "../../../../../Server/Services/AIService";
@@ -36,8 +35,14 @@ import {
   CodeTaskContextType,
 } from "../../../../../Types/AI/CodeTask";
 import CodeFixTaskContext from "../../../../../Types/AI/CodeFixTaskContext";
+import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
+import AIRunType from "../../../../../Types/AI/AIRunType";
+import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../../Types/JSON";
+import FixTurnsTable, { FixTurnRow } from "../CodeFix/FixTurnsTable";
+import CodeFixOnItsWay from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import ObjectID from "../../../../../Types/ObjectID";
 import { ProfileFrameOrigin } from "../../../../../Utils/Profiles/ProfileFrames";
 import {
@@ -172,7 +177,8 @@ function aiSwitch(isOn: boolean): void {
 
 interface World {
   readEvidence: jest.SpiedFunction<typeof ProfileFixTaskTrigger.readEvidence>;
-  findActive: jest.SpiedFunction<typeof AIRunService.findBy>;
+  // The project's runs the fix on its way is read from (CodeFixOnItsWay).
+  runs: FixTurnsTable;
   locatable: jest.SpiedFunction<typeof SourceLocator.getLocatableRepositories>;
   matchFrames: jest.SpiedFunction<typeof SourceLocator.matchFrames>;
   canAsk: jest.SpiedFunction<typeof CodeTaskAccess.canAskInRepository>;
@@ -205,9 +211,7 @@ function world(change?: {
     readEvidence: jest
       .spyOn(ProfileFixTaskTrigger, "readEvidence")
       .mockResolvedValue(change && "read" in change ? change.read! : read()),
-    findActive: jest
-      .spyOn(AIRunService, "findBy")
-      .mockResolvedValue(change?.activeRuns || []),
+    runs: runsWorking(change?.activeRuns || []),
     locatable: jest
       .spyOn(SourceLocator, "getLocatableRepositories")
       .mockResolvedValue(
@@ -265,6 +269,39 @@ function world(change?: {
     );
 
   return world;
+}
+
+/*
+ * The project's runs: each a Code request still working, as it was asked -
+ * its own context, and the task it is a turn of.
+ */
+function runsWorking(activeRuns: Array<AIRun>): FixTurnsTable {
+  const table: FixTurnsTable = new FixTurnsTable(projectId);
+
+  for (const run of activeRuns) {
+    table.rows.push({
+      _id: run.id!.toString(),
+      projectId: projectId.toString(),
+      runType: AIRunType.CodeFix,
+      codeFixTaskType: CodeFixTaskType.CodeRequest,
+      status: AIRunStatus.Running,
+      codeTaskId: run.codeTaskId?.toString() || null,
+      userId: null,
+      triggeredByTelemetryExceptionId: null,
+      triggeredByIncidentId: null,
+      triggeredByAlertId: null,
+      triggeredByAiInsightId: null,
+      taskContext: (run.taskContext || null) as JSONObject | null,
+      codeFixRecommendation: null,
+      completedAt: null,
+      createdAt: new Date("2026-11-19T08:00:00.000Z"),
+      deletedAt: null,
+    });
+  }
+
+  table.install();
+
+  return table;
 }
 
 function activeFixRun(): AIRun {
@@ -381,6 +418,41 @@ describe("what the function panel is offered", () => {
     expect(spies.locatable).not.toHaveBeenCalled();
   });
 
+  /*
+   * A reply someone sent in Code asks in its own words, with its own
+   * context: the task is the function's by its first turn, which failed,
+   * and the reply working keeps it on its way (#9882).
+   */
+  test("a reply working in Code in the function's task whose first turn failed: a link to its task, no second fix", async () => {
+    const spies: World = world({ activeRuns: [activeFixRun()] });
+    const asked: FixTurnRow = spies.runs.rows[0]!;
+
+    // The function's task: its first turn failed...
+    asked._id = "70000000-0000-4000-8000-0000000000f3";
+    asked.codeTaskId = null;
+    asked.status = AIRunStatus.Error;
+
+    // ...and a reply in its own words is working.
+    spies.runs.rows.push({
+      ...asked,
+      _id: "70000000-0000-4000-8000-0000000000f4",
+      codeTaskId: asked._id,
+      status: AIRunStatus.Running,
+      taskContext: { request: { message: "Try a cache.", context: [] } },
+      createdAt: new Date("2026-11-19T08:30:00.000Z"),
+    });
+
+    const suggestion: ProfileFixSuggestion =
+      await ProfileFixTaskTrigger.getSuggestion(REQUEST);
+
+    expect(suggestion.offer).toBe(SuggestionOffer.InProgress);
+    expect(suggestion.taskId).toBe("70000000-0000-4000-8000-0000000000f3");
+    await expect(ProfileFixTaskTrigger.createFixTask(REQUEST)).rejects.toThrow(
+      PROFILE_FIX_ALREADY_RUNNING_MESSAGE,
+    );
+    expect(spies.start).not.toHaveBeenCalled();
+  });
+
   test("a fix on its way for another function does not count", async () => {
     const other: AIRun = activeFixRun();
     (
@@ -487,6 +559,18 @@ describe("starting the fix", () => {
       "Make parseOrder in src/orders/parse.ts faster",
     );
     expect(started.message).toContain("It takes 42% of checkout's CPU time");
+    /*
+     * A fix of the function, decided with its INSERT: two asked at once
+     * start one (CodeFixOnItsWay.createHeldTo).
+     */
+    expect(started.holdsTo).toEqual([
+      CodeFixOnItsWay.ofProfileFunction({
+        projectId,
+        serviceId,
+        functionName: "parseOrder",
+        fileName: "src/orders/parse.ts",
+      }),
+    ]);
   });
 
   test("the person's own words, when they edited the ask", async () => {

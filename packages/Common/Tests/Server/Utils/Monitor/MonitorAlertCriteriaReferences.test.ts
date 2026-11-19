@@ -37,6 +37,7 @@ import {
   jest,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * A monitor criteria names the on-call policies to page and the labels to
@@ -243,7 +244,9 @@ describe("MonitorAlert drops criteria references the project cannot use", () => 
         return alert;
       });
 
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
 
     jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined as never;

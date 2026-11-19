@@ -1,0 +1,84 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title=(t "Your sign-in settings were cleared") }}
+
+{{!--
+  Sent to each person whose sign-in settings were cleared (#9818, #9820,
+  Common/Types/SSO/SignInSettingsClearedEmail, sent by
+  Common/Server/Utils/SignInSettingsClearedEmail): by a server admin in the
+  Admin Dashboard, for one person or for everyone the server's SSO
+  requirement covers, or by an owner of every project the person is in.
+  One email per person, about that person alone, in the language on their
+  account: who cleared them by role (never by name), when, exactly what was
+  removed, how they sign in now, and who to ask.
+
+  A project's name is its owners' words, so it goes into sentences through
+  ttHtml, which escapes the whole sentence, and never into a raw slot as it
+  is. The providers' names are their admins' words too, and go on
+  plainText. Everything else is OneUptime's own words, looked up in the
+  reader's language (Utils/EmailLanguage.ts).
+--}}
+
+{{#if clearedByProjectOwner}}
+{{> InfoBlock info=(ttHtml "An owner of {{project}} cleared the sign-in settings saved on your {{product}} account." project=projectName product=productName)}}
+{{else}}
+{{> InfoBlock info=(ttHtml "A server admin cleared the sign-in settings saved on your {{product}} account." product=productName)}}
+{{/if}}
+
+{{!-- One card, as in every email: when, and the providers they sign in with now. --}}
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=(t "Cleared at:") plainText=clearedAt }}
+{{#if signsInWithSso}}{{#if ssoProviderNames}}
+{{> DetailBoxField title=(t "Single sign-on:") plainText=ssoProviderNames }}
+{{/if}}{{/if}}
+{{> DetailBoxEnd this }}
+
+{{> TitleBlock title=(tHtml "What was removed") }}
+
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
+  <tr><td class="st-Gutter" style="padding: 0 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 15px; line-height: 24px; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+    {{#if removedPassword}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{t "Your password, and any password reset or sign-in link sent to you"}}</div>{{/if}}
+    {{#if removedPasskeyCount}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{tp "{{count}} passkey or security key" "{{count}} passkeys and security keys" removedPasskeyCount}}</div>{{/if}}
+    {{#if removedAuthenticatorAppCount}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{tp "{{count}} authenticator app" "{{count}} authenticator apps" removedAuthenticatorAppCount}}</div>{{/if}}
+    {{#if removedBackupCodeCount}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{tp "{{count}} backup code" "{{count}} backup codes" removedBackupCodeCount}}</div>{{/if}}
+    {{#if turnedOffTwoFactorAuth}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{t "Two-factor authentication, which is now turned off"}}</div>{{/if}}
+  </td></tr>
+</table>
+
+{{> InfoBlock info=(tHtml "Devices that were signed in without single sign-on (SSO) have been signed out.")}}
+
+{{> TitleBlock title=(tHtml "How to sign in now") }}
+
+{{#if signsInWithSso}}
+{{> InfoBlock info=(tHtml "Sign in with single sign-on (SSO). Your organization's identity provider now manages your password and two-factor authentication.")}}
+
+{{> ButtonBlock buttonUrl=ssoSignInUrl buttonText=(t "Sign In with SSO") }}
+{{/if}}
+
+{{#if setsNewPassword}}
+{{> InfoBlock info=(tHtml "To sign in with a password again, set a new one with Forgot password? on the sign-in page.")}}
+
+{{> ButtonBlock buttonUrl=forgotPasswordUrl buttonText=(t "Set a New Password") }}
+{{/if}}
+
+{{#if signInWayUnknown}}
+{{> InfoBlock info=(tHtml "Sign in with single sign-on (SSO) if your organization uses it. Otherwise, set a new password with Forgot password? on the sign-in page.")}}
+
+{{> ButtonBlock buttonUrl=signInUrl buttonText=(t "Sign In") }}
+{{/if}}
+
+{{> VerticalSpace this}}
+
+{{#if clearedByProjectOwner}}
+{{> InfoBlock info=(ttHtml "If you did not expect this, contact the owners of {{project}}." project=projectName)}}
+{{else if @root.isSelfHosted}}
+{{> InfoBlock info=(tHtml "If you did not expect this, contact your server's admin.")}}
+{{else}}{{#unless @root.isBrandRenamed}}
+{{> InfoBlock info=(ttHtml "If you did not expect this, contact support at {{address}}." address="support@oneuptime.com")}}
+{{/unless}}{{/if}}
+
+{{> Footer this}}
+
+{{> End this}}

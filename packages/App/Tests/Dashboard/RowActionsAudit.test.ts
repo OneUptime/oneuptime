@@ -65,6 +65,8 @@ const OWN_ROW_SWITCH: Record<string, string> = {
     "AI connections: Turn on and Turn off in each row, beside Read now and Test, each saying what it does - off, it stops reading, and what it brought in stays.",
   "Dashboard/src/Components/Cloud/Connect/CloudConnectionsTable.tsx":
     "Cloud connections: Turn on and Turn off in each row, beside Test, each saying what it does - off, it stops reading the account, and what it brought in stays.",
+  "Dashboard/src/Components/DeviceManagement/DeviceManagementConnectionsTable.tsx":
+    "Inventory > Managed Devices > Esper Connections: Turn on and Turn off in each row, beside Read now, each saying what it does - off, it stops reading the tenant, and what it brought in stays; on, it reads again, starting with what it missed.",
   "Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings.tsx":
     "Scheduled Maintenance > Settings > External Calendars: Turn on and Turn off in each row, beside Read now - off, the calendar is not read and its events are hidden from everyone.",
   "ee/Dashboard/AuditLogExport/AuditLogExportTable.tsx":

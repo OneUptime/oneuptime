@@ -24,6 +24,22 @@
         tools:ignore="ProtectedPermissions" />
 
     <!--
+        Every app's crash stacks, native crashes, ANR traces and the reasons
+        the device rebooted, from DropBoxManager. Android asks for READ_LOGS
+        (READ_DROPBOX_DATA from Android 15, a development permission as well,
+        also granted with `pm grant`) and usage access, which adb grants
+        (`appops set com.oneuptime.androidagent GET_USAGE_STATS allow`), or the
+        person at the device in Settings: declaring it is what lists the agent
+        under Usage access there.
+    -->
+    <uses-permission
+        android:name="android.permission.READ_DROPBOX_DATA"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!--
         Android 11+ shows an app every installed package only with this: the
         agent reports what is installed on the device, which is device
         inventory, a use Google Play's policy permits.
@@ -67,6 +83,25 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Device monitoring for a managed device: reports this device's health, restarts, installed apps and system logs to the organization's OneUptime project, continuously, as the organization's device manager configures it." />
         </service>
+
+        <!--
+            Lets the agent be the device owner on a device without another
+            device manager, the one way Android gives an app the device's CPU
+            use from Android 8. It asks for no policy (xml/device_admin.xml).
+        -->
+        <receiver
+            android:name=".admin.AgentDeviceAdminReceiver"
+            android:description="@string/device_admin_description"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".agent.BootReceiver"

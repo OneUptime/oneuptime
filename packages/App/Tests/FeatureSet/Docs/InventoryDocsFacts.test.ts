@@ -150,6 +150,14 @@ import {
   ManagedDeviceStatus,
 } from "Common/Types/DeviceManagement/ManagedDeviceStatus";
 import { REMOVED_DEVICE_RETENTION_DAYS } from "Common/Server/Utils/DeviceManagement/ManagedDeviceSync";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
+import { MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import {
+  MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+  MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+  getManagedDeviceAlertTemplateById,
+} from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
+import { getHostAlertTemplateById } from "Common/Types/Monitor/HostAlertTemplates";
 import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
 import { EVERY_FIFTEEN_MINUTE, EVERY_THREE_HOURS } from "Common/Utils/CronTime";
@@ -921,11 +929,17 @@ describe("Inventory Overview: finding your way around", () => {
   });
 
   it("lists the Asset Details card's facts in the card's order", () => {
+    /*
+     * As the card draws each in English: a meaning key draws its word
+     * (Model, a machine's model, #9838).
+     */
     const facts: string = listOf(
       INVENTORY_ASSET_FIELDS.map((field: string): string => {
-        return INVENTORY_ASSET_FIELD_LABELS[
-          field as keyof typeof INVENTORY_ASSET_FIELD_LABELS
-        ];
+        return withMeaningKeyAsItsWord(
+          INVENTORY_ASSET_FIELD_LABELS[
+            field as keyof typeof INVENTORY_ASSET_FIELD_LABELS
+          ],
+        );
       }),
       "and",
     );
@@ -1987,6 +2001,36 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     );
     expect(quiet).toContain(
       `${REMOVED_DEVICE_RETENTION_DAYS} days after it left, the device is deleted`,
+    );
+  });
+
+  /*
+   * #9835: the connection's row opens its recommended monitors, and Esper
+   * Device Stopped Checking In alerts per device after an hour, from the
+   * metric each read writes, checked every 5 minutes.
+   */
+  it("says how to get an alert when a device stops checking in, as the row, the template and the metric do", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+    const template: { name: string } | undefined =
+      getManagedDeviceAlertTemplateById("esper-device-stopped-checking-in");
+    const table: string = readRepoFile(CONNECTIONS_TABLE);
+
+    expect(table).toContain('title: "Set up alerts"');
+    expect(alerts).toContain(
+      `On **Managed Devices**, click **Set up alerts** on the connection's row, and create ${bold(template!.name)}.`,
+    );
+    expect(MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES).toBe(60);
+    expect(alerts).toContain(
+      "has not checked in with Esper for more than an hour",
+    );
+    expect(alerts).toContain(`\`${MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME}\``);
+    expect(MANAGED_DEVICE_ALERT_MONITORING_INTERVAL).toBe("*/5 * * * *");
+    expect(alerts).toContain("latest reading every 5 minutes");
+    expect(alerts).toContain(
+      `A device that also runs the Android Agent is left to ${bold(getHostAlertTemplateById("host-stopped-reporting")!.name)}, so it never alerts twice`,
     );
   });
 });

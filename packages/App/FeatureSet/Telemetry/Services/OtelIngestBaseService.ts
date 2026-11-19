@@ -5812,6 +5812,11 @@ export default abstract class OtelIngestBaseService {
         data.attributes,
         "os.type",
       );
+      // "Android" from an Android device, whose os.type is the kernel's linux (HostOperatingSystem).
+      const osName: string | null = this.getStringAttribute(
+        data.attributes,
+        "os.name",
+      );
       const osVersion: string | null =
         this.getStringAttribute(data.attributes, "os.description") ||
         this.getStringAttribute(data.attributes, "os.version");
@@ -5882,6 +5887,7 @@ export default abstract class OtelIngestBaseService {
           const heartbeat: ResourceHeartbeatResult =
             await HostService.updateLastSeen(hostId, {
               osType: osType || undefined,
+              osName: osName || undefined,
               osVersion: osVersion || undefined,
               hostId: hostIdAttr || undefined,
               hostArch: hostArch || undefined,

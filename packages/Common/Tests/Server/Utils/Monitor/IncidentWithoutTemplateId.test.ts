@@ -33,6 +33,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * An incident remembers the criteria and the incident template that raised
@@ -267,7 +268,9 @@ describe("An open incident whose template had no id still dedupes", () => {
         ).toString();
         return incident;
       });
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   });
 
   afterEach(() => {

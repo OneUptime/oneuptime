@@ -680,6 +680,7 @@ export class ModelSchema extends BaseSchema {
         zodType: zodType,
         description: finalDescription,
         relation: relations[key],
+        changesOnlyWith: column.changesOnlyWith,
       });
 
       // Mark computed fields as readOnly in OpenAPI spec
@@ -711,11 +712,17 @@ export class ModelSchema extends BaseSchema {
    * at (`x-oneuptime-relation`): `tag` is the name that model's endpoints are
    * tagged with, so a client generated from the spec - the Terraform provider
    * - can say which of its resources an id belongs to.
+   *
+   * A column that changes only together with a new value of another
+   * (TableColumnMetadata.changesOnlyWith) names that column
+   * (`x-oneuptime-changes-only-with`), so the Terraform provider refuses,
+   * at plan time, a plan that changes it alone (#9814).
    */
   private static annotateColumn(data: {
     zodType: ZodTypes.ZodTypeAny;
     description: string;
     relation?: ModelRelationReference | undefined;
+    changesOnlyWith?: string | undefined;
     disableOpenApiSchema?: boolean | undefined;
   }): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny = data.zodType;
@@ -735,6 +742,12 @@ export class ModelSchema extends BaseSchema {
     if (data.relation) {
       zodType = zodType.openapi({
         "x-oneuptime-relation": data.relation,
+      } as any);
+    }
+
+    if (data.changesOnlyWith) {
+      zodType = zodType.openapi({
+        "x-oneuptime-changes-only-with": data.changesOnlyWith,
       } as any);
     }
 
@@ -1721,6 +1734,7 @@ export class ModelSchema extends BaseSchema {
         zodType: zodType,
         description: finalDescription,
         relation: relations[key],
+        changesOnlyWith: column.changesOnlyWith,
         disableOpenApiSchema: data.disableOpenApiSchema || false,
       });
 

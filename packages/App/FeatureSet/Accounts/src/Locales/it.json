@@ -234,7 +234,9 @@
     "noAccountPrompt": "Non hai un account?",
     "registerLink": "Registrati.",
     "selectProjectTitle": "Seleziona progetto",
-    "notSetUpForDomain": "Il single sign-on non è configurato per {{domain}}. Chiedi all’amministratore di configurarlo, oppure accedi in un altro modo.",
+    "notSetUpForDomain": "Il single sign-on non è configurato per {{domain}}. Chiedi all’amministratore il link di accesso SSO della tua organizzazione, oppure accedi in un altro modo.",
+    "projectNoProvider": "Questo link non ha nessun provider di single sign-on con cui accedere. Chiedi all’amministratore di attivarne uno, oppure accedi in un altro modo.",
+    "signInAnotherWay": "Accedi in un altro modo",
     "emailRequired": "L'e-mail è richiesta per eseguire questa azione",
     "defaultProjectName": "Progetto",
     "globalProvidersTitle": "Accedi con la tua organizzazione",
@@ -304,6 +306,19 @@
     "returnToApp": "Torna all’app",
     "cancel": "Annulla e torna all’app",
     "setup": "Crea una passkey nella dashboard web, in Profilo utente → Sicurezza → Passkey."
+  },
+  "mobilePasskeyEnrolment": {
+    "title": "Configura una passkey",
+    "description": "Usa il volto, l’impronta digitale o il blocco schermo di questo telefono, oppure una chiave di sicurezza. La prossima volta la userai per accedere a OneUptime On-Call.",
+    "create": "Crea una passkey",
+    "tryAgain": "Riprova",
+    "notCompleted": "La passkey non è stata creata: la richiesta è stata annullata o è scaduta. Riprova quando sei pronto.",
+    "expired": "Questa configurazione è scaduta o è già stata usata. Torna all’app e ricomincia.",
+    "failed": "Impossibile creare la passkey. Riprova, oppure torna all’app e configura invece un’app di autenticazione.",
+    "complete": "La tua passkey è pronta. Torna all’app per completare l’accesso.",
+    "invalid": "Avvia la configurazione di una passkey dall’app mobile OneUptime. La richiesta è assente o non valida.",
+    "insecure": "Le passkey richiedono HTTPS. Torna all’app per configurare invece un’app di autenticazione.",
+    "unsupported": "Questo browser non può creare una passkey. Torna all’app per configurare invece un’app di autenticazione."
   },
   "mcpAuthorize": {
     "title": "Collega un client MCP",

@@ -96,9 +96,24 @@ const TAB_HOSTED_RESOURCE_TYPES: Array<TabHostedResourceType> = [
   MonitorRecommendationResourceType.CloudApp,
 ];
 
+/*
+ * The resource types whose record is a ROW of a list, with no page of its
+ * own to hang a Recommendations entry on: an Esper connection is a row on
+ * Inventory > Managed Devices, and its row's Set up alerts opens a
+ * Recommendations page of its own (#9835). See "an Esper connection's
+ * Recommendations are opened from its row" below.
+ */
+type RowHostedResourceType =
+  MonitorRecommendationResourceType.DeviceManagementConnection;
+
+const ROW_HOSTED_RESOURCE_TYPES: Array<RowHostedResourceType> = [
+  MonitorRecommendationResourceType.DeviceManagementConnection,
+];
+
+// Every resource type with pages of its own: a View folder and a side menu.
 type RoutedResourceType = Exclude<
   MonitorRecommendationResourceType,
-  TabHostedResourceType
+  TabHostedResourceType | RowHostedResourceType
 >;
 
 const ROUTED_RESOURCE_TYPES: Array<RoutedResourceType> =
@@ -106,9 +121,10 @@ const ROUTED_RESOURCE_TYPES: Array<RoutedResourceType> =
     (
       resourceType: MonitorRecommendationResourceType,
     ): resourceType is RoutedResourceType => {
-      return !(TAB_HOSTED_RESOURCE_TYPES as Array<string>).includes(
-        resourceType,
-      );
+      return ![
+        ...(TAB_HOSTED_RESOURCE_TYPES as Array<string>),
+        ...(ROW_HOSTED_RESOURCE_TYPES as Array<string>),
+      ].includes(resourceType);
     },
   );
 
@@ -183,10 +199,12 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(20);
-    expect(RESOURCE_CASES.length + TAB_HOSTED_RESOURCE_TYPES.length).toBe(
-      ALL_RESOURCE_TYPES.length,
-    );
+    expect(ALL_RESOURCE_TYPES.length).toBe(21);
+    expect(
+      RESOURCE_CASES.length +
+        TAB_HOSTED_RESOURCE_TYPES.length +
+        ROW_HOSTED_RESOURCE_TYPES.length,
+    ).toBe(ALL_RESOURCE_TYPES.length);
 
     for (const resourceCase of RESOURCE_CASES) {
       expect(
@@ -248,6 +266,101 @@ describe("an App Platforms app's Recommendations are a tab of its page", () => {
 
   test("no side menu badges a tab-hosted type", () => {
     for (const resourceType of TAB_HOSTED_RESOURCE_TYPES) {
+      const member: string = memberNameOf(resourceType);
+
+      for (const file of SIDE_MENU_FILES) {
+        expect(readCodeAt(file)).not.toContain(
+          `resourceType={MonitorRecommendationResourceType.${member}}`,
+        );
+      }
+    }
+  });
+});
+
+/*
+ * An Esper connection's Recommendations: a page of its own under Inventory >
+ * Managed Devices, opened from the connection's row - the connection has no
+ * page of its own, so no side menu of its own either. The page reads the
+ * connection from its route as every routed page does (its route is pinned
+ * in MonitorRecommendationRoutes.test.ts), and Managed Devices stays marked
+ * in Inventory's menu while it is open.
+ */
+describe("an Esper connection's Recommendations are opened from its row", () => {
+  const PAGE: string = readCode(
+    "Pages",
+    "Inventory",
+    "ManagedDeviceConnectionRecommendations.tsx",
+  );
+  const TABLE: string = readCode(
+    "Components",
+    "DeviceManagement",
+    "DeviceManagementConnectionsTable.tsx",
+  );
+
+  test("the page renders the shared shell for an Esper connection, and fetches nothing itself", () => {
+    expect(PAGE).toContain(
+      'import RecommendationsPage from "../../Components/Recommendations/RecommendationsPage";',
+    );
+    expect(PAGE).toContain(
+      squash(
+        "<RecommendationsPage resourceType={ MonitorRecommendationResourceType.DeviceManagementConnection } />",
+      ),
+    );
+    expect(PAGE).not.toContain("ModelAPI");
+    expect(PAGE).not.toContain("resourceIdentifier");
+  });
+
+  test("Inventory mounts it", () => {
+    const routes: string = readCode("Routes", "InventoryRoutes.tsx");
+
+    expect(routes).toContain(
+      'import ManagedDeviceConnectionRecommendations from "../Pages/Inventory/ManagedDeviceConnectionRecommendations";',
+    );
+    expect(routes).toContain(
+      squash(
+        'path={ InventoryRoutePath[ PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS ] || "" }',
+      ),
+    );
+    expect(routes).toContain("<ManagedDeviceConnectionRecommendations");
+  });
+
+  test("each connection's row opens its own", () => {
+    const action: string = TABLE.split('title: "Set up alerts",')[1]!.split(
+      "title:",
+    )[0]!;
+
+    expect(action).toContain(
+      "Navigation.navigate(getConnectionRecommendationsRoute(item.id!));",
+    );
+    expect(TABLE).toContain(
+      squash(
+        "RouteMap[ PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS ] as Route, { modelId: connectionId },",
+      ),
+    );
+  });
+
+  test("Managed Devices stays marked in Inventory's menu while it is open", () => {
+    const menu: string = readCode("Pages", "Inventory", "SideMenu.tsx");
+
+    expect(menu).toContain(
+      squash(
+        "const isOnConnectionRecommendations: boolean = Navigation.isOnThisPage( connectionRecommendationsRoute, );",
+      ),
+    );
+
+    const entry: string = menu
+      .split('title: "Managed Devices",')[1]!
+      .split("icon:")[0]!;
+
+    expect(entry).toContain(
+      squash(
+        "activeRoute: isOnConnectionRecommendations ? connectionRecommendationsRoute : undefined,",
+      ),
+    );
+  });
+
+  test("no side menu badges a row-hosted type", () => {
+    for (const resourceType of ROW_HOSTED_RESOURCE_TYPES) {
       const member: string = memberNameOf(resourceType);
 
       for (const file of SIDE_MENU_FILES) {

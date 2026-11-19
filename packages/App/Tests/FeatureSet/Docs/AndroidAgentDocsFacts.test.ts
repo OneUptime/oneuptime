@@ -1,8 +1,9 @@
 import { DocsFence, readPage, scanMarkdown } from "./DocsContentSupport";
 import {
   HostAlertTemplate,
-  getAllHostAlertTemplates,
+  getHostAlertTemplatesFor,
 } from "Common/Types/Monitor/HostAlertTemplates";
+import { HOST_LOG_SESSION_DURATIONS } from "Common/Types/Host/HostLogSession";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -201,21 +202,57 @@ describe("Android Agent docs: what to run and where to look", () => {
     expect(markdown).toContain("`android.boot.recent_count`");
   });
 
-  it("names host alert templates that exist", () => {
-    const names: Array<string> = getAllHostAlertTemplates().map(
-      (template: HostAlertTemplate) => {
-        return template.name;
-      },
-    );
-    for (const name of [
-      "Host Stopped Reporting",
-      "High Memory Utilization",
-      "High Filesystem Usage",
-      "Host Restarted",
-    ]) {
-      expect(names).toContain(name);
-      expect(markdown).toContain(name);
+  it("names every alert template an Android device is offered", () => {
+    const names: Array<string> = getHostAlertTemplatesFor({
+      isAndroid: true,
+      reportsCpu: true,
+    }).map((template: HostAlertTemplate) => {
+      return template.name;
+    });
+
+    expect(names.length).toBeGreaterThan(5);
+    for (const name of names) {
+      expect({ name, named: markdown.includes(name) }).toEqual({
+        name,
+        named: true,
+      });
     }
+    // A server's own, never offered to a device, is not named as one.
+    expect(markdown).not.toContain("High Filesystem Usage");
+  });
+
+  it("runs the agent's own commands for DropBox, usage access and device owner", () => {
+    const events: string = agentFile(
+      "app/src/main/java/com/oneuptime/androidagent/agent/AgentEvents.kt",
+    );
+    const command: (name: string) => string = (name: string): string => {
+      const match: RegExpExecArray | null = new RegExp(
+        `const val ${name}: String = "([^"]+)"`,
+      ).exec(events);
+      expect(match).not.toBeNull();
+      return match![1]!;
+    };
+
+    for (const name of [
+      "GRANT_COMMAND",
+      "GRANT_DROPBOX_COMMAND",
+      "USAGE_ACCESS_COMMAND",
+      "DEVICE_OWNER_COMMAND",
+    ]) {
+      expect(markdown).toContain(command(name));
+    }
+  });
+
+  it("offers log sessions as long as the agent runs one, at the levels it reads", () => {
+    const manager: string = agentFile(
+      "app/src/main/java/com/oneuptime/androidagent/logsession/LogSessionManager.kt",
+    );
+
+    expect(Math.min(...HOST_LOG_SESSION_DURATIONS)).toBe(15);
+    expect(Math.max(...HOST_LOG_SESSION_DURATIONS)).toBe(240);
+    expect(manager).toContain("const val MAX_DURATION_MINUTES: Int = 240");
+    expect(markdown).toContain("from 15 minutes to 4 hours");
+    expect(markdown).toContain("**Info**, **Debug** or **Verbose**");
   });
 
   it("links the app instrumentation guide, which links back", () => {

@@ -63,11 +63,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 비용 메트릭(`node_total_hourly_cost`, `pv_hourly_cost` 등)은 일반 메트릭이므로 메트릭 탐색기, 사용자 지정 대시보드, 메트릭 모니터에서 사용할 수 있습니다. 미리 만들어진 대시보드를 원하면 **제품 → 대시보드**로 이동해 **대시보드 만들기**를 선택하고 **Kubernetes Cost Dashboard**를 고르세요. 노드 시간당 비용 추세, CPU 및 메모리 단가, 볼륨과 로드 밸런서 지출을 보여 줍니다.
 
-개요와 **비용** 페이지는 수치 아래에 가격의 출처를 알려 줍니다. 클라우드 정가, 직접 설정한 요금표, 또는 OpenCost의 기본 요율입니다. 효율은 효율 메트릭까지 포함해 어디서나 같은 수치입니다. 요청한 CPU와 메모리 중 실제로 사용된 비율이며, 각 컨테이너의 한 시간은 그 CPU와 메모리의 비용으로 가중됩니다. 따라서 아무것도 사용하지 않는 저렴한 작업이 잘 활용되는 클러스터의 효율을 끌어내릴 수 없고, 유휴 용량은 계산에 넣지 않습니다.
+개요와 **비용** 페이지는 수치 아래에 가격의 출처를 알려 줍니다. Kubecost 3을 포함해 어떤 엔진이 클러스터의 가격을 매기든, 클라우드 정가, 직접 설정한 요금표, 또는 OpenCost의 기본 요율입니다. 클라우드 청구서를 읽는 Kubecost는 각 시간이 지나고 약 하루 반 뒤에 그 청구서에 맞춰 가격을 조정하므로, 그 경우 이 줄은 수치가 조정 전의 정가임을 알려 줍니다. 효율은 효율 메트릭까지 포함해 어디서나 같은 수치입니다. 요청한 CPU와 메모리 중 실제로 사용된 비율이며, 각 컨테이너의 한 시간은 그 CPU와 메모리의 비용으로 가중됩니다. 따라서 아무것도 사용하지 않는 저렴한 작업이 잘 활용되는 클러스터의 효율을 끌어내릴 수 없고, 유휴 용량은 계산에 넣지 않습니다.
 
 ## 이미 Kubecost나 OpenCost를 실행하고 있나요?
 
-비용 에이전트는 그 엔진을 찾아 번들 OpenCost 대신 읽으므로, 클러스터의 가격은 직접 설정한 요금표나 Kubecost에 연동된 클라우드 청구서처럼 설정한 그대로 매겨집니다. 에이전트는 시작할 때, 그리고 그 뒤로는 매시간 Kubernetes API를 통해 각 엔진의 자체 차트가 만드는 Service를 모든 네임스페이스에서 찾습니다(Kubecost의 `cost-analyzer` 또는 `frontend`, OpenCost 차트가 만드는 Service, OpenCost 매니페스트가 만드는 `opencost` Service). Kubecost가 우선입니다. 응답하지 않거나, 로그인이 필요하거나, 여러 클러스터에 대해 응답하는 엔진은 건너뛰고 번들 엔진을 읽습니다.
+비용 에이전트는 그 엔진을 찾아 번들 OpenCost 대신 읽으므로, 클러스터의 가격은 직접 설정한 요금표나 Kubecost에 연동된 클라우드 청구서처럼 설정한 그대로 매겨집니다. 에이전트는 시작할 때, 그리고 그 뒤로는 매시간 Kubernetes API를 통해 각 엔진의 자체 차트가 만드는 Service를 모든 네임스페이스에서 찾습니다(Kubecost의 `cost-analyzer` 또는 `frontend`, OpenCost 차트가 만드는 Service, OpenCost 매니페스트가 만드는 `opencost` Service). Kubecost가 우선입니다. 응답하지 않거나, 로그인이 필요하거나, 여러 클러스터에 대해 응답하는 엔진은 건너뛰고 번들 엔진을 읽습니다. 그러면 Collector가 Kubernetes Cost Dashboard를 위해 그 엔진의 가격 메트릭도 스크레이프하므로 대시보드와 비용 페이지에 같은 가격이 표시되고, 적정 크기 조정은 그 엔진이 읽는 Prometheus에서 메모리 최대치를 읽습니다.
 
 그러면 클러스터의 개요에 사용 중인 엔진의 이름이 표시되고, 번들 OpenCost가 필요 없다고 알려 줍니다. 번들 OpenCost의 실행을 멈추세요:
 
@@ -86,7 +86,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 | Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API 경로는 자동으로 찾습니다(Kubecost는 `/model/allocation`, OpenCost는 `/allocation/compute` 또는 `/allocation`). `cost.engine.allocationPath`는 특이한 설치에서만 설정하세요. `auto`나 URL을 사용하면 아무것도 번들되지 않으므로, 메모리 권장값을 위해서는 `cost.engine.prometheusUrl`도 설정하세요([권장값의 바탕이 되는 데이터](#권장값의-바탕이-되는-데이터) 참조). 가격 메트릭도 같은 방식으로 찾으므로 엔진의 어떤 Service를 지정해도 됩니다. 에이전트는 엔진의 `/metrics`, 그다음 Kubecost 2 프런트엔드나 OpenCost UI가 엔진으로 전달하는 `/model/metrics`, 그다음 Kubecost 3의 FinOps 에이전트를 차례로 시도하고, Collector는 가격 시계열이 있는 첫 주소를 스크레이프합니다. 직접 지정하려면 `cost.metrics.endpoint`를 설정하세요.
+Allocation API 경로는 자동으로 찾습니다(Kubecost는 `/model/allocation`, OpenCost는 `/allocation/compute` 또는 `/allocation`). `cost.engine.allocationPath`는 특이한 설치에서만 설정하세요. 메모리 권장값에 쓰는, 엔진이 읽는 Prometheus도 자동으로 찾습니다. 단, Prometheus를 읽지 않는 Kubecost 3에서는 `cost.engine.prometheusUrl`을 설정하세요([권장값의 바탕이 되는 데이터](#권장값의-바탕이-되는-데이터) 참조). 가격 메트릭도 같은 방식으로 찾으므로 엔진의 어떤 Service를 지정해도 됩니다. 에이전트는 엔진의 `/metrics`, 그다음 Kubecost 2 프런트엔드나 OpenCost UI가 엔진으로 전달하는 `/model/metrics`, 그다음 Kubecost 3의 FinOps 에이전트를 차례로 시도하고, Collector는 가격 시계열이 있는 첫 주소를 스크레이프합니다. 직접 지정하려면 `cost.metrics.endpoint`를 설정하세요.
 
 ## 온프레미스 및 베어메탈 가격 책정
 
@@ -156,8 +156,8 @@ request는 권장하지만 limit은 권장하지 않습니다. request는 스케
 메모리에는 데이터 소스가 하나 더 필요합니다. Allocation API는 각 기간의 평균만 보고하며, 시간별 평균은 컨테이너를 OOM kill하는 급증을 숨기므로 이것으로 메모리 크기를 정하는 것은 위험합니다. 그래서 폴러는 대신 Prometheus에서 각 컨테이너의 메모리 최대치를 읽어 `(namespace, pod, container)`로 결합합니다:
 
 - 번들 엔진(기본값)에서는 차트 자체의 Prometheus를 사용합니다. 설정할 것이 없습니다.
-- `cost.engine.url`을 설정했다면(`auto` 또는 사용 중인 엔진의 URL) `cost.engine.prometheusUrl`이 cAdvisor를 스크레이프하는 Prometheus를 가리키게 하고, 그 스크레이프 작업 이름이 `kubernetes-nodes-cadvisor`가 아니면 `cost.engine.prometheusCadvisorJob`을 설정하세요.
-- Prometheus가 없으면 CPU 권장은 저장된 시간별 평균으로 여전히 작동하고, 메모리 권장은 추측하지 않고 생략됩니다.
+- 자체 엔진에서는 그 엔진이 읽는 Prometheus를 사용하며, 에이전트가 이를 자동으로 찾습니다. OpenCost의 `PROMETHEUS_SERVER_ENDPOINT`나 Kubecost 2가 번들하는 Prometheus를, 이 클러스터의 cAdvisor 시계열에 응답하는지 확인한 뒤 사용합니다. Kubecost 3은 Prometheus를 읽지 않으므로, 차트가 번들 Prometheus를 실행하는 동안에는 그것이 대신합니다.
+- 그 밖의 경우나 직접 고르려면 `cost.engine.prometheusUrl`이 cAdvisor를 스크레이프하는 Prometheus를 가리키게 하고, 그 Prometheus가 여러 작업으로 cAdvisor를 스크레이프하며 읽을 작업의 이름이 `kubernetes-nodes-cadvisor`가 아니면 `cost.engine.prometheusCadvisorJob`을 설정하세요. Prometheus가 없으면 CPU 권장은 저장된 시간별 평균으로 여전히 작동하고, 메모리 권장은 추측하지 않고 생략됩니다.
 
 Prometheus가 중단되어도 지출 수집은 멈추지 않습니다. 최대치는 부가 정보이며, 그 시간은 최대치 없이 전송됩니다. CPU는 의도적으로 Prometheus를 사용하지 않습니다. CPU request가 너무 크면 스로틀링될 뿐이지만 메모리 request가 너무 작으면 컨테이너가 종료되므로 CPU에는 시간별 평균으로 충분히 안전하며, 클러스터 전체에서 모든 컨테이너의 CPU 비율을 쿼리하는 것은 작은 Prometheus를 쓰러뜨릴 만큼 무겁습니다.
 
@@ -191,7 +191,7 @@ Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습�
 :::
 
 :::details 개요에 번들 OpenCost가 필요 없다고 표시됨
-클러스터가 자체 Kubecost나 OpenCost를 실행하고 있고 비용 에이전트가 그것을 읽으므로, 차트가 번들한 OpenCost와 Prometheus는 아무것도 가격을 매기지 않습니다. 이들의 실행을 멈추려면 `--set cost.engine.url=auto`로 업그레이드하고, 대신 번들 엔진을 읽으려면 `cost.engine.preferExisting=false`를 설정하세요.
+클러스터가 자체 Kubecost나 OpenCost를 실행하고 있고 비용 에이전트가 그것을 읽으므로, 차트가 번들한 OpenCost는 아무것도 가격을 매기지 않습니다. 그것과 그 Prometheus의 실행을 멈추려면 `--set cost.engine.url=auto`로 업그레이드하고, 대신 번들 엔진을 읽으려면 `cost.engine.preferExisting=false`를 설정하세요. Prometheus를 읽지 않는 Kubecost 3에서는 메모리 권장값이 번들 Prometheus에서 나옵니다. 다른 Prometheus를 쓰려면 같은 업그레이드에서 `cost.engine.prometheusUrl`로 지정하세요.
 :::
 
 :::details 비용 에이전트가 자체 엔진을 읽지 않음
@@ -203,7 +203,7 @@ Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습�
 :::
 
 :::details Kubernetes Cost Dashboard에 데이터가 없음
-이 템플릿은 스크레이프된 비용 메트릭을 읽습니다. `cost.metrics.enabled`가 `true`인지 확인하세요. `cost.engine.url`을 설정했다면 비용 에이전트가 엔진이 이 메트릭을 제공하는 곳을 찾고, 로그에 그 위치나 시도한 주소가 나옵니다: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. 직접 지정하려면 `cost.metrics.endpoint`를 설정하세요.
+이 템플릿은 스크레이프된 비용 메트릭을 읽습니다. `cost.metrics.enabled`가 `true`인지 확인하세요. 비용 에이전트는 자신이 읽는 엔진(번들 엔진 또는 자체 엔진)이 이 메트릭을 제공하는 곳을 찾고, 로그에 그 위치나 시도한 주소가 나옵니다: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. 직접 지정하려면 `cost.metrics.endpoint`를 설정하세요.
 :::
 
 :::details Right-Sizing 카드가 비어 있음
@@ -211,11 +211,11 @@ Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습�
 :::
 
 :::details 메모리 권장값은 -로 표시되지만 CPU 권장값은 작동함
-메모리 최대치가 OneUptime에 도달하지 않았으므로, 평균으로 추측하지 않고 메모리 크기를 정하지 않았습니다. 자체 엔진을 쓴다면 `cost.engine.prometheusUrl`을 설정하세요. 영향을 받는 컨테이너 수는 카드에 표시됩니다.
+메모리 최대치가 OneUptime에 도달하지 않았으므로, 평균으로 추측하지 않고 메모리 크기를 정하지 않았습니다. 자체 엔진을 쓴다면 비용 에이전트의 로그에 어떤 Prometheus를 읽는지, 또는 왜 찾지 못했는지가 나옵니다. `cost.engine.prometheusUrl`로 Prometheus를 지정하세요(Kubecost 3은 Prometheus를 읽지 않습니다). 영향을 받는 컨테이너 수는 카드에 표시됩니다.
 :::
 
 :::details 수치가 엔진 자체 UI와 다름
-OneUptime은 엔진의 조정(reconciliation) 금액을 각 비용 구성 요소에 포함하고, 마감된 시간을 통째로 보냅니다. 현재 시간의 지출은 그 시간이 마감된 뒤에 나타납니다.
+OneUptime은 마감된 시간을 통째로, 각 시간이 마감될 때 엔진이 매긴 가격대로, 엔진의 조정(reconciliation) 금액을 포함해 보냅니다. 현재 시간의 지출은 그 시간이 마감된 뒤에 나타납니다. 클라우드 청구서를 읽는 Kubecost는 약 하루 반 뒤에 각 시간을 그 청구서에 맞춰 조정하지만, OneUptime은 그 시간을 처음 매겨진 가격대로 유지합니다.
 :::
 
 :::details 번들 Prometheus가 다시 시작됨

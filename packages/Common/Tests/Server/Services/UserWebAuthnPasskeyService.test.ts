@@ -635,6 +635,44 @@ describe("UserWebAuthnService passkeys", () => {
     },
   );
 
+  /*
+   * A setup that may register either kind - sign-in's, where the mobile
+   * app asks for a passkey (#9817) - names it by what the server asked
+   * for, never by what the client says it is.
+   */
+  test.each([
+    [true, "Passkey"],
+    [false, "Security Key"],
+  ])(
+    "with a name for each kind, a passkey challenge (%s) is filed as %s",
+    async (isPasskey: boolean, expectedName: string) => {
+      await UserWebAuthnService.generateRegistrationOptions({
+        userId: USER_ID,
+        isPasskey,
+      });
+      await UserWebAuthnService.verifyRegistration({
+        credential: { isPasskey: !isPasskey },
+        name: "Security Key",
+        passkeyName: "Passkey",
+        props: { userId: USER_ID },
+      });
+      expect(createCredential.mock.calls[0]?.[0].data.name).toBe(expectedName);
+    },
+  );
+
+  test("with no name for a passkey, a passkey keeps the one name given", async () => {
+    await UserWebAuthnService.generateRegistrationOptions({
+      userId: USER_ID,
+      isPasskey: true,
+    });
+    await UserWebAuthnService.verifyRegistration({
+      credential: {},
+      name: "My passkey",
+      props: { userId: USER_ID },
+    });
+    expect(createCredential.mock.calls[0]?.[0].data.name).toBe("My passkey");
+  });
+
   test("preserves unknown purpose for challenges created before an upgrade", async () => {
     cache.set(`webauthn-registration-${USER_ID.toString()}`, {
       value: JSON.stringify({

@@ -189,7 +189,9 @@ import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import AIService, { AILogResponse } from "./AIService";
 import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
 import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import CreatedNotificationHold, {
   CreatedNotificationsDue,
   OwnersAddedBy,
@@ -5196,9 +5198,12 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the incident are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the incident are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: IncidentOwnerUserService,
       ownerTeamService: IncidentOwnerTeamService,
       resourceIdColumn: "incidentId",

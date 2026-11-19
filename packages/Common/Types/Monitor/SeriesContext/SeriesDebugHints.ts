@@ -1,6 +1,10 @@
 import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
+import {
+  MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+  ManagedDeviceCheckInAttribute,
+} from "../../DeviceManagement/ManagedDeviceCheckIn";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -413,9 +417,68 @@ export default class SeriesDebugHints {
     return commands;
   }
 
+  /*
+   * An Android device - the series carries its Android API level, which the
+   * Android host templates group by and only the Android agent sends, or
+   * says `os.name: Android` - has no shell to ssh into, but adb, which
+   * Esper's Secure Remote ADB and other device managers' remote ADB reach.
+   * Each command reads and changes nothing.
+   */
+  private static androidCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "mountpoint",
+    ]);
+
+    if (mountpoint) {
+      commands.push({
+        purpose: "Free space on the device's storage",
+        command: `adb shell df -h ${SeriesDebugHints.quoteForShell(mountpoint)}`,
+      });
+      commands.push({
+        purpose: "What fills it: apps, their data and caches",
+        command: "adb shell dumpsys diskstats",
+      });
+    }
+
+    commands.push({
+      purpose: "Battery, charger and temperature, as Android sees them",
+      command: "adb shell dumpsys battery",
+    });
+    commands.push({
+      purpose: "Thermal status, and what Android throttles",
+      command: "adb shell dumpsys thermalservice",
+    });
+    commands.push({
+      purpose: "Why the device last rebooted",
+      command: "adb shell getprop sys.boot.reason",
+    });
+    commands.push({
+      purpose: "The crashes and reboots Android kept, newest last",
+      command: "adb shell dumpsys dropbox",
+    });
+
+    return commands;
+  }
+
   private static hostCommands(
     seriesLabels: JSONObject,
   ): Array<SeriesDebugCommand> {
+    const osName: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "os.name",
+    ]);
+    const androidApiLevel: string = SeriesLabelDisplay.findLabelValue(
+      seriesLabels,
+      ["android.os.api_level"],
+    );
+
+    if (androidApiLevel || osName.trim().toLowerCase() === "android") {
+      return SeriesDebugHints.androidCommands(seriesLabels);
+    }
+
     const commands: Array<SeriesDebugCommand> = [];
 
     const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
@@ -1195,14 +1258,57 @@ export default class SeriesDebugHints {
         return SeriesDebugHints.mobileInstallCommands(seriesLabels);
 
       /*
-       * Metrics / IoT / RUM and friends deliberately return nothing: their
-       * series identify an application-level entity (a service, a device,
-       * a route), and there is no command that is both universally correct
+       * A Metrics monitor grouped by a managed device (Esper Device Stopped
+       * Checking In, #9835): the OneUptime CLI can show what the device's
+       * connection last read of it. Any other metric series has no command,
+       * as below.
+       */
+      case MonitorType.Metrics:
+        return SeriesDebugHints.managedDeviceCommands(seriesLabels);
+
+      /*
+       * IoT / RUM and friends deliberately return nothing: their series
+       * identify an application-level entity (a service, a device, a
+       * route), and there is no command that is both universally correct
        * and read-only for those. The resource block still names the entity.
        */
       default:
         return [];
     }
+  }
+
+  /*
+   * A managed device that stopped checking in: the readings its
+   * connection's last reads took of it, newest first, with the OneUptime CLI
+   * - how long it had been quiet at each read, so when it went quiet, and its
+   * alias and group on their attributes. Read-only; only for a series that
+   * names the device.
+   */
+  private static managedDeviceCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const device: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      ManagedDeviceCheckInAttribute.DeviceName,
+    ]);
+
+    if (!device) {
+      return [];
+    }
+
+    const query: string = JSON.stringify({
+      name: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+      attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
+    });
+
+    return [
+      {
+        purpose:
+          "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
+        command: `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
+          query,
+        )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
+    ];
   }
 
   /*

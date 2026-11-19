@@ -74,6 +74,7 @@ import TeamMemberService from "../../../Services/TeamMemberService";
 import UserService from "../../../Services/UserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
+import PendingInviteeProfiles from "../../TeamMember/PendingInviteeProfiles";
 import SecurityCaseValues from "../../SecurityCase/SecurityCaseValues";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
@@ -906,6 +907,18 @@ export default class ResourceSecurity {
         if (!email) {
           return null;
         }
+
+        /*
+         * Named as the project knows them: a membership can be an
+         * invitation not accepted yet, whose person the project sees only
+         * by the name typed for them, else their address - never by their
+         * account's own name (#9823, #9934). Searched for by the address
+         * either way: the project typed it.
+         */
+        await PendingInviteeProfiles.nameInProject({
+          users: [user],
+          projectId: data.projectId,
+        });
 
         return {
           name: user?.name?.toString() || email,

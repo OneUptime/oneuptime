@@ -17,6 +17,11 @@
       },
       "ios": {
         "image": "macos-tahoe-26.6-xcode-27.1"
+      },
+      "android": {
+        "buildArtifactPaths": [
+          "android/app/build/outputs/mapping/release/mapping.txt"
+        ]
       }
     }
   },

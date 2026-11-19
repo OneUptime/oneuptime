@@ -656,11 +656,12 @@ const NUMBERS: Record<string, Array<string>> = {
   // ...and the most projects the bot's question offers a button for.
   [TEAMS]: ["405", "404", "58", "24", "443", "15", "25"],
   /*
-   * Twilio's error for an SMS from a number that cannot send SMS. The
+   * Twilio's error for an SMS from a number that cannot send SMS, and the
+   * 403 a callback Twilio did not sign is refused with (#9979). The
    * separate-numbers section names no country, so no country's number
    * ranges either.
    */
-  [TWILIO]: ["443", "164", "21606"],
+  [TWILIO]: ["443", "164", "21606", "403"],
   [GITHUB]: ["15", "443"],
 };
 

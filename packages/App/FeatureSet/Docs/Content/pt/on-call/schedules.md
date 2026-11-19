@@ -40,7 +40,7 @@ Todo o resto fica em **Mais campos**, recolhido até você abrir:
 | Campo | O que faz |
 | --- | --- |
 | **Cada turno dura** | **1 dia**, **1 semana**, **2 semanas** ou **1 mês**, e **1 semana** se você não mudar. É perguntado assim que alguém se reveza. Cada pessoa fica de plantão por esse tempo, e depois a próxima assume, no horário do dia em que o agendamento foi criado. |
-| **Fuso horário** | O fuso horário em que os horários de passagem e os horários de plantão são guardados. Começa com o seu. |
+| **Fuso horário** | O fuso horário em que os horários de passagem e os horários de plantão são guardados. Começa com o seu. Cada fuso horário segue as regras atuais da sua região: America/Vancouver (Colúmbia Britânica) fica em UTC-7 o ano todo a partir de 2026. |
 | **Descrição** | Notas sobre o agendamento. |
 | **Rótulos** | Rótulos para encontrar e agrupar o agendamento. |
 

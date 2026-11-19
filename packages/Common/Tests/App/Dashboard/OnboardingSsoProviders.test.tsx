@@ -46,8 +46,9 @@ import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 /*
  * Dashboard > a project's single sign-on page (Onboarding/SSO,
  * /dashboard/<project>/sso): where a user lands when a project requires
- * SSO - itself, or because the whole server does - and what the project's
- * Test Single Sign On (SSO) link opens.
+ * SSO - itself, or because the whole server does. (Settings > SSO's link
+ * to test and share is the project's SSO sign-in link on the Accounts
+ * app, #9918, which lists the same providers by the same read.)
  *
  * It lists every provider that signs people in to the project, one button
  * each, read from the identity server (GET
@@ -486,11 +487,12 @@ describe("Dashboard project SSO sign-in page", () => {
   });
 
   /*
-   * The project's Test Single Sign On (SSO) card links here to test a
-   * provider before it is required of everyone (it prints
-   * <dashboard>/<projectId>/sso, pinned in SsoPages.test.tsx).
+   * A project that requires SSO sends the people it signed in another way
+   * here. Settings > SSO's link to test and share is the project's SSO
+   * sign-in link on the Accounts app (#9918, pinned in SsoPages.test.tsx),
+   * which someone who is not signed in can open too.
    */
-  test("is the page the Settings test links open", () => {
+  test("is the page at the project's own sso address", () => {
     expect(RouteMap[PageMap.PROJECT_SSO]!.toString()).toBe(
       "/dashboard/:projectId/sso",
     );

@@ -83,7 +83,7 @@ const INCIDENT_ID: string = "66666666-6666-4666-8666-666666666666";
 const HOST_ID: string = "77777777-7777-4777-8777-777777777777";
 
 describe("TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES", () => {
-  test("is exactly OneUptime's own operational data: monitors, alerts, incidents, SLOs, table health, pipeline runs, data products, reconciliations and BI refreshes", () => {
+  test("is exactly OneUptime's own operational data: monitors, alerts, incidents, SLOs, table health, pipeline runs, data products, reconciliations, BI refreshes and managed devices' check-ins", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES].sort()).toEqual(
       [
         ServiceType.Monitor,
@@ -95,8 +95,21 @@ describe("TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES", () => {
         ServiceType.DataProduct,
         ServiceType.DataReconciliation,
         ServiceType.DataBiConnection,
+        ServiceType.DeviceManagementConnection,
       ].sort(),
     );
+  });
+
+  // #9835: how long since each device checked in, written at every read.
+  test("never bills the minutes since each managed device checked in, which OneUptime writes itself", () => {
+    expect(
+      isTelemetryBillingExcludedEntityType(
+        ServiceType.DeviceManagementConnection,
+      ),
+    ).toBe(true);
+    expect(
+      isTelemetryBillingExcludedEntityType("DeviceManagementConnection"),
+    ).toBe(true);
   });
 
   test("never bills Data Observability's oneuptime.data.table.*, oneuptime.data.pipeline.* or oneuptime.data.product.* rows", () => {

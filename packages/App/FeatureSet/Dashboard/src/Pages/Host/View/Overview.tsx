@@ -15,6 +15,7 @@ import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import HostOperatingSystem from "Common/Utils/Host/HostOperatingSystem";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -1337,9 +1338,10 @@ const HostOverview: FunctionComponent<
     }> = [];
 
     if (host.osType) {
+      // "Android" with its mark for an Android device; "Linux", "macOS", "Windows" for the rest (#9804).
       specChips.push({
-        icon: IconProp.Cog,
-        label: String(host.osType),
+        icon: HostOperatingSystem.getIcon(host.osType) || IconProp.Cog,
+        label: HostOperatingSystem.getLabel(host.osType) || String(host.osType),
       });
     }
     if (host.osVersion) {
@@ -2178,9 +2180,17 @@ const HostOverview: FunctionComponent<
   const renderOsTypeChip: (item: Host) => ReactElement = (
     item: Host,
   ): ReactElement => {
+    const osIcon: IconProp | undefined = HostOperatingSystem.getIcon(
+      item.osType,
+    );
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200 capitalize">
-        {String(item.osType)}
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200">
+        {osIcon ? (
+          <Icon icon={osIcon} className="me-1 h-3.5 w-3.5 text-slate-500" />
+        ) : (
+          <></>
+        )}
+        {HostOperatingSystem.getLabel(item.osType) || String(item.osType)}
       </span>
     );
   };

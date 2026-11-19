@@ -23,6 +23,8 @@ import {
   CodeTaskBlockerType,
 } from "../../../Types/AI/CodeTask";
 import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
+import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
@@ -333,6 +335,23 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
 });
 
 describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page offers)", () => {
+  // Who reads the service's page: a member, who may read the task unless a test says.
+  const READER: DatabaseCommonInteractionProps = {
+    userId,
+    tenantId: projectId,
+  };
+  let hiddenTaskIds: Set<string>;
+  let hiddenFrom: jest.SpyInstance;
+
+  beforeEach(() => {
+    hiddenTaskIds = new Set<string>();
+    hiddenFrom = jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockImplementation(async () => {
+        return hiddenTaskIds;
+      });
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -344,8 +363,71 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       projectId,
       telemetryServiceId,
       taskType,
+      reader: READER,
     });
   }
+
+  /*
+   * A reply someone sent in Code keeps the improvement on its way (#9882):
+   * and one that carried a private incident or alert into the task, which
+   * the person may not open, is there - no second card - and nothing of
+   * it, not even the link.
+   */
+  test("an improvement on its way in a task hidden from the person: nothing, and no link", async () => {
+    aiSwitch(true);
+    const taskId: ObjectID = ObjectID.generate();
+    const reply: AIRun = new AIRun();
+    reply.id = ObjectID.generate();
+    reply.codeTaskId = taskId;
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue(reply);
+    hiddenTaskIds = new Set<string>([taskId.toString().toLowerCase()]);
+    const check: jest.SpyInstance = gateSays(null);
+
+    expect(await suggest()).toEqual({
+      offer: SuggestionOffer.None,
+      aiRunId: null,
+    });
+    // Asked of the task (a reply's is its first turn), for the person.
+    expect(hiddenFrom).toHaveBeenCalledWith({
+      projectId,
+      taskIds: [taskId],
+      reader: READER,
+    });
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  test("a reply working on the improvement in a task the person may read: a link to its task", async () => {
+    aiSwitch(true);
+    const taskId: ObjectID = ObjectID.generate();
+    const reply: AIRun = new AIRun();
+    reply.id = ObjectID.generate();
+    reply.codeTaskId = taskId;
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue(reply);
+
+    expect(await suggest()).toEqual({
+      offer: SuggestionOffer.InProgress,
+      aiRunId: taskId.toString(),
+    });
+  });
+
+  test("nothing on its way: no task's sight is asked", async () => {
+    aiSwitch(true);
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+      .mockResolvedValue(true);
+    mockService();
+    gateSays(null);
+
+    expect((await suggest()).offer).toBe(SuggestionOffer.Act);
+    expect(hiddenFrom).not.toHaveBeenCalled();
+  });
 
   test("a recipe that is not a logging or tracing improvement: nothing, nothing read", async () => {
     const isEnabled: jest.SpyInstance = jest.spyOn(

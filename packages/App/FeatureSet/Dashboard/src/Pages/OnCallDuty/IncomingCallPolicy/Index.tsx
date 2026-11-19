@@ -46,8 +46,24 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IncomingCallAnswerCallsOffBanner from "../../../Components/IncomingCallPolicy/IncomingCallAnswerCallsOffBanner";
+import {
+  getIncomingCallTwilioConfigQuery,
+  IncomingCallTwilioConfigCopy,
+  isIncomingCallTwilioConfig,
+} from "../../../Components/IncomingCallPolicy/IncomingCallTwilioConfigCopy";
 import { TWILIO_CONFIG_PLACE } from "../../../Components/NotificationMethods/OwnSendersFold";
 import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
+
+/*
+ * How many of the project's Twilio configs the picker would list - the ones
+ * used for calls - and how many it has at all, read as the picker opens: a
+ * project with none is asked to add one, and one whose configs are all used
+ * for SMS only is told so (IncomingCallTwilioConfigCopy).
+ */
+interface TwilioConfigCounts {
+  forCalls: number;
+  total: number;
+}
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
@@ -65,9 +81,8 @@ const IncomingCallPolicyView: FunctionComponent<
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
   const [showTwilioConfigModal, setShowTwilioConfigModal] =
     useState<boolean>(false);
-  const [twilioConfigCount, setTwilioConfigCount] = useState<number | null>(
-    null,
-  );
+  const [twilioConfigCounts, setTwilioConfigCounts] =
+    useState<TwilioConfigCounts | null>(null);
   const [isLoadingTwilioConfigs, setIsLoadingTwilioConfigs] =
     useState<boolean>(false);
   const [escalationRulesCount, setEscalationRulesCount] = useState<number>(0);
@@ -97,6 +112,8 @@ const IncomingCallPolicyView: FunctionComponent<
               projectCallSMSConfigId: true,
               projectCallSMSConfig: {
                 name: true,
+                // One used for SMS only is listed no more: its card says so.
+                usedFor: true,
               },
               projectId: true,
               routingPhoneNumber: true,
@@ -160,7 +177,10 @@ const IncomingCallPolicyView: FunctionComponent<
     });
   };
 
-  // Fetch Twilio config count when modal opens
+  /*
+   * When the picker opens: how many configs it would list - the ones used
+   * for calls - and how many the project has at all.
+   */
   useAsyncEffect(async () => {
     if (!showTwilioConfigModal) {
       return;
@@ -168,13 +188,19 @@ const IncomingCallPolicyView: FunctionComponent<
 
     try {
       setIsLoadingTwilioConfigs(true);
-      const count: number = await ModelAPI.count({
-        modelType: ProjectCallSMSConfig,
-        query: {},
-      });
-      setTwilioConfigCount(count);
+      const [forCalls, total] = await Promise.all([
+        ModelAPI.count({
+          modelType: ProjectCallSMSConfig,
+          query: getIncomingCallTwilioConfigQuery(),
+        }),
+        ModelAPI.count({
+          modelType: ProjectCallSMSConfig,
+          query: {},
+        }),
+      ]);
+      setTwilioConfigCounts({ forCalls: forCalls, total: total });
     } catch {
-      setTwilioConfigCount(0);
+      setTwilioConfigCounts({ forCalls: 0, total: 0 });
     } finally {
       setIsLoadingTwilioConfigs(false);
     }
@@ -190,6 +216,15 @@ const IncomingCallPolicyView: FunctionComponent<
 
   // Determine step completion status
   const hasTwilioConfig: boolean = Boolean(policy?.projectCallSMSConfigId);
+  /*
+   * A config made SMS only after it was picked: the policy keeps it - calls
+   * to its numbers still ring - and the card says what to change. A config
+   * whose use could not be read is not called SMS only.
+   */
+  const isTwilioConfigSmsOnly: boolean =
+    hasTwilioConfig &&
+    Boolean(policy?.projectCallSMSConfig) &&
+    !isIncomingCallTwilioConfig(policy?.projectCallSMSConfig?.usedFor);
   const hasPhoneNumbers: boolean = phoneNumbers.length > 0;
   const hasEscalationRules: boolean = escalationRulesCount > 0;
   const isSetupComplete: boolean =
@@ -301,7 +336,29 @@ const IncomingCallPolicyView: FunctionComponent<
             <div className="flex items-center justify-center w-8 h-8 shrink-0 rounded-full bg-gray-200 text-gray-700 font-semibold text-sm">
               1
             </div>
-            {hasTwilioConfig ? (
+            {hasTwilioConfig && isTwilioConfigSmsOnly ? (
+              <div
+                className="flex min-w-0 items-center gap-3"
+                data-testid="incoming-call-twilio-config-sms-only"
+              >
+                <div className="w-10 h-10 shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Icon
+                    icon={IconProp.ExclaimationCircle}
+                    className="h-6 w-6 text-yellow-600"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900">
+                    {policy?.projectCallSMSConfig?.name}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {translator.translateText(
+                      IncomingCallTwilioConfigCopy.smsOnlyNote,
+                    )}
+                  </p>
+                </div>
+              </div>
+            ) : hasTwilioConfig ? (
               <div className="flex min-w-0 items-center gap-3">
                 <div className="w-10 h-10 shrink-0 bg-green-100 rounded-full flex items-center justify-center">
                   <Icon
@@ -534,6 +591,18 @@ const IncomingCallPolicyView: FunctionComponent<
               <p className="font-medium text-gray-900">
                 {policy?.projectCallSMSConfig?.name}
               </p>
+              {isTwilioConfigSmsOnly ? (
+                <p
+                  className="text-sm text-gray-500"
+                  data-testid="incoming-call-twilio-config-sms-only"
+                >
+                  {translator.translateText(
+                    IncomingCallTwilioConfigCopy.smsOnlyNote,
+                  )}
+                </p>
+              ) : (
+                <></>
+              )}
             </div>
           </div>
           <p className="ml-auto text-xs text-gray-500">
@@ -630,12 +699,21 @@ const IncomingCallPolicyView: FunctionComponent<
 
       <div className="mt-5">{isSetupComplete ? setupCard : detailsCard}</div>
 
-      {/* Twilio Configuration Modal - No Configs Warning */}
+      {/*
+       * Twilio Configuration Modal - nothing to pick: no config at all, or
+       * only configs used for SMS only, which take no calls - each said as
+       * it is, with the way to the Twilio Config table.
+       */}
       {showTwilioConfigModal &&
         !isLoadingTwilioConfigs &&
-        twilioConfigCount === 0 && (
+        twilioConfigCounts !== null &&
+        twilioConfigCounts.forCalls === 0 && (
           <Modal
-            title="No Twilio Configuration Found"
+            title={
+              twilioConfigCounts.total > 0
+                ? IncomingCallTwilioConfigCopy.noCallConfigTitle
+                : "No Twilio Configuration Found"
+            }
             onClose={() => {
               setShowTwilioConfigModal(false);
             }}
@@ -654,7 +732,11 @@ const IncomingCallPolicyView: FunctionComponent<
           >
             <Alert
               type={AlertType.WARNING}
-              title="Add a Twilio configuration first, under Project Settings > Notifications > Notification Channels."
+              title={
+                twilioConfigCounts.total > 0
+                  ? IncomingCallTwilioConfigCopy.noCallConfigMessage
+                  : "Add a Twilio configuration first, under Project Settings > Notifications > Notification Channels."
+              }
             />
           </Modal>
         )}
@@ -674,8 +756,8 @@ const IncomingCallPolicyView: FunctionComponent<
       {/* Twilio Configuration Modal - Form */}
       {showTwilioConfigModal &&
         !isLoadingTwilioConfigs &&
-        twilioConfigCount !== null &&
-        twilioConfigCount > 0 && (
+        twilioConfigCounts !== null &&
+        twilioConfigCounts.forCalls > 0 && (
           <ModelFormModal<IncomingCallPolicy>
             title="Select Twilio Configuration"
             description="The Twilio account this policy's numbers and calls run on."
@@ -701,14 +783,20 @@ const IncomingCallPolicyView: FunctionComponent<
                   },
                   title: "Twilio Configuration",
                   fieldType: FormFieldSchemaType.Dropdown,
+                  /*
+                   * Only the configs that make calls: a policy takes calls,
+                   * and a config used for SMS only takes none
+                   * (IncomingCallTwilioConfigCopy, #8885) - as a status
+                   * page's picker lists only the configs that send SMS.
+                   */
                   dropdownModal: {
                     type: ProjectCallSMSConfig,
                     labelField: "name",
                     valueField: "_id",
+                    query: getIncomingCallTwilioConfigQuery(),
                   },
                   required: true,
-                  description:
-                    "Select the Twilio configuration to use for incoming calls.",
+                  description: IncomingCallTwilioConfigCopy.pickerDescription,
                 },
               ],
             }}

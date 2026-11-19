@@ -340,6 +340,8 @@ enum IconProp {
   UserIcon = "UserIcon",
   XCircle = "XCircle",
   Kubernetes = "Kubernetes",
+  // Android's mark: the OS of a host the Android agent reports.
+  Android = "Android",
   Docker = "Docker",
   DockerSwarm = "DockerSwarm",
   Podman = "Podman",

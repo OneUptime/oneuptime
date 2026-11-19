@@ -71,7 +71,7 @@ Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lan
 
 ### Asset-Details
 
-Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
+Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Die Karte eines Android-Geräts enthält außerdem seine Sicherheitspatch-Ebene, vom Android-Agenten oder von Esper. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
 
 - Die Fakten eines Hosts stammen aus den Ressourcenattributen seiner Telemetrie: seine IP- und MAC-Adressen, Architektur und Betriebssystem von Haus aus, und seine Seriennummer, Marke, Modell und Firmware, sobald Sie sie aufprägen.
 - Die Fakten eines Netzwerkgeräts stammen aus seiner SNMP-Abfrage, seiner Rolle und seinem Standort. Was seine Abfrage nicht gelesen hat, stammt aus der Erkennung: dem letzten Scan seiner Adresse, der ARP-Tabelle eines Routers oder der DNS-Abfrage seiner Sonde. Ein Gerät ohne ENTITY-MIB, etwa ein Meraki MX, erhält Marke, Modell und Betriebssystem trotzdem aus seiner Systembeschreibung und seine MAC-Adresse von seinen eigenen Ports. Seine IP-Adresse wird nie als sein Hostname angezeigt.
@@ -127,6 +127,12 @@ OneUptime findet das Element eines Geräts über seinen Namen in Esper, dann üb
 Ein Gerät, das sich 30 Minuten lang nicht bei Esper gemeldet hat, ist **Offline** und zeigt, wie lange sein letzter Kontakt her ist. Der **Status** seines Elements folgt seinem letzten Kontakt oder seiner Telemetrie, wenn diese neuer ist, sodass ein Gerät, das einen Tag lang still war, auf der Seite **Verstummt** steht.
 
 Ein aus Esper entferntes Gerät wird als **Entfernt** markiert, und sein Element wird archiviert: Es verschwindet aus der Liste und wartet unter **Erweitert → Archiviert**. Ein Gerät, das zu Esper zurückkehrt, kehrt auch in die Liste zurück. 30 Tage, nachdem es Esper verlassen hat, wird das Gerät gelöscht und mit ihm sein Element, es sei denn, Telemetrie oder Sie haben dem Element etwas hinzugefügt.
+
+### Eine Warnung erhalten, wenn sich ein Gerät nicht mehr meldet
+
+Klicken Sie unter **Verwaltete Geräte** in der Zeile der Verbindung auf **Warnungen einrichten**, und erstellen Sie **Esper Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einer Stunde nicht bei Esper gemeldet hat, eine eigene Warnung, die nach dem Gerät benannt ist, und behebt sie, sobald sich das Gerät wieder meldet.
+
+Jeder Lesevorgang der Verbindung hält als Metrik `oneuptime.managed_device.check_in.age` fest, vor wie vielen Minuten sich jedes Gerät zuletzt gemeldet hat, und der Monitor prüft alle 5 Minuten den neuesten Wert jedes Geräts. Ein Gerät, auf dem auch der Android-Agent läuft, bleibt **Host Stopped Reporting** überlassen, sodass es nie doppelt warnt, und die Warnung eines aus Esper entfernten Geräts wird behoben. Ein fehlgeschlagener Lesevorgang hält nichts fest, sodass bis zum nächsten keine Warnung geöffnet oder behoben wird. Für eine Flotte, die nachts ausgeschaltet wird, erhöhen Sie den Schwellenwert des Monitors.
 
 ## Etwas von Hand hinzufügen
 

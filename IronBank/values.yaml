@@ -15,10 +15,10 @@ image:
   # for evaluation.
   type: enterprise-edition
   overrides:
-    app: registry1.dso.mil/ironbank/oneuptime/app:14.0.102
-    nginx: registry1.dso.mil/ironbank/oneuptime/ingress:14.0.102
-    runner: registry1.dso.mil/ironbank/oneuptime/runner:14.0.102
-    probe: registry1.dso.mil/ironbank/oneuptime/probe:14.0.102
+    app: registry1.dso.mil/ironbank/oneuptime/app:16.0.0
+    nginx: registry1.dso.mil/ironbank/oneuptime/ingress:16.0.0
+    runner: registry1.dso.mil/ironbank/oneuptime/runner:16.0.0
+    probe: registry1.dso.mil/ironbank/oneuptime/probe:16.0.0
     postgres: registry1.dso.mil/ironbank/opensource/postgres/postgresql:17.11
     clickhouse: registry1.dso.mil/ironbank/opensource/clickhouse:26.3.20.7
     valkey: registry1.dso.mil/ironbank/opensource/valkey-io/valkey:9.1.3

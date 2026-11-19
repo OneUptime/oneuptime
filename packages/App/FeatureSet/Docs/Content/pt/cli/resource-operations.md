@@ -207,6 +207,20 @@ Ela responde `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.
 > [!CAUTION]
 > `delete` remove o registro na hora. A CLI não pede confirmação, e não há como desfazer. Ela aceita `--force`, para os scripts escritos com ele, e `--force` não muda nada.
 
+### Uma função personalizada com a qual workflows são executados
+
+O OneUptime só exclui uma função personalizada com a qual workflows são executados quando a exclusão diz com o que eles são executados no lugar, e recusa a que não diz, nomeando os workflows. Diga isso com `--workflows-run-as`: `Default`, as permissões padrão, ou `CustomRole`, outra função personalizada que você poderia dar a uma equipe, com o ID dela em `--workflows-run-as-custom-role-id`. Nunca Project Owner: excluir uma função nunca amplia o que um workflow pode fazer.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+Uma exclusão recusada imprime a recusa do OneUptime, que nomeia os workflows, e depois as flags com que executá-la de novo. Uma função com a qual nenhum workflow é executado não precisa de nenhuma das duas.
+
 ## Contar registros
 
 ```bash

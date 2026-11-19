@@ -8,6 +8,7 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
@@ -381,7 +382,7 @@ const CheckList: FunctionComponent<{
                             {check.mcpTool.server}
                           </bdi>
                           <span aria-hidden="true" className="text-gray-400">
-                            {" · "}
+                            <InlineSeparator />
                           </span>
                           <code
                             dir="ltr"

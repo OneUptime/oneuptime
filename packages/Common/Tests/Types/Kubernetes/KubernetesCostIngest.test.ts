@@ -225,12 +225,22 @@ describe("KubernetesCostIngest", () => {
       expect(Object.keys(payloadFields).sort()).toEqual([
         "allocations",
         "clusterName",
+        "costEngine",
         "currency",
         "shipmentChunk",
         "shipmentId",
       ]);
       expect(payloadFields["clusterName"]?.optional).toBe(false);
       expect(payloadFields["allocations"]?.optional).toBe(false);
+      /*
+       * Which engine priced the rows (#9633, #9634): an agent older than
+       * the field sends none, so it stays optional.
+       */
+      expect(payloadFields["costEngine"]).toEqual({
+        name: "costEngine",
+        optional: true,
+        type: "KubernetesCostEngineInfo | undefined",
+      });
     });
   });
 });

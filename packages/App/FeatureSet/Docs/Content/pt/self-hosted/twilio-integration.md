@@ -147,6 +147,12 @@ O que nenhuma configuração padrão envia sai como sairia sem configuração: e
 
 As páginas de status oferecem só as configurações que enviam SMS, e **Enviar SMS de teste** e **Enviar chamada de teste** aparecem só para o que uma configuração envia. Toda configuração existente fica em **Chamadas e SMS**, como antes. Pela API e pelo Terraform, a escolha é o campo `usedFor`, e uma configuração sem os números de que sua escolha precisa é recusada.
 
+### Caixa postal nas chamadas de plantão
+
+Para o Twilio, uma chamada atendida pela caixa postal foi atendida, como uma atendida por uma pessoa. Por isso cada chamada de plantão pergunta ao Twilio, em segundo plano, se uma pessoa ou a caixa postal atendeu, com a [detecção de secretária eletrônica](https://www.twilio.com/docs/voice/answering-machine-detection): quem atende ouve o acionamento na hora. Uma chamada atendida pela caixa postal conta como não atendida, como uma que toca até cair, e o acionamento continua como para uma chamada perdida. Assim que a saudação termina, o OneUptime deixa uma mensagem curta com o que a chamada dizia. O log da chamada diz se uma mensagem foi deixada, assim como o feed do incidente: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+O Twilio cobra a detecção de secretária eletrônica por cada chamada atendida que verifica, na conta que faz a chamada: a conta de toda a instalação ou a configuração própria do projeto. Ela vem ativada em todos os projetos. Para desativá-la, desative **Caixa postal nas chamadas de plantão** em **Mais configurações** de **Configurações do projeto > Notificações > Canais de notificação**: uma chamada atendida pela caixa postal volta a contar como atendida, como antes. **Enviar chamada de teste** e as chamadas recebidas nunca são verificadas. Assim como o resultado das chamadas, ela precisa que o Twilio alcance o seu servidor: veja a próxima seção.
+
 ## 3. Configure o acesso à rede
 
 O envio funciona só com acesso de saída. As atualizações de entrega, o resultado das chamadas, a confirmação pelo teclado e as chamadas recebidas precisam que o Twilio alcance o seu servidor.
@@ -171,7 +177,7 @@ O acesso de entrada depende do recurso:
 | --- | --- |
 | Envio de SMS | Não. As atualizações do status de entrega, porém, precisam de um callback. |
 | Uma chamada de voz de teste simples | Não. O OneUptime envia as instruções faladas junto com a requisição de saída à API. |
-| Saber se uma chamada de plantão foi atendida | Sim. O Twilio informa como cada chamada terminou, para que o feed do incidente possa dizer quando alguém não atendeu. As chamadas saem mesmo sem isso. |
+| Saber se uma chamada de plantão foi atendida | Sim. O Twilio informa como cada chamada terminou, e se uma pessoa ou a caixa postal atendeu, para que o feed do incidente possa dizer quando alguém não atendeu. As chamadas saem mesmo sem isso. |
 | Pressionar 1 para confirmar um alerta de plantão | Sim. O Twilio envia a entrada do teclado ao OneUptime. |
 | Políticas de chamadas recebidas | Sim. O Twilio pede as instruções da chamada e informa os resultados da discagem. |
 
@@ -181,13 +187,17 @@ Estes são os caminhos externos, pelo gateway Nginx do OneUptime. Os marcadores 
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Status de entrega do SMS |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Resultado da chamada |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Se uma pessoa ou a caixa postal atendeu uma chamada de plantão |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Confirmação pelo teclado |
 | POST | `/notification/incoming-call/voice` | Instruções opcionais de chamadas recebidas |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Resultados opcionais do roteamento de chamadas recebidas |
 
 O OneUptime gera automaticamente as URLs dos SMS, do resultado das chamadas e da confirmação. Não substitua os tokens delas por uma URL de webhook fixa. Para chamadas recebidas, siga [as políticas de chamadas recebidas](/docs/on-call/incoming-call-policy), que configuram o webhook do número quando você o associa.
 
-O Twilio exige [URLs de webhook acessíveis publicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use um certificado TLS de confiança pública e preserve, através dos proxies, o host, o protocolo, o caminho, os parâmetros de consulta, o corpo e o cabeçalho `X-Twilio-Signature` originais. Os handlers de chamadas recebidas validam as assinaturas do Twilio; a entrega de SMS e o resultado das chamadas usam um token de URL por mensagem ou chamada, e a confirmação pelo teclado, um token de consulta assinado. Não exponha os tokens em logs compartilhados nem em capturas de tela. Veja [a segurança dos webhooks do Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+O Twilio exige [URLs de webhook acessíveis publicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use um certificado TLS de confiança pública e preserve, através dos proxies, o host, o protocolo, o caminho, os parâmetros de consulta, o corpo e o cabeçalho `X-Twilio-Signature` originais. Cada callback da tabela verifica a assinatura do Twilio, feita com o Auth Token da conta do Twilio que enviou o SMS ou fez a chamada: a configuração do Twilio do projeto ou a conta da instalação inteira. Os callbacks de entrega de SMS, de resultado da chamada e da caixa postal também verificam o token da sua URL, e a confirmação pelo teclado, o token assinado da sua consulta: a assinatura mostra que uma solicitação vem do Twilio, e o token, de qual SMS ou chamada se trata. Um callback cuja assinatura não confere é recusado com um 403 e não muda nada. Não exponha os tokens em logs compartilhados nem em capturas de tela. Veja [a segurança dos webhooks do Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+
+> [!IMPORTANT]
+> O Twilio assina a URL exata que chama e cada parâmetro que envia, então o OneUptime recusa um callback que um proxy alterou no caminho, e os status de entrega de SMS, os resultados das chamadas e a confirmação pelo teclado param de ser atualizados. Verifique se cada proxy entre o Twilio e o OneUptime repassa o caminho, a query string, o corpo e o cabeçalho `X-Twilio-Signature` sem alterações e sem redirecionar. O OneUptime verifica a assinatura com a URL que `HOST` e `HTTP_PROTOCOL` geram e com a que os cabeçalhos `Host`, `X-Forwarded-Host` e `X-Forwarded-Proto` da solicitação indicam, então basta que uma delas seja a URL pública que o Twilio chamou. Para cada callback recusado, o log do servidor tem uma linha que começa com `Twilio callback refused` e diz por quê, sem os tokens nem o Auth Token.
 
 ### Publicar callbacks a partir de uma implantação privada
 
@@ -224,7 +234,7 @@ Para desenvolvimento, o [guia de testes de webhooks](https://www.twilio.com/docs
 | Nada é enviado | As credenciais, os recursos do número, as restrições da conta e a conectividade de saída. |
 | O Twilio recusa SMS com o erro 21606 | O número não pode enviar SMS. Adicione um que possa em **Números de Telefone SMS do Twilio**: veja [Números separados para chamadas e SMS](#números-separados-para-chamadas-e-sms). |
 | Chamadas ou SMS saem por outra conta que não a do projeto | Nenhuma configuração é a padrão do projeto para elas: a coluna **Padrão do projeto** mostra de que cada configuração é padrão. Veja [Uma conta só para SMS, ou só para chamadas](#uma-conta-só-para-sms-ou-só-para-chamadas). |
-| O SMS ou a chamada chega, mas o status ou a confirmação não é atualizado | A URL do callback e os logs do ingress público. O [guia do Twilio sobre falhas de obtenção HTTP](https://www.twilio.com/docs/api/errors/11200) ajuda a diagnosticar callbacks inacessíveis, problemas de TLS e erros HTTP. |
+| O SMS ou a chamada chega, mas o status ou a confirmação não é atualizado | A URL do callback e os logs do ingress público. O [guia do Twilio sobre falhas de obtenção HTTP](https://www.twilio.com/docs/api/errors/11200) ajuda a diagnosticar callbacks inacessíveis, problemas de TLS e erros HTTP. Um 403 significa que o OneUptime recusou o callback: o log do servidor diz por quê, em uma linha que começa com `Twilio callback refused`. |
 
 Uma chamada de teste bem-sucedida, sozinha, não prova que os callbacks são acessíveis.
 

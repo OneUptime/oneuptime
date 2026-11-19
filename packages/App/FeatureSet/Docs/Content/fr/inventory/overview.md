@@ -71,7 +71,7 @@ Ouvrez un élément : son propre menu latéral contient sa **Vue d'ensemble** (s
 
 ### Détails de l'actif
 
-Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui décrit les deux de la même façon : nom d'hôte, adresse IP, adresse MAC, numéro de série, fabricant, modèle, version du firmware, système d'exploitation, version du système d'exploitation, type d'appareil et emplacement. Un fait que rien n'a signalé indique **Inconnu**, et la carte explique pourquoi c'est le cas et comment les inconnus se remplissent : un équipement qui ne les signale pas par SNMP, un équipement pas encore lu, ou un équipement Meraki dont le tableau de bord les détient.
+Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui décrit les deux de la même façon : nom d'hôte, adresse IP, adresse MAC, numéro de série, fabricant, modèle, version du firmware, système d'exploitation, version du système d'exploitation, type d'appareil et emplacement. La carte d'un appareil Android indique aussi son niveau de correctif de sécurité, fourni par l'Agent Android ou par Esper. Un fait que rien n'a signalé indique **Inconnu**, et la carte explique pourquoi c'est le cas et comment les inconnus se remplissent : un équipement qui ne les signale pas par SNMP, un équipement pas encore lu, ou un équipement Meraki dont le tableau de bord les détient.
 
 - Les faits d'un hôte viennent des attributs de ressource de sa télémétrie : ses adresses IP et MAC, son architecture et son système d'exploitation d'emblée, et son numéro de série, sa marque, son modèle et son firmware une fois que vous les y apposez.
 - Les faits d'un équipement réseau viennent de son interrogation SNMP, de son rôle et de son site. Ce que son interrogation n'a pas lu vient de la découverte : la dernière analyse de son adresse, la table ARP d'un routeur ou la résolution DNS de sa sonde. Un équipement sans ENTITY-MIB, comme un Meraki MX, obtient tout de même sa marque, son modèle et son système d'exploitation à partir de sa description système, et son adresse MAC à partir de ses propres ports. Son adresse IP n'est jamais affichée comme son nom d'hôte.
@@ -127,6 +127,12 @@ OneUptime trouve l'élément d'un appareil par son nom dans Esper, puis par son 
 Un appareil qui n'a pas contacté Esper depuis 30 minutes est **Hors ligne**, et indique à quand remonte son dernier contact. Le **Statut** de son élément suit son dernier contact, ou sa télémétrie quand elle est plus récente, si bien qu'un appareil silencieux depuis une journée figure sur la page **Devenu silencieux**.
 
 Un appareil retiré d'Esper est marqué **Retiré**, et son élément est archivé : il quitte la liste, et attend sous **Avancé → Archivé**. Un appareil qui revient dans Esper revient dans la liste. 30 jours après son départ, l'appareil est supprimé, et son élément aussi, sauf si quelque chose y a été ajouté, par la télémétrie ou par vous.
+
+### Recevoir une alerte quand un appareil ne se manifeste plus
+
+Dans **Appareils gérés**, cliquez sur **Configurer des alertes** sur la ligne de la connexion, et créez **Esper Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Esper depuis plus d'une heure, au nom de l'appareil, et la résout dès que l'appareil se manifeste à nouveau.
+
+Chaque lecture de la connexion enregistre il y a combien de minutes chaque appareil a contacté Esper pour la dernière fois, sous la forme de la métrique `oneuptime.managed_device.check_in.age`, et le moniteur vérifie la dernière valeur de chaque appareil toutes les 5 minutes. Un appareil qui exécute aussi l'Agent Android est laissé à **Host Stopped Reporting**, si bien qu'il n'alerte jamais deux fois, et un appareil retiré d'Esper résout son alerte. Une lecture qui échoue n'enregistre rien, si bien qu'aucune alerte ne s'ouvre ni ne se résout avant la suivante. Pour une flotte éteinte la nuit, relevez le seuil du moniteur.
 
 ## Ajouter quelque chose à la main
 
