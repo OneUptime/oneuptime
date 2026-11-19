@@ -13,7 +13,7 @@ Une politique d'astreinte décide qui est alerté pour un incident ou une alerte
 
 :::steps
 1. Allez dans **Astreinte → Politiques d'astreinte** et cliquez sur **Créer une politique d'astreinte**.
-2. Saisissez un **Nom**, par exemple « Paiements principal ».
+2. Saisissez un **Nom**, par exemple « Paiements principal ». Un nom que porte déjà une autre politique du projet, y compris une politique archivée, est refusé, quels que soient sa casse ou ses espaces, afin que chaque sélecteur distingue les politiques.
 3. Sous **Qui est alerté en premier ?**, cliquez sur **Ajouter un intervenant** et choisissez les plannings d'astreinte, les équipes et les personnes à alerter en premier.
 4. Cliquez sur **Créer une politique d'astreinte**. La politique s'ouvre sur sa page **Règles d'escalade**, avec **Level 1** déjà en place.
 :::
@@ -26,7 +26,7 @@ Le formulaire demande aussi **La déclencher pour chaque nouvel incident et chaq
 
 Pour être guidé pas à pas à la place, de votre téléphone jusqu'à une alerte de test, cliquez sur **Configuration guidée** : sur la liste **Politiques d'astreinte** vide, ou sous **Fonctionnement**. Voir [Être alerté par appel, SMS ou push](/docs/guides/paging).
 
-La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Alertés en premier**, **Description**, **Étiquettes** et **Propriétaires**. **Alertés en premier** indique qui est alerté par la première règle d'escalade de la politique : ses plannings, chacun avec la personne qui y est d'astreinte en ce moment, ses équipes et les personnes qu'elle nomme, ou **Aucune règle d'escalade** ou **Aucun intervenant** quand elle n'alerte personne. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
+La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Alertés en premier**, **Description**, **Étiquettes** et **Propriétaires**. **Alertés en premier** indique qui est alerté par la première règle d'escalade de la politique : ses plannings, chacun avec la personne qui y est d'astreinte en ce moment, ses équipes et les personnes qu'elle nomme, ou **Aucune règle d'escalade** ou **Aucun intervenant** quand elle n'alerte personne. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires. Une politique qui porte le même nom qu'une autre politique, datant d'avant l'obligation de noms distincts, est marquée **Même nom qu'une autre politique**, et la liste indique combien il y en a : comparez leurs règles d'escalade, puis renommez l'une d'elles avec **Renommer** sur sa ligne.
 
 ## Ce qui exécute une politique
 
@@ -157,7 +157,7 @@ Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et 
 Archiver retire une politique du service et conserve tout : ouvrez les **Paramètres** de la politique et cliquez sur **Archiver** sur sa carte d'archivage, ou sélectionnez des politiques dans la liste et choisissez **Archiver**.
 
 - Une politique archivée n'alerte personne. Les incidents et les alertes qui l'utilisent la sautent, et une exécution encore en escalade s'arrête à son étape suivante.
-- Elle quitte la liste **Politiques d'astreinte** pour **Astreinte → Avancé → Politiques archivées**, où **Désarchiver** la remet en service.
+- Elle quitte la liste **Politiques d'astreinte** pour **Astreinte → Avancé → Politiques archivées**, où **Désarchiver** la remet en service. Elle garde son nom : qui crée une nouvelle politique sous ce nom est invité à désarchiver plutôt celle-ci.
 
 **Supprimer la politique**, sous **Avancé**, supprime la politique avec ses règles d'escalade et ses remplacements d'utilisateur. La suppression depuis la liste demande d'abord confirmation et propose d'archiver à la place.
 

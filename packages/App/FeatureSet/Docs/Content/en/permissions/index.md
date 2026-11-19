@@ -101,7 +101,7 @@ Create as many additional teams as you like — "Frontend On-Call", "Support", "
 
 The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. If the role cannot be added, the team is still created and a notice above the list links to it.
 
-Where to find it: open a team from **Teams** to reach **Members** and **Permissions**; its custom roles and **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many of each the team has.
+Where to find it: open a team from **Teams** to reach **Members** and **Permissions**; its custom roles and **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many of each the team has. The **Teams** list marks a team that has the same name as another team, from before names had to differ, with **Same name as another team**, and says how many there are: compare their members, then rename one with **Rename** on its row.
 
 A team's page has a **Used by** card: the on-call policies whose escalation rules page the team, and everything the team owns, from monitors and status pages to SLOs, dashboards, infrastructure and incidents. Deleting a team, on its page or from the list, says these first: its policies stop paging its members, and it stops owning them. What you may not open is counted, not named.
 
