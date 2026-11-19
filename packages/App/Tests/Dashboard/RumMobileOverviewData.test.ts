@@ -26,11 +26,13 @@ import {
   buildAppStartSeriesBody,
   buildAppStartTableBody,
   buildCrashFilterBody,
+  buildFaultSessionCountBody,
   buildFrameSeriesBody,
   buildFramesByScreenBody,
   buildSessionCountBody,
   emptyAppStarts,
   emptyFrames,
+  readFaultInstalls,
   readFaultSessions,
   readFrameThreshold,
   readSessionCount,
@@ -109,8 +111,19 @@ describe("the requests", () => {
     expect(FROZEN_FRAME_THRESHOLD).toBe("0.7");
   });
 
-  test("sessions: the window and the app, nothing else", () => {
-    expect(buildSessionCountBody(SCOPE)).toEqual(WINDOW);
+  // And its installs (#9716), counted in the same read.
+  test("sessions: the window and the app, and the installs asked for", () => {
+    expect(buildSessionCountBody(SCOPE)).toEqual({
+      ...WINDOW,
+      countInstalls: true,
+    });
+  });
+
+  test("a crash's sessions are read with the crash's filters, the installs asked for", () => {
+    expect(buildFaultSessionCountBody(buildCrashFilterBody(SCOPE))).toEqual({
+      ...buildCrashFilterBody(SCOPE),
+      countInstalls: true,
+    });
   });
 
   test("a crash is an unhandled exception that is no freeze: no ANR, no iOS hang", () => {
@@ -290,10 +303,31 @@ describe("summarizeAppStarts", () => {
 });
 
 describe("readSessionCount", () => {
-  test("reads the sessions and the spans, numbers or numeric text", () => {
+  test("reads the sessions, the spans and the installs, numbers or numeric text", () => {
+    expect(
+      readSessionCount({ sessions: "12", spans: 4096, installs: "5" }),
+    ).toEqual({
+      sessions: 12,
+      spans: 4096,
+      installs: 5,
+      failed: false,
+    });
+  });
+
+  test("an answer that does not count the installs leaves them unknown", () => {
     expect(readSessionCount({ sessions: "12", spans: 4096 })).toEqual({
       sessions: 12,
       spans: 4096,
+      installs: null,
+      failed: false,
+    });
+  });
+
+  test("spans with no install read as 0 installs, not unknown", () => {
+    expect(readSessionCount({ sessions: 3, spans: 80, installs: 0 })).toEqual({
+      sessions: 3,
+      spans: 80,
+      installs: 0,
       failed: false,
     });
   });
@@ -303,8 +337,61 @@ describe("readSessionCount", () => {
       expect(readSessionCount(data)).toEqual({
         sessions: 0,
         spans: 0,
+        installs: null,
         failed: false,
       });
+    }
+  });
+});
+
+/*
+ * #9716: the installs a crash happened on. An occurrence that names none -
+ * one stored before ingest kept installs, or from an SDK that sets none -
+ * makes their number unknown, rather than a crash-free install it is not.
+ */
+describe("readFaultInstalls", () => {
+  test("reads the installs when every occurrence named one", () => {
+    expect(
+      readFaultInstalls({
+        sessions: 4,
+        occurrences: 6,
+        installs: "3",
+        occurrencesWithInstall: 6,
+      }),
+    ).toBe(3);
+  });
+
+  test("an occurrence that named none makes them unknown", () => {
+    expect(
+      readFaultInstalls({
+        sessions: 4,
+        occurrences: 6,
+        installs: 3,
+        occurrencesWithInstall: 5,
+      }),
+    ).toBeNull();
+  });
+
+  test("no occurrence is no install", () => {
+    expect(
+      readFaultInstalls({
+        sessions: 0,
+        occurrences: 0,
+        installs: 0,
+        occurrencesWithInstall: 0,
+      }),
+    ).toBe(0);
+  });
+
+  test("an answer that did not count them leaves them unknown", () => {
+    for (const data of [
+      null,
+      undefined,
+      [],
+      { sessions: 2, occurrences: 2 },
+      { sessions: 2, occurrences: 2, installs: 1 },
+    ]) {
+      expect(readFaultInstalls(data)).toBeNull();
     }
   });
 });

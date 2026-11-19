@@ -129,7 +129,7 @@ Each status change, with the reason for it, is recorded on the monitor's **Statu
 
 ## Criteria
 
-An Exceptions monitor's criteria have four kinds of **Filter Type**: **Exception Count**, the number of exceptions that matched in the window, and **New Exceptions**, **Regressed Exceptions** and **Exception Increase (in %)**, described below. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
+An Exceptions monitor's criteria have six kinds of **Filter Type**: **Exception Count**, the number of exceptions that matched in the window, and **New Exceptions**, **Regressed Exceptions**, **Exception Increase (in %)**, **Sessions With Exceptions (in %)** and **Sessions**, described below. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
 
 | Filter Condition | Matches when the exception count is… |
 | --- | --- |
@@ -173,6 +173,17 @@ Besides how many exceptions happened, an Exceptions monitor can alert on what an
 | **Exception Increase (in %)** | How far the number of matching exceptions is above the usual one: the day before the window, per window of its length, taken as at least one. Ten exceptions after a quiet day read 900%. |
 
 New and regressed exceptions are matched by service, exception type, environment and message, and by the infrastructure entity filter too: an exception counts when one of its occurrences in the window came from one of the chosen entities.
+
+## A share of sessions
+
+An app on thousands of phones always has some crashes, so what its team wants to hear is the rate going up. For an app whose spans carry `session.id`, such as a mobile app, an Exceptions monitor can alert on the share of sessions an exception happened in. Both are read only when a criteria checks them.
+
+| Filter Type | What it reads in the window |
+| --- | --- |
+| **Sessions With Exceptions (in %)** | The share of the window's sessions in which a matching exception happened. With no session in the window there is no share, and no criteria on it matches. |
+| **Sessions** | The window's sessions: the distinct `session.id` of the spans of the monitor's services. Pair it with the share, so that a share of a few sessions does not alert. |
+
+With **Only Unhandled Exceptions** on and the types `ANR` and `Hang` left out, the share is a mobile app's crash rate. A mobile app's **App Crash Rate** recommendation alerts when more than 1.09% of an hour's sessions crash, the rate Android vitals calls bad behaviour, once the hour has at least 250 sessions. **App ANR Rate** counts `ANR` and `Hang` alone, above 0.47%. To write such a rule yourself, pick **A share of sessions** under **Alert on** in **When to alert**.
 
 ## Spikes against what is normal
 

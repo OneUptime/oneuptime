@@ -224,10 +224,10 @@ describe("fetchMobileAppStarts", () => {
 });
 
 describe("fetchMobileSessions", () => {
-  test("asks the session count for the app's spans in the window", async () => {
+  test("asks the session count for the app's spans in the window, and their installs", async () => {
     answer({
       "/telemetry/traces/session-count": (): unknown => {
-        return ok({ sessions: 31, spans: 900 });
+        return ok({ sessions: 31, spans: 900, installs: 12 });
       },
     });
 
@@ -237,8 +237,14 @@ describe("fetchMobileSessions", () => {
       startTime: "2026-11-19T09:00:00.000Z",
       endTime: "2026-11-19T10:00:00.000Z",
       serviceIds: [APP_ID],
+      countInstalls: true,
     });
-    expect(result).toEqual({ sessions: 31, spans: 900, failed: false });
+    expect(result).toEqual({
+      sessions: 31,
+      spans: 900,
+      installs: 12,
+      failed: false,
+    });
   });
 
   test("a refused read is failed", async () => {
@@ -251,6 +257,7 @@ describe("fetchMobileSessions", () => {
     expect(await fetchMobileSessions(SCOPE)).toEqual({
       sessions: 0,
       spans: 0,
+      installs: null,
       failed: true,
     });
   });
@@ -321,8 +328,60 @@ describe("fetchMobileFaults", () => {
       total: 0,
       series: [],
       sessions: null,
+      installs: null,
       failed: true,
     });
+  });
+
+  /*
+   * #9716: the session count of a crash asks for its installs too - the
+   * histogram's own filters - and an occurrence that named none leaves
+   * them unknown.
+   */
+  test("asks the installs a crash happened on, with the crash's filters", async () => {
+    answer({
+      "/telemetry/exceptions/histogram": (): unknown => {
+        return ok({
+          buckets: [{ time: "2026-11-19 09:05:00", count: 3 }],
+        } as unknown as JSONObject);
+      },
+      "/telemetry/exceptions/session-count": (body: JSONObject): unknown => {
+        return ok(
+          body["exceptionTypes"]
+            ? {
+                sessions: 1,
+                occurrences: 1,
+                installs: 0,
+                occurrencesWithInstall: 0,
+              }
+            : {
+                sessions: 2,
+                occurrences: 3,
+                installs: 2,
+                occurrencesWithInstall: 3,
+              },
+        );
+      },
+    });
+
+    const result: MobileFaults = await fetchMobileFaults(SCOPE);
+    const counts: Array<PostArgs> = callsTo(
+      "/telemetry/exceptions/session-count",
+    );
+    const histograms: Array<PostArgs> = callsTo(
+      "/telemetry/exceptions/histogram",
+    );
+
+    expect(counts[0]?.data).toEqual({
+      ...histograms[0]?.data,
+      countInstalls: true,
+    });
+    // The histogram reads no install.
+    expect(histograms[0]?.data["countInstalls"]).toBeUndefined();
+
+    expect(result.crashes).toMatchObject({ sessions: 2, installs: 2 });
+    // The ANR named no install: it cannot be told.
+    expect(result.anrs).toMatchObject({ sessions: 1, installs: null });
   });
 
   test("a refused session count keeps the count, with no sessions to name", async () => {

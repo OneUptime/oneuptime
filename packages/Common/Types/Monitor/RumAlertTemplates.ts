@@ -558,7 +558,8 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
  * devices and wants to hear about each crash and each slow start. The
  * performance pair is a Warning, as an app with a large audience on old
  * phones will see some of both; such an app raises the count in the
- * monitor's criteria. A rate over sessions is #9716.
+ * monitor's criteria. Such an app is served by the crash and ANR rates
+ * (buildMobileFaultRateTemplate, #9716) rather than by each crash.
  */
 interface MobileLogEventTemplateData {
   id: string;
@@ -652,6 +653,28 @@ interface MobileFaultTemplateData {
   incidentDescription: string;
 }
 
+// The step's Exceptions monitor: the application's exceptions of one kind.
+function setMobileFaultMonitor(data: {
+  step: MonitorStep;
+  args: RumAlertTemplateArgs;
+  filter: MobileFaultTemplateData["filter"];
+  lastXSecondsOfExceptions: number;
+}): void {
+  data.step.setExceptionMonitor({
+    telemetryServiceIds: [new ObjectID(data.args.rumApplicationId)],
+    entityKeys: [],
+    exceptionTypes: [...(data.filter.exceptionTypes || [])],
+    ...(data.filter.excludedExceptionTypes
+      ? { excludedExceptionTypes: [...data.filter.excludedExceptionTypes] }
+      : {}),
+    ...(data.filter.unhandledOnly ? { unhandledOnly: true } : {}),
+    message: "",
+    includeResolved: false,
+    includeArchived: false,
+    lastXSecondsOfExceptions: data.lastXSecondsOfExceptions,
+  });
+}
+
 function buildMobileFaultTemplate(
   data: MobileFaultTemplateData,
 ): RumAlertTemplate {
@@ -678,17 +701,10 @@ function buildMobileFaultTemplate(
         defaultAlertSeverityId: args.defaultAlertSeverityId,
       });
 
-      step.setExceptionMonitor({
-        telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
-        entityKeys: [],
-        exceptionTypes: [...(data.filter.exceptionTypes || [])],
-        ...(data.filter.excludedExceptionTypes
-          ? { excludedExceptionTypes: [...data.filter.excludedExceptionTypes] }
-          : {}),
-        ...(data.filter.unhandledOnly ? { unhandledOnly: true } : {}),
-        message: "",
-        includeResolved: false,
-        includeArchived: false,
+      setMobileFaultMonitor({
+        step: step,
+        args: args,
+        filter: data.filter,
         lastXSecondsOfExceptions: 300,
       });
 
@@ -742,6 +758,185 @@ const appNotRespondingTemplate: RumAlertTemplate = buildMobileFaultTemplate({
   incidentHeadline: "App not responding",
   incidentDescription:
     "The app's main thread was blocked, so it stopped responding to input. Open the exception for the main thread's stack, which shows what it was waiting on.",
+});
+
+/*
+ * A mobile app's crash and ANR rates (#9716): the share of the hour's
+ * sessions a crash, or a freeze, happened in (Sessions With Exceptions,
+ * ExceptionMonitorEvaluation) - crashed sessions over sessions, as the
+ * Overview's Crash-free sessions tile reads them. An app on thousands of
+ * phones always has some crashes: what it wants to hear is the rate going
+ * up. Android vitals calls a user-perceived crash rate of 1.09% and an ANR
+ * rate of 0.47% bad behaviour.
+ *
+ * Judged only once the hour holds MOBILE_FAULT_RATE_MINIMUM_SESSIONS
+ * sessions: one crashed session in 250 is 0.4%, under both, so a single
+ * crash never reads as a rate. An app used less than that - a kiosk fleet -
+ * is served by the first-occurrence templates above, which stay.
+ */
+export const MOBILE_CRASH_RATE_PERCENT: number = 1.09;
+export const MOBILE_ANR_RATE_PERCENT: number = 0.47;
+export const MOBILE_FAULT_RATE_MINIMUM_SESSIONS: number = 250;
+export const MOBILE_FAULT_RATE_WINDOW_SECONDS: number = 3600;
+
+/*
+ * The OneUptime CLI's command for exception groups (TelemetryException),
+ * as its resources name it (Utils/DeveloperDocs/CliResources).
+ */
+export const EXCEPTION_CLI_RESOURCE: string = "exception";
+
+/*
+ * The first command to run when a mobile app's crash or ANR rate alerts:
+ * the OneUptime CLI listing the app's open exceptions of that kind, the
+ * most recently seen first, with how often each happened and the release
+ * it was last seen in - a crash a new release brought shows at once.
+ * Read-only, and every argument is known when the monitor is made: the
+ * application's id and the types, none of which holds a quote.
+ */
+export function getMobileFaultDebugCommand(data: {
+  rumApplicationId: string;
+  // The freezes' types; without them, every unhandled exception.
+  exceptionTypes?: Array<string> | undefined;
+}): string {
+  const query: Record<string, unknown> = {
+    primaryEntityId: data.rumApplicationId,
+    ...(data.exceptionTypes && data.exceptionTypes.length > 0
+      ? { exceptionType: { _type: "Includes", value: data.exceptionTypes } }
+      : { unhandled: true }),
+    isResolved: false,
+    isArchived: false,
+  };
+
+  return `oneuptime ${EXCEPTION_CLI_RESOURCE} list --query '${JSON.stringify(
+    query,
+  )}' --sort '{"lastSeenAt":"DESC"}' --fields exceptionType,message,occuranceCount,lastSeenInRelease,lastSeenAt`;
+}
+
+interface MobileFaultRateTemplateData {
+  id: string;
+  name: string;
+  description: string;
+  filter: MobileFaultTemplateData["filter"];
+  ratePercent: number;
+  unhealthyName: string;
+  unhealthyDescription: string;
+  incidentHeadline: string;
+  // What happened, before the first command.
+  incidentLead: string;
+  // What the first command lists.
+  commandLead: string;
+  // Between the application's name and the end of the healthy sentence.
+  healthySentence: string;
+}
+
+function buildMobileFaultRateTemplate(
+  data: MobileFaultRateTemplateData,
+): RumAlertTemplate {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    category: "Errors",
+    severity: "Critical",
+    monitorType: MonitorType.Exceptions,
+    clients: MOBILE_ONLY,
+    getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Exceptions,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      setMobileFaultMonitor({
+        step: step,
+        args: args,
+        filter: data.filter,
+        lastXSecondsOfExceptions: MOBILE_FAULT_RATE_WINDOW_SECONDS,
+      });
+
+      const command: string = getMobileFaultDebugCommand({
+        rumApplicationId: args.rumApplicationId,
+        exceptionTypes: data.filter.exceptionTypes,
+      });
+
+      const criteria: MonitorCriteria = buildCriteria({
+        args: args,
+        checkOn: CheckOn.SessionsWithExceptionsPercent,
+        unhealthyFilterType: FilterType.GreaterThan,
+        healthyFilterType: FilterType.LessThanOrEqualTo,
+        threshold: data.ratePercent,
+        unhealthyName: data.unhealthyName,
+        unhealthyDescription: data.unhealthyDescription,
+        incidentTitle: `[RUM] ${data.incidentHeadline} - ${args.monitorName}`,
+        incidentDescription: `${data.incidentLead} ${data.commandLead}\n\n\`\`\`\n${command}\n\`\`\``,
+        healthyDescription: `${args.monitorName} ${data.healthySentence}`,
+      });
+
+      /*
+       * The rate is judged only on enough sessions: both filters to alert,
+       * either to be healthy - a share at or under the rate, or too few
+       * sessions to read one.
+       */
+      const [unhealthy, healthy]: Array<MonitorCriteriaInstance> =
+        criteria.data!.monitorCriteriaInstanceArray;
+
+      unhealthy!.data!.filterCondition = FilterCondition.All;
+      unhealthy!.data!.filters.push({
+        checkOn: CheckOn.SessionCount,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
+      });
+
+      healthy!.data!.filterCondition = FilterCondition.Any;
+      healthy!.data!.filters.push({
+        checkOn: CheckOn.SessionCount,
+        filterType: FilterType.LessThan,
+        value: MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
+      });
+
+      step.setMonitorCriteria(criteria);
+
+      return step;
+    },
+  };
+}
+
+const appCrashRateTemplate: RumAlertTemplate = buildMobileFaultRateTemplate({
+  id: "rum-app-crash-rate",
+  name: "App Crash Rate",
+  description: `Alert when more than ${MOBILE_CRASH_RATE_PERCENT}% of the app's sessions in an hour crash, the crash rate Android vitals calls bad behaviour. Judged from ${MOBILE_FAULT_RATE_MINIMUM_SESSIONS} sessions an hour, so one crash alone never trips it: for an app with a large audience, where App Crashes would alert all day.`,
+  filter: {
+    unhandledOnly: true,
+    excludedExceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+  },
+  ratePercent: MOBILE_CRASH_RATE_PERCENT,
+  unhealthyName: `Crash rate above ${MOBILE_CRASH_RATE_PERCENT}%`,
+  unhealthyDescription: `Triggers when more than ${MOBILE_CRASH_RATE_PERCENT}% of at least ${MOBILE_FAULT_RATE_MINIMUM_SESSIONS} sessions in an hour crashed.`,
+  incidentHeadline: "App crash rate",
+  incidentLead: `More than ${MOBILE_CRASH_RATE_PERCENT}% of the app's sessions in the past hour crashed, the rate Android vitals calls bad behaviour.`,
+  commandLead:
+    "To list the app's open crashes, the most recently seen first, with the release each was last seen in, run:",
+  healthySentence: `crashes in ${MOBILE_CRASH_RATE_PERCENT}% of its sessions or fewer.`,
+});
+
+const appAnrRateTemplate: RumAlertTemplate = buildMobileFaultRateTemplate({
+  id: "rum-app-anr-rate",
+  name: "App ANR Rate",
+  description: `Alert when more than ${MOBILE_ANR_RATE_PERCENT}% of the app's sessions in an hour have an ANR or a hang, the ANR rate Android vitals calls bad behaviour. Judged from ${MOBILE_FAULT_RATE_MINIMUM_SESSIONS} sessions an hour, so one alone never trips it.`,
+  filter: {
+    exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+  },
+  ratePercent: MOBILE_ANR_RATE_PERCENT,
+  unhealthyName: `ANR rate above ${MOBILE_ANR_RATE_PERCENT}%`,
+  unhealthyDescription: `Triggers when more than ${MOBILE_ANR_RATE_PERCENT}% of at least ${MOBILE_FAULT_RATE_MINIMUM_SESSIONS} sessions in an hour had an ANR or a hang.`,
+  incidentHeadline: "App ANR rate",
+  incidentLead: `More than ${MOBILE_ANR_RATE_PERCENT}% of the app's sessions in the past hour had an ANR or a hang, the rate Android vitals calls bad behaviour.`,
+  commandLead:
+    "To list the app's open ANRs and hangs, the most recently seen first, with the release each was last seen in, run:",
+  healthySentence: `stops responding in ${MOBILE_ANR_RATE_PERCENT}% of its sessions or fewer.`,
 });
 
 const SLOW_COLD_START_MS: number = EXCESSIVE_APP_START_MS[APP_START_TYPE_COLD];
@@ -1264,14 +1459,17 @@ function readCustomSignals(
  * template appears here, and each category's cards in this order. A browser
  * app reads Core Web Vitals, then Errors (Failed User Operations, Unhandled
  * Browser Exceptions), then Session Replay, as it always has. A mobile app
- * reads Errors with App Crashes and its ANRs first, then Performance, then
- * Availability, then Session Replay. An application's own signals' alerts
+ * reads Errors with App Crashes and its ANRs first, then their rates, then
+ * Performance, then Availability, then Session Replay. An application's own
+ * signals' alerts
  * (Session Replay too) follow these, from getRumAlertTemplates.
  */
 const ALL_RUM_ALERT_TEMPLATES: Array<RumAlertTemplate> = [
   ...webVitalTemplates,
   appCrashesTemplate,
   appNotRespondingTemplate,
+  appCrashRateTemplate,
+  appAnrRateTemplate,
   failedUserOperationsTemplate,
   unhandledExceptionsTemplate,
   slowColdStartTemplate,
@@ -1349,9 +1547,9 @@ function isClientMet(data: {
  *
  * Only the templates for its kind of app (#9589): a browser app's Web Vitals
  * and Unhandled Browser Exceptions, or a mobile app's App Crashes, App Not
- * Responding (ANR), Slow Cold Start, Frozen Frames and App Stopped Reporting,
- * and the templates every kind can use. An application of no known kind is
- * offered the browser set.
+ * Responding (ANR), App Crash Rate, App ANR Rate, Slow Cold Start, Frozen
+ * Frames and App Stopped Reporting, and the templates every kind can use.
+ * An application of no known kind is offered the browser set.
  *
  * The session replay budget pairs only once their series can exist (see the
  * storage budget comment above): the daily pair once the application has

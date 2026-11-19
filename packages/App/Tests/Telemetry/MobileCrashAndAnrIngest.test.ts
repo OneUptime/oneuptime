@@ -128,6 +128,8 @@ function logsRequest(data: {
   attributes: Array<OtlpAttribute>;
   severityNumber?: number;
   body?: string;
+  // More of the resource's attributes, such as 1.1's app.installation.id.
+  resourceAttributes?: Array<OtlpAttribute>;
 }): TelemetryRequest {
   const record: JSONObject = {
     timeUnixNano: `${Date.now()}000000`,
@@ -165,6 +167,7 @@ function logsRequest(data: {
               stringAttribute("os.name", "Android"),
               stringAttribute("os.version", "13"),
               stringAttribute("session.id", "7a1d2c3b4e5f60718293a4b5c6d7e8f9"),
+              ...(data.resourceAttributes || []),
             ],
           },
           scopeLogs: [
@@ -477,6 +480,87 @@ describe("A mobile app's crashes and ANRs reach Exceptions as unhandled", () => 
 
       expect(onlyRow(exceptionInsertSpy)["escaped"]).toBe(true);
       expect(upsertedPayloads[0]!.unhandled).toBe(true);
+    });
+  });
+
+  /*
+   * #9716: OpenTelemetry Android 1.1 and later set app.installation.id on
+   * the resource, a UUID kept for as long as the app stays installed. The
+   * crash's occurrence keeps it, as it keeps the session, so the Overview
+   * counts the installs a crash happened on as it counts its sessions.
+   */
+  describe("the install it happened on", () => {
+    const INSTALLATION_ID: string = "1b4e28ba-2fa1-11d2-883f-0016d3cca427";
+
+    test("a crash keeps its resource's app.installation.id", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "app.crash",
+          attributes: crashAttributes(),
+          resourceAttributes: [
+            stringAttribute("app.installation.id", INSTALLATION_ID),
+          ],
+        }),
+      );
+
+      const row: JSONObject = onlyRow(exceptionInsertSpy);
+      const attributes: JSONObject = row["attributes"] as JSONObject;
+
+      expect(attributes["resource.app.installation.id"]).toBe(INSTALLATION_ID);
+      expect(row["attributeKeys"]).toContain("resource.app.installation.id");
+      // Beside what the occurrence kept before.
+      expect(attributes["event.name"]).toBe("app.crash");
+    });
+
+    test("an ANR keeps it too", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "device.anr",
+          attributes: [
+            stringAttribute("exception.stacktrace", MAIN_THREAD_STACK),
+          ],
+          resourceAttributes: [
+            stringAttribute("app.installation.id", INSTALLATION_ID),
+          ],
+        }),
+      );
+
+      expect(
+        (onlyRow(exceptionInsertSpy)["attributes"] as JSONObject)[
+          "resource.app.installation.id"
+        ],
+      ).toBe(INSTALLATION_ID);
+    });
+
+    test("an SDK that sets none adds none", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "app.crash",
+          attributes: crashAttributes(),
+        }),
+      );
+
+      const attributes: JSONObject = onlyRow(exceptionInsertSpy)[
+        "attributes"
+      ] as JSONObject;
+
+      expect(attributes).not.toHaveProperty("resource.app.installation.id");
+    });
+
+    test("one the record sets itself, not its resource, is not an install", async () => {
+      await ingest(
+        logsRequest({
+          eventName: "app.crash",
+          attributes: [
+            ...crashAttributes(),
+            stringAttribute("app.installation.id", INSTALLATION_ID),
+          ],
+        }),
+      );
+
+      expect(onlyRow(exceptionInsertSpy)["attributes"]).not.toHaveProperty(
+        "resource.app.installation.id",
+      );
     });
   });
 

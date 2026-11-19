@@ -1428,7 +1428,7 @@ describe("MonitorRecommendationCatalog", () => {
       expect(mobile).toEqual(
         idsOf(getRumAlertTemplates({ clientKind: "mobile" })),
       );
-      expect(mobile).toHaveLength(6);
+      expect(mobile).toHaveLength(8);
       expect(mobile).toContain(
         buildRecommendationId(
           MonitorRecommendationResourceType.RumApplication,
@@ -1446,7 +1446,7 @@ describe("MonitorRecommendationCatalog", () => {
           ...FULL_REPLAY_CONTEXT,
           rumClientKind: "mobile",
         }),
-      ).toHaveLength(10);
+      ).toHaveLength(12);
       expect(rumRecommendationIds({ rumClientKind: null })).toEqual(
         rumRecommendationIds(),
       );
@@ -1508,8 +1508,8 @@ describe("MonitorRecommendationCatalog", () => {
           MonitorRecommendationResourceType.RumApplication,
         );
 
-      // 5 web vitals, 2 shared, 5 mobile, 4 budgets.
-      expect(all).toHaveLength(16);
+      // 5 web vitals, 2 shared, 7 mobile, 4 budgets.
+      expect(all).toHaveLength(18);
       expect(all.length).toBe(getAllRumAlertTemplates().length);
 
       for (const templateId of BUDGET_TEMPLATE_IDS) {

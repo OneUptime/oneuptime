@@ -109,6 +109,8 @@ Crashes and ANRs reach **Exceptions** as unhandled, grouped by their stack trace
 
 The application's **Overview** reads these for you: **Sessions**, **Crash-free sessions**, **Crashes**, **ANRs**, **App starts**, **Cold start (p95)** and **Frozen frames**, each opening the exceptions, spans or events it counts. Until the app sends app starts or frames, their charts say what turns them on. Its **Recommendations** offer monitors for crashes, ANRs, slow cold starts, frozen frames and an app that stops reporting.
 
+Under **Crash-free sessions**, the line reads the same share of installs: the `app.installation.id` OpenTelemetry Android 1.1 and later set on every span and log, an id kept for as long as the app stays installed, so it stands in for the app's users. For an app with hundreds of sessions an hour, where a crash a day is normal, **App Crash Rate** and **App ANR Rate** alert on the share of an hour's sessions that crashed or froze, above Android vitals' 1.09% and 0.47%, instead of on each one.
+
 A session ends after 15 minutes in the background, or after 4 hours. An app that never goes to the background, such as a kiosk, keeps one session for 4 hours, so trace each customer's visit as a span of its own, as [Trace your own workflows](#trace-your-own-workflows) shows.
 
 Your app's own `android.util.Log` calls become logs too when you add `android-log-library` and `android-log-agent` beside the OkHttp modules below: each call's tag goes in `android.log.tag`, and a call with a throwable is an exception in **Exceptions**. OpenTelemetry Android does not read Logcat.

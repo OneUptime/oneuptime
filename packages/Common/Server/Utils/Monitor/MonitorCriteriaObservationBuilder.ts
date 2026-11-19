@@ -252,6 +252,8 @@ export default class MonitorCriteriaObservationBuilder {
       case CheckOn.NewExceptionCount:
       case CheckOn.RegressedExceptionCount:
       case CheckOn.ExceptionCountIncreasePercent:
+      case CheckOn.SessionsWithExceptionsPercent:
+      case CheckOn.SessionCount:
         return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
           {
             dataToProcess: input.dataToProcess,
@@ -1809,6 +1811,22 @@ export default class MonitorCriteriaObservationBuilder {
         return `Exception count was ${exceptionResponse.exceptionCount}, ${
           exceptionResponse.exceptionCountIncreasePercent || 0
         }% above the usual ${exceptionResponse.exceptionCountBaseline || 0} per window over the day before.`;
+      case CheckOn.SessionsWithExceptionsPercent:
+        if (
+          typeof exceptionResponse.sessionsWithExceptionsPercent !== "number"
+        ) {
+          return "No session in the window to take a share of: the spans named no session.id, or none arrived.";
+        }
+
+        return `${exceptionResponse.sessionsWithExceptionsPercent}% of the window's sessions had a matching exception: ${
+          exceptionResponse.sessionsWithExceptionsCount || 0
+        } of ${plural(exceptionResponse.sessionCount || 0, "session", "sessions")}.`;
+      case CheckOn.SessionCount:
+        return `${plural(
+          exceptionResponse.sessionCount || 0,
+          "session was",
+          "sessions were",
+        )} in the window.`;
       default:
         return `Exception count was ${exceptionResponse.exceptionCount}.`;
     }

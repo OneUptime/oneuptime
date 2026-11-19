@@ -1,12 +1,23 @@
 import {
+  EXCEPTION_CLI_RESOURCE,
+  MOBILE_ANR_RATE_PERCENT,
+  MOBILE_CRASH_RATE_PERCENT,
+  MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
+  MOBILE_FAULT_RATE_WINDOW_SECONDS,
   RumAlertTemplate,
   RumAlertTemplateArgs,
   RumAlertTemplateContext,
   RumAlertTemplateRequirement,
   getAllRumAlertTemplates,
+  getMobileFaultDebugCommand,
   getRumAlertTemplateById,
   getRumAlertTemplates,
 } from "../../../Types/Monitor/RumAlertTemplates";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  CliResource,
+  getCliResources,
+} from "../../../Utils/DeveloperDocs/CliResources";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -169,6 +180,9 @@ const SEVERITY_CASES: Array<{
    */
   { id: "rum-app-crashes", category: "Errors", severity: "Critical" },
   { id: "rum-app-not-responding", category: "Errors", severity: "Critical" },
+  // Their rates (#9716): the same two core vitals, read over sessions.
+  { id: "rum-app-crash-rate", category: "Errors", severity: "Critical" },
+  { id: "rum-app-anr-rate", category: "Errors", severity: "Critical" },
   { id: "rum-slow-cold-start", category: "Performance", severity: "Warning" },
   { id: "rum-frozen-frames", category: "Performance", severity: "Warning" },
   {
@@ -298,6 +312,8 @@ const CORE_TEMPLATE_IDS: Array<string> = [
 const MOBILE_TEMPLATE_IDS: Array<string> = [
   "rum-app-crashes",
   "rum-app-not-responding",
+  "rum-app-crash-rate",
+  "rum-app-anr-rate",
   "rum-failed-user-operations",
   "rum-slow-cold-start",
   "rum-frozen-frames",
@@ -308,6 +324,8 @@ const MOBILE_TEMPLATE_IDS: Array<string> = [
 const MOBILE_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-app-crashes",
   "rum-app-not-responding",
+  "rum-app-crash-rate",
+  "rum-app-anr-rate",
   "rum-slow-cold-start",
   "rum-frozen-frames",
   "rum-app-stopped-reporting",
@@ -323,8 +341,8 @@ const BROWSER_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-unhandled-exceptions",
 ];
 
-// Every template there is: 5 web vitals, 2 shared, 5 mobile, 4 budgets.
-const ALL_TEMPLATE_COUNT: number = 16;
+// Every template there is: 5 web vitals, 2 shared, 7 mobile, 4 budgets.
+const ALL_TEMPLATE_COUNT: number = 18;
 
 const DAILY_TEMPLATE_IDS: Array<string> = [
   "rum-session-replay-daily-budget-nearly-spent",
@@ -423,6 +441,8 @@ describe("RumAlertTemplates", () => {
       }),
       "rum-app-crashes",
       "rum-app-not-responding",
+      "rum-app-crash-rate",
+      "rum-app-anr-rate",
       "rum-failed-user-operations",
       "rum-unhandled-exceptions",
       "rum-slow-cold-start",
@@ -1685,4 +1705,197 @@ describe("getRumAlertTemplateById", () => {
       expect(template?.category).toBe("Session Replay");
     },
   );
+});
+
+/*
+ * #9716: a mobile app's crash and ANR rates - the share of the hour's
+ * sessions a crash, or a freeze, happened in - for an app on thousands of
+ * phones, which always has some crashes and wants to hear the rate rise.
+ */
+describe("the crash and ANR rate templates", () => {
+  const RATE_CASES: Array<{
+    id: string;
+    percent: number;
+    title: string;
+  }> = [
+    {
+      id: "rum-app-crash-rate",
+      percent: MOBILE_CRASH_RATE_PERCENT,
+      title: "[RUM] App crash rate - Storefront",
+    },
+    {
+      id: "rum-app-anr-rate",
+      percent: MOBILE_ANR_RATE_PERCENT,
+      title: "[RUM] App ANR rate - Storefront",
+    },
+  ];
+
+  test("Android vitals' bad-behaviour rates, judged on an hour of at least 250 sessions", () => {
+    expect(MOBILE_CRASH_RATE_PERCENT).toBe(1.09);
+    expect(MOBILE_ANR_RATE_PERCENT).toBe(0.47);
+    expect(MOBILE_FAULT_RATE_WINDOW_SECONDS).toBe(3600);
+    expect(MOBILE_FAULT_RATE_MINIMUM_SESSIONS).toBe(250);
+    // One session alone stays under both rates, so it never reads as one.
+    expect((1 / MOBILE_FAULT_RATE_MINIMUM_SESSIONS) * 100).toBeLessThan(
+      MOBILE_ANR_RATE_PERCENT,
+    );
+  });
+
+  test("the crash rate counts what App Crashes counts, over an hour", () => {
+    const step: MonitorStep =
+      getTemplate("rum-app-crash-rate").getMonitorStep(buildArgs());
+    const crashes: MonitorStep =
+      getTemplate("rum-app-crashes").getMonitorStep(buildArgs());
+
+    expect(step.data?.exceptionMonitor).toEqual({
+      ...crashes.data?.exceptionMonitor,
+      lastXSecondsOfExceptions: 3600,
+    });
+  });
+
+  test("the ANR rate counts what App Not Responding counts, over an hour", () => {
+    const step: MonitorStep =
+      getTemplate("rum-app-anr-rate").getMonitorStep(buildArgs());
+    const anrs: MonitorStep = getTemplate(
+      "rum-app-not-responding",
+    ).getMonitorStep(buildArgs());
+
+    expect(step.data?.exceptionMonitor).toEqual({
+      ...anrs.data?.exceptionMonitor,
+      lastXSecondsOfExceptions: 3600,
+    });
+    expect(step.data?.exceptionMonitor?.exceptionTypes).toEqual([
+      ...APP_NOT_RESPONDING_EXCEPTION_TYPES,
+    ]);
+  });
+
+  test.each(RATE_CASES)(
+    "$id alerts above its rate with enough sessions, and is healthy under it or with too few",
+    ({ id, percent }: { id: string; percent: number }) => {
+      const template: RumAlertTemplate = getTemplate(id);
+      const [breach, recovery]: Array<MonitorCriteriaInstance> = getCriteria(
+        template.getMonitorStep(buildArgs()),
+      );
+
+      expect(template.monitorType).toBe(MonitorType.Exceptions);
+      expect(template.clients).toEqual(["mobile"]);
+
+      expect(breach?.data?.filterCondition).toBe(FilterCondition.All);
+      expect(breach?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.SessionsWithExceptionsPercent,
+          filterType: FilterType.GreaterThan,
+          value: percent,
+        },
+        {
+          checkOn: CheckOn.SessionCount,
+          filterType: FilterType.GreaterThanOrEqualTo,
+          value: 250,
+        },
+      ]);
+
+      expect(recovery?.data?.filterCondition).toBe(FilterCondition.Any);
+      expect(recovery?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.SessionsWithExceptionsPercent,
+          filterType: FilterType.LessThanOrEqualTo,
+          value: percent,
+        },
+        {
+          checkOn: CheckOn.SessionCount,
+          filterType: FilterType.LessThan,
+          value: 250,
+        },
+      ]);
+      expect(recovery?.data?.incidents).toEqual([]);
+      expect(recovery?.data?.alerts).toEqual([]);
+    },
+  );
+
+  test.each(RATE_CASES)(
+    "$id titles its incident and alert",
+    ({ id, title }: { id: string; title: string }) => {
+      const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+        getTemplate(id).getMonitorStep(buildArgs()),
+      );
+
+      expect(breach?.data?.incidents[0]?.title).toBe(title);
+      expect(breach?.data?.alerts[0]?.title).toBe(title);
+    },
+  );
+
+  test("the crash rate hands the engineer a first command: the app's open crashes, newest first", () => {
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate("rum-app-crash-rate").getMonitorStep(buildArgs()),
+    );
+    const command: string = getMobileFaultDebugCommand({
+      rumApplicationId: RUM_APPLICATION_ID.toString(),
+    });
+
+    expect(command).toBe(
+      `oneuptime exception list --query '{"primaryEntityId":"${RUM_APPLICATION_ID.toString()}","unhandled":true,"isResolved":false,"isArchived":false}' --sort '{"lastSeenAt":"DESC"}' --fields exceptionType,message,occuranceCount,lastSeenInRelease,lastSeenAt`,
+    );
+
+    for (const description of [
+      breach?.data?.incidents[0]?.description,
+      breach?.data?.alerts[0]?.description,
+    ]) {
+      expect(description).toContain(`\`\`\`\n${command}\n\`\`\``);
+    }
+  });
+
+  test("the ANR rate's command lists the app's ANRs and hangs alone", () => {
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate("rum-app-anr-rate").getMonitorStep(buildArgs()),
+    );
+    const command: string = getMobileFaultDebugCommand({
+      rumApplicationId: RUM_APPLICATION_ID.toString(),
+      exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+    });
+
+    expect(command).toContain(
+      `"exceptionType":{"_type":"Includes","value":["ANR","Hang"]}`,
+    );
+    expect(command).not.toContain('"unhandled"');
+    expect(breach?.data?.incidents[0]?.description).toContain(command);
+  });
+
+  test("the command's query is the JSON the API reads, and each argument is quoted once", () => {
+    const command: string = getMobileFaultDebugCommand({
+      rumApplicationId: RUM_APPLICATION_ID.toString(),
+      exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+    });
+    const query: string = command.split("--query '")[1]!.split("'")[0]!;
+
+    expect(JSON.parse(query)).toEqual({
+      primaryEntityId: RUM_APPLICATION_ID.toString(),
+      exceptionType: { _type: "Includes", value: ["ANR", "Hang"] },
+      isResolved: false,
+      isArchived: false,
+    });
+    // Two single-quoted arguments: nothing in them ends a quote early.
+    expect(command.split("'")).toHaveLength(5);
+    // Read-only: a list, nothing that changes a record.
+    expect(command.startsWith("oneuptime exception list ")).toBe(true);
+  });
+
+  test("the command names the CLI's own resource for exception groups", () => {
+    const resource: CliResource | undefined = getCliResources().find(
+      (candidate: CliResource): boolean => {
+        return candidate.tableName === "TelemetryException";
+      },
+    );
+
+    expect(resource?.name).toBe(EXCEPTION_CLI_RESOURCE);
+    expect(resource?.operations).toContain("list");
+  });
+
+  test("the rates leave the first-occurrence templates, for small fleets, as they were", () => {
+    const [crashBreach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate("rum-app-crashes").getMonitorStep(buildArgs()),
+    );
+
+    expect(crashBreach?.data?.filters).toHaveLength(1);
+    expect(crashBreach?.data?.filters[0]?.checkOn).toBe(CheckOn.ExceptionCount);
+  });
 });

@@ -38,6 +38,181 @@ function evaluate(
   });
 }
 
+/*
+ * #9716: a mobile app's crash rate - the share of the window's sessions a
+ * matching exception happened in - and the sessions it is judged on.
+ */
+describe("the share of sessions with an exception, and the sessions", () => {
+  function sessionsResponse(
+    measures: Partial<ExceptionMonitorResponse>,
+  ): DataToProcess {
+    return {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      exceptionCount: 4,
+      exceptionQuery: {},
+      ...measures,
+    } as DataToProcess;
+  }
+
+  function judge(
+    measures: Partial<ExceptionMonitorResponse>,
+    criteriaFilter: CriteriaFilter,
+  ): Promise<string | null> {
+    return ExceptionMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+      dataToProcess: sessionsResponse(measures),
+      criteriaFilter,
+    });
+  }
+
+  const ABOVE_CRASH_RATE: CriteriaFilter = {
+    checkOn: CheckOn.SessionsWithExceptionsPercent,
+    filterType: FilterType.GreaterThan,
+    value: 1.09,
+  };
+
+  test("a share above the rate matches; one at or under it does not", async () => {
+    expect(
+      await judge(
+        { sessionCount: 400, sessionsWithExceptionsPercent: 1.25 },
+        ABOVE_CRASH_RATE,
+      ),
+    ).toBeTruthy();
+    expect(
+      await judge(
+        { sessionCount: 400, sessionsWithExceptionsPercent: 1.09 },
+        ABOVE_CRASH_RATE,
+      ),
+    ).toBeNull();
+    expect(
+      await judge(
+        { sessionCount: 400, sessionsWithExceptionsPercent: 0 },
+        ABOVE_CRASH_RATE,
+      ),
+    ).toBeNull();
+  });
+
+  test("a share that could not be taken matches neither way, rather than reading 0%", async () => {
+    for (const unknown of [null, undefined]) {
+      expect(
+        await judge(
+          { sessionCount: 0, sessionsWithExceptionsPercent: unknown },
+          ABOVE_CRASH_RATE,
+        ),
+      ).toBeNull();
+      expect(
+        await judge(
+          { sessionCount: 0, sessionsWithExceptionsPercent: unknown },
+          {
+            checkOn: CheckOn.SessionsWithExceptionsPercent,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: 1.09,
+          },
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("the sessions are compared as a count, a response from before them reading 0", async () => {
+    const enough: CriteriaFilter = {
+      checkOn: CheckOn.SessionCount,
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 250,
+    };
+
+    expect(await judge({ sessionCount: 250 }, enough)).toBeTruthy();
+    expect(await judge({ sessionCount: 249 }, enough)).toBeNull();
+    expect(
+      await judge(
+        {},
+        {
+          checkOn: CheckOn.SessionCount,
+          filterType: FilterType.LessThan,
+          value: 250,
+        },
+      ),
+    ).toBeTruthy();
+  });
+
+  test("the measured values, as the criteria reads them", () => {
+    const response: ExceptionMonitorResponse = sessionsResponse({
+      sessionCount: 812,
+      sessionsWithExceptionsCount: 11,
+      sessionsWithExceptionsPercent: 1.35,
+    }) as ExceptionMonitorResponse;
+
+    expect(
+      ExceptionMonitorCriteria.getMeasuredValue(
+        response,
+        CheckOn.SessionsWithExceptionsPercent,
+      ),
+    ).toBe(1.35);
+    expect(
+      ExceptionMonitorCriteria.getMeasuredValue(response, CheckOn.SessionCount),
+    ).toBe(812);
+  });
+
+  test("the status timeline says the share, of how many sessions, and the sessions", () => {
+    const dataToProcess: DataToProcess = sessionsResponse({
+      sessionCount: 812,
+      sessionsWithExceptionsCount: 11,
+      sessionsWithExceptionsPercent: 1.35,
+    });
+
+    const say: (checkOn: CheckOn) => string | null = (
+      checkOn: CheckOn,
+    ): string | null => {
+      return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
+        {
+          dataToProcess,
+          checkOn,
+          criteriaFilter: {
+            checkOn,
+            filterType: FilterType.GreaterThan,
+            value: 1,
+          },
+        },
+      );
+    };
+
+    expect(say(CheckOn.SessionsWithExceptionsPercent)).toBe(
+      "1.35% of the window's sessions had a matching exception: 11 of 812 sessions.",
+    );
+    expect(say(CheckOn.SessionCount)).toBe("812 sessions were in the window.");
+  });
+
+  test("the status timeline says why no share was taken", () => {
+    expect(
+      MonitorCriteriaObservationBuilder.describeExceptionCountObservation({
+        dataToProcess: sessionsResponse({
+          sessionCount: 0,
+          sessionsWithExceptionsCount: 0,
+          sessionsWithExceptionsPercent: null,
+        }),
+        checkOn: CheckOn.SessionsWithExceptionsPercent,
+        criteriaFilter: ABOVE_CRASH_RATE,
+      }),
+    ).toBe(
+      "No session in the window to take a share of: the spans named no session.id, or none arrived.",
+    );
+  });
+
+  test("the filter's check routes to these sentences", () => {
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation({
+        criteriaFilter: ABOVE_CRASH_RATE,
+        dataToProcess: sessionsResponse({
+          sessionCount: 300,
+          sessionsWithExceptionsCount: 6,
+          sessionsWithExceptionsPercent: 2,
+        }),
+      } as never),
+    ).toBe(
+      "2% of the window's sessions had a matching exception: 6 of 300 sessions.",
+    );
+  });
+});
+
 describe("ExceptionMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
   test("ExceptionCount GreaterThan 0 → met when exceptions exist", async () => {
     expect(

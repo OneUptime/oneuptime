@@ -2192,8 +2192,9 @@ router.post(
  * How many sessions the spans of a scope belong to in a window, and how
  * many spans were read (TraceAggregationService.getSessionCount): a mobile
  * RUM application's Sessions tile, and the sessions its crash-free share is
- * of (#9588). The same filters, read access and service scope as the
- * analytics above.
+ * of (#9588). With `countInstalls: true`, the installs too, for its
+ * crash-free installs (#9716). The same filters, read access and service
+ * scope as the analytics above.
  */
 router.post(
   "/telemetry/traces/session-count",
@@ -2245,11 +2246,13 @@ router.post(
           startTime,
           endTime,
           ...traceFilters,
+          countInstalls: body["countInstalls"] === true,
         });
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: result.sessions,
         spans: result.spans,
+        ...(result.installs !== undefined ? { installs: result.installs } : {}),
       });
     } catch (err: unknown) {
       next(err);
@@ -2974,7 +2977,9 @@ router.post(
  * How many sessions the matching exceptions happened in, and how many
  * occurrences matched (ExceptionAggregationService.getSessionCount): the
  * sessions a mobile app's crashes ended, for its crash-free share (#9588).
- * The histogram's filters, read access and service scope.
+ * With `countInstalls: true`, the installs they happened on too, and how
+ * many occurrences named theirs (#9716). The histogram's filters, read
+ * access and service scope.
  */
 router.post(
   "/telemetry/exceptions/session-count",
@@ -3043,11 +3048,18 @@ router.post(
             body["escaped"] === undefined
               ? undefined
               : Boolean(body["escaped"]),
+          countInstalls: body["countInstalls"] === true,
         });
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: result.sessions,
         occurrences: result.occurrences,
+        ...(result.installs !== undefined
+          ? {
+              installs: result.installs,
+              occurrencesWithInstall: result.occurrencesWithInstall || 0,
+            }
+          : {}),
       });
     } catch (err: unknown) {
       next(err);

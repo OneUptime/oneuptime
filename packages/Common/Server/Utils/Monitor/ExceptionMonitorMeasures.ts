@@ -1,7 +1,9 @@
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
+import Span from "../../../Models/AnalyticsModels/Span";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
@@ -13,6 +15,7 @@ import {
   ExceptionMonitorNeeds,
   getExceptionIncreasePercent,
   getExceptionMonitorNeeds,
+  getSessionsWithExceptionsPercent,
   getUsualExceptionCount,
 } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import { ExceptionLearnedBaseline } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
@@ -21,6 +24,7 @@ import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepExceptionMonitor";
 import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
+import SpanService from "../../Services/SpanService";
 import TelemetryExceptionService from "../../Services/TelemetryExceptionService";
 import AnalyticsQuery from "../../Types/AnalyticsDatabase/Query";
 import DatabaseQuery from "../../Types/Database/Query";
@@ -62,6 +66,16 @@ export interface ExceptionMonitorMeasures {
   exceptionCountBaseline?: number | undefined;
   exceptionCountIncreasePercent?: number | undefined;
   exceptionLearnedBaselines?: Array<ExceptionLearnedBaseline> | undefined;
+  sessionCount?: number | undefined;
+  sessionsWithExceptionsCount?: number | undefined;
+  sessionsWithExceptionsPercent?: number | null | undefined;
+}
+
+export interface ExceptionMonitorSessions {
+  // The distinct session ids of the window's spans of the monitor's services.
+  sessions: number;
+  // The distinct session ids of the occurrences the monitor counts.
+  sessionsWithExceptions: number;
 }
 
 export default class ExceptionMonitorMeasureReader {
@@ -82,6 +96,7 @@ export default class ExceptionMonitorMeasureReader {
       !needs.newExceptions &&
       !needs.regressedExceptions &&
       !needs.baseline &&
+      !needs.sessions &&
       needs.learnedBaselineWindowDays.length === 0
     ) {
       return {};
@@ -144,36 +159,50 @@ export default class ExceptionMonitorMeasureReader {
       });
     };
 
-    const [newCount, regressedCount, previousCount, learnedBaselines] =
-      await Promise.all([
-        needs.newExceptions
-          ? countGroupsWhere({
-              firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd),
-            })
-          : Promise.resolve(undefined),
-        needs.regressedExceptions
-          ? countGroupsWhere({
-              regressedAt: QueryHelper.inBetween(windowStart, windowEnd),
-              // Came back and still open: resolved again since, it is fixed.
-              isResolved: false,
-            })
-          : Promise.resolve(undefined),
-        needs.baseline
-          ? ExceptionMonitorMeasureReader.countPreviousOccurrences({
-              countQuery: data.countQuery,
-              windowStart,
-            })
-          : Promise.resolve(undefined),
-        ExceptionMonitorMeasureReader.readLearnedBaselines({
-          projectId: data.projectId,
-          config: data.config,
-          countQuery: data.countQuery,
-          windowStart,
-          windowEnd,
-          windowSeconds,
-          windowDays: needs.learnedBaselineWindowDays,
-        }),
-      ]);
+    const [
+      newCount,
+      regressedCount,
+      previousCount,
+      learnedBaselines,
+      sessions,
+    ] = await Promise.all([
+      needs.newExceptions
+        ? countGroupsWhere({
+            firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd),
+          })
+        : Promise.resolve(undefined),
+      needs.regressedExceptions
+        ? countGroupsWhere({
+            regressedAt: QueryHelper.inBetween(windowStart, windowEnd),
+            // Came back and still open: resolved again since, it is fixed.
+            isResolved: false,
+          })
+        : Promise.resolve(undefined),
+      needs.baseline
+        ? ExceptionMonitorMeasureReader.countPreviousOccurrences({
+            countQuery: data.countQuery,
+            windowStart,
+          })
+        : Promise.resolve(undefined),
+      ExceptionMonitorMeasureReader.readLearnedBaselines({
+        projectId: data.projectId,
+        config: data.config,
+        countQuery: data.countQuery,
+        windowStart,
+        windowEnd,
+        windowSeconds,
+        windowDays: needs.learnedBaselineWindowDays,
+      }),
+      needs.sessions
+        ? ExceptionMonitorMeasureReader.readSessions({
+            projectId: data.projectId,
+            config: data.config,
+            countQuery: data.countQuery,
+            windowStart,
+            windowEnd,
+          })
+        : Promise.resolve(undefined),
+    ]);
 
     if (newCount !== undefined) {
       measures.newExceptionCount = newCount;
@@ -201,7 +230,75 @@ export default class ExceptionMonitorMeasureReader {
       measures.exceptionLearnedBaselines = learnedBaselines;
     }
 
+    if (sessions !== undefined) {
+      measures.sessionCount = sessions.sessions;
+      measures.sessionsWithExceptionsCount = Math.min(
+        sessions.sessionsWithExceptions,
+        sessions.sessions,
+      );
+      measures.sessionsWithExceptionsPercent =
+        getSessionsWithExceptionsPercent(sessions);
+    }
+
     return measures;
+  }
+
+  /*
+   * The window's sessions, and those the occurrences the monitor counts
+   * happened in, each a grouped count - the distinct session ids - over the
+   * same window. The sessions are the spans' of the monitor's services and
+   * entities, as a mobile app's Sessions tile counts them; the exceptions'
+   * are its own count's occurrences, every filter with them. A session id
+   * of '' is no session. A read the time limit stops reads 0 (countBy), so
+   * a slow read alerts on nothing rather than on a rate it never knew.
+   */
+  public static async readSessions(data: {
+    projectId: ObjectID;
+    config: MonitorStepExceptionMonitor;
+    countQuery: AnalyticsQuery<ExceptionInstance>;
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<ExceptionMonitorSessions> {
+    const spanQuery: AnalyticsQuery<Span> = {
+      projectId: data.projectId,
+      startTime: new InBetween(data.windowStart, data.windowEnd),
+      sessionId: new NotEqual(""),
+    };
+
+    if (data.config.telemetryServiceIds?.length > 0) {
+      spanQuery.primaryEntityId = new Includes(data.config.telemetryServiceIds);
+    }
+
+    if (MonitorStepExceptionMonitorUtil.hasEntityFilter(data.config)) {
+      spanQuery.entityKeys = new Includes(data.config.entityKeys!);
+    }
+
+    const [sessions, sessionsWithExceptions]: [PositiveNumber, PositiveNumber] =
+      await Promise.all([
+        SpanService.countBy({
+          query: spanQuery,
+          groupBy: { sessionId: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+        ExceptionInstanceService.countBy({
+          query: {
+            ...data.countQuery,
+            time: new InBetween(data.windowStart, data.windowEnd),
+            sessionId: new NotEqual(""),
+          },
+          groupBy: { sessionId: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+      ]);
+
+    return {
+      sessions: sessions.toNumber(),
+      sessionsWithExceptions: sessionsWithExceptions.toNumber(),
+    };
   }
 
   /*

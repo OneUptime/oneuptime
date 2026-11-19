@@ -218,7 +218,7 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### Record sessions
 
-The **Sessions** and **Crash-free sessions** tiles count the `session.id` on your spans. opentelemetry-swift's `Sessions` product sets it: add `SessionSpanProcessor` to the tracer provider, and wrap the log processor in `SessionLogRecordProcessor`, so diagnostics carry a session too.
+The **Sessions** and **Crash-free sessions** tiles count the `session.id` on your spans. opentelemetry-swift's `Sessions` product sets it: add `SessionSpanProcessor` to the tracer provider, and wrap the log processor in `SessionLogRecordProcessor`, so diagnostics carry a session too. Its releases set no `app.installation.id` yet, so an iOS app's **Crash-free sessions** tile says how many sessions crashed rather than its crash-free installs.
 :::
 
 > [!NOTE]

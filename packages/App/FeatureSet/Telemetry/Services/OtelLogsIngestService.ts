@@ -35,6 +35,7 @@ import {
   getMobileAppFaultKind,
   stampMetricKitDiagnosticEventName,
 } from "Common/Utils/Telemetry/MobileAppFaults";
+import { withAppInstallationId } from "Common/Types/Rum/MobileAppTelemetry";
 import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
 import LogSeverity, {
   logSeverityFromNumber,
@@ -1897,6 +1898,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
     }
 
+    /*
+     * And the install it happened on, from the log's resource (#9716): a
+     * mobile app's crash-free installs counts the installs of its crashes
+     * as it counts their sessions.
+     */
+    const rowAttributes: JSONObject = withAppInstallationId({
+      attributes: exceptionAttributes,
+      from: finalAttributes,
+    });
+
     data.dbExceptions.push({
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: ingestionTimestamp,
@@ -1928,8 +1939,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       release: release,
       environment: environment,
       parsedFrames: extracted.parsedFrames || "[]",
-      attributes: exceptionAttributes,
-      attributeKeys: TelemetryUtil.getAttributeKeys(exceptionAttributes),
+      attributes: rowAttributes,
+      attributeKeys: TelemetryUtil.getAttributeKeys(rowAttributes),
       retentionDate: data.retentionDateDb,
     });
 
