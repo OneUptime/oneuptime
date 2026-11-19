@@ -79,6 +79,42 @@ OneUptime keeps configuration in PostgreSQL, telemetry in ClickHouse, and the ca
 
 Check each release before it runs, as [Supply Chain Security](/docs/self-hosted/supply-chain-security) shows, and read its notes in [Upgrading](/docs/installation/upgrading). OneUptime publishes its security advisories on GitHub; on a network without internet access, the [update check](/docs/self-hosted/update-checks) can read them from a mirror and tell your master admins when one affects the version you run.
 
+The ingress gateway runs nginx, which OneUptime builds into its `nginx` image, so nginx's security fixes reach you in OneUptime's releases. To see which nginx your gateway runs (on Docker Compose, from the folder you installed OneUptime in):
+
+:::tabs
+@tab Docker Compose
+```bash
+sh Scripts/Install/WithConfig.sh docker compose exec ingress nginx -v
+```
+@tab Kubernetes
+```bash
+kubectl exec -n <namespace> deploy/<release>-nginx -- nginx -v
+```
+:::
+
+### Turn HTTP/2 off until you can upgrade
+
+The gateway speaks HTTP/2 only on the HTTPS port of your install's own address, and only when it terminates TLS for that address itself: with `PROVISION_SSL=true` on Docker Compose, or `ssl.provision: true` on Kubernetes. When a load balancer or ingress of your own terminates TLS in front of it, the gateway speaks HTTP/1.1 only.
+
+So when nginx fixes a vulnerability in HTTP/2 and you cannot upgrade OneUptime yet, turn HTTP/2 off on a gateway that terminates TLS. For example, nginx 1.30.7 fixed CVE-2026-123007 and CVE-2026-123633, which let anyone who can reach the gateway crash its worker processes, and possibly run code in them. A gateway on an older nginx has both.
+
+:::tabs
+@tab Docker Compose
+```bash
+sh Scripts/Install/WithConfig.sh docker compose exec ingress sh -c 'sed -i "s/http2[[:space:]]*on;/http2 off;/" /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf && nginx -t && nginx -s reload'
+```
+@tab Kubernetes
+```bash
+for pod in $(kubectl get pods -n <namespace> -l app=<release>-nginx -o name); do
+  kubectl exec -n <namespace> "$pod" -c <release>-nginx -- sh -c 'sed -i "s/http2[[:space:]]*on;/http2 off;/" /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf && nginx -t && nginx -s reload'
+done
+```
+:::
+
+- **What stops working.** OTLP over gRPC to your install's address, because gRPC needs HTTP/2. OTLP over HTTP keeps working, and browsers switch to HTTP/1.1.
+- **How long it lasts.** Until the container is created again, or on Kubernetes until the pod is replaced. Run the command again after that, until you upgrade.
+- **What it does not fix.** Anything outside HTTP/2. nginx 1.30.7 also fixed CVE-2026-118899, a denial of service over TLS 1.3 that reaches every HTTPS listener with a certificate, including those of status pages on domains of their own. Only upgrading fixes that.
+
 ## Cryptography and FIPS 140
 
 OneUptime's images are not FIPS 140-validated builds. Its services run on Node.js, whose cryptography comes from the OpenSSL it is built with: Node.js uses a FIPS 140-validated module only when it is built against one and started in FIPS mode, and OneUptime's images are not built that way. PostgreSQL, ClickHouse and Valkey use their own cryptographic libraries. Running your nodes in FIPS mode does not change what runs inside the containers.

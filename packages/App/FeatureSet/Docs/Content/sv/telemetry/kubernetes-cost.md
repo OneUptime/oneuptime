@@ -83,9 +83,10 @@ Med `cost.engine.url=auto` medföljer ingenting, och agenten läser din motor va
 | Motor | Vanlig tjänst-URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Sökvägen till Allocation API hittas av sig själv (`/model/allocation` för Kubecost, `/allocation/compute` eller `/allocation` för OpenCost). Sätt `cost.engine.allocationPath` bara för en ovanlig installation. Med `auto` eller en URL medföljer ingenting, så för minnesrekommendationer sätter du också `cost.engine.prometheusUrl` (se [Data bakom](#data-bakom)).
+Sökvägen till Allocation API hittas av sig själv (`/model/allocation` för Kubecost, `/allocation/compute` eller `/allocation` för OpenCost). Sätt `cost.engine.allocationPath` bara för en ovanlig installation. Med `auto` eller en URL medföljer ingenting, så för minnesrekommendationer sätter du också `cost.engine.prometheusUrl` (se [Data bakom](#data-bakom)). Prismätvärdena hittas på samma sätt, vilken av motorns Services du än anger: agenten provar dess `/metrics`, sedan den `/model/metrics` som en Kubecost 2-frontend eller OpenCosts gränssnitt skickar vidare till motorn, sedan Kubecost 3:s FinOps-agent, och collectorn skrapar den första adressen med prisserier. Sätt `cost.metrics.endpoint` för att ange dem själv.
 
 ## Prissättning för lokala kluster och bare metal
 
@@ -202,7 +203,7 @@ Ett äldre chart körde OpenCost utan en skrivbar konfigurationskatalog, så `Er
 :::
 
 :::details Kubernetes Cost Dashboard visar inga data
-Mallen läser de skrapade kostnadsmätvärdena: kontrollera att `cost.metrics.enabled` är `true`.
+Mallen läser de skrapade kostnadsmätvärdena: kontrollera att `cost.metrics.enabled` är `true`. Med `cost.engine.url` satt hittar kostnadsagenten var din motor tillhandahåller dem, och dess logg säger var, eller vilka adresser den provade: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Sätt `cost.metrics.endpoint` för att ange dem själv.
 :::
 
 :::details Right-Sizing-kortet är tomt

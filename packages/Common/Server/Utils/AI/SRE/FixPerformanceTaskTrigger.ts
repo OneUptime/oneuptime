@@ -296,18 +296,27 @@ export default class FixPerformanceTaskTrigger {
   }): Promise<FinishedPerformanceFix | null> {
     const fix: AIRun | null =
       await SubjectCodeFixRun.findFinishedPerformanceFixRunForTrace(data);
+    const taskId: ObjectID | null = SubjectCodeFixRun.taskIdOf(fix);
 
-    if (!fix || !fix.id) {
+    if (!fix || !fix.id || !taskId) {
       return null;
+    }
+
+    // The task's latest turn: a fix asked again (#6509) is a later turn of it.
+    let task: AIRun = fix;
+
+    if (fix.codeTaskId) {
+      task = new AIRun();
+      task.id = fix.codeTaskId;
     }
 
     const latestTurn: AIRun = await CodeTaskRuns.getLatestTurn({
       projectId: data.projectId,
-      task: fix,
+      task,
     });
 
     return {
-      aiRunId: fix.id.toString(),
+      aiRunId: taskId.toString(),
       outcome: getFinishedFixOutcome({ fix, latestTurn }),
     };
   }
@@ -449,9 +458,14 @@ export default class FixPerformanceTaskTrigger {
           traceId: data.traceId,
         });
 
-    // The fix, read as its task's own page reads it for this reader.
+    /*
+     * The fix, read as its task's own page reads it for this reader - by
+     * its task, also when the fix on its way was asked again from Code.
+     */
+    const activeTaskId: string | null =
+      SubjectCodeFixRun.taskIdOf(activeRun)?.toString() || null;
     const fixTaskId: string | null =
-      activeRun?.id?.toString() || finishedFix?.aiRunId || null;
+      activeTaskId || finishedFix?.aiRunId || null;
 
     if (
       fixTaskId &&
@@ -534,8 +548,7 @@ export default class FixPerformanceTaskTrigger {
       blocker,
     });
 
-    const linkedRunId: string | null =
-      activeRun?.id?.toString() || finishedFix?.aiRunId || null;
+    const linkedRunId: string | null = fixTaskId;
 
     /*
      * The fix is offered, but the trace's facts found no repository to hold

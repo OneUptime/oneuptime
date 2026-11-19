@@ -31,9 +31,11 @@ import { FindOperator } from "typeorm";
  * count - not a stand-in for its answer. Every read is kept, in order, for
  * a test to say what was read.
  *
- * One statement of SQL is answered too: how many of the task's replies
+ * Two statements of SQL are answered too: how many of the task's replies
  * come before one of them (CodeTaskThread.getRepliesBeforeStatement) - the
- * place of a turn a link names. Its SQL runs on Postgres in
+ * place of a turn a link names - and the ids of the replies right before
+ * one, newest first (getRepliesBeforePageStatement) - a page of the turns
+ * a long task's page does not show (#7128). Their SQL runs on Postgres in
  * CodeTaskLongThreadPostgres.test.ts; any other statement fails the test.
  *
  * Turn n was asked n - 1 minutes after the first; AI started it 10 seconds
@@ -444,6 +446,64 @@ export function holdLongCodeTask(data: { turnCount: number }): LongCodeTask {
     }).length;
   };
 
+  /*
+   * The ids of the `limit` replies right before one, newest first - the
+   * page of earlier turns (CodeTaskThread.getRepliesBeforePageStatement):
+   * the replies countRepliesBefore counts, by when they were asked, newest
+   * first, a tie by the smaller id first.
+   */
+  const pageRepliesBefore: (
+    parameters: Array<unknown>,
+  ) => Array<Record<string, unknown>> = (
+    parameters: Array<unknown>,
+  ): Array<Record<string, unknown>> => {
+    const [projectId, runType, taskId, replyId] = parameters
+      .slice(0, 4)
+      .map((value: unknown): string => {
+        return String(value).toLowerCase();
+      });
+    const limit: number = Number(parameters[4]);
+    const reply: AIRun | undefined = runs.find((run: AIRun): boolean => {
+      return run.id!.toString().toLowerCase() === replyId;
+    });
+
+    if (!reply) {
+      return [];
+    }
+
+    const asked: number = timeOf(reply.createdAt);
+    const replyKey: string = reply.id!.toString().toLowerCase();
+
+    return runs
+      .filter((run: AIRun): boolean => {
+        const runKey: string = run.id!.toString().toLowerCase();
+        const runAsked: number = timeOf(run.createdAt);
+
+        return (
+          String(run.projectId).toLowerCase() === projectId &&
+          String(run.runType).toLowerCase() === runType &&
+          String(run.codeTaskId || "").toLowerCase() === taskId &&
+          (runAsked < asked || (runAsked === asked && runKey > replyKey))
+        );
+      })
+      .sort((a: AIRun, b: AIRun): number => {
+        const byTime: number = timeOf(b.createdAt) - timeOf(a.createdAt);
+
+        if (byTime !== 0) {
+          return byTime;
+        }
+
+        const aKey: string = a.id!.toString().toLowerCase();
+        const bKey: string = b.id!.toString().toLowerCase();
+
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
+      })
+      .slice(0, limit)
+      .map((run: AIRun): Record<string, unknown> => {
+        return { id: run.id!.toString() };
+      });
+  };
+
   jest.spyOn(AIRunService, "getRepository").mockReturnValue({
     manager: {
       query: async (
@@ -452,6 +512,10 @@ export function holdLongCodeTask(data: { turnCount: number }): LongCodeTask {
       ): Promise<Array<Record<string, unknown>>> => {
         const statement: LongTaskStatement = { sql, parameters };
         reads.push({ service: "AIRun", method: "query", args: statement });
+
+        if (sql.includes('AS "id"')) {
+          return pageRepliesBefore(parameters);
+        }
 
         if (!sql.includes('AS "before"')) {
           throw new Error(`A statement the fake does not answer: ${sql}`);

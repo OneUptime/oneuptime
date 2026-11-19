@@ -294,6 +294,21 @@ Désactiver **Exiger le SSO pour la connexion** enregistre dès que vous bascule
 > [!NOTE]
 > Sur OneUptime Cloud, exiger le SSO nécessite le plan **Scale**, et le désactiver fonctionne avec tous les plans. En dessous de Scale, **Paramètres du projet** > **Sécurité** > **SSO** affiche l'offre de mise à niveau du plan ; un projet qu'un essai Scale a laissé en exigeant le SSO y trouve aussi **Exiger le SSO pour la connexion**, sous l'offre, afin de pouvoir le désactiver. Le réactiver nécessite **Scale**.
 
+### Gérer la connexion de vos membres avec le SSO
+
+Exiger le SSO garde les données de votre projet derrière votre fournisseur d'identité, mais vos membres peuvent toujours définir dans OneUptime un mot de passe, des clés d'accès et l'authentification à deux facteurs, ce que votre projet ne demande jamais. Tant que **Exiger le SSO pour la connexion** est activé, un second interrupteur en dessous, **Gérer la connexion avec le SSO**, y met fin.
+
+La connexion d'une personne est gérée par le SSO quand chaque projet auquel elle appartient, y compris tout projet auquel elle est invitée, exige le SSO et a activé **Gérer la connexion avec le SSO**. Elle ne peut alors définir ni mot de passe, ni clé d'accès, ni clé de sécurité, ni application d'authentification, ni codes de secours, ni authentification à deux facteurs, **Mot de passe oublié ?** ne lui envoie aucun lien, et son **Profil utilisateur** nomme son fournisseur d'identité au lieu de proposer ces réglages. Rien ne change à la connexion : son mot de passe la connecte toujours à OneUptime, et votre projet demande le SSO comme avant.
+
+La règle est vérifiée à chaque fois, donc :
+
+- **Une personne dans un projet qui ne gère pas la connexion** : dès qu'elle est membre d'un projet, ou invitée dans un projet, qui n'exige pas le SSO ou n'a pas activé **Gérer la connexion avec le SSO**, elle retrouve ses réglages, et son **Profil utilisateur** nomme ce projet comme la raison. Si elle le quitte, sa connexion est de nouveau gérée. Un compte peut appartenir à de nombreuses organisations : une organisation ne décide donc jamais pour les projets d'une autre.
+- **Des projets avec des fournisseurs différents** : une personne dans deux projets qui gèrent tous deux la connexion, chacun avec son propre fournisseur d'identité, est gérée, et son profil nomme les deux fournisseurs.
+- **Les administrateurs principaux** gardent toujours leurs propres réglages.
+- **Ce que les personnes ont configuré avant** est conservé, inutilisé par votre projet. Un administrateur du serveur peut l'effacer sur la page **Authentification** de la personne dans l'Admin Dashboard, avec **Effacer les paramètres de connexion**.
+
+**Gérer la connexion avec le SSO** enregistre dès que vous basculez l'interrupteur, ne supprime rien, et le désactiver rend aussitôt leurs réglages à tous. Qui peut modifier **Exiger le SSO pour la connexion** peut le modifier, avec les mêmes plans. Quand **Exiger le SSO pour la connexion** est désactivé, il est masqué et ne change rien.
+
 ## Désactiver ou supprimer un fournisseur
 
 | Ce que vous modifiez | Les personnes qui se sont connectées avec le fournisseur |

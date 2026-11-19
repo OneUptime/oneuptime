@@ -27,9 +27,11 @@ import {
   CodeTaskAgentDetails,
   CodeTaskAgentTurn,
   CodeTaskConversationJSON,
+  CodeTaskEarlierTurnsJSON,
   CodeTaskFileStatus,
   CodeTaskState,
   CodeTaskTurnJSON,
+  MAX_EARLIER_TURNS_PER_READ,
 } from "../../../../../Types/AI/CodeTask";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
@@ -1349,5 +1351,276 @@ describe("CodeTaskPresenter.getWorkMilliseconds", () => {
       ]),
     ).toBe(0);
     expect(CodeTaskPresenter.getWorkMilliseconds([])).toBe(0);
+  });
+});
+
+/*
+ * SHOW EARLIER TURNS (#7128): the turns a long task's page does not show,
+ * read a page at a time - the turns just before the oldest the page has,
+ * oldest first, each with its place in the task - back to the first turn,
+ * never past it.
+ */
+describe("a long task's earlier turns, a page at a time", () => {
+  let eventReads: SpyInstance<typeof AIRunEventService.findBy>;
+
+  beforeEach(() => {
+    jest.spyOn(UserService, "findBy").mockResolvedValue([jane()]);
+    eventReads = jest.spyOn(AIRunEventService, "findBy").mockResolvedValue([]);
+  });
+
+  async function earlierThan(
+    fixture: LongCodeTask,
+    n: number,
+    options: { limit?: number; canSeeChanges?: boolean } = {},
+  ): Promise<CodeTaskEarlierTurnsJSON | null> {
+    return await CodeTaskPresenter.getEarlierTurns({
+      projectId: LONG_TASK_PROJECT_ID,
+      task: fixture.task(),
+      beforeRunId: turnId(n),
+      limit: options.limit ?? MAX_EARLIER_TURNS_PER_READ,
+      canSeeChanges: options.canSeeChanges ?? true,
+      props: { isRoot: true },
+    });
+  }
+
+  function numbersIn(earlier: CodeTaskEarlierTurnsJSON | null): Array<number> {
+    return (earlier?.turns || []).map((turn: CodeTaskTurnJSON): number => {
+      return turnNumber(turn.runId);
+    });
+  }
+
+  test("reads 50 at most a page, the most a page of them sends", () => {
+    expect(MAX_EARLIER_TURNS_PER_READ).toBe(50);
+  });
+
+  test("205 turns: before the oldest shown (turn 7) are turns 2 to 6, oldest first, from place 2 - never the first turn", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+
+    const earlier: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      7,
+    );
+
+    expect(numbersIn(earlier)).toEqual([2, 3, 4, 5, 6]);
+    expect(earlier?.firstNumber).toBe(2);
+  });
+
+  test("300 turns: pages of 50 back to the first turn - 52 to 101, then 2 to 51, then none", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 300 });
+
+    const first: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      102,
+    );
+
+    expect(numbersIn(first)).toEqual(range(52, 101));
+    expect(first?.firstNumber).toBe(52);
+
+    const second: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      52,
+    );
+
+    expect(numbersIn(second)).toEqual(range(2, 51));
+    expect(second?.firstNumber).toBe(2);
+
+    // Turn 2 is the oldest reply: only the first turn is older.
+    const none: CodeTaskEarlierTurnsJSON | null = await earlierThan(fixture, 2);
+
+    expect(numbersIn(none)).toEqual([]);
+    expect(none?.firstNumber).toBe(2);
+  });
+
+  test("a short page is the turns right before, in order and numbered so - not the oldest, and not one off", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 300 });
+
+    const page: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      102,
+      { limit: 3 },
+    );
+
+    expect(numbersIn(page)).toEqual([99, 100, 101]);
+    expect(page?.firstNumber).toBe(99);
+  });
+
+  test("each turn is sent as the conversation sends its own: what was asked, who asked, the reply, its pull request and its steps", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    fixture.openPullRequest({ turn: 4, number: 41 });
+
+    const earlier: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      7,
+    );
+    const turn4: CodeTaskTurnJSON = earlier!.turns[2]!;
+
+    expect(turnNumber(turn4.runId)).toBe(4);
+    expect(turn4.request?.message).toBe(turnMessage(4));
+    expect(turn4.outcome?.summary).toBe(turnReply(4));
+    expect(turn4.requestedBy?.name).toBe("Jane Doe");
+    expect(turn4.state).toBe(CodeTaskState.Done);
+    expect(
+      turn4.pullRequests.map((each: { number?: number | undefined }) => {
+        return each.number;
+      }),
+    ).toEqual([41]);
+    // None says what started the task: that is the first turn's.
+    expect(turn4).not.toHaveProperty("origin");
+
+    // One read of steps per turn sent, and no other.
+    const stepsRead: Array<number> = eventReads.mock.calls.map(
+      (call: Array<unknown>): number => {
+        return turnNumber(
+          ((call[0] as FindBy<AIRunEvent>).query as Record<string, unknown>)[
+            "aiRunId"
+          ] as ObjectID,
+        );
+      },
+    );
+
+    expect(
+      stepsRead.sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  test("a reader who may not change the code is not sent a turn's diff - it is not even read", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    fixture.turn(4).codeChanges = {
+      files: [
+        {
+          path: turnFile(4),
+          status: CodeTaskFileStatus.Modified,
+          additions: 4,
+          deletions: 1,
+          patch: "@@ -1 +1 @@\n-old\n+new",
+        },
+      ],
+      isTruncated: false,
+    };
+
+    const canChange: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      7,
+    );
+
+    expect(canChange!.turns[2]!.changes?.files[0]?.patch).toBe(
+      "@@ -1 +1 @@\n-old\n+new",
+    );
+
+    const readOnly: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      7,
+      { canSeeChanges: false },
+    );
+
+    expect(readOnly!.turns[2]).not.toHaveProperty("changes");
+
+    const pageReads: Array<LongTaskRead> = fixture.readsOf("AIRun", "findBy");
+    const lastRead: FindBy<AIRun> = argsOf(pageReads[pageReads.length - 1]!);
+
+    expect(lastRead.select as Record<string, unknown>).not.toHaveProperty(
+      "codeChanges",
+    );
+  });
+
+  test.each([
+    [
+      "the task's first turn",
+      (): ObjectID => {
+        return turnId(1);
+      },
+    ],
+    [
+      "a run that is not the task's",
+      (): ObjectID => {
+        return new ObjectID("4a5b6c7d-8e9f-4a0b-9c1d-000000000077");
+      },
+    ],
+  ])(
+    "before %s: nothing - no turn is read, nothing counted",
+    async (_name: string, runId: () => ObjectID) => {
+      const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+
+      expect(
+        await CodeTaskPresenter.getEarlierTurns({
+          projectId: LONG_TASK_PROJECT_ID,
+          task: fixture.task(),
+          beforeRunId: runId(),
+          limit: 50,
+          canSeeChanges: true,
+          props: { isRoot: true },
+        }),
+      ).toBeNull();
+      expect(fixture.readsOf("AIRun", "query")).toHaveLength(0);
+    },
+  );
+
+  test("the turn named is read pinned to this task, its project and code-fix runs", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+
+    await earlierThan(fixture, 7);
+
+    const [found]: Array<LongTaskRead> = fixture.readsOf("AIRun", "findOneBy");
+    const query: Record<string, unknown> = (found!.args as FindOneBy<AIRun>)
+      .query as Record<string, unknown>;
+
+    expect(String(query["_id"])).toBe(turnId(7).toString());
+    expect(String(query["projectId"])).toBe(LONG_TASK_PROJECT_ID.toString());
+    expect(query["runType"]).toBe(AIRunType.CodeFix);
+    expect(String(query["codeTaskId"])).toBe(turnId(1).toString());
+  });
+
+  test("two turns asked the same moment are paged where the conversation places them, each numbered once", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    // Turns 4 and 5 asked together: the greater id (5) comes first.
+    fixture.turn(4).createdAt = askedAt(5);
+
+    const earlier: CodeTaskEarlierTurnsJSON | null = await earlierThan(
+      fixture,
+      7,
+    );
+
+    expect(numbersIn(earlier)).toEqual([2, 3, 5, 4, 6]);
+    expect(earlier?.firstNumber).toBe(2);
+
+    // A link to turn 4 numbers it where this page places it: the 5th.
+    const linked: CodeTaskNumberedTurn | null = await CodeTaskThread.findReply({
+      projectId: LONG_TASK_PROJECT_ID,
+      task: fixture.task(),
+      runId: turnId(4),
+    });
+
+    expect(linked?.number).toBe(5);
+  });
+
+  test("its statement reads on Postgres, pinned to the project, code-fix runs and the task, never a deleted reply, newest first", () => {
+    const statement: { sql: string; parameters: Array<unknown> } =
+      CodeTaskThread.getRepliesBeforePageStatement({
+        projectId: LONG_TASK_PROJECT_ID,
+        taskId: turnId(1),
+        replyId: turnId(9),
+        limit: 50,
+      });
+
+    expect(statement.parameters).toEqual([
+      LONG_TASK_PROJECT_ID.toString(),
+      AIRunType.CodeFix,
+      turnId(1).toString(),
+      turnId(9).toString(),
+      50,
+    ]);
+    expect(statement.sql).toContain('"reply"."projectId" = $1');
+    expect(statement.sql).toContain('"reply"."runType" = $2');
+    expect(statement.sql).toContain('"reply"."deletedAt" IS NULL');
+    expect(statement.sql).toContain('"reply"."codeTaskId" = $3::uuid');
+    expect(statement.sql).toContain(
+      'ORDER BY "reply"."createdAt" DESC, "reply"."_id" ASC',
+    );
+    expect(statement.sql).toContain("LIMIT $5");
+    // Every value is a parameter: no id is written into the SQL.
+    expect(statement.sql).not.toContain(turnId(9).toString());
+    expect(statement.sql).not.toContain(LONG_TASK_PROJECT_ID.toString());
   });
 });

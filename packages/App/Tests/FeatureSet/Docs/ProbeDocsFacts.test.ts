@@ -784,9 +784,12 @@ describe("the Custom Probes page: how OneUptime knows a probe is running", () =>
       "Every request from the probe counts as a sign of life, and the probe sends one at least every minute.",
     );
     expect(readSource(PROBE_ALIVE_JOB)).toMatch(/schedule: EVERY_MINUTE/);
-    // Every authenticated probe request stamps lastAlive.
+    /*
+     * Every authenticated probe request stamps lastAlive, with what it
+     * says of the release the probe runs (#9759).
+     */
     expect(readSource(PROBE_AUTHORIZATION)).toContain(
-      "ProbeService.updateLastAlive(probeId)",
+      "ProbeService.updateLastAlive(\n        probeId,\n        ProbeReportedVersionUtil.readFromRequest(data),\n      )",
     );
   });
 

@@ -18,6 +18,9 @@ const FILES: Array<string> = [
   `${DASHBOARD}/Components/AI/Results/AiResultsData.ts`,
   `${DASHBOARD}/Components/AI/Results/AiResultsView.tsx`,
   `${DASHBOARD}/Components/AI/Results/AiResultsPage.tsx`,
+  // What a number opens (#7768).
+  `${DASHBOARD}/Components/AI/Results/AiResultsRecordsData.ts`,
+  `${DASHBOARD}/Components/AI/Results/AiResultsRecordsDialog.tsx`,
   `${DASHBOARD}/Pages/Settings/AIResults.tsx`,
 ];
 
@@ -40,6 +43,12 @@ describe("the AI Results page in the dark theme", () => {
       "bg-indigo-400",
       "bg-sky-500/50",
       "bg-teal-500/50",
+      /*
+       * The mark on the week the investigations moved to another model
+       * (#7762), and its legend's: a thin line beside a bar, never behind
+       * text, that reads on both themes.
+       */
+      "bg-violet-500",
     ],
   });
 

@@ -43,11 +43,12 @@ import ObjectID from "../../../../Types/ObjectID";
 
 /*
  * What a row reads of a task's newest reply: how it stands, why it failed,
- * its attempts and its times.
+ * its attempts and its times - and its recipe, which Try again asks again.
  */
 export const CODE_TASK_NEWEST_REPLY_SELECT: Select<AIRun> = {
   _id: true,
   codeTaskId: true,
+  codeFixTaskType: true,
   status: true,
   needsUserInput: true,
   userId: true,

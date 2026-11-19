@@ -36,6 +36,7 @@ import {
   getSessionEndCauseRevokedReason,
   SessionEndCause,
 } from "../../../Types/UserSession/SessionEndCause";
+import { standInMemberProjects } from "../TestingUtils/SsoManagedProjects";
 
 /*
  * ---------------------------------------------------------------------------
@@ -1164,6 +1165,8 @@ describe("UserService -- admin-controlled two factor auth", () => {
         GlobalConfigService,
         "getRequireSsoForLogin",
       ).mockResolvedValue(false);
+      // In no project that manages their sign-in with SSO (#9763).
+      standInMemberProjects([]);
       findOneBySpy.mockImplementation(async (): Promise<User | null> => {
         return buildUser({ id: userId, enableTwoFactorAuth: false });
       });

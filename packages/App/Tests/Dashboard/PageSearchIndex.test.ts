@@ -668,11 +668,12 @@ describe("buildPageSearchCommandDescriptors", () => {
       },
     );
 
+    // Every item that went quiet: discovered ones and managed devices alike.
     expect(goneQuiet?.routePath).toBe(
-      "/dashboard/project-a/inventory_items?source=discovered&stale=true",
+      "/dashboard/project-a/inventory_items?stale=true",
     );
     expect(goneQuiet?.id).toBe(
-      "page-dashboard-projectid-inventory-items-source-discovered-stale-true",
+      "page-dashboard-projectid-inventory-items-stale-true",
     );
   });
 });

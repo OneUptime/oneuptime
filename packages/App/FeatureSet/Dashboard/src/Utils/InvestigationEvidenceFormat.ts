@@ -99,6 +99,14 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "search_alerts",
+    {
+      description: "Searched past alerts",
+      icon: IconProp.Bell,
+      category: "Alerts",
+    },
+  ],
+  [
     "get_alert_timeline",
     {
       description: "Read an alert timeline",

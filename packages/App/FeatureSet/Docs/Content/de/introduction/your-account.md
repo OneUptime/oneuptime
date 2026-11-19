@@ -123,12 +123,28 @@ Wenn Sie zum ersten Mal eine App, einen Schlüssel oder einen Passkey hinzufüge
 
 Haben Sie unter **Authenticator-Apps** schon eine App oder unter **Sicherheitsschlüssel** schon einen Schlüssel, fragt **Zwei-Faktor-Authentifizierung aktivieren** stattdessen nur nach einer Bestätigung. Solange sie eingeschaltet ist, lässt sich Ihre letzte App, Ihr letzter Schlüssel oder Passkey nicht entfernen: Fügen Sie zuerst einen weiteren hinzu oder schalten Sie die Zwei-Faktor-Authentifizierung aus. Zeigt die Karte **Einrichtung erforderlich**, ist die Zwei-Faktor-Authentifizierung eingeschaltet, aber noch nichts eingerichtet, oft weil ein Administrator sie verlangt hat: Klicken Sie auf **Einrichtung abschließen**, sonst werden Sie bei Ihrer nächsten Anmeldung dazu aufgefordert.
 
+### Die Zwei-Faktor-Authentifizierung bei der Anmeldung einrichten
+
+Verlangt ein Administrator die Zwei-Faktor-Authentifizierung und haben Sie noch nichts eingerichtet, fordert Sie Ihre nächste Anmeldung mit Passwort oder einem per E-Mail gesendeten Link auf, sie einzurichten, bevor sie Sie hineinlässt. Wählen Sie **Authenticator-App** oder **Sicherheitsschlüssel** und klicken Sie auf **Weiter**:
+
+- **Authenticator-App**: Scannen Sie den QR-Code, geben Sie den sechsstelligen Code ein, den Ihre App zeigt, und klicken Sie auf **Bestätigen und anmelden**.
+- **Sicherheitsschlüssel**: Klicken Sie auf **Sicherheitsschlüssel registrieren** und folgen Sie der Aufforderung Ihres Browsers. Berühren Sie einen USB- oder NFC-Schlüssel, oder nutzen Sie den Fingerabdruck, das Gesicht oder die Displaysperre Ihres Smartphones oder Computers.
+
+Haben Sie noch keine Backup-Codes, zeigt OneUptime sie Ihnen danach einmal, und Sie sind angemeldet. **Andere Methode wählen** führt zurück zur Auswahl. Ein Browser, der keinen Sicherheitsschlüssel registrieren kann, etwa auf einer Seite ohne HTTPS, bietet nur die Authenticator-App an.
+
 > [!TIP]
 > Gehen Ihnen die Backup-Codes aus? **Codes neu erzeugen** auf derselben Seite gibt Ihnen einen neuen Satz, und die alten Codes funktionieren sofort nicht mehr.
 
 ### Wenn Ihre Organisation Ihre Anmeldung verwaltet
 
-Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
+Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt, es sei denn, ein Serveradministrator löscht es. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
+
+Dasselbe gilt, wenn jedes Projekt, zu dem Sie gehören, Single Sign-On verlangt und **Anmeldung mit SSO verwalten** eingeschaltet hat. Ihr Passwort meldet Sie weiterhin bei OneUptime an, aber jedes Projekt verlangt SSO, daher richtet OneUptime für Sie kein neues Passwort, keinen neuen Passkey und keinen neuen zweiten Schritt ein:
+
+- **Ein Projekt, das das nicht tut**: Sobald Sie Mitglied eines Projekts sind oder zu einem Projekt eingeladen werden, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, kommt Ihr Abschnitt **Sicherheit** zurück. Die **Übersicht** nennt diese Projekte dann unter **Single Sign-On** als Grund dafür, dass Ihre Einstellungen bei Ihnen liegen. Verlassen Sie dieses Projekt, werden sie Ihnen wieder entzogen.
+- **Projekte mit unterschiedlichen Anbietern**: Verwalten alle Ihre Projekte die Anmeldung, jedes mit seinem eigenen Identitätsanbieter, nennt die **Übersicht** jeden Anbieter.
+- **Master-Admins** behalten immer ihre eigenen Einstellungen unter **Sicherheit**.
+- **Was Sie vorher eingerichtet haben**, bleibt gespeichert, und ein Serveradministrator kann es löschen.
 
 ## Ihre Projekte
 

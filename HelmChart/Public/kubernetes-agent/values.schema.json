@@ -754,7 +754,7 @@
             "enabled": { "type": "boolean" },
             "endpoint": {
               "type": "string",
-              "description": "Metrics endpoint URL. Empty defaults to <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused."
+              "description": "Metrics endpoint URL. Empty: the bundled OpenCost's /metrics; with cost.engine.url set to auto or a URL, wherever the engine the cost agent reads serves its price metrics, which the agent finds (the engine's /metrics, the /model/metrics a Kubecost 2 frontend or OpenCost's UI proxies, or a Kubecost 3 finops agent) and the collector asks it for; with cost.agent.enabled false, <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused. Example: http://kubecost-finopsagent.kubecost.svc.cluster.local:80/metrics"
             },
             "scrapeInterval": { "type": "string" },
             "metricsAllowlist": {

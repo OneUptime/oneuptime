@@ -28,6 +28,18 @@ The instance-wide providers come from the fixture's answer to `GET /identity/sig
 
 The sign-up page also asks `POST /identity/first-account` before it draws its form. The fixture answers that this self-hosted server has accounts, unless `firstaccount=1`: then the page's line under its title says the account made there becomes the server's admin, and the spec checks that line in every language at every width, and that the page offers no way to sign in.
 
+## A security key set up while signing in
+
+`SecurityKeyEnrolment.spec.ts` (#9764) signs in to an account that must set up two-factor authentication first, and sets up a security key, with the browser's own WebAuthn and a virtual USB authenticator the DevTools protocol plugs in. With `enrolment=1&apihost=self` the page signs in over the real network, to the fixture's own address, where the spec answers it with `page.route`: `/identity/login` says a second step must be set up, `/identity/security-key-enrolment-options` answers creation options made by `@simplewebauthn/server` as the server makes a security key's, and `/identity/verify-security-key-enrolment` verifies the key's attestation against that challenge, origin and relying party, answering 400 when it does not verify. Both refuse a request without the email and password, or with a session cookie. WebAuthn needs a domain for its relying party, so these pages are opened as `localhost` rather than `127.0.0.1`.
+
+It checks that:
+
+- the page offers an authenticator app (picked) or a security key, and that the security key is registered on the key (one credential, not a passkey), verified by the server, and followed by the backup codes, shown once; only once they are saved does the page go to the dashboard;
+- a prompt that never completes (the virtual key waits for a touch that never comes, until the browser's time for it is out) says the key was not registered, in the reader's language, sends nothing more and signs nobody in; an answer the server does not verify signs nobody in either;
+- **Choose another way** goes back to the choice, and the authenticator app is its QR code and its code;
+- a browser without WebAuthn goes straight to the QR code, with no choice;
+- at 320px and 390px, in English, German and Persian (right to left), every step is in the reader's words, its choices and buttons as wide as the card, its buttons as tall as **Sign in**, and nothing scrolls sideways.
+
 Run it from `packages/E2E`:
 
 ```bash

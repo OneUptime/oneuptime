@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
 import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
+import { CLEAR_LOCAL_SIGN_IN_ACTION } from "Common/Types/SSO/LocalSignInClearing";
 
 /*
  * Admin Dashboard > User > Authentication is the page a master admin uses to
@@ -447,6 +448,23 @@ describe("User > Authentication server contract", () => {
       "set-two-factor-auth-required": "post",
       "reset-two-factor-auth": "post",
     });
+  });
+
+  test("Clear Sign-In Settings posts to the route UserAPI registers, both named by one constant (#9762)", () => {
+    /*
+     * The one action the page names by a shared constant rather than a
+     * literal (Types/SSO/LocalSignInClearing), so the extraction above does
+     * not see it: pinned here instead. Both files take its name from the
+     * same export, so neither can be renamed alone, and it is a POST on
+     * both sides - it deletes how somebody signs in.
+     */
+    expect(CLEAR_LOCAL_SIGN_IN_ACTION).toBe("clear-local-sign-in");
+    expect(authenticationPageSource).toMatch(
+      /API\.post<JSONObject>\(\{\s*url:\s*userAuthenticationRoute\(modelId,\s*CLEAR_LOCAL_SIGN_IN_ACTION\)/,
+    );
+    expect(userApiSource).toMatch(
+      /this\.router\.post\(\s*`\$\{new this\.entityType\(\)\.getCrudApiPath\(\)\?\.toString\(\)\}\/:userId\/\$\{CLEAR_LOCAL_SIGN_IN_ACTION\}`,\s*MasterAdminAuthorization\.isAuthorizedMasterAdminMiddleware,/,
+    );
   });
 
   test("the prefix the page hard-codes is the User model's CRUD path", () => {

@@ -124,6 +124,33 @@ spec:
 > [!TIP]
 > 需要檢查私有位址（例如 `http://10.0.0.5/health`）的探測器需要 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`。在你允許之前，探測器會拒絕私有位址：請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。
 
+## 更新探測器
+
+探測器執行的是啟動它的映像檔的版本，因此要更新它，請使用同一個探測器 ID 和金鑰，從較新的映像檔重新啟動它。`oneuptime/probe:release` 映像檔永遠是最新版本。
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+然後再次執行[執行探測器](#執行探測器)中的指令。
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+將 `<version>` 替換為要執行的版本，例如 `17.0.1`，並在 `oneuptime-probe.yaml` 中寫入同一個映像檔，這樣再次套用該檔案時它會保留。
+:::
+
+探測器的頁面在 **探測器狀態** 下顯示它執行的版本。早於 17.0.1 的探測器無法產生[一次性驗證碼密鑰](/docs/monitor/monitor-secrets#使用一次性驗證碼登入)的驗證碼：它的頁面會說明這一點，它檢查的監測器的表單也會。
+
 ## 透過 Proxy 連線
 
 如果探測器必須經過 Proxy 才能連到 OneUptime 或它檢查的網站，請把 Proxy 的位址告訴它：

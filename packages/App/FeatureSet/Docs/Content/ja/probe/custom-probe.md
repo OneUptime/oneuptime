@@ -124,6 +124,33 @@ spec:
 > [!TIP]
 > `http://10.0.0.5/health` のようなプライベートアドレスをチェックするプローブには `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` が必要です。許可するまで、プローブはプライベートアドレスを拒否します。 [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
 
+## プローブを更新する
+
+プローブは、起動元のイメージのバージョンで動きます。更新するには、同じプローブ ID とキーで、より新しいイメージからプローブを起動し直します。 `oneuptime/probe:release` イメージは常に最新のバージョンです。
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+その後、 [プローブを実行する](#プローブを実行する) のコマンドをもう一度実行します。
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+`<version>` は `17.0.1` のように実行するバージョンに置き換え、同じイメージを `oneuptime-probe.yaml` にも書いてください。そうすれば、ファイルをもう一度適用してもそのイメージのままです。
+:::
+
+プローブのページの **プローブステータス** に、実行中のバージョンが表示されます。17.0.1 より古いプローブは [ワンタイムコードのシークレット](/docs/monitor/monitor-secrets#ワンタイムコードでサインインする) のコードを作れません。そのことはプローブのページに表示され、プローブがチェックするモニターのフォームにも表示されます。
+
 ## プロキシ経由で接続する
 
 プローブが OneUptime やチェック対象のサイトに届くためにプロキシを通す必要がある場合は、プロキシのアドレスを指定します。

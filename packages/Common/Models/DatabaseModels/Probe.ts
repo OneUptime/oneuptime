@@ -304,6 +304,37 @@ export default class Probe extends BaseModel {
   })
   public probeVersion?: Version = undefined;
 
+  /*
+   * The release the probe says it runs (OneUptime issue #9759): what its
+   * requests last said, kept with its liveness stamp - the release, or the
+   * text a build that is no release sends, or nothing for a probe older
+   * than FIRST_PROBE_VERSION_WITH_TOTP_CODES, which says none
+   * (Types/Probe/ProbeReportedVersion). probeVersion above is a label
+   * someone may type, and no probe ever set it. Written by OneUptime alone,
+   * and read by the probe's readers, as probeVersion is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Reported Version",
+    description:
+      "The OneUptime release this probe last said it runs. Set by OneUptime from the probe's own requests. Empty until the probe connects, and for a probe older than 17.0.1, which does not say.",
+    example: "17.0.1",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public reportedVersion?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

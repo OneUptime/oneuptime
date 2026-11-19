@@ -83,9 +83,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | موتور | نشانی معمول سرویس |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-مسیر Allocation API خودبه‌خود پیدا می‌شود (`/model/allocation` برای Kubecost، `/allocation/compute` یا `/allocation` برای OpenCost). `cost.engine.allocationPath` را فقط برای یک نصب نامعمول تنظیم کنید. با `auto` یا یک نشانی هیچ چیزی همراه نمی‌شود، پس برای پیشنهادهای حافظه `cost.engine.prometheusUrl` را هم تنظیم کنید (ببینید [داده‌های پشت آن](#دادههای-پشت-آن)).
+مسیر Allocation API خودبه‌خود پیدا می‌شود (`/model/allocation` برای Kubecost، `/allocation/compute` یا `/allocation` برای OpenCost). `cost.engine.allocationPath` را فقط برای یک نصب نامعمول تنظیم کنید. با `auto` یا یک نشانی هیچ چیزی همراه نمی‌شود، پس برای پیشنهادهای حافظه `cost.engine.prometheusUrl` را هم تنظیم کنید (ببینید [داده‌های پشت آن](#دادههای-پشت-آن)). متریک‌های قیمت هم به همین شکل پیدا می‌شوند، پس هر کدام از سرویس‌های موتور را که بدهید فرقی نمی‌کند: عامل اول `/metrics` موتور را امتحان می‌کند، بعد `/model/metrics` را که فرانت‌اند Kubecost 2 یا رابط کاربری OpenCost به موتور می‌رساند، بعد عامل FinOps در Kubecost 3، و کالکتور اولین نشانی‌ای را برداشت می‌کند که سری‌های قیمت دارد. برای اینکه خودتان آن‌ها را مشخص کنید، `cost.metrics.endpoint` را تنظیم کنید.
 
 ## قیمت‌گذاری درون‌سازمانی و سخت‌افزار خالص
 
@@ -202,7 +203,7 @@ OneUptime از سطرهای هزینه هر ساعت چهار متریک می‌
 :::
 
 :::details Kubernetes Cost Dashboard داده‌ای نشان نمی‌دهد
-این الگو متریک‌های هزینه برداشت‌شده را می‌خواند: بررسی کنید که `cost.metrics.enabled` برابر `true` باشد.
+این الگو متریک‌های هزینه برداشت‌شده را می‌خواند: بررسی کنید که `cost.metrics.enabled` برابر `true` باشد. وقتی `cost.engine.url` تنظیم شده باشد، عامل هزینه پیدا می‌کند موتور شما آن‌ها را کجا ارائه می‌دهد، و لاگ آن می‌گوید کجا، یا کدام نشانی‌ها را امتحان کرد: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. برای اینکه خودتان آن‌ها را مشخص کنید، `cost.metrics.endpoint` را تنظیم کنید.
 :::
 
 :::details کارت Right-Sizing خالی است

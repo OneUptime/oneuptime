@@ -83,9 +83,10 @@ Avec `cost.engine.url=auto`, rien n'est embarqué, et l'agent lit votre moteur o
 | Moteur | URL de service habituelle |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Le chemin de l'Allocation API est trouvé automatiquement (`/model/allocation` pour Kubecost, `/allocation/compute` ou `/allocation` pour OpenCost). Ne définissez `cost.engine.allocationPath` que pour une installation inhabituelle. Avec `auto` ou une URL, rien n'est embarqué : pour les recommandations de mémoire, définissez donc aussi `cost.engine.prometheusUrl` (voir [Les données sous-jacentes](#les-données-sous-jacentes)).
+Le chemin de l'Allocation API est trouvé automatiquement (`/model/allocation` pour Kubecost, `/allocation/compute` ou `/allocation` pour OpenCost). Ne définissez `cost.engine.allocationPath` que pour une installation inhabituelle. Avec `auto` ou une URL, rien n'est embarqué : pour les recommandations de mémoire, définissez donc aussi `cost.engine.prometheusUrl` (voir [Les données sous-jacentes](#les-données-sous-jacentes)). Les métriques de prix sont trouvées de la même façon, quel que soit le Service du moteur que vous indiquez : l'agent essaie son `/metrics`, puis le `/model/metrics` qu'un frontend Kubecost 2 ou l'interface d'OpenCost transmet au moteur, puis l'agent FinOps de Kubecost 3, et le collecteur collecte la première adresse qui a des séries de prix. Pour les indiquer vous-même, définissez `cost.metrics.endpoint`.
 
 ## Tarification sur site et bare metal
 
@@ -202,7 +203,7 @@ Un ancien chart exécutait OpenCost sans répertoire de configuration accessible
 :::
 
 :::details Le Kubernetes Cost Dashboard n'affiche aucune donnée
-Le modèle lit les métriques de coûts collectées : vérifiez que `cost.metrics.enabled` vaut `true`.
+Le modèle lit les métriques de coûts collectées : vérifiez que `cost.metrics.enabled` vaut `true`. Avec `cost.engine.url` défini, l'agent de coûts trouve où votre moteur les expose, et son journal indique où, ou quelles adresses il a essayées : `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Pour les indiquer vous-même, définissez `cost.metrics.endpoint`.
 :::
 
 :::details La carte Right-Sizing est vide
