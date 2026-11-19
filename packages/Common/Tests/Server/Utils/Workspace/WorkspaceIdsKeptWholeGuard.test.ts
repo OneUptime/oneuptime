@@ -48,6 +48,11 @@ const NOT_A_KEPT_ID: Array<{ file: string; cut: string; why: string }> = [
     cut: "messageId.substring( 0,",
     why: "Bounds the replyToId an incoming feedback activity names - input from outside - before it is hashed into the answer's key and named in a log line. Both ends of the key cut it alike, it is never kept to reach the message, and a Teams activity id is far shorter than the bound.",
   },
+  {
+    file: "Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCutChatIds.ts",
+    cut: "chatId.substring(0,",
+    why: "Works out the id the code before #9284 kept in place of a chat's whole id - its first 100 characters - only to find the rows that still hold it and give them the chat's whole id back (#9330). The cut id is looked for, never written.",
+  },
 ];
 
 function readCode(relativePath: string): string {
