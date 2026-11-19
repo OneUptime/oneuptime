@@ -98,12 +98,14 @@ import {
  * attributes are its series' labels, the same on every point of a series,
  * so a thousand points every minute may carry three values, and the ones
  * that leak (a user's email, an IP) are new series, not new points. So a
- * metric's sample is the points of its newest minute, at most
- * TELEMETRY_SCAN_MAX_POINTS_PER_METRIC of them - for a metric sent once a
- * minute, OpenTelemetry's default, a point of each series that reported
- * then, whichever pod sent it - and a value is classified once however
- * many points repeat it: what a location's findings count is its distinct
- * values, its cardinality, not the points that carried them.
+ * metric's sample is a point of each series of its newest minute, at most
+ * TELEMETRY_SCAN_MAX_SERIES_PER_METRIC series, whichever pod sent them and
+ * however often - once a minute, OpenTelemetry's default, or every fifteen
+ * seconds, where its first hundred points were twenty-five series, or a
+ * busy route's points beside a quiet one's (issue #9756) - and a value is
+ * classified once however many series repeat it: what a location's
+ * findings count is its distinct values, its cardinality, not the points
+ * that carried them.
  *
  * What a metric costs is the table's granules its newest minute sits in:
  * the table is ordered by (projectId, name, primaryEntityId, time), so the
@@ -201,11 +203,12 @@ export const TELEMETRY_SCAN_MAX_METRICS_LISTED_PER_OWNER: number = 1_000;
 export const TELEMETRY_SCAN_MAX_METRICS_LISTED: number = 20_000;
 
 /*
- * The data points of one metric read, of its newest minute - for a metric
- * sent once a minute, one per series that reported then, so the series it
- * has, not its volume. Never more than the scan's sample size either.
+ * The series of one metric read, a point of each, of its newest minute: so
+ * a metric reports as many series however often it is sent - one a minute
+ * or one every fifteen seconds - and a busy series never crowds a quiet one
+ * out (issue #9756). Never more than the scan's sample size either.
  */
-export const TELEMETRY_SCAN_MAX_POINTS_PER_METRIC: number = 100;
+export const TELEMETRY_SCAN_MAX_SERIES_PER_METRIC: number = 100;
 
 /*
  * A metric whose newest minute holds more points than this - two granules
@@ -968,11 +971,22 @@ function appendNewestMinuteOf(
 }
 
 /*
- * The points of the given metrics' newest minutes, at least one metric,
- * at most `perMetric` of each: one read of the metrics table by each
- * metric's range of its primary key (projectId, name, primaryEntityId,
- * time), so a granule two metrics share is read once. Every value is cut
- * short in the database.
+ * A point of each series of the given metrics' newest minutes, at least one
+ * metric, at most `perMetric` series of each: one read of the metrics table
+ * by each metric's range of its primary key (projectId, name,
+ * primaryEntityId, time), so a granule two metrics share is read once.
+ *
+ * A series is its metric and its attributes - its resource's among them -
+ * so the points' columns are read first and each series kept once, by a
+ * 64-bit hash of the three (LIMIT 1 BY cityHash64(...), which streams with
+ * a set of the series seen: at most the 16,384 points of an ordinary
+ * metric's minute, 100 of them in the worst case 1.6 million, about 100
+ * MiB and a fifth of a second on ClickHouse 26.7 - by the map itself it held
+ * 546 MiB). Only then are `perMetric` of each metric's series read out,
+ * every value cut short in the database. It reads the granules the points
+ * did (issue #9756): a metric's first hundred points were a hundred series
+ * only when every series wrote one point at a time, and a busy series wrote
+ * them all where a quiet one wrote one.
  */
 export function buildTelemetryMetricSampleStatement(
   data: TelemetryReadWindow & {
@@ -984,7 +998,14 @@ export function buildTelemetryMetricSampleStatement(
   const source: SourceDefinition = SOURCES[TelemetrySampleSource.Metrics];
   const statement: Statement = new Statement();
 
-  appendMetricPointColumns(statement, data.caps);
+  statement.append("SELECT ");
+  statement.append(source.ownerColumn);
+  statement.append(" AS ownerId");
+  appendColumnsRead(statement, source, data.caps);
+  statement.append(
+    " FROM (SELECT primaryEntityId, name, time, attributes FROM ",
+  );
+  statement.append(tableOf(source.table));
   appendWhere(statement, source, data);
   statement.append(" AND (");
   data.metrics.forEach((metric: MetricToRead, index: number): void => {
@@ -995,7 +1016,7 @@ export function buildTelemetryMetricSampleStatement(
     appendNewestMinuteOf(statement, metric);
   });
   statement.append(
-    SQL`) LIMIT ${{
+    SQL`) LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)) LIMIT ${{
       type: TableColumnType.Number,
       value: whole(data.perMetric, 1),
     }} BY primaryEntityId, name LIMIT ${{
@@ -2321,7 +2342,7 @@ async function sampleMetrics(
   const caps: TelemetrySampleCaps = capsOf(source, context.options);
   const perMetric: number = Math.max(
     1,
-    Math.min(TELEMETRY_SCAN_MAX_POINTS_PER_METRIC, context.perOwnerLimit),
+    Math.min(TELEMETRY_SCAN_MAX_SERIES_PER_METRIC, context.perOwnerLimit),
   );
   const readCounts: Map<string, number> = new Map();
   const metricCounts: Map<string, number> = new Map();

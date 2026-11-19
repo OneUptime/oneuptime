@@ -26,6 +26,7 @@ import {
   buildTelemetryOwnersStatement,
   capsOf,
   getTelemetrySource,
+  isLargeMetric,
   MetricToRead,
   readMetricsToRead,
   readTelemetryRecordValues,
@@ -73,6 +74,12 @@ import {
  *  - each metric's newest minute, at most a few points of it, however many
  *    series it has: a login counter of thousands of users costs no more
  *    than its first block;
+ *  - a point of each series, however often a metric is sent (#9756): a
+ *    queue's depth scraped every fifteen seconds, each scrape a part of
+ *    its own, reads a hundred series, and a request metric written point
+ *    by point reads every quiet route beside its three busy ones - the
+ *    one with a user's email among them, which its first hundred points,
+ *    the busy routes' first second and a half, never reached;
  *  - the whole scan, classifying a user's email and a client's IP in two
  *    labels and an email in a metric's name, and the records each finding
  *    was seen in, read again.
@@ -111,9 +118,30 @@ const ORDINARY_POINTS: number = 40;
 // The login counter labelled by the user's email: a series per user, a point a minute.
 const LOGIN_SERIES: number = 3_000 * scale;
 const LOGIN_POINTS: number = 5;
+/*
+ * A queue's depth scraped every fifteen seconds (#9756): four points of each
+ * series in a minute, each scrape written by an insert of its own.
+ */
+const SCRAPED_METRIC: string = "queue.depth";
+const SCRAPED_SERIES: number = 2_000;
+const SCRAPES: Array<number> = [1, 16, 31, 46];
+/*
+ * Request durations written point by point: three busy routes, a point
+ * every 50 ms, and quiet routes' one point each, spread over the minute -
+ * the quiet route at QUIET_EMAIL_ROUTE holding a user's email.
+ */
+const REQUEST_METRIC: string = "http.server.request.duration";
+const BUSY_ROUTES: number = 3;
+const BUSY_POINTS: number = 1_200;
+const QUIET_ROUTES: number = 60;
+const QUIET_EMAIL_ROUTE: number = 40;
+const QUIET_EMAIL: string = "quiet.user@acmecorp.io";
 
 let client: ClickHouseClient;
 const queryIds: Array<{ id: string; query: string }> = [];
+// The whole minute before the suite started, which the scraped metrics wrote in.
+const previousMinuteMs: number =
+  Math.floor(Date.now() / 60_000) * 60_000 - 60_000;
 
 function inDatabase(query: string): string {
   return query.split(`${getClickhouseDatabaseName()}.`).join(`${database}.`);
@@ -141,12 +169,16 @@ async function rowsOf(
   return ((await result.json()) as { data: Array<JSONObject> }).data;
 }
 
-// What the last read read, from the server's own log.
-async function lastReadCost(): Promise<{
+interface ReadCost {
   readRows: number;
   readBytes: number;
   durationMs: number;
-}> {
+  // The most memory the read held at once.
+  memoryBytes: number;
+}
+
+// What the last read read, from the server's own log.
+async function lastReadCost(): Promise<ReadCost> {
   const last: { id: string } | undefined = queryIds[queryIds.length - 1];
 
   await client.command({ query: "SYSTEM FLUSH LOGS" });
@@ -154,7 +186,7 @@ async function lastReadCost(): Promise<{
   const rows: Array<JSONObject> = (
     (await (
       await client.query({
-        query: `SELECT read_rows, read_bytes, query_duration_ms FROM system.query_log WHERE query_id = {id:String} AND type = 'QueryFinish'`,
+        query: `SELECT read_rows, read_bytes, query_duration_ms, memory_usage FROM system.query_log WHERE query_id = {id:String} AND type = 'QueryFinish'`,
         query_params: { id: last?.id || "" },
         format: "JSON",
       })
@@ -165,7 +197,51 @@ async function lastReadCost(): Promise<{
     readRows: Number(rows[0]?.["read_rows"] || 0),
     readBytes: Number(rows[0]?.["read_bytes"] || 0),
     durationMs: Number(rows[0]?.["query_duration_ms"] || 0),
+    memoryBytes: Number(rows[0]?.["memory_usage"] || 0),
   };
+}
+
+function describeCost(cost: ReadCost): string {
+  return `${cost.readRows.toLocaleString("en-US")} rows read (${(cost.readBytes / 1024 / 1024).toFixed(1)} MiB) in ${cost.durationMs} ms, ${(cost.memoryBytes / 1024 / 1024).toFixed(1)} MiB of memory`;
+}
+
+/*
+ * The metrics' newest minutes read as the scan read them before #9756: the
+ * first points of each, however many of them one series wrote. Written out
+ * here, values and all, to compare against.
+ */
+function firstPointsStatement(
+  metrics: ReadonlyArray<MetricToRead>,
+  perMetric: number,
+): string {
+  const ranges: string = metrics
+    .map((metric: MetricToRead): string => {
+      return `(name = '${metric.metricName.replace(/'/g, "\\'")}' AND primaryEntityId = '${metric.ownerId}' AND time >= toDateTime64(${metric.newestMinute.getTime() / 1000}, 9))`;
+    })
+    .join(" OR ");
+
+  return `SELECT primaryEntityId AS ownerId, toUnixTimestamp64Milli(toDateTime64(time, 3)) AS readRecordTime, substringUTF8(name, 1, 1024) AS readMetricName, arrayMap((k, v) -> tuple(substringUTF8(k, 1, 256), substringUTF8(v, 1, 4096)), arraySlice(mapKeys(attributes), 1, 128), arraySlice(mapValues(attributes), 1, 128)) AS readAttributes FROM ${getClickhouseDatabaseName()}.MetricItemV3 WHERE projectId = '${PROJECT_ID.toString()}' AND time >= now() - INTERVAL 1 HOUR AND time <= now() AND retentionDate >= now() AND (primaryEntityType = '' OR primaryEntityType = 'OpenTelemetry') AND (${ranges}) LIMIT ${perMetric} BY primaryEntityId, name LIMIT ${perMetric * metrics.length}`;
+}
+
+// How many series - different attributes - a read's rows of each metric hold.
+function seriesByMetric(rows: ReadonlyArray<JSONObject>): Map<string, number> {
+  const series: Map<string, Set<string>> = new Map();
+
+  for (const row of rows) {
+    const metric: string = `${String(row["ownerId"])}|${String(row["readMetricName"])}`;
+    const seen: Set<string> = series.get(metric) || new Set();
+
+    seen.add(JSON.stringify(row["readAttributes"]));
+    series.set(metric, seen);
+  }
+
+  return new Map(
+    Array.from(series.entries()).map(
+      ([metric, seen]: [string, Set<string>]): [string, number] => {
+        return [metric, seen.size];
+      },
+    ),
+  );
 }
 
 function options(): ContentScanOptions {
@@ -241,6 +317,24 @@ integration("a project's metrics, in a real ClickHouse", () => {
       `INSERT INTO ${database}.MetricItemV3 (${POINT_COLUMNS}) SELECT '${PROJECT_ID.toString()}', '${SIGNUP}', 'OpenTelemetry', 'signups.jane.doe@acmecorp.io.count', 'Sum', toDateTime64(now64(3) - toIntervalSecond(60 * number), 9), toUInt64(toUnixTimestamp64Nano(toDateTime64(now64(3) - toIntervalSecond(60 * number), 9))), map('plan', 'pro'), ['plan'], 1, now() + toIntervalDay(15), generateUUIDv4(), now() FROM numbers(30)`,
       // A monitor's metric: not a service's telemetry, never read.
       `INSERT INTO ${database}.MetricItemV3 (${POINT_COLUMNS}) SELECT '${PROJECT_ID.toString()}', '${MONITOR}', 'Monitor', 'oneuptime.monitor.response.time', 'Gauge', toDateTime64(now64(3) - toIntervalSecond(60 * number), 9), toUInt64(toUnixTimestamp64Nano(toDateTime64(now64(3) - toIntervalSecond(60 * number), 9))), map('owner.email', 'ops@acmecorp.io'), ['owner.email'], 1, now() + toIntervalDay(15), generateUUIDv4(), now() FROM numbers(30)`,
+      // A queue's depth scraped every fifteen seconds: each scrape an insert, a part, of its own.
+      ...SCRAPES.map((second: number): string => {
+        const nanos: string = `toInt64(${previousMinuteMs + second * 1000}) * 1000000`;
+
+        return `INSERT INTO ${database}.MetricItemV3 (${POINT_COLUMNS}) SELECT '${PROJECT_ID.toString()}', '${PAYMENTS}', 'OpenTelemetry', '${SCRAPED_METRIC}', 'Gauge', fromUnixTimestamp64Nano(${nanos}), toUInt64(${nanos}), map('queue', concat('queue-', toString(number)), 'resource.host.name', concat('host-', toString(number % 4))), ['queue', 'resource.host.name'], rand() % 100, now() + toIntervalDay(15), generateUUIDv4(), now() FROM numbers(${SCRAPED_SERIES})`;
+      }),
+      /*
+       * Request durations written point by point, one insert: the busy
+       * routes' points every 50 ms, then the quiet routes' one each, spread
+       * over the minute - the one at QUIET_EMAIL_ROUTE a user's email.
+       */
+      ((): string => {
+        const busy: number = BUSY_ROUTES * BUSY_POINTS;
+        const nanos: string = `toInt64(${previousMinuteMs} + if(number < ${busy}, (number % ${BUSY_POINTS}) * 50, (number - ${busy}) * 900)) * 1000000`;
+        const route: string = `if(number < ${busy}, concat('/api/busy/', toString(intDiv(number, ${BUSY_POINTS}))), if(number - ${busy} = ${QUIET_EMAIL_ROUTE}, '/users/${QUIET_EMAIL}/orders', concat('/users/', toString(number - ${busy}), '/orders')))`;
+
+        return `INSERT INTO ${database}.MetricItemV3 (${POINT_COLUMNS}) SELECT '${PROJECT_ID.toString()}', '${PAYMENTS}', 'OpenTelemetry', '${REQUEST_METRIC}', 'Histogram', fromUnixTimestamp64Nano(${nanos}), toUInt64(${nanos}), map('http.route', ${route}, 'http.request.method', 'GET'), ['http.request.method', 'http.route'], rand() % 500, now() + toIntervalDay(15), generateUUIDv4(), now() FROM numbers(${busy + QUIET_ROUTES})`;
+      })(),
     ]) {
       await client.command({ query });
     }
@@ -329,7 +423,8 @@ integration("a project's metrics, in a real ClickHouse", () => {
     };
 
     expect(fromRollup.map(keyOf).sort()).toEqual(fromPoints.map(keyOf).sort());
-    expect(fromRollup.length).toBe(3 * ORDINARY_METRICS + 2);
+    // Each service's ordinary metrics, the login counter, the named one, the queue and the requests.
+    expect(fromRollup.length).toBe(3 * ORDINARY_METRICS + 4);
     // A series a minute: the login counter's newest minute holds a point of each user.
     expect(
       fromRollup.find((metric: MetricToRead): boolean => {
@@ -433,7 +528,10 @@ integration("a project's metrics, in a real ClickHouse", () => {
     const totalPoints: number =
       3 * ORDINARY_METRICS * ORDINARY_SERIES * ORDINARY_POINTS +
       LOGIN_SERIES * LOGIN_POINTS +
-      30;
+      30 +
+      SCRAPED_SERIES * SCRAPES.length +
+      BUSY_ROUTES * BUSY_POINTS +
+      QUIET_ROUTES;
 
     // A metric of many series, by a branch of its own: stopped at its first points.
     const logins: MetricToRead = metrics.find((metric: MetricToRead) => {
@@ -464,6 +562,112 @@ integration("a project's metrics, in a real ClickHouse", () => {
     expect(loginRows.length).toBe(100);
     // Stopped early: no more than a few granules, however many series.
     expect(loginCost.readRows).toBeLessThanOrEqual(3 * 8192);
+  });
+
+  /*
+   * #9756: a metric's newest minute was read for its first hundred points,
+   * which were a hundred series only where each series wrote one point a
+   * minute. A point of each series is read now, however often each writes.
+   */
+  test("a point of each series, however often a metric is sent: a scraped queue's hundred series, and every quiet route beside the busy ones", async () => {
+    const metrics: Array<MetricToRead> = readMetricsToRead(
+      await rowsOf(
+        buildTelemetryMetricsStatement({
+          ...window(),
+          ownerIds: SERVICES,
+          perOwner: 100,
+          total: 2000,
+          fromRollup: true,
+        }),
+      ),
+      new Set(SERVICES),
+    );
+    // The scan's ordinary read: the metrics not of many series.
+    const ordinary: Array<MetricToRead> = metrics.filter(
+      (metric: MetricToRead): boolean => {
+        return !isLargeMetric(metric);
+      },
+    );
+    const caps: TelemetrySampleCaps = capsOf(
+      getTelemetrySource(TelemetrySampleSource.Metrics),
+      options(),
+    );
+    const rows: Array<JSONObject> = await rowsOf(
+      buildTelemetryMetricSampleStatement({
+        ...window(),
+        metrics: ordinary,
+        perMetric: 100,
+        caps,
+      }),
+    );
+    const cost: ReadCost = await lastReadCost();
+    const before: Array<JSONObject> = await rowsOf(
+      firstPointsStatement(ordinary, 100),
+    );
+    const costBefore: ReadCost = await lastReadCost();
+    const series: Map<string, number> = seriesByMetric(rows);
+    const seriesBefore: Map<string, number> = seriesByMetric(before);
+    const rowsOfMetric: (
+      read: ReadonlyArray<JSONObject>,
+      metric: string,
+    ) => Array<JSONObject> = (
+      read: ReadonlyArray<JSONObject>,
+      metric: string,
+    ): Array<JSONObject> => {
+      return read.filter((row: JSONObject): boolean => {
+        return row["readMetricName"] === metric;
+      });
+    };
+    const holdsTheEmail: (row: JSONObject) => boolean = (
+      row: JSONObject,
+    ): boolean => {
+      return JSON.stringify(row["readAttributes"]).includes(QUIET_EMAIL);
+    };
+
+    // Every row a series of its own, a hundred at most of each metric.
+    for (const metric of ordinary) {
+      const key: string = `${metric.ownerId}|${metric.metricName}`;
+      const read: number = rows.filter((row: JSONObject): boolean => {
+        return (
+          row["ownerId"] === metric.ownerId &&
+          row["readMetricName"] === metric.metricName
+        );
+      }).length;
+
+      expect(series.get(key)).toBe(read);
+      expect(read).toBeLessThanOrEqual(100);
+    }
+
+    // The scraped queue: a hundred of its series, four points of each in its minute.
+    expect(
+      ordinary.find((metric: MetricToRead): boolean => {
+        return metric.metricName === SCRAPED_METRIC;
+      })?.newestMinutePoints,
+    ).toBe(SCRAPED_SERIES * SCRAPES.length);
+    expect(series.get(`${PAYMENTS}|${SCRAPED_METRIC}`)).toBe(100);
+
+    // Every route of the requests: the three busy ones, and every quiet one.
+    expect(series.get(`${PAYMENTS}|${REQUEST_METRIC}`)).toBe(
+      BUSY_ROUTES + QUIET_ROUTES,
+    );
+    expect(
+      rowsOfMetric(rows, REQUEST_METRIC).filter(holdsTheEmail).length,
+    ).toBe(1);
+    // Its first hundred points were the busy routes' first second and a half.
+    expect(rowsOfMetric(before, REQUEST_METRIC).length).toBe(100);
+    expect(seriesBefore.get(`${PAYMENTS}|${REQUEST_METRIC}`)).toBeLessThan(10);
+    expect(rowsOfMetric(before, REQUEST_METRIC).some(holdsTheEmail)).toBe(
+      false,
+    );
+
+    if (report) {
+      process.stdout.write(
+        `\n[metrics series] ${ordinary.length} metrics, a point of each series: ${rows.length} rows returned, ${describeCost(cost)}; ${SCRAPED_METRIC} ${series.get(`${PAYMENTS}|${SCRAPED_METRIC}`)} series, ${REQUEST_METRIC} ${series.get(`${PAYMENTS}|${REQUEST_METRIC}`)} series\n[metrics series] the same metrics, their first points (before #9756): ${before.length} rows returned, ${describeCost(costBefore)}; ${SCRAPED_METRIC} ${seriesBefore.get(`${PAYMENTS}|${SCRAPED_METRIC}`)} series, ${REQUEST_METRIC} ${seriesBefore.get(`${PAYMENTS}|${REQUEST_METRIC}`)} series\n`,
+      );
+    }
+
+    // The same ranges of the table, read once each: what the first points' read read.
+    expect(cost.readRows).toBe(costBefore.readRows);
   });
 
   test("a scan finds a user's email and a client's IP in labels and an email in a metric's name, and reads their records again", async () => {
@@ -525,6 +729,21 @@ integration("a project's metrics, in a real ClickHouse", () => {
     // The ordinary labels hold nothing sensitive.
     expect(at(checkout, "attributes.http.route")).toBeUndefined();
     expect(at(checkout, "attributes.oneuptime.service.id")).toBeUndefined();
+
+    // #9756: the quiet route beside the busy ones is read, and its email found.
+    const payments: TelemetryStoreScan = metricStores.find(
+      (scan: TelemetryStoreScan): boolean => {
+        return scan.serviceId === PAYMENTS;
+      },
+    )!;
+
+    expect(
+      at(payments, "attributes.http.route")?.classifications.map(
+        (classification: { dataTypeId: string }): string => {
+          return classification.dataTypeId;
+        },
+      ),
+    ).toEqual(["email-address"]);
 
     const emailRecords: Array<FindingSampleRecord> =
       email.sampleRecords?.["email-address"] || [];

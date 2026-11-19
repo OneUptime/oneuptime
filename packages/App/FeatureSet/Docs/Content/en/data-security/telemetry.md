@@ -42,7 +42,7 @@ Numbered keys are folded into one location: `gen_ai.prompt.3.content` is `gen_ai
 
 A metric's attributes are its series' labels. They are the same on every data point of a series, so a metric that writes a thousand points a minute may hold three values, and a label that leaks a user's email adds a series, not a point. So a metric is sampled by its series, not by its points:
 
-- **Its newest minute.** Each metric is read at the newest minute it wrote in the last hour: up to 100 of that minute's data points, which for a metric sent once a minute, as OpenTelemetry sends by default, is a point of each series. A value is classified once, however many points repeat it, so a finding counts the distinct values at its place.
+- **A point of each series.** Each metric is read at the newest minute it wrote in the last hour: one data point of each of up to 100 of that minute's series, however often the metric is sent, so a busy series never crowds out a quiet one. A value is classified once, however many series repeat it, so a finding counts the distinct values at its place.
 - **The busiest first, the rest in turn.** Which metrics a service wrote comes from the per-minute rollup the metrics table keeps, never from its points. Each scan reads a service's busiest metrics, the likeliest to have many series, and some of its others, the next ones each hour, so every metric gets its turn.
 - **Each metric's own range.** The metrics are read together, each by its own range of the table's primary key. A metric whose newest minute holds more than 16,384 points, such as one labeled with each user's email, is read on its own, and the read stops at its first points, so it costs no more than any other metric.
 
@@ -74,7 +74,7 @@ Every hour, each signal's newest records of the last hour are read, and classifi
 | Events of one span, and attributes of one event | 16 and 32 |
 | Locations of one store | 500 |
 | Metrics read in one scan | 100 shared between the services, at least one of each; at most 10 of one service, half its busiest and half its others in turn |
-| Data points of one metric | Its newest minute's, at most 100 |
+| Series of one metric | A data point of each, of its newest minute, at most 100 |
 
 Every value is cut short in the database, so no long value leaves it, and each read stops after 30 seconds. A read that fails is a warning on the stores it was for; the scan goes on with the next one.
 

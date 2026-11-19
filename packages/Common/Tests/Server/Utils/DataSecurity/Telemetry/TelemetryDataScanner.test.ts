@@ -36,7 +36,7 @@ import {
   TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS,
   TELEMETRY_SCAN_MAX_METRICS_PER_OWNER,
   TELEMETRY_SCAN_MAX_METRICS_PER_READ,
-  TELEMETRY_SCAN_MAX_POINTS_PER_METRIC,
+  TELEMETRY_SCAN_MAX_SERIES_PER_METRIC,
   TelemetryRecordValue,
   foldAttributeKey,
   fromRawJsonValue,
@@ -1709,7 +1709,7 @@ describe("a service's metrics", () => {
       expect(boundValues(statement)).toContain("OpenTelemetry");
     });
 
-    test("one read of the metrics' newest minutes: each metric's range, at most a few points of each, every value cut short", () => {
+    test("one read of the metrics' newest minutes: each metric's range, at most a few series of each, every value cut short", () => {
       const statement: Statement = buildTelemetryMetricSampleStatement({
         ...WINDOW,
         metrics: [metric("user.logins"), metric("http.requests")],
@@ -1730,6 +1730,106 @@ describe("a service's metrics", () => {
         expect.arrayContaining(["user.logins", "http.requests", CHECKOUT]),
       );
       expect(statement.query).not.toContain("UNION ALL");
+    });
+
+    /*
+     * #9756: the first hundred points of a minute were a hundred series only
+     * where each series wrote one point; a series that wrote more - scraped
+     * every fifteen seconds, or a busy route beside quiet ones - took the
+     * others' places. A point of each series first, then a hundred series.
+     */
+    test("a point of each series first, kept once by a hash of its metric and attributes, then a hundred series of each metric", () => {
+      const statement: Statement = buildTelemetryMetricSampleStatement({
+        ...WINDOW,
+        metrics: [metric("user.logins"), metric("http.requests")],
+        perMetric: 100,
+        caps: CAPS,
+      });
+      const query: string = statement.query;
+      const inner: number = query.indexOf(
+        " FROM (SELECT primaryEntityId, name, time, attributes FROM oneuptime.MetricItemV3 WHERE projectId = ",
+      );
+      const series: number = query.indexOf(
+        ") LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)) LIMIT {",
+      );
+      const ranges: number = query.indexOf("(name = {");
+
+      // The points' columns, of the metrics' ranges, then each series once.
+      expect(inner).toBeGreaterThan(0);
+      expect(ranges).toBeGreaterThan(inner);
+      expect(series).toBeGreaterThan(ranges);
+      // Then a hundred series of each metric, a hundred of each in all.
+      expect(query.slice(series)).toMatch(
+        /^\) LIMIT 1 BY cityHash64\(primaryEntityId, name, attributes\)\) LIMIT \{p\d+:Int32\} BY primaryEntityId, name LIMIT \{p\d+:Int32\} SETTINGS /,
+      );
+      expect(
+        Number(
+          parameterAfter(
+            statement,
+            /\) LIMIT \{(p\d+):Int32\} BY primaryEntityId, name/,
+          ),
+        ),
+      ).toBe(100);
+      expect(
+        Number(
+          parameterAfter(
+            statement,
+            /BY primaryEntityId, name LIMIT \{(p\d+):Int32\} SETTINGS/,
+          ),
+        ),
+      ).toBe(200);
+      // What is read out of each series: cut short outside the subquery, on its rows only.
+      expect(query.indexOf("substringUTF8(name, 1, {")).toBeLessThan(inner);
+      expect(
+        query.indexOf("arraySlice(mapKeys(attributes), 1, {"),
+      ).toBeLessThan(inner);
+      expect(query.indexOf("toUnixTimestamp64Milli")).toBeLessThan(inner);
+      // The project, the window and the type: the subquery's, as every read's.
+      expect(parameterAfter(statement, PROJECT_PARAMETER)).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(query).toContain("retentionDate >= now()");
+      expect(query.match(/\bSETTINGS\b/g)).toHaveLength(1);
+      expect(query).toContain("max_execution_time = 30");
+      expect(query).not.toContain("ORDER BY");
+    });
+
+    test("the busiest metric's series no longer crowd out a quiet one: a point of each series is what a scan classifies", async () => {
+      // What the per-series read answers for a busy route and a quiet one.
+      sampleRows[TelemetrySampleSource.Metrics] = [
+        {
+          ownerId: CHECKOUT,
+          readRecordTime: String(Date.now() - 50_000),
+          readMetricName: "user.logins",
+          readAttributes: [["http.route", "/api/busy"]],
+        },
+        {
+          ownerId: CHECKOUT,
+          readRecordTime: String(Date.now() - 20_000),
+          readMetricName: "user.logins",
+          readAttributes: [
+            ["http.route", "/users/quiet.user@acmecorp.io/orders"],
+          ],
+        },
+      ];
+
+      const metrics: TelemetryStoreScan = storeOf(
+        await scan(),
+        DataStoreKind.TelemetryMetrics,
+        CHECKOUT,
+      );
+
+      expect(typesAt(metrics.result, "attributes.http.route")).toEqual([
+        "email-address",
+      ]);
+      // The ordinary read was the per-series one.
+      expect(
+        statements.some((statement: Statement): boolean => {
+          return statement.query.includes(
+            "LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)",
+          );
+        }),
+      ).toBe(true);
     });
 
     test("a metric of many series: a branch of its own, stopped at its first points", () => {
@@ -2029,7 +2129,7 @@ describe("a service's metrics", () => {
   });
 
   describe("how much a scan reads", () => {
-    test("at most a hundred metrics, ten of a service, a hundred points of each - never more than the sample size", async () => {
+    test("at most a hundred metrics, ten of a service, a hundred series of each - never more than the sample size", async () => {
       metricListRows = Array.from(
         { length: 60 },
         (_: unknown, index: number) => {
@@ -2059,7 +2159,7 @@ describe("a service's metrics", () => {
 
       expect(TELEMETRY_SCAN_MAX_METRICS_PER_OWNER).toBe(10);
       expect(TELEMETRY_SCAN_MAX_METRICS_PER_READ).toBe(100);
-      expect(TELEMETRY_SCAN_MAX_POINTS_PER_METRIC).toBe(100);
+      expect(TELEMETRY_SCAN_MAX_SERIES_PER_METRIC).toBe(100);
       expect(read).toHaveLength(TELEMETRY_SCAN_MAX_METRICS_PER_OWNER);
       // The busiest five, every scan.
       expect(read).toEqual(
@@ -2071,7 +2171,7 @@ describe("a service's metrics", () => {
           "app.metric.04",
         ]),
       );
-      // A sample size of 30: thirty points of each metric at most.
+      // A sample size of 30: thirty series of each metric at most.
       expect(Number(parameterAfter(sample!, LIMIT_BY))).toBe(30);
     });
   });

@@ -1520,11 +1520,15 @@ describe("Sensitive Data in Telemetry", () => {
     expect(value("Metrics read in one scan")).toBe(
       `${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_READ")} shared between the services, at least one of each; at most ${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER")} of one service, half its busiest and half its others in turn`,
     );
-    expect(value("Data points of one metric")).toBe(
-      `Its newest minute's, at most ${constant(scanner, "TELEMETRY_SCAN_MAX_POINTS_PER_METRIC")}`,
+    // A point of each series, however often a metric is sent (#9756).
+    expect(value("Series of one metric")).toBe(
+      `A data point of each, of its newest minute, at most ${constant(scanner, "TELEMETRY_SCAN_MAX_SERIES_PER_METRIC")}`,
     );
     expect(metrics).toContain(
-      `up to ${constant(scanner, "TELEMETRY_SCAN_MAX_POINTS_PER_METRIC")} of that minute's data points`,
+      `one data point of each of up to ${constant(scanner, "TELEMETRY_SCAN_MAX_SERIES_PER_METRIC")} of that minute's series, however often the metric is sent`,
+    );
+    expect(source(scanner)).toContain(
+      "LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)",
     );
     expect(metrics).toContain(
       `more than ${constant(scanner, "TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS").toLocaleString("en-US")} points`,
