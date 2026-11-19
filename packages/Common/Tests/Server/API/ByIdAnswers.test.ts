@@ -151,6 +151,61 @@ describe("BaseAPI.getItem", () => {
   });
 });
 
+/*
+ * WHAT RIDES ALONG WITH A DELETE (DeleteOneBy.miscDataProps): choices that
+ * are no column, read by the delete's hooks, as an update's are - what the
+ * workflows that run as a deleted custom role run as instead (#9767), for
+ * one. Sent in the body of the DELETE, or of POST /:id/delete-item.
+ */
+describe("BaseAPI.deleteItem: choices beside the id", () => {
+  let service: DatabaseService<Probe>;
+  let api: BaseAPI<Probe, DatabaseService<Probe>>;
+  let deleteOneById: jest.Mock;
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+
+    service = new DatabaseService<Probe>(Probe);
+    api = new BaseAPI<Probe, DatabaseService<Probe>>(Probe, service);
+    deleteOneById = getJestSpyOn(service, "deleteOneById").mockResolvedValue(
+      1,
+    ) as unknown as jest.Mock;
+  });
+
+  it("hands the service the miscDataProps the body sends", async () => {
+    await api.deleteItem(
+      requestFor({ miscDataProps: { workflowsRunAs: "Default" } }),
+      responseStub(),
+    );
+
+    const deleted: { id: ObjectID; miscDataProps?: unknown } = deleteOneById
+      .mock.calls[0]![0] as { id: ObjectID; miscDataProps?: unknown };
+
+    expect(deleted.id.toString()).toBe(TEST_ID);
+    expect(deleted.miscDataProps).toEqual({ workflowsRunAs: "Default" });
+    expect(Response.sendEmptySuccessResponse).toHaveBeenCalled();
+  });
+
+  it("a delete that sends none, or none that is an object, hands it none: the delete it always was", async () => {
+    for (const body of [
+      undefined,
+      {},
+      { miscDataProps: "Default" },
+      { miscDataProps: ["Default"] },
+      { miscDataProps: null },
+    ]) {
+      deleteOneById.mockClear();
+
+      await api.deleteItem(requestFor(body), responseStub());
+
+      expect(
+        Object.keys(deleteOneById.mock.calls[0]![0] as Record<string, unknown>),
+      ).toEqual(["id", "props"]);
+    }
+  });
+});
+
 describe("BaseAnalyticsAPI by id", () => {
   let service: AnalyticsDatabaseService<MonitorLog>;
   let api: BaseAnalyticsAPI<MonitorLog, AnalyticsDatabaseService<MonitorLog>>;

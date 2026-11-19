@@ -31,8 +31,11 @@ FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS node26
 # The newest stable nginx, with its Alpine release in the tag so it cannot
 # drift away from the node donor above. Both stages after this one start from
 # it, so the sidecar's packages are installed against the same Node.js, musl
-# and libstdc++ that run them.
-FROM nginx:1.30.5-alpine3.24 AS base
+# and libstdc++ that run them. 1.30.7 is the first stable release that fixes
+# the HTTP/2 vulnerabilities CVE-2026-123007 and CVE-2026-123633 (#9709): the
+# primary server turns HTTP/2 on, so with PROVISION_SSL its HTTPS listener
+# speaks it to anyone.
+FROM nginx:1.30.7-alpine3.24 AS base
 
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at

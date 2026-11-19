@@ -39,7 +39,7 @@ De sonde die de controle uitvoert, ontvangt de waarde, dus een monitor die een g
 :::
 
 > [!IMPORTANT]
-> Geheimen worden versleuteld en veilig opgeslagen. De waarde van het geheim wordt na het opslaan nooit meer getoond — niet in de tabel, niet in het bewerkingsformulier en niet via de API. Raakt u de waarde kwijt, dan moet u haar ophalen waar ze vandaan kwam en opnieuw instellen. Gebruik om een geheim te roteren de knop **Geheime waarde bijwerken** in de rij ervan; u hoeft het niet te verwijderen en opnieuw te maken.
+> Geheimen worden versleuteld en veilig opgeslagen. De waarde van het geheim wordt na het opslaan nooit meer getoond — niet in de tabel, niet in het bewerkingsformulier en niet via de API. Raakt u de waarde kwijt, dan moet u haar ophalen waar ze vandaan kwam en opnieuw instellen. Gebruik om een geheim te roteren de knop **Geheime waarde bijwerken** in de rij ervan; u hoeft het niet te verwijderen en opnieuw te maken. Dezelfde knop wijzigt samen met een nieuwe waarde ook wat het geheim bevat, **Tekst** of **Eenmalige code (TOTP)**, en monitoren die het geheim gebruiken, nemen het nieuwe type over bij hun volgende controle.
 
 ### Kiezen welke monitoren een geheim mogen gebruiken
 
@@ -128,7 +128,7 @@ return {
 De sonde geeft nooit een code af met minder dan vijf seconden over, of minder dan een derde van de periode als de periode korter is: ze wacht dan op de volgende code, hoogstens vijf seconden, en telt die wachttijd niet mee in de uitvoeringstijd van de controle. Elke code die een controle maakt, wordt als sterretjes getoond, zoals `******`, in de logberichten, het resultaat, de fout en de namen van de schermafbeeldingen van die controle. Een schermafbeelding is een afbeelding van de pagina, dus maak die voordat de code wordt getypt of nadat de pagina verder is gegaan.
 
 > [!NOTE]
-> De sonde maakt de codes, dus werk een aangepaste sonde bij voordat u een geheim voor eenmalige codes gebruikt: een oudere sonde verstuurt `{{monitorSecrets.NAME}}` zoals het is geschreven. Ook de klok van de sonde moet kloppen, want een sonde die een minuut afwijkt, maakt codes waar de site al voorbij is.
+> De sonde maakt de codes, dus een aangepaste sonde heeft OneUptime 17.0.1 of nieuwer nodig. Op een oudere draait een controle die een code nodig heeft niet, en mislukt ze met een zin die zegt dat u de sonde moet bijwerken; het formulier van de monitor en de pagina van de sonde noemen een sonde die te oud is, en [Een sonde bijwerken](/docs/probe/custom-probe#een-sonde-bijwerken) legt uit hoe. Ook de klok van de sonde moet kloppen, want een sonde die een minuut afwijkt, maakt codes waar de site al voorbij is.
 
 ## Problemen oplossen
 
@@ -146,6 +146,10 @@ Alleen de velden in de tabel hierboven accepteren geheimen. In elk ander veld wo
 
 :::details De site weigert de eenmalige code
 Controleer of de **Huidige code** overeenkwam met uw authenticator-app toen u het geheim opsloeg, of de klok van de sonde klopt en of een verwijzing in een JSON-request-body tussen aanhalingstekens staat. Duurt het even voordat de aanmelding bij de vraag om de code komt, vraag de code dan op dat punt op met `oneuptime.getTotpCode`.
+:::
+
+:::details De controle zegt dat de sonde te oud is om eenmalige codes te maken
+De sonde draait een versie ouder dan OneUptime 17.0.1, die geen eenmalige codes kan maken, dus de controle is er niet op uitgevoerd. Werk de sonde bij (zie [Een sonde bijwerken](/docs/probe/custom-probe#een-sonde-bijwerken)), of laat sondes met 17.0.1 of nieuwer de monitor controleren.
 :::
 
 ## Volgende stappen

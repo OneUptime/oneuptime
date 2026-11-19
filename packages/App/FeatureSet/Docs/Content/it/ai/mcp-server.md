@@ -41,7 +41,7 @@ Il server è senza stato: non emette id di sessione e ogni richiesta è indipend
 - **Manutenzione programmata**: creare e gestire eventi di manutenzione.
 - **Telemetria**: interrogare log, metriche, tracce, eccezioni, log dei monitor, eventi di sicurezza e altro, in sola lettura.
 
-Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 54 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Gli strumenti in sola lettura hanno `readOnlyHint`, ogni strumento che modifica qualcosa ha `destructiveHint` e solo gli strumenti delle pagine di stato pubbliche hanno `openWorldHint`, così un client può eseguire da solo le chiamate in sola lettura e chiederti conferma prima di qualsiasi modifica. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
+Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 55 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Un tipo di record senza campi modificabili una volta creato, come il collegamento di un incidente a un avviso, non ha lo strumento di aggiornamento. Gli strumenti in sola lettura hanno `readOnlyHint` e ogni strumento che modifica qualcosa ha `destructiveHint`, così un client può eseguire da solo le chiamate in sola lettura e chiederti conferma prima di qualsiasi modifica. `openWorldHint` contrassegna gli strumenti che vanno oltre il tuo progetto: gli strumenti delle pagine di stato pubbliche e le modifiche mostrate su una pagina di stato e inviate ai suoi iscritti, come un nuovo incidente, un cambio del suo stato o una nota pubblica. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
 
 ## Prima di iniziare
 
@@ -489,7 +489,7 @@ Il server MCP è senza stato: non emette né traccia id di sessione, quindi ogni
 | Team e reperibilità | Team, On-Call Policy |
 | Etichette | Label |
 | Sicurezza | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Sicurezza dei dati | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Sicurezza dei dati | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Osservabilità dei dati | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Cloud | Cloud Budget |
 

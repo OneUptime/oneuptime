@@ -41,7 +41,7 @@ Servern är tillståndslös: den utfärdar inga sessions-id:n och varje begäran
 - **Schemalagt underhåll**: skapa och hantera underhållshändelser.
 - **Telemetri**: fråga efter loggar, mätvärden, spår, undantag, monitorloggar, säkerhetshändelser med mera, endast läsning.
 
-Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 54 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. Skrivskyddade verktyg har `readOnlyHint`, varje verktyg som ändrar något har `destructiveHint`, och bara verktygen för publika statussidor har `openWorldHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
+Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 55 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. En sorts post utan något fält som du kan ändra när den väl har skapats, som en incidents koppling till ett larm, har inget verktyg för att uppdatera. Skrivskyddade verktyg har `readOnlyHint` och varje verktyg som ändrar något har `destructiveHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. `openWorldHint` markerar verktygen som når utanför ditt projekt: verktygen för publika statussidor, och de ändringar som visas på en statussida och skickas till dess prenumeranter, som en ny incident, en ändring av dess tillstånd eller en publik anteckning. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
 
 ## Innan du börjar
 
@@ -489,7 +489,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Team och jour | Team, On-Call Policy |
 | Etiketter | Label |
 | Säkerhet | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Datasäkerhet | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Datasäkerhet | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Dataobserverbarhet | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Moln | Cloud Budget |
 

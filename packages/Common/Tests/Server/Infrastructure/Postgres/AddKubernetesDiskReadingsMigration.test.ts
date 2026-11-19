@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddKubernetesDiskReadings1809185300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185300000-AddKubernetesDiskReadings";
+import { AddKubernetesDiskReadings1809186000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186000000-AddKubernetesDiskReadings";
 import KubernetesResource from "../../../../Models/DatabaseModels/KubernetesResource";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -21,13 +21,13 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * before it; the schema drift check holds its statements to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809185300000";
+const MIGRATION_TIMESTAMP: string = "1809186000000";
 const MIGRATION_BASE_NAME: string = "AddKubernetesDiskReadings";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "DropIncidentTemplateOwnerNotifiedFlag1809185210000";
-const PREVIOUS_TIMESTAMP: number = 1809185210000;
+  "AddDeviceManagementConnection1809185900000";
+const PREVIOUS_TIMESTAMP: number = 1809185900000;
 
 const BIG_NUMBER_COLUMNS: Array<string> = [
   "latestVolumeUsedBaselineBytes",
@@ -52,7 +52,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddKubernetesDiskReadings1809185300000();
+    new AddKubernetesDiskReadings1809186000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -63,7 +63,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddKubernetesDiskReadings1809185300000", () => {
+describe("AddKubernetesDiskReadings1809186000000", () => {
   test("adds when a disk was measured, a claim's fill baseline and a node's image disk, nullable", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "KubernetesResource" ADD "latestVolumeMeasuredAt" TIMESTAMP WITH TIME ZONE`,
@@ -131,7 +131,7 @@ describe("AddKubernetesDiskReadings1809185300000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddKubernetesDiskReadings1809185300000().name).toBe(
+    expect(new AddKubernetesDiskReadings1809186000000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

@@ -39,7 +39,7 @@ La sonda che esegue il controllo riceve il valore, quindi un monitor che usa un 
 :::
 
 > [!IMPORTANT]
-> I segreti vengono cifrati e salvati in modo sicuro. Il valore del segreto non viene più mostrato dopo il salvataggio — né nella tabella, né nel modulo di modifica, né tramite l'API. Se perdete il valore, dovrete recuperarlo da dove proviene e impostarlo di nuovo. Per ruotare un segreto, usate il pulsante **Aggiorna valore segreto** nella sua riga; non serve eliminarlo e ricrearlo.
+> I segreti vengono cifrati e salvati in modo sicuro. Il valore del segreto non viene più mostrato dopo il salvataggio — né nella tabella, né nel modulo di modifica, né tramite l'API. Se perdete il valore, dovrete recuperarlo da dove proviene e impostarlo di nuovo. Per ruotare un segreto, usate il pulsante **Aggiorna valore segreto** nella sua riga; non serve eliminarlo e ricrearlo. Lo stesso pulsante cambia anche ciò che il segreto contiene, **Testo** o **Codice monouso (TOTP)**, insieme a un nuovo valore, e i monitor che usano il segreto adottano il nuovo tipo al loro prossimo controllo.
 
 ### Scegliere quali monitor possono usare un segreto
 
@@ -128,7 +128,7 @@ return {
 La sonda non consegna mai un codice a cui restano meno di cinque secondi, o meno di un terzo del periodo quando il periodo è più breve: attende invece il codice successivo, al massimo cinque secondi, e non conta quell'attesa nel tempo di esecuzione del controllo. Ogni codice generato da un controllo viene mostrato come asterischi, per esempio `******`, nei suoi messaggi di log, nel suo risultato, nel suo errore e nei nomi dei suoi screenshot. Uno screenshot è un'immagine della pagina, quindi scattatelo prima che il codice venga digitato o dopo che la pagina è andata avanti.
 
 > [!NOTE]
-> La sonda genera i codici, quindi aggiornate una sonda personalizzata prima di usare un segreto di tipo codice monouso: una sonda più vecchia invia `{{monitorSecrets.NAME}}` così com'è scritto. Anche l'orologio della sonda deve essere giusto, perché una sonda sfasata di un minuto genera codici che il sito ha già superato.
+> La sonda genera i codici, quindi una sonda personalizzata richiede OneUptime 17.0.1 o successiva. Su una più vecchia, un controllo che richiede un codice non viene eseguito e fallisce con una frase che chiede di aggiornare la sonda; il modulo del monitor e la pagina della sonda indicano una sonda troppo vecchia, e [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda) spiega come. Anche l'orologio della sonda deve essere giusto, perché una sonda sfasata di un minuto genera codici che il sito ha già superato.
 
 ## Risoluzione dei problemi
 
@@ -146,6 +146,10 @@ Solo i campi della tabella sopra accettano segreti. In qualsiasi altro campo, `{
 
 :::details Il sito rifiuta il codice monouso
 Verificate che il **Codice attuale** corrispondesse alla vostra app di autenticazione quando avete salvato il segreto, che l'orologio della sonda sia giusto e che un riferimento in un corpo della richiesta JSON sia tra virgolette. Se l'accesso impiega un po' ad arrivare alla richiesta del codice, chiedete il codice in quel punto con `oneuptime.getTotpCode`.
+:::
+
+:::details Il controllo dice che la sonda è troppo vecchia per generare codici monouso
+La sonda esegue una versione precedente a OneUptime 17.0.1, che non può generare codici monouso, quindi il controllo non è stato eseguito su di essa. Aggiornate la sonda (vedete [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda)) oppure fate controllare il monitor da sonde con la 17.0.1 o successiva.
 :::
 
 ## Passaggi successivi

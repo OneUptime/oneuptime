@@ -252,9 +252,14 @@ export default class DataSecurityAPI extends BaseAPI<
     this.post(
       DATA_SECURITY_API_ROUTES.compliance,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
+      async (
+        projectId: ObjectID,
+        _req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         return (await DataSecurityAPI.getCompliance(
           projectId,
+          props,
         )) as unknown as JSONObject;
       },
     );
@@ -1336,13 +1341,19 @@ export default class DataSecurityAPI extends BaseAPI<
   /*
    * Every framework, scored over the project's stores and their open
    * issues, with what each store's resource turned off
-   * (ResourceDataSecurity, Types/DataSecurity/ComplianceScope).
+   * (ResourceDataSecurity, Types/DataSecurity/ComplianceScope) - and,
+   * for a reader, why and by whom, each resource named as they may see it
+   * (#9629).
    */
   public static async getCompliance(
     projectId: ObjectID,
+    props?: DatabaseCommonInteractionProps | undefined,
   ): Promise<DataSecurityComplianceResponse> {
     return {
-      frameworks: await ResourceDataSecurity.readProjectCompliance(projectId),
+      frameworks: await ResourceDataSecurity.readProjectCompliance(
+        projectId,
+        props,
+      ),
     };
   }
 

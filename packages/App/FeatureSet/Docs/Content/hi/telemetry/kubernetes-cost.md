@@ -83,9 +83,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | इंजन | सामान्य सेवा URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API का पथ अपने-आप मिल जाता है (Kubecost के लिए `/model/allocation`, OpenCost के लिए `/allocation/compute` या `/allocation`)। `cost.engine.allocationPath` सिर्फ़ किसी असामान्य इंस्टॉल के लिए सेट करें। `auto` या किसी URL के साथ कुछ भी बंडल नहीं होता, इसलिए मेमोरी अनुशंसाओं के लिए `cost.engine.prometheusUrl` भी सेट करें ([इसके पीछे का डेटा](#इसके-पीछे-का-डेटा) देखें)।
+Allocation API का पथ अपने-आप मिल जाता है (Kubecost के लिए `/model/allocation`, OpenCost के लिए `/allocation/compute` या `/allocation`)। `cost.engine.allocationPath` सिर्फ़ किसी असामान्य इंस्टॉल के लिए सेट करें। `auto` या किसी URL के साथ कुछ भी बंडल नहीं होता, इसलिए मेमोरी अनुशंसाओं के लिए `cost.engine.prometheusUrl` भी सेट करें ([इसके पीछे का डेटा](#इसके-पीछे-का-डेटा) देखें)। मूल्य मेट्रिक्स भी इसी तरह मिल जाते हैं, इसलिए इंजन की कोई भी Service बताई जा सकती है: एजेंट पहले इंजन का `/metrics` आज़माता है, फिर वह `/model/metrics` जिसे Kubecost 2 का फ़्रंटएंड या OpenCost का UI इंजन तक पहुँचाता है, फिर Kubecost 3 का FinOps एजेंट, और कलेक्टर उस पहले पते को स्क्रैप करता है जिस पर मूल्य सीरीज़ हों। इन्हें खुद बताने के लिए `cost.metrics.endpoint` सेट करें।
 
 ## ऑन-प्रेम और बेयर-मेटल मूल्य निर्धारण
 
@@ -202,7 +203,7 @@ Kubernetes मॉनिटर में इनके लिए तीन टे�
 :::
 
 :::details Kubernetes Cost Dashboard कोई डेटा नहीं दिखाता
-टेम्पलेट स्क्रैप किए गए लागत मेट्रिक्स पढ़ता है: जाँचें कि `cost.metrics.enabled` का मान `true` है।
+टेम्पलेट स्क्रैप किए गए लागत मेट्रिक्स पढ़ता है: जाँचें कि `cost.metrics.enabled` का मान `true` है। `cost.engine.url` सेट होने पर लागत एजेंट ढूँढ लेता है कि आपका इंजन इन्हें कहाँ देता है, और उसका लॉग बताता है कि कहाँ, या उसने कौन-से पते आज़माए: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`। इन्हें खुद बताने के लिए `cost.metrics.endpoint` सेट करें।
 :::
 
 :::details Right-Sizing कार्ड खाली है

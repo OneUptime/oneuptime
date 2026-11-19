@@ -76,6 +76,7 @@ import {
   STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
   STATUS_PAGE_SIGNED_OUT_MESSAGE,
 } from "Common/Types/StatusPage/StatusPageSignInMessages";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -1374,13 +1375,24 @@ router.post(
           },
         });
 
-      const isPasswordValid: boolean = alreadySavedUser
-        ? await StatusPagePrivateUserService.verifyHashedColumnValue({
+      let isPasswordValid: boolean = false;
+
+      if (alreadySavedUser && alreadySavedUser.password) {
+        isPasswordValid =
+          await StatusPagePrivateUserService.verifyHashedColumnValue({
             item: alreadySavedUser,
             columnName: "password",
             plainValue: submittedPassword,
-          })
-        : false;
+          });
+      } else {
+        /*
+         * No private user of this page has the address, or theirs has no
+         * password yet: refused after as long as a password check takes,
+         * so how long the refusal takes does not say which addresses the
+         * page knows (#9745).
+         */
+        await PasswordHash.spendVerificationTime(submittedPassword);
+      }
 
       if (alreadySavedUser && isPasswordValid) {
         const { accessToken } = await finalizeStatusPageLogin({

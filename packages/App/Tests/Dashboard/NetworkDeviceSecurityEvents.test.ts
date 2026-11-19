@@ -235,11 +235,15 @@ describe("the Security card's count on a device opens the device's own page", ()
     ).toBeNull();
   });
 
-  test("a device, a host and a cluster have a page of their own (#9547): a Docker host still opens the Events explorer", () => {
+  test("a device, a host, a cluster, a container host, an OpenStack cloud and a service have a page of their own (#9547, #9628): a cloud resource still opens the Events explorer", () => {
     expect(Object.keys(model.RECORD_SECURITY_EVENTS_PAGES)).toEqual([
       SecurityConnectionKind.NetworkDevice,
       SecurityConnectionKind.Host,
       SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.DockerHost,
+      SecurityConnectionKind.PodmanHost,
+      SecurityConnectionKind.OpenStackCloud,
+      SecurityConnectionKind.Service,
     ]);
 
     const host: { path: string; query: Record<string, string> } = open(
@@ -271,9 +275,26 @@ describe("the Security card's count on a device opens the device's own page", ()
       }),
     );
 
-    expect(dockerHost.path).toBe(`${BASE}/security-events`);
-    expect(decodeURIComponent(dockerHost.query["search"]!)).toBe(
-      "observable:web-1",
+    expect(dockerHost.path).toBe(`${BASE}/docker/${HOST_ID}/security-events`);
+    expect(dockerHost.query["search"]).toBeUndefined();
+
+    // Nothing ties a cloud resource's own events to it reliably yet.
+    const cloudResource: { path: string; query: Record<string, string> } = open(
+      model.getRecordSecurityEventsRoute({
+        security: {
+          kind: SecurityConnectionKind.CloudResource,
+          id: HOST_ID,
+          values: ["i-0abc123"],
+          windowDays: 7,
+          isSearchedByLogs: false,
+        },
+        now,
+      }),
+    );
+
+    expect(cloudResource.path).toBe(`${BASE}/security-events`);
+    expect(decodeURIComponent(cloudResource.query["search"]!)).toBe(
+      "observable:i-0abc123",
     );
   });
 });

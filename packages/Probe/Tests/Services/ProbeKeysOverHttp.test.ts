@@ -353,6 +353,15 @@ describe("a request that carries a probe's keys, redirected to another server", 
 
     expect(pathsOf(redirectingAway)).toEqual(["/probe-ingest/alive"]);
     expect(otherServer.received).toEqual([]);
+
+    /*
+     * It says the build it runs too, so OneUptime knows the release - and
+     * that it makes one-time codes - from its first request (#9759).
+     */
+    const sent: JSONObject = JSON.parse(redirectingAway.received[0]!.body);
+    expect(sent["probeId"]).toBe(PROBE_ID);
+    expect(sent["probeCapabilities"]).toContain("totpCodes");
+    expect(typeof sent["probeVersion"]).toBe("string");
   });
 
   test("a registered probe's heartbeat is not sent on", async () => {

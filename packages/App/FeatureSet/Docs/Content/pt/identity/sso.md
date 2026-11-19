@@ -294,6 +294,21 @@ Desligar **Exigir SSO para entrar** salva assim que você muda o interruptor e d
 > [!NOTE]
 > No OneUptime Cloud, exigir SSO requer o plano **Scale**, e desligar funciona em qualquer plano. Abaixo do Scale, **Configurações do projeto** > **Segurança** > **SSO** mostra a oferta do plano; um projeto que um teste do Scale deixou exigindo SSO também encontra ali **Exigir SSO para entrar**, abaixo da oferta, para poder desligá-lo. Ligá-lo de novo requer o **Scale**.
 
+### Gerenciar o login dos seus membros com SSO
+
+Exigir SSO mantém os dados do seu projeto atrás do seu provedor de identidade, mas seus membros ainda podem definir no OneUptime uma senha, chaves de acesso e a autenticação de dois fatores, que seu projeto nunca pede. Enquanto **Exigir SSO para entrar** está ligado, um segundo interruptor abaixo dele, **Gerenciar o login com SSO**, impede isso.
+
+O login de uma pessoa é gerenciado pelo SSO quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, exigem SSO e têm **Gerenciar o login com SSO** ligado. Ela então não pode definir senha, chave de acesso, chave de segurança, aplicativo autenticador, códigos de backup nem autenticação de dois fatores, **Esqueceu a senha?** não lhe envia nenhum link, e o **Perfil do usuário** dela mostra seu provedor de identidade em vez de oferecer essas configurações. Nada muda no login: a senha dela ainda faz seu login no OneUptime, e seu projeto pede SSO como antes.
+
+A regra é verificada todas as vezes, então:
+
+- **Alguém em um projeto que não gerencia o login**: assim que a pessoa é membro de um projeto, ou é convidada para um, que não exige SSO ou não tem **Gerenciar o login com SSO** ligado, ela recebe suas configurações de volta, e o **Perfil do usuário** dela mostra esse projeto como o motivo. Se ela sair dele, o login dela volta a ser gerenciado. Uma conta pode pertencer a muitas organizações, então uma organização nunca decide pelos projetos de outra.
+- **Projetos com provedores diferentes**: alguém em dois projetos que gerenciam o login, cada um com o próprio provedor de identidade, é gerenciado, e o perfil dele mostra os dois provedores.
+- **Os administradores mestres** sempre mantêm suas próprias configurações.
+- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto. Um administrador do servidor pode limpá-lo na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
+
+**Gerenciar o login com SSO** salva assim que você muda o interruptor, não exclui nada, e desligá-lo devolve a todos suas configurações na hora. Quem pode alterar **Exigir SSO para entrar** pode alterá-lo, nos mesmos planos. Com **Exigir SSO para entrar** desligado, ele fica oculto e não muda nada.
+
 ## Desligar ou excluir um provedor
 
 | O que você altera | Pessoas que fizeram login com o provedor |

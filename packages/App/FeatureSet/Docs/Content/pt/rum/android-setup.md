@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-A telemetria do aplicativo continua com a aplicação RUM dele, e o dispositivo não vira um host em **Hosts**: um aplicativo não informa métricas de host, então não haveria nada para mostrar ali. A página do dispositivo em **Inventário** mostra os registros, traços e exceções dele, e `@resource.host.name:` os encontra em **Traços** e **Registros**. Um dispositivo que não envia nada por 30 dias sai do **Inventário**.
+A telemetria do aplicativo continua com a aplicação RUM dele, e o dispositivo não vira um host em **Hosts**: um aplicativo não informa métricas de host, então não haveria nada para mostrar ali. A página do dispositivo em **Inventário** mostra os registros, traços e exceções dele, e `@resource.host.name:` os encontra em **Traços** e **Registros**. Um dispositivo que não envia nada por 30 dias sai do **Inventário**. Para ver o próprio dispositivo, a memória, o armazenamento e as reinicializações dele e os crashes de todos os aplicativos instalados nele, adicione o [Agente Android](/docs/telemetry/android-agent) e dê a ele o mesmo nome no `device_name` dele: o dispositivo passa então a ser também um host em **Hosts**, e continua sendo um único item em **Inventário**.
 
 ### Configurar a frota a partir do seu MDM
 
@@ -248,6 +248,12 @@ Depois, passe `token` para `baseHeaders` no lugar de `BuildConfig.ONEUPTIME_TOKE
 ```
 
 Faça a convergência dos dispositivos depois de uma alteração, para que eles leiam os novos valores. Declare as mesmas chaves em um `app_restrictions.xml` se o seu MDM pedir um schema. O Esper recusa um APK sem assinatura v1, então assine a versão com o esquema v1, além do v2 ou do v3.
+
+### Importar a frota do Esper
+
+Conecte o seu locatário do Esper ao inventário, e todos os dispositivos que o Esper registra são listados, inclusive os dispositivos cujo aplicativo nunca foi iniciado, com o que só o Esper sabe: o grupo, a versão do Android, o nível do patch de segurança, o número de série, a bateria, o armazenamento, os aplicativos instalados e o último check-in. Um dispositivo que para de fazer check-in aparece como offline, com o tempo que passou desde o último. Veja [Importar dispositivos do Esper](/docs/inventory/overview#importar-dispositivos-do-esper).
+
+Um dispositivo cujo aplicativo o nomeia como acima é um só item com o que o aplicativo envia: `host.name` é o nome dele no Esper. O OneUptime encontra o item de um dispositivo por `host.name` e depois por `host.serial_number`, então dê a cada dispositivo o mesmo nome e o mesmo número de série em todos os aplicativos que reportam a partir dele e nas configurações `device_name` e `device_serial` do Android Agent.
 
 ### Guardar o que é registrado enquanto está offline
 
@@ -281,6 +287,7 @@ Só é listado um dispositivo cujo aplicativo define `host.name`. Confira o valo
 
 :::cards
 - [Configuração para dispositivos móveis](/docs/rum/mobile-setup): iOS, React Native e as demais plataformas.
+- [Agente Android](/docs/telemetry/android-agent): Monitorar o próprio dispositivo: a integridade, as reinicializações, os aplicativos instalados e os crashes de todos os aplicativos.
 - [Exceções](/docs/telemetry/exceptions): Fazer a triagem dos crashes e ANRs que o seu aplicativo relata.
 - [Explorador de traços](/docs/telemetry/traces-explorer): Acompanhar um pedido do quiosque até a cozinha.
 - [Gerenciar aplicações](/docs/rum/applications): Nomes, rótulos, proprietários e retenção.

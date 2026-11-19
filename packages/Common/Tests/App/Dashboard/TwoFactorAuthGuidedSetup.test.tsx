@@ -1,12 +1,6 @@
 /* global CredentialCreationOptions */
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   act,
   cleanup,
@@ -31,6 +25,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SsoManagedSignIn";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -288,9 +283,7 @@ beforeEach(() => {
 
   updateUser = jest
     .spyOn(ModelAPI, "updateById")
-    .mockResolvedValue(
-      new HTTPResponse<JSONObject>(200, {}, {}) as never,
-    );
+    .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}) as never);
 });
 
 afterEach(() => {
@@ -456,11 +449,7 @@ describe("Enable, with nothing set up: the guided setup", () => {
   });
 
   test("a turn-on the server refuses after the app works says so, and the app stays", async () => {
-    updateUser.mockRejectedValueOnce(
-      new Error(
-        "This server signs you in with single sign-on (SSO), so your password, passkeys and two factor authentication are managed by your identity provider, not by OneUptime.",
-      ),
-    );
+    updateUser.mockRejectedValueOnce(new Error(SSO_MANAGED_SIGN_IN_MESSAGE));
     renderPage();
 
     await click(
@@ -474,7 +463,9 @@ describe("Enable, with nothing set up: the guided setup", () => {
     await verifyWithCode("123456");
 
     expect(
-      await screen.findByText(/This server signs you in with single sign-on/),
+      await screen.findByText(
+        /Your organization signs you in with single sign-on/,
+      ),
     ).toBeVisible();
     expect(
       screen.queryByText("Two-factor authentication is on."),

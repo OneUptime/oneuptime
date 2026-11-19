@@ -91,6 +91,7 @@ const getTurnProgressMock: MockFunction = getJestMockFunction();
 const createTaskMock: MockFunction = getJestMockFunction();
 const replyMock: MockFunction = getJestMockFunction();
 const retryMock: MockFunction = getJestMockFunction();
+const retryManyMock: MockFunction = getJestMockFunction();
 const stopMock: MockFunction = getJestMockFunction();
 
 jest.mock(
@@ -126,6 +127,9 @@ jest.mock(
         },
         retry: (...args: Array<unknown>) => {
           return retryMock(...args);
+        },
+        retryMany: (...args: Array<unknown>) => {
+          return retryManyMock(...args);
         },
         stop: (...args: Array<unknown>) => {
           return stopMock(...args);
@@ -287,6 +291,7 @@ beforeEach(() => {
     createTaskMock,
     replyMock,
     retryMock,
+    retryManyMock,
     stopMock,
   ]) {
     mock.mockReset();
@@ -498,6 +503,66 @@ describe("Code's first page: the question, one box, and every task", () => {
       tasksWithoutRepositoryCount,
     } as never);
   }
+
+  /*
+   * Try again and Retry selected on Code's own page, across every
+   * repository (#6508): on the rows the server says the reader may try
+   * again - a repository they may ask AI in - and on no other.
+   */
+  test("its tasks offer Try again and Retry selected where the reader may ask AI, across repositories", async () => {
+    repositoriesAre([STOREFRONT, PAYMENTS, CHECKOUT]);
+    getRepositoryMock.mockResolvedValue(repositoryAnswer() as never);
+    listTasksMock.mockResolvedValue(
+      tasksAnswer([
+        summary({
+          state: CodeTaskState.Failed,
+          errorMessage: "Build failed.",
+          canTryAgain: true,
+        }),
+        summary({
+          id: NEW_TASK_ID,
+          title: "Add a dark theme",
+          state: CodeTaskState.Failed,
+          errorMessage: "The Runner went away.",
+          codeRepositoryId: OTHER_REPOSITORY_ID,
+        }),
+      ]) as never,
+    );
+    retryManyMock.mockResolvedValue({ retried: 1, failed: [] } as never);
+
+    draw(<CodePage {...PAGE_PROPS} />);
+
+    await screen.findAllByTestId("code-task-row");
+
+    // The list asks the server who may try each again: one list, all repositories.
+    expect(listTasksMock.mock.calls[0]![0]).toMatchObject({
+      scope: { allRepositories: true },
+    });
+    expect(screen.getAllByTestId("code-task-row-retry-button")).toHaveLength(1);
+    expect(screen.getAllByTestId("code-task-row-select")).toHaveLength(1);
+
+    // The other repository's row keeps its reason, with nothing to press.
+    const other: HTMLElement = screen
+      .getAllByTestId("code-task-row")
+      .find((row: HTMLElement): boolean => {
+        return Boolean(row.textContent?.includes("Add a dark theme"));
+      })!;
+
+    expect(within(other).getByTestId("code-task-row-error")).toHaveTextContent(
+      "The Runner went away.",
+    );
+    expect(
+      within(other).queryByTestId("code-task-row-retry-button"),
+    ).toBeNull();
+
+    await userEvent.click(screen.getByTestId("code-task-row-select"));
+    await userEvent.click(screen.getByTestId("code-task-list-retry-selected"));
+
+    expect(retryManyMock).toHaveBeenCalledWith([TASK_ID]);
+    expect(
+      await screen.findByTestId("code-task-list-retry-result"),
+    ).toHaveTextContent("Trying 1 task again.");
+  });
 
   test("while it loads, a box and rows in the making - and a screen reader hears Loading", () => {
     getRepositoriesMock.mockReturnValue(new Promise(() => {}) as never);
@@ -3306,17 +3371,17 @@ describe("a task's conversation", () => {
     );
   });
 
-  test("Try again is not offered while something stops AI, nor for a turn nobody asked for in Code", async () => {
+  test("Try again is not offered for a task asked for on GitHub: it is asked again there", async () => {
     getTaskMock.mockResolvedValue(
       taskAnswer({
         task: summary({
           state: CodeTaskState.Failed,
-          recipe: CodeFixTaskType.FixException,
-          title: "TypeError",
+          recipe: CodeFixTaskType.GitHubIssueFix,
+          title: "Add rate limiting",
         }),
         turns: [
           turn({
-            recipe: CodeFixTaskType.FixException,
+            recipe: CodeFixTaskType.GitHubIssueFix,
             request: undefined,
             status: AIRunStatus.Error,
             state: CodeTaskState.Failed,
@@ -3329,9 +3394,160 @@ describe("a task's conversation", () => {
 
     expect(await screen.findByTestId("code-turn-failed")).toBeInTheDocument();
     expect(screen.queryByTestId("code-turn-retry")).toBeNull();
+  });
+
+  /*
+   * A fix OneUptime started (#6509): Try again asks it again with the
+   * context it started with - a new turn of the task, which says who asked
+   * it again.
+   */
+  test("a fix OneUptime started that failed: Try again asks it again", async () => {
+    getTaskMock
+      .mockResolvedValueOnce(
+        taskAnswer({
+          task: summary({
+            state: CodeTaskState.Failed,
+            recipe: CodeFixTaskType.FixException,
+            title: "TypeError",
+          }),
+          turns: [
+            turn({
+              recipe: CodeFixTaskType.FixException,
+              request: undefined,
+              status: AIRunStatus.Error,
+              state: CodeTaskState.Failed,
+              errorMessage: "The Runner went away.",
+            }),
+          ],
+        }) as never,
+      )
+      .mockResolvedValue(taskAnswer() as never);
+    retryMock.mockResolvedValue(undefined as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const tryAgain: HTMLElement = await screen.findByTestId("code-turn-retry");
+
     // Its kind is said beside its number.
     expect(screen.getByTestId("code-task-header")).toHaveTextContent(
       "Fix Exception",
+    );
+
+    await userEvent.click(tryAgain);
+    expect(retryMock).toHaveBeenCalledWith(TASK_ID);
+    await waitFor(() => {
+      expect(getTaskMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("a fix that may already have written says why where Try again would be", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({
+          state: CodeTaskState.Failed,
+          recipe: CodeFixTaskType.FixFromIncident,
+          title: "Fix the connection pool",
+        }),
+        turns: [
+          turn({
+            recipe: CodeFixTaskType.FixFromIncident,
+            request: undefined,
+            status: AIRunStatus.Error,
+            state: CodeTaskState.Failed,
+            errorMessage: "The Runner went away.",
+          }),
+        ],
+        tryAgainRefusal:
+          "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.",
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const failed: HTMLElement = await screen.findByTestId("code-turn-failed");
+
+    expect(within(failed).queryByTestId("code-turn-retry")).toBeNull();
+    expect(
+      within(failed).getByTestId("code-turn-try-again-refusal"),
+    ).toHaveTextContent(
+      "OneUptime AI may already have pushed a branch or opened a pull request for this task",
+    );
+  });
+
+  test("negative control: Try again is not offered, nor its refusal said, while something stops AI", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({
+          state: CodeTaskState.Failed,
+          recipe: CodeFixTaskType.FixException,
+        }),
+        turns: [
+          turn({
+            recipe: CodeFixTaskType.FixException,
+            request: undefined,
+            status: AIRunStatus.Error,
+            state: CodeTaskState.Failed,
+          }),
+        ],
+        blocker: {
+          type: CodeTaskBlockerType.AiDisabled,
+          message: "AI is off.",
+        },
+        tryAgainRefusal: "OneUptime AI may already have pushed a branch.",
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    expect(await screen.findByTestId("code-turn-failed")).toBeInTheDocument();
+    expect(screen.queryByTestId("code-turn-retry")).toBeNull();
+    expect(screen.queryByTestId("code-turn-try-again-refusal")).toBeNull();
+  });
+
+  test("a fix asked again is a new turn that says who asked it again", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({
+          state: CodeTaskState.Working,
+          recipe: CodeFixTaskType.FixException,
+          origin: { type: CodeTaskOriginType.Exception, label: "TypeError" },
+        }),
+        turns: [
+          turn({
+            recipe: CodeFixTaskType.FixException,
+            request: undefined,
+            requestedBy: undefined,
+            status: AIRunStatus.Error,
+            state: CodeTaskState.Failed,
+            errorMessage: "The Runner went away.",
+          }),
+          turn({
+            runId: "8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1b",
+            recipe: CodeFixTaskType.FixException,
+            request: undefined,
+            requestedBy: { id: "grace", name: "Grace Hopper" },
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            startedAt: undefined,
+            completedAt: undefined,
+          }),
+        ],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const askedAgain: HTMLElement = await screen.findByTestId(
+      "code-turn-asked-again",
+    );
+
+    expect(askedAgain).toHaveTextContent(
+      "Grace Hopper asked OneUptime AI to try again.",
+    );
+    // The first turn still says what started the task, and why it failed.
+    expect(screen.getAllByTestId("code-turn-origin")).toHaveLength(1);
+    expect(screen.getByTestId("code-turn-failed")).toHaveTextContent(
+      "The Runner went away.",
     );
   });
 

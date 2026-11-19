@@ -8,6 +8,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
 import WorkflowRunAsAuthority, {
   WorkflowRunAsAction,
+  WorkflowRunAsGiver,
 } from "../Utils/Workflow/WorkflowRunAsAuthority";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
@@ -182,9 +183,9 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A VARIABLE OF A WORKFLOW THAT RUNS AS MORE THAN DEFAULT (#9695) is part
    * of what the workflow does: its steps read it. So it is created, changed
-   * and deleted only by who may change the workflow - a person who holds
-   * what it runs as (WorkflowRunAsAuthority.assertMayAct) - and that person
-   * gives the workflow their permissions, as saving its steps does
+   * and deleted only by who may change the workflow - a person or a project
+   * API key that holds what it runs as (WorkflowRunAsAuthority.assertMayAct)
+   * - and they give the workflow their permissions, as saving its steps does
    * (renewGivers). The project's global variables belong to no workflow,
    * and no such workflow reads them (RunWorkflow), so they ask nothing.
    * OneUptime's own writes are its business. Answers the raised workflows
@@ -260,26 +261,27 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The person who changed a raised workflow's variables gives it their
-   * permissions from now on (WorkflowService.recordRunAsGiven): they held
-   * them, or the change was refused. Never fails the change, which is made.
+   * Whoever changed a raised workflow's variables - a person, or a project
+   * API key (#9765) - gives it their permissions from now on
+   * (WorkflowService.recordRunAsGiven): they held them, or the change was
+   * refused. Never fails the change, which is made.
    */
   private async renewGivers(data: {
     workflowIds: Array<ObjectID> | null | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    if (
-      !data.workflowIds?.length ||
-      !data.props.userId ||
-      !WorkflowRunAsAuthority.isPerson(data.props)
-    ) {
+    const giver: WorkflowRunAsGiver | null = WorkflowRunAsAuthority.getGiver(
+      data.props,
+    );
+
+    if (!data.workflowIds?.length || !giver) {
       return;
     }
 
     try {
       await WorkflowService.recordRunAsGiven({
         workflowIds: data.workflowIds,
-        userId: data.props.userId,
+        giver: giver,
       });
     } catch (error) {
       logger.error(

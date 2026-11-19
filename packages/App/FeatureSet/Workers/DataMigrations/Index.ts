@@ -148,6 +148,7 @@ import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBr
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
+import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1484,6 +1485,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
    */
   new BackfillIncidentCallTranscriptSignInAccount(),
+  /*
+   * What a workflow's step ran as, and with whose permissions (#9766): adds
+   * the five audit-log columns that say it (AuditLogV2.workflowRunAs and
+   * the four beside it). Metadata-only and idempotent; rows written before
+   * it read NULL. Before the last slot AddAuditLogMcpClientColumns keeps.
+   */
+  new AddAuditLogWorkflowRunAsColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

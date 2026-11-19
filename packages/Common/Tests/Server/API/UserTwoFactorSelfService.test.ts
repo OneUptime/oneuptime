@@ -40,6 +40,12 @@ import {
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
+import {
+  managingProject,
+  MemberProjectsStandIn,
+  passwordProject,
+  standInMemberProjects,
+} from "../TestingUtils/SsoManagedProjects";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -89,6 +95,7 @@ describe("User two-factor self-service API integration", () => {
   let getRequireSsoForLogin: jest.SpyInstance;
   let countVerifiedApps: jest.SpyInstance;
   let countVerifiedKeys: jest.SpyInstance;
+  let memberProjects: MemberProjectsStandIn;
 
   const requestFor: (data?: RequestOptions) => OneUptimeRequest = (
     data: RequestOptions = {},
@@ -211,6 +218,8 @@ describe("User two-factor self-service API integration", () => {
       UserWebAuthnService,
       "countBy",
     ).mockResolvedValue(new PositiveNumber(0));
+    // The caller's projects (#9763): none, unless a test puts them in some.
+    memberProjects = standInMemberProjects([]);
   });
 
   afterEach(() => {
@@ -642,6 +651,40 @@ describe("User two-factor self-service API integration", () => {
       expect(update).not.toHaveBeenCalled();
     });
 
+    test("is refused while every project the caller is in manages their sign-in with SSO, before anything is counted (#9763)", async () => {
+      memberProjects.setProjects([managingProject("Acme")]);
+
+      await expect(turnOn()).rejects.toThrow(
+        new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE),
+      );
+
+      expect(countVerifiedApps).not.toHaveBeenCalled();
+      expect(countVerifiedKeys).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    test("is theirs again once they are in a project that keeps its own sign-in, an invitation included (#9763)", async () => {
+      memberProjects.setProjects([
+        managingProject("Acme"),
+        { ...passwordProject("Contractors"), isPendingInvitation: true },
+      ]);
+
+      await turnOn();
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(true);
+    });
+
+    test("a master admin whose every project manages sign-in is still exempt, their projects never read (#9763)", async () => {
+      memberProjects.setProjects([managingProject("Acme")]);
+      rows.get(OWNER_ID)!.isMasterAdmin = true;
+
+      await turnOn({ userType: UserType.MasterAdmin });
+
+      expect(memberProjects.memberships).not.toHaveBeenCalled();
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(true);
+    });
+
     test("a master admin cannot turn it on for another account through ordinary CRUD", async () => {
       rows.get(OTHER_ID)!.enableTwoFactorAuth = false;
 
@@ -668,6 +711,15 @@ describe("User two-factor self-service API integration", () => {
       expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(false);
       expect(getRequireSsoForLogin).not.toHaveBeenCalled();
       expect(countVerifiedApps).not.toHaveBeenCalled();
+    });
+
+    test("is never refused while every project the caller is in manages their sign-in either (#9763)", async () => {
+      memberProjects.setProjects([managingProject("Acme")]);
+
+      await api.updateItem(requestFor(), response);
+
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(false);
+      expect(memberProjects.memberships).not.toHaveBeenCalled();
     });
   });
 });

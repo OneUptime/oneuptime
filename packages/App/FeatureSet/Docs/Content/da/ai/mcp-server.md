@@ -41,7 +41,7 @@ Serveren er tilstandsløs: den udsteder ingen sessions-id'er, og hver anmodning 
 - **Planlagt vedligeholdelse**: opret og administrer vedligeholdelseshændelser.
 - **Telemetri**: forespørg logs, metrikker, spor, undtagelser, monitorlogs, sikkerhedshændelser og mere, kun læsning.
 
-Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 54 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, alle værktøjer, der ændrer noget, har `destructiveHint`, og kun værktøjerne til offentlige statussider har `openWorldHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
+Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 55 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. En slags post uden et felt, du kan ændre, når den er oprettet, som en hændelses kobling til en advarsel, har intet opdateringsværktøj. Skrivebeskyttede værktøjer har `readOnlyHint`, og alle værktøjer, der ændrer noget, har `destructiveHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. `openWorldHint` markerer de værktøjer, der rækker ud over dit projekt: værktøjerne til offentlige statussider og de ændringer, der vises på en statusside og sendes til dens abonnenter, som en ny hændelse, en ændring af dens tilstand eller en offentlig note. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
 
 ## Før du begynder
 
@@ -489,7 +489,7 @@ MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er,
 | Teams og vagt | Team, On-Call Policy |
 | Etiketter | Label |
 | Sikkerhed | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Datasikkerhed | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Datasikkerhed | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Dataobservabilitet | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Cloud | Cloud Budget |
 

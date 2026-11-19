@@ -1204,6 +1204,7 @@ export default class SecurityEventConnectionPoller {
         connection,
         definition,
         events: fresh,
+        rows,
       });
     }
 

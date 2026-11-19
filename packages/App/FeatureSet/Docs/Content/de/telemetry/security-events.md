@@ -371,7 +371,7 @@ flowchart TB
 3. Der **Name** füllt sich aus dem `title` der Regel: Überschreiben Sie ihn, um die Regel anders zu nennen. Eine neue Regel läuft; **Aktiviert** steht in ihrem Bearbeitungsformular.
 4. Lassen Sie unter **Bei Treffer** die Option **Bei Treffer einen Fall eröffnen** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
 5. Wählen Sie unter **Warnungen und Vorfälle**, was ein Treffer sonst noch auslöst: **Warnung erstellen** (Standard), **Vorfall melden**, **Beide** oder **Keines von beiden**, mit optionalem **Warnungsschweregrad** oder **Vorfallsschweregrad**.
-6. **Weitere Felder** enthält die **Beschreibung**, **Bei Treffer Erkennungsbefund schreiben** (an), **In Echtzeit ausführen** (aus) und wie Treffer gezählt werden; siehe [Auswertungseinstellungen](#auswertungseinstellungen).
+6. **Weitere Felder** enthält die **Beschreibung**, **Bei Treffer Erkennungsbefund schreiben** (an), **In Echtzeit ausführen** (aus), wie Treffer gezählt werden, und **Reaktionsschritte**: was zu tun ist, wenn die Regel einen Fall eröffnet, jeder Schritt unter dem von Ihnen gewählten Teil des Reaktionsplans des Falls, höchstens 10. Siehe [Auswertungseinstellungen](#auswertungseinstellungen).
 :::
 
 Eine erste Regel, die auf fehlgeschlagene Anmeldungen von außerhalb von `10.x.x.x` passt:

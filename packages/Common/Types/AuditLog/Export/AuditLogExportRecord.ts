@@ -39,25 +39,49 @@ import { readAuditLogChange } from "../../../Utils/AuditLog/AuditLogTypedValues"
  *      connected, the paths that changed in JSON ("Changed requestHeaders ›
  *      Authorization") - or null when the entry has none. The lines name
  *      settings and paths, never values.
+ *   3  version 2, and five keys after workflowName (#9766): what the
+ *      workflow whose step made the change ran as (`workflowRunAs`:
+ *      Default, ProjectOwner or CustomRole, and `workflowRunAsCustomRoleName`)
+ *      and with whose permissions (`workflowRunAsGivenByUserId` or
+ *      `workflowRunAsGivenByApiKeyId`, and `workflowRunAsGivenByName`) -
+ *      each null on an entry no workflow made.
  *
- * An export saved before version 2 existed keeps version 1, so nothing that
- * reads it has to change; a new export sends the newest version.
+ * An export saved before a version existed keeps the one it had, so nothing
+ * that reads it has to change; a new export sends the newest version.
  */
 
-export type AuditLogExportSchemaVersion = 1 | 2;
+export type AuditLogExportSchemaVersion = 1 | 2 | 3;
 
 // Every version an export can send, oldest first.
 export const AUDIT_LOG_EXPORT_SCHEMA_VERSIONS: ReadonlyArray<AuditLogExportSchemaVersion> =
-  [1, 2];
+  [1, 2, 3];
 
 // The first version: what an export that never chose one sends.
 export const AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION: AuditLogExportSchemaVersion = 1;
 
 // The newest version: what a new export sends unless it asks for an older one.
-export const AUDIT_LOG_EXPORT_SCHEMA_VERSION: AuditLogExportSchemaVersion = 2;
+export const AUDIT_LOG_EXPORT_SCHEMA_VERSION: AuditLogExportSchemaVersion = 3;
 
 // The first version whose changes carry their summary lines.
 export const AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION: AuditLogExportSchemaVersion = 2;
+
+// The first version that says what a workflow's step ran as (#9766).
+export const AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION: AuditLogExportSchemaVersion = 3;
+
+// The keys version 3 adds, in the order they are written.
+export const AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS: ReadonlyArray<
+  | "workflowRunAs"
+  | "workflowRunAsCustomRoleName"
+  | "workflowRunAsGivenByUserId"
+  | "workflowRunAsGivenByApiKeyId"
+  | "workflowRunAsGivenByName"
+> = [
+  "workflowRunAs",
+  "workflowRunAsCustomRoleName",
+  "workflowRunAsGivenByUserId",
+  "workflowRunAsGivenByApiKeyId",
+  "workflowRunAsGivenByName",
+];
 
 export function isAuditLogExportSchemaVersion(
   value: unknown,
@@ -127,12 +151,25 @@ export interface AuditLogExportRecord {
   mcpClientName: string | null;
   workflowId: string | null;
   workflowName: string | null;
+  /*
+   * From version 3 (#9766): what the workflow whose step made the change
+   * ran as - Default, ProjectOwner or CustomRole - the role's name, and the
+   * person or project API key whose permissions it ran with, by id and by
+   * name at the time. Always present in version 3, null on an entry no
+   * workflow made; never in versions 1 and 2.
+   */
+  workflowRunAs?: string | null | undefined;
+  workflowRunAsCustomRoleName?: string | null | undefined;
+  workflowRunAsGivenByUserId?: string | null | undefined;
+  workflowRunAsGivenByApiKeyId?: string | null | undefined;
+  workflowRunAsGivenByName?: string | null | undefined;
   changes: Array<AuditLogExportChange>;
 }
 
 /*
  * The keys of a record, in the order they are written: the order of the
- * schema above, so every line of a file reads alike.
+ * schema above, so every line of a file reads alike. A key a version does
+ * not have is never set on its records, and is not written.
  */
 export const AUDIT_LOG_EXPORT_RECORD_KEYS: ReadonlyArray<
   keyof AuditLogExportRecord
@@ -157,8 +194,30 @@ export const AUDIT_LOG_EXPORT_RECORD_KEYS: ReadonlyArray<
   "mcpClientName",
   "workflowId",
   "workflowName",
+  ...AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS,
   "changes",
 ];
+
+/*
+ * The keys a record of `schemaVersion` has, in the order they are written:
+ * every key of AUDIT_LOG_EXPORT_RECORD_KEYS the version has. A version only
+ * ever adds keys, so an earlier version's record is written exactly as it
+ * always was.
+ */
+export function getAuditLogExportRecordKeys(
+  schemaVersion: AuditLogExportSchemaVersion,
+): Array<keyof AuditLogExportRecord> {
+  return AUDIT_LOG_EXPORT_RECORD_KEYS.filter(
+    (key: keyof AuditLogExportRecord): boolean => {
+      return (
+        schemaVersion >= AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION ||
+        !(
+          AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS as ReadonlyArray<string>
+        ).includes(key)
+      );
+    },
+  );
+}
 
 // The audit log columns a record is read from: every key but schemaVersion and id, plus _id.
 export const AUDIT_LOG_EXPORT_SOURCE_COLUMNS: ReadonlyArray<string> = [
@@ -181,6 +240,7 @@ export const AUDIT_LOG_EXPORT_SOURCE_COLUMNS: ReadonlyArray<string> = [
   "mcpClientName",
   "workflowId",
   "workflowName",
+  ...AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS,
   "changes",
 ];
 
@@ -339,7 +399,7 @@ export function toAuditLogExportRecord(
     return null;
   }
 
-  return {
+  const record: AuditLogExportRecord = {
     schemaVersion,
     id,
     createdAt: createdAt.toISOString(),
@@ -360,8 +420,20 @@ export function toAuditLogExportRecord(
     mcpClientName: readText(row["mcpClientName"]),
     workflowId: readText(row["workflowId"]),
     workflowName: readText(row["workflowName"]),
-    changes: readAuditLogExportChanges(row["changes"], schemaVersion),
+    changes: [],
   };
+
+  if (schemaVersion >= AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION) {
+    for (const key of AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS) {
+      record[key] = readText(row[key]);
+    }
+  }
+
+  // Last, as the schema writes it: the record's keys in schema order.
+  delete (record as Partial<AuditLogExportRecord>).changes;
+  record.changes = readAuditLogExportChanges(row["changes"], schemaVersion);
+
+  return record;
 }
 
 /*
@@ -413,7 +485,7 @@ export function serializeAuditLogExportRecord(
 ): string {
   const ordered: Record<string, unknown> = {};
 
-  for (const key of AUDIT_LOG_EXPORT_RECORD_KEYS) {
+  for (const key of getAuditLogExportRecordKeys(record.schemaVersion)) {
     ordered[key] = record[key];
   }
 
@@ -438,8 +510,11 @@ export function buildAuditLogExportTestRecord(data: {
   // The version the export sends: the test arrives as its entries will.
   schemaVersion?: AuditLogExportSchemaVersion | undefined;
 }): AuditLogExportRecord {
-  return {
-    schemaVersion: data.schemaVersion || AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION,
+  const schemaVersion: AuditLogExportSchemaVersion =
+    data.schemaVersion || AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION;
+
+  const record: AuditLogExportRecord = {
+    schemaVersion: schemaVersion,
     id: data.id,
     createdAt: data.now.toISOString(),
     projectId: data.projectId,
@@ -461,4 +536,17 @@ export function buildAuditLogExportTestRecord(data: {
     workflowName: null,
     changes: [],
   };
+
+  // Every key its version has, null: no workflow made the test.
+  if (schemaVersion >= AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION) {
+    for (const key of AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS) {
+      record[key] = null;
+    }
+
+    // Last, as the schema writes it.
+    delete (record as Partial<AuditLogExportRecord>).changes;
+    record.changes = [];
+  }
+
+  return record;
 }

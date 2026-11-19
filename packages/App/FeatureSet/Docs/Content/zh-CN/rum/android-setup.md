@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-应用的遥测仍归属于它的 RUM 应用程序，设备也不会成为 **主机** 中的主机：应用不上报主机指标，因此那里没有可显示的内容。设备在 **资产清单** 中的页面会显示它自己的日志、追踪和异常，而 `@resource.host.name:` 可以在 **追踪** 和 **日志** 中找到它们。30 天内没有发送任何数据的设备会从 **资产清单** 中移除。
+应用的遥测仍归属于它的 RUM 应用程序，设备也不会成为 **主机** 中的主机：应用不上报主机指标，因此那里没有可显示的内容。设备在 **资产清单** 中的页面会显示它自己的日志、追踪和异常，而 `@resource.host.name:` 可以在 **追踪** 和 **日志** 中找到它们。30 天内没有发送任何数据的设备会从 **资产清单** 中移除。要查看设备本身，即它的内存、存储和重启，以及其上每个应用的崩溃，请添加 [Android 代理](/docs/telemetry/android-agent) ，并在它的 `device_name` 中使用相同的名称：这样设备也会成为 **主机** 中的一台主机，并且在 **资产清单** 中仍然只是一个条目。
 
 ### 从 MDM 配置设备群
 
@@ -248,6 +248,12 @@ val serialNumber = restrictions.getString("device_serial").orEmpty()
 ```
 
 更改后对设备执行 Converge，让它们读取新值。如果你的 MDM 要求提供架构，请在 `app_restrictions.xml` 中声明相同的键。Esper 会拒绝没有 v1 签名的 APK，因此除了 v2 或 v3 之外，还要用 v1 方案为发布版本签名。
+
+### 从 Esper 导入设备群
+
+将你的 Esper 租户连接到资产清单后，Esper 注册的每台设备都会列在其中，包括应用从未启动过的设备，并带有只有 Esper 才知道的信息：它的组、Android 版本、安全补丁级别、序列号、电池、存储、已安装的应用和上次签入。不再签入的设备会显示为离线，并注明它上次签入是多久以前。请参阅 [从 Esper 导入设备](/docs/inventory/overview#从-esper-导入设备)。
+
+如果设备上的应用按上文所述为其命名，该设备就是一个条目，并带有应用发送的内容：`host.name` 就是它在 Esper 中的名称。OneUptime 先按 `host.name` 查找设备的条目，再按 `host.serial_number` 查找，因此请在每个从该设备上报数据的应用中，以及在 Android Agent 的 `device_name` 和 `device_serial` 设置中，为每台设备使用相同的名称和序列号。
 
 ### 保留离线期间记录的数据
 
@@ -281,6 +287,7 @@ OpenTelemetry Android 会自行设置 `device.model.identifier` ，所以应用�
 
 :::cards
 - [移动端设置](/docs/rum/mobile-setup): iOS、React Native 和其他平台。
+- [Android 代理](/docs/telemetry/android-agent): 监视设备本身：它的健康状况、重启、已安装的应用以及每个应用的崩溃。
 - [异常](/docs/telemetry/exceptions): 分诊你的应用上报的崩溃和 ANR。
 - [追踪浏览器](/docs/telemetry/traces-explorer): 追踪一笔订单从自助终端到厨房的全过程。
 - [管理应用程序](/docs/rum/applications): 名称、标签、所有者和保留期。

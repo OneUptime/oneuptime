@@ -1278,6 +1278,8 @@ describe("An SLO rule's conditions", () => {
       "SLO Labels",
       "SLO Name",
       "Error Budget Policy Change",
+      // Its status changes, which a rule posts only when it picks them (#6596).
+      "SLO Status Change",
       "SLO Owner",
     ]);
     expect(

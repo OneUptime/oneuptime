@@ -371,7 +371,7 @@ flowchart TB
 3. **Navn** udfyldes med regelens `title`: skriv ovenpå for at kalde reglen noget andet. En ny regel kører; **Aktiveret** står i dens redigeringsformular.
 4. Lad **Åbn en sag ved match** være slået til under **Ved match** for at samle regelens match i sager efter den værdi, reglen grupperer efter.
 5. Vælg under **Advarsler og hændelser**, hvad et match ellers udløser: **Opret en advarsel** (standard), **Erklær en hændelse**, **Begge** eller **Ingen af dem**, med en valgfri **Advarselsalvor** eller **Hændelsesalvor**.
-6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til), **Kør i realtid** (fra) og hvordan match tælles; se [Evalueringsindstillinger](#evalueringsindstillinger).
+6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til), **Kør i realtid** (fra), hvordan match tælles, og **Responstrin**: hvad der skal gøres, når reglen åbner en sag, hvert trin under den del af sagens Responsplan, du vælger, højst 10. Se [Evalueringsindstillinger](#evalueringsindstillinger).
 :::
 
 En første regel, der matcher mislykkede logins uden for `10.x.x.x`:

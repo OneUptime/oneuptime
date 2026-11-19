@@ -1092,7 +1092,18 @@ import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRu
 import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
 import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
 import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
-import { AddKubernetesDiskReadings1809185300000 } from "./1809185300000-AddKubernetesDiskReadings";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
+import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
+import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
+import { AddProbeReportedVersion1809185330000 } from "./1809185330000-AddProbeReportedVersion";
+import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
+import { AddWorkflowRunAsApiKey1809185400000 } from "./1809185400000-AddWorkflowRunAsApiKey";
+import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkflowRunAsApiKeyKey";
+import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddProjectManageSignInWithSso";
+import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelName";
+import { AddDeviceManagementConnection1809185900000 } from "./1809185900000-AddDeviceManagementConnection";
+import { AddKubernetesDiskReadings1809186000000 } from "./1809186000000-AddKubernetesDiskReadings";
 
 export default [
   InitialMigration,
@@ -2189,5 +2200,16 @@ export default [
   AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
   MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
   DropIncidentTemplateOwnerNotifiedFlag1809185210000,
-  AddKubernetesDiskReadings1809185300000,
+  AddComplianceSettingTurnedOffBy1809185300000,
+  AddComplianceSettingTurnedOffByKey1809185300100,
+  AddCloudConnectionAddedMetrics1809185310000,
+  AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
+  AddProbeReportedVersion1809185330000,
+  AddSuggestServerAccountsWhenInviting1809185347450,
+  AddWorkflowRunAsApiKey1809185400000,
+  AddWorkflowRunAsApiKeyKey1809185400100,
+  AddProjectManageSignInWithSso1809185500000,
+  AddAIRunModelName1809185800000,
+  AddDeviceManagementConnection1809185900000,
+  AddKubernetesDiskReadings1809186000000,
 ];

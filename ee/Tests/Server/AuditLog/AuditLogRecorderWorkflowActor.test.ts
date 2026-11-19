@@ -6,13 +6,17 @@ import {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
-import WorkflowPrincipal from "Common/Server/Utils/Workflow/WorkflowPrincipal";
+import OnBehalfOfProps from "Common/Server/Utils/AuditLog/OnBehalfOfProps";
+import WorkflowPrincipal, {
+  WorkflowRunAsGrant,
+} from "Common/Server/Utils/Workflow/WorkflowPrincipal";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "Common/Types/ObjectID";
 import UserType from "Common/Types/UserType";
+import { WorkflowRunAs } from "Common/Types/Workflow/WorkflowRunAs";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -227,5 +231,181 @@ describe("everyone else's changes name no workflow", () => {
 
     expect(entry.workflowId).toBeUndefined();
     expect(entry.workflowName).toBeUndefined();
+    expect(entry.workflowRunAs).toBeUndefined();
+    expect(entry.workflowRunAsGivenByName).toBeUndefined();
+  });
+});
+
+/*
+ * WHAT THE WORKFLOW RAN AS, AND WITH WHOSE PERMISSIONS (#9766): every entry
+ * a step's change makes - a create, an update, a delete - says it, from the
+ * step's own props (WorkflowPrincipal.getRunAsAudit), as the run checked it
+ * when it started.
+ */
+describe("what the workflow ran as", () => {
+  const GIVER_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+  const KEY_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
+
+  function raisedStep(
+    runAs: WorkflowRunAsGrant,
+  ): DatabaseCommonInteractionProps {
+    return WorkflowPrincipal.getPropsWithoutPlan({
+      projectId: PROJECT_ID,
+      workflowId: WORKFLOW_ID,
+      workflowName: "Give new teams their role",
+      runAs: runAs,
+    });
+  }
+
+  function ranAs(entry: AuditLog): Record<string, unknown> {
+    return {
+      workflowRunAs: entry.workflowRunAs,
+      workflowRunAsCustomRoleName: entry.workflowRunAsCustomRoleName,
+      workflowRunAsGivenByUserId: entry.workflowRunAsGivenByUserId?.toString(),
+      workflowRunAsGivenByApiKeyId:
+        entry.workflowRunAsGivenByApiKeyId?.toString(),
+      workflowRunAsGivenByName: entry.workflowRunAsGivenByName,
+    };
+  }
+
+  test("Default: says so, and names nobody's permissions", async () => {
+    await recordMonitorCreate(stepProps("Close stale incidents"));
+
+    expect(ranAs(harness.inserted[0]!)).toEqual({
+      workflowRunAs: WorkflowRunAs.Default,
+      workflowRunAsCustomRoleName: undefined,
+      workflowRunAsGivenByUserId: undefined,
+      workflowRunAsGivenByApiKeyId: undefined,
+      workflowRunAsGivenByName: undefined,
+    });
+  });
+
+  test("Project Owner, with the person who gave it", async () => {
+    await recordMonitorCreate(
+      raisedStep({
+        runAs: WorkflowRunAs.ProjectOwner,
+        givenByUserId: GIVER_ID,
+        givenByName: "Jane Doe",
+      }),
+    );
+
+    const entry: AuditLog = harness.inserted[0]!;
+
+    expect(ranAs(entry)).toEqual({
+      workflowRunAs: WorkflowRunAs.ProjectOwner,
+      workflowRunAsCustomRoleName: undefined,
+      workflowRunAsGivenByUserId: GIVER_ID.toString(),
+      workflowRunAsGivenByApiKeyId: undefined,
+      workflowRunAsGivenByName: "Jane Doe",
+    });
+    // Still the workflow's change, not the person's.
+    expect(entry.userType).toBe(UserType.Workflow);
+    expect(entry.userId).toBeUndefined();
+    expect(entry.workflowName).toBe("Give new teams their role");
+  });
+
+  test("a custom role by its name, with the API key that gave it (#9765)", async () => {
+    await recordMonitorCreate(
+      raisedStep({
+        runAs: WorkflowRunAs.CustomRole,
+        customRoleName: "Team Provisioner",
+        rolePermissions: [],
+        givenByApiKeyId: KEY_ID,
+        givenByName: "Terraform",
+      }),
+    );
+
+    const entry: AuditLog = harness.inserted[0]!;
+
+    expect(ranAs(entry)).toEqual({
+      workflowRunAs: WorkflowRunAs.CustomRole,
+      workflowRunAsCustomRoleName: "Team Provisioner",
+      workflowRunAsGivenByUserId: undefined,
+      workflowRunAsGivenByApiKeyId: KEY_ID.toString(),
+      workflowRunAsGivenByName: "Terraform",
+    });
+    // The key gave the permissions; it made no request: no API key actor.
+    expect(entry.apiKeyId).toBeUndefined();
+    expect(entry.apiKeyName).toBeUndefined();
+  });
+
+  test("an update's entry and a delete's entry say it too", async () => {
+    const props: DatabaseCommonInteractionProps = raisedStep({
+      runAs: WorkflowRunAs.ProjectOwner,
+      givenByUserId: GIVER_ID,
+      givenByName: "Jane Doe",
+    });
+    const before: Monitor = makeMonitor();
+
+    await harness.recorder.recordUpdate({
+      model: new Monitor(),
+      before: before,
+      updatedFields: { name: "Checkout API (EU)" },
+      itemId: MONITOR_ID,
+      props: props,
+    });
+
+    await harness.recorder.recordDelete({
+      model: new Monitor(),
+      deletedItem: makeMonitor(),
+      itemId: MONITOR_ID,
+      props: props,
+    });
+
+    expect(harness.inserted).toHaveLength(2);
+
+    for (const entry of harness.inserted) {
+      expect(entry.workflowRunAs).toBe(WorkflowRunAs.ProjectOwner);
+      expect(entry.workflowRunAsGivenByName).toBe("Jane Doe");
+      expect(entry.workflowRunAsGivenByUserId?.toString()).toBe(
+        GIVER_ID.toString(),
+      );
+    }
+  });
+
+  test("a write OneUptime makes on a step's behalf says it as the step does", async () => {
+    await recordMonitorCreate(
+      OnBehalfOfProps.get(
+        raisedStep({
+          runAs: WorkflowRunAs.ProjectOwner,
+          givenByApiKeyId: KEY_ID,
+          givenByName: "Terraform",
+        }),
+      ),
+    );
+
+    const entry: AuditLog = harness.inserted[0]!;
+
+    expect(entry.workflowRunAs).toBe(WorkflowRunAs.ProjectOwner);
+    expect(entry.workflowRunAsGivenByApiKeyId?.toString()).toBe(
+      KEY_ID.toString(),
+    );
+    expect(entry.workflowRunAsGivenByName).toBe("Terraform");
+  });
+
+  test("a record with no workflow beside it, or none of the values, says nothing", async () => {
+    findUserMock.mockImplementation(() => {
+      return Promise.resolve(null);
+    });
+
+    await recordMonitorCreate({
+      userId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+      userType: UserType.User,
+      tenantId: PROJECT_ID,
+      workflowRunAsAudit: { runAs: WorkflowRunAs.ProjectOwner },
+    });
+
+    await recordMonitorCreate({
+      ...stepProps("Close stale incidents"),
+      workflowRunAsAudit: { runAs: "Root" as unknown as WorkflowRunAs },
+    });
+
+    expect(harness.inserted).toHaveLength(2);
+
+    for (const entry of harness.inserted) {
+      expect(entry.workflowRunAs).toBeUndefined();
+    }
   });
 });

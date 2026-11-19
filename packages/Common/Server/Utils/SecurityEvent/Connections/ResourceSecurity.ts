@@ -28,6 +28,8 @@ import {
   ResourceSecurityCaseJson,
   ResourceSecurityJson,
   ResourceSecurityScopeJson,
+  SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectionKind,
 } from "../../../../Types/SecurityCase/SecurityConnection";
@@ -92,7 +94,10 @@ import {
  * answers on, for a monitor every public address it checks. A service and
  * a serverless function are searched for by their logs: the events "Your
  * logs" read from them; so is a cloud resource with no ID, name or address
- * of its own. Possible connections - a short name, a private or shared
+ * of its own. A network device, an OpenStack cloud and a Docker or Podman
+ * host are searched for both ways: by their names, and by the events read
+ * from their own logs - a container host's being its containers' logs.
+ * Possible connections - a short name, a private or shared
  * address - are left out here: a guess must never put a case on the wrong
  * host's page. A case's Connected Signals still shows them, said to be
  * possible.
@@ -491,12 +496,30 @@ export default class ResourceSecurity {
         }
 
         const main: string = host.hostIdentifier || host.name || "";
+        const hostIdentifier: string = (host.hostIdentifier || "").trim();
 
         return {
           name: host.name || host.hostIdentifier || "",
           names: [host.hostIdentifier, host.name],
           entity: main ? { type: SecurityEntityType.Host, value: main } : null,
           isSearchedByLogs: false,
+          /*
+           * And the events read from its containers' logs (#9628), which
+           * are filed under each container's service: every such event
+           * names the host its line was written on, by the host name the
+           * agent stamps, as the host's Logs page reads them.
+           */
+          ...(hostIdentifier
+            ? {
+                logAttribute: {
+                  key:
+                    data.kind === SecurityConnectionKind.DockerHost
+                      ? SECURITY_LOG_DOCKER_HOST_ATTRIBUTE
+                      : SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
+                  value: hostIdentifier,
+                },
+              }
+            : {}),
         };
       }
       case SecurityConnectionKind.KubernetesCluster: {
@@ -538,16 +561,24 @@ export default class ResourceSecurity {
 
         return {
           name: cloud.name || "",
-          /*
-           * An audit event names its cloud by openstack.cloud.name, and what the events
-           * read from its logs name is why they were read: its users, its projects.
-           */
+          // Anything that names the cloud by its openstack.cloud.name.
           names: [cloud.name],
           entity: cloud.name
             ? { type: SecurityEntityType.Host, value: cloud.name }
             : null,
           isSearchedByLogs: false,
-          isSearchedByLogsWithoutValues: true,
+          /*
+           * And its own audit trail (#9628). An OpenStack audit event keeps
+           * its cloud's name in an attribute of its own, never among what it
+           * names - its users, its projects - so searching for the name
+           * alone found none of the cloud's own events. The OpenStack agent
+           * files the cloud's logs under the cloud, and every event read
+           * from them carries its id, whatever it names.
+           */
+          logAttribute: {
+            key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+            value: data.id.toString(),
+          },
         };
       }
       case SecurityConnectionKind.NetworkDevice: {

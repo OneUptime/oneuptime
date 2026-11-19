@@ -7,7 +7,9 @@ import {
   PROBE_NAME,
 } from "../Config";
 import OnlineCheck from "../Utils/OnlineCheck";
-import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
+import ProbeAPIRequest, {
+  getProbeBuildDeclaration,
+} from "../Utils/ProbeAPIRequest";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -242,12 +244,17 @@ export default class Register {
         PROBE_INGEST_URL.toString(),
       ).addRoute("/alive");
 
+      /*
+       * With the build this probe runs, so OneUptime knows the release at
+       * the first request (issue #9759), not a minute later.
+       */
       const aliveResult: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post({
           url: aliveUrl,
           data: {
             probeKey: PROBE_KEY.toString(),
             probeId: PROBE_ID.toString(),
+            ...getProbeBuildDeclaration(),
           },
           options: ProbeAPIRequest.getDefaultRequestOptions(aliveUrl),
         });

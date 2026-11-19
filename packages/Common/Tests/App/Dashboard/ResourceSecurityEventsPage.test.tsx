@@ -72,7 +72,16 @@ jest.mock(
 
 import HostSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/SecurityEvents";
 import KubernetesClusterSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/SecurityEvents";
-import { RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceSecurity/ResourceSecurityEventsEmptyState";
+import DockerHostSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/SecurityEvents";
+import PodmanHostSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/SecurityEvents";
+import OpenStackCloudSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SecurityEvents";
+import ServiceViewSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/SecurityEvents";
+import {
+  OPENSTACK_AUDIT_TRAIL_STEP,
+  RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceSecurity/ResourceSecurityEventsEmptyState";
+import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTelemetrySource";
+import { SecurityTelemetrySourceKind } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { RESOURCE_SECURITY_EVENTS_SUMMARY_NAMING } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceSecurity/ResourceSecurityEventsScope";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -329,5 +338,324 @@ describe("a cluster's Security Events page", () => {
         `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-your-logs`,
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * A Docker or Podman host's, an OpenStack cloud's and a service's own
+ * Security Events pages (#9628): the same page, handed each kind, with an
+ * empty state that says where that kind's own events come from.
+ */
+const RECORD_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+
+// Your logs and Traces, each on or off; null for a project that never set it up.
+function stubSources(sources: {
+  logs?: Partial<SecurityLogSource> | null;
+  traces?: Partial<SecurityTelemetrySource> | null;
+}): void {
+  modelListMock.mockImplementation(
+    async (
+      args: unknown,
+    ): Promise<ListResult<SecurityLogSource | SecurityTelemetrySource>> => {
+      const isTraces: boolean =
+        (args as { modelType: unknown }).modelType === SecurityTelemetrySource;
+      const row: SecurityLogSource | SecurityTelemetrySource | null = isTraces
+        ? sources.traces
+          ? Object.assign(new SecurityTelemetrySource(), sources.traces)
+          : null
+        : sources.logs
+          ? Object.assign(new SecurityLogSource(), sources.logs)
+          : null;
+
+      return { data: row ? [row] : [], count: row ? 1 : 0, skip: 0, limit: 1 };
+    },
+  );
+}
+
+interface RecordPage {
+  kind: SecurityConnectionKind;
+  chipKey: string;
+  title: string;
+  whatLandsHere: string;
+  draw: () => ReactElement;
+}
+
+const RECORD_PAGES: Array<[string, RecordPage]> = [
+  [
+    "a Docker host",
+    {
+      kind: SecurityConnectionKind.DockerHost,
+      chipKey: "Docker Host",
+      title: "No security events about this host yet",
+      whatLandsHere: "in the logs of this host's containers",
+      draw: (): ReactElement => {
+        return (
+          <DockerHostSecurityEvents
+            pageRoute={
+              RouteMap[PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS] as Route
+            }
+            currentProject={project()}
+            hasPaymentMethod={true}
+          />
+        );
+      },
+    },
+  ],
+  [
+    "a Podman host",
+    {
+      kind: SecurityConnectionKind.PodmanHost,
+      chipKey: "Podman Host",
+      title: "No security events about this host yet",
+      whatLandsHere: "in the logs of this host's containers",
+      draw: (): ReactElement => {
+        return (
+          <PodmanHostSecurityEvents
+            pageRoute={
+              RouteMap[PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS] as Route
+            }
+            currentProject={project()}
+            hasPaymentMethod={true}
+          />
+        );
+      },
+    },
+  ],
+  [
+    "an OpenStack cloud",
+    {
+      kind: SecurityConnectionKind.OpenStackCloud,
+      chipKey: "OpenStack Cloud",
+      title: "No security events about this cloud yet",
+      whatLandsHere: "in this cloud's own logs",
+      draw: (): ReactElement => {
+        return (
+          <OpenStackCloudSecurityEvents
+            pageRoute={
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS] as Route
+            }
+            currentProject={project()}
+            hasPaymentMethod={true}
+          />
+        );
+      },
+    },
+  ],
+  [
+    "a service",
+    {
+      kind: SecurityConnectionKind.Service,
+      chipKey: "Service",
+      title: "No security events about this service yet",
+      whatLandsHere: "in this service's own logs and traces",
+      draw: (): ReactElement => {
+        return (
+          <ServiceViewSecurityEvents
+            pageRoute={RouteMap[PageMap.SERVICE_VIEW_SECURITY_EVENTS] as Route}
+            currentProject={project()}
+            hasPaymentMethod={true}
+          />
+        );
+      },
+    },
+  ],
+];
+
+describe.each(RECORD_PAGES)(
+  "%s's Security Events page",
+  (_label: string, page: RecordPage) => {
+    beforeEach(() => {
+      jest
+        .spyOn(Navigation, "getLastParamAsObjectID")
+        .mockReturnValue(RECORD_ID);
+      scopeMock.mockResolvedValue(
+        scopeOf(page.kind, RECORD_ID, "prod", ["prod"]) as never,
+      );
+      stubSources({});
+    });
+
+    async function renderedEmptyState(): Promise<HTMLElement> {
+      render(<MemoryRouter>{page.draw()}</MemoryRouter>);
+
+      const viewer: HTMLElement = await screen.findByTestId(
+        "security-events-viewer-stub",
+      );
+
+      return within(viewer).getByTestId(
+        RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID,
+      );
+    }
+
+    test("asks for its own scope, and names the record on the chip by its kind", async () => {
+      render(<MemoryRouter>{page.draw()}</MemoryRouter>);
+
+      const viewer: HTMLElement = await screen.findByTestId(
+        "security-events-viewer-stub",
+      );
+
+      expect(scopeMock.mock.calls[0]![0]).toEqual({
+        kind: page.kind,
+        id: RECORD_ID,
+      });
+      expect(viewer).toHaveAttribute("data-chip-key", page.chipKey);
+      expect(viewer).toHaveAttribute("data-chip-value", "prod");
+      expect(viewer).toHaveAttribute("data-chip-read-only", "true");
+    });
+
+    test("its empty state names the kind of record and where its events come from", async () => {
+      const empty: HTMLElement = await renderedEmptyState();
+
+      expect(empty).toHaveAttribute("data-kind", page.kind);
+      expect(empty).toHaveTextContent(page.title);
+      expect(empty).toHaveTextContent(page.whatLandsHere);
+      expect(
+        within(empty).getByTestId(
+          `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-your-logs`,
+        ),
+      ).toBeInTheDocument();
+      // A cluster's audit log is a cluster's alone.
+      expect(
+        within(empty).queryByTestId(
+          `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-audit-log`,
+        ),
+      ).toBeNull();
+    });
+  },
+);
+
+describe("an OpenStack cloud's empty state", () => {
+  beforeEach(() => {
+    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
+    scopeMock.mockResolvedValue(
+      scopeOf(SecurityConnectionKind.OpenStackCloud, RECORD_ID, "prod", [
+        "prod",
+      ]) as never,
+    );
+    stubSources({});
+  });
+
+  test("starts with the cloud's audit trail, then Your logs", async () => {
+    render(<MemoryRouter>{RECORD_PAGES[2]![1].draw()}</MemoryRouter>);
+
+    const viewer: HTMLElement = await screen.findByTestId(
+      "security-events-viewer-stub",
+    );
+    const steps: Array<HTMLElement> = within(viewer).getAllByRole("listitem");
+
+    expect(
+      steps.map((step: HTMLElement): string | null => {
+        return step.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-audit-trail`,
+      `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-your-logs`,
+    ]);
+    expect(steps[0]).toHaveTextContent(OPENSTACK_AUDIT_TRAIL_STEP);
+  });
+});
+
+describe("a service's empty state", () => {
+  beforeEach(() => {
+    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
+    scopeMock.mockResolvedValue({
+      kind: SecurityConnectionKind.Service,
+      id: RECORD_ID.toString(),
+      name: "checkout",
+      values: [],
+      isSearchedByLogs: true,
+      scope: {
+        observables: [],
+        attributeKey: "oneuptime.log.resource.id",
+        attributeValues: [RECORD_ID.toString()],
+      },
+    } as never);
+  });
+
+  async function renderedSteps(): Promise<Array<HTMLElement>> {
+    render(<MemoryRouter>{RECORD_PAGES[3]![1].draw()}</MemoryRouter>);
+
+    const viewer: HTMLElement = await screen.findByTestId(
+      "security-events-viewer-stub",
+    );
+
+    return within(viewer).getAllByRole("listitem");
+  }
+
+  test("asks for Your logs, then Traces, while neither is on", async () => {
+    stubSources({});
+
+    const steps: Array<HTMLElement> = await renderedSteps();
+
+    expect(
+      steps.map((step: HTMLElement): string | null => {
+        return step.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-your-logs`,
+      `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-traces`,
+    ]);
+    expect(
+      await within(steps[1]!).findByText("Turn on Traces", { exact: false }),
+    ).toBeInTheDocument();
+  });
+
+  test("with Traces on already, it says so rather than asking for it", async () => {
+    stubSources({ traces: { isEnabled: true } });
+
+    const steps: Array<HTMLElement> = await renderedSteps();
+
+    expect(
+      await within(steps[1]!).findByText("Traces is on", { exact: false }),
+    ).toBeInTheDocument();
+    expect(steps[1]).toHaveAttribute("data-state", "on");
+  });
+
+  test("reads the project's Traces source, and only it, for the step", async () => {
+    stubSources({});
+
+    await renderedSteps();
+
+    const tracesRead: unknown = modelListMock.mock.calls
+      .map((call: Array<unknown>): unknown => {
+        return call[0];
+      })
+      .find((args: unknown): boolean => {
+        return (
+          (args as { modelType: unknown }).modelType === SecurityTelemetrySource
+        );
+      });
+
+    expect(tracesRead).toMatchObject({
+      query: {
+        projectId: PROJECT_ID,
+        kind: SecurityTelemetrySourceKind.Traces,
+      },
+      limit: 1,
+    });
+  });
+
+  test("a Docker host's empty state reads no Traces source", async () => {
+    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
+    scopeMock.mockResolvedValue(
+      scopeOf(SecurityConnectionKind.DockerHost, RECORD_ID, "prod", [
+        "prod",
+      ]) as never,
+    );
+    stubSources({});
+
+    render(<MemoryRouter>{RECORD_PAGES[0]![1].draw()}</MemoryRouter>);
+
+    await screen.findByTestId("security-events-viewer-stub");
+
+    expect(
+      modelListMock.mock.calls.some((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType: unknown }).modelType ===
+          SecurityTelemetrySource
+        );
+      }),
+    ).toBe(false);
   });
 });

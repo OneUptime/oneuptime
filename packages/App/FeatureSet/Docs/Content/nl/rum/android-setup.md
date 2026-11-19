@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-De telemetrie van de app blijft bij zijn RUM-applicatie, en het apparaat wordt geen host in **Hosts**: een app meldt geen hostmetrieken, dus daar zou niets te tonen zijn. De pagina van het apparaat in **Inventaris** toont zijn eigen logs, traces en uitzonderingen, en `@resource.host.name:` vindt ze in **Traces** en **Logboeken**. Een apparaat dat 30 dagen niets verstuurt, verdwijnt uit **Inventaris**.
+De telemetrie van de app blijft bij zijn RUM-applicatie, en het apparaat wordt geen host in **Hosts**: een app meldt geen hostmetrieken, dus daar zou niets te tonen zijn. De pagina van het apparaat in **Inventaris** toont zijn eigen logs, traces en uitzonderingen, en `@resource.host.name:` vindt ze in **Traces** en **Logboeken**. Een apparaat dat 30 dagen niets verstuurt, verdwijnt uit **Inventaris**. Om het apparaat zelf te zien, zijn geheugen, opslag en herstarts en de crashes van elke app erop, voeg je de [Android-agent](/docs/telemetry/android-agent) toe en geef je hem dezelfde naam in zijn `device_name`: het apparaat is dan ook een host in **Hosts**, en nog steeds één item in **Inventaris**.
 
 ### De vloot vanuit je MDM configureren
 
@@ -248,6 +248,12 @@ Geef daarna `token` door aan `baseHeaders` in plaats van `BuildConfig.ONEUPTIME_
 ```
 
 Laat de apparaten na een wijziging convergeren, zodat ze de nieuwe waarden lezen. Declareer dezelfde sleutels in een `app_restrictions.xml` als je MDM om een schema vraagt. Esper weigert een APK zonder v1-handtekening, dus onderteken de release met het v1-schema naast v2 of v3.
+
+### De vloot uit Esper importeren
+
+Koppel je Esper-tenant aan de inventaris, en elk apparaat dat Esper inschrijft, wordt vermeld, ook de apparaten waarvan de app nooit is gestart, met wat alleen Esper weet: zijn groep, Android-versie, beveiligingspatchniveau, serienummer, batterij, opslag, geïnstalleerde apps en laatste check-in. Een apparaat dat niet meer incheckt, staat als offline, met hoe lang geleden het dat voor het laatst deed. Zie [Apparaten uit Esper importeren](/docs/inventory/overview#apparaten-uit-esper-importeren).
+
+Een apparaat waarvan de app het noemt zoals hierboven, is één item met wat de app stuurt: `host.name` is zijn naam in Esper. OneUptime vindt het item van een apparaat op `host.name` en daarna op `host.serial_number`, dus geef elk apparaat dezelfde naam en hetzelfde serienummer in elke app die ervandaan rapporteert, en in de instellingen `device_name` en `device_serial` van de Android Agent.
 
 ### Bewaren wat offline wordt vastgelegd
 
@@ -281,6 +287,7 @@ Alleen een apparaat waarvan de app `host.name` instelt, wordt vermeld. Controlee
 
 :::cards
 - [Mobiele configuratie](/docs/rum/mobile-setup): iOS, React Native en de andere platforms.
+- [Android-agent](/docs/telemetry/android-agent): Het apparaat zelf bewaken: zijn gezondheid, herstarts, geïnstalleerde apps en de crashes van elke app.
 - [Uitzonderingen](/docs/telemetry/exceptions): De crashes en ANR's triëren die je app meldt.
 - [Traceverkenner](/docs/telemetry/traces-explorer): Een bestelling volgen van de kiosk tot in de keuken.
 - [Applicaties beheren](/docs/rum/applications): Namen, labels, eigenaren en bewaartermijnen.

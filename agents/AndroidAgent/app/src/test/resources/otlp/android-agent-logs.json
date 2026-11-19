@@ -1,0 +1,473 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "host.name",
+            "value": {
+              "stringValue": "store-0412-kiosk-02"
+            }
+          },
+          {
+            "key": "host.id",
+            "value": {
+              "stringValue": "3f2a9c1b7d4e5a60"
+            }
+          },
+          {
+            "key": "host.arch",
+            "value": {
+              "stringValue": "arm64"
+            }
+          },
+          {
+            "key": "host.ip",
+            "value": {
+              "arrayValue": {
+                "values": [
+                  {
+                    "stringValue": "10.20.30.40"
+                  },
+                  {
+                    "stringValue": "fd00::40"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "key": "host.serial_number",
+            "value": {
+              "stringValue": "ELO123456"
+            }
+          },
+          {
+            "key": "os.type",
+            "value": {
+              "stringValue": "linux"
+            }
+          },
+          {
+            "key": "os.name",
+            "value": {
+              "stringValue": "Android"
+            }
+          },
+          {
+            "key": "os.version",
+            "value": {
+              "stringValue": "14"
+            }
+          },
+          {
+            "key": "os.build_id",
+            "value": {
+              "stringValue": "UP1A.231005.007"
+            }
+          },
+          {
+            "key": "os.description",
+            "value": {
+              "stringValue": "Android Version 14 (Build UP1A.231005.007 API level 34)"
+            }
+          },
+          {
+            "key": "android.os.api_level",
+            "value": {
+              "stringValue": "34"
+            }
+          },
+          {
+            "key": "android.os.security_patch",
+            "value": {
+              "stringValue": "2024-06-05"
+            }
+          },
+          {
+            "key": "device.manufacturer",
+            "value": {
+              "stringValue": "Elo Touch Solutions"
+            }
+          },
+          {
+            "key": "device.model.name",
+            "value": {
+              "stringValue": "Elo-i3-15"
+            }
+          },
+          {
+            "key": "device.firmware.version",
+            "value": {
+              "stringValue": "ELO-I3-15-14.0.0-2024.06"
+            }
+          },
+          {
+            "key": "device.type",
+            "value": {
+              "stringValue": "kiosk"
+            }
+          },
+          {
+            "key": "device.location",
+            "value": {
+              "stringValue": "Store 0412"
+            }
+          },
+          {
+            "key": "oneuptime.agent.version",
+            "value": {
+              "stringValue": "17.0.12"
+            }
+          },
+          {
+            "key": "oneuptime.label.store",
+            "value": {
+              "stringValue": "0412"
+            }
+          },
+          {
+            "key": "oneuptime.label.region",
+            "value": {
+              "stringValue": "emea"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "oneuptime-android-agent",
+            "version": "17.0.12"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1795076857467000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "OneUptime Android agent 17.0.12 started. Logcat: every app's crashes and ANRs. Android 13 and later show other apps' log lines only to an app on screen that the person at the device allows."
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "oneuptime.agent.started"
+                  }
+                },
+                {
+                  "key": "oneuptime.agent.config_source",
+                  "value": {
+                    "stringValue": "managed"
+                  }
+                },
+                {
+                  "key": "oneuptime.agent.logcat",
+                  "value": {
+                    "stringValue": "crashes_and_anrs"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1794817657467000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "Device started (boot 42). It had been up for 1d 0h 0m, and shut down cleanly. It was off for 2m 5s."
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "device.boot"
+                  }
+                },
+                {
+                  "key": "android.boot.id",
+                  "value": {
+                    "stringValue": "e7a7ab81-d18d-41ea-9dbb-27082631f948"
+                  }
+                },
+                {
+                  "key": "android.boot.count",
+                  "value": {
+                    "intValue": "42"
+                  }
+                },
+                {
+                  "key": "android.boot.previous_uptime",
+                  "value": {
+                    "intValue": "86400"
+                  }
+                },
+                {
+                  "key": "android.boot.offline_duration",
+                  "value": {
+                    "intValue": "125"
+                  }
+                },
+                {
+                  "key": "android.boot.previous_shutdown",
+                  "value": {
+                    "stringValue": "clean"
+                  }
+                },
+                {
+                  "key": "android.boot.recent_count",
+                  "value": {
+                    "intValue": "1"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076857467000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 21,
+              "severityText": "FATAL",
+              "body": {
+                "stringValue": "com.example.kiosk crashed: java.lang.IllegalStateException: Printer offline"
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "app.crash"
+                  }
+                },
+                {
+                  "key": "exception.type",
+                  "value": {
+                    "stringValue": "java.lang.IllegalStateException"
+                  }
+                },
+                {
+                  "key": "exception.message",
+                  "value": {
+                    "stringValue": "com.example.kiosk: Printer offline"
+                  }
+                },
+                {
+                  "key": "exception.escaped",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.process.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "process.pid",
+                  "value": {
+                    "intValue": "4242"
+                  }
+                },
+                {
+                  "key": "code.file.path",
+                  "value": {
+                    "stringValue": "Printer.kt"
+                  }
+                },
+                {
+                  "key": "code.line.number",
+                  "value": {
+                    "intValue": "88"
+                  }
+                },
+                {
+                  "key": "android.log.tag",
+                  "value": {
+                    "stringValue": "am_crash"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076857500000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 17,
+              "severityText": "ERROR",
+              "body": {
+                "stringValue": "com.example.kiosk is not responding: Input dispatching timed out (com.example.kiosk/.MainActivity is not responding. Waited 5001ms)"
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "device.anr"
+                  }
+                },
+                {
+                  "key": "exception.type",
+                  "value": {
+                    "stringValue": "ANR"
+                  }
+                },
+                {
+                  "key": "exception.message",
+                  "value": {
+                    "stringValue": "com.example.kiosk: Input dispatching timed out"
+                  }
+                },
+                {
+                  "key": "exception.escaped",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.process.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "process.pid",
+                  "value": {
+                    "intValue": "4242"
+                  }
+                },
+                {
+                  "key": "android.anr.reason",
+                  "value": {
+                    "stringValue": "Input dispatching timed out (com.example.kiosk/.MainActivity is not responding. Waited 5001ms)"
+                  }
+                },
+                {
+                  "key": "android.log.tag",
+                  "value": {
+                    "stringValue": "am_anr"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076857600000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 13,
+              "severityText": "WARN",
+              "body": {
+                "stringValue": "Receipt printer offline, retrying"
+              },
+              "attributes": [
+                {
+                  "key": "android.log.tag",
+                  "value": {
+                    "stringValue": "KioskApp"
+                  }
+                },
+                {
+                  "key": "process.pid",
+                  "value": {
+                    "intValue": "4242"
+                  }
+                },
+                {
+                  "key": "thread.id",
+                  "value": {
+                    "intValue": "4250"
+                  }
+                },
+                {
+                  "key": "android.log.buffer",
+                  "value": {
+                    "stringValue": "main"
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1795076857467000000",
+              "observedTimeUnixNano": "1795076857467000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {
+                "stringValue": "com.example.kiosk 4.2.0 (420)"
+              },
+              "attributes": [
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "android.package.inventory"
+                  }
+                },
+                {
+                  "key": "android.package.name",
+                  "value": {
+                    "stringValue": "com.example.kiosk"
+                  }
+                },
+                {
+                  "key": "android.package.version_name",
+                  "value": {
+                    "stringValue": "4.2.0"
+                  }
+                },
+                {
+                  "key": "android.package.version_code",
+                  "value": {
+                    "intValue": "420"
+                  }
+                },
+                {
+                  "key": "android.package.installer",
+                  "value": {
+                    "stringValue": "io.shoonya.shoonyadpc"
+                  }
+                },
+                {
+                  "key": "android.package.system",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "android.package.enabled",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "android.package.first_install_time",
+                  "value": {
+                    "stringValue": "2026-09-21T14:13:20Z"
+                  }
+                },
+                {
+                  "key": "android.package.last_update_time",
+                  "value": {
+                    "stringValue": "2026-11-06T21:20:00Z"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

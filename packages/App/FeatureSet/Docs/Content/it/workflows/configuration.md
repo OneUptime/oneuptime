@@ -217,15 +217,19 @@ Per impostazione predefinita, un flusso di lavoro viene eseguito con i permessi 
 
 Con qualunque permesso venga eseguito, un passaggio non legge mai le impostazioni che contengono credenziali, non vede mai incidenti, avvisi o episodi privati e non modifica mai le chiavi API, il single sign-on o le impostazioni SCIM. Quando dà a un team un permesso o un ruolo, può dare solo quello che ha esso stesso, e se gli manca qualcosa, il log dell'esecuzione nomina il permesso.
 
-Un flusso di lavoro che viene eseguito con più dei permessi predefiniti viene eseguito con i permessi della persona che glieli ha dati: chi ha scelto per ultimo il suo **Run As**, o ha salvato i suoi passaggi o le sue variabili. Perché nessuno ottenga attraverso di esso più di quello che ha:
+Un flusso di lavoro che viene eseguito con più dei permessi predefiniti viene eseguito con i permessi di chi glieli ha dati: la persona o la chiave API del progetto che ha scelto per ultima il suo **Run As**, o ha salvato i suoi passaggi o le sue variabili. Perché nessuno ottenga attraverso di esso più di quello che ha:
 
 - Solo le persone che hanno quei permessi possono modificare il flusso di lavoro o le sue variabili, archiviarlo o eliminarlo, eseguire a mano il flusso di lavoro o uno dei suoi passaggi, o vedere il suo URL del webhook e il suo indirizzo email in entrata. Chiunque possa modificarlo può comunque disattivarlo. Quando passa a essere eseguito con più dei permessi predefiniti, o cambia come viene eseguito, riceve un nuovo URL del webhook e un nuovo indirizzo email in entrata, così le copie dei vecchi non lo avviano più.
-- Solo una persona può darli, mai una chiave API.
-- Ogni esecuzione controlla prima che la persona che li ha dati li abbia ancora. Se non è così, l'esecuzione si ferma prima del suo primo passaggio, e il suo log dice perché e chi può darli di nuovo.
+- Una persona o una delle chiavi API del progetto può darli, e solo ciò che ha: i permessi di una chiave, compresi i suoi ruoli personalizzati, sono valutati come quelli di una persona. I passaggi di un flusso di lavoro e la chiave API master non possono darli, e reimpostare una chiave richiede ogni permesso che la chiave ha.
+- Ogni esecuzione controlla prima che chi li ha dati li abbia ancora: una persona ancora nel progetto, o una chiave che esiste ancora, non è scaduta e non li ha persi. Se non è così, l'esecuzione si ferma prima del suo primo passaggio, e il suo log dice perché e chi può darli di nuovo.
 - Non legge le variabili globali del progetto, che chiunque possa modificare le variabili dei flussi di lavoro può cambiare.
 - Il passaggio **Esegui un altro flusso di lavoro** di un altro flusso di lavoro può avviarlo solo se quel flusso di lavoro viene eseguito con gli stessi permessi o di più.
 
-Ogni esecuzione registra come è stata eseguita e con i permessi di chi, come mostrano la finestra dell'esecuzione e un log scaricato, e il [log di audit](/docs/configuration/audit-logs) registra chi ha cambiato il **Run As** di un flusso di lavoro.
+Un flusso di lavoro esportato, importato o duplicato viene eseguito con i permessi predefiniti, qualunque fosse quello dell'originale: chi ne ha di più sceglie di nuovo il suo **Run As**.
+
+Ogni esecuzione registra come è stata eseguita e con i permessi di chi, come mostrano la finestra dell'esecuzione e un log scaricato. Il [log di audit](/docs/configuration/audit-logs) registra chi ha cambiato il **Run As** di un flusso di lavoro, una persona o una chiave API per nome, e ogni modifica che fa un passaggio di un flusso di lavoro dice come è stato eseguito il passaggio e con i permessi di chi. I filtri **Flusso di lavoro eseguito come** e **Autorizzazioni del flusso di lavoro concesse da** del log di audit trovano queste modifiche.
+
+Eliminare un ruolo personalizzato con cui vengono eseguiti dei flussi di lavoro li fermerebbe, quindi l'eliminazione li elenca e chiede come vengono eseguiti d'ora in poi: **Autorizzazioni predefinite**, o un altro ruolo personalizzato che potresti dare a un team. Chi non può modificare i flussi di lavoro non può eliminare il ruolo finché il loro Run As non viene cambiato. Tramite l'API, l'eliminazione di un ruolo così viene rifiutata se la richiesta non dice come vengono eseguiti invece: `miscDataProps` con `workflowsRunAs` impostato su `Default`, o su `CustomRole` con l'id del ruolo in `workflowsRunAsCustomRoleId`.
 
 ## Limiti di piano
 

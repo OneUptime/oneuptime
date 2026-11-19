@@ -41,7 +41,7 @@ flowchart TB
 - **计划维护**：创建和管理维护事件。
 - **遥测**：查询日志、指标、追踪、异常、监视器日志、安全事件等，只读。
 
-有针对 54 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。只读工具带有 `readOnlyHint`，每个会更改内容的工具都带有 `destructiveHint`，只有公共状态页工具带有 `openWorldHint`，因此客户端可以自行执行只读调用，并在做出任何更改之前询问您。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
+有针对 55 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。像事件与警报之间的关联这样、创建后没有任何字段可以更改的记录类型，没有更新工具。只读工具带有 `readOnlyHint`，每个会更改内容的工具都带有 `destructiveHint`，因此客户端可以自行执行只读调用，并在做出任何更改之前询问您。`openWorldHint` 标记那些会触及您的项目之外的工具：公共状态页工具，以及会显示在状态页上并发送给其订阅者的更改，例如新事件、事件状态的变化或公开备注。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
 
 ## 开始之前
 
@@ -489,7 +489,7 @@ MCP 服务器是无状态的：它既不发放也不跟踪会话 ID，因此每�
 | 团队和值班 | Team, On-Call Policy |
 | 标签 | Label |
 | 安全 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| 数据安全 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| 数据安全 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | 数据可观测性 | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | 云 | Cloud Budget |
 

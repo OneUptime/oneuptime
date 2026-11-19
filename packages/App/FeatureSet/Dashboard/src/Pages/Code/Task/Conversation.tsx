@@ -29,6 +29,18 @@ import CodeTaskTurn, {
   CodeTaskTurnHost,
 } from "../../../Components/Code/CodeTaskTurn";
 import CodeTaskTurnsNotShown from "../../../Components/Code/CodeTaskTurnsNotShown";
+import CodeTaskJumpToNewest from "../../../Components/Code/CodeTaskJumpToNewest";
+import {
+  CodeTaskConversationEntry,
+  CodeTaskNumberedTurnJSON,
+  getConversationEntries,
+  getKeptEarlierTurns,
+  keepEarlierTurns,
+  keepTurnsNoLongerSent,
+  mergeNumberedTurns,
+  numberEarlierTurns,
+  numberSentTurns,
+} from "../../../Components/Code/CodeTaskEarlierTurns";
 import CodeHostMark from "../../../Components/Code/CodeHostMark";
 import {
   getConversationGrowthKey,
@@ -38,6 +50,7 @@ import {
 } from "../../../Components/Code/CodeTaskLive";
 import useCodeTaskLive from "../../../Components/Code/UseCodeTaskLive";
 import useFollowLatest, {
+  FollowLatest,
   goToPageEnd,
 } from "../../../Components/Code/UseFollowLatest";
 import {
@@ -49,10 +62,13 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "Common/Types/AI/CodeFixTaskType";
 import {
   CodeTaskBlockerType,
   CodeTaskContextInput,
+  CodeTaskEarlierTurnsJSON,
   CodeTaskState,
   CodeTaskTurnJSON,
   CodeTaskTurnProgressJSON,
@@ -111,6 +127,25 @@ const STICKY_FADE_STYLE: React.CSSProperties = {
     "linear-gradient(to top, var(--ou-background-primary), transparent)",
 };
 
+// The same turns at the same places: nothing to draw again.
+const isSameTurns: (
+  left: ReadonlyArray<CodeTaskNumberedTurnJSON>,
+  right: ReadonlyArray<CodeTaskNumberedTurnJSON>,
+) => boolean = (
+  left: ReadonlyArray<CodeTaskNumberedTurnJSON>,
+  right: ReadonlyArray<CodeTaskNumberedTurnJSON>,
+): boolean => {
+  return (
+    left.length === right.length &&
+    left.every((entry: CodeTaskNumberedTurnJSON, index: number): boolean => {
+      return (
+        entry.number === right[index]!.number &&
+        entry.turn.runId === right[index]!.turn.runId
+      );
+    })
+  );
+};
+
 /*
  * A task's page in Code: its conversation, as Claude Code or Codex show
  * one. At the top, what it is and how it stands - working, waiting for you,
@@ -154,8 +189,62 @@ const CodeTaskConversation: FunctionComponent<
   const cancelGoingToEndRef: React.MutableRefObject<(() => void) | null> =
     useRef<(() => void) | null>(null);
   // The conversation's turns: its last item is the latest turn's reply.
-  const turnsRef: React.RefObject<HTMLOListElement> =
-    useRef<HTMLOListElement>(null);
+  const turnsRef: React.MutableRefObject<HTMLOListElement | null> =
+    useRef<HTMLOListElement | null>(null);
+  /*
+   * The same list, once drawn: what the page follows late layout in
+   * (useFollowLatest) and watches for Jump to newest.
+   */
+  const [turnsElement, setTurnsElement] = useState<HTMLOListElement | null>(
+    null,
+  );
+  /*
+   * The list's ref, one function for the page's life: a new one each
+   * drawing is called again on every drawing - with nothing, then the list
+   * - and setting the list to nothing and back drew the conversation twice
+   * more after each read, so a step that had just arrived no longer rose
+   * into place.
+   */
+  const setTurnsList: (element: HTMLOListElement | null) => void = useCallback(
+    (element: HTMLOListElement | null): void => {
+      turnsRef.current = element;
+      setTurnsElement(element);
+    },
+    [],
+  );
+  // The reply box held at the bottom of the window.
+  const footerRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+
+  /*
+   * The earlier turns of a long task the reader asked for (Show earlier
+   * turns, #7128), at their places - kept for the task while the
+   * Dashboard is open, so coming back to it keeps them.
+   */
+  const [earlier, setEarlier] = useState<Array<CodeTaskNumberedTurnJSON>>(
+    () => {
+      return getKeptEarlierTurns(taskId);
+    },
+  );
+  // The line whose earlier turns are being read: the turn after it.
+  const [showingBefore, setShowingBefore] = useState<string | null>(null);
+  // Why the last read of them failed, and under which line.
+  const [earlierError, setEarlierError] = useState<{
+    beforeRunId: string;
+    message: string;
+  } | null>(null);
+  /*
+   * The line pressed, and the first turn of the page it read: when the
+   * line went away with the page, the focus goes to that turn, rather than
+   * to nowhere.
+   */
+  const focusTurnRef: React.MutableRefObject<{
+    line: string;
+    runId: string;
+  } | null> = useRef<{ line: string; runId: string } | null>(null);
+  // The turns the page was sent, at their places, as last read.
+  const sentRef: React.MutableRefObject<Array<CodeTaskNumberedTurnJSON>> =
+    useRef<Array<CodeTaskNumberedTurnJSON>>([]);
 
   // The task as shown, for a read that merges into it.
   const dataRef: React.MutableRefObject<CodeTaskResponse | null> =
@@ -194,6 +283,120 @@ const CodeTaskConversation: FunctionComponent<
       // handled inside load
     });
   }, [load]);
+
+  /*
+   * A read that no longer sends a turn the page showed - a task that grew
+   * by a turn leaves its oldest shown out - keeps it with the earlier
+   * turns, at its place: nothing the reader sees goes away under them.
+   * Worked out as the read is drawn (React's state adjusted in render), so
+   * no frame is drawn without it.
+   */
+  const sentNow: Array<CodeTaskNumberedTurnJSON> = data
+    ? numberSentTurns(data.turns, data.turnsNotShown?.count || 0)
+    : [];
+  const [sentBefore, setSentBefore] = useState<Array<CodeTaskNumberedTurnJSON>>(
+    [],
+  );
+
+  if (data && !isSameTurns(sentBefore, sentNow)) {
+    const kept: Array<CodeTaskNumberedTurnJSON> = keepTurnsNoLongerSent({
+      earlier,
+      sentBefore,
+      sentNow,
+    });
+
+    setSentBefore(sentNow);
+
+    if (!isSameTurns(earlier, kept)) {
+      setEarlier(kept);
+    }
+  }
+
+  sentRef.current = sentNow;
+
+  // Kept for the task, for the page's next visit and its Log's turn picker.
+  useEffect(() => {
+    keepEarlierTurns(taskId, earlier);
+  }, [taskId, earlier]);
+
+  /*
+   * Show earlier turns: the turns just before `beforeRunId`, drawn where
+   * the line is - between the first turn and the rest. Nothing the reader
+   * sees moves: the line pressed stays where it is, the turns drawn under
+   * it, and the line says how many are left (or goes, with the focus on
+   * the first turn drawn).
+   */
+  const showEarlierTurns: (
+    beforeRunId: string,
+    line: string,
+  ) => Promise<void> = async (
+    beforeRunId: string,
+    line: string,
+  ): Promise<void> => {
+    // One read at a time: a second press while one is on its way waits.
+    if (showingBefore) {
+      return;
+    }
+
+    setShowingBefore(beforeRunId);
+    setEarlierError(null);
+
+    try {
+      const page: CodeTaskEarlierTurnsJSON = await CodeApi.getEarlierTurns({
+        taskId,
+        before: beforeRunId,
+      });
+
+      const added: Array<CodeTaskNumberedTurnJSON> = numberEarlierTurns(page);
+      const windowStart: number = sentRef.current[1]?.number ?? Infinity;
+
+      setEarlier((current: Array<CodeTaskNumberedTurnJSON>) => {
+        return mergeNumberedTurns(current, added).filter(
+          (entry: CodeTaskNumberedTurnJSON): boolean => {
+            return entry.number > 1 && entry.number < windowStart;
+          },
+        );
+      });
+
+      // Where the focus goes, should the line pressed go with this page.
+      focusTurnRef.current = added[0]
+        ? { line, runId: added[0].turn.runId }
+        : null;
+    } catch (err) {
+      setEarlierError({
+        beforeRunId,
+        message: API.getFriendlyMessage(err),
+      });
+    }
+
+    setShowingBefore(null);
+  };
+
+  /*
+   * The line pressed went with the last page: the focus goes to the first
+   * turn it drew, which takes the line's place.
+   */
+  useLayoutEffect(() => {
+    const pressed: { line: string; runId: string } | null =
+      focusTurnRef.current;
+
+    if (!pressed || !turnsRef.current) {
+      return;
+    }
+
+    focusTurnRef.current = null;
+
+    // The line is still there, with fewer to say: its button keeps the focus.
+    if (turnsRef.current.querySelector(`[data-line="${pressed.line}"]`)) {
+      return;
+    }
+
+    const first: HTMLElement | null = turnsRef.current.querySelector(
+      `[data-turn-id="${pressed.runId}"]`,
+    );
+
+    first?.focus({ preventScroll: true });
+  }, [earlier]);
 
   /*
    * What changed since the page last read: the working turn's new steps,
@@ -266,6 +469,10 @@ const CodeTaskConversation: FunctionComponent<
    * Before useFollowLatest, which then finds the reader at the end,
    * watching AI take up the reply.
    */
+  // What follows the reader (useFollowLatest, below), for the effect above it.
+  const followRef: React.MutableRefObject<FollowLatest | null> =
+    useRef<FollowLatest | null>(null);
+
   useLayoutEffect(() => {
     if (!data || !isGoingToEndRef.current) {
       return;
@@ -274,6 +481,8 @@ const CodeTaskConversation: FunctionComponent<
     isGoingToEndRef.current = false;
     cancelGoingToEndRef.current?.();
     cancelGoingToEndRef.current = goToPageEnd();
+    // Followed from the end, as a reader who came there.
+    followRef.current?.followFromHere();
   }, [data]);
 
   useEffect(() => {
@@ -282,14 +491,34 @@ const CodeTaskConversation: FunctionComponent<
     };
   }, []);
 
-  useFollowLatest({
+  const follow: FollowLatest = useFollowLatest({
     growthKey: data ? getConversationGrowthKey(data.turns) : "",
     isLive: isWorking,
     // A reply that ends the turn is read from its first line.
     getLatestStart: (): Element | null => {
       return turnsRef.current?.lastElementChild || null;
     },
+    // A reply's Markdown that lays out later is followed too (#7644).
+    container: turnsElement,
   });
+
+  followRef.current = follow;
+
+  /*
+   * Jump to newest (#7129): the page to the newest turn, and followed from
+   * there; the focus on its reply, where the reader reads on.
+   */
+  const jumpToNewest: () => void = (): void => {
+    cancelGoingToEndRef.current?.();
+    cancelGoingToEndRef.current = follow.jumpToNewest();
+
+    const newest: Element | null | undefined =
+      turnsRef.current?.lastElementChild;
+
+    if (newest instanceof HTMLElement) {
+      newest.focus({ preventScroll: true });
+    }
+  };
 
   // Code > the repository > Task #42, once the task's repository is known.
   const breadcrumbs: Array<Link> | null = useMemo(() => {
@@ -387,11 +616,27 @@ const CodeTaskConversation: FunctionComponent<
     repositoryHost.provider,
   );
 
+  /*
+   * Why the failed or stopped latest turn - a fix OneUptime started - is
+   * not asked again (it may already have written), for a reader who could
+   * otherwise ask it: said where Try again would be (#6509).
+   */
+  const tryAgainRefusal: string | undefined =
+    data.canAsk && !data.blocker && data.tryAgainRefusal
+      ? data.tryAgainRefusal
+      : undefined;
+
+  /*
+   * A failed or stopped latest turn is asked again: a request in its own
+   * words, and a fix OneUptime started with its own context - not a task
+   * asked for on GitHub, and not one that may already have written.
+   */
   const canRetry: boolean = Boolean(
     data.canAsk &&
       !data.blocker &&
       latestTurn &&
-      latestTurn.recipe === CodeFixTaskType.CodeRequest &&
+      CodeFixTaskTypeHelper.canBeAskedAgain(latestTurn.recipe) &&
+      !tryAgainRefusal &&
       (latestTurn.state === CodeTaskState.Failed ||
         latestTurn.state === CodeTaskState.Stopped),
   );
@@ -557,6 +802,140 @@ const CodeTaskConversation: FunctionComponent<
       />
     );
   };
+
+  // One turn of the conversation: its own turns and its earlier ones alike.
+  const renderTurn: (data: {
+    turn: CodeTaskTurnJSON;
+    isFirst: boolean;
+    isLatest: boolean;
+  }) => ReactElement = (entry: {
+    turn: CodeTaskTurnJSON;
+    isFirst: boolean;
+    isLatest: boolean;
+  }): ReactElement => {
+    return (
+      <CodeTaskTurn
+        key={entry.turn.runId}
+        turn={entry.turn}
+        isLatest={entry.isLatest}
+        origin={entry.isFirst ? data.task.origin : undefined}
+        repositorySettingsRoute={
+          /*
+           * A slow queue points at the repository's Runner: its settings
+           * open there, with More settings open.
+           */
+          data.repository
+            ? getRepositorySettingsRoute(
+                data.repository.id,
+                CodeRepositorySetting.Runner,
+              )
+            : undefined
+        }
+        onRetry={
+          entry.isLatest && canRetry
+            ? () => {
+                void retry();
+              }
+            : undefined
+        }
+        onRetryNow={
+          entry.isLatest && canRetryNow
+            ? () => {
+                void retry();
+              }
+            : undefined
+        }
+        tryAgainRefusal={entry.isLatest ? tryAgainRefusal : undefined}
+        isRetrying={isRetrying}
+        repositoryHost={repositoryHost}
+        logRoute={new Route(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
+            { modelId: new ObjectID(taskId) },
+          ).toString(),
+        ).addQueryParams({ turn: entry.turn.runId })}
+      />
+    );
+  };
+
+  /*
+   * The conversation, in the task's order: its first turn; a line wherever
+   * turns are not shown, with Show earlier turns; the earlier turns the
+   * reader asked for (#7128) - drawn where a screen reader is not told each
+   * of them as it arrives, as it is a new step - then the newest.
+   */
+  const renderConversation: () => Array<ReactElement> =
+    (): Array<ReactElement> => {
+      const entries: Array<CodeTaskConversationEntry> = getConversationEntries({
+        turns,
+        turnsNotShown: data.turnsNotShown?.count || 0,
+        earlier,
+      });
+      const items: Array<ReactElement> = [];
+      let earlierRun: Array<ReactElement> = [];
+      let lines: number = 0;
+
+      const closeEarlierRun: () => void = (): void => {
+        if (earlierRun.length === 0) {
+          return;
+        }
+
+        items.push(
+          <li
+            key={`earlier-${items.length}`}
+            data-testid="code-task-earlier-turns"
+          >
+            <ol aria-live="off" className="space-y-6">
+              {earlierRun}
+            </ol>
+          </li>,
+        );
+        earlierRun = [];
+      };
+
+      for (const entry of entries) {
+        if (entry.kind === "notShown") {
+          closeEarlierRun();
+
+          const line: string = `line-${lines++}`;
+
+          items.push(
+            <CodeTaskTurnsNotShown
+              key={line}
+              line={line}
+              count={entry.count}
+              onShow={() => {
+                void showEarlierTurns(entry.beforeRunId, line);
+              }}
+              isShowing={showingBefore === entry.beforeRunId}
+              error={
+                earlierError?.beforeRunId === entry.beforeRunId
+                  ? earlierError.message
+                  : null
+              }
+            />,
+          );
+          continue;
+        }
+
+        const element: ReactElement = renderTurn({
+          turn: entry.turn,
+          isFirst: entry.number === 1,
+          isLatest: entry.isSent && entry.turn === latestTurn,
+        });
+
+        if (entry.isSent) {
+          closeEarlierRun();
+          items.push(element);
+        } else {
+          earlierRun.push(element);
+        }
+      }
+
+      closeEarlierRun();
+
+      return items;
+    };
 
   return (
     <div className={CODE_TASK_PAGE_CLASS_NAME}>
@@ -760,7 +1139,7 @@ const CodeTaskConversation: FunctionComponent<
         sees the page watches come in.
       */}
         <ol
-          ref={turnsRef}
+          ref={setTurnsList}
           data-testid="code-task-turns"
           role="log"
           aria-live="polite"
@@ -768,60 +1147,7 @@ const CodeTaskConversation: FunctionComponent<
           aria-label={translator.translateText("Conversation")}
           className="mt-6 space-y-6"
         >
-          {turns.map((turn: CodeTaskTurnJSON, index: number) => {
-            return (
-              <React.Fragment key={turn.runId}>
-                <CodeTaskTurn
-                  turn={turn}
-                  isLatest={index === turns.length - 1}
-                  origin={index === 0 ? data.task.origin : undefined}
-                  repositorySettingsRoute={
-                    /*
-                     * A slow queue points at the repository's Runner: its
-                     * settings open there, with More settings open.
-                     */
-                    data.repository
-                      ? getRepositorySettingsRoute(
-                          data.repository.id,
-                          CodeRepositorySetting.Runner,
-                        )
-                      : undefined
-                  }
-                  onRetry={
-                    canRetry
-                      ? () => {
-                          void retry();
-                        }
-                      : undefined
-                  }
-                  onRetryNow={
-                    canRetryNow
-                      ? () => {
-                          void retry();
-                        }
-                      : undefined
-                  }
-                  isRetrying={isRetrying}
-                  repositoryHost={repositoryHost}
-                  logRoute={new Route(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
-                      { modelId: new ObjectID(taskId) },
-                    ).toString(),
-                  ).addQueryParams({ turn: turn.runId })}
-                />
-                {/*
-                 * A long task: its first turn, then how many turns are not
-                 * shown, then its newest.
-                 */}
-                {index === 0 && data.turnsNotShown ? (
-                  <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />
-                ) : (
-                  <></>
-                )}
-              </React.Fragment>
-            );
-          })}
+          {renderConversation()}
         </ol>
 
         {/*
@@ -829,6 +1155,7 @@ const CodeTaskConversation: FunctionComponent<
          * conversation scrolls - its ground is the page's, faded above it.
          */}
         <div
+          ref={footerRef}
           data-testid="code-task-footer"
           className="sticky bottom-0 z-10 mt-8 pb-4"
           style={STICKY_FOOTER_STYLE}
@@ -837,6 +1164,17 @@ const CodeTaskConversation: FunctionComponent<
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 -top-6 h-6"
             style={STICKY_FADE_STYLE}
+          />
+          {/* While the newest turn is out of view: a way there (#7129). */}
+          <CodeTaskJumpToNewest
+            getNewest={(): Element | null => {
+              return turnsRef.current?.lastElementChild || null;
+            }}
+            getFooter={(): Element | null => {
+              return footerRef.current;
+            }}
+            container={turnsElement}
+            onJump={jumpToNewest}
           />
           {renderFooter()}
         </div>

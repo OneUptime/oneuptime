@@ -15,7 +15,7 @@ import { DataSource } from "typeorm";
 /*
  * A nearly full claim and a node nearly out of disk under the cluster's
  * Needs attention (#9643, #9645), on Postgres, against the migrated
- * "KubernetesResource" table (1809185300000-AddKubernetesDiskReadings): the
+ * "KubernetesResource" table (1809186000000-AddKubernetesDiskReadings): the
  * metrics path writes a claim's or a node's disk and its verdict at once,
  * the next snapshot keeps that verdict, a reading gone stale or a claim made
  * again under the same name clears it, a claim's fill baseline moves as it

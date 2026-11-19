@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-Die Telemetrie der App bleibt bei ihrer RUM-Anwendung, und das Gerät wird kein Host unter **Hosts**: Eine App meldet keine Host-Metriken, also gäbe es dort nichts zu zeigen. Die Seite des Geräts im **Inventar** zeigt seine eigenen Logs, Traces und Ausnahmen, und `@resource.host.name:` findet sie unter **Traces** und **Protokolle**. Ein Gerät, das 30 Tage lang nichts sendet, verschwindet aus dem **Inventar**.
+Die Telemetrie der App bleibt bei ihrer RUM-Anwendung, und das Gerät wird kein Host unter **Hosts**: Eine App meldet keine Host-Metriken, also gäbe es dort nichts zu zeigen. Die Seite des Geräts im **Inventar** zeigt seine eigenen Logs, Traces und Ausnahmen, und `@resource.host.name:` findet sie unter **Traces** und **Protokolle**. Ein Gerät, das 30 Tage lang nichts sendet, verschwindet aus dem **Inventar**. Das Gerät selbst, also seinen Arbeitsspeicher, seinen Speicherplatz und seine Neustarts sowie die Abstürze jeder App darauf, zeigt der [Android-Agent](/docs/telemetry/android-agent), wenn Sie ihn hinzufügen und ihm in seinem `device_name` denselben Namen geben: Das Gerät ist dann zusätzlich ein Host unter **Hosts** und weiterhin ein einziges Element im **Inventar**.
 
 ### Die Flotte über Ihr MDM konfigurieren
 
@@ -248,6 +248,12 @@ val serialNumber = restrictions.getString("device_serial").orEmpty()
 ```
 
 Führen Sie nach einer Änderung ein Converge der Geräte aus, damit sie die neuen Werte lesen. Deklarieren Sie dieselben Schlüssel in einer `app_restrictions.xml`, wenn Ihr MDM ein Schema verlangt. Esper lehnt ein APK ohne v1-Signatur ab, signieren Sie das Release also mit dem v1-Schema sowie mit v2 oder v3.
+
+### Die Flotte aus Esper importieren
+
+Verbinden Sie Ihren Esper-Tenant mit dem Inventar, und jedes Gerät, das Esper registriert, wird aufgeführt, auch die Geräte, deren App nie gestartet wurde, mit dem, was nur Esper weiß: Gruppe, Android-Version, Sicherheitspatch-Ebene, Seriennummer, Akku, Speicher, installierte Apps und letzter Kontakt. Ein Gerät, das sich nicht mehr meldet, wird als offline angezeigt, mit der Zeit seit seinem letzten Kontakt. Siehe [Geräte aus Esper importieren](/docs/inventory/overview#geräte-aus-esper-importieren).
+
+Ein Gerät, dessen App es wie oben benennt, ist ein einziges Element mit dem, was die App sendet: `host.name` ist sein Name in Esper. OneUptime findet das Element eines Geräts über `host.name`, dann über `host.serial_number`, also geben Sie jedem Gerät denselben Namen und dieselbe Seriennummer in jeder App, die von ihm aus meldet, und in den Einstellungen `device_name` und `device_serial` des Android-Agents.
 
 ### Behalten, was offline aufgezeichnet wird
 
@@ -281,6 +287,7 @@ Nur ein Gerät, dessen App `host.name` setzt, wird aufgeführt. Prüfen Sie den 
 
 :::cards
 - [Einrichtung für Mobilgeräte](/docs/rum/mobile-setup): iOS, React Native und die anderen Plattformen.
+- [Android-Agent](/docs/telemetry/android-agent): Das Gerät selbst überwachen: seinen Zustand, seine Neustarts, die installierten Apps und die Abstürze jeder App.
 - [Ausnahmen](/docs/telemetry/exceptions): Die Abstürze und ANRs sichten, die Ihre App meldet.
 - [Trace-Explorer](/docs/telemetry/traces-explorer): Einer Bestellung vom Kiosk bis in die Küche folgen.
 - [Anwendungen verwalten](/docs/rum/applications): Namen, Labels, Eigentümer und Aufbewahrung.

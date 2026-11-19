@@ -3,6 +3,7 @@ import {
   loadCustomRoleGrants,
   loadCustomRoles,
 } from "../CustomRole/CustomRoleOptions";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -86,6 +87,8 @@ export const WorkflowRunAsCardCopy: {
   readonly runsWithOwner: string;
   readonly runsWithRole: string;
   readonly givenBy: string;
+  readonly givenByKey: string;
+  readonly givenByUnnamedKey: string;
   readonly givenByNobody: string;
   readonly changedByOwners: string;
   readonly changedByRoleHolders: string;
@@ -150,6 +153,14 @@ export const WorkflowRunAsCardCopy: {
   givenBy: translationKey(
     "It runs with the permissions of {{name}}, who gave them {{time}}. If they lose them or leave the project, it stops running until someone who has them chooses Run As again.",
   ),
+  // A project API key gave them (#9765): Terraform, a script.
+  givenByKey: translationKey(
+    'It runs with the permissions of the API key "{{name}}", which gave them {{time}}. If the key is deleted, expires or loses them, it stops running until someone who has them chooses Run As again.',
+  ),
+  // A key the viewer may not read the name of.
+  givenByUnnamedKey: translationKey(
+    "It runs with the permissions of one of the project's API keys, which gave them {{time}}. If the key is deleted, expires or loses them, it stops running until someone who has them chooses Run As again.",
+  ),
   givenByNobody: translationKey(
     "Nobody who still has these permissions has given them to this workflow, so it doesn't run. Someone who has them can choose Run As again.",
   ),
@@ -194,8 +205,33 @@ interface Loaded {
   runAs: WorkflowRunAs;
   roleId: string | null;
   givenByName: string | null;
+  // A project API key gave its permissions (#9765), named or not.
+  isGivenByApiKey: boolean;
   givenAt: Date | null;
 }
+
+/*
+ * The name of the API key that gave a workflow its permissions, for a
+ * viewer who may read the project's API keys - or null, and the card says
+ * "one of the project's API keys".
+ */
+const readApiKeyName: (apiKeyId: ObjectID) => Promise<string | null> = async (
+  apiKeyId: ObjectID,
+): Promise<string | null> => {
+  try {
+    const key: ApiKey | null = await ModelAPI.getItem<ApiKey>({
+      modelType: ApiKey,
+      id: apiKeyId,
+      select: {
+        name: true,
+      },
+    });
+
+    return key?.name?.toString() || null;
+  } catch {
+    return null;
+  }
+};
 
 const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -225,6 +261,7 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
           runAs: true,
           runAsCustomRoleId: true,
           runAsGivenAt: true,
+          runAsGivenByApiKeyId: true,
           runAsGivenByUser: {
             name: true,
             email: true,
@@ -238,13 +275,17 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
         return;
       }
 
+      const isGivenByApiKey: boolean = Boolean(workflow.runAsGivenByApiKeyId);
+
       setLoaded({
         runAs: readWorkflowRunAs(workflow.runAs) || WorkflowRunAs.ProjectOwner,
         roleId: workflow.runAsCustomRoleId?.toString().toLowerCase() || null,
-        givenByName:
-          workflow.runAsGivenByUser?.name?.toString() ||
-          workflow.runAsGivenByUser?.email?.toString() ||
-          null,
+        givenByName: isGivenByApiKey
+          ? await readApiKeyName(workflow.runAsGivenByApiKeyId!)
+          : workflow.runAsGivenByUser?.name?.toString() ||
+            workflow.runAsGivenByUser?.email?.toString() ||
+            null,
+        isGivenByApiKey: isGivenByApiKey,
         givenAt: workflow.runAsGivenAt
           ? OneUptimeDate.fromString(workflow.runAsGivenAt)
           : null,
@@ -518,6 +559,40 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Whose permissions it runs with, and since when: a person, or a project
+   * API key (#9765) - by name where the viewer may read it.
+   */
+  const describeGiver: () => string = (): string => {
+    if (!loaded || !loaded.givenAt) {
+      return (
+        translator.translateText(WorkflowRunAsCardCopy.givenByNobody) || ""
+      );
+    }
+
+    const time: string =
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(loaded.givenAt);
+
+    if (loaded.isGivenByApiKey) {
+      return loaded.givenByName
+        ? translator.translateTemplate(WorkflowRunAsCardCopy.givenByKey, {
+            name: loaded.givenByName,
+            time: time,
+          })
+        : translator.translateTemplate(
+            WorkflowRunAsCardCopy.givenByUnnamedKey,
+            { time: time },
+          );
+    }
+
+    return loaded.givenByName
+      ? translator.translateTemplate(WorkflowRunAsCardCopy.givenBy, {
+          name: loaded.givenByName,
+          time: time,
+        })
+      : translator.translateText(WorkflowRunAsCardCopy.givenByNobody) || "";
+  };
+
   const describeCurrent: () => Array<string> = (): Array<string> => {
     if (!loaded) {
       return [];
@@ -549,16 +624,7 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
             ) || "",
     ];
 
-    lines.push(
-      loaded.givenByName && loaded.givenAt
-        ? translator.translateTemplate(WorkflowRunAsCardCopy.givenBy, {
-            name: loaded.givenByName,
-            time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              loaded.givenAt,
-            ),
-          })
-        : translator.translateText(WorkflowRunAsCardCopy.givenByNobody) || "",
-    );
+    lines.push(describeGiver());
 
     lines.push(
       !isRole

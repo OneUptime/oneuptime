@@ -197,6 +197,8 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Topology.tsx", "OPENSTACK_CLOUD_VIEW_TOPOLOGY"],
   ["Metrics.tsx", "OPENSTACK_CLOUD_VIEW_METRICS"],
   ["Logs.tsx", "OPENSTACK_CLOUD_VIEW_LOGS"],
+  // Its audit trail and what names it (#9628).
+  ["SecurityEvents.tsx", "OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS"],
   ["Traces.tsx", "OPENSTACK_CLOUD_VIEW_TRACES"],
   ["Checks.tsx", "OPENSTACK_CLOUD_VIEW_CHECKS"],
   ["Incidents.tsx", "OPENSTACK_CLOUD_VIEW_INCIDENTS"],

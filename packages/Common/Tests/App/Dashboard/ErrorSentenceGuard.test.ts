@@ -356,11 +356,17 @@ describe("every sentence of the product puts an error in one way", () => {
       },
     );
 
+    /*
+     * The card draws it with ErrorSentence; Test Monitor's verdict says the
+     * same when its who is told cannot be worked out, from a sentence it
+     * keeps (MONITOR_TEST_VERDICT_WORDS) and draws with ErrorSentence too.
+     */
     expect(
       whoIsTold.map((finding: ErrorSentenceFinding): string => {
         return `${finding.use} @${finding.file}`;
       }),
     ).toEqual([
+      "stored @packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorTestVerdict.tsx",
       "ErrorSentence @packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard.tsx",
     ]);
 

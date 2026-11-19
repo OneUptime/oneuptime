@@ -72,6 +72,7 @@ import {
   isCodeTaskLogTurnOf,
 } from "../../../Components/Code/CodeTaskLogTurns";
 import { CODE_TASK_TURNS_NOT_SHOWN_COPY } from "../../../Components/Code/CodeTaskTurnsNotShown";
+import { getKeptEarlierTurns } from "../../../Components/Code/CodeTaskEarlierTurns";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -611,7 +612,8 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
  * under each. Only for a task of more than one turn.
  *
  * A long task lists the turns its conversation shows - its first and its
- * newest - and between them, where the conversation draws its line, the
+ * newest, and the earlier ones the reader asked it to show (Show earlier
+ * turns) - and between them, where the conversation draws its line, the
  * same words on a line that is never picked: "7 earlier turns are not
  * shown". Turn 1 then Turn 9 reads as the task's own numbering, not as
  * turns gone missing. A turn between them that the address names is
@@ -782,13 +784,18 @@ const CodeTaskLogPage: FunctionComponent<
   const hasLoadedOnce: boolean = loadedRunId === runId;
 
   const pickerEntries: Array<CodeTaskLogPickerEntry> = useMemo(() => {
-    // A long task's newer turns keep their places past the ones not shown.
+    /*
+     * A long task's newer turns keep their places past the ones not shown,
+     * and the earlier turns its conversation was asked to show are listed
+     * at theirs (#7128).
+     */
     return getCodeTaskLogPickerEntries({
       turns: task?.turns || [],
       turnsNotShown: task?.turnsNotShown?.count || 0,
       linkedTurn: task?.linkedTurn,
+      earlierTurns: task ? getKeptEarlierTurns(taskKey) : [],
     });
-  }, [task]);
+  }, [task, taskKey]);
 
   const listedTurnCount: number = pickerEntries.filter(
     (entry: CodeTaskLogPickerEntry): boolean => {

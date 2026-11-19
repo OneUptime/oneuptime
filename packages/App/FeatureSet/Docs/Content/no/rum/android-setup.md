@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-Appens telemetri blir værende hos RUM-applikasjonen, og enheten blir ikke en vert under **Verter**: En app rapporterer ingen vertsmålinger, så det ville ikke vært noe å vise der. Enhetens side i **Inventar** viser dens egne logger, spor og unntak, og `@resource.host.name:` finner dem i **Spor** og **Logger**. En enhet som ikke sender noe på 30 dager, forsvinner fra **Inventar**.
+Appens telemetri blir værende hos RUM-applikasjonen, og enheten blir ikke en vert under **Verter**: En app rapporterer ingen vertsmålinger, så det ville ikke vært noe å vise der. Enhetens side i **Inventar** viser dens egne logger, spor og unntak, og `@resource.host.name:` finner dem i **Spor** og **Logger**. En enhet som ikke sender noe på 30 dager, forsvinner fra **Inventar**. For å se selve enheten, minnet, lagringen og omstartene dens og krasjene i alle appene på den, legger du til [Android-agent](/docs/telemetry/android-agent) og gir den samme navn i `device_name`: Enheten blir da også en vert under **Verter**, og er fortsatt ett element i **Inventar**.
 
 ### Konfigurer flåten fra MDM-en
 
@@ -248,6 +248,12 @@ Gi deretter `token` til `baseHeaders` i stedet for `BuildConfig.ONEUPTIME_TOKEN`
 ```
 
 Kjør Converge på enhetene etter en endring, slik at de leser de nye verdiene. Deklarer de samme nøklene i en `app_restrictions.xml` hvis MDM-en din ber om et skjema. Esper avviser en APK uten v1-signatur, så signer utgivelsen med v1-signaturskjemaet i tillegg til v2 eller v3.
+
+### Importer flåten fra Esper
+
+Koble Esper-leieren din til inventaret, og alle enheter Esper registrerer, vises, også enhetene der appen aldri har startet, med det bare Esper vet: gruppe, Android-versjon, sikkerhetspatchnivå, serienummer, batteri, lagring, installerte apper og siste innsjekking. En enhet som slutter å sjekke inn, vises som offline, med hvor lenge siden den sist gjorde det. Se [Importer enheter fra Esper](/docs/inventory/overview#importer-enheter-fra-esper).
+
+En enhet som appen gir navn som ovenfor, er ett element med det appen sender: `host.name` er navnet i Esper. OneUptime finner elementet til en enhet etter `host.name` og deretter etter `host.serial_number`, så gi hver enhet samme navn og serienummer i alle apper som rapporterer fra den, og i innstillingene `device_name` og `device_serial` til Android Agent.
 
 ### Behold det som registreres uten nett
 
@@ -281,6 +287,7 @@ Bare en enhet der appen setter `host.name`, blir listet opp. Sjekk verdien i res
 
 :::cards
 - [Mobiloppsett](/docs/rum/mobile-setup): iOS, React Native og de andre plattformene.
+- [Android-agent](/docs/telemetry/android-agent): Overvåk selve enheten: tilstanden, omstartene, de installerte appene og krasjene i alle apper.
 - [Unntak](/docs/telemetry/exceptions): Gå gjennom krasjene og ANR-ene appen din rapporterer.
 - [Sporutforsker](/docs/telemetry/traces-explorer): Følg en bestilling fra kiosken til kjøkkenet.
 - [Administrere applikasjoner](/docs/rum/applications): Navn, etiketter, eiere og oppbevaring.

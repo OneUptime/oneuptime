@@ -294,6 +294,21 @@ Att stänga av **Kräv SSO för inloggning** sparas så snart du slår om reglag
 > [!NOTE]
 > På OneUptime Cloud kräver det planen **Scale** att kräva SSO, medan det fungerar på alla planer att stänga av det. Under Scale visar **Projektinställningar** > **Säkerhet** > **SSO** planens uppgraderingserbjudande; ett projekt som en Scale-provperiod lämnade med krav på SSO hittar också **Kräv SSO för inloggning** där, under erbjudandet, så att det kan stängas av. Att slå på det igen kräver **Scale**.
 
+### Hantera dina användares inloggning med SSO
+
+Att kräva SSO håller projektets data bakom din identitetsleverantör, men dina användare kan fortfarande konfigurera ett lösenord, passnycklar och tvåfaktorsautentisering i OneUptime, vilket ditt projekt aldrig ber om. Så länge **Kräv SSO för inloggning** är påslaget stoppar ett andra reglage under det, **Hantera inloggning med SSO**, det.
+
+En persons inloggning hanteras av SSO när alla projekt personen tillhör, inklusive alla projekt personen är inbjuden till, kräver SSO och har **Hantera inloggning med SSO** påslaget. Personen kan då inte konfigurera ett lösenord, en passnyckel, en säkerhetsnyckel, en autentiseringsapp, reservkoder eller tvåfaktorsautentisering, **Glömt lösenord?** skickar ingen länk, och personens **Användarprofil** visar identitetsleverantören i stället för att erbjuda de inställningarna. Inget ändras vid inloggningen: lösenordet loggar fortfarande in personen i OneUptime, och ditt projekt ber om SSO som tidigare.
+
+Regeln kontrolleras varje gång, så:
+
+- **Någon i ett projekt som inte hanterar inloggningen**: så snart personen är medlem i, eller inbjuden till, ett projekt som inte kräver SSO eller inte har **Hantera inloggning med SSO** påslaget, får personen tillbaka sina inställningar, och personens **Användarprofil** visar det projektet som skälet. Lämnar personen det hanteras inloggningen igen. Ett konto kan tillhöra många organisationer, så en organisation bestämmer aldrig över en annans projekt.
+- **Projekt med olika leverantörer**: någon i två projekt som båda hanterar inloggningen, vart och ett med sin egen identitetsleverantör, hanteras, och profilen visar båda leverantörerna.
+- **Master admins** behåller alltid sina egna inställningar.
+- **Det användare konfigurerade tidigare** finns kvar, oanvänt av ditt projekt. En serveradministratör kan rensa det på personens sida **Autentisering** i Admin Dashboard, med **Rensa inloggningsinställningar**.
+
+**Hantera inloggning med SSO** sparas så snart du slår om reglaget, raderar inget, och att stänga av det ger alla tillbaka sina inställningar direkt. Den som kan ändra **Kräv SSO för inloggning** kan ändra det, med samma planer. När **Kräv SSO för inloggning** är avstängt är det dolt och ändrar inget.
+
 ## Stänga av eller ta bort en leverantör
 
 | Vad du ändrar | Personer som loggade in med leverantören |

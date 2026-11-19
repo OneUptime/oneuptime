@@ -66,6 +66,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVICE_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
@@ -286,6 +287,7 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.DOCKER_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.DOCKER_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.DOCKER_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -318,6 +320,7 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PODMAN_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PODMAN_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.PODMAN_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.PODMAN_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.PODMAN_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -436,6 +439,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.OPENSTACK_CLOUD_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: `${RouteParams.ModelID}/checks`,
   [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -1236,6 +1240,7 @@ export const InventoryRoutePath: Dictionary<string> = {
   [PageMap.INVENTORY_VIEW_SETTINGS]: `item/${RouteParams.ModelID}/settings`,
   [PageMap.INVENTORY_VIEW_DELETE]: `item/${RouteParams.ModelID}/delete`,
   [PageMap.INVENTORY_ARCHIVED]: "archived",
+  [PageMap.INVENTORY_MANAGED_DEVICES]: "managed-devices",
   [PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
 };
 
@@ -3324,6 +3329,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVICE_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.SERVICE_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_TRACES]
@@ -4439,6 +4450,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_TRACES]
@@ -4619,6 +4636,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_HOST_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]
     }`,
   ),
 
@@ -5307,6 +5330,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]
     }`,
   ),
 
@@ -10390,6 +10419,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INVENTORY_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/inventory/${
       InventoryRoutePath[PageMap.INVENTORY_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_MANAGED_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_MANAGED_DEVICES]
     }`,
   ),
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57551,
-    "untranslated": 8093
+    "keys": 57990,
+    "untranslated": 8195
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -259,6 +259,7 @@
     "SSH",
     "Samples",
     "ScheduledMaintenance",
+    "Score",
     "Send",
     "Send (Enter)",
     "Send test",
@@ -487,6 +488,7 @@
     "{{minutes}} min",
     "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
+    "{{online}} online, {{offline}} offline",
     "{{percent}} full",
     "{{rate}}/min",
     "{{rate}}/s",

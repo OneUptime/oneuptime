@@ -371,7 +371,7 @@ flowchart TB
 3. **Navn** fylles inn fra regelens `title`: skriv over det for å kalle regelen noe annet. En ny regel kjører; **Aktivert** står i redigeringsskjemaet.
 4. La **Åpne en sak ved treff** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.
 5. Velg under **Varsler og hendelser** hva et treff ellers skal utløse: **Opprett et varsel** (standard), **Erklær en hendelse**, **Begge** eller **Ingen av dem**, med valgfri **Varselsalvor** eller **Hendelsesalvor**.
-6. **Flere felt** har **Beskrivelse**, **Skriv Detection Finding ved treff** (på), **Kjør i sanntid** (av) og hvordan treff telles; se [Evalueringsinnstillinger](#evalueringsinnstillinger).
+6. **Flere felt** har **Beskrivelse**, **Skriv Detection Finding ved treff** (på), **Kjør i sanntid** (av), hvordan treff telles, og **Responstrinn**: hva som skal gjøres når regelen åpner en sak, hvert steg under den delen av sakens Responsplan du velger, høyst 10. Se [Evalueringsinnstillinger](#evalueringsinnstillinger).
 :::
 
 En første regel, som treffer mislykkede pålogginger fra utenfor `10.x.x.x`:
