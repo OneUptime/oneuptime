@@ -130,7 +130,7 @@ When an administrator requires two-factor authentication and you have nothing se
 - **Authenticator app**: scan the QR code, enter the 6-digit code your app shows, and click **Verify and Sign In**.
 - **Security key**: click **Register Security Key** and follow your browser's prompt. Touch a USB or NFC key, or use your phone's or computer's fingerprint, face or screen lock.
 
-You are then shown your backup codes once, and signed in. **Choose another way** goes back to the choice. A browser that cannot register a security key, such as one on a page without HTTPS, offers only the authenticator app.
+If you have no backup codes yet, OneUptime then shows them once, and you are signed in. **Choose another way** goes back to the choice. A browser that cannot register a security key, such as one on a page without HTTPS, offers only the authenticator app.
 
 > [!TIP]
 > Running low on backup codes? **Regenerate codes** on the same page gives you a new set, and the old codes stop working at once.
