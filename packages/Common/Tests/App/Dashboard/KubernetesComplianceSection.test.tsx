@@ -650,7 +650,9 @@ describe("its switches", () => {
 
     expect(chip.closest("[data-tone]")).toHaveAttribute("data-tone", "paused");
     // Turned off controls come last.
-    expect(listedControls().at(-1)).toBe("Privileged Containers");
+    const controls: Array<string> = listedControls();
+
+    expect(controls[controls.length - 1]).toBe("Privileged Containers");
   });
 
   test("a framework turned off for the cluster folds away below, with its switch", async () => {
