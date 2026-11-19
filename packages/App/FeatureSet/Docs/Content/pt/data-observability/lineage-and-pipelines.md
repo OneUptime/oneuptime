@@ -140,7 +140,72 @@ Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas ex
 
 A aba **Proprietários** de um pipeline nomeia as pessoas e equipes que cuidam dele, e os alertas dele vão para elas. A **Visão geral** e **Problemas** nomeiam os proprietários de um pipeline que falhou ou está atrasado, ou mostram **Sem proprietário**, com uma forma de adicionar um.
 
+As **Regras de proprietário** podem nomear por você os proprietários de um pipeline. Na guia **Regras de pipeline**, uma regra compara um pipeline por uma expressão regular com o nome dele, como `orders_daily.load_orders`, ou com o namespace dele, onde ele é executado, como `airflow://prod`, e adiciona as pessoas e equipes dela como proprietárias do pipeline quando o OneUptime vê o pipeline pela primeira vez. Para adicioná-las aos pipelines que você já tem, abra a regra e selecione **Executar agora**.
+
 A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela. Um número de tabelas não desenhadas, no cartão do pipeline ou no de uma tabela, desenha mais delas no lugar aqui também. Escolha uma das colunas que ele grava para segui-la através do pipeline: para cima até a coluna de cada tabela lida a partir da qual ela foi construída, e para baixo até cada tabela em que ele a grava.
+
+## Disjuntores
+
+Uma verificação com falha ou uma tabela atrasada avisa seus proprietários, mas os pipelines que leem a tabela continuariam sendo executados e copiariam os dados ruins adiante. Um disjuntor os para antes: a primeira etapa do pipeline pergunta ao OneUptime se as tabelas que ele lê estão saudáveis, e o resto só é executado quando a resposta é go.
+
+- Uma verificação com falha de uma tabela que o pipeline lê sempre o para: uma verificação com o alerta aberto, ou um teste do dbt que falhou.
+- Uma tabela atrasada também o para assim que **Parar quando uma tabela que ele lê estiver atrasada** é ativado, na página **Disjuntor** do pipeline. Fica desativado em todo pipeline, porque uma tabela atrasada pode significar apenas um dia tranquilo.
+- Uma verificação que não pôde ser executada ou ainda não foi executada, e uma tabela sem verificações, não param nada.
+
+A etapa pergunta com uma chave de API do projeto que possa ler Observabilidade de dados, e nomeia o pipeline como `namespace/name`, só pelo nome ou pelo ID. O disjuntor lê da linhagem do pipeline as tabelas que ele lê. Uma requisição também pode nomear `tables`, ou somente elas, cada uma como `schema.table`, só pelo nome ou pelo ID; um nome que não corresponde a nenhuma tabela volta em `notFound`, e nunca conta como uma tabela que passou. Só são julgadas as tabelas que a chave de API pode ler.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+O `verdict` da resposta é `go` ou `stop`. `reasons` lista cada verificação com falha com sua tabela, e cada tabela atrasada com o atraso dela; `tables` lista cada tabela julgada; e `answer` diz o mesmo em poucas frases, para o log da etapa. Com `failWithStatusCode`, uma parada responde HTTP 412, então o `curl -f` faz a etapa falhar. Envie `stopsOnLateTables` como `true` ou `false` para decidir em uma única requisição, e `dryRun` como `true` para perguntar sem que a resposta seja guardada.
+
+No Airflow, coloque um `ShortCircuitOperator` antes das tarefas que leem as tabelas: quando a função dele retorna false, todas as tarefas depois dele são puladas.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Os hooks `on-run-start` do dbt executam SQL no seu warehouse, não requisições web, então pergunte na etapa que inicia o dbt: um job de CI, uma linha de cron ou a tarefa que o executa. O pipeline de um projeto do dbt se chama `dbt/` seguido do nome do projeto.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Uma requisição que nomeia um pipeline é guardada nele, a menos que seja um teste. Enquanto o disjuntor mantiver um pipeline parado, a página **Disjuntor** dele diz desde quando e por quê, a **Visão geral** dele abre com a parada, e **Requer atenção** e **Problemas** o listam como parado, no lugar da execução com falha ou atrasada. A parada termina quando o disjuntor responde go novamente, ou quando uma execução começa depois dela. A mesma página tem **Testar agora**, que pergunta ao disjuntor sem que a resposta seja guardada, e a etapa para curl, Airflow e dbt com o nome do pipeline já preenchido.
+
+Enquanto a Observabilidade de dados estiver desativada no servidor, o disjuntor responde go e não guarda nada: desativar um produto nunca para um pipeline.
 
 ## Um alerta por causa
 

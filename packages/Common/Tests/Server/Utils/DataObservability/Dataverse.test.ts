@@ -1403,11 +1403,16 @@ describe("collecting a Dataverse environment", () => {
     expect(snapshot.warnings).toEqual([
       "The row counts of 4 tables could not be read (account, contact, cr123_project, email): Dataverse answered 500: Snapshot unavailable.",
     ]);
+    /*
+     * The group three times, then the first half three times. Two requests
+     * in a row failed every try, so the service looks down and the second
+     * half is asked once (#9540): an outage is not asked again.
+     */
     expect(
       environment.requests.filter((request: string): boolean => {
         return request.startsWith("/RetrieveTotalRecordCount");
       }),
-    ).toHaveLength(9);
+    ).toHaveLength(3 + 3 + 1);
   });
 
   test("a table list cut at the limit says the rest were not collected", async () => {

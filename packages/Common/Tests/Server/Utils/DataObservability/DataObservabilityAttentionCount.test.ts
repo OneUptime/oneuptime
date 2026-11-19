@@ -278,11 +278,70 @@ describe("each kind, counted from what it keeps", () => {
         lateTables: 2,
         failedPipelines: 3,
         latePipelines: 4,
+        stoppedPipelines: 8,
         checks: 5,
         lateDataProducts: 6,
         reconciliations: 7,
       }),
-    ).toBe(28);
+    ).toBe(36);
+  });
+
+  /*
+   * A pipeline its circuit breaker stopped (#6548) is counted once, as
+   * stopped, in the last thirty days - and not again as failed or late,
+   * which the stop explains, as Needs Attention tells of it once.
+   */
+  test("pipelines a circuit breaker stopped in the last thirty days, and never again as failed or late", async () => {
+    counts["DataPipeline"] = 2;
+
+    const each: DataObservabilityAttentionCounts =
+      await DataObservabilityAttentionCount.countEach({
+        projectId: PROJECT,
+        now: NOW,
+        scope: WHOLE,
+      });
+
+    const [failed, late, stopped] = callsOf("DataPipeline");
+    const retiredBefore: Date = new Date(
+      NOW.getTime() - MAX_LATENESS_WATCH_IN_SECONDS * 1000,
+    );
+
+    expect(callsOf("DataPipeline")).toHaveLength(3);
+    expect(rawOf(stopped!["circuitBreakerStoppedAt"])).toEqual({
+      sql: "(c >= :p)",
+      values: [retiredBefore],
+    });
+    expect(stopped!["projectId"]).toEqual(PROJECT);
+    expect(rawOf(failed!["circuitBreakerStoppedAt"])).toEqual({
+      sql: "(c IS NULL)",
+      values: [],
+    });
+    expect(rawOf(late!["circuitBreakerStoppedAt"])).toEqual({
+      sql: "(c IS NULL)",
+      values: [],
+    });
+    expect(each.stoppedPipelines).toBe(2);
+    expect(sumAttentionCounts(each)).toBe(1 + 4 + 2 + 2 + 2 + 3 + 1 + 2);
+  });
+
+  test("a narrowed caller counts the stopped pipelines they may read", async () => {
+    const narrowed: DataObservabilityScope = {
+      isWholeProject: false,
+      assetQuery: { projectId: PROJECT },
+      checkQuery: { projectId: PROJECT },
+      pipelineQuery: { projectId: PROJECT, ownedOnly: true } as never,
+    };
+
+    await DataObservabilityAttentionCount.countEach({
+      projectId: PROJECT,
+      now: NOW,
+      scope: narrowed,
+    });
+
+    const stopped: Record<string, unknown> = callsOf("DataPipeline")[2]!;
+
+    expect(stopped["ownedOnly"]).toBe(true);
+    expect(stopped["circuitBreakerStoppedAt"]).toBeInstanceOf(FindOperator);
   });
 
   test("a kind that cannot be counted counts nothing, and the rest still count", async () => {

@@ -4,14 +4,17 @@ import {
   DiscoveredHostCounts,
   DiscoveredHostFilter,
   DiscoveredHostFilterOption,
+  DiscoveredHostSelectability,
   areAllShownHostsSelected,
   countDiscoveredHosts,
   countSelectableShownHosts,
   filterDiscoveredHosts,
+  getAlreadyAddedAddresses,
   getDiscoveredHostFilterLabel,
   getDiscoveredHostFilterOptions,
   getDiscoveredHostsToImport,
   getInitialSelection,
+  isAddingMonitorToExistingHost,
   isPingOnlyDiscoveredHost,
   isSelectableDiscoveredHost,
   isSelectedIpAddress,
@@ -466,6 +469,130 @@ describe("isSelectableDiscoveredHost", () => {
     expect(
       isSelectableDiscoveredHost({ ipAddress: "", snmpReachable: true }),
     ).toBe(false);
+  });
+});
+
+/*
+ * ISSUE #9544: a host that is a device already, with no monitor, can be
+ * picked to get one. Which of them have a monitor is read when Review
+ * Results opens; until then none is offered.
+ */
+describe("a device already added, picked to get a monitor (#9544)", () => {
+  const added: DiscoveredNetworkDevice = snmpHost("10.0.0.5", {
+    isAlreadyRegistered: true,
+  });
+  const monitored: DiscoveredNetworkDevice = pingOnlyHost("10.0.0.6", {
+    isAlreadyRegistered: true,
+  });
+  const fresh: DiscoveredNetworkDevice = snmpHost("10.0.0.7");
+  const known: DiscoveredHostSelectability = {
+    monitoredAddresses: new Set<string>(["10.0.0.6"]),
+  };
+
+  test("one with no monitor can be picked once the monitors are known, and one with a monitor never can", () => {
+    expect(isSelectableDiscoveredHost(added, known)).toBe(true);
+    expect(isSelectableDiscoveredHost(monitored, known)).toBe(false);
+    // A new host is picked as before, whatever is known.
+    expect(isSelectableDiscoveredHost(fresh, known)).toBe(true);
+    expect(isSelectableDiscoveredHost(fresh, {})).toBe(true);
+  });
+
+  test("while the monitors are not known, no device already added is offered", () => {
+    expect(isSelectableDiscoveredHost(added, {})).toBe(false);
+    expect(isSelectableDiscoveredHost(added)).toBe(false);
+  });
+
+  test("a read that failed knows of no monitor: every device already added is offered, and the server's duplicate rule keeps each to one", () => {
+    const failed: DiscoveredHostSelectability = {
+      monitoredAddresses: new Set<string>(),
+    };
+
+    expect(isSelectableDiscoveredHost(added, failed)).toBe(true);
+    expect(isSelectableDiscoveredHost(monitored, failed)).toBe(true);
+  });
+
+  test("a picked device already added is told apart from a host to import", () => {
+    expect(isAddingMonitorToExistingHost(added, known)).toBe(true);
+    expect(isAddingMonitorToExistingHost(monitored, known)).toBe(false);
+    expect(isAddingMonitorToExistingHost(fresh, known)).toBe(false);
+    expect(isAddingMonitorToExistingHost(added, {})).toBe(false);
+  });
+
+  test("it is never ticked on opening: only new hosts start selected", () => {
+    expect(getInitialSelection([added, monitored, fresh])).toEqual({
+      "10.0.0.7": true,
+    });
+  });
+
+  test("ticked, it is imported with the new hosts; a device with a monitor ticked by hand is not", () => {
+    const selection: Record<string, boolean> = {
+      "10.0.0.5": true,
+      "10.0.0.6": true,
+      "10.0.0.7": true,
+    };
+
+    expect(
+      getDiscoveredHostsToImport({
+        hosts: [added, monitored, fresh],
+        filter: DiscoveredHostFilter.All,
+        selectedIpAddresses: selection,
+        selectability: known,
+      }).map((host: DiscoveredNetworkDevice): string => {
+        return host.ipAddress;
+      }),
+    ).toEqual(["10.0.0.5", "10.0.0.7"]);
+
+    // Without the monitors known, only the new host - as before.
+    expect(
+      getDiscoveredHostsToImport({
+        hosts: [added, monitored, fresh],
+        filter: DiscoveredHostFilter.All,
+        selectedIpAddresses: selection,
+      }).map((host: DiscoveredNetworkDevice): string => {
+        return host.ipAddress;
+      }),
+    ).toEqual(["10.0.0.7"]);
+  });
+
+  test("select all reaches the devices with no monitor too, and never the monitored one", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = [added, monitored, fresh];
+
+    expect(
+      countSelectableShownHosts({
+        hosts: hosts,
+        filter: DiscoveredHostFilter.All,
+        selectability: known,
+      }),
+    ).toBe(2);
+
+    const all: Record<string, boolean> = toggleSelectionForShownHosts({
+      hosts: hosts,
+      filter: DiscoveredHostFilter.All,
+      selectedIpAddresses: {},
+      selectability: known,
+    });
+
+    expect(all).toEqual({ "10.0.0.5": true, "10.0.0.7": true });
+    expect(
+      areAllShownHostsSelected({
+        hosts: hosts,
+        filter: DiscoveredHostFilter.All,
+        selectedIpAddresses: all,
+        selectability: known,
+      }),
+    ).toBe(true);
+  });
+
+  test("the addresses whose monitors are read are the devices already added, each once and in order", () => {
+    expect(
+      getAlreadyAddedAddresses([
+        snmpHost("10.0.0.9", { isAlreadyRegistered: true }),
+        fresh,
+        added,
+        snmpHost(" 10.0.0.9 ", { isAlreadyRegistered: true }),
+        { ipAddress: "", snmpReachable: true, isAlreadyRegistered: true },
+      ]),
+    ).toEqual(["10.0.0.5", "10.0.0.9"]);
   });
 });
 

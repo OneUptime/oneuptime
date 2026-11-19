@@ -30,7 +30,12 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/Fo
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  composedValue,
+  formatList,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import { getConfiguredOneUptimeUrl } from "../../SetupGuide/ConfiguredOneUptimeUrl";
@@ -71,9 +76,12 @@ import {
 } from "./CloudStreamParts";
 import {
   CloudStreamStatusWords,
+  CloudStreamUpdateWords,
+  STREAM_OLDER_STACKS_SENTENCE,
   getCloudStreamDefaultRegions,
   getCloudStreamSourceWords,
   getCloudStreamStatusWords,
+  getCloudStreamUpdateWords,
 } from "./CloudStreamWords";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
@@ -243,6 +251,17 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   ).map((source: CloudTemplate): string => {
     return drawCloudTemplate(translator, source);
   });
+  /*
+   * Stacks made before OneUptime streamed every key metric: the command
+   * below, run again with a new key, updates them in place.
+   */
+  const stacksToUpdate: CloudStreamUpdateWords | null =
+    getCloudStreamUpdateWords({
+      provider: props.connection.provider,
+      streamKeyCreatedAt: status.streamKeyCreatedAt,
+      streamSummary: status.streamSummary,
+      now,
+    });
 
   /*
    * Step 1: the key. Made here it is in the command, and shown once; one
@@ -527,6 +546,19 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
               ),
             )}
             dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-turned-off`}
+          />
+        ) : (
+          <></>
+        )}
+
+        {stacksToUpdate ? (
+          <CloudStreamNotice
+            text={translator.translateTemplate(STREAM_OLDER_STACKS_SENTENCE, {
+              regions: composedValue((sentence: Translator): string => {
+                return formatList(stacksToUpdate.regions, sentence);
+              }),
+            })}
+            dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-update`}
           />
         ) : (
           <></>

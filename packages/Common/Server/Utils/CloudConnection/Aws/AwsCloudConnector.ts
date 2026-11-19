@@ -5,8 +5,15 @@ import {
   AwsNamespaceKeyMetrics,
   getAwsProbeMetricNames,
   getAwsStoredMetricName,
+  isAwsKeyMetricSeries,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
+import { isCloudReadingOfType } from "../../../../Types/Cloud/CloudReadingKeys";
+import {
+  AwsStreamCoverage,
+  NO_AWS_STREAM_COVERAGE,
+  isAwsKeyMetricLeftToStream,
+} from "../../../../Types/CloudConnection/CloudStreamStack";
 import {
   CloudConnectionAuthMethod,
   CloudConnectionDefinition,
@@ -233,6 +240,60 @@ function isOlderThan(
 ): boolean {
   const time: number = iso ? Date.parse(iso) : NaN;
   return !Number.isFinite(time) || now.getTime() - time >= ageMs;
+}
+
+// A listed series' dimensions, by name.
+function dimensionsOf(metric: AwsListedMetric): Record<string, string> {
+  const dimensions: Record<string, string> = {};
+
+  for (const dimension of metric.dimensions) {
+    dimensions[dimension.name] = dimension.value;
+  }
+
+  return dimensions;
+}
+
+/*
+ * The series a read reads from CloudWatch: every one, but a key metric a
+ * stream writes in the read's place (CloudStreamStack) - GetMetricData
+ * bills each metric read - unless the resource's health or headline is
+ * judged from it (CloudReadingKeys): those are read for the resource's
+ * readings, and left out of what the read writes (CloudStreamedMetrics).
+ */
+export function getAwsSeriesToRead<
+  T extends {
+    metric: AwsListedMetric;
+    keyMetric: AwsKeyMetric;
+    resource: CloudMonitoredResource;
+  },
+>(data: {
+  series: Array<T>;
+  accountId: string;
+  coverage: AwsStreamCoverage;
+}): Array<T> {
+  if (data.coverage.size === 0) {
+    return data.series;
+  }
+
+  return data.series.filter((entry: T): boolean => {
+    return (
+      !isAwsKeyMetricLeftToStream({
+        coverage: data.coverage,
+        accountId: data.accountId,
+        region: entry.resource.region,
+        namespace: entry.metric.namespace,
+        metric: entry.keyMetric,
+      }) ||
+      isCloudReadingOfType({
+        provider: CloudProvider.AWS,
+        resourceType: entry.resource.resourceType,
+        storedMetricName: getAwsStoredMetricName(
+          entry.metric.namespace,
+          entry.metric.metricName,
+        ),
+      })
+    );
+  });
 }
 
 export default class AwsCloudConnector implements CloudConnector {
@@ -632,6 +693,11 @@ export default class AwsCloudConnector implements CloudConnector {
       );
 
       for (const metric of listed) {
+        // A series the metric is not read from (AwsKeyMetric.onlyDimensionValues).
+        if (!isAwsKeyMetricSeries(keyMetric, dimensionsOf(metric))) {
+          continue;
+        }
+
         const resource: CloudMonitoredResource | null = this.resolveSeries({
           metric,
           accountId: data.accountId,
@@ -1241,9 +1307,19 @@ export default class AwsCloudConnector implements CloudConnector {
       );
     });
 
-    // 3. Their values since the last read, per period.
+    /*
+     * 3. Their values since the last read, per period - but those of the
+     * key metrics a stream writes, which are read only where a resource's
+     * health is judged from them (getAwsSeriesToRead).
+     */
+    const toRead: Array<AwsSeries> = getAwsSeriesToRead({
+      series,
+      accountId,
+      coverage: options.awsStreamCoverage || NO_AWS_STREAM_COVERAGE,
+    });
     const cursors: Record<string, string> = { ...(state.cursors || {}) };
     const groups: Map<string, CloudMetricGroup> = new Map();
+    // Every listed series' period, read or not: its cursor moves on either way.
     const periods: Array<number> = Array.from(
       new Set(
         series.map((entry: AwsSeries): number => {
@@ -1272,11 +1348,21 @@ export default class AwsCloudConnector implements CloudConnector {
         continue;
       }
 
-      const ofPeriod: Array<AwsSeries> = series.filter(
+      const ofPeriod: Array<AwsSeries> = toRead.filter(
         (entry: AwsSeries): boolean => {
           return entry.keyMetric.periodSeconds === periodSeconds;
         },
       );
+
+      /*
+       * A stream writes every series of the period: nothing to read, and
+       * the window is done - a stream that goes quiet is read from here,
+       * never again from the hours it wrote.
+       */
+      if (ofPeriod.length === 0) {
+        cursors[String(periodSeconds)] = window.end.toISOString();
+        continue;
+      }
 
       const byRegion: Map<string, Array<AwsSeries>> = new Map();
 

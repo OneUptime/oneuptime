@@ -24,7 +24,7 @@ flowchart TB
 
 - **Uma pilha em cada região.** O comando implanta uma pilha do CloudFormation em cada região de onde você transmite. O fluxo de métricas e os filtros de assinatura de logs dela passam tudo para dois fluxos do Firehose, e o Firehose entrega ao OneUptime por HTTPS.
 - **A chave de fluxo diz de quem é.** O Firehose envia a chave de fluxo da conexão em cada entrega. A chave identifica a conexão, e portanto o projeto: nada em uma entrega decide onde ela é gravada. O OneUptime guarda só o SHA-256 da chave.
-- **As leituras deixam as métricas transmitidas para o fluxo.** Enquanto um fluxo entrega um namespace de uma região, as leituras da conexão deixam de gravar as métricas desse namespace, então nenhum ponto de dados é contado duas vezes. Elas continuam gravando as métricas principais que um fluxo deixa para elas, como o tamanho diário de um bucket do S3 e as métricas principais adicionadas depois que os fluxos começaram, que uma pilha mais antiga não inclui. As leituras continuam encontrando recursos, a integridade e as mudanças deles, e retomam um namespace depois de 15 minutos sem entregas.
+- **As leituras deixam as métricas transmitidas para o fluxo.** Enquanto um fluxo entrega um namespace de uma região, as leituras da conexão deixam de ler e gravar cada métrica principal dele que a pilha do fluxo inclui, então o CloudWatch deixa de cobrar a leitura do que o fluxo envia e nenhum ponto de dados é contado duas vezes. Elas continuam lendo as poucas pelas quais a integridade de um recurso é avaliada, e continuam gravando as métricas principais que um fluxo deixa para elas, como o tamanho diário de um bucket do S3 e as que uma pilha criada antes delas não inclui. As leituras continuam encontrando recursos, a integridade e as mudanças deles, e retomam um namespace depois de 15 minutos sem entregas.
 - **Nada se perde enquanto o OneUptime não pode aceitar.** O Firehose reenvia um lote recusado por até uma hora e depois o guarda por 30 dias no bucket do S3 da pilha.
 
 ## Antes de começar
@@ -138,7 +138,7 @@ done
 Para uma conexão que lê uma AWS Organization, execute o comando da caixa de diálogo na conta de gerenciamento: quando a organização era transmitida, ele também exclui as pilhas de cada conta-membro e o StackSet.
 :::
 
-Para mudar o que uma pilha transmite, abra de novo **Transmitir métricas e logs**, escolha **Criar uma nova chave** e execute o novo comando. A chave que ela substitui continua funcionando por 24 horas, então nenhuma entrega é recusada enquanto as pilhas são atualizadas. No máximo 3 chaves substituídas funcionam ao mesmo tempo.
+Para mudar o que uma pilha transmite, abra de novo **Transmitir métricas e logs**, escolha **Criar uma nova chave** e execute o novo comando. A chave que ela substitui continua funcionando por 24 horas, então nenhuma entrega é recusada enquanto as pilhas são atualizadas. No máximo 3 chaves substituídas funcionam ao mesmo tempo. Faça o mesmo quando a linha da conta disser **Atualizar a transmissão**: as pilhas dela foram criadas antes de o OneUptime transmitir cada métrica principal e, até serem atualizadas, a conexão lê no CloudWatch as métricas principais que elas não incluem, então nenhuma fica faltando. A AWS reinicia um fluxo de métricas cujos filtros mudam, e envia só os pontos de dados que vêm depois.
 
 ## Configurar de outra forma
 
@@ -153,7 +153,7 @@ Dê a cada fluxo do Firehose um destino de endpoint HTTP com estes valores, e ao
 | Buffer | 1 MiB ou 60 segundos |
 | Duração das novas tentativas | 3600 segundos, com um bucket do S3 para o que não pôde ser entregue |
 
-Em um OneUptime auto-hospedado, troque `https://oneuptime.com` pelo endereço HTTPS do seu OneUptime. O endpoint de métricas também aceita um fluxo de métricas no formato JSON.
+Em um OneUptime auto-hospedado, troque `https://oneuptime.com` pelo endereço HTTPS do seu OneUptime. O endpoint de métricas também aceita um fluxo de métricas no formato JSON. O OneUptime considera que um fluxo de métricas configurado assim inclui só as métricas principais com que os fluxos começaram, e lê as outras no CloudWatch.
 
 O OneUptime responde a cada entrega como o Firehose espera:
 

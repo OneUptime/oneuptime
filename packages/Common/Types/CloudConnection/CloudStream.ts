@@ -114,6 +114,13 @@ export const FIREHOSE_REQUEST_ID_HEADER: string = "x-amz-firehose-request-id";
 export const FIREHOSE_SOURCE_ARN_HEADER: string = "x-amz-firehose-source-arn";
 export const FIREHOSE_PROTOCOL_VERSION_HEADER: string =
   "x-amz-firehose-protocol-version";
+/*
+ * The attributes the Firehose stream was configured to send with every
+ * delivery, as JSON: {"commonAttributes": {"<name>": "<value>"}}. The
+ * template's say what its stack streams (CloudStreamStack).
+ */
+export const FIREHOSE_COMMON_ATTRIBUTES_HEADER: string =
+  "x-amz-firehose-common-attributes";
 
 /*
  * Firehose's own bounds on a request: at most 10,000 records, each at most
@@ -410,6 +417,14 @@ export interface CloudStreamMetricSource {
   namespaces: Array<string>;
   // ISO time of the newest delivery.
   lastAt: string;
+  /*
+   * AWS: what the stack that delivered them streams, as its newest
+   * delivery said (CloudStreamStack) - the version of the template it was
+   * made from, and whether it streams every metric. A stack that says
+   * neither is held to the key metrics every stack has carried.
+   */
+  templateVersion?: number | undefined;
+  everyMetric?: boolean | undefined;
 }
 
 /*
@@ -492,6 +507,27 @@ function readNames(value: JSONValue | undefined, limit: number): Array<string> {
   return names;
 }
 
+/*
+ * A stack's template version as stored: a whole number from 1 up, and no
+ * more than a template could be (a stored figure is never trusted further).
+ */
+export const CLOUD_STREAM_MAX_TEMPLATE_VERSION: number = 1000;
+
+export function readTemplateVersion(value: unknown): number | undefined {
+  const version: number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value.trim())
+        : NaN;
+
+  return Number.isInteger(version) &&
+    version >= 1 &&
+    version <= CLOUD_STREAM_MAX_TEMPLATE_VERSION
+    ? version
+    : undefined;
+}
+
 function readObjects(value: JSONValue | undefined): Array<JSONObject> {
   if (!Array.isArray(value)) {
     return [];
@@ -531,6 +567,10 @@ export function readCloudStreamSummary(value: unknown): CloudStreamSummary {
       continue;
     }
 
+    const templateVersion: number | undefined = readTemplateVersion(
+      item["templateVersion"],
+    );
+
     summary.metricSources.push({
       accountId,
       region: readName(item["region"]),
@@ -539,6 +579,10 @@ export function readCloudStreamSummary(value: unknown): CloudStreamSummary {
         CLOUD_STREAM_MAX_NAMESPACES_PER_SOURCE,
       ),
       lastAt,
+      ...(templateVersion !== undefined ? { templateVersion } : {}),
+      ...(typeof item["everyMetric"] === "boolean"
+        ? { everyMetric: item["everyMetric"] }
+        : {}),
     });
 
     if (summary.metricSources.length >= CLOUD_STREAM_MAX_SOURCES) {
@@ -710,6 +754,16 @@ export function mergeCloudStreamSummary(data: {
       ): CloudStreamMetricSource => {
         const seenIsNewer: boolean =
           Date.parse(seen.lastAt) >= Date.parse(stored.lastAt);
+        /*
+         * What the stack streams is what its newest delivery said: a stack
+         * made again from a newer template says so from then on. A
+         * sighting that says nothing of it (written by an older server)
+         * leaves what is stored.
+         */
+        const newest: CloudStreamMetricSource = seenIsNewer ? seen : stored;
+        const other: CloudStreamMetricSource = seenIsNewer ? stored : seen;
+        const stack: CloudStreamMetricSource =
+          newest.templateVersion !== undefined ? newest : other;
 
         return {
           accountId: stored.accountId,
@@ -726,6 +780,12 @@ export function mergeCloudStreamSummary(data: {
                 CLOUD_STREAM_MAX_NAMESPACES_PER_SOURCE,
               ),
           lastAt: newer(stored.lastAt, seen.lastAt),
+          ...(stack.templateVersion !== undefined
+            ? { templateVersion: stack.templateVersion }
+            : {}),
+          ...(stack.everyMetric !== undefined
+            ? { everyMetric: stack.everyMetric }
+            : {}),
         };
       },
     }),

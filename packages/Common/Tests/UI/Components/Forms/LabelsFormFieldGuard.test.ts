@@ -669,12 +669,15 @@ const NAME_DESCRIPTION: Array<string> = ["name", "description"];
 const LABELS_ONLY: Array<string> = [LABELS_KEY];
 
 export const LABELS_FORM_SHAPES: Array<FormShape> = [
-  // Edit dialogs of three fields: the stepper existed only for Labels.
+  /*
+   * Edit dialogs of three fields: the stepper existed only for Labels. A
+   * monitor's folds the network device it checks beside the labels (#9545).
+   */
   onePage(
     `${DASHBOARD}/Components/Monitor/Overview/MonitorOverviewDetailsCard.tsx`,
     "CardModelDetail: Monitor Details",
     NAME_DESCRIPTION,
-    LABELS_ONLY,
+    [LABELS_KEY, "networkDevice"],
   ),
   onePage(
     `${DASHBOARD}/Pages/StatusPages/View/Index.tsx`,
@@ -853,8 +856,9 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   /*
    * Stepped forms: the Labels step goes, the field folds where the name is.
    * Create Monitor (create-monitor-simpler) asks what to monitor first, then
-   * the name, and folds the description beside the labels; a monitor
-   * template's Monitor Defaults step does the same.
+   * the name, and folds the description beside the labels - and the network
+   * device a monitor of a host checks (#9545); a monitor template's Monitor
+   * Defaults step does the same.
    */
   {
     file: `${DASHBOARD}/Pages/Monitor/Create.tsx`,
@@ -863,7 +867,7 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     rows: {
       "monitor-info": {
         open: ["monitorType", "name"],
-        folded: ["description", LABELS_KEY],
+        folded: ["description", LABELS_KEY, "networkDevice"],
       },
     },
   },

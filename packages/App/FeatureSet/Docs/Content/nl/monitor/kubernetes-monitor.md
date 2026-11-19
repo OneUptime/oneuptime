@@ -5,7 +5,7 @@ Een Kubernetes-monitor waarschuwt op de metrieken die de OneUptime-Kubernetes-ag
 :::cards
 - [De agent installeren](/docs/monitor/kubernetes-agent): Eén Helm-opdracht brengt het cluster in OneUptime.
 - [De monitor maken](#een-kubernetes-monitor-maken): Het cluster kiezen, dan een sjabloon, een metriek of een query.
-- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Vierentwintig kant-en-klare waarschuwingen, van een stil cluster tot etcd.
+- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Vijfentwintig kant-en-klare waarschuwingen, van een stil cluster tot etcd.
 - [Criteria](#bewakingscriteria): Statische drempels en anomaliedetectie.
 :::
 

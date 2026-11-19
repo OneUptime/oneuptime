@@ -41,6 +41,12 @@ function sampleDimensions(
   for (const name of rule.identityDimensions) {
     dimensions[name] = `sample-${name.replace(/\s+/g, "-").toLowerCase()}`;
   }
+  // The values a rule requires (a web ACL's total: Rule ALL).
+  for (const [name, value] of Object.entries(
+    rule.requiredDimensionValues || {},
+  )) {
+    dimensions[name] = value;
+  }
   return dimensions;
 }
 
@@ -275,6 +281,81 @@ describe("AWS rules", () => {
         findAwsCloudWatchRule(rule.namespace, sampleDimensions(rule)),
       ).toBe(rule);
     }
+  });
+
+  test("a rule's required values must be held, whatever their case: another value, or none, is not the rule's", () => {
+    let checked: number = 0;
+
+    for (const rule of AWS_CLOUDWATCH_RESOURCE_RULES) {
+      for (const [name, value] of Object.entries(
+        rule.requiredDimensionValues || {},
+      )) {
+        checked++;
+
+        expect(
+          findAwsCloudWatchRule(rule.namespace, {
+            ...sampleDimensions(rule),
+            [name]: value.toLowerCase(),
+          }),
+        ).toBe(rule);
+        expect(
+          findAwsCloudWatchRule(rule.namespace, {
+            ...sampleDimensions(rule),
+            [name]: `not-${value}`,
+          }),
+        ).not.toBe(rule);
+
+        const without: Record<string, string> = sampleDimensions(rule);
+        delete without[name];
+        expect(findAwsCloudWatchRule(rule.namespace, without)).not.toBe(rule);
+      }
+    }
+
+    // A web ACL's own total: its Rule is ALL.
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  test("a web ACL is its total alone: not a rule's series, a rule group's or a label's", () => {
+    const webAcl: AwsCloudWatchResourceRule | null = findAwsCloudWatchRule(
+      "AWS/WAFV2",
+      { WebACL: "checkout", Rule: "ALL", Region: "eu-west-1" },
+    );
+
+    expect(webAcl?.type).toBe("AWS::WAFv2::WebACL");
+    // CloudFront's web ACLs publish without a Region.
+    expect(
+      findAwsCloudWatchRule("AWS/WAFV2", { WebACL: "edge", Rule: "ALL" })?.type,
+    ).toBe("AWS::WAFv2::WebACL");
+    // One rule's series, the default action's, a rule group's and a label's.
+    expect(
+      findAwsCloudWatchRule("AWS/WAFV2", {
+        WebACL: "checkout",
+        Rule: "RateLimit",
+        Region: "eu-west-1",
+      }),
+    ).toBeNull();
+    expect(
+      findAwsCloudWatchRule("AWS/WAFV2", {
+        WebACL: "checkout",
+        Rule: "Default_Action",
+        Region: "eu-west-1",
+      }),
+    ).toBeNull();
+    expect(
+      findAwsCloudWatchRule("AWS/WAFV2", {
+        WebACL: "checkout",
+        RuleGroup: "Managed",
+        Rule: "ALL",
+      }),
+    ).toBeNull();
+    expect(
+      findAwsCloudWatchRule("AWS/WAFV2", {
+        WebACL: "checkout",
+        LabelNamespace: "awswaf:managed:aws:bot-control",
+        Label: "bot:category:monitoring",
+        Region: "eu-west-1",
+      }),
+    ).toBeNull();
   });
 
   test("a rule's excluded dimensions send the datapoint to another rule, or none", () => {

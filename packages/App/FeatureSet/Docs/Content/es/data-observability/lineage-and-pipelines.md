@@ -140,7 +140,72 @@ Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con s
 
 La pestaña **Propietarios** de una canalización nombra a las personas y los equipos que se ocupan de ella, y sus alertas les llegan a ellos. La **Vista general** y **Problemas** nombran a los propietarios de una canalización que falló o va con retraso, o muestran **Sin propietario**, con una forma de añadir uno.
 
+Las **Reglas del propietario** pueden nombrar por ti los propietarios de una canalización. En su pestaña **Reglas de canalización**, una regla compara una canalización mediante una expresión regular con su nombre, como `orders_daily.load_orders`, o con su espacio de nombres, donde se ejecuta, como `airflow://prod`, y añade sus personas y equipos como propietarios de la canalización cuando OneUptime ve la canalización por primera vez. Para añadirlos a las canalizaciones que ya tienes, abre la regla y selecciona **Ejecutar ahora**.
+
 La página de un pipeline dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o se retrasa: a la izquierda, las tablas que lee; a la derecha, las tablas que escribe; en medio, el pipeline; y cada tarjeta dice cómo está ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas, y abre cualquier tabla para ver su propia pestaña **Linaje**. Un número de tablas sin dibujar, en la tarjeta del pipeline o en la de una tabla, dibuja más en su sitio aquí también. Elige una de las columnas que escribe para seguirla a través de la canalización: hacia arriba hasta la columna de cada tabla leída a partir de la que se construyó, y hacia abajo hasta cada tabla en la que la escribe.
+
+## Disyuntores
+
+Una comprobación fallando o una tabla con retraso avisa a sus propietarios, pero las canalizaciones que leen la tabla seguirían ejecutándose y copiarían los datos malos aguas abajo. Un disyuntor las detiene antes: el primer paso de la canalización pregunta a OneUptime si las tablas que lee están sanas, y el resto solo se ejecuta cuando la respuesta es go.
+
+- Una comprobación fallando de una tabla que lee la canalización siempre la detiene: una comprobación con su alerta abierta, o una prueba de dbt que falló.
+- Una tabla con retraso también la detiene en cuanto se activa **Detener cuando una tabla que lee tenga retraso**, en la página **Disyuntor** de la canalización. Está desactivado en todas las canalizaciones, porque una tabla con retraso puede significar solo un día tranquilo.
+- Una comprobación que no pudo ejecutarse o que aún no se ha ejecutado, y una tabla sin comprobaciones, no detienen nada.
+
+El paso pregunta con una clave de API del proyecto que pueda leer Observabilidad de datos, y nombra la canalización como `namespace/name`, solo por su nombre o por su ID. El disyuntor lee las tablas que lee la canalización a partir de su linaje. Una petición también puede nombrar `tables`, o solo esas, cada una como `schema.table`, solo por su nombre o por su ID; un nombre que no coincide con ninguna tabla vuelve en `notFound`, y nunca cuenta como una tabla que pasó. Solo se juzgan las tablas que la clave de API puede leer.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+El `verdict` de la respuesta es `go` o `stop`. `reasons` enumera cada comprobación fallando con su tabla, y cada tabla con retraso con cuánto retraso tiene; `tables` enumera cada tabla juzgada; y `answer` dice lo mismo en unas pocas frases, para el registro del paso. Con `failWithStatusCode`, una detención responde HTTP 412, así que `curl -f` hace fallar el paso. Envía `stopsOnLateTables` como `true` o `false` para decidir en una sola petición, y `dryRun` como `true` para preguntar sin que se guarde la respuesta.
+
+En Airflow, pon un `ShortCircuitOperator` antes de las tareas que leen las tablas: cuando su función devuelve false, se omiten todas las tareas que lo siguen.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Los hooks `on-run-start` de dbt ejecutan SQL en tu almacén, no peticiones web, así que pregunta en el paso que inicia dbt: un trabajo de CI, una línea de cron o la tarea que lo ejecuta. La canalización de un proyecto de dbt se llama `dbt/` seguido del nombre del proyecto.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Una petición que nombra una canalización se guarda en ella, salvo que sea una prueba. Mientras el disyuntor tenga detenida una canalización, su página **Disyuntor** dice desde cuándo y por qué, su **Vista general** se abre con la detención, y **Pendiente** y **Problemas** la muestran como detenida, en lugar de su ejecución fallida o con retraso. La detención termina cuando el disyuntor vuelve a responder go, o cuando empieza una ejecución después de ella. La misma página tiene **Probar ahora**, que pregunta al disyuntor sin que se guarde la respuesta, y el paso para curl, Airflow y dbt con el nombre de la canalización ya escrito.
+
+Mientras Observabilidad de datos esté desactivada en el servidor, el disyuntor responde go y no guarda nada: desactivar un producto nunca detiene una canalización.
 
 ## Una incidencia por causa
 

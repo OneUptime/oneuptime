@@ -35,7 +35,9 @@ import DataAlertCause, {
   DataAlertSubject,
 } from "../../../../Server/Utils/DataObservability/DataAlertCause";
 import DataAlertFeedbackRecorder from "../../../../Server/Utils/DataObservability/DataAlertFeedbackRecorder";
-import OpenLineageIngest from "../../../../Server/Utils/DataObservability/OpenLineageIngest";
+import OpenLineageIngest, {
+  isCircuitBreakerStopEndedBy,
+} from "../../../../Server/Utils/DataObservability/OpenLineageIngest";
 import {
   OpenLineageRunEvent,
   OpenLineageRunState,
@@ -485,6 +487,98 @@ describe("a pipeline, as it runs", () => {
 
     expect(Object.keys(pipelineUpdates[0]!)).toContain("lateAt");
     expect(pipelineUpdates[0]!["lateAt"]).toBeNull();
+  });
+
+  /*
+   * A run that started after the circuit breaker stopped the pipeline ends
+   * the stop (#6548): the pipeline ran, whatever held it before - the
+   * breaker said go and the scheduler ran it, or somebody ran it anyway.
+   */
+  test("a run that starts after the circuit breaker stopped the pipeline ends the stop", async () => {
+    await record({
+      pipeline: pipeline({
+        circuitBreakerStoppedAt: new Date("2026-11-03T11:30:00.000Z"),
+      }),
+      event: event(),
+      learnedInterval: 3600,
+    });
+
+    expect(pipelineUpdates[0]!["circuitBreakerStoppedAt"]).toBeNull();
+    expect(pipelineUpdates[0]!["circuitBreakerReasons"]).toBeNull();
+  });
+
+  test("the run the breaker stopped from inside it, started before the stop, leaves the stop", async () => {
+    await record({
+      pipeline: pipeline({
+        circuitBreakerStoppedAt: new Date("2026-11-03T12:00:30.000Z"),
+      }),
+      event: event({ eventType: OpenLineageRunState.Fail }),
+      learnedInterval: 3600,
+    });
+
+    expect(Object.keys(pipelineUpdates[0]!)).not.toContain(
+      "circuitBreakerStoppedAt",
+    );
+  });
+
+  test("a pipeline its breaker never stopped is written as it always was", async () => {
+    await record({
+      pipeline: pipeline(),
+      event: event(),
+      learnedInterval: 3600,
+    });
+
+    expect(Object.keys(pipelineUpdates[0]!)).not.toContain(
+      "circuitBreakerStoppedAt",
+    );
+    expect(Object.keys(pipelineUpdates[0]!)).not.toContain(
+      "circuitBreakerReasons",
+    );
+  });
+});
+
+describe("whether a run ends a circuit breaker's stop", () => {
+  const STOPPED_AT: Date = new Date("2026-11-03T12:00:00.000Z");
+
+  test("a run that started after the stop ends it", () => {
+    expect(
+      isCircuitBreakerStopEndedBy({
+        stoppedAt: STOPPED_AT,
+        runStartedAt: new Date("2026-11-03T12:00:01.000Z"),
+      }),
+    ).toBe(true);
+    expect(
+      isCircuitBreakerStopEndedBy({
+        stoppedAt: STOPPED_AT.toISOString(),
+        runStartedAt: new Date("2026-11-04T00:00:00.000Z"),
+      }),
+    ).toBe(true);
+  });
+
+  test("a run that started before it, or at it, does not", () => {
+    expect(
+      isCircuitBreakerStopEndedBy({
+        stoppedAt: STOPPED_AT,
+        runStartedAt: STOPPED_AT,
+      }),
+    ).toBe(false);
+    expect(
+      isCircuitBreakerStopEndedBy({
+        stoppedAt: STOPPED_AT,
+        runStartedAt: new Date("2026-11-03T11:59:59.000Z"),
+      }),
+    ).toBe(false);
+  });
+
+  test("no stop, or one that cannot be read, is never ended", () => {
+    for (const stoppedAt of [null, undefined, "", "not a date"]) {
+      expect(
+        isCircuitBreakerStopEndedBy({
+          stoppedAt,
+          runStartedAt: new Date("2026-11-04T00:00:00.000Z"),
+        }),
+      ).toBe(false);
+    }
   });
 });
 

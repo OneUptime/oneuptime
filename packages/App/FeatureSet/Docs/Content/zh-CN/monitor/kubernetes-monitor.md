@@ -5,7 +5,7 @@ Kubernetes 监视器根据 OneUptime Kubernetes 代理从集群发送的指标�
 :::cards
 - [安装代理](/docs/monitor/kubernetes-agent): 一条 Helm 命令即可把集群接入 OneUptime。
 - [创建监视器](#创建-kubernetes-监视器): 选择集群，然后选择模板、指标或查询。
-- [警报模板](#现成的警报模板): 二十四个现成的警报，从停止报告的集群到 etcd。
+- [警报模板](#现成的警报模板): 二十五个现成的警报，从停止报告的集群到 etcd。
 - [条件](#监控条件): 静态阈值和异常检测。
 :::
 

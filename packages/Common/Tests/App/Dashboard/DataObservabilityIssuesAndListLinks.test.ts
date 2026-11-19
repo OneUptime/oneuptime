@@ -244,9 +244,10 @@ describe("the Issues page's filters", () => {
     }
   });
 
-  test("whether anyone was told: any, an alert open, or none", () => {
+  test("whether anyone was told: all, an alert open, or none", () => {
     expect(ISSUE_ALERT_CHOICES).toEqual([
-      { value: ANY_ALERT_FILTER, label: "Any" },
+      // All, as a filter left open says: the bare Any is a Match Condition's.
+      { value: ANY_ALERT_FILTER, label: "All" },
       { value: DataObservabilityIssueAlertFilter.Open, label: "Alert open" },
       {
         value: DataObservabilityIssueAlertFilter.None,

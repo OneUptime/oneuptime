@@ -8,6 +8,7 @@ import MonitorService from "../../Services/MonitorService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import ObjectID from "../../../Types/ObjectID";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import MonitorStepResourceIdentity from "./MonitorStepResourceIdentity";
 import InfrastructureResourceBinding from "./InfrastructureResourceBinding";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -236,6 +237,7 @@ export default class MonitorResourceContextUtil {
           projectId: input.monitor.projectId,
           autoProvisionedNetworkDeviceId:
             input.monitor.autoProvisionedNetworkDeviceId,
+          networkDeviceId: input.monitor.networkDeviceId,
         }).catch((err: unknown): Array<string> => {
           logger.error(
             `Failed to read the network devices monitor ${input.monitor.id?.toString()} reports on: ${err}`,
@@ -272,13 +274,14 @@ export default class MonitorResourceContextUtil {
    * The network devices a monitor reports on without its steps naming them
    * (issue #5341): the device bound to it - a device whose monitoring
    * method is Monitor takes its status from this monitor
-   * (NetworkDevice.monitorId) - and the device a discovery import made it
-   * for (Monitor.autoProvisionedNetworkDeviceId), an ordinary Ping, IP,
-   * Port or NTP monitor of the device's address. A Network Device monitor
-   * names its device in its steps instead, which
-   * resolveResourceContextForMonitor reads. The same three ways the
-   * device's own Monitors page lists (DeviceMonitorLookupUtil), so the
-   * device's Incidents and Alerts tabs show what those monitors raise.
+   * (NetworkDevice.monitorId) - the device a discovery import made it for
+   * (Monitor.autoProvisionedNetworkDeviceId), an ordinary Ping, IP, Port,
+   * NTP, Website, API or SSL Certificate monitor of the device, and the
+   * device a person tied it to (Monitor.networkDeviceId, issue #9545). A
+   * Network Device monitor names its device in its steps instead, which
+   * resolveResourceContextForMonitor reads. The same ways the device's own
+   * Monitors page lists (DeviceMonitorLookupUtil), so the device's
+   * Incidents and Alerts tabs show what those monitors raise.
    *
    * Held to the monitor's project like every lookup here; at most a page of
    * bound devices, though a monitor is bound to one device in practice.
@@ -287,12 +290,19 @@ export default class MonitorResourceContextUtil {
     monitorId: ObjectID;
     projectId: ObjectID;
     autoProvisionedNetworkDeviceId?: ObjectID | undefined | null;
+    networkDeviceId?: ObjectID | undefined | null;
   }): Promise<Array<string>> {
     let madeForDeviceId: ObjectID | undefined | null =
       input.autoProvisionedNetworkDeviceId;
+    let tiedToDeviceId: ObjectID | undefined | null = input.networkDeviceId;
 
-    if (!madeForDeviceId) {
-      // Not every caller selects the column: read it off the monitor's row.
+    /*
+     * Not every caller selects the two columns: with neither on the
+     * monitor, they are read off its row. A monitor made for a device is
+     * that device's, and a person ties a monitor nothing made, so one known
+     * is enough.
+     */
+    if (!madeForDeviceId && !tiedToDeviceId) {
       const monitor: Monitor | null = await MonitorService.findOneBy({
         query: {
           _id: input.monitorId,
@@ -301,6 +311,7 @@ export default class MonitorResourceContextUtil {
         select: {
           _id: true,
           autoProvisionedNetworkDeviceId: true,
+          networkDeviceId: true,
         },
         props: {
           isRoot: true,
@@ -308,6 +319,24 @@ export default class MonitorResourceContextUtil {
       });
 
       madeForDeviceId = monitor?.autoProvisionedNetworkDeviceId;
+      tiedToDeviceId = monitor?.networkDeviceId;
+    }
+
+    // The device it was made for and the one it is tied to, each once.
+    const ownDeviceIds: Array<ObjectID> = [];
+
+    for (const deviceId of [madeForDeviceId, tiedToDeviceId]) {
+      if (
+        deviceId &&
+        !ownDeviceIds.some((listed: ObjectID): boolean => {
+          return (
+            listed.toString().toLowerCase() ===
+            deviceId.toString().toLowerCase()
+          );
+        })
+      ) {
+        ownDeviceIds.push(deviceId);
+      }
     }
 
     const [boundDevices, madeForDevices]: [
@@ -324,15 +353,18 @@ export default class MonitorResourceContextUtil {
         limit: MAX_BOUND_NETWORK_DEVICES,
         props: { isRoot: true },
       }),
-      madeForDeviceId
+      ownDeviceIds.length > 0
         ? NetworkDeviceService.findBy({
             query: {
               projectId: input.projectId,
-              _id: madeForDeviceId,
+              _id:
+                ownDeviceIds.length === 1
+                  ? ownDeviceIds[0]!
+                  : QueryHelper.any(ownDeviceIds),
             },
             select: { _id: true },
             skip: 0,
-            limit: 1,
+            limit: ownDeviceIds.length,
             props: { isRoot: true },
           })
         : Promise.resolve([]),

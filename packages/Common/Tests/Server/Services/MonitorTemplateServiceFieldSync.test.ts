@@ -164,6 +164,14 @@ function mockSync(
   jest
     .spyOn(MonitorTemplateService, "countLinkedMonitors")
     .mockResolvedValue(monitors.length);
+  /*
+   * None of the linked monitors was made for a network device by an import:
+   * an API template's monitors made that way would each keep their
+   * device's host, row by row (#9546, MonitorTemplateServiceDeviceAddressSync).
+   */
+  jest
+    .spyOn(MonitorTemplateService, "hasMonitorsMadeForDevices")
+    .mockResolvedValue(false);
 
   return {
     updateOne: jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(1),
