@@ -181,6 +181,8 @@ De enskilda behörigheterna, för ett team eller en API-nyckel som behöver exak
 
 En manuell körning når bara arbetsflöden som du kan öppna: en roll som är begränsad till vissa etiketter, eller till arbetsflödena som ditt team äger, kör bara dem. Den som inte kan köra ett arbetsflöde ser **Kör arbetsflöde** nedtonad, med orsaken i verktygstipset.
 
+Ett arbetsflöde som körs som **Projektägare** eller som en anpassad roll ändras och körs manuellt bara av personer som själva har de behörigheterna; alla andra kan bara titta på det i **Byggare**. Se [Run As](#run-as).
+
 Ge dem som bygger automatisering **Arbetsflödesadministratör**, och dem som bara startar den **Arbetsflödesmedlem**. Spara redigeringsåtkomst till variabler för dem som hanterar projektets hemligheter. Se [Användare, team och behörigheter](/docs/permissions/index) för hur roller tilldelas.
 
 ## Vad arbetsflödessteg får göra
@@ -189,7 +191,7 @@ De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, 
 
 - **Bara arbetsflödets eget projekt.** Ett steg läser och skriver posterna i det projekt som arbetsflödet tillhör och inget annat, och en Update flyttar aldrig en post till ett annat projekt.
 - **Bara det en Project Admin får göra.** Ett steg kan inte göra det som bara **Projektägare** och behörigheter för fakturering eller borttagning av projektet tillåter, och det kan inte läsa vem som skapade en sond eller en AI-agent, vilket bara Projektägare ser.
-- **Inte vem som har åtkomst.** Ett steg skapar, ändrar och tar inte bort team, teammedlemmar, teambehörigheter, anpassade roller eller API-nyckelbehörigheter, även om en Projektadministratör får det. Den som bygger ett arbetsflöde bestämmer vad dess steg gör, och det kan vara en **Projektmedlem**, så ett steg som kunde det skulle ge den som byggde det åtkomst som den inte har fått, som **Projektadministratör**. Steget avvisas, och körningens logg säger att en person som hanterar projektets team och API-nycklar måste göra ändringen. Utlösare och Find-steg för dessa poster fungerar som förut.
+- **Inte vem som har åtkomst.** Med standardbehörigheterna skapar, ändrar och tar ett steg inte bort team, teammedlemmar, teambehörigheter eller anpassade roller, även om en Projektadministratör får det. Den som bygger ett arbetsflöde bestämmer vad dess steg gör, och det kan vara en **Projektmedlem**, så ett steg som kunde det skulle ge den som byggde det åtkomst som den inte har fått, som **Projektadministratör**. Steget avvisas, och körningens logg nämner den behörighet som ändringen kräver och säger att du ska välja **Run As** i arbetsflödets **Inställningar**: ett arbetsflöde som körs som **Projektägare**, eller som en anpassad roll med den behörigheten, får göra ändringen (se [Run As](#run-as)). Inget steg i ett arbetsflöde ändrar API-nycklar, enkel inloggning eller SCIM-inställningar, oavsett vad arbetsflödet körs som. Utlösare och Find-steg för dessa poster fungerar som förut.
 - **Inte läsning av inställningar som innehåller autentiseringsuppgifter.** En Projektadministratör får läsa SMTP-servrar, leverantörer för samtal och SMS, SNMP-autentiseringsuppgifter, videosamtalsanslutningar och API-nycklar, men det lånas aldrig ut till ett steg, oavsett vem som byggde eller sparade arbetsflödet. Ett steg kan inte ange någon av dessa inställningar, som SMTP-servern en statussida skickar e-post med eller API-nyckeln en behörighet ges till. Steget avvisas, och dess körlogg säger att en person som får läsa dem (läsbehörigheten för den sortens inställning, eller en Projektägare eller Projektadministratör) måste göra ändringen. Ett steg som behåller inställningen som en post redan anger, eller tömmer den, avvisas inte.
 - **Inte privata incidenter, larm och episoder.** En Projektadministratör ser varje privat incident, larm och episod, men det lånas aldrig ut till ett steg, oavsett vem som byggt eller sparat arbetsflödet. Ett steg hittar ingen privat post, ändrar ingen och lägger inte till något till en, och ett arbetsflöde startar inte på en sådan post eller på något som hör till den, vare sig en händelse på en post eller **Kör arbetsflöde** startar det. Den som bygger ett arbetsflöde bestämmer vart det stegen läser skickas — en webhook, ett e-postmeddelande, en chatt, körningsloggen — och det kan vara en **Projektmedlem** som inte får se en privat post. Se [Privata incidenter, larm och episoder](/docs/permissions/index#privata-incidenter-larm-och-episoder).
 - **Bara det din plan omfattar.** I OneUptime Cloud avvisas ett steg som skapar eller ändrar något som din plan inte omfattar, med den plan som krävs, precis som i instrumentpanelen. Självhostade installationer utan fakturering har inga plangränser.
@@ -204,6 +206,26 @@ De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, 
 När en kontroll avvisar ett steg tar steget sin utgång **Fel** utan att göra den avvisade ändringen, och körningens logg nämner steget och orsaken i klartext, till exempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Läs den under arbetsflödets [Körningar](/docs/workflows/runs-and-logs). Ett Create Many-steg skapar sina poster en i taget och stannar vid den första som avvisas: posterna det skapade före den behålls.
 
 Steg som pratar med andra system — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code och Generate Text with AI — läser eller ändrar inte OneUptime-poster, så inget av detta ändrar något för dem.
+
+### Run As
+
+Som standard körs ett arbetsflöde med behörigheterna ovan, och de flesta arbetsflöden behöver aldrig mer. När ett gör det – till exempel ett arbetsflöde som ger varje nytt team en anpassad roll –, öppnar du dess **Inställningar**, sedan **Fler inställningar**, och väljer **Change Run As**:
+
+- Standard: behörigheterna ovan.
+- Projektägare: det en **Projektägare** får göra i det här projektet, inklusive att ändra vem som är med i ett team och vad ett team får göra. Bara en Projektägare kan välja det.
+- En anpassad roll: exakt det som en av projektets anpassade roller tillåter. Bara den som skulle kunna ge ett team den rollen kan välja den.
+
+Oavsett vad arbetsflödet körs som läser ett steg aldrig inställningar som innehåller autentiseringsuppgifter, ser aldrig privata incidenter, larm eller episoder och ändrar aldrig API-nycklar, enkel inloggning eller SCIM-inställningar. När det ger ett team en behörighet eller en roll kan det bara ge det som det själv har, och saknas något nämner körningens logg behörigheten.
+
+Ett arbetsflöde som körs med mer än standardbehörigheterna körs med behörigheterna hos den person som gav det dem: den som senast valde dess **Run As** eller sparade dess steg eller variabler. Så att ingen får mer genom det än de själva har:
+
+- Bara personer som har de behörigheterna kan ändra det eller dess variabler, arkivera eller ta bort det, köra det eller ett av dess steg manuellt, eller se dess webhook-URL och inkommande e-postadress. Alla som får redigera det kan fortfarande stänga av det.
+- Bara en person kan ge dem, aldrig en API-nyckel.
+- Varje körning kontrollerar först att den person som gav dem fortfarande har dem. Om inte stannar körningen före sitt första steg, och dess logg säger varför och vem som kan ge dem igen.
+- Det läser inte projektets globala variabler, som alla som får redigera arbetsflödesvariabler kan ändra.
+- Ett annat arbetsflödes **Kör ett annat arbetsflöde**-steg kan bara starta det om det arbetsflödet körs med samma behörigheter eller fler.
+
+Varje körning registrerar vad den kördes som och med vems behörigheter, vilket syns i körningens fönster och i en nedladdad logg, och [granskningsloggen](/docs/configuration/audit-logs) registrerar vem som ändrade ett arbetsflödes **Run As**.
 
 ## Plangränser
 

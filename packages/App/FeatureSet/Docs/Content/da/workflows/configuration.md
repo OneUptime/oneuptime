@@ -181,6 +181,8 @@ De enkelte tilladelser, til et team eller en API-nøgle, der har brug for præci
 
 En manuel kørsel når kun de arbejdsgange, du kan åbne: en rolle, der er begrænset til bestemte etiketter eller til de arbejdsgange, dit team ejer, kører kun dem. Den, der ikke kan køre en arbejdsgang, ser **Kør arbejdsgang** nedtonet med årsagen i værktøjstippet.
 
+En arbejdsgang, der kører som **Projektejer** eller som en brugerdefineret rolle, ændres og køres manuelt kun af personer, der selv har de tilladelser; alle andre kan kun se den i **Bygger**. Se [Run As](#run-as).
+
 Giv dem, der bygger automatisering, **Arbejdsgangsadministrator**, og dem, der kun starter den, **Arbejdsgangsmedlem**. Gem redigeringsadgangen til variabler til de folk, der administrerer projektets hemmeligheder. Se [Brugere, teams og tilladelser](/docs/permissions/index) for, hvordan roller tildeles.
 
 ## Hvad arbejdsgangstrin må gøre
@@ -189,7 +191,7 @@ De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, 
 
 - **Kun arbejdsgangens eget projekt.** Et trin læser og skriver posterne i det projekt, arbejdsgangen hører til, og intet andet, og en Update flytter aldrig en post til et andet projekt.
 - **Kun det, en Project Admin må.** Et trin kan ikke gøre det, som kun **Projektejer** og tilladelser til fakturering eller sletning af projektet giver lov til, og det kan ikke læse, hvem der oprettede en sonde eller en AI-agent, hvilket kun Projektejere ser.
-- **Ikke hvem der har adgang.** Et trin opretter, ændrer og sletter ikke teams, teammedlemmer, teamtilladelser, brugerdefinerede roller eller API-nøgletilladelser, selvom en Projektadministrator må. Den, der bygger en arbejdsgang, bestemmer, hvad dens trin gør, og det kan være en **Projektmedlem**, så et trin, der kunne, ville give den, der byggede det, adgang, vedkommende ikke har fået, som **Projektadministrator**. Trinnet afvises, og kørslens log siger, at en person, der administrerer projektets teams og API-nøgler, skal foretage ændringen. Triggere og Find-trin på disse poster virker stadig.
+- **Ikke hvem der har adgang.** Med standardtilladelserne opretter, ændrer og sletter et trin ikke teams, teammedlemmer, teamtilladelser eller brugerdefinerede roller, selvom en Projektadministrator må. Den, der bygger en arbejdsgang, bestemmer, hvad dens trin gør, og det kan være en **Projektmedlem**, så et trin, der kunne, ville give den, der byggede det, adgang, vedkommende ikke har fået, som **Projektadministrator**. Trinnet afvises, og kørslens log nævner den tilladelse, ændringen kræver, og siger, at du skal vælge **Run As** i arbejdsgangens **Indstillinger**: en arbejdsgang, der kører som **Projektejer** eller som en brugerdefineret rolle med den tilladelse, må foretage ændringen (se [Run As](#run-as)). Intet trin i en arbejdsgang ændrer API-nøgler, single sign-on eller SCIM-indstillinger, uanset hvad arbejdsgangen kører som. Triggere og Find-trin på disse poster virker stadig.
 - **Ikke læsning af indstillinger, der indeholder loginoplysninger.** En Projektadministrator må læse SMTP-servere, opkalds- og SMS-udbydere, SNMP-loginoplysninger, videoopkaldsforbindelser og API-nøgler, men det lånes aldrig ud til et trin, uanset hvem der byggede eller gemte arbejdsgangen. Et trin kan ikke angive en af disse indstillinger, som den SMTP-server, en statusside sender e-mail med, eller den API-nøgle, en tilladelse gives til. Trinnet afvises, og dets kørselslog siger, at en person, der må læse dem (læsetilladelsen til den slags indstilling, eller en Projektejer eller Projektadministrator), skal foretage ændringen. Et trin, der beholder den indstilling, en post allerede angiver, eller rydder den, afvises ikke.
 - **Ikke private hændelser, advarsler og episoder.** En Projektadministrator ser enhver privat hændelse, advarsel og episode, men det lånes aldrig ud til et trin, uanset hvem der har bygget eller gemt arbejdsgangen. Et trin finder ingen private, ændrer ingen og føjer intet til en, og en arbejdsgang starter ikke på en eller på noget, der hører til en, hvad enten en hændelse på en post eller **Kør arbejdsgang** starter den. Den, der bygger en arbejdsgang, bestemmer, hvor det, trinene læser, sendes hen — en webhook, en e-mail, en chat, kørselsloggen — og det kan være en **Projektmedlem**, som ikke må se en privat post. Se [Private hændelser, advarsler og episoder](/docs/permissions/index#private-hændelser-advarsler-og-episoder).
 - **Kun det, jeres plan indeholder.** I OneUptime Cloud afvises et trin, der opretter eller ændrer noget, jeres plan ikke indeholder, med den plan, det kræver, præcis som dashboardet gør. Selvhostede installationer uden fakturering har ingen plangrænser.
@@ -204,6 +206,26 @@ De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, 
 Når en kontrol afviser et trin, tager trinnet sit **Fejl**-output uden at foretage den afviste ændring, og kørslens log nævner trinnet og årsagen i klare ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Læs den under arbejdsgangens [Kørsler](/docs/workflows/runs-and-logs). Et Create Many-trin opretter sine poster én ad gangen og stopper ved den første, der afvises: de poster, det oprettede før den, bevares.
 
 Trin, der taler med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code og Generate Text with AI — læser eller ændrer ikke OneUptime-poster, så intet af dette ændrer noget for dem.
+
+### Run As
+
+Som standard kører en arbejdsgang med tilladelserne ovenfor, og de fleste arbejdsgange har aldrig brug for mere. Når en har – for eksempel en arbejdsgang, der giver hvert nyt team en brugerdefineret rolle –, åbner du dens **Indstillinger**, derefter **Yderligere indstillinger**, og vælger **Change Run As**:
+
+- Standard: tilladelserne ovenfor.
+- Projektejer: det, en **Projektejer** må i dette projekt, herunder at ændre, hvem der er med i et team, og hvad et team må. Kun en Projektejer kan vælge det.
+- En brugerdefineret rolle: præcis det, en af projektets brugerdefinerede roller tillader. Kun en, der kunne give et team den rolle, kan vælge den.
+
+Uanset hvad arbejdsgangen kører som, læser et trin aldrig indstillinger, der indeholder loginoplysninger, ser aldrig private hændelser, advarsler eller episoder og ændrer aldrig API-nøgler, single sign-on eller SCIM-indstillinger. Når det giver et team en tilladelse eller en rolle, kan det kun give det, det selv har, og mangler det noget, nævner kørslens log tilladelsen.
+
+En arbejdsgang, der kører med mere end standardtilladelserne, kører med tilladelserne fra den person, der gav den dem: den, der sidst valgte dens **Run As** eller gemte dens trin eller variabler. Så ingen får mere gennem den, end de selv har:
+
+- Kun personer, der har de tilladelser, kan ændre den eller dens variabler, arkivere eller slette den, køre den eller et af dens trin manuelt eller se dens webhook-URL og indgående e-mailadresse. Alle, der må redigere den, kan stadig slå den fra.
+- Kun en person kan give dem, aldrig en API-nøgle.
+- Hver kørsel tjekker først, at den person, der gav dem, stadig har dem. Hvis ikke, stopper kørslen før sit første trin, og dens log siger hvorfor, og hvem der kan give dem igen.
+- Den læser ikke projektets globale variabler, som alle, der må redigere arbejdsgangsvariabler, kan ændre.
+- En anden arbejdsgangs **Kør en anden arbejdsgang**-trin kan kun starte den, hvis den arbejdsgang kører med de samme tilladelser eller flere.
+
+Hver kørsel registrerer, hvad den kørte som, og med hvis tilladelser, vist i kørslens vindue og i en downloadet log, og [revisionsloggen](/docs/configuration/audit-logs) registrerer, hvem der ændrede en arbejdsgangs **Run As**.
 
 ## Plangrænser
 

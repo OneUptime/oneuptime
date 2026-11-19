@@ -181,6 +181,8 @@ De enkelte tillatelsene, for et team eller en API-nøkkel som trenger nøyaktig 
 
 En manuell kjøring når bare arbeidsflyter du kan åpne: en rolle som er begrenset til bestemte etiketter, eller til arbeidsflytene teamet ditt eier, kjører bare dem. Den som ikke kan kjøre en arbeidsflyt, ser **Kjør arbeidsflyt** nedtonet, med årsaken i verktøytipset.
 
+En arbeidsflyt som kjører som **Prosjekteier** eller som en egendefinert rolle, endres og kjøres manuelt bare av personer som selv har de tillatelsene; alle andre kan bare se den i **Bygger**. Se [Run As](#run-as).
+
 Gi dem som bygger automatisering, **Arbeidsflytadministrator**, og dem som bare starter den, **Arbeidsflytmedlem**. Hold redigeringstilgang til variabler for dem som administrerer hemmelighetene i prosjektet. Se [Brukere, team og tillatelser](/docs/permissions/index) for hvordan roller tildeles.
 
 ## Hva arbeidsflyttrinn kan gjøre
@@ -189,7 +191,7 @@ Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Upd
 
 - **Bare arbeidsflytens eget prosjekt.** Et trinn leser og skriver postene i prosjektet arbeidsflyten hører til, og ingen andre, og en Update flytter aldri en post til et annet prosjekt.
 - **Bare det en Project Admin har lov til.** Et trinn kan ikke gjøre det bare **Prosjekteier** og tillatelser for fakturering eller prosjektsletting gir lov til, og det kan ikke lese hvem som opprettet en sonde eller en AI-agent, noe bare Prosjekteiere ser.
-- **Ikke hvem som har tilgang.** Et trinn oppretter, endrer og sletter ikke team, teammedlemmer, teamtillatelser, egendefinerte roller eller API-nøkkeltillatelser, selv om en Prosjektadministrator har lov til det. Den som bygger en arbeidsflyt, bestemmer hva trinnene gjør, og det kan være en **Prosjektmedlem**, så et trinn som kunne det, ville gitt den som bygde den, tilgang vedkommende ikke har fått, som **Prosjektadministrator**. Trinnet avvises, og loggen til kjøringen sier at en person som administrerer prosjektets team og API-nøkler, må gjøre endringen. Triggere og Find-trinn på disse postene virker fortsatt.
+- **Ikke hvem som har tilgang.** Med standardtillatelsene oppretter, endrer og sletter et trinn ikke team, teammedlemmer, teamtillatelser eller egendefinerte roller, selv om en Prosjektadministrator har lov til det. Den som bygger en arbeidsflyt, bestemmer hva trinnene gjør, og det kan være en **Prosjektmedlem**, så et trinn som kunne det, ville gitt den som bygde den, tilgang vedkommende ikke har fått, som **Prosjektadministrator**. Trinnet avvises, og loggen til kjøringen nevner tillatelsen endringen krever, og sier at du skal velge **Run As** i arbeidsflytens **Innstillinger**: en arbeidsflyt som kjører som **Prosjekteier**, eller som en egendefinert rolle med den tillatelsen, kan gjøre endringen (se [Run As](#run-as)). Ingen trinn i en arbeidsflyt endrer API-nøkler, single sign-on eller SCIM-innstillinger, uansett hva arbeidsflyten kjører som. Triggere og Find-trinn på disse postene virker fortsatt.
 - **Ikke lesing av innstillinger som inneholder påloggingsinformasjon.** En Prosjektadministrator har lov til å lese SMTP-servere, leverandører for anrop og SMS, SNMP-påloggingsinformasjon, videosamtaletilkoblinger og API-nøkler, men det lånes aldri ut til et trinn, uansett hvem som bygde eller lagret arbeidsflyten. Et trinn kan ikke angi noen av disse innstillingene, som SMTP-serveren en statusside sender e-post med, eller API-nøkkelen en tillatelse gis til. Trinnet avvises, og kjøreloggen sier at en person som kan lese dem (lesetillatelsen for den typen innstilling, eller en Prosjekteier eller Prosjektadministrator), må gjøre endringen. Et trinn som beholder innstillingen en post allerede angir, eller tømmer den, avvises ikke.
 - **Ikke private hendelser, varsler og episoder.** En Prosjektadministrator ser enhver privat hendelse, hvert privat varsel og hver private episode, men det lånes aldri ut til et trinn, uansett hvem som bygde eller lagret arbeidsflyten. Et trinn finner ingen private poster, endrer ingen og legger ikke til noe i en, og en arbeidsflyt starter ikke på en slik post eller på noe som hører til den, enten en hendelse på en post eller **Kjør arbeidsflyt** starter den. Den som bygger en arbeidsflyt, bestemmer hvor det trinnene leser, sendes — en webhook, en e-post, en chat, kjøreloggen — og det kan være et **Prosjektmedlem** som ikke får se en privat post. Se [Private hendelser, varsler og episoder](/docs/permissions/index#private-hendelser-varsler-og-episoder).
 - **Bare det planen din inkluderer.** I OneUptime Cloud avvises et trinn som oppretter eller endrer noe planen din ikke inkluderer, med planen det krever, akkurat som i dashbordet. Selvhostede installasjoner uten fakturering har ingen plangrenser.
@@ -204,6 +206,26 @@ Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Upd
 Når en kontroll avviser et trinn, tar trinnet utgangen **Feil** uten å gjøre den avviste endringen, og loggen til kjøringen nevner trinnet og årsaken med vanlige ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Les den under [Kjøringer](/docs/workflows/runs-and-logs) for arbeidsflyten. Et Create Many-trinn oppretter postene sine én om gangen og stopper ved den første som avvises: postene det opprettet før den, beholdes.
 
 Trinn som snakker med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code og Generate Text with AI — leser eller endrer ikke OneUptime-poster, så ingenting av dette endrer noe for dem.
+
+### Run As
+
+Som standard kjører en arbeidsflyt med tillatelsene ovenfor, og de fleste arbeidsflyter trenger aldri mer. Når en gjør det – for eksempel en arbeidsflyt som gir hvert nytt team en egendefinert rolle –, åpner du **Innstillinger** for den, deretter **Flere innstillinger**, og velger **Change Run As**:
+
+- Standard: tillatelsene ovenfor.
+- Prosjekteier: det en **Prosjekteier** kan gjøre i dette prosjektet, inkludert å endre hvem som er med i et team og hva et team kan gjøre. Bare en Prosjekteier kan velge det.
+- En egendefinert rolle: nøyaktig det en av prosjektets egendefinerte roller tillater. Bare den som kunne gitt et team den rollen, kan velge den.
+
+Uansett hva arbeidsflyten kjører som, leser et trinn aldri innstillinger som inneholder påloggingsinformasjon, ser aldri private hendelser, varsler eller episoder og endrer aldri API-nøkler, single sign-on eller SCIM-innstillinger. Når det gir et team en tillatelse eller en rolle, kan det bare gi det det selv har, og mangler det noe, nevner loggen til kjøringen tillatelsen.
+
+En arbeidsflyt som kjører med mer enn standardtillatelsene, kjører med tillatelsene til personen som ga den dem: den som sist valgte **Run As** for den, eller lagret trinnene eller variablene dens. Slik at ingen får mer gjennom den enn de selv har:
+
+- Bare personer som har de tillatelsene, kan endre den eller variablene dens, arkivere eller slette den, kjøre den eller ett av trinnene dens manuelt, eller se webhook-URL-en og den innkommende e-postadressen dens. Alle som kan redigere den, kan fortsatt slå den av.
+- Bare en person kan gi dem, aldri en API-nøkkel.
+- Hver kjøring sjekker først at personen som ga dem, fortsatt har dem. Hvis ikke, stopper kjøringen før det første trinnet, og loggen sier hvorfor og hvem som kan gi dem på nytt.
+- Den leser ikke prosjektets globale variabler, som alle som kan redigere arbeidsflytvariabler, kan endre.
+- Et **Kjør en annen arbeidsflyt**-trinn i en annen arbeidsflyt kan bare starte den hvis den arbeidsflyten kjører med de samme tillatelsene eller flere.
+
+Hver kjøring registrerer hva den kjørte som og med hvems tillatelser, vist i vinduet til kjøringen og i en nedlastet logg, og [revisjonsloggen](/docs/configuration/audit-logs) registrerer hvem som endret **Run As** for en arbeidsflyt.
 
 ## Plangrenser
 
