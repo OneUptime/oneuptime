@@ -126,7 +126,6 @@ const TITLES: Record<ProxmoxMetric, string> = {
   guestsTableHaState: "HA State",
   guestsTableBackup: "Backup",
   storageTableStatus: "Status",
-  storageTableUsage: "Used / Total",
   insightsDiskThroughput: "Disk Throughput",
 };
 
