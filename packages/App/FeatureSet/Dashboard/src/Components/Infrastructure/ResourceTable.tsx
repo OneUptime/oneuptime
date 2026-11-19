@@ -122,15 +122,24 @@ export interface ResourceStorageUsageColumns {
   // How an amount is written: binary bytes ("36.2 GiB") by default.
   formatAmount?: ((amount: number) => string) | undefined;
   /*
-   * A list whose rows are not stores but use one - a Proxmox node's root
-   * disk, a container's, a VM's: the Used column is titled for what it
-   * measures ("Disk") and the two columns follow CPU and Memory, where a
-   * row's resources are read side by side. Free is drawn only while a row
-   * reports usage: a cluster of VMs that cannot see inside their guests
-   * says why under Disk once, rather than a column of dashes beside it.
-   * Left out, the rows are stores and the columns come right after Status.
+   * The Used column's title, in English, when the list is more than one of
+   * storage: a Proxmox node's or container's root disk reads "Disk", a VM's
+   * datastore space "Storage". Left out, "Used".
    */
-  disk?: { title: string } | undefined;
+  usedTitle?: string | undefined;
+  /*
+   * After the CPU and Memory columns (and a page's own columns) rather than
+   * right after Status: a list whose rows are not stores but use one - a
+   * node, a guest, a VM - reads its disk as a third resource, beside the
+   * other two.
+   */
+  isAfterResourceMetrics?: boolean | undefined;
+  /*
+   * Free drawn only while a row reports usage: a cluster of VMs that cannot
+   * see inside their guests says why under Disk once, rather than a column
+   * of dashes beside it. Left out, Free is always drawn.
+   */
+  isFreeOnlyWhenReported?: boolean | undefined;
 }
 
 export const STORAGE_USED_COLUMN_KEY: string = "storageUsage";
@@ -173,7 +182,7 @@ export function getStorageUsageTableColumns(data: {
 
   const columns: Array<Column<InfrastructureResource>> = [
     {
-      title: storageColumns.disk?.title || "Used",
+      title: storageColumns.usedTitle || "Used",
       type: FieldType.Element,
       // STORAGE_USED_COLUMN_KEY, written out: a page's column folds into it.
       key: "storageUsage",
@@ -191,7 +200,7 @@ export function getStorageUsageTableColumns(data: {
   ];
 
   const isFreeDrawn: boolean =
-    !storageColumns.disk ||
+    !storageColumns.isFreeOnlyWhenReported ||
     data.resources.some(
       (resource: Pick<InfrastructureResource, "storageUsage">): boolean => {
         return Boolean(resource.storageUsage?.usage);
@@ -835,7 +844,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     });
 
   // A list of stores reads how full each is first, right after its status.
-  if (!props.storageUsageColumns?.disk) {
+  if (!props.storageUsageColumns?.isAfterResourceMetrics) {
     tableColumns.push(...storageColumns);
   }
 
@@ -1077,7 +1086,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
   }
 
   // A row's disk is read beside its CPU and Memory.
-  if (props.storageUsageColumns?.disk) {
+  if (props.storageUsageColumns?.isAfterResourceMetrics) {
     tableColumns.push(...storageColumns);
   }
 

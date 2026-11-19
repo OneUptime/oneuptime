@@ -34,7 +34,9 @@ const VM_STORAGE_NOT_REPORTED: string = translationKey("Not reported");
  */
 export const VMWARE_VM_STORAGE_COLUMNS: ResourceStorageUsageColumns = {
   usedDescription: VMWARE_METRIC_DESCRIPTIONS.vmDisk,
-  disk: { title: "Storage" },
+  usedTitle: "Storage",
+  isAfterResourceMetrics: true,
+  isFreeOnlyWhenReported: true,
 };
 
 // A VM's row with its storage, from what the inventory row carried.

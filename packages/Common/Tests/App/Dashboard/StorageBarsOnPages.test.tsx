@@ -250,7 +250,6 @@ describe("a vCenter's Storage Capacity", () => {
           datastoreCapacityBytes: 100 * GIB,
           datastoreUsedBytes: 91 * GIB,
           datastoreCount: 3,
-          lastSeenAt: undefined,
         }}
       />,
     );
@@ -276,10 +275,7 @@ describe("a vCenter's Storage Capacity", () => {
     render(
       <VMwareStorageCapacityCard
         vcenter={{
-          datastoreCapacityBytes: undefined,
-          datastoreUsedBytes: undefined,
           datastoreCount: 2,
-          lastSeenAt: undefined,
         }}
       />,
     );
@@ -293,10 +289,7 @@ describe("a vCenter's Storage Capacity", () => {
     const { container } = render(
       <VMwareStorageCapacityCard
         vcenter={{
-          datastoreCapacityBytes: undefined,
-          datastoreUsedBytes: undefined,
           datastoreCount: 0,
-          lastSeenAt: undefined,
         }}
       />,
     );
@@ -360,7 +353,7 @@ describe("the Ceph dashboard widgets", () => {
     expect(
       getCephPoolWidgetUsage({ storedBytes: 86, maxAvailBytes: 14 })?.level,
     ).toBe(StorageUsageLevel.Warning);
-    expect(getCephPoolWidgetUsage({ storedBytes: undefined })).toBe(null);
+    expect(getCephPoolWidgetUsage({ maxAvailBytes: 14 })).toBe(null);
   });
 
   test("the pool wall's legend names Ceph's lines in the reader's words", () => {

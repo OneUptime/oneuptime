@@ -100,5 +100,9 @@ export const DOCKER_SWARM_VOLUME_DISK_COLUMNS: ResourceStorageUsageColumns = {
   usedDescription: translationKey(
     "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.",
   ),
-  disk: { title: "Disk" },
+  usedTitle: "Disk",
+  // After the volume's own columns: the bar is its disk's, not the volume's.
+  isAfterResourceMetrics: true,
+  // An agent older than 0.161.4 reports no disk: no column of dashes.
+  isFreeOnlyWhenReported: true,
 };

@@ -70,12 +70,16 @@ export const PROXMOX_STORAGE_USAGE_COLUMNS: ResourceStorageUsageColumns = {
  */
 export const PROXMOX_NODE_DISK_COLUMNS: ResourceStorageUsageColumns = {
   usedDescription: PROXMOX_METRIC_DESCRIPTIONS.nodesTableDisk,
-  disk: { title: "Disk" },
+  usedTitle: "Disk",
+  isAfterResourceMetrics: true,
+  isFreeOnlyWhenReported: true,
 };
 
 export const PROXMOX_GUEST_DISK_COLUMNS: ResourceStorageUsageColumns = {
   usedDescription: PROXMOX_METRIC_DESCRIPTIONS.guestsTableDisk,
-  disk: { title: "Disk" },
+  usedTitle: "Disk",
+  isAfterResourceMetrics: true,
+  isFreeOnlyWhenReported: true,
 };
 
 const NO_VALUE: string = EMPTY_VALUE_MARK;
