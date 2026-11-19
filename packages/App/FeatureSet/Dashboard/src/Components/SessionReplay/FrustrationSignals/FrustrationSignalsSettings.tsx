@@ -21,8 +21,15 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { getRumCustomSignalTemplateId } from "Common/Types/Monitor/RumAlertTemplates";
+import {
+  buildRecommendationId,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import PageMap from "../../../Utils/PageMap";
 import { RouteUtil } from "../../../Utils/RouteMap";
+import { RECOMMENDATION_SELECTION_QUERY_PARAM } from "../../Recommendations/RecommendationFilterUtil";
+import { RecommendationStatusFilter } from "../../Recommendations/RecommendationViewModel";
 import { buildCustomSignalSessionsQuery } from "../SessionReplayListFilters";
 import BuiltInSignalRow from "./BuiltInSignalRow";
 import CustomSignalModal from "./CustomSignalModal";
@@ -72,7 +79,10 @@ import useFrustrationSettings, {
  *
  * Each signal of the application's own leads to the sessions it fired in
  * (See sessions, issue #6515): the application's session list, filtered
- * to its name.
+ * to its name. One that is switched on leads to an alert on it too (Set up
+ * an alert, issue #6518): the application's Recommendations page, on the
+ * signal's own alert - ticked, searched for by its quoted name, and shown
+ * whether it is still to create or already created.
  */
 
 export interface ViewProps {
@@ -103,6 +113,29 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
       modelId: props.rumApplicationId,
       query: buildCustomSignalSessionsQuery(signal.name),
     });
+  };
+
+  const alertRouteOf: (signal: SessionReplayCustomSignal) => Route | null = (
+    signal: SessionReplayCustomSignal,
+  ): Route | null => {
+    if (!signal.isEnabled || !signal.id) {
+      return null;
+    }
+
+    return RouteUtil.getPageRoute(
+      PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
+      {
+        modelId: props.rumApplicationId,
+        query: {
+          [RECOMMENDATION_SELECTION_QUERY_PARAM]: buildRecommendationId(
+            MonitorRecommendationResourceType.RumApplication,
+            getRumCustomSignalTemplateId(signal.id),
+          ),
+          search: `"${signal.name}"`,
+          status: RecommendationStatusFilter.All,
+        },
+      },
+    );
   };
 
   if (state.loadError && !settings) {
@@ -232,6 +265,7 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
                     key={signal.id}
                     signal={signal}
                     sessionsRoute={sessionsRouteOf(signal)}
+                    alertRoute={alertRouteOf(signal)}
                     canEdit={state.canEdit}
                     isSaving={state.isSaving}
                     onSwitch={(isEnabled: boolean): Promise<string | null> => {

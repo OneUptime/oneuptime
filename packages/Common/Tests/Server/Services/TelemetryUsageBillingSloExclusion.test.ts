@@ -51,6 +51,7 @@ import {
   KubernetesCostMetric,
   isKubernetesCostMetricName,
 } from "../../../Types/Kubernetes/KubernetesCostMetrics";
+import { SESSION_REPLAY_SIGNAL_SESSIONS_METRIC } from "../../../Types/Rum/SessionReplaySignalMetric";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
@@ -366,10 +367,15 @@ const EVERY_EXCLUDED_METRIC_NAME: Array<string> = [
    * the cluster already sent.
    */
   ...(Object.values(KubernetesCostMetric) as Array<string>),
+  /*
+   * And the sessions that hit each of an application's own signals (#6518),
+   * counted from recordings the project already sent.
+   */
+  SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
 ].sort();
 
 describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
-  test("is exactly the session replay and ingestion budget series, the product analytics event counts and the Kubernetes cost metrics, every one of them", () => {
+  test("is exactly the session replay and ingestion budget series, the product analytics event counts, the Kubernetes cost metrics and the signal session counts, every one of them", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort()).toEqual(
       EVERY_EXCLUDED_METRIC_NAME,
     );

@@ -1277,11 +1277,12 @@ describe("signals of the application's own", () => {
  * case included.
  */
 describe("a signal's sessions", () => {
-  test("See sessions comes first in a signal's ⋯, ahead of Edit and Delete", async () => {
+  test("See sessions comes first in a signal's ⋯, then Set up an alert, ahead of Edit and Delete", async () => {
     await renderPage(settingsWith([signal({})]));
 
     expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
       "See sessions",
+      "Set up an alert",
       "Edit",
       "Delete",
     ]);
@@ -1333,9 +1334,11 @@ describe("a signal's sessions", () => {
   test("a signal that is switched off keeps it, for the sessions recorded while it was on", async () => {
     await renderPage(settingsWith([signal({ isEnabled: false })]));
 
-    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))[0]).toBe(
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
       "See sessions",
-    );
+      "Edit",
+      "Delete",
+    ]);
   });
 
   test("each signal leads to its own sessions", async () => {
@@ -1396,6 +1399,76 @@ describe("a signal's sessions", () => {
   });
 });
 
+/*
+ * Set up an alert (issue #6518): the application's Recommendations page,
+ * on the signal's own "Sessions hit" alert - ticked, found by its quoted
+ * name, and shown whether still to create or already created. Only for a
+ * signal that is switched on: one switched off fires no more.
+ */
+describe("an alert on a signal", () => {
+  test("opens the Recommendations page on the signal's own alert, ticked", async () => {
+    await renderPage(settingsWith([signal({})]));
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-1")).getByRole("menuitem", {
+        name: "Set up an alert",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const target: URL = navigatedTo();
+
+    expect(
+      target.pathname.endsWith(`/rum/${APP_ID.toString()}/recommendations`),
+    ).toBe(true);
+    expect(target.searchParams.get("select")).toBe(
+      "RumApplication:rum-custom-signal-signal-1",
+    );
+    expect(target.searchParams.get("search")).toBe('"Payment failed"');
+    expect(target.searchParams.get("status")).toBe("All");
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("is not offered for a signal that is switched off, or one saved before signals had ids", async () => {
+    await renderPage(
+      settingsWith([
+        signal({ isEnabled: false }),
+        signal({ id: "", name: "Legacy", match: "/legacy" }),
+      ]),
+    );
+
+    expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).not.toContain(
+      "Set up an alert",
+    );
+  });
+
+  test("carries each signal's own id and name", async () => {
+    await renderPage(
+      settingsWith([
+        signal({}),
+        signal({
+          id: "signal-2",
+          name: "Card & co #1",
+          trigger: "event",
+          match: "card",
+        }),
+      ]),
+    );
+
+    fireEvent.click(
+      within(openRowMenu("custom-signal-signal-2")).getByRole("menuitem", {
+        name: "Set up an alert",
+      }),
+    );
+
+    expect(navigatedTo().searchParams.get("select")).toBe(
+      "RumApplication:rum-custom-signal-signal-2",
+    );
+    expect(navigatedTo().searchParams.get("search")).toBe('"Card & co #1"');
+  });
+});
+
 describe("a reader who may not edit the application", () => {
   test("sees every setting, every control locked, and why", async () => {
     isMasterAdminMock.mockReturnValue(false);
@@ -1416,9 +1489,13 @@ describe("a reader who may not edit the application", () => {
     ).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Change the rule")).toBeNull();
     expect(screen.queryByRole("button", { name: "Add signal" })).toBeNull();
-    // A signal's ⋯ holds only what changes nothing: See sessions.
+    /*
+     * A signal's ⋯ holds only what changes nothing here: See sessions, and
+     * the way to its alert, whose page says whether they may create it.
+     */
     expect(menuItemNames(openRowMenu("custom-signal-signal-1"))).toEqual([
       "See sessions",
+      "Set up an alert",
     ]);
 
     fireEvent.click(switchOf("frustration-signal-rageClick"));

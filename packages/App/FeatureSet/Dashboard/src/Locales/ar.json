@@ -57427,5 +57427,9 @@
   "Someone taps a view of your app you name by its testID. React Native recorder only.": "يلمس أحدهم عنصر واجهة في تطبيقك تحدده بمعرّف testID الخاص به. لمسجّل React Native فقط.",
   "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "يكتشف مسجّل React Native إشارات اللمس والصفحات والأحداث والأخطاء الخاصة بك. إشارات النقر والقواعد المضمّنة لمسجّل المتصفح.",
   "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "معرّف testID الذي تمنحه شيفرتك لعنصر الواجهة، أو بدايته متبوعة بـ *، مثل product-card-*. لمس العنصر، أو أي شيء داخله، يطلق الإشارة. لا يُفرّق بين الأحرف الكبيرة والصغيرة.",
-  "View testID": "معرّف testID لعنصر الواجهة"
+  "View testID": "معرّف testID لعنصر الواجهة",
+  "Alerts on this application's own signals appear here once session replay is on for it and it records its first replay.": "تظهر التنبيهات على الإشارات الخاصة بهذا التطبيق هنا بعد تفعيل إعادة تشغيل الجلسات له وتسجيله أول إعادة تشغيل.",
+  "Set up an alert": "إعداد تنبيه",
+  "This monitor counts the recorded sessions that hit your signal {{name}}.": "تعدّ أداة المراقبة هذه الجلسات المسجّلة التي انطلقت فيها إشارتك {{name}}.",
+  "This monitor's signal is no longer on the application's Frustration Signals page, so no session counts toward it.": "لم تعد إشارة أداة المراقبة هذه في صفحة إشارات الإحباط للتطبيق، لذا لا تُحتسب أي جلسة لها."
 }

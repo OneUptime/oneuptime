@@ -28,6 +28,7 @@ import {
   FRUSTRATION_PILL_TEXT,
   MARKER_PILL_TEXT,
   SEE_SESSIONS_TEXT,
+  SET_UP_ALERT_TEXT,
 } from "./FrustrationSignalsCopy";
 
 /*
@@ -42,6 +43,10 @@ import {
  * switched off keeps it, since the sessions recorded while it was on still
  * carry it.
  *
+ * Set up an alert opens the application's Recommendations page on the
+ * signal's own alert (issue #6518), for a signal that is switched on. That
+ * page says whether the reader may create it, as it does for every alert.
+ *
  * The switch saves the moment it is flipped, as a built-in signal's does.
  * Delete asks first, in the row's own dialog (RowActions), and says that
  * sessions already recorded keep the signal's markers.
@@ -51,6 +56,8 @@ export interface ComponentProps {
   signal: SessionReplayCustomSignal;
   // The session list, filtered to this signal's sessions.
   sessionsRoute: Route;
+  // The Recommendations page on this signal's alert, or null when none is offered.
+  alertRoute: Route | null;
   canEdit: boolean;
   isSaving: boolean;
   // Resolves to null once saved, or the reason it was not.
@@ -162,8 +169,30 @@ const CustomSignalRow: FunctionComponent<ComponentProps> = (
         ]
       : [];
 
+  const alertRoute: Route | null = props.alertRoute;
+
+  const setUpAlert: Array<ActionButtonSchema<SessionReplayCustomSignal>> =
+    alertRoute
+      ? [
+          {
+            title: SET_UP_ALERT_TEXT,
+            icon: IconProp.Bell,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            placement: ActionButtonPlacement.MoreMenu,
+            onClick: (
+              _signal: SessionReplayCustomSignal,
+              onCompleteAction: () => void,
+            ): void => {
+              onCompleteAction();
+              Navigation.navigate(alertRoute);
+            },
+          },
+        ]
+      : [];
+
   const actions: Array<ActionButtonSchema<SessionReplayCustomSignal>> = [
     seeSessions,
+    ...setUpAlert,
     ...editActions,
   ];
 

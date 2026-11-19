@@ -587,6 +587,45 @@ describe("SessionReplayGateCache frustration signals", (): void => {
 
     expect(policy).not.toBeNull();
     expect(policy?.frustrationSignals).toEqual(BUILT_IN);
+    expect(policy?.customSignalIds).toEqual({});
+  });
+
+  /*
+   * Issue #6518: the recorders report a signal by name; the ingest files it
+   * under the signal's id, which a rename keeps, so an alert created on the
+   * signal keeps counting it.
+   */
+  it("knows each signal's id by its name in lower case, switched off or on, never sent to a recorder", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplayFrustrationSignals: {
+        customSignals: [
+          {
+            id: "signal-payment",
+            name: "Payment Failed",
+            trigger: "page",
+            match: "/checkout/error",
+            isEnabled: true,
+          },
+          {
+            id: "signal-banner",
+            name: "Old banner",
+            trigger: "click",
+            match: ".banner",
+            isEnabled: false,
+          },
+          // Saved before signals had ids: none to file it under.
+          { name: "No id", trigger: "event", match: "no_id" },
+        ],
+      },
+    });
+
+    expect(policy?.customSignalIds).toEqual({
+      "payment failed": "signal-payment",
+      "old banner": "signal-banner",
+    });
+    expect(JSON.stringify(policy?.frustrationSignals)).not.toContain(
+      "signal-payment",
+    );
   });
 });
 

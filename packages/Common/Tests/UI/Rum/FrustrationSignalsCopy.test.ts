@@ -455,8 +455,12 @@ describe("a signal of the application's own", () => {
   });
 
   test("says a tap's problems in the reader's language", () => {
+    const words: Record<string, unknown> = germanLocale as Record<
+      string,
+      unknown
+    >;
     const german: Translator = createTranslator((text: string) => {
-      const value: unknown = (germanLocale as Record<string, unknown>)[text];
+      const value: unknown = words[text];
 
       return typeof value === "string" ? value : undefined;
     }, "de");
@@ -474,14 +478,10 @@ describe("a signal of the application's own", () => {
       acceptsEverything,
     ).match;
 
-    expect(empty).toBe(
-      (germanLocale as Record<string, string>)[
-        "Enter the view's testID, such as pay-button."
-      ],
-    );
+    expect(empty).toBe(words["Enter the view's testID, such as pay-button."]);
     expect(empty).not.toBe("Enter the view's testID, such as pay-button.");
     expect(misplaced).toBe(
-      (germanLocale as Record<string, string>)[
+      words[
         "Put * only at the end, after the start of the testID, such as product-card-*."
       ],
     );

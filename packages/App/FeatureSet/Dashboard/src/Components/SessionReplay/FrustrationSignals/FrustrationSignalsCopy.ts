@@ -961,6 +961,13 @@ export const EDIT_SIGNAL_TEXT: string = translationKey("Edit");
  */
 export const SEE_SESSIONS_TEXT: string = translationKey("See sessions");
 
+/*
+ * The row's way to an alert on the signal (issue #6518): the application's
+ * Recommendations page, on the signal's own "Sessions hit" alert, ticked.
+ * Only for a signal that is switched on - one switched off fires no more.
+ */
+export const SET_UP_ALERT_TEXT: string = translationKey("Set up an alert");
+
 export const DELETE_SIGNAL_DESCRIPTION: string = translationKey(
   "{{name}} stops being detected in sessions recorded from now on. Sessions already recorded keep its markers and badges.",
 );

@@ -57427,5 +57427,9 @@
   "Someone taps a view of your app you name by its testID. React Native recorder only.": "有人点按你用 testID 指定的应用视图。仅限 React Native 录制器。",
   "The React Native recorder detects your tap, page, event and error signals. Click signals and the built-in rules are for the browser recorder.": "React Native 录制器会检测你的点按、页面、事件和错误信号。点击信号和内置规则适用于浏览器录制器。",
   "The testID your code gives the view, or its start followed by *, such as product-card-*. A tap on the view, or anything inside it, sets the signal off. Case is ignored.": "你的代码为视图设置的 testID，或其开头部分后跟 *，例如 product-card-*。点按该视图或其内部的任何内容会触发该信号。不区分大小写。",
-  "View testID": "视图 testID"
+  "View testID": "视图 testID",
+  "Alerts on this application's own signals appear here once session replay is on for it and it records its first replay.": "此应用开启会话回放并录制第一次回放后，针对其自定义信号的警报会显示在这里。",
+  "Set up an alert": "设置警报",
+  "This monitor counts the recorded sessions that hit your signal {{name}}.": "此监控器统计触发了你的信号 {{name}} 的已录制会话。",
+  "This monitor's signal is no longer on the application's Frustration Signals page, so no session counts toward it.": "此监控器的信号已不在应用的挫败信号页面上，因此不会再统计任何会话。"
 }
