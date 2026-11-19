@@ -481,6 +481,8 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
      * fails generation instead of silently testing nothing.
      */
     await this.copyStaticFile("client_test.go", "internal/provider");
+    // And its asking again while a name is another resource's (#9855).
+    await this.copyStaticFile("client_name_taken_test.go", "internal/provider");
 
     /*
      * The acceptance tests: the core resources through a real Terraform and
