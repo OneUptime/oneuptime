@@ -108,10 +108,39 @@ export interface DataSecurityOverview {
   hasCloudConnection: boolean;
 }
 
+/*
+ * What one resource turned off of a framework, and why (#9629): the whole
+ * framework or one of its requirements, with the reason written for it and
+ * who turned it off, when. The resource is named as the reader may read it:
+ * by its kind alone ("") when they may not.
+ */
+export interface DataSecurityComplianceTurnedOff {
+  // The setting's own id, which its reason is written to.
+  id: string;
+  resource: DataSecurityResourceRef;
+  // The requirement, as the catalog names it; null for the whole framework.
+  requirement: string | null;
+  // Why it does not apply there, as written; "" when nobody said.
+  note: string;
+  // When it was last turned off; null when not known.
+  turnedOffAt: string | null;
+  // Who turned it off, by name or email; null for an API key, or when not known.
+  turnedOffBy: string | null;
+}
+
+// The most of a framework's turned-off settings an answer lists, the latest first.
+export const MAX_COMPLIANCE_TURNED_OFF: number = 200;
+
 export interface DataSecurityComplianceFramework
   extends ComplianceFrameworkResult {
   fullName: string;
   scope: string;
+  /*
+   * What is turned off of it, the latest first (#9629): on the project's
+   * Compliance page every resource's, on a resource's what is turned off
+   * where its compliance is set. Absent from an older server's answer.
+   */
+  turnedOff?: Array<DataSecurityComplianceTurnedOff> | undefined;
 }
 
 export interface DataSecurityComplianceResponse {
