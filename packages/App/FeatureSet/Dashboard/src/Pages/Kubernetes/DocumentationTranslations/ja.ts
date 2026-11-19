@@ -72,8 +72,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "このプラットフォームでは、コストの監視は既定でオフです。このプラットフォームはすべての Pod を要求したリソース量で課金するため、オンにすると 3 つのコスト Pod の分だけ請求額が増えます。また、OpenCost は Pod ではなくノードに価格を付けます。それでもオンにするには:",
   "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
     "これだけで完全なインストールです。chart にはオープンソースの OpenCost エンジン (と、それが必要とする小さな Prometheus) が含まれ、クラウドプロバイダーの公開価格表をもとにノードとボリュームに価格を付けます。認証情報は不要です。小さな Pod が 3 つ追加され、最初の 1 時間が経過した後に最初のデータが表示されます。",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **すでに Kubecost や OpenCost を使っていますか？** 代わりにエージェントをそちらに向ければ、何も同梱されません。`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (またはお使いの Kubecost サービス) を追加します。",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **すでに Kubecost や OpenCost を使っていますか？** エージェントがそれを見つけて同梱のエンジンの代わりに読み取り、クラスターの概要ページにもそう表示されます。2 つ目のエンジンを同梱しないようにするには、`--set cost.engine.url=auto` を追加します。",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **オンプレミスやベアメタルですか？** `--set cost.opencost.customPricing.enabled=true` で料金表を設定します (リソース時間あたりの USD。chart の `values.yaml` を参照)。",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

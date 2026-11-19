@@ -35,7 +35,7 @@ Once the override ends, the pages are theirs again. The **Schedule Timeline**, a
 :::steps
 ### Open the overrides
 
-Go to **On-Call → Advanced → User Overrides** to cover someone on every on-call policy, or to a policy's own **User Overrides** page, under **Advanced**, to cover them on that policy only. Click **Add User Override**.
+Go to **On-Call → Schedules → User Overrides** to cover someone on every on-call policy, or to a policy's own **User Overrides** page, under **Advanced**, to cover them on that policy only. Click **Add User Override**.
 
 ### Say who is away
 
@@ -72,7 +72,7 @@ To bring someone back before their override ends, click **End Now**: in the over
 
 | Added under | Card | Applies to |
 | --- | --- | --- |
-| **On-Call → Advanced → User Overrides** | **Global User Overrides** | Every on-call policy in the project |
+| **On-Call → Schedules → User Overrides** | **Global User Overrides** | Every on-call policy in the project |
 | A policy's **User Overrides** | **On-Call Policy User Overrides** | That policy only |
 
 Two overrides for the same person cannot overlap on the same policy, or when both are global. The form, and **Skip until…** on a schedule's layers, say so beside the times as soon as they are picked, with **Edit that override** to change that one instead. One can end as the next one starts.
@@ -92,7 +92,7 @@ When someone leaves the project, every override that names them and has not ende
 
 **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can add, edit and delete overrides; **Viewer** and **On-Call Viewer** can see them. In a custom role, the permissions are **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** and **Read On-Call Policy User Override**. On the **Schedule Timeline**, only people who can read overrides see whose shift is being covered.
 
-An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add, edit and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why. **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
+An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add, edit and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Schedules → User Overrides** are locked and say why. **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
 
 On OneUptime Cloud, user overrides need the **Growth** plan.
 
@@ -131,7 +131,7 @@ To end an override that is under way, send `POST /api/on-call-duty-policy-user-o
 ## Troubleshooting
 
 :::details The person on holiday was still paged
-Check where the override was added. One on a policy's **User Overrides** page covers that policy only, and other policies still page them: add it under **On-Call → Advanced → User Overrides** to cover every policy. Check its **Starts** and **Ends** too: times are shown in your time zone.
+Check where the override was added. One on a policy's **User Overrides** page covers that policy only, and other policies still page them: add it under **On-Call → Schedules → User Overrides** to cover every policy. Check its **Starts** and **Ends** too: times are shown in your time zone.
 :::
 
 :::details The person covering was not paged either

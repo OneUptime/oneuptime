@@ -46,6 +46,11 @@ export interface PrivacySummaryInput {
   retentionInDays?: number | null | undefined;
   maskSelectors?: Array<string> | null | undefined;
   blockSelectors?: Array<string> | null | undefined;
+  // Record only these pages and Never record these pages (#7502).
+  recordOnlyPages?: Array<string> | null | undefined;
+  neverRecordPages?: Array<string> | null | undefined;
+  // Readable event properties (#7501).
+  readableEventProperties?: Array<string> | null | undefined;
   recordCanvas?: boolean | null | undefined;
   sameOriginTracePropagation?: boolean | null | undefined;
 }
@@ -110,6 +115,16 @@ export function buildPrivacySummary(
     : (input.maskingMode as string);
   const maskCount: number = countSelectors(input.maskSelectors);
   const blockCount: number = countSelectors(input.blockSelectors);
+  const recordOnlyCount: number = countSelectors(input.recordOnlyPages);
+  const neverRecordCount: number = countSelectors(input.neverRecordPages);
+  /*
+   * Only Mask all text masks an event's properties, so only there does
+   * listing one change what a recording holds.
+   */
+  const readableCount: number =
+    maskingMode === SessionReplayMaskingMode.MaskAllText
+      ? countSelectors(input.readableEventProperties)
+      : 0;
 
   /*
    * What the policy adds to its mode, each fact whole in the language of
@@ -151,6 +166,37 @@ export function buildPrivacySummary(
       );
     }
 
+    if (recordOnlyCount > 0) {
+      extras.push(
+        sentence.translateText("only the pages the policy names recorded") ||
+          "only the pages the policy names recorded",
+      );
+    }
+
+    if (neverRecordCount > 0) {
+      extras.push(
+        sentence.translatePlural(
+          {
+            one: "{{count}} page path never recorded",
+            other: "{{count}} page paths never recorded",
+          },
+          neverRecordCount,
+        ),
+      );
+    }
+
+    if (readableCount > 0) {
+      extras.push(
+        sentence.translatePlural(
+          {
+            one: "{{count}} event property readable as a short code",
+            other: "{{count}} event properties readable as short codes",
+          },
+          readableCount,
+        ),
+      );
+    }
+
     return extras;
   };
 
@@ -161,7 +207,12 @@ export function buildPrivacySummary(
    * English "; " and "." inside a Chinese line.
    */
   const hasExtras: boolean =
-    maskCount > 0 || blockCount > 0 || input.recordCanvas === true;
+    maskCount > 0 ||
+    blockCount > 0 ||
+    recordOnlyCount > 0 ||
+    neverRecordCount > 0 ||
+    readableCount > 0 ||
+    input.recordCanvas === true;
   const extrasSentence: string = hasExtras
     ? translator.translateTemplate("Also: {{facts}}.", {
         facts: composedValue((sentence: Translator): string => {
@@ -177,7 +228,11 @@ export function buildPrivacySummary(
     modeText = translateLine(
       "Page text is never recorded: every text node and every input is replaced before upload, so the replay is a wireframe.",
     );
-    pageTextSensitive = false;
+    /*
+     * A readable event property is the one thing under this mode a
+     * recording holds as written: a reviewer should look at it twice.
+     */
+    pageTextSensitive = readableCount > 0;
   } else if (maskingMode === SessionReplayMaskingMode.MaskInputsOnly) {
     modeText = translateLine(
       "Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not.",

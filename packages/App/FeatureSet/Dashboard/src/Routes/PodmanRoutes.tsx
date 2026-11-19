@@ -20,6 +20,7 @@ import PodmanHostAiInsights from "../Pages/Podman/View/AI/Insights";
 import PodmanHostAiLogs from "../Pages/Podman/View/AI/Logs";
 import PodmanHostAiAgent from "../Pages/Podman/View/AI/Agent";
 import PodmanHostLogs from "../Pages/Podman/View/Logs";
+import PodmanHostSecurityEvents from "../Pages/Podman/View/SecurityEvents";
 import PodmanHostTraces from "../Pages/Podman/View/Traces";
 import PodmanHostProfiles from "../Pages/Podman/View/Profiles";
 import PodmanHostIncidents from "../Pages/Podman/View/Incidents";
@@ -254,6 +255,20 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             <PodmanHostLogs
               {...props}
               pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <PodmanHostSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS] as Route
+              }
             />
           }
         />

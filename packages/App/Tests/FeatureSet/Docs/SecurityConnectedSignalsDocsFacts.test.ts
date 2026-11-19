@@ -1,4 +1,6 @@
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
+import fs from "fs";
+import path from "path";
 import { tables } from "./DocsPageShape";
 import { SECURITY_CONNECTED_SIGNALS } from "./AiObservabilityDocsPages";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
@@ -216,6 +218,54 @@ describe("the Connected Signals page", () => {
 
     expect(flat(section("Where you see it"))).toContain(
       `on the page of each ${nouns.slice(0, -1).join(", ")} and ${nouns[nouns.length - 1]}:`,
+    );
+  });
+
+  /*
+   * The records with a Security Events page of their own (#9547, #9628):
+   * the ones whose Security card opens it, which the docs name in the
+   * Security card's order. A cloud resource and a serverless function have
+   * none yet.
+   */
+  it("names every kind of record with a Security Events page of its own, and no other", () => {
+    const model: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../FeatureSet/Dashboard/src/Components/SecurityConnections/SecurityConnectionsModel.ts",
+      ),
+      "utf8",
+    );
+    const start: number = model.indexOf(
+      "export const RECORD_SECURITY_EVENTS_PAGES",
+    );
+    const pages: string = model.slice(start, model.indexOf("};", start));
+    const withPages: Array<SecurityConnectionKind> = Array.from(
+      pages.matchAll(/\[SecurityConnectionKind\.(\w+)\]:/g),
+    ).map((match: RegExpMatchArray): SecurityConnectionKind => {
+      return match[1] as SecurityConnectionKind;
+    });
+    const named: Array<SecurityConnectionKind> =
+      SECURITY_CONNECTION_KINDS.filter(
+        (kind: SecurityConnectionKind): boolean => {
+          return withPages.includes(kind);
+        },
+      );
+
+    expect([...withPages].sort()).toEqual([...named].sort());
+    expect(named).toEqual([
+      SecurityConnectionKind.Host,
+      SecurityConnectionKind.DockerHost,
+      SecurityConnectionKind.PodmanHost,
+      SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.OpenStackCloud,
+      SecurityConnectionKind.NetworkDevice,
+      SecurityConnectionKind.Service,
+    ]);
+    expect(flat(section("Where you see it"))).toContain(
+      `${bold("Security Events")} in the menu of a host, a Docker or Podman host, a Kubernetes cluster, an OpenStack cloud, a network device and a service, beside its logs:`,
+    );
+    expect(flat(section("Where you see it"))).toContain(
+      "A Docker or Podman host's own logs are its containers' logs, and a service's events are those read from its logs and traces.",
     );
   });
 

@@ -28,17 +28,18 @@ import { ownersToTell, tellOwnersAdded } from "./OwnersAdded";
 
 /*
  * THE "YOU WERE ADDED AS AN OWNER" JOBS OF EVERY RECORD WHOSE NEW OWNERS
- * WERE NEVER TOLD (#9681, #9700).
+ * WERE NEVER TOLD (#9681, #9700, #9758).
  *
  * An owner rule whose Notify Owners is on writes each owner it adds not
  * notified yet, and so does a person adding an owner on an Owners page. For
  * services, apps and infrastructure (hosts, clusters, databases, queues,
  * cloud resources and the rest), dashboards, workflows, runbooks, on-call
- * policies, schedules and incoming call policies, no job read those rows,
- * so nobody was told, whatever Notify Owners said. Each now has a job of
- * its own (Workers/Jobs/<Record>Owners/SendOwnerAddedNotification), every
- * one a ResourceOwnerAddedJob run here, on the backlog every owner-added job
- * runs on (OwnersAdded):
+ * policies, schedules and incoming call policies, and for monitor groups and
+ * runners, which have no owner rules, no job read those rows, so nobody was
+ * told, whatever Notify Owners said. Each now has a job of its own
+ * (Workers/Jobs/<Record>Owners/SendOwnerAddedNotification), every one a
+ * ResourceOwnerAddedJob run here, on the backlog every owner-added job runs
+ * on (OwnersAdded):
  *
  *   - each record's new owner rows, team rows and user rows together, each
  *     person once, each row taken by one run alone, and a worker stopped
@@ -55,8 +56,10 @@ import { ownersToTell, tellOwnersAdded } from "./OwnersAdded";
  *     call, a push notification, and Slack, Microsoft Teams, Mattermost and
  *     Telegram messages made from the email's subject and the text. No
  *     WhatsApp message: WhatsApp delivers only Meta-approved templates and
- *     none is approved for these events, so none is handed over and
- *     sendUserNotification skips the channel, as it is written to.
+ *     none is approved for these events (Types/WhatsApp/WhatsAppEventTemplates),
+ *     so none is handed over and sendUserNotification skips the channel, as
+ *     it is written to - and Notification Settings offers no WhatsApp
+ *     switch for them (#9715).
  *
  * The owner rows already waiting when the jobs came were marked told by a
  * migration (MarkOwnersAddedBeforeNotificationsAsTold), so the first run

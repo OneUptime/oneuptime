@@ -15,7 +15,6 @@ import NotificationSettingEventType from "../../../Types/NotificationSetting/Not
 import ObjectID from "../../../Types/ObjectID";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
-import { WhatsAppMessagePayload } from "../../../Types/WhatsApp/WhatsAppMessage";
 import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
 import DatabaseConfig from "../../DatabaseConfig";
 import AccessTokenService from "../../Services/AccessTokenService";
@@ -52,8 +51,9 @@ import CaptureSpan from "./CaptureSpan";
  *
  * How: SEND_EXCEPTION_ASSIGNED_NOTIFICATION, through each person's own
  * notification settings (User Settings > Notification Settings), as every
- * other event: email, SMS, call, push, WhatsApp, Telegram, Slack, Microsoft
- * Teams, webhooks - the channels they switched on. The setting is seeded,
+ * other event: email, SMS, call, push, Telegram, Slack, Microsoft Teams,
+ * webhooks - the channels they switched on (not WhatsApp, which has no
+ * approved template for it: see buildMessages). The setting is seeded,
  * email on, for a member who joined before it existed.
  */
 
@@ -255,7 +255,14 @@ export default class ExceptionAssignmentNotifications {
     return recipients;
   }
 
-  // The messages, one per channel, as every owner-added job sends them.
+  /*
+   * The messages, one per channel, as every owner-added job sends them. No
+   * WhatsApp message: WhatsApp delivers only Meta-approved templates and
+   * none is approved for an assigned exception
+   * (Types/WhatsApp/WhatsAppEventTemplates), so none is handed over and
+   * sendUserNotification skips the channel. The plain body it used to hand
+   * over was refused, a failed WhatsApp log each time (#9715).
+   */
   public static buildMessages(
     facts: ExceptionAssignmentFacts,
     recipient: ExceptionAssignmentRecipient,
@@ -264,7 +271,6 @@ export default class ExceptionAssignmentNotifications {
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
-    whatsAppMessage: WhatsAppMessagePayload;
   } {
     const assignedTo: string = facts.teamName
       ? `to the team ${facts.teamName}, which you are on`
@@ -316,13 +322,6 @@ export default class ExceptionAssignmentNotifications {
         tag: `exception-assigned-${facts.telemetryExceptionId.toString()}-${recipient.userId.toString()}`,
         requireInteraction: false,
       }),
-      /*
-       * No WhatsApp template is registered for this event: a plain body is
-       * sent instead, as the SLO and network device owner-added jobs do.
-       */
-      whatsAppMessage: {
-        body: sms.message,
-      },
     };
   }
 

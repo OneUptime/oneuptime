@@ -40,7 +40,7 @@ flowchart TB
 
 ![L'elenco «Chiavi di acquisizione», con «Crea chiave di acquisizione» evidenziato](screen:ingestion-keys)
 
-La nuova chiave si apre nella sua pagina. Copia la sua **Chiave segreta**: è il token che l'SDK invia come `x-oneuptime-token`.
+La nuova chiave si apre nella sua pagina. Copia la sua **Chiave segreta**: è il token che l'SDK invia come `x-oneuptime-token`. Una chiave Browser è pensata per essere pubblica: funziona solo dalle origini che elenchi, invia solo telemetria del browser e riproduzioni delle sessioni, e ha un limite di richieste. Non mettere mai una chiave Server in una pagina.
 
 ![La pagina di una chiave di acquisizione della telemetria, con la sua chiave segreta](/docs/static/images/TelemetryIngestionKeyView.png)
 

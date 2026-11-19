@@ -18,7 +18,13 @@ import ts from "typescript";
  *     `let spy: jest.SpiedFunction<...> = jest.spyOn(...)` is TS2322;
  *   - @types/jest's jest.Mock<T> takes the mock's RETURN type, so
  *     jest.Mock<(rows) => Promise<void>> is a mock that returns a
- *     function, and its mockResolvedValue takes never (TS2345).
+ *     function, and its mockResolvedValue takes never (TS2345);
+ *   - jest.Mock with no function type, bare or given a return type, is not
+ *     what jest.fn returns either, for the same lastCall, so
+ *     `const onAdded: jest.Mock = jest.fn();` is TS2322. Cast
+ *     (`jest.fn() as never`) it compiles, so only a jest.fn() handed over
+ *     as it is is refused: DeviceMonitorsCardKinds (#9725) wrote it twice,
+ *     and the rule as first written let it through.
  *
  * jest transpiles tests without a type check, so such a suite passes and
  * `npm run compile-tests` (Common) or `npm run compile` (App) turns red for
@@ -98,6 +104,42 @@ function isFunctionType(node: ts.TypeNode | undefined): boolean {
   return ts.isFunctionTypeNode(node) || ts.isTypeQueryNode(node);
 }
 
+/*
+ * Whether a value is jest.fn() from @jest/globals, as it is: a call of
+ * `<jest>.fn`, or of a method chained on one (`jest.fn().mockReturnValue(1)`,
+ * which returns the same mock). A cast (`jest.fn() as never`) is not one.
+ */
+function isUncastJestFn(
+  node: ts.Expression | undefined,
+  jestName: string,
+): boolean {
+  let current: ts.Expression | undefined = node;
+
+  while (current && ts.isParenthesizedExpression(current)) {
+    current = current.expression;
+  }
+
+  while (current && ts.isCallExpression(current)) {
+    const callee: ts.Expression = current.expression;
+
+    if (!ts.isPropertyAccessExpression(callee)) {
+      return false;
+    }
+
+    if (
+      ts.isIdentifier(callee.expression) &&
+      callee.expression.text === jestName &&
+      callee.name.text === "fn"
+    ) {
+      return true;
+    }
+
+    current = callee.expression;
+  }
+
+  return false;
+}
+
 // Each annotation the rule refuses in `source`, as "<label>:<line> <what to write>".
 export function findJestTypeTraps(
   label: string,
@@ -119,7 +161,9 @@ export function findJestTypeTraps(
    * Only a file that imports `jest` from @jest/globals: with the global
    * `jest`, jest.spyOn and jest.SpiedFunction are both @types/jest's.
    */
-  if (!jestImportedAs(sourceFile)) {
+  const jestName: string | null = jestImportedAs(sourceFile);
+
+  if (!jestName) {
     return [];
   }
 
@@ -144,6 +188,15 @@ export function findJestTypeTraps(
       } else if (kind === "Mock" && isFunctionType(node.typeArguments?.[0])) {
         found.push(
           `${label}:${line} jest.Mock<function> - write Mock<function> from "jest-mock": @types/jest's jest.Mock takes the mock's return type`,
+        );
+      } else if (
+        kind === "Mock" &&
+        ts.isVariableDeclaration(node.parent) &&
+        node.parent.type === node &&
+        isUncastJestFn(node.parent.initializer, jestName)
+      ) {
+        found.push(
+          `${label}:${line} jest.Mock = jest.fn() - write Mock<function> from "jest-mock": jest.fn from @jest/globals returns it`,
         );
       }
     }
@@ -232,6 +285,34 @@ describe("the rule, on the shapes that broke compile-tests on 2026-11-15", () =>
     ]);
   });
 
+  test("refuses jest.Mock, bare or given a return type, holding jest.fn() as it is (#9725)", () => {
+    expect(
+      findJestTypeTraps(
+        "DeviceMonitorsCardKinds.test.tsx",
+        IMPORTS_JEST +
+          "const onMonitorAdded: jest.Mock = jest.fn();\n" +
+          "const save: jest.Mock<Promise<void>> = jest.fn();\n" +
+          "const read: jest.Mock = jest.fn().mockReturnValue(1);\n" +
+          "const wrapped: jest.Mock = (jest.fn());\n",
+      ),
+    ).toEqual([
+      'DeviceMonitorsCardKinds.test.tsx:2 jest.Mock = jest.fn() - write Mock<function> from "jest-mock": jest.fn from @jest/globals returns it',
+      'DeviceMonitorsCardKinds.test.tsx:3 jest.Mock = jest.fn() - write Mock<function> from "jest-mock": jest.fn from @jest/globals returns it',
+      'DeviceMonitorsCardKinds.test.tsx:4 jest.Mock = jest.fn() - write Mock<function> from "jest-mock": jest.fn from @jest/globals returns it',
+      'DeviceMonitorsCardKinds.test.tsx:5 jest.Mock = jest.fn() - write Mock<function> from "jest-mock": jest.fn from @jest/globals returns it',
+    ]);
+  });
+
+  test("refuses jest.fn() as it is under the name jest was imported as", () => {
+    expect(
+      findJestTypeTraps(
+        "Renamed.test.ts",
+        'import { jest as j, test } from "@jest/globals";\n' +
+          "const onAdded: jest.Mock = j.fn();\n",
+      ),
+    ).toHaveLength(1);
+  });
+
   test("finds jest imported under another name too, and among other imports", () => {
     expect(
       findJestTypeTraps(
@@ -265,6 +346,21 @@ describe("the rule, on what it accepts", () => {
           "const bare: jest.Mock = jest.fn() as never;\n" +
           "let fetchSpy: jest.SpyInstance;\n" +
           "let post: jest.MockedFunction<typeof API.post>;\n",
+      ),
+    ).toEqual([]);
+  });
+
+  test("jest.Mock holding a cast, another value, or nothing yet", () => {
+    expect(
+      findJestTypeTraps(
+        "Held.test.ts",
+        IMPORTS_JEST +
+          "const cast: jest.Mock = jest.fn() as never;\n" +
+          "const castAgain: jest.Mock = jest.fn() as unknown as jest.Mock;\n" +
+          "const other: jest.Mock = makeMock();\n" +
+          "const spy: jest.Mock = jest.spyOn(API, 'post') as never;\n" +
+          "let later: jest.Mock;\n" +
+          "function take(mock: jest.Mock): void {}\n",
       ),
     ).toEqual([]);
   });
@@ -361,6 +457,33 @@ describe("the rule is tsc's, not a style", () => {
           'import { SpyInstance } from "jest-mock";\n' +
           'export const spy: SpyInstance<typeof store.read> = jest.spyOn(store, "read");\n' +
           "spy.mockResolvedValue(2);\n",
+      ),
+    ).toEqual([]);
+  }, 120000);
+
+  test("jest.Mock holding jest.fn() as it is does not compile; Mock does, and a cast does (#9725)", () => {
+    expect(
+      compile(
+        FIXTURE_HEAD + "export const onMonitorAdded: jest.Mock = jest.fn();\n",
+      ),
+    ).toContain("TS2322");
+    expect(
+      compile(
+        FIXTURE_HEAD +
+          "export const save: jest.Mock<Promise<void>> = jest.fn();\n",
+      ),
+    ).toContain("TS2322");
+    expect(
+      compile(
+        FIXTURE_HEAD +
+          'import { Mock } from "jest-mock";\n' +
+          "export const onMonitorAdded: Mock<() => void> = jest.fn<() => void>();\n" +
+          "onMonitorAdded();\n",
+      ),
+    ).toEqual([]);
+    expect(
+      compile(
+        FIXTURE_HEAD + "export const cast: jest.Mock = jest.fn() as never;\n",
       ),
     ).toEqual([]);
   }, 120000);

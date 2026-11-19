@@ -1128,6 +1128,33 @@ describe("what names a row with no name of its own", () => {
     );
   });
 
+  /*
+   * Turning a framework off for a resource, and why (#9629): the entry says
+   * which framework and requirement, never only the setting's id, and the
+   * switch and the reason written for it are each a change it records.
+   */
+  test("a compliance setting is named by its framework and requirement, and its switch and reason are recorded", () => {
+    const config: EnableAuditLogOn | undefined = BY_TABLE.get(
+      "DataSecurityComplianceSetting",
+    )!.enableAuditLogOn;
+
+    expect(config?.resourceNameColumns).toEqual(["framework", "requirement"]);
+    expect(config?.create).toBe(true);
+    expect(config?.update).toBe(true);
+    expect(config?.delete).toBe(true);
+
+    for (const column of ["isEnabled", "note"]) {
+      expect([column, (config?.ignoreColumns || []).includes(column)]).toEqual([
+        column,
+        false,
+      ]);
+      expect([column, (config?.redactColumns || []).includes(column)]).toEqual([
+        column,
+        false,
+      ]);
+    }
+  });
+
   test("a model with a name of its own is named by it, and nothing else", () => {
     for (const tableName of ["Monitor", "Incident", "Workflow", "Team"]) {
       expect(

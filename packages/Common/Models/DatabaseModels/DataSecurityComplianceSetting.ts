@@ -111,7 +111,17 @@ const createOnlyColumnAccess: {
 
 @EnableDocumentation()
 @EnableMCP()
-@EnableAuditLog()
+/*
+ * Every change is recorded: who turned a framework or requirement off, on
+ * or back, and the reason written for it (#9629). An entry is named by the
+ * framework and requirement ("PCI DSS 3.4"), never by the setting's id.
+ */
+@EnableAuditLog({
+  create: true,
+  update: true,
+  delete: true,
+  resourceNameColumns: ["framework", "requirement"],
+})
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
@@ -275,6 +285,65 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     nullable: true,
   })
   public note?: string = undefined;
+
+  /*
+   * Who last turned it off, and when (#9629): an auditor's first question
+   * about a framework that does not apply here. The row is made the first
+   * time it is turned off and only changed after that, so who made it may
+   * not be who turned it off last. OneUptime writes both whenever it goes
+   * from on to off, and clears them when it is turned on again.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "turnedOffByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Turned Off By User",
+    description:
+      "Relation to the user who last turned the framework or requirement off for the resource.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "turnedOffByUserId" })
+  public turnedOffByUser?: User = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Turned Off By User ID",
+    description:
+      "ID of the user who last turned the framework or requirement off for the resource. Empty while it applies, or when an API key turned it off.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public turnedOffByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Turned Off At",
+    description:
+      "When the framework or requirement was last turned off for the resource. Empty while it applies.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public turnedOffAt?: Date = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

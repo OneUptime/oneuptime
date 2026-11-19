@@ -888,6 +888,17 @@ export const RECORD_SECURITY_EVENTS_PAGES: Partial<
   [SecurityConnectionKind.Host]: PageMap.HOST_VIEW_SECURITY_EVENTS,
   [SecurityConnectionKind.KubernetesCluster]:
     PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
+  /*
+   * A Docker or Podman host's, an OpenStack cloud's and a service's (#9628).
+   * A cloud resource and a serverless function have none: what names a
+   * cloud resource in its account's audit log is not where a scope reads,
+   * and a function's logs are filed under the service of its name.
+   */
+  [SecurityConnectionKind.DockerHost]: PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.PodmanHost]: PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.OpenStackCloud]:
+    PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.Service]: PageMap.SERVICE_VIEW_SECURITY_EVENTS,
 };
 
 /*

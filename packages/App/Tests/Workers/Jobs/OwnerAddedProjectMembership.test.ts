@@ -345,6 +345,18 @@ jest.mock("Common/Server/Services/IncomingCallPolicyOwnerTeamService", () => {
 jest.mock("Common/Server/Services/IncomingCallPolicyOwnerUserService", () => {
   return mockOwnerRowService();
 });
+jest.mock("Common/Server/Services/MonitorGroupOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/MonitorGroupOwnerUserService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RunnerOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/RunnerOwnerUserService", () => {
+  return mockOwnerRowService();
+});
 
 // The resources the notifications are about.
 jest.mock("Common/Server/Services/AIAgentService", () => {
@@ -822,6 +834,30 @@ jest.mock("Common/Server/Services/IncomingCallPolicyService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/MonitorGroupService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/RunnerService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AIAgentOwnerTeamService from "Common/Server/Services/AIAgentOwnerTeamService";
 import AIAgentOwnerUserService from "Common/Server/Services/AIAgentOwnerUserService";
@@ -936,6 +972,12 @@ import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPo
 import IncomingCallPolicyOwnerTeamService from "Common/Server/Services/IncomingCallPolicyOwnerTeamService";
 import IncomingCallPolicyOwnerUserService from "Common/Server/Services/IncomingCallPolicyOwnerUserService";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
+import MonitorGroupOwnerTeamService from "Common/Server/Services/MonitorGroupOwnerTeamService";
+import MonitorGroupOwnerUserService from "Common/Server/Services/MonitorGroupOwnerUserService";
+import MonitorGroupService from "Common/Server/Services/MonitorGroupService";
+import RunnerOwnerTeamService from "Common/Server/Services/RunnerOwnerTeamService";
+import RunnerOwnerUserService from "Common/Server/Services/RunnerOwnerUserService";
+import RunnerService from "Common/Server/Services/RunnerService";
 
 // Imported for their side effect: RunCron (mocked above) records each handler.
 import "../../../FeatureSet/Workers/Jobs/AIAgent/SendOwnerAddedNotification";
@@ -975,6 +1017,8 @@ import "../../../FeatureSet/Workers/Jobs/RunbookOwners/SendOwnerAddedNotificatio
 import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyScheduleOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IncomingCallPolicyOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/MonitorGroupOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RunnerOwners/SendOwnerAddedNotification";
 
 interface RowServiceMock {
   findBy: jest.Mock;
@@ -1326,6 +1370,21 @@ const OWNER_ADDED_CASES: Array<OwnerAddedCase> = [
     resourceIdColumn: "incomingCallPolicyId",
     resourceService:
       IncomingCallPolicyService as unknown as ResourceServiceMock,
+  },
+  // #9758: a monitor group's and a Runner's, added on their Owners pages.
+  {
+    job: "MonitorGroupOwner:SendOwnerAddedNotification",
+    teamService: MonitorGroupOwnerTeamService as unknown as RowServiceMock,
+    userService: MonitorGroupOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "monitorGroupId",
+    resourceService: MonitorGroupService as unknown as ResourceServiceMock,
+  },
+  {
+    job: "RunnerOwner:SendOwnerAddedNotification",
+    teamService: RunnerOwnerTeamService as unknown as RowServiceMock,
+    userService: RunnerOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "runnerId",
+    resourceService: RunnerService as unknown as ResourceServiceMock,
   },
 ];
 

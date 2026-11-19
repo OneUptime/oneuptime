@@ -45,7 +45,7 @@ import OnCallCalendarFeedUtil from "../../../Types/OnCallDutyPolicy/OnCallCalend
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
 import Timezone from "../../../Types/Timezone";
-import { WhatsAppTemplateIds } from "../../../Types/WhatsApp/WhatsAppTemplates";
+import { hasWhatsAppTemplate } from "../../../Types/WhatsApp/WhatsAppEventTemplates";
 import URL from "../../../Types/API/URL";
 import { WhatsAppMessagePayload } from "../../../Types/WhatsApp/WhatsAppMessage";
 
@@ -2144,26 +2144,25 @@ export default class OnCallShiftReminderRunner {
   /**
    * WhatsApp delivers Meta-approved TEMPLATE messages only: a body-only
    * payload is rejected by the notification service before it ever reaches
-   * Meta, which leaves a failed WhatsAppLog row and delivers nothing. No
-   * template exists for the two new event types, and registering one is a
-   * Meta approval rather than a code change — so:
+   * Meta, which leaves a failed WhatsAppLog row and delivers nothing. Each
+   * event's template is the one Types/WhatsApp/WhatsAppEventTemplates writes
+   * against it - the map Notification Settings reads to offer the WhatsApp
+   * switch at all (#9715):
    *
-   *   - a shift reminder (and its catch-up) reuses the approved
+   *   - a shift reminder (and its catch-up) goes through the approved
    *     "you are next on-call for <policy> on <schedule>" template, whose
    *     wording fits it exactly;
    *   - a reassignment, which no approved template describes, sends no
    *     WhatsApp payload at all, so the notification service skips the
-   *     channel cleanly instead of failing it.
+   *     channel cleanly instead of failing it (and the page offers no
+   *     WhatsApp switch for it).
    *
    * Email, SMS, call and push always carry the full text either way.
    */
   public static buildWhatsAppMessage(
     message: ShiftReminderMessage,
   ): WhatsAppMessagePayload | undefined {
-    if (
-      message.eventType !==
-      NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS
-    ) {
+    if (!hasWhatsAppTemplate(message.eventType)) {
       return undefined;
     }
 
@@ -2171,7 +2170,7 @@ export default class OnCallShiftReminderRunner {
 
     try {
       return createWhatsAppMessageFromTemplate({
-        templateKey: WhatsAppTemplateIds.OnCallUserIsNextNotification,
+        eventType: message.eventType,
         actionLink: scheduleLink || undefined,
         templateVariables: {
           on_call_policy_name: message.vars["policyNames"] || "",

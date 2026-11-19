@@ -108,8 +108,16 @@ const PROBE_PICKERS: Array<Permission> = [
  * apart in a picker. Pinned: a column added to the list is a decision.
  */
 const PROBE_PICKER_COLUMNS: Array<string> = [
+  /*
+   * Whether the probe is behind - its monitors checked, or its devices
+   * polled, later than their interval (#9488) - read as its status is.
+   */
+  "checksLastLateAt",
+  "checksLateSince",
   "connectionStatus",
   "description",
+  "devicePollsLastLateAt",
+  "devicePollsLateSince",
   "iconFile",
   "iconFileId",
   "lastAlive",

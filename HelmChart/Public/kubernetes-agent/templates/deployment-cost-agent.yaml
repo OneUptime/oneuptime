@@ -53,9 +53,22 @@ spec:
             - name: CLUSTER_NAME
               value: {{ include "kubernetes-agent.clusterName" . | quote }}
             # The external engine when cost.engine.url is set, else the
-            # bundled OpenCost Service.
+            # bundled OpenCost Service; "auto" when the agent is to find the
+            # cluster's own engine (cost.engine.url: auto).
             - name: COST_ENGINE_URL
               value: {{ include "kubernetes-agent.costEngineUrl" . | quote }}
+            {{- if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}
+            # The bundled engine is the fallback: the agent reads the
+            # cluster's own OpenCost or Kubecost first when it runs one
+            # (cost.engine.preferExisting, off with a rate card of the
+            # bundled engine's own), and says so to OneUptime.
+            - name: COST_PREFER_EXISTING_ENGINE
+              value: {{ include "kubernetes-agent.costEnginePreferExisting" . | quote }}
+            # Whether the chart gave the bundled engine a rate card, for
+            # saying where its prices come from when the engine cannot.
+            - name: COST_ENGINE_RATE_CARD
+              value: {{ ternary "true" "false" (eq (toString .Values.cost.opencost.customPricing.enabled) "true") | quote }}
+            {{- end }}
             {{- if .Values.cost.engine.allocationPath }}
             - name: COST_ALLOCATION_PATH
               value: {{ .Values.cost.engine.allocationPath | quote }}

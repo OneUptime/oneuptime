@@ -18,6 +18,7 @@ import ServiceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Serv
 import CloudResourceViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/SideMenu";
 import DockerHostSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/SideMenu";
 import PodmanHostSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/SideMenu";
+import OpenStackCloudSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SideMenu";
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import { forgetResourceScopes } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/UseResourceDataScope";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -575,6 +576,138 @@ describe.each(DATA_STORE_RESOURCE_MENUS)(
 
       expect(sectionTitlesInOrder()).not.toContain("Security");
       expect(scopeSpy).not.toHaveBeenCalled();
+    });
+  },
+);
+
+/*
+ * A Docker or Podman host, an OpenStack cloud and a service list their own
+ * Security Events right after their Logs (#9628), as a host does, and only
+ * where the product is on, shown, in use and readable.
+ */
+interface SecurityEventsMenu {
+  section: string;
+  overview: PageMap;
+  securityEvents: PageMap;
+  draw: (modelId: ObjectID) => ReactElement;
+}
+
+const SECURITY_EVENTS_MENUS: Array<[string, SecurityEventsMenu]> = [
+  [
+    "a Docker host",
+    {
+      section: "Observability",
+      overview: PageMap.DOCKER_HOST_VIEW,
+      securityEvents: PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <DockerHostSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  [
+    "a Podman host",
+    {
+      section: "Observability",
+      overview: PageMap.PODMAN_HOST_VIEW,
+      securityEvents: PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <PodmanHostSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  [
+    "an OpenStack cloud",
+    {
+      section: "Telemetry",
+      overview: PageMap.OPENSTACK_CLOUD_VIEW,
+      securityEvents: PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <OpenStackCloudSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+  [
+    "a service",
+    {
+      section: "Telemetry",
+      overview: PageMap.SERVICE_VIEW,
+      securityEvents: PageMap.SERVICE_VIEW_SECURITY_EVENTS,
+      draw: (modelId: ObjectID): ReactElement => {
+        return <ServiceSideMenu modelId={modelId} />;
+      },
+    },
+  ],
+];
+
+describe.each(SECURITY_EVENTS_MENUS)(
+  "%s's menu, Security Events",
+  (_label: string, menu: SecurityEventsMenu) => {
+    beforeEach(() => {
+      goTo(pageOf(menu.overview, RESOURCE_ID));
+    });
+
+    async function renderResourceMenu(): Promise<void> {
+      await renderMenu(menu.draw(RESOURCE_ID));
+    }
+
+    test("lists Security Events right after its Logs, opening its own page", async () => {
+      await renderResourceMenu();
+
+      const links: Array<MenuLink> = linksIn(menu.section);
+      const names: Array<string> = titles(links);
+
+      expect(names.indexOf("Security Events")).toBe(names.indexOf("Logs") + 1);
+      expect(
+        links.find((link: MenuLink): boolean => {
+          return link.title === "Security Events";
+        })?.href,
+      ).toBe(pageOf(menu.securityEvents, RESOURCE_ID));
+    });
+
+    test("its Security Events page lights Security Events", async () => {
+      goTo(pageOf(menu.securityEvents, RESOURCE_ID));
+
+      await renderResourceMenu();
+
+      expect(activeLinkTitles()).toEqual(["Security Events"]);
+    });
+
+    test("leaves Security Events out in a project that does not use it", async () => {
+      givenProducts({ usage: {} });
+
+      await renderResourceMenu();
+
+      expect(titles(linksIn(menu.section))).not.toContain("Security Events");
+      expect(titles(linksIn(menu.section))).toContain("Logs");
+    });
+
+    test("leaves Security Events out while it is switched off on the server", async () => {
+      givenProducts({
+        offOnServer: {
+          [ProductKey.SecurityEvents]: ServerProductOffReason.SwitchedOff,
+        },
+      });
+
+      await renderResourceMenu();
+
+      expect(titles(linksIn(menu.section))).not.toContain("Security Events");
+    });
+
+    test("leaves Security Events out of a project that hid it", async () => {
+      givenProducts({ hidden: [ProductKey.SecurityEvents] });
+
+      await renderResourceMenu();
+
+      expect(titles(linksIn(menu.section))).not.toContain("Security Events");
+    });
+
+    test("leaves Security Events out for someone who may not read security events", async () => {
+      isAllowed = false;
+
+      await renderResourceMenu();
+
+      expect(titles(linksIn(menu.section))).not.toContain("Security Events");
+      expect(titles(linksIn(menu.section))).toContain("Logs");
     });
   },
 );

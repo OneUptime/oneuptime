@@ -994,11 +994,11 @@ describe("Slo:EvaluateSlos worker - request SLIs", () => {
       const sent: {
         emailEnvelope: { vars: Record<string, string> };
         smsMessage: { message: string };
-        whatsAppMessage: { body: string };
+        whatsAppMessage?: unknown;
       } = notificationService["sendUserNotification"]!.mock.calls[0]![0] as {
         emailEnvelope: { vars: Record<string, string> };
         smsMessage: { message: string };
-        whatsAppMessage: { body: string };
+        whatsAppMessage?: unknown;
       };
 
       expect(sent.emailEnvelope.vars["errorBudgetRemainingRequests"]).toBe(
@@ -1007,10 +1007,15 @@ describe("Slo:EvaluateSlos worker - request SLIs", () => {
       expect(sent.emailEnvelope.vars["errorBudgetRemainingMinutes"]).toBe(
         undefined,
       );
-      expect(sent.whatsAppMessage.body).toContain(
+      expect(sent.smsMessage.message).toContain(
         "Error budget remaining: -5% (-50 failed requests)",
       );
-      expect(sent.whatsAppMessage.body).not.toContain("minutes");
+      expect(sent.smsMessage.message).not.toContain("minutes");
+      /*
+       * No WhatsApp message: none is approved for an SLO's status, and the
+       * plain body it used to be handed reached nobody (#9715).
+       */
+      expect(sent.whatsAppMessage).toBeUndefined();
     });
   });
 

@@ -19,6 +19,12 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GenericObject from "Common/Types/GenericObject";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import { getKubernetesCostEfficiency } from "Common/Types/Kubernetes/KubernetesCostEfficiency";
+import {
+  KUBERNETES_COST_IDLE_NAMESPACE,
+  KUBERNETES_COST_UNALLOCATED_NAMESPACE,
+  isKubernetesCostSentinelNamespace,
+} from "Common/Types/Kubernetes/KubernetesCostIngest";
 
 /*
  * Client-side aggregation helpers for the KubernetesCostAllocation
@@ -29,15 +35,17 @@ import ObjectID from "Common/Types/ObjectID";
 
 /*
  * Engine sentinels for non-workload capacity, stored in the `namespace`
- * column (see KubernetesCostIngestService).
+ * column: the ingest contract's names (KubernetesCostIngest), so the pages
+ * and the server split idle spend off by the same ones.
  */
-export const IDLE_NAMESPACE: string = "__idle__";
-export const UNALLOCATED_NAMESPACE: string = "__unallocated__";
+export const IDLE_NAMESPACE: string = KUBERNETES_COST_IDLE_NAMESPACE;
+export const UNALLOCATED_NAMESPACE: string =
+  KUBERNETES_COST_UNALLOCATED_NAMESPACE;
 
 export const isSentinelNamespace: (namespace: string) => boolean = (
   namespace: string,
 ): boolean => {
-  return namespace === IDLE_NAMESPACE || namespace === UNALLOCATED_NAMESPACE;
+  return isKubernetesCostSentinelNamespace(namespace);
 };
 
 export interface CostTrendPoint {
@@ -430,9 +438,99 @@ const toGroupedTotals: (
   return totals;
 };
 
+/*
+ * THE EFFICIENCY EVERY COST VIEW SHOWS (#9635).
+ *
+ * A group's efficiency counts each of its rows by what the row's CPU and
+ * memory cost: the sum of the rows' weightedEfficiency over the sum of their
+ * efficiencyWeight (Common/Types/Kubernetes/KubernetesCostEfficiency says
+ * why, and is what turns the two sums into the figure). These two reads,
+ * grouped like the figures they sit beside, are how the cluster overview's
+ * Cost card, the cluster's Costs page and the project's Costs page all read
+ * efficiency, so no two of them can show different figures for the same
+ * rows. Idle and unallocated capacity weighs nothing, so a group of it has
+ * no efficiency rather than a 0% one.
+ */
+export interface CostEfficiencyReads {
+  // Sum of weightedEfficiency per group.
+  weightedEfficiency: AggregatedResult;
+  // Sum of efficiencyWeight per group, grouped alike.
+  efficiencyWeight: AggregatedResult;
+}
+
+export const fetchCostEfficiencyReads: (data: {
+  params: FetchCostParams;
+  groupBy?: GroupBy<KubernetesCostAllocation> | undefined;
+}) => Promise<CostEfficiencyReads> = async (data: {
+  params: FetchCostParams;
+  groupBy?: GroupBy<KubernetesCostAllocation> | undefined;
+}): Promise<CostEfficiencyReads> => {
+  const [weightedEfficiency, efficiencyWeight] = await Promise.all([
+    runAggregate(
+      buildAggregateBy({
+        params: data.params,
+        aggregateColumnName: "weightedEfficiency",
+        aggregationType: AggregationType.Sum,
+        groupBy: data.groupBy,
+        aggregationInterval: AggregationInterval.Total,
+      }),
+    ),
+    runAggregate(
+      buildAggregateBy({
+        params: data.params,
+        aggregateColumnName: "efficiencyWeight",
+        aggregationType: AggregationType.Sum,
+        groupBy: data.groupBy,
+        aggregationInterval: AggregationInterval.Total,
+      }),
+    ),
+  ]);
+
+  return { weightedEfficiency, efficiencyWeight };
+};
+
+/*
+ * Each group's efficiency (0-1 and above), keyed as toGroupedTotals keys the
+ * group's other figures, or null for a group nothing in which cost anything
+ * to weigh by. With no group columns, the one key is "".
+ */
+export const toCostEfficiencies: (
+  reads: CostEfficiencyReads,
+  groupColumns: Array<string>,
+) => Map<string, number | null> = (
+  reads: CostEfficiencyReads,
+  groupColumns: Array<string>,
+): Map<string, number | null> => {
+  const weighted: GroupedTotals = toGroupedTotals(
+    reads.weightedEfficiency,
+    groupColumns,
+  );
+  const weights: GroupedTotals = toGroupedTotals(
+    reads.efficiencyWeight,
+    groupColumns,
+  );
+
+  const efficiencies: Map<string, number | null> = new Map<
+    string,
+    number | null
+  >();
+
+  for (const key of new Set<string>([...weighted.keys(), ...weights.keys()])) {
+    efficiencies.set(
+      key,
+      getKubernetesCostEfficiency({
+        weightedEfficiency: weighted.get(key) || 0,
+        weight: weights.get(key) || 0,
+      }),
+    );
+  }
+
+  return efficiencies;
+};
+
 /**
  * Whole-window spend per namespace, with cpu/ram/pv component splits and
- * average efficiency. Sentinel namespaces (__idle__ / __unallocated__)
+ * cost-weighted efficiency. Sentinel namespaces (__idle__ / __unallocated__)
  * are INCLUDED — the page splits them out for the idle tile.
  */
 export const fetchNamespaceBreakdown: (
@@ -450,7 +548,7 @@ export const fetchNamespaceBreakdown: (
     "pvCost",
   ];
 
-  const [totalsResults, efficiencyResult] = await Promise.all([
+  const [totalsResults, efficiencyReads] = await Promise.all([
     Promise.all(
       measures.map((measure: MeasureColumn): Promise<AggregatedResult> => {
         return runAggregate(
@@ -464,15 +562,7 @@ export const fetchNamespaceBreakdown: (
         );
       }),
     ),
-    runAggregate(
-      buildAggregateBy({
-        params,
-        aggregateColumnName: "totalEfficiency",
-        aggregationType: AggregationType.Avg,
-        groupBy,
-        aggregationInterval: AggregationInterval.Total,
-      }),
-    ),
+    fetchCostEfficiencyReads({ params, groupBy }),
   ]);
 
   const groupColumns: Array<string> = ["namespace"];
@@ -481,8 +571,8 @@ export const fetchNamespaceBreakdown: (
       return toGroupedTotals(result, groupColumns);
     },
   );
-  const efficiencyByNamespace: GroupedTotals = toGroupedTotals(
-    efficiencyResult,
+  const efficiencyByNamespace: Map<string, number | null> = toCostEfficiencies(
+    efficiencyReads,
     groupColumns,
   );
 
@@ -498,9 +588,7 @@ export const fetchNamespaceBreakdown: (
       pvCost,
       otherCost: Math.max(0, totalCost - cpuCost - ramCost - pvCost),
       totalCost,
-      efficiency: efficiencyByNamespace.has(namespace)
-        ? efficiencyByNamespace.get(namespace)!
-        : null,
+      efficiency: efficiencyByNamespace.get(namespace) ?? null,
     });
   }
 
@@ -524,7 +612,7 @@ export const fetchWorkloadBreakdown: (
     controllerName: true,
   };
 
-  const [costResult, efficiencyResult] = await Promise.all([
+  const [costResult, efficiencyReads] = await Promise.all([
     runAggregate(
       buildAggregateBy({
         params,
@@ -534,15 +622,7 @@ export const fetchWorkloadBreakdown: (
         aggregationInterval: AggregationInterval.Total,
       }),
     ),
-    runAggregate(
-      buildAggregateBy({
-        params,
-        aggregateColumnName: "totalEfficiency",
-        aggregationType: AggregationType.Avg,
-        groupBy,
-        aggregationInterval: AggregationInterval.Total,
-      }),
-    ),
+    fetchCostEfficiencyReads({ params, groupBy }),
   ]);
 
   const groupColumns: Array<string> = [
@@ -551,8 +631,8 @@ export const fetchWorkloadBreakdown: (
     "controllerName",
   ];
   const costs: GroupedTotals = toGroupedTotals(costResult, groupColumns);
-  const efficiencies: GroupedTotals = toGroupedTotals(
-    efficiencyResult,
+  const efficiencies: Map<string, number | null> = toCostEfficiencies(
+    efficiencyReads,
     groupColumns,
   );
 
@@ -567,7 +647,7 @@ export const fetchWorkloadBreakdown: (
       controllerKind: controllerKind || "",
       controllerName: controllerName || "",
       totalCost,
-      efficiency: efficiencies.has(key) ? efficiencies.get(key)! : null,
+      efficiency: efficiencies.get(key) ?? null,
     });
   }
 
@@ -578,7 +658,7 @@ export const fetchWorkloadBreakdown: (
 
 /**
  * Whole-window spend per cluster across the project, with idle share and
- * average efficiency. Powers the project-level Kubernetes Costs page.
+ * cost-weighted efficiency. Powers the project-level Kubernetes Costs page.
  */
 export const fetchClusterBreakdown: (params: {
   startDate: Date;
@@ -593,7 +673,7 @@ export const fetchClusterBreakdown: (params: {
   };
   const groupBy: GroupBy<KubernetesCostAllocation> = { clusterName: true };
 
-  const [totalResult, idleResult, efficiencyResult] = await Promise.all([
+  const [totalResult, idleResult, efficiencyReads] = await Promise.all([
     runAggregate(
       buildAggregateBy({
         params: fetchParams,
@@ -613,22 +693,14 @@ export const fetchClusterBreakdown: (params: {
         extraQuery: { namespace: IDLE_NAMESPACE },
       }),
     ),
-    runAggregate(
-      buildAggregateBy({
-        params: fetchParams,
-        aggregateColumnName: "totalEfficiency",
-        aggregationType: AggregationType.Avg,
-        groupBy,
-        aggregationInterval: AggregationInterval.Total,
-      }),
-    ),
+    fetchCostEfficiencyReads({ params: fetchParams, groupBy }),
   ]);
 
   const groupColumns: Array<string> = ["clusterName"];
   const totals: GroupedTotals = toGroupedTotals(totalResult, groupColumns);
   const idle: GroupedTotals = toGroupedTotals(idleResult, groupColumns);
-  const efficiencies: GroupedTotals = toGroupedTotals(
-    efficiencyResult,
+  const efficiencies: Map<string, number | null> = toCostEfficiencies(
+    efficiencyReads,
     groupColumns,
   );
 
@@ -640,9 +712,7 @@ export const fetchClusterBreakdown: (params: {
       totalCost,
       workloadCost: Math.max(0, totalCost - idleCost),
       idleCost,
-      efficiency: efficiencies.has(clusterName)
-        ? efficiencies.get(clusterName)!
-        : null,
+      efficiency: efficiencies.get(clusterName) ?? null,
     });
   }
 

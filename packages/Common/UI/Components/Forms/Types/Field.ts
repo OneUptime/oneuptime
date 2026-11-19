@@ -69,6 +69,12 @@ export interface CustomElementProps {
    * product's own controls are.
    */
   ariaDescribedby?: string | undefined;
+  /*
+   * Submits the form, as Enter in one of the form's text boxes does: for a
+   * custom control drawn as a text box (an invitation's email box, which
+   * suggests people as it is typed in), so Enter there still invites.
+   */
+  onEnterPress?: (() => void) | undefined;
 }
 
 export interface CategoryCheckboxProps {

@@ -26,7 +26,7 @@ Formuläret frågar också **Utlös den vid varje ny incident och varje nytt lar
 
 Vill du hellre guidas steg för steg, från din telefon till ett testlarm, klickar du på **Guidad installation**: på den tomma listan **Jourpolicyer** eller under **Så fungerar det**. Se [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
 
-Listan **Jourpolicyer** visar varje policys **Namn**, **Beskrivning**, **Etiketter** och **Ägare**. Markera policyer för att använda **Lägg till etiketter**, **Ta bort etiketter**, **Lägg till ägare**, **Ta bort ägare**, **Arkivera** eller **Exportera JSON**, eller för att ta bort dem. **Importera JSON** skapar policyer från en export: en export innehåller en policys egna inställningar, inte dess eskaleringsregler eller ägare.
+Listan **Jourpolicyer** visar varje policys **Namn**, **Larmas först**, **Beskrivning**, **Etiketter** och **Ägare**. **Larmas först** visar vem policyns första eskaleringsregel larmar: dess jourscheman, vart och ett med den som har jour i det just nu, dess team och personerna den nämner, eller **Inga eskaleringsregler** eller **Inga mottagare** när den inte larmar någon. Markera policyer för att använda **Lägg till etiketter**, **Ta bort etiketter**, **Lägg till ägare**, **Ta bort ägare**, **Arkivera** eller **Exportera JSON**, eller för att ta bort dem. **Importera JSON** skapar policyer från en export: en export innehåller en policys egna inställningar, inte dess eskaleringsregler eller ägare.
 
 ## Vad som kör en policy
 

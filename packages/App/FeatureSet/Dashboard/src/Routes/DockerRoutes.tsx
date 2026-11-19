@@ -20,6 +20,7 @@ import DockerHostAiInsights from "../Pages/Docker/View/AI/Insights";
 import DockerHostAiLogs from "../Pages/Docker/View/AI/Logs";
 import DockerHostAiAgent from "../Pages/Docker/View/AI/Agent";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
+import DockerHostSecurityEvents from "../Pages/Docker/View/SecurityEvents";
 import DockerHostTraces from "../Pages/Docker/View/Traces";
 import DockerHostProfiles from "../Pages/Docker/View/Profiles";
 import DockerHostIncidents from "../Pages/Docker/View/Incidents";
@@ -254,6 +255,20 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerHostLogs
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <DockerHostSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS] as Route
+              }
             />
           }
         />
