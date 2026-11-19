@@ -31,6 +31,8 @@ import {
   getTemplateSubscriberNotificationsFold,
 } from "../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReach";
 import { PickedStatusPagesReachResult } from "Common/Types/StatusPage/PickedStatusPagesReach";
+import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
+import { MaintenanceStatusPagesReason } from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceSubscriberReach";
 import {
   getColumnChoiceInForm,
   getValuesForColumnChoice,
@@ -443,14 +445,20 @@ describe("the event's page while it waits", () => {
     expect(getWaitingPublishAt(null, CREATED_ON)).toBeNull();
   });
 
+  // Its status pages show maintenance events, and one of them notifies.
+  const PAGES_NOTIFY: null = null;
+
   test("names the subscribers only when they are told it is scheduled", () => {
-    expect(areSubscribersToldWhenPublished(waitingEvent())).toBe(true);
+    expect(areSubscribersToldWhenPublished(waitingEvent(), PAGES_NOTIFY)).toBe(
+      true,
+    );
     // A switch never set is on, as on the model.
     expect(
       areSubscribersToldWhenPublished(
         waitingEvent({
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: undefined,
         }),
+        PAGES_NOTIFY,
       ),
     ).toBe(true);
     expect(
@@ -458,6 +466,7 @@ describe("the event's page while it waits", () => {
         waitingEvent({
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: false,
         }),
+        PAGES_NOTIFY,
       ),
     ).toBe(false);
     expect(
@@ -466,9 +475,47 @@ describe("the event's page while it waits", () => {
           subscriberNotificationStatusOnEventScheduled:
             StatusPageSubscriberNotificationStatus.Skipped,
         }),
+        PAGES_NOTIFY,
       ),
     ).toBe(false);
-    expect(areSubscribersToldWhenPublished(null)).toBe(false);
+    expect(areSubscribersToldWhenPublished(null, PAGES_NOTIFY)).toBe(false);
+  });
+
+  /*
+   * #9920: the 'scheduled' notification goes out at the publish time only
+   * when the event is shown on its status pages then, and one of them shows
+   * maintenance events and notifies its subscribers - as its job decides it
+   * (App/Tests/Workers/Jobs/ScheduledMaintenance
+   * /SubscriberNotificationsAsTheFormSays runs the two side by side).
+   */
+  test.each([
+    ["pages that never notify", PublicNoteNothingSentReason.NotificationsOff],
+    [
+      "pages that hide maintenance events, or are archived",
+      PublicNoteNothingSentReason.NoStatusPages,
+    ],
+  ] as Array<[string, MaintenanceStatusPagesReason]>)(
+    "names no subscriber for %s",
+    (_label: string, reason: MaintenanceStatusPagesReason) => {
+      expect(areSubscribersToldWhenPublished(waitingEvent(), reason)).toBe(
+        false,
+      );
+    },
+  );
+
+  test("names no subscriber while what its status pages do is not known", () => {
+    expect(areSubscribersToldWhenPublished(waitingEvent(), undefined)).toBe(
+      false,
+    );
+  });
+
+  test("names no subscriber of an event hidden from its status pages, whatever they do", () => {
+    expect(
+      areSubscribersToldWhenPublished(
+        waitingEvent({ isVisibleOnStatusPage: false }),
+        PAGES_NOTIFY,
+      ),
+    ).toBe(false);
   });
 
   test("its subscriber notification, queued until then, is sent when it is published - not Sending Soon", () => {

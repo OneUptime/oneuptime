@@ -50,6 +50,10 @@ import {
   readMaintenanceSubscriberSettings,
 } from "../../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceReach";
 import {
+  areSubscribersToldWhenPublished,
+  getWaitingPublishAt,
+} from "../../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
+import {
   afterAll,
   afterEach,
   beforeAll,
@@ -92,7 +96,9 @@ import {
  * For every mix, each moment and each reminder tells someone exactly when
  * the form's answer gives it no reason - and the line names exactly the
  * moments that told someone, and says they get reminders exactly when one
- * went out.
+ * went out. And once saved, an event kept to the team until its publish
+ * time has a band in its page's header that says its subscribers are told
+ * it is scheduled then exactly when they are (areSubscribersToldWhenPublished).
  *
  * The data layer is held in memory; nothing else is stood in for that
  * decides whether anyone is told.
@@ -392,6 +398,10 @@ interface TimeCondition {
   objectLiteralParameters?: Record<string, unknown> | undefined;
 }
 
+// The two time conditions the jobs query with.
+const BEFORE_SQL: RegExp = /^\(x < :\w+\)$/;
+const BY_OR_NONE_SQL: RegExp = /^\(x <= :\w+ or x IS NULL\)$/;
+
 /*
  * Whether a row's time passes a condition, as Postgres would decide it:
  * "(x < :t)", or "(x <= :t or x IS NULL)".
@@ -405,11 +415,11 @@ function passes(value: unknown, condition: unknown): boolean {
   const time: Date | null =
     value === null || value === undefined ? null : new Date(value as Date);
 
-  if (/^\(x < :\w+\)$/.test(sql)) {
+  if (BEFORE_SQL.test(sql)) {
     return Boolean(time) && time!.getTime() < bound.getTime();
   }
 
-  if (/^\(x <= :\w+ or x IS NULL\)$/.test(sql)) {
+  if (BY_OR_NONE_SQL.test(sql)) {
     return !time || time.getTime() <= bound.getTime();
   }
 
@@ -567,10 +577,16 @@ function standIn(mix: Mix): void {
       return 1;
     }) as never);
   jest
-    .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceLinkInDashboard")
+    .spyOn(
+      ScheduledMaintenanceService,
+      "getScheduledMaintenanceLinkInDashboard",
+    )
     .mockResolvedValue(URL.fromString("https://oneuptime.com/maintenance"));
   jest
-    .spyOn(ScheduledMaintenanceFeedService, "createScheduledMaintenanceFeedItem")
+    .spyOn(
+      ScheduledMaintenanceFeedService,
+      "createScheduledMaintenanceFeedItem",
+    )
     .mockResolvedValue(undefined as never);
 
   // The project's states, and the events waiting for each move.
@@ -603,9 +619,11 @@ function standIn(mix: Mix): void {
   // The state timeline the moves write, and its notification job reads.
   jest
     .spyOn(ScheduledMaintenanceStateTimelineService, "findOneBy")
-    .mockImplementation((async (): Promise<ScheduledMaintenanceStateTimeline | null> => {
-      return timelines[timelines.length - 1] || null;
-    }) as never);
+    .mockImplementation(
+      (async (): Promise<ScheduledMaintenanceStateTimeline | null> => {
+        return timelines[timelines.length - 1] || null;
+      }) as never,
+    );
   jest
     .spyOn(ScheduledMaintenanceStateTimelineService, "create")
     .mockImplementation((async (data: {
@@ -656,7 +674,9 @@ function standIn(mix: Mix): void {
   jest
     .spyOn(DatabaseConfig, "getHttpProtocol")
     .mockResolvedValue(Protocol.HTTPS);
-  jest.spyOn(ProjectSmtpConfigService, "toEmailServer").mockReturnValue(undefined);
+  jest
+    .spyOn(ProjectSmtpConfigService, "toEmailServer")
+    .mockReturnValue(undefined);
   jest
     .spyOn(ProjectCallSMSConfigService, "toTwilioConfig")
     .mockReturnValue(undefined);
@@ -683,7 +703,14 @@ function createEvent(mix: Mix): void {
   event.startsAt = STARTS_AT;
   event.endsAt = ENDS_AT;
   event.isVisibleOnStatusPage = mix.isVisible;
-  event.publishOnStatusPageAt = PUBLISH_AT[mix.publish] || undefined;
+
+  // Right away: no publish time at all.
+  const publishAt: Date | null = PUBLISH_AT[mix.publish];
+
+  if (publishAt) {
+    event.publishOnStatusPageAt = publishAt;
+  }
+
   event.shouldStatusPageSubscribersBeNotifiedOnEventCreated =
     mix.switches.scheduled;
   event.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
@@ -708,8 +735,9 @@ function createEvent(mix: Mix): void {
       sendSubscriberNotifiationsOn: mix.reminders,
     });
 
-  event.nextSubscriberNotificationBeforeTheEventAt =
-    nextReminderAt || undefined;
+  if (nextReminderAt) {
+    event.nextSubscriberNotificationBeforeTheEventAt = nextReminderAt;
+  }
 }
 
 // What the form holds for the event it saves.
@@ -788,9 +816,7 @@ afterEach(() => {
 
 test("every job is registered", () => {
   for (const job of JOBS) {
-    expect(`${job}: ${typeof mockCapturedJobs[job]}`).toBe(
-      `${job}: function`,
-    );
+    expect(`${job}: ${typeof mockCapturedJobs[job]}`).toBe(`${job}: function`);
   }
 });
 
@@ -860,6 +886,20 @@ describe("Schedule Maintenance Event's answer is what the maintenance jobs do", 
       CREATED_AT,
     );
 
+    /*
+     * The event's own page, once saved, while it waits for its publish
+     * time: its header's band says whether its subscribers are told it is
+     * scheduled then - read from the event as saved, with the same answer
+     * for the status pages it is on.
+     */
+    const isWaitingToPublish: boolean = Boolean(
+      getWaitingPublishAt(event, CREATED_AT),
+    );
+    const bandSaysTold: boolean = areSubscribersToldWhenPublished(
+      event,
+      statusPagesReason,
+    );
+
     // The minute each thing the form speaks of is due at, and whether it says someone is told.
     const expected: Map<number, boolean> = new Map<number, boolean>();
 
@@ -885,7 +925,10 @@ describe("Schedule Maintenance Event's answer is what the maintenance jobs do", 
 
     for (const each of reminders) {
       if (each.remindAt && each.remindAt.getTime() > CREATED_AT.getTime()) {
-        expectAt(each.remindAt.getTime() + MINUTE, each.nothingSentReason === null);
+        expectAt(
+          each.remindAt.getTime() + MINUTE,
+          each.nothingSentReason === null,
+        );
       } else {
         // Gone by when it is saved: never sent.
         expect(each.nothingSentReason).not.toBeNull();
@@ -946,7 +989,8 @@ describe("Schedule Maintenance Event's answer is what the maintenance jobs do", 
     const remindersTold: boolean = reminders.some(
       (each: MaintenanceReminderReach): boolean => {
         return Boolean(
-          each.remindAt && (told.get(each.remindAt.getTime() + MINUTE) || 0) > 0,
+          each.remindAt &&
+            (told.get(each.remindAt.getTime() + MINUTE) || 0) > 0,
         );
       },
     );
@@ -970,6 +1014,17 @@ describe("Schedule Maintenance Event's answer is what the maintenance jobs do", 
     }
 
     outcomesSeen.add(`reminder ${remindersTold}`);
+
+    // The band names its subscribers exactly when they were told at the publish time.
+    if (isWaitingToPublish) {
+      const toldWhenPublished: boolean =
+        (told.get(scheduledMinute(mix)) || 0) > 0;
+
+      expect(`the band says told ${bandSaysTold}`).toBe(
+        `the band says told ${toldWhenPublished}`,
+      );
+      outcomesSeen.add(`band ${bandSaysTold}`);
+    }
 
     if (momentsTold.length > 0) {
       expect(line).toContain(getMomentsSummary(momentsTold));
@@ -995,6 +1050,8 @@ describe("Schedule Maintenance Event's answer is what the maintenance jobs do", 
       "Scheduled true",
       "Started false",
       "Started true",
+      "band false",
+      "band true",
       "reminder false",
       "reminder true",
     ]);
