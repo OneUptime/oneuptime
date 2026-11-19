@@ -83,9 +83,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | 엔진 | 일반적인 서비스 URL |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API 경로는 자동으로 찾습니다(Kubecost는 `/model/allocation`, OpenCost는 `/allocation/compute` 또는 `/allocation`). `cost.engine.allocationPath`는 특이한 설치에서만 설정하세요. `auto`나 URL을 사용하면 아무것도 번들되지 않으므로, 메모리 권장값을 위해서는 `cost.engine.prometheusUrl`도 설정하세요([권장값의 바탕이 되는 데이터](#권장값의-바탕이-되는-데이터) 참조).
+Allocation API 경로는 자동으로 찾습니다(Kubecost는 `/model/allocation`, OpenCost는 `/allocation/compute` 또는 `/allocation`). `cost.engine.allocationPath`는 특이한 설치에서만 설정하세요. `auto`나 URL을 사용하면 아무것도 번들되지 않으므로, 메모리 권장값을 위해서는 `cost.engine.prometheusUrl`도 설정하세요([권장값의 바탕이 되는 데이터](#권장값의-바탕이-되는-데이터) 참조). 가격 메트릭도 같은 방식으로 찾으므로 엔진의 어떤 Service를 지정해도 됩니다. 에이전트는 엔진의 `/metrics`, 그다음 Kubecost 2 프런트엔드나 OpenCost UI가 엔진으로 전달하는 `/model/metrics`, 그다음 Kubecost 3의 FinOps 에이전트를 차례로 시도하고, Collector는 가격 시계열이 있는 첫 주소를 스크레이프합니다. 직접 지정하려면 `cost.metrics.endpoint`를 설정하세요.
 
 ## 온프레미스 및 베어메탈 가격 책정
 
@@ -202,7 +203,7 @@ Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습�
 :::
 
 :::details Kubernetes Cost Dashboard에 데이터가 없음
-이 템플릿은 스크레이프된 비용 메트릭을 읽습니다. `cost.metrics.enabled`가 `true`인지 확인하세요.
+이 템플릿은 스크레이프된 비용 메트릭을 읽습니다. `cost.metrics.enabled`가 `true`인지 확인하세요. `cost.engine.url`을 설정했다면 비용 에이전트가 엔진이 이 메트릭을 제공하는 곳을 찾고, 로그에 그 위치나 시도한 주소가 나옵니다: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. 직접 지정하려면 `cost.metrics.endpoint`를 설정하세요.
 :::
 
 :::details Right-Sizing 카드가 비어 있음

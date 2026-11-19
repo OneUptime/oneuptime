@@ -12,8 +12,10 @@
 #     cost.engine.preferExisting=false, and with a rate card of the bundled
 #     engine's own, whose rates someone chose.
 #   - cost.engine.url: auto: nothing is bundled; the agent finds the engine,
-#     and the collector scrapes its price metrics where it finds them, by the
-#     same labels, through Kubernetes service discovery.
+#     and the collector scrapes its price metrics where the agent says they
+#     are (http_sd, #9776: cost-engine-metrics_test.yaml). With the agent off,
+#     the collector finds engines itself, by the same labels, through
+#     Kubernetes service discovery.
 #   - cost.engine.url: a URL: that engine, as before.
 suite: the cost agent reads the cluster's own cost engine
 release:
@@ -177,11 +179,14 @@ tests:
             apiGroups: ["storage.k8s.io"]
           any: true
 
-  # --- auto: the collector finds the engine's price metrics the same way ---------
+  # --- auto with the agent off: the collector finds the engine's price metrics --
+  # With the agent on, the collector asks it where they are instead
+  # (cost-engine-metrics_test.yaml).
   - it: finds the engine's price metrics through service discovery, narrowed by the API server
     template: templates/configmap-deployment.yaml
     set:
       cost.engine.url: auto
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
@@ -195,6 +200,7 @@ tests:
     template: templates/configmap-deployment.yaml
     set:
       cost.engine.url: auto
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
@@ -213,6 +219,7 @@ tests:
     template: templates/configmap-deployment.yaml
     set:
       cost.engine.url: auto
+      cost.agent.enabled: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
