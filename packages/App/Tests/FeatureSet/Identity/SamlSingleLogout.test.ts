@@ -1411,9 +1411,19 @@ describe("a LogoutResponse confirms the sign-out only when it answers OneUptime'
     }).not.toThrow();
   });
 
-  test("no Destination: confirmed, as the binding allows", () => {
+  test("unsigned, with no Destination: confirmed, as the binding allows", () => {
     expect(() => {
       return confirm({ destination: null });
+    }).not.toThrow();
+  });
+
+  test("signed, with no Destination: refused, as the binding asks a signed message to name one", () => {
+    expectRefused(() => {
+      return confirm({ isSigned: true, destination: null });
+    }, /Destination/);
+
+    expect(() => {
+      return confirm({ isSigned: true });
     }).not.toThrow();
   });
 
@@ -1730,6 +1740,8 @@ describe("an identity provider's own LogoutRequest", () => {
       { destination: "https://evil.example.com/slo" },
       /Destination/,
     ],
+    // It is signed, so it must say where it was sent.
+    ["naming no Destination", { destination: null }, /Destination/],
     ["with no ID", { id: "" }, /no ID/],
     [
       "with an ID longer than any",

@@ -842,6 +842,7 @@ export default class SamlSingleLogout {
     SamlSingleLogout.assertFromProviderToUs({
       issuer: data.response.issuer,
       destination: data.response.destination,
+      isSigned: data.response.isSigned,
       provider: data.provider,
     });
 
@@ -880,6 +881,7 @@ export default class SamlSingleLogout {
     SamlSingleLogout.assertFromProviderToUs({
       issuer: data.request.issuer,
       destination: data.request.destination,
+      isSigned: data.request.isSigned,
       provider: data.provider,
     });
 
@@ -1247,10 +1249,16 @@ export default class SamlSingleLogout {
     }
   }
 
-  // Issuer and Destination, held to this provider and to OneUptime's address for it.
+  /*
+   * Issuer and Destination, held to this provider and to OneUptime's address
+   * for it. A signed message must name the address it was sent to (SAML 2.0
+   * Bindings 3.4.5.2 and 3.5.5.2), so the signature covers where it was
+   * meant to go; an unsigned one may leave it out.
+   */
   private static assertFromProviderToUs(data: {
     issuer: string | null;
     destination: string | null;
+    isSigned: boolean;
     provider: SamlSignOutProvider;
   }): void {
     if (
@@ -1262,6 +1270,12 @@ export default class SamlSingleLogout {
     ) {
       throw new SamlLogoutRefusal(
         "The SAML sign-out message is not from this provider's identity provider: its Issuer does not match.",
+      );
+    }
+
+    if (data.isSigned && !data.destination) {
+      throw new SamlLogoutRefusal(
+        "The signed SAML sign-out message names no Destination, which a signed message must.",
       );
     }
 
