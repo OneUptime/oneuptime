@@ -52,6 +52,8 @@ import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudi
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import logger from "../../Logger";
+import PendingInviteeProfiles from "../../TeamMember/PendingInviteeProfiles";
+import User from "../../../../Models/DatabaseModels/User";
 import {
   loadSecurityConnectedRecords,
   loadSecurityConnections,
@@ -720,10 +722,24 @@ export default class SecurityCaseAIContextBuilder {
 
     const users: Array<HostOwnerUser> = await HostOwnerUserService.findBy({
       query: { projectId: data.projectId, hostId: data.hostId },
-      select: { user: { name: true, email: true } },
+      select: { user: { _id: true, name: true, email: true } },
       limit: 10,
       skip: 0,
       props: data.props,
+    });
+
+    /*
+     * OneUptime AI reads them, and can repeat them to anyone who asks:
+     * someone only invited to the project is named as the project knows
+     * them - the name typed for them, else their address - never by their
+     * account's own name, which it does not see until they join (#9823,
+     * #9934). The reads here are OneUptime's own.
+     */
+    await PendingInviteeProfiles.nameInProject({
+      users: users.map((owner: HostOwnerUser): User | undefined => {
+        return owner.user;
+      }),
+      projectId: data.projectId,
     });
 
     return {
@@ -813,7 +829,7 @@ export default class SecurityCaseAIContextBuilder {
         select: {
           note: true,
           createdAt: true,
-          createdByUser: { name: true },
+          createdByUser: { _id: true, name: true, email: true },
         },
         sort: { createdAt: SortOrder.Descending },
         limit: MAX_TRIAGE_NOTES,
@@ -821,6 +837,14 @@ export default class SecurityCaseAIContextBuilder {
         props: data.props,
       },
     );
+
+    // Each author as the project knows them, as the host owners are.
+    await PendingInviteeProfiles.nameInProject({
+      users: notes.map((note: SecurityCaseNote): User | undefined => {
+        return note.createdByUser;
+      }),
+      projectId: data.projectId,
+    });
 
     return notes.map((note: SecurityCaseNote): TriageNote => {
       return {

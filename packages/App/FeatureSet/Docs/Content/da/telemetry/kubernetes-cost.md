@@ -63,11 +63,11 @@ De første omkostninger vises, når den første hele time er afsluttet, og OpenC
 
 Omkostningsmetrikkerne (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er almindelige metrikker: de findes i metrik-explorer, på brugerdefinerede dashboards og i metrikmonitorer. For et færdigt dashboard skal du gå til **Produkter → Dashboards**, vælge **Opret dashboard** og vælge **Kubernetes Cost Dashboard**: udvikling i nodernes timeomkostninger, enhedsomkostninger for CPU og hukommelse samt forbrug på volumener og load balancere.
 
-Under tallene viser oversigten og siden **Omkostninger**, hvor deres priser kommer fra: en cloududbyders listepriser, din pristabel eller OpenCosts standardsatser. Effektivitet er ét og samme tal overalt, også i effektivitetsmetrikken: hvor meget af den anmodede CPU og hukommelse der blev brugt, hvor hver containers time vægtes efter, hvad dens CPU og hukommelse koster, så et billigt job, der intet bruger, ikke kan trække en veludnyttet klynge ned, og tomgangskapacitet tælles ikke med.
+Under tallene viser oversigten og siden **Omkostninger**, hvor deres priser kommer fra: en cloududbyders listepriser, din pristabel eller OpenCosts standardsatser, uanset hvilken motor der prissætter klyngen, også Kubecost 3. En Kubecost, der læser din cloudregning, afstemmer sine priser med regningen omkring halvanden dag efter hver time, så linjen oplyser da, at tallene er dens listepriser fra før afstemningen. Effektivitet er ét og samme tal overalt, også i effektivitetsmetrikken: hvor meget af den anmodede CPU og hukommelse der blev brugt, hvor hver containers time vægtes efter, hvad dens CPU og hukommelse koster, så et billigt job, der intet bruger, ikke kan trække en veludnyttet klynge ned, og tomgangskapacitet tælles ikke med.
 
 ## Kører du allerede Kubecost eller OpenCost?
 
-Omkostningsagenten finder din motor og læser den i stedet for den medfølgende OpenCost, så klyngen prissættes, som du har sat den op: med din pristabel eller med din cloudregning, som Kubecost er koblet til. Den leder, når den starter og derefter hver time, gennem Kubernetes-API'et efter de Services, som motorernes egne charts opretter i et vilkårligt namespace (Kubecosts `cost-analyzer` eller `frontend`, OpenCosts chart og den Service `opencost`, som OpenCosts manifest opretter), med Kubecost først. Den springer en motor over, der ikke svarer, kræver login eller svarer for flere klynger, og læser så den medfølgende.
+Omkostningsagenten finder din motor og læser den i stedet for den medfølgende OpenCost, så klyngen prissættes, som du har sat den op: med din pristabel eller med din cloudregning, som Kubecost er koblet til. Den leder, når den starter og derefter hver time, gennem Kubernetes-API'et efter de Services, som motorernes egne charts opretter i et vilkårligt namespace (Kubecosts `cost-analyzer` eller `frontend`, OpenCosts chart og den Service `opencost`, som OpenCosts manifest opretter), med Kubecost først. Den springer en motor over, der ikke svarer, kræver login eller svarer for flere klynger, og læser så den medfølgende. Collectoren scraper derefter også din motors prismetrikker til Kubernetes Cost Dashboard, så dashboardet og omkostningssiderne viser de samme priser, og right-sizing læser sine hukommelsesspidser fra den Prometheus, din motor læser.
 
 Klyngens oversigt nævner derefter din motor og siger, at den medfølgende OpenCost ikke er nødvendig. Stop med at køre den:
 
@@ -86,7 +86,7 @@ Med `cost.engine.url=auto` medbringes intet, og agenten læser din motor, uanset
 | Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 | Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Stien til Allocation API findes af sig selv (`/model/allocation` for Kubecost, `/allocation/compute` eller `/allocation` for OpenCost). Sæt kun `cost.engine.allocationPath` ved en usædvanlig installation. Med `auto` eller en URL medbringes intet, så for hukommelsesanbefalinger skal du også sætte `cost.engine.prometheusUrl` (se [Dataene bag](#dataene-bag)). Prismetrikkerne findes på samme måde, uanset hvilken af motorens Services du angiver: agenten prøver dens `/metrics`, så den `/model/metrics`, som en Kubecost 2-frontend eller OpenCosts brugerflade sender videre til motoren, så Kubecost 3's FinOps-agent, og collectoren scraper den første adresse med prisserier. Sæt `cost.metrics.endpoint` for selv at angive dem.
+Stien til Allocation API findes af sig selv (`/model/allocation` for Kubecost, `/allocation/compute` eller `/allocation` for OpenCost). Sæt kun `cost.engine.allocationPath` ved en usædvanlig installation. Den Prometheus, din motor læser, findes også af sig selv, til hukommelsesanbefalinger, undtagen med Kubecost 3, som ikke læser nogen: sæt da `cost.engine.prometheusUrl` (se [Dataene bag](#dataene-bag)). Prismetrikkerne findes på samme måde, uanset hvilken af motorens Services du angiver: agenten prøver dens `/metrics`, så den `/model/metrics`, som en Kubecost 2-frontend eller OpenCosts brugerflade sender videre til motoren, så Kubecost 3's FinOps-agent, og collectoren scraper den første adresse med prisserier. Sæt `cost.metrics.endpoint` for selv at angive dem.
 
 ## Priser for on-prem og bare metal
 
@@ -156,8 +156,8 @@ Ud over forbruget indsamler polleren det, en anbefaling har brug for: hver conta
 Hukommelse kræver én kilde mere. Allocation API rapporterer kun et gennemsnit over hvert vindue, og et timegennemsnit skjuler den spids, der OOM-dræber en container, så det ville være farligt at dimensionere hukommelse ud fra det. Polleren læser i stedet hver containers hukommelsesspids fra Prometheus, sammenkædet på `(namespace, pod, container)`:
 
 - Med den medfølgende motor (standarden) bruger den chartets egen Prometheus. Intet at sætte.
-- Når `cost.engine.url` er sat (`auto` eller din motors URL), skal du pege `cost.engine.prometheusUrl` på en Prometheus, der scraper cAdvisor, og sætte `cost.engine.prometheusCadvisorJob`, hvis dens scrape-job ikke hedder `kubernetes-nodes-cadvisor`.
-- Uden Prometheus virker CPU-anbefalinger stadig, ud fra de gemte timegennemsnit, og hukommelsesanbefalinger udelades i stedet for at blive gættet.
+- Med din egen motor bruges den Prometheus, som motoren læser, og som agenten selv finder: OpenCosts `PROMETHEUS_SERVER_ENDPOINT` eller den Prometheus, Kubecost 2 medbringer, når den svarer for denne klynges cAdvisor-serier. Kubecost 3 læser ingen, så den medfølgende Prometheus træder til, så længe chartet kører den.
+- Ellers, eller for selv at vælge en, skal du pege `cost.engine.prometheusUrl` på en Prometheus, der scraper cAdvisor, og sætte `cost.engine.prometheusCadvisorJob`, hvis den scraper cAdvisor under flere job, og det job, der skal læses, ikke hedder `kubernetes-nodes-cadvisor`. Uden Prometheus virker CPU-anbefalinger stadig, ud fra de gemte timegennemsnit, og hukommelsesanbefalinger udelades i stedet for at blive gættet.
 
 Et Prometheus-udfald stopper aldrig indsamlingen af forbrug: spidser er en ekstra, og en time sendes uden dem. CPU bruger med vilje ikke Prometheus: en for stor CPU-request throttler kun, hvor en for lille hukommelses-request dræber, så timegennemsnittene er sikre for CPU, og at forespørge hver containers CPU-rate på tværs af en klynge er tungt nok til at vælte en lille Prometheus.
 
@@ -191,7 +191,7 @@ Læs dens logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencos
 :::
 
 :::details Oversigten siger, at den medfølgende OpenCost ikke er nødvendig
-Klyngen kører sin egen Kubecost eller OpenCost, og omkostningsagenten læser den, så den OpenCost og Prometheus, som chartet medbragte, prissætter intet. Opgrader med `--set cost.engine.url=auto` for at stoppe dem, eller sæt `cost.engine.preferExisting=false` for i stedet at læse den medfølgende motor.
+Klyngen kører sin egen Kubecost eller OpenCost, og omkostningsagenten læser den, så den OpenCost, som chartet medbragte, prissætter intet. Opgrader med `--set cost.engine.url=auto` for at stoppe den og dens Prometheus, eller sæt `cost.engine.preferExisting=false` for i stedet at læse den medfølgende motor. Med Kubecost 3, som ikke læser nogen Prometheus, kommer hukommelsesanbefalingerne fra den medfølgende: angiv en anden med `cost.engine.prometheusUrl` i samme opgradering.
 :::
 
 :::details Omkostningsagenten læser ikke din motor
@@ -203,7 +203,7 @@ Et ældre chart kørte OpenCost uden en skrivbar konfigurationsmappe, så `Error
 :::
 
 :::details Kubernetes Cost Dashboard viser ingen data
-Skabelonen læser de scrapede omkostningsmetrikker: kontrollér, at `cost.metrics.enabled` er `true`. Med `cost.engine.url` sat finder omkostningsagenten, hvor din motor stiller dem til rådighed, og dens log siger hvor, eller hvilke adresser den prøvede: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Sæt `cost.metrics.endpoint` for selv at angive dem.
+Skabelonen læser de scrapede omkostningsmetrikker: kontrollér, at `cost.metrics.enabled` er `true`. Omkostningsagenten finder, hvor den motor, den læser, stiller dem til rådighed, den medfølgende eller din, og dens log siger hvor, eller hvilke adresser den prøvede: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Sæt `cost.metrics.endpoint` for selv at angive dem.
 :::
 
 :::details Kortet Right-Sizing er tomt
@@ -211,11 +211,11 @@ Enten er tidsintervallet kortere end de 24 timer, en anbefaling kræver (udvid d
 :::
 
 :::details Hukommelsesanbefalinger viser -, men CPU-anbefalinger virker
-Ingen hukommelsesspids nåede OneUptime, så hukommelsen blev ikke dimensioneret i stedet for at blive gættet ud fra et gennemsnit. Med din egen motor skal du sætte `cost.engine.prometheusUrl`. Kortet siger, hvor mange containere det berører.
+Ingen hukommelsesspids nåede OneUptime, så hukommelsen blev ikke dimensioneret i stedet for at blive gættet ud fra et gennemsnit. Med din egen motor siger omkostningsagentens log, hvilken Prometheus den læser, eller hvorfor den ikke fandt nogen: angiv en med `cost.engine.prometheusUrl` (Kubecost 3 læser ingen). Kortet siger, hvor mange containere det berører.
 :::
 
 :::details Tallene afviger fra motorens egen brugerflade
-OneUptime medregner motorens afstemningsjusteringer i hver omkostningskomponent og sender hele, afsluttede timer: den aktuelle times forbrug vises, når den er afsluttet.
+OneUptime sender hele, afsluttede timer, sådan som motoren prissatte dem, da de var afsluttet, med dens afstemningsjusteringer medregnet: den aktuelle times forbrug vises, når den er afsluttet. En Kubecost, der læser din cloudregning, afstemmer hver time med den omkring halvanden dag senere, og OneUptime beholder timen, som den først blev prissat.
 :::
 
 :::details Den medfølgende Prometheus blev genstartet

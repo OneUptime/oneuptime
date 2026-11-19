@@ -273,6 +273,11 @@ describe("AIToolbox contract", () => {
         "set_up_website_monitoring",
         "publish_status_page",
         "add_monitors_to_status_page",
+        // #7242, #7244, #7454, #7243.
+        "invite_people",
+        "add_to_on_call_policy",
+        "set_how_to_reach_me",
+        "set_up_service_monitor",
       ].sort(),
     );
   });

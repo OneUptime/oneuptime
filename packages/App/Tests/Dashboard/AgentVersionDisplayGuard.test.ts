@@ -132,6 +132,9 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/Rum/View/Overview.tsx": [
     "RumSdk",
   ],
+  // A managed device's Esper card, on its Inventory page: Esper's agent.
+  "packages/App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceCard.tsx":
+    ["EsperAgent"],
   // The cluster's AI agent page: the Kubernetes AI agent ships in the chart.
   "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx": [
     "KubernetesAgent",

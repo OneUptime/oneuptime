@@ -300,13 +300,16 @@ tests:
   # An engine URL is scraped as written only while the cost agent is off: with
   # the agent on, the collector asks it where the engine's price metrics are
   # (http_sd, #9776: cost-engine-metrics_test.yaml), because a Kubecost
-  # frontend answers /metrics with its web page. The bundled engine and an
-  # explicit cost.metrics.endpoint are always scraped as written.
+  # frontend answers /metrics with its web page. The bundled engine the agent
+  # always reads and an explicit cost.metrics.endpoint are scraped as written.
 
+  # The bundled engine the agent always reads: one it may leave for the
+  # cluster's own is asked of the agent (cost-engine-bundled-prices_test.yaml).
   - it: writes no scheme or path for the bundled cost engine
     set:
       clusterName: prod-us
       cost.enabled: true
+      cost.engine.preferExisting: false
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]

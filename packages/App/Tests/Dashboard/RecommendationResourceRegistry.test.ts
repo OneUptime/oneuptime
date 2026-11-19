@@ -201,6 +201,8 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.ServerlessFunction]: "_id",
   // A queue's broker series are read from telemetry, as context.
   [MonitorRecommendationResourceType.MessageQueue]: "_id",
+  // Its devices' check-ins carry the connection's row id (#9835).
+  [MonitorRecommendationResourceType.DeviceManagementConnection]: "_id",
 };
 
 function getDefinitionOrFail(

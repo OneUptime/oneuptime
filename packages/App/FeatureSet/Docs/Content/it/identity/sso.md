@@ -79,7 +79,7 @@ Ti serve l'autorizzazione ad aggiungere provider SSO — **Proprietario del prog
    - Un nuovo provider parte disattivato. Quando il tuo IdP ha questi due valori, modifica il provider e attiva **Abilitato**
 
 4. **Provare il provider**
-   - Apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider nella pagina che si apre. Vieni portato alla pagina di accesso del tuo provider di identità e torni su OneUptime con l'accesso eseguito
+   - Apri il link della scheda **Link di accesso SSO** e scegli il provider nella pagina che si apre. Vieni portato alla pagina di accesso del tuo provider di identità e torni su OneUptime con l'accesso eseguito
    - Quando funziona, puoi [richiedere l'SSO](#richiedere-lsso-per-il-progetto) per il progetto
 :::
 
@@ -131,7 +131,7 @@ Keycloak è una diffusa soluzione open source per la gestione delle identità e 
 
 5. **Attivare il provider e provarlo**
 
-   In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider. Dovresti arrivare alla pagina di accesso di Keycloak e tornare su OneUptime.
+   In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Link di accesso SSO** e scegli il provider. Dovresti arrivare alla pagina di accesso di Keycloak e tornare su OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (prima Azure AD / Active Directory) è il servizio di identità cloud di Microsoft. Ti serve un tenant che supporti le applicazioni aziendali con SSO SAML, e l'accesso amministrativo sia a Entra ID sia a OneUptime. Su OneUptime Cloud, se la galleria di applicazioni di Microsoft Entra elenca OneUptime, aggiungi l'app da lì: include già le attestazioni che OneUptime legge e i modelli dei suoi URL.
@@ -182,7 +182,7 @@ Microsoft Entra ID (prima Azure AD / Active Directory) è il servizio di identit
 
 7. **Attivare il provider e provarlo**
 
-   In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider. Dovresti arrivare alla pagina di accesso di Microsoft e tornare su OneUptime.
+   In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Link di accesso SSO** e scegli il provider. Dovresti arrivare alla pagina di accesso di Microsoft e tornare su OneUptime.
 :::
 @tab Okta
 Okta è una piattaforma di identità molto diffusa con SSO SAML. Ti serve un'organizzazione Okta con accesso amministrativo, e l'accesso amministrativo a OneUptime. Su OneUptime Cloud, se l'Okta Integration Network elenca OneUptime, aggiungi l'app da lì: fa accedere le persone dalla pagina **Accedi con SSO** di OneUptime e dalla loro dashboard di Okta, dà loro un account al primo accesso e chiede due ID invece degli URL di OneUptime.
@@ -232,7 +232,7 @@ Okta è una piattaforma di identità molto diffusa con SSO SAML. Ti serve un'org
 
 6. **Attivare il provider e provarlo**
 
-   In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider. Dovresti arrivare alla pagina di accesso di Okta e tornare su OneUptime.
+   In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Link di accesso SSO** e scegli il provider. Dovresti arrivare alla pagina di accesso di Okta e tornare su OneUptime.
 :::
 @tab Altro
 L'SSO di OneUptime usa SAML 2.0 e funziona con qualsiasi provider di identità conforme:
@@ -242,7 +242,7 @@ L'SSO di OneUptime usa SAML 2.0 e funziona con qualsiasi provider di identità c
 2. In OneUptime, crea il provider con quei valori e copia l'**Identificatore (Entity ID)** e la **URL di risposta (URL dell'Assertion Consumer Service)** dalla finestra **Configurazione SSO** (o da **Visualizza configurazione SSO**).
 3. Nell'applicazione SAML del tuo provider di identità, imposta l'**Assertion Consumer Service URL / Reply URL** e l'**Entity ID / Audience URI** sui valori di OneUptime, e il **Name ID Format** sull'indirizzo email.
 4. Il **Metodo di firma** (`RSA-SHA256`) e il **Metodo di digest** (`SHA256`) sono già impostati sotto **Altri campi**; modificali solo se il tuo provider di identità firma in modo diverso
-5. Attiva **Abilitato** per il provider e provalo con il link della scheda **Test Single Sign On (SSO)**.
+5. Attiva **Abilitato** per il provider e provalo con il link della scheda **Link di accesso SSO**.
 :::
 :::
 
@@ -256,7 +256,7 @@ Un progetto può anche accedere tramite un provider OpenID Connect, come Google 
 3. Inserisci un **Nome** (ciò che le persone vedono nella pagina di accesso), l'**URL dell'emittente**, il **Client ID** e il **Client Secret**. In alternativa puoi incollare l'URL di discovery del provider in **URL dell'emittente**.
 4. Nel passaggio **Accesso**, **Team** parte dal team dei membri del progetto: chi accede per la prima volta entra in questi team. Tutto il resto è già compilato sotto **Altri campi**: l'**URL di discovery** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Ambiti** (`openid email profile`), i nomi delle attestazioni `email` e `name`, e una descrizione ("Sign in with" seguito dal nome). Modificali solo se il tuo provider lo richiede. Sono accettati solo i team in cui potresti invitare qualcuno: un team che dà più accesso di quello che hai viene indicato sotto **Team**.
 5. Salva. Si apre la finestra **Configurazione OIDC** con la **Redirect URI**: aggiungila agli URI di reindirizzamento consentiti della tua app. Un nuovo provider parte disattivato, quindi poi modificalo e attiva **Abilitato**.
-6. Apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider, per accedere tramite esso prima di richiedere l'SSO per il progetto.
+6. Apri il link della scheda **Link di accesso SSO** e scegli il provider, per accedere tramite esso prima di richiedere l'SSO per il progetto.
 :::
 
 ## Uscire anche dal provider di identità
@@ -300,14 +300,20 @@ I team di un provider decidono che cosa possono fare le persone che accedono con
 1. Aggiungi il tuo dominio in **Impostazioni del progetto** > **Avanzato** > **Domini**, fai clic su **Verifica dominio** nella sua riga e aggiungi il record TXT mostrato al DNS del dominio. Appena il record viene trovato, il dominio è verificato.
 2. Modifica il provider e scegli il dominio in **Domini**, nel passaggio **Accesso**. Sono elencati solo i domini verificati del progetto.
 
-**Accedi con SSO** propone quindi il provider a ogni indirizzo di quel dominio, chiunque lo digiti. Il dominio deve corrispondere esattamente: `acme.com` non copre `eu.acme.com`, quindi aggiungi ogni dominio con cui le persone accedono. Un provider senza domini, come uno configurato prima che esistessero i domini, non viene proposto a nessuno lì, e continua a far accedere le persone dal tuo provider di identità e dal link nella scheda **Test Single Sign On (SSO)**.
+**Accedi con SSO** propone quindi il provider a ogni indirizzo di quel dominio, chiunque lo digiti. Il dominio deve corrispondere esattamente: `acme.com` non copre `eu.acme.com`, quindi aggiungi ogni dominio con cui le persone accedono.
+
+I provider configurati prima che esistessero i domini hanno ricevuto i domini verificati del loro progetto con l'aggiornamento di OneUptime: ogni dominio che il progetto aveva verificato, a meno che anche un altro progetto non l'avesse verificato. Scegli tu un dominio del genere, se è tuo. Un dominio aggiunto ma mai verificato non è stato dato a nessun provider.
+
+Un provider che non indica alcun dominio verificato non viene proposto a nessuno lì. La sua colonna **Domini** dice **Nessun dominio verificato**, e un avviso sopra i tuoi provider lo nomina e dice cosa fare. Finché il progetto non ha alcun dominio verificato, **Verifica un dominio** nell'avviso apre **Domini**.
+
+Chi ha l'email su un altro dominio, come un collaboratore esterno, non trova nessun provider nemmeno lì. Condividi con loro il link di accesso SSO del tuo progetto: copialo dalla scheda **Link di accesso SSO** sotto i tuoi provider. Elenca i provider del progetto e non chiede alcun indirizzo email, quindi non dice nulla su chi ha un account. Anche un accesso avviato dal tuo provider di identità funziona, qualunque sia il dominio.
 
 ## Richiedere l'SSO per il progetto
 
 Configurare un provider non impedisce a nessuno di accedere con una password. Per fare dell'SSO l'unico modo per entrare nel progetto, usa l'interruttore **Richiedi l'SSO per l'accesso** in **Impostazioni del progetto** > **Sicurezza** > **SSO**, sotto i tuoi provider:
 
 :::steps
-1. Prova prima il tuo provider con il link della scheda **Test Single Sign On (SSO)**.
+1. Prova prima il tuo provider con il link della scheda **Link di accesso SSO**.
 2. Attiva **Richiedi l'SSO per l'accesso**. OneUptime chiede conferma prima di salvare: da quel momento tutti nel progetto, te compreso, devono accedere con l'SSO per aprirlo, e chi ha eseguito l'accesso con una password resta escluso dal progetto finché non accede con l'SSO.
 3. Fai clic su **Richiedi l'SSO** per confermare. L'interruttore salva subito; non c'è un pulsante di salvataggio separato.
 :::
@@ -336,9 +342,21 @@ La regola viene verificata ogni volta, quindi:
 - **Qualcuno in un progetto che non gestisce l'accesso**: appena è membro di un progetto, o viene invitato in uno, che non richiede l'SSO o non ha attivo **Gestisci l'accesso con l'SSO**, riottiene le sue impostazioni, e il suo **Profilo utente** indica quel progetto come motivo. Se lo lascia, il suo accesso torna gestito. Un account può appartenere a molte organizzazioni, quindi un'organizzazione non decide mai per i progetti di un'altra.
 - **Progetti con provider diversi**: chi è in due progetti che gestiscono entrambi l'accesso, ciascuno con il proprio provider di identità, è gestito, e il suo profilo indica entrambi i provider.
 - **Gli amministratori principali** mantengono sempre le proprie impostazioni.
-- **Quello che le persone avevano configurato prima** viene conservato, senza che il tuo progetto lo usi. Un amministratore del server può cancellarlo nella pagina **Autenticazione** della persona nell'Admin Dashboard, con **Cancella impostazioni di accesso**.
+- **Quello che le persone avevano configurato prima** viene conservato, senza che il tuo progetto lo usi, finché non viene cancellato: dai Proprietari del progetto (vedi sotto), o da un amministratore del server nella pagina **Autenticazione** della persona nell'Admin Dashboard, con **Cancella impostazioni di accesso**.
 
 **Gestisci l'accesso con l'SSO** salva non appena sposti l'interruttore, non elimina nulla, e disattivarlo restituisce subito a tutti le loro impostazioni. Chi può modificare **Richiedi l'SSO per l'accesso** può modificarlo, con gli stessi piani. Con **Richiedi l'SSO per l'accesso** disattivato, è nascosto e non cambia nulla.
+
+### Cancellare ciò che i tuoi membri avevano salvato prima
+
+Mentre **Gestisci l'accesso con l'SSO** è attivo, i Proprietari del progetto vedono sotto quanti dei suoi membri hanno ancora una password o l'autenticazione a due fattori salvata in OneUptime. **Cancella impostazioni di accesso** elimina, dopo aver chiesto conferma, le loro password con eventuali link di reimpostazione o di accesso, le passkey, le chiavi di sicurezza, le app di autenticazione e i codici di backup, disattiva l'autenticazione a due fattori e termina le sessioni in cui hanno effettuato l'accesso senza SSO. Non si può annullare.
+
+Un account può appartenere a molte organizzazioni, quindi puoi cancellare le impostazioni solo delle persone di cui la tua organizzazione è responsabile. La tua organizzazione sono i progetti di cui sei proprietario: le impostazioni di una persona vengono cancellate solo quando ogni progetto a cui appartiene, compreso qualsiasi progetto a cui è invitata, è un progetto di cui sei **Proprietario del progetto** e ha attivo **Gestisci l'accesso con l'SSO**. Tutti gli altri mantengono le proprie impostazioni:
+
+- chi è membro di un progetto, o è invitato in un progetto, di cui non sei proprietario o che non gestisce l'accesso con l'SSO;
+- chi è solo invitato nel tuo progetto e non vi è ancora entrato;
+- gli amministratori principali, e tu: cambia le tue nel tuo **Profilo utente**.
+
+Ogni persona le cui impostazioni vengono cancellate riceve un'email con ciò che è stato rimosso e con l'avviso che ora accede con l'SSO, e i log di audit dei tuoi progetti registrano la cancellazione a tuo nome. Solo un **Proprietario del progetto** può cancellare, dopo aver effettuato l'accesso alla dashboard: mai con una chiave API.
 
 ## Disattivare o eliminare un provider
 

@@ -3605,6 +3605,8 @@ describe("Twilio Integration, against the notification server and the forms", ()
     expect(paths).toEqual([
       "/notification/sms/status-callback/:smsLogId/:token",
       "/notification/call/status-callback/:callLogId/:token",
+      // Who answered an on-call call, a person or voicemail (#6594).
+      "/notification/call/amd-callback/:callLogId/:token",
       "/api/user-notification-log-timeline/call/gather-input/:itemId?token=...",
       "/notification/incoming-call/voice",
       "/notification/incoming-call/dial-status/:callLogId/:callLogItemId",
@@ -3629,6 +3631,13 @@ describe("Twilio Integration, against the notification server and the forms", ()
         readSource("callApi"),
         "post",
         "/status-callback/:callLogId/:token",
+      ),
+    ).toBe(true);
+    expect(
+      registersRoute(
+        readSource("callApi"),
+        "post",
+        "/amd-callback/:callLogId/:token",
       ),
     ).toBe(true);
     expect(registersRoute(incoming, "post", "/voice")).toBe(true);
@@ -3659,6 +3668,34 @@ describe("Twilio Integration, against the notification server and the forms", ()
     );
     expect(page).toContain("Keep `/api` on the keypad route.");
     expect(page).toContain("keypad acknowledgement uses a signed query token");
+  });
+
+  it("the voicemail callback checks its URL token and Twilio's signature, as the page says (#6594)", () => {
+    const callApi: string = readSource("callApi");
+    const voicemail: string = fs.readFileSync(
+      path.join(
+        REPO_DIR,
+        "packages/App/FeatureSet/Notification/Utils/VoicemailCallback.ts",
+      ),
+      "utf8",
+    );
+
+    expect(callApi).toContain(
+      "isStatusCallbackTokenValid(token, callLog.statusCallbackToken)",
+    );
+    expect(callApi).toContain("await findTwilioAccountThatSigned({");
+    expect(voicemail).toContain(
+      'export const TWILIO_SIGNATURE_HEADER: string = "x-twilio-signature";',
+    );
+    expect(voicemail).toContain(
+      ".validateWebhookSignature(data.request, signature)",
+    );
+    expect(page).toContain(
+      "The voicemail callback checks both its URL token and Twilio's signature.",
+    );
+    expect(page).toContain(
+      "| POST | `/notification/call/amd-callback/:callLogId/:token` | Whether a person or voicemail answered an on-call call |",
+    );
   });
 
   it("the incoming-call handlers check Twilio's signature", () => {

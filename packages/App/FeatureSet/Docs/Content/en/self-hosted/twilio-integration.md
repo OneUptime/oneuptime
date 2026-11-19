@@ -147,6 +147,12 @@ What no default sends goes as it would without a configuration: while the only d
 
 Status pages offer only the configurations that send SMS, and **Send Test SMS** and **Send Test Call** appear only for what a configuration sends. Every existing configuration is used for **Calls and SMS**, as before. Through the API and Terraform, the choice is the `usedFor` field, and a configuration without the numbers its choice needs is refused.
 
+### Voicemail on on-call calls
+
+To Twilio, a call that voicemail picks up is answered, like one a person picks up. So each on-call call asks Twilio, in the background, whether a person or voicemail answered it, with [answering machine detection](https://www.twilio.com/docs/voice/answering-machine-detection): a person who picks up hears the page at once. A call that voicemail answers counts as not answered, as one that rings out does, and the page goes on as it does for a missed call. Once the greeting ends, OneUptime leaves a short message with what the call said. The call's log says whether a message was left, and so does the incident feed: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio charges for answering machine detection on each answered call it checks, on the account that places the call: the installation-wide account, or the project's own configuration. It is on for every project. To turn it off, switch off **Voicemail on On-Call Calls** under **More settings** in **Project Settings > Notifications > Notification Channels**: a call that voicemail answers then counts as answered, as before. **Send Test Call** and incoming calls are never checked. Like call outcomes, it needs Twilio to reach your server: see the next section.
+
 ## 3. Configure network access
 
 Sending works with outbound access alone. Delivery updates, call outcomes, keypad acknowledgement and incoming calls need Twilio to reach your server.
@@ -171,7 +177,7 @@ Inbound access depends on the feature:
 | --- | --- |
 | SMS submission | No. Delivery status updates do need a callback. |
 | A plain test voice call | No. OneUptime supplies the spoken instructions with the outbound API request. |
-| Knowing whether an on-call call was answered | Yes. Twilio reports how each call ended, so the incident feed can say when a responder did not answer. Calls still go out without it. |
+| Knowing whether an on-call call was answered | Yes. Twilio reports how each call ended, and whether a person or voicemail answered it, so the incident feed can say when a responder did not answer. Calls still go out without it. |
 | Pressing 1 to acknowledge an on-call alert | Yes. Twilio submits the keypad input to OneUptime. |
 | Incoming Call Policies | Yes. Twilio requests call instructions and reports dial results. |
 
@@ -181,13 +187,14 @@ These are the external paths, through OneUptime's Nginx gateway. The placeholder
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS delivery status |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Call outcome |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Whether a person or voicemail answered an on-call call |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Keypad acknowledgement |
 | POST | `/notification/incoming-call/voice` | Optional incoming-call instructions |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Optional incoming-call routing results |
 
 OneUptime generates the SMS, call outcome and acknowledgement URLs automatically. Do not replace their tokens with a static webhook URL. For incoming calls, follow [Incoming Call Policies](/docs/on-call/incoming-call-policy), which configures the number's webhook when you attach a number.
 
-Twilio requires [publicly reachable webhook URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use a publicly trusted TLS certificate and preserve the original host, protocol, path, query parameters, body, and `X-Twilio-Signature` header through proxies. Incoming-call handlers validate Twilio signatures; SMS delivery and call outcomes use a URL token per message or call, and keypad acknowledgement uses a signed query token. Do not expose tokens in shared logs or screenshots. See [Twilio webhook security](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio requires [publicly reachable webhook URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Use a publicly trusted TLS certificate and preserve the original host, protocol, path, query parameters, body, and `X-Twilio-Signature` header through proxies. Incoming-call handlers validate Twilio signatures; SMS delivery and call outcomes use a URL token per message or call, and keypad acknowledgement uses a signed query token. The voicemail callback checks both its URL token and Twilio's signature. Do not expose tokens in shared logs or screenshots. See [Twilio webhook security](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publish callbacks from a private deployment
 

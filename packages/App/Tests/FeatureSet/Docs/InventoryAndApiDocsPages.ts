@@ -92,10 +92,17 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *   - the Owned permission scope, which no locale has as a key;
  *   - the workflow trigger On Update, which the workflow builder draws as
  *     the component catalog writes it. Its Fields to watch setting is worded
- *     in every language now, so each page names it as drawn.
+ *     in every language now, so each page names it as drawn;
+ *   - a recommended monitor's name, which a Recommendations page draws as
+ *     its template names it: Esper Device Stopped Checking In, and Host
+ *     Stopped Reporting for a device the Android Agent reports (#9835).
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
+    [INVENTORY_OVERVIEW]: [
+      "Esper Device Stopped Checking In",
+      "Host Stopped Reporting",
+    ],
     [API_REFERENCE]: ["⋯", "Owned", "On Update"],
   };
 

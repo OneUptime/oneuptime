@@ -41,6 +41,10 @@ import {
 import ManagedDeviceInventory, {
   ManagedDeviceInventoryOutcome,
 } from "./ManagedDeviceInventory";
+import ManagedDeviceCheckInMetrics, {
+  ManagedDeviceCheckInOutcome,
+  ManagedDeviceCheckInRecordInput,
+} from "./ManagedDeviceCheckInMetrics";
 import {
   ManagedDeviceAppSyncPlan,
   ManagedDeviceSyncPlan,
@@ -75,7 +79,11 @@ import {
  *   5. gives each device its host in Inventory (ManagedDeviceInventory):
  *      one host per device, shared with its apps' or agent's telemetry. A
  *      failure there is a warning on the read, never its failure;
- *   6. records the outcome on the connection: when it read, what it found,
+ *   6. writes how long since each device checked in, as a metric a monitor
+ *      alerts on per device (ManagedDeviceCheckInMetrics, #9835) - only
+ *      when it read every check-in up to its end, so no age is too old. A
+ *      failure there is a warning too;
+ *   7. records the outcome on the connection: when it read, what it found,
  *      the error with the key removed, where the check-ins got to and when
  *      it reads next.
  *
@@ -118,6 +126,8 @@ export const INVENTORY_NOT_RECORDED_WARNING: string =
   "The devices' hosts in Inventory could not be updated this time: the next read tries again.";
 export const APPS_NOT_READ_WARNING: string =
   "Some devices' apps could not be read this time: the next read tries again.";
+export const CHECK_INS_NOT_RECORDED_WARNING: string =
+  "How long since each device checked in could not be recorded this time, so its alerts have nothing new to read: the next read tries again.";
 
 export interface DeviceManagementReadDependencies {
   transport?: DeviceManagementTransport | undefined;
@@ -133,6 +143,12 @@ export interface DeviceManagementReadDependencies {
         connectionId: ObjectID;
         now: Date;
       }) => Promise<ManagedDeviceInventoryOutcome>)
+    | undefined;
+  // Test seam for the devices' check-in readings.
+  recordCheckIns?:
+    | ((
+        data: ManagedDeviceCheckInRecordInput,
+      ) => Promise<ManagedDeviceCheckInOutcome>)
     | undefined;
 }
 
@@ -505,6 +521,38 @@ export default class DeviceManagementReadRunner {
           }`,
         );
         warnings.push(INVENTORY_NOT_RECORDED_WARNING);
+      }
+
+      /*
+       * How long since each device checked in, as a metric a monitor reads
+       * (#9835): only after a read that read every check-in up to its end,
+       * at that end, when every device's last check-in is known. A read cut
+       * short says nothing rather than an age too old, and the readings
+       * before it are still in the monitor's window.
+       */
+      if (fleet.checkInWindowEnd) {
+        try {
+          await (
+            dependencies.recordCheckIns ||
+            ((
+              data: ManagedDeviceCheckInRecordInput,
+            ): Promise<ManagedDeviceCheckInOutcome> => {
+              return ManagedDeviceCheckInMetrics.record(data);
+            })
+          )({
+            projectId,
+            connectionId: connection.id!,
+            provider: settings.provider,
+            asOf: fleet.checkInWindowEnd,
+          });
+        } catch (error) {
+          logger.error(
+            `Device management connection ${connection.id!.toString()}: its devices' check-ins could not be recorded: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+          warnings.push(CHECK_INS_NOT_RECORDED_WARNING);
+        }
       }
 
       // Online and offline, as the devices stand after this read.

@@ -55,8 +55,12 @@ const ROOT_READS_ALLOWED: Record<string, { count: number; why: string }> = {
     why: "a write tool's pull request record: write tools run only for a signed-in person.",
   },
   "SetupTools.ts": {
-    count: 5,
+    count: 4,
     why: "Ask AI's setup actions, which wait for a person's approval and never run for an investigation.",
+  },
+  "SetupPlan.ts": {
+    count: 1,
+    why: "Who each membership the person's own read found is (addMemberUsers), for Ask AI's setup actions, which wait for a person's approval and never run for an investigation.",
   },
   "StatusPageTools.ts": {
     count: 2,

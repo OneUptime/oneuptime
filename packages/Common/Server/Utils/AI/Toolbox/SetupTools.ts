@@ -6,6 +6,8 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyEscalationRuleTeam from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
+import OnCallDutyPolicyEscalationRuleUser from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import Project from "../../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../../Models/DatabaseModels/StatusPageResource";
@@ -21,7 +23,6 @@ import {
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
   AI_ACTION_LINES,
-  AI_ACTION_NAME,
   AI_ACTION_NEW_MONITOR,
   AI_ACTION_PLURAL_LINES,
   AI_ACTION_TEAM,
@@ -44,25 +45,42 @@ import {
 import { createTranslator, Translator } from "../../../../Types/Translator";
 import {
   ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
+  ADD_TO_ON_CALL_POLICY_TOOL_NAME,
+  INVITE_PEOPLE_TOOL_NAME,
   PUBLISH_STATUS_PAGE_TOOL_NAME,
+  SET_HOW_TO_REACH_ME_TOOL_NAME,
   SET_UP_PAGING_TOOL_NAME,
+  SET_UP_SERVICE_MONITOR_TOOL_NAME,
   SET_UP_WEBSITE_MONITORING_TOOL_NAME,
 } from "../../../../Types/AI/AISetupActions";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import Email from "../../../../Types/Email";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+  getDefaultEscalationRuleName,
+} from "../../../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import {
   FirstOnCallPolicyCreate,
   GUIDED_SETUP_POLICY_NAME,
+  MAX_LEVEL_WAIT_IN_MINUTES,
+  OnCallPolicyLevelCreate,
+  OnCallPolicyLevelMembers,
   WhoIsToldMode,
   buildFirstOnCallPolicy,
+  buildLevelMembers,
+  buildLevelWait,
+  buildOnCallPolicyLevel,
+  buildPolicyRepeat,
   countRulesRunningPolicyInService,
   getFirstOnCallPolicyName,
   getWhoIsToldMode,
+  readPolicyRepeatTimes,
 } from "../../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import { createWithFreeName } from "../../../../Types/Database/UniqueName";
 import {
@@ -77,6 +95,7 @@ import {
   WebsiteAddress,
   WebsiteMonitorSeeds,
   buildWebsiteMonitor,
+  isMonitorCheckingAddress,
   parseWebsiteAddress,
   pickWebsiteMonitorSeeds,
 } from "../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
@@ -88,10 +107,10 @@ import IncidentSeverityService from "../../../Services/IncidentSeverityService";
 import MonitorProbeService from "../../../Services/MonitorProbeService";
 import MonitorService from "../../../Services/MonitorService";
 import MonitorStatusService from "../../../Services/MonitorStatusService";
+import OnCallDutyPolicyEscalationRuleService from "../../../Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyEscalationRuleTeamService from "../../../Services/OnCallDutyPolicyEscalationRuleTeamService";
+import OnCallDutyPolicyEscalationRuleUserService from "../../../Services/OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyService from "../../../Services/OnCallDutyPolicyService";
-import PayAsYouGoBillingService, {
-  PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
-} from "../../../Services/PayAsYouGoBillingService";
 import OnCallReadinessService, {
   ReadinessMethod,
   ReadinessMethodType,
@@ -104,12 +123,24 @@ import StatusPageResourceService from "../../../Services/StatusPageResourceServi
 import StatusPageService from "../../../Services/StatusPageService";
 import TeamMemberService from "../../../Services/TeamMemberService";
 import TeamService from "../../../Services/TeamService";
-import ActiveMonitorLimit from "../../Billing/ActiveMonitorLimit";
 import logger from "../../Logger";
 import UserLanguage from "../../Notification/UserLanguage";
 import { getRecordWordsTranslator } from "../../ServerTranslation";
 import { readRequestedReaderLanguage } from "../../../../Types/ReaderLanguage";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import {
+  SETUP_PLAN_ORDER,
+  addMemberUsers,
+  countMonitorsSetUpInPlan,
+  plainName,
+  quotedName,
+  readMonitorPlanRefusal,
+  readNames,
+  readWebsiteMonitors,
+} from "./SetupPlan";
+import { InvitePeopleTool, readInviteEmails } from "./SetupInviteTools";
+import { SetHowToReachMeTool } from "./SetupLadderTools";
+import { SetUpServiceMonitorTool } from "./SetupServiceMonitorTools";
 import {
   ObservabilityTool,
   PlannedToolCall,
@@ -176,20 +207,14 @@ import { citationSentence } from "./ReadTableWords";
  */
 
 /*
- * The order a plan's parts run in once approved: who is paged first, so
- * the monitor's first incident already has someone to page; then the
- * monitor; then the status page that shows it.
+ * The order a plan's parts run in, how names are read and said, and the
+ * plan's room for monitors: SetupPlan's, which every setup action reads.
  */
-export const SETUP_PLAN_ORDER: {
-  paging: number;
-  websiteMonitoring: number;
-  statusPage: number;
-  statusPageMonitors: number;
-} = {
-  paging: 10,
-  websiteMonitoring: 20,
-  statusPage: 30,
-  statusPageMonitors: 40,
+export {
+  SETUP_PLAN_ORDER,
+  countMonitorsSetUpInPlan,
+  readMonitorPlanRefusal,
+  readNames,
 };
 
 /*
@@ -220,9 +245,6 @@ export enum SetupReachMethod {
   Push = "push",
   Email = "email",
 }
-
-// The most names a call may hand a list: more is not a setup, it is an import.
-const MAX_NAMES: number = 25;
 
 /*
  * Permissions, derived from the models' create ACLs so the gate can never
@@ -319,30 +341,6 @@ export function getMonitoringIntervalForMinutes(minutes: number): string {
   );
 }
 
-// The names a call hands a list: trimmed, each once (without case), at most MAX_NAMES.
-export function readNames(args: JSONObject, key: string): Array<string> {
-  const names: Array<string> = [];
-  const seen: Set<string> = new Set<string>();
-
-  for (const name of ToolArgs.getStringArray(args, key) || []) {
-    const trimmed: string = name.trim();
-    const lower: string = trimmed.toLowerCase();
-
-    if (!trimmed || seen.has(lower)) {
-      continue;
-    }
-
-    seen.add(lower);
-    names.push(trimmed);
-
-    if (names.length >= MAX_NAMES) {
-      break;
-    }
-  }
-
-  return names;
-}
-
 // The ways a call asks for the person to be reached, each once.
 export function readReachMethods(args: JSONObject): Array<SetupReachMethod> {
   const methods: Array<SetupReachMethod> = [];
@@ -388,59 +386,20 @@ export function getMonitorNamesSetUpInPlan(
 }
 
 /*
- * How many monitors the same plan sets up: one for each website monitoring
- * call whose address is one, and at least the one being checked.
+ * How many status pages the same plan publishes: one for each
+ * publish_status_page call, and at least the one being checked - the
+ * Free plan's limit is on them all (#7250).
  */
-export function countMonitorsSetUpInPlan(
+export function countStatusPagesSetUpInPlan(
   plannedCalls: ReadonlyArray<PlannedToolCall> | undefined,
 ): number {
   const count: number = (plannedCalls || []).filter(
     (call: PlannedToolCall): boolean => {
-      return (
-        call.name === SET_UP_WEBSITE_MONITORING_TOOL_NAME &&
-        Boolean(
-          parseWebsiteAddress(
-            ToolArgs.getString(call.arguments || {}, "address") || "",
-          ),
-        )
-      );
+      return call.name === PUBLISH_STATUS_PAGE_TOOL_NAME;
     },
   ).length;
 
   return Math.max(1, count);
-}
-
-/*
- * What the project's plan says to the monitors a plan sets up, asked before
- * its card so a project that may not add them is told now, not after an
- * approval: the two answers MonitorService.create gives when it runs - and
- * gives again then. OneUptime Cloud's pay as you go, which a website
- * monitor needs on every plan, and room under the plan's active monitor
- * limit for every monitor of the plan (ActiveMonitorLimit.getRefusal, an
- * answer for now). Null on an install without billing, and when there is
- * room.
- */
-export async function readMonitorPlanRefusal(
-  ctx: ToolContext,
-): Promise<string | null> {
-  if (!(await PayAsYouGoBillingService.canUsePayAsYouGo(ctx.projectId))) {
-    return PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE;
-  }
-
-  return await ActiveMonitorLimit.getRefusal({
-    projectId: ctx.projectId,
-    adding: countMonitorsSetUpInPlan(ctx.plannedCalls),
-  });
-}
-
-// A name in a card's list, as written, in quotes - a monitor's.
-function quotedName(name: string): AIActionSentence {
-  return aiActionSentence(AI_ACTION_NAME, { name: JSON.stringify(name) });
-}
-
-// A name in a card's list, as written - a person's.
-function plainName(name: string): AIActionSentence {
-  return aiActionSentence(AI_ACTION_NAME, { name: name });
 }
 
 /*
@@ -670,10 +629,74 @@ export interface FoundMonitors {
   notFound: Array<string>;
 }
 
+// A monitor of the project that checks an address now (#7292).
+export interface MonitorCheckingAddress extends SetupMonitor {
+  // Made by the person asking.
+  isOwn: boolean;
+}
+
+/*
+ * The monitor among these that checks the address now, by the website
+ * guided setup's rule (isMonitorCheckingAddress: the same address, neither
+ * archived nor turned off): the person's own first, as the guided setup
+ * looks for theirs before a teammate's, then the newest. A monitor someone
+ * else made - a teammate, the API, Terraform - watches the address just as
+ * well. Null when none does.
+ */
+export function pickMonitorCheckingAddress(data: {
+  monitors: ReadonlyArray<Monitor>;
+  address: WebsiteAddress;
+  userId?: string | undefined;
+}): MonitorCheckingAddress | null {
+  const checking: Array<Monitor> = data.monitors.filter(
+    (monitor: Monitor): boolean => {
+      return (
+        Boolean(monitor.id) &&
+        isMonitorCheckingAddress({ monitor: monitor, address: data.address })
+      );
+    },
+  );
+  const own: Monitor | undefined = data.userId
+    ? checking.find((monitor: Monitor): boolean => {
+        return monitor.createdByUserId?.toString() === data.userId;
+      })
+    : undefined;
+  const found: Monitor | undefined = own || checking[0];
+
+  if (!found?.id) {
+    return null;
+  }
+
+  return {
+    id: found.id.toString(),
+    name: found.name || data.address.monitorName,
+    isOwn: Boolean(own),
+  };
+}
+
+/*
+ * NO SECOND MONITOR FOR AN ADDRESS A MONITOR CHECKS ALREADY (#7292), as
+ * the website guided setup makes none (#7059, #7254): the project's monitor
+ * that checks it now, read as the person - one they may not read is never
+ * seen, and never named. Null when none does.
+ */
+export async function findMonitorCheckingAddress(
+  ctx: ToolContext,
+  address: WebsiteAddress,
+): Promise<MonitorCheckingAddress | null> {
+  return pickMonitorCheckingAddress({
+    monitors: await readWebsiteMonitors(ctx),
+    address: address,
+    userId: ctx.props.userId?.toString(),
+  });
+}
+
 /*
  * The project's monitors a call names, read as the person: by the name
  * each has (without case), else - for "https://example.com" - by the name
- * the website setup gives an address (example.com). Each monitor once.
+ * the website setup gives an address (example.com), else by the address a
+ * monitor checks (#7292): "example.com" names the monitor "Acme website"
+ * that checks it. Each monitor once.
  */
 async function findMonitorsByName(
   ctx: ToolContext,
@@ -719,6 +742,20 @@ async function findMonitorsByName(
 
   const found: Array<SetupMonitor> = [];
   const notFound: Array<string> = [];
+  const add: (monitor: SetupMonitor) => void = (
+    monitor: SetupMonitor,
+  ): void => {
+    if (
+      !found.some((each: SetupMonitor): boolean => {
+        return each.id === monitor.id;
+      })
+    ) {
+      found.push(monitor);
+    }
+  };
+
+  // The project's Website and API monitors, read once, for the addresses named.
+  let websiteMonitors: Array<Monitor> | null = null;
 
   for (const name of names) {
     const address: WebsiteAddress | null = parseWebsiteAddress(name);
@@ -726,20 +763,34 @@ async function findMonitorsByName(
       byName.get(name.trim().toLowerCase()) ||
       (address ? byName.get(address.monitorName.toLowerCase()) : undefined);
 
-    if (!monitor) {
-      notFound.push(name);
+    if (monitor) {
+      add({ id: monitor.id!.toString(), name: monitor.name || name });
       continue;
     }
 
-    const id: string = monitor.id!.toString();
+    if (address) {
+      if (websiteMonitors === null) {
+        try {
+          websiteMonitors = await readWebsiteMonitors(ctx);
+        } catch {
+          websiteMonitors = [];
+        }
+      }
 
-    if (
-      !found.some((each: SetupMonitor): boolean => {
-        return each.id === id;
-      })
-    ) {
-      found.push({ id: id, name: monitor.name || name });
+      const checking: MonitorCheckingAddress | null =
+        pickMonitorCheckingAddress({
+          monitors: websiteMonitors,
+          address: address,
+          userId: ctx.props.userId?.toString(),
+        });
+
+      if (checking) {
+        add({ id: checking.id, name: checking.name });
+        continue;
+      }
     }
+
+    notFound.push(name);
   }
 
   return { found, notFound };
@@ -883,6 +934,21 @@ async function addMonitorsToPage(
 
 const NOT_AN_ADDRESS: string =
   "That is not a web address a website monitor can check. Ask the person for the address, such as example.com or https://example.com/health, and propose the setup again.";
+
+/*
+ * A monitor checks the address already (#7292): what the model is told
+ * instead of a card - its name, so the answer says the address is watched
+ * and by what, and what can be done with it instead.
+ */
+export const MONITOR_CHECKS_ADDRESS_ALREADY: (data: {
+  monitor: MonitorCheckingAddress;
+  address: WebsiteAddress;
+}) => string = (data: {
+  monitor: MonitorCheckingAddress;
+  address: WebsiteAddress;
+}): string => {
+  return `Nothing proposed: ${data.monitor.isOwn ? "the person's own monitor" : "the monitor"} "${data.monitor.name}" already checks ${data.address.url}, so no second monitor is made, as the website guided setup makes none. Say so in one sentence, naming it. who_is_told says who it reaches; to show it on a status page, name it in publish_status_page or add_monitors_to_status_page.`;
+};
 
 // The address a call names: the parsed one, or null.
 function readAddress(args: JSONObject): WebsiteAddress | null {
@@ -1080,8 +1146,27 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<SetupActionRefusal | null> => {
-    if (!readAddress(args)) {
+    const address: WebsiteAddress | null = readAddress(args);
+
+    if (!address) {
       return { toldModel: NOT_AN_ADDRESS };
+    }
+
+    // One monitor for one address, as the website guided setup (#7292).
+    try {
+      const checking: MonitorCheckingAddress | null =
+        await findMonitorCheckingAddress(ctx, address);
+
+      if (checking) {
+        return {
+          toldModel: MONITOR_CHECKS_ADDRESS_ALREADY({
+            monitor: checking,
+            address: address,
+          }),
+        };
+      }
+    } catch {
+      // Unreadable now: the card shows, and running it reads again.
     }
 
     try {
@@ -1115,6 +1200,26 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
 
     if (!address) {
       throw new BadDataException(NOT_AN_ADDRESS);
+    }
+
+    /*
+     * Asked again now (#7292): a monitor of the address may have been made
+     * since the card was shown - by a teammate, or by a second card of
+     * the same request - and two would page twice for one outage. A read
+     * that fails makes the monitor the card promised.
+     */
+    let checking: MonitorCheckingAddress | null = null;
+
+    try {
+      checking = await findMonitorCheckingAddress(ctx, address);
+    } catch {
+      checking = null;
+    }
+
+    if (checking) {
+      throw new BadDataException(
+        `The monitor "${checking.name}" already checks ${address.url}, so no second monitor was made.`,
+      );
     }
 
     const isApi: boolean = ToolArgs.getBoolean(args, "isApi") === true;
@@ -1277,81 +1382,68 @@ export interface PagingResponders {
   // Other people, by id and name.
   people: Array<{ id: string; name: string }>;
   teams: Array<{ id: string; name: string }>;
+  /*
+   * Addresses the same plan invites to the project (#7242), lower case:
+   * paged once they join.
+   */
+  invited: Array<string>;
   // Names that are no member or team of the project.
   notFound: Array<string>;
 }
 
 /*
- * The name and email of each member the person's own read found, read as
- * OneUptime. A member's user is read by fewer people than the membership
- * (Current User reaches a person's own memberships, not who they belong to),
- * so the person's read selects only what every reader of a membership may
- * read, and this adds who each one is - for those memberships alone, in the
- * person's project.
+ * The addresses the same plan invites to the project (#7242), each once,
+ * without case: a policy in that plan pages them once they join, so it
+ * names them as invited rather than as people the project does not have.
  */
-async function addMemberUsers(
-  ctx: ToolContext,
-  members: Array<TeamMember>,
-): Promise<void> {
-  const ids: Array<string> = members
-    .map((member: TeamMember): string => {
-      return member.id?.toString() || "";
-    })
-    .filter((id: string): boolean => {
-      return Boolean(id);
-    });
+export function getEmailsInvitedInPlan(
+  plannedCalls: ReadonlyArray<PlannedToolCall> | undefined,
+): Array<string> {
+  const emails: Array<string> = [];
 
-  if (ids.length === 0) {
-    return;
-  }
+  for (const call of plannedCalls || []) {
+    if (call.name !== INVITE_PEOPLE_TOOL_NAME) {
+      continue;
+    }
 
-  const withUsers: Array<TeamMember> = await TeamMemberService.findBy({
-    query: {
-      _id: QueryHelper.any(ids),
-      projectId: ctx.projectId,
-    } as never,
-    select: {
-      _id: true,
-      user: { _id: true, name: true, email: true },
-    },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: { isRoot: true },
-  });
-
-  const userOf: Map<string, User> = new Map();
-
-  for (const withUser of withUsers) {
-    if (withUser.user) {
-      userOf.set(withUser.id?.toString() || "", withUser.user);
+    for (const email of readInviteEmails(call.arguments || {}).emails) {
+      if (!emails.includes(email)) {
+        emails.push(email);
+      }
     }
   }
 
-  for (const member of members) {
-    const user: User | undefined = userOf.get(member.id?.toString() || "");
-
-    if (user) {
-      member.user = user;
-    }
-  }
+  return emails;
 }
 
 /*
  * The people and teams a call names, matched to the project's members (by
  * name or email, without case) and teams (by name), as the person reads
- * them. The person asking is "you", however they are named.
+ * them. The person asking is "you", however they are named. An address the
+ * same plan invites (invitedInPlan) is invited, not unknown.
  */
-async function readPagingResponders(
-  args: JSONObject,
+async function resolveResponders(
   ctx: ToolContext,
+  data: {
+    peopleNames: ReadonlyArray<string>;
+    teamNames: ReadonlyArray<string>;
+    includesMe: boolean;
+    invitedInPlan?: ReadonlyArray<string> | undefined;
+    /*
+     * The person asking, named among them, is one of the people by their
+     * name - a later level that pages them - rather than "you".
+     */
+    meAsPerson?: boolean | undefined;
+  },
 ): Promise<PagingResponders> {
   const myId: string = ctx.props.userId?.toString() || "";
-  const peopleNames: Array<string> = readNames(args, "alsoPage");
-  const teamNames: Array<string> = readNames(args, "teams");
+  const peopleNames: ReadonlyArray<string> = data.peopleNames;
+  const teamNames: ReadonlyArray<string> = data.teamNames;
   const responders: PagingResponders = {
-    includesMe: ToolArgs.getBoolean(args, "includeMe") !== false,
+    includesMe: data.includesMe,
     people: [],
     teams: [],
+    invited: [],
     notFound: [],
   };
 
@@ -1383,9 +1475,13 @@ async function readPagingResponders(
       );
       const userId: string = member?.userId?.toString() || "";
 
-      if (!member || !userId) {
+      if ((!member || !userId) && (data.invitedInPlan || []).includes(lower)) {
+        if (!responders.invited.includes(lower)) {
+          responders.invited.push(lower);
+        }
+      } else if (!member || !userId) {
         responders.notFound.push(asked);
-      } else if (userId === myId) {
+      } else if (userId === myId && !data.meAsPerson) {
         responders.includesMe = true;
       } else if (
         !responders.people.some((person: { id: string }): boolean => {
@@ -1407,7 +1503,7 @@ async function readPagingResponders(
     const teams: Array<Team> = await TeamService.findBy({
       query: {
         projectId: ctx.projectId,
-        name: QueryHelper.findWithSameTextAnyOf(teamNames),
+        name: QueryHelper.findWithSameTextAnyOf([...teamNames]),
       },
       select: { _id: true, name: true },
       limit: LIMIT_PER_PROJECT,
@@ -1436,6 +1532,64 @@ async function readPagingResponders(
   }
 
   return responders;
+}
+
+// Who a set_up_paging call pages first: alsoPage, teams and includeMe.
+async function readPagingResponders(
+  args: JSONObject,
+  ctx: ToolContext,
+): Promise<PagingResponders> {
+  return await resolveResponders(ctx, {
+    peopleNames: readNames(args, "alsoPage"),
+    teamNames: readNames(args, "teams"),
+    includesMe: ToolArgs.getBoolean(args, "includeMe") !== false,
+    invitedInPlan: getEmailsInvitedInPlan(ctx.plannedCalls),
+  });
+}
+
+/*
+ * The user ids of addresses invited to the project (#7242), read once the
+ * invitation exists - so after the plan's invite_people ran - as the
+ * person reads the project's memberships, accepted or not. An address
+ * with no membership is left out.
+ */
+async function readInvitedUserIds(
+  ctx: ToolContext,
+  emails: ReadonlyArray<string>,
+): Promise<Array<string>> {
+  if (emails.length === 0) {
+    return [];
+  }
+
+  const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+    query: { projectId: ctx.projectId },
+    select: { _id: true, userId: true },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: ctx.props,
+  });
+
+  await addMemberUsers(ctx, memberships);
+
+  const userIds: Array<string> = [];
+
+  for (const email of emails) {
+    const membership: TeamMember | undefined = memberships.find(
+      (each: TeamMember): boolean => {
+        return (
+          (each.user?.email?.toString() || "").trim().toLowerCase() ===
+          email.toLowerCase()
+        );
+      },
+    );
+    const userId: string = membership?.userId?.toString() || "";
+
+    if (userId && !userIds.includes(userId)) {
+      userIds.push(userId);
+    }
+  }
+
+  return userIds;
 }
 
 // Who a policy pages, as one of the three sentences (with or without "you").
@@ -1552,23 +1706,177 @@ export interface PreparedResponders {
   // The other people's names and the teams', as the approval card named them.
   otherPeople: Array<string>;
   pagedTeams: Array<string>;
+  // Addresses the same plan invites, paged once they join (#7242).
+  invitedEmails: Array<string>;
+}
+
+// The ids a prepared call carries under `key`, ids only.
+function readPreparedIds(args: JSONObject, key: string): Array<string> {
+  return (ToolArgs.getStringArray(args, key) || []).filter(
+    (id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    },
+  );
+}
+
+// The addresses a prepared call carries under `key`, lower case.
+function readPreparedEmails(args: JSONObject, key: string): Array<string> {
+  return (ToolArgs.getStringArray(args, key) || [])
+    .map((email: string): string => {
+      return email.trim().toLowerCase();
+    })
+    .filter((email: string): boolean => {
+      return Email.isValid(email);
+    });
 }
 
 export function readPreparedResponders(args: JSONObject): PreparedResponders {
-  const ids: (key: string) => Array<string> = (key: string): Array<string> => {
-    return (ToolArgs.getStringArray(args, key) || []).filter(
-      (id: string): boolean => {
-        return ObjectID.isValidUUID(id);
-      },
-    );
-  };
-
   return {
-    userIds: ids("userIds"),
-    teamIds: ids("teamIds"),
+    userIds: readPreparedIds(args, "userIds"),
+    teamIds: readPreparedIds(args, "teamIds"),
     otherPeople: ToolArgs.getStringArray(args, "otherPeople") || [],
     pagedTeams: ToolArgs.getStringArray(args, "pagedTeams") || [],
+    invitedEmails: readPreparedEmails(args, "invitedEmails"),
   };
+}
+
+/*
+ * WHAT IF NOBODY ACKNOWLEDGES (#7244): who set_up_paging's policy pages
+ * next and after how long, and how many more times it starts over, as the
+ * guided on-call setup's "What if nobody answers?" sets them - the people
+ * and teams written out by id, as its prepare resolved them.
+ */
+export interface PreparedEscalation {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+  // The names the card said, for the card the policy leaves.
+  people: Array<string>;
+  teams: Array<string>;
+  // Addresses the same plan invites, paged at that level once they join.
+  invitedEmails: Array<string>;
+  // How long the first level waits for someone to acknowledge.
+  afterMinutes: number;
+  // How many more times the policy starts over; 0 when it does not.
+  repeatTimes: number;
+}
+
+// The minutes a call asks a level to wait: a whole number from 1 to a day, or null.
+export function readAfterMinutes(args: JSONObject): number | null {
+  const asked: unknown = args["afterMinutes"];
+
+  if (asked === undefined || asked === null || asked === "") {
+    return null;
+  }
+
+  const minutes: number = Number(asked);
+
+  if (!Number.isFinite(minutes)) {
+    return null;
+  }
+
+  return Math.min(Math.max(Math.round(minutes), 1), MAX_LEVEL_WAIT_IN_MINUTES);
+}
+
+// How many more times a call asks the policy to start over: 1 to 10, or 0.
+export function readRepeatTimes(args: JSONObject): number {
+  const asked: unknown = args["repeatTimes"];
+
+  if (asked === undefined || asked === null || asked === "") {
+    return 0;
+  }
+
+  const times: number = Number(asked);
+
+  if (!Number.isFinite(times) || times < 1) {
+    return 0;
+  }
+
+  return readPolicyRepeatTimes(Math.min(Math.round(times), 10)) || 0;
+}
+
+// Whether a call asks for someone else to be paged next.
+function asksForEscalation(args: JSONObject): boolean {
+  return (
+    readNames(args, "escalateTo").length +
+      readNames(args, "escalateToTeams").length >
+    0
+  );
+}
+
+export function readPreparedEscalation(args: JSONObject): PreparedEscalation {
+  return {
+    userIds: readPreparedIds(args, "escalateUserIds"),
+    teamIds: readPreparedIds(args, "escalateTeamIds"),
+    people: ToolArgs.getStringArray(args, "escalatePeople") || [],
+    teams: ToolArgs.getStringArray(args, "escalateTeamNames") || [],
+    invitedEmails: readPreparedEmails(args, "escalateInvitedEmails"),
+    afterMinutes: readAfterMinutes(args) || DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+    repeatTimes: readRepeatTimes(args),
+  };
+}
+
+// Whether a prepared escalation pages anyone next.
+export function isEscalating(escalation: PreparedEscalation): boolean {
+  return (
+    escalation.userIds.length +
+      escalation.teamIds.length +
+      escalation.invitedEmails.length >
+    0
+  );
+}
+
+// Who a level pages, as a list a sentence says: names, teams, then addresses invited.
+function describeLevelResponders(data: {
+  people: ReadonlyArray<string>;
+  teams: ReadonlyArray<string>;
+  invitedEmails?: ReadonlyArray<string> | undefined;
+}): ReturnType<typeof aiActionList> {
+  return aiActionList([
+    ...data.people.map(plainName),
+    ...data.teams.map((team: string): AIActionSentence => {
+      return aiActionSentence(AI_ACTION_TEAM, { name: team });
+    }),
+    ...(data.invitedEmails || []).map(plainName),
+  ]);
+}
+
+/*
+ * What the approval card says the policy does when nobody acknowledges:
+ * who it pages next after the first level's wait, how long each round
+ * waits when it only starts over, and how many more times it starts over.
+ */
+export function describeEscalationForPerson(
+  escalation: PreparedEscalation,
+): Array<AIActionSentence> {
+  const sentences: Array<AIActionSentence> = [];
+
+  if (isEscalating(escalation)) {
+    sentences.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.escalatesAfter,
+        escalation.afterMinutes,
+        { responders: describeLevelResponders(escalation) },
+      ),
+    );
+  } else if (escalation.repeatTimes > 0) {
+    sentences.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.eachRoundWaits,
+        escalation.afterMinutes,
+      ),
+    );
+  }
+
+  if (escalation.repeatTimes > 0) {
+    sentences.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.policyStartsOver,
+        escalation.repeatTimes,
+      ),
+    );
+  }
+
+  return sentences;
 }
 
 const PAGING_PREPARED_ARGUMENTS: Array<string> = [
@@ -1580,6 +1888,16 @@ const PAGING_PREPARED_ARGUMENTS: Array<string> = [
   "teamIds",
   "otherPeople",
   "pagedTeams",
+  "invitedEmails",
+  "escalateTo",
+  "escalateToTeams",
+  "afterMinutes",
+  "repeatTimes",
+  "escalateUserIds",
+  "escalateTeamIds",
+  "escalatePeople",
+  "escalateTeamNames",
+  "escalateInvitedEmails",
 ];
 
 /*
@@ -1600,19 +1918,199 @@ export function pagesPeopleAlready(counts: PagingCounts): boolean {
   );
 }
 
+// Who a level pages, in English for the model: names, teams, then addresses invited.
+function describeLevelInEnglish(
+  level: Pick<PreparedEscalation, "people" | "teams" | "invitedEmails">,
+): string {
+  return [
+    ...level.people,
+    ...level.teams.map((team: string): string => {
+      return `the ${team} team`;
+    }),
+    ...level.invitedEmails.map((email: string): string => {
+      return `${email} (invited: paged once they join)`;
+    }),
+  ].join(", ");
+}
+
+// What a new policy got of what was asked for when nobody acknowledges.
+export interface PolicyLevelsDone {
+  // A second level pages someone else.
+  secondLevel: boolean;
+  // How many more times the policy starts over; 0 when it does not.
+  repeatTimes: number;
+  // What was refused, and why, in English.
+  failures: Array<string>;
+}
+
+/*
+ * WHAT IF NOBODY ACKNOWLEDGES, ON A POLICY JUST MADE (#7244): the guided
+ * on-call setup's writes for the same answers (OnCallSetupApi's
+ * addSecondLevel and setRepeat, built with Common's OnCallPolicyRecords),
+ * each as the person:
+ *
+ *   - the first level waits afterMinutes, set only when it differs
+ *     (buildLevelWait);
+ *   - someone else is paged next: a second escalation rule
+ *     (buildOnCallPolicyLevel);
+ *   - the policy starts over that many more times (buildPolicyRepeat).
+ *
+ * The policy exists by now: a part refused - the plan, a permission - is
+ * said, and the others still run.
+ */
+async function addLevelsToNewPolicy(
+  ctx: ToolContext,
+  data: {
+    policyId: ObjectID;
+    escalation: PreparedEscalation;
+    invitedNextUserIds: ReadonlyArray<string>;
+  },
+): Promise<PolicyLevelsDone> {
+  const done: PolicyLevelsDone = {
+    secondLevel: false,
+    repeatTimes: 0,
+    failures: [],
+  };
+  const nextUserIds: Array<string> = [...data.escalation.userIds];
+
+  for (const userId of data.invitedNextUserIds) {
+    if (!nextUserIds.includes(userId)) {
+      nextUserIds.push(userId);
+    }
+  }
+
+  const escalates: boolean =
+    nextUserIds.length + data.escalation.teamIds.length > 0;
+
+  if (!escalates && data.escalation.repeatTimes === 0) {
+    return done;
+  }
+
+  const reason: (error: unknown) => string = (error: unknown): string => {
+    return error instanceof Error ? error.message : String(error);
+  };
+
+  try {
+    const firstLevel: OnCallDutyPolicyEscalationRule | null =
+      await OnCallDutyPolicyEscalationRuleService.findOneBy({
+        query: {
+          projectId: ctx.projectId,
+          onCallDutyPolicyId: data.policyId,
+        },
+        select: { _id: true, escalateAfterInMinutes: true },
+        props: ctx.props,
+      });
+
+    if (!firstLevel?.id) {
+      throw new BadDataException(
+        "The policy's first escalation rule could not be read.",
+      );
+    }
+
+    if (firstLevel.escalateAfterInMinutes !== data.escalation.afterMinutes) {
+      await OnCallDutyPolicyEscalationRuleService.updateOneById({
+        id: firstLevel.id,
+        data: buildLevelWait(data.escalation.afterMinutes),
+        props: ctx.props,
+      });
+    }
+  } catch (error) {
+    done.failures.push(
+      `the first level's wait of ${data.escalation.afterMinutes} minutes (${reason(error)})`,
+    );
+  }
+
+  if (escalates) {
+    try {
+      const level: OnCallPolicyLevelCreate = buildOnCallPolicyLevel({
+        projectId: ctx.projectId,
+        policyId: data.policyId,
+        userIds: nextUserIds,
+        teamIds: data.escalation.teamIds,
+      });
+
+      await OnCallDutyPolicyEscalationRuleService.create({
+        data: level.rule,
+        miscDataProps: level.miscDataProps,
+        props: ctx.props,
+      });
+
+      done.secondLevel = true;
+    } catch (error) {
+      done.failures.push(
+        `the second level, paging ${describeLevelInEnglish(data.escalation)} (${reason(error)})`,
+      );
+    }
+  }
+
+  if (data.escalation.repeatTimes > 0) {
+    try {
+      await OnCallDutyPolicyService.updateOneById({
+        id: data.policyId,
+        data: buildPolicyRepeat(data.escalation.repeatTimes),
+        props: ctx.props,
+      });
+
+      done.repeatTimes = data.escalation.repeatTimes;
+    } catch (error) {
+      done.failures.push(
+        `starting over up to ${data.escalation.repeatTimes} more times (${reason(error)})`,
+      );
+    }
+  }
+
+  return done;
+}
+
+// What a new policy does when nobody acknowledges, in English for the model.
+function describeLevelsDoneInEnglish(data: {
+  escalation: PreparedEscalation;
+  done: PolicyLevelsDone;
+}): string {
+  const minutes: string = `${data.escalation.afterMinutes} minute${data.escalation.afterMinutes === 1 ? "" : "s"}`;
+  let text: string = "";
+
+  if (data.done.secondLevel) {
+    text += ` If nobody acknowledges within ${minutes}, its second escalation rule pages ${describeLevelInEnglish(data.escalation)}.`;
+  } else if (data.done.repeatTimes > 0) {
+    text += ` Its first escalation rule waits ${minutes} for someone to acknowledge.`;
+  }
+
+  if (data.done.repeatTimes > 0) {
+    text += ` If nobody acknowledges, the policy starts over, up to ${data.done.repeatTimes} more time${data.done.repeatTimes === 1 ? "" : "s"}.`;
+  }
+
+  if (data.done.failures.length > 0) {
+    text += ` Not set up: ${data.done.failures.join("; ")}. Tell the person exactly what was not set up, and why.`;
+  }
+
+  return text;
+}
+
 const NOBODY_TO_PAGE: string =
   "Nothing proposed: nobody named is a member or a team of this project, so the policy would page nobody. Ask the person who to page, by the name the project knows them by (query_teams lists members), and propose it again.";
 
 const PROJECT_PAGES_ALREADY: (counts: PagingCounts) => string = (
   counts: PagingCounts,
 ): string => {
-  return `Nothing proposed: this project already pages people through its on-call policies and on-call rules (${counts.policyCount} on-call ${counts.policyCount === 1 ? "policy" : "policies"}, ${counts.incidentRuleCount + counts.alertRuleCount} on-call ${counts.incidentRuleCount + counts.alertRuleCount === 1 ? "rule" : "rules"}), so they decide who is paged, and a second policy that pages for every incident would page twice. Say so in one sentence. Once a monitor exists, who_is_told says who it reaches; changing who is paged is done in the project's on-call policies (find_dashboard_page "On-Call Policies"), or with the on-call guided setup.`;
+  return `Nothing proposed: this project already pages people through its on-call policies and on-call rules (${counts.policyCount} on-call ${counts.policyCount === 1 ? "policy" : "policies"}, ${counts.incidentRuleCount + counts.alertRuleCount} on-call ${counts.incidentRuleCount + counts.alertRuleCount === 1 ? "rule" : "rules"}), so they decide who is paged, and a second policy that pages for every incident would page twice. Say so in one sentence. Once a monitor exists, who_is_told says who it reaches. To page more people, propose ${ADD_TO_ON_CALL_POLICY_TOOL_NAME} on one of its policies (query_on_call_policies names them): at a level it has, or as a new level after a wait.`;
+};
+
+/*
+ * OneUptime Cloud's Free plan allows one escalation rule per policy: a
+ * second level is refused before the card, with the plan's own sentence
+ * (OnCallDutyPolicyEscalationRuleService.getLevelsRefusal).
+ */
+const SECOND_LEVEL_NOT_IN_PLAN: (refusal: string) => string = (
+  refusal: string,
+): string => {
+  return `Nothing proposed: the project's plan does not allow it. ${refusal} Paging someone else when nobody acknowledges is a second escalation rule, which needs a paid plan. Tell the person so, in these words, and offer to propose it again without someone else to page next: on the Free plan the policy can page the same people again instead (repeatTimes).`;
 };
 
 export const SetUpPagingTool: ObservabilityTool = {
   name: "set_up_paging",
   description:
-    "Set up who is paged in a project that pages nobody yet, as the website guided setup does: the project's first on-call policy, 'Default on-call policy', paging the person ('you', unless includeMe is false) and any members (alsoPage) and teams (teams) named, with the two catch-all on-call rules that page it for every new incident and alert. Use it with set_up_website_monitoring, in the same answer, when the person asks to be paged, texted or called. A project that already has on-call policies or rules keeps them: query_on_call_policies first, and do not propose it there. Pass reachMeBy with how the person asked to be reached ('text me' is sms): the card then says what is missing, since a phone number or the app is added and verified by the person, never by you. It always shows the person an approval card, in every mode.",
+    "Set up who is paged in a project that pages nobody yet, as the website and on-call guided setups do: the project's first on-call policy, 'Default on-call policy', paging the person ('you', unless includeMe is false) and any members (alsoPage) and teams (teams) named, with the two catch-all on-call rules that page it for every new incident and alert. What if nobody acknowledges: escalateTo and escalateToTeams page someone else after afterMinutes ('page Ana if I don't answer in 5 minutes'), and repeatTimes starts the policy over that many more times. Use it with set_up_website_monitoring, in the same answer, when the person asks to be paged, texted or called. A project that already has on-call policies or rules keeps them: query_on_call_policies first, and do not propose it there (add_to_on_call_policy adds people to one of its policies). Pass reachMeBy with how the person asked to be reached ('text me' is sms): the card then says what is missing, since a phone number or the app is added and verified by the person, never by you; to set the order pages reach them ('text me, then call me after 5 minutes'), propose set_how_to_reach_me too. It always shows the person an approval card, in every mode.",
   inputSchema: {
     type: "object",
     properties: {
@@ -1625,12 +2123,34 @@ export const SetUpPagingTool: ObservabilityTool = {
         type: "array",
         items: { type: "string" },
         description:
-          "Other members of the project to page too, each by the name or email the project knows them by (query_teams lists members by name).",
+          "Other members of the project to page too, each by the name or email the project knows them by (query_teams lists members by name), or the address of someone invite_people invites in the same answer.",
       },
       teams: {
         type: "array",
         items: { type: "string" },
         description: "Teams of the project to page, by name (query_teams).",
+      },
+      escalateTo: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Members to page next when nobody acknowledges within afterMinutes, by name or email: a second escalation level. Leave it out unless the person asked for someone else to be paged when they do not answer.",
+      },
+      escalateToTeams: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Teams to page next when nobody acknowledges within afterMinutes, by name.",
+      },
+      afterMinutes: {
+        type: "number",
+        description:
+          "How many minutes the first level waits for someone to acknowledge before the next level is paged, or the policy starts over: 1 to 1440. Defaults to 30.",
+      },
+      repeatTimes: {
+        type: "number",
+        description:
+          "How many more times the policy starts over when nobody acknowledges: 1 to 10. Leave it out unless the person asked to be paged again.",
       },
       reachMeBy: {
         type: "array",
@@ -1646,8 +2166,23 @@ export const SetUpPagingTool: ObservabilityTool = {
   get requiredPermissions(): Array<Permission> {
     return getPagingPermissionGroups()[0]!;
   },
-  getRequiredPermissionGroups: (): Array<Array<Permission>> => {
-    return getPagingPermissionGroups();
+  /*
+   * The policy, its first level and its two rules; and, for what happens
+   * when nobody acknowledges, changing that level's wait - and the policy,
+   * for its repeats - as the guided on-call setup asks for them.
+   */
+  getRequiredPermissionGroups: (args: JSONObject): Array<Array<Permission>> => {
+    const groups: Array<Array<Permission>> = [...getPagingPermissionGroups()];
+
+    if (asksForEscalation(args) || readRepeatTimes(args) > 0) {
+      groups.push(new OnCallDutyPolicyEscalationRule().getUpdatePermissions());
+    }
+
+    if (readRepeatTimes(args) > 0) {
+      groups.push(new OnCallDutyPolicy().getUpdatePermissions());
+    }
+
+    return groups;
   },
   isMutation: true,
   setupAction: { planOrder: SETUP_PLAN_ORDER.paging },
@@ -1669,11 +2204,30 @@ export const SetUpPagingTool: ObservabilityTool = {
       includesMe: ToolArgs.getBoolean(args, "includeMe") !== false,
       people: [],
       teams: [],
+      invited: [],
+      notFound: [],
+    };
+    // Who is paged next when nobody acknowledges (#7244).
+    let next: PagingResponders = {
+      includesMe: false,
+      people: [],
+      teams: [],
+      invited: [],
       notFound: [],
     };
 
     try {
       responders = await readPagingResponders(args, ctx);
+
+      if (asksForEscalation(args)) {
+        next = await resolveResponders(ctx, {
+          peopleNames: readNames(args, "escalateTo"),
+          teamNames: readNames(args, "escalateToTeams"),
+          includesMe: false,
+          invitedInPlan: getEmailsInvitedInPlan(ctx.plannedCalls),
+          meAsPerson: true,
+        });
+      }
     } catch (error) {
       logger.debug(
         `set_up_paging could not read who to page: ${
@@ -1694,6 +2248,23 @@ export const SetUpPagingTool: ObservabilityTool = {
         return team.id;
       },
     );
+    const escalation: PreparedEscalation = {
+      userIds: next.people.map((person: { id: string }): string => {
+        return person.id;
+      }),
+      teamIds: next.teams.map((team: { id: string }): string => {
+        return team.id;
+      }),
+      people: next.people.map((person: { name: string }): string => {
+        return person.name;
+      }),
+      teams: next.teams.map((team: { name: string }): string => {
+        return team.name;
+      }),
+      invitedEmails: next.invited,
+      afterMinutes: readAfterMinutes(args) || DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+      repeatTimes: readRepeatTimes(args),
+    };
 
     const description: Array<AIActionSentence> = [];
 
@@ -1707,15 +2278,52 @@ export const SetUpPagingTool: ObservabilityTool = {
       );
     }
 
-    if (responders.notFound.length > 0) {
+    // People the same plan invites: paged once they join (#7242).
+    const invited: Array<string> = [...responders.invited];
+
+    for (const email of next.invited) {
+      if (!invited.includes(email)) {
+        invited.push(email);
+      }
+    }
+
+    if (invited.length > 0) {
       description.push(
-        aiActionSentence(AI_ACTION_LINES.respondersNotFound, {
-          names: aiActionList(responders.notFound.map(plainName)),
+        aiActionSentence(AI_ACTION_LINES.invitedPagedOnceTheyJoin, {
+          names: aiActionList(invited.map(plainName)),
         }),
       );
     }
 
-    if (responders.includesMe) {
+    description.push(...describeEscalationForPerson(escalation));
+
+    const notFound: Array<string> = [...responders.notFound];
+
+    for (const name of next.notFound) {
+      if (!notFound.includes(name)) {
+        notFound.push(name);
+      }
+    }
+
+    if (notFound.length > 0) {
+      description.push(
+        aiActionSentence(AI_ACTION_LINES.respondersNotFound, {
+          names: aiActionList(notFound.map(plainName)),
+        }),
+      );
+    }
+
+    /*
+     * What is missing for the person to be reached the way they asked -
+     * unless the same plan sets how pages reach them (#7454), whose part
+     * says it.
+     */
+    if (
+      responders.includesMe &&
+      !(ctx.plannedCalls || []).some((call: PlannedToolCall): boolean => {
+        return call.name === SET_HOW_TO_REACH_ME_TOOL_NAME;
+      })
+    ) {
       description.push(
         ...describeReachForPerson({
           asked: readReachMethods(args),
@@ -1736,6 +2344,24 @@ export const SetUpPagingTool: ObservabilityTool = {
         pagedTeams: responders.teams.map((team: { name: string }) => {
           return team.name;
         }),
+        ...(responders.invited.length > 0
+          ? { invitedEmails: responders.invited }
+          : {}),
+        ...(asksForEscalation(args)
+          ? {
+              escalateUserIds: escalation.userIds,
+              escalateTeamIds: escalation.teamIds,
+              escalatePeople: escalation.people,
+              escalateTeamNames: escalation.teams,
+              escalateInvitedEmails: escalation.invitedEmails,
+            }
+          : {}),
+        ...(asksForEscalation(args) || escalation.repeatTimes > 0
+          ? { afterMinutes: escalation.afterMinutes }
+          : {}),
+        ...(escalation.repeatTimes > 0
+          ? { repeatTimes: escalation.repeatTimes }
+          : {}),
       },
       /*
        * The card names the policy as it will be made: in the person's
@@ -1772,8 +2398,33 @@ export const SetUpPagingTool: ObservabilityTool = {
 
     const responders: PreparedResponders = readPreparedResponders(args);
 
-    if (responders.userIds.length + responders.teamIds.length === 0) {
+    if (
+      responders.userIds.length +
+        responders.teamIds.length +
+        responders.invitedEmails.length ===
+      0
+    ) {
       return { toldModel: NOBODY_TO_PAGE };
+    }
+
+    /*
+     * A second level on OneUptime Cloud's Free plan (#7244): one escalation
+     * rule per policy, said before the card, in the plan's own sentence.
+     */
+    if (isEscalating(readPreparedEscalation(args))) {
+      const refusal: string | null =
+        OnCallDutyPolicyEscalationRuleService.getLevelsRefusal({
+          props: ctx.props,
+          existingLevels: 0,
+          adding: 2,
+        });
+
+      if (refusal) {
+        return {
+          toldModel: SECOND_LEVEL_NOT_IN_PLAN(refusal),
+          refusal: AIToolRefusal.Plan,
+        };
+      }
     }
 
     return null;
@@ -1793,8 +2444,27 @@ export const SetUpPagingTool: ObservabilityTool = {
     }
 
     const responders: PreparedResponders = readPreparedResponders(args);
+    const escalation: PreparedEscalation = readPreparedEscalation(args);
 
-    if (responders.userIds.length + responders.teamIds.length === 0) {
+    /*
+     * The people the same plan invited (#7242), by the user each invitation
+     * made: invited by now, so they are the project's, and paged once they
+     * join.
+     */
+    const [invitedFirst, invitedNext]: [Array<string>, Array<string>] =
+      await Promise.all([
+        readInvitedUserIds(ctx, responders.invitedEmails),
+        readInvitedUserIds(ctx, escalation.invitedEmails),
+      ]);
+    const firstUserIds: Array<string> = [...responders.userIds];
+
+    for (const userId of invitedFirst) {
+      if (!firstUserIds.includes(userId)) {
+        firstUserIds.push(userId);
+      }
+    }
+
+    if (firstUserIds.length + responders.teamIds.length === 0) {
       throw new BadDataException(NOBODY_TO_PAGE);
     }
 
@@ -1805,7 +2475,7 @@ export const SetUpPagingTool: ObservabilityTool = {
      */
     const language: string = await readSetupRecordsLanguage(ctx);
     const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
-      userIds: responders.userIds,
+      userIds: firstUserIds,
       teamIds: responders.teamIds,
       translator: getRecordWordsTranslator(language),
       language: language,
@@ -1848,10 +2518,24 @@ export const SetUpPagingTool: ObservabilityTool = {
       return { id: "", name: name };
     };
 
+    /*
+     * What if nobody acknowledges (#7244): the guided on-call setup's
+     * writes for the same answers (Common's OnCallPolicyRecords), each as
+     * the person. The policy exists by now, so a part refused here - the
+     * plan, a permission - is said, and the rest stands.
+     */
+    const done: PolicyLevelsDone = await addLevelsToNewPolicy(ctx, {
+      policyId: created.id!,
+      escalation: escalation,
+      invitedNextUserIds: invitedNext,
+    });
+
     const pagedLine: AIActionSentence = describePagedForPerson(
       {
         includesMe: includesMe,
-        people: responders.otherPeople.map(toResponder),
+        people: [...responders.otherPeople, ...responders.invitedEmails].map(
+          toResponder,
+        ),
         teams: responders.pagedTeams.map(toResponder),
       },
       {
@@ -1864,6 +2548,9 @@ export const SetUpPagingTool: ObservabilityTool = {
     const pagedNames: Array<string> = [
       ...(includesMe ? ["the person asking"] : []),
       ...responders.otherPeople,
+      ...responders.invitedEmails.map((email: string): string => {
+        return `${email} (invited: paged once they join)`;
+      }),
       ...responders.pagedTeams.map((team: string): string => {
         return `the ${team} team`;
       }),
@@ -1877,11 +2564,20 @@ export const SetUpPagingTool: ObservabilityTool = {
         otherPeoplePaged: responders.otherPeople.join(", "),
         teamsPaged: responders.pagedTeams.join(", "),
         runsFor: "every new incident and alert",
+        ...(done.secondLevel
+          ? {
+              pagesNext: describeLevelInEnglish(escalation),
+              afterMinutes: escalation.afterMinutes,
+            }
+          : {}),
+        ...(done.repeatTimes > 0 ? { startsOverUpTo: done.repeatTimes } : {}),
       },
     ]);
 
     return {
-      dataForLlm: `Created the on-call policy "${policyName}". Its first escalation rule pages ${pagedNames.join(", ")}, and two on-call rules run it for every new incident and alert, so every monitor that opens one pages them. How a page reaches each person is their own notification rules and verified methods (Notification Methods). If the approval card said a phone number or the app is missing, tell the person to add and verify it in Notification Methods, and end with that page's citation (find_dashboard_page "Notification Methods"). Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
+      dataForLlm: `Created the on-call policy "${policyName}". Its first escalation rule pages ${pagedNames.join(", ")}, and two on-call rules run it for every new incident and alert, so every monitor that opens one pages them.${describeLevelsDoneInEnglish(
+        { escalation: escalation, done: done },
+      )} How a page reaches each person is their own notification rules and verified methods (Notification Methods). If the approval card said a phone number or the app is missing, tell the person to add and verify it in Notification Methods, and end with that page's citation (find_dashboard_page "Notification Methods"). Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
       rowCount: 1,
       ...citationSentence(AI_TOOL_CITATIONS.createdOnCallPolicy, {
         name: policyName,
@@ -1897,7 +2593,26 @@ export const SetUpPagingTool: ObservabilityTool = {
         heading: policyName,
         words: {
           kind: aiActionTerm(AI_ACTION_CARD_KINDS.onCallPolicy),
-          line: [pagedLine],
+          line: [
+            pagedLine,
+            ...(done.secondLevel
+              ? [
+                  aiActionPluralSentence(
+                    AI_ACTION_PLURAL_LINES.pagesNextAfter,
+                    escalation.afterMinutes,
+                    { responders: describeLevelResponders(escalation) },
+                  ),
+                ]
+              : []),
+            ...(done.repeatTimes > 0
+              ? [
+                  aiActionPluralSentence(
+                    AI_ACTION_PLURAL_LINES.startsOverUpTo,
+                    done.repeatTimes,
+                  ),
+                ]
+              : []),
+          ],
         },
         link: {
           type: AIChatCitationTargetType.OnCallPolicyView,
@@ -1907,6 +2622,810 @@ export const SetUpPagingTool: ObservabilityTool = {
           kind: "policy",
           policyId: policyId,
           policyName: policyName,
+        },
+      }),
+    };
+  },
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * add_to_on_call_policy
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * PEOPLE ADDED TO A POLICY THE PROJECT HAS (#7244). In a project that
+ * pages people already, set_up_paging proposes nothing beside its policies
+ * - and "page Ana too" was answered with nothing. This adds people and
+ * teams to a policy, as the guided on-call setup's "Who else is on call?"
+ * does (OnCallSetupApi.addToFirstLevel, Common's buildLevelMembers): to a
+ * level it has (the first by default), or as a new level after its last,
+ * paged when nobody acknowledges within a wait (buildOnCallPolicyLevel,
+ * buildLevelWait) - which OneUptime Cloud's Free plan allows once per
+ * policy, said before the card.
+ */
+
+// One level of a policy, as the card names it.
+interface PolicyLevelRead {
+  id: ObjectID;
+  name: string;
+  escalateAfterInMinutes: number | undefined;
+}
+
+// The project's policies in service the person may read, by name.
+async function readPoliciesInService(
+  ctx: ToolContext,
+): Promise<Array<OnCallDutyPolicy>> {
+  return await OnCallDutyPolicyService.findBy({
+    query: { projectId: ctx.projectId, isArchived: false },
+    select: { _id: true, name: true },
+    sort: { name: SortOrder.Ascending },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: ctx.props,
+  });
+}
+
+// A policy's levels, in the order a page climbs them, as the person reads them.
+async function readPolicyLevels(
+  ctx: ToolContext,
+  policyId: ObjectID,
+): Promise<Array<PolicyLevelRead>> {
+  const rules: Array<OnCallDutyPolicyEscalationRule> =
+    await OnCallDutyPolicyEscalationRuleService.findBy({
+      query: { projectId: ctx.projectId, onCallDutyPolicyId: policyId },
+      select: {
+        _id: true,
+        name: true,
+        order: true,
+        escalateAfterInMinutes: true,
+      },
+      sort: { order: SortOrder.Ascending },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: ctx.props,
+    });
+
+  return rules
+    .filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
+      return Boolean(rule.id);
+    })
+    .map((rule: OnCallDutyPolicyEscalationRule, index: number) => {
+      return {
+        id: rule.id!,
+        name: rule.name || getDefaultEscalationRuleName(index + 1),
+        escalateAfterInMinutes: rule.escalateAfterInMinutes,
+      };
+    });
+}
+
+// Who a level pages now: its people's and teams' ids, as the person reads them.
+async function readLevelMembers(
+  ctx: ToolContext,
+  ruleId: ObjectID,
+): Promise<{ userIds: Array<string>; teamIds: Array<string> }> {
+  const [users, teams]: [
+    Array<OnCallDutyPolicyEscalationRuleUser>,
+    Array<OnCallDutyPolicyEscalationRuleTeam>,
+  ] = await Promise.all([
+    OnCallDutyPolicyEscalationRuleUserService.findBy({
+      query: {
+        projectId: ctx.projectId,
+        onCallDutyPolicyEscalationRuleId: ruleId,
+      },
+      select: { _id: true, userId: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: ctx.props,
+    }),
+    OnCallDutyPolicyEscalationRuleTeamService.findBy({
+      query: {
+        projectId: ctx.projectId,
+        onCallDutyPolicyEscalationRuleId: ruleId,
+      },
+      select: { _id: true, teamId: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: ctx.props,
+    }),
+  ]);
+
+  return {
+    userIds: users
+      .map((row: OnCallDutyPolicyEscalationRuleUser): string => {
+        return row.userId?.toString() || "";
+      })
+      .filter(Boolean),
+    teamIds: teams
+      .map((row: OnCallDutyPolicyEscalationRuleTeam): string => {
+        return row.teamId?.toString() || "";
+      })
+      .filter(Boolean),
+  };
+}
+
+/*
+ * The person asking, by the name the project knows them by - their
+ * membership read as them, and who it is as membership reads add it
+ * (addMemberUsers) - else their email, never blank.
+ */
+async function readMyName(ctx: ToolContext): Promise<string> {
+  const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+    query: { projectId: ctx.projectId, userId: ctx.props.userId! },
+    select: { _id: true, userId: true },
+    limit: 1,
+    skip: 0,
+    props: ctx.props,
+  });
+
+  await addMemberUsers(ctx, memberships);
+
+  const user: User | undefined = memberships[0]?.user;
+
+  return (
+    user?.name?.toString() ||
+    user?.email?.toString() ||
+    ctx.props.userId!.toString()
+  );
+}
+
+// The level a call asks for: 1, the first, unless it names another.
+export function readLevelNumber(args: JSONObject): number {
+  return ToolArgs.getNumber(args, "level", {
+    defaultValue: 1,
+    min: 1,
+    max: 100,
+  });
+}
+
+/*
+ * The policy a call names, by its name (without case) or id, among the
+ * project's policies in service - or its only one, when it names none.
+ */
+export function pickPolicyToAddTo(data: {
+  named: string | undefined;
+  policies: ReadonlyArray<OnCallDutyPolicy>;
+}): OnCallDutyPolicy | null {
+  if (!data.named) {
+    return data.policies.length === 1 ? data.policies[0]! : null;
+  }
+
+  const named: string = data.named.trim().toLowerCase();
+
+  return (
+    data.policies.find((policy: OnCallDutyPolicy): boolean => {
+      return (
+        policy.id?.toString().toLowerCase() === named ||
+        (policy.name || "").trim().toLowerCase() === named
+      );
+    }) || null
+  );
+}
+
+// The policy names a refusal lists for the model to pick from: the first ten.
+function listPolicyNames(policies: ReadonlyArray<OnCallDutyPolicy>): string {
+  return policies
+    .slice(0, 10)
+    .map((policy: OnCallDutyPolicy): string => {
+      return `"${policy.name || ""}"`;
+    })
+    .join(", ");
+}
+
+const NO_POLICY_TO_ADD_TO: string = `Nothing proposed: this project has no on-call policy in service to add people to. Propose ${SET_UP_PAGING_TOOL_NAME} to make its first, instead.`;
+
+// What a prepared add_to_on_call_policy call runs with.
+export interface PreparedPolicyAddition {
+  policyId: string;
+  policyName: string;
+  // The level it adds to, or the new level's place (one past the last).
+  level: number;
+  // The rule of a level the policy has; empty for a new level.
+  ruleId: string;
+  ruleName: string;
+  // The level before a new one, whose wait is set; empty when there is none.
+  previousRuleId: string;
+  afterMinutes: number;
+  userIds: Array<string>;
+  teamIds: Array<string>;
+  people: Array<string>;
+  teams: Array<string>;
+  invitedEmails: Array<string>;
+}
+
+export function readPreparedPolicyAddition(
+  args: JSONObject,
+): PreparedPolicyAddition {
+  const id: (key: string) => string = (key: string): string => {
+    const value: string = ToolArgs.getString(args, key) || "";
+    return ObjectID.isValidUUID(value) ? value : "";
+  };
+
+  return {
+    policyId: id("policyId"),
+    policyName: ToolArgs.getString(args, "policyName") || "",
+    level: readLevelNumber(args),
+    ruleId: id("ruleId"),
+    ruleName: ToolArgs.getString(args, "ruleName") || "",
+    previousRuleId: id("previousRuleId"),
+    afterMinutes: readAfterMinutes(args) || DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+    userIds: readPreparedIds(args, "userIds"),
+    teamIds: readPreparedIds(args, "teamIds"),
+    people: ToolArgs.getStringArray(args, "people") || [],
+    teams: ToolArgs.getStringArray(args, "teamNames") || [],
+    invitedEmails: readPreparedEmails(args, "invitedEmails"),
+  };
+}
+
+// Whether a prepared addition makes a new level rather than adding to one.
+function isNewLevel(addition: PreparedPolicyAddition): boolean {
+  return Boolean(addition.policyId) && !addition.ruleId;
+}
+
+/*
+ * Why the call cannot be proposed, from what its prepare wrote out: no
+ * policy, a level the policy does not have, nobody new to page there.
+ * Null when nothing stops it.
+ */
+async function checkPolicyAddition(
+  args: JSONObject,
+  ctx: ToolContext,
+): Promise<SetupActionRefusal | null> {
+  const policies: Array<OnCallDutyPolicy> = await readPoliciesInService(ctx);
+
+  if (policies.length === 0) {
+    return { toldModel: NO_POLICY_TO_ADD_TO };
+  }
+
+  const named: string | undefined = ToolArgs.getString(args, "policy");
+  const policy: OnCallDutyPolicy | null = pickPolicyToAddTo({
+    named: named,
+    policies: policies,
+  });
+
+  if (!policy?.id) {
+    return {
+      toldModel: named
+        ? `Nothing proposed: "${named}" is no on-call policy of this project in service. Its policies: ${listPolicyNames(policies)}. Name one of them.`
+        : `Nothing proposed: this project has ${policies.length} on-call policies (${listPolicyNames(policies)}). Ask the person which one to add to, and propose it again with its name.`,
+    };
+  }
+
+  const levels: Array<PolicyLevelRead> = await readPolicyLevels(ctx, policy.id);
+  const level: number = readLevelNumber(args);
+
+  if (level > Math.max(levels.length, 0) + 1) {
+    return {
+      toldModel: `Nothing proposed: the on-call policy "${policy.name}" has ${levels.length} escalation ${levels.length === 1 ? "level" : "levels"}. Add to one of them (level 1 to ${levels.length}), or as level ${levels.length + 1}, a new level paged when nobody acknowledges within afterMinutes.`,
+    };
+  }
+
+  const addition: PreparedPolicyAddition = readPreparedPolicyAddition(args);
+
+  if (
+    addition.userIds.length +
+      addition.teamIds.length +
+      addition.invitedEmails.length ===
+    0
+  ) {
+    return {
+      toldModel: `Nothing proposed: nobody named is a member or a team of this project who is not paged at that level of "${policy.name}" already. Ask the person who to add, by the name the project knows them by (query_teams lists members), and propose it again.`,
+    };
+  }
+
+  // A second level on OneUptime Cloud's Free plan: said before the card.
+  if (level > levels.length && levels.length > 0) {
+    const refusal: string | null =
+      OnCallDutyPolicyEscalationRuleService.getLevelsRefusal({
+        props: ctx.props,
+        existingLevels: levels.length,
+        adding: 1,
+      });
+
+    if (refusal) {
+      return {
+        toldModel: `Nothing proposed: the project's plan does not allow it. ${refusal} A new level, paging someone else when nobody acknowledges, is another escalation rule, which needs a paid plan. Tell the person so, in these words, and offer to add them to the policy's first level instead (level 1), where they are paged with the others.`,
+        refusal: AIToolRefusal.Plan,
+      };
+    }
+  }
+
+  return null;
+}
+
+export const AddToOnCallPolicyTool: ObservabilityTool = {
+  name: "add_to_on_call_policy",
+  description:
+    "Add people and teams to an on-call policy the project has, as the guided on-call setup's 'Who else is on call?' does: to a level it has (level 1, the first, by default), or as a new level after its last one, paged when nobody acknowledges within afterMinutes ('page Ana if I don't answer in 5 minutes'). Use it where set_up_paging is not proposed because the project pages people already: query_on_call_policies first, and name the policy by its name. Name people by the name or email the project knows them by, or the address of someone invite_people invites in the same answer. It always shows the person an approval card, in every mode.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      policy: {
+        type: "string",
+        description:
+          "The on-call policy, by its name (query_on_call_policies). Leave it out only when the project has one policy.",
+      },
+      alsoPage: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Members of the project to add, each by the name or email the project knows them by (query_teams lists members).",
+      },
+      teams: {
+        type: "array",
+        items: { type: "string" },
+        description: "Teams of the project to add, by name (query_teams).",
+      },
+      includeMe: {
+        type: "boolean",
+        description:
+          "Add the person asking too. Defaults to false; true when they said 'me' or 'page me too'.",
+      },
+      level: {
+        type: "number",
+        description:
+          "The level to add to: 1 (the default) is the first, paged at once. One past the policy's last level makes a new level, paged when nobody acknowledges within afterMinutes.",
+      },
+      afterMinutes: {
+        type: "number",
+        description:
+          "For a new level: how many minutes the level before it waits for someone to acknowledge, 1 to 1440. Defaults to 30.",
+      },
+    },
+  },
+  get requiredPermissions(): Array<Permission> {
+    return new OnCallDutyPolicyEscalationRuleUser().getCreatePermissions();
+  },
+  /*
+   * As the guided setup asks for them: adding people and teams to a level
+   * it has, or a new level - and changing the wait of the level before it.
+   */
+  getRequiredPermissionGroups: (args: JSONObject): Array<Array<Permission>> => {
+    const addition: PreparedPolicyAddition = readPreparedPolicyAddition(args);
+
+    if (isNewLevel(addition)) {
+      return [
+        new OnCallDutyPolicyEscalationRule().getCreatePermissions(),
+        ...(addition.previousRuleId
+          ? [new OnCallDutyPolicyEscalationRule().getUpdatePermissions()]
+          : []),
+      ];
+    }
+
+    const groups: Array<Array<Permission>> = [];
+
+    if (
+      addition.userIds.length + addition.invitedEmails.length > 0 ||
+      addition.teamIds.length === 0
+    ) {
+      groups.push(
+        new OnCallDutyPolicyEscalationRuleUser().getCreatePermissions(),
+      );
+    }
+
+    if (addition.teamIds.length > 0) {
+      groups.push(
+        new OnCallDutyPolicyEscalationRuleTeam().getCreatePermissions(),
+      );
+    }
+
+    return groups;
+  },
+  isMutation: true,
+  setupAction: { planOrder: SETUP_PLAN_ORDER.onCallPolicyPeople },
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    const named: string | undefined = ToolArgs.getString(args, "policy");
+
+    return named && !ObjectID.isValidUUID(named)
+      ? aiActionSentence(AI_ACTION_TITLES.addToOnCallPolicy, {
+          policy: JSON.stringify(named),
+        })
+      : aiActionSentence(AI_ACTION_TITLES.addToOnCallPolicyUnnamed);
+  },
+  /*
+   * The policy and its level written out by id - what the card named is
+   * what runs - and who is added there: the people and teams it does not
+   * page yet, by id, and who it pages there already.
+   */
+  prepareMutation: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<PreparedMutation> => {
+    try {
+      const policy: OnCallDutyPolicy | null = pickPolicyToAddTo({
+        named: ToolArgs.getString(args, "policy"),
+        policies: await readPoliciesInService(ctx),
+      });
+
+      if (!policy?.id) {
+        return { arguments: args };
+      }
+
+      const levels: Array<PolicyLevelRead> = await readPolicyLevels(
+        ctx,
+        policy.id,
+      );
+      const levelNumber: number = readLevelNumber(args);
+
+      if (levelNumber > levels.length + 1) {
+        return { arguments: args };
+      }
+
+      const existing: PolicyLevelRead | undefined = levels[levelNumber - 1];
+      const previous: PolicyLevelRead | undefined = existing
+        ? undefined
+        : levels[levels.length - 1];
+      const responders: PagingResponders = await resolveResponders(ctx, {
+        peopleNames: readNames(args, "alsoPage"),
+        teamNames: readNames(args, "teams"),
+        includesMe: false,
+        invitedInPlan: getEmailsInvitedInPlan(ctx.plannedCalls),
+        meAsPerson: true,
+      });
+
+      // The person asking, when they asked to be added too: by their name.
+      if (
+        ToolArgs.getBoolean(args, "includeMe") === true &&
+        ctx.props.userId &&
+        !responders.people.some((person: { id: string }): boolean => {
+          return person.id === ctx.props.userId!.toString();
+        })
+      ) {
+        responders.people.unshift({
+          id: ctx.props.userId.toString(),
+          name: await readMyName(ctx),
+        });
+      }
+
+      // Who the level pages already is left as it is.
+      const already: { userIds: Array<string>; teamIds: Array<string> } =
+        existing
+          ? await readLevelMembers(ctx, existing.id)
+          : { userIds: [], teamIds: [] };
+      const newPeople: Array<{ id: string; name: string }> =
+        responders.people.filter((person: { id: string }): boolean => {
+          return !already.userIds.includes(person.id);
+        });
+      const newTeams: Array<{ id: string; name: string }> =
+        responders.teams.filter((team: { id: string }): boolean => {
+          return !already.teamIds.includes(team.id);
+        });
+      const alreadyThere: Array<string> = [
+        ...responders.people
+          .filter((person: { id: string }): boolean => {
+            return already.userIds.includes(person.id);
+          })
+          .map((person: { name: string }): string => {
+            return person.name;
+          }),
+        ...responders.teams
+          .filter((team: { id: string }): boolean => {
+            return already.teamIds.includes(team.id);
+          })
+          .map((team: { name: string }): string => {
+            return team.name;
+          }),
+      ];
+
+      const addition: PreparedPolicyAddition = {
+        policyId: policy.id.toString(),
+        policyName: policy.name || "",
+        level: levelNumber,
+        ruleId: existing?.id.toString() || "",
+        ruleName: existing?.name || "",
+        previousRuleId: previous?.id.toString() || "",
+        afterMinutes:
+          readAfterMinutes(args) || DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+        userIds: newPeople.map((person: { id: string }): string => {
+          return person.id;
+        }),
+        teamIds: newTeams.map((team: { id: string }): string => {
+          return team.id;
+        }),
+        people: newPeople.map((person: { name: string }): string => {
+          return person.name;
+        }),
+        teams: newTeams.map((team: { name: string }): string => {
+          return team.name;
+        }),
+        invitedEmails: responders.invited,
+      };
+
+      const description: Array<AIActionSentence> = [];
+      const adds: ReturnType<typeof aiActionList> = describeLevelResponders({
+        people: addition.people,
+        teams: addition.teams,
+        invitedEmails: addition.invitedEmails,
+      });
+      const addsAnyone: boolean =
+        addition.userIds.length +
+          addition.teamIds.length +
+          addition.invitedEmails.length >
+        0;
+
+      if (addsAnyone && (existing || !previous)) {
+        description.push(
+          aiActionSentence(AI_ACTION_LINES.addsToEscalationRule, {
+            responders: adds,
+            rule: JSON.stringify(
+              existing?.name || getDefaultEscalationRuleName(levelNumber),
+            ),
+          }),
+        );
+      } else if (addsAnyone) {
+        description.push(
+          aiActionPluralSentence(
+            AI_ACTION_PLURAL_LINES.escalatesAfter,
+            addition.afterMinutes,
+            { responders: adds },
+          ),
+        );
+      }
+
+      if (alreadyThere.length > 0) {
+        description.push(
+          aiActionSentence(AI_ACTION_LINES.alreadyPagedThere, {
+            names: aiActionList(alreadyThere.map(plainName)),
+          }),
+        );
+      }
+
+      if (addition.invitedEmails.length > 0) {
+        description.push(
+          aiActionSentence(AI_ACTION_LINES.invitedPagedOnceTheyJoin, {
+            names: aiActionList(addition.invitedEmails.map(plainName)),
+          }),
+        );
+      }
+
+      if (responders.notFound.length > 0) {
+        description.push(
+          aiActionSentence(AI_ACTION_LINES.respondersNotFound, {
+            names: aiActionList(responders.notFound.map(plainName)),
+          }),
+        );
+      }
+
+      return {
+        arguments: {
+          ...args,
+          policyId: addition.policyId,
+          policyName: addition.policyName,
+          level: addition.level,
+          ruleId: addition.ruleId,
+          ruleName: addition.ruleName,
+          previousRuleId: addition.previousRuleId,
+          ...(addition.ruleId ? {} : { afterMinutes: addition.afterMinutes }),
+          userIds: addition.userIds,
+          teamIds: addition.teamIds,
+          people: addition.people,
+          teamNames: addition.teams,
+          invitedEmails: addition.invitedEmails,
+        },
+        title: aiActionSentence(AI_ACTION_TITLES.addToOnCallPolicy, {
+          policy: JSON.stringify(addition.policyName),
+        }),
+        namedArguments: ["policy", "policyId", "policyName"],
+        description: description,
+        describedArguments: [
+          "alsoPage",
+          "teams",
+          "includeMe",
+          "level",
+          "afterMinutes",
+          "ruleId",
+          "ruleName",
+          "previousRuleId",
+          "userIds",
+          "teamIds",
+          "people",
+          "teamNames",
+          "invitedEmails",
+        ],
+      };
+    } catch (error) {
+      logger.debug(
+        `add_to_on_call_policy could not read the policy: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return { arguments: args };
+    }
+  },
+  checkBeforeApproval: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<SetupActionRefusal | null> => {
+    try {
+      return await checkPolicyAddition(args, ctx);
+    } catch {
+      // Unreadable now: running it says why.
+      return null;
+    }
+  },
+  execute: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<ToolExecutionResult> => {
+    const addition: PreparedPolicyAddition = readPreparedPolicyAddition(args);
+
+    if (!addition.policyId) {
+      throw new BadDataException(
+        "The on-call policy to add to was not found. Name one of the project's on-call policies.",
+      );
+    }
+
+    const policyId: ObjectID = new ObjectID(addition.policyId);
+    const invitedUserIds: Array<string> = await readInvitedUserIds(
+      ctx,
+      addition.invitedEmails,
+    );
+    const userIds: Array<string> = [...addition.userIds];
+
+    for (const userId of invitedUserIds) {
+      if (!userIds.includes(userId)) {
+        userIds.push(userId);
+      }
+    }
+
+    if (userIds.length + addition.teamIds.length === 0) {
+      throw new BadDataException(
+        "Nobody named is a member or a team of this project, so nobody was added.",
+      );
+    }
+
+    const failures: Array<string> = [];
+    let added: boolean = false;
+
+    if (addition.ruleId) {
+      /*
+       * A level the policy has: the guided setup's rows, one per person and
+       * team (buildLevelMembers), each as the person.
+       */
+      const members: OnCallPolicyLevelMembers = buildLevelMembers({
+        projectId: ctx.projectId,
+        policyId: policyId,
+        ruleId: new ObjectID(addition.ruleId),
+        userIds: userIds,
+        teamIds: addition.teamIds,
+      });
+
+      for (const row of members.users) {
+        try {
+          await OnCallDutyPolicyEscalationRuleUserService.create({
+            data: row,
+            props: ctx.props,
+          });
+          added = true;
+        } catch (error) {
+          failures.push(error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      for (const row of members.teams) {
+        try {
+          await OnCallDutyPolicyEscalationRuleTeamService.create({
+            data: row,
+            props: ctx.props,
+          });
+          added = true;
+        } catch (error) {
+          failures.push(error instanceof Error ? error.message : String(error));
+        }
+      }
+    } else {
+      /*
+       * A new level after the last: the level before waits afterMinutes
+       * (buildLevelWait), and a new escalation rule pages them
+       * (buildOnCallPolicyLevel) - the guided setup's addSecondLevel.
+       */
+      if (addition.previousRuleId) {
+        const previous: OnCallDutyPolicyEscalationRule | null =
+          await OnCallDutyPolicyEscalationRuleService.findOneById({
+            id: new ObjectID(addition.previousRuleId),
+            select: { _id: true, escalateAfterInMinutes: true },
+            props: ctx.props,
+          });
+
+        if (
+          previous?.id &&
+          previous.escalateAfterInMinutes !== addition.afterMinutes
+        ) {
+          await OnCallDutyPolicyEscalationRuleService.updateOneById({
+            id: previous.id,
+            data: buildLevelWait(addition.afterMinutes),
+            props: ctx.props,
+          });
+        }
+      }
+
+      const level: OnCallPolicyLevelCreate = buildOnCallPolicyLevel({
+        projectId: ctx.projectId,
+        policyId: policyId,
+        userIds: userIds,
+        teamIds: addition.teamIds,
+      });
+
+      await OnCallDutyPolicyEscalationRuleService.create({
+        data: level.rule,
+        miscDataProps: level.miscDataProps,
+        props: ctx.props,
+      });
+      added = true;
+    }
+
+    if (!added) {
+      throw new BadDataException(
+        `Nobody was added to the on-call policy "${addition.policyName}", as each addition was refused (${failures
+          .map((failure: string): string => {
+            return failure.replace(/\.$/, "");
+          })
+          .join("; ")}).`,
+      );
+    }
+
+    const who: string = describeLevelInEnglish({
+      people: addition.people,
+      teams: addition.teams,
+      invitedEmails: addition.invitedEmails,
+    });
+    const responders: ReturnType<typeof aiActionList> = describeLevelResponders(
+      {
+        people: addition.people,
+        teams: addition.teams,
+        invitedEmails: addition.invitedEmails,
+      },
+    );
+    const ruleName: string =
+      addition.ruleName || getDefaultEscalationRuleName(addition.level);
+
+    return {
+      dataForLlm: `${
+        addition.ruleId
+          ? `Added ${who} to the escalation rule "${ruleName}" (level ${addition.level}) of the on-call policy "${addition.policyName}": they are paged with the people it paged there already.`
+          : `Added a new level to the on-call policy "${addition.policyName}": if nobody acknowledges within ${addition.afterMinutes} minute${addition.afterMinutes === 1 ? "" : "s"} of the level before it, it pages ${who}.`
+      }${
+        failures.length > 0
+          ? ` Not added: ${failures.join("; ")}. Say exactly what was not added, and why.`
+          : ""
+      } Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.`,
+      rowCount: 1,
+      ...citationSentence(AI_TOOL_CITATIONS.addedToOnCallPolicy, {
+        name: addition.policyName,
+      }),
+      citationTarget: {
+        type: AIChatCitationTargetType.OnCallPolicyView,
+        params: { onCallDutyPolicyId: addition.policyId },
+      },
+      redactionCount: 0,
+      isTruncated: false,
+      widget: WidgetBuilder.actionCard({
+        title: "Added to the on-call policy",
+        heading: addition.policyName,
+        words: {
+          kind: aiActionTerm(AI_ACTION_CARD_KINDS.onCallPolicy),
+          line: [
+            addition.ruleId
+              ? aiActionSentence(AI_ACTION_CARD_LINES.addedToEscalationRule, {
+                  responders: responders,
+                  rule: JSON.stringify(ruleName),
+                })
+              : aiActionPluralSentence(
+                  AI_ACTION_PLURAL_LINES.pagesNextAfter,
+                  addition.afterMinutes,
+                  { responders: responders },
+                ),
+          ],
+        },
+        link: {
+          type: AIChatCitationTargetType.OnCallPolicyView,
+          params: { onCallDutyPolicyId: addition.policyId },
+        },
+        testPage: {
+          kind: "policy",
+          policyId: addition.policyId,
+          policyName: addition.policyName,
         },
       }),
     };
@@ -2060,6 +3579,29 @@ export const PublishStatusPageTool: ObservabilityTool = {
         toldModel:
           "Nothing proposed: a status page's name needs at least two characters. Ask the person what to call it.",
       };
+    }
+
+    /*
+     * The project's plan, asked before the card (#7250): on OneUptime
+     * Cloud's Free plan a project has one status page, and an unpaid
+     * subscription adds none - StatusPageService's own answer, which it
+     * gives again when the page is created.
+     */
+    try {
+      const planRefusal: string | null =
+        await StatusPageService.getCreateRefusal({
+          projectId: ctx.projectId,
+          adding: countStatusPagesSetUpInPlan(ctx.plannedCalls),
+        });
+
+      if (planRefusal) {
+        return {
+          toldModel: `Nothing proposed: the project's plan does not allow another status page now. ${planRefusal} Tell the person what is needed, in these words. A status page the project has already can show the monitor: add_monitors_to_status_page adds it.`,
+          refusal: AIToolRefusal.Plan,
+        };
+      }
+    } catch {
+      // Unreadable now: running it says why.
     }
 
     try {
@@ -2597,8 +4139,12 @@ export const AddMonitorsToStatusPageTool: ObservabilityTool = {
  * it).
  */
 export const SETUP_TOOLS: ReadonlyArray<ObservabilityTool> = [
+  InvitePeopleTool,
   SetUpPagingTool,
+  AddToOnCallPolicyTool,
+  SetHowToReachMeTool,
   SetUpWebsiteMonitoringTool,
+  SetUpServiceMonitorTool,
   PublishStatusPageTool,
   AddMonitorsToStatusPageTool,
 ];
@@ -2608,8 +4154,15 @@ export const SETUP_TOOLS: ReadonlyArray<ObservabilityTool> = [
  * order: a tool renamed here without it fails SetupTools' own test.
  */
 export const SETUP_TOOL_NAMES: ReadonlyArray<string> = [
+  INVITE_PEOPLE_TOOL_NAME,
   SET_UP_PAGING_TOOL_NAME,
+  ADD_TO_ON_CALL_POLICY_TOOL_NAME,
+  SET_HOW_TO_REACH_ME_TOOL_NAME,
   SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+  SET_UP_SERVICE_MONITOR_TOOL_NAME,
   PUBLISH_STATUS_PAGE_TOOL_NAME,
   ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
 ];
+
+// The setup actions of their own files, from here too: one place lists them all.
+export { InvitePeopleTool, SetHowToReachMeTool, SetUpServiceMonitorTool };

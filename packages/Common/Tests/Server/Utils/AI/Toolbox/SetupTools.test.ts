@@ -128,7 +128,7 @@ import {
   actionTitleText,
 } from "../../../../Helpers/AIActionText";
 import { dashboardTranslator } from "../../../../Helpers/DashboardLocales";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * ASK AI SETS THINGS UP (issue #6829): each setup action, on its own.
@@ -431,6 +431,18 @@ function stubTeams(): Spy {
     ] as never);
 }
 
+// The project's plan has room for the status pages a plan publishes (#7250).
+function planAllowsStatusPages(): Spy {
+  return jest
+    .spyOn(StatusPageService, "getCreateRefusal")
+    .mockResolvedValue(null as never);
+}
+
+// The project's Website and API monitors, read as the person: none (#7292).
+function noMonitorChecksAnAddress(): Spy {
+  return jest.spyOn(MonitorService, "findBy").mockResolvedValue([] as never);
+}
+
 function monitorsNamed(names: Array<{ id: string; name: string }>): Spy {
   return jest.spyOn(MonitorService, "findBy").mockResolvedValue(
     names.map((each: { id: string; name: string }) => {
@@ -452,11 +464,29 @@ describe("the setup actions, together", () => {
     ).toEqual([...SETUP_TOOL_NAMES]);
     expect([...SETUP_TOOL_NAMES]).toEqual([...AI_SETUP_ACTION_TOOL_NAMES]);
     expect(SETUP_TOOL_NAMES).toEqual([
+      "invite_people",
       SET_UP_PAGING_TOOL_NAME,
+      "add_to_on_call_policy",
+      "set_how_to_reach_me",
       SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+      "set_up_service_monitor",
       PUBLISH_STATUS_PAGE_TOOL_NAME,
       ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
     ]);
+    // In the order a plan runs them, as analytics names its parts.
+    expect(
+      SETUP_TOOLS.map((tool: ObservabilityTool): number => {
+        return tool.setupAction!.planOrder;
+      }),
+    ).toEqual(
+      [...SETUP_TOOLS]
+        .map((tool: ObservabilityTool): number => {
+          return tool.setupAction!.planOrder;
+        })
+        .sort((a: number, b: number): number => {
+          return a - b;
+        }),
+    );
 
     for (const tool of SETUP_TOOLS) {
       expect(AIToolbox.getToolByName(tool.name)).toBe(tool);
@@ -557,24 +587,31 @@ describe("reading the arguments", () => {
     expect(getMonitorNamesSetUpInPlan(undefined)).toEqual([]);
   });
 
-  test("reads who a prepared paging call pages, ids only where they are ids", () => {
+  test("reads who a prepared paging call pages, ids only where they are ids, addresses only where they are addresses", () => {
     expect(
       readPreparedResponders({
         userIds: [USER_ID.toString(), "not-an-id"],
         teamIds: [TEAM_ID],
         otherPeople: ["Ana Lopez"],
         pagedTeams: ["Platform"],
+        invitedEmails: ["Bo@Acme.Example", "not an address"],
       }),
     ).toEqual({
       userIds: [USER_ID.toString()],
       teamIds: [TEAM_ID],
       otherPeople: ["Ana Lopez"],
       pagedTeams: ["Platform"],
+      invitedEmails: ["bo@acme.example"],
     });
   });
 });
 
 describe("set_up_website_monitoring", () => {
+  // No monitor of the project checks the address yet (#7292).
+  beforeEach(() => {
+    noMonitorChecksAnAddress();
+  });
+
   test("its card is titled by the address the person knows", () => {
     expect(
       actionTitleText(
@@ -1167,6 +1204,10 @@ describe("set_up_website_monitoring", () => {
  * English - worded as the Dashboard words them for the guided setup.
  */
 describe("set_up_website_monitoring, in the person's language", () => {
+  beforeEach(() => {
+    noMonitorChecksAnAddress();
+  });
+
   // Each criteria's name and description, and what it opens, as written.
   const criteriaWords: (monitor: Monitor) => Array<string> = (
     monitor: Monitor,
@@ -2093,6 +2134,7 @@ describe("publish_status_page", () => {
 
   test("nothing to show, or a name too short, is not proposed; a monitor the plan sets up counts", async () => {
     monitorsNamed([]);
+    planAllowsStatusPages();
 
     expect(
       (
