@@ -1,6 +1,13 @@
 import CloudConnection from "../../Models/DatabaseModels/CloudConnection";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+} from "../../Types/Cloud/CloudAddedMetrics";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
+import { CloudPublishedMetricsListing } from "../../Types/Cloud/CloudPublishedMetrics";
+import { CloudUnreportedKeyMetricReport } from "../../Types/Cloud/CloudUnreportedKeyMetrics";
+import CloudResourceMetrics from "../Utils/CloudConnection/CloudResourceMetrics";
 import { CloudConnectionAwsRoleSetup } from "../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "../../Types/CloudConnection/CloudConnectionTest";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -67,6 +74,21 @@ import ProductKey from "../../Types/Product/ProductKey";
  *   POST /cloud-connection/:connectionId/stop-streaming
  *     -> every stream key of the connection stops working, and an Azure
  *        connection's event hubs are read no more.
+ *
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/published
+ *     -> CloudPublishedMetricsListing: what the resource publishes, asked
+ *        of its cloud now, and what an addition would cost.
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/add
+ *     { name, namespace?, scope: "resource" | "type", aggregation? }
+ *     -> { added, addedMetrics }: the connection reads it from its next read.
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/remove { key }
+ *     -> { addedMetrics }
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/unreported
+ *     { keys } -> { metrics: CloudUnreportedKeyMetricReport[] }: when each
+ *        key metric the resource did not report last did, and why.
+ *
+ *   The resource-metrics routes list and explain for whoever may read the
+ *   resource; Add and Remove are for whoever may edit connections.
  *
  * All of them are for whoever may edit connections (project owners and
  * admins): a test signs in to a cloud account with its credential, a read
@@ -327,6 +349,184 @@ export default class CloudConnectionAPI extends BaseAPI<
       },
     );
 
+    /*
+     * A cloud resource's metrics beyond its key metrics (#9563), and why it
+     * did not report some of its key metrics (#9569): see
+     * CloudResourceMetrics. Listing and the reasons are for whoever may
+     * read the resource; adding and removing change what the connection
+     * reads, and what the account is billed, so they are for whoever may
+     * edit connections.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/published`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const listing: CloudPublishedMetricsListing =
+            await CloudResourceMetrics.listPublished({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+              canEdit: this.canOperate(props),
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            listing as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/add`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanChangeReads(props);
+
+          const body: JSONObject = this.readBody(req);
+          const name: JSONValue | undefined = body["name"];
+          const scope: JSONValue | undefined = body["scope"];
+
+          if (typeof name !== "string" || !name.trim()) {
+            throw new BadDataException("Name the metric to add.");
+          }
+
+          if (
+            scope !== CloudAddedMetricScope.Resource &&
+            scope !== CloudAddedMetricScope.Type
+          ) {
+            throw new BadDataException(
+              "Say whether to read the metric for this resource or for every resource of its type.",
+            );
+          }
+
+          const added: {
+            added: CloudAddedMetric;
+            addedMetrics: Array<CloudAddedMetric>;
+          } = await CloudResourceMetrics.add({
+            projectId,
+            cloudResourceId: this.readCloudResourceId(req),
+            props,
+            name,
+            scope,
+            namespace:
+              typeof body["namespace"] === "string"
+                ? body["namespace"]
+                : undefined,
+            aggregation:
+              typeof body["aggregation"] === "string"
+                ? body["aggregation"]
+                : undefined,
+            userId: props.userId,
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            added as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/remove`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanChangeReads(props);
+
+          const key: JSONValue | undefined = this.readBody(req)["key"];
+
+          if (typeof key !== "string" || !key) {
+            throw new BadDataException("Say which added metric to remove.");
+          }
+
+          const removed: { addedMetrics: Array<CloudAddedMetric> } =
+            await CloudResourceMetrics.remove({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+              key,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            removed as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/unreported`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          const keys: JSONValue | undefined = this.readBody(req)["keys"];
+
+          if (!Array.isArray(keys)) {
+            throw new BadDataException(
+              "Name the key metrics to explain, by their keys.",
+            );
+          }
+
+          const metrics: Array<CloudUnreportedKeyMetricReport> =
+            await CloudResourceMetrics.explainUnreported({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+              keys: (keys as Array<unknown>).filter(
+                (key: unknown): key is string => {
+                  return typeof key === "string";
+                },
+              ),
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            metrics: metrics as unknown as Array<JSONObject>,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
     this.router.get(
       `${basePath}/aws-role-setup`,
       UserMiddleware.getUserMiddleware,
@@ -396,6 +596,42 @@ export default class CloudConnectionAPI extends BaseAPI<
     }
 
     return { connectionId: new ObjectID(connectionId), projectId, props };
+  }
+
+  // The cloud resource a resource-metrics route is for, by its id.
+  private readCloudResourceId(req: ExpressRequest): ObjectID {
+    const cloudResourceId: string | undefined = req.params["cloudResourceId"];
+
+    if (!cloudResourceId || !ObjectID.isValidUUID(cloudResourceId)) {
+      throw new BadDataException("A valid cloud resource ID is required.");
+    }
+
+    return new ObjectID(cloudResourceId);
+  }
+
+  private readBody(req: ExpressRequest): JSONObject {
+    return req.body && typeof req.body === "object" && !Array.isArray(req.body)
+      ? (req.body as JSONObject)
+      : {};
+  }
+
+  // Whether the caller may change what a connection reads.
+  private canOperate(props: DatabaseCommonInteractionProps): boolean {
+    try {
+      this.assertCanChangeReads(props);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private assertCanChangeReads(props: DatabaseCommonInteractionProps): void {
+    CommonAPI.assertPermittedInProject({
+      databaseProps: props,
+      allowedPermissions: new CloudConnection().getUpdatePermissions(),
+      errorMessage:
+        "Project Owners and Project Admins can change what a cloud connection reads.",
+    });
   }
 
   private assertCanOperate(props: DatabaseCommonInteractionProps): void {

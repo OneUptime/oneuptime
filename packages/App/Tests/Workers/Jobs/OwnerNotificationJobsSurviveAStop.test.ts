@@ -624,6 +624,24 @@ jest.mock("Common/Server/Services/IncomingCallPolicyOwnerTeamService", () => {
 jest.mock("Common/Server/Services/IncomingCallPolicyOwnerUserService", () => {
   return mockAnyService();
 });
+jest.mock("Common/Server/Services/MonitorGroupService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MonitorGroupOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MonitorGroupOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RunnerService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RunnerOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/RunnerOwnerUserService", () => {
+  return mockAnyService();
+});
 jest.mock("Common/Server/Services/IncidentMemberService", () => {
   return mockAnyService();
 });
@@ -967,6 +985,12 @@ import OnCallDutyPolicyScheduleOwnerUserService from "Common/Server/Services/OnC
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
 import IncomingCallPolicyOwnerTeamService from "Common/Server/Services/IncomingCallPolicyOwnerTeamService";
 import IncomingCallPolicyOwnerUserService from "Common/Server/Services/IncomingCallPolicyOwnerUserService";
+import MonitorGroupService from "Common/Server/Services/MonitorGroupService";
+import MonitorGroupOwnerTeamService from "Common/Server/Services/MonitorGroupOwnerTeamService";
+import MonitorGroupOwnerUserService from "Common/Server/Services/MonitorGroupOwnerUserService";
+import RunnerService from "Common/Server/Services/RunnerService";
+import RunnerOwnerTeamService from "Common/Server/Services/RunnerOwnerTeamService";
+import RunnerOwnerUserService from "Common/Server/Services/RunnerOwnerUserService";
 import IncidentMemberService from "Common/Server/Services/IncidentMemberService";
 import IncidentRoleService from "Common/Server/Services/IncidentRoleService";
 
@@ -1032,6 +1056,8 @@ import "../../../FeatureSet/Workers/Jobs/RunbookOwners/SendOwnerAddedNotificatio
 import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyScheduleOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IncomingCallPolicyOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/MonitorGroupOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/RunnerOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IncidentMembers/SendMemberAddedNotification";
 
 type AnyMock = jest.Mock;
@@ -1764,6 +1790,12 @@ const EVERY_RESOURCE_SERVICES: Array<unknown> = [
   IncomingCallPolicyService,
   IncomingCallPolicyOwnerTeamService,
   IncomingCallPolicyOwnerUserService,
+  MonitorGroupService,
+  MonitorGroupOwnerTeamService,
+  MonitorGroupOwnerUserService,
+  RunnerService,
+  RunnerOwnerTeamService,
+  RunnerOwnerUserService,
 ];
 
 // The record the owners of the other resources are told of.
@@ -2737,6 +2769,25 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     recordService: IncomingCallPolicyService,
     teamService: IncomingCallPolicyOwnerTeamService,
     recordIdField: "incomingCallPolicyId",
+    record: ownedRecord,
+  }),
+  // #9758: added on their Owners pages, with no owner rule.
+  ownerAddedCase({
+    title: "a team added as the owner of a monitor group",
+    jobName: "MonitorGroupOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.MonitorGroupOwnerAdded,
+    recordService: MonitorGroupService,
+    teamService: MonitorGroupOwnerTeamService,
+    recordIdField: "monitorGroupId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of a Runner",
+    jobName: "RunnerOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.RunnerOwnerAdded,
+    recordService: RunnerService,
+    teamService: RunnerOwnerTeamService,
+    recordIdField: "runnerId",
     record: ownedRecord,
   }),
 ];

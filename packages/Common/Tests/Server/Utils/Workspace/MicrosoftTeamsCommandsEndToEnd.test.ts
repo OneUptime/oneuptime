@@ -87,6 +87,7 @@ import { MicrosoftTeamsHomeActionType } from "../../../../Server/Utils/Workspace
 import MicrosoftTeamsPage from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsPage";
 import { WORKSPACE_HOME_TEXT } from "../../../../Server/Utils/Workspace/WorkspaceHome";
 import logger from "../../../../Server/Utils/Logger";
+import { everyServerProductIsOn } from "../../TestingUtils/ServerProductsOn";
 import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import User from "../../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -411,6 +412,8 @@ beforeEach(() => {
   connector.posts.splice(0);
   connector.updates.splice(0);
   projectId = ObjectID.generate();
+  // A command asks what the server has switched off: every product is on.
+  everyServerProductIsOn();
 
   (MicrosoftTeamsUtil as unknown as CachedAdapterSlot).cachedAdapter =
     new CloudAdapter(new ConfigurationBotFrameworkAuthentication({}));

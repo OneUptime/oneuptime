@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "إذا كان الوكيل مثبّتًا قبل أن تصبح مراقبة التكاليف مفعّلة افتراضيًا، فنفّذ ترقيته:",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **لإيقافها:** أضف `--set cost.enabled=false` إلى الترقية نفسها.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **هل تشغّل Kubecost أو OpenCost بالفعل؟** وجّه الوكيل إليه بدلًا من ذلك، ولن يُضمَّن شيء: أضف `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (أو خدمة Kubecost لديك).",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **هل تشغّل Kubecost أو OpenCost بالفعل؟** يعثر عليه الوكيل ويقرأ منه بدلًا من المحرك الذي يتضمنه الـ chart، وتذكر صفحة «نظرة عامة» للعنقود ذلك: أضف `--set cost.engine.url=auto` لإيقاف تضمين محرك ثانٍ.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **محلي أو bare metal؟** اضبط جدول أسعار باستخدام `--set cost.opencost.customPricing.enabled=true` (بالدولار لكل ساعة مورد؛ راجع `values.yaml` في الـ chart).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

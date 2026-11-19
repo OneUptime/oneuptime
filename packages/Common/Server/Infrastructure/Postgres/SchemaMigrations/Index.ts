@@ -1090,7 +1090,12 @@ import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSec
 import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
 import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
 import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
-import { AddSuggestServerAccountsWhenInviting1809185147450 } from "./1809185147450-AddSuggestServerAccountsWhenInviting";
+import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
+import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
+import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
 
 export default [
   InitialMigration,
@@ -2185,5 +2190,10 @@ export default [
   AddWorkflowRunAs1809185100000,
   AddWorkflowRunAsKeys1809185100100,
   AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
-  AddSuggestServerAccountsWhenInviting1809185147450,
+  MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
+  DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddComplianceSettingTurnedOffBy1809185300000,
+  AddComplianceSettingTurnedOffByKey1809185300100,
+  AddCloudConnectionAddedMetrics1809185310000,
+  AddSuggestServerAccountsWhenInviting1809185347450,
 ];

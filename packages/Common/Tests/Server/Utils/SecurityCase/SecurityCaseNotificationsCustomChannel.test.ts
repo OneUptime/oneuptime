@@ -20,6 +20,7 @@ import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
+import { isNotificationChannelOfferedForEvent } from "../../../../Types/WhatsApp/WhatsAppEventTemplates";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
@@ -92,6 +93,20 @@ function channelColumns(): Array<string> {
       );
     })
     .sort();
+}
+
+/*
+ * The channels that can send a security case: every one but WhatsApp, which
+ * delivers only Meta-approved templates and has none for a case (#9715).
+ */
+function channelsThatSendACase(): Array<string> {
+  return channelColumns().filter((column: string): boolean => {
+    return isNotificationChannelOfferedForEvent({
+      channel: column,
+      eventType:
+        NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+    });
+  });
 }
 
 // Every channel off, or every channel off but the ones named.
@@ -373,7 +388,7 @@ describe("a security case and custom channels", () => {
     }
   });
 
-  test.each(channelColumns())(
+  test.each(channelsThatSendACase())(
     "somebody with only %s on is told",
     async (column: string) => {
       members = [member("OneChannel", 1, channelsOnly(column))];
@@ -383,18 +398,42 @@ describe("a security case and custom channels", () => {
       expect(toldNames()).toEqual(["OneChannel"]);
     },
   );
+
+  /*
+   * #9715: WhatsApp delivers only Meta-approved templates, and none is
+   * approved for a security case, so a WhatsApp switch left on for it sends
+   * nothing. Somebody whose only switch is that one is told nothing, and is
+   * not counted as told.
+   */
+  test("somebody with only WhatsApp on is not told: it has no approved template for a case", async () => {
+    members = [
+      member("WhatsAppOnly", 1, channelsOnly("alertByWhatsApp")),
+      member("EmailOnly", 2, channelsOnly("alertByEmail")),
+    ];
+
+    await caseReachesTheirPriority();
+
+    expect(toldNames()).toEqual(["EmailOnly"]);
+  });
 });
 
 describe("SecurityCaseNotifications.hasChannelOn", () => {
   // The private check, as notifyPriorityReached asks it.
-  const hasChannelOn: (setting: UserNotificationSetting) => boolean = (
+  const hasChannelOn: (
     setting: UserNotificationSetting,
+    eventType?: NotificationSettingEventType,
+  ) => boolean = (
+    setting: UserNotificationSetting,
+    eventType: NotificationSettingEventType = NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
   ): boolean => {
     return (
       SecurityCaseNotifications as unknown as {
-        hasChannelOn: (setting: UserNotificationSetting) => boolean;
+        hasChannelOn: (
+          setting: UserNotificationSetting,
+          eventType: NotificationSettingEventType,
+        ) => boolean;
       }
-    ).hasChannelOn(setting);
+    ).hasChannelOn(setting, eventType);
   };
 
   function settingWith(columns: SettingColumns): UserNotificationSetting {
@@ -409,8 +448,33 @@ describe("SecurityCaseNotifications.hasChannelOn", () => {
     ).toBe(true);
   });
 
-  test.each(channelColumns())("counts %s alone", (column: string) => {
+  test.each(channelsThatSendACase())("counts %s alone", (column: string) => {
     expect(hasChannelOn(settingWith(channelsOnly(column)))).toBe(true);
+  });
+
+  // #9715: WhatsApp has no approved template for a security case.
+  test("does not count WhatsApp alone, which sends a case nothing", () => {
+    expect(hasChannelOn(settingWith(channelsOnly("alertByWhatsApp")))).toBe(
+      false,
+    );
+  });
+
+  test("counts WhatsApp alone for an event it has an approved template for", () => {
+    expect(
+      hasChannelOn(
+        settingWith(channelsOnly("alertByWhatsApp")),
+        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+      ),
+    ).toBe(true);
+  });
+
+  test("every channel but WhatsApp sends a case", () => {
+    expect(channelColumns()).toContain("alertByWhatsApp");
+    expect(channelsThatSendACase()).toEqual(
+      channelColumns().filter((column: string): boolean => {
+        return column !== "alertByWhatsApp";
+      }),
+    );
   });
 
   test("every channel off, custom channels too, is nothing on", () => {

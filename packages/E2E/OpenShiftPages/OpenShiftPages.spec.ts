@@ -651,9 +651,15 @@ test.describe("the Overview's OpenShift card", () => {
     return card(page).getByTestId("openshift-operator");
   }
 
-  // The hero's health pill: the first thing the page says about the cluster.
+  /*
+   * The hero's health pill, saying exactly these words: the first thing the
+   * page says about the cluster. Degraded or Unhealthy is a button that
+   * opens why, its operators included (#9537); Healthy is a plain pill.
+   */
   function heroHealth(page: Page, words: string): Locator {
-    return page.locator("span.rounded-full").filter({ hasText: words }).first();
+    return page
+      .getByTestId("kubernetes-cluster-health")
+      .filter({ hasText: new RegExp(`^${words}$`) });
   }
 
   test("a healthy cluster's card is one row, with nothing to review", async ({

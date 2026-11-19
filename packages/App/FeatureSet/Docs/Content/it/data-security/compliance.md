@@ -68,11 +68,15 @@ Il menu di una risorsa ha una sezione **Sicurezza**, chiusa finché non la apri,
 - **Sicurezza dei dati** elenca quegli archivi, prima i più rischiosi, e i problemi aperti su di essi. Ognuno si apre in Sicurezza dei dati, dove viene gestito.
 - **Conformità** valuta i framework solo per quegli archivi. Vengono prima i framework che i loro dati fanno rientrare nell'ambito; quelli disattivati, e quelli per cui nessuno di questi archivi contiene dati, sono raccolti più in basso, in una sezione chiusa.
 
-Ogni framework ha un interruttore, **Applies Here**, e così ciascuno dei suoi requisiti. Disattivarne uno esclude gli archivi della risorsa da quel framework, o da quel requisito, nella pagina della risorsa e in **Sicurezza dei dati → Conformità**, che indica quanti archivi sono stati esclusi dalle loro risorse. Riattivarlo li fa rientrare. Ogni interruttore si salva subito, e ogni modifica resta nei [Log di audit](/docs/configuration/audit-logs) del progetto.
+Ogni framework ha un interruttore, **Si applica qui**, e così ciascuno dei suoi requisiti. Disattivarne uno esclude gli archivi della risorsa da quel framework, o da quel requisito, nella pagina della risorsa e in **Sicurezza dei dati → Conformità**, che indica quanti archivi sono stati esclusi dalle loro risorse. Riattivarlo li fa rientrare. Ogni interruttore si salva subito, e ogni modifica resta nei [Log di audit](/docs/configuration/audit-logs) del progetto.
+
+Disattivarne uno chiede poi, subito sotto, **Perché non si applica qui?** Il motivo è facoltativo: scrivine uno breve e scegli **Salva motivo**, oppure **Non ora** per lasciar perdere. Da quel momento indica chi lo ha disattivato e quando, e il motivo, con **Aggiungi motivo** o **Modifica motivo** per scriverlo o cambiarlo in seguito. Come l'interruttore, il motivo resta nel log di audit.
+
+**Sicurezza dei dati → Conformità** dice lo stesso per ogni risorsa. Un framework selezionato elenca, sotto **Disattivato per l'intero framework**, le risorse che lo hanno disattivato del tutto, e ogni requisito indica, sotto il suo stato, le risorse che hanno disattivato quel requisito: ciascuna con un link alla propria pagina Conformità, con chi lo ha disattivato, quando e perché. Il suo **Esporta CSV** le riporta in una colonna `Turned Off On`, ed **Esporta JSON** in un elenco `turnedOff`.
 
 Un archivio segue gli interruttori di una sola risorsa. Un database in esecuzione su un cluster Kubernetes, o su un host Docker o Podman, segue quelli del cluster o dell'host: disattiva un framework per il cluster, ed è disattivato per ogni database in esecuzione su di esso. La pagina Conformità del database stesso lo dice e rimanda a quella del cluster o dell'host, con i suoi interruttori bloccati.
 
-I Membri della sicurezza, gli Amministratori della sicurezza, gli Amministratori del progetto e i Proprietari del progetto possono attivare e disattivare framework e requisiti, come possono regolare un controllo. I Visualizzatori della sicurezza vedono ciò che è disattivato.
+I Membri della sicurezza, gli Amministratori della sicurezza, gli Amministratori del progetto e i Proprietari del progetto possono attivare e disattivare framework e requisiti, come possono regolare un controllo. I Visualizzatori della sicurezza vedono ciò che è disattivato, e perché.
 
 ## Requisiti e relativi controlli
 

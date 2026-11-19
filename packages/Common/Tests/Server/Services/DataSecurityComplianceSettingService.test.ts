@@ -8,9 +8,11 @@ import KubernetesClusterService from "../../../Server/Services/KubernetesCluster
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
-import { OnCreate } from "../../../Server/Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
+import ColumnLength from "../../../Types/Database/ColumnLength";
 import ComplianceFramework from "../../../Types/DataSecurity/ComplianceFramework";
 import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -243,5 +245,245 @@ describe("turning a framework off for a resource", () => {
     expect(DataSecurityComplianceSettingServiceType.readRequirement(7)).toBe(
       "",
     );
+  });
+});
+
+/*
+ * Who turned it off, and when (#9629). The row is made the first time it
+ * is turned off and only changed after that, so OneUptime writes both
+ * whenever it goes from on to off - never when it is saved off again - and
+ * clears them when it is turned on again. Both are written once the write
+ * passed every permission check: no caller may write either.
+ */
+interface PermittedHooks {
+  onCreatePermitted: (
+    onCreate: OnCreate<DataSecurityComplianceSetting>,
+  ) => Promise<void>;
+  onBeforeUpdate: (
+    updateBy: UpdateBy<DataSecurityComplianceSetting>,
+  ) => Promise<OnUpdate<DataSecurityComplianceSetting>>;
+  onUpdatePermitted: (
+    updateBy: UpdateBy<DataSecurityComplianceSetting>,
+  ) => Promise<void>;
+}
+
+const permitted: PermittedHooks =
+  DataSecurityComplianceSettingService as unknown as PermittedHooks;
+
+const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
+const SETTING_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+
+async function createPermitted(
+  data: Partial<DataSecurityComplianceSetting>,
+  userId: ObjectID | null = USER_ID,
+): Promise<DataSecurityComplianceSetting> {
+  const setting: DataSecurityComplianceSetting = settingOf(data);
+
+  await permitted.onCreatePermitted({
+    createBy: {
+      data: setting,
+      props: { ...(userId ? { userId } : {}), tenantId: PROJECT_ID },
+    },
+    carryForward: undefined,
+  } as unknown as OnCreate<DataSecurityComplianceSetting>);
+
+  return setting;
+}
+
+function updateOf(
+  data: Record<string, unknown>,
+  userId: ObjectID | null = USER_ID,
+): UpdateBy<DataSecurityComplianceSetting> {
+  return {
+    query: { _id: SETTING_ID.toString() },
+    data,
+    props: { ...(userId ? { userId } : {}), tenantId: PROJECT_ID },
+  } as unknown as UpdateBy<DataSecurityComplianceSetting>;
+}
+
+describe("who turned it off, and when", () => {
+  test("a setting made off was turned off by whoever made it, now", async () => {
+    const before: number = Date.now();
+    const setting: DataSecurityComplianceSetting = await createPermitted({
+      isEnabled: false,
+    });
+
+    expect(setting.turnedOffByUserId?.toString()).toBe(USER_ID.toString());
+    expect(setting.turnedOffAt).toBeInstanceOf(Date);
+    expect(new Date(setting.turnedOffAt!).getTime()).toBeGreaterThanOrEqual(
+      before,
+    );
+  });
+
+  test("a setting made with no switch is off, as its column's default is", async () => {
+    // A request that leaves the switch out: settingOf's false is cleared.
+    const setting: DataSecurityComplianceSetting = await createPermitted({
+      isEnabled: undefined,
+    } as unknown as Partial<DataSecurityComplianceSetting>);
+
+    expect(setting.turnedOffAt).toBeInstanceOf(Date);
+  });
+
+  test("one an API key made off says when, and names nobody", async () => {
+    const setting: DataSecurityComplianceSetting = await createPermitted(
+      { isEnabled: false },
+      null,
+    );
+
+    expect(setting.turnedOffAt).toBeInstanceOf(Date);
+    expect(setting.turnedOffByUserId).toBeUndefined();
+  });
+
+  test("a setting made on was turned off by nobody", async () => {
+    const setting: DataSecurityComplianceSetting = await createPermitted({
+      isEnabled: true,
+    });
+
+    expect(setting.turnedOffAt).toBeUndefined();
+    expect(setting.turnedOffByUserId).toBeUndefined();
+  });
+
+  test("turning one off says who and when", async () => {
+    existing = [settingOf({ isEnabled: true })];
+
+    const updateBy: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      isEnabled: false,
+    });
+
+    await permitted.onUpdatePermitted(updateBy);
+
+    expect(
+      (updateBy.data as { turnedOffByUserId?: ObjectID }).turnedOffByUserId,
+    ).toEqual(USER_ID);
+    expect(
+      (updateBy.data as { turnedOffAt?: Date }).turnedOffAt,
+    ).toBeInstanceOf(Date);
+    // What it was is read as OneUptime, by the update's own query.
+    expect(findBySpy.mock.calls[0]![0]).toMatchObject({
+      query: { _id: SETTING_ID.toString() },
+      props: { isRoot: true },
+    });
+  });
+
+  test("turned off by an API key, it says when and names nobody", async () => {
+    existing = [settingOf({ isEnabled: true })];
+
+    const updateBy: UpdateBy<DataSecurityComplianceSetting> = updateOf(
+      { isEnabled: false },
+      null,
+    );
+
+    await permitted.onUpdatePermitted(updateBy);
+
+    expect(
+      (updateBy.data as { turnedOffAt?: Date }).turnedOffAt,
+    ).toBeInstanceOf(Date);
+    expect(
+      (updateBy.data as { turnedOffByUserId?: ObjectID | null })
+        .turnedOffByUserId,
+    ).toBeNull();
+  });
+
+  test("saved off again, it keeps who turned it off and when", async () => {
+    existing = [settingOf({ isEnabled: false })];
+
+    const updateBy: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      isEnabled: false,
+    });
+
+    await permitted.onUpdatePermitted(updateBy);
+
+    expect(updateBy.data).toEqual({ isEnabled: false });
+  });
+
+  test("turned on again, it names nobody, and reads nothing to say so", async () => {
+    const updateBy: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      isEnabled: true,
+    });
+
+    await permitted.onUpdatePermitted(updateBy);
+
+    expect(updateBy.data).toEqual({
+      isEnabled: true,
+      turnedOffAt: null,
+      turnedOffByUserId: null,
+    });
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  test("a reason written while it is off changes neither", async () => {
+    const updateBy: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      note: "No card data here.",
+    });
+
+    await permitted.onUpdatePermitted(updateBy);
+
+    expect(updateBy.data).toEqual({ note: "No card data here." });
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("why it does not apply", () => {
+  test("is stored trimmed, an empty one as none, on a create", async () => {
+    expect((await create({ note: "  No card data here.  " })).data.note).toBe(
+      "No card data here.",
+    );
+    expect((await create({ note: "   " })).data.note).toBeNull();
+    // A create with no reason is left with none.
+    expect((await create({})).data.note).toBeUndefined();
+  });
+
+  test("is stored trimmed, an empty one as none, on a change", async () => {
+    jest
+      .spyOn(ProjectReferenceCheck, "validateUpdate")
+      .mockResolvedValue(undefined as never);
+
+    const written: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      note: "  Logs never hold card data.  ",
+    });
+
+    await permitted.onBeforeUpdate(written);
+
+    expect((written.data as { note?: unknown }).note).toBe(
+      "Logs never hold card data.",
+    );
+
+    const cleared: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      note: "",
+    });
+
+    await permitted.onBeforeUpdate(cleared);
+
+    expect((cleared.data as { note?: unknown }).note).toBeNull();
+
+    const untouched: UpdateBy<DataSecurityComplianceSetting> = updateOf({
+      isEnabled: false,
+    });
+
+    await permitted.onBeforeUpdate(untouched);
+
+    expect(untouched.data).toEqual({ isEnabled: false });
+  });
+
+  test("longer than its column holds, it is refused in words", async () => {
+    const result: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({ note: "x".repeat(ColumnLength.LongText + 1) });
+
+    expect(result.thrown).toBeInstanceOf(BadDataException);
+    expect((result.thrown as Error).message).toBe(
+      `Write the reason in ${ColumnLength.LongText} characters or fewer.`,
+    );
+    expect(
+      (await create({ note: "x".repeat(ColumnLength.LongText) })).thrown,
+    ).toBeUndefined();
+  });
+
+  test("is read the same way wherever it is written", () => {
+    expect(DataSecurityComplianceSettingServiceType.readNote(" a ")).toBe("a");
+    expect(DataSecurityComplianceSettingServiceType.readNote("")).toBeNull();
+    expect(DataSecurityComplianceSettingServiceType.readNote(null)).toBeNull();
+    expect(DataSecurityComplianceSettingServiceType.readNote(7)).toBeNull();
   });
 });

@@ -35,7 +35,7 @@ const SCHEMA_MIGRATIONS_DIRECTORY: string = path.join(
 );
 
 const MIGRATION_FILE: string =
-  "1809185147450-AddSuggestServerAccountsWhenInviting";
+  "1809185347450-AddSuggestServerAccountsWhenInviting";
 
 const MIGRATION_PATH: string = path.join(
   SCHEMA_MIGRATIONS_DIRECTORY,
@@ -100,10 +100,10 @@ describe("GlobalConfig.suggestServerAccountsWhenInviting", () => {
     );
 
     expect(index).toContain(
-      `import { AddSuggestServerAccountsWhenInviting1809185147450 } from "./${MIGRATION_FILE}";`,
+      `import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./${MIGRATION_FILE}";`,
     );
     expect(index).toContain(
-      "AddSuggestServerAccountsWhenInviting1809185147450,",
+      "AddSuggestServerAccountsWhenInviting1809185347450,",
     );
   });
 

@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * that exists too. A nullable column with a constant default is added
  * without rewriting the table.
  */
-export class AddSuggestServerAccountsWhenInviting1809185147450
+export class AddSuggestServerAccountsWhenInviting1809185347450
   implements MigrationInterface
 {
-  public name: string = "AddSuggestServerAccountsWhenInviting1809185147450";
+  public name: string = "AddSuggestServerAccountsWhenInviting1809185347450";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

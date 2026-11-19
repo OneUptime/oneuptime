@@ -3,12 +3,18 @@ import {
   GCP_ALIGNMENT_PERIOD_SECONDS,
   GCP_KEY_METRICS,
   GCP_OPS_AGENT,
+  GcpAligner,
   GcpKeyMetric,
   GcpReadMetric,
   GcpTypeKeyMetrics,
   getGcpReadMetrics,
   getGcpStoredMetricName,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
+import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import {
   GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
@@ -285,6 +291,79 @@ export function getGcpMetricTypesToAsk(data: {
 }
 
 /*
+ * An added metric (CloudAddedMetrics) asked of one project: as a key
+ * metric is, by its metric type and aligner, and only of the resources of
+ * its type - of the one resource its labels identify, for a resource's own.
+ */
+export interface GcpAddedMetricAsk {
+  metric: GcpReadMetric;
+  resourceType: string;
+  resourceLabels?: Record<string, string> | undefined;
+}
+
+/*
+ * WHICH ADDED METRICS A READ ASKS ONE PROJECT FOR.
+ *
+ * A type's addition of every project that reported a resource of the type
+ * lately (`seenResourceTypes`); a resource's own of the project it is in.
+ * Each is one call, narrowed to the type's series (resource.type) and, for
+ * a resource's own, to its own series (its identifying labels): Cloud
+ * Monitoring bills a call by the series it returns, so a narrowed call
+ * costs one series. A metric that is a key metric of the type is read as
+ * one already, and is not asked again.
+ */
+export function getGcpAddedMetricsToAsk(data: {
+  added: ReadonlyArray<CloudAddedMetric>;
+  projectId: string;
+  seenResourceTypes: ReadonlySet<string>;
+}): Array<GcpAddedMetricAsk> {
+  const keyMetricNames: Set<string> = new Set<string>(
+    getGcpReadMetrics().map((metric: GcpReadMetric): string => {
+      return metric.storedName.toLowerCase();
+    }),
+  );
+  const asks: Array<GcpAddedMetricAsk> = [];
+
+  for (const added of data.added) {
+    if (
+      added.provider !== CloudProvider.GCP ||
+      keyMetricNames.has(added.name.toLowerCase())
+    ) {
+      continue;
+    }
+
+    const isTypeWide: boolean = added.scope === CloudAddedMetricScope.Type;
+
+    if (
+      isTypeWide
+        ? !data.seenResourceTypes.has(added.resourceType)
+        : added.accountId !== data.projectId ||
+          Object.keys(added.resourceLabels || {}).length === 0
+    ) {
+      continue;
+    }
+
+    asks.push({
+      metric: {
+        metricType: added.name,
+        aligner: added.aggregation as GcpAligner,
+        unit: added.unit,
+        // Never shown: a resource's page lists an added metric on its own.
+        group: CloudKeyMetricGroup.Traffic,
+        resourceType: added.resourceType,
+        resourceTypes: [added.resourceType],
+        storedName: added.name,
+        isRetired: false,
+      },
+      resourceType: added.resourceType,
+      ...(isTypeWide ? {} : { resourceLabels: added.resourceLabels }),
+    });
+  }
+
+  return asks;
+}
+
+/*
  * The resource types a project reported within GCP_RESOURCE_TYPE_SEEN_MS
  * of `now`, from the read state's per-type times.
  */
@@ -446,7 +525,8 @@ export default class GcpCloudConnector implements CloudConnector {
     }
   }
 
-  private monitoring(
+  // The connection's Cloud Monitoring client: a resource's metric list reads through it too.
+  public monitoring(
     settings: CloudConnectionSettings,
     options: CloudConnectorCallOptions,
     budget?: CloudReadBudget | undefined,
@@ -1587,6 +1667,8 @@ export default class GcpCloudConnector implements CloudConnector {
       type GcpAsk = {
         projectId: string;
         metric: GcpReadMetric;
+        // An added metric's narrowing (getGcpAddedMetricsToAsk).
+        added?: GcpAddedMetricAsk | undefined;
       };
 
       // Each project's metrics asked so far this read, by stored name.
@@ -1642,6 +1724,11 @@ export default class GcpCloudConnector implements CloudConnector {
         asks: Array<GcpAsk>;
       }> => {
         for (const item of asks) {
+          // An added metric is asked as it is narrowed, whatever else is.
+          if (item.added) {
+            continue;
+          }
+
           const asked: Set<string> =
             askedByProject.get(item.projectId) || new Set<string>();
           asked.add(item.metric.storedName);
@@ -1663,6 +1750,8 @@ export default class GcpCloudConnector implements CloudConnector {
                 end: window.end,
                 metricLabels: item.metric.metricLabels,
                 readAs: item.metric.readAs,
+                resourceType: item.added?.resourceType,
+                resourceLabels: item.added?.resourceLabels,
               });
             },
           ),
@@ -1681,6 +1770,15 @@ export default class GcpCloudConnector implements CloudConnector {
           opsAgent: opsAgentAskOf(projectId),
         })) {
           next.push({ projectId, metric });
+        }
+
+        // The metrics people added, of the types the project has.
+        for (const added of getGcpAddedMetricsToAsk({
+          added: options.addedMetrics || [],
+          projectId,
+          seenResourceTypes: typesByProject.get(projectId)!,
+        })) {
+          next.push({ projectId, metric: added.metric, added });
         }
       }
 

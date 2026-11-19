@@ -1,4 +1,5 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
+import { readCloudAddedMetrics } from "../../../Types/Cloud/CloudAddedMetrics";
 import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudStreamSummary,
@@ -249,6 +250,7 @@ export default class CloudConnectionPullRunner {
           lastPullResult: true,
           streamKeyCreatedAt: true,
           streamSummary: true,
+          addedMetrics: true,
         },
         props: { isRoot: true },
       });
@@ -327,6 +329,8 @@ export default class CloudConnectionPullRunner {
         maxDurationMs: CLOUD_READ_MAX_DURATION_MS,
         knownResources: CloudConnectionResourceSync.toKnownResources(linked),
         awsStreamCoverage: awsCoverage,
+        // What people added to the reads, beyond the key metrics.
+        addedMetrics: readCloudAddedMetrics(connection.addedMetrics),
       });
 
       // The resources first, so their metrics land on rows with the cloud's names.

@@ -2,9 +2,10 @@
  * WHAT THE OWNERS OF A RECORD ARE TOLD, OWNER BY OWNER (issues #8199,
  * #8509, #8510): an incident, an alert, an episode of either, a monitor, a
  * scheduled maintenance event, a status page, an SLO, a network device, a
- * probe, an AI agent, a table, data store or pipeline (#9681), or a
- * service, a piece of infrastructure, a dashboard, a workflow, a runbook or
- * an on-call policy, schedule or incoming call policy (#9700).
+ * probe, an AI agent, a table, data store or pipeline (#9681), a service, a
+ * piece of infrastructure, a dashboard, a workflow, a runbook or an on-call
+ * policy, schedule or incoming call policy (#9700), or a monitor group or a
+ * runner (#9758).
  *
  * Each owner notification job takes (marks) the record it is about - the
  * incident or alert just created, a state change, a note, an owner row, a
@@ -94,6 +95,12 @@ export enum OwnerNotificationKind {
   OnCallDutyPolicyOwnerAdded = "OnCallDutyPolicyOwnerAdded",
   OnCallDutyPolicyScheduleOwnerAdded = "OnCallDutyPolicyScheduleOwnerAdded",
   IncomingCallPolicyOwnerAdded = "IncomingCallPolicyOwnerAdded",
+  /*
+   * Monitor groups and runners, whose owners were written not told yet with
+   * no job to tell them (#9758): told the same way.
+   */
+  MonitorGroupOwnerAdded = "MonitorGroupOwnerAdded",
+  RunnerOwnerAdded = "RunnerOwnerAdded",
   // Someone assigned to an incident with a role: told as its owners are (#8573).
   IncidentMemberAdded = "IncidentMemberAdded",
 }

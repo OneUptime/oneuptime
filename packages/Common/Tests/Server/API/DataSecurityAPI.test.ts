@@ -101,6 +101,7 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceFramework,
   DataSecurityComplianceResponse,
+  DataSecurityComplianceTurnedOff,
   DataSecurityFindingOccurrence,
   DataSecurityFindingOccurrences,
   DataSecurityOccurrenceExcerptPartKind,
@@ -112,6 +113,7 @@ import {
   DataSecurityResourceComplianceFramework,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
+  MAX_COMPLIANCE_TURNED_OFF,
   MAX_RESOURCE_SCOPE_STORES,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import { FindingSampleRecord } from "../../../Types/DataSecurity/FindingSampleRecord";
@@ -406,6 +408,7 @@ let complianceSettingFindSpy: jest.SpyInstance;
 let databaseServerFindSpy: jest.SpyInstance;
 let databaseServerFindOneSpy: jest.SpyInstance;
 let clusterFindOneSpy: jest.SpyInstance;
+let clusterFindSpy: jest.SpyInstance;
 let complianceSettings: Array<DataSecurityComplianceSetting>;
 let databaseServers: Array<DatabaseServer>;
 let databaseServerRow: DatabaseServer | null;
@@ -642,6 +645,12 @@ beforeEach(() => {
     .spyOn(KubernetesClusterService, "findOneBy")
     .mockImplementation((async () => {
       return clusterRow;
+    }) as never);
+  // A list of clusters, as OneUptime or as the caller: that cluster.
+  clusterFindSpy = jest
+    .spyOn(KubernetesClusterService, "findBy")
+    .mockImplementation((async () => {
+      return clusterRow ? [clusterRow] : [];
     }) as never);
 });
 
@@ -2907,6 +2916,8 @@ describe("Compliance", () => {
         ),
         fullName: COMPLIANCE_FRAMEWORK_INFO[framework.framework].fullName,
         scope: COMPLIANCE_FRAMEWORK_INFO[framework.framework].scope,
+        // Nothing turned off anywhere (#9629).
+        turnedOff: [],
       });
     }
 
@@ -3055,6 +3066,253 @@ describe("Compliance, with what resources turned off", () => {
     expect(databaseServerFindSpy).not.toHaveBeenCalled();
     expect(pciOf(answer).storesInScope).toBe(1);
     expect(pciOf(answer).storesTurnedOff).toBe(0);
+    // Nothing turned off, and no resource read to name one.
+    expect(pciOf(answer).turnedOff).toEqual([]);
+    expect(clusterFindSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Why a framework or a requirement is turned off for a resource, and who
+ * turned it off when (#9629): the project's Compliance page lists each
+ * one, its resource named as the reader may see it.
+ */
+describe("Compliance, with why each was turned off", () => {
+  const JANE: User = new User(
+    new ObjectID("99999999-9999-4999-8999-999999999999"),
+  );
+  JANE.name = new Name("Jane Doe");
+
+  function turnedOff(data: {
+    framework: ComplianceFramework;
+    requirement?: string | undefined;
+    note?: string | undefined;
+    turnedOffAt?: Date | undefined;
+    turnedOffByUser?: User | undefined;
+    resourceType?: DataStoreResourceKind | undefined;
+    resourceId?: ObjectID | undefined;
+  }): DataSecurityComplianceSetting {
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType =
+      data.resourceType || DataStoreResourceKind.KubernetesCluster;
+    setting.resourceId = data.resourceId || CLUSTER_ID;
+    setting.framework = data.framework;
+
+    if (data.requirement) {
+      setting.requirement = data.requirement;
+    }
+
+    if (data.note !== undefined) {
+      setting.note = data.note;
+    }
+
+    if (data.turnedOffAt) {
+      setting.turnedOffAt = data.turnedOffAt;
+    }
+
+    if (data.turnedOffByUser) {
+      setting.turnedOffByUser = data.turnedOffByUser;
+    }
+
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+    return setting;
+  }
+
+  function frameworkOf(
+    answer: DataSecurityComplianceResponse,
+    framework: ComplianceFramework,
+  ): DataSecurityComplianceFramework {
+    return answer.frameworks.find((each: DataSecurityComplianceFramework) => {
+      return each.framework === framework;
+    })!;
+  }
+
+  async function compliance(): Promise<DataSecurityComplianceResponse> {
+    return (await call(DATA_SECURITY_API_ROUTES.compliance))
+      .answer as unknown as DataSecurityComplianceResponse;
+  }
+
+  test("lists each, the latest turned off first, with why, by whom and when, its resource named", async () => {
+    const whole: DataSecurityComplianceSetting = turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      note: "No card data ever reaches prod-eu.",
+      turnedOffAt: new Date("2026-10-20T09:00:00.000Z"),
+      turnedOffByUser: JANE,
+    });
+    const requirement: DataSecurityComplianceSetting = turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      requirement: "7.2",
+      turnedOffAt: new Date("2026-10-26T09:00:00.000Z"),
+    });
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff).toEqual([
+      {
+        id: requirement.id!.toString(),
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: "7.2",
+        note: "",
+        turnedOffAt: "2026-10-26T09:00:00.000Z",
+        turnedOffBy: null,
+      },
+      {
+        id: whole.id!.toString(),
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: null,
+        note: "No card data ever reaches prod-eu.",
+        turnedOffAt: "2026-10-20T09:00:00.000Z",
+        turnedOffBy: "Jane Doe",
+      },
+    ]);
+    // Another framework lists only its own.
+    expect(
+      frameworkOf(await compliance(), ComplianceFramework.HIPAA).turnedOff,
+    ).toEqual([]);
+  });
+
+  test("reads what is turned off as OneUptime, with why and by whom", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+
+    await compliance();
+
+    const read: Record<string, unknown> | undefined = (
+      complianceSettingFindSpy.mock.calls as Array<
+        [{ query: Record<string, unknown>; select: Record<string, unknown> }]
+      >
+    )
+      .map(
+        (
+          args: [
+            { query: Record<string, unknown>; select: Record<string, unknown> },
+          ],
+        ): {
+          query: Record<string, unknown>;
+          select: Record<string, unknown>;
+        } => {
+          return args[0];
+        },
+      )
+      .find((args: { query: Record<string, unknown> }): boolean => {
+        return args.query["isEnabled"] === false;
+      }) as Record<string, unknown> | undefined;
+
+    expect(read).toMatchObject({
+      query: { projectId: PROJECT_ID, isEnabled: false },
+      select: {
+        note: true,
+        turnedOffAt: true,
+        turnedOffByUser: { name: true, email: true },
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("names a resource as the reader may see it: asked as OneUptime whether it is there, as the reader what it is called", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+
+    await compliance();
+
+    const propsOfReads: Array<DatabaseCommonInteractionProps> =
+      clusterFindSpy.mock.calls.map(
+        (args: Array<unknown>): DatabaseCommonInteractionProps => {
+          return (args[0] as { props: DatabaseCommonInteractionProps }).props;
+        },
+      );
+
+    expect(propsOfReads).toHaveLength(2);
+    expect(propsOfReads[0]).toEqual({ isRoot: true });
+    expect(propsOfReads[1]?.isRoot).toBeFalsy();
+    expect(propsOfReads[1]?.tenantId?.toString()).toBe(PROJECT_ID.toString());
+  });
+
+  test("a resource the reader may not read is named by its kind alone", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS, note: "Not ours." });
+    const cluster: KubernetesCluster = new KubernetesCluster(CLUSTER_ID);
+    cluster.name = "prod-eu";
+    clusterFindSpy.mockImplementation((async (args: {
+      props: DatabaseCommonInteractionProps;
+    }) => {
+      return args.props.isRoot ? [cluster] : [];
+    }) as never);
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff?.[0]?.resource.name).toBe("");
+    expect(pci.turnedOff?.[0]?.note).toBe("Not ours.");
+  });
+
+  test("one whose resource is gone is left out: it turns nothing off now", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+    clusterFindSpy.mockImplementation((async () => {
+      return [];
+    }) as never);
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff).toEqual([]);
+  });
+
+  test("a person with no name is named by their email; an API key by nobody", async () => {
+    const byEmail: User = new User(ObjectID.generate());
+    byEmail.email = new Email("sam@acme.example");
+    turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      turnedOffByUser: byEmail,
+      turnedOffAt: new Date("2026-10-26T09:00:00.000Z"),
+    });
+    turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      requirement: "3.4",
+      turnedOffAt: new Date("2026-10-25T09:00:00.000Z"),
+    });
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(
+      pci.turnedOff?.map((entry: DataSecurityComplianceTurnedOff) => {
+        return entry.turnedOffBy;
+      }),
+    ).toEqual(["sam@acme.example", null]);
+  });
+
+  test("lists at most MAX_COMPLIANCE_TURNED_OFF of one framework", async () => {
+    for (
+      let index: number = 0;
+      index < MAX_COMPLIANCE_TURNED_OFF + 5;
+      index++
+    ) {
+      turnedOff({ framework: ComplianceFramework.PCIDSS });
+    }
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff).toHaveLength(MAX_COMPLIANCE_TURNED_OFF);
   });
 });
 
@@ -3474,6 +3732,112 @@ describe("a resource's compliance", () => {
     expect(result.thrown).toBeInstanceOf(NotFoundException);
     expect(storeFindSpy).not.toHaveBeenCalled();
     expect(complianceSettingFindSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Why each was turned off here, by whom and when (#9629): the settings of
+   * where the compliance is set, named as the page names it, with no other
+   * resource read to name them.
+   */
+  test("says why each of its own was turned off, by whom and when", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    turnedOff(ComplianceFramework.SOC2, "CC6.1");
+    const setting: DataSecurityComplianceSetting = complianceSettings[0]!;
+    setting.note = "Access is reviewed by the platform team instead.";
+    setting.turnedOffAt = new Date("2026-10-26T09:00:00.000Z");
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(frameworkOf(answer, ComplianceFramework.SOC2).turnedOff).toEqual([
+      {
+        id: setting.id!.toString(),
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: "CC6.1",
+        note: "Access is reviewed by the platform team instead.",
+        turnedOffAt: "2026-10-26T09:00:00.000Z",
+        turnedOffBy: null,
+      },
+    ]);
+    expect(frameworkOf(answer, ComplianceFramework.HIPAA).turnedOff).toEqual(
+      [],
+    );
+    // Only the cluster's own settings are asked for, and nobody is read to name them.
+    expect(
+      (
+        complianceSettingFindSpy.mock.calls as Array<
+          [{ query: Record<string, unknown> }]
+        >
+      ).some((args: [{ query: Record<string, unknown> }]): boolean => {
+        return (
+          args[0].query["isEnabled"] === false &&
+          args[0].query["resourceType"] ===
+            DataStoreResourceKind.KubernetesCluster &&
+          String(args[0].query["resourceId"]) === CLUSTER_ID.toString()
+        );
+      }),
+    ).toBe(true);
+    expect(clusterFindSpy).not.toHaveBeenCalled();
+  });
+
+  test("another resource's reason is not this cluster's", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.Service;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = ComplianceFramework.PCIDSS;
+    setting.note = "A service's own.";
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(frameworkOf(answer, ComplianceFramework.PCIDSS).turnedOff).toEqual(
+      [],
+    );
+  });
+
+  test("a database on the cluster shows the cluster's reasons, under the cluster's name", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    turnedOff(ComplianceFramework.PCIDSS);
+    complianceSettings[0]!.note = "No card data on this cluster.";
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServerRow = server;
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await call(
+        DATA_SECURITY_API_ROUTES.resourceCompliance,
+        {},
+        {
+          kind: DataStoreResourceKind.DatabaseServer,
+          id: DATABASE_SERVER_ID.toString(),
+        },
+      )
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(
+      frameworkOf(answer, ComplianceFramework.PCIDSS).turnedOff,
+    ).toMatchObject([
+      {
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: null,
+        note: "No card data on this cluster.",
+      },
+    ]);
   });
 });
 

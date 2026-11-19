@@ -167,3 +167,19 @@ export const RESOURCE_COMPLIANCE_DESCRIPTIONS: Readonly<
     "How this service's telemetry stands against each framework, from its open issues. Turn off what does not apply to it.",
   ),
 };
+
+/*
+ * A kind of resource, as a label: what the project's Compliance page names
+ * a resource by when the reader may not read its name (#9629).
+ */
+export const RESOURCE_KIND_LABELS: Readonly<
+  Record<DataStoreResourceKind, string>
+> = {
+  [DataStoreResourceKind.KubernetesCluster]:
+    translationKey("Kubernetes Cluster"),
+  [DataStoreResourceKind.DockerHost]: translationKey("Docker Host"),
+  [DataStoreResourceKind.PodmanHost]: translationKey("Podman Host"),
+  [DataStoreResourceKind.DatabaseServer]: translationKey("Database"),
+  [DataStoreResourceKind.CloudResource]: translationKey("Cloud Resource"),
+  [DataStoreResourceKind.Service]: translationKey("Service"),
+};

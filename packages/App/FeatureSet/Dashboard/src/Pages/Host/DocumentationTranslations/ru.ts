@@ -231,8 +231,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "Если агент был установлен до того, как мониторинг затрат стал включаться по умолчанию, обновите его:",
   "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
     "- **Отключение:** добавьте `--set cost.enabled=false` в ту же команду обновления.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **Уже используете Kubecost или OpenCost?** Направьте агент на него, и ничего не будет установлено дополнительно: добавьте `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (или ваш сервис Kubecost).",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **Уже используете Kubecost или OpenCost?** Агент находит его и читает вместо встроенного движка, а обзор кластера сообщает об этом: добавьте `--set cost.engine.url=auto`, чтобы не устанавливать второй движок.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **Свои серверы или bare metal?** Задайте тарифы с помощью `--set cost.opencost.customPricing.enabled=true` (USD за час ресурса; см. `values.yaml` chart).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":
