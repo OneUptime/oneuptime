@@ -11,8 +11,20 @@ import {
   countOccurrences,
   renderPage,
 } from "./ReferenceFixtures";
+import AllModelTypes from "Common/Models/DatabaseModels/Index";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import MoveInListUtil, {
+  MOVE_IN_LIST_ROUTE,
+  MoveInListResult,
+  NUMBERED_LIST_TABLES,
+} from "Common/Types/Database/MoveInList";
+import { getStateListOfTable } from "Common/Utils/StateOrder";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import ScheduleLayersSaveUtil, {
   SCHEDULE_LAYERS_READ_ROUTE,
@@ -29,9 +41,12 @@ import path from "path";
 /*
  * The routes a resource answers beside its own operations, on its API
  * Reference page (issue #9038): an on-call schedule's layers read and saved
- * in one call, and a user override ended now (issue #7899). Each is drawn
- * from Utils/ModelEndpoints, so these hold that list to the server - the
- * routes it registers, the requests it reads - and the page to the list.
+ * in one call, a user override ended now (issue #7899), and the move of a
+ * record of an ordered list to another record's place (issue #9613) - every
+ * list put in order, the five numbered ones and the drag-ordered ones. Each
+ * is drawn from Utils/ModelEndpoints, so these hold that list to the server
+ * - the routes it registers, the requests it reads - and the page to the
+ * list.
  */
 
 jest.mock("../../../FeatureSet/APIReference/Utils/Config", () => {
@@ -107,10 +122,37 @@ const DESCRIBED: Array<ModelEndpoint> = Object.values(
   getDescribedModelEndpoints(),
 ).flat();
 
+type ModelType = { new (): BaseModel; name: string };
+
+// Every resource whose records make up ordered lists, and its list's column.
+const LIST_RESOURCES: Array<{
+  model: BaseModel;
+  path: string;
+  column: string;
+}> = (AllModelTypes as unknown as Array<ModelType>)
+  .map((modelType: ModelType) => {
+    const model: BaseModel = new modelType();
+
+    return {
+      model: model,
+      path: model.crudApiPath?.toString() || "",
+      column: MoveInListUtil.getListColumn(model) || "",
+    };
+  })
+  .filter((resource: { path: string; column: string }): boolean => {
+    return Boolean(resource.path && resource.column);
+  });
+
 describe("the endpoints a resource has beside its own", () => {
-  it("are the schedule's layers read and saved, and an override ended now", () => {
+  it("are the schedule's layers read and saved, an override ended now, and every ordered list's move", () => {
     expect(Object.keys(getDescribedModelEndpoints()).sort()).toEqual(
-      [SCHEDULE_PATH, OVERRIDE_PATH].sort(),
+      [
+        SCHEDULE_PATH,
+        OVERRIDE_PATH,
+        ...LIST_RESOURCES.map((resource: { path: string }): string => {
+          return resource.path;
+        }),
+      ].sort(),
     );
 
     const schedule: Array<DrawnModelEndpoint> = endpointsOf(SCHEDULE_PATH);
@@ -256,6 +298,138 @@ describe("the endpoints a resource has beside its own", () => {
   });
 });
 
+describe("the move of an ordered list's record", () => {
+  it("is described for the five numbered lists and every drag-ordered list", () => {
+    for (const table of NUMBERED_LIST_TABLES) {
+      expect(
+        LIST_RESOURCES.some((resource: { model: BaseModel }): boolean => {
+          return resource.model.tableName === table;
+        }),
+      ).toBe(true);
+    }
+
+    expect(LIST_RESOURCES.length).toBe(NUMBERED_LIST_TABLES.length + 39);
+  });
+
+  it.each(
+    LIST_RESOURCES.map(
+      (resource: { model: BaseModel; path: string; column: string }) => {
+        return [resource.path, resource] as [
+          string,
+          { model: BaseModel; path: string; column: string },
+        ];
+      },
+    ),
+  )(
+    "%s: POST /:id/move, its request read and its answer written as the server does",
+    (
+      _path: string,
+      resource: { model: BaseModel; path: string; column: string },
+    ) => {
+      const endpoints: Array<DrawnModelEndpoint> = endpointsOf(resource.path);
+
+      expect(endpoints).toHaveLength(1);
+
+      const move: DrawnModelEndpoint = endpoints[0]!;
+
+      expect(`${move.method} ${move.path}`).toBe(
+        `POST /api${resource.path}/:id/move`,
+      );
+      expect(move.route).toBe(MOVE_IN_LIST_ROUTE);
+
+      // The example request is one the server reads as it is written.
+      expect(
+        MoveInListUtil.requestToJSON(
+          MoveInListUtil.parseRequest(move.requestBody),
+        ),
+      ).toEqual(move.requestBody);
+      expect(
+        move.bodyFields.map((field: { name: string }) => {
+          return field.name;
+        }),
+      ).toEqual(Object.keys(move.requestBody || {}));
+
+      // The answer, as the server writes it: numbers under the list's column.
+      const result: MoveInListResult = MoveInListUtil.resultFromJSON(
+        move.response,
+        resource.column,
+      );
+
+      expect(result.changedRows).toHaveLength(2);
+      expect(MoveInListUtil.resultToJSON(result, resource.column)).toEqual(
+        move.response,
+      );
+      // The record moved is the one the examples name.
+      expect(result.changedRows[0]!.id).toBe(
+        "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+      );
+      expect(move.codeExamples.curl).toContain(
+        `-X POST "https://oneuptime.com/api${resource.path}/9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d/move"`,
+      );
+      expect(move.codeExamples.curl).toContain('"placeOfId"');
+
+      // Its refusals: the place, the record, the permission - and a path's order.
+      expect(move.refusalKeys).toEqual([
+        "moveInListPlaceRefused",
+        "moveInListRecordNotFound",
+        "moveInListNotAllowed",
+        ...(getStateListOfTable(resource.model.tableName)?.keepsBuiltInOrder
+          ? ["moveInListBuiltInOrder"]
+          : []),
+      ]);
+    },
+  );
+
+  it("numbers the example from the top: 1 first, or the highest for a list that counts down", () => {
+    const status: DrawnModelEndpoint = endpointsOf(
+      new MonitorStatus().crudApiPath!.toString(),
+    )[0]!;
+    const rule: DrawnModelEndpoint = endpointsOf(
+      new NetworkSiteAssignmentRule().crudApiPath!.toString(),
+    )[0]!;
+    const group: DrawnModelEndpoint = endpointsOf(
+      new StatusPageGroup().crudApiPath!.toString(),
+    )[0]!;
+
+    expect(status.response).toEqual({
+      changedRows: [
+        { _id: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", priority: 1 },
+        { _id: expect.any(String), priority: 2 },
+      ],
+    });
+    expect(rule.response).toEqual({
+      changedRows: [
+        { _id: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", priority: 2 },
+        { _id: expect.any(String), priority: 1 },
+      ],
+    });
+    expect(group.response).toEqual({
+      changedRows: [
+        { _id: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", order: 1 },
+        { _id: expect.any(String), order: 2 },
+      ],
+    });
+  });
+
+  it("says a path's built-in states keep their order on a move, and no other list's page does", () => {
+    expect(
+      endpointsOf(new IncidentState().crudApiPath!.toString())[0]!.refusalKeys,
+    ).toContain("moveInListBuiltInOrder");
+    expect(
+      endpointsOf(new MonitorStatus().crudApiPath!.toString())[0]!.refusalKeys,
+    ).not.toContain("moveInListBuiltInOrder");
+  });
+
+  it("is the route every ordered list's API registers", () => {
+    const baseAPI: string = readCommon("Server/API/BaseAPI.ts");
+
+    expect(baseAPI).toContain("if (MoveInListUtil.getListColumn(new this.entityType())) {");
+    expect(baseAPI).toContain(
+      "`${new this.entityType().getCrudApiPath()?.toString()}${MOVE_IN_LIST_ROUTE}`",
+    );
+  });
+});
+
 describe("their words", () => {
   const keys: Array<string> = Array.from(
     new Set(
@@ -329,6 +503,31 @@ describe("their words", () => {
         language,
         t("pages.modelEndpoints.userOverrideEndNowIntro"),
       ]).toEqual([language, expect.stringContaining("endsAt")]);
+
+      // The move: its body field, its answer, and Terraform's write beside it.
+      for (const word of ["placeOfId", "changedRows", "_id", "Terraform"]) {
+        expect([language, t("pages.modelEndpoints.moveInListIntro")]).toEqual([
+          language,
+          expect.stringContaining(word),
+        ]);
+      }
+
+      for (const [key, status] of [
+        ["moveInListPlaceRefused", /^400 Bad Request/],
+        ["moveInListRecordNotFound", /^404 Not Found/],
+        ["moveInListNotAllowed", /^422 Unprocessable Entity/],
+        ["moveInListBuiltInOrder", /^400 Bad Request/],
+      ] as Array<[string, RegExp]>) {
+        expect([language, t(`pages.modelEndpoints.${key}`)]).toEqual([
+          language,
+          expect.stringMatching(status),
+        ]);
+      }
+
+      expect([
+        language,
+        t("pages.modelEndpoints.moveInListPlaceRefused"),
+      ]).toEqual([language, expect.stringContaining("placeOfId")]);
     }
   });
 });
@@ -394,7 +593,7 @@ describe("the model page", () => {
     expect(html).not.toContain(">Refusals</h4>");
   });
 
-  it("is handed them by the page's service, for the schedule's page only", async () => {
+  it("is handed them by the page's service, for the pages that have them", async () => {
     const pageDataOf: (
       page: string,
     ) => Promise<Record<string, unknown>> = async (
@@ -455,5 +654,25 @@ describe("the model page", () => {
         },
       ),
     ).toEqual(["end-now"]);
+
+    // An ordered list's page: its move, under its own path.
+    const status: Record<string, unknown> = await pageDataOf(
+      new MonitorStatus().getAPIDocumentationPath(),
+    );
+    const statusEndpoints: Array<DrawnModelEndpoint> = status[
+      "moreEndpoints"
+    ] as Array<DrawnModelEndpoint>;
+
+    expect(
+      statusEndpoints.map((endpoint: DrawnModelEndpoint) => {
+        return endpoint.path;
+      }),
+    ).toEqual([`${String(status["apiPath"])}/:id/move`]);
+    expect(statusEndpoints[0]!.response).toEqual({
+      changedRows: [
+        { _id: String(status["exampleObjectID"]), priority: 1 },
+        { _id: expect.any(String), priority: 2 },
+      ],
+    });
   }, 120000);
 });

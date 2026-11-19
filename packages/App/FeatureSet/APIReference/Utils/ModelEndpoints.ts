@@ -1,10 +1,17 @@
 import CodeExampleGenerator, { CodeExamples } from "./CodeExampleGenerator";
-import { JSONObject } from "Common/Types/JSON";
+import AllModelTypes from "Common/Models/DatabaseModels/Index";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import MoveInListUtil, {
+  MOVE_IN_LIST_ROUTE,
+} from "Common/Types/Database/MoveInList";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   SCHEDULE_LAYERS_READ_ROUTE,
   SCHEDULE_LAYERS_SAVE_ROUTE,
 } from "Common/Types/OnCallDutyPolicy/ScheduleLayersSave";
 import { USER_OVERRIDE_END_NOW_ROUTE } from "Common/Types/OnCallDutyPolicy/UserOverrideEdit";
+import { getStateListOfTable } from "Common/Utils/StateOrder";
 
 /*
  * THE ENDPOINTS A RESOURCE HAS BESIDE LIST, GET, COUNT, CREATE, UPDATE AND
@@ -122,8 +129,120 @@ const CHANGED_LAYERS: JSONObject = {
   deletedLayerIds: [EXAMPLE_SECOND_LAYER_ID],
 };
 
+/*
+ * THE MOVE OF AN ORDERED LIST'S RECORD (issues #9573, #9609, #9613): every
+ * resource whose records make up lists put in order - the five numbered by
+ * `order` (status page groups and resources, escalation rules, schedule
+ * layers and their people) and every list dragged into order
+ * (@ListOrderColumn: severities, states, monitor statuses, custom fields,
+ * rules, pipelines, filters, status page links...) - answers
+ * POST <path>/:id/move. A create or an update of the list's number places
+ * the record alone, which is what Terraform needs; moving it past others is
+ * this request. The example answer names each record's number under the
+ * list's own column, as the API does.
+ */
+
+// The record named in the example's placeOfId: the one at the top.
+const EXAMPLE_PLACE_OF_ID: string = "7c6b5a49-3827-4e16-9f05-e4d3c2b1a098";
+
+/*
+ * Stands in, in an example answer, for the record the page's examples name
+ * (getModelEndpoints puts the page's own example ID in its place).
+ */
+const EXAMPLE_RECORD_ID: string = "{{exampleObjectID}}";
+
+function getMoveEndpoint(model: BaseModel): ModelEndpoint | null {
+  const column: string | null = MoveInListUtil.getListColumn(model);
+
+  if (!column) {
+    return null;
+  }
+
+  // The record moved to the top of a list of two, numbered from the top.
+  const countsDown: boolean =
+    model.getListOrder()?.sortOrder === SortOrder.Descending;
+
+  return {
+    id: "move",
+    method: "POST",
+    route: MOVE_IN_LIST_ROUTE,
+    headingKey: "moveInListHeading",
+    introKey: "moveInListIntro",
+    requestTitleKey: "moveInListRequestTitle",
+    idDescriptionKey: "moveInListIdDescription",
+    bodyFields: [
+      {
+        name: "placeOfId",
+        type: "text",
+        descriptionKey: "placeOfIdDescription",
+      },
+    ],
+    requestBody: { placeOfId: EXAMPLE_PLACE_OF_ID },
+    response: {
+      changedRows: [
+        { _id: EXAMPLE_RECORD_ID, [column]: countsDown ? 2 : 1 },
+        { _id: EXAMPLE_PLACE_OF_ID, [column]: countsDown ? 1 : 2 },
+      ],
+    },
+    refusalKeys: [
+      "moveInListPlaceRefused",
+      "moveInListRecordNotFound",
+      "moveInListNotAllowed",
+      // A path's built-in states keep their order (StateOrderGuard).
+      ...(getStateListOfTable(model.tableName)?.keepsBuiltInOrder
+        ? ["moveInListBuiltInOrder"]
+        : []),
+    ],
+  };
+}
+
+// The move of every resource that has one, by its path.
+function getMoveEndpoints(): Record<string, Array<ModelEndpoint>> {
+  const endpoints: Record<string, Array<ModelEndpoint>> = {};
+
+  for (const modelType of AllModelTypes as unknown as Array<{
+    new (): BaseModel;
+  }>) {
+    const model: BaseModel = new modelType();
+    const path: string | undefined = model.crudApiPath?.toString();
+    const move: ModelEndpoint | null = getMoveEndpoint(model);
+
+    if (path && move) {
+      endpoints[path] = [move];
+    }
+  }
+
+  return endpoints;
+}
+
+// A JSON value with the example record's ID in place of its stand-in.
+function withExampleRecordId(value: JSONValue, exampleObjectID: string): JSONValue {
+  if (value === EXAMPLE_RECORD_ID) {
+    return exampleObjectID;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item: JSONValue): JSONValue => {
+      return withExampleRecordId(item, exampleObjectID);
+    });
+  }
+
+  if (value && typeof value === "object") {
+    const copy: JSONObject = {};
+
+    for (const [key, item] of Object.entries(value as JSONObject)) {
+      copy[key] = withExampleRecordId(item as JSONValue, exampleObjectID);
+    }
+
+    return copy;
+  }
+
+  return value;
+}
+
 const MODEL_ENDPOINTS: Readonly<Record<string, ReadonlyArray<ModelEndpoint>>> =
   {
+    ...getMoveEndpoints(),
     "/on-call-duty-policy-schedule": [
       {
         id: "read-layers",
@@ -215,6 +334,10 @@ export function getModelEndpoints(data: {
     (endpoint: ModelEndpoint): DrawnModelEndpoint => {
       return {
         ...endpoint,
+        response: withExampleRecordId(
+          endpoint.response,
+          data.exampleObjectID,
+        ) as JSONObject,
         path: `${data.apiPath}${endpoint.route}`,
         codeExamples: CodeExampleGenerator.generate({
           method: endpoint.method,

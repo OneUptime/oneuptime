@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Dette endpoint afslutter en igangværende tilsidesættelse efter serverens ur: dens slutning bliver nu, og fra da af er tilkaldene den fraværende persons igen. Det kræver samme tilladelse som en opdatering og returnerer tilsidesættelsens nye endsAt.",
       "userOverrideEndNowRequestTitle": "Anmodning om at afslutte nu",
       "userOverrideIdDescription": "ID for brugertilsidesættelsen",
-      "userOverrideEndNowRefused": "400 Bad Request: tilsidesættelsen er ikke startet endnu (slet den i stedet), er allerede slut eller slutter alligevel inden for minuttet."
+      "userOverrideEndNowRefused": "400 Bad Request: tilsidesættelsen er ikke startet endnu (slet den i stedet), er allerede slut eller slutter alligevel inden for minuttet.",
+      "moveInListHeading": "Flyt",
+      "moveInListIntro": "Dette endpoint flytter posten til pladsen for den post, placeOfId nævner, i den liste de deler: flyttet op lander den lige over den post; flyttet ned lige under den; posterne imellem rykker én plads mod det sted, den kom fra. Listen nummereres derefter fra toppen, 1, 2, 3 og så videre (fra sit højeste tal og ned for en liste, der tæller nedad), i én transaktion, så flytninger på samme tid aldrig efterlader to poster med samme tal. Den svarer med changedRows: hver post, der fik et andet tal, med sit _id og sit nye tal under listens egen talkolonne. En oprettelse eller opdatering, der skriver det tal, placerer posten alene og flytter ingen anden, hvilket Terraform har brug for; send denne anmodning for at flytte en post forbi andre. Den kræver samme tilladelse som en opdatering af postens tal.",
+      "moveInListRequestTitle": "Anmodning om flytning",
+      "moveInListIdDescription": "ID for posten, der skal flyttes",
+      "placeOfIdDescription": "ID for den post i samme liste, hvis plads denne post tager.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId mangler eller er ikke et ID, eller den nævner en post, der ikke er i samme liste som den flyttede post: en anden overordnets, et andet projekts eller en anden slags.",
+      "moveInListRecordNotFound": "404 Not Found: posten er der ikke at flytte: den blev slettet, eller kalderen må ikke læse den.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: kalderen må læse posten, men ikke ændre dens tal, ligesom en opdatering af den ville blive afvist.",
+      "moveInListBuiltInOrder": "400 Bad Request: flytningen ville bringe projektets indbyggede tilstande ud af rækkefølge, for eksempel den løste tilstand på eller over den kvitterede. Svaret nævner dem."
     },
     "dataType": {
       "enumBadge": "Enum",
