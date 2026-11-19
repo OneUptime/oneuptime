@@ -57276,5 +57276,7 @@
   "{{through}} of {{count}} requests got past the app's checks.": "{{count}} 個請求中有 {{through}} 個通過了應用程式的檢查。",
   "{{through}} of {{count}} requests got past the app's checks._one": "{{count}} 個請求中有 {{through}} 個通過了應用程式的檢查。",
   "{{values}} in {{field}}": "{{field}} 中的 {{values}}",
-  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "此管道讀取和寫入的資料表，以及每個資料表的目前狀況。追蹤某一欄位可查看它從哪裡來、往哪裡去；選擇更多步數可查看它們由什麼建置、又建置了什麼。"
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "此管道讀取和寫入的資料表，以及每個資料表的目前狀況。追蹤某一欄位可查看它從哪裡來、往哪裡去；選擇更多步數可查看它們由什麼建置、又建置了什麼。",
+  "Pods with a container that cannot run: it keeps crashing (CrashLoopBackOff), its image cannot be pulled (ImagePullBackOff) or its configuration is wrong. Kubernetes retries in vain until the cause is fixed. Any such pod marks the cluster Unhealthy.": "有容器無法執行的 Pod：容器反覆當機（CrashLoopBackOff）、映像檔無法拉取（ImagePullBackOff）或設定有誤。在原因修正之前，Kubernetes 的重試都是徒勞的。只要有任何此類 Pod，叢集就會被標記為「不健康」。",
+  "Pods in the latest inventory, by kubectl status: Running, Can't run (keeps crashing or cannot start), Pending (not started yet), Failed (stopped with an error) and Succeeded (finished without error, such as completed jobs). Not tied to the time range.": "最新清單中的 Pod，依 kubectl 狀態劃分：Running、無法執行（反覆當機或無法啟動）、Pending（尚未啟動）、Failed（以錯誤停止）和 Succeeded（已無錯誤地結束，例如已完成的工作）。與時間範圍無關。"
 }
