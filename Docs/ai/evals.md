@@ -25,7 +25,10 @@ already redacted and cut to size by the toolbox. A recording is:
 - **kept for 30 days** (`INVESTIGATION_RECORDING_RETENTION_IN_DAYS`), and deleted with its run or its project;
 - **capped**: 300 tool calls, 100,000 characters of one result, 1,000,000 characters of results in all
   (`Types/AI/InvestigationRecording.ts`). A call past the caps is kept without its text, and a replay counts it as
-  _not recorded_ rather than inventing an answer.
+  _not recorded_ rather than inventing an answer;
+- **marked when it was read for its readers**: `readForItsReaders` in its inputs says the run's tools read only what
+  everyone who may see the incident or alert may read. Recordings made before runs read for their readers lack it:
+  they hold what the whole project held, so nothing shown to a record's readers may be replayed from them.
 
 Recording is best effort: a recording that cannot be saved never fails the investigation.
 
@@ -113,13 +116,13 @@ The replay takes the most recent recorded investigations (20 by default, `--limi
 against. A root cause that is still what OneUptime wrote when it opened the record, such as the criteria a monitor
 matched (`**Created because the following criteria was met**`), counts as none: graded against it, a right analysis
 reads as a miss. Responders write one as they resolve an incident or alert (**Add the root cause** in the Resolve
-dialog), or on its **Root Cause** page. For each of the others, it builds today's prompt around the recorded context, runs the model you name, and
-answers each tool call from the recording: never from live data, which has moved on by then. A call the original run
-never made is answered _not recorded_; the report counts those, since the more a case has, the less its grade says.
-One judge (the model under test, unless `--judge-llm-type` names another) then grades the original analysis and the
-replay's against the written root cause, with the production grader's prompt, and the report says how many cases got
-better, stayed the same, or got worse. To try a persona before it is in the code, pass `--persona-file=<path>`, as
-with the benchmark.
+dialog), or on its **Root Cause** page. For each of the others, it builds today's prompt around the recorded context,
+runs the model you name, and answers each tool call from the recording: never from live data, which has moved on by
+then. A call the original run never made is answered _not recorded_; the report counts those, since the more a case
+has, the less its grade says. One judge (the model under test, unless `--judge-llm-type` names another) then grades
+the original analysis and the replay's against the written root cause, with the production grader's prompt, and the
+report says how many cases got better, stayed the same, or got worse. To try a persona before it is in the code, pass
+`--persona-file=<path>`, as with the benchmark.
 
 The replay sends the recorded tool results — a project's telemetry — to the model you name. Run it only where that is
 allowed: on your own installation's data, with a provider you may send it to.
