@@ -122,6 +122,13 @@ export default class ProjectSsoDiscovery {
    * The verified project domains named exactly `domain`, whatever case they
    * were saved in, grouped by project: projects in the order their domain
    * was added, so the same domain always answers in the same order.
+   *
+   * Postgres answers it from an index of its own, on LOWER("domain") over
+   * the verified rows that are not deleted (AddDomainVerifiedNameIndex1809186720000,
+   * #9988), never by reading the whole table: keep the comparison
+   * (findWithSameText) and the two filters as they are, or the index stops
+   * serving it. AddDomainVerifiedNameIndexPostgres asks Postgres how it runs
+   * this very query.
    */
   public static async findVerifiedDomains(
     domain: string,

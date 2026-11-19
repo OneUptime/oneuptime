@@ -15,6 +15,7 @@ import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import DomainType from "../../Types/Domain";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -52,6 +53,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @CrudApiEndpoint(new Route("/domain"))
 @SlugifyColumn("domain", "slug")
+/*
+ * "Sign in with SSO" finds the verified project domains named like an
+ * address's, whatever case a row was saved in (Server/Utils/
+ * ProjectSsoDiscovery.findVerifiedDomains, #9824): a request anyone can
+ * make. The real definition is (LOWER("domain")) WHERE "isVerified" = true
+ * AND "deletedAt" IS NULL, so the lookup reads only the rows it can return
+ * (#9988). It lives in migration
+ * 1809186720000-AddDomainVerifiedNameIndex: @Index() cannot express LOWER()
+ * or a WHERE, so the index is declared here by name with synchronize: false
+ * (Types/Database/UnsynchronizedIndex), and the schema builder neither drops
+ * it nor tries to create it.
+ */
+@Index("IDX_domain_verified_lower_domain", ["domain"], UNSYNCHRONIZED_INDEX)
 @TableMetadata({
   tableName: "Domain",
   singularName: "Domain",
