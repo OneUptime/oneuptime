@@ -1490,6 +1490,38 @@ test("a new engine is looked at at once, and the old one's Prometheus is never r
   );
 });
 
+test("the engine's Prometheus that stops answering for a moment is kept, and looked at again soon", async (): Promise<void> => {
+  const cluster: Cluster = Cluster.opencost();
+  const agent: Agent = new Agent({
+    cluster,
+    engine: OPENCOST,
+    prometheusUrl: BUNDLED_PROMETHEUS,
+    prometheusUrlIsBundled: true,
+  });
+  const url: string =
+    "http://kubecost-prometheus-server.kubecost.svc.cluster.local:80";
+
+  await agent.target.refreshIfDue();
+  assert.strictEqual(agent.target.current()?.url, url);
+
+  // An hour on, it is restarting: kept, not swapped for the bundled one.
+  cluster.prometheus.set(url, new Error("connect ECONNREFUSED"));
+  agent.nowMs += 61 * 60 * 1000;
+  await agent.target.refreshIfDue();
+
+  assert.strictEqual(agent.target.current()?.url, url);
+  assert.strictEqual(agent.target.current()?.origin, "engine");
+  assert.match(agent.target.current()?.note || "", /its last check failed/);
+
+  // Back: looked at again within ten minutes, and the note goes.
+  cluster.prometheus.set(url, [cadvisor("kubernetes-nodes-cadvisor", 27)]);
+  agent.nowMs += 11 * 60 * 1000;
+  await agent.target.refreshIfDue();
+
+  assert.strictEqual(agent.target.current()?.url, url);
+  assert.strictEqual(agent.target.current()?.note, "");
+});
+
 test("one look at a time, however often it is asked", async (): Promise<void> => {
   const cluster: Cluster = Cluster.opencost();
   const agent: Agent = new Agent({ cluster, engine: OPENCOST });

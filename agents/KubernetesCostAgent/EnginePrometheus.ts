@@ -1163,6 +1163,22 @@ export class CostPrometheusTarget implements CostPrometheusSource {
 
       if (own.prometheus) {
         found = own.prometheus;
+      } else if (
+        key === this.engineKey &&
+        this.found &&
+        this.found.origin === "engine"
+      ) {
+        /*
+         * The same engine's Prometheus, found before, did not answer this
+         * time: keep it, as a Prometheus that restarts is back in a minute,
+         * and look again soon. A peak query that fails meanwhile ships the
+         * window without peaks, as it always has.
+         */
+        found = {
+          ...this.found,
+          note: `its last check failed (${own.reasons.join("; ")})`,
+        };
+        settled = false;
       } else if (this.bundledUrl) {
         found = this.bundled(
           `the engine's own Prometheus was not found (${own.reasons.join("; ")})`,
