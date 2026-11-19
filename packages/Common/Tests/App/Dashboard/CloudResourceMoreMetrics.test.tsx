@@ -827,6 +827,166 @@ describe("removing one", () => {
   });
 });
 
+/*
+ * #9808: a metric with dimensions can be added split by one - a series per
+ * value, at most 10 a resource - and each choice's cost counts every
+ * series; one its cloud reads only split offers no "Don't split".
+ */
+describe("adding one split by a dimension", () => {
+  function withSplits(
+    overrides: Partial<CloudPublishedMetricsListing["metrics"][number]>,
+  ): CloudPublishedMetricsListing {
+    const listed: CloudPublishedMetricsListing = listing();
+
+    listed.metrics[1] = { ...listed.metrics[1]!, ...overrides };
+
+    return listed;
+  }
+
+  async function openAdd(): Promise<HTMLElement> {
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf("Average memory working set")).getByRole("button", {
+          name: /Add/,
+        }),
+      );
+    });
+
+    return screen.getByTestId(CLOUD_ADD_METRIC_MODAL_TEST_ID);
+  }
+
+  test("one its cloud reads only split is added split by its first dimension, and its cost is a call of its own", async () => {
+    mockList.mockImplementation(() => {
+      return Promise.resolve(
+        withSplits({
+          splits: [{ name: "Instance" }, { name: "ApiName" }],
+          isSplitRequired: true,
+        }),
+      );
+    });
+    mockAdd.mockImplementation(() => {
+      return Promise.resolve([]);
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openAdd();
+
+    expect(within(dialog).getByText("Split by")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Its cloud reads it only split. A series for each value, up to 10 for each resource, to chart and alert on.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Instance")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Don't split")).toBeNull();
+    // Split, it never rides in the key metrics' call.
+    expect(
+      within(dialog).queryByText(
+        "No extra cost: it is read in the call that already reads the key metrics.",
+      ),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Add Metric/ }));
+    });
+
+    await waitFor(() => {
+      expect(mockAdd).toHaveBeenCalledTimes(1);
+    });
+    expect(mockAdd.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        name: "AverageMemoryWorkingSet",
+        splitBy: "Instance",
+      }),
+    );
+  });
+
+  test("one that can be split is added whole unless a dimension is picked", async () => {
+    mockList.mockImplementation(() => {
+      return Promise.resolve(withSplits({ splits: [{ name: "Instance" }] }));
+    });
+    mockAdd.mockImplementation(() => {
+      return Promise.resolve([]);
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openAdd();
+
+    expect(within(dialog).getByText("Don't split")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "A series for each value, up to 10 for each resource, to chart and alert on.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Add Metric/ }));
+    });
+
+    await waitFor(() => {
+      expect(mockAdd).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      (mockAdd.mock.calls[0]![0] as { splitBy?: string }).splitBy,
+    ).toBeUndefined();
+  });
+
+  test("a metric with no dimension asks nothing of splits", async () => {
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openAdd();
+
+    expect(within(dialog).queryByText("Split by")).toBeNull();
+  });
+
+  test("an addition split says by what; one its cloud reads only split says so before it is added", async () => {
+    const listed: CloudPublishedMetricsListing = listing();
+
+    listed.metrics[0] = { ...listed.metrics[0]!, addedSplitBy: "Instance" };
+    listed.metrics[1] = {
+      ...listed.metrics[1]!,
+      splits: [{ name: "Instance" }],
+      isSplitRequired: true,
+    };
+    mockList.mockImplementation(() => {
+      return Promise.resolve(listed);
+    });
+    await renderCard();
+    await list();
+
+    expect(
+      within(rowOf("Http3xx")).getByText(
+        "Split by Instance, a series for each value",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(rowOf("Average memory working set")).getByText(
+        "Its cloud reads it only split by one of its dimensions.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("an AWS metric split counts each value's metric read in its cost", () => {
+    expect(
+      drawCloudTemplate(
+        getGlobalTranslator(),
+        getCloudAddedMetricCostWords({
+          provider: CloudProvider.AWS,
+          resources: 1,
+          readIntervalInMinutes: 5,
+          isSplit: true,
+          seriesPerResource: 3,
+        }),
+      ),
+    ).toBe(
+      "25,920 more metrics read from CloudWatch a month: about $0.26, at $0.01 per 1,000.",
+    );
+  });
+});
+
 describe("what an addition costs, in words", () => {
   test("each cloud in its own unit, a choice that rides in a call at no cost", () => {
     const words: (

@@ -95,6 +95,20 @@ export interface GcpMetricDescriptor {
   // GA, BETA, DEPRECATED and the rest.
   launchStage: string;
   monitoredResourceTypes: Array<string>;
+  // The labels its series carry (#9808): each key, and what its values are.
+  labels?: Array<{ key: string; valueType: string; description: string }>;
+}
+
+/*
+ * A read split by one of a metric's labels (#9808): its other labels
+ * added up by `reducer` (aggregation.crossSeriesReducer), keeping the
+ * label and the monitored resource's own labels (groupByFields), so each
+ * series is one value of one resource.
+ */
+export interface GcpSplitRead {
+  label: string;
+  reducer: string;
+  resourceLabelKeys: ReadonlyArray<string>;
 }
 
 export interface GcpMonitoringOptions {
@@ -229,6 +243,7 @@ export default class GcpMonitoring {
     resourceType?: string | undefined;
     resourceLabels?: Readonly<Record<string, string>> | undefined;
     resourceLabelIn?: GcpLabelValues | undefined;
+    split?: GcpSplitRead | undefined;
   }): Promise<Array<GcpTimeSeries>> {
     GoogleMonitoringClient.validateProjectId(data.projectId);
 
@@ -256,6 +271,7 @@ export default class GcpMonitoring {
         ["interval.endTime", data.end.toISOString()],
         ["aggregation.alignmentPeriod", `${data.alignmentPeriodSeconds}s`],
         ["aggregation.perSeriesAligner", data.aligner],
+        ...GcpMonitoring.splitParameters(data.split),
         ["pageSize", PAGE_SIZE],
         ["pageToken", pageToken],
       ]);
@@ -303,6 +319,28 @@ export default class GcpMonitoring {
     }
 
     return series;
+  }
+
+  /*
+   * The query parameters of a split read: the reducer, and each field it
+   * keeps, the label first, then the resource's labels in name order.
+   */
+  public static splitParameters(
+    split: GcpSplitRead | undefined,
+  ): Array<[string, string]> {
+    if (!split) {
+      return [];
+    }
+
+    return [
+      ["aggregation.crossSeriesReducer", split.reducer],
+      ["aggregation.groupByFields", `metric.label.${split.label}`],
+      ...[...split.resourceLabelKeys]
+        .sort()
+        .map((key: string): [string, string] => {
+          return ["aggregation.groupByFields", `resource.label.${key}`];
+        }),
+    ];
   }
 
   /*
@@ -407,6 +445,24 @@ export default class GcpMonitoring {
         })
         .filter((resourceType: string): boolean => {
           return Boolean(resourceType);
+        }),
+      labels: readArray(descriptor["labels"])
+        .map(
+          (
+            raw: unknown,
+          ): { key: string; valueType: string; description: string } => {
+            const label: JSONObject = readObject(raw);
+
+            return {
+              key: readText(label["key"]),
+              // A label's type is STRING unless it says otherwise.
+              valueType: readText(label["valueType"]) || "STRING",
+              description: readText(label["description"]),
+            };
+          },
+        )
+        .filter((label: { key: string }): boolean => {
+          return Boolean(label.key);
         }),
     };
   }

@@ -11,6 +11,8 @@ import {
 import GcpCloudConnector, {
   GcpAddedMetricAsk,
   GcpResourceBatch,
+  capGcpSplitSeries,
+  getGcpSplitRead,
   getGcpAddedMetricsToAsk,
   GCP_OPS_AGENT_ASK_EVERY_MS,
   GCP_OPS_AGENT_SEEN_MS,
@@ -25,6 +27,7 @@ import GcpCloudConnector, {
 import GcpMonitoring, {
   GCP_MAX_FILTER_URL_LENGTH,
   GCP_MAX_ONE_OF_VALUES,
+  GcpTimeSeries,
 } from "../../../../Server/Utils/CloudConnection/Gcp/GcpMonitoring";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
@@ -58,6 +61,7 @@ import {
   CloudAddedMetric,
   CloudAddedMetricScope,
   getCloudAddedMetricKey,
+  getCloudAddedMetricSplitAttribute,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
 import {
   FakeProviderApi,
@@ -2137,6 +2141,235 @@ describe("metrics a person added to the reads", () => {
       "1003",
       "1004",
       "2001",
+    ]);
+  });
+
+  /*
+   * #9808: an addition split by one of its labels reads its other labels
+   * added up - a rate by their sum, a level by their mean - keeping the
+   * label and the VM's own, a series per value, the busiest 10 of each VM.
+   */
+  const READ_OPS: string =
+    "compute.googleapis.com/instance/disk/max_read_ops_count";
+
+  function diskSeries(
+    instanceId: string,
+    device: string,
+    value: number,
+  ): JSONObject {
+    return {
+      ...vmSeriesIn(READ_OPS, instanceId, "us-central1-a"),
+      metric: {
+        type: READ_OPS,
+        labels: { device_name: device, storage_type: "pd-ssd" },
+      },
+      points: [
+        {
+          interval: { endTime: "2026-10-21T12:00:00Z" },
+          value: { doubleValue: value },
+        },
+      ],
+    };
+  }
+
+  test("a split addition adds its other labels up by the label and the VM's own, and stores each value under its VM", async () => {
+    const fake: FakeGcp = createFakeGcp({
+      series: {
+        [CPU]: [vmSeries(CPU, "1001", "web-1")],
+        [READ_OPS]: [
+          diskSeries("1001", "boot", 3),
+          diskSeries("1001", "data", 7),
+          diskSeries("1002", "boot", 1),
+        ],
+      },
+    });
+    const split: CloudAddedMetric = added({
+      name: READ_OPS,
+      aggregation: "ALIGN_RATE",
+      splitBy: "device_name",
+      resourceLabelKeys: ["zone", "instance_id", "project_id"],
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings({ projectIds: PROJECT_ID }),
+      readOptions(fake, WITH_VMS, { addedMetrics: [split] }),
+    );
+    const call: URL = fake.seriesCalls.find((url: URL): boolean => {
+      return metricTypeOf(url.searchParams.get("filter") || "") === READ_OPS;
+    })!;
+
+    expect(call.searchParams.get("aggregation.perSeriesAligner")).toBe(
+      "ALIGN_RATE",
+    );
+    expect(call.searchParams.get("aggregation.crossSeriesReducer")).toBe(
+      "REDUCE_SUM",
+    );
+    expect(call.searchParams.getAll("aggregation.groupByFields")).toEqual([
+      "metric.label.device_name",
+      "resource.label.instance_id",
+      "resource.label.project_id",
+      "resource.label.zone",
+    ]);
+
+    const written: Array<string> = [];
+
+    for (const payload of result.payloads) {
+      for (const rm of payload["resourceMetrics"] as JSONArray) {
+        const resourceAttributes: JSONArray = (
+          (rm as JSONObject)["resource"] as JSONObject
+        )["attributes"] as JSONArray;
+
+        for (const sm of (rm as JSONObject)["scopeMetrics"] as JSONArray) {
+          for (const metric of (sm as JSONObject)["metrics"] as JSONArray) {
+            if ((metric as JSONObject)["name"] !== READ_OPS) {
+              continue;
+            }
+
+            for (const point of ((metric as JSONObject)["gauge"] as JSONObject)[
+              "dataPoints"
+            ] as JSONArray) {
+              const stored: JSONObject = storedAttributesOf(
+                resourceAttributes as never,
+                (point as JSONObject)["attributes"] as never,
+              ) as JSONObject;
+
+              written.push(
+                `${stored["resource.instance_id"]}:${
+                  stored[
+                    getCloudAddedMetricSplitAttribute({
+                      provider: CloudProvider.GCP,
+                      splitBy: "device_name",
+                    })
+                  ]
+                }`,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    expect(written.sort()).toEqual(["1001:boot", "1001:data", "1002:boot"]);
+  });
+
+  test("a split reads a level by its mean, a rate by its sum; one read whole adds nothing up", () => {
+    expect(
+      getGcpSplitRead({
+        splitBy: "state",
+        aggregation: "ALIGN_MEAN",
+        resourceLabelKeys: ["instance_id"],
+      }),
+    ).toEqual({
+      label: "state",
+      reducer: "REDUCE_MEAN",
+      resourceLabelKeys: ["instance_id"],
+    });
+    expect(
+      getGcpSplitRead({
+        splitBy: "response_code_class",
+        aggregation: "ALIGN_RATE",
+        resourceLabelKeys: ["topic_id"],
+      })?.reducer,
+    ).toBe("REDUCE_SUM");
+    expect(
+      getGcpSplitRead({ aggregation: "ALIGN_RATE", resourceLabelKeys: ["x"] }),
+    ).toBeUndefined();
+    expect(
+      getGcpSplitRead({ splitBy: "state", aggregation: "ALIGN_MEAN" }),
+    ).toBeUndefined();
+    expect(GcpMonitoring.splitParameters(undefined)).toEqual([]);
+  });
+
+  test("a split keeps the busiest 10 values of each resource, each resource apart", () => {
+    const series: Array<GcpTimeSeries> = [];
+
+    for (let index: number = 0; index < 12; index++) {
+      series.push({
+        metricType: READ_OPS,
+        metricLabels: { device_name: `disk-${index}` },
+        resourceType: "gce_instance",
+        resourceLabels: vmLabels("1001"),
+        metadataName: "",
+        points: [{ timeMs: 1, value: index }],
+      });
+    }
+
+    series.push({
+      metricType: READ_OPS,
+      metricLabels: { device_name: "boot" },
+      resourceType: "gce_instance",
+      resourceLabels: vmLabels("1002"),
+      metadataName: "",
+      points: [{ timeMs: 1, value: 0 }],
+    });
+
+    const kept: Array<GcpTimeSeries> = capGcpSplitSeries(series);
+
+    expect(
+      kept
+        .filter((entry: GcpTimeSeries): boolean => {
+          return entry.resourceLabels["instance_id"] === "1001";
+        })
+        .map((entry: GcpTimeSeries): string => {
+          return entry.metricLabels["device_name"]!;
+        }),
+    ).toEqual([
+      "disk-11",
+      "disk-10",
+      "disk-9",
+      "disk-8",
+      "disk-7",
+      "disk-6",
+      "disk-5",
+      "disk-4",
+      "disk-3",
+      "disk-2",
+    ]);
+    expect(
+      kept.filter((entry: GcpTimeSeries): boolean => {
+        return entry.resourceLabels["instance_id"] === "1002";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("resources' own split additions are batched as unsplit ones are, each batch read split", () => {
+    const asks: Array<GcpAddedMetricAsk> = getGcpAddedMetricsToAsk({
+      added: [
+        ownAddition({
+          cloudResourceId: "row-1001",
+          name: READ_OPS,
+          resourceLabels: vmLabels("1001"),
+          splitBy: "device_name",
+          resourceLabelKeys: ["instance_id", "project_id", "zone"],
+        }),
+        ownAddition({
+          cloudResourceId: "row-1002",
+          name: READ_OPS,
+          resourceLabels: vmLabels("1002"),
+          splitBy: "device_name",
+          resourceLabelKeys: ["instance_id", "project_id", "zone"],
+        }),
+        // Read whole: its own call.
+        ownAddition({
+          cloudResourceId: "row-1003",
+          name: READ_OPS,
+          resourceLabels: vmLabels("1003"),
+        }),
+      ],
+      projectId: PROJECT_ID,
+      seenResourceTypes: new Set<string>(),
+    });
+
+    expect(
+      asks.map((ask: GcpAddedMetricAsk) => {
+        return {
+          values: ask.resourceLabelIn?.values,
+          split: ask.split?.label,
+        };
+      }),
+    ).toEqual([
+      { values: ["1001", "1002"], split: "device_name" },
+      { values: undefined, split: undefined },
     ]);
   });
 

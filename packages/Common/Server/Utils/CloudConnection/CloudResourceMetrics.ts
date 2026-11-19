@@ -18,6 +18,8 @@ import {
   AZURE_ADDED_METRIC_AGGREGATIONS,
   AZURE_ADDED_METRIC_GRAINS,
   CLOUD_ADDED_METRIC_REFUSALS,
+  GCP_SPLIT_ALIGNERS,
+  isCloudAddedMetricSplit,
 } from "../../../Types/Cloud/CloudAddedMetrics";
 import {
   AzureTypeKeyMetrics,
@@ -47,6 +49,7 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudPublishedMetric,
   CloudPublishedMetricBlock,
+  CloudPublishedMetricSplit,
   CloudPublishedMetricStatus,
   CloudPublishedMetricsListing,
   sortCloudPublishedMetrics,
@@ -351,6 +354,17 @@ export function getGcpMetricPrefixesOfType(
   return prefixes;
 }
 
+/*
+ * AWS: a series of each dimension a listed metric can be split by, the one
+ * its listing saw first - what the unit of a metric added split is probed
+ * on, where its own series has no data (#9809, #9808). Kept with the
+ * listed metric itself, for as long as the listing is.
+ */
+const AWS_SPLIT_SAMPLES: WeakMap<
+  CloudPublishedMetric,
+  Map<string, Array<CloudAddedMetricDimension>>
+> = new WeakMap();
+
 export default class CloudResourceMetrics {
   // ---- The resource and its connection -------------------------------------
 
@@ -553,7 +567,10 @@ export default class CloudResourceMetrics {
     namespace?: string | undefined;
     name: string;
     isKey: boolean;
-  }): Pick<CloudPublishedMetric, "status" | "addedKey" | "addedScope"> {
+  }): Pick<
+    CloudPublishedMetric,
+    "status" | "addedKey" | "addedScope" | "addedSplitBy"
+  > {
     if (data.isKey) {
       return { status: CloudPublishedMetricStatus.Key };
     }
@@ -573,6 +590,7 @@ export default class CloudResourceMetrics {
           status: CloudPublishedMetricStatus.Added,
           addedKey: addition.key,
           addedScope: addition.scope,
+          ...(addition.splitBy ? { addedSplitBy: addition.splitBy } : {}),
         }
       : { status: CloudPublishedMetricStatus.Available };
   }
@@ -677,8 +695,29 @@ export default class CloudResourceMetrics {
         const isReadable: boolean = Boolean(
           grain && AZURE_ADDED_METRIC_GRAINS.includes(grain),
         );
+        // What it can be split by (#9808): each of its dimensions a call can name.
+        const splits: Array<CloudPublishedMetricSplit> = (
+          definition.dimensions || []
+        )
+          .filter((dimension: { name: string }): boolean => {
+            return isCloudAddedMetricSplit(CloudProvider.Azure, dimension.name);
+          })
+          .map(
+            (dimension: {
+              name: string;
+              displayName: string;
+            }): CloudPublishedMetricSplit => {
+              return {
+                name: dimension.name,
+                ...(dimension.displayName &&
+                dimension.displayName !== dimension.name
+                  ? { displayName: dimension.displayName }
+                  : {}),
+              };
+            },
+          );
         const block: CloudPublishedMetricBlock | undefined =
-          definition.isDimensionRequired
+          definition.isDimensionRequired && splits.length === 0
             ? CloudPublishedMetricBlock.NeedsDimension
             : !isReadable ||
                 !AZURE_ADDED_METRIC_AGGREGATIONS.includes(
@@ -701,6 +740,10 @@ export default class CloudResourceMetrics {
           unit: definition.unit,
           aggregation: definition.primaryAggregationType,
           ...(grain ? { grain } : {}),
+          ...(splits.length > 0 ? { splits } : {}),
+          ...(definition.isDimensionRequired && splits.length > 0
+            ? { isSplitRequired: true }
+            : {}),
           ...CloudResourceMetrics.statusOf({
             applying: data.applying,
             name: definition.name,
@@ -815,6 +858,56 @@ export default class CloudResourceMetrics {
       })
       .join("|");
     const byName: Map<string, CloudPublishedMetric> = new Map();
+    /*
+     * Per metric, its series of one dimension more than the resource's own
+     * - a load balancer's per Availability Zone, per target group - by that
+     * dimension: what it can be split by (#9808), with a series of each.
+     */
+    const splitsOf: Map<
+      string,
+      Map<string, Array<Array<CloudAddedMetricDimension>>>
+    > = new Map();
+    const ownNames: Set<string> = new Set<string>(
+      place.dimensions.map((dimension: CloudAddedMetricDimension): string => {
+        return dimension.name;
+      }),
+    );
+
+    for (const metric of listed) {
+      const extra: Array<CloudAddedMetricDimension> = metric.dimensions.filter(
+        (dimension: CloudAddedMetricDimension): boolean => {
+          return !ownNames.has(dimension.name);
+        },
+      );
+
+      if (
+        extra.length === 1 &&
+        metric.dimensions.length === place.dimensions.length + 1 &&
+        isCloudAddedMetricSplit(CloudProvider.AWS, extra[0]!.name) &&
+        place.dimensions.every((dimension: CloudAddedMetricDimension) => {
+          return metric.dimensions.some(
+            (candidate: CloudAddedMetricDimension): boolean => {
+              return (
+                candidate.name === dimension.name &&
+                candidate.value === dimension.value
+              );
+            },
+          );
+        })
+      ) {
+        const name: string = metric.metricName;
+        const splits: Map<
+          string,
+          Array<Array<CloudAddedMetricDimension>>
+        > = splitsOf.get(name) || new Map();
+        const series: Array<Array<CloudAddedMetricDimension>> =
+          splits.get(extra[0]!.name) || [];
+
+        series.push(metric.dimensions);
+        splits.set(extra[0]!.name, series);
+        splitsOf.set(name, splits);
+      }
+    }
 
     for (const metric of listed) {
       // The resource's own series: its dimensions, no split of them.
@@ -835,7 +928,7 @@ export default class CloudResourceMetrics {
 
       const status: Pick<
         CloudPublishedMetric,
-        "status" | "addedKey" | "addedScope"
+        "status" | "addedKey" | "addedScope" | "addedSplitBy"
       > = CloudResourceMetrics.statusOf({
         applying: data.applying,
         namespace: place.namespace,
@@ -858,6 +951,83 @@ export default class CloudResourceMetrics {
         ),
         ...status,
       });
+    }
+
+    // A metric the resource publishes only split: listed, to be added split.
+    for (const name of splitsOf.keys()) {
+      if (byName.has(name.toLowerCase())) {
+        continue;
+      }
+
+      byName.set(name.toLowerCase(), {
+        name,
+        namespace: place.namespace,
+        unit:
+          CloudResourceMetrics.addedUnitOf(
+            data.applying,
+            CloudResourceMetrics.statusOf({
+              applying: data.applying,
+              namespace: place.namespace,
+              name,
+              isKey: false,
+            }).addedKey,
+          ) || getAwsDocumentedMetricUnit(place.namespace, name),
+        aggregation: getAwsDefaultStatistic(name),
+        dimensions: place.dimensions.map(
+          (dimension: CloudAddedMetricDimension) => {
+            return { name: dimension.name, value: dimension.value };
+          },
+        ),
+        isSplitRequired: true,
+        ...CloudResourceMetrics.statusOf({
+          applying: data.applying,
+          namespace: place.namespace,
+          name,
+          isKey: Boolean(getAwsKeyMetric(place.namespace, name)),
+        }),
+      });
+    }
+
+    for (const metric of byName.values()) {
+      const splits: Map<
+        string,
+        Array<Array<CloudAddedMetricDimension>>
+      > = splitsOf.get(metric.name) || new Map();
+
+      if (splits.size === 0) {
+        continue;
+      }
+
+      metric.splits = Array.from(splits.entries())
+        .map(
+          ([name, series]: [
+            string,
+            Array<Array<CloudAddedMetricDimension>>,
+          ]): CloudPublishedMetricSplit => {
+            return { name, values: series.length };
+          },
+        )
+        .sort(
+          (
+            a: CloudPublishedMetricSplit,
+            b: CloudPublishedMetricSplit,
+          ): number => {
+            return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+          },
+        );
+      AWS_SPLIT_SAMPLES.set(
+        metric,
+        new Map(
+          Array.from(splits.entries()).map(
+            ([name, series]: [
+              string,
+              Array<Array<CloudAddedMetricDimension>>,
+            ]): [string, Array<CloudAddedMetricDimension>] => {
+              return [name, series[0]!];
+            },
+          ),
+        ),
+      );
     }
 
     const metrics: Array<CloudPublishedMetric> = Array.from(byName.values());
@@ -928,9 +1098,17 @@ export default class CloudResourceMetrics {
     connection: CloudConnection;
     dependencies: CloudResourceMetricsDependencies;
     listed: CloudPublishedMetric;
+    // Read split: a series of the split, the one the listing saw first.
+    splitBy?: string | undefined;
   }): Promise<string> {
     const place: { accountId: string; region: string } =
       CloudResourceMetrics.awsPlaceOf(data.target);
+    const dimensions: Array<CloudAddedMetricDimension> =
+      (data.splitBy
+        ? AWS_SPLIT_SAMPLES.get(data.listed)?.get(data.splitBy)
+        : undefined) ||
+      data.listed.dimensions ||
+      [];
     const options: CloudConnectorCallOptions = CloudResourceMetrics.callOptions(
       data.dependencies,
     );
@@ -953,7 +1131,7 @@ export default class CloudResourceMetrics {
         budget,
         namespace: data.listed.namespace || "",
         metricName: data.listed.name,
-        dimensions: data.listed.dimensions || [],
+        dimensions,
       });
     } catch (error) {
       logger.debug(
@@ -1085,6 +1263,7 @@ export default class CloudResourceMetrics {
           : {}),
         unit: read ? read.unit : descriptor.unit,
         aggregation: read ? read.aligner : "",
+        ...CloudResourceMetrics.gcpSplitsOf({ descriptor, read }),
         ...CloudResourceMetrics.statusOf({
           applying: data.applying,
           name: descriptor.type,
@@ -1095,6 +1274,35 @@ export default class CloudResourceMetrics {
     }
 
     return Array.from(byName.values());
+  }
+
+  /*
+   * What a Cloud Monitoring metric can be split by when added (#9808): its
+   * labels, for a rate or a level, whose other labels a split read can add
+   * up - not a distribution's, nor a true-or-false gauge's.
+   */
+  private static gcpSplitsOf(data: {
+    descriptor: GcpMetricDescriptor;
+    read: { aligner: string; unit: string } | null;
+  }): Pick<CloudPublishedMetric, "splits"> {
+    if (!data.read || !GCP_SPLIT_ALIGNERS.includes(data.read.aligner)) {
+      return {};
+    }
+
+    const splits: Array<CloudPublishedMetricSplit> = (
+      data.descriptor.labels || []
+    )
+      .filter((label: { key: string; valueType: string }): boolean => {
+        return (
+          ["STRING", "BOOL", "INT64"].includes(label.valueType.toUpperCase()) &&
+          isCloudAddedMetricSplit(CloudProvider.GCP, label.key)
+        );
+      })
+      .map((label: { key: string }): CloudPublishedMetricSplit => {
+        return { name: label.key };
+      });
+
+    return splits.length > 0 ? { splits } : {};
   }
 
   // ---- Adding and removing ---------------------------------------------------
@@ -1113,6 +1321,8 @@ export default class CloudResourceMetrics {
     namespace?: string | undefined;
     scope: CloudAddedMetricScope;
     aggregation?: string | undefined;
+    // The dimension to split it by (#9808): one its listing names.
+    splitBy?: string | undefined;
     userId?: ObjectID | undefined;
     dependencies?: CloudResourceMetricsDependencies | undefined;
   }): Promise<{
@@ -1162,6 +1372,21 @@ export default class CloudResourceMetrics {
       throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["alreadyRead"]!);
     }
 
+    const splitBy: string = (data.splitBy || "").trim();
+
+    if (
+      splitBy &&
+      !(found.splits || []).some((split: CloudPublishedMetricSplit) => {
+        return split.name === splitBy;
+      })
+    ) {
+      throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]!);
+    }
+
+    if (!splitBy && found.isSplitRequired) {
+      throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["splitRequired"]!);
+    }
+
     const isOwn: boolean = data.scope === CloudAddedMetricScope.Resource;
     const metric: CloudAddedMetric = {
       key: "",
@@ -1181,8 +1406,17 @@ export default class CloudResourceMetrics {
               connection,
               dependencies,
               listed: found,
+              splitBy,
             })
           : found.unit,
+      ...(splitBy ? { splitBy } : {}),
+      ...(splitBy && target.provider === CloudProvider.GCP
+        ? {
+            resourceLabelKeys: Object.keys(
+              getGcpLabelsOfAttributes(target.attributes),
+            ).sort(),
+          }
+        : {}),
       addedAt: now.toISOString(),
       ...(found.namespace ? { namespace: found.namespace } : {}),
       ...(found.grain ? { grain: found.grain } : {}),

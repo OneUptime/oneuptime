@@ -82,10 +82,38 @@ export interface CloudAddedMetric {
   grain?: string | undefined;
   // Its unit, as its cloud gives it (CloudWatch's listing gives none).
   unit: string;
+  /*
+   * Read split by one of its dimensions (#9808): a series per value of it,
+   * at most CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES a resource - an Azure
+   * dimension ("ApiName"), a CloudWatch dimension the resource's own series
+   * are published under ("AvailabilityZone"), a Cloud Monitoring metric
+   * label ("response_code_class").
+   */
+  splitBy?: string | undefined;
+  /*
+   * Google Cloud, read split: the labels of the monitored resource a split
+   * read keeps (aggregation.groupByFields), so each series is still filed
+   * under its resource while the metric's other labels are added up.
+   */
+  resourceLabelKeys?: Array<string> | undefined;
   // When, and by whom, it was added.
   addedAt: string;
   addedByUserId?: string | undefined;
 }
+
+/*
+ * The values of its dimension a split addition is read for, at most, per
+ * resource each read (#9808): Azure Monitor's own default for a split read
+ * (`top`), the busiest first; on AWS each value is a metric read, and on
+ * Google Cloud a time series, so this bounds what a split costs and stores.
+ */
+export const CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES: number = 10;
+
+// Google Cloud: the aligners a split read can add a metric's other labels up with.
+export const GCP_SPLIT_ALIGNERS: ReadonlyArray<string> = [
+  "ALIGN_RATE",
+  "ALIGN_MEAN",
+];
 
 /*
  * At most this many additions apply to one resource - its type's and its
@@ -133,6 +161,39 @@ const GCP_METRIC_TYPE_PATTERN: RegExp = /^[a-z0-9][a-z0-9._/-]*$/i;
 const GCP_RESOURCE_TYPE_PATTERN: RegExp = /^[a-z][a-z0-9_.]*$/i;
 // A Cloud Monitoring label's key and value, as the filter of a call quotes them.
 const GCP_LABEL_KEY_PATTERN: RegExp = /^[a-z][a-z0-9_]*$/i;
+// An Azure Monitor dimension a split call's $filter names: letters and digits.
+const AZURE_DIMENSION_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
+// A CloudWatch dimension's name: up to 255 characters, none of them a control character.
+function isAwsDimensionName(name: string): boolean {
+  return (
+    name.length > 0 &&
+    name.length <= 255 &&
+    name.trim() === name &&
+    Array.from(name).every((character: string): boolean => {
+      return character.charCodeAt(0) >= 32;
+    })
+  );
+}
+
+/*
+ * Whether a dimension can be what an addition is split by, on its cloud:
+ * one a split read can name safely.
+ */
+export function isCloudAddedMetricSplit(
+  provider: CloudProvider | string,
+  splitBy: string,
+): boolean {
+  switch (provider) {
+    case CloudProvider.Azure:
+      return AZURE_DIMENSION_PATTERN.test(splitBy);
+    case CloudProvider.AWS:
+      return isAwsDimensionName(splitBy);
+    case CloudProvider.GCP:
+      return GCP_LABEL_KEY_PATTERN.test(splitBy);
+    default:
+      return false;
+  }
+}
 const GCP_LABEL_VALUE_PATTERN: RegExp = /^[^"\\]*$/;
 
 /*
@@ -184,6 +245,31 @@ export function getCloudAddedMetricStoredName(
       ).toLowerCase();
     default:
       return metric.name.toLowerCase();
+  }
+}
+
+/*
+ * The datapoint attribute a split addition's series carry their value in
+ * (#9808), as each cloud's receivers write it - Azure's
+ * "metadata_<dimension>" in lower case, CloudWatch's
+ * "Dimensions.<dimension>", a Cloud Monitoring label by its key - so a
+ * chart or a monitor groups by it to draw or judge each value. "" for an
+ * addition read whole.
+ */
+export function getCloudAddedMetricSplitAttribute(
+  metric: Pick<CloudAddedMetric, "provider" | "splitBy">,
+): string {
+  if (!metric.splitBy) {
+    return "";
+  }
+
+  switch (metric.provider) {
+    case CloudProvider.Azure:
+      return `metadata_${metric.splitBy.toLowerCase()}`;
+    case CloudProvider.AWS:
+      return `Dimensions.${metric.splitBy}`;
+    default:
+      return metric.splitBy;
   }
 }
 
@@ -310,6 +396,25 @@ function readCloudAddedMetric(value: unknown): CloudAddedMetric | null {
     addedAt: readText(raw["addedAt"]) || new Date(0).toISOString(),
   };
 
+  const splitBy: string = readText(raw["splitBy"], MAX_NAME_LENGTH);
+
+  // A split no read could name is dropped, and the addition read whole.
+  if (splitBy && isCloudAddedMetricSplit(provider, splitBy)) {
+    metric.splitBy = splitBy;
+  }
+
+  if (Array.isArray(raw["resourceLabelKeys"])) {
+    const keys: Array<string> = (raw["resourceLabelKeys"] as Array<unknown>)
+      .slice(0, 30)
+      .filter((key: unknown): key is string => {
+        return typeof key === "string" && GCP_LABEL_KEY_PATTERN.test(key);
+      });
+
+    if (keys.length > 0) {
+      metric.resourceLabelKeys = keys;
+    }
+  }
+
   for (const field of [
     "cloudResourceId",
     "azureResourceId",
@@ -405,6 +510,10 @@ export const CLOUD_ADDED_METRIC_REFUSALS: Readonly<Record<string, string>> = {
     "Its cloud connection already reads this metric for this resource.",
   invalid:
     "This metric cannot be added: its cloud did not list it for this resource.",
+  invalidSplit:
+    "This metric cannot be split that way: its cloud did not list that dimension for it. Pick one of the dimensions listed.",
+  splitRequired:
+    "Its cloud reads this metric only split by one of its dimensions. Pick one to split it by.",
 };
 
 /*
@@ -417,6 +526,24 @@ export function validateCloudAddedMetric(metric: CloudAddedMetric): void {
 
   if (!name || name.length > MAX_NAME_LENGTH) {
     throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["invalid"]!);
+  }
+
+  if (
+    metric.splitBy !== undefined &&
+    !isCloudAddedMetricSplit(metric.provider, metric.splitBy)
+  ) {
+    throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]!);
+  }
+
+  // Google Cloud adds the other labels up: a rate or a level, by the resource's labels.
+  if (
+    metric.provider === CloudProvider.GCP &&
+    metric.splitBy &&
+    (!GCP_SPLIT_ALIGNERS.includes(metric.aggregation) ||
+      !metric.resourceLabelKeys ||
+      metric.resourceLabelKeys.length === 0)
+  ) {
+    throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]!);
   }
 
   switch (metric.provider) {

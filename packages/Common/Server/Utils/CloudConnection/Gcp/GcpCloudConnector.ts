@@ -12,6 +12,7 @@ import {
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CloudAddedMetric,
   CloudAddedMetricScope,
   isGcpFilterLabel,
@@ -113,6 +114,7 @@ import GcpMonitoring, {
   GCP_MAX_FILTER_URL_LENGTH,
   GCP_MAX_ONE_OF_VALUES,
   GcpLabelValues,
+  GcpSplitRead,
   GcpTimeSeries,
 } from "./GcpMonitoring";
 import { readGcpAuditEntry, readGcpHealthEvent } from "./GcpChanges";
@@ -310,6 +312,72 @@ export interface GcpAddedMetricAsk {
   resourceLabels?: Record<string, string> | undefined;
   resourceLabelIn?: GcpLabelValues | undefined;
   resources?: Array<Record<string, string>> | undefined;
+  // Split by one of its labels (#9808): its other labels added up.
+  split?: GcpSplitRead | undefined;
+}
+
+/*
+ * A split read of an addition (#9808): its other labels added up as Cloud
+ * Monitoring's Metrics Explorer adds them by default - a rate by their
+ * sum, a level by their mean - keeping the label and the resource's own.
+ */
+export function getGcpSplitRead(
+  added: Pick<
+    CloudAddedMetric,
+    "splitBy" | "aggregation" | "resourceLabelKeys"
+  >,
+): GcpSplitRead | undefined {
+  if (!added.splitBy || !(added.resourceLabelKeys || []).length) {
+    return undefined;
+  }
+
+  return {
+    label: added.splitBy,
+    reducer: added.aggregation === "ALIGN_RATE" ? "REDUCE_SUM" : "REDUCE_MEAN",
+    resourceLabelKeys: added.resourceLabelKeys!,
+  };
+}
+
+/*
+ * A split read's series kept, at most CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES
+ * values of each resource: the busiest, by the sum of their points (#9808).
+ */
+export function capGcpSplitSeries(
+  series: ReadonlyArray<GcpTimeSeries>,
+): Array<GcpTimeSeries> {
+  const byResource: Map<string, Array<GcpTimeSeries>> = new Map();
+
+  for (const entry of series) {
+    const key: string = labelSetKey(entry.resourceLabels);
+    const list: Array<GcpTimeSeries> = byResource.get(key) || [];
+
+    list.push(entry);
+    byResource.set(key, list);
+  }
+
+  const total: (entry: GcpTimeSeries) => number = (
+    entry: GcpTimeSeries,
+  ): number => {
+    return entry.points.reduce(
+      (sum: number, point: { value: number }): number => {
+        return sum + Math.abs(point.value);
+      },
+      0,
+    );
+  };
+  const kept: Array<GcpTimeSeries> = [];
+
+  for (const list of byResource.values()) {
+    kept.push(
+      ...[...list]
+        .sort((a: GcpTimeSeries, b: GcpTimeSeries): number => {
+          return total(b) - total(a);
+        })
+        .slice(0, CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES),
+    );
+  }
+
+  return kept;
 }
 
 /*
@@ -536,7 +604,11 @@ export function getGcpAddedMetricsToAsk(data: {
   // The resources' own, by what one call can read them with.
   const owned: Map<
     string,
-    { metric: GcpReadMetric; resources: Array<Record<string, string>> }
+    {
+      metric: GcpReadMetric;
+      resources: Array<Record<string, string>>;
+      split?: GcpSplitRead | undefined;
+    }
   > = new Map();
 
   const toReadMetric: (added: CloudAddedMetric) => GcpReadMetric = (
@@ -558,7 +630,13 @@ export function getGcpAddedMetricsToAsk(data: {
   const callKey: (added: CloudAddedMetric) => string = (
     added: CloudAddedMetric,
   ): string => {
-    return [added.resourceType, added.name, added.aggregation].join("\n");
+    return [
+      added.resourceType,
+      added.name,
+      added.aggregation,
+      getGcpSplitRead(added)?.label || "",
+      (getGcpSplitRead(added)?.resourceLabelKeys || []).join(","),
+    ].join("\n");
   };
 
   for (const added of data.added) {
@@ -578,9 +656,13 @@ export function getGcpAddedMetricsToAsk(data: {
       }
 
       typeWide.add(callKey(added));
+
+      const split: GcpSplitRead | undefined = getGcpSplitRead(added);
+
       asks.push({
         metric: toReadMetric(added),
         resourceType: added.resourceType,
+        ...(split ? { split } : {}),
       });
       continue;
     }
@@ -595,9 +677,11 @@ export function getGcpAddedMetricsToAsk(data: {
     const entry: {
       metric: GcpReadMetric;
       resources: Array<Record<string, string>>;
+      split?: GcpSplitRead | undefined;
     } = owned.get(callKey(added)) || {
       metric: toReadMetric(added),
       resources: [],
+      split: getGcpSplitRead(added),
     };
 
     entry.resources.push(added.resourceLabels!);
@@ -620,6 +704,7 @@ export function getGcpAddedMetricsToAsk(data: {
         resourceLabels: batch.labels,
         ...(batch.labelIn ? { resourceLabelIn: batch.labelIn } : {}),
         resources: batch.resources,
+        ...(entry.split ? { split: entry.split } : {}),
       });
     }
   }
@@ -2018,6 +2103,7 @@ export default class GcpCloudConnector implements CloudConnector {
                   resourceType: item.added?.resourceType,
                   resourceLabels: item.added?.resourceLabels,
                   resourceLabelIn: item.added?.resourceLabelIn,
+                  split: item.added?.split,
                 });
               const resources: Array<Record<string, string>> | undefined =
                 item.added?.resources;
@@ -2027,11 +2113,16 @@ export default class GcpCloudConnector implements CloudConnector {
                * whose labels it carries: a series of a resource the batch
                * did not ask for is never written (#9810).
                */
-              return resources
+              const ofResources: Array<GcpTimeSeries> = resources
                 ? series.filter((entry: GcpTimeSeries): boolean => {
                     return isGcpSeriesOfResources(entry, resources);
                   })
                 : series;
+
+              // A split's busiest values of each resource, at most its cap (#9808).
+              return item.added?.split
+                ? capGcpSplitSeries(ofResources)
+                : ofResources;
             },
           ),
         };

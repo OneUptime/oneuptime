@@ -80,7 +80,7 @@ import ProductKey from "../../Types/Product/ProductKey";
  *     -> CloudPublishedMetricsListing: what the resource publishes, asked
  *        of its cloud now, and what an addition would cost.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/add
- *     { name, namespace?, scope: "resource" | "type", aggregation? }
+ *     { name, namespace?, scope: "resource" | "type", aggregation?, splitBy? }
  *     -> { added, addedMetrics }: the connection reads it from its next read.
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/readers { key }
  *     -> CloudAddedMetricReaders: the monitors, dashboard widgets and SLOs
@@ -440,6 +440,8 @@ export default class CloudConnectionAPI extends BaseAPI<
               typeof body["aggregation"] === "string"
                 ? body["aggregation"]
                 : undefined,
+            splitBy:
+              typeof body["splitBy"] === "string" ? body["splitBy"] : undefined,
             userId: props.userId,
           });
 

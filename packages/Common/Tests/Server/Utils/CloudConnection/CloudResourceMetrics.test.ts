@@ -220,6 +220,20 @@ const SITE_DEFINITIONS: Array<JSONObject> = [
   }),
   definition("Http3xx", { primaryAggregationType: "Total", unit: "Count" }),
   definition("InstanceSplit", { isDimensionRequired: true }),
+  // Read only split, by a dimension it lists (#9808): added split.
+  definition("Http406", {
+    primaryAggregationType: "Total",
+    unit: "Count",
+    isDimensionRequired: true,
+    dimensions: [{ value: "Instance", localizedValue: "Instance" }],
+  }),
+  definition("Gen0Collections", {
+    primaryAggregationType: "Total",
+    dimensions: [
+      { value: "Instance", localizedValue: "Instance" },
+      { value: "Bad Name", localizedValue: "Bad Name" },
+    ],
+  }),
   definition("DailyOnly", {
     metricAvailabilities: [{ timeGrain: "P1D", retention: "P93D" }],
   }),
@@ -363,7 +377,18 @@ describe("an Azure resource's metrics", () => {
         block: undefined,
       },
       {
+        name: "Gen0Collections",
+        status: CloudPublishedMetricStatus.Available,
+        block: undefined,
+      },
+      {
         name: "Http3xx",
+        status: CloudPublishedMetricStatus.Available,
+        block: undefined,
+      },
+      // Read only split, by a dimension it lists: added split (#9808).
+      {
+        name: "Http406",
         status: CloudPublishedMetricStatus.Available,
         block: undefined,
       },
@@ -390,6 +415,21 @@ describe("an Azure resource's metrics", () => {
     ]);
 
     const memory: CloudPublishedMetric = listing.metrics[0]!;
+    const of: (name: string) => CloudPublishedMetric = (
+      name: string,
+    ): CloudPublishedMetric => {
+      return listing.metrics.find((metric: CloudPublishedMetric) => {
+        return metric.name === name;
+      })!;
+    };
+
+    // Each dimension a split call can name, in its definition's words.
+    expect(of("Http406").splits).toEqual([{ name: "Instance" }]);
+    expect(of("Http406").isSplitRequired).toBe(true);
+    expect(of("Gen0Collections").splits).toEqual([{ name: "Instance" }]);
+    expect(of("Gen0Collections").isSplitRequired).toBeUndefined();
+    // Required, but no dimension listed: still cannot be added.
+    expect(of("InstanceSplit").splits).toBeUndefined();
 
     expect(memory).toEqual(
       expect.objectContaining({
@@ -649,15 +689,126 @@ describe("an AWS resource's metrics", () => {
         return `${metric.name}:${metric.status}:${metric.aggregation}`;
       }),
     ).toEqual([
+      // Published only per Role (#9808): added split by it.
+      "OnlyOnASplit:available:Average",
       "ReadThroughput:available:Average",
       "SwapUsage:available:Average",
       "CPUUtilization:key:Average",
     ]);
-    expect(listing.metrics[1]!.dimensions).toEqual([
+    expect(listing.metrics[2]!.dimensions).toEqual([
       { name: "DBInstanceIdentifier", value: "orders" },
     ]);
     expect(listing.canEdit).toBe(false);
     expect(listing.azureMetricsInCall).toBeUndefined();
+  });
+
+  /*
+   * #9808: CloudWatch lists a metric's series of one dimension more than
+   * the resource's own - SwapUsage per Role - and the list offers each such
+   * dimension to split by, with how many values the resource has; one it
+   * publishes only so is added only split.
+   */
+  test("lists what each metric can be split by, its values now, and one it publishes only split", async () => {
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(awsFake().transport),
+      });
+    const of: (name: string) => CloudPublishedMetric = (
+      name: string,
+    ): CloudPublishedMetric => {
+      return listing.metrics.find((metric: CloudPublishedMetric) => {
+        return metric.name === name;
+      })!;
+    };
+
+    expect(of("SwapUsage").splits).toEqual([{ name: "Role", values: 1 }]);
+    expect(of("SwapUsage").isSplitRequired).toBeUndefined();
+    expect(of("OnlyOnASplit").splits).toEqual([{ name: "Role", values: 1 }]);
+    expect(of("OnlyOnASplit").isSplitRequired).toBe(true);
+    expect(of("ReadThroughput").splits).toBeUndefined();
+  });
+
+  test("adding one split keeps its split; a split it does not list, or none where one is needed, is refused", async () => {
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "OnlyOnASplit",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Resource,
+      splitBy: "Role",
+      dependencies: dependencies(awsFake().transport),
+    });
+
+    expect(result.added.splitBy).toBe("Role");
+    expect(result.added.dimensions).toEqual([
+      { name: "DBInstanceIdentifier", value: "orders" },
+    ]);
+    expect(savedAdditions()[0]!.splitBy).toBe("Role");
+
+    saved = [];
+
+    expect(
+      await refusalOf(() => {
+        return CloudResourceMetrics.add({
+          projectId: PROJECT,
+          cloudResourceId: RESOURCE,
+          props: { isRoot: true },
+          name: "OnlyOnASplit",
+          namespace: "AWS/RDS",
+          scope: CloudAddedMetricScope.Resource,
+          dependencies: dependencies(awsFake().transport),
+        });
+      }),
+    ).toBe(CLOUD_ADDED_METRIC_REFUSALS["splitRequired"]);
+    expect(
+      await refusalOf(() => {
+        return CloudResourceMetrics.add({
+          projectId: PROJECT,
+          cloudResourceId: RESOURCE,
+          props: { isRoot: true },
+          name: "SwapUsage",
+          namespace: "AWS/RDS",
+          scope: CloudAddedMetricScope.Resource,
+          splitBy: "AvailabilityZone",
+          dependencies: dependencies(awsFake().transport),
+        });
+      }),
+    ).toBe(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]);
+    expect(saved).toHaveLength(0);
+  });
+
+  test("a metric added split learns its unit from a series of the split, where its own has none", async () => {
+    const fake: FakeAwsLive = awsFakeWithUnits({ OnlyOnASplit: "Count" });
+
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "OnlyOnASplit",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Resource,
+      splitBy: "Role",
+      dependencies: dependencies(fake.transport),
+    });
+    const probe: AwsLiveCall = fake.callsTo("monitoring:GetMetricData")[0]!;
+    const query: JSONObject = (
+      probe.json["MetricDataQueries"] as Array<JSONObject>
+    )[0]!;
+
+    expect(result.added.unit).toBe("Count");
+    expect(
+      ((query["MetricStat"] as JSONObject)["Metric"] as JSONObject)[
+        "Dimensions"
+      ],
+    ).toEqual([
+      { Name: "DBInstanceIdentifier", Value: "orders" },
+      { Name: "Role", Value: "WRITER" },
+    ]);
   });
 
   test("adding one for the resource keeps its account, Region and series", async () => {

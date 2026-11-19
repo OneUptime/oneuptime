@@ -13,6 +13,7 @@ import {
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import {
   CLOUD_PUBLISHED_METRIC_BLOCK_REASONS,
+  CloudPublishedMetricBlock,
   CloudPublishedMetric,
   CloudPublishedMetricStatus,
   CloudPublishedMetricsListing,
@@ -67,6 +68,12 @@ export interface ComponentProps {
 export const CLOUD_MORE_METRICS_SEARCH_FROM: number = 8;
 
 export const CLOUD_MORE_METRICS_ROW_TEST_ID: string = "cloud-more-metrics-row";
+
+// A metric its cloud reads only split, which Add splits by one of its dimensions (#9808).
+const SPLIT_REQUIRED: string =
+  CLOUD_PUBLISHED_METRIC_BLOCK_REASONS[
+    CloudPublishedMetricBlock.NeedsDimension
+  ];
 
 const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -270,6 +277,25 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
                         {block ? (
                           <p className="mt-0.5 text-xs text-gray-500">
                             {translator.translateText(block) || block}
+                          </p>
+                        ) : metric.isSplitRequired &&
+                          metric.status ===
+                            CloudPublishedMetricStatus.Available ? (
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {translator.translateText(SPLIT_REQUIRED)}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
+                        {metric.addedSplitBy ? (
+                          <p
+                            className="mt-0.5 text-xs text-gray-500"
+                            data-testid="cloud-more-metrics-split"
+                          >
+                            {translator.translateTemplate(
+                              "Split by {{dimension}}, a series for each value",
+                              { dimension: metric.addedSplitBy },
+                            )}
                           </p>
                         ) : (
                           <></>

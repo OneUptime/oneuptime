@@ -81,12 +81,15 @@ export async function addCloudResourceMetric(data: {
   namespace?: string | undefined;
   scope: CloudAddedMetricScope;
   aggregation?: string | undefined;
+  // The dimension to split it by (#9808).
+  splitBy?: string | undefined;
 }): Promise<Array<CloudAddedMetric>> {
   const answer: JSONObject = await post(data.cloudResourceId, "add", {
     name: data.name,
     scope: data.scope,
     ...(data.namespace ? { namespace: data.namespace } : {}),
     ...(data.aggregation ? { aggregation: data.aggregation } : {}),
+    ...(data.splitBy ? { splitBy: data.splitBy } : {}),
   });
 
   return readCloudAddedMetrics(answer["addedMetrics"]);
