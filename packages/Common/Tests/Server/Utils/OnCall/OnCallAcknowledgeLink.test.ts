@@ -13,14 +13,7 @@ import OnCallPageLinkToken, {
 import DataMigration from "../../../../Models/DatabaseModels/DataMigration";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * WHAT LETS A LINK IN A PERSON'S OWN PAGE ACKNOWLEDGE IT (#10025).
@@ -43,7 +36,7 @@ const DAY_MS: number = 24 * HOUR_MS;
 const NOW: Date = new Date("2026-11-19T09:00:00.000Z");
 const UPGRADED_AT: Date = new Date("2026-11-19T06:00:00.000Z");
 
-let upgradeRead: jest.SpiedFunction<typeof DataMigrationService.findOneBy>;
+let upgradeRead: jest.SpyInstance;
 
 function migrationRow(data: {
   executedAt?: Date | undefined;
@@ -238,7 +231,7 @@ describe("when the server was upgraded", () => {
   test("once found, it is never asked of the database again", async () => {
     await OnCallAcknowledgeLink.getUpgradedAt();
 
-    const later: jest.SpiedFunction<typeof Date.now> = jest
+    const later: jest.SpyInstance = jest
       .spyOn(Date, "now")
       .mockReturnValue(Date.now() + 30 * DAY_MS);
 
@@ -254,7 +247,7 @@ describe("when the server was upgraded", () => {
     upgradeRead.mockResolvedValue(null as never);
 
     const start: number = Date.now();
-    const clock: jest.SpiedFunction<typeof Date.now> = jest
+    const clock: jest.SpyInstance = jest
       .spyOn(Date, "now")
       .mockReturnValue(start);
 
@@ -287,7 +280,7 @@ describe("when the server was upgraded", () => {
 
   test("a question the database does not answer counts as not recorded yet, and is logged", async () => {
     upgradeRead.mockRejectedValue(new Error("the database is away") as never);
-    const errorSpy: jest.SpiedFunction<typeof logger.error> = jest
+    const errorSpy: jest.SpyInstance = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {});
 

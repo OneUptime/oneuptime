@@ -5,14 +5,7 @@ import { ON_CALL_ACKNOWLEDGE_TOKEN_MIGRATION_NAME } from "Common/Server/Utils/On
 import RequireTokenToAcknowledgeOnCallPages from "../../../FeatureSet/Workers/DataMigrations/RequireTokenToAcknowledgeOnCallPages";
 import fs from "fs";
 import path from "path";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * RequireTokenToAcknowledgeOnCallPages records when this server was
@@ -49,7 +42,7 @@ function registeredMigrations(): Array<string> {
   );
 }
 
-let infoSpy: jest.SpiedFunction<typeof logger.info>;
+let infoSpy: jest.SpyInstance;
 
 beforeEach(() => {
   infoSpy = jest.spyOn(logger, "info").mockImplementation((): void => {
@@ -97,13 +90,18 @@ describe("RequireTokenToAcknowledgeOnCallPages", () => {
   });
 
   test("changes no data: it reads and writes nothing, and says what its run records", async () => {
-    const dataSource: jest.SpiedFunction<
-      typeof PostgresDatabase.getDataSource
-    > = jest.spyOn(PostgresDatabase, "getDataSource");
-    const findSpy: jest.SpiedFunction<typeof DataMigrationService.findOneBy> =
-      jest.spyOn(DataMigrationService, "findOneBy");
-    const createSpy: jest.SpiedFunction<typeof DataMigrationService.create> =
-      jest.spyOn(DataMigrationService, "create");
+    const dataSource: jest.SpyInstance = jest.spyOn(
+      PostgresDatabase,
+      "getDataSource",
+    );
+    const findSpy: jest.SpyInstance = jest.spyOn(
+      DataMigrationService,
+      "findOneBy",
+    );
+    const createSpy: jest.SpyInstance = jest.spyOn(
+      DataMigrationService,
+      "create",
+    );
 
     await new RequireTokenToAcknowledgeOnCallPages().migrate();
 

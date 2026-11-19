@@ -363,3 +363,80 @@ describe("a test page's Acknowledge", () => {
     );
   });
 });
+
+/*
+ * A test page's link acknowledges it only with the page's own token, as a
+ * real page's does (#10025): a test that says it works must have been
+ * answered by the person it paged. Its message was sent after the upgrade
+ * here (no createdAt older than it), so a link without a valid token has
+ * nothing to stand on.
+ */
+describe("a test page's link without a valid token", () => {
+  const CANNOT_ACKNOWLEDGE: string =
+    "This link cannot acknowledge the page: it is not valid, or it has expired. Use the link in the newest message you were paged with.";
+
+  test("opens a page that says it cannot acknowledge the test, and writes nothing", async () => {
+    for (const query of [
+      {},
+      { pageToken: "nonsense" },
+      {
+        pageToken: OnCallPageLinkToken.sign({
+          userOnCallLogTimelineId: new ObjectID(
+            "7e5ad000-0000-4000-8000-000000000009",
+          ),
+        }),
+      },
+    ]) {
+      (Response.render as unknown as jest.Mock).mockClear();
+
+      await callRoute(ACKNOWLEDGE_PAGE_ROUTE, query);
+
+      const { path, variables } = rendered();
+
+      expect(path).toContain("ViewMessage.ejs");
+      expect(variables).toEqual({
+        title: "This link has expired",
+        message: CANNOT_ACKNOWLEDGE,
+      });
+    }
+
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("its button, posted without one, acknowledges nothing, and never says the test works", async () => {
+    const handler: RouterFunction = mockRouter.match("POST", ACKNOWLEDGE_ROUTE)
+      .handlerFunction as RouterFunction;
+
+    await handler(
+      {
+        params: { itemId: ITEM.toString() },
+        query: {},
+        body: {},
+      } as unknown as ExpressRequest,
+      {} as unknown as ExpressResponse,
+      ((err: unknown) => {
+        throw err || new Error("the route handler must not fall through");
+      }) as unknown as NextFunction,
+    );
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(currentItem.isAcknowledged).toBeFalsy();
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain("ViewMessage.ejs");
+    expect(variables["title"]).toBe("This link has expired");
+    expect(variables["message"]).toBe(CANNOT_ACKNOWLEDGE);
+  });
+
+  test("a test already acknowledged still says it works, whatever the link carries", async () => {
+    givenItem(testPageMessage({ isAcknowledged: true }));
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE, {});
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain("ViewMessage.ejs");
+    expect(variables["statusIcon"]).toBe("check");
+  });
+});

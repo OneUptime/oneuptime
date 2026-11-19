@@ -14,7 +14,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * THE TOKEN A KEY PRESSED ON AN ON-CALL CALL CARRIES (#10025).
@@ -59,7 +59,7 @@ function earlierCallToken(
 
 // An earlier call's token, signed `ms` ago.
 function signedAgo(ms: number): string {
-  const clock: jest.SpiedFunction<typeof Date.now> = jest
+  const clock: jest.SpyInstance = jest
     .spyOn(Date, "now")
     .mockReturnValue(Date.now() - ms);
 
