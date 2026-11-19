@@ -203,6 +203,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "a pattern whose syntax JavaScript checks, for its own error message; it is never run",
   },
   {
+    file: "packages/Common/Utils/Monitor/MonitorSecretTotp.ts",
+    count: 1,
+    builtFrom:
+      "a one-time code a check made from a monitor's TOTP secret, checked to be digits only first, to take it out of what the check reports",
+  },
+  {
     file: "packages/Common/Utils/PromQL/RE2UnicodeClass.ts",
     count: 1,
     builtFrom:

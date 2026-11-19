@@ -152,6 +152,28 @@ describe("the reader of a filter's options", () => {
     expect(site.words).toEqual(["Run by you", "OneUptime telemetry"]);
   });
 
+  test("follows options an Enterprise screen takes from the Dashboard, by the name ee imports it by", () => {
+    const file: string = "ee/Dashboard/AuditLogs/FilterOptionsSnippet.tsx";
+    const sites: Array<FilterOptionsSite> = readFilterOptionsSites(
+      file,
+      `
+      import { AUDIT_LOG_WORKFLOW_RAN_AS_FILTER_OPTIONS } from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
+
+      const filters = [{ filterDropdownOptions: AUDIT_LOG_WORKFLOW_RAN_AS_FILTER_OPTIONS }];
+    `,
+    );
+
+    expect(sites).toHaveLength(1);
+    expect(sites[0]!.words).toEqual([
+      "Default",
+      "Project Owner",
+      "Custom Role",
+    ]);
+    expect(sites[0]!.unread).toEqual([]);
+    // Held to the Dashboard's locale, as the Dashboard draws ee's screens.
+    expect(englishLocaleFor(file)).toBe(DASHBOARD_LOCALE);
+  });
+
   test("counts a mark chosen per option at run time, written on the option, as written", () => {
     const site: FilterOptionsSite = onlySiteOf(`
       const DEFAULT_NAMES: Set<string> = new Set(["High", "Low"]);

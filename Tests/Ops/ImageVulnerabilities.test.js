@@ -671,6 +671,62 @@ describe("the issue", () => {
     expect(title).toBe("Security: upgrade team/pkgxscript in the nginx image");
   });
 
+  test("a backslash in what a report names cannot end the table cell it is in", () => {
+    /*
+     * A table row's cells as the Markdown table readers split it: at each
+     * "|" after an even number of backslashes, none included.
+     */
+    const cellsOf = (row) => {
+      const cells = [];
+      let cell = "";
+      let backslashes = 0;
+      for (const character of row) {
+        if (character === "|" && backslashes % 2 === 0) {
+          cells.push(cell.trim());
+          cell = "";
+        } else {
+          cell += character;
+        }
+        backslashes = character === "\\" ? backslashes + 1 : 0;
+      }
+      return cells.slice(1);
+    };
+
+    for (const [name, cell] of [
+      ["pkg|x", "`pkg\\|x`"],
+      ["C:\\|x", "`C:\\|x`"],
+      ["C:\\\\|x", "`C:\\\\\\|x`"],
+      ["C:\\", "`C:\\`"],
+    ]) {
+      const [group] = V.groupsOf(
+        V.actionableFindings([
+          report("nginx-16.0.0-linux-amd64.grype.json", [
+            match({
+              name,
+              version: "1.2.3",
+              type: "npm",
+              location: "/usr/src/app/node_modules/x/package.json",
+            }),
+          ]),
+        ]),
+      );
+      const row = V.renderIssue(group, { release: "16.0.0", today: TODAY })
+        .body.split("\n")
+        .find((line) => {
+          return line.startsWith("| [CVE-2026-0001]");
+        });
+
+      expect(cellsOf(row)).toEqual([
+        "[CVE-2026-0001](https://nvd.nist.gov/vuln/detail/CVE-2026-0001)",
+        "Critical",
+        cell,
+        "`1.2.3`",
+        "`1.30.6-r0`",
+        "nginx",
+      ]);
+    }
+  });
+
   test("its marker survives any package name, and cannot end the comment it is in", () => {
     for (const key of [
       "binary:/otelcol-contrib",

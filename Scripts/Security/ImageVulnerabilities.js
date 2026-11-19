@@ -238,15 +238,48 @@ function todayUtc() {
 /*
  * Text from an SBOM or a scanner report, as an inline code span: what is in
  * one is never read as Markdown, a link or a mention (`@babel/core`). A pipe
- * is escaped for the tables it sits in.
+ * is escaped for the tables it sits in (tablePipes).
  */
 function code(value) {
-  const text = String(value === undefined || value === null ? "" : value)
-    .replace(/[\r\n`]+/g, " ")
-    .trim()
-    .slice(0, 200)
-    .replace(/\|/g, "\\|");
+  const text = tablePipes(
+    String(value === undefined || value === null ? "" : value)
+      .replace(/[\r\n`]+/g, " ")
+      .trim()
+      .slice(0, 200),
+  );
   return text ? `\`${text}\`` : "";
+}
+
+/*
+ * A text whose every "|" stays in the table cell it is placed in, as Common's
+ * markdownTableCell keeps one (packages/Common/Utils/Markdown/
+ * MarkdownTableCell.ts, which the scripts cannot import). A table reader ends
+ * the cell at a "|" after an even number of backslashes, none included, so a
+ * backslash the text holds decides what an escape before a "|" means: "C:\|"
+ * escaped once more is "C:\\|", which ends the cell. So a "|" gets a
+ * backslash only where an even number of them comes before it. A walk, as a
+ * replace of each "|" alone is the escape code scanning reports for leaving
+ * the backslashes out (js/incomplete-sanitization).
+ */
+function tablePipes(text) {
+  let written = "";
+  // Where the text not yet written starts.
+  let pending = 0;
+  // How many backslashes come right before the current character.
+  let backslashes = 0;
+  for (let index = 0; index < text.length; index++) {
+    const character = text.charAt(index);
+    if (character === "\\") {
+      backslashes++;
+      continue;
+    }
+    if (character === "|" && backslashes % 2 === 0) {
+      written += `${text.slice(pending, index)}\\|`;
+      pending = index + 1;
+    }
+    backslashes = 0;
+  }
+  return written + text.slice(pending);
 }
 
 /*
