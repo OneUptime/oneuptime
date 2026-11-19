@@ -6,7 +6,6 @@ import type DatabaseService from "../Services/DatabaseService";
 import UpdateBy from "../Types/Database/UpdateBy";
 import type BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { isUsableEndSessionEndpoint } from "../../Types/SSO/IdentityProviderSignOut";
 
 /*
@@ -144,19 +143,17 @@ export default class IdentityProviderSignOutCheck {
       return;
     }
 
-    const providers: Array<TBaseModel> = await data.service.findBy({
-      query: data.updateBy.query,
-      select: {
+    /*
+     * The providers the update writes, with the update held to them, so the
+     * providers asked about are the providers written, and no others
+     * (findRowsAndHoldUpdateToThem).
+     */
+    const providers: Array<TBaseModel> =
+      await data.service.findRowsAndHoldUpdateToThem(data.updateBy, {
         _id: true,
         discoveryURL: true,
         signOutOfIdentityProvider: true,
-      } as never,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      } as never);
 
     for (const row of providers) {
       const provider: ProviderSignOutColumns =
