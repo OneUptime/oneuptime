@@ -218,6 +218,7 @@ En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbund
 - Hver post læses, som **Dine logs** læser den fra en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- og Azure-regler matcher den.
 - En hændelse får tidspunktet, hvor den gemmes, med postens egen tid i `oneuptime.cloud.record_time`: En auditlog når OneUptime minutter for sent, og en regel læser hændelser efter deres tid.
 - Kontoens egen læsning giver ikke mere: datahændelser, Data Access-logs og Microsoft Entra ID's logs kræver stadig **Dine logs** eller en [forbindelse](/docs/integrations/microsoft-entra-id).
+- Hver begivenhed nævner de cloud-ressourcer, dens post handler om, ved deres egne ID'er - et ARN, et Azure-ressource-ID, et ressourcenavn fra Google Cloud - så den vises på siden **Sikkerhedshændelser** for hver af dem og på en serverløs funktions, så snart dens telemetri angiver `cloud.account.id` og `cloud.region`.
 
 ### Forbind et sikkerhedsprodukt
 

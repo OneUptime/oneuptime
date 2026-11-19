@@ -17,6 +17,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -415,6 +416,7 @@ export default class VMwareVCenter extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -450,6 +452,7 @@ export default class VMwareVCenter extends BaseModel {
     description:
       "Version of the OneUptime VMware Agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -482,6 +485,7 @@ export default class VMwareVCenter extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this vCenter",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -512,6 +516,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Datacenter Count",
     description:
       "Cached count of vSphere datacenters reported through this vCenter. Written by the ingest snapshot scan; only updated when a batch carries datacenter metrics.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -543,6 +548,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Cluster Count",
     description:
       "Cached count of vSphere clusters reported through this vCenter. Written by the ingest snapshot scan; only updated when a batch carries cluster metrics.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -574,6 +580,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Host Count",
     description:
       "Cached count of ESXi hosts reported through this vCenter. Written by the ingest snapshot scan; only updated when a batch carries host metrics.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -605,6 +612,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "VM Count",
     description:
       "Cached count of virtual machines (excluding VM templates) reported through this vCenter. Written by the ingest snapshot scan; only updated when a batch carries virtual machine metrics.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -636,6 +644,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Powered On VM Count",
     description:
       "Cached count of virtual machines inferred to be powered on (the vcenter receiver emits CPU metrics only for powered-on VMs). Rendered as 'VMs X/Y powered on' next to vmCount.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -667,6 +676,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Datastore Count",
     description:
       "Cached count of datastores reported through this vCenter. Written by the ingest snapshot scan; only updated when a batch carries datastore metrics.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -698,6 +708,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Resource Pool Count",
     description:
       "Cached count of resource pools reported through this vCenter. Written by the ingest snapshot scan; only updated when a batch carries resource pool metrics.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -729,6 +740,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Datastore Capacity Bytes",
     description:
       "Cached total capacity in bytes summed over every datastore reported through this vCenter (used + available vcenter.datastore.disk.usage). The denominator for the storage-used bar on the overview page. Stored as bigint.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.BigPositiveNumber,
@@ -774,6 +786,7 @@ export default class VMwareVCenter extends BaseModel {
     title: "Datastore Used Bytes",
     description:
       "Cached used space in bytes summed over every datastore reported through this vCenter (vcenter.datastore.disk.usage{disk_state=used}). Stored as bigint.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.BigPositiveNumber,

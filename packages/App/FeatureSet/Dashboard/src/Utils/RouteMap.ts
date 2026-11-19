@@ -672,6 +672,7 @@ export const ServerlessRoutePath: Dictionary<string> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -721,6 +722,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -6625,6 +6627,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/${
       ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]
@@ -6895,6 +6903,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]
     }`,
   ),
 

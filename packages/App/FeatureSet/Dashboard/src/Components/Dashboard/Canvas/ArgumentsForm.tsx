@@ -27,6 +27,7 @@ import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricQueryOverlay from "Common/Utils/Metrics/MetricQueryOverlay";
 import TableColumnsEditor from "./TableColumnsEditor";
 import TableThresholdStylePicker from "./TableThresholdStylePicker";
 import {
@@ -737,6 +738,16 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         return null;
       }
 
+      /*
+       * Every query the chart draws, in its order: Query 1, then the added
+       * ones. An added query's switch reads which chart it would join.
+       */
+      const chartQueryConfigs: Array<MetricQueryConfigData> = [
+        ...(primaryQueryConfig ? [primaryQueryConfig] : []),
+        ...multiQueryConfigs,
+      ];
+      const primaryOffset: number = primaryQueryConfig ? 1 : 0;
+
       return (
         <div className="mt-4">
           {multiQueryConfigs.map(
@@ -817,6 +828,19 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       retryLoadTelemetryAttributes(metricName);
                     }}
                     hideCard={true}
+                    /*
+                     * Every added query comes after Query 1, so each can be
+                     * drawn on the chart before it instead of its own
+                     * (issue #9961). Without the switch, each added query
+                     * was always its own chart, stacked in the widget. A
+                     * widget written with no Query 1 draws its first added
+                     * query first, with no chart before it to join.
+                     */
+                    canOverlayWithPreviousQuery={index + primaryOffset > 0}
+                    overlayChartQuery={MetricQueryOverlay.getChartLead(
+                      chartQueryConfigs,
+                      index + primaryOffset,
+                    )}
                     onChange={(data: MetricQueryConfigData) => {
                       const updated: Array<MetricQueryConfigData> = [
                         ...multiQueryConfigs,
@@ -843,10 +867,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             buttonStyle={ButtonStyleType.OUTLINE}
             icon={IconProp.Add}
             onClick={() => {
-              const variableIndex: number = multiQueryConfigs.length + 1; // +1 because primary query is "a"
-              const variableLetter: string = String.fromCharCode(
-                97 + variableIndex,
-              ); // b, c, d, ...
+              /*
+               * The first letter no query or formula has. Counting the
+               * added queries gave a letter already taken once a query had
+               * been removed (a, c, then c again) or a formula added first
+               * (formula b, then query b), and a formula reads a letter
+               * two of them share as only the last of the two.
+               */
+              const variableLetter: string = getNextUnusedVariableLetter();
               const newQuery: MetricQueryConfigData = {
                 metricAliasData: {
                   metricVariable: variableLetter,

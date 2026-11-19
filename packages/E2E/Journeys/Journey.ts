@@ -38,6 +38,9 @@ const QUIET_MS: number = 700;
 const DIALOG: string =
   '[data-testid="modal"], [data-testid="side-over"], .full-page-modal';
 
+// Ask AI's panel, open beside the page: where the person works while it is.
+const ASK_AI_PANEL: string = '[data-testid="ask-ai-panel"]';
+
 /*
  * A name as the person reads it: words given as a string are the whole
  * name, a pattern matches as it says.
@@ -139,6 +142,7 @@ export default class Journey {
     return this.page
       .locator(`${DIALOG} >> visible=true`)
       .last()
+      .or(this.page.locator(`${ASK_AI_PANEL} >> visible=true`))
       .or(this.page.locator("main"))
       .last();
   }
@@ -150,6 +154,11 @@ export default class Journey {
   private async workArea(): Promise<Locator> {
     if (await this.hasDialog()) {
       return this.page.locator(`${DIALOG} >> visible=true`).last();
+    }
+    if (
+      (await this.page.locator(`${ASK_AI_PANEL} >> visible=true`).count()) > 0
+    ) {
+      return this.page.locator(ASK_AI_PANEL);
     }
     return this.page.locator("main");
   }
@@ -185,6 +194,24 @@ export default class Journey {
       }
       await option.click();
       await expect(menu).toBeHidden();
+      await this.settle();
+    });
+  }
+
+  /*
+   * Ask AI, from the header's button: it opens beside the page, and what
+   * the person does next is done in it, until a dialog opens.
+   */
+  public async openAskAi(): Promise<void> {
+    await this.step("open Ask AI from the header", async () => {
+      await this.settle();
+      await this.page
+        .getByRole("banner")
+        // Its name ends with its shortcut: "Ask AI Control + I".
+        .getByRole("button", { name: /^Ask AI/ })
+        .first()
+        .click();
+      await expect(this.page.locator(ASK_AI_PANEL)).toBeVisible();
       await this.settle();
     });
   }

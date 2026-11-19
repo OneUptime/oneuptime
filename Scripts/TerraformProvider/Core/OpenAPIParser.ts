@@ -5,6 +5,8 @@ import {
   TerraformResource,
   TerraformDataSource,
   TerraformAttribute,
+  TerraformServerOwned,
+  TERRAFORM_SERVER_OWNED_KINDS,
 } from "./Types";
 import { StringUtils } from "./StringUtils";
 import {
@@ -187,7 +189,9 @@ export class OpenAPIParser {
         resourceName,
       );
       this.keepWhatOthersDecideReadOnly(resource);
+      this.keepWhatOneUptimeOwns(resource);
       resource.schema = this.generateResourceSchema(resource.operationSchemas);
+      this.describeWhatOneUptimeOwns(resource);
       this.resolveChangesOnlyWith(resource);
       this.resolveRelations(resource.schema);
       for (const operationSchema of Object.values(resource.operationSchemas)) {
@@ -666,6 +670,85 @@ export class OpenAPIParser {
         }
       }
     }
+  }
+
+  /*
+   * WHAT ONEUPTIME OWNS. An attribute OneUptime keeps once the record exists
+   * (the spec's x-oneuptime-server-owned, TableColumnMetadata.serverOwned)
+   * is never the configuration's to change, or Terraform and Crossplane
+   * would fight OneUptime over it (#9985): put a monitor's status back after
+   * its check moved it, or replace a telemetry monitor every time an
+   * evaluation moved its timestamps.
+   *
+   *   - "always": no create or update sends it, so it is read only. The
+   *     spec leaves it out of both request schemas already; this keeps a
+   *     spec that does not from making it writable.
+   *   - "after-create": a create sends it, and no update does - after the
+   *     create it is OneUptime's. It is never replaced for it either
+   *     (generateResourceSchema), and its plan keeps the state's value
+   *     (ResourceGenerator, StaticFiles/serverowned.go). One no create may
+   *     give is OneUptime's from the start: read only.
+   */
+  private keepWhatOneUptimeOwns(resource: TerraformResource): void {
+    const createSchema: Record<string, TerraformAttribute> | undefined =
+      resource.operationSchemas?.create;
+    const updateSchema: Record<string, TerraformAttribute> | undefined =
+      resource.operationSchemas?.update;
+
+    for (const schema of [createSchema, updateSchema]) {
+      for (const [name, attr] of Object.entries(schema || {})) {
+        const isCreated: boolean = Boolean(
+          createSchema &&
+            Object.prototype.hasOwnProperty.call(createSchema, name),
+        );
+
+        if (
+          attr.serverOwned === "always" ||
+          (attr.serverOwned === "after-create" &&
+            (schema === updateSchema || !isCreated))
+        ) {
+          delete schema![name];
+        }
+      }
+    }
+  }
+
+  /*
+   * What the reference says of an attribute a create may give and
+   * OneUptime keeps from then on ("after-create").
+   */
+  public static readonly AFTER_CREATE_DESCRIPTION: string =
+    "OneUptime keeps it up to date once the record exists: the value given here is the one the record starts with, and a later change of it is never sent.";
+
+  private describeWhatOneUptimeOwns(resource: TerraformResource): void {
+    for (const attribute of Object.values(resource.schema)) {
+      if (attribute.serverOwned !== "after-create") {
+        continue;
+      }
+
+      // Read only (no create may give it): nothing to say about a configuration.
+      if (attribute.computed && !attribute.optional && !attribute.required) {
+        continue;
+      }
+
+      attribute.description = [
+        attribute.description,
+        OpenAPIParser.AFTER_CREATE_DESCRIPTION,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    }
+  }
+
+  // The spec's x-oneuptime-server-owned, when it is one this generator knows.
+  public static readServerOwned(
+    value: unknown,
+  ): TerraformServerOwned | undefined {
+    return TERRAFORM_SERVER_OWNED_KINDS.find(
+      (kind: TerraformServerOwned): boolean => {
+        return kind === value;
+      },
+    );
   }
 
   /*
@@ -1238,6 +1321,14 @@ export class OpenAPIParser {
         inCreate && createSchema[name]?.required,
       );
 
+      /*
+       * A create gives its first value and OneUptime keeps it from then on
+       * (keepWhatOneUptimeOwns): no update writes it, and that is no reason
+       * to replace the record - nothing a configuration says of it is
+       * compared after the create.
+       */
+      const isStartingValue: boolean = source.serverOwned === "after-create";
+
       schema[name] = {
         ...source,
         required: required,
@@ -1249,7 +1340,8 @@ export class OpenAPIParser {
          */
         optional: !required,
         computed: !required && inRead,
-        forceNew: inCreate && hasUpdateOperation && !inUpdate,
+        forceNew:
+          inCreate && hasUpdateOperation && !inUpdate && !isStartingValue,
       };
     }
 
@@ -1638,6 +1730,13 @@ export class OpenAPIParser {
      * name: resolveChangesOnlyWith names it by its Terraform name.
      */
     const changesOnlyWith: unknown = prop["x-oneuptime-changes-only-with"];
+    /*
+     * OneUptime keeps the value once the record exists (ModelSchema's
+     * x-oneuptime-server-owned): keepWhatOneUptimeOwns and
+     * generateResourceSchema leave it to OneUptime (#9985).
+     */
+    const serverOwned: TerraformServerOwned | undefined =
+      OpenAPIParser.readServerOwned(prop["x-oneuptime-server-owned"]);
 
     const base: TerraformAttribute = {
       type: "string",
@@ -1661,6 +1760,7 @@ export class OpenAPIParser {
       ...(typeof changesOnlyWith === "string" && changesOnlyWith
         ? { changesOnlyWith }
         : {}),
+      ...(serverOwned ? { serverOwned } : {}),
     };
 
     /*

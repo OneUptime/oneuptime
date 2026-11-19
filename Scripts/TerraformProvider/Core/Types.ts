@@ -259,6 +259,21 @@ export interface TerraformAttribute {
    * is written (StaticFiles/changestogether.go, #9814).
    */
   changesOnlyWith?: string | undefined;
+  /*
+   * OneUptime keeps the attribute once the record exists (the spec's
+   * x-oneuptime-server-owned, from the model's TableColumnMetadata
+   * .serverOwned), so the provider never fights it over the value (#9985):
+   *   - "always": only OneUptime writes it - a heartbeat's time, a count, a
+   *     flag - so it is read only (computed), and no create or update sends
+   *     it;
+   *   - "after-create": a create may give its first value - the status a
+   *     new monitor starts in - and OneUptime moves it on from there. It is
+   *     optional and computed, a create sends it, no update does, and once
+   *     the record exists the plan keeps the state's value whatever the
+   *     configuration says (StaticFiles/serverowned.go): never a change,
+   *     never a replacement.
+   */
+  serverOwned?: TerraformServerOwned | undefined;
   forceNew?: boolean;
   default?: any;
   apiFieldName?: string; // Original OpenAPI field name for API requests
@@ -317,6 +332,12 @@ export interface TerraformAttribute {
    */
   deleteChoice?: TerraformDeleteChoice | undefined;
 }
+
+// The spec's x-oneuptime-server-owned: who keeps the value once the record exists.
+export type TerraformServerOwned = "always" | "after-create";
+
+export const TERRAFORM_SERVER_OWNED_KINDS: ReadonlyArray<TerraformServerOwned> =
+  ["always", "after-create"];
 
 export interface TerraformPersonAttribute {
   // The companion's Terraform name: user_email, owner_user_emails.

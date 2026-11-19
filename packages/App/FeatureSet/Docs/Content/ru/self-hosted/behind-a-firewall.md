@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | GET | `/l/*` | Короткие ссылки в SMS и сообщениях WhatsApp и Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | Страница с описанием вызова и кнопкой **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | Кнопка **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | Кнопка **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Необязательно: страница, которая передаёт вызов следующему человеку |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Необязательно: её кнопка |
 | GET | `/oneuptime-assets/*` | Шрифты, стили и логотип этих страниц |

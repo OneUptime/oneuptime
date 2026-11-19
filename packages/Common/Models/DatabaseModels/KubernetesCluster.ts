@@ -16,6 +16,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -385,6 +386,7 @@ export default class KubernetesCluster extends BaseModel {
     description:
       "Cloud provider or platform running this cluster (EKS, GKE, AKS, self-managed, unknown)",
     example: "EKS",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -420,6 +422,7 @@ export default class KubernetesCluster extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -455,6 +458,7 @@ export default class KubernetesCluster extends BaseModel {
     description:
       "Version of the OneUptime Kubernetes agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -487,6 +491,7 @@ export default class KubernetesCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -516,6 +521,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Node Count",
     description: "Cached count of nodes in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -546,6 +552,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Pod Count",
     description: "Cached count of pods in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -576,6 +583,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Namespace Count",
     description: "Cached count of namespaces in this cluster",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,

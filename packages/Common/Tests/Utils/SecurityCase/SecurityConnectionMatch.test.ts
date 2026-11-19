@@ -1415,18 +1415,38 @@ describe("the way back: what a record is searched for by", () => {
     expect(getRecordSecurityValues({ names: ["a".repeat(300)] })).toEqual([]);
   });
 
-  test("a cloud resource's own ID is kept, however long an Azure ID runs", () => {
+  test("a cloud resource's own ID is kept as its cloud wrote it, however long an Azure ID runs", () => {
     const azure: string = `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/${"rg".repeat(150)}/providers/Microsoft.Compute/virtualMachines/vm-1`;
 
     expect(azure.length).toBeGreaterThan(254);
-    expect(getRecordSecurityValues({ names: [azure] })).toEqual([
-      azure.toLowerCase(),
-    ]);
+    expect(getRecordSecurityValues({ names: [azure] })).toEqual([azure]);
     expect(
       getRecordSecurityValues({
         names: [`/subscriptions/${"x".repeat(2100)}`],
       }),
     ).toEqual([]);
+  });
+
+  /*
+   * An ARN or a Google Cloud resource name is written in the case its
+   * resource was named in (#9779): folded, a Lambda function "Checkout"
+   * would never be found, and "checkout" is another function.
+   */
+  test("an ARN and a Google Cloud resource name keep their case, each once however spelled", () => {
+    expect(
+      getRecordSecurityValues({
+        names: [
+          " arn:aws:lambda:us-east-1:111122223333:function:Checkout ",
+          "arn:aws:lambda:us-east-1:111122223333:function:checkout",
+          "//pubsub.googleapis.com/projects/acme/topics/Orders",
+          "Web-1",
+        ],
+      }),
+    ).toEqual([
+      "arn:aws:lambda:us-east-1:111122223333:function:Checkout",
+      "//pubsub.googleapis.com/projects/acme/topics/Orders",
+      "web-1",
+    ]);
   });
 
   test("observables are searched in the usual spellings, each once, within a limit", () => {
@@ -1440,6 +1460,30 @@ describe("the way back: what a record is searched for by", () => {
       "A",
       "b",
       "B",
+    ]);
+  });
+
+  test("an ARN and a Google Cloud resource name are searched for exactly as written; an Azure ID in its casings", () => {
+    expect(
+      getObservableSearchValues([
+        "arn:aws:lambda:us-east-1:111122223333:function:Checkout",
+      ]),
+    ).toEqual(["arn:aws:lambda:us-east-1:111122223333:function:Checkout"]);
+    expect(
+      getObservableSearchValues([
+        "//compute.googleapis.com/projects/acme/zones/us-central1-a/instances/Web-1",
+      ]),
+    ).toEqual([
+      "//compute.googleapis.com/projects/acme/zones/us-central1-a/instances/Web-1",
+    ]);
+
+    const azure: string =
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Web/sites/orders";
+
+    expect(getObservableSearchValues([azure])).toEqual([
+      azure,
+      azure.toLowerCase(),
+      azure.toUpperCase(),
     ]);
   });
 });
