@@ -176,6 +176,9 @@ import TelemetryIngestionKeyService, {
 import TelemetryIngestionKeyRefusalService, {
   Service as TelemetryIngestionKeyRefusalServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyRefusalService";
+import TelemetryIngestionTeamLabelBudgetService, {
+  Service as TelemetryIngestionTeamLabelBudgetServiceType,
+} from "Common/Server/Services/TelemetryIngestionTeamLabelBudgetService";
 import TelemetrySourceMapService, {
   Service as TelemetrySourceMapServiceType,
 } from "Common/Server/Services/TelemetrySourceMapService";
@@ -1858,6 +1861,7 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
@@ -4221,6 +4225,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         TelemetryIngestionKeyRefusal,
         TelemetryIngestionKeyRefusalService,
+      ).getRouter(),
+    );
+
+    // A team's or a label's ingestion budget inside the project (#6386).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryIngestionTeamLabelBudget,
+        TelemetryIngestionTeamLabelBudgetServiceType
+      >(
+        TelemetryIngestionTeamLabelBudget,
+        TelemetryIngestionTeamLabelBudgetService,
       ).getRouter(),
     );
 

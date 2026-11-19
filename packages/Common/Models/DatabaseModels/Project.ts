@@ -5234,6 +5234,44 @@ export default class Project extends TenantModel {
   })
   public defaultTelemetryRetentionInDays?: number = undefined;
 
+  /*
+   * Whether the project's telemetry usage is published as metrics of its
+   * own (issue #6355): oneuptime.telemetry.usage.bytes, every 5 minutes,
+   * per signal and per service or resource, counted as the telemetry
+   * arrives (TelemetryIngestAttribution, TelemetryUsageMetrics). Off by
+   * default: with it off, ingest does no extra work and nothing is written.
+   * The metrics are free: they are not counted as usage, nor billed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    required: false,
+    title: "Publish Usage as Metrics",
+    description:
+      "Publish the project's telemetry usage as the metric oneuptime.telemetry.usage.bytes every 5 minutes, per signal and per service or resource, so usage can be charted and alerted on. These metrics are not counted as usage or billed.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public publishTelemetryUsageMetrics?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

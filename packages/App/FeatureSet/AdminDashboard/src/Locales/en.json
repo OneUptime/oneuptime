@@ -2085,7 +2085,7 @@
   "Security Events": "Security Events",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Spans. Days counted before exceptions were shown apart include their exceptions too.",
   "Exceptions recorded from spans and logs.": "Exceptions recorded from spans and logs.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Exceptions recorded from spans and logs. They are billed as part of Traces.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.",
   "Profiles, and the samples recorded with them.": "Profiles, and the samples recorded with them.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",
@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Your identity provider's single sign-out URL. Needed to sign people out of it too.",
   "Single Logout URL:": "Single Logout URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.",
-  "Download Signing Certificate": "Download Signing Certificate"
+  "Download Signing Certificate": "Download Signing Certificate",
+  "Team and Label Budgets Today": "Team and Label Budgets Today",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.",
+  "Label": "Label",
+  "Team or Label": "Team or Label",
+  "This team's own": "This team's own",
+  "This label's own": "This label's own"
 }

@@ -2085,7 +2085,7 @@
   "Security Events": "安全事件",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "跨度。在例外單獨顯示之前統計的日期，也包含其例外。",
   "Exceptions recorded from spans and logs.": "從跨度和日誌記錄的例外。",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "從跨度和日誌記錄的例外。它們作為追蹤的一部分計費。",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "從跨度和日誌記錄的例外。在跨度中發現的例外隨追蹤計費，在日誌中發現的例外隨日誌計費。",
   "Profiles, and the samples recorded with them.": "效能剖析資料，以及隨之記錄的樣本。",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",
@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "身分提供者的單一登出 URL。要讓使用者同時登出身分提供者時需要它。",
   "Single Logout URL:": "單一登出 URL：",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "若要讓使用者同時登出身分提供者，也請將單一登出 URL 與 OneUptime 的簽署憑證提供給身分提供者。",
-  "Download Signing Certificate": "下載簽署憑證"
+  "Download Signing Certificate": "下載簽署憑證",
+  "Team and Label Budgets Today": "今天的團隊與標籤預算",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "每個團隊與標籤的服務今天傳送的量。預算一旦用完，它們的遙測資料會遭到捨棄，直到 {{resetsAt}}，專案的其餘部分仍可繼續傳送。",
+  "Label": "標籤",
+  "Team or Label": "團隊或標籤",
+  "This team's own": "此團隊自有",
+  "This label's own": "此標籤自有"
 }

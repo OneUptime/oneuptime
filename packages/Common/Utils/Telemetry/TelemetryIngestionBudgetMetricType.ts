@@ -28,6 +28,15 @@ export const TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_ID_ATTRIBUTE: strin
   "ingestionKeyId";
 export const TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_NAME_ATTRIBUTE: string =
   "ingestionKeyName";
+// A team's or a label's budget (#6386): the team or the label, by id and name.
+export const TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_ID_ATTRIBUTE: string =
+  "teamId";
+export const TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_NAME_ATTRIBUTE: string =
+  "teamName";
+export const TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_ID_ATTRIBUTE: string =
+  "labelId";
+export const TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_NAME_ATTRIBUTE: string =
+  "labelName";
 
 /*
  * How often the sweep posts, in minutes. The worker's cron schedule and the
@@ -104,7 +113,7 @@ class TelemetryIngestionBudgetMetricTypeUtil {
   ): string {
     const everyInterval: string = `Written every ${TELEMETRY_INGESTION_BUDGET_METRIC_INTERVAL_MINUTES} minutes while a budget or rate limit is set and the figure is above zero`;
     const perScope: string =
-      "one series per signal and scope (the project, or an ingestion key): filter on the signal and scope attributes";
+      "one series per signal and scope (the project, an ingestion key, a team or a label): filter on the signal and scope attributes";
 
     switch (metricType) {
       case TelemetryIngestionBudgetMetricType.UsedBytes:
