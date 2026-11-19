@@ -15,11 +15,21 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
 } from "Common/Types/SecurityCase/SecurityConnection";
-import { getObservableSearchValues } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
+import {
+  getLogAttributeSearchValues,
+  getObservableSearchValues,
+} from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
+import { TelemetryServiceMetadata } from "Common/Server/Services/OpenTelemetryIngestService";
+import { buildSecurityEventDbRow } from "Common/Server/Utils/SecurityEvent/SecurityEventRow";
+import MicrosoftDefenderXdrNormalizer from "Common/Utils/SecurityEvent/Connectors/MicrosoftDefenderXdrNormalizer";
+import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
+import SecurityLogParser from "Common/Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import {
   afterAll,
   beforeAll,
@@ -494,6 +504,365 @@ integration("Security Events' connections against ClickHouse", () => {
     });
   });
 });
+
+/*
+ * #10034: an Azure resource ID from any source, whatever its case. Every
+ * row keeps an Azure ID by its key, in lower case (SecurityEventRow), so a
+ * cloud resource's card finds each source's event by that one spelling -
+ * through the observables' bloom index and the attribute keys' one, which
+ * ClickHouse combines for the card's OR. A search that folded each stored
+ * observable instead would read every granule.
+ */
+const AZURE_VAULT_ID: string =
+  "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Prod/providers/Microsoft.KeyVault/vaults/kv-Payments";
+
+const AZURE_NEAR_MISSES: Array<string> = [
+  "/subscriptions/0f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Prod/providers/Microsoft.KeyVault/vaults/kv-Payments",
+  "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Prod/providers/Microsoft.KeyVault/vaults/kv-Payments2",
+  "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Test/providers/Microsoft.KeyVault/vaults/kv-Payments",
+];
+
+const ORDERS_TABLE: string =
+  "arn:aws:dynamodb:us-east-1:111122223333:table/Orders";
+
+// The granules a plan's skip indexes leave of a part's, from EXPLAIN indexes = 1.
+function skipIndexGranules(
+  plan: string,
+): Array<{ name: string; read: number; of: number }> {
+  const lines: Array<string> = plan.split("\n").map((line: string) => {
+    return line.trim();
+  });
+  const found: Array<{ name: string; read: number; of: number }> = [];
+
+  for (let index: number = 0; index < lines.length; index++) {
+    if (lines[index] !== "Skip") {
+      continue;
+    }
+
+    const name: string = (lines[index + 1] || "").replace("Name: ", "");
+    const granules: string | undefined = lines
+      .slice(index + 1, index + 6)
+      .find((line: string): boolean => {
+        return line.startsWith("Granules: ");
+      });
+    const [read, of] = (granules || "Granules: 0/0")
+      .replace("Granules: ", "")
+      .split("/")
+      .map(Number);
+
+    found.push({ name, read: read!, of: of! });
+  }
+
+  return found;
+}
+
+integration(
+  "an Azure resource ID from any source, whatever its case (#10034)",
+  () => {
+    let clickhouse: ClickhouseDatabase;
+    let client: ClickhouseClient;
+    let original: ConnectableService | null = null;
+    const azureDatabase: string = `${database}_azure`;
+    const projectId: ObjectID = ObjectID.generate();
+    const serviceMetadata: TelemetryServiceMetadata = {
+      primaryEntityId: ObjectID.generate(),
+      primaryEntityType: ServiceType.OpenTelemetry,
+    } as unknown as TelemetryServiceMetadata;
+    // One day, so every row is in one partition: only the skip indexes narrow it.
+    const DAY_START: Date = new Date(END.getTime() - 20 * HOUR);
+
+    function rowOf(event: NormalizedSecurityEvent): JSONObject {
+      return buildSecurityEventDbRow({
+        normalized: { ...event, time: new Date(DAY_START.getTime() + HOUR) },
+        projectId,
+        serviceMetadata,
+        retentionDays: 30,
+      });
+    }
+
+    // Microsoft Defender XDR's alert, its evidence naming a resource as it received it.
+    function defenderAlert(
+      resourceId: string,
+      id: string,
+    ): NormalizedSecurityEvent {
+      return MicrosoftDefenderXdrNormalizer.normalize({
+        "@odata.type": "#microsoft.graph.security.alert",
+        id,
+        title: "Suspicious secret access from an unusual location",
+        severity: "high",
+        status: "new",
+        createdDateTime: "2026-11-18T09:12:44.000Z",
+        evidence: [
+          {
+            "@odata.type": "#microsoft.graph.security.azureResourceEvidence",
+            roles: [],
+            resourceId,
+            resourceName: "kv-Payments",
+          },
+        ],
+      });
+    }
+
+    // A pipeline's OCSF record, in its sender's spelling.
+    function ocsfRecord(
+      resourceId: string,
+      uid: string,
+    ): NormalizedSecurityEvent {
+      return SecurityEventNormalizer.normalize({
+        class_uid: 6003,
+        activity_name: "Update",
+        severity_id: 3,
+        time: DAY_START.getTime(),
+        message: "Purge protection turned off on a key vault",
+        metadata: { uid, product: { name: "Acme SIEM Forwarder" } },
+        observables: [{ name: "resources.uid", value: resourceId }],
+      })!;
+    }
+
+    beforeAll(async (): Promise<void> => {
+      const url: URL = new URL(endpoint!);
+      const options: ClickHouseClientConfigOptions = {
+        url: `${url.protocol}//${url.host}`,
+        username: decodeURIComponent(url.username) || "default",
+        password: decodeURIComponent(url.password),
+        database: azureDatabase,
+        request_timeout: 120000,
+      };
+
+      clickhouse = new ClickhouseDatabase(options);
+      client = await clickhouse.connect(options);
+
+      await client.command({
+        query: `CREATE DATABASE IF NOT EXISTS ${azureDatabase}`,
+      });
+
+      const model: SecurityEvent = new SecurityEvent();
+      const generator: StatementGenerator<SecurityEvent> =
+        new StatementGenerator<SecurityEvent>({
+          modelType: SecurityEvent,
+          database: clickhouse,
+        });
+      const columns: Statement = generator.toColumnsCreateStatement(
+        model.tableColumns,
+      );
+
+      await client.command({
+        query: `CREATE TABLE ${azureDatabase}.${model.tableName} (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")})`,
+        query_params: columns.query_params,
+      });
+
+      original = {
+        database: service.database,
+        databaseClient: service.databaseClient,
+      };
+      service.database = clickhouse;
+      service.databaseClient = client;
+
+      const sources: Array<NormalizedSecurityEvent> = [
+        // Defender XDR's evidence, in mixed case.
+        defenderAlert(
+          "/Subscriptions/6F1C2A3B-4D5E-4F60-8A7B-9C0D1E2F3A4B/ResourceGroups/RG-PAYMENTS-PROD/Providers/microsoft.keyvault/Vaults/KV-PAYMENTS",
+          "da-1",
+        ),
+        // A pipeline's OCSF record, in capitals.
+        ocsfRecord(AZURE_VAULT_ID.toUpperCase(), "ocsf-1"),
+        // The Activity Log's export, in capitals, read from a log line.
+        ...SecurityLogParser.parse({
+          body: JSON.stringify({
+            records: [
+              {
+                time: DAY_START.toISOString(),
+                resourceId: AZURE_VAULT_ID.toUpperCase(),
+                operationName: "MICROSOFT.KEYVAULT/VAULTS/WRITE",
+                category: "Administrative",
+                resultType: "Success",
+                correlationId: "4a5b6c7d-8e9f-4a0b-9c1d-2e3f4a5b6c7d",
+                callerIpAddress: "203.0.113.40",
+              },
+            ],
+          }),
+          attributes: {},
+          time: DAY_START,
+          logId: ObjectID.generate().toString(),
+        }),
+        // The vault's own logs, stamped by a collector in capitals: by the attribute alone.
+        ...SecurityLogParser.parse({
+          body: "sshd[2210]: Failed password for invalid user admin from 203.0.113.7 port 52314 ssh2",
+          attributes: {
+            "resource.cloud.resource_id": AZURE_VAULT_ID.toUpperCase(),
+          },
+          time: DAY_START,
+          logId: ObjectID.generate().toString(),
+        }),
+      ];
+
+      expect(sources).toHaveLength(4);
+
+      const nearMisses: Array<NormalizedSecurityEvent> = [
+        ...AZURE_NEAR_MISSES.map((id: string, index: number) => {
+          return defenderAlert(id.toUpperCase(), `da-miss-${index}`);
+        }),
+        // A DynamoDB table "orders" is not "Orders".
+        ocsfRecord(ORDERS_TABLE.toLowerCase(), "ocsf-miss-table"),
+      ];
+
+      /*
+       * Thousands of other events of the project that day, so a granule the
+       * skip indexes leave out is one a search does not read.
+       */
+      const filler: Array<JSONObject> = [];
+
+      for (let index: number = 0; index < 60000; index++) {
+        filler.push(
+          eventRow({
+            projectId,
+            time: new Date(DAY_START.getTime() + (index % 36000) * 1000),
+            observables: [
+              `host-${index % 5000}`,
+              `10.0.${index % 250}.${index % 200}`,
+            ],
+            attributes: { "oneuptime.log.source": "logs" },
+          }),
+        );
+      }
+
+      await client.insert({
+        table: `${azureDatabase}.${model.tableName}`,
+        format: "JSONEachRow",
+        values: [...filler, ...sources.map(rowOf), ...nearMisses.map(rowOf)],
+        clickhouse_settings: { wait_for_async_insert: 1 },
+      });
+      await client.command({
+        query: `OPTIMIZE TABLE ${azureDatabase}.${model.tableName} FINAL`,
+      });
+    });
+
+    afterAll(async (): Promise<void> => {
+      if (original) {
+        Object.assign(service, original);
+      }
+
+      if (client) {
+        await client.command({
+          query: `DROP DATABASE IF EXISTS ${azureDatabase}`,
+        });
+      }
+
+      if (clickhouse) {
+        await clickhouse.disconnect();
+      }
+    });
+
+    // What the vault's card searches for, from its own row (ResourceSecurity).
+    function vaultSearch(): {
+      values: Array<string>;
+      attribute: { key: string; values: Array<string> };
+    } {
+      return {
+        values: getObservableSearchValues([AZURE_VAULT_ID]),
+        attribute: {
+          key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+          values: getLogAttributeSearchValues({
+            key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+            value: AZURE_VAULT_ID,
+          }),
+        },
+      };
+    }
+
+    test("the vault's card counts each source's event, in whatever case it wrote the ID - and no near miss", async () => {
+      const summary: SecurityEventsNamingSummary =
+        await SecurityEventService.countEventsNaming({
+          projectId,
+          ...vaultSearch(),
+          startTime: START,
+          endTime: END,
+        });
+
+      expect(summary.eventCount).toBe(4);
+    });
+
+    test("an ARN is matched as written: the table Orders is not orders", async () => {
+      expect(
+        (
+          await SecurityEventService.countEventsNaming({
+            projectId,
+            values: getObservableSearchValues([ORDERS_TABLE]),
+            startTime: START,
+            endTime: END,
+          })
+        ).eventCount,
+      ).toBe(0);
+      expect(
+        (
+          await SecurityEventService.countEventsNaming({
+            projectId,
+            values: getObservableSearchValues([ORDERS_TABLE.toLowerCase()]),
+            startTime: START,
+            endTime: END,
+          })
+        ).eventCount,
+      ).toBe(1);
+    });
+
+    test("the card's own statement reads the granules its skip indexes leave, not the day", async () => {
+      const spy: jest.SpiedFunction<typeof SecurityEventService.executeQuery> =
+        jest.spyOn(SecurityEventService, "executeQuery");
+
+      await SecurityEventService.countEventsNaming({
+        projectId,
+        ...vaultSearch(),
+        startTime: START,
+        endTime: END,
+      });
+
+      const statement: Statement = spy.mock.calls[0]![0] as Statement;
+
+      spy.mockRestore();
+
+      const result: { text: () => Promise<string> } = await client.query({
+        query: `EXPLAIN indexes = 1 ${statement.query}`,
+        query_params: statement.query_params,
+        format: "TabSeparatedRaw",
+      });
+      const plan: string = await result.text();
+      const skips: Array<{ name: string; read: number; of: number }> =
+        skipIndexGranules(plan);
+      // The last word on what is read: the combined set for an OR, else the one index.
+      const finalSkip: { name: string; read: number; of: number } =
+        skips[skips.length - 1]!;
+
+      expect(
+        skips.map((skip: { name: string }): string => {
+          return skip.name;
+        }),
+      ).toEqual(
+        expect.arrayContaining(["idx_observables", "idx_attribute_keys"]),
+      );
+      expect(finalSkip.of).toBeGreaterThan(4);
+      expect(finalSkip.read).toBeLessThan(finalSkip.of);
+      // The page reads the same: a scoped read compiles the same OR.
+    });
+
+    test("a search that folded each stored value instead would read every granule: why the key is stored", async () => {
+      const result: { text: () => Promise<string> } = await client.query({
+        query: `EXPLAIN indexes = 1 SELECT count() FROM ${azureDatabase}.${new SecurityEvent().tableName} WHERE projectId = {projectId:String} AND arrayExists(observable -> lower(observable) = {key:String}, observables)`,
+        query_params: {
+          projectId: projectId.toString(),
+          key: AZURE_VAULT_ID.toLowerCase(),
+        },
+        format: "TabSeparatedRaw",
+      });
+      const plan: string = await result.text();
+
+      expect(
+        skipIndexGranules(plan).some((skip: { read: number; of: number }) => {
+          return skip.read < skip.of;
+        }),
+      ).toBe(false);
+    });
+  },
+);
 
 describe("Security Events' connections ClickHouse suite wiring", () => {
   test("runs whenever the suite is under CI", () => {
