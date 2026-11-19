@@ -132,11 +132,12 @@ Atualizações com falha não usam os monitores de pipeline. Um conjunto de dado
 
 ## Pipelines
 
-Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas execuções: quando cada uma começou e terminou, quanto tempo levou, qual tentativa ela foi onde o agendador informa (o número da tentativa do Airflow) e o erro de uma execução com falha. Depois de cinco execuções, cada pipeline aprende com as próprias execuções quanto tempo uma execução costuma levar e quanto tempo ele costuma ficar entre execuções no seu agendamento. A página de um pipeline recomenda três monitores:
+Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas execuções: quando cada uma começou e terminou, quanto tempo levou, qual tentativa ela foi onde o agendador informa (o número da tentativa do Airflow) e o erro de uma execução com falha. Depois de cinco execuções, cada pipeline aprende com as próprias execuções quanto tempo uma execução costuma levar e quanto tempo ele costuma ficar entre execuções no seu agendamento. A página de um pipeline recomenda quatro monitores:
 
 - **Pipeline Run Failed**: uma execução falhou ou foi abortada.
 - **Pipeline Run Unusually Long**: uma execução levou o dobro do tempo típico ou mais, verificado a cada cinco minutos enquanto ela roda, para que uma execução travada seja notada antes de terminar.
 - **Pipeline Is Late**: nenhuma execução começa há mais tempo do que o agendamento dele permite.
+- **Pipeline Stopped by Circuit Breaker**: o disjuntor respondeu stop, e a parada dura até ele responder go ou uma execução começar.
 
 A aba **Proprietários** de um pipeline nomeia as pessoas e equipes que cuidam dele, e os alertas dele vão para elas. A **Visão geral** e **Problemas** nomeiam os proprietários de um pipeline que falhou ou está atrasado, ou mostram **Sem proprietário**, com uma forma de adicionar um.
 
@@ -204,6 +205,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 ```
 
 Uma requisição que nomeia um pipeline é guardada nele, a menos que seja um teste. Enquanto o disjuntor mantiver um pipeline parado, a página **Disjuntor** dele diz desde quando e por quê, a **Visão geral** dele abre com a parada, e **Requer atenção** e **Problemas** o listam como parado, no lugar da execução com falha ou atrasada. A parada termina quando o disjuntor responde go novamente, ou quando uma execução começa depois dela. A mesma página tem **Testar agora**, que pergunta ao disjuntor sem que a resposta seja guardada, e a etapa para curl, Airflow e dbt com o nome do pipeline já preenchido.
+
+Para saber de uma parada, adicione **Pipeline Stopped by Circuit Breaker** a partir das **Recomendações** do pipeline. O alerta dele abre quando o disjuntor responde stop, vai para os proprietários do pipeline, fica aberto enquanto a parada é guardada e é resolvido assim que a parada termina. Ele lê a métrica `oneuptime.data.pipeline.circuit_breaker_stopped` do pipeline: 1 enquanto o disjuntor o mantém parado e 0 assim que não, escrita quando o disjuntor responde e depois a cada cinco minutos.
 
 Enquanto a Observabilidade de dados estiver desativada no servidor, o disjuntor responde go e não guarda nada: desativar um produto nunca para um pipeline.
 

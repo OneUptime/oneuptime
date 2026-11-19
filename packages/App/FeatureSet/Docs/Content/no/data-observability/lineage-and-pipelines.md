@@ -132,11 +132,12 @@ Mislykkede oppdateringer bruker ikke pipelinemonitorene. Et datasett der oppdate
 
 ## Pipelines
 
-Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, med kjøringene sine: når hver startet og sluttet, hvor lang tid den tok, hvilket forsøk den var der planleggeren oppgir det (Airflows try number), og feilen fra en mislykket kjøring. Etter fem kjøringer har hver pipeline lært av sine egne kjøringer hvor lang tid en kjøring vanligvis tar, og hvor lenge det går mellom kjøringene etter tidsplanen. Siden for en pipeline anbefaler tre monitorer:
+Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, med kjøringene sine: når hver startet og sluttet, hvor lang tid den tok, hvilket forsøk den var der planleggeren oppgir det (Airflows try number), og feilen fra en mislykket kjøring. Etter fem kjøringer har hver pipeline lært av sine egne kjøringer hvor lang tid en kjøring vanligvis tar, og hvor lenge det går mellom kjøringene etter tidsplanen. Siden for en pipeline anbefaler fire monitorer:
 
 - **Pipeline Run Failed**: en kjøring feilet eller ble avbrutt.
 - **Pipeline Run Unusually Long**: en kjøring har tatt dobbelt så lang tid som vanlig eller mer, sjekket hvert femte minutt mens den kjører, så en kjøring som henger, oppdages før den er ferdig.
 - **Pipeline Is Late**: ingen kjøring har startet på lengre tid enn tidsplanen tillater.
+- **Pipeline Stopped by Circuit Breaker**: circuit breakeren svarte stop, og stoppet varer til den svarer go eller en kjøring starter.
 
 Fanen **Eiere** for en pipeline nevner personene og teamene som tar seg av den, og varslene dens går til dem. **Oversikt** og **Problemer** nevner eierne av en pipeline som feilet eller er sen, eller viser **Ingen eier**, med en måte å legge til en på.
 
@@ -204,6 +205,8 @@ curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
 ```
 
 En forespørsel som navngir en pipeline, lagres på den, med mindre det er en prøvekjøring. Så lenge circuit breakeren har stoppet en pipeline, sier siden **Circuit breaker** siden når og hvorfor, **Oversikt** åpner med stoppet, og **Krever handling** og **Problemer** viser den som stoppet i stedet for den feilede eller sene kjøringen. Stoppet slutter når circuit breakeren neste gang svarer go, eller når en kjøring starter etter det. Den samme siden har **Test nå**, som spør circuit breakeren uten at svaret lagres, og trinnet for curl, Airflow og dbt med navnet på pipelinen fylt inn.
+
+For å få vite om et stopp, legg til **Pipeline Stopped by Circuit Breaker** fra pipelinens **Anbefalinger**. Varselet åpnes når circuit breakeren svarer stop, går til pipelinens eiere, forblir åpent så lenge stoppet lagres, og løses når stoppet slutter. Det leser pipelinens metrikk `oneuptime.data.pipeline.circuit_breaker_stopped`: 1 så lenge circuit breakeren har stoppet den, og 0 når den ikke har det, skrevet når circuit breakeren svarer og deretter hvert femte minutt.
 
 Så lenge Dataobserverbarhet er slått av på serveren, svarer circuit breakeren go og lagrer ingenting: å slå av et produkt stopper aldri en pipeline.
 
