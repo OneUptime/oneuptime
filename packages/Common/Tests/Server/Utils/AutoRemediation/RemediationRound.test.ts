@@ -1485,6 +1485,8 @@ describe("RemediationRound.readForViewer: the round, for whoever may read the fi
         ruleNameSnapshot: "OneUptime AI",
         mcpToolCallPlan: mcpPlan([
           { tool: "update_service", status: "Proposed" },
+          // A change it made itself: it completes as any call that ran.
+          { tool: "restart_task", status: "Succeeded" },
         ]),
       }),
       events: [
@@ -1503,6 +1505,10 @@ describe("RemediationRound.readForViewer: the round, for whoever may read the fi
           rowCount: 0,
           citationLabel: "AWS · update_service (not run)",
         }),
+        mcpStarted("AWS", "restart_task", {
+          arguments: { task: "checkout-api-7" },
+        }),
+        mcpCompleted({ rowCount: 1, citationLabel: "AWS · restart_task" }),
         started("query_logs", undefined),
         completed("query_logs"),
         lifecycle(AIRunEventType.RunCompleted),
