@@ -97,6 +97,18 @@ const WRITERS: Record<string, Classification> = {
       "run.triggeredByAlertId = data.alertId;",
     ],
   },
+  /*
+   * A fix OneUptime started, asked again as a new turn (#6509): the keys
+   * its fix names its record by, and every record its turn carried.
+   */
+  "packages/Common/Server/Utils/AI/CodeTask/CodeTaskFixRetry.ts": {
+    kind: "isAFixOfItsRecord",
+    mustContain: [
+      "run.triggeredByIncidentId = data.turn.triggeredByIncidentId;",
+      "run.triggeredByAlertId = data.turn.triggeredByAlertId;",
+      "CarriedRecords.writeTo(run, CarriedRecords.ofRow(data.turn));",
+    ],
+  },
   "packages/Common/Server/API/DataSecurityAPI.ts": {
     kind: "carriesNoRecord",
     why: "A Data Security issue's fix: its request describes the issue and its findings, with no context, never the incident declared for the issue.",

@@ -3159,10 +3159,16 @@ describe("Audit Logs", () => {
       "Resource Name",
       "Action",
       "User Email",
+      // What a workflow's step ran as, and whose permissions (#9766).
+      "Workflow Ran As",
+      "Workflow Permissions Given By",
       "Time",
     ]);
     expect(section(page, "## Read the audit log")).toContain(
-      "Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**.",
+      "Filter by **Resource Type**, **Resource Name**, **Action**, **User Email**, **Workflow Ran As**, **Workflow Permissions Given By** or **Time**.",
+    );
+    expect(section(page, "## Read the audit log")).toContain(
+      "A workflow's change says what it ran as and with whose permissions.",
     );
     expect(table).toContain("sortOrder={SortOrder.Descending}");
     // A change OneUptime made by itself is drawn as System.

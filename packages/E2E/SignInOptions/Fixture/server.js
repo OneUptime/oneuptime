@@ -70,8 +70,20 @@ const inter = path.join(
   "Server/Static/Vendor/fonts/InterVariable.woff2",
 );
 
-// What the page's server would put in env.js: Microsoft only where offered.
-const environment = (search) => {
+// A host the browser could have asked for: a name or an address, and a port.
+const HOST_HEADER = /^[A-Za-z0-9.-]+(:\d{1,5})?$/;
+
+/*
+ * What the page's server would put in env.js: Microsoft only where offered.
+ *
+ * apihost=self: the page's own requests go to the address the browser asked
+ * this fixture for - as the product's env.js names the host it serves - so
+ * a spec can answer them over the real network with page.route, with the
+ * page's API client and the browser's own WebAuthn running as in production
+ * (SecurityKeyEnrolment.spec.ts). Everywhere else they go to "localhost",
+ * which nothing serves: those pages' requests are answered in Fixture.js.
+ */
+const environment = (search, requestHost) => {
   const params = new URLSearchParams(search);
   const env = {
     HOST: "localhost",
@@ -86,11 +98,15 @@ const environment = (search) => {
     env.MICROSOFT_SIGN_IN_CLIENT_ID = "sign-in-options-fixture";
   }
 
+  if (params.get("apihost") === "self" && HOST_HEADER.test(requestHost || "")) {
+    env.HOST = requestHost;
+  }
+
   return env;
 };
 
-const html = (search) => {
-  return `<!doctype html><html class="h-full" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign-in options regression</title><script>window.process={env:${JSON.stringify(environment(search))}};window.global=window;</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/inter.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}</style><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={theme:{extend:{colors:{primary:'#000000'}}}};</script></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = (search, requestHost) => {
+  return `<!doctype html><html class="h-full" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign-in options regression</title><script>window.process={env:${JSON.stringify(environment(search, requestHost))}};window.global=window;</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/inter.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}</style><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={theme:{extend:{colors:{primary:'#000000'}}}};</script></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 };
 
 async function main() {
@@ -143,7 +159,7 @@ async function main() {
       return;
     }
     response.setHeader("Content-Type", "text/html");
-    response.end(html(url.search));
+    response.end(html(url.search, request.headers.host));
   });
   server.listen(port, "127.0.0.1", () => {
     console.log(`Sign-in options fixture ready at http://127.0.0.1:${port}`);

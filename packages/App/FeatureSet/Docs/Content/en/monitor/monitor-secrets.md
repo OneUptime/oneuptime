@@ -39,7 +39,7 @@ The probe that runs the check receives the value, so a monitor that uses a secre
 :::
 
 > [!IMPORTANT]
-> Secrets are encrypted and stored securely. The secret value is never shown again after it is saved — not in the table, not in the edit form, and not over the API. If you lose the value you will need to get it from wherever it came from and set it again. To rotate a secret, use the **Update Secret Value** button on its row; you do not need to delete and recreate it.
+> Secrets are encrypted and stored securely. The secret value is never shown again after it is saved — not in the table, not in the edit form, and not over the API. If you lose the value you will need to get it from wherever it came from and set it again. To rotate a secret, use the **Update Secret Value** button on its row; you do not need to delete and recreate it. The same button changes what the secret holds, **Text** or **One-time code (TOTP)**, together with a new value, and monitors that use the secret take the new type at their next check.
 
 ### Choosing which monitors can use a secret
 
@@ -128,7 +128,7 @@ return {
 The probe never hands out a code with less than five seconds left, or a third of the period when the period is shorter: it waits for the next code instead, at most five seconds, and leaves that wait out of the check's execution time. Every code a check makes is shown as asterisks, such as `******`, in its log messages, its result, its error and the names of its screenshots. A screenshot is a picture of the page, so take it before the code is typed or after the page moves on.
 
 > [!NOTE]
-> The probe makes the codes, so update a custom probe before you use a one-time code secret: an older probe sends `{{monitorSecrets.NAME}}` as written. The probe's clock must be right too, because a probe that is a minute off makes codes the site has already moved past.
+> The probe makes the codes, so a custom probe needs OneUptime 17.0.1 or later. On an older one, a check that needs a code does not run, and fails with a sentence saying to update the probe; the monitor's form and the probe's page name a probe that is too old, and [Update a probe](/docs/probe/custom-probe#update-a-probe) says how. The probe's clock must be right too, because a probe that is a minute off makes codes the site has already moved past.
 
 ## Troubleshooting
 
@@ -146,6 +146,10 @@ Only the fields in the table above take secrets. In any other field, `{{monitorS
 
 :::details The site refuses the one-time code
 Check that the **Current code** matched your authenticator app when you saved the secret, that the probe's clock is right, and that a reference in a JSON request body is in quotes. If the sign-in takes a while to reach its code prompt, ask for the code there with `oneuptime.getTotpCode`.
+:::
+
+:::details The check says the probe is too old to make one-time codes
+The probe runs a release older than OneUptime 17.0.1, which cannot make one-time codes, so the check did not run on it. Update the probe (see [Update a probe](/docs/probe/custom-probe#update-a-probe)), or check the monitor from probes that run 17.0.1 or later.
 :::
 
 ## Next steps

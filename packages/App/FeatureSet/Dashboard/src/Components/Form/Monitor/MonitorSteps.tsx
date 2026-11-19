@@ -1,4 +1,5 @@
 import MonitorStepElement from "./MonitorStep";
+import OneTimeCodeProbesWarning from "../../Monitor/OneTimeCodeProbesWarning";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -995,6 +996,16 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {/*
+       * A step that needs a one-time code fails on a custom probe too old
+       * to make one (#9759): said here, where the step is written, of the
+       * probes that would check it.
+       */}
+      <OneTimeCodeProbesWarning
+        monitorSteps={monitorSteps}
+        monitorType={props.monitorType}
+        probeIds={props.testProbeIds || []}
+      />
       {monitorSteps?.data?.monitorStepsInstanceArray?.map(
         (i: MonitorStep, index: number) => {
           return (

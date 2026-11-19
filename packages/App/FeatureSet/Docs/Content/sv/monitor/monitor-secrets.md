@@ -39,7 +39,7 @@ Sonden som kör kontrollen tar emot värdet, så en monitor som använder en hem
 :::
 
 > [!IMPORTANT]
-> Hemligheter krypteras och lagras säkert. Hemlighetens värde visas aldrig igen efter att det har sparats — inte i tabellen, inte i redigeringsformuläret och inte via API:et. Om du tappar bort värdet måste du hämta det där det kom ifrån och ställa in det igen. För att rotera en hemlighet använder du knappen **Uppdatera hemligt värde** på dess rad; du behöver inte ta bort och skapa om den.
+> Hemligheter krypteras och lagras säkert. Hemlighetens värde visas aldrig igen efter att det har sparats — inte i tabellen, inte i redigeringsformuläret och inte via API:et. Om du tappar bort värdet måste du hämta det där det kom ifrån och ställa in det igen. För att rotera en hemlighet använder du knappen **Uppdatera hemligt värde** på dess rad; du behöver inte ta bort och skapa om den. Samma knapp ändrar också vad hemligheten innehåller, **Text** eller **Engångskod (TOTP)**, tillsammans med ett nytt värde, och monitorer som använder hemligheten tar den nya typen i bruk vid sin nästa kontroll.
 
 ### Välj vilka monitorer som får använda en hemlighet
 
@@ -128,7 +128,7 @@ return {
 Sonden lämnar aldrig ut en kod som har mindre än fem sekunder kvar, eller en tredjedel av perioden när perioden är kortare: den väntar i stället på nästa kod, högst fem sekunder, och räknar inte in den väntan i kontrollens körtid. Varje kod som en kontroll genererar visas som asterisker, till exempel `******`, i dess loggmeddelanden, dess resultat, dess fel och namnen på dess skärmbilder. En skärmbild är en bild av sidan, så ta den innan koden skrivs in eller efter att sidan har gått vidare.
 
 > [!NOTE]
-> Det är sonden som genererar koderna, så uppdatera en anpassad sond innan du använder en engångskodshemlighet: en äldre sond skickar `{{monitorSecrets.NAME}}` som det skrevs. Sondens klocka måste också gå rätt, eftersom en sond som går en minut fel genererar koder som webbplatsen redan har gått vidare från.
+> Det är sonden som genererar koderna, så en anpassad sond behöver OneUptime 17.0.1 eller senare. På en äldre körs inte en kontroll som behöver en kod, utan den misslyckas med en mening som säger att sonden ska uppdateras; monitorns formulär och sondens sida nämner en sond som är för gammal, och [Uppdatera en sond](/docs/probe/custom-probe#uppdatera-en-sond) förklarar hur. Sondens klocka måste också gå rätt, eftersom en sond som går en minut fel genererar koder som webbplatsen redan har gått vidare från.
 
 ## Felsökning
 
@@ -146,6 +146,10 @@ Bara fälten i tabellen ovan tar emot hemligheter. I alla andra fält skickas `{
 
 :::details Webbplatsen avvisar engångskoden
 Kontrollera att **Aktuell kod** stämde med din autentiseringsapp när du sparade hemligheten, att sondens klocka går rätt och att en hänvisning i en JSON-kropp i en begäran står inom citattecken. Om det tar en stund innan inloggningen ber om koden, be om koden där med `oneuptime.getTotpCode`.
+:::
+
+:::details Kontrollen säger att sonden är för gammal för att generera engångskoder
+Sonden kör en version äldre än OneUptime 17.0.1, som inte kan generera engångskoder, så kontrollen kördes inte på den. Uppdatera sonden (se [Uppdatera en sond](/docs/probe/custom-probe#uppdatera-en-sond)), eller låt sonder med 17.0.1 eller senare kontrollera monitorn.
 :::
 
 ## Nästa steg

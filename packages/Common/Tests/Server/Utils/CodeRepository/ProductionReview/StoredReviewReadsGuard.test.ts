@@ -244,11 +244,26 @@ describe("server code that reads a task's outcome", () => {
     );
 
     /*
-     * The outcome is selected in three places: the turns a conversation
-     * shows and the ones it does not (both held above), and a list's
-     * reviews - each held to the reader right where it is read.
+     * A long task's earlier turns, read a page at a time (#7128), are
+     * turns of the conversation: held to the rule before any is sent.
      */
-    expect(code.split("taskOutcome: true").length - 1).toBe(3);
+    const earlier: string = code.slice(
+      code.indexOf("public static async getEarlierTurns("),
+      code.indexOf("private static async findLinkedTurn("),
+    );
+
+    expect(earlier.indexOf("keepReviewsForReader(")).toBeGreaterThan(-1);
+    expect(earlier.indexOf("keepReviewsForReader(")).toBeLessThan(
+      earlier.indexOf("CodeTaskPresenter.toTurn("),
+    );
+
+    /*
+     * The outcome is selected in four places: the turns a conversation
+     * shows and the ones it does not, its earlier turns read a page at a
+     * time (each held above), and a list's reviews - each held to the
+     * reader right where it is read.
+     */
+    expect(code.split("taskOutcome: true").length - 1).toBe(4);
 
     const listReviews: string = code.slice(
       code.indexOf("private static async loadReviews("),

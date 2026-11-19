@@ -16,6 +16,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import UserAuthenticationStatus from "../../../Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
+import { SsoManagedBy } from "../../../Types/SSO/SsoManagedSignIn";
 import {
   afterEach,
   beforeAll,
@@ -105,6 +106,12 @@ const AUTHENTICATION_STATUS: UserAuthenticationStatus = {
    */
   unusedTwoFactorBackupCodeCount: 0,
   hasPendingPasswordResetLink: false,
+  /*
+   * What the page's warnings read (#9762, #9763): not a master admin, and
+   * the whole server requires SSO of them.
+   */
+  isMasterAdmin: false,
+  signInManagedBy: SsoManagedBy.Server,
 };
 
 type RouteCallResult = {
@@ -231,6 +238,9 @@ describe("GET /user/:userId/authentication-status", () => {
       verifiedTwoFactorAuthMethodCount: 0,
       unusedTwoFactorBackupCodeCount: 0,
       hasPendingPasswordResetLink: false,
+      // What the page's SSO warnings read (#9762, #9763).
+      isMasterAdmin: false,
+      signInManagedBy: SsoManagedBy.Server,
     });
   });
 

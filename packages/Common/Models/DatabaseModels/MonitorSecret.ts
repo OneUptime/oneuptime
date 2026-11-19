@@ -222,8 +222,10 @@ export default class MonitorSecret extends BaseModel {
   /*
    * What the secret holds (issue #9703); see MonitorSecretType. Text is the
    * default, and what every secret created before this column existed is.
-   * Set when the secret is created and never changed - the same value means
-   * something else in the other type - so the column takes no update.
+   * The same value means something else in the other type, so the type
+   * changes only together with a new value, read for the new type, in the
+   * same write (MonitorSecretService.onBeforeUpdate, issue #9760): the
+   * value it held is never read as the other type.
    */
   @ColumnAccessControl({
     create: [
@@ -236,7 +238,11 @@ export default class MonitorSecret extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ReadMonitorSecret,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditMonitorSecret,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
@@ -245,7 +251,7 @@ export default class MonitorSecret extends BaseModel {
     allowedValues: Object.values(MonitorSecretType),
     title: "Secret Type",
     description:
-      "What the secret holds. Text: a password, API key or token, filled in as written. TOTP: an authenticator app's setup key or otpauth://totp link; a monitor gets the current one-time code, never the key. Set when the secret is created and cannot be changed.",
+      "What the secret holds. Text: a password, API key or token, filled in as written. TOTP: an authenticator app's setup key or otpauth://totp link; a monitor gets the current one-time code, never the key. Changes only together with a new Secret Value, which is read for the new type.",
     defaultValue: MonitorSecretType.Text,
     example: MonitorSecretType.TOTP,
   })

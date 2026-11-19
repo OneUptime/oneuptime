@@ -68,10 +68,19 @@ export const MAX_EARLIER_REPLY_LENGTH: number = 6000;
 
 /*
  * The conversation's entries a reply's turn makes: what the person asked,
- * and what AI answered (describeTurn). A reply is always a request from
- * Code (CodeTaskRuns.addTurn), so a turn left out unread leaves out two.
+ * and what AI answered (describeTurn). A reply is a request from Code, or
+ * a fix OneUptime started asked again (CodeTaskRuns.addTurn), and each is
+ * said as two - who asked, and what AI answered - so a turn left out unread
+ * leaves out two.
  */
 export const ENTRIES_PER_REPLY_TURN: number = 2;
+
+/*
+ * What a fix asked again says it was asked: its context is the first
+ * turn's, which the conversation already holds.
+ */
+export const CODE_TASK_BRIEF_ASKED_AGAIN: string =
+  "Asked OneUptime AI to try this fix again.";
 
 // What an earlier turn is read with: what was asked, and what AI answered.
 const TURN_SELECT: Select<AIRun> = {
@@ -402,6 +411,13 @@ export default class CodeTaskAgentBrief {
           turn,
           subjects: data.subjects,
         }),
+      });
+    } else {
+      // A fix OneUptime started, asked again with its own context (#6509).
+      turns.push({
+        role: "person",
+        ...(author ? { author } : {}),
+        text: CODE_TASK_BRIEF_ASKED_AGAIN,
       });
     }
 

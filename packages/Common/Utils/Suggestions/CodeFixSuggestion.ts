@@ -133,8 +133,9 @@ export const FINISHED_FIX_STATUSES: ReadonlyArray<AIRunStatus> = [
 
 /*
  * How a fix that did its work stands now, from the fix itself (its task's
- * first turn) and the task's latest turn - a reply someone sent in Code, or
- * the fix again when nobody has replied - as Code reads the task
+ * first turn, or the fix asked again from Code, a later turn of the same
+ * task) and the task's latest turn - a reply someone sent in Code, or the
+ * fix again when nobody has replied - as Code reads the task
  * (CodeTaskStateUtil):
  *
  *   - null while the task is working again (a reply is under way): the

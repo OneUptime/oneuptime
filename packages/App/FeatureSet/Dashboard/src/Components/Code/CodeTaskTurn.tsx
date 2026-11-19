@@ -13,11 +13,14 @@ import {
   getPullRequestCopy,
 } from "./CodeHostCopy";
 import {
+  CODE_TASK_ASKED_AGAIN,
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_RECORD_PAGES,
   CODE_TASK_ORIGIN_SENTENCES,
   CODE_TASK_PROFILE_CHIP_LABEL,
 } from "./CodeTaskCopy";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import CodeTaskRetryNote, {
   RETRY_NOTE_CONTAINER_CLASS_NAME,
   WIDE_NOTE_ROW_CLASS_NAME,
@@ -133,9 +136,18 @@ export interface ComponentProps {
   isLatest: boolean;
   // What started the task, for a first turn nobody asked for in Code.
   origin?: CodeTaskOriginJSON | undefined;
-  // Show "Try again" on a failed or stopped latest request.
+  /*
+   * Show "Try again" on a failed or stopped latest turn: a request, or a
+   * fix OneUptime started.
+   */
   onRetry?: (() => void) | undefined;
   isRetrying?: boolean | undefined;
+  /*
+   * Why a failed or stopped latest turn - a fix OneUptime started - is not
+   * asked again (it may already have written): said where Try again would
+   * be (#6509).
+   */
+  tryAgainRefusal?: string | undefined;
   /*
    * Start the next attempt of a latest turn AI tries again by itself now,
    * instead of after its wait (Retry now).
@@ -713,7 +725,44 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
       return renderOrigin();
     }
 
+    // A fix OneUptime started, asked again by a person (#6509).
+    if (turn.recipe !== CodeFixTaskType.CodeRequest) {
+      return renderAskedAgain();
+    }
+
     return <></>;
+  };
+
+  /*
+   * A fix asked again has no words of its own - it is asked with the
+   * context it started with - so its side of the turn says who asked it
+   * again, on the right, where people ask.
+   */
+  const renderAskedAgain: () => ReactElement = (): ReactElement => {
+    return (
+      <li
+        data-testid="code-turn-asked-again"
+        data-turn-id={turn.runId}
+        tabIndex={-1}
+        className="flex flex-col items-end focus:outline-none"
+      >
+        <div className="flex max-w-full items-center gap-2">
+          <PersonMark
+            name={personName}
+            seed={turn.requestedBy?.id || personName}
+          />
+          <span className="min-w-0 text-xs font-medium text-gray-700">
+            {translator.translateTemplate(CODE_TASK_ASKED_AGAIN, {
+              name: personName,
+            })}
+          </span>
+          <CodeTimeAgo
+            date={turn.createdAt}
+            className={`${BYLINE_FACT_CLASS_NAME} whitespace-nowrap`}
+          />
+        </div>
+      </li>
+    );
   };
 
   const renderRequest: () => ReactElement = (): ReactElement => {
@@ -722,7 +771,12 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <li data-testid="code-turn-request" className="flex flex-col items-end">
+      <li
+        data-testid="code-turn-request"
+        data-turn-id={turn.runId}
+        tabIndex={-1}
+        className="flex flex-col items-end focus:outline-none"
+      >
         <div className="flex max-w-full items-center gap-2">
           <PersonMark
             name={personName}
@@ -763,7 +817,12 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
       const label: ReactElement = <CodeTaskOriginLabel origin={origin} />;
 
       return (
-        <li data-testid="code-turn-origin" className={MESSAGE_CLASS_NAME}>
+        <li
+          data-testid="code-turn-origin"
+          data-turn-id={turn.runId}
+          tabIndex={-1}
+          className={`${MESSAGE_CLASS_NAME} focus:outline-none`}
+        >
           <div className={MESSAGE_MARK_CLASS_NAME}>
             <OneUptimeMark />
           </div>
@@ -828,7 +887,9 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
       <li
         data-testid="code-turn-reply"
         data-turn-state={turn.state}
-        className={MESSAGE_CLASS_NAME}
+        data-turn-id={turn.runId}
+        tabIndex={-1}
+        className={`${MESSAGE_CLASS_NAME} focus:outline-none`}
       >
         <div className={MESSAGE_MARK_CLASS_NAME}>
           <AIMark />
@@ -1041,6 +1102,16 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                     ) : (
                       <></>
                     )}
+                    {props.isLatest && props.tryAgainRefusal ? (
+                      <p
+                        data-testid="code-turn-try-again-refusal"
+                        className="mt-1.5 break-words text-red-800"
+                      >
+                        <ErrorInSentence message={props.tryAgainRefusal} />
+                      </p>
+                    ) : (
+                      <></>
+                    )}
                   </div>
                   {props.isLatest && props.onRetry ? (
                     <button
@@ -1063,6 +1134,19 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 </div>
               </div>
             </div>
+          ) : (
+            <></>
+          )}
+
+          {turn.state === CodeTaskState.Stopped &&
+          props.isLatest &&
+          props.tryAgainRefusal ? (
+            <p
+              data-testid="code-turn-try-again-refusal"
+              className="break-words text-sm text-gray-600"
+            >
+              <ErrorInSentence message={props.tryAgainRefusal} />
+            </p>
           ) : (
             <></>
           )}

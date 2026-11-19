@@ -39,7 +39,7 @@ A sonda que executa a verificação recebe o valor, então um monitor que usa um
 :::
 
 > [!IMPORTANT]
-> Os segredos são criptografados e guardados com segurança. O valor do segredo nunca mais é mostrado depois de salvo — nem na tabela, nem no formulário de edição, nem pela API. Se você perder o valor, precisará obtê-lo de onde ele veio e defini-lo de novo. Para rotacionar um segredo, use o botão **Atualizar Valor do Segredo** na linha dele; você não precisa excluí-lo e criá-lo de novo.
+> Os segredos são criptografados e guardados com segurança. O valor do segredo nunca mais é mostrado depois de salvo — nem na tabela, nem no formulário de edição, nem pela API. Se você perder o valor, precisará obtê-lo de onde ele veio e defini-lo de novo. Para rotacionar um segredo, use o botão **Atualizar Valor do Segredo** na linha dele; você não precisa excluí-lo e criá-lo de novo. O mesmo botão também muda o que o segredo guarda, **Texto** ou **Código de uso único (TOTP)**, junto com um novo valor, e os monitores que usam o segredo adotam o novo tipo na próxima verificação.
 
 ### Escolher quais monitores podem usar um segredo
 
@@ -128,7 +128,7 @@ return {
 A sonda nunca entrega um código com menos de cinco segundos restantes, ou menos de um terço do período quando o período é mais curto: em vez disso, ela espera pelo próximo código, no máximo cinco segundos, e deixa essa espera fora do tempo de execução da verificação. Todo código que uma verificação gera aparece como asteriscos, como `******`, nas mensagens de log, no resultado, no erro e nos nomes das capturas de tela dela. Uma captura de tela é uma imagem da página, então tire-a antes de o código ser digitado ou depois que a página avançar.
 
 > [!NOTE]
-> A sonda gera os códigos, então atualize uma sonda personalizada antes de usar um segredo de código de uso único: uma sonda mais antiga envia `{{monitorSecrets.NAME}}` como está escrito. O relógio da sonda também precisa estar certo, porque uma sonda com um minuto de diferença gera códigos que o site já deixou para trás.
+> A sonda gera os códigos, então uma sonda personalizada precisa do OneUptime 17.0.1 ou posterior. Em uma mais antiga, uma verificação que precisa de um código não roda e falha com uma frase pedindo para atualizar a sonda; o formulário do monitor e a página da sonda apontam uma sonda antiga demais, e [Atualizar uma sonda](/docs/probe/custom-probe#atualizar-uma-sonda) explica como. O relógio da sonda também precisa estar certo, porque uma sonda com um minuto de diferença gera códigos que o site já deixou para trás.
 
 ## Solução de problemas
 
@@ -146,6 +146,10 @@ Só os campos da tabela acima aceitam segredos. Em qualquer outro campo, `{{moni
 
 :::details O site recusa o código de uso único
 Confira se o **Código atual** era igual ao do seu aplicativo autenticador quando você salvou o segredo, se o relógio da sonda está certo e se uma referência num corpo de requisição JSON está entre aspas. Se o login demora a chegar ao pedido do código, peça o código nesse ponto com `oneuptime.getTotpCode`.
+:::
+
+:::details A verificação diz que a sonda é antiga demais para gerar códigos de uso único
+A sonda executa uma versão anterior ao OneUptime 17.0.1, que não consegue gerar códigos de uso único, então a verificação não rodou nela. Atualize a sonda (veja [Atualizar uma sonda](/docs/probe/custom-probe#atualizar-uma-sonda)) ou faça sondas com a 17.0.1 ou posterior verificarem o monitor.
 :::
 
 ## Próximos passos

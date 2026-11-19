@@ -119,6 +119,9 @@ describe("what a session's end is recorded as", () => {
       SessionEndCause.AccountBlocked,
       SessionEndCause.TwoFactorRequired,
       SessionEndCause.TwoFactorReset,
+      SessionEndCause.SignedInWithoutSso,
+      // A master admin cleared their sign-in settings (#9762).
+      SessionEndCause.SignInSettingsCleared,
       SessionEndCause.Other,
     ]) {
       expect(getSessionEndAuditLogAction(cause)).toBe(
@@ -138,6 +141,10 @@ describe("what a session's end is recorded as", () => {
     expect(SESSION_END_CAUSE_DESCRIPTIONS[SessionEndCause.SignedOut]).toBe(
       "Signed out",
     );
+    // Says who ended it and why, in the reader's words (#9762).
+    expect(
+      SESSION_END_CAUSE_DESCRIPTIONS[SessionEndCause.SignInSettingsCleared],
+    ).toBe("Signed out by a server admin who cleared their sign-in settings");
   });
 });
 

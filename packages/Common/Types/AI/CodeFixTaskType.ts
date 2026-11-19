@@ -296,6 +296,60 @@ export class CodeFixTaskTypeHelper {
   }
 
   /*
+   * The recipes whose failed or stopped turn a person can ask again from
+   * Code - Try again in a task's conversation, on its row and on an
+   * insight's Fix Task card, and Retry selected (#6509): a request
+   * someone typed in Code, asked again in the same words, and every fix
+   * OneUptime starts - from an exception, a trace, a service's logs or
+   * traces, an incident's or alert's investigation, an AI insight -
+   * asked again with the context it started with
+   * (CodeTaskFixRetry).
+   *
+   * Not a task asked for on GitHub, whose answer goes back to the issue or
+   * pull request it came from (ask there again), nor a pull request's
+   * production review, which is reviewed again in place (Review again).
+   * A new recipe is decided here: the suite holds every recipe to one side.
+   */
+  public static getTaskTypesAskedAgain(): Array<CodeFixTaskType> {
+    return [
+      CodeFixTaskType.CodeRequest,
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.WriteRegressionTest,
+      CodeFixTaskType.ImproveExceptionHandling,
+      CodeFixTaskType.ImproveInstrumentation,
+      CodeFixTaskType.FixPerformance,
+      CodeFixTaskType.ImproveLogging,
+      CodeFixTaskType.ImproveTracing,
+      CodeFixTaskType.FixFromIncident,
+    ];
+  }
+
+  /*
+   * Whether a failed or stopped turn of the recipe can be asked again
+   * (getTaskTypesAskedAgain). A legacy null recipe is an exception fix.
+   */
+  public static canBeAskedAgain(
+    taskType: CodeFixTaskType | string | null | undefined,
+  ): boolean {
+    return CodeFixTaskTypeHelper.getTaskTypesAskedAgain().includes(
+      CodeFixTaskTypeHelper.fromDatabaseValue(taskType),
+    );
+  }
+
+  /*
+   * A fix OneUptime started that can be asked again: asked with its own
+   * context, as a new turn of its task, never a request's words.
+   */
+  public static isFixAskedAgain(
+    taskType: CodeFixTaskType | string | null | undefined,
+  ): boolean {
+    return (
+      CodeFixTaskTypeHelper.canBeAskedAgain(taskType) &&
+      !CodeFixTaskTypeHelper.isCodeRequest(taskType)
+    );
+  }
+
+  /*
    * The recipes a Runner that does not say which it can do is given.
    *
    * A Runner names the recipes it has a handler for when it asks for work

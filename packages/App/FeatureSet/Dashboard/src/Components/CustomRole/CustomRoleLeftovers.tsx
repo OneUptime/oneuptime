@@ -10,6 +10,7 @@ import {
   getRoleRemoveFromTeamSentence,
 } from "./CustomRoleCopy";
 import { CustomRoleReachDetails, loadCustomRoleReach } from "./CustomRoleReach";
+import { getCustomRoleDeleteConfirmation } from "./CustomRoleDeleteWorkflowsChoice";
 import {
   CUSTOM_ROLES_CARD_PLACE,
   CustomRolesCardStateHandler,
@@ -224,8 +225,15 @@ export const ProjectCustomRolesLeftover: FunctionComponent<ComponentProps> = (
             projectId: projectId,
           });
 
-          return {
-            description: (
+          /*
+           * A role kept from Enterprise is still what workflows may run
+           * as: its delete says which would stop, and what they run as
+           * instead (#9767).
+           */
+          return await getCustomRoleDeleteConfirmation({
+            customRoleId: item.id!,
+            projectId: projectId,
+            question: (
               <DeleteConfirmationMessage
                 kind="question"
                 name={item.name || ""}
@@ -240,7 +248,7 @@ export const ProjectCustomRolesLeftover: FunctionComponent<ComponentProps> = (
                   .join(" ")}
               />
             ),
-          };
+          });
         }}
         showRefreshButton={true}
         filters={[]}
