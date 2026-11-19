@@ -12,6 +12,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import { SpyInstance } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -65,7 +66,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 function readsPlan(data: {
   plan: PlanType | null;
   isSubscriptionUnpaid?: boolean;
-}): jest.SpiedFunction<typeof ProjectService.getCurrentPlan> {
+}): SpyInstance<typeof ProjectService.getCurrentPlan> {
   return jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
     plan: data.plan,
     isSubscriptionUnpaid: Boolean(data.isSubscriptionUnpaid),
@@ -74,7 +75,7 @@ function readsPlan(data: {
 
 function hasStatusPages(
   count: number,
-): jest.SpiedFunction<typeof StatusPageService.countBy> {
+): SpyInstance<typeof StatusPageService.countBy> {
   return jest
     .spyOn(StatusPageService, "countBy")
     .mockResolvedValue(new PositiveNumber(count));
@@ -92,7 +93,7 @@ afterEach(() => {
 describe("the status pages a project's plan allows", () => {
   test("the Free plan with its one status page refuses another, in the plan's own sentence", async () => {
     readsPlan({ plan: PlanType.Free });
-    const count: jest.SpiedFunction<typeof StatusPageService.countBy> =
+    const count: SpyInstance<typeof StatusPageService.countBy> =
       hasStatusPages(1);
 
     await expect(
@@ -122,7 +123,7 @@ describe("the status pages a project's plan allows", () => {
   test("an unpaid subscription adds none, on any plan, and says what to pay", async () => {
     for (const plan of [PlanType.Free, PlanType.Growth]) {
       readsPlan({ plan: plan, isSubscriptionUnpaid: true });
-      const count: jest.SpiedFunction<typeof StatusPageService.countBy> =
+      const count: SpyInstance<typeof StatusPageService.countBy> =
         hasStatusPages(0);
 
       await expect(
@@ -149,8 +150,10 @@ describe("the status pages a project's plan allows", () => {
 
   test("an install without billing has no plans, and reads none", async () => {
     setTestBillingEnabled(false);
-    const plan: jest.SpiedFunction<typeof ProjectService.getCurrentPlan> =
-      readsPlan({ plan: PlanType.Free, isSubscriptionUnpaid: true });
+    const plan: SpyInstance<typeof ProjectService.getCurrentPlan> = readsPlan({
+      plan: PlanType.Free,
+      isSubscriptionUnpaid: true,
+    });
 
     await expect(
       StatusPageService.getCreateRefusal({ projectId: PROJECT_ID }),
@@ -159,8 +162,9 @@ describe("the status pages a project's plan allows", () => {
   });
 
   test("adding none is never refused", async () => {
-    const plan: jest.SpiedFunction<typeof ProjectService.getCurrentPlan> =
-      readsPlan({ plan: PlanType.Free });
+    const plan: SpyInstance<typeof ProjectService.getCurrentPlan> = readsPlan({
+      plan: PlanType.Free,
+    });
     hasStatusPages(5);
 
     await expect(
