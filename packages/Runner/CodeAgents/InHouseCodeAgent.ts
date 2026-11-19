@@ -63,6 +63,10 @@ import CodeAgentContext, {
   CodeAgentContextSize,
   CodeAgentContextState,
   DEFAULT_CODE_AGENT_CONTEXT_SIZE,
+  MAX_ANSWER_TOKENS,
+  getAnswerTokensForWindow,
+  getContextSize,
+  getContextSizeForWindow,
   shrinkContextSize,
 } from "./CodeAgentContext";
 import CodeAgentCompletionRetry from "./CodeAgentCompletionRetry";
@@ -205,8 +209,9 @@ interface CommandOutput {
  * read-only production telemetry tools too, which run on the server, held
  * to the run's repository and the services it serves (CodeAgentTelemetry).
  *
- * A long task stays inside the model's context window: past a size, the
- * oldest tool results and rounds are left out, the model told what they
+ * A long task stays inside the model's context window: past a size - what
+ * the window holds, when the server says it (issue #6530), or a default -
+ * the oldest tool results and rounds are left out, the model told what they
  * were (CodeAgentContext). A model call that fails is made again when a
  * repeat can help (CodeAgentCompletionRetry), and never runs a tool twice.
  *
@@ -289,10 +294,25 @@ export default class InHouseCodeAgent implements CodeAgent {
   private plan: AgentPlan = new AgentPlan();
 
   /*
-   * The size THIS task's conversation is kept under: the default, or less
-   * once the model server has said a conversation was too long for it.
+   * The size THIS task's conversation is kept under: what the model's
+   * context window holds, once the server has said it (contextWindowTokens),
+   * else the default - and less once the model server has said a
+   * conversation was too long for it (shrunkMaxChars).
    */
   private contextSize: CodeAgentContextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
+
+  /*
+   * The model's context window in tokens, as the server last said it (issue
+   * #6530); null until it has, or when it cannot tell.
+   */
+  private contextWindowTokens: number | null = null;
+
+  /*
+   * The size a context window error cut THIS task's conversation to: kept
+   * for the rest of the task, whatever window the server says - it was
+   * wrong once.
+   */
+  private shrunkMaxChars: number | null = null;
 
   /*
    * The results THIS task's conversation holds cut to their start and end,
@@ -372,6 +392,8 @@ export default class InHouseCodeAgent implements CodeAgent {
     this.outputs = new ToolOutputStore();
     this.plan = new AgentPlan();
     this.contextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
+    this.contextWindowTokens = null;
+    this.shrunkMaxChars = null;
     this.cutResultOrigins = new Map<string, string>();
     this.allowQuestions = Boolean(task.allowQuestions);
     this.telemetryCallsSinceCompletion = 0;
@@ -515,6 +537,7 @@ export default class InHouseCodeAgent implements CodeAgent {
         this.telemetryCallsSinceCompletion = 0;
         this.applyRunLimits(completion.limits, Date.now(), true);
         this.legacyBudget = completion.limits ? null : completion.budget;
+        await this.applyContextWindow(completion.contextWindowTokens);
 
         if (completion.content) {
           lastContent = completion.content;
@@ -730,11 +753,14 @@ export default class InHouseCodeAgent implements CodeAgent {
       }
 
       try {
+        const answerTokens: number | null = this.getAnswerTokens();
         const completion: LlmCompletionResult =
           await this.backendAPI.llmCompletion({
             taskId: data.taskId,
             messages,
             ...(data.withTools ? { tools: this.getToolDefinitions() } : {}),
+            // A small window keeps room for the prompt: a shorter answer.
+            ...(answerTokens !== null ? { maxTokens: answerTokens } : {}),
             timeoutInMs: this.getCompletionTimeoutMs(),
             signal: this.abortController.signal,
           });
@@ -760,6 +786,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           if (smaller) {
             const before: Array<LLMMessage> = messages;
             this.contextSize = smaller;
+            this.shrunkMaxChars = smaller.maxChars;
             messages = await this.keepWithinContext({
               messages,
               loopDetector: data.loopDetector,
@@ -808,6 +835,74 @@ export default class InHouseCodeAgent implements CodeAgent {
 
         attempt++;
       }
+    }
+  }
+
+  /*
+   * Size the conversation to the model's context window, as the server said
+   * it with its latest answer (issue #6530): what the window holds, less the
+   * answer's room and the tool definitions (getContextSizeForWindow) - or
+   * the default when it cannot tell - and never more than a context window
+   * error already cut it to. Said in the run's log when the window is new.
+   */
+  private async applyContextWindow(
+    contextWindowTokens: number | null | undefined,
+  ): Promise<void> {
+    const tokens: number | null =
+      typeof contextWindowTokens === "number" && contextWindowTokens > 0
+        ? contextWindowTokens
+        : null;
+    const isNew: boolean =
+      tokens !== null && tokens !== this.contextWindowTokens;
+
+    this.contextWindowTokens = tokens;
+
+    const fitted: CodeAgentContextSize =
+      tokens !== null
+        ? getContextSizeForWindow({
+            contextWindowTokens: tokens,
+            toolDefinitionChars: this.measureToolDefinitionChars(),
+          })
+        : DEFAULT_CODE_AGENT_CONTEXT_SIZE;
+
+    this.contextSize =
+      this.shrunkMaxChars !== null && this.shrunkMaxChars < fitted.maxChars
+        ? getContextSize(this.shrunkMaxChars)
+        : fitted;
+
+    if (isNew) {
+      await this.log(
+        `The model takes ${tokens!.toLocaleString(
+          "en-US",
+        )} tokens in one request: the conversation is kept under ${this.contextSize.maxChars.toLocaleString(
+          "en-US",
+        )} characters.`,
+      );
+    }
+  }
+
+  /*
+   * How many tokens a call asks the model to write: fewer than the server's
+   * most only for a window too small to keep that much room for the answer
+   * (getAnswerTokensForWindow), so the prompt fits beside it; null - the
+   * server's most - otherwise.
+   */
+  private getAnswerTokens(): number | null {
+    if (this.contextWindowTokens === null) {
+      return null;
+    }
+
+    const tokens: number = getAnswerTokensForWindow(this.contextWindowTokens);
+
+    return tokens < MAX_ANSWER_TOKENS ? tokens : null;
+  }
+
+  // What the tool definitions take of a request, in characters.
+  private measureToolDefinitionChars(): number {
+    try {
+      return JSON.stringify(this.getToolDefinitions()).length;
+    } catch {
+      return 0;
     }
   }
 

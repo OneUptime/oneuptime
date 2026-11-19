@@ -287,6 +287,7 @@ describe("CodeAgentRunLimitsUtil.toAgentRunLimits", () => {
         maxTokens: 900_000,
         timeLimitInMinutes: 30,
         timeLimitSource: AIRunTimeLimitSource.Project,
+        commandTimeLimitInMinutes: 25,
         deadlineAt: null,
         timeLeftMs: null,
         modelCallsUsed: 0,
@@ -300,6 +301,7 @@ describe("CodeAgentRunLimitsUtil.toAgentRunLimits", () => {
       maxTokens: 900_000,
       maxWallClockMs: 30 * MINUTE_MS,
       timeLimitSource: AIRunTimeLimitSource.Project,
+      commandTimeLimitInMinutes: 25,
     });
   });
 });
@@ -311,6 +313,7 @@ describe("CodeAgentRunLimitsUtil.getLocalDeadlineAtMs", () => {
     maxTokens: null,
     timeLimitInMinutes: 120,
     timeLimitSource: AIRunTimeLimitSource.Default,
+    commandTimeLimitInMinutes: 10,
     deadlineAt: "2026-11-09T12:00:00.000Z",
     timeLeftMs: 30 * MINUTE_MS,
     modelCallsUsed: 0,
