@@ -4,7 +4,7 @@ import { ZodType } from "zod";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MonitorSecret from "../../../Models/DatabaseModels/MonitorSecret";
-import ColumnAccessControl from "../../../Types/Database/AccessControl/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import {
   getTableColumns,
   TableColumnMetadata,
