@@ -24,8 +24,8 @@ import {
   SCRUB_UNAVAILABLE_SENTENCES,
   ScrubItGates,
   ScrubItState,
-  VIEW_RULES,
 } from "../../Components/DataSecurity/TelemetryScrubIt";
+import TelemetryRuleNotice from "../../Components/DataSecurity/TelemetryRuleNotice";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -51,7 +51,6 @@ import ObjectID from "Common/Types/ObjectID";
 import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Card from "Common/UI/Components/Card/Card";
@@ -399,25 +398,11 @@ const DataSecurityTelemetryPage: FunctionComponent<
   return (
     <>
       {notice ? (
-        <Alert
-          type={AlertType.SUCCESS}
+        <TelemetryRuleNotice
+          template={SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log}
+          ruleName={notice.ruleName}
+          rulesRoute={getRulesRoute(notice.signal)}
           dataTestId="data-security-scrub-notice"
-          title={
-            <span>
-              {translator.translateTemplate(
-                SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log,
-                { name: notice.ruleName },
-              )}{" "}
-              <AppLink
-                className="font-medium underline"
-                to={getRulesRoute(notice.signal)}
-              >
-                {translator.translateText(
-                  VIEW_RULES[notice.signal] || VIEW_RULES.log,
-                ) || VIEW_RULES[notice.signal]}
-              </AppLink>
-            </span>
-          }
           onClose={() => {
             setNotice(null);
           }}

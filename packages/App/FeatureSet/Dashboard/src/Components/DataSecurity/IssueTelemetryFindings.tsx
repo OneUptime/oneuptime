@@ -14,8 +14,8 @@ import {
   SCRUB_UNAVAILABLE_SENTENCES,
   ScrubItGates,
   ScrubItState,
-  VIEW_RULES,
 } from "./TelemetryScrubIt";
+import TelemetryRuleNotice from "./TelemetryRuleNotice";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -44,7 +44,6 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -726,25 +725,11 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4" data-testid={ISSUE_TELEMETRY_FINDINGS_TEST_ID}>
         {notice ? (
-          <Alert
-            type={AlertType.SUCCESS}
+          <TelemetryRuleNotice
+            template={SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log}
+            ruleName={notice.ruleName}
+            rulesRoute={getRulesRoute(notice.signal)}
             dataTestId="data-security-issue-findings-scrub-notice"
-            title={
-              <span>
-                {translator.translateTemplate(
-                  SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log,
-                  { name: notice.ruleName || "" },
-                )}{" "}
-                <AppLink
-                  className="font-medium underline"
-                  to={getRulesRoute(notice.signal)}
-                >
-                  {translator.translateText(
-                    VIEW_RULES[notice.signal] || VIEW_RULES.log,
-                  ) || VIEW_RULES[notice.signal]}
-                </AppLink>
-              </span>
-            }
             onClose={() => {
               setNotice(null);
             }}
