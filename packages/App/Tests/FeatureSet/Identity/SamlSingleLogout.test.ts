@@ -718,7 +718,16 @@ describe("the IDs of OneUptime's LogoutRequests", () => {
     ).toBe(true);
   });
 
-  test.each([
+  test.each<
+    [
+      string,
+      {
+        provider: Partial<SamlSignOutProvider>;
+        otherInstallation: boolean;
+        now: Date;
+      },
+    ]
+  >([
     [
       "another provider's",
       {

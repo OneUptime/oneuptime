@@ -541,7 +541,7 @@ async function arrive(
 
 function signedIn(
   route: Route,
-  overrides: Partial<SessionRow> & {
+  overrides: Omit<Partial<SessionRow>, "record"> & {
     record?: Partial<SamlIdentityProviderSignOutRecord> | null;
   } = {},
 ): SessionRow {
