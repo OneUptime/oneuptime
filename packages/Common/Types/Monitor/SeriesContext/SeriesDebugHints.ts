@@ -103,6 +103,13 @@ export default class SeriesDebugHints {
     const hpa: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
       "k8s.hpa.name",
     ]);
+    const persistentVolumeClaim: string = SeriesLabelDisplay.findLabelValue(
+      seriesLabels,
+      ["k8s.persistentvolumeclaim.name"],
+    );
+    const cluster: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "k8s.cluster.name",
+    ]);
 
     /*
      * `-n <ns>` is omitted rather than guessed when the series has no
@@ -187,6 +194,28 @@ export default class SeriesDebugHints {
       });
     }
 
+    /*
+     * A claim filling up (PVC Almost Full) is fixed one of two ways: free
+     * space on it, or grow it. The claim's own page answers the first half
+     * - its capacity, its storage class and the pods that mount it - and
+     * the storage classes answer the second: a claim can only be expanded
+     * when its class says ALLOWVOLUMEEXPANSION true.
+     */
+    if (persistentVolumeClaim) {
+      commands.push({
+        purpose:
+          "The claim's capacity, storage class, the pods that mount it and recent events",
+        command: `kubectl describe pvc ${SeriesDebugHints.quoteForShell(
+          persistentVolumeClaim,
+        )}${namespaceFlag}`,
+      });
+      commands.push({
+        purpose:
+          "Whether the claim's storage class lets it grow (ALLOWVOLUMEEXPANSION)",
+        command: `kubectl get storageclass`,
+      });
+    }
+
     if (node) {
       const quotedNode: string = SeriesDebugHints.quoteForShell(node);
 
@@ -210,7 +239,79 @@ export default class SeriesDebugHints {
       });
     }
 
+    /*
+     * A series that names nothing narrower than a namespace or a cluster -
+     * Namespace Daily Cost Over Budget, Cluster Daily Cost Over Budget, High
+     * Idle Spend, or a monitor of your own grouped that way - still gets a
+     * first command, as a vCenter-only VMware series does: what runs there
+     * and how much of it is used. A series that names a pod, a workload, a
+     * claim or a node keeps its own commands only: the namespace's or the
+     * cluster's would just push them down the list.
+     */
+    if (commands.length === 0 && namespace) {
+      commands.push(...SeriesDebugHints.kubernetesNamespaceCommands(namespace));
+    }
+
+    if (commands.length === 0 && cluster) {
+      commands.push(...SeriesDebugHints.kubernetesClusterCommands());
+    }
+
     return commands;
+  }
+
+  /*
+   * What a namespace runs, and what it uses and reserves. A cost engine
+   * charges a pod for the larger of what it requests and what it uses, so
+   * the requests are half of why a namespace costs what it does, and a
+   * Deployment scaled up is the other usual half.
+   */
+  private static kubernetesNamespaceCommands(
+    namespace: string,
+  ): Array<SeriesDebugCommand> {
+    const namespaceFlag: string = ` -n ${SeriesDebugHints.quoteForShell(
+      namespace,
+    )}`;
+
+    return [
+      {
+        purpose:
+          "Live CPU and memory use of each pod in the namespace, the busiest first",
+        command: `kubectl top pods${namespaceFlag} --sort-by=cpu`,
+      },
+      {
+        purpose: "The CPU and memory each pod in the namespace requests",
+        /*
+         * Quoted: unquoted, `[*]` is a glob that zsh refuses to run when it
+         * matches no file.
+         */
+        command: `kubectl get pods${namespaceFlag} -o custom-columns='NAME:.metadata.name,CPU_REQUESTS:.spec.containers[*].resources.requests.cpu,MEMORY_REQUESTS:.spec.containers[*].resources.requests.memory,NODE:.spec.nodeName'`,
+      },
+      {
+        purpose: "The namespace's workloads and how many replicas each runs",
+        command: `kubectl get deployments,statefulsets,daemonsets${namespaceFlag}`,
+      },
+    ];
+  }
+
+  /*
+   * A cluster costs what its nodes cost, and idle spend is node capacity
+   * nothing uses: the nodes, their machine types and when each joined (a
+   * scale-up shows as the newest at the bottom), then how much of each is in
+   * use. Neither command takes the cluster's name: kubectl reads the cluster
+   * from its current context, as every command here does.
+   */
+  private static kubernetesClusterCommands(): Array<SeriesDebugCommand> {
+    return [
+      {
+        purpose:
+          "The cluster's nodes with their machine type and zone, the newest last",
+        command: `kubectl get nodes -L node.kubernetes.io/instance-type -L topology.kubernetes.io/zone --sort-by=.metadata.creationTimestamp`,
+      },
+      {
+        purpose: "Live CPU and memory use of each node",
+        command: `kubectl top nodes`,
+      },
+    ];
   }
 
   private static containerCommands(input: {
