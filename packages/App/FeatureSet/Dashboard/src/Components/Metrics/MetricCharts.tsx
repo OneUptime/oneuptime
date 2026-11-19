@@ -1132,7 +1132,7 @@ function getPercentAxisRange(
   return { min: observedMin, max: Math.max(observedMax, baseline) };
 }
 
-// A member's series with every value read in the chart's unit.
+// A member's series with every value read in the unit of the axis it is on.
 function toChartUnitSeries(
   series: Array<SeriesPoint>,
   reading: OverlayUnitReading,
