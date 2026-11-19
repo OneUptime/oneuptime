@@ -355,6 +355,7 @@ import PrivateRecordPublicNotes, {
   PrivateRecordKind,
 } from "../../../Types/StatusPage/PrivateRecordPublicNotes";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import { answerPublicNoteReach } from "./PublicNoteReachAnswers";
 
 /*
  * Reads the page makes that these tests leave unanswered: refused at
@@ -723,6 +724,8 @@ function createdModelType(index: number = 0): ModelClass {
 }
 
 beforeEach(() => {
+  // Whether a status page shows the event: one does, and notifies (#9735).
+  answerPublicNoteReach();
   store.clear();
   window.localStorage.clear();
   currentPermissions = [Permission.ProjectOwner];
