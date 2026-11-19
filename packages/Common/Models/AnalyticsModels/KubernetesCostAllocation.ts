@@ -597,6 +597,96 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * Which engine priced the row and where its prices came from (#9633,
+     * #9634): what the cost agent said of the shipment that carried it, read
+     * through Common/Types/Kubernetes/KubernetesCostPricing. Every hour says
+     * how it was priced, and the Costs page and the overview's Cost card
+     * read the newest row's. Empty (and false) on rows from an agent older
+     * than these columns, and on rows stored before them.
+     */
+    const costEngineColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "costEngine",
+      isLowCardinality: true,
+      title: "Cost Engine",
+      description:
+        'The cost engine that priced this row: "OpenCost" or "Kubecost". Empty when the agent could not tell, or is older than this column.',
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const costEngineServiceColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "costEngineService",
+        isLowCardinality: true,
+        title: "Cost Engine Service",
+        description:
+          "The cluster's own cost engine the agent found and read this row from, as namespace/name of its Service. Empty when the agent read the engine the chart bundled, or one named in cost.engine.url.",
+        required: true,
+        defaultValue: "",
+        type: TableColumnType.Text,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    const bundledEngineUnusedColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "bundledEngineUnused",
+        title: "Bundled Engine Unused",
+        description:
+          "Whether the chart bundled an OpenCost this row was not priced by, because the agent found the cluster's own engine and read that: a second engine the cluster need not run (cost.engine.url: auto stops bundling it).",
+        required: true,
+        defaultValue: false,
+        type: TableColumnType.Boolean,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    const pricingSourceColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "pricingSource",
+      isLowCardinality: true,
+      title: "Pricing Source",
+      description:
+        "Where the engine's prices for this row came from: list-prices (a cloud's public list prices), rate-card (rates someone set), default-rates (the engine's built-in default rates) or unknown. Empty on rows from an agent older than this column.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const pricingProviderColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "pricingProvider",
+        isLowCardinality: true,
+        title: "Pricing Provider",
+        description:
+          'The cloud whose list prices priced this row, as the engine names it ("AWS", "GCP", "Azure", ...). Empty unless pricingSource is list-prices.',
+        required: true,
+        defaultValue: "",
+        type: TableColumnType.Text,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
@@ -646,6 +736,11 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
         currencyColumn,
         shipmentIdColumn,
         shipmentChunkColumn,
+        costEngineColumn,
+        costEngineServiceColumn,
+        bundledEngineUnusedColumn,
+        pricingSourceColumn,
+        pricingProviderColumn,
         retentionDateColumn,
       ],
       sortKeys: [
@@ -983,6 +1078,46 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
 
   public set efficiencyWeight(v: number | undefined) {
     this.setColumnValue("efficiencyWeight", v);
+  }
+
+  public get costEngine(): string | undefined {
+    return this.getColumnValue("costEngine") as string | undefined;
+  }
+
+  public set costEngine(v: string | undefined) {
+    this.setColumnValue("costEngine", v);
+  }
+
+  public get costEngineService(): string | undefined {
+    return this.getColumnValue("costEngineService") as string | undefined;
+  }
+
+  public set costEngineService(v: string | undefined) {
+    this.setColumnValue("costEngineService", v);
+  }
+
+  public get bundledEngineUnused(): boolean | undefined {
+    return this.getColumnValue("bundledEngineUnused") as boolean | undefined;
+  }
+
+  public set bundledEngineUnused(v: boolean | undefined) {
+    this.setColumnValue("bundledEngineUnused", v);
+  }
+
+  public get pricingSource(): string | undefined {
+    return this.getColumnValue("pricingSource") as string | undefined;
+  }
+
+  public set pricingSource(v: string | undefined) {
+    this.setColumnValue("pricingSource", v);
+  }
+
+  public get pricingProvider(): string | undefined {
+    return this.getColumnValue("pricingProvider") as string | undefined;
+  }
+
+  public set pricingProvider(v: string | undefined) {
+    this.setColumnValue("pricingProvider", v);
   }
 
   public get weightedEfficiency(): number | undefined {

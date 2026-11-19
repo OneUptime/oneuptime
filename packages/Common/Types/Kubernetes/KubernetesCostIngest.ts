@@ -1,3 +1,5 @@
+import { KubernetesCostEngineInfo } from "./KubernetesCostPricing";
+
 /*
  * Wire contract for POST /kubernetes-cost/ingest — the payload the
  * Kubernetes agent's cost poller ships after querying an in-cluster cost
@@ -85,6 +87,13 @@ export interface KubernetesCostIngestPayload {
   clusterName: string;
   /** Currency code of all cost figures (e.g. "USD"). Optional. */
   currency?: string | undefined;
+
+  /*
+   * Which engine priced these rows and where its prices come from
+   * (KubernetesCostPricing). Absent on agents older than #9633; read
+   * through readKubernetesCostEngineInfo, never trusted as sent.
+   */
+  costEngine?: KubernetesCostEngineInfo | undefined;
 
   /*
    * Identity of one shipment — the agent's delivery of ONE window — and this

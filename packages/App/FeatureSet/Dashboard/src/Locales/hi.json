@@ -57650,5 +57650,20 @@
   "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "चुनी गई सीमा में इस क्लस्टर के वर्कलोड ने अनुरोधित CPU और मेमोरी का कितना हिस्सा इस्तेमाल किया, उस CPU और मेमोरी की लागत के अनुसार भार देकर। निष्क्रिय क्षमता नहीं गिनी जाती। 70% से हरा, 40% से नीचे लाल।",
   "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "चुनी गई सीमा में अनुरोधित CPU और मेमोरी का कितना हिस्सा इस्तेमाल हुआ, उस CPU और मेमोरी की लागत के अनुसार भार देकर; 100% से ऊपर का मतलब है कि अनुरोध से ज़्यादा इस्तेमाल हुआ। 70% से हरा, 40% से नीचे लाल: कम मान का मतलब है ऐसे अनुरोधों के लिए भुगतान जो इस्तेमाल नहीं हुए।",
   "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "पिछले 24 घंटों में वर्कलोड ने अपने अनुरोधित CPU और मेमोरी का कितना हिस्सा इस्तेमाल किया, उस CPU और मेमोरी की लागत के अनुसार भार देकर, जैसे लागत पेज गिनता है; 100% से ऊपर का मतलब है अनुरोध से ज़्यादा। 70% से हरा, 40% से नीचे लाल।",
-  "Weighted Efficiency": "भारित दक्षता"
+  "Weighted Efficiency": "भारित दक्षता",
+  "Bundled Engine Unused": "बंडल किया गया इंजन अप्रयुक्त",
+  "Cost Engine": "लागत इंजन",
+  "Cost Engine Service": "लागत इंजन सर्विस",
+  "OpenCost recognised no cloud here, so it prices every node at its built-in default rates, which can be far from what your hardware costs. A rate card of your own replaces them.": "OpenCost को यहाँ कोई क्लाउड नहीं मिला, इसलिए वह हर नोड की कीमत अपनी बिल्ट-इन डिफ़ॉल्ट दरों पर लगाता है, जो आपके हार्डवेयर की असली लागत से काफ़ी अलग हो सकती हैं। आपकी अपनी दरें इनकी जगह ले लेती हैं।",
+  "Priced by your {{engine}} ({{service}})": "आपके {{engine}} ({{service}}) द्वारा तय कीमतें",
+  "Prices: OpenCost's default rates. {{link}}": "कीमतें: OpenCost की डिफ़ॉल्ट दरें। {{link}}",
+  "Prices: your rate card": "कीमतें: आपकी अपनी दरें",
+  "Prices: {{provider}} list prices": "कीमतें: {{provider}} की सूची कीमतें",
+  "Pricing Provider": "कीमत प्रदाता",
+  "Pricing Source": "कीमतों का स्रोत",
+  "Set your own rates": "अपनी दरें तय करें",
+  "The bundled OpenCost is not needed": "बंडल किए गए OpenCost की ज़रूरत नहीं है",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Stop running the OpenCost and Prometheus the agent bundled:": "यह क्लस्टर अपना {{engine}} ({{service}}) चलाता है, और लागत एजेंट उसी को पढ़ता है। एजेंट के साथ बंडल किए गए OpenCost और Prometheus को बंद करें:",
+  "Your cost engine prices the nodes at rates someone set for it, such as the chart's cost.opencost.customPricing.": "आपका लागत इंजन नोड की कीमत उन दरों पर लगाता है जो किसी ने उसके लिए तय की हैं, जैसे चार्ट का cost.opencost.customPricing।",
+  "Your cost engine prices the nodes at the cloud's public list prices: your discounts, savings plans and committed use are not in them.": "आपका लागत इंजन नोड की कीमत क्लाउड की सार्वजनिक सूची कीमतों पर लगाता है: आपकी छूट, Savings Plans और प्रतिबद्ध उपयोग इनमें शामिल नहीं हैं।"
 }

@@ -57650,5 +57650,20 @@
   "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "Hoeveel van de aangevraagde CPU en het aangevraagde geheugen de workloads van dit cluster in het geselecteerde bereik hebben gebruikt, gewogen naar wat die CPU en dat geheugen kostten. Inactieve capaciteit telt niet mee. Groen vanaf 70%, rood onder 40%.",
   "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "Hoeveel van de aangevraagde CPU en het aangevraagde geheugen in het geselecteerde bereik is gebruikt, gewogen naar wat die CPU en dat geheugen kostten; boven 100% betekent dat er meer is gebruikt dan aangevraagd. Groen vanaf 70%, rood onder 40%: laag betekent betalen voor ongebruikte requests.",
   "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "Hoeveel van hun aangevraagde CPU en geheugen de workloads in de afgelopen 24 uur hebben gebruikt, gewogen naar wat die CPU en dat geheugen kostten, zoals de pagina Kosten het telt; boven 100% betekent meer dan aangevraagd. Groen vanaf 70%, rood onder 40%.",
-  "Weighted Efficiency": "Gewogen efficiëntie"
+  "Weighted Efficiency": "Gewogen efficiëntie",
+  "Bundled Engine Unused": "Meegeleverde engine ongebruikt",
+  "Cost Engine": "Kosten-engine",
+  "Cost Engine Service": "Service van de kosten-engine",
+  "OpenCost recognised no cloud here, so it prices every node at its built-in default rates, which can be far from what your hardware costs. A rate card of your own replaces them.": "OpenCost herkende hier geen cloud en prijst daarom elke node tegen zijn ingebouwde standaardtarieven, die ver kunnen liggen van wat uw hardware kost. Uw eigen tarieven vervangen ze.",
+  "Priced by your {{engine}} ({{service}})": "Geprijsd door uw {{engine}} ({{service}})",
+  "Prices: OpenCost's default rates. {{link}}": "Prijzen: standaardtarieven van OpenCost. {{link}}",
+  "Prices: your rate card": "Prijzen: uw eigen tarieven",
+  "Prices: {{provider}} list prices": "Prijzen: lijstprijzen van {{provider}}",
+  "Pricing Provider": "Prijsleverancier",
+  "Pricing Source": "Prijsbron",
+  "Set your own rates": "Eigen tarieven instellen",
+  "The bundled OpenCost is not needed": "De meegeleverde OpenCost is niet nodig",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Stop running the OpenCost and Prometheus the agent bundled:": "Dit cluster draait een eigen {{engine}} ({{service}}), en de kostenagent leest die. Stop de OpenCost en Prometheus die de agent meebracht:",
+  "Your cost engine prices the nodes at rates someone set for it, such as the chart's cost.opencost.customPricing.": "Uw kosten-engine prijst de nodes tegen tarieven die iemand ervoor heeft ingesteld, zoals cost.opencost.customPricing van de chart.",
+  "Your cost engine prices the nodes at the cloud's public list prices: your discounts, savings plans and committed use are not in them.": "Uw kosten-engine prijst de nodes tegen de openbare lijstprijzen van de cloud: uw kortingen, Savings Plans en gebruikstoezeggingen zitten er niet in."
 }

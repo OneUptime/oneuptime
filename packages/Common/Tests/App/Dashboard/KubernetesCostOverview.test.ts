@@ -15,6 +15,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const mockAggregate: MockFunction = getJestMockFunction();
+const mockGetList: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   return {
@@ -22,6 +23,9 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
     default: {
       aggregate: (...args: Array<unknown>) => {
         return mockAggregate(...args);
+      },
+      getList: (...args: Array<unknown>) => {
+        return mockGetList(...args);
       },
     },
   };
@@ -343,6 +347,8 @@ describe("fetchKubernetesCostOverview", () => {
   test("makes five reads of the cluster's cost rows, all at once", async () => {
     mockAggregate.mockReset();
     mockAggregate.mockResolvedValue({ data: [] } as never);
+    mockGetList.mockReset();
+    mockGetList.mockResolvedValue({ data: [], count: 0 } as never);
 
     const clusterId: ObjectID = new ObjectID(
       "0193c0de-8888-4aaa-8bbb-000000000008",
@@ -406,5 +412,72 @@ describe("fetchKubernetesCostOverview", () => {
     expect(reads[2].groupBy).toBeUndefined();
     expect(reads[3].groupBy).toBeUndefined();
     expect(reads[4].groupBy).toBeUndefined();
+  });
+});
+
+/*
+ * #9633 / #9634: the card says how the cluster is priced, from the newest
+ * hour of the week its run-rate reads.
+ */
+describe("fetchKubernetesCostOverview reads how the cluster is priced", () => {
+  test("reads the newest row of the last 7 days for its engine and prices", async () => {
+    mockAggregate.mockReset();
+    mockAggregate.mockResolvedValue({ data: [] } as never);
+    mockGetList.mockReset();
+
+    const { default: KubernetesCostAllocation } = jest.requireActual(
+      "../../../Models/AnalyticsModels/KubernetesCostAllocation",
+    ) as { default: new () => any };
+
+    const row: any = new KubernetesCostAllocation();
+    row.setColumnValue("costEngine", "OpenCost");
+    row.setColumnValue("pricingSource", "list-prices");
+    row.setColumnValue("pricingProvider", "AWS");
+
+    mockGetList.mockResolvedValue({ data: [row], count: 1 } as never);
+
+    const clusterId: ObjectID = new ObjectID(
+      "0193c0de-8888-4aaa-8bbb-000000000008",
+    );
+
+    const overview: KubernetesCostOverview = await fetchKubernetesCostOverview({
+      kubernetesClusterId: clusterId,
+      now: NOW,
+    });
+
+    expect(overview.engine).toEqual({
+      engine: "OpenCost",
+      service: "",
+      bundledEngineUnused: false,
+      pricingSource: "list-prices",
+      pricingProvider: "AWS",
+    });
+
+    const request: any = mockGetList.mock.calls[0]![0];
+
+    expect(request.query.kubernetesClusterId).toBe(clusterId.toString());
+    expect(request.query.windowStart.startValue.getTime()).toBe(
+      NOW.getTime() - 7 * 24 * HOUR_MS,
+    );
+    expect(request.query.windowStart.endValue.getTime()).toBe(NOW.getTime());
+  });
+
+  test("still reads the figures when how they were priced cannot be read", async () => {
+    mockAggregate.mockReset();
+    mockAggregate.mockResolvedValue({ data: [] } as never);
+    mockGetList.mockReset();
+    mockGetList.mockRejectedValue(new Error("Server Error") as never);
+
+    const overview: KubernetesCostOverview = await fetchKubernetesCostOverview({
+      kubernetesClusterId: new ObjectID("0193c0de-8888-4aaa-8bbb-000000000008"),
+      now: NOW,
+    });
+
+    expect(overview.engine).toBeNull();
+    expect(overview.hasData).toBe(false);
+  });
+
+  test("buildKubernetesCostOverview carries the engine it is handed, and none when it is not", () => {
+    expect(build({}).engine).toBeNull();
   });
 });

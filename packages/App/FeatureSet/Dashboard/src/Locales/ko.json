@@ -57650,5 +57650,20 @@
   "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "선택한 범위에서 이 클러스터의 워크로드가 요청한 CPU와 메모리 중 실제로 사용한 비율로, 해당 CPU와 메모리의 비용에 따라 가중치를 둡니다. 유휴 용량은 포함하지 않습니다. 70% 이상이면 녹색, 40% 미만이면 빨간색입니다.",
   "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "선택한 범위에서 요청한 CPU와 메모리 중 실제로 사용한 비율로, 해당 CPU와 메모리의 비용에 따라 가중치를 둡니다. 100%를 넘으면 요청보다 많이 사용했다는 뜻입니다. 70% 이상이면 녹색, 40% 미만이면 빨간색이며, 값이 낮으면 사용하지 않는 요청에 비용을 내고 있다는 뜻입니다.",
   "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "지난 24시간 동안 워크로드가 요청한 CPU와 메모리 중 실제로 사용한 비율로, 비용 페이지와 같은 방식으로 해당 CPU와 메모리의 비용에 따라 가중치를 둡니다. 100%를 넘으면 요청보다 많이 사용했다는 뜻입니다. 70% 이상이면 녹색, 40% 미만이면 빨간색입니다.",
-  "Weighted Efficiency": "가중 효율"
+  "Weighted Efficiency": "가중 효율",
+  "Bundled Engine Unused": "번들 엔진 미사용",
+  "Cost Engine": "비용 엔진",
+  "Cost Engine Service": "비용 엔진 서비스",
+  "OpenCost recognised no cloud here, so it prices every node at its built-in default rates, which can be far from what your hardware costs. A rate card of your own replaces them.": "OpenCost가 이곳에서 클라우드를 인식하지 못해 모든 노드를 기본 제공 단가로 계산합니다. 이 단가는 실제 하드웨어 비용과 크게 다를 수 있습니다. 직접 설정한 단가가 이를 대체합니다.",
+  "Priced by your {{engine}} ({{service}})": "사용 중인 {{engine}}({{service}})의 가격",
+  "Prices: OpenCost's default rates. {{link}}": "가격: OpenCost 기본 단가. {{link}}",
+  "Prices: your rate card": "가격: 직접 설정한 단가",
+  "Prices: {{provider}} list prices": "가격: {{provider}} 정가",
+  "Pricing Provider": "가격 제공자",
+  "Pricing Source": "가격 출처",
+  "Set your own rates": "단가 직접 설정",
+  "The bundled OpenCost is not needed": "번들로 설치된 OpenCost는 필요하지 않습니다",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Stop running the OpenCost and Prometheus the agent bundled:": "이 클러스터는 자체 {{engine}}({{service}})을(를) 실행하고 있으며, 비용 에이전트가 이를 읽습니다. 에이전트가 함께 설치한 OpenCost와 Prometheus를 중지하세요:",
+  "Your cost engine prices the nodes at rates someone set for it, such as the chart's cost.opencost.customPricing.": "비용 엔진이 차트의 cost.opencost.customPricing처럼 누군가 설정한 단가로 노드를 계산합니다.",
+  "Your cost engine prices the nodes at the cloud's public list prices: your discounts, savings plans and committed use are not in them.": "비용 엔진이 클라우드의 공개 정가로 노드를 계산합니다. 할인, Savings Plans, 약정 사용은 포함되지 않습니다."
 }

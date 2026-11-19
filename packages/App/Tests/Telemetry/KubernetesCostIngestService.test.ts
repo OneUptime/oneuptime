@@ -4,6 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
+import { KubernetesCostPricingSource } from "Common/Types/Kubernetes/KubernetesCostPricing";
 import { keyForKubernetesCluster } from "Common/Utils/Telemetry/EntityKey";
 import {
   KubernetesCostAllocationIngestRow,
@@ -483,6 +484,80 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
     expect(rows[1]!["totalEfficiency"]).toBe(0);
     expect(rows[1]!["efficiencyWeight"]).toBeCloseTo(0.4, 12);
     expect(rows[1]!["weightedEfficiency"]).toBe(0);
+  });
+
+  /*
+   * #9633 / #9634: which engine priced a shipment and where its prices come
+   * from, stamped on every row so each hour says how it was priced.
+   */
+  test("stamps every row with the engine that priced it and where its prices come from", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        costEngine: {
+          engine: "Kubecost",
+          service: "kubecost/kubecost-cost-analyzer",
+          bundledEngineUnused: true,
+          pricingSource: KubernetesCostPricingSource.ListPrices,
+          pricingProvider: "AWS",
+        },
+        allocations: [
+          makeAllocation(),
+          makeAllocation({ namespace: "__idle__", podName: "" }),
+        ],
+      }),
+    );
+
+    for (const row of getSubmittedRows()) {
+      expect(row["costEngine"]).toBe("Kubecost");
+      expect(row["costEngineService"]).toBe("kubecost/kubecost-cost-analyzer");
+      expect(row["bundledEngineUnused"]).toBe(true);
+      expect(row["pricingSource"]).toBe("list-prices");
+      expect(row["pricingProvider"]).toBe("AWS");
+    }
+  });
+
+  test("an agent that says nothing of its engine leaves the columns empty", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    const row: JSONObject = getSubmittedRows()[0]!;
+
+    expect(row["costEngine"]).toBe("");
+    expect(row["costEngineService"]).toBe("");
+    expect(row["bundledEngineUnused"]).toBe(false);
+    expect(row["pricingSource"]).toBe("");
+    expect(row["pricingProvider"]).toBe("");
+  });
+
+  test("keeps only what an agent could have said of its engine", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        // What a broken or hostile agent could send: none of it is stored.
+        costEngine: {
+          engine: "SomethingElse",
+          service: "not a service",
+          bundledEngineUnused: "yes",
+          pricingSource: "free",
+          pricingProvider: "AWS",
+        } as unknown as KubernetesCostIngestPayload["costEngine"],
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    const row: JSONObject = getSubmittedRows()[0]!;
+
+    expect(row["costEngine"]).toBe("");
+    expect(row["costEngineService"]).toBe("");
+    expect(row["bundledEngineUnused"]).toBe(false);
+    // A source the server does not know is unknown, and names no cloud.
+    expect(row["pricingSource"]).toBe("unknown");
+    expect(row["pricingProvider"]).toBe("");
   });
 
   test("sanitizes numbers: non-finite and non-numeric become 0, numeric strings parse", async () => {

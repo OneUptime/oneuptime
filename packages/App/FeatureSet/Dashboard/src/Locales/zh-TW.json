@@ -57650,5 +57650,20 @@
   "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.": "此叢集的工作負載在所選範圍內實際使用了其所請求的 CPU 和記憶體的多少比例，依這些 CPU 和記憶體的成本加權。不計入閒置容量。70% 以上為綠色，低於 40% 為紅色。",
   "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.": "在所選範圍內，請求的 CPU 和記憶體中實際使用的比例，依這些 CPU 和記憶體的成本加權；超過 100% 表示使用量多於請求量。70% 以上為綠色，低於 40% 為紅色：數值低表示你在為未使用的請求付費。",
   "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.": "工作負載在過去 24 小時內實際使用了其所請求的 CPU 和記憶體的多少比例，依這些 CPU 和記憶體的成本加權，與成本頁面的計算方式相同；超過 100% 表示使用量多於請求量。70% 以上為綠色，低於 40% 為紅色。",
-  "Weighted Efficiency": "加權效率"
+  "Weighted Efficiency": "加權效率",
+  "Bundled Engine Unused": "隨附的引擎未使用",
+  "Cost Engine": "成本引擎",
+  "Cost Engine Service": "成本引擎服務",
+  "OpenCost recognised no cloud here, so it prices every node at its built-in default rates, which can be far from what your hardware costs. A rate card of your own replaces them.": "OpenCost 在這裡沒有辨識出任何雲端，因此依其內建的預設費率為每個節點計價，這可能與你的硬體實際成本相差甚遠。設定你自己的費率即可取代它們。",
+  "Priced by your {{engine}} ({{service}})": "由你的 {{engine}}（{{service}}）計價",
+  "Prices: OpenCost's default rates. {{link}}": "價格：OpenCost 的預設費率。{{link}}",
+  "Prices: your rate card": "價格：你自己的費率",
+  "Prices: {{provider}} list prices": "價格：{{provider}} 牌價",
+  "Pricing Provider": "價格提供者",
+  "Pricing Source": "價格來源",
+  "Set your own rates": "設定你自己的費率",
+  "The bundled OpenCost is not needed": "不需要隨附的 OpenCost",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Stop running the OpenCost and Prometheus the agent bundled:": "此叢集執行著自己的 {{engine}}（{{service}}），成本代理讀取的就是它。請停止執行代理隨附的 OpenCost 和 Prometheus：",
+  "Your cost engine prices the nodes at rates someone set for it, such as the chart's cost.opencost.customPricing.": "你的成本引擎依有人為其設定的費率為節點計價，例如 Chart 的 cost.opencost.customPricing。",
+  "Your cost engine prices the nodes at the cloud's public list prices: your discounts, savings plans and committed use are not in them.": "你的成本引擎依雲端的公開牌價為節點計價：其中不包括你的折扣、Savings Plans 和承諾使用量。"
 }

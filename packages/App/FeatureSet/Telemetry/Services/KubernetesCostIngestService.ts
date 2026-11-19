@@ -45,6 +45,10 @@ import {
   getKubernetesCostEfficiencyWeight,
   getKubernetesCostWeightedEfficiency,
 } from "Common/Types/Kubernetes/KubernetesCostEfficiency";
+import {
+  KubernetesCostEngineInfo,
+  readKubernetesCostEngineInfo,
+} from "Common/Types/Kubernetes/KubernetesCostPricing";
 
 /** Rows per fan-in submission — same order of magnitude as exceptions. */
 const KUBERNETES_COST_FLUSH_BATCH_SIZE: number = 500;
@@ -202,6 +206,14 @@ export default class KubernetesCostIngestService {
 
     const currency: string = this.sanitizeString(payload.currency);
 
+    /*
+     * Which engine priced these rows and where its prices come from, as the
+     * agent says (#9633, #9634): stamped on every row, so each hour says how
+     * it was priced. Null from an agent that says nothing.
+     */
+    const costEngine: KubernetesCostEngineInfo | null =
+      readKubernetesCostEngineInfo(payload.costEngine);
+
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(ingestionDate);
@@ -268,6 +280,7 @@ export default class KubernetesCostIngestService {
         clusterName: clusterIdentifier,
         k8sClusterEntityKey,
         currency,
+        costEngine,
         shipmentId,
         shipmentChunk,
         retentionDays,
@@ -567,6 +580,7 @@ export default class KubernetesCostIngestService {
     clusterName: string;
     k8sClusterEntityKey: string;
     currency: string;
+    costEngine?: KubernetesCostEngineInfo | null | undefined;
     shipmentId: string;
     shipmentChunk: number;
     retentionDays: number;
@@ -655,6 +669,11 @@ export default class KubernetesCostIngestService {
       currency: data.currency,
       shipmentId: data.shipmentId,
       shipmentChunk: data.shipmentChunk,
+      costEngine: data.costEngine?.engine || "",
+      costEngineService: data.costEngine?.service || "",
+      bundledEngineUnused: data.costEngine?.bundledEngineUnused === true,
+      pricingSource: data.costEngine?.pricingSource || "",
+      pricingProvider: data.costEngine?.pricingProvider || "",
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
 
