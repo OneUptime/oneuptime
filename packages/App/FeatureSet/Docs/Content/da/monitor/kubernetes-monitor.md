@@ -86,7 +86,7 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 
 | Kategori | Metrikker |
 | --- | --- |
-| Pod | Pod'ens CPU-forbrug, Pod-hukommelsesforbrug, Pod'ens fase (kode), Pod'ens filsystemforbrug, Pod'ens udnyttelse af hukommelsesgrænsen, Pod'ens udnyttelse af CPU-grænsen, Pod'ens netværks-I/O (akkumuleret, begge retninger) |
+| Pod | Pod'ens CPU-forbrug, Pod-hukommelsesforbrug, Pod'ens fase (kode), Pod'ens filsystemforbrug, Volumenkapacitet, Ledig plads på volumen, Pod'ens udnyttelse af hukommelsesgrænsen, Pod'ens udnyttelse af CPU-grænsen, Pod'ens netværks-I/O (akkumuleret, begge retninger) |
 | Node | Nodens CPU-forbrug, Nodens allokerbare CPU, Node-hukommelsesforbrug, Nodens working set for hukommelse, Node-filsystemforbrug, Nodens allokerbare hukommelse, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgængelige filsystem |
 | Container | Containerens genstarter, Containerens genstarter (stigning), Containerens CPU-grænse, Containerens CPU-anmodning, Containerens hukommelsesgrænse, Containerens hukommelsesanmodning, Container klar |
 | Arbejdsbyrde | Deploymentens tilgængelige replikaer, Deploymentens ønskede replikaer, DaemonSettets ønskede noder, DaemonSettets fejlplanlagte noder, DaemonSettets klare noder, StatefulSettets ønskede replikaer, StatefulSettets klare replikaer, Jobbets mislykkede pods, Jobbets mislykkede pods (stigning), Jobbets vellykkede pods |
@@ -150,6 +150,7 @@ Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efte
 | API Server Request Saturation | Kontrolplan | API-serveren holder 200 eller flere igangværende forespørgsler i hele vinduet | Kritisk |
 | Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Advarsel |
 | High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 90 % fuldt | Advarsel |
+| PVC Almost Full | Lagerplads | Et persistent volume claim er mere end 90 % fuldt | Advarsel |
 | DaemonSet Pods Not Ready | Arbejdsbyrde | Et DaemonSet har noder uden en klar pod fra det i 15 minutter | Advarsel |
 | DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Advarsel |
 | High Node CPU Request Commitment | Node | En nodes samlede CPU-requests fra containere overstiger 90 % af dens allokerbare CPU | Advarsel |

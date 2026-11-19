@@ -34,8 +34,25 @@ data:
           {{- end }}
         extra_metadata_labels:
           - container.id
-        k8s_api_config:
-          auth_type: serviceAccount
+          {{- if .Values.kubeletstats.volumeMetrics.enabled }}
+          # Which claim a volume's usage belongs to. The kubelet's stats name a
+          # volume only as its pod calls it ("data", "kube-api-access-x7k2p");
+          # with this the receiver reads the pod's spec from the kubelet's pod
+          # list, which container.id already reads, and gives each volume its
+          # k8s.volume.type and, for a persistent volume claim, the claim's
+          # name: k8s.persistentvolumeclaim.name. OneUptime files the usage
+          # (k8s.volume.capacity, k8s.volume.available, k8s.volume.inodes*) under
+          # that claim, as its Persistent Volume Claims pages show, and the
+          # "PVC Almost Full" monitor template groups by it. Without it no
+          # volume names its claim.
+          - k8s.volume.type
+          {{- end }}
+        # No k8s_api_config. Set, the receiver also asks the API server for
+        # each claim's PersistentVolume, then names an in-tree AWS, GCE or
+        # local disk's k8s.volume.type for the disk instead of
+        # persistentVolumeClaim, and drops the volume's metrics whenever that
+        # lookup fails. OneUptime finds a claim by its name and type, which the
+        # pod list already gives, and reads nothing else that lookup adds.
         # One `metrics:` map for every optional metric this receiver turns
         # on. Keep it that way: a second `metrics:` key under kubeletstats
         # is a duplicate mapping key, and the collector refuses the config.

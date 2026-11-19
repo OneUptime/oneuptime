@@ -410,7 +410,7 @@ In entrambe le modalità gli eventi su più righe vengono ricomposti prima del f
 Scarta alcune metriche rumorose (una denylist, di solito ciò che vuoi):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Invia solo un insieme fisso (una allowlist: tutto il resto viene scartato):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 La cardinalità, cioè il numero di serie distinte, conta quanto la frequenza, perché ogni serie viene memorizzata e fatturata per conto proprio.
 
 - cAdvisor usa di proposito una allowlist. Il receiver cAdvisor (attivo per impostazione predefinita) può emettere centinaia di metriche; il chart inoltra solo i contatori di throttling della CPU e di OOM kill di `cadvisor.metricsAllowlist`, per i tuoi grafici e monitor di metriche: nessun modello integrato li legge. Tieni la lista corta: ogni voce viene mantenuta per container, quindi una metrica in più si moltiplica per il numero di container del cluster. kube-state-metrics è disattivato per impostazione predefinita; se lo attivi (`kubeStateMetrics.enabled=true`), la sua `kubeStateMetrics.metricsAllowlist` funziona allo stesso modo, e ogni voce deve corrispondere al nome intero di una metrica.
-- Le metriche dei volumi per PVC (`kubeletstats.volumeMetrics.enabled`, attive per impostazione predefinita) emettono una serie per PVC per pod: va bene per la maggior parte dei cluster, ma è molto sui carichi di lavoro con stato (Kafka, database) con migliaia di PVC. Lì disattivale, se non controlli lo spazio su disco dei PVC, con `--set kubeletstats.volumeMetrics.enabled=false`.
+- Le metriche dei volumi (`kubeletstats.volumeMetrics.enabled`, attive per impostazione predefinita) emettono poche serie per volume per pod, e alimentano l'uso, lo spazio libero e la capacità nelle pagine delle richieste di volume persistente e il modello PVC Almost Full: va bene per la maggior parte dei cluster, ma è molto sui carichi di lavoro con stato (Kafka, database) con migliaia di PVC. Lì disattivale, se non controlli lo spazio su disco dei PVC, con `--set kubeletstats.volumeMetrics.enabled=false`.
 - Le metriche di saturazione (`kubeletstats.utilizationMetrics.enabled`, attive per impostazione predefinita) aggiungono 8 famiglie derivate "% della request o del limit". Non costano raccolte aggiuntive, ma se non usi i monitor di CPU e memoria rispetto al limit, scartale con `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Scarta le metriche per nome con `filters.metrics.exclude`, che vale per tutti i receiver, per tutto ciò che le allowlist dei receiver non sanno esprimere (vedi [Includere o escludere metriche per nome](#includere-o-escludere-metriche-per-nome)):
 
@@ -1060,7 +1060,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Stringi ancora di più se serve: alza `minSeverity` a `ERROR`, aggiungi `metrics` agli ambiti di una regola di namespace, oppure imposta `ebpf.enabled=false` se invii già tracce dagli SDK OpenTelemetry.
 
 > [!CAUTION]
-> Fai attenzione a ciò che tagli. Alcuni monitor dipendono da segnali specifici: disattivare `kubeletstats.utilizationMetrics` silenzia i due modelli che controllano i pod rispetto ai limiti dei loro container, disattivare i log rimuove gli avvisi basati sui log, e disattivare `cadvisor` o `kubeletstats.volumeMetrics` rimuove le serie di throttling, OOM kill e PVC che i tuoi grafici e monitor di metriche possono leggere. `sampling.traces.percentage` non rimuove alcun monitor, ma ridimensiona quelli basati sugli span (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`), quindi ricalibra le loro soglie. Taglia i segnali su cui non agisci, non quelli che un monitor osserva.
+> Fai attenzione a ciò che tagli. Alcuni monitor dipendono da segnali specifici: disattivare `kubeletstats.utilizationMetrics` silenzia i due modelli che controllano i pod rispetto ai limiti dei loro container, disattivare i log rimuove gli avvisi basati sui log, disattivare `kubeletstats.volumeMetrics` silenzia il modello PVC Almost Full e lascia le pagine delle richieste senza il loro utilizzo, e disattivare `cadvisor` rimuove le serie di throttling e OOM kill che i tuoi grafici e monitor di metriche possono leggere. `sampling.traces.percentage` non rimuove alcun monitor, ma ridimensiona quelli basati sugli span (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`), quindi ricalibra le loro soglie. Taglia i segnali su cui non agisci, non quelli che un monitor osserva.
 
 ### Misura l'effetto
 

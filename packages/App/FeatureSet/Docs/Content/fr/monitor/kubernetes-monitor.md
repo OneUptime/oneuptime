@@ -86,7 +86,7 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 
 | Catégorie | Métriques |
 | --- | --- |
-| Pod | Consommation CPU du pod, Utilisation mémoire du pod, Phase du pod (code), Utilisation du système de fichiers du pod, Utilisation de la limite mémoire du pod, Utilisation de la limite CPU du pod, E/S réseau du pod (cumulées, deux sens) |
+| Pod | Consommation CPU du pod, Utilisation mémoire du pod, Phase du pod (code), Utilisation du système de fichiers du pod, Capacité du volume, Espace libre du volume, Utilisation de la limite mémoire du pod, Utilisation de la limite CPU du pod, E/S réseau du pod (cumulées, deux sens) |
 | Nœud | Consommation CPU du nœud, CPU allouable du nœud, Utilisation de la mémoire du nœud, Working set mémoire du nœud, Utilisation du système de fichiers du nœud, Mémoire allouable du nœud, Condition Ready du nœud, Condition MemoryPressure du nœud, Condition DiskPressure du nœud, Condition PIDPressure du nœud, Système de fichiers disponible du nœud |
 | Conteneur | Redémarrages du conteneur, Redémarrages du conteneur (hausse), Limite CPU du conteneur, Demande CPU du conteneur, Limite mémoire du conteneur, Demande mémoire du conteneur, Conteneur prêt |
 | Charge de travail | Réplicas disponibles du Deployment, Réplicas souhaités du Deployment, Nœuds souhaités du DaemonSet, Nœuds mal planifiés du DaemonSet, Nœuds prêts du DaemonSet, Réplicas souhaités du StatefulSet, Réplicas prêts du StatefulSet, Pods en échec du Job, Pods en échec du Job (hausse), Pods réussis du Job |
@@ -150,6 +150,7 @@ La liste de **Sur quoi alerter** présente ces modèles, regroupés par catégor
 | API Server Request Saturation | Plan de contrôle | Le serveur d'API maintient 200 requêtes en cours ou plus pendant toute la fenêtre | Critique |
 | Scheduler Backlog | Planification | La file des pods en attente du scheduler n'est pas vide pendant 5 minutes | Avertissement |
 | High Node Disk Usage | Stockage | Le système de fichiers d'un nœud est plein à plus de 90 % | Avertissement |
+| PVC Almost Full | Stockage | Une revendication de volume persistant est pleine à plus de 90 % | Avertissement |
 | DaemonSet Pods Not Ready | Charge de travail | Un DaemonSet a des nœuds sans aucun de ses pods prêt pendant 15 minutes | Avertissement |
 | DaemonSet Misscheduled Nodes | Charge de travail | Un DaemonSet exécute des pods sur des nœuds qui ne correspondent plus à son sélecteur de nœuds, à son affinité ou à ses tolérances | Avertissement |
 | High Node CPU Request Commitment | Nœud | La somme des requêtes CPU des conteneurs d'un nœud dépasse 90 % de son CPU allouable | Avertissement |

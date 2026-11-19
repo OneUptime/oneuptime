@@ -614,7 +614,7 @@ describe("VMware list pages: metric column headers", () => {
     expectNoInfoOn(["Name", "Host", "Cluster", "Resource Pool"]);
   });
 
-  test("Datastores: Used / Capacity", async () => {
+  test("Datastores: Used and Free", async () => {
     mockRowsByKind["Datastore"] = [
       inventoryRow({
         kind: "Datastore",
@@ -626,10 +626,13 @@ describe("VMware list pages: metric column headers", () => {
       }),
     ];
 
-    await renderList(DatastoresPage, "datastores", "Used / Capacity");
+    await renderList(DatastoresPage, "datastores", "Used");
 
     expect(await explainedLabels()).toEqual(
-      asDrawn([["Used / Capacity", D.datastoreListUsedCapacity]]),
+      asDrawn([
+        ["Used", D.datastoreListUsedCapacity],
+        ["Free", D.datastoreFree],
+      ]),
     );
   });
 

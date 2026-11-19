@@ -410,7 +410,7 @@ Mehrzeilige Ereignisse werden in beiden Modi vor dem Filtern wieder zusammengese
 Einige laute Metriken verwerfen (eine Denylist, meist das, was Sie wollen):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
 ```
 
 Nur eine feste Menge senden (eine Allowlist: alles andere wird verworfen):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Die Kardinalität, die Zahl unterschiedlicher Serien, zählt so viel wie die Häufigkeit, weil jede Serie für sich gespeichert und abgerechnet wird.
 
 - cAdvisor ist bewusst mit einer Allowlist versehen. Der Receiver cAdvisor (standardmäßig aktiv) kann Hunderte von Metriken ausgeben; das Chart leitet nur die Zähler für CPU-Drosselung und OOM-Kills in `cadvisor.metricsAllowlist` weiter, für Ihre eigenen Diagramme und Metrik-Monitore: Keine eingebaute Vorlage liest sie. Halten Sie die Liste kurz: Jeder Eintrag wird pro Container behalten, eine Metrik mehr multipliziert sich also mit der Zahl der Container im Cluster. kube-state-metrics ist standardmäßig aus; wenn Sie es einschalten (`kubeStateMetrics.enabled=true`), wirkt seine `kubeStateMetrics.metricsAllowlist` genauso, und jeder Eintrag muss den ganzen Namen einer Metrik treffen.
-- Volumenmetriken pro PVC (`kubeletstats.volumeMetrics.enabled`, standardmäßig aktiv) geben eine Serie pro PVC und Pod aus: für die meisten Cluster in Ordnung, viel auf zustandsbehafteten Workloads (Kafka, Datenbanken) mit Tausenden von PVCs. Schalten Sie sie dort ab, wenn Sie den PVC-Speicherplatz nicht beobachten, mit `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volumenmetriken (`kubeletstats.volumeMetrics.enabled`, standardmäßig aktiv) geben einige Serien pro Volume und Pod aus und füllen die belegten, freien und gesamten Werte auf den Seiten der Persistent Volume Claims und die Vorlage PVC Almost Full: für die meisten Cluster in Ordnung, viel auf zustandsbehafteten Workloads (Kafka, Datenbanken) mit Tausenden von PVCs. Schalten Sie sie dort ab, wenn Sie den PVC-Speicherplatz nicht beobachten, mit `--set kubeletstats.volumeMetrics.enabled=false`.
 - Sättigungsmetriken (`kubeletstats.utilizationMetrics.enabled`, standardmäßig aktiv) fügen 8 abgeleitete Familien „% von Request oder Limit“ hinzu. Sie kosten keinen zusätzlichen Scrape, aber wenn Sie die Monitore für CPU und Speicher im Verhältnis zum Limit nicht nutzen, verwerfen Sie sie mit `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Verwerfen Sie Metriken nach Namen mit `filters.metrics.exclude`, das alle Receiver umfasst, für alles, was die Allowlists der Receiver nicht ausdrücken können (siehe [Metriken nach Namen ein- oder ausschließen](#metriken-nach-namen-ein-oder-ausschließen)):
 
@@ -1060,7 +1060,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Verschärfen Sie bei Bedarf: Erhöhen Sie `minSeverity` auf `ERROR`, fügen Sie den Bereichen einer Namespace-Regel `metrics` hinzu oder setzen Sie `ebpf.enabled=false`, wenn Sie bereits Traces aus OpenTelemetry-SDKs senden.
 
 > [!CAUTION]
-> Achten Sie darauf, was Sie kürzen. Manche Monitore hängen von bestimmten Signalen ab: `kubeletstats.utilizationMetrics` abzuschalten bringt die beiden Vorlagen zum Schweigen, die Pods an ihren Container-Limits messen, Logs abzuschalten entfernt log-basierte Warnungen, und `cadvisor` oder `kubeletstats.volumeMetrics` abzuschalten entfernt die Serien zu Drosselung, OOM-Kills und PVCs, die Ihre eigenen Diagramme und Metrik-Monitore lesen können. `sampling.traces.percentage` entfernt keinen Monitor, verkleinert aber die spanbasierten (**Traces** auf `Span Count`, **Ausnahmen** auf `Exception Count`); passen Sie also deren Schwellen an. Kürzen Sie die Signale, nach denen Sie nicht handeln, nicht die, die ein Monitor beobachtet.
+> Achten Sie darauf, was Sie kürzen. Manche Monitore hängen von bestimmten Signalen ab: `kubeletstats.utilizationMetrics` abzuschalten bringt die beiden Vorlagen zum Schweigen, die Pods an ihren Container-Limits messen, Logs abzuschalten entfernt log-basierte Warnungen, `kubeletstats.volumeMetrics` abzuschalten bringt die Vorlage PVC Almost Full zum Schweigen und lässt die Seiten der Claims ohne ihre Belegung, und `cadvisor` abzuschalten entfernt die Serien zu Drosselung und OOM-Kills, die Ihre eigenen Diagramme und Metrik-Monitore lesen können. `sampling.traces.percentage` entfernt keinen Monitor, verkleinert aber die spanbasierten (**Traces** auf `Span Count`, **Ausnahmen** auf `Exception Count`); passen Sie also deren Schwellen an. Kürzen Sie die Signale, nach denen Sie nicht handeln, nicht die, die ein Monitor beobachtet.
 
 ### Die Wirkung messen
 

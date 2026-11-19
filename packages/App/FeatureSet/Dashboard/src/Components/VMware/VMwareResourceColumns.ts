@@ -26,10 +26,8 @@ import {
 } from "../../Pages/VMware/Utils/VMwareHealth";
 import {
   VMwareClusterUsage,
-  VMwareUsageTone,
   getVMwareClusterUsage,
   getVMwareCpuReadyPercentTone,
-  getVMwareDatastoreFullTone,
 } from "../../Pages/VMware/Utils/VMwarePartFacts";
 import { toInfrastructureResource } from "../../Pages/VMware/Utils/VMwareResourceUtils";
 
@@ -217,29 +215,6 @@ export function toVMwareListResources(
   return rows.map((row: VMwareResource): InfrastructureResource => {
     return toVMwareListResource(row, context);
   });
-}
-
-// A datastore's Used cell: red past 90% full, amber past 80%, as its alerts.
-export function getVMwareDatastoreUsedTone(
-  resource: InfrastructureResource,
-): ResourceColumnTone | undefined {
-  const reported: number | null = toVMwareNumber(
-    resource.additionalAttributes["diskPercent"],
-  );
-  const used: number | null = toVMwareNumber(
-    resource.additionalAttributes["diskBytes"],
-  );
-  const total: number | null = toVMwareNumber(
-    resource.additionalAttributes["maxDiskBytes"],
-  );
-  const percent: number | null =
-    reported !== null
-      ? reported
-      : used !== null && total !== null && total > 0
-        ? (used / total) * 100
-        : null;
-  const tone: VMwareUsageTone = getVMwareDatastoreFullTone(percent);
-  return tone === "positive" ? undefined : tone;
 }
 
 // A VM's CPU Ready cell: amber past 10%, as its alert and Needs attention.

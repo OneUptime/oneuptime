@@ -1,0 +1,73 @@
+# A persistent volume claim's used, free and capacity (issue #9539).
+#
+# The kubeletstats receiver's `volume` group sends each mounted volume's
+# k8s.volume.capacity, k8s.volume.available and inodes, but the kubelet's
+# stats name a volume only as its pod calls it ("data", "kube-api-access-x"),
+# never by its claim. Only with `k8s.volume.type` in extra_metadata_labels does
+# the receiver read the pod's spec and give a claim's volume
+# k8s.persistentvolumeclaim.name, the attribute OneUptime files the usage under
+# (OtelMetricsIngestService mirrors it onto the claim's row) and the PVC Almost
+# Full template groups by (KubernetesAlertTemplates.ts). The chart sent the
+# volume group with no such label: every volume's usage arrived, and none of it
+# could be told to belong to any claim, so the PVC pages showed only the size.
+# That shows up as missing data, never as a failed deploy, hence these renders.
+#
+# No k8s_api_config: with it the receiver asks the API server for each claim's
+# PersistentVolume, renames an in-tree AWS, GCE or local disk's k8s.volume.type
+# to the disk's, and drops the volume's metrics when that lookup fails.
+#
+# The patterns read the rendered collector config with the ConfigMap's own
+# indent stripped: `kubeletstats:` at 2 spaces, its keys at 4, list items at 6.
+# Each gap only consumes lines indented at least 4 deep, so it cannot leave the
+# kubeletstats receiver.
+suite: node collector names each volume's claim
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+tests:
+  - it: collects the volume group and labels each volume with its type and claim by default
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metric_groups:\\n      - node\\n      - pod\\n      - container\\n      - volume\\n"
+      # container.id stays: OneUptime resolves a container's metrics by it.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n(?:      #[^\\n]*\\n)*      - k8s\\.volume\\.type\\n"
+
+  - it: never asks the API server for a claim's PersistentVolume
+    set:
+      clusterName: prod-us
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    k8s_api_config:"
+
+  - it: leaves the label out with the volume group, which is the off switch
+    set:
+      clusterName: prod-us
+      kubeletstats.volumeMetrics.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - volume\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - k8s\\.volume\\.type\\n"
+      # The container's label is not the volume group's to take away.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n"
+
+  - it: labels the claim on the OpenShift preset too, whose node collector still talks to the kubelet
+    set:
+      clusterName: prod-us
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n(?:      #[^\\n]*\\n)*      - k8s\\.volume\\.type\\n"

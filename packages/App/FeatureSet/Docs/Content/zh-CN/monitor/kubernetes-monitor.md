@@ -86,7 +86,7 @@ flowchart TB
 
 | 类别 | 指标 |
 | --- | --- |
-| Pod | Pod CPU 使用量, Pod 内存使用, Pod 阶段（代码）, Pod 文件系统使用量, Pod 内存限制使用率, Pod CPU 限制使用率, Pod 网络 I/O（累计，双向） |
+| Pod | Pod CPU 使用量, Pod 内存使用, Pod 阶段（代码）, Pod 文件系统使用量, 卷容量, 卷可用空间, Pod 内存限制使用率, Pod CPU 限制使用率, Pod 网络 I/O（累计，双向） |
 | 节点 | 节点 CPU 使用量, 节点可分配 CPU, 节点内存使用率, 节点内存工作集, 节点文件系统使用率, 节点可分配内存, 节点 Ready 状况, 节点 MemoryPressure 状况, 节点 DiskPressure 状况, 节点 PIDPressure 状况, 节点文件系统可用空间 |
 | 容器 | 容器重启次数, 容器重启次数（增量）, 容器 CPU 限制, 容器 CPU 请求, 容器内存限制, 容器内存请求, 容器就绪 |
 | 工作负载 | Deployment 可用副本数, Deployment 期望副本数, DaemonSet 期望节点数, DaemonSet 错误调度的节点数, DaemonSet 就绪节点数, StatefulSet 期望副本数, StatefulSet 就绪副本数, Job 失败的 Pod 数, Job 失败的 Pod 数（增量）, Job 成功的 Pod 数 |
@@ -150,6 +150,7 @@ flowchart TB
 | API Server Request Saturation | 控制平面 | API 服务器在整个窗口内持有 200 个或更多正在处理的请求 | 严重 |
 | Scheduler Backlog | 正在调度 | 调度器的待处理 Pod 队列在 5 分钟内一直不为空 | 警告 |
 | High Node Disk Usage | 存储 | 节点的文件系统使用率超过 90% | 警告 |
+| PVC Almost Full | 存储 | 持久卷声明的使用率超过 90% | 警告 |
 | DaemonSet Pods Not Ready | 工作负载 | DaemonSet 在 15 分钟内一直有节点上没有它的就绪 Pod | 警告 |
 | DaemonSet Misscheduled Nodes | 工作负载 | DaemonSet 在不再匹配其节点选择器、亲和性或容忍度的节点上运行 Pod | 警告 |
 | High Node CPU Request Commitment | 节点 | 节点上容器的 CPU 请求总和超过其可分配 CPU 的 90% | 警告 |

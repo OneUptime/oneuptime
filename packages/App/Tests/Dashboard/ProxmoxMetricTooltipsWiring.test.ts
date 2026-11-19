@@ -718,9 +718,18 @@ describe("list pages", () => {
     expect(COLUMNS).toContain(
       'title: "Shared", key: "shared", description: PROXMOX_METRIC_DESCRIPTIONS.storageShared,',
     );
+    /*
+     * How full each storage is: the table's shared Used and Free columns
+     * (#9539), explained by the storage page's own Used and Free tiles' words,
+     * in place of a "Used / Total" text written in English digits.
+     */
     expect(COLUMNS).toContain(
-      'title: "Used / Total", key: "diskBytes", description: PROXMOX_METRIC_DESCRIPTIONS.storageTableUsage,',
+      "usedDescription: PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent, freeDescription: PROXMOX_METRIC_DESCRIPTIONS.storageFree,",
     );
+    expect(STORAGE).toContain(
+      "storageUsageColumns={PROXMOX_STORAGE_USAGE_COLUMNS}",
+    );
+    expect(COLUMNS).not.toContain('title: "Used / Total"');
     // Storage has no CPU or memory columns, so it must not describe them.
     expect(STORAGE).toContain("showResourceMetrics={false}");
     expect(STORAGE).not.toMatch(/\b(cpu|memory): PROXMOX_METRIC/);

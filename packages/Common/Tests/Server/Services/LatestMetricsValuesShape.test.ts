@@ -210,6 +210,28 @@ const CASES: Array<ServiceCase> = [
     },
   },
   {
+    // A persistent volume claim's usage: bulkUpdateLatestVolumeStats.
+    name: "KubernetesResourceService (volume claims)",
+    service: KubernetesResourceService,
+    run: async (rows: number): Promise<void> => {
+      await KubernetesResourceService.bulkUpdateLatestVolumeStats({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: PARENT_ID,
+        volumes: indexes(rows).map((i: number) => {
+          return {
+            namespaceKey: "default",
+            name: `data-${i}`,
+            capacityBytes: 1000 + i,
+            availableBytes: 500 + i,
+            inodes: 100 + i,
+            inodesFree: 50 + i,
+            observedAt: OBSERVED_AT,
+          };
+        }),
+      });
+    },
+  },
+  {
     name: "KubernetesContainerService",
     service: KubernetesContainerService,
     run: async (rows: number): Promise<void> => {
