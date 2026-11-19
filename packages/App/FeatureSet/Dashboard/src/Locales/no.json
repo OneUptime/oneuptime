@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "Flytt trinn {{number}} opp",
   "Step {{from}} is now step {{to}}.": "Trinn {{from}} er nå trinn {{to}}.",
   "step {{number}}": "trinn {{number}}",
-  "Model (hardware model)": "Modell"
+  "Model (hardware model)": "Modell",
+  "Esper Connection": "Esper-tilkobling",
+  "Get an alert when one of its devices stops checking in.": "Få et varsel når en av enhetene slutter å sjekke inn.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitorer OneUptime anbefaler for enhetene denne tilkoblingen importerer, ut fra hvor lenge det er siden hver enhets siste innsjekking. Velg dem du vil ha, og opprett dem i ett trinn."
 }

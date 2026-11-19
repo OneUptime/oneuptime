@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "Stap {{number}} omhoog verplaatsen",
   "Step {{from}} is now step {{to}}.": "Stap {{from}} is nu stap {{to}}.",
   "step {{number}}": "stap {{number}}",
-  "Model (hardware model)": "Model"
+  "Model (hardware model)": "Model",
+  "Esper Connection": "Esper-koppeling",
+  "Get an alert when one of its devices stops checking in.": "Een waarschuwing krijgen als een van de apparaten geen check-in meer doet.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitors die OneUptime aanbeveelt voor de apparaten die deze koppeling importeert, op basis van de tijd sinds de laatste check-in van elk apparaat. Kies de monitors die u wilt en maak ze in één stap aan."
 }

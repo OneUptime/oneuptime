@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "ステップ {{number}} を上へ移動",
   "Step {{from}} is now step {{to}}.": "ステップ {{from}} はステップ {{to}} になりました。",
   "step {{number}}": "ステップ {{number}}",
-  "Model (hardware model)": "モデル"
+  "Model (hardware model)": "モデル",
+  "Esper Connection": "Esper 接続",
+  "Get an alert when one of its devices stops checking in.": "いずれかのデバイスがチェックインしなくなったらアラートを受け取る。",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "この接続がインポートするデバイスについて、各デバイスの最終チェックインからの経過時間に基づいて OneUptime が推奨するモニター。必要なものを選び、1 ステップで作成できます。"
 }

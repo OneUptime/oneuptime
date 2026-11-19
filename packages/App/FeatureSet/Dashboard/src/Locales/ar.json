@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "نقل الخطوة {{number}} لأعلى",
   "Step {{from}} is now step {{to}}.": "أصبحت الخطوة {{from}} الآن الخطوة {{to}}.",
   "step {{number}}": "الخطوة {{number}}",
-  "Model (hardware model)": "الطراز"
+  "Model (hardware model)": "الطراز",
+  "Esper Connection": "اتصال Esper",
+  "Get an alert when one of its devices stops checking in.": "تلقي تنبيه عندما يتوقف أحد أجهزته عن إرسال إشارة الحضور.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "المراقبات التي يوصي بها OneUptime للأجهزة التي يستوردها هذا الاتصال، بناءً على المدة المنقضية منذ آخر إشارة حضور لكل منها. اختر ما تريده منها وأنشئها في خطوة واحدة."
 }

@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "Schritt {{number}} nach oben verschieben",
   "Step {{from}} is now step {{to}}.": "Schritt {{from}} ist jetzt Schritt {{to}}.",
   "step {{number}}": "Schritt {{number}}",
-  "Model (hardware model)": "Modell"
+  "Model (hardware model)": "Modell",
+  "Esper Connection": "Esper-Verbindung",
+  "Get an alert when one of its devices stops checking in.": "Eine Warnung erhalten, wenn sich eines ihrer Geräte nicht mehr meldet.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitore, die OneUptime für die Geräte empfiehlt, die diese Verbindung importiert, auf Grundlage der Zeit seit dem letzten Kontakt jedes Geräts. Wählen Sie die gewünschten aus und erstellen Sie sie in einem Schritt."
 }

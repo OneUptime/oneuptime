@@ -19,6 +19,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
 import { parseMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQueueIdentity";
 import {
   MessageQueueMetricDescriptor,
@@ -1512,6 +1513,24 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     getCardDescription: (): string | undefined => {
       return translateTemplate(
         "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.",
+      );
+    },
+  },
+  /*
+   * A device management connection (an Esper tenant, #9835): its monitors
+   * read the check-ins each read of it writes for its devices, filtered on
+   * the connection's id, so `_id` is the identifier. Read by everyone who
+   * may read the project's Inventory; its page is opened from its row on
+   * Inventory > Managed Devices (Set up alerts).
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
+    modelType: DeviceManagementConnection,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    getCardDescription: (): string | undefined => {
+      return translateTemplate(
+        "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.",
       );
     },
   },

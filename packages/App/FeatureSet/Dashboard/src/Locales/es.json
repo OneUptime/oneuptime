@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "Subir el paso {{number}}",
   "Step {{from}} is now step {{to}}.": "El paso {{from}} ahora es el paso {{to}}.",
   "step {{number}}": "el paso {{number}}",
-  "Model (hardware model)": "Modelo"
+  "Model (hardware model)": "Modelo",
+  "Esper Connection": "Conexión de Esper",
+  "Get an alert when one of its devices stops checking in.": "Recibir una alerta cuando uno de sus dispositivos deja de comunicarse.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitores que OneUptime recomienda para los dispositivos que importa esta conexión, a partir del tiempo transcurrido desde el último contacto de cada uno. Elige los que quieras y créalos en un solo paso."
 }

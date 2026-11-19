@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "Переместить шаг {{number}} вверх",
   "Step {{from}} is now step {{to}}.": "Шаг {{from}} стал шагом {{to}}.",
   "step {{number}}": "шаг {{number}}",
-  "Model (hardware model)": "Модель"
+  "Model (hardware model)": "Модель",
+  "Esper Connection": "Подключение Esper",
+  "Get an alert when one of its devices stops checking in.": "Получить оповещение, когда одно из его устройств перестаёт выходить на связь.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Мониторы, которые OneUptime рекомендует для устройств, импортируемых этим подключением, на основе времени с последнего выхода каждого из них на связь. Выберите нужные и создайте их за один шаг."
 }

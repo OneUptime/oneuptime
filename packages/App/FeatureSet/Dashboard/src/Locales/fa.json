@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "انتقال گام {{number}} به بالا",
   "Step {{from}} is now step {{to}}.": "گام {{from}} اکنون گام {{to}} است.",
   "step {{number}}": "گام {{number}}",
-  "Model (hardware model)": "مدل"
+  "Model (hardware model)": "مدل",
+  "Esper Connection": "اتصال Esper",
+  "Get an alert when one of its devices stops checking in.": "دریافت هشدار وقتی یکی از دستگاه‌های آن دیگر اعلام حضور نمی‌کند.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "مانیتورهایی که OneUptime برای دستگاه‌هایی که این اتصال وارد می‌کند توصیه می‌کند، بر اساس مدتی که از آخرین اعلام حضور هر کدام گذشته است. موارد دلخواه را انتخاب کنید و در یک گام بسازید."
 }

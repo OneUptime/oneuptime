@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "上移步骤 {{number}}",
   "Step {{from}} is now step {{to}}.": "步骤 {{from}} 现在是步骤 {{to}}。",
   "step {{number}}": "步骤 {{number}}",
-  "Model (hardware model)": "型号"
+  "Model (hardware model)": "型号",
+  "Esper Connection": "Esper 连接",
+  "Get an alert when one of its devices stops checking in.": "其中某台设备停止签入时收到警报。",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "OneUptime 根据每台设备距上次签入的时长，为此连接导入的设备推荐的监视器。选择需要的监视器，一步即可创建。"
 }

@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "Flytta upp steg {{number}}",
   "Step {{from}} is now step {{to}}.": "Steg {{from}} är nu steg {{to}}.",
   "step {{number}}": "steg {{number}}",
-  "Model (hardware model)": "Modell"
+  "Model (hardware model)": "Modell",
+  "Esper Connection": "Esper-anslutning",
+  "Get an alert when one of its devices stops checking in.": "Få ett larm när en av dess enheter slutar checka in.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitorer som OneUptime rekommenderar för de enheter som den här anslutningen importerar, utifrån tiden sedan varje enhets senaste incheckning. Välj dem du vill ha och skapa dem i ett steg."
 }

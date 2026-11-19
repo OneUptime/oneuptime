@@ -58802,5 +58802,8 @@
   "Move step {{number}} up": "단계 {{number}} 위로 이동",
   "Step {{from}} is now step {{to}}.": "단계 {{from}}이(가) 단계 {{to}}(으)로 이동했습니다.",
   "step {{number}}": "단계 {{number}}",
-  "Model (hardware model)": "모델"
+  "Model (hardware model)": "모델",
+  "Esper Connection": "Esper 연결",
+  "Get an alert when one of its devices stops checking in.": "디바이스 중 하나가 체크인을 멈추면 경고 받기.",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "각 디바이스의 마지막 체크인 이후 경과 시간을 바탕으로 OneUptime이 이 연결이 가져오는 디바이스에 권장하는 모니터입니다. 원하는 모니터를 골라 한 번에 생성하세요."
 }
