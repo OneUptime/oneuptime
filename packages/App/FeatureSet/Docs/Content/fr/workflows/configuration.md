@@ -217,15 +217,19 @@ Par défaut, un flux de travail s'exécute avec les autorisations ci-dessus, et 
 
 Quelle que soit l'identité sous laquelle il s'exécute, une étape ne lit jamais les paramètres qui contiennent des identifiants, ne voit jamais les incidents, alertes ou épisodes privés et ne modifie jamais les clés d'API, l'authentification unique ou les paramètres SCIM. Quand elle donne une autorisation ou un rôle à une équipe, elle ne peut donner que ce qu'elle a elle-même, et s'il lui manque quelque chose, le journal de l'exécution nomme l'autorisation.
 
-Un flux de travail qui s'exécute avec plus que les autorisations par défaut s'exécute avec les autorisations de la personne qui les lui a données : celle qui a choisi en dernier son **Run As**, ou enregistré ses étapes ou ses variables. Pour que personne n'obtienne par lui plus que ce qu'il a lui-même :
+Un flux de travail qui s'exécute avec plus que les autorisations par défaut s'exécute avec les autorisations de qui les lui a données : la personne ou la clé API du projet qui a choisi en dernier son **Run As**, ou enregistré ses étapes ou ses variables. Pour que personne n'obtienne par lui plus que ce qu'il a lui-même :
 
 - Seules les personnes qui ont ces autorisations peuvent le modifier, lui ou ses variables, l'archiver ou le supprimer, l'exécuter à la main, lui ou l'une de ses étapes, ou voir son URL de webhook et son adresse e-mail entrante. Quiconque peut le modifier peut toujours le désactiver. Lorsqu'il passe à plus que les autorisations par défaut, ou que change l'identité sous laquelle il s'exécute, il reçoit une nouvelle URL de webhook et une nouvelle adresse e-mail entrante, si bien que les copies des anciennes ne le démarrent plus.
-- Seule une personne peut les donner, jamais une clé d'API.
-- Chaque exécution vérifie d'abord que la personne qui les a données les a toujours. Sinon, l'exécution s'arrête avant sa première étape, et son journal dit pourquoi et qui peut les redonner.
+- Une personne ou l'une des clés API du projet peut les donner, et seulement ce qu'elle a elle-même : les autorisations d'une clé, ses rôles personnalisés compris, sont pesées comme celles d'une personne. Les étapes d'un flux de travail et la clé API maître ne peuvent pas les donner, et réinitialiser une clé demande toutes les autorisations qu'a la clé.
+- Chaque exécution vérifie d'abord que qui les a données les a toujours : une personne toujours dans le projet, ou une clé qui existe encore, n'a pas expiré et ne les a pas perdues. Sinon, l'exécution s'arrête avant sa première étape, et son journal dit pourquoi et qui peut les redonner.
 - Il ne lit pas les variables globales du projet, que peut modifier quiconque peut modifier les variables de flux de travail.
 - L'étape **Exécuter un autre flux de travail** d'un autre flux de travail ne peut le démarrer que si ce flux de travail s'exécute avec les mêmes autorisations ou plus.
 
-Chaque exécution enregistre en tant que quoi elle s'est exécutée et avec les autorisations de qui, ce que montrent la fenêtre de l'exécution et un journal téléchargé, et le [journal d'audit](/docs/configuration/audit-logs) enregistre qui a changé le **Run As** d'un flux de travail.
+Un flux de travail exporté, importé ou dupliqué s'exécute avec les autorisations par défaut, quel que soit le réglage de l'original : une personne qui en a davantage choisit à nouveau son **Run As**.
+
+Chaque exécution enregistre en tant que quoi elle s'est exécutée et avec les autorisations de qui, ce que montrent la fenêtre de l'exécution et un journal téléchargé. Le [journal d'audit](/docs/configuration/audit-logs) enregistre qui a changé le **Run As** d'un flux de travail, une personne ou une clé API par son nom, et chaque modification que fait une étape d'un flux de travail dit en tant que quoi l'étape s'est exécutée et avec les autorisations de qui. Les filtres **Flux de travail exécuté en tant que** et **Autorisations du flux de travail données par** du journal d'audit retrouvent ces modifications.
+
+Supprimer un rôle personnalisé sous lequel s'exécutent des flux de travail les arrêterait, donc la suppression les liste et demande sous quoi ils s'exécutent désormais : **Autorisations par défaut**, ou un autre rôle personnalisé que vous pourriez donner à une équipe. Une personne qui ne peut pas modifier les flux de travail ne peut pas supprimer le rôle tant que leur Run As n'a pas été changé. Par l'API, la suppression d'un tel rôle est refusée si la requête ne dit pas sous quoi ils s'exécutent à la place : `miscDataProps` avec `workflowsRunAs` à `Default`, ou à `CustomRole` avec l'ID du rôle dans `workflowsRunAsCustomRoleId`.
 
 ## Limites du forfait
 

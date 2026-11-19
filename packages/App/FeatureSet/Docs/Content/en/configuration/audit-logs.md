@@ -67,10 +67,10 @@ A change to these settings applies within a minute.
 | **When** | How long ago, with the date and time. |
 | **Action** | `Create`, `Update` or `Delete`, `Download` for a packet capture file someone downloaded, or `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` or `Session Revoked` for a sign-in or a session. |
 | **Resource** | The resource's name, which opens it while it still exists, and its type. |
-| **Actor** | Who made the change: a person, an API key, a workflow, or `System` for a change OneUptime made by itself. A person's change made through an MCP client says which one. |
+| **Actor** | Who made the change: a person, an API key, a workflow, or `System` for a change OneUptime made by itself. A person's change made through an MCP client says which one. A workflow's change says what it ran as and with whose permissions. |
 | **Changes** | How many fields changed, or were captured for a create or a delete. For a sign-in or a session, how it signed in, why it failed or why it ended. Click it to see each field. |
 
-Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
+Filter by **Resource Type**, **Resource Name**, **Action**, **User Email**, **Workflow Ran As**, **Workflow Permissions Given By** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
 
 A resource with no name of its own is named by what names it in OneUptime: an exception by its type and the start of its message, with ids, addresses and anything that looks like a secret masked, a runbook run by its runbook, an incoming call policy's phone number by the number, and a template or a domain by its own name.
 

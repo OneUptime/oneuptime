@@ -67,10 +67,10 @@ Un cambio en estos ajustes se aplica en menos de un minuto.
 | **Cuándo** | Hace cuánto, con la fecha y la hora. |
 | **Acción** | `Create`, `Update` o `Delete`, `Download` para un archivo de captura de paquetes que alguien descargó, o `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` o `Session Revoked` para un inicio de sesión o una sesión. |
 | **Recurso** | El nombre del recurso, que lo abre mientras existe, y su tipo. |
-| **Actor** | Quién hizo el cambio: una persona, una clave de API, un workflow o `System` para un cambio que OneUptime hizo por sí mismo. El cambio de una persona hecho a través de un cliente MCP indica cuál. |
+| **Actor** | Quién hizo el cambio: una persona, una clave de API, un workflow o `System` para un cambio que OneUptime hizo por sí mismo. El cambio de una persona hecho a través de un cliente MCP indica cuál. El cambio de un workflow dice cómo se ejecutó y con los permisos de quién. |
 | **Cambios** | Cuántos campos cambiaron, o se capturaron en una creación o una eliminación. En un inicio de sesión o una sesión, cómo se inició, por qué falló o por qué terminó. Haga clic para ver cada campo. |
 
-Filtre por **Tipo de recurso**, **Nombre del recurso**, **Acción**, **Correo electrónico del usuario** u **Hora**. Una modificación solo enumera los campos que cambiaron, antes y después, y un guardado que no cambia nada no añade ninguna entrada.
+Filtre por **Tipo de recurso**, **Nombre del recurso**, **Acción**, **Correo electrónico del usuario**, **Flujo de trabajo ejecutado como**, **Permisos del flujo de trabajo dados por** u **Hora**. Una modificación solo enumera los campos que cambiaron, antes y después, y un guardado que no cambia nada no añade ninguna entrada.
 
 Un recurso sin nombre propio recibe el nombre de lo que lo nombra en OneUptime: una excepción, por su tipo y el comienzo de su mensaje, con los identificadores, las direcciones y todo lo que parezca un secreto enmascarados; una ejecución de un runbook, por su runbook; el número de teléfono de una política de llamadas entrantes, por el número; y una plantilla o un dominio, por su propio nombre.
 
