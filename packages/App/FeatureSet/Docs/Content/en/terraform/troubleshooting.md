@@ -22,6 +22,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `This project has been blocked` | Ask a master admin to unblock the project: see [A blocked project](#a-blocked-project) |
 | `references records that are not in this project` | Use an ID of your project's own record: see [IDs from another project](#ids-from-another-project) |
 | `Not Found` or `Ambiguous Match` from a data source | Fix the lookup's arguments: see [Lookups that find none or several](#lookups-that-find-none-or-several) |
+| `There is already a team called` (a label, an on-call policy, an on-call schedule) | Give it a name no other one of its kind has, or rename the other first: see [Names another record has](#names-another-record-has) |
 | `Cannot import non-existent remote object` | Check the ID and the key's permissions: see [Importing Resources](/docs/terraform/importing-resources#troubleshooting) |
 | `Provider produced inconsistent result after apply` | Upgrade the provider: see [Inconsistent result after apply](#inconsistent-result-after-apply) |
 | A plan creates a resource you did not add | The key can no longer read it, and OneUptime answered `404`: give the key read access back, then `terraform import` the resource: see [A resource leaves the state, and the next apply creates it again](#a-resource-leaves-the-state-and-the-next-apply-creates-it-again) |
@@ -102,6 +103,12 @@ It usually means an ID was copied from another project's configuration or state,
 ### Lookups that find none or several
 
 A data source finds exactly one record, or stops the plan. `Not Found` says no record has the `id`, or none matches the arguments you set; `Ambiguous Match` says several do. Fix the arguments, set more of them to narrow the lookup down to one, or look the record up by `id`. [Read what already exists](/docs/terraform/complete-guide#read-what-already-exists) has the rules.
+
+### Names another record has
+
+Teams, labels, on-call policies and on-call schedules each have a name of their own in a project, whatever its case or spacing. A create, or a rename, onto a name another one of its kind has answers `400`, such as `There is already an on-call policy called Primary in this project. Pick another name.` An archived on-call policy keeps its name: unarchive it, or pick another name. Records that shared a name before keep it, and the dashboard's lists of teams, on-call policies and on-call schedules mark them.
+
+Terraform makes the changes of one apply side by side, so a rename onto a name another resource gives up in the same apply can be refused while that one still has it: apply again, or add a `depends_on` from the resource that takes the name to the one that gives it up. A swap, A to B and B to A, or any chain of renames that ends where it started, cannot be made in one apply: rename one of them to a name nobody has, apply, then make the rest of the change.
 
 ## Plans that do not settle
 

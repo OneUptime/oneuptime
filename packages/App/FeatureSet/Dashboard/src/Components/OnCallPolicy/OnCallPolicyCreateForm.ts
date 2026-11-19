@@ -9,6 +9,7 @@ import { getEscalationRuleNotifyFormField } from "./EscalationRule/EscalationRul
 import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 /*
  * CREATE ON-CALL POLICY: A NEW POLICY PAGES SOMEONE FROM THE START.
@@ -99,6 +100,11 @@ export const getOnCallPolicyCreateFormFields: (
       validation: {
         minLength: 2,
       },
+      /*
+       * Another policy's name, said under the field (#9742): every picker
+       * shows a policy by its name alone.
+       */
+      ownsServerError: isNameTakenRefusal,
     },
     getEscalationRuleNotifyFormField<OnCallDutyPolicy>({
       title: "Who gets paged first?",

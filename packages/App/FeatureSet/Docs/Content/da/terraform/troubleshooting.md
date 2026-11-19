@@ -22,6 +22,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `This project has been blocked` | Bed en masteradministrator om at fjerne blokeringen af projektet: se [Et blokeret projekt](#et-blokeret-projekt) |
 | `references records that are not in this project` | Brug ID'et på en post i dit eget projekt: se [ID'er fra et andet projekt](#ider-fra-et-andet-projekt) |
 | `Not Found` eller `Ambiguous Match` fra en datakilde | Ret opslagets argumenter: se [Opslag, der finder ingen eller flere](#opslag-der-finder-ingen-eller-flere) |
+| `There is already a team called` (en etiket, en vagtpolitik, en vagtplan) | Giv den et navn, som ingen anden af samme slags har, eller omdøb den anden først: se [Navne, som en anden post allerede har](#navne-som-en-anden-post-allerede-har) |
 | `Cannot import non-existent remote object` | Kontrollér ID'et og nøglens tilladelser: se [Import af ressourcer](/docs/terraform/importing-resources#fejlfinding) |
 | `Provider produced inconsistent result after apply` | Opgradér provideren: se [Inkonsistent resultat efter apply](#inkonsistent-resultat-efter-apply) |
 | En plan opretter en ressource, du ikke har tilføjet | Nøglen kan ikke længere læse den, og OneUptime svarede `404`: giv nøglen dens læseadgang tilbage, og importér derefter ressourcen med `terraform import`: se [En ressource forlader state, og næste apply opretter den igen](#en-ressource-forlader-state-og-næste-apply-opretter-den-igen) |
@@ -102,6 +103,12 @@ Det betyder som regel, at et ID er kopieret fra et andet projekts konfiguration 
 ### Opslag, der finder ingen eller flere
 
 En datakilde finder præcis én post, eller den stopper planen. `Not Found` siger, at ingen post har det `id`, eller at ingen passer til de argumenter, du har angivet; `Ambiguous Match` siger, at flere gør. Ret argumenterne, angiv flere af dem for at indsnævre opslaget til én, eller slå posten op via `id`. [Læs det, der allerede findes](/docs/terraform/complete-guide#læs-det-der-allerede-findes) har reglerne.
+
+### Navne, som en anden post allerede har
+
+Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et projekt, uanset store og små bogstaver og mellemrum. En oprettelse eller en omdøbning til et navn, som en anden post af samme slags allerede har, besvares med `400`, fx `There is already an on-call policy called Primary in this project. Pick another name.` En arkiveret vagtpolitik beholder sit navn: fjern den fra arkivet, eller vælg et andet navn. Poster, der allerede delte et navn, beholder det, og dashboardets lister over teams, vagtpolitikker og vagtplaner markerer dem.
+
+Terraform foretager ændringerne i én apply side om side, så en omdøbning til et navn, som en anden ressource opgiver i samme apply, kan blive afvist, mens den anden stadig har det: anvend igen, eller tilføj en `depends_on` fra den ressource, der tager navnet, til den, der opgiver det. Et bytte, A til B og B til A, eller en hvilken som helst kæde af omdøbninger, der ender, hvor den begyndte, kan ikke laves i én apply: omdøb én af dem til et navn, som ingen har, anvend, og lav så resten af ændringen.
 
 ## Planer, der ikke falder til ro
 

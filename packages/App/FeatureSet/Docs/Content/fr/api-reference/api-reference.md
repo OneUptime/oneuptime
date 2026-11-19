@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Les deux noms sont vérifiés de la même façon. Les règles sur l'enregistrement que vous nommez s'appliquent quel que soit le nom sous lequel vous l'envoyez : le groupe parent d'un groupe de page d'état doit être sur la même page d'état, une page d'état accepte au plus trois liens d'en-tête, et le nom d'un groupe doit être unique sur sa page d'état.
 
+#### Des noms qu'un autre enregistrement porte déjà
+
+Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte ont chacun un nom bien à eux dans un projet, quels que soient sa casse ou ses espaces : `Primary`, ` primary` et `PRIMARY` sont un seul et même nom. Une création, ou une mise à jour qui en renomme un, vers un nom que porte déjà un autre du même type est refusée avec un `400` qui le dit :
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer. Pour les équipes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon.
+
 ### Interrupteurs
 
 Un champ activé ou désactivé - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` et tout autre champ `true` ou `false` - prend `true` ou `false`. Le texte et les nombres que la base de données lit comme l'une de ces valeurs sont pris comme cette valeur, de la même façon pour l'API, Terraform et les flux de travail : `"true"`, `"yes"`, `"on"`, `"1"` et `1` valent `true`, et `"false"`, `"no"`, `"off"`, `"0"` et `0` valent `false`, quelle que soit la casse. Tout ce que OneUptime fait de l'enregistrement le traite aussi comme cette valeur : un événement de maintenance envoyé avec `"isVisibleOnStatusPage": "true"` montre ses images sur la page d'état, et `"isEnabled": "false"` désactive une ressource sous son offre comme le fait `false`. Toute autre valeur, comme `"maybe"`, `""` ou `2`, est refusée avec un `400` qui nomme le champ :

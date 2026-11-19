@@ -690,7 +690,15 @@ describe("creating a policy", () => {
     });
 
     expect(list).toContain('title: "On-Call Policies"');
-    expect(columnTitles).toEqual(["Name", "Description", "Labels", "Owners"]);
+    /*
+     * The Name column comes first, from the hook that marks a policy that
+     * shares its name with another (#9746, Components/SharedName).
+     */
+    expect(columns.indexOf("sharedNames.nameColumn,")).toBeGreaterThan(0);
+    expect(
+      readDashboardSource("Components/SharedName/UseSharedNames.tsx"),
+    ).toContain('title: "Name",');
+    expect(columnTitles).toEqual(["Description", "Labels", "Owners"]);
     expect(list).toContain(
       "...labelBulkActions,\n            ...ownerBulkActions,\n            ...archiveBulkActions,",
     );

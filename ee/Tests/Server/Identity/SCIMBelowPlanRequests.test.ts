@@ -133,6 +133,8 @@ interface FakeTeam {
   projectId: string;
   name: string;
   isTeamDeleteable: boolean;
+  // When a provider took it as a group (Utils/SCIMGroupMatch, #9743).
+  scimGroupLinkedAt?: Date | undefined;
 }
 
 interface FakePrivateUser {
@@ -150,6 +152,8 @@ interface FakeWorld {
   privateUsers: Array<FakePrivateUser>;
   // Every write a request made, by kind: what a refused request must not have.
   writes: Array<string>;
+  // The teams noted as held by the provider as groups (#9743), by id.
+  groupsMarkedAsHeld: Array<string>;
   // The plan the project is on, as ProjectService.getCurrentPlan answers it.
   plan: PlanType | null;
   /*
@@ -167,6 +171,7 @@ const world: FakeWorld = {
   teams: [],
   privateUsers: [],
   writes: [],
+  groupsMarkedAsHeld: [],
   plan: PlanType.Free,
   afterMemberRead: [],
 };
@@ -253,6 +258,11 @@ const toTeam: (fake: FakeTeam) => Team = (fake: FakeTeam): Team => {
   team.projectId = new ObjectID(fake.projectId);
   team.name = fake.name;
   team.isTeamDeleteable = fake.isTeamDeleteable;
+
+  if (fake.scimGroupLinkedAt) {
+    team.scimGroupLinkedAt = fake.scimGroupLinkedAt;
+  }
+
   return team;
 };
 
@@ -503,14 +513,32 @@ jest.mock("Common/Server/Services/TeamService", () => {
       },
       updateOneById: async (args: {
         id: unknown;
-        data: { name?: string };
+        data: { name?: string; scimGroupLinkedAt?: Date };
       }): Promise<void> => {
-        world.writes.push("team renamed");
         const team: FakeTeam | undefined = world.teams.find(
           (item: FakeTeam) => {
             return item.id === idOf(args.id);
           },
         );
+
+        /*
+         * Noting that the provider holds the team as a group changes no
+         * one's access and no name: kept apart from the writes these
+         * tests hold the plan to (#9743).
+         */
+        if (args.data.scimGroupLinkedAt) {
+          world.groupsMarkedAsHeld.push(idOf(args.id));
+
+          if (team) {
+            team.scimGroupLinkedAt = args.data.scimGroupLinkedAt;
+          }
+        }
+
+        if (args.data.name === undefined) {
+          return;
+        }
+
+        world.writes.push("team renamed");
 
         if (team && args.data.name) {
           team.name = args.data.name;
@@ -682,6 +710,7 @@ const seedWorld: () => void = (): void => {
   world.deletedMemberships = [];
   world.privateUsers = [];
   world.writes = [];
+  world.groupsMarkedAsHeld = [];
   world.afterMemberRead = [];
   world.teams = [
     {
@@ -1258,6 +1287,8 @@ describe.each([PlanType.Free, PlanType.Growth])(
         expect(result.status).toBe(200);
         expect(membersOf(ENGINEERING)).toEqual([people.carol]);
         expect(world.writes).not.toContain("team renamed");
+        // Below the plan nothing but access taken away is written (#9743).
+        expect(world.groupsMarkedAsHeld).toEqual([]);
       });
 
       test("a Bulk request of deletes only", async () => {
@@ -2394,6 +2425,8 @@ describe("on the plan (Scale), SCIM does what it always did", () => {
     expect(result.status).toBe(200);
     expect(membersOf(ENGINEERING)).toEqual([people.bob, people.carol].sort());
     expect(world.writes).toEqual([]);
+    // Changed by its id: noted as the provider's group (#9743), once.
+    expect(world.groupsMarkedAsHeld).toEqual([ENGINEERING]);
   });
 
   test("active true for someone missing from one of the connection's teams adds them back on the plan", async () => {

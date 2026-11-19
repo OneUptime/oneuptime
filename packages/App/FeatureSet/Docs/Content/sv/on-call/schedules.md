@@ -18,7 +18,7 @@ När du skapar ett schema på sidan **Jourscheman** frågar formuläret efter de
 
 :::steps
 1. Gå till **Jour** > **Jourscheman** och klicka på **Skapa jourschema**.
-2. Ange ett **Namn**.
+2. Ange ett **Namn**. Ett namn som ett annat schema i projektet redan har avvisas, oavsett stora och små bokstäver och mellanslag, så att varje väljare skiljer schemana åt.
 3. Klicka på **Lägg till användare** under **Vilka turas om?** och välj personerna i den ordning de turas om.
 4. Öppna eventuellt **Fler fält** för att ändra hur länge varje pass varar, tidszonen, beskrivningen eller etiketterna.
 5. Klicka på **Skapa jourschema**. Det nya schemat öppnas sedan på sin sida **Lager**, där du kan ändra rotationen eller lägga till fler lager.
@@ -101,7 +101,7 @@ Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer, s
 
 Via API:et hoppar en användaråsidosättning (`/api/on-call-duty-policy-user-override`) som skapas utan `routeAlertsToUserId` över personen i `overrideUserId` från `startsAt` till `endsAt`.
 
-Ett schemas **Översikt** har kortet **Används av**: jourpolicyerna vars eskaleringsregler larmar den som har jour, med reglerna som gör det. Gör ingen det säger kortet det och länkar till jourpolicyerna. När du tar bort schemat, på dess sida eller från listan, sägs först vilka policyer som larmar via det. Policyer du inte får öppna räknas men namnges inte.
+Ett schemas **Översikt** har kortet **Används av**: jourpolicyerna vars eskaleringsregler larmar den som har jour, med reglerna som gör det. Gör ingen det säger kortet det och länkar till jourpolicyerna. När du tar bort schemat, på dess sida eller från listan, sägs först vilka policyer som larmar via det. Policyer du inte får öppna räknas men namnges inte. Ett schema som har samma namn som ett annat schema, från tiden innan namn behövde skilja sig åt, är märkt med **Samma namn som ett annat schema** i listan **Jourscheman**, som visar hur många det är: jämför deras lager och byt sedan namn på ett av dem med **Byt namn** på dess rad.
 
 ## Skapa scheman med API:et eller Terraform
 

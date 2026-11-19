@@ -134,8 +134,10 @@ jest.mock("Common/Server/Services/TeamService", () => {
     __esModule: true,
     default: {
       findOneBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       create: jest.fn(),
+      updateOneById: jest.fn(),
       deleteBy: jest.fn(),
     },
   };
@@ -203,13 +205,17 @@ const teamMemberService: {
 };
 const teamService: {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   create: jest.Mock;
+  updateOneById: jest.Mock;
   deleteBy: jest.Mock;
 } = TeamService as unknown as {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   findOneById: jest.Mock;
   create: jest.Mock;
+  updateOneById: jest.Mock;
   deleteBy: jest.Mock;
 };
 
@@ -385,8 +391,11 @@ beforeEach(() => {
   group.projectId = PROJECT_ID;
   group.isTeamDeleteable = true;
   teamService.findOneBy.mockResolvedValue(null);
+  // The teams whose names read as a pushed group's (#9743): none.
+  teamService.findBy.mockResolvedValue([]);
   teamService.findOneById.mockResolvedValue(group);
   teamService.create.mockResolvedValue(group);
+  teamService.updateOneById.mockResolvedValue(undefined);
   teamService.deleteBy.mockResolvedValue(undefined);
 
   teamMemberService.findOneBy.mockResolvedValue(null);
@@ -528,7 +537,7 @@ describe("project SCIM Groups", () => {
     const existing: Team = new Team(GROUP_ID);
     existing.name = GROUP_NAME;
     existing.projectId = PROJECT_ID;
-    teamService.findOneBy.mockResolvedValue(existing);
+    teamService.findBy.mockResolvedValue([existing]);
 
     const result: HttpResult = await send(
       "POST",

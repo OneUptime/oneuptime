@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 두 이름 모두 같은 방식으로 확인합니다. 지정한 레코드에 대한 규칙은 어느 이름으로 보내든 적용됩니다. 상태 페이지 그룹의 상위 그룹은 같은 상태 페이지에 있어야 하고, 상태 페이지의 헤더 링크는 최대 세 개이며, 그룹 이름은 상태 페이지 안에서 고유해야 합니다.
 
+#### 다른 레코드가 이미 가진 이름
+
+팀, 레이블, 온콜 정책, 온콜 일정은 프로젝트 안에서 각각 고유한 이름을 가지며, 대소문자나 공백은 구분하지 않습니다. `Primary`, ` primary`, `PRIMARY`는 하나의 이름입니다. 같은 종류의 다른 레코드가 이미 가진 이름으로 만들거나, 그런 이름으로 바꾸는 업데이트는 그렇다고 알려 주는 `400`으로 거부됩니다.
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+레코드 자신의 이름을 대소문자와 관계없이 다시 보내는 업데이트는 이름 바꾸기가 아니므로, 전부터 이름을 공유하던 레코드도 계속 변경할 수 있고 서로 다른 이름으로 바꿀 수 있습니다. 팀, 온콜 정책, 온콜 일정의 경우 `GET /api/shared-names/team`(또는 `on-call-policy`, `on-call-schedule`)이 이름을 공유하는 레코드를 알려 줍니다. 응답은 `{"groups": [["<id>", "<id>"]]}` 형식이며, 각 그룹은 이름이 같게 읽히는 레코드 중 키가 읽을 수 있는 레코드의 ID입니다.
+
 ### 스위치
 
 켜짐 또는 꺼짐인 필드(`isEnabled`, `isVisibleOnStatusPage`, `isArchived`, 그 밖의 모든 `true` 또는 `false` 필드)는 `true`나 `false`를 받습니다. 데이터베이스가 둘 중 하나로 읽는 텍스트와 숫자는 API, Terraform, 워크플로 모두에서 똑같이 그 값으로 받아들입니다. `"true"`, `"yes"`, `"on"`, `"1"`, `1`은 `true`이고, `"false"`, `"no"`, `"off"`, `"0"`, `0`은 `false`이며, 대소문자는 구분하지 않습니다. OneUptime이 그 레코드로 하는 모든 일도 그 값으로 취급합니다. `"isVisibleOnStatusPage": "true"`로 보낸 유지 관리 이벤트는 상태 페이지에 이미지를 보여 주고, `"isEnabled": "false"`는 `false`와 마찬가지로 플랜 미만의 리소스를 끕니다. `"maybe"`, `""`, `2` 같은 다른 값은 필드를 알려 주는 `400`으로 거부됩니다.
