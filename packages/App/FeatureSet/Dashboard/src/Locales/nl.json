@@ -59036,5 +59036,8 @@
   "Publish a status page that shows my monitors.": "Publiceer een statuspagina die mijn monitoren toont.",
   "Publish a status page called {{name}} that shows my monitors.": "Publiceer een statuspagina met de naam {{name}} die mijn monitoren toont.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Deze query is in {{unit}} en de grafiek van de vorige query in {{chartUnit}}, dus de waarden ervan zijn niet goed af te lezen op de as van die grafiek."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Deze query is in {{unit}} en de grafiek van de vorige query in {{chartUnit}}, dus de waarden ervan zijn niet goed af te lezen op de as van die grafiek.",
+  "Checking why the payment app crashes after 6pm": "Uitzoeken waarom de betaalapp na 18.00 uur vastloopt",
+  "Download Lines": "Regels downloaden",
+  "Shown to the person at the device with the request, to say why you ask.": "Wordt met het verzoek getoond aan de persoon bij het apparaat, om te zeggen waarom u het vraagt."
 }

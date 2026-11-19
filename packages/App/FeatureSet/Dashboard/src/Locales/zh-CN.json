@@ -59036,5 +59036,8 @@
   "Publish a status page that shows my monitors.": "发布一个显示我的监视器的状态页。",
   "Publish a status page called {{name}} that shows my monitors.": "发布一个名为 {{name}} 并显示我的监视器的状态页。",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查询的单位为 {{unit}}，上一个查询的图表单位为 {{chartUnit}}，因此无法在该图表的坐标轴上正确读出此查询的数值。"
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "此查询的单位为 {{unit}}，上一个查询的图表单位为 {{chartUnit}}，因此无法在该图表的坐标轴上正确读出此查询的数值。",
+  "Checking why the payment app crashes after 6pm": "排查支付应用在晚上 6 点后崩溃的原因",
+  "Download Lines": "下载日志行",
+  "Shown to the person at the device with the request, to say why you ask.": "随请求显示给设备旁的人，说明您为什么请求。"
 }

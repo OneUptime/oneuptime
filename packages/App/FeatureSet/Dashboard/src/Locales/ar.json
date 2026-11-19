@@ -59036,5 +59036,8 @@
   "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
   "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على محور ذلك المخطط.",
+  "Checking why the payment app crashes after 6pm": "نتحقق من سبب تعطل تطبيق الدفع بعد الساعة 6 مساءً",
+  "Download Lines": "تنزيل الأسطر",
+  "Shown to the person at the device with the request, to say why you ask.": "تُعرض على الشخص الموجود عند الجهاز مع الطلب، لتوضح سبب طلبك."
 }

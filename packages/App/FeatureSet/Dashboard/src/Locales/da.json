@@ -59036,5 +59036,8 @@
   "Publish a status page that shows my monitors.": "Udgiv en statusside, der viser mine monitorer.",
   "Publish a status page called {{name}} that shows my monitors.": "Udgiv en statusside med navnet {{name}}, der viser mine monitorer.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjælp mig med at sende min tjenestes logs, metrikker og traces til OneUptime, og advar mig, når den har fejl.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Denne forespørgsel er i {{unit}} og den forrige forespørgsels diagram i {{chartUnit}}, så dens værdier kan ikke aflæses korrekt på det diagrams akse.",
+  "Checking why the payment app crashes after 6pm": "Undersøger, hvorfor betalingsappen går ned efter kl. 18",
+  "Download Lines": "Download linjer",
+  "Shown to the person at the device with the request, to say why you ask.": "Vises for personen ved enheden sammen med anmodningen, så de ved, hvorfor du beder om det."
 }

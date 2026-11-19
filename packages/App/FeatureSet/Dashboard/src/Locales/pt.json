@@ -59036,5 +59036,8 @@
   "Publish a status page that shows my monitors.": "Publique uma página de status que mostre meus monitores.",
   "Publish a status page called {{name}} that shows my monitors.": "Publique uma página de status chamada {{name}} que mostre meus monitores.",
   "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Me ajude a enviar os logs, métricas e traces do meu serviço para o OneUptime, e me alerte quando ele tiver erros.",
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então os valores dela não serão lidos corretamente no eixo desse gráfico."
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então os valores dela não serão lidos corretamente no eixo desse gráfico.",
+  "Checking why the payment app crashes after 6pm": "Verificando por que o app de pagamento trava depois das 18h",
+  "Download Lines": "Baixar linhas",
+  "Shown to the person at the device with the request, to say why you ask.": "Mostrada à pessoa no dispositivo com a solicitação, para dizer por que você pede."
 }
