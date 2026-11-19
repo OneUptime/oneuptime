@@ -62,7 +62,7 @@ A service's side menu has six sections:
 | Section | Pages |
 | --- | --- |
 | **Basic** | **Overview**: requests, error rate and p95 latency from its spans, charts, and its details. **Recommendations**: ready-made monitors for the service, picked for its language. **SLOs**: the SLOs that measure its requests, where you can create one that already measures the service. **Owners**: the people and teams responsible for it. **Feed**: everything that happened to it, from how it was created to every change since. |
-| **Telemetry** | Its **Logs**, **Traces**, **Metrics**, **Profiles**, **Exceptions** and **Source Maps**, already filtered to this service. |
+| **Telemetry** | Its **Logs**, **Security Events**, **Traces**, **Metrics**, **Profiles**, **Exceptions** and **Source Maps**, already filtered to this service. |
 | **Activity** | The **Incidents**, **Alerts** and **Scheduled Maintenance** events that affect it. |
 | **Security** | **Data Security**: the sensitive data its logs, traces and exceptions carry, and what to fix ([Sensitive Data in Telemetry](/docs/data-security/telemetry)). **Compliance**: how that data stands against each framework, with a switch that turns a framework or a requirement off for this service ([Data Security Compliance](/docs/data-security/compliance#on-a-resources-page)). It appears once Data Security has scanned the service's telemetry, and starts collapsed. |
 | **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |

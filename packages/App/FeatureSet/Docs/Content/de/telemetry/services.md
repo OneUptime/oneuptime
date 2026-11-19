@@ -62,7 +62,7 @@ Das Seitenmenü eines Dienstes hat sechs Abschnitte:
 | Abschnitt | Seiten |
 | --- | --- |
 | **Grundlegend** | **Übersicht**: Anfragen, Fehlerrate und p95-Latenz aus seinen Spans, Diagramme und seine Details. **Empfehlungen**: fertige Monitore für den Dienst, passend zu seiner Sprache. **SLOs**: die SLOs, die seine Anfragen messen, und wo Sie eines erstellen können, das den Dienst bereits misst. **Eigentümer**: die Personen und Teams, die für ihn verantwortlich sind. **Feed**: alles, was ihm passiert ist, von seiner Entstehung bis zu jeder Änderung seitdem. |
-| **Telemetrie** | Seine **Protokolle**, **Traces**, **Metriken**, **Profile**, **Ausnahmen** und **Source Maps**, bereits auf diesen Dienst gefiltert. |
+| **Telemetrie** | Seine **Protokolle**, **Sicherheitsereignisse**, **Traces**, **Metriken**, **Profile**, **Ausnahmen** und **Source Maps**, bereits auf diesen Dienst gefiltert. |
 | **Aktivität** | Die **Vorfälle**, **Warnungen** und Ereignisse der **Geplante Wartung**, die ihn betreffen. |
 | **Sicherheit** | **Datensicherheit**: die sensiblen Daten in den Logs, Traces und Ausnahmen des Dienstes und was zu beheben ist ([Sensible Daten in der Telemetrie](/docs/data-security/telemetry)). **Compliance**: wie diese Daten vor jedem Rahmenwerk dastehen, mit einem Schalter, der ein Rahmenwerk oder eine Anforderung für diesen Dienst ausschaltet ([Compliance der Datensicherheit](/docs/data-security/compliance#auf-der-seite-einer-ressource)). Der Abschnitt erscheint, sobald Datensicherheit die Telemetrie des Dienstes gescannt hat, und ist zunächst eingeklappt. |
 | **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: der Dienst, aus Code verwaltet. Der Abschnitt ist zunächst eingeklappt. |
