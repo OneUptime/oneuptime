@@ -108,6 +108,28 @@ export function getRecorderCapabilities(options?: {
 /* Where the public recorder artifacts live. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
 
+/*
+ * The artifact the loader injects. Returns null rather than a best-effort
+ * URL when the version is not an accepted artifact label. The caller then
+ * loads nothing, which is the same fail-closed outcome as a config fetch
+ * that failed: a <script src> assembled from an unvalidated config value is
+ * a request to an attacker-chosen path on the ingest origin.
+ *
+ * A standalone function rather than a Config static, as getChunkUrl is,
+ * the other way round: only the LOADER injects the artifact, and as a
+ * static it rode along in the artifact itself as dead weight (#8019).
+ */
+export function getArtifactUrl(
+  options: RecorderInitOptions,
+  recorderVersion: string,
+): string | null {
+  if (!Config.isValidRecorderVersion(recorderVersion)) {
+    return null;
+  }
+
+  return `${options.host}${ARTIFACT_PATH_PREFIX}/latest/recorder.js`;
+}
+
 export const LATEST_RECORDER_VERSION: string = "latest";
 
 /*
@@ -492,24 +514,6 @@ export default class Config {
 
   public static isValidRecorderVersion(value: unknown): value is string {
     return value === LATEST_RECORDER_VERSION;
-  }
-
-  /*
-   * Returns null rather than a best-effort URL when the version is not a
-   * accepted artifact label. The caller then loads nothing,
-   * which is the same fail-closed outcome as a config fetch that failed:
-   * a <script src> assembled from an unvalidated config value is a request
-   * to an attacker-chosen path on the ingest origin.
-   */
-  public static getArtifactUrl(
-    options: RecorderInitOptions,
-    recorderVersion: string,
-  ): string | null {
-    if (!Config.isValidRecorderVersion(recorderVersion)) {
-      return null;
-    }
-
-    return `${options.host}${ARTIFACT_PATH_PREFIX}/latest/recorder.js`;
   }
 
   public static getIngestHeaders(

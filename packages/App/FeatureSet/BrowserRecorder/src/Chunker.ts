@@ -1071,14 +1071,6 @@ export default class Chunker {
     this.routes.push(url);
   }
 
-  public getSignals(): SessionReplaySignalCounts {
-    return this.signals;
-  }
-
-  public getFidelityNotices(): Array<string> {
-    return Array.from(this.fidelityNotices);
-  }
-
   private getOffset(timestampMs: number): number {
     return Math.max(0, timestampMs - this.sessionStartUnixMs);
   }

@@ -1039,6 +1039,47 @@ describe("a rule's details", () => {
     }
   });
 
+  /*
+   * #9621: what to do when it opens a case - the steps it comes with,
+   * under each part of the case's Response Plan, in the plan's words.
+   */
+  test("the response steps it comes with, under each part of the Response Plan", async () => {
+    await renderPage();
+    await click(screen.getByTestId(`rule-library-name-${BRUTE_FORCE.id}`));
+
+    const steps: HTMLElement = screen.getByTestId(
+      "rule-library-details-response-steps",
+    );
+
+    expect(steps).toHaveTextContent("Response Steps");
+    expect(
+      within(steps).getByTestId(
+        "detection-rule-response-steps-list-part-Confirm",
+      ),
+    ).toHaveTextContent(
+      "Confirm it is real" +
+        "Check whether any sign-in from the same address succeeded during or after the failures.",
+    );
+    expect(
+      within(steps).getByTestId(
+        "detection-rule-response-steps-list-part-Contain",
+      ),
+    ).toHaveTextContent("Contain it");
+    expect(
+      within(steps).getByTestId("detection-rule-response-steps-list-part-Fix"),
+    ).toHaveTextContent(
+      "Make sure every account it went after uses MFA, and lock an account out after repeated failed sign-ins.",
+    );
+    // In the plan's order.
+    expect(
+      Array.from(steps.querySelectorAll("h4")).map(
+        (heading: Element): string => {
+          return heading.textContent || "";
+        },
+      ),
+    ).toEqual(["Confirm it is real", "Contain it", "Fix what let it happen"]);
+  });
+
   test("its Sigma rule, to read or copy", async () => {
     await renderPage();
     await click(screen.getByTestId(`rule-library-name-${BRUTE_FORCE.id}`));

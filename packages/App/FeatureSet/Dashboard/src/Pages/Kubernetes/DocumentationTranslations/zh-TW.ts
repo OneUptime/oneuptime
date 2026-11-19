@@ -72,8 +72,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "此平台上的成本監控預設為關閉：此平台依每個 Pod 要求的資源計費，因此開啟後這三個成本 Pod 會增加你的帳單，而且 OpenCost 是依節點而非依 Pod 定價。若仍要開啟：",
   "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
     "光是這樣就是完整的安裝：chart 內建開放原始碼的 OpenCost 引擎（以及它需要的小型 Prometheus），並依雲端供應商公開的牌價為你的節點與磁碟區定價，不需要憑證。它會加入三個小型 Pod；第一個完整小時過後會出現第一批資料。",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **已經在執行 Kubecost 或 OpenCost？** 改為讓代理程式指向它，這樣就不會內建任何元件：加入 `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003`（或你的 Kubecost 服務）。",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **已經在執行 Kubecost 或 OpenCost？** 代理程式會找到它並讀取它，而不是內建的引擎，叢集的概覽也會說明這一點：加入 `--set cost.engine.url=auto`，即可不再內建第二個引擎。",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **地端或裸機？** 用 `--set cost.opencost.customPricing.enabled=true` 設定費率表（每資源小時的美元價格；請參閱 chart 的 `values.yaml`）。",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":

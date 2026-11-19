@@ -9,18 +9,19 @@ import {
   floorToWindow,
   mapAllocationToRow,
 } from "./AllocationMapper";
-import { CostEngineClient } from "./CostEngineClient";
 import Logger from "./Logger";
 import { PrometheusClient } from "./PrometheusClient";
 import { Shipper } from "./Shipper";
 import {
+  CostEngineSource,
   EngineAllocation,
   KubernetesCostAllocationIngestRow,
+  KubernetesCostEngineInfo,
   PollerStatus,
 } from "./Types";
 
 export class Poller {
-  private readonly engine: CostEngineClient;
+  private readonly engine: CostEngineSource;
   private readonly shipper: Shipper;
   private readonly prometheus: PrometheusClient;
 
@@ -52,7 +53,7 @@ export class Poller {
   private consecutivePollFailures: number = 0;
 
   public constructor(
-    engine: CostEngineClient,
+    engine: CostEngineSource,
     shipper: Shipper,
     prometheus?: PrometheusClient,
   ) {
@@ -173,7 +174,16 @@ export class Poller {
 
           attachMemoryPeaks({ rows, peaks });
 
-          await this.shipper.ship(rows);
+          /*
+           * Which engine priced the rows, and where its prices come from
+           * (CostEngineResolver): the pages say so beside the figures.
+           */
+          const costEngine: KubernetesCostEngineInfo | undefined =
+            typeof this.engine.describe === "function"
+              ? this.engine.describe()
+              : undefined;
+
+          await this.shipper.ship(rows, costEngine);
 
           Logger.info("shipped cost window", {
             windowStart: windowStart.toISOString(),

@@ -4,8 +4,8 @@ import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddWorkflowRunAsKeys1809185100100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185100100-AddWorkflowRunAsKeys";
-import { AddWorkflowRunAsApiKey1809185200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185200000-AddWorkflowRunAsApiKey";
-import { AddWorkflowRunAsApiKeyKey1809185200100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185200100-AddWorkflowRunAsApiKeyKey";
+import { AddWorkflowRunAsApiKey1809185400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185400000-AddWorkflowRunAsApiKey";
+import { AddWorkflowRunAsApiKeyKey1809185400100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185400100-AddWorkflowRunAsApiKeyKey";
 import ApiKey from "../../../../Models/DatabaseModels/ApiKey";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import WorkflowLog from "../../../../Models/DatabaseModels/WorkflowLog";
@@ -76,11 +76,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddWorkflowRunAsApiKey1809185200000: the columns", () => {
+describe("AddWorkflowRunAsApiKey1809185400000: the columns", () => {
   test("adds the key columns to Workflow and WorkflowLog, nullable, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddWorkflowRunAsApiKey1809185200000().up(runner);
+        return new AddWorkflowRunAsApiKey1809185400000().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "Workflow" ADD "runAsGivenByApiKeyId" uuid`,
@@ -91,7 +91,7 @@ describe("AddWorkflowRunAsApiKey1809185200000: the columns", () => {
 
   test("builds no index, adds no key and rewrites no row", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddWorkflowRunAsApiKey1809185200000().up(runner);
+      return new AddWorkflowRunAsApiKey1809185400000().up(runner);
     })) {
       expect(statement).not.toMatch(
         /CREATE (UNIQUE )?INDEX|FOREIGN KEY|UPDATE |NOT NULL/i,
@@ -102,7 +102,7 @@ describe("AddWorkflowRunAsApiKey1809185200000: the columns", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddWorkflowRunAsApiKey1809185200000().down(runner);
+        return new AddWorkflowRunAsApiKey1809185400000().down(runner);
       }),
     ).toEqual([
       `ALTER TABLE "WorkflowLog" DROP COLUMN "runAsGivenByApiKeyName"`,
@@ -112,10 +112,10 @@ describe("AddWorkflowRunAsApiKey1809185200000: the columns", () => {
   });
 });
 
-describe("AddWorkflowRunAsApiKeyKey1809185200100: the key", () => {
+describe("AddWorkflowRunAsApiKeyKey1809185400100: the key", () => {
   test("adds the workflow's key to ApiKey online, outside a transaction", async () => {
-    const migration: AddWorkflowRunAsApiKeyKey1809185200100 =
-      new AddWorkflowRunAsApiKeyKey1809185200100();
+    const migration: AddWorkflowRunAsApiKeyKey1809185400100 =
+      new AddWorkflowRunAsApiKeyKey1809185400100();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -147,7 +147,7 @@ describe("AddWorkflowRunAsApiKeyKey1809185200100: the key", () => {
   test("down() drops the key", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddWorkflowRunAsApiKeyKey1809185200100().down(runner);
+        return new AddWorkflowRunAsApiKeyKey1809185400100().down(runner);
       }),
     ).toEqual([
       `ALTER TABLE "Workflow" DROP CONSTRAINT "FK_656f7b719b389da279b104f681d"`,
@@ -160,8 +160,8 @@ describe("both are registered", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
 
     for (const migration of [
-      AddWorkflowRunAsApiKey1809185200000,
-      AddWorkflowRunAsApiKeyKey1809185200100,
+      AddWorkflowRunAsApiKey1809185400000,
+      AddWorkflowRunAsApiKeyKey1809185400100,
     ]) {
       expect(
         registered.filter((candidate: unknown): boolean => {
@@ -178,11 +178,11 @@ describe("both are registered", () => {
     }
 
     expect(registered.indexOf(AddWorkflowRunAsKeys1809185100100)).toBeLessThan(
-      registered.indexOf(AddWorkflowRunAsApiKey1809185200000),
+      registered.indexOf(AddWorkflowRunAsApiKey1809185400000),
     );
     expect(
-      registered.indexOf(AddWorkflowRunAsApiKey1809185200000),
-    ).toBeLessThan(registered.indexOf(AddWorkflowRunAsApiKeyKey1809185200100));
+      registered.indexOf(AddWorkflowRunAsApiKey1809185400000),
+    ).toBeLessThan(registered.indexOf(AddWorkflowRunAsApiKeyKey1809185400100));
   });
 });
 

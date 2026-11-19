@@ -265,13 +265,12 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Add to Case: one request keeps every ticked event on the case, so every event waits on that one request.",
       },
     ],
-  "packages/App/FeatureSet/Dashboard/src/Components/Slo/useSloRecommendedRulesBulkAction.tsx":
-    [
-      {
-        expression: "batchSize",
-        why: "Add recommended rules: one request adds the missing rules to a batch of SLOs (SLO_BULK_RECOMMENDED_RULES_BATCH_SIZE), so a batch's SLOs run together, each waiting on its batch's answer.",
-      },
-    ],
+  "packages/App/FeatureSet/Dashboard/src/Components/Slo/SloBulkAddRun.ts": [
+    {
+      expression: "batchSize",
+      why: "Add recommended rules and Use the recommended policy: one request adds what is missing to a batch of SLOs (SLO_BULK_RECOMMENDED_RULES_BATCH_SIZE, SLO_BULK_RECOMMENDED_POLICY_BATCH_SIZE), so a batch's SLOs run together, each waiting on its batch's answer.",
+    },
+  ],
   "packages/App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageResourcePanel.tsx":
     [
       {

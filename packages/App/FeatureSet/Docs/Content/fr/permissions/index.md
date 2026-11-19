@@ -95,7 +95,7 @@ Créez autant d'équipes supplémentaires que vous voulez — « Astreinte Front
 
 :::steps
 1. Ouvrez **Équipes** depuis le menu **Produits**, sous **Paramètres**, puis cliquez sur **Créer une équipe**.
-2. Saisissez le **Nom** de l'équipe et choisissez son **Accès**. La description se trouve sous **Plus de champs**.
+2. Saisissez le **Nom** de l'équipe et choisissez son **Accès**. Un nom que porte déjà une autre équipe du projet est refusé, quels que soient sa casse ou ses espaces, afin que chaque sélecteur d'équipe distingue les équipes. La description se trouve sous **Plus de champs**.
 3. Créez l'équipe. Une équipe dotée d'un rôle s'ouvre sur sa page **Membres**, prête pour inviter des personnes ; avec **Choisir les autorisations plus tard**, elle s'ouvre sur sa page **Autorisations**, où vous ajoutez un rôle plus étroit comme `IncidentMember`, ou des autorisations isolées.
 :::
 

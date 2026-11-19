@@ -95,7 +95,7 @@ Skapa hur många extra team du vill — "Frontend-jour", "Support", "Skrivskydda
 
 :::steps
 1. Öppna **Team** i menyn **Produkter**, under **Inställningar**, och klicka på **Skapa team**.
-2. Skriv in teamets **Namn** och välj dess **Åtkomst**. Beskrivningen finns under **Fler fält**.
+2. Skriv in teamets **Namn** och välj dess **Åtkomst**. Ett namn som ett annat team i projektet redan har avvisas, oavsett stora och små bokstäver och mellanslag, så att varje teamväljare skiljer teamen åt. Beskrivningen finns under **Fler fält**.
 3. Skapa teamet. Ett team med en roll öppnas på sin sida **Medlemmar**, redo att bjuda in personer; med **Välj behörigheter senare** öppnas det på sin sida **Behörigheter**, där du lägger till en smalare roll som `IncidentMember` eller enstaka behörigheter.
 :::
 

@@ -266,15 +266,33 @@ describe("RouteRecorder", (): void => {
       );
     });
 
-    it("scrubs a hash route on its own", (): void => {
-      expect(
-        RouteRecorder.scrubHashRoute("https://x.test/#/u/alice@example.com"),
-      ).toBe("#/u/[redacted]");
-      expect(RouteRecorder.scrubHashRoute("https://x.test/#/a?b=c")).toBe(
-        "#/a",
+    /*
+     * The recorder keeps a hash route by UrlScrubber's rule, the one the
+     * ingest stores every URL by (issue #8019: RouteRecorder carried its
+     * own copy of this for its tests alone, bytes every page paid for).
+     */
+    it("scrubs a hash route by UrlScrubber's rule", (): void => {
+      expect(UrlScrubber.scrubHashRoute("#/u/alice@example.com")).toBe(
+        "#/u/[redacted]",
       );
-      expect(RouteRecorder.scrubHashRoute("https://x.test/#top")).toBe("");
-      expect(RouteRecorder.scrubHashRoute("https://x.test/")).toBe("");
+      expect(UrlScrubber.scrubHashRoute("#/a?b=c")).toBe("#/a");
+      expect(UrlScrubber.scrubHashRoute("#!/settings")).toBe("#!/settings");
+      expect(UrlScrubber.scrubHashRoute("#top")).toBe("");
+      expect(UrlScrubber.scrubHashRoute("")).toBe("");
+
+      window.history.pushState({}, "", "/app#/u/alice@example.com?x=1");
+
+      expect(recorder.getCurrentUrl()).toBe(
+        `https://shop.example.com/app${UrlScrubber.scrubHashRoute(
+          "#/u/alice@example.com?x=1",
+        )}`,
+      );
+    });
+
+    it("has no copy of the hash route scrub of its own", (): void => {
+      expect(
+        (RouteRecorder as unknown as Record<string, unknown>)["scrubHashRoute"],
+      ).toBeUndefined();
     });
   });
 
@@ -390,6 +408,169 @@ describe("RouteRecorder", (): void => {
       expect(routes).toHaveLength(1);
       expect(routes[0]?.from).toBe("https://shop.example.com/signed-out");
       expect(routes[0]?.to).toBe("https://shop.example.com/sign-in");
+    });
+  });
+
+  /*
+   * The replay policy's page rules (issue #7502): asked first, on every
+   * change of address, and a page they keep out is never the current URL -
+   * no route to it, and no chunk sent as if from it.
+   */
+  describe("allowsPage", (): void => {
+    let asked: Array<string> = [];
+    let allowed: (path: string) => boolean = (): boolean => {
+      return true;
+    };
+    let ruled: RouteRecorder;
+
+    const build: (isPageRecorded?: boolean) => RouteRecorder = (
+      isPageRecorded: boolean = true,
+    ): RouteRecorder => {
+      recorder.stop(window);
+
+      ruled = new RouteRecorder({
+        emitCustomEvent: (tag: string, payload: unknown): void => {
+          customEvents.push({ tag: tag, payload: payload });
+        },
+        scrubUrl: (url: string): string => {
+          return UrlScrubber.scrub(url);
+        },
+        onRouteChange: (_atUnixMs: number, route: RecordedRoute): void => {
+          routes.push(route);
+        },
+        requestFullSnapshot: (): void => {
+          snapshotRequests++;
+        },
+        allowsPage: (kind: RecordedRoute["kind"]): boolean => {
+          asked.push(`${kind} ${window.location.pathname}`);
+          return allowed(window.location.pathname);
+        },
+      });
+
+      ruled.start(window, isPageRecorded);
+
+      return ruled;
+    };
+
+    beforeEach((): void => {
+      asked = [];
+      allowed = (path: string): boolean => {
+        return !path.startsWith("/admin");
+      };
+    });
+
+    afterEach((): void => {
+      ruled.stop(window);
+    });
+
+    it("is asked on every change of address, the new address already in place", (): void => {
+      build();
+
+      window.history.pushState({}, "", "/cart");
+      window.history.replaceState({}, "", "/cart?x=1");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+      expect(asked).toEqual([
+        "pushState /cart",
+        "replaceState /cart",
+        "popstate /cart",
+        "hashchange /cart",
+      ]);
+    });
+
+    it("a page it keeps out is never the current URL, nor a route", (): void => {
+      build();
+
+      window.history.pushState({}, "", "/admin/payroll");
+
+      expect(routes).toHaveLength(0);
+      expect(ruled.getCurrentUrl()).toBe("https://shop.example.com/checkout");
+
+      window.history.pushState({}, "", "/cart");
+
+      // From the last page recorded, across the one kept out.
+      expect(routes).toEqual([
+        {
+          from: "https://shop.example.com/checkout",
+          to: "https://shop.example.com/cart",
+          kind: "pushState",
+        },
+      ]);
+      expect(JSON.stringify(customEvents)).not.toContain("admin");
+    });
+
+    it("starts on no page when the page it starts on is kept out", (): void => {
+      recorder.stop(window);
+      window.history.replaceState({}, "", "/admin");
+
+      build(false);
+
+      expect(ruled.getCurrentUrl()).toBe("");
+
+      window.history.pushState({}, "", "/cart");
+
+      expect(routes).toEqual([
+        { from: "", to: "https://shop.example.com/cart", kind: "pushState" },
+      ]);
+    });
+
+    it("takes no second snapshot of a page capture just went on with", (): void => {
+      recorder.stop(window);
+      window.history.replaceState({}, "", "/admin");
+
+      build(false);
+
+      History.prototype.replaceState.call(window.history, {}, "", "/cart");
+      ruled.handle("pushState", window, true);
+      settle();
+
+      expect(routes).toHaveLength(1);
+      expect(snapshotRequests).toBe(0);
+    });
+
+    /*
+     * At the window, capturing listeners run before the others: the page's
+     * router, listening the ordinary way, draws the page it navigated back
+     * to only after the policy was asked about it.
+     */
+    it("listens for popstate and hashchange in the capture phase", (): void => {
+      recorder.stop(window);
+
+      const listened: Array<[string, unknown]> = [];
+      const unlistened: Array<[string, unknown]> = [];
+      const addSpy: jest.SpyInstance = jest
+        .spyOn(window, "addEventListener")
+        .mockImplementation(
+          (type: string, _listener: unknown, options?: unknown): void => {
+            listened.push([type, options]);
+          },
+        );
+      const removeSpy: jest.SpyInstance = jest
+        .spyOn(window, "removeEventListener")
+        .mockImplementation(
+          (type: string, _listener: unknown, options?: unknown): void => {
+            unlistened.push([type, options]);
+          },
+        );
+
+      build();
+      ruled.stop(window);
+
+      addSpy.mockRestore();
+      removeSpy.mockRestore();
+
+      expect(listened).toEqual([
+        ["popstate", true],
+        ["hashchange", true],
+      ]);
+      expect(unlistened).toEqual([
+        ["popstate", true],
+        ["hashchange", true],
+      ]);
+
+      // afterEach stops it again: started fresh so that stop has work.
+      ruled.start(window);
     });
   });
 

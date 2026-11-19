@@ -95,7 +95,7 @@ Opret så mange ekstra teams, du vil — "Frontend-vagt", "Support", "Skrivebesk
 
 :::steps
 1. Åbn **Teams** i menuen **Produkter** under **Indstillinger**, og klik på **Opret team**.
-2. Skriv teamets **Navn**, og vælg dets **Adgang**. Beskrivelsen ligger under **Flere felter**.
+2. Skriv teamets **Navn**, og vælg dets **Adgang**. Et navn, som et andet team i projektet allerede har, afvises, uanset store og små bogstaver og mellemrum, så teamene kan skelnes fra hinanden i enhver teamvælger. Beskrivelsen ligger under **Flere felter**.
 3. Opret teamet. Et team med en rolle åbner på sin side **Medlemmer**, klar til at invitere personer; med **Vælg tilladelser senere** åbner det på sin side **Tilladelser**, hvor du tilføjer en snævrere rolle som `IncidentMember` eller enkelte tilladelser.
 :::
 

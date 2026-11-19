@@ -538,7 +538,12 @@
         "projectCreationCardDescription": "このOneUptimeサーバーで新しいプロジェクトを作成できるユーザーを制御します。",
         "projectCreationSwitchTitle": "ユーザーにプロジェクトの作成を許可",
         "projectCreationSwitchOnDescription": "このサーバーにサインインしている人は誰でもプロジェクトを作成できます。",
-        "projectCreationSwitchOffDescription": "プロジェクトを作成できるのはマスター管理者のみです。"
+        "projectCreationSwitchOffDescription": "プロジェクトを作成できるのはマスター管理者のみです。",
+        "inviteSuggestionsCardTitle": "招待の候補",
+        "inviteSuggestionsCardDescription": "プロジェクトに招待する人が、このサーバーにアカウントを持つ誰でも見つけられるかどうか。サーバーに複数の組織がある場合はオフのままにしてください。",
+        "inviteSuggestionsSwitchTitle": "このサーバーのすべてのアカウントを候補に表示",
+        "inviteSuggestionsSwitchOnDescription": "プロジェクトに招待できる人は、入力中にすべてのアカウントの名前とメールアドレスを見られます。「このプロジェクトに未参加」と表示されます。",
+        "inviteSuggestionsSwitchOffDescription": "招待フォームの候補はプロジェクト自身のメンバーです。マスター管理者には、サーバーのほかのアカウントも表示されます。"
       },
       "email": {
         "adminNotificationCardTitle": "管理者通知メール",
@@ -4287,5 +4292,9 @@
   "Sign Out of the Identity Provider Too": "ID プロバイダーからもサインアウト",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime からサインアウトすると、このプロバイダーと、それを使うほかのすべてのアプリからもサインアウトします。共用コンピューターではオンにしてください。",
   "Sign-out Redirect URI:": "サインアウト後のリダイレクト URI:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "リダイレクト URI を OIDC の ID プロバイダーに登録してください。「ID プロバイダーからもサインアウト」がオンの場合は、サインアウト後のリダイレクト URI も登録してください。"
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "リダイレクト URI を OIDC の ID プロバイダーに登録してください。「ID プロバイダーからもサインアウト」がオンの場合は、サインアウト後のリダイレクト URI も登録してください。",
+  "If they have no OneUptime account yet, it is set up with this name.": "この人がまだ OneUptime のアカウントを持っていない場合は、この名前でアカウントが作成されます。",
+  "Suggest every account on this server?": "このサーバーのすべてのアカウントを候補に表示しますか？",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "メンバーを招待できる人は、入力中にすべてのアカウントの名前とメールアドレスを見られるようになります。ここのすべてのアカウントが 1 つの組織に属している場合にのみオンにしてください。",
+  "Suggest Every Account": "すべてのアカウントを表示"
 }

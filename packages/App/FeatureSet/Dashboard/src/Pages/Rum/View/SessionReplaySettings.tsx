@@ -9,6 +9,9 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { translationKey } from "Common/Types/Translator";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -86,6 +89,29 @@ import {
 
 /* The in-page anchor the privacy summary's "Change" links jump to. */
 export const REPLAY_POLICY_ANCHOR_ID: string = "replay-policy";
+
+/*
+ * Which pages are recorded (#7502) and which event properties stay
+ * readable (#7501): privacy settings most applications never touch, so
+ * they wait folded at the end of the Masking step, the line naming them
+ * and what each is set to.
+ */
+const pageAndPropertyRules: FormFieldCollapsibleSection<RumApplication> =
+  getAdvancedFormSection<RumApplication>();
+
+/*
+ * Their names, here and in the server's refusals alike
+ * (SessionReplayPolicyValidation): a refusal names the setting the person
+ * sees on this page.
+ */
+export const SESSION_REPLAY_RECORD_ONLY_PAGES_TITLE: string = translationKey(
+  "Record only these pages",
+);
+export const SESSION_REPLAY_NEVER_RECORD_PAGES_TITLE: string = translationKey(
+  "Never record these pages",
+);
+export const SESSION_REPLAY_READABLE_EVENT_PROPERTIES_TITLE: string =
+  translationKey("Readable event properties");
 
 /*
  * What the read view's helpers say without a translator: English, word for
@@ -469,6 +495,39 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               description:
                 "Store canvas frames too. Costly, and the player shows a notice instead of replaying them.",
             },
+            {
+              field: { sessionReplayRecordOnlyPages: true },
+              title: SESSION_REPLAY_RECORD_ONLY_PAGES_TITLE,
+              stepId: "privacy",
+              fieldType: FormFieldSchemaType.JSON,
+              required: false,
+              placeholder: '["/checkout*", "/cart"]',
+              description:
+                "A JSON array of page paths to record, * for any characters. Empty records every page; any other page is not recorded.",
+              collapsibleSection: pageAndPropertyRules,
+            },
+            {
+              field: { sessionReplayNeverRecordPages: true },
+              title: SESSION_REPLAY_NEVER_RECORD_PAGES_TITLE,
+              stepId: "privacy",
+              fieldType: FormFieldSchemaType.JSON,
+              required: false,
+              placeholder: '["/admin*", "/account*"]',
+              description:
+                "A JSON array of page paths never recorded, even if listed above. Their content and address stay out of every recording.",
+              collapsibleSection: pageAndPropertyRules,
+            },
+            {
+              field: { sessionReplayReadableEventProperties: true },
+              title: SESSION_REPLAY_READABLE_EVENT_PROPERTIES_TITLE,
+              stepId: "privacy",
+              fieldType: FormFieldSchemaType.JSON,
+              required: false,
+              placeholder: '["plan", "step"]',
+              description:
+                "Event property keys whose short values your code chooses, kept readable under Mask all text. Any other value stays masked.",
+              collapsibleSection: pageAndPropertyRules,
+            },
 
             {
               field: { sessionReplayLcpBudgetMs: true },
@@ -743,6 +802,49 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 },
               },
               {
+                field: { sessionReplayRecordOnlyPages: true },
+                title: SESSION_REPLAY_RECORD_ONLY_PAGES_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: RumApplication): ReactElement => {
+                  return (
+                    <Chips
+                      values={item.sessionReplayRecordOnlyPages}
+                      emptyCopy={translator.translateText("Every page")}
+                    />
+                  );
+                },
+              },
+              {
+                field: { sessionReplayNeverRecordPages: true },
+                title: SESSION_REPLAY_NEVER_RECORD_PAGES_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: RumApplication): ReactElement => {
+                  return (
+                    <Chips
+                      values={item.sessionReplayNeverRecordPages}
+                      emptyCopy={translator.translateText(
+                        "None: no page is kept out",
+                      )}
+                    />
+                  );
+                },
+              },
+              {
+                field: { sessionReplayReadableEventProperties: true },
+                title: SESSION_REPLAY_READABLE_EVENT_PROPERTIES_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: RumApplication): ReactElement => {
+                  return (
+                    <Chips
+                      values={item.sessionReplayReadableEventProperties}
+                      emptyCopy={translator.translateText(
+                        "None: under Mask all text, every event property value is masked",
+                      )}
+                    />
+                  );
+                },
+              },
+              {
                 field: { sessionReplayCaptureUserIdentity: true },
                 title: "Captures end-user identity",
                 fieldType: FieldType.Boolean,
@@ -884,6 +986,10 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 retentionInDays: application.sessionReplayRetentionInDays,
                 maskSelectors: application.sessionReplayMaskSelectors,
                 blockSelectors: application.sessionReplayBlockSelectors,
+                recordOnlyPages: application.sessionReplayRecordOnlyPages,
+                neverRecordPages: application.sessionReplayNeverRecordPages,
+                readableEventProperties:
+                  application.sessionReplayReadableEventProperties,
                 recordCanvas: application.sessionReplayRecordCanvas,
                 sameOriginTracePropagation:
                   application.sessionReplaySameOriginTracePropagation,

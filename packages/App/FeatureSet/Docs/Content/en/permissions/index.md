@@ -95,7 +95,7 @@ Create as many additional teams as you like — "Frontend On-Call", "Support", "
 
 :::steps
 1. Open **Teams** from the **Products** menu, under **Settings**, and click **Create Team**.
-2. Type the team's **Name** and pick its **Access**. The description is under **More fields**.
+2. Type the team's **Name** and pick its **Access**. A name another team of the project has, in any case or spacing, is refused, so every team picker tells the teams apart. The description is under **More fields**.
 3. Create the team. A team with a role opens on its **Members** page, ready for you to invite people; with **Choose permissions later** it opens on its **Permissions** page, where you add a narrower role such as `IncidentMember`, or single permissions.
 :::
 

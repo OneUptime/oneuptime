@@ -32,7 +32,17 @@ import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
 import SecurityCaseService from "./SecurityCaseService";
+import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityEventService from "./SecurityEventService";
+import SecurityDetection from "../../Models/DatabaseModels/SecurityDetection";
+import {
+  SecurityDetectionMatchedEvent,
+  SecurityDetectionMatchedEvents,
+  readSecurityDetectionMatchedEvents,
+} from "../../Types/SecurityCase/SecurityDetectionMatchedEvents";
+import { isKeptEventReadable } from "../Utils/SecurityCase/Context/SecurityCaseMatches";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import { TelemetryServiceFilter } from "../Utils/Telemetry/TelemetryReadScope";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../Types/BaseDatabase/Includes";
 import InBetween from "../../Types/BaseDatabase/InBetween";
@@ -46,6 +56,7 @@ import Select from "../Types/AnalyticsDatabase/Select";
 import {
   SECURITY_CASE_EVENT_EVIDENCE_MAX_PER_ADD,
   SECURITY_CASE_EVENT_SNAPSHOT_COLUMNS,
+  SecurityCaseEventDetection,
   SecurityCaseEventHunt,
   SecurityCaseEventReference,
   SecurityCaseEventSnapshot,
@@ -182,6 +193,13 @@ export class Service extends ProjectReferencesService<Model> {
    * route's to check (SecurityCaseEvidenceAPI); the rows are written by
    * OneUptime, in the caller's name, as no caller may write an event's
    * snapshot.
+   *
+   * Events kept from what one of the case's detections matched (its "Why
+   * This Case Was Opened", #9622) name the detection - one on this case the
+   * person can read. An event past its retention is kept as that detection
+   * kept it when it fired (SecurityDetection.matchedEvents, #9619): also
+   * what OneUptime read, never what the request said, and only an event of
+   * a source the person's role reads.
    */
   @CaptureSpan()
   public async addEvents(data: {
@@ -189,6 +207,8 @@ export class Service extends ProjectReferencesService<Model> {
     securityCaseId: ObjectID;
     events: Array<SecurityCaseEventReference>;
     hunt: SecurityCaseEventHunt | null;
+    // The detection on this case the events were matched by.
+    detectionId?: ObjectID | null | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<SecurityCaseEventsAddResult> {
     const result: SecurityCaseEventsAddResult = {
@@ -223,11 +243,33 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(SECURITY_CASE_EVENTS_CASE_NOT_FOUND);
     }
 
+    const detection: SecurityCaseEventDetection | null = data.detectionId
+      ? await this.readMatchingDetection({
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          detectionId: data.detectionId,
+          props: data.props,
+        })
+      : null;
+
     const eventsByUid: Map<string, SecurityEvent> = await this.readEvents({
       projectId: data.projectId,
       events: data.events,
       props: data.props,
     });
+
+    // Past their retention: as the detection kept them, when it kept them.
+    const keptByUid: Map<string, SecurityDetectionMatchedEvent> = detection
+      ? await this.readEventsTheDetectionKept({
+          detectionId: new ObjectID(detection.id),
+          events: data.events.filter(
+            (reference: SecurityCaseEventReference): boolean => {
+              return !eventsByUid.has(reference.eventUid);
+            },
+          ),
+          props: data.props,
+        })
+      : new Map();
 
     const kept: Array<Model> = await this.findBy({
       query: {
@@ -268,16 +310,22 @@ export class Service extends ProjectReferencesService<Model> {
       const event: SecurityEvent | undefined = eventsByUid.get(
         reference.eventUid,
       );
+      const keptCopy: SecurityDetectionMatchedEvent | undefined = keptByUid.get(
+        reference.eventUid,
+      );
 
-      if (!event) {
+      if (!event && !keptCopy) {
         result.notFound.push(reference.eventUid);
         continue;
       }
 
       const snapshot: SecurityCaseEventSnapshot =
         buildSecurityCaseEventSnapshot({
-          event: readEventColumns(event),
+          event: event
+            ? readEventColumns(event)
+            : { ...keptCopy, primaryEntityId: keptCopy!.sourceId },
           hunt: data.hunt,
+          detection,
         });
 
       const evidence: Model = new Model();
@@ -328,6 +376,7 @@ export class Service extends ProjectReferencesService<Model> {
           feedInfoInMarkdown: eventsAddedMarkdown({
             count: result.added.length,
             huntName: data.hunt?.name,
+            detectionName: detection?.name,
           }).toString(),
           moreInformationInMarkdown: FeedMarkdown.bulletList(lines).toString(),
           eventType: SecurityCaseFeedEventType.Evidence,
@@ -344,6 +393,116 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return result;
+  }
+
+  /*
+   * The detection a request names, as the person asking reads it: one of
+   * this case's, named by its rule (or its title). None when it is not
+   * there, not this case's, or not theirs to read: the events are then kept
+   * as any are, naming nothing.
+   */
+  private async readMatchingDetection(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    detectionId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SecurityCaseEventDetection | null> {
+    try {
+      const detection: SecurityDetection | null =
+        await SecurityDetectionService.findOneBy({
+          query: {
+            _id: data.detectionId,
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+          },
+          select: {
+            _id: true,
+            title: true,
+            ruleName: true,
+          },
+          props: data.props,
+        });
+      const name: string = (
+        detection?.ruleName ||
+        detection?.title ||
+        ""
+      ).trim();
+
+      return detection?.id && name
+        ? { id: detection.id.toString(), name }
+        : null;
+    } catch (error) {
+      logger.debug(
+        `SecurityCaseEvidenceService: the detection ${data.detectionId.toString()} named to keep events from was not read: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * The events a detection kept when it fired, by id, for the ones a
+   * request names that the events table no longer has: each within a
+   * second of the time named, and of a source the person's role reads, as
+   * the case's "Why This Case Was Opened" shows them. Read as OneUptime -
+   * no role reads the column itself - and handed on only as the person may
+   * read each event. None when the person may read no security events.
+   */
+  private async readEventsTheDetectionKept(data: {
+    detectionId: ObjectID;
+    events: Array<SecurityCaseEventReference>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, SecurityDetectionMatchedEvent>> {
+    const found: Map<string, SecurityDetectionMatchedEvent> = new Map();
+
+    if (data.events.length === 0) {
+      return found;
+    }
+
+    let serviceFilter: TelemetryServiceFilter;
+
+    try {
+      serviceFilter = await TelemetryReadAccess.getServiceFilter({
+        modelType: SecurityEvent,
+        props: data.props,
+      });
+    } catch {
+      return found;
+    }
+
+    const stored: SecurityDetection | null =
+      await SecurityDetectionService.findOneById({
+        id: data.detectionId,
+        select: {
+          matchedEvents: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    const kept: SecurityDetectionMatchedEvents | null =
+      readSecurityDetectionMatchedEvents(stored?.matchedEvents);
+
+    for (const reference of data.events) {
+      const event: SecurityDetectionMatchedEvent | undefined = (
+        kept?.events || []
+      ).find((candidate: SecurityDetectionMatchedEvent): boolean => {
+        const time: number = candidate.time
+          ? new Date(candidate.time).getTime()
+          : NaN;
+
+        return (
+          candidate.eventUid === reference.eventUid &&
+          !Number.isNaN(time) &&
+          Math.abs(time - reference.time.getTime()) <= EVENT_TIME_SLACK_IN_MS
+        );
+      });
+
+      if (event && isKeptEventReadable({ event, serviceFilter })) {
+        found.set(reference.eventUid, event);
+      }
+    }
+
+    return found;
   }
 
   /*

@@ -166,11 +166,14 @@ function formFieldTitles(text: string): Map<string, string> {
     }
   }
 
-  // A title the file keeps in a constant: title: SOME_TITLE,
+  /*
+   * A title the file keeps in a constant: title: SOME_TITLE, its words
+   * written as they are or marked for the extractor (translationKey).
+   */
   for (const match of Array.from(text.matchAll(FORM_FIELD_CONSTANT))) {
     const value: string | undefined = text.match(
       new RegExp(
-        `export const ${escapeRegExp(match[2] as string)}: string =\\s*"([^"]+)"`,
+        `export const ${escapeRegExp(match[2] as string)}: string =\\s*(?:translationKey\\(\\s*)?"([^"]+)"`,
       ),
     )?.[1];
 
@@ -1071,6 +1074,10 @@ describe("Session Replay: the policy, as Edit Policy names it", () => {
       ["sessionReplaySameOriginTracePropagation", "On"],
       ["sessionReplayCaptureGeo", "On"],
       ["sessionReplayRecordCanvas", "Off"],
+      // The Masking step's More fields (#7502, #7501).
+      ["sessionReplayRecordOnlyPages", "Empty: every page"],
+      ["sessionReplayNeverRecordPages", "Empty"],
+      ["sessionReplayReadableEventProperties", "Empty"],
       ["sessionReplayRetentionInDays", "7 days"],
       ["sessionReplayMonthlyBudgetInGB", "Blank"],
     ];
@@ -1103,6 +1110,25 @@ describe("Session Replay: the policy, as Edit Policy names it", () => {
     );
     expect(columnDefault("sessionReplayCaptureGeo")).toBe("true");
     expect(columnDefault("sessionReplayRecordCanvas")).toBe("false");
+
+    // The page rules and readable event properties start as empty lists in the database.
+    const model: string = source("rumApplicationModel");
+
+    for (const column of [
+      "sessionReplayRecordOnlyPages",
+      "sessionReplayNeverRecordPages",
+      "sessionReplayReadableEventProperties",
+    ]) {
+      const before: string = model.slice(
+        0,
+        model.indexOf(`public ${column}?:`),
+      );
+      const columnBlock: string = before.slice(before.lastIndexOf("@Column({"));
+
+      expect({ column, empty: columnBlock.includes(`return "'[]'";`) }).toEqual(
+        { column, empty: true },
+      );
+    }
   });
 
   it("names the steps of Edit Policy the page sends readers to", () => {

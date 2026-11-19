@@ -538,7 +538,12 @@
         "projectCreationCardDescription": "Styr, hvem der kan oprette nye projekter på denne OneUptime-server.",
         "projectCreationSwitchTitle": "Lad brugere oprette projekter",
         "projectCreationSwitchOnDescription": "Alle, der er logget ind på denne server, kan oprette et projekt.",
-        "projectCreationSwitchOffDescription": "Kun masteradministratorer kan oprette projekter."
+        "projectCreationSwitchOffDescription": "Kun masteradministratorer kan oprette projekter.",
+        "inviteSuggestionsCardTitle": "Invitationsforslag",
+        "inviteSuggestionsCardDescription": "Om de, der inviterer til et projekt, kan finde alle med en konto på denne server. Lad det være slået fra, hvis serveren huser mere end én organisation.",
+        "inviteSuggestionsSwitchTitle": "Foreslå alle konti på denne server",
+        "inviteSuggestionsSwitchOnDescription": "Alle, der må invitere personer til et projekt, ser hver kontos navn og e-mail, mens de skriver, markeret Ikke i dette projekt endnu.",
+        "inviteSuggestionsSwitchOffDescription": "Invitationsformularerne foreslår projektets egne personer. Masteradministratorer får også serverens andre konti tilbudt."
       },
       "email": {
         "adminNotificationCardTitle": "Admin-notifikations-e-mail",
@@ -4287,5 +4292,9 @@
   "Sign Out of the Identity Provider Too": "Log også ud af identitetsudbyderen",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Når man logger ud af OneUptime, logges man også ud af denne udbyder og af alle andre apps, der bruger den. Slå til for delte computere.",
   "Sign-out Redirect URI:": "Omdirigerings-URI efter log ud:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrer omdirigerings-URI'en hos din OIDC-identitetsudbyder, og også omdirigerings-URI'en efter log ud, når \"Log også ud af identitetsudbyderen\" er slået til."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrer omdirigerings-URI'en hos din OIDC-identitetsudbyder, og også omdirigerings-URI'en efter log ud, når \"Log også ud af identitetsudbyderen\" er slået til.",
+  "If they have no OneUptime account yet, it is set up with this name.": "Har personen endnu ingen OneUptime-konto, oprettes den med dette navn.",
+  "Suggest every account on this server?": "Foreslå alle konti på denne server?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Alle, der må invitere personer, ser hver kontos navn og e-mail, mens de skriver. Slå det kun til, hvis alle konti her hører til én organisation.",
+  "Suggest Every Account": "Foreslå alle konti"
 }

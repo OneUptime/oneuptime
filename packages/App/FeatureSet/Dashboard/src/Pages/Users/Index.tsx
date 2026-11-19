@@ -18,8 +18,18 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import {
+  drawInviteeEmailField,
+  getInviteeEmailError,
+  readFormTeamId,
+} from "../../Components/Team/InviteeEmailFormField";
+import {
+  INVITEE_NAME_DESCRIPTION,
+  shouldAskForInviteeName,
+} from "Common/UI/Utils/InviteeName";
+import { InviteSuggestion } from "Common/Types/Team/InviteSuggestions";
 import { JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
 import CreateFormAddress from "Common/UI/Utils/CreateFormAddress";
@@ -158,6 +168,14 @@ const Users: FunctionComponent<PageComponentProps> = (
   const [isPreparingInvite, setIsPreparingInvite] =
     React.useState<boolean>(false);
 
+  /*
+   * The address of the person last picked from the email box's
+   * suggestions: someone with an account the reader may see, so Invite
+   * New User asks no name for them (Common/UI/Utils/InviteeName).
+   */
+  const [pickedInviteeEmail, setPickedInviteeEmail] =
+    React.useState<string>("");
+
   const openInviteUserModal: () => Promise<void> = async (): Promise<void> => {
     setIsPreparingInvite(true);
 
@@ -168,6 +186,8 @@ const Users: FunctionComponent<PageComponentProps> = (
       : null;
 
     setDefaultInviteTeam(team);
+    // A new invitation: nobody is picked yet.
+    setPickedInviteeEmail("");
     setIsPreparingInvite(false);
     setShowInviteUserModal(true);
   };
@@ -183,12 +203,6 @@ const Users: FunctionComponent<PageComponentProps> = (
         team: defaultInviteTeam.id,
       } as FormValues<TeamMember>;
     }, [defaultInviteTeam]);
-
-  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
-    getRequestHeaders: () => {
-      return ModelAPI.getCommonHeaders();
-    },
-  });
 
   const userExtraFacets: Array<ResourceFacet> = [
     {
@@ -720,30 +734,50 @@ const Users: FunctionComponent<PageComponentProps> = (
                     ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
                     : SERVER_EMAIL_COPY.inviteEmailDescription
                   : "We email them an invitation to the team you pick.",
-                fieldType: FormFieldSchemaType.Email,
+                /*
+                 * The form's text box, which suggests people as it is typed
+                 * in, each with where they stand for the team picked below
+                 * (#9701, Components/Team/InviteeEmailFormField).
+                 */
+                fieldType: FormFieldSchemaType.CustomComponent,
                 required: true,
                 placeholder: "member@company.com",
                 overrideFieldKey: "email",
-                onChange: (value: string) => {
-                  checkEmail(value);
+                customValidation: getInviteeEmailError,
+                getCustomElement: (
+                  values: FormValues<TeamMember>,
+                  customProps: CustomElementProps,
+                ): ReactElement => {
+                  return drawInviteeEmailField({
+                    customProps: customProps,
+                    teamId: readFormTeamId((values as JSONObject)["team"]),
+                    onPick: (suggestion: InviteSuggestion) => {
+                      setPickedInviteeEmail(suggestion.email);
+                    },
+                  });
                 },
               },
               {
                 field: {
                   user: true,
                 },
+                /*
+                 * Asked for every address typed, never only for one with no
+                 * account: whether an address has one is nobody's to learn
+                 * here (#9745). The server uses it only for an account
+                 * nobody has signed up to yet.
+                 */
                 title: "Name",
-                description:
-                  "They have no OneUptime account yet. It is set up with this name.",
+                description: INVITEE_NAME_DESCRIPTION,
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
                 placeholder: "John Smith",
                 overrideFieldKey: "name",
                 showIf: (values: FormValues<TeamMember>): boolean => {
-                  return (
-                    Boolean((values as JSONObject)["email"]) &&
-                    isEmailRegistered === false
-                  );
+                  return shouldAskForInviteeName({
+                    email: (values as JSONObject)["email"],
+                    pickedEmail: pickedInviteeEmail,
+                  });
                 },
               },
               {

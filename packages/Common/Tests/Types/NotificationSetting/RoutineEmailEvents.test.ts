@@ -3,8 +3,8 @@ import { ROUTINE_EMAIL_EVENT_TYPES } from "../../../Types/NotificationSetting/Ro
 
 describe("routine email preset allowlist", () => {
   test("contains only known, unique event types and cannot be mutated", () => {
-    expect(ROUTINE_EMAIL_EVENT_TYPES).toHaveLength(31);
-    expect(new Set(ROUTINE_EMAIL_EVENT_TYPES).size).toBe(31);
+    expect(ROUTINE_EMAIL_EVENT_TYPES).toHaveLength(33);
+    expect(new Set(ROUTINE_EMAIL_EVENT_TYPES).size).toBe(33);
     expect(Object.isFrozen(ROUTINE_EMAIL_EVENT_TYPES)).toBe(true);
     for (const eventType of ROUTINE_EMAIL_EVENT_TYPES) {
       expect(Object.values(NotificationSettingEventType)).toContain(eventType);
@@ -28,6 +28,9 @@ describe("routine email preset allowlist", () => {
     NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    // And of a monitor group or a Runner (#9758).
+    NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
   ])(
     "treats %s as routine, as every owner-added email",
     (eventType: NotificationSettingEventType) => {

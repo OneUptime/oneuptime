@@ -87,8 +87,8 @@ Abre **Guardia** desde el menú **Productos** de la barra superior. Se abre en *
 | Sección | Páginas |
 | --- | --- |
 | **Políticas** | **Políticas de guardia**, **Preparación**: a quién llegan de verdad tus políticas, y **Políticas de llamadas entrantes**: un número de teléfono que hace sonar a quien está de guardia |
-| **Programaciones** | **Programaciones de guardia**, **Cronología de la programación** y **Feeds de calendario** |
-| **Avanzado** | **Sustituciones de usuarios**, **Registros de ejecución** y **Políticas archivadas** |
+| **Programaciones** | **Programaciones de guardia**, **Cronología de la programación**, **Sustituciones de usuarios**: quién cubre a alguien mientras está ausente, y **Feeds de calendario** |
+| **Avanzado** | **Registros de ejecución** y **Políticas archivadas** |
 | **Informes** | **Tiempo de guardia del usuario**: cuánto tiempo estuvo de guardia cada persona |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**: reglas que publican los eventos de guardia en un canal |
 | **Ajustes** | **Campos personalizados**, **Reglas de etiquetas** y **Reglas del propietario** |
@@ -109,7 +109,7 @@ Abre **Guardia → Preparación** y haz clic en **Cobertura** en su fila. Verás
 :::
 
 :::details Una persona de vacaciones sigue recibiendo avisos
-Añade una sustitución de usuario con ella en **¿Quién está ausente?**. Una en **Guardia → Avanzado → Sustituciones de usuarios** cubre todas las políticas; una en la página **Sustituciones de usuarios** de una política cubre solo esa política. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
+Añade una sustitución de usuario con ella en **¿Quién está ausente?**. Una en **Guardia → Programaciones → Sustituciones de usuarios** cubre todas las políticas; una en la página **Sustituciones de usuarios** de una política cubre solo esa política. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 :::
 
 ## Próximos pasos

@@ -40,7 +40,7 @@ flowchart TB
 
 ![La lista «Claves de ingesta», con «Crear clave de ingesta» resaltado](screen:ingestion-keys)
 
-La nueva clave se abre en su propia página. Copia su **Clave secreta**: es el token que el SDK envía como `x-oneuptime-token`.
+La nueva clave se abre en su propia página. Copia su **Clave secreta**: es el token que el SDK envía como `x-oneuptime-token`. Una clave Navegador está pensada para ser pública: solo funciona desde los orígenes que indiques, solo envía telemetría del navegador y reproducciones de sesiones, y tiene un límite de solicitudes. No pongas nunca una clave de Servidor en una página.
 
 ![La página de una clave de ingesta de telemetría, con su clave secreta](/docs/static/images/TelemetryIngestionKeyView.png)
 

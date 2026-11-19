@@ -95,7 +95,7 @@ Legen Sie beliebig viele weitere Teams an — „Frontend-Bereitschaft", „Supp
 
 :::steps
 1. Öffnen Sie **Teams** im Menü **Produkte** unter **Einstellungen** und klicken Sie auf **Team erstellen**.
-2. Geben Sie den **Name** des Teams ein und wählen Sie seinen **Zugriff**. Die Beschreibung liegt unter **Weitere Felder**.
+2. Geben Sie den **Name** des Teams ein und wählen Sie seinen **Zugriff**. Ein Name, den schon ein anderes Team des Projekts trägt, wird abgelehnt, unabhängig von Groß- und Kleinschreibung und Leerzeichen, damit jede Teamauswahl die Teams unterscheiden kann. Die Beschreibung liegt unter **Weitere Felder**.
 3. Legen Sie das Team an. Ein Team mit einer Rolle öffnet sich auf seiner Seite **Mitglieder**, bereit, Personen einzuladen; mit **Berechtigungen später wählen** öffnet es sich auf seiner Seite **Berechtigungen**, wo Sie eine engere Rolle wie `IncidentMember` oder einzelne Berechtigungen hinzufügen.
 :::
 

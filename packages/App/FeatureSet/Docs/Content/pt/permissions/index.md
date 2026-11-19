@@ -95,7 +95,7 @@ Crie quantas equipes adicionais quiser — «Plantão de Frontend», «Suporte»
 
 :::steps
 1. Abra **Equipes** no menu **Produtos**, em **Configurações**, e clique em **Criar equipe**.
-2. Digite o **Nome** da equipe e escolha o **Acesso** dela. A descrição fica em **Mais campos**.
+2. Digite o **Nome** da equipe e escolha o **Acesso** dela. Um nome que outra equipe do projeto já tem é recusado, sem diferenciar maiúsculas de minúsculas nem espaços, para que todo seletor de equipes distinga as equipes. A descrição fica em **Mais campos**.
 3. Crie a equipe. Uma equipe com uma função abre na página **Membros** dela, pronta para você convidar pessoas; com **Escolher as permissões depois**, ela abre na página **Permissões** dela, onde você adiciona uma função mais restrita, como `IncidentMember`, ou permissões avulsas.
 :::
 

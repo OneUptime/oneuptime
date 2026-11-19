@@ -35,8 +35,8 @@ import {
   SHOW_WHOLE_LINE,
   VIEW_EXCEPTION,
   VIEW_EXCEPTION_HINT,
-  VIEW_LOGS_AROUND,
-  VIEW_LOGS_AROUND_HINT,
+  VIEW_LOG_LINE,
+  VIEW_LOG_LINE_HINT,
   VIEW_REQUEST_LOGS,
   VIEW_REQUEST_LOGS_HINT,
   VIEW_TRACE,
@@ -50,6 +50,7 @@ import {
   SecurityEventLogsLink,
   getSecurityEventExceptionRoute,
   getSecurityEventLogId,
+  getSecurityEventLogLineRoute,
   getSecurityEventLogServiceId,
   getSecurityEventLogsLink,
   getSecurityEventTraceRoute,
@@ -115,9 +116,10 @@ const SourceLink: FunctionComponent<{
 
 /*
  * Where a security event came from, and the way to everything around it:
- * the log line it was read from, shown right here; the trace of the request
- * it happened in; the exception that request threw; the replay of the
- * browser session it was part of; and the request's other log lines.
+ * the log line it was read from, shown right here and one click from the
+ * Logs explorer, open on it (#9620); the trace of the request it happened
+ * in; the exception that request threw; the replay of the browser session
+ * it was part of; and the request's other log lines.
  *
  * Every read is the reader's own (the log line, the service's name, the
  * replay's application), so a link to something they may not open is not
@@ -267,6 +269,10 @@ const SecurityEventSourceSection: FunctionComponent<ComponentProps> = (
     return getSecurityEventExceptionRoute(props.facts.exceptionFingerprint);
   }, [props.facts.exceptionFingerprint]);
 
+  const logLineRoute: Route | null = useMemo(() => {
+    return getSecurityEventLogLineRoute(event);
+  }, [event]);
+
   const logsLink: SecurityEventLogsLink | null = useMemo(() => {
     return getSecurityEventLogsLink(event);
   }, [event]);
@@ -296,6 +302,22 @@ const SecurityEventSourceSection: FunctionComponent<ComponentProps> = (
     : "";
 
   const links: Array<ReactElement> = [];
+
+  // The line itself first: where the event came from.
+  if (logLineRoute) {
+    links.push(
+      <SourceLink
+        key="log-line"
+        route={logLineRoute}
+        icon={IconProp.DocumentText}
+        label={translator.translateText(VIEW_LOG_LINE) || VIEW_LOG_LINE}
+        hint={
+          translator.translateText(VIEW_LOG_LINE_HINT) || VIEW_LOG_LINE_HINT
+        }
+        testId="security-event-view-log-line"
+      />,
+    );
+  }
 
   if (traceRoute) {
     links.push(
@@ -341,19 +363,16 @@ const SecurityEventSourceSection: FunctionComponent<ComponentProps> = (
   }
 
   if (logsLink) {
-    const isRequest: boolean = logsLink.scope === "request";
-    const label: string = isRequest ? VIEW_REQUEST_LOGS : VIEW_LOGS_AROUND;
-    const hint: string = isRequest
-      ? VIEW_REQUEST_LOGS_HINT
-      : VIEW_LOGS_AROUND_HINT;
-
     links.push(
       <SourceLink
         key="logs"
         route={logsLink.route}
         icon={IconProp.Logs}
-        label={translator.translateText(label) || label}
-        hint={translator.translateText(hint) || hint}
+        label={translator.translateText(VIEW_REQUEST_LOGS) || VIEW_REQUEST_LOGS}
+        hint={
+          translator.translateText(VIEW_REQUEST_LOGS_HINT) ||
+          VIEW_REQUEST_LOGS_HINT
+        }
         testId="security-event-view-logs"
       />,
     );

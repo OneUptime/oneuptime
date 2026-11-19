@@ -185,6 +185,7 @@ import Navigation from "../../../../UI/Utils/Navigation";
 import IncidentEpisodeFeedElement from "../../../../../App/FeatureSet/Dashboard/src/Components/IncidentEpisode/IncidentEpisodeFeed";
 import EpisodePublicNote from "../../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/PublicNote";
 import { refuseRequestsTo } from "../../../Helpers/RealNetworkRequests";
+import { answerPublicNoteReach } from "../../../App/Dashboard/PublicNoteReachAnswers";
 
 /*
  * Reads the page makes that these tests leave unanswered: refused at
@@ -307,6 +308,8 @@ async function submit(): Promise<JSONObject> {
 }
 
 beforeEach(() => {
+  // Whether a status page shows the event: one does, and notifies (#9735).
+  answerPublicNoteReach();
   window.localStorage.clear();
   pageEpisode = null;
 });

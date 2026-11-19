@@ -95,7 +95,7 @@ Create tutti i team aggiuntivi che volete — «Reperibilità Frontend», «Supp
 
 :::steps
 1. Aprite **Team** dal menu **Prodotti**, sotto **Impostazioni**, e fate clic su **Crea team**.
-2. Inserite il **Nome** del team e scegliete il suo **Accesso**. La descrizione si trova sotto **Altri campi**.
+2. Inserite il **Nome** del team e scegliete il suo **Accesso**. Un nome già usato da un altro team del progetto viene rifiutato, comunque siano scritte maiuscole, minuscole e spazi, così ogni selettore di team distingue i team tra loro. La descrizione si trova sotto **Altri campi**.
 3. Create il team. Un team con un ruolo si apre sulla sua pagina **Membri**, pronto per invitare persone; con **Scegli le autorizzazioni più tardi** si apre sulla sua pagina **Autorizzazioni**, dove aggiungete un ruolo più ristretto come `IncidentMember`, o singole autorizzazioni.
 :::
 

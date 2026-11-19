@@ -181,7 +181,7 @@ export const KUBERNETES_COST_OVERVIEW_DESCRIPTIONS: Record<
     "What the cluster paid in the last 24 hours for node capacity no workload requested or used, plus cost the engine could not allocate, and its share of the spend. Amber from 25%, red from 40%.",
   ),
   efficiency: translationKey(
-    "How much of their requested CPU and memory the workloads used in the last 24 hours, each weighted by what it cost; above 100% means more than requested. Green from 70%, red below 40%: low means paying for unused requests.",
+    "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.",
   ),
 };
 
@@ -248,7 +248,7 @@ export const KUBERNETES_COST_METRIC_DESCRIPTIONS: Record<
     "All costs for this workload (a Deployment, StatefulSet, Job and so on) in the selected range. The percentage and bar show its share of workload spend, which leaves idle capacity out.",
   ),
   efficiency: translationKey(
-    "How much of the requested CPU and memory was actually used, averaged over the cost records in the range; above 100% means more was used than requested. Green from 70%, red below 40% - low values mean paying for unused requests.",
+    "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.",
   ),
 
   fleetTotalSpend: translationKey(
@@ -276,7 +276,7 @@ export const KUBERNETES_COST_METRIC_DESCRIPTIONS: Record<
     "Everything this cluster cost in the selected range. The percentage and bar show its share of spend across all clusters.",
   ),
   clusterEfficiency: translationKey(
-    "Average share of requested CPU and memory that was actually used, over all of this cluster's cost records in the range, idle-capacity records included. Green from 70%, red below 40%.",
+    "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.",
   ),
 };
 

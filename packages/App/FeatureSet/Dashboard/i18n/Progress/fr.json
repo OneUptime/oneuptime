@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57551,
-    "untranslated": 4516
+    "keys": 57990,
+    "untranslated": 4618
   },
   "sameAsEnglish": [
     " incidents",
@@ -494,6 +494,7 @@
     "SQL Server",
     "SSH",
     "ScheduledMaintenance",
+    "Score",
     "Script",
     "Secret",
     "Secrets",

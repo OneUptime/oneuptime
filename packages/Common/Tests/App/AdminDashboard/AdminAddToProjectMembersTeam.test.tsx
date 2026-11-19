@@ -124,19 +124,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-// Every invite form checks whether the email has an account; this one has.
-jest.mock("../../../UI/Utils/UserEmailRegistrationStatus", () => {
-  return {
-    __esModule: true,
-    useUserEmailRegistrationStatus: () => {
-      return {
-        isEmailRegistered: true,
-        checkEmail: (): void => {},
-      };
-    },
-  };
-});
-
 type MockProps = Record<string, unknown>;
 
 const mockTables: Array<MockProps> = [];

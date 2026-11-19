@@ -6,6 +6,7 @@ import { getEntityRiskRoute } from "../../SecurityEvents/EntityRisk/EntityRiskMo
 import {
   SecurityEventLogsLink,
   getSecurityEventExceptionRoute,
+  getSecurityEventLogLineRoute,
   getSecurityEventLogsLink,
   getSecurityEventTraceRoute,
 } from "../../SecurityEvents/SecurityEventTelemetryLinks";
@@ -19,6 +20,8 @@ import {
   EVENT_LINK_LOGS,
   EVENT_LINK_TRACE,
   FIRES_ON_EACH_MATCH,
+  HIDDEN_EVENTS,
+  KEPT_PAST_RETENTION,
   FIRES_WHEN_EVENTS,
   FIRES_WHEN_EVENTS_FOR_SAME,
   FIRES_WHEN_SAME_SHOWS_VALUES,
@@ -368,26 +371,44 @@ export function getEventRowText(event: SecurityCaseMatchedEventJson): string {
   );
 }
 
-export type EventLinkKey = "trace" | "logs" | "exception";
+export type EventLinkKey = "logLine" | "trace" | "logs" | "exception";
 
 export interface EventLink {
   key: EventLinkKey;
+  // An English key, filled with `values` where it is drawn.
   label: string;
+  values?: Record<string, string> | undefined;
   icon: IconProp;
   route: Route;
 }
 
 /*
- * What an event's row opens, in this order: the trace of the request it
- * happened in (at the span that answered it), the log lines that request
- * wrote - or, for a line written outside a request, its service's lines
- * around it - and the exception the request threw.
+ * What an event's row opens, in this order: the log line it was read from
+ * - its row's "Log line from checkout", opening the Logs explorer on the
+ * line itself, with its service's lines around it (#9620) - the trace of
+ * the request it happened in (at the span that answered it), the log lines
+ * that request wrote, and the exception the request threw.
  */
 export function getEventLinks(
   event: SecurityCaseMatchedEventJson,
 ): Array<EventLink> {
   const securityEvent: SecurityEvent = toSecurityEvent(event);
   const links: Array<EventLink> = [];
+  const logLine: Route | null = getSecurityEventLogLineRoute(securityEvent);
+
+  if (logLine) {
+    const service: { id: string; name: string } | null =
+      getEventLogService(event);
+
+    links.push({
+      key: "logLine",
+      label: service?.name ? EVENT_FROM_LOG_LINE_OF : EVENT_FROM_LOG_LINE,
+      values: service?.name ? { service: service.name } : {},
+      icon: IconProp.DocumentText,
+      route: logLine,
+    });
+  }
+
   const trace: Route | null = getSecurityEventTraceRoute({
     event: securityEvent,
     serverSpanId: event.attributes[SECURITY_REQUEST_ATTRIBUTES.serverSpanId],
@@ -428,6 +449,36 @@ export function getEventLinks(
   }
 
   return links;
+}
+
+// ---------- What a detection kept ----------
+
+/*
+ * The line under What matched for a detection that kept its events when it
+ * fired (#9619) and lists some past the events table's retention: how many,
+ * shown as kept. Null when none is.
+ */
+export function getKeptPastRetentionNote(
+  detection: Pick<
+    SecurityCaseMatchedDetectionJson,
+    "isKept" | "keptPastRetentionCount"
+  >,
+): { template: PluralTemplate; count: number } | null {
+  return detection.isKept && detection.keptPastRetentionCount > 0
+    ? { template: KEPT_PAST_RETENTION, count: detection.keptPastRetentionCount }
+    : null;
+}
+
+/*
+ * The line under the events a detection kept, when it kept others of
+ * sources the reader's role cannot read: how many. Null when it kept none.
+ */
+export function getHiddenEventsNote(
+  detection: Pick<SecurityCaseMatchedDetectionJson, "hiddenEventCount">,
+): { template: PluralTemplate; count: number } | null {
+  return detection.hiddenEventCount > 0
+    ? { template: HIDDEN_EVENTS, count: detection.hiddenEventCount }
+    : null;
 }
 
 // ---------- Where to look next ----------

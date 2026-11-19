@@ -905,3 +905,55 @@ describe("bodyContains", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * One log line, opened by its id (#9620): the logs explorer's own `log`
+ * and `logTime` params - beside the scope the list under it shows - and
+ * nothing traces or metrics can open, said so.
+ */
+describe("a log line to open", () => {
+  const LOG_ID: string = "0192f1a0-0000-7000-8000-000000000001";
+  const AT: Date = new Date("2026-08-14T10:30:12.345Z");
+
+  test("logs: becomes the line the explorer opens, and when it was written", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      serviceIds: ["svc-1"],
+      startTime: START,
+      endTime: END,
+      logId: LOG_ID,
+      logTime: AT,
+    });
+
+    expect(result.params["log"]).toBe(LOG_ID);
+    expect(new Date(result.params["logTime"]!).getTime()).toBe(AT.getTime());
+    // The list under it keeps its own scope.
+    expect(JSON.parse(result.params["filters"]!)).toEqual([
+      ["primaryEntityId", ["svc-1"]],
+    ]);
+    expect(result.params["range"]).toBe(TimeRange.CUSTOM);
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("logs: a line with no time still opens; a blank id opens none", () => {
+    expect(toLogsExplorerQueryParams({ logId: ` ${LOG_ID} ` }).params).toEqual({
+      log: LOG_ID,
+    });
+    expect(
+      toLogsExplorerQueryParams({ logId: LOG_ID, logTime: new Date("nope") })
+        .params,
+    ).toEqual({ log: LOG_ID });
+    expect(
+      toLogsExplorerQueryParams({ logId: "  ", logTime: AT }).params,
+    ).toEqual({});
+  });
+
+  test("traces and metrics open no log line, and say they dropped it", () => {
+    expect(
+      toTracesExplorerQueryParams({ logId: LOG_ID, logTime: AT }).dropped,
+    ).toEqual(["logId"]);
+    expect(
+      toMetricsExplorerQueryParams({ logId: LOG_ID, logTime: AT }).dropped,
+    ).toEqual(["logId"]);
+    expect(toTracesExplorerQueryParams({ logId: "" }).dropped).toEqual([]);
+  });
+});

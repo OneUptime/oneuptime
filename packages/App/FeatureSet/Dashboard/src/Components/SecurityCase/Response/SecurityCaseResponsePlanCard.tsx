@@ -461,7 +461,9 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const renderStep: (step: ResponseStep) => ReactElement = (
     step: ResponseStep,
   ): ReactElement => {
-    const text: string = step.aiText || readText(step.text, translator);
+    // Words a person wrote - OneUptime AI's, a rule's author's - are drawn as written.
+    const writtenText: string = step.aiText || step.ruleText || "";
+    const text: string = writtenText || readText(step.text, translator);
     const textId: string = `security-case-response-step-${step.key.replace(
       /[^a-zA-Z0-9_-]/g,
       "-",
@@ -530,7 +532,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               }`}
               data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.stepText}
             >
-              {step.aiText ? <IsolatedText text={step.aiText} /> : text}
+              {writtenText ? <IsolatedText text={writtenText} /> : text}
             </p>
             {step.detail ? (
               <p

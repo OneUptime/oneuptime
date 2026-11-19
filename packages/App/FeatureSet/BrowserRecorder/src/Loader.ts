@@ -1,4 +1,8 @@
-import Config, { LoaderConfig, RecorderInitOptions } from "./Config";
+import Config, {
+  LoaderConfig,
+  RecorderInitOptions,
+  getArtifactUrl,
+} from "./Config";
 import Consent from "./Consent";
 import {
   DEBUG_STORAGE_KEY,
@@ -194,10 +198,7 @@ function loadArtifact(
   config: LoaderConfig,
   earlyErrors: EarlyErrorBuffer,
 ): void {
-  const url: string | null = Config.getArtifactUrl(
-    options,
-    config.recorderVersion,
-  );
+  const url: string | null = getArtifactUrl(options, config.recorderVersion);
 
   /*
    * An unrecognised artifact label must fail closed. Guessing a URL would put

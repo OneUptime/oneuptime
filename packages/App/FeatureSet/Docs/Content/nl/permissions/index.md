@@ -95,7 +95,7 @@ Maak zoveel extra teams als u wilt — "Frontend-piket", "Support", "Alleen-leze
 
 :::steps
 1. Open **Teams** in het menu **Producten**, onder **Instellingen**, en klik op **Team maken**.
-2. Typ de **Naam** van het team en kies zijn **Toegang**. De beschrijving staat onder **Meer velden**.
+2. Typ de **Naam** van het team en kies zijn **Toegang**. Een naam die een ander team van het project al heeft, wordt geweigerd, ongeacht hoofdletters en spaties, zodat elke teamkiezer de teams uit elkaar houdt. De beschrijving staat onder **Meer velden**.
 3. Maak het team aan. Een team met een rol opent op zijn pagina **Leden**, klaar om mensen uit te nodigen; met **Machtigingen later kiezen** opent het op zijn pagina **Machtigingen**, waar u een smallere rol zoals `IncidentMember` of losse machtigingen toevoegt.
 :::
 

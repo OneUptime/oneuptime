@@ -367,7 +367,8 @@ describe("user settings > notification settings", () => {
      * #9700: being made an owner of a service or a piece of infrastructure
      * is one row of its own card on the Monitoring tab, and of a dashboard,
      * a workflow or a runbook one row each on another, each toggling its own
-     * setting alone.
+     * setting alone. #9758: a Runner's beside the runbook's, and a monitor
+     * group's on the Monitors card.
      */
     test.each([
       {
@@ -383,7 +384,7 @@ describe("user settings > notification settings", () => {
       {
         card: "Dashboards & Automation",
         cardDescription:
-          "Notify me about dashboards, workflows and runbooks I own.",
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
         label: "Added as dashboard owner",
         description: "You are added as an owner of a dashboard.",
         eventType:
@@ -392,7 +393,7 @@ describe("user settings > notification settings", () => {
       {
         card: "Dashboards & Automation",
         cardDescription:
-          "Notify me about dashboards, workflows and runbooks I own.",
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
         label: "Added as workflow owner",
         description: "You are added as an owner of a workflow.",
         eventType:
@@ -401,11 +402,29 @@ describe("user settings > notification settings", () => {
       {
         card: "Dashboards & Automation",
         cardDescription:
-          "Notify me about dashboards, workflows and runbooks I own.",
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
         label: "Added as runbook owner",
         description: "You are added as an owner of a runbook.",
         eventType:
           NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Dashboards & Automation",
+        cardDescription:
+          "Notify me about dashboards, workflows, runbooks and Runners I own.",
+        label: "Added as Runner owner",
+        description:
+          "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.",
+        eventType:
+          NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+      },
+      {
+        card: "Monitors",
+        cardDescription: "Notify me about monitors I own.",
+        label: "Added as monitor group owner",
+        description: "You are added as an owner of a monitor group.",
+        eventType:
+          NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
       },
     ])(
       "the Monitoring tab has $label on the $card card, which toggles alone",
@@ -1035,6 +1054,10 @@ describe("user settings > notification settings", () => {
       })!;
     }
 
+    /*
+     * Every channel but WhatsApp, which has no approved template for a
+     * security case and offers no switch for one (#9715).
+     */
     test("lists the three security case events, each with its switches", async () => {
       await openSecurityTab();
 
@@ -1044,7 +1067,10 @@ describe("user settings > notification settings", () => {
         "Playbook step waiting for my approval",
       ]) {
         const row: HTMLElement = await findEventRow(label);
-        expect(within(row).getAllByRole("switch")).toHaveLength(9);
+        expect(within(row).getAllByRole("switch")).toHaveLength(8);
+        expect(
+          within(row).queryByRole("switch", { name: /^WhatsApp for / }),
+        ).not.toBeInTheDocument();
       }
     });
 

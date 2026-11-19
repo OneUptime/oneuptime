@@ -95,7 +95,7 @@ Cree tantos equipos adicionales como quiera —«Guardia de Frontend», «Soport
 
 :::steps
 1. Abra **Equipos** desde el menú **Productos**, en **Ajustes**, y haga clic en **Crear equipo**.
-2. Escriba el **Nombre** del equipo y elija su **Acceso**. La descripción está en **Más campos**.
+2. Escriba el **Nombre** del equipo y elija su **Acceso**. Se rechaza un nombre que ya tenga otro equipo del proyecto, sin importar mayúsculas, minúsculas ni espacios, para que todo selector de equipos los distinga. La descripción está en **Más campos**.
 3. Cree el equipo. Un equipo con un rol se abre en su página **Miembros**, listo para invitar a personas; con **Elegir los permisos más tarde** se abre en su página **Permisos**, donde añade un rol más estrecho como `IncidentMember`, o permisos sueltos.
 :::
 
