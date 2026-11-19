@@ -29,6 +29,7 @@ import {
   CLOUD_ALERT_SHELL_NAMES,
   CLOUD_ALERT_WINDOWS,
   CLOUD_FIVE_MINUTE_METRIC_WINDOW,
+  CloudAlertQuery,
   CloudAlertTemplate,
   CloudAlertTemplateArgs,
   getAllCloudAlertTemplates,
@@ -228,11 +229,13 @@ describe("the templates", () => {
         continue;
       }
 
-      const readsFiveMinutes: boolean = found.queries.every((query) => {
-        return found.resourceTypes.every((type: string): boolean => {
-          return isAzureFiveMinuteKeyMetric(type, query.metric.metricName);
-        });
-      });
+      const readsFiveMinutes: boolean = found.queries.every(
+        (query: CloudAlertQuery): boolean => {
+          return found.resourceTypes.every((type: string): boolean => {
+            return isAzureFiveMinuteKeyMetric(type, query.metric.metricName);
+          });
+        },
+      );
 
       expect([found.id, found.rollingTime]).toEqual([
         found.id,
