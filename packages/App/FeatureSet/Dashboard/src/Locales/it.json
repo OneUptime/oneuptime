@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "Avvisami per ogni nuovo incidente e ogni nuovo avviso.",
   "Publish a status page that shows my monitors.": "Pubblica una pagina di stato che mostri i miei monitor.",
   "Publish a status page called {{name}} that shows my monitors.": "Pubblica una pagina di stato chiamata {{name}} che mostri i miei monitor.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "Un'altra etichetta di questo progetto ha questo nome, quindi i selettori non permettono di distinguerle. Confronta dove viene usata ciascuna, poi rinominane una.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "I selettori mostrano un'etichetta con il suo nome e il suo colore. Dai a questa etichetta un nome che nessun'altra etichetta abbia.",
+  "Rename Label": "Rinomina etichetta",
+  "Same name as another label": "Stesso nome di un'altra etichetta",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} etichetta ha lo stesso nome di un'altra etichetta e i selettori non permettono di distinguerle. Confronta dove viene usata ciascuna, poi rinominane una.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} etichette hanno lo stesso nome di un'altra etichetta e i selettori non permettono di distinguerle. Confronta dove viene usata ciascuna, poi rinominane una.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} etichetta ha lo stesso nome di un'altra etichetta e i selettori non permettono di distinguerle. Confronta dove viene usata ciascuna, poi rinominane una."
 }

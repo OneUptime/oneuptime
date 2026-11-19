@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "برای هر حادثه و هر هشدار تازه مرا فرا بخوان.",
   "Publish a status page that shows my monitors.": "یک صفحهٔ وضعیت منتشر کن که مانیتورهایم را نشان دهد.",
   "Publish a status page called {{name}} that shows my monitors.": "یک صفحهٔ وضعیت به نام {{name}} منتشر کن که مانیتورهایم را نشان دهد.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "برچسب دیگری در این پروژه همین نام را دارد، پس در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. مقایسه کنید هر کدام کجا استفاده شده است، سپس نام یکی را تغییر دهید.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "انتخابگرها هر برچسب را با نام و رنگش نشان می‌دهند. به این برچسب نامی بدهید که هیچ برچسب دیگری نداشته باشد.",
+  "Rename Label": "تغییر نام برچسب",
+  "Same name as another label": "هم‌نام با برچسبی دیگر",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} برچسب با برچسبی دیگر هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. مقایسه کنید هر کدام کجا استفاده شده است، سپس نام یکی را تغییر دهید.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} برچسب با برچسبی دیگر هم‌نام‌اند و در انتخابگرها نمی‌توان آن‌ها را از هم تشخیص داد. مقایسه کنید هر کدام کجا استفاده شده است، سپس نام یکی را تغییر دهید.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} برچسب با برچسبی دیگر هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. مقایسه کنید هر کدام کجا استفاده شده است، سپس نام یکی را تغییر دهید."
 }

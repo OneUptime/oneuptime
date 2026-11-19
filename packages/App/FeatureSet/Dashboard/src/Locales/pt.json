@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "Me acione a cada novo incidente e a cada novo alerta.",
   "Publish a status page that shows my monitors.": "Publique uma página de status que mostre meus monitores.",
   "Publish a status page called {{name}} that shows my monitors.": "Publique uma página de status chamada {{name}} que mostre meus monitores.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Me ajude a enviar os logs, métricas e traces do meu serviço para o OneUptime, e me alerte quando ele tiver erros."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Me ajude a enviar os logs, métricas e traces do meu serviço para o OneUptime, e me alerte quando ele tiver erros.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "Outro rótulo deste projeto tem este nome, então os seletores não conseguem distingui-los. Compare onde cada um é usado e depois renomeie um deles.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "Os seletores mostram um rótulo pelo nome e pela cor. Dê a este rótulo um nome que nenhum outro rótulo tenha.",
+  "Rename Label": "Renomear rótulo",
+  "Same name as another label": "Mesmo nome que outro rótulo",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} rótulo tem o mesmo nome que outro rótulo, e os seletores não conseguem distingui-los. Compare onde cada um é usado e depois renomeie um deles.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} rótulos têm o mesmo nome que outro rótulo, e os seletores não conseguem distingui-los. Compare onde cada um é usado e depois renomeie um deles.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} rótulo tem o mesmo nome que outro rótulo, e os seletores não conseguem distingui-los. Compare onde cada um é usado e depois renomeie um deles."
 }

@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "हर नई घटना और हर नए अलर्ट पर मुझे पेज करें।",
   "Publish a status page that shows my monitors.": "एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
   "Publish a status page called {{name}} that shows my monitors.": "{{name}} नाम का एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "मेरी सेवा के लॉग, मेट्रिक्स और ट्रेस OneUptime पर भेजने में मेरी मदद करें, और उसमें त्रुटियाँ होने पर मुझे अलर्ट करें।"
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "मेरी सेवा के लॉग, मेट्रिक्स और ट्रेस OneUptime पर भेजने में मेरी मदद करें, और उसमें त्रुटियाँ होने पर मुझे अलर्ट करें।",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "इस प्रोजेक्ट में किसी दूसरे लेबल का भी यही नाम है, इसलिए चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। तुलना करें कि हर लेबल कहाँ उपयोग हो रहा है, फिर किसी एक का नाम बदलें।",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "चयनकर्ता किसी लेबल को उसके नाम और रंग से दिखाते हैं। इस लेबल को ऐसा नाम दें जो किसी दूसरे लेबल का न हो।",
+  "Rename Label": "लेबल का नाम बदलें",
+  "Same name as another label": "किसी दूसरे लेबल जैसा नाम",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} लेबल का नाम किसी दूसरे लेबल जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। तुलना करें कि हर लेबल कहाँ उपयोग हो रहा है, फिर किसी एक का नाम बदलें।",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} लेबलों का नाम किसी दूसरे लेबल जैसा ही है, और चयनकर्ताओं में उन्हें अलग-अलग नहीं पहचाना जा सकता। तुलना करें कि हर लेबल कहाँ उपयोग हो रहा है, फिर किसी एक का नाम बदलें।",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} लेबल का नाम किसी दूसरे लेबल जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। तुलना करें कि हर लेबल कहाँ उपयोग हो रहा है, फिर किसी एक का नाम बदलें।"
 }

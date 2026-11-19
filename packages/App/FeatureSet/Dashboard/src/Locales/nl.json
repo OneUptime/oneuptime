@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "Roep mij op bij elk nieuw incident en elke nieuwe waarschuwing.",
   "Publish a status page that shows my monitors.": "Publiceer een statuspagina die mijn monitoren toont.",
   "Publish a status page called {{name}} that shows my monitors.": "Publiceer een statuspagina met de naam {{name}} die mijn monitoren toont.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "Een ander label in dit project heeft deze naam, dus in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk waar elk label wordt gebruikt en hernoem er dan één.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "Keuzelijsten tonen een label aan de hand van zijn naam en kleur. Geef dit label een naam die geen ander label heeft.",
+  "Rename Label": "Label hernoemen",
+  "Same name as another label": "Zelfde naam als een ander label",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} label heeft dezelfde naam als een ander label, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk waar elk label wordt gebruikt en hernoem er dan één.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} labels hebben dezelfde naam als een ander label, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk waar elk label wordt gebruikt en hernoem er dan één.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} label heeft dezelfde naam als een ander label, en in keuzelijsten zijn ze niet van elkaar te onderscheiden. Vergelijk waar elk label wordt gebruikt en hernoem er dan één."
 }

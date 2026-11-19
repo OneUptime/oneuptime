@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "在每个新事件和每个新警报时呼叫我。",
   "Publish a status page that shows my monitors.": "发布一个显示我的监视器的状态页。",
   "Publish a status page called {{name}} that shows my monitors.": "发布一个名为 {{name}} 并显示我的监视器的状态页。",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。"
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "此项目中另有一个标签使用此名称，因此在选择器中无法区分它们。请比较它们各自的使用位置，然后重命名其中一个。",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "选择器按名称和颜色显示标签。请为此标签取一个与其他标签都不同的名称。",
+  "Rename Label": "重命名标签",
+  "Same name as another label": "与另一个标签同名",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "有 {{count}} 个标签与另一个标签同名，在选择器中无法区分。请比较它们各自的使用位置，然后重命名其中一个。",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "有 {{count}} 个标签与另一个标签同名，在选择器中无法区分。请比较它们各自的使用位置，然后重命名其中一个。",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "有 {{count}} 个标签与另一个标签同名，在选择器中无法区分。请比较它们各自的使用位置，然后重命名其中一个。"
 }

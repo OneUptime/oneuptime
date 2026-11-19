@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "Tilkall meg ved hver ny hendelse og hvert nytt varsel.",
   "Publish a status page that shows my monitors.": "Publiser en statusside som viser monitorene mine.",
   "Publish a status page called {{name}} that shows my monitors.": "Publiser en statusside som heter {{name}} og viser monitorene mine.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjelp meg med å sende loggene, målingene og sporene fra tjenesten min til OneUptime, og varsle meg når den har feil."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjelp meg med å sende loggene, målingene og sporene fra tjenesten min til OneUptime, og varsle meg når den har feil.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "En annen etikett i dette prosjektet har dette navnet, så de to kan ikke skilles fra hverandre i velgere. Sammenlign hvor hver av dem brukes, og gi så den ene nytt navn.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "I velgere vises en etikett med navnet og fargen sin. Gi denne etiketten et navn som ingen annen etikett har.",
+  "Rename Label": "Gi etikett nytt navn",
+  "Same name as another label": "Samme navn som en annen etikett",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} etikett har samme navn som en annen etikett, og de to kan ikke skilles fra hverandre i velgere. Sammenlign hvor hver av dem brukes, og gi så den ene nytt navn.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} etiketter har samme navn som en annen etikett og kan ikke skilles fra hverandre i velgere. Sammenlign hvor hver av dem brukes, og gi så én av dem nytt navn.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} etikett har samme navn som en annen etikett, og de to kan ikke skilles fra hverandre i velgere. Sammenlign hvor hver av dem brukes, og gi så den ene nytt navn."
 }

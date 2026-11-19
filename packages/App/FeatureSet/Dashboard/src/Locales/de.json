@@ -59021,5 +59021,12 @@
   "Page me for every new incident and alert.": "Alarmiere mich bei jedem neuen Vorfall und jeder neuen Warnung.",
   "Publish a status page that shows my monitors.": "Veröffentliche eine Statusseite, die meine Monitore zeigt.",
   "Publish a status page called {{name}} that shows my monitors.": "Veröffentliche eine Statusseite namens {{name}}, die meine Monitore zeigt.",
-  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hilf mir, die Logs, Metriken und Traces meines Dienstes an OneUptime zu senden, und warne mich, wenn er Fehler hat."
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hilf mir, die Logs, Metriken und Traces meines Dienstes an OneUptime zu senden, und warne mich, wenn er Fehler hat.",
+  "Another label in this project has this name, so pickers can't tell them apart. Compare where each one is used, then rename one.": "Eine andere Beschriftung in diesem Projekt hat diesen Namen, daher sind die beiden in Auswahllisten nicht zu unterscheiden. Vergleichen Sie, wo jede verwendet wird, und benennen Sie dann eine davon um.",
+  "Pickers show a label by its name and color. Give this one a name no other label has.": "Auswahllisten zeigen eine Beschriftung mit ihrem Namen und ihrer Farbe an. Geben Sie dieser Beschriftung einen Namen, den keine andere Beschriftung hat.",
+  "Rename Label": "Beschriftung umbenennen",
+  "Same name as another label": "Gleicher Name wie eine andere Beschriftung",
+  "{{count}} label has the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} Beschriftung hat denselben Namen wie eine andere Beschriftung, und die beiden sind in Auswahllisten nicht zu unterscheiden. Vergleichen Sie, wo jede verwendet wird, und benennen Sie dann eine davon um.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one.": "{{count}} Beschriftungen haben denselben Namen wie eine andere Beschriftung und sind in Auswahllisten nicht zu unterscheiden. Vergleichen Sie, wo jede verwendet wird, und benennen Sie dann eine davon um.",
+  "{{count}} labels have the same name as another label, and pickers can't tell them apart. Compare where each one is used, then rename one._one": "{{count}} Beschriftung hat denselben Namen wie eine andere Beschriftung, und die beiden sind in Auswahllisten nicht zu unterscheiden. Vergleichen Sie, wo jede verwendet wird, und benennen Sie dann eine davon um."
 }
