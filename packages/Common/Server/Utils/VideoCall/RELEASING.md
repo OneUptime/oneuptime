@@ -87,7 +87,16 @@ test.oneuptime.com instead, so the review instructions must say so
 - [API/VideoCallOAuthAPI.ts](../../API/VideoCallOAuthAPI.ts): the routes,
   under `/api/video-call-oauth/zoom/`: `authorize-url`, `callback` and
   `events`. On `app_deauthorized` it deletes the sign-in from every
-  connection signed in as that Zoom user, which then shows **Not working**.
+  connection signed in as that Zoom user, which then shows **Not working**,
+  and marks every incident call whose transcript OneUptime read through
+  that sign-in (`VideoCallConnectionService.removeSignIn`), so the event is
+  answered within the seconds Zoom waits. Zoom asks apps to delete a
+  removed user's data ([Zoom: deauthorization](https://developers.zoom.us/docs/integrations/oauth/#deauthorization)):
+  the Workers job `DeleteTranscriptsOfRemovedSignIns` deletes those
+  transcripts within minutes, with what OneUptime AI read in them and its
+  posts in the incidents' feeds and channels
+  ([Transcripts/IncidentCallTranscriptRemoval.ts](Transcripts/IncidentCallTranscriptRemoval.ts)),
+  and leaves transcripts people added. A second event finds nothing left.
 - [Providers/ZoomMeetingClient.ts](Providers/ZoomMeetingClient.ts): creates
   the meetings.
 - [Transcripts/ZoomTranscriptClient.ts](Transcripts/ZoomTranscriptClient.ts):
@@ -434,7 +443,13 @@ REMOVE
     no deauthorization notification for an app in development, so on
     test.oneuptime.com the connection shows Not working only once OneUptime next
     uses its sign-in. In production, OneUptime deletes the sign-in as soon as
-    Zoom's app_deauthorized notification arrives.
+    Zoom's app_deauthorized notification arrives, and within minutes deletes
+    every transcript it read through that sign-in, with what OneUptime AI read
+    in it (from the call, the incident's feed and its chat channels). The
+    incident's feed says so.
+12. Remove transcript on the incident's Video Call card deletes the transcript
+    and what OneUptime AI read in it, from the card, the feed and the chat
+    channels it was posted to.
 
 WHAT CHANGED IN THIS UPDATE
 >>> each new or changed scope or setting, and the steps above that test it <<<
@@ -497,10 +512,24 @@ Add a row for every submission.
 
 Found while writing this guide on 17 November 2026:
 
-- The comments on the Zoom app in `config.example.env` and `values.yaml`
-  list only `meeting:write:meeting` and `user:read:user`, as does the header
-  comment of `ZoomOAuthApp.ts`. The user docs list all four scopes (#9265).
 - Whether a signed-out visitor to the Direct landing URL comes back to
   **Video Calls** after signing in was not checked.
 - This guide does not record which Zoom account owns the app. Add it the
   next time a maintainer signs in.
+
+Found while making `app_deauthorized` delete what was read through the
+sign-in (#9289), on 19 November 2026:
+
+- A Slack, Microsoft Teams or Mattermost message of what OneUptime AI read
+  that OneUptime can no longer delete - the project disconnected that
+  workspace since, or the app was removed from the channel - stays in the
+  customer's channel. Remove transcript names it to the person; after a
+  deauthorization nobody is asked, so only the server log and the message's
+  Notification Logs row ("OneUptime could not delete it: ...") say so.
+- A reading posted before calls kept where their readings went (before
+  this release) is found by its text: its feed item always, its channel
+  messages only while Notification Logs still keep them (three days on
+  OneUptime Cloud).
+- A removal takes the posts off the call before it deletes them, so a
+  server that stops in between leaves that feed item and those messages
+  with nothing to try again (#9638).

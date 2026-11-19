@@ -40,6 +40,11 @@ export interface IncidentVideoCallTranscriptColumns {
   transcriptFetchReason?: VideoCallTranscriptUnavailableReason | null;
   transcriptFetchCheckedAt?: Date | null;
   transcriptFetchNextAttemptAt?: Date | null;
+  // Where each reading was posted (CallSummaryPosts).
+  callSummaryPosts?: JSONObject | null;
+  // The account whose sign-in read the transcript, and when it removed OneUptime.
+  transcriptSignInAccountId?: string | null;
+  transcriptSignInRemovedAt?: Date | null;
 }
 
 export default class IncidentVideoCallTranscriptWrite {
@@ -95,6 +100,17 @@ export default class IncidentVideoCallTranscriptWrite {
       transcriptAddedAt: null,
       transcriptAddedByUserId: null,
       ...IncidentVideoCallTranscriptWrite.noReading(),
+    };
+  }
+
+  /*
+   * Nothing read through anyone's sign-in left on the call, and nothing
+   * waiting to be deleted for it.
+   */
+  public static noSignIn(): IncidentVideoCallTranscriptColumns {
+    return {
+      transcriptSignInAccountId: null,
+      transcriptSignInRemovedAt: null,
     };
   }
 }

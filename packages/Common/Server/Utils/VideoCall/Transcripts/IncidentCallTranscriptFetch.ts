@@ -384,6 +384,10 @@ export default class IncidentCallTranscriptFetch {
       prepared,
       source: VideoCallTranscriptSource.Provider,
       isAutomatic: true,
+      // Whose sign-in read it, so that the account removing OneUptime deletes it.
+      ...(read.signInAccountId
+        ? { signInAccountId: read.signInAccountId }
+        : {}),
     });
 
     return CallTranscriptFetchOutcome.Found;

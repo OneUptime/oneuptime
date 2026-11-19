@@ -575,6 +575,90 @@ describe("Video Calls docs - connecting in one click", () => {
     }
   });
 
+  /*
+   * A self-hoster sets the one-click apps up from config.example.env or the
+   * chart's values.yaml as often as from this page. Both described the Zoom
+   * app with two of its four scopes, so a server set up from them could not
+   * read transcripts, and found out only when Get from Zoom said a scope
+   * was missing (#9265). Each comment names every scope the code uses, and
+   * the Microsoft app's every permission, as this page does.
+   */
+  test("config.example.env and values.yaml describe each one-click app with every scope the code uses", () => {
+    const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+    const read: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(repositoryRoot, relative), "utf8");
+    };
+    // The comment lines just above a setting, joined into one sentence.
+    const commentAbove: (file: string, setting: string) => string = (
+      file: string,
+      setting: string,
+    ): string => {
+      const lines: Array<string> = file.split("\n");
+      const at: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith(setting);
+      });
+
+      expect(at).toBeGreaterThan(0);
+
+      const comment: Array<string> = [];
+
+      for (let index: number = at - 1; index >= 0; index--) {
+        const line: string = lines[index]!;
+
+        if (!line.startsWith("#")) {
+          break;
+        }
+
+        comment.unshift(line.replace(/^#\s?/, ""));
+      }
+
+      return comment.join(" ");
+    };
+
+    const zoomScopes: Array<string> = [
+      ZOOM_OAUTH_MEETING_SCOPE,
+      ZOOM_OAUTH_USER_SCOPE,
+      ZOOM_OAUTH_RECORDING_FILES_SCOPE,
+      ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE,
+    ];
+    const teamsPermissions: Array<string> = [
+      MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
+      ...MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS,
+    ];
+
+    const environment: string = read("config.example.env");
+    const values: string = read("HelmChart/Public/oneuptime/values.yaml");
+
+    for (const [comment, permissions] of [
+      [commentAbove(environment, "ZOOM_APP_CLIENT_ID="), zoomScopes],
+      [commentAbove(values, "zoomApp:"), zoomScopes],
+      [
+        commentAbove(environment, "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID="),
+        teamsPermissions,
+      ],
+      [commentAbove(values, "microsoftTeamsMeetingsApp:"), teamsPermissions],
+    ] as Array<[string, Array<string>]>) {
+      for (const permission of permissions) {
+        expect(comment).toContain(permission);
+      }
+    }
+
+    // The transcript scopes are for call transcripts: a server can do without them.
+    expect(commentAbove(environment, "ZOOM_APP_CLIENT_ID=")).toContain(
+      "for call transcripts",
+    );
+    expect(commentAbove(values, "zoomApp:")).toContain("for call transcripts");
+
+    // And the code that signs in with the app says the same of it.
+    const zoomApp: string = read(
+      "packages/Common/Server/Utils/VideoCall/OAuth/ZoomOAuthApp.ts",
+    ).replace(/\n \* ?/g, " ");
+
+    for (const scope of zoomScopes) {
+      expect(zoomApp).toContain(scope);
+    }
+  });
+
   test("a single-tenant Teams meetings app: its tenant setting, as the server, the chart and Compose read it", () => {
     const section: string = sectionOf(
       readPage(),
@@ -664,6 +748,90 @@ describe("Video Calls docs - connecting in one click", () => {
  * OneUptime AI card's reading of it, as the Dashboard draws them, the
  * scopes Zoom asks for, and the limits the server and the Dashboard keep.
  */
+/*
+ * What removing a transcript removes, said the same way by the docs and the
+ * privacy policy as the server does it (#9289, #9290): Remove transcript,
+ * removing a call, and removing OneUptime from a Zoom account take back what
+ * OneUptime AI read from the call, the feed and the channels; a message
+ * OneUptime cannot delete is named; what people wrote from the call stays.
+ * Both used to say the feed post stayed, and the transcripts with it.
+ */
+describe("Video Calls docs - what removing a transcript removes", () => {
+  const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+  const privacy: string = fs
+    .readFileSync(
+      path.join(repositoryRoot, "packages/Home/Views/privacy.ejs"),
+      "utf8",
+    )
+    .replace(/&gt;/g, ">");
+
+  test("Remove transcript takes what OneUptime AI read from the call, the feed and the channels, and says where a message stays", () => {
+    const section: string = sectionOf(readPage(), "reconnecting-and-removing");
+
+    expect(section).toContain(
+      "**Remove transcript** on a call deletes its transcript and what OneUptime AI read in it from the same places. If OneUptime can no longer delete a message there, because its workspace was disconnected or the app was removed from the channel, it says where the message stays.",
+    );
+    expect(section).toContain(
+      "from their calls, from the incidents' feeds and from the messages OneUptime posted in the incidents' Slack, Microsoft Teams and Mattermost channels",
+    );
+    expect(section).not.toContain("but not what OneUptime AI posted");
+    expect(readPage()).toContain(
+      "Removing a transcript removes what OneUptime AI read in it, from the call, the incident's feed and its channels, and keeps the incident's root cause.",
+    );
+  });
+
+  test("removing OneUptime from a Zoom account deletes, within minutes, the transcripts read through its sign-in - and leaves those someone added", () => {
+    const section: string = sectionOf(readPage(), "reconnecting-and-removing");
+
+    expect(section).toContain(
+      "Removing OneUptime from your Zoom account also deletes, within minutes, the call transcripts OneUptime read through its sign-in, and what OneUptime AI read in them",
+    );
+    expect(section).toContain("a transcript someone added stays");
+    expect(section).not.toContain(
+      "Transcripts OneUptime has already read stay on their incidents",
+    );
+  });
+
+  test("removing a call takes its transcript and what was read in it with it", () => {
+    expect(sectionOf(readPage(), "starting-a-call-by-hand")).toContain(
+      "**Remove** on the card takes a call off the incident's page, with its transcript and what OneUptime AI read in it.",
+    );
+  });
+
+  test("the privacy policy says the same, and no longer that the feed post stays", () => {
+    expect(privacy).toContain(
+      "Removing a transcript or a call also deletes what OneUptime AI read in it wherever OneUptime posted it: the incident's feed, and the messages OneUptime posted in the incident's Slack, Microsoft Teams and Mattermost channels.",
+    );
+    expect(privacy).toContain(
+      "When you remove OneUptime from your Zoom account, OneUptime deletes the transcripts it read through your sign-in, and what OneUptime AI read in them, in the same way",
+    );
+    expect(privacy).toContain(
+      "When you remove OneUptime from Zoom, OneUptime deletes the stored sign-in and, within minutes, the call transcripts it read through that sign-in",
+    );
+    expect(privacy).not.toContain(
+      "Removing a transcript does not remove what OneUptime AI has already posted",
+    );
+    expect(privacy).not.toContain(
+      "or removing OneUptime's access at the provider, does not delete the transcripts",
+    );
+  });
+
+  test("the Zoom app guide tells the reviewer what removing the app deletes", () => {
+    const guide: string = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "packages/Common/Server/Utils/VideoCall/RELEASING.md",
+      ),
+      "utf8",
+    );
+
+    expect(guide).toContain("DeleteTranscriptsOfRemovedSignIns");
+    expect(guide).toContain(
+      "every transcript it read through that sign-in, with what OneUptime AI read",
+    );
+  });
+});
+
 describe("Video Calls docs - call transcripts", () => {
   function readSource(file: string): string {
     return fs.readFileSync(file, "utf8");

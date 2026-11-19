@@ -86,7 +86,7 @@ Connections signed in as the same account share one sign-in, in every project: Z
 
 Deleting a connection withdraws OneUptime's access at Zoom and Google once no other connection uses the sign-in. For Microsoft, remove OneUptime under **My Apps** (myapps.microsoft.com) of the account. Removing OneUptime from your Zoom account in the Zoom App Marketplace deletes its sign-in from every connection signed in as that account, and they show **Not working** until reconnected.
 
-Transcripts OneUptime has already read stay on their incidents: deleting a connection keeps the calls it started, with their transcripts, and so does removing OneUptime from the account at Zoom, Google or Microsoft. **Remove transcript** on a call deletes its transcript and what OneUptime AI read in it, but not what OneUptime AI posted to the incident's feed and channels. Deleting an incident deletes its calls and their transcripts.
+Removing OneUptime from your Zoom account also deletes, within minutes, the call transcripts OneUptime read through its sign-in, and what OneUptime AI read in them: from their calls, from the incidents' feeds and from the messages OneUptime posted in the incidents' Slack, Microsoft Teams and Mattermost channels. Each incident's feed says so, and a transcript someone added stays. Deleting a connection keeps the calls it started, with their transcripts, and so does removing OneUptime from a Google or Microsoft account. **Remove transcript** on a call deletes its transcript and what OneUptime AI read in it from the same places. If OneUptime can no longer delete a message there, because its workspace was disconnected or the app was removed from the channel, it says where the message stays. A root cause or a postmortem someone wrote from the call stays. Deleting an incident deletes its calls and their transcripts.
 
 ### If Microsoft asks for an administrator
 
@@ -100,7 +100,7 @@ To connect with a service identity rather than a person's sign-in — a Zoom Ser
 
 The **Video Call** card on an incident's or alert's page has **Start call** (or **Start another** once there is one). Pick one of the project's connections, the huddle of the incident's Slack channel, or paste a meeting link of your own. The call is posted to the incident's channels and feed like one a rule starts.
 
-**Remove** on the card takes a call off the incident's page. The meeting itself is not deleted, and anyone with the link can still join it.
+**Remove** on the card takes a call off the incident's page, with its transcript and what OneUptime AI read in it. The meeting itself is not deleted, and anyone with the link can still join it.
 
 Starting and removing calls needs permission to work on incidents (or alerts): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** or **Incident Member**, or **Create Incident Video Call** and **Delete Incident Video Call** in a custom role. Everyone who can read the incident sees its calls.
 
@@ -152,7 +152,7 @@ Getting, adding, replacing and removing a transcript, having it read again and d
 
 ### What OneUptime AI reads
 
-Reading a transcript is AI work like an investigation: it runs only while AI is on for the project, and counts toward the project's AI usage and daily limits (see [Cost controls](/docs/ai/ai-sre#cost-controls)). A long transcript is read in parts. When AI is off, the transcript is kept and the card says it was not read. Removing a transcript removes what OneUptime AI read in it, and keeps the incident's root cause. An AI postmortem draft reads what the incident's calls said too (see [Postmortems](/docs/incidents/postmortems)).
+Reading a transcript is AI work like an investigation: it runs only while AI is on for the project, and counts toward the project's AI usage and daily limits (see [Cost controls](/docs/ai/ai-sre#cost-controls)). A long transcript is read in parts. When AI is off, the transcript is kept and the card says it was not read. Removing a transcript removes what OneUptime AI read in it, from the call, the incident's feed and its channels, and keeps the incident's root cause. An AI postmortem draft reads what the incident's calls said too (see [Postmortems](/docs/incidents/postmortems)).
 
 ## Providers
 

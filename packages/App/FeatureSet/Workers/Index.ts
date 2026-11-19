@@ -208,6 +208,7 @@ import "./Jobs/WorkspaceUserGroup/SyncUserGroups";
 // Video calls: keep the sign-ins of connections made by signing in from expiring
 import "./Jobs/VideoCall/KeepVideoCallSignInsAlive";
 import "./Jobs/VideoCall/GetIncidentCallTranscripts";
+import "./Jobs/VideoCall/DeleteTranscriptsOfRemovedSignIns";
 
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";

@@ -86,7 +86,7 @@ Conexões feitas com a mesma conta compartilham um único login, em todos os pro
 
 Excluir uma conexão retira o acesso do OneUptime no Zoom e no Google assim que nenhuma outra conexão usa aquele login. Na Microsoft, remova o OneUptime em **My Apps** (myapps.microsoft.com) da conta. Remover o OneUptime da sua conta do Zoom no Zoom App Marketplace exclui o login dele de todas as conexões feitas com essa conta, e elas mostram **Não funciona** até serem reconectadas.
 
-As transcrições que o OneUptime já leu ficam nos seus incidentes: excluir uma conexão mantém as chamadas que ela iniciou, com suas transcrições, e remover o OneUptime da conta no Zoom, no Google ou na Microsoft também. **Remover transcrição** em uma chamada exclui a transcrição e o que a OneUptime AI leu nela, mas não o que a OneUptime AI publicou no feed do incidente e nos seus canais. Excluir um incidente exclui as chamadas e as transcrições dele.
+Remover o OneUptime da sua conta do Zoom também exclui, em poucos minutos, as transcrições de chamadas que o OneUptime leu com o login dela, e o que a OneUptime AI leu nelas: das chamadas, dos feeds dos incidentes e das mensagens que o OneUptime publicou nos canais do Slack, Microsoft Teams e Mattermost dos incidentes. O feed de cada incidente informa isso, e uma transcrição que alguém adicionou fica. Excluir uma conexão mantém as chamadas que ela iniciou, com suas transcrições, e remover o OneUptime de uma conta do Google ou da Microsoft também. **Remover transcrição** em uma chamada exclui a transcrição e o que a OneUptime AI leu nela desses mesmos lugares. Se o OneUptime não conseguir mais excluir uma mensagem lá, porque o workspace foi desconectado ou o app foi removido do canal, ele informa onde a mensagem fica. Uma causa raiz ou um post-mortem que alguém escreveu a partir da chamada fica. Excluir um incidente exclui as chamadas e as transcrições dele.
 
 ### Se a Microsoft pedir um administrador
 
@@ -100,7 +100,7 @@ Para conectar com uma identidade de serviço em vez do login de uma pessoa — u
 
 O cartão **Video Call** na página de um incidente ou alerta tem **Start call** (ou **Start another** quando já existe uma). Escolha uma das conexões do projeto, o huddle do canal do Slack do incidente, ou cole um link de reunião seu. A chamada é publicada nos canais e no feed do incidente como uma que uma regra inicia.
 
-**Remover** no cartão tira uma chamada da página do incidente. A reunião em si não é excluída, e quem tiver o link ainda pode entrar nela.
+**Remover** no cartão tira uma chamada da página do incidente, com a transcrição e o que a OneUptime AI leu nela. A reunião em si não é excluída, e quem tiver o link ainda pode entrar nela.
 
 Iniciar e remover chamadas requer permissão para trabalhar em incidentes (ou alertas): **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de incidentes** ou **Membro de incidentes**, ou **Create Incident Video Call** e **Delete Incident Video Call** em uma função personalizada. Todos que podem ler o incidente veem as chamadas dele.
 
@@ -152,7 +152,7 @@ Obter, adicionar, substituir e remover uma transcrição, fazê-la ser lida de n
 
 ### O que a OneUptime AI lê
 
-Ler uma transcrição é trabalho de IA como uma investigação: só roda enquanto a IA está ativada para o projeto, e conta para o uso de IA e os limites diários do projeto (veja [Controle de custos](/docs/ai/ai-sre#controle-de-custos)). Uma transcrição longa é lida em partes. Quando a IA está desativada, a transcrição é mantida e o card diz que ela não foi lida. Remover uma transcrição remove o que a OneUptime AI leu nela, e mantém a causa raiz do incidente. Um rascunho de post-mortem da IA também lê o que foi dito nas chamadas do incidente (veja [Post-mortems](/docs/incidents/postmortems)).
+Ler uma transcrição é trabalho de IA como uma investigação: só roda enquanto a IA está ativada para o projeto, e conta para o uso de IA e os limites diários do projeto (veja [Controle de custos](/docs/ai/ai-sre#controle-de-custos)). Uma transcrição longa é lida em partes. Quando a IA está desativada, a transcrição é mantida e o card diz que ela não foi lida. Remover uma transcrição remove o que a OneUptime AI leu nela, da chamada, do feed do incidente e dos seus canais, e mantém a causa raiz do incidente. Um rascunho de post-mortem da IA também lê o que foi dito nas chamadas do incidente (veja [Post-mortems](/docs/incidents/postmortems)).
 
 ## Provedores
 
