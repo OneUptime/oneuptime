@@ -42,6 +42,13 @@ import {
  *     grows wide when the note is opened (FormModalWidth), which a fixed
  *     width would undo;
  *   - the bulk dialog is one page, with no steps.
+ *
+ * Resolving an incident or an alert asks for its root cause too (#7765):
+ * one more folded line, "Add the root cause", after the note, built by the
+ * shared piece's other builder (getStateChangeRootCauseFields) in those two
+ * dialogs alone, only on a resolve, and offered to someone who may edit
+ * the record. Its editor is folded in its own section, and its key is the
+ * one the server reads (StateChangeRootCause).
  */
 
 // packages/Common/Tests/UI/Components/Forms -> the repository root.
@@ -58,6 +65,10 @@ const REPOSITORY_ROOT: string = path.resolve(
 const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
 
 const SHARED_PIECE: string = `${DASHBOARD}/Components/EventView/StateChangeFormFields.ts`;
+
+// What reads the root cause a resolve sends (#7765).
+const SERVER_ROOT_CAUSE: string =
+  "packages/Common/Server/Utils/StateChangeRootCause.ts";
 
 const BULK_DIALOG: string = `${DASHBOARD}/Components/EventView/BulkChangeStateModal.tsx`;
 
@@ -91,6 +102,20 @@ const NOTE_MODEL_OF_DIALOG: Record<string, string> = {
 
 // How the shared piece writes its one folded section on both fields.
 const NOTE_SECTION: string = "noteSection";
+
+// And the root cause's own folded section (#7765).
+const ROOT_CAUSE_SECTION: string = "rootCauseSection";
+
+const ROOT_CAUSE_TITLE: string = "Root Cause";
+
+/*
+ * The dialogs that ask for the record's root cause as they resolve it, with
+ * the record the root cause is written on.
+ */
+const RECORD_MODEL_OF_ROOT_CAUSE_DIALOG: Record<string, string> = {
+  [`${DASHBOARD}/Components/Alert/ChangeState.tsx`]: "Alert",
+  [`${DASHBOARD}/Components/Incident/ChangeState.tsx`]: "Incident",
+};
 
 const NOTIFY_TITLE: string = "Notify Status Page Subscribers";
 
@@ -195,10 +220,21 @@ describe("state change dialogs", () => {
     (file: string) => {
       const source: string = code(file);
 
-      expect(source).toContain(
-        'import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";',
-      );
-      expect(source).toMatch(/fields: getStateChangeFormFields<\w+>\(/);
+      // The incident and alert dialogs add the root cause's builder (#7765).
+      if (RECORD_MODEL_OF_ROOT_CAUSE_DIALOG[file]) {
+        expect(source).toContain(
+          'import { getStateChangeFormFields, getStateChangeRootCauseFields, } from "../EventView/StateChangeFormFields";',
+        );
+        expect(source).toMatch(
+          /fields: \[ \.\.\.getStateChangeFormFields<\w+>\(/,
+        );
+      } else {
+        expect(source).toContain(
+          'import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";',
+        );
+        expect(source).toMatch(/fields: getStateChangeFormFields<\w+>\(/);
+      }
+
       expect(source.match(/getStateChangeFormFields</g)).toHaveLength(1);
 
       // The note, its editor and its template picker are the shared piece's.
@@ -259,8 +295,37 @@ describe("state change dialogs", () => {
     );
   });
 
+  test.each(STATE_CHANGE_DIALOGS)(
+    "%s asks for the root cause only as it resolves an incident or an alert, of someone who may edit it",
+    (file: string) => {
+      const recordModel: string | undefined =
+        RECORD_MODEL_OF_ROOT_CAUSE_DIALOG[file];
+      const source: string = code(file);
+
+      if (!recordModel) {
+        expect(source).not.toContain("getStateChangeRootCauseFields");
+
+        return;
+      }
+
+      expect(source.match(/getStateChangeRootCauseFields</g)).toHaveLength(1);
+      expect(source).toMatch(
+        /\.\.\.getStateChangeRootCauseFields<\w+>\( isResolveTarget \? \{ description: translationKey\(/,
+      );
+      expect(source).toContain(
+        `recordModel: new ${recordModel}(), recordGateOptions: privateRecordOptions, } : undefined, ), ],`,
+      );
+      expect(source).toContain(
+        `import ${recordModel} from "Common/Models/DatabaseModels/${recordModel}";`,
+      );
+    },
+  );
+
   test("the bulk dialog builds its note with the shared piece, too", () => {
     const source: string = code(BULK_DIALOG);
+
+    // It moves many records, and asks no root cause of any (#7765).
+    expect(source).not.toContain("getStateChangeRootCauseFields");
 
     expect(source).toContain("...getStateChangeFormFields<JSONObject>({");
     expect(source).not.toContain("Select Note Template");
@@ -307,7 +372,7 @@ describe("state change dialogs", () => {
       'import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";',
     );
     expect(source).toContain(
-      "fields: getStateChangeFormFields<IncidentStateTimeline>({ ...(props.isPrivate ? { noteType: BulkStateChangeNoteType.Private,",
+      "fields: [ ...getStateChangeFormFields<IncidentStateTimeline>({ ...(props.isPrivate ? { noteType: BulkStateChangeNoteType.Private,",
     );
 
     const privateStart: number = source.indexOf("...(props.isPrivate ? {");
@@ -356,12 +421,13 @@ describe("read the way the form guards read every form", () => {
     }
   });
 
-  test("every Markdown editor and template picker is folded in the shared piece's one section", () => {
+  test("every Markdown editor and template picker of the note is folded in the shared piece's one section", () => {
     for (const form of forms) {
       const noteFields: Array<FormFieldFacts> = form.fields.filter(
         (field: FormFieldFacts): boolean => {
           return (
-            field.fieldType === "FormFieldSchemaType.Markdown" ||
+            (field.fieldType === "FormFieldSchemaType.Markdown" &&
+              field.title !== ROOT_CAUSE_TITLE) ||
             field.title === "Select Note Template"
           );
         },
@@ -383,6 +449,27 @@ describe("read the way the form guards read every form", () => {
           section: NOTE_SECTION,
         });
       }
+    }
+  });
+
+  test("the root cause's editor is folded in its own section, in the incident and alert dialogs alone", () => {
+    for (const form of forms) {
+      const rootCauseFields: Array<string> = form.fields
+        .filter((field: FormFieldFacts): boolean => {
+          return field.title === ROOT_CAUSE_TITLE;
+        })
+        .map((field: FormFieldFacts): string => {
+          return `${describeField(field)} in ${field.collapsibleSection}`;
+        });
+
+      expect({ form: form.file, rootCauseFields }).toEqual({
+        form: form.file,
+        rootCauseFields: RECORD_MODEL_OF_ROOT_CAUSE_DIALOG[form.file]
+          ? [
+              `${ROOT_CAUSE_TITLE} (FormFieldSchemaType.Markdown) in ${ROOT_CAUSE_SECTION}`,
+            ]
+          : [],
+      });
     }
   });
 
@@ -409,8 +496,18 @@ describe("read the way the form guards read every form", () => {
     }
   });
 
-  test("a single-event dialog is two rows at most, the bulk one three", () => {
+  /*
+   * What decides the change and the folded note; a resolve of an incident
+   * or an alert adds its folded root cause (#7765).
+   */
+  test("a single-event dialog is two rows at most, three where it resolves an incident or an alert, the bulk one three", () => {
     for (const form of forms) {
+      const rows: number =
+        form.file === BULK_DIALOG ||
+        RECORD_MODEL_OF_ROOT_CAUSE_DIALOG[form.file]
+          ? 3
+          : 2;
+
       expect({
         form: form.file,
         rows: countFieldRows(
@@ -418,7 +515,7 @@ describe("read the way the form guards read every form", () => {
             return !field.isNeverShown;
           }),
         ),
-      }).toEqual({ form: form.file, rows: form.file === BULK_DIALOG ? 3 : 2 });
+      }).toEqual({ form: form.file, rows });
     }
   });
 });
@@ -443,6 +540,60 @@ describe("the shared piece", () => {
       source.match(/getStateChangeNoteSection<TEntity>\(options\.noteType\)/g),
     ).toHaveLength(1);
     expect(source.match(/collapsibleSection: noteSection,/g)).toHaveLength(2);
+  });
+
+  /*
+   * The root cause (#7765): folded under its own line, even with something
+   * in it, offered only to someone who may edit the record, sent under the
+   * key the server reads - and built apart from the note, so the bulk
+   * dialog, which shares getStateChangeFormFields, never has it.
+   */
+  test("folds the root cause under its own line, offered only to someone who may write it", () => {
+    expect(source).toContain(
+      'export const STATE_CHANGE_ROOT_CAUSE_SECTION_TITLE: string = translationKey("Add the root cause");',
+    );
+    expect(source).toMatch(
+      /const rootCauseSection: FormFieldCollapsibleSection<TEntity> = \{ id: STATE_CHANGE_ROOT_CAUSE_SECTION_ID, title: STATE_CHANGE_ROOT_CAUSE_SECTION_TITLE, openWhenConfigured: false, \};/,
+    );
+    expect(source.match(/collapsibleSection: rootCauseSection,/g)).toHaveLength(
+      1,
+    );
+    expect(source).toContain(
+      "const isRootCauseOffered: boolean = Boolean( rootCause && canWriteStateChangeRootCause( rootCause.recordModel, rootCause.recordGateOptions, ), );",
+    );
+    expect(source).toContain(
+      "showIf: (): boolean => { return isRootCauseOffered; }, required: false, overrideFieldKey: STATE_CHANGE_ROOT_CAUSE_FIELD_KEY,",
+    );
+    // The record's own update gate, with the private record's scope.
+    expect(source).toContain(
+      "const gate: PermissionGateResult = PermissionGate.check( recordModel, ModelAction.Update, options, );",
+    );
+  });
+
+  test("builds the root cause apart from the note and the notify box", () => {
+    const noteBuilder: string = source.slice(
+      source.indexOf("export const getStateChangeFormFields:"),
+      source.indexOf("export type GetStateChangeRootCauseFieldsFunction"),
+    );
+
+    expect(noteBuilder.length).toBeGreaterThan(0);
+    expect(noteBuilder).not.toContain("RootCause");
+    expect(noteBuilder).not.toContain("rootCause");
+  });
+
+  test("sends the root cause under the key the server reads", () => {
+    // Read from the server's source: the UI tests do not load server code.
+    const serverKey: string | undefined = code(SERVER_ROOT_CAUSE).match(
+      /public static readonly rootCauseKey: string = "(\w+)";/,
+    )?.[1];
+
+    expect(serverKey).toBe("writtenRootCause");
+    expect(source).toContain(
+      `export const STATE_CHANGE_ROOT_CAUSE_FIELD_KEY: string = "${serverKey}";`,
+    );
+    expect(source).toContain(
+      `field: { ${serverKey}: true, } as SelectFormFields<TEntity>,`,
+    );
   });
 
   test("is the only place a state change dialog's template picker is written", () => {

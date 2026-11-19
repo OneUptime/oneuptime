@@ -91,6 +91,7 @@ import LogGroupCriteriaFanOut, {
   LOG_GROUP_INCIDENT_RESOLVED_MESSAGE,
   LOG_GROUP_RESOLVED_ROOT_CAUSE,
 } from "./LogGroupCriteriaFanOut";
+import TraceGroupCriteriaFanOut from "./TraceGroupCriteriaFanOut";
 import MonitorMaintenanceSuppression, {
   MonitorMaintenanceSuppressionResult,
 } from "./MonitorMaintenanceSuppression";
@@ -217,6 +218,19 @@ export default class MonitorResourceUtil {
     monitor: Monitor;
     dataToProcess: DataToProcess;
   }): boolean {
+    /*
+     * A grouped Traces monitor that counts quiet groups, none of whose
+     * groups sent a span in the window (#9711): the whole app went quiet,
+     * not one of its devices. Its devices' alerts stay open until spans
+     * arrive, rather than resolving as if they had all come back.
+     */
+    if (
+      input.monitor.monitorType === MonitorType.Traces &&
+      TraceGroupCriteriaFanOut.isQuietWindow(input.dataToProcess)
+    ) {
+      return true;
+    }
+
     if (!MonitorTypeHelper.isInfrastructureMonitor(input.monitor.monitorType)) {
       return false;
     }

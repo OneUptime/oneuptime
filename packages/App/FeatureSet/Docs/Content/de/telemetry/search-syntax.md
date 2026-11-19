@@ -129,7 +129,7 @@ Feldnamen unterscheiden keine Groß- und Kleinschreibung: `statusMessage:` und `
 
 ### Traces
 
-Trace-Felder nehmen einen einfachen Wert oder eine Liste wie `status:(ok OR unset)`, und `duration` nimmt zusätzlich `>` und `<`. Platzhalter, `~`, `!` und ein vorangestelltes `-` funktionieren hier nur bei Attributen.
+Trace-Felder nehmen einen einfachen Wert oder eine Liste wie `status:(ok OR unset)`, und `duration` nimmt zusätzlich `>`, `>=`, `<` und `<=`. Platzhalter, `~`, `!` und ein vorangestelltes `-` funktionieren hier nur bei Attributen.
 
 | Feld | Hinweise |
 | --- | --- |
@@ -137,7 +137,7 @@ Trace-Felder nehmen einen einfachen Wert oder eine Liste wie `status:(ok OR unse
 | `name` | Span-Name. Ein einzelner Wert trifft auf jeden Teil davon zu. Freie Wörter durchsuchen ihn ebenfalls |
 | `status` | `ok`, `error`, `unset` (unset = Kein Fehlerstatus gesetzt, der OpenTelemetry-Standard) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Millisekunden: `duration:>500`, `duration:<200` oder ein exakter Wert |
+| `duration` | Millisekunden: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` oder ein exakter Wert |
 | `statusMessage` | Text der Statusmeldung. Ein einzelner Wert trifft auf jeden Teil davon zu |
 | `hasException` | `true` oder `false` |
 | `trace`, `span` | IDs |

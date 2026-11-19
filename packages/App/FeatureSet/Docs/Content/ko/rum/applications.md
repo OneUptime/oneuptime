@@ -168,9 +168,9 @@ RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별
 | 그룹 | 권장 사항 |
 | --- | --- |
 | Core Web Vitals | 웹 앱용: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint, Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals)를 참고하세요. |
-| 오류 | 모바일 앱에는 App Crashes와 App Not Responding (ANR), 두 앱 모두에는 Failed User Operations, 웹 앱에는 Unhandled Browser Exceptions. |
+| 오류 | 모바일 앱에는 App Crashes와 App Not Responding (ANR), 시간당 세션이 수백 개인 앱에는 그 비율인 App Crash Rate와 App ANR Rate, 두 앱 모두에는 Failed User Operations, 웹 앱에는 Unhandled Browser Exceptions. |
 | 성능 | 모바일 앱용: 콜드 스타트가 5초 이상 걸릴 때(Android vitals가 과도하다고 보는 기준) 알리는 Slow Cold Start, 프레임을 그리는 데 700 ms보다 오래 걸릴 때 알리는 Frozen Frames. |
-| 가용성 | 모바일 앱용: 앱이 30분 동안 스팬을 보내지 않을 때 알리는 App Stopped Reporting. |
+| 가용성 | 모바일 앱용: 앱이 30분 동안 스팬을 보내지 않을 때 알리는 App Stopped Reporting, 지난 일주일 동안 스팬을 보낸 기기 중 하나가 한 시간 동안 스팬을 보내지 않을 때 알리는 Device Stopped Reporting. |
 | 세션 리플레이 | 네 가지 [스토리지 예산 경고](/docs/telemetry/session-replay#스토리지-예산-경고)으로, 프로젝트의 일일 한도나 애플리케이션의 월간 예산이 소진되기 전에 경고합니다. 애플리케이션이 리플레이를 녹화하면 제안되고, 월간 쌍은 월간 예산도 있을 때 제안됩니다. |
 
 직접 모니터를 만들려면 해당 신호를 읽는 모니터를 고르세요.

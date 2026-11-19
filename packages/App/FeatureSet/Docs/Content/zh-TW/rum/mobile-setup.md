@@ -5,6 +5,7 @@
 :::cards
 - [OneUptime 需要什麼](#oneuptime-需要什麼): 兩個資源屬性，以伺服器金鑰傳送。
 - [設定你的平台](#設定你的平台): Android、iOS、React Native 及其他平台。
+- [iOS 當機和卡頓](#ios-當機和卡頓): MetricKit 的診斷，顯示在例外中和概覽上。
 - [確認資料抵達](#確認資料抵達): 先測試金鑰，再找到應用程式。
 - [行動端的工作階段重播](#行動端的工作階段重播): React Native 應用程式的錄製。
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 SDK 會自行在端點後加上 `/v1/traces` 、 `/v1/metrics` 和 `/v1/logs` 。
 :::
+
+## iOS 當機和卡頓
+
+opentelemetry-swift 2.3 及更新版本透過其 MetricKit 檢測回報 iOS 應用程式的當機和卡頓，這項檢測會把 Apple 的每則診斷以一筆日誌記錄的形式交給 OpenTelemetry。OneUptime 會像歸檔 OpenTelemetry Android 的當機和 ANR 那樣歸檔它們，因此它們會顯示在 **例外** 中和應用程式的 **概覽** 上：
+
+| Apple 的診斷 | 事件名稱 | 在例外中 |
+| --- | --- | --- |
+| 當機 | `metrickit.diagnostic.crash` | 一個未處理的例外，其類型取決於結束應用程式的原因：在 iOS 17 及更新版本上為 Objective-C 例外，否則為 Mach 例外（ `EXC_BAD_ACCESS` ），再否則為訊號（ `SIGSEGV` ） |
+| 卡頓 | `metrickit.diagnostic.hang` | 一個類型為 **Hang** 的未處理例外，也就是 iOS 上與 ANR 相對應的情況，它會記下卡頓持續了多久 |
+
+概覽的 **當機** 圖塊會計算這些當機，其 **ANR** 圖塊會把卡頓與 Android 的 ANR 一起計算。每條堆疊追蹤都會像當機報告那樣依執行緒繪製，當機或卡頓的執行緒排在最前面。這些框架沒有經過符號化：每個框架會列出它所在的二進位檔，以及程式碼在其中的位移量， **Binary Images** 列出每個二進位檔的 UUID，據此可知要用哪個建置的 dSYM 對它進行符號化。
+
+:::steps
+### 除了 span，也匯出日誌
+
+MetricKit 以日誌記錄的形式回報診斷，因此請在追蹤器提供者旁邊註冊一個日誌記錄器提供者，並使用相同的資源、端點和標頭：
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### 註冊 MetricKit 檢測
+
+加入 opentelemetry-swift 的 `MetricKitInstrumentation` 產品，並在日誌記錄器提供者註冊之後把它註冊到 MetricKit：
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### 記錄工作階段
+
+**工作階段** 和 **無當機工作階段** 圖塊會計算你的 span 上的 `session.id` 。opentelemetry-swift 的 `Sessions` 產品會設定它：把 `SessionSpanProcessor` 加到追蹤器提供者，並用 `SessionLogRecordProcessor` 包裝日誌處理器，讓診斷也帶有工作階段。它的各個版本目前還不會設定 `app.installation.id` ，因此 iOS 應用程式的 **無當機工作階段** 圖塊顯示的是有多少工作階段當機，而不是無當機安裝的佔比。
+:::
+
+> [!NOTE]
+> Apple 會在應用程式之後的某次啟動時把 MetricKit 的診斷交給應用程式：在 iOS 15 及更新版本上會立即交付，更早的版本則每天一次。因此當機或卡頓可能在發生幾分鐘或一天後才送達，並在送達時才被計數。iOS 應用程式概覽上的「過去一小時 0 次當機」還不算好消息。診斷帶有的是回報它的工作階段，而不是它所結束的工作階段。
+
+opentelemetry-swift 不會在應用程式啟動時記錄 span，因此在你的應用程式自行記錄一個之前， **應用程式啟動** 和 **冷啟動（p95）** 圖塊會一直是空的：這個 span 名為 `AppStart` ， `start.type` 設為 `cold` 、 `warm` 或 `hot` ，時間範圍從程序啟動到第一個畫面準備就緒。
 
 ## 確認資料抵達
 

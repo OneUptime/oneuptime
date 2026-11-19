@@ -344,6 +344,8 @@ interface OpenCase {
   open: OpenModalFunction;
   expectedTitle: string;
   expectedStateId: string;
+  // A resolve also folds the root cause, after the note (#7765).
+  resolves: boolean;
 }
 
 const OPEN_CASES: Array<OpenCase> = [
@@ -352,18 +354,21 @@ const OPEN_CASES: Array<OpenCase> = [
     open: clickAcknowledge,
     expectedTitle: "Acknowledge Incident",
     expectedStateId: ACKNOWLEDGED_STATE_ID,
+    resolves: false,
   },
   {
     label: "Resolve",
     open: clickResolve,
     expectedTitle: "Resolve Incident",
     expectedStateId: RESOLVED_STATE_ID,
+    resolves: true,
   },
   {
     label: "a state from More actions",
     open: chooseInvestigatingFromMoreActions,
     expectedTitle: "Mark Incident as Investigating",
     expectedStateId: INVESTIGATING_STATE_ID,
+    resolves: false,
   },
 ];
 
@@ -840,7 +845,11 @@ describe("ChangeIncidentState on a private incident", () => {
         withTemplate: true,
       });
 
-      expect(fieldKeys(props)).toEqual(["privateNoteTemplate", "privateNote"]);
+      expect(fieldKeys(props)).toEqual(
+        openCase.resolves
+          ? ["privateNoteTemplate", "privateNote", "writtenRootCause"]
+          : ["privateNoteTemplate", "privateNote"],
+      );
 
       const note: StateChangeField = fieldByKey(props, "privateNote");
 

@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * A deploy of checkout-service shipped a discount-code change that reads a
@@ -337,27 +338,20 @@ const scenario: BenchmarkScenario = {
         { name: "Promotions API", status: "Operational", type: "API" },
       ],
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: CHECKOUT_SLO_ID,
-          name: "Checkout availability",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99.9,
-          window: "Rolling 30d",
-          monitors: "Checkout API",
-          sloStatus: "Healthy",
-          currentSliPercentage: 99.961,
-          errorBudgetRemainingPercentage: 61,
-          currentBurnRate: 14.2,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-03-10T14:10:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: CHECKOUT_SLO_ID,
+        name: "Checkout availability",
+        monitors: ["Checkout API"],
+        targetPercentage: 99.9,
+        windowDays: 30,
+        sloStatus: "Healthy",
+        currentSliPercentage: 99.961,
+        errorBudgetRemainingPercentage: 61,
+        currentBurnRate: 14.2,
+        lastEvaluatedAt: "2026-03-10T14:10:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:

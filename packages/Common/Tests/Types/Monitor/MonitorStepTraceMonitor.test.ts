@@ -8,6 +8,7 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import ObjectID from "../../../Types/ObjectID";
+import { JSONObject } from "../../../Types/JSON";
 
 /*
  * Parity coverage for the trace monitor step util. monitorTrace() now falls
@@ -170,6 +171,77 @@ describe("MonitorStepTraceMonitorUtil", () => {
       const spanMs: number =
         time.endValue.getTime() - time.startValue.getTime();
       expect(Math.abs(spanMs - 120 * 1000)).toBeLessThan(2000);
+    });
+  });
+
+  /*
+   * #9711: a Traces monitor can group its spans, one alert per group - per
+   * install of a mobile app (Device Stopped Reporting).
+   */
+  describe("group by attributes", () => {
+    test("cleans the keys as a Logs monitor's are: trimmed, de-duplicated, blanks and __proto__ dropped", () => {
+      expect(
+        MonitorStepTraceMonitorUtil.getGroupByAttributes({
+          groupByAttributes: [
+            " resource.app.installation.id ",
+            "resource.app.installation.id",
+            "",
+            "__proto__",
+            42 as unknown as string,
+          ],
+        }),
+      ).toEqual(["resource.app.installation.id"]);
+      expect(
+        MonitorStepTraceMonitorUtil.getGroupByAttributes(undefined),
+      ).toEqual([]);
+      expect(
+        MonitorStepTraceMonitorUtil.getGroupByAttributes({
+          groupByAttributes:
+            "resource.app.installation.id" as unknown as Array<string>,
+        }),
+      ).toEqual([]);
+    });
+
+    test("round-trips through toJSON and fromJSON", () => {
+      const original: MonitorStepTraceMonitor = {
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        groupByAttributes: ["resource.app.installation.id"],
+      };
+
+      expect(
+        MonitorStepTraceMonitorUtil.fromJSON(
+          MonitorStepTraceMonitorUtil.toJSON(original),
+        ).groupByAttributes,
+      ).toEqual(["resource.app.installation.id"]);
+    });
+
+    test("ungrouped, the JSON leaves it out, as a step saved before it", () => {
+      const json: JSONObject = MonitorStepTraceMonitorUtil.toJSON({
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        groupByAttributes: [],
+      });
+
+      expect(json).not.toHaveProperty("groupByAttributes");
+      expect(
+        MonitorStepTraceMonitorUtil.fromJSON(json).groupByAttributes,
+      ).toBeUndefined();
+    });
+
+    test("grouping changes no filter: the query counts the same spans", () => {
+      const until: Date = new Date("2026-11-19T10:00:00.000Z");
+      const ungrouped: Query<Span> = MonitorStepTraceMonitorUtil.toQuery(
+        MonitorStepTraceMonitorUtil.getDefault(),
+        until,
+      );
+      const grouped: Query<Span> = MonitorStepTraceMonitorUtil.toQuery(
+        {
+          ...MonitorStepTraceMonitorUtil.getDefault(),
+          groupByAttributes: ["resource.app.installation.id"],
+        },
+        until,
+      );
+
+      expect(grouped).toEqual(ungrouped);
     });
   });
 

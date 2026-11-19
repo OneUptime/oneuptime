@@ -540,7 +540,8 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
       criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
-      criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent;
+      criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent ||
+      criteriaFilter?.checkOn === CheckOn.SessionsWithExceptionsPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
@@ -2536,6 +2537,19 @@ export default class CriteriaFilterUtil {
     // A share of the window, in percent.
     if (checkOn === CheckOn.ProfileFunctionShare) {
       return "30";
+    }
+
+    /*
+     * A mobile app's crash rate: Android vitals calls more than 1.09% of
+     * its users crashing bad behaviour. Its sessions, the fewest a rate is
+     * judged on.
+     */
+    if (checkOn === CheckOn.SessionsWithExceptionsPercent) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SessionCount) {
+      return "250";
     }
 
     if (

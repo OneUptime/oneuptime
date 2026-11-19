@@ -153,6 +153,53 @@ describe("TraceAggregationService sessions", () => {
       spans: 87,
     });
   });
+
+  /*
+   * #9716: a mobile app's installs - the distinct app.installation.id of
+   * its spans' resource - counted as its sessions are, in the same read.
+   */
+  test("counts the installs too when asked: the resource's app.installation.id, none left out as one", () => {
+    const sql: string = normalized(
+      TraceAggregationService.buildSessionCountStatement({
+        ...request,
+        countInstalls: true,
+      }),
+    );
+
+    expect(sql).toContain(
+      "uniqIf(attributes['resource.app.installation.id'], attributes['resource.app.installation.id'] != '') AS installs",
+    );
+    expect(sql).toContain("uniqIf(sessionId, sessionId != '') AS sessions");
+    expect(sql.indexOf("AS installs")).toBeLessThan(sql.indexOf(" FROM "));
+  });
+
+  test("reads no attribute when the installs are not asked for, as a browser app's Sessions tile", () => {
+    const sql: string = normalized(
+      TraceAggregationService.buildSessionCountStatement(request),
+    );
+
+    expect(sql).not.toContain("attributes[");
+    expect(sql).not.toContain("installs");
+  });
+
+  test("answers the installs as a number, only when asked", async () => {
+    jest
+      .spyOn(SpanService, "executeQuery")
+      .mockResolvedValue(
+        oneRow({ sessions: "12", cnt: "4096", installs: "7" }) as never,
+      );
+
+    expect(
+      await TraceAggregationService.getSessionCount({
+        ...request,
+        countInstalls: true,
+      }),
+    ).toEqual({ sessions: 12, spans: 4096, installs: 7 });
+    expect(await TraceAggregationService.getSessionCount(request)).toEqual({
+      sessions: 12,
+      spans: 4096,
+    });
+  });
 });
 
 describe("ExceptionAggregationService sessions", () => {
@@ -222,6 +269,65 @@ describe("ExceptionAggregationService sessions", () => {
     expect(await ExceptionAggregationService.getSessionCount(request)).toEqual({
       sessions: 0,
       occurrences: 0,
+    });
+  });
+
+  /*
+   * #9716: the installs a crash happened on, from the app.installation.id
+   * ingest copies onto each occurrence, and how many occurrences named one:
+   * an occurrence stored before installs were kept names none, and then
+   * the installs cannot be told.
+   */
+  test("counts the installs, and the occurrences that name one, when asked", () => {
+    const statement: Statement =
+      ExceptionAggregationService.buildSessionCountStatement({
+        ...request,
+        escaped: true,
+        excludedExceptionTypes: ["ANR", "Hang"],
+        countInstalls: true,
+      });
+    const sql: string = normalized(statement);
+
+    expect(sql).toContain(
+      "uniqIf(attributes['resource.app.installation.id'], attributes['resource.app.installation.id'] != '') AS installs",
+    );
+    expect(sql).toContain(
+      "countIf(attributes['resource.app.installation.id'] != '') AS withInstall",
+    );
+    // The crash's filters still hold.
+    expect(sql).toContain("exceptionType NOT IN");
+    expect(sql).toMatch(/AND escaped = \{p\d+:/);
+    expect(sql.indexOf("AS withInstall")).toBeLessThan(sql.indexOf(" FROM "));
+  });
+
+  test("reads no attribute when the installs are not asked for", () => {
+    expect(
+      normalized(
+        ExceptionAggregationService.buildSessionCountStatement(request),
+      ),
+    ).not.toContain("attributes[");
+  });
+
+  test("answers the installs and the occurrences that named one, as numbers", async () => {
+    jest.spyOn(ExceptionInstanceService, "executeQuery").mockResolvedValue(
+      oneRow({
+        sessions: "3",
+        cnt: "5",
+        installs: "2",
+        withInstall: "4",
+      }) as never,
+    );
+
+    expect(
+      await ExceptionAggregationService.getSessionCount({
+        ...request,
+        countInstalls: true,
+      }),
+    ).toEqual({
+      sessions: 3,
+      occurrences: 5,
+      installs: 2,
+      occurrencesWithInstall: 4,
     });
   });
 });

@@ -178,9 +178,9 @@ Um incidente muda de estado de cinco formas:
 
 | Forma                     | Onde                                                                                        | O que pede                                                                                                                                                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Botões do cabeçalho**   | O cabeçalho do incidente: **Confirmar** e **Resolver**, e **Alterar estado para** no menu **⋯** dele | Uma confirmação curta — **Confirmar incidente** ou **Resolver incidente** — com **Notificar assinantes da página de status** e, recolhida em **Adicionar uma nota pública**, a **Nota pública** opcional e seu seletor **Selecionar Modelo de Nota** (quando o projeto tem modelos de notas). |
+| **Botões do cabeçalho**   | O cabeçalho do incidente: **Confirmar** e **Resolver**, e **Alterar estado para** no menu **⋯** dele | Uma confirmação curta — **Confirmar incidente** ou **Resolver incidente** — com **Notificar assinantes da página de status** e, recolhida em **Adicionar uma nota pública**, a **Nota pública** opcional e seu seletor **Selecionar Modelo de Nota** (quando o projeto tem modelos de notas). Uma resolução também recolhe uma causa raiz opcional em **Adicionar a causa raiz**. |
 | **Linha do tempo de estado** | **Linha do tempo de estado** no menu lateral do incidente                                | Uma linha adicionada manualmente, com **Status do Incidente**, **Começa em** e **Notificar assinantes da página de status**.                                                                                |
-| **Linha da lista** | O menu **⋯** na linha de um incidente na lista de incidentes: **Confirmar**, **Resolver** e **Alterar estado** | A confirmação do cabeçalho, com o nome do incidente. Um incidente que outra mudança já moveu fica como está, e a caixa de diálogo diz por quê. |
+| **Linha da lista** | O menu **⋯** na linha de um incidente na lista de incidentes: **Confirmar**, **Resolver** e **Alterar estado** | A confirmação do cabeçalho, com o nome do incidente. Um incidente que outra mudança já moveu fica como está, e a caixa de diálogo diz por quê. Ela não pede a causa raiz. |
 | **Alteração em massa**    | **Confirmar**, **Resolver** ou **Alterar estado** em uma seleção na lista de incidentes                                    | Uma página com o estado, **Notificar assinantes da página de status** e o mesmo **Adicionar uma nota pública** recolhido.                                                                                   |
 | **Automaticamente**       | Um critério de monitor, ou seu próprio código                                               | Um critério com **Resolver incidente automaticamente** ativado resolve seu incidente quando o critério deixa de ser atendido. A API muda o estado criando uma linha em `/api/incident-state-timeline`.       |
 
@@ -208,6 +208,12 @@ Um incidente é resolvido quando passa de um estado acima do seu estado resolvid
 - **Marca o SLA como resolvido** e, quando os rascunhos de post-mortem do OneUptime AI estão ativados, redige um post-mortem.
 
 Passar de **Resolvido** para um estado posterior — **Closed**, por exemplo — não é uma segunda resolução: nada disso é executado de novo, e nenhum SLA novo começa. Um incidente declarado antes de o OneUptime começar a registrar isso devolve seus monitores na próxima resolução, como antes.
+
+## Escrever a causa raiz ao resolver
+
+Quando o cabeçalho do incidente o resolve, com **Resolver** ou com **Alterar estado para** um estado resolvido, a confirmação recolhe uma **Causa raiz** opcional em **Adicionar a causa raiz**: por que aconteceu. O que você escreve ali passa a ser a causa raiz do incidente, como se você tivesse escrito na página **Causa raiz** dele, e a investigação da OneUptime AI sobre o incidente é comparada com ela (veja [Como a OneUptime AI está se saindo](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo)). Se deixar vazio, o incidente é resolvido como antes e mantém a causa raiz que tem.
+
+Escrevê-la exige permissão para editar o incidente, além da permissão para alterar o estado dele: quem não a tem não vê **Adicionar a causa raiz**, e uma mudança de estado que essa pessoa envie com uma causa raiz é recusada inteira, então o incidente mantém o estado. Pela API, envie-a com a linha que você cria em `/api/incident-state-timeline`, como `writtenRootCause` em `miscDataProps`.
 
 ## A linha do tempo de estados
 

@@ -369,6 +369,50 @@ describe("Span ingest: the recorder's session member of the trace state", () => 
     jest.restoreAllMocks();
   });
 
+  /*
+   * #9716: a span's exception keeps the install its resource names, as it
+   * keeps the span's session: the event's own attributes never hold a
+   * resource attribute, and a mobile app's crash-free installs counts the
+   * installs of its exceptions.
+   */
+  describe("the install a span's exception happened on", () => {
+    const INSTALLATION_ID: string = "1b4e28ba-2fa1-11d2-883f-0016d3cca427";
+
+    test("the exception row keeps the resource's app.installation.id beside the event's attributes", async () => {
+      await OtelTracesIngestService.processTracesFromQueue(
+        tracesRequest({
+          spans: [{ withException: true }],
+          resourceAttributes: [
+            stringAttribute("app.installation.id", INSTALLATION_ID),
+          ],
+        }),
+      );
+
+      const spanRow: JSONObject = onlyRow(spanInsertSpy);
+      const exceptionRow: JSONObject = onlyRow(exceptionInsertSpy);
+      const attributes: JSONObject = exceptionRow["attributes"] as JSONObject;
+
+      // The very value the span keeps, which the installs of spans count.
+      expect(
+        (spanRow["attributes"] as JSONObject)["resource.app.installation.id"],
+      ).toBe(INSTALLATION_ID);
+      expect(attributes["resource.app.installation.id"]).toBe(INSTALLATION_ID);
+      expect(exceptionRow["attributeKeys"]).toContain(
+        "resource.app.installation.id",
+      );
+    });
+
+    test("a resource with no install adds none", async () => {
+      await OtelTracesIngestService.processTracesFromQueue(
+        tracesRequest({ spans: [{ withException: true }] }),
+      );
+
+      expect(onlyRow(exceptionInsertSpy)["attributes"]).not.toHaveProperty(
+        "resource.app.installation.id",
+      );
+    });
+  });
+
   describe("sessionId", () => {
     test("a lone member stamps the span row and its span-event exception row", async () => {
       await OtelTracesIngestService.processTracesFromQueue(

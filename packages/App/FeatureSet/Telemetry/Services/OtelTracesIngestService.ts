@@ -106,6 +106,7 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
 import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
+import { withAppInstallationId } from "Common/Types/Rum/MobileAppTelemetry";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 type CompiledTraceScrubRule = {
@@ -1557,7 +1558,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           stackTrace: stackTrace,
           exceptionType: exceptionType,
           escaped: rawException.escaped,
-          attributes: scrubbed.attributes,
+          /*
+           * The event's own attributes, and the install the span's resource
+           * names (#9716): the event's bag never holds a resource
+           * attribute, and a mobile app's crash-free installs counts the
+           * installs of its crashes as it counts their sessions.
+           */
+          attributes: withAppInstallationId({
+            attributes: scrubbed.attributes,
+            from: spanContext.spanAttributes,
+          }),
           time: rawException.time,
           fingerprint: fingerprint,
           fingerprintV2: fingerprintV2,
