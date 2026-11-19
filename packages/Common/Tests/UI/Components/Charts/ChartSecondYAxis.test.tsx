@@ -440,7 +440,7 @@ describe("the tooltip writes each series' value as its axis does", () => {
       LineChartTooltip,
       AreaChartTooltip,
       BarChartTooltip,
-    ] as Array<React.ComponentType<Record<string, unknown>>>) {
+    ] as unknown as Array<React.ComponentType<Record<string, unknown>>>) {
       const { container } = render(
         <Tooltip
           active={true}
