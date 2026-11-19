@@ -57418,5 +57418,6 @@
   "Volume Free Space": "वॉल्यूम की खाली जगह",
   "{{used}} of {{total}} used ({{percent}})": "{{total}} में से {{used}} उपयोग में ({{percent}})",
   "Inode Usage": "inode उपयोग",
-  "Total Inodes": "कुल inode"
+  "Total Inodes": "कुल inode",
+  "Watched by OneUptime": "OneUptime द्वारा देखा जा रहा"
 }

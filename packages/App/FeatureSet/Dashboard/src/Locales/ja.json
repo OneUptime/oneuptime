@@ -57418,5 +57418,6 @@
   "Volume Free Space": "ボリュームの空き容量",
   "{{used}} of {{total}} used ({{percent}})": "{{total}} 中 {{used}} 使用 ({{percent}})",
   "Inode Usage": "inode 使用量",
-  "Total Inodes": "inode 総数"
+  "Total Inodes": "inode 総数",
+  "Watched by OneUptime": "OneUptime が監視中"
 }

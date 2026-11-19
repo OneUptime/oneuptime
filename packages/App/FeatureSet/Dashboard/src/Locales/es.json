@@ -57418,5 +57418,6 @@
   "Volume Free Space": "Espacio libre del volumen",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} de {{total}} en uso ({{percent}})",
   "Inode Usage": "Uso de inodos",
-  "Total Inodes": "Inodos totales"
+  "Total Inodes": "Inodos totales",
+  "Watched by OneUptime": "Vigilado por OneUptime"
 }
