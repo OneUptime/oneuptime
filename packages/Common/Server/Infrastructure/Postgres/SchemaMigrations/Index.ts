@@ -1092,6 +1092,11 @@ import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRu
 import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
 import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
 import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
+import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
+import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
+import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
 
 export default [
   InitialMigration,
@@ -2188,4 +2193,9 @@ export default [
   AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
   MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
   DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddComplianceSettingTurnedOffBy1809185300000,
+  AddComplianceSettingTurnedOffByKey1809185300100,
+  AddCloudConnectionAddedMetrics1809185310000,
+  AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
+  AddSuggestServerAccountsWhenInviting1809185347450,
 ];

@@ -43,7 +43,7 @@ Click **Invite User**. The **Invite New User** dialog opens.
 
 ### Enter their email address
 
-Type their address in **Email**. If no OneUptime account uses it yet, the dialog also asks for a **Name**, which their new account starts with. As you type, **Email** suggests the project's people by name or address, and says who is **Invited** and who is **Already in this team**: click one to fill in their address. On a self-hosted server, a master admin is also offered the server's other accounts, marked **Not in this project yet**.
+Type their address in **Email**. As you type, **Email** suggests the project's people by name or address, and says who is **Invited** and who is **Already in this team**: click one to fill in their address. On a self-hosted server, a master admin is also offered the server's other accounts, marked **Not in this project yet**, and so is anyone who may invite people, once a master admin allows it in the Admin Dashboard. For an address you type, the dialog also asks for a **Name**, which is optional: if they have no OneUptime account yet, it is set up with that name.
 
 ### Pick their team
 

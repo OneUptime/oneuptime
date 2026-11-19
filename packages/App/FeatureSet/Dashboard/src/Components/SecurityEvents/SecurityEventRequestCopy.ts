@@ -123,7 +123,7 @@ export const VIEW_TRACE: string = translationKey("View trace");
 export const VIEW_EXCEPTION: string = translationKey("View exception");
 export const WATCH_SESSION: string = translationKey("Watch session");
 export const VIEW_REQUEST_LOGS: string = translationKey("Logs of this request");
-export const VIEW_LOGS_AROUND: string = translationKey("Logs around it");
+export const VIEW_LOG_LINE: string = translationKey("View log line");
 
 export const VIEW_TRACE_HINT: string = translationKey(
   "Every span of the request this event happened in",
@@ -137,6 +137,6 @@ export const WATCH_SESSION_HINT: string = translationKey(
 export const VIEW_REQUEST_LOGS_HINT: string = translationKey(
   "Every log line the request wrote, in the Logs explorer",
 );
-export const VIEW_LOGS_AROUND_HINT: string = translationKey(
-  "This service's logs in the second around the line, in the Logs explorer",
+export const VIEW_LOG_LINE_HINT: string = translationKey(
+  "This log line in the Logs explorer, with its service's logs in the second around it",
 );

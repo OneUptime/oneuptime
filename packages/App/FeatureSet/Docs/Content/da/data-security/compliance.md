@@ -68,11 +68,15 @@ En ressources menu får en **Sikkerhed**-sektion, foldet sammen, indtil du åbne
 - **Datasikkerhed** viser disse datalagre, de mest risikable først, og de åbne problemer på dem. Hvert af dem åbnes i Datasikkerhed, hvor det behandles.
 - **Overholdelse** scorer rammerne ud fra disse datalagre alene. De rammer, som deres data gør dem omfattet af, kommer først; dem, der er slået fra, og dem, som ingen af datalagrene indeholder data til, er foldet sammen nedenunder.
 
-Hver ramme har en kontakt, **Applies Here**, og det har hvert af dens krav også. Slår du en fra, holdes ressourcens datalagre uden for den ramme eller det krav, både på ressourcens side og på **Datasikkerhed → Overholdelse**, som viser, hvor mange datalagre der er slået fra på deres ressourcer. Slår du den til igen, kommer de med igen. Hver kontakt gemmes med det samme, og hver ændring registreres i projektets [Auditlogs](/docs/configuration/audit-logs).
+Hver ramme har en kontakt, **Gælder her**, og det har hvert af dens krav også. Slår du en fra, holdes ressourcens datalagre uden for den ramme eller det krav, både på ressourcens side og på **Datasikkerhed → Overholdelse**, som viser, hvor mange datalagre der er slået fra på deres ressourcer. Slår du den til igen, kommer de med igen. Hver kontakt gemmes med det samme, og hver ændring registreres i projektets [Auditlogs](/docs/configuration/audit-logs).
+
+Slår du en fra, spørger siden derefter under den: **Hvorfor gælder dette ikke her?** En årsag er valgfri: skriv en kort årsag, og vælg **Gem årsag**, eller **Ikke nu** for at lade være. Fra da af står der, hvem der slog den fra og hvornår, og årsagen, med **Tilføj årsag** eller **Rediger årsag** til at skrive eller ændre den senere. Ligesom kontakten registreres årsagen i auditloggen.
+
+**Datasikkerhed → Overholdelse** viser det samme for hver ressource. En valgt ramme viser under **Slået fra for hele rammen** de ressourcer, der har slået hele rammen fra, og hvert krav nævner under sin status de ressourcer, der har slået netop det krav fra: hver med et link til sin egen overholdelsesside og med, hvem der slog det fra, hvornår og hvorfor. Sidens **Eksportér CSV** har dem i kolonnen `Turned Off On`, og **Eksportér JSON** i listen `turnedOff`.
 
 Et datalager følger én ressources kontakter. En database, der kører på en Kubernetes-klynge eller på en Docker- eller Podman-vært, følger den klynges eller værts kontakter: slå en ramme fra for klyngen, og den er slået fra for hver database på den. Databasens egen overholdelsesside siger det og linker dertil, med kontakterne låst.
 
-Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projektejere kan slå rammer og krav til og fra, ligesom de kan tilpasse en kontrol. Sikkerhedsseere ser, hvad der er slået fra.
+Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projektejere kan slå rammer og krav til og fra, ligesom de kan tilpasse en kontrol. Sikkerhedsseere ser, hvad der er slået fra, og hvorfor.
 
 ## Krav og deres kontroller
 

@@ -20,10 +20,15 @@ import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatu
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
-import { JSONArray } from "../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
+import {
+  SecurityDetectionMatchedEvents,
+  keepSecurityDetectionMatchedEvents,
+  readSecurityDetectionMatchedEvents,
+} from "../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import {
   SecurityEntity,
   mergeSecurityEntities,
@@ -68,6 +73,13 @@ export interface SecurityDetectionSignal {
   sampleMessage?: string | undefined;
   // The security event that records it (a Detection Finding, or the imported alert).
   eventUid?: string | undefined;
+  /*
+   * The events this firing matched, as its source read them
+   * (SecurityDetectionMatchedEventsReader): the detection keeps them, so
+   * its case shows what it matched after the events pass their retention
+   * or its rule changes (#9619). None from a source that keeps none.
+   */
+  matchedEvents?: SecurityDetectionMatchedEvents | undefined;
   seenAt: Date;
   /*
    * Raised by the setup test (SecuritySetup.runTest): its case runs only
@@ -584,6 +596,13 @@ export default class SecurityCaseIngest {
       detection.eventUid = clamp(signal.eventUid, LONG_TEXT_LIMIT);
     }
 
+    if (signal.matchedEvents) {
+      detection.matchedEvents = keepSecurityDetectionMatchedEvents({
+        kept: null,
+        firing: signal.matchedEvents,
+      }) as unknown as JSONObject;
+    }
+
     const created: SecurityDetection = await SecurityDetectionService.create({
       data: detection,
       props: {
@@ -744,6 +763,23 @@ export default class SecurityCaseIngest {
       set.sampleMessage = signal.sampleMessage;
     }
 
+    /*
+     * The firing's events add to what the detection kept, until it is
+     * full; its request outcomes add to the ones counted before. Read and
+     * written under the project's lock, so two firings never lose either.
+     */
+    if (signal.matchedEvents) {
+      const kept: SecurityDetectionMatchedEvents | null =
+        await this.readMatchedEvents(detection);
+
+      set.matchedEvents = keepSecurityDetectionMatchedEvents({
+        kept,
+        firing: signal.matchedEvents,
+      }) as unknown as NonNullable<
+        PartialEntity<SecurityDetection>["matchedEvents"]
+      >;
+    }
+
     await SecurityDetectionService.atomicAddToColumnsByIdWithoutHooks({
       id: detection.id!,
       add: {
@@ -765,5 +801,27 @@ export default class SecurityCaseIngest {
       signal,
       values: data.values,
     });
+  }
+
+  // What a detection kept of the events it matched before; null when nothing.
+  private static async readMatchedEvents(
+    detection: SecurityDetection,
+  ): Promise<SecurityDetectionMatchedEvents | null> {
+    if (!detection.id) {
+      return null;
+    }
+
+    const stored: SecurityDetection | null =
+      await SecurityDetectionService.findOneById({
+        id: detection.id,
+        select: {
+          matchedEvents: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return readSecurityDetectionMatchedEvents(stored?.matchedEvents);
   }
 }

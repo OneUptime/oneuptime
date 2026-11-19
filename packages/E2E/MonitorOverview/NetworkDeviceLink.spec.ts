@@ -175,15 +175,27 @@ test.describe("Monitor web UI, from a network device", () => {
     );
     await expect(nameInput(form)).toHaveValue("sw-core-01 web UI");
 
-    await screenshot(page, "device-web-ui-first-step");
-
-    await next(form).click();
-
-    // https on the address the probe polls, self-signed certificates allowed.
+    /*
+     * https on the address the probe polls, asked with the type on the
+     * first step: What to Monitor asks the address first (ee4da51c7e2).
+     */
     const url: Locator = form.getByPlaceholder("https://example.com", {
       exact: true,
     });
     await expect(url).toHaveValue("https://10.20.0.1/", { timeout: 60000 });
+
+    await screenshot(page, "device-web-ui-first-step");
+
+    await next(form).click();
+
+    /*
+     * The criteria step says the address it checks, as a sentence leaves
+     * out a bare "/" path; self-signed certificates allowed.
+     */
+    await expect(page.getByTestId("monitor-target-address")).toHaveText(
+      "Checks https://10.20.0.1.",
+      { timeout: 60000 },
+    );
 
     const moreFields: Locator = page.getByTestId("monitor-step-more-fields");
     await expect(
@@ -260,10 +272,15 @@ test.describe("Monitor web UI, from a network device", () => {
     const form: Locator = await openCreate(page, WEB_UI_LINK);
 
     await expect(nameInput(form)).toHaveValue("sw-core-01 web UI");
-    await next(form).click();
+    // The address is asked with the type, on the first step (ee4da51c7e2).
     await expect(
       form.getByPlaceholder("https://example.com", { exact: true }),
     ).toHaveValue("https://10.20.0.1/", { timeout: 60000 });
+    await next(form).click();
+    await expect(page.getByTestId("monitor-target-address")).toHaveText(
+      "Checks https://10.20.0.1.",
+      { timeout: 60000 },
+    );
 
     await expectNoSidewaysScroll(page);
 

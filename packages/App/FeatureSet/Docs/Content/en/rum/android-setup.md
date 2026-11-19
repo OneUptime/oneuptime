@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-The app's telemetry stays with its RUM application, and the device does not become a host in **Hosts**: an app reports no host metrics, so there would be nothing to show there. The device's page in **Inventory** shows its own logs, traces and exceptions, and `@resource.host.name:` finds them in **Traces** and **Logs**. A device that sends nothing for 30 days leaves **Inventory**.
+The app's telemetry stays with its RUM application, and the device does not become a host in **Hosts**: an app reports no host metrics, so there would be nothing to show there. The device's page in **Inventory** shows its own logs, traces and exceptions, and `@resource.host.name:` finds them in **Traces** and **Logs**. A device that sends nothing for 30 days leaves **Inventory**. To see the device itself, its memory, storage and restarts and the crashes of every app on it, add the [Android Agent](/docs/telemetry/android-agent) and give it the same name in its `device_name`: the device is then a host in **Hosts** as well, and still one item in **Inventory**.
 
 ### Configure the fleet from your MDM
 
@@ -281,6 +281,7 @@ Only a device whose app sets `host.name` is listed. Check the value in a span's 
 
 :::cards
 - [Mobile Setup](/docs/rum/mobile-setup): iOS, React Native and the other platforms.
+- [Android Agent](/docs/telemetry/android-agent): Monitor the device itself: its health, restarts, installed apps and every app's crashes.
 - [Exceptions](/docs/telemetry/exceptions): Triage the crashes and ANRs your app reports.
 - [Traces Explorer](/docs/telemetry/traces-explorer): Follow an order from the kiosk to the kitchen.
 - [Managing Applications](/docs/rum/applications): Names, labels, owners and retention.

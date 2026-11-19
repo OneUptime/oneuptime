@@ -57,6 +57,8 @@ import {
   SecurityCaseStorySource,
 } from "Common/Types/SecurityCase/SecurityCaseContext";
 import { buildSecurityCaseEventSnapshot } from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
+import { getDetectionRuleLibraryResponseStepsForYaml } from "Common/Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
+import { readDetectionRuleResponseSteps } from "Common/Types/SecurityEvent/DetectionRuleResponseSteps";
 import {
   SECURITY_CASE_MATCHES_MAX_DETECTIONS,
   SECURITY_CASE_MATCHES_MAX_EVENTS,
@@ -1034,6 +1036,10 @@ export function createCaseContextFixture(options) {
       falsePositives: guidance.falsePositives,
       references: guidance.references,
       lookFor: getSigmaRuleLookFor(rules),
+      // Its own steps, or - none written - its library rule's (#9621).
+      responseSteps: Array.isArray(rule.responseSteps)
+        ? readDetectionRuleResponseSteps(rule.responseSteps)
+        : getDetectionRuleLibraryResponseStepsForYaml(yamlText),
     };
   }
 
@@ -1158,6 +1164,10 @@ export function createCaseContextFixture(options) {
       windowStart: null,
       windowEnd: null,
       events: [],
+      // Looked up again, as for a detection from before it kept its events (#9619).
+      isKept: false,
+      keptPastRetentionCount: 0,
+      hiddenEventCount: 0,
       matchedEventCount: null,
       outcomes: {},
     };

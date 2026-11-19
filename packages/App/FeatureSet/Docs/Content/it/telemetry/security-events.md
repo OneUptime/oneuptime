@@ -371,7 +371,7 @@ flowchart TB
 3. Il **Nome** si compila dal `title` della regola: scrivici sopra per chiamarla in un altro modo. Una nuova regola gira; **Abilitato** è nel suo modulo di modifica.
 4. In **In caso di corrispondenza**, lascia attivo **Apri un caso in caso di corrispondenza** per raggruppare le sue corrispondenze in casi, in base al valore per cui raggruppa la regola.
 5. In **Avvisi e incidenti**, scegli cos'altro genera una corrispondenza: **Crea un avviso** (predefinito), **Dichiara un incidente**, **Entrambi** o **Nessuno dei due**, con una **Gravità avviso** o una **Gravità incidente** facoltativa.
-6. **Altri campi** contiene la **Descrizione**, **Scrivi un Detection Finding in caso di corrispondenza** (attivo), **Esegui in tempo reale** (disattivo) e il modo in cui si contano le corrispondenze; vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
+6. **Altri campi** contiene la **Descrizione**, **Scrivi un Detection Finding in caso di corrispondenza** (attivo), **Esegui in tempo reale** (disattivo), il modo in cui si contano le corrispondenze e i **Passaggi di risposta**: cosa fare quando la regola apre un caso, ciascun passaggio sotto la parte che scegli del Piano di risposta del caso, al massimo 10. Vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
 :::
 
 Una prima regola, che corrisponde agli accessi falliti da fuori `10.x.x.x`:

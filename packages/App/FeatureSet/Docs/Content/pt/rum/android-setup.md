@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-A telemetria do aplicativo continua com a aplicação RUM dele, e o dispositivo não vira um host em **Hosts**: um aplicativo não informa métricas de host, então não haveria nada para mostrar ali. A página do dispositivo em **Inventário** mostra os registros, traços e exceções dele, e `@resource.host.name:` os encontra em **Traços** e **Registros**. Um dispositivo que não envia nada por 30 dias sai do **Inventário**.
+A telemetria do aplicativo continua com a aplicação RUM dele, e o dispositivo não vira um host em **Hosts**: um aplicativo não informa métricas de host, então não haveria nada para mostrar ali. A página do dispositivo em **Inventário** mostra os registros, traços e exceções dele, e `@resource.host.name:` os encontra em **Traços** e **Registros**. Um dispositivo que não envia nada por 30 dias sai do **Inventário**. Para ver o próprio dispositivo, a memória, o armazenamento e as reinicializações dele e os crashes de todos os aplicativos instalados nele, adicione o [Agente Android](/docs/telemetry/android-agent) e dê a ele o mesmo nome no `device_name` dele: o dispositivo passa então a ser também um host em **Hosts**, e continua sendo um único item em **Inventário**.
 
 ### Configurar a frota a partir do seu MDM
 
@@ -281,6 +281,7 @@ Só é listado um dispositivo cujo aplicativo define `host.name`. Confira o valo
 
 :::cards
 - [Configuração para dispositivos móveis](/docs/rum/mobile-setup): iOS, React Native e as demais plataformas.
+- [Agente Android](/docs/telemetry/android-agent): Monitorar o próprio dispositivo: a integridade, as reinicializações, os aplicativos instalados e os crashes de todos os aplicativos.
 - [Exceções](/docs/telemetry/exceptions): Fazer a triagem dos crashes e ANRs que o seu aplicativo relata.
 - [Explorador de traços](/docs/telemetry/traces-explorer): Acompanhar um pedido do quiosque até a cozinha.
 - [Gerenciar aplicações](/docs/rum/applications): Nomes, rótulos, proprietários e retenção.

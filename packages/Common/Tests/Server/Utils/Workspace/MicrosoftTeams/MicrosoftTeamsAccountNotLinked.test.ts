@@ -115,6 +115,7 @@ import IncidentService from "../../../../../Server/Services/IncidentService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
 import WorkspaceUserAuthTokenService from "../../../../../Server/Services/WorkspaceUserAuthTokenService";
 import logger, { LogAttributes } from "../../../../../Server/Utils/Logger";
+import { everyServerProductIsOn } from "../../../TestingUtils/ServerProductsOn";
 import {
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
@@ -302,6 +303,8 @@ function errorLogCalls(): Array<Array<unknown>> {
 beforeEach((): void => {
   debugLog = jest.spyOn(logger, "debug").mockImplementation((): void => {});
   errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {});
+  // An action asks what the server has switched off: every product is on.
+  everyServerProductIsOn();
 });
 
 afterEach((): void => {

@@ -26,8 +26,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * shared form, as the two pages build the row:
  *
  *   - what is typed is the row's value, sent under "email" as before, and
- *     reaches the row's own onChange (the pages ask whether the address has
- *     an account there);
+ *     reaches the row's own onChange (where the pages asked whether the
+ *     address had an account, until #9745: InviteeNameRow);
  *   - a suggestion picked is the row's value too;
  *   - an address that is not one stops the form, said under the box;
  *   - none at all stops it as a required row does.

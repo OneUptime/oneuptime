@@ -42,6 +42,15 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *    down, instead of twenty names in alphabetical order. The order holds
  *    across pages: the list pages through the names in section order
  *    (orderMetricNamesByGroup), not in alphabetical order.
+ *
+ * 5. A section's gaps. A host that knows which metrics each section should
+ *    hold - a cloud resource's type's key metrics - names those the list
+ *    found no data of in its range, section by section (MetricRowGroupGap).
+ *    The section's heading says how many, folded away; opened, the host
+ *    says which, since when and why. A section none of whose metrics
+ *    reported is drawn as its heading alone, where it falls among the
+ *    others (getMetricPageNamesWithGapSections). A gap is never a row: it
+ *    is not counted, and it takes no place on a page.
  */
 
 export interface MetricRowValueOverride {
@@ -227,6 +236,144 @@ export function orderMetricNamesByGroup(
 
     return a < b ? -1 : a > b ? 1 : 0;
   });
+}
+
+// The metrics a section should hold and the list found no data of (see 5. at the top).
+export interface MetricRowGroupGap {
+  group: MetricRowGroup;
+  // What the host calls each one (a key metric's key), in the section's order.
+  keys: Array<string>;
+}
+
+/*
+ * The gaps of each section, from the names the list found data of in its
+ * range. Must be referentially stable: the list works them out again when
+ * it changes.
+ */
+export type GetMetricRowGroupGaps = (
+  reportedNames: ReadonlyArray<string>,
+) => Array<MetricRowGroupGap>;
+
+/*
+ * The name of the stand-in a section none of whose metrics reported is
+ * drawn by: its heading, and no row.
+ */
+export const METRIC_ROW_GROUP_GAP_PREFIX: string = "__section-gap__:";
+
+export function getMetricRowGroupGapName(groupKey: string): string {
+  return `${METRIC_ROW_GROUP_GAP_PREFIX}${groupKey}`;
+}
+
+export function isMetricRowGroupGapName(name: string): boolean {
+  return name.startsWith(METRIC_ROW_GROUP_GAP_PREFIX);
+}
+
+/*
+ * getRowGroup, knowing the stand-ins too: a stand-in is in its gap's
+ * section.
+ */
+export function withMetricRowGroupGaps(
+  getRowGroup: GetMetricRowGroup,
+  gaps: ReadonlyArray<MetricRowGroupGap>,
+): GetMetricRowGroup {
+  const byName: Map<string, MetricRowGroup> = new Map();
+
+  for (const gap of gaps) {
+    byName.set(getMetricRowGroupGapName(gap.group.key), gap.group);
+  }
+
+  return (metricName: string): MetricRowGroup | undefined => {
+    return byName.get(metricName) || getRowGroup(metricName);
+  };
+}
+
+/*
+ * One page's names, with a stand-in for each section none of whose
+ * metrics reported that falls on it. A section's place among the list's
+ * names (`orderedNames`, in section order) is before the first name of a
+ * later section, or of none; the page that holds that place draws it, and
+ * the last page one after every name. Several in one place come in their
+ * sections' order. A list with no names draws none: its empty state says
+ * nothing reported.
+ */
+export function getMetricPageNamesWithGapSections(data: {
+  orderedNames: ReadonlyArray<string>;
+  // The page's place in orderedNames: [pageStart, pageEnd).
+  pageStart: number;
+  pageEnd: number;
+  gaps: ReadonlyArray<MetricRowGroupGap>;
+  getRowGroup: GetMetricRowGroup;
+}): Array<string> {
+  const total: number = data.orderedNames.length;
+  const pageNames: Array<string> = data.orderedNames.slice(
+    data.pageStart,
+    data.pageEnd,
+  );
+
+  if (total === 0) {
+    return pageNames;
+  }
+
+  const groupOf: Array<MetricRowGroup | undefined> = data.orderedNames.map(
+    (name: string): MetricRowGroup | undefined => {
+      return data.getRowGroup(name);
+    },
+  );
+  const present: Set<string> = new Set<string>();
+
+  for (const group of groupOf) {
+    if (group) {
+      present.add(group.key);
+    }
+  }
+
+  const placed: Array<{ index: number; group: MetricRowGroup }> = [];
+
+  for (const gap of data.gaps) {
+    if (gap.keys.length === 0 || present.has(gap.group.key)) {
+      continue;
+    }
+
+    let index: number = groupOf.findIndex(
+      (group: MetricRowGroup | undefined): boolean => {
+        return !group || group.order > gap.group.order;
+      },
+    );
+
+    if (index < 0) {
+      index = total;
+    }
+
+    const isOnPage: boolean =
+      (index >= data.pageStart && index < data.pageEnd) ||
+      (index === total && data.pageEnd >= total);
+
+    if (isOnPage) {
+      placed.push({ index, group: gap.group });
+    }
+  }
+
+  placed.sort(
+    (
+      a: { index: number; group: MetricRowGroup },
+      b: { index: number; group: MetricRowGroup },
+    ): number => {
+      return a.index !== b.index
+        ? b.index - a.index
+        : b.group.order - a.group.order;
+    },
+  );
+
+  // From the last place back, so each insertion leaves the earlier places as they were.
+  for (const { index, group } of placed) {
+    pageNames.splice(
+      Math.min(index - data.pageStart, pageNames.length),
+      0,
+      getMetricRowGroupGapName(group.key),
+    );
+  }
+
+  return pageNames;
 }
 
 /*

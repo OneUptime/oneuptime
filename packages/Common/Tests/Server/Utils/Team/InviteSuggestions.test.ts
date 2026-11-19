@@ -19,6 +19,7 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
   return mocked;
 });
 
+import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../Server/Services/TeamService";
 import UserService from "../../../../Server/Services/UserService";
@@ -384,12 +385,20 @@ describe("the server's other accounts", () => {
       }),
     ).toEqual([ADA.userId]);
     expect(reads.users).not.toHaveBeenCalled();
-    expect(InviteSuggestions.mayFindServerAccounts(MASTER_ADMIN_PROPS)).toBe(
-      false,
-    );
+    expect(
+      await InviteSuggestions.mayFindServerAccounts({
+        projectId: PROJECT_ID,
+        props: MASTER_ADMIN_PROPS,
+      }),
+    ).toBe(false);
   });
 
-  test("never to anybody but a master admin", async () => {
+  test("never to anybody but a master admin, while the server's switch is off", async () => {
+    getJestSpyOn(
+      GlobalConfigService,
+      "getSuggestServerAccountsWhenInviting",
+    ).mockResolvedValue(false);
+
     const reads: Reads = stubReads({
       people: [ADA],
       serverAccounts: { name: [account(SERVER_ONLY)] },
@@ -398,10 +407,18 @@ describe("the server's other accounts", () => {
     await suggest(MEMBER_PROPS);
 
     expect(reads.users).not.toHaveBeenCalled();
-    expect(InviteSuggestions.mayFindServerAccounts(MEMBER_PROPS)).toBe(false);
-    expect(InviteSuggestions.mayFindServerAccounts(MASTER_ADMIN_PROPS)).toBe(
-      true,
-    );
+    expect(
+      await InviteSuggestions.mayFindServerAccounts({
+        projectId: PROJECT_ID,
+        props: MEMBER_PROPS,
+      }),
+    ).toBe(false);
+    expect(
+      await InviteSuggestions.mayFindServerAccounts({
+        projectId: PROJECT_ID,
+        props: MASTER_ADMIN_PROPS,
+      }),
+    ).toBe(true);
   });
 
   test(`${INVITE_SUGGESTIONS_SERVER_LIMIT} at most, each once, none without an address`, async () => {
