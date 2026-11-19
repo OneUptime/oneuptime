@@ -57418,5 +57418,6 @@
   "Volume Free Space": "磁碟區可用空間",
   "{{used}} of {{total}} used ({{percent}})": "已用 {{used}}，共 {{total}}（{{percent}}）",
   "Inode Usage": "inode 使用量",
-  "Total Inodes": "inode 總數"
+  "Total Inodes": "inode 總數",
+  "Watched by OneUptime": "由 OneUptime 監看"
 }

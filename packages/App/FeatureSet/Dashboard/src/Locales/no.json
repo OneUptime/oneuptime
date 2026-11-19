@@ -57418,5 +57418,6 @@
   "Volume Free Space": "Ledig plass på volum",
   "{{used}} of {{total}} used ({{percent}})": "{{used}} av {{total}} brukt ({{percent}})",
   "Inode Usage": "Inodebruk",
-  "Total Inodes": "Inoder totalt"
+  "Total Inodes": "Inoder totalt",
+  "Watched by OneUptime": "Overvåket av OneUptime"
 }
