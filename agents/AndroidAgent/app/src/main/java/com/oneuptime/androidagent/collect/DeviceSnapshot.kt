@@ -70,4 +70,6 @@ data class DeviceSnapshot(
     val network: NetworkReading?,
     val battery: BatteryReading?,
     val thermal: ThermalReading?,
+    // Boots in the hour up to now, this one included (BootTracker): 3 or more is a restart loop.
+    val bootsInLastHour: Int? = null,
 )
