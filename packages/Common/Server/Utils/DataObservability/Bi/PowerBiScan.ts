@@ -171,7 +171,7 @@ const MAX_EXPRESSION_LENGTH: number = 100_000;
 // How many datasets deep a composite model's upstream datasets are followed.
 export const MAX_UPSTREAM_DEPTH: number = 5;
 // The most reports and dashboards kept of one workspace: no more than one read keeps of a tool.
-const MAX_ITEMS_PER_WORKSPACE: number = 2_000;
+export const MAX_ITEMS_PER_WORKSPACE: number = 2_000;
 
 const URL_SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
 // A connection string's key=value; pairs: never kept as a location.

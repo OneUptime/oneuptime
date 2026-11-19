@@ -13,6 +13,7 @@ import {
 import {
   getShownPowerBiItems,
   indexWorkspaceDataflows,
+  MAX_ITEMS_PER_WORKSPACE,
   MAX_UPSTREAM_DEPTH,
   PowerBiDataflowRead,
   PowerBiDatasetRead,
@@ -134,9 +135,6 @@ export const MAX_POWER_BI_PENDING_SCANS: number = 500;
 
 // A scan's id, as Power BI gives it (a GUID): anything else is no id kept.
 const SCAN_ID: RegExp = /^[0-9a-z-]{1,100}$/i;
-
-// The most reports and dashboards one workspace keeps (PowerBiScan's own limit).
-const MAX_ITEM_COUNT: number = 2_000;
 
 export interface PowerBiReadState {
   version: number;
@@ -856,7 +854,8 @@ function readTrim(value: unknown): PowerBiWorkspaceTrim | null {
   }
 
   return {
-    itemCount: Math.min(itemCount, MAX_ITEM_COUNT),
+    // No more than a scan keeps of one workspace.
+    itemCount: Math.min(itemCount, MAX_ITEMS_PER_WORKSPACE),
     datasetIds: Array.from(
       new Set(
         readIds(trim["datasetIds"]).map((id: string): string => {
