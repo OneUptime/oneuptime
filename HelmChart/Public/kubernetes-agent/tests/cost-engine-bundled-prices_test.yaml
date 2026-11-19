@@ -34,6 +34,7 @@ templates:
   - templates/service-cost-agent.yaml
   - templates/deployment-cost-agent.yaml
   - templates/opencost.yaml
+  - templates/rbac.yaml
 set:
   clusterName: prod-us
   oneuptime.url: https://oneuptime.example.com
@@ -249,6 +250,27 @@ tests:
           content:
             name: COST_PROMETHEUS_BUNDLED
           any: true
+
+  - it: lets the agent read the pods and ConfigMaps that name an engine's Prometheus, and no Secret
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    set:
+      cost.engine.url: auto
+    asserts:
+      - contains:
+          path: rules[0].resources
+          content: pods
+      - contains:
+          path: rules[0].resources
+          content: configmaps
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "list", "watch"]
+      - notContains:
+          path: rules[0].resources
+          content: secrets
 
   - it: leaves the bundled OpenCost reading the bundled Prometheus
     template: templates/opencost.yaml
