@@ -1,8 +1,10 @@
 import RetryAfter from "../../../Utils/RetryAfter";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import logger from "../Logger";
 import { DataSourceHttpRequest, DataSourceHttpResponse } from "./HttpFetch";
-import { DataSourceUnreachedError } from "./HttpFailure";
+import {
+  DataSourceStatusException,
+  DataSourceUnreachedError,
+} from "./HttpFailure";
 
 /*
  * ASKING A DATA SOURCE AGAIN WHEN IT FAILS FOR A MOMENT, WITHIN A BUDGET.
@@ -119,7 +121,7 @@ export interface HttpRetryExchange {
 export interface HttpRetryOptions {
   transport: DataSourceTransport;
   classify: HttpRetryClassifier;
-  // Who is asked, for the debug log: "Snowflake".
+  // Who is asked, for the debug log and the failure asTransport throws: "Snowflake".
   provider: string;
   now?: (() => number) | undefined;
   sleep?: ((ms: number) => Promise<void>) | undefined;
@@ -245,8 +247,11 @@ export default class DataSourceHttpRetry {
    * A transport that asks again as exchange does, for a caller that takes a
    * transport and reads its answers itself (Google's sign-in). It answers
    * every status to the caller as the plain transport would: one outside
-   * 2xx is thrown as DataSourceHttpFetch throws it, unless the request asked
-   * for every status.
+   * 2xx is thrown as a BadDataException, as DataSourceHttpFetch throws one,
+   * unless the request asked for every status. Its message says who answered
+   * which request (its address without the query, which can hold a key) with
+   * what status, then the provider's words; the status and the words are kept
+   * on it too (DataSourceStatusException).
    */
   public asTransport(options: {
     isSafeToRepeat: (request: DataSourceHttpRequest) => boolean;
@@ -267,8 +272,11 @@ export default class DataSourceHttpRetry {
         !request.acceptAnyStatus &&
         (response.statusCode < 200 || response.statusCode >= 300)
       ) {
-        throw new BadDataException(
-          `Data source responded with HTTP ${response.statusCode}: ${(response.bodyText || "").substring(0, 500)}`,
+        const said: string = (response.bodyText || "").substring(0, 500).trim();
+
+        throw new DataSourceStatusException(
+          `${this.provider} answered HTTP ${response.statusCode} to ${request.method} ${request.url.split("?")[0]}. ${said || "It gave no error message."}`,
+          { statusCode: response.statusCode, bodyText: said },
         );
       }
 
