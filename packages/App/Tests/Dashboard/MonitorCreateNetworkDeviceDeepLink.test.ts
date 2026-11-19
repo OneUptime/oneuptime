@@ -478,7 +478,13 @@ describe("a device's web UI", () => {
     expect(steps).toContain(
       "seededFirstStep.setAllowSelfSignedCertificates( stepSeed.allowSelfSignedCertificates, );",
     );
-    expect(readCode(CREATE_PAGE)).toContain("seedStep={seedStep}");
+    /*
+     * The link's seed reaches the steps through the address asked with the
+     * type (getMonitorAddressSeed), since What to Monitor asks it first.
+     */
+    const createPage: string = readCode(CREATE_PAGE);
+    expect(createPage).toContain("seedStep={getMonitorAddressSeed({");
+    expect(createPage).toContain("linkSeed: seedStep,");
   });
 
   test("the device's Monitors card links to it", () => {
