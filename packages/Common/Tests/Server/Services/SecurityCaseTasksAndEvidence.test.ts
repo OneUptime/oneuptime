@@ -10,6 +10,7 @@ import type { SpyInstance } from "jest-mock";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "../../../Models/DatabaseModels/File";
 import Project from "../../../Models/DatabaseModels/Project";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
@@ -390,6 +391,56 @@ describe("adding a task", () => {
       },
       props: { isRoot: true },
     });
+  });
+
+  /*
+   * A task can name its case by the relation alone: the step is asked
+   * about on that case all the same, and the case is kept in the ID column
+   * the saved row is read by (RelationIdUtil.readIntoIdColumn).
+   */
+  test("a step of a case named by the relation alone is held to one task a step, on that case", async () => {
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    const theCase: SecurityCase = new SecurityCase();
+    theCase._id = CASE_ID.toString();
+
+    // Its case by the relation, and no ID column.
+    const data: SecurityCaseTask = new SecurityCaseTask();
+    data.projectId = PROJECT_ID;
+    data.securityCase = theCase;
+    data.title = "Reset the admin password";
+    data.responseStepKey = "confirm:review-requests";
+
+    await taskHooks.onBeforeCreate({ data, props: MAYA });
+
+    expect(count).toHaveBeenCalledWith({
+      query: {
+        securityCaseId: CASE_ID,
+        responseStepKey: "confirm:review-requests",
+      },
+      props: { isRoot: true },
+    });
+    expect(data.securityCaseId?.toString()).toBe(CASE_ID.toString());
+  });
+
+  test("a step of a task whose two names of its case disagree is refused, and no other task is read", async () => {
+    const count: SpyInstance<typeof SecurityCaseTaskService.countBy> = jest
+      .spyOn(SecurityCaseTaskService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    const anotherCase: SecurityCase = new SecurityCase();
+    anotherCase._id = TASK_ID.toString();
+
+    await expect(
+      taskHooks.onBeforeCreate({
+        data: task({
+          securityCase: anotherCase,
+          responseStepKey: "confirm:review-requests",
+        }),
+        props: MAYA,
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+    expect(count).not.toHaveBeenCalled();
   });
 
   test("a step that is a task on the case already is refused: ticked off twice at once, it is done once", async () => {
