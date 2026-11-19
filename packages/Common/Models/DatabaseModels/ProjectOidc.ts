@@ -542,7 +542,7 @@ export default class ProjectOIDC extends BaseModel {
     modelType: Domain,
     title: "Domains",
     description:
-      "Verified domains of the project. People whose email address is on one of them are offered this provider at Sign in with SSO.",
+      "Domains of the project this provider serves. Once a domain is verified, Sign in with SSO offers the provider to anyone whose email address is on it.",
     example: [{ id: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e" }],
   })
   @ManyToMany(

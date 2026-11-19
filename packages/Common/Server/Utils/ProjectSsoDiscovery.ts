@@ -20,10 +20,10 @@ import ObjectID from "../../Types/ObjectID";
  * (#9824).
  *
  * The sign-in page and the mobile app ask GET /service-provider-login (SAML)
- * and /service-provider-login-oidc (OIDC) - App/FeatureSet/Identity/API/SSO.ts
- * and OIDC.ts - which providers sign an address in,
- * with nobody signed in. They used to look up the account with the address,
- * its projects (invitations included) and those projects' providers - so
+ * and /service-provider-login-oidc (OIDC) which providers sign an address
+ * in, with nobody signed in (App/FeatureSet/Identity/API/SSO.ts and
+ * OIDC.ts). They used to look up the account with the address, its
+ * projects (invitations included) and those projects' providers - so
  * anyone could ask whether an address has an account, and which
  * organizations it belongs to (#9745 made the "nothing" answers alike; this
  * removes the rest).

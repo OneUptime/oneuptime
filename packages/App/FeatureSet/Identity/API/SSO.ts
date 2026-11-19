@@ -85,10 +85,10 @@ const router: ExpressRouter = Express.getRouter();
 /*
  * The project SAML providers "Sign in with SSO" offers an address: those
  * that list a verified domain of their project with the address's domain
- * (Common/Server/Utils/ProjectSsoDiscovery). No account is read, so the answer, the empty
- * list included, says nothing about whether the address has one (#9745,
- * #9824). The page and the mobile app read an empty list as "no single
- * sign-on for this address".
+ * (Common/Server/Utils/ProjectSsoDiscovery). No account is read, so the
+ * answer, the empty list included, says nothing about whether the address
+ * has one (#9745, #9824). The page and the mobile app read an empty list as
+ * "no single sign-on for this address".
  */
 
 router.get(
