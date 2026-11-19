@@ -181,6 +181,28 @@ const KEY_EVIDENCE: { [scenarioId: string]: Array<string> } = {
     "Trace 7f3a1c9e5b2d4f8a9c6e1b3d5f7a9c2e",
     "Spans",
   ],
+  // Two causes: each one's own evidence.
+  "search-slow-cache-ttl-and-lost-node": [
+    "Config release cfg-8840",
+    "Search results cache hit ratio",
+    "Elasticsearch cluster nodes and shards",
+    "Elasticsearch node CPU",
+    "search-es logs",
+    "Logs matching es-data-3",
+    "Logs matching ttl",
+    "search-service logs",
+    "Cloud resources",
+    "Cloud resource es-data-3",
+    "Alerts",
+  ],
+  "payments-recurrence-fix-does-not-apply": [
+    "Top exceptions",
+    "Code behind exception exc-31af",
+    "src/charges/amounts.ts",
+    "Deploy payments-api v5.3.0",
+    "payments-api logs",
+    "Logs matching AmountPrecisionError",
+  ],
 };
 
 type ScenarioCase = [string, BenchmarkScenario];
@@ -508,7 +530,9 @@ function judgeReadingOf(
 
   return {
     judgeGrade:
-      verdict === null ? null : (InvestigationGrader.parseAutoGradeToken(verdict) as AIRunAutoGrade),
+      verdict === null
+        ? null
+        : (InvestigationGrader.parseAutoGradeToken(verdict) as AIRunAutoGrade),
   };
 }
 

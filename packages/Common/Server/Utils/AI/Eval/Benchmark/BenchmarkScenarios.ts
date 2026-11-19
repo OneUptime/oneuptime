@@ -9,6 +9,8 @@ import LoginCredentialStuffingTraffic from "./Scenarios/LoginCredentialStuffingT
 import InvoiceWorkerPoisonMessage from "./Scenarios/InvoiceWorkerPoisonMessage";
 import OrdersApiNoisyNeighborContainer from "./Scenarios/OrdersApiNoisyNeighborContainer";
 import CheckoutLatencyBlipNoCause from "./Scenarios/CheckoutLatencyBlipNoCause";
+import SearchSlowCacheTtlAndLostNode from "./Scenarios/SearchSlowCacheTtlAndLostNode";
+import PaymentsRecurrenceFixDoesNotApply from "./Scenarios/PaymentsRecurrenceFixDoesNotApply";
 
 /*
  * Every scenario of the investigation benchmark, in the order a run takes
@@ -28,6 +30,10 @@ const BENCHMARK_SCENARIOS: ReadonlyArray<BenchmarkScenario> = [
   OrdersApiNoisyNeighborContainer,
   // Nothing the telemetry shows explains it: the right answer says so (#7766).
   CheckoutLatencyBlipNoCause,
+  // Two causes at once, one of them found in a connected cloud (#7766).
+  SearchSlowCacheTtlAndLostNode,
+  // A past incident that looks the same, whose fix does not apply; and the code (#7766).
+  PaymentsRecurrenceFixDoesNotApply,
 ];
 
 export default BENCHMARK_SCENARIOS;

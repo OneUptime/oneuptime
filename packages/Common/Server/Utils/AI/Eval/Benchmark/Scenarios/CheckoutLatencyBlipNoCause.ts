@@ -90,13 +90,41 @@ const scenario: BenchmarkScenario = {
       citationLabel: "Checkout latency",
       isKeyEvidence: true,
       rows: [
-        { time: "2026-09-03T09:30:00.000Z", service: "checkout-service", p95Ms: 212 },
-        { time: "2026-09-03T09:35:00.000Z", service: "checkout-service", p95Ms: 206 },
-        { time: "2026-09-03T09:39:00.000Z", service: "checkout-service", p95Ms: 1638 },
-        { time: "2026-09-03T09:40:00.000Z", service: "checkout-service", p95Ms: 1724 },
-        { time: "2026-09-03T09:41:00.000Z", service: "checkout-service", p95Ms: 1581 },
-        { time: "2026-09-03T09:42:00.000Z", service: "checkout-service", p95Ms: 231 },
-        { time: "2026-09-03T09:45:00.000Z", service: "checkout-service", p95Ms: 209 },
+        {
+          time: "2026-09-03T09:30:00.000Z",
+          service: "checkout-service",
+          p95Ms: 212,
+        },
+        {
+          time: "2026-09-03T09:35:00.000Z",
+          service: "checkout-service",
+          p95Ms: 206,
+        },
+        {
+          time: "2026-09-03T09:39:00.000Z",
+          service: "checkout-service",
+          p95Ms: 1638,
+        },
+        {
+          time: "2026-09-03T09:40:00.000Z",
+          service: "checkout-service",
+          p95Ms: 1724,
+        },
+        {
+          time: "2026-09-03T09:41:00.000Z",
+          service: "checkout-service",
+          p95Ms: 1581,
+        },
+        {
+          time: "2026-09-03T09:42:00.000Z",
+          service: "checkout-service",
+          p95Ms: 231,
+        },
+        {
+          time: "2026-09-03T09:45:00.000Z",
+          service: "checkout-service",
+          p95Ms: 209,
+        },
       ],
     },
     {

@@ -1401,9 +1401,14 @@ describe("every SLO query_slos lists can be read in full by its sloId", () => {
         ).toEqual(["burnRateRule", "burnRateRule", "burnRateRule"]);
         expect(
           getMissingSloRecommendedBurnRateRules({
-            window: { windowType: SloWindowType.Rolling, windowDays: windowDaysOf(row) },
+            window: {
+              windowType: SloWindowType.Rolling,
+              windowDays: windowDaysOf(row),
+            },
             existingRules: rules.map(
-              (rule: JSONObject): { name: string; longWindowInMinutes: number } => {
+              (
+                rule: JSONObject,
+              ): { name: string; longWindowInMinutes: number } => {
                 return {
                   name: String(rule["name"]),
                   longWindowInMinutes: Number(rule["longWindowInMinutes"]),
@@ -1545,7 +1550,9 @@ describe("the benchmark covers more than incidents with one cause in their logs"
     );
   }
 
-  function scriptsTool(toolName: string): (scenario: BenchmarkScenario) => boolean {
+  function scriptsTool(
+    toolName: string,
+  ): (scenario: BenchmarkScenario) => boolean {
     return (scenario: BenchmarkScenario): boolean => {
       return scenario.responses.some(
         (response: BenchmarkToolResponse): boolean => {

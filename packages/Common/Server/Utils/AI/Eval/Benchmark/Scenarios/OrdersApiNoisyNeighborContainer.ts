@@ -245,7 +245,11 @@ const scenario: BenchmarkScenario = {
         { time: "2026-08-19T02:10:00.000Z", state: "user", utilization: 0.96 },
         { time: "2026-08-19T02:15:00.000Z", state: "user", utilization: 0.96 },
         { time: "2026-08-19T02:15:00.000Z", state: "idle", utilization: 0.02 },
-        { time: "2026-08-19T02:15:00.000Z", state: "iowait", utilization: 0.01 },
+        {
+          time: "2026-08-19T02:15:00.000Z",
+          state: "iowait",
+          utilization: 0.01,
+        },
       ],
     },
     {
@@ -304,7 +308,8 @@ const scenario: BenchmarkScenario = {
           observed: 0.96,
           baselineMedian: 0.31,
           baselineP95: 0.42,
-          verdict: "anomalous (far above its usual level for this hour of the week)",
+          verdict:
+            "anomalous (far above its usual level for this hour of the week)",
         },
       ],
     },
@@ -318,7 +323,8 @@ const scenario: BenchmarkScenario = {
           window: "2026-08-19T02:00:00.000Z to 2026-08-19T02:18:00.000Z",
           observedP95Ms: 2870,
           baselineP95Ms: 184,
-          verdict: "anomalous (far above its usual level for this hour of the week)",
+          verdict:
+            "anomalous (far above its usual level for this hour of the week)",
         },
       ],
     },
@@ -496,9 +502,21 @@ const scenario: BenchmarkScenario = {
       citationLabel: "HTTP server request duration",
       rows: [
         { time: "2026-08-19T01:55:00.000Z", service: "orders-api", p95Ms: 182 },
-        { time: "2026-08-19T02:00:00.000Z", service: "orders-api", p95Ms: 1240 },
-        { time: "2026-08-19T02:05:00.000Z", service: "orders-api", p95Ms: 2710 },
-        { time: "2026-08-19T02:10:00.000Z", service: "orders-api", p95Ms: 2870 },
+        {
+          time: "2026-08-19T02:00:00.000Z",
+          service: "orders-api",
+          p95Ms: 1240,
+        },
+        {
+          time: "2026-08-19T02:05:00.000Z",
+          service: "orders-api",
+          p95Ms: 2710,
+        },
+        {
+          time: "2026-08-19T02:10:00.000Z",
+          service: "orders-api",
+          p95Ms: 2870,
+        },
       ],
     },
     {

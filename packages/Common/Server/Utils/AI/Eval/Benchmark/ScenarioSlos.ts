@@ -7,10 +7,7 @@ import {
   SloRecommendedBurnRateRule,
 } from "../../../../../Utils/Slo/SloRecommendedBurnRateRules";
 import SloUtil from "../../../../../Utils/Slo/SloUtil";
-import {
-  COMPLIANCE_NOTE,
-  DEPLOYMENT_GATE_NOTE,
-} from "../../Toolbox/SloTools";
+import { COMPLIANCE_NOTE, DEPLOYMENT_GATE_NOTE } from "../../Toolbox/SloTools";
 import { BenchmarkToolResponse } from "./BenchmarkScenario";
 
 /*
@@ -79,12 +76,14 @@ export default class ScenarioSlos {
 
   // The SLO's own row when it is read by its sloId: its full definition.
   public static getFullRow(slo: ScenarioSlo): JSONObject {
-    const budget: { budgetRemainingSeconds: number; budgetTotalSeconds: number } =
-      SloUtil.getErrorBudget({
-        sliPercentage: slo.currentSliPercentage,
-        totalSeconds: slo.windowDays * SECONDS_IN_A_DAY,
-        targetPercentage: slo.targetPercentage,
-      });
+    const budget: {
+      budgetRemainingSeconds: number;
+      budgetTotalSeconds: number;
+    } = SloUtil.getErrorBudget({
+      sliPercentage: slo.currentSliPercentage,
+      totalSeconds: slo.windowDays * SECONDS_IN_A_DAY,
+      targetPercentage: slo.targetPercentage,
+    });
 
     return {
       record: "slo",
