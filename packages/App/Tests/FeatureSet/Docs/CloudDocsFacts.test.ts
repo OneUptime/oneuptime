@@ -663,9 +663,24 @@ describe("the environments list and its Add guide", () => {
   });
 
   it("names the status pill as the list draws it", () => {
+    // The list words each status as its Status chip does (#9751).
     expect(readSource(ENVIRONMENTS_PAGE).replace(/\s+/g, " ")).toContain(
-      'text={ isConnected ? "Connected" : isWaiting ? "Waiting" : "Disconnected" }',
+      "text={CLOUD_ENVIRONMENT_STATUS_LABELS[status]}",
     );
+
+    const statuses: string = readSource(
+      `${DASHBOARD}/Components/AppPlatforms/AppPlatformsEnvironmentStatus.ts`,
+    ).replace(/\s+/g, " ");
+
+    for (const [status, word] of [
+      ["Connected", "Connected"],
+      ["Disconnected", "Disconnected"],
+      ["Waiting", "Waiting"],
+    ]) {
+      expect(statuses).toContain(
+        `[CloudEnvironmentStatus.${status}]: translationKey("${word}"),`,
+      );
+    }
     expect(pageProse(HUB)).toContain(
       "An environment that has sent nothing yet shows **Waiting**.",
     );

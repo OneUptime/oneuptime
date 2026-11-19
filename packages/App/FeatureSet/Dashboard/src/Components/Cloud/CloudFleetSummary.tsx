@@ -12,7 +12,6 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -37,14 +36,22 @@ import CloudStatTileTitle, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import Link from "Common/UI/Components/Link/Link";
+import {
+  CloudEnvironmentStatus,
+  buildCloudEnvironmentStatusQuery,
+} from "../AppPlatforms/AppPlatformsEnvironmentStatus";
+import { getAppPlatformsEnvironmentsRoute } from "../AppPlatforms/AppPlatformsListRoutes";
 
 /*
  * The stat strip at the top of App Platforms' Overview: how many apps there
  * are and how many run, how many environments, the deploys of the last day,
  * and how many tasks are live right now.
  *
- * It is strictly decorative — the table underneath is the source of truth —
- * so it must never get in the way: it renders nothing while loading, nothing
+ * It summarises - the table underneath is the source of truth - and its one
+ * way into the lists is the line that counts environments gone quiet, which
+ * opens All Environments on those (#9751). It must never get in the way: it
+ * renders nothing while loading, nothing
  * when there is nothing to summarise (the empty state already has the setup
  * guide), and nothing on error rather than a second error banner next to
  * the table's own.
@@ -170,13 +177,16 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
           modelType: CloudResourceInstance,
           query: { lastSeenAt: new GreaterThan<Date>(liveSince) },
         }),
-        // Never heard from: waiting for their first data, not disconnected.
+        /*
+         * Never heard from: waiting for their first data, not disconnected
+         * - by the rule All Environments' Status column and chip use.
+         */
         ModelAPI.count({
           modelType: CloudResource,
           query: {
             isArchived: false,
             cloudResourceKind: ENVIRONMENT,
-            lastSeenAt: new IsNull(),
+            ...buildCloudEnvironmentStatusQuery(CloudEnvironmentStatus.Waiting),
           },
         }),
         ...providers.map((provider: CloudProvider): Promise<number> => {
@@ -294,7 +304,11 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const tiles: Array<CloudFleetSummaryTile> = summarizeCloudFleet(counts);
+  const tiles: Array<CloudFleetSummaryTile> = summarizeCloudFleet(counts, {
+    disconnectedEnvironmentsRoute: getAppPlatformsEnvironmentsRoute([], {
+      statuses: [CloudEnvironmentStatus.Disconnected],
+    }),
+  });
 
   /*
    * Laid out by the room the strip and each tile have, not the window's:
@@ -356,30 +370,55 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
                  * as two things. Isolated (bdi), the breakdown keeps its
                  * order on a right-to-left page.
                  */}
-                <div
-                  data-testid="cloud-fleet-summary-tile-sublabel"
-                  className="mt-1 break-words text-xs text-gray-500"
-                >
-                  <bdi>
-                    {tile.sublabelParts && tile.sublabelParts.length > 1
-                      ? tile.sublabelParts.map(
-                          (part: string, partIndex: number): ReactElement => {
-                            return (
-                              <Fragment key={part}>
-                                {partIndex > 0 ? <InlineSeparator /> : null}
-                                <span
-                                  className="whitespace-nowrap"
-                                  data-testid="cloud-fleet-summary-tile-sublabel-part"
-                                >
-                                  {part}
-                                </span>
-                              </Fragment>
-                            );
-                          },
-                        )
-                      : sublabel}
-                  </bdi>
-                </div>
+                {tile.sublabelRoute ? (
+                  /*
+                   * A line that counts something wrong opens it: "2
+                   * environments disconnected" opens All Environments on
+                   * those (#9751). The line is the link; the tile's number
+                   * counts every environment.
+                   */
+                  <div className="mt-1 break-words text-xs">
+                    <Link
+                      to={tile.sublabelRoute}
+                      title={tile.sublabelRouteTitle}
+                      dataTestId="cloud-fleet-summary-tile-sublabel"
+                      className="inline-flex items-center gap-0.5 rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11"
+                    >
+                      <>
+                        <bdi>{sublabel}</bdi>
+                        <Icon
+                          icon={IconProp.ChevronRight}
+                          className="h-3 w-3 flex-none rtl:-scale-x-100"
+                        />
+                      </>
+                    </Link>
+                  </div>
+                ) : (
+                  <div
+                    data-testid="cloud-fleet-summary-tile-sublabel"
+                    className="mt-1 break-words text-xs text-gray-500"
+                  >
+                    <bdi>
+                      {tile.sublabelParts && tile.sublabelParts.length > 1
+                        ? tile.sublabelParts.map(
+                            (part: string, partIndex: number): ReactElement => {
+                              return (
+                                <Fragment key={part}>
+                                  {partIndex > 0 ? <InlineSeparator /> : null}
+                                  <span
+                                    className="whitespace-nowrap"
+                                    data-testid="cloud-fleet-summary-tile-sublabel-part"
+                                  >
+                                    {part}
+                                  </span>
+                                </Fragment>
+                              );
+                            },
+                          )
+                        : sublabel}
+                    </bdi>
+                  </div>
+                )}
               </div>
             );
           },

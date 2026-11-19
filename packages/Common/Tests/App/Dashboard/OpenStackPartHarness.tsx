@@ -435,6 +435,33 @@ function bareMetalClasses(body: JSONObject): Array<JSONObject> {
   return Array.from(classes.values());
 }
 
+/*
+ * The failed nodes of one class, as POST /bare-metal-failed-nodes reads them: the nodes the
+ * class's count counts as failed (a null class for the nodes with none), by name.
+ */
+function bareMetalFailedNodes(body: JSONObject): JSONObject {
+  const wanted: string | null =
+    typeof body["resourceClass"] === "string"
+      ? (body["resourceClass"] as string)
+      : null;
+  const rows: Array<Row> = server.rows
+    .filter((row: Row): boolean => {
+      const facts: JSONObject = (row.facts as JSONObject) || {};
+      const resourceClass: string | null =
+        (facts["resourceClass"] as string) || null;
+      return (
+        row.kind === OpenStackResourceKind.BareMetalNode &&
+        isOpenStackBareMetalNodeInError(row.status) &&
+        resourceClass === (wanted || null) &&
+        (!body["regionName"] || row.regionName === body["regionName"])
+      );
+    })
+    .sort((a: Row, b: Row): number => {
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  return { rows: rows as unknown as JSONValue, isTruncated: false };
+}
+
 function inventorySummary(body: JSONObject): JSONObject {
   const rows: Array<Row> = server.rows.filter((row: Row): boolean => {
     return !body["regionName"] || row.regionName === body["regionName"];
@@ -659,6 +686,8 @@ export function resetServer(): void {
         return { data: inventorySummary(body) };
       case "bare-metal-classes":
         return { data: { classes: bareMetalClasses(body) } };
+      case "bare-metal-failed-nodes":
+        return { data: bareMetalFailedNodes(body) };
       case "kubernetes-cluster-of-magnum-cluster":
       case "magnum-cluster-of-kubernetes-cluster":
         return { data: { link: server.magnumLink || null } };

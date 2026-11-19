@@ -553,6 +553,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-classes/:cloudId`":
         READ,
+      // A class's failed nodes, which its "Failed: N" opens (#9751).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-failed-nodes/:cloudId`":
+        READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/needs-attention/:cloudId`":
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/blast-radius/:cloudId`":
