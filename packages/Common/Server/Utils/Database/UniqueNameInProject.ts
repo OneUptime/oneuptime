@@ -3,6 +3,7 @@ import CreateBy from "../../Types/Database/CreateBy";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
+import Sort from "../../Types/Database/Sort";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -61,6 +62,11 @@ export interface UniqueNameRules<TBaseModel extends BaseModel> {
   describeClash?:
     | ((data: { clash: TBaseModel; name: string }) => string | null)
     | undefined;
+  /*
+   * Which of several records with the name the refusal speaks of: a policy
+   * in service before an archived one, whose refusal says to unarchive it.
+   */
+  clashSort?: Sort<TBaseModel> | undefined;
 }
 
 // A column of a write's data, a row or a model, as it was written.
@@ -205,6 +211,7 @@ export default class UniqueNameInProject {
         ...(data.rules.clashSelect || {}),
         _id: true,
       } as Select<TBaseModel>,
+      ...(data.rules.clashSort ? { sort: data.rules.clashSort } : {}),
       props: {
         isRoot: true,
       },
