@@ -98,6 +98,12 @@ const TABLES: Array<string> = [
   "TeamComplianceSetting",
   "TeamComplianceSettingIncidentSeverity",
   "TeamComplianceSettingAlertSeverity",
+  /*
+   * The server's settings: a signed-in write of a product's record - a
+   * severity's delete - reads the products switched off on the server
+   * there first (ProductWriteRefusal).
+   */
+  "GlobalConfig",
 ];
 
 const JOIN_TABLES: Array<string> = [
@@ -340,6 +346,21 @@ describePostgres(
           .reverse()
           .join("; "),
       );
+
+      /*
+       * The server's settings, with no product switched off: a signed-in
+       * delete of an incident's or an alert's severity is refused while
+       * Incidents or Alerts is switched off on the server.
+       */
+      await insert("GlobalConfig", {
+        _id: ObjectID.getZeroObjectID().toString(),
+        version: 1,
+        serverProducts: JSON.stringify({
+          off: [],
+          changedAt: null,
+          changedByUserId: null,
+        }),
+      });
 
       for (const [id, name] of [
         [projectId, "Compliance project"],
