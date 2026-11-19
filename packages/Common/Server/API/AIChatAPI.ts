@@ -28,9 +28,19 @@ import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "../../Types/AI/AIChatPermissionMode";
 import {
+  AIChatTestPageOffer,
+  AIChatTestPageSent,
   AIChatToolAction,
   AIChatToolActionStatus,
+  AIChatWidget,
 } from "../../Types/AI/AIChatTypes";
+import {
+  getAnswerTestPageOffer,
+  isTestPageOfOffer,
+  withAnswerTestPageSent,
+} from "../../Types/AI/AIChatTestPage";
+import { OnCallTestPageResult } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallTestPageService from "../Services/OnCallTestPageService";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import { readRequestedReaderLanguage } from "../../Types/ReaderLanguage";
 import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
@@ -980,6 +990,140 @@ router.post(
       Response.sendJsonObjectResponse(req, res, {
         messageId: messageId.toString(),
         feedback: feedback,
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+// An id from a request's body, when it is one.
+function readBodyObjectId(body: JSONObject, name: string): ObjectID | null {
+  const value: unknown = body[name];
+
+  return typeof value === "string" && ObjectID.isValidUUID(value)
+    ? new ObjectID(value)
+    : null;
+}
+
+/*
+ * Records a test page sent from an answer's offer on that answer (#7249):
+ * the line under it then says what became of it after a reload and on
+ * another device, and the model reads it in the next turn
+ * (ChatTestPageNotes). Ownership as message-feedback's: the message and
+ * its conversation resolve under the person's props, and only an
+ * assistant's answer that offers a test page takes one. The run must be
+ * one the person may read (OnCallTestPageService.getResult's own check),
+ * of the test page the answer offers: its policy's, or one to themselves.
+ * A later test page from the same answer takes the earlier one's place.
+ */
+router.post(
+  "/ai-chat/message-test-page",
+  UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIChat),
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      // Membership, not just a session - see the note on send-message.
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+
+      const body: JSONObject = (req.body || {}) as JSONObject;
+      const messageId: ObjectID | null = readBodyObjectId(body, "messageId");
+      const executionLogId: ObjectID | null = readBodyObjectId(
+        body,
+        "executionLogId",
+      );
+
+      if (!messageId) {
+        throw new BadDataException("A message id is required.");
+      }
+
+      if (!executionLogId) {
+        throw new BadDataException("A test page's run id is required.");
+      }
+
+      // The privacy pin makes this return null for other users' rows.
+      const message: AIConversationMessage | null =
+        await AIConversationMessageService.findOneById({
+          id: messageId,
+          select: {
+            _id: true,
+            conversationId: true,
+            role: true,
+            widgets: true,
+          },
+          props: props,
+        });
+
+      if (!message || !message.conversationId) {
+        throw new BadDataException("Message not found.");
+      }
+
+      const conversation: AIConversation | null =
+        await AIConversationService.findOneById({
+          id: message.conversationId,
+          select: { _id: true },
+          props: props,
+        });
+
+      if (!conversation || message.role !== AIChatMessageRole.Assistant) {
+        throw new BadDataException("Message not found.");
+      }
+
+      const widgets: Array<AIChatWidget> = message.widgets || [];
+      const offer: AIChatTestPageOffer | null =
+        getAnswerTestPageOffer(widgets);
+
+      if (!offer) {
+        throw new BadDataException("This answer offers no test page.");
+      }
+
+      // Refused when the person may not read it, or it is no test page.
+      const result: OnCallTestPageResult =
+        await OnCallTestPageService.getResult({
+          projectId: projectId,
+          executionLogId: executionLogId,
+          props: props,
+        });
+
+      if (
+        !isTestPageOfOffer({
+          offer: offer,
+          result: result,
+          userId: props.userId?.toString() || "",
+        })
+      ) {
+        throw new BadDataException(
+          "This test page is not the one this answer offers.",
+        );
+      }
+
+      const sent: AIChatTestPageSent = {
+        executionLogId: executionLogId.toString(),
+        sentAt: result.startedAt || OneUptimeDate.getCurrentDate().toISOString(),
+      };
+
+      // Root write: message columns are deliberately not user-writable.
+      await AIConversationMessageService.updateOneById({
+        id: messageId,
+        data: {
+          widgets: withAnswerTestPageSent(widgets, sent),
+        } as never,
+        props: { isRoot: true },
+      });
+
+      Response.sendJsonObjectResponse(req, res, {
+        messageId: messageId.toString(),
+        testPage: sent as unknown as JSONObject,
       });
       return;
     } catch (err) {

@@ -117,6 +117,52 @@ jest.mock(
   },
 );
 
+/*
+ * What the test page's own result route answers, in turn (#7249): the
+ * answer reads it from the run recorded on it, after a reload.
+ */
+const resultReads: MockFunction = getJestMockFunction();
+let resultsToRead: Array<Record<string, unknown>> = [];
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/OnCallTestPageApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getResult: (executionLogId: string): Promise<unknown> => {
+          resultReads(executionLogId);
+
+          // None to read: the route refuses it, as for a run deleted since.
+          if (resultsToRead.length === 0) {
+            return Promise.reject(new Error("Test page not found."));
+          }
+
+          return Promise.resolve(
+            resultsToRead.length > 1 ? resultsToRead.shift() : resultsToRead[0],
+          );
+        },
+      },
+    };
+  },
+);
+
+// A test page sent from an answer, recorded on it (POST /ai-chat/message-test-page).
+const recordedTestPages: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiTestPageRecord",
+  () => {
+    return {
+      __esModule: true,
+      recordAnswerTestPage: (data: unknown): Promise<void> => {
+        recordedTestPages(data);
+        return Promise.resolve();
+      },
+    };
+  },
+);
+
 const DE: Record<string, string> = readDashboardLocale("de");
 const AR: Record<string, string> = readDashboardLocale("ar");
 const POLICY_ID: string = "77777777-7777-4777-8777-777777777777";
@@ -458,6 +504,121 @@ describe("the test page an answer that set something up offers", () => {
 
     expect(container).toBeEmptyDOMElement();
     expect(testPageButtons).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #7249: a test page sent from an answer is kept on it - its run recorded on
+ * the answer - so after a reload, or on another device, the line under the
+ * button still says what became of it, read again until it is acknowledged
+ * or over.
+ */
+describe("a test page sent from an answer, kept on it", () => {
+  const RUN_ID: string = "72490000-0000-4000-8000-0000000000e1";
+  const MESSAGE_ID: string = "72490000-0000-4000-8000-0000000000e2";
+  const STILL_PAGING: Record<string, unknown> = {
+    status: "Paging",
+    statusMessage: "",
+    endsAt: "2999-01-01T00:00:00.000Z",
+    steps: [],
+  };
+
+  function sentPolicyCard(): AIChatWidget {
+    return card({
+      testPage: {
+        kind: "policy",
+        policyId: POLICY_ID,
+        policyName: "Default on-call policy",
+        sent: { executionLogId: RUN_ID, sentAt: "2026-11-19T10:15:00.000Z" },
+      },
+    });
+  }
+
+  afterEach(() => {
+    resultReads.mockReset();
+    recordedTestPages.mockReset();
+    resultsToRead = [];
+  });
+
+  test("after a reload, the answer still says what became of it", async () => {
+    resultsToRead = [ACKNOWLEDGED_TEST_PAGE];
+
+    render(
+      <AskAiTestPageOffer widgets={[sentPolicyCard()]} messageId={MESSAGE_ID} />,
+    );
+
+    const line: HTMLElement = await screen.findByTestId(
+      "ask-ai-test-page-result",
+    );
+
+    expect(resultReads).toHaveBeenCalledWith(RUN_ID);
+    expect(line).toHaveTextContent("It works");
+    expect(line).toHaveTextContent("Me Myself acknowledged it.");
+    // The test can be sent again: the button is still there.
+    expect(screen.getByTestId("ask-ai-send-test-page")).toBeInTheDocument();
+    // Nothing is recorded again by reading it.
+    expect(recordedTestPages).not.toHaveBeenCalled();
+  });
+
+  test("one still paging is read again until somebody acknowledges it", async () => {
+    resultsToRead = [STILL_PAGING, ACKNOWLEDGED_TEST_PAGE];
+
+    render(
+      <AskAiTestPageOffer
+        widgets={[sentPolicyCard()]}
+        messageId={MESSAGE_ID}
+        pollIntervalInMs={5}
+      />,
+    );
+
+    expect(
+      await screen.findByText("Me Myself acknowledged it.", { exact: false }),
+    ).toBeInTheDocument();
+    expect(resultReads.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("a test page sent from the answer is recorded on it, by its run", () => {
+    render(
+      <AskAiTestPageOffer
+        widgets={[
+          card({
+            testPage: {
+              kind: "policy",
+              policyId: POLICY_ID,
+              policyName: "Default on-call policy",
+            },
+          }),
+        ]}
+        messageId={MESSAGE_ID}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("ask-ai-send-test-page"));
+
+    expect(recordedTestPages).toHaveBeenCalledWith({
+      messageId: MESSAGE_ID,
+      executionLogId: "execution-log-1",
+    });
+    // While its dialog says how it goes, the answer does not ask too.
+    expect(resultReads).not.toHaveBeenCalled();
+    expect(screen.getByTestId("ask-ai-test-page-result")).toHaveTextContent(
+      "Me Myself acknowledged it.",
+    );
+  });
+
+  test("a run that can no longer be read draws no line, and the button stays", async () => {
+    resultsToRead = [];
+
+    render(
+      <AskAiTestPageOffer widgets={[sentPolicyCard()]} messageId={MESSAGE_ID} />,
+    );
+
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByTestId("ask-ai-test-page-result")).toBeNull();
+    expect(screen.getByTestId("ask-ai-send-test-page")).toBeInTheDocument();
   });
 });
 
