@@ -218,6 +218,7 @@ Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** 
 - Jeder Datensatz wird so gelesen, wie **Ihre Protokolle** ihn aus einer Pipeline liest, sodass die CloudTrail-, Google Cloud- und Azure-Regeln der Regelbibliothek auf ihn passen.
 - Ein Ereignis erhält den Zeitpunkt, zu dem es gespeichert wird, und die eigene Zeit des Datensatzes steht in `oneuptime.cloud.record_time`: Ein Audit-Log erreicht OneUptime Minuten verspätet, und eine Regel liest Ereignisse nach ihrer Zeit.
 - Mehr bringt der Lesevorgang des Kontos nicht: Datenereignisse, Data Access-Logs und die Logs von Microsoft Entra ID brauchen weiterhin **Ihre Protokolle** oder eine [Verbindung](/docs/integrations/microsoft-entra-id).
+- Jedes Ereignis nennt die Cloud-Ressourcen, um die es in seinem Eintrag geht, mit ihren eigenen IDs - einem ARN, einer Azure-Ressourcen-ID, einem Ressourcennamen von Google Cloud -, daher erscheint es auf der Seite **Sicherheitsereignisse** jeder dieser Ressourcen und auf der einer Serverless-Funktion, sobald ihre Telemetrie `cloud.account.id` und `cloud.region` setzt.
 
 ### Ein Sicherheitsprodukt verbinden
 

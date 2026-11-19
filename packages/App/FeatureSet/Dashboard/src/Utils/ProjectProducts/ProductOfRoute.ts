@@ -142,6 +142,8 @@ export const RESOURCE_PAGE_PRODUCTS: Readonly<
   [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
   [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
   [PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+  [PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]: ProductKey.SecurityEvents,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: ProductKey.DataSecurity,
   /*
    * A cluster's Compliance is not here (#9627): it scores the cluster itself

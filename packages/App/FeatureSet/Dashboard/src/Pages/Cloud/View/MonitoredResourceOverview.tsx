@@ -80,6 +80,7 @@ import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionC
 import CloudResourceSpendCards from "../../../Components/Cloud/CloudResourceSpendCards";
 import { getCloudRightSizingProfile } from "Common/Types/Cloud/CloudRightSizing";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { canCloudResourceHaveSecurityEvents } from "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources";
 
 /*
  * The Overview of a Cloud Resource - one a cloud connection lists from its
@@ -536,12 +537,24 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         />
         {/*
          * What Security Events found about it this week, for whoever may
-         * read it (Components/SecurityConnections).
+         * read it (Components/SecurityConnections) - for a resource an
+         * event can reach, as its menu's Security Events is (#9779). One
+         * known only by a stand-in, with no logs and no name or address of
+         * its own, would always say nothing named it.
          */}
-        <ResourceSecurityCard
-          kind={SecurityConnectionKind.CloudResource}
-          modelId={modelId}
-        />
+        {canCloudResourceHaveSecurityEvents({
+          provider: r.cloudProvider,
+          type: r.cloudResourceType,
+          providerResourceId: r.providerResourceId,
+          cloudEndpoints: r.cloudEndpoints,
+        }) ? (
+          <ResourceSecurityCard
+            kind={SecurityConnectionKind.CloudResource}
+            modelId={modelId}
+          />
+        ) : (
+          <></>
+        )}
       </div>
 
       <CloudResourceInventoryCards resource={r} />

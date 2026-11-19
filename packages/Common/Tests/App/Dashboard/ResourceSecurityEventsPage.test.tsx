@@ -12,6 +12,7 @@ import {
   configure,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
@@ -76,13 +77,23 @@ import DockerHostSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/P
 import PodmanHostSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/SecurityEvents";
 import OpenStackCloudSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SecurityEvents";
 import ServiceViewSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/SecurityEvents";
+import CloudResourceSecurityEvents, {
+  CLOUD_RESOURCE_NO_SECURITY_EVENTS_DESCRIPTION,
+  CLOUD_RESOURCE_NO_SECURITY_EVENTS_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/SecurityEvents";
+import ServerlessFunctionSecurityEvents from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/SecurityEvents";
 import {
+  CLOUD_RESOURCE_WITHOUT_ID_LANDS_HERE,
+  FUNCTION_ACCOUNT_STEP,
   OPENSTACK_AUDIT_TRAIL_STEP,
   RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID,
+  RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceSecurity/ResourceSecurityEventsEmptyState";
+import { FaasCloudPlatform } from "../../../Types/Cloud/CloudPlatform";
 import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTelemetrySource";
 import { SecurityTelemetrySourceKind } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { RESOURCE_SECURITY_EVENTS_SUMMARY_NAMING } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceSecurity/ResourceSecurityEventsScope";
+import { RESOURCE_SECURITY_EVENTS_READ_FAILED } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceSecurity/ResourceSecurityEventsPage";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -350,28 +361,63 @@ const RECORD_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
 
-// Your logs and Traces, each on or off; null for a project that never set it up.
+/*
+ * Your logs, Traces and Cloud audit logs, each on or off; null for a
+ * project that never set it up.
+ */
 function stubSources(sources: {
   logs?: Partial<SecurityLogSource> | null;
   traces?: Partial<SecurityTelemetrySource> | null;
+  cloudAudit?: Partial<SecurityTelemetrySource> | null;
 }): void {
   modelListMock.mockImplementation(
     async (
       args: unknown,
     ): Promise<ListResult<SecurityLogSource | SecurityTelemetrySource>> => {
-      const isTraces: boolean =
-        (args as { modelType: unknown }).modelType === SecurityTelemetrySource;
-      const row: SecurityLogSource | SecurityTelemetrySource | null = isTraces
-        ? sources.traces
-          ? Object.assign(new SecurityTelemetrySource(), sources.traces)
-          : null
-        : sources.logs
-          ? Object.assign(new SecurityLogSource(), sources.logs)
-          : null;
+      const request: { modelType: unknown; query?: { kind?: unknown } } =
+        args as { modelType: unknown; query?: { kind?: unknown } };
+      const isTelemetry: boolean =
+        request.modelType === SecurityTelemetrySource;
+      const telemetry: Partial<SecurityTelemetrySource> | null | undefined =
+        request.query?.kind === SecurityTelemetrySourceKind.CloudAudit
+          ? sources.cloudAudit
+          : sources.traces;
+      const row: SecurityLogSource | SecurityTelemetrySource | null =
+        isTelemetry
+          ? telemetry
+            ? Object.assign(new SecurityTelemetrySource(), telemetry)
+            : null
+          : sources.logs
+            ? Object.assign(new SecurityLogSource(), sources.logs)
+            : null;
 
       return { data: row ? [row] : [], count: row ? 1 : 0, skip: 0, limit: 1 };
     },
   );
+}
+
+// The project's telemetry sources the page read, by kind.
+function telemetrySourceKindsRead(): Array<unknown> {
+  return modelListMock.mock.calls
+    .map((call: Array<unknown>): { modelType: unknown; query?: unknown } => {
+      return call[0] as { modelType: unknown; query?: unknown };
+    })
+    .filter((args: { modelType: unknown }): boolean => {
+      return args.modelType === SecurityTelemetrySource;
+    })
+    .map((args: { query?: unknown }): unknown => {
+      return (args.query as { kind?: unknown } | undefined)?.kind;
+    });
+}
+
+function stepIds(steps: Array<HTMLElement>): Array<string | null> {
+  return steps.map((step: HTMLElement): string | null => {
+    return step.getAttribute("data-testid");
+  });
+}
+
+function stepId(id: string): string {
+  return `${RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID}-${id}`;
 }
 
 interface RecordPage {
@@ -657,5 +703,422 @@ describe("a service's empty state", () => {
         );
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * A CLOUD RESOURCE'S SECURITY EVENTS PAGE (#9779): the shared page, handed
+ * the resource, once the resource itself is read - its cloud, its type and
+ * its ID decide what its empty state asks for, and whether any event can
+ * reach it at all.
+ */
+const BUCKET_ARN: string = "arn:aws:s3:::payments-bucket";
+const VAULT_ID: string =
+  "/subscriptions/00000000-0000-4000-8000-000000000000/resourceGroups/prod/providers/Microsoft.KeyVault/vaults/payments-vault";
+
+let getItemMock: MockFunction;
+
+function stubRecord(item: Record<string, unknown> | null): void {
+  getItemMock = jest.spyOn(ModelAPI, "getItem") as unknown as MockFunction;
+  getItemMock.mockResolvedValue(item as never);
+}
+
+describe("a cloud resource's Security Events page", () => {
+  beforeEach(() => {
+    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
+    scopeMock.mockResolvedValue(
+      scopeOf(SecurityConnectionKind.CloudResource, RECORD_ID, "payments", [
+        BUCKET_ARN,
+      ]) as never,
+    );
+    stubSources({});
+    stubRecord({
+      cloudProvider: "aws",
+      cloudResourceType: "AWS::S3::Bucket",
+      providerResourceId: BUCKET_ARN,
+    });
+  });
+
+  function renderPage(): void {
+    render(
+      <MemoryRouter>
+        <CloudResourceSecurityEvents
+          pageRoute={
+            RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS] as Route
+          }
+          currentProject={project()}
+          hasPaymentMethod={true}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  async function renderedEmptyState(): Promise<HTMLElement> {
+    renderPage();
+
+    const viewer: HTMLElement = await screen.findByTestId(
+      "security-events-viewer-stub",
+    );
+
+    return within(viewer).getByTestId(RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID);
+  }
+
+  test("reads the resource, then asks for its scope and names it on a locked chip", async () => {
+    renderPage();
+
+    const viewer: HTMLElement = await screen.findByTestId(
+      "security-events-viewer-stub",
+    );
+
+    expect(getItemMock.mock.calls[0]![0]).toMatchObject({
+      id: RECORD_ID,
+      select: {
+        cloudProvider: true,
+        cloudResourceType: true,
+        providerResourceId: true,
+        cloudEndpoints: true,
+      },
+    });
+    expect(scopeMock.mock.calls[0]![0]).toEqual({
+      kind: SecurityConnectionKind.CloudResource,
+      id: RECORD_ID,
+    });
+    expect(viewer).toHaveAttribute("data-chip-key", "Cloud Resource");
+    expect(viewer).toHaveAttribute("data-chip-value", "payments");
+    expect(viewer).toHaveAttribute("data-chip-read-only", "true");
+  });
+
+  test("an S3 bucket's starts with its account's audit log, then its data events: it sends no logs of its own", async () => {
+    const empty: HTMLElement = await renderedEmptyState();
+    const steps: Array<HTMLElement> = within(empty).getAllByRole("listitem");
+
+    expect(empty).toHaveAttribute(
+      "data-kind",
+      SecurityConnectionKind.CloudResource,
+    );
+    expect(empty).toHaveTextContent(
+      "No security events about this cloud resource yet",
+    );
+    expect(empty).toHaveTextContent(
+      RESOURCE_SECURITY_EVENTS_WHAT_LANDS_HERE[
+        SecurityConnectionKind.CloudResource
+      ]!,
+    );
+    expect(stepIds(steps)).toEqual([
+      stepId("cloud-audit-logs"),
+      stepId("cloudtrail-data-events"),
+    ]);
+    expect(
+      await within(steps[0]!).findByText("Turn on Cloud audit logs", {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
+    // Read, and off: asked for, not said to be on.
+    await waitFor(() => {
+      expect(
+        within(empty).getByTestId(stepId("cloud-audit-logs")),
+      ).toHaveAttribute("data-state", "off");
+    });
+    expect(steps[1]).toHaveTextContent(
+      "deliver a CloudTrail trail to CloudWatch Logs",
+    );
+    // The data events' trail is set up on Cloud's Connect page.
+    expect(within(steps[1]!).getByRole("link")).toHaveAttribute(
+      "href",
+      expect.stringContaining("/cloud/connect"),
+    );
+  });
+
+  test("with Cloud audit logs on already, it says so rather than asking for it", async () => {
+    stubSources({ cloudAudit: { isEnabled: true } });
+
+    const empty: HTMLElement = await renderedEmptyState();
+    const step: HTMLElement = within(empty).getByTestId(
+      stepId("cloud-audit-logs"),
+    );
+
+    expect(
+      await within(step).findByText("Cloud audit logs is on", {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
+    expect(step).toHaveAttribute("data-state", "on");
+  });
+
+  test("reads the project's Cloud audit logs source for the step, and no Traces", async () => {
+    await renderedEmptyState();
+
+    expect(telemetrySourceKindsRead()).toEqual([
+      SecurityTelemetrySourceKind.CloudAudit,
+    ]);
+  });
+
+  test("an Azure key vault's: its Activity Log, then Your logs - and no CloudTrail step", async () => {
+    stubRecord({
+      cloudProvider: "azure",
+      cloudResourceType: "Microsoft.KeyVault/vaults",
+      providerResourceId: VAULT_ID,
+    });
+
+    const empty: HTMLElement = await renderedEmptyState();
+
+    expect(stepIds(within(empty).getAllByRole("listitem"))).toEqual([
+      stepId("cloud-audit-logs"),
+      stepId("your-logs"),
+    ]);
+  });
+
+  test("a Lambda function's resource: its audit log, Your logs, then its data events", async () => {
+    stubRecord({
+      cloudProvider: "aws",
+      cloudResourceType: "AWS::Lambda::Function",
+      providerResourceId:
+        "arn:aws:lambda:us-east-1:111122223333:function:checkout",
+    });
+
+    const empty: HTMLElement = await renderedEmptyState();
+
+    expect(stepIds(within(empty).getAllByRole("listitem"))).toEqual([
+      stepId("cloud-audit-logs"),
+      stepId("your-logs"),
+      stepId("cloudtrail-data-events"),
+    ]);
+  });
+
+  test("a resource kept by a stand-in no audit record names is read by its own logs: no audit-log step", async () => {
+    stubRecord({
+      cloudProvider: "aws",
+      cloudResourceType: "AWS::DocDB::DBCluster",
+      providerResourceId: "AWS/DocDB DBClusterIdentifier=orders",
+    });
+
+    const empty: HTMLElement = await renderedEmptyState();
+
+    expect(empty).toHaveTextContent(CLOUD_RESOURCE_WITHOUT_ID_LANDS_HERE);
+    expect(stepIds(within(empty).getAllByRole("listitem"))).toEqual([
+      stepId("your-logs"),
+    ]);
+    expect(telemetrySourceKindsRead()).toEqual([]);
+  });
+
+  test("one reached only by the name it answers on lists no step: nothing is to be turned on", async () => {
+    stubRecord({
+      cloudProvider: "aws",
+      cloudResourceType: "AWS::AmazonMQ::Broker",
+      providerResourceId: "AWS/AmazonMQ Broker=orders",
+      cloudEndpoints: ["b-1234.mq.us-east-1.amazonaws.com"],
+    });
+
+    const empty: HTMLElement = await renderedEmptyState();
+
+    expect(empty).toHaveTextContent(CLOUD_RESOURCE_WITHOUT_ID_LANDS_HERE);
+    expect(within(empty).queryAllByRole("listitem")).toEqual([]);
+  });
+
+  test("a resource no event can reach says why, and asks for no scope", async () => {
+    stubRecord({
+      cloudProvider: "aws",
+      cloudResourceType: "AWS::AmazonMQ::Broker",
+      providerResourceId: "AWS/AmazonMQ Broker=orders",
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(CLOUD_RESOURCE_NO_SECURITY_EVENTS_TITLE),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(CLOUD_RESOURCE_NO_SECURITY_EVENTS_DESCRIPTION),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("security-events-viewer-stub")).toBeNull();
+    expect(scopeMock).not.toHaveBeenCalled();
+  });
+
+  test("a resource that cannot be read says so, and asks for no scope", async () => {
+    getItemMock.mockRejectedValue(
+      new Error("You do not have permission to read this resource."),
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        "You do not have permission to read this resource.",
+        { exact: false },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("security-events-viewer-stub")).toBeNull();
+    expect(scopeMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A SERVERLESS FUNCTION'S SECURITY EVENTS PAGE (#9780): the shared page,
+ * handed the function. Its own logs and traces bring its events; its
+ * cloud's audit log does too once its telemetry says the account and the
+ * Region its ID holds - and until then the page says what to set. An
+ * Azure function's ID holds a resource group no telemetry reports: its
+ * logs and traces alone.
+ */
+describe("a serverless function's Security Events page", () => {
+  beforeEach(() => {
+    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
+    scopeMock.mockResolvedValue({
+      kind: SecurityConnectionKind.ServerlessFunction,
+      id: RECORD_ID.toString(),
+      name: "checkout",
+      values: ["arn:aws:lambda:us-east-1:111122223333:function:checkout"],
+      isSearchedByLogs: false,
+      scope: {
+        observables: [
+          "arn:aws:lambda:us-east-1:111122223333:function:checkout",
+        ],
+        attributeKey: "oneuptime.log.faas.name",
+        attributeValues: ["checkout"],
+      },
+    } as never);
+    stubSources({});
+    stubRecord({
+      functionIdentifier: "checkout",
+      cloudProvider: "aws",
+      cloudPlatform: FaasCloudPlatform.AwsLambda,
+      cloudRegion: "us-east-1",
+      cloudAccountId: "111122223333",
+    });
+  });
+
+  function renderPage(): void {
+    render(
+      <MemoryRouter>
+        <ServerlessFunctionSecurityEvents
+          pageRoute={
+            RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS] as Route
+          }
+          currentProject={project()}
+          hasPaymentMethod={true}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  async function renderedEmptyState(): Promise<HTMLElement> {
+    renderPage();
+
+    const viewer: HTMLElement = await screen.findByTestId(
+      "security-events-viewer-stub",
+    );
+
+    return within(viewer).getByTestId(RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID);
+  }
+
+  test("asks for the function's scope, and names it on a locked chip", async () => {
+    renderPage();
+
+    const viewer: HTMLElement = await screen.findByTestId(
+      "security-events-viewer-stub",
+    );
+
+    expect(scopeMock.mock.calls[0]![0]).toEqual({
+      kind: SecurityConnectionKind.ServerlessFunction,
+      id: RECORD_ID,
+    });
+    expect(viewer).toHaveAttribute("data-chip-key", "Serverless Function");
+    expect(viewer).toHaveAttribute("data-chip-value", "checkout");
+    expect(viewer).toHaveAttribute(
+      "data-chip-summary",
+      "The security events about it: read from its own logs and traces, or naming it.",
+    );
+  });
+
+  test("a Lambda function its telemetry names in full: Your logs, Traces, then its account's audit log", async () => {
+    const empty: HTMLElement = await renderedEmptyState();
+    const steps: Array<HTMLElement> = within(empty).getAllByRole("listitem");
+
+    expect(empty).toHaveTextContent(
+      "No security events about this function yet",
+    );
+    expect(empty).toHaveTextContent("whatever service they are filed under");
+    expect(stepIds(steps)).toEqual([
+      stepId("your-logs"),
+      stepId("traces"),
+      stepId("cloud-audit-logs"),
+    ]);
+    expect(
+      await within(steps[1]!).findByText(
+        "to read the requests this function answers",
+        { exact: false },
+      ),
+    ).toBeInTheDocument();
+    expect(telemetrySourceKindsRead().sort()).toEqual(
+      [
+        SecurityTelemetrySourceKind.Traces,
+        SecurityTelemetrySourceKind.CloudAudit,
+      ].sort(),
+    );
+  });
+
+  test("a Lambda function whose telemetry reports no account is told what to set", async () => {
+    stubRecord({
+      functionIdentifier: "checkout",
+      cloudProvider: "aws",
+      cloudPlatform: FaasCloudPlatform.AwsLambda,
+      cloudRegion: "us-east-1",
+    });
+
+    const empty: HTMLElement = await renderedEmptyState();
+    const steps: Array<HTMLElement> = within(empty).getAllByRole("listitem");
+
+    expect(stepIds(steps)).toEqual([
+      stepId("your-logs"),
+      stepId("traces"),
+      stepId("function-account"),
+    ]);
+    expect(steps[2]).toHaveTextContent(FUNCTION_ACCOUNT_STEP);
+    // Its audit log cannot name it yet: Cloud audit logs is not read.
+    expect(telemetrySourceKindsRead()).toEqual([
+      SecurityTelemetrySourceKind.Traces,
+    ]);
+  });
+
+  test("an Azure function's: its logs and traces alone, and nothing to set", async () => {
+    stubRecord({
+      functionIdentifier: "orders-func",
+      cloudProvider: "azure",
+      cloudPlatform: FaasCloudPlatform.AzureFunctions,
+      cloudRegion: "westeurope",
+      cloudAccountId: "00000000-0000-4000-8000-000000000000",
+    });
+
+    const empty: HTMLElement = await renderedEmptyState();
+
+    expect(stepIds(within(empty).getAllByRole("listitem"))).toEqual([
+      stepId("your-logs"),
+      stepId("traces"),
+    ]);
+  });
+
+  test("with Traces on already, it says so rather than asking for it", async () => {
+    stubSources({ traces: { isEnabled: true } });
+
+    const empty: HTMLElement = await renderedEmptyState();
+    const step: HTMLElement = within(empty).getByTestId(stepId("traces"));
+
+    expect(
+      await within(step).findByText("Traces is on", { exact: false }),
+    ).toBeInTheDocument();
+    expect(step).toHaveAttribute("data-state", "on");
+  });
+
+  test("a function that cannot be read says so, and asks for no scope", async () => {
+    getItemMock.mockResolvedValue(null as never);
+
+    renderPage();
+
+    expect(
+      await screen.findByText(RESOURCE_SECURITY_EVENTS_READ_FAILED, {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
+    expect(scopeMock).not.toHaveBeenCalled();
   });
 });
