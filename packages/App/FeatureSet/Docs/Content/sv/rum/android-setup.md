@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-Appens telemetri stannar hos dess RUM-applikation, och enheten blir inte en värd i **Värdar**: En app rapporterar inga värdmätvärden, så det skulle inte finnas något att visa där. Enhetens sida i **Inventarie** visar dess egna loggar, spår och undantag, och `@resource.host.name:` hittar dem i **Spår** och **Loggar**. En enhet som inte skickar något på 30 dagar försvinner från **Inventarie**.
+Appens telemetri stannar hos dess RUM-applikation, och enheten blir inte en värd i **Värdar**: En app rapporterar inga värdmätvärden, så det skulle inte finnas något att visa där. Enhetens sida i **Inventarie** visar dess egna loggar, spår och undantag, och `@resource.host.name:` hittar dem i **Spår** och **Loggar**. En enhet som inte skickar något på 30 dagar försvinner från **Inventarie**. För att se själva enheten, dess minne, lagring och omstarter och krascherna i alla appar på den, lägger du till [Android-agent](/docs/telemetry/android-agent) och ger den samma namn i dess `device_name`: Enheten blir då också en värd i **Värdar**, och är fortfarande en enda post i **Inventarie**.
 
 ### Konfigurera flottan från din MDM
 
@@ -281,6 +281,7 @@ Bara en enhet vars app sätter `host.name` listas. Kontrollera värdet i ett spa
 
 :::cards
 - [Mobilkonfiguration](/docs/rum/mobile-setup): iOS, React Native och de andra plattformarna.
+- [Android-agent](/docs/telemetry/android-agent): Övervaka själva enheten: dess hälsa, omstarter, installerade appar och alla appars krascher.
 - [Undantag](/docs/telemetry/exceptions): Triagera de krascher och ANR:er som din app rapporterar.
 - [Spårutforskare](/docs/telemetry/traces-explorer): Följ en beställning från kiosken till köket.
 - [Hantera applikationer](/docs/rum/applications): Namn, etiketter, ägare och lagring.
