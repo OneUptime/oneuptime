@@ -32,7 +32,7 @@
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` 顯示記錄在 OneUptime 中的樣子，包括它的 `id`。你沒有設定、而由 OneUptime 填入的欄位（例如預設值），會在記錄建立後複製到 `spec.forProvider` 中，這樣下一次檢查就不會發現需要變更的內容。
+`status.atProvider` 顯示記錄在 OneUptime 中的樣子，包括它的 `id`。你沒有設定、而由 OneUptime 填入的欄位（例如預設值），會在記錄建立後複製到 `spec.forProvider` 中，這樣下一次檢查就不會發現需要變更的內容。但 OneUptime 自己持續更新的欄位永遠不會被複製過去，請參閱 [OneUptime 持續更新的欄位](#oneuptime-持續更新的欄位)。
 
 ## 參照其他資源
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-若要在記錄建立後把某個欄位交給儀表板管理，請把它寫在 `spec.initProvider` 而不是 `spec.forProvider` 中：它只用於建立記錄，之後不會被改回。若要把整筆記錄交給儀表板管理，請從它的管理策略中拿掉 `Update`：`["Observe", "Create", "Delete", "LateInitialize"]`。
+若要在記錄建立後把某個欄位交給儀表板管理，請把它寫在 `spec.initProvider` 而不是 `spec.forProvider` 中：記錄會用它建立，提供者既不會把它複製到 `spec.forProvider`，也從不把它改回。這適用於每個選用欄位；記錄必要的欄位，例如監測器的 `name`，則應寫在 `spec.forProvider` 中。若要把整筆記錄交給儀表板管理，請從它的管理策略中拿掉 `Update`：`["Observe", "Create", "Delete", "LateInitialize"]`。
+
+### OneUptime 持續更新的欄位
+
+有些欄位由 OneUptime 負責持續更新，提供者把它們交給 OneUptime：從不把它們複製到 `spec.forProvider`，也從不把它們改回。
+
+- 只有 OneUptime 才會寫入的欄位，例如遙測監測器上次執行的時間（`telemetryMonitorLastMonitorAt`）或 Kubernetes 叢集的節點數（`nodeCount`），只會出現在 `status.atProvider` 中。
+- 可以指定記錄初始值的欄位，例如監測器的 `currentMonitorStatusId` 或事件的 `currentIncidentStateId`，可在建立記錄時寫在 `spec.initProvider` 或 `spec.forProvider` 中。此後 OneUptime 會改變它，就像監測器的檢查會改變監測器的狀態那樣；`status.atProvider` 顯示它目前的值。
+
+`kubectl explain` 會在每個可以指定初始值的欄位的說明中註明這一點。如果舊版的提供者曾把這些欄位填入某個資源的 `spec.forProvider`，該資源會自動不再與 OneUptime 衝突，你不需要修改任何內容。
 
 ## 刪除資源
 
