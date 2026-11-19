@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "네, 이해하기 쉬웠어요",
   "No, it was not clear": "아니요, 명확하지 않았어요",
   "Thanks for telling us.": "알려 주셔서 감사합니다.",
+  "Thanks for your answer.": "답변해 주셔서 감사합니다.",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" 파일이 {{size}} 제한을 초과합니다.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "다음 파일이 {{size}} 제한을 초과합니다: {{fileNames}}.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\"은(는) 이 필드에서 받지 않는 파일 형식입니다.",

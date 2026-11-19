@@ -2798,6 +2798,7 @@
   "Yes, it was clear": "是的，很清楚",
   "No, it was not clear": "不，不夠清楚",
   "Thanks for telling us.": "感謝你告訴我們。",
+  "Thanks for your answer.": "感謝你的回答。",
   "\"{{fileName}}\" exceeds the {{size}} limit.": "「{{fileName}}」超過了 {{size}} 的上限。",
   "These files exceed the {{size}} limit: {{fileNames}}.": "以下檔案超過了 {{size}} 的上限：{{fileNames}}。",
   "\"{{fileName}}\" is not a type of file this field takes.": "「{{fileName}}」不是此欄位接受的檔案類型。",
