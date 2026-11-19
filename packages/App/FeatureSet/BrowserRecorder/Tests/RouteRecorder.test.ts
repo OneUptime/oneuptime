@@ -266,15 +266,33 @@ describe("RouteRecorder", (): void => {
       );
     });
 
-    it("scrubs a hash route on its own", (): void => {
-      expect(
-        RouteRecorder.scrubHashRoute("https://x.test/#/u/alice@example.com"),
-      ).toBe("#/u/[redacted]");
-      expect(RouteRecorder.scrubHashRoute("https://x.test/#/a?b=c")).toBe(
-        "#/a",
+    /*
+     * The recorder keeps a hash route by UrlScrubber's rule, the one the
+     * ingest stores every URL by (issue #8019: RouteRecorder carried its
+     * own copy of this for its tests alone, bytes every page paid for).
+     */
+    it("scrubs a hash route by UrlScrubber's rule", (): void => {
+      expect(UrlScrubber.scrubHashRoute("#/u/alice@example.com")).toBe(
+        "#/u/[redacted]",
       );
-      expect(RouteRecorder.scrubHashRoute("https://x.test/#top")).toBe("");
-      expect(RouteRecorder.scrubHashRoute("https://x.test/")).toBe("");
+      expect(UrlScrubber.scrubHashRoute("#/a?b=c")).toBe("#/a");
+      expect(UrlScrubber.scrubHashRoute("#!/settings")).toBe("#!/settings");
+      expect(UrlScrubber.scrubHashRoute("#top")).toBe("");
+      expect(UrlScrubber.scrubHashRoute("")).toBe("");
+
+      window.history.pushState({}, "", "/app#/u/alice@example.com?x=1");
+
+      expect(recorder.getCurrentUrl()).toBe(
+        `https://shop.example.com/app${UrlScrubber.scrubHashRoute(
+          "#/u/alice@example.com?x=1",
+        )}`,
+      );
+    });
+
+    it("has no copy of the hash route scrub of its own", (): void => {
+      expect(
+        (RouteRecorder as unknown as Record<string, unknown>)["scrubHashRoute"],
+      ).toBeUndefined();
     });
   });
 

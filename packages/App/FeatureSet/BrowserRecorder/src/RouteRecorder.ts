@@ -1,5 +1,3 @@
-import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
-
 /*
  * SPA route changes.
  *
@@ -299,20 +297,6 @@ export default class RouteRecorder {
    */
   private describe(rawUrl: string): string {
     return this.options.scrubUrl(rawUrl);
-  }
-
-  /*
-   * `#/orders/42?token=x` -> `#/orders/42`, with identifier-shaped segments
-   * redacted exactly as a real path's would be. Empty for a URL whose
-   * fragment is an in-page anchor or absent. UrlScrubber's rule, the one
-   * every stored URL is scrubbed with.
-   */
-  public static scrubHashRoute(rawUrl: string): string {
-    const hashIndex: number = rawUrl.indexOf("#");
-
-    return hashIndex === -1
-      ? ""
-      : UrlScrubber.scrubHashRoute(rawUrl.slice(hashIndex));
   }
 
   /*
