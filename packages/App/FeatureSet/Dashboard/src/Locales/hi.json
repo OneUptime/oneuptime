@@ -57714,5 +57714,18 @@
   "{{kind}} at {{time}}: {{title}}": "{{time}} पर {{kind}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (बजट {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} रद्द {{path}}",
-  "{{method}} failed {{path}}": "{{method}} विफल {{path}}"
+  "{{method}} failed {{path}}": "{{method}} विफल {{path}}",
+  "Any status page that starts showing this episode shows this note too, without notifying its subscribers.": "जो भी स्थिति पृष्ठ यह एपिसोड दिखाना शुरू करेगा, वह अपने सब्सक्राइबर को सूचित किए बिना यह नोट भी दिखाएगा।",
+  "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.": "जो भी स्थिति पृष्ठ यह रखरखाव इवेंट दिखाना शुरू करेगा, वह अपने सब्सक्राइबर को सूचित किए बिना यह नोट भी दिखाएगा।",
+  "No monitors are attached to the incidents in this episode. Subscribers hear about an episode through the monitors their status pages list.": "इस एपिसोड की घटनाओं से कोई मॉनिटर जुड़ा नहीं है। सब्सक्राइबर को किसी एपिसोड की जानकारी उन मॉनिटर से मिलती है जिन्हें उनके स्थिति पृष्ठ सूचीबद्ध करते हैं।",
+  "No status page shows this episode yet": "अभी कोई स्थिति पृष्ठ इस एपिसोड को नहीं दिखाता",
+  "No status page shows this episode yet.": "अभी कोई स्थिति पृष्ठ इस एपिसोड को नहीं दिखाता।",
+  "No status page shows this incident yet": "अभी कोई स्थिति पृष्ठ इस घटना को नहीं दिखाता",
+  "No status page shows this maintenance event yet": "अभी कोई स्थिति पृष्ठ इस रखरखाव इवेंट को नहीं दिखाता",
+  "No status page shows this maintenance event yet.": "अभी कोई स्थिति पृष्ठ इस रखरखाव इवेंट को नहीं दिखाता।",
+  "The status pages that show this episode do not send notifications to their subscribers.": "इस एपिसोड को दिखाने वाले स्थिति पृष्ठ अपने सब्सक्राइबरों को सूचनाएं नहीं भेजते।",
+  "The status pages that show this maintenance event do not send notifications to their subscribers.": "इस रखरखाव इवेंट को दिखाने वाले स्थिति पृष्ठ अपने सब्सक्राइबरों को सूचनाएं नहीं भेजते।",
+  "This episode is hidden from status pages.": "यह एपिसोड स्थिति पृष्ठों से छिपा है।",
+  "This maintenance event is hidden from status pages.": "यह रखरखाव इवेंट स्थिति पृष्ठों से छिपा है।",
+  "This maintenance event is not published on status pages yet.": "यह रखरखाव इवेंट अभी स्थिति पृष्ठों पर प्रकाशित नहीं हुआ है।"
 }

@@ -57714,5 +57714,18 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} à {{time}} : {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (budget : {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} annulée {{path}}",
-  "{{method}} failed {{path}}": "{{method}} en échec {{path}}"
+  "{{method}} failed {{path}}": "{{method}} en échec {{path}}",
+  "Any status page that starts showing this episode shows this note too, without notifying its subscribers.": "Toute page de statut qui commence à afficher cet épisode affiche aussi cette note, sans notifier ses abonnés.",
+  "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.": "Toute page de statut qui commence à afficher cet événement de maintenance affiche aussi cette note, sans notifier ses abonnés.",
+  "No monitors are attached to the incidents in this episode. Subscribers hear about an episode through the monitors their status pages list.": "Aucun moniteur n'est associé aux incidents de cet épisode. Les abonnés sont informés d'un épisode par les moniteurs que répertorient leurs pages de statut.",
+  "No status page shows this episode yet": "Aucune page de statut n'affiche encore cet épisode",
+  "No status page shows this episode yet.": "Aucune page de statut n'affiche encore cet épisode.",
+  "No status page shows this incident yet": "Aucune page de statut n'affiche encore cet incident",
+  "No status page shows this maintenance event yet": "Aucune page de statut n'affiche encore cet événement de maintenance",
+  "No status page shows this maintenance event yet.": "Aucune page de statut n'affiche encore cet événement de maintenance.",
+  "The status pages that show this episode do not send notifications to their subscribers.": "Les pages de statut qui affichent cet épisode n'envoient pas de notifications à leurs abonnés.",
+  "The status pages that show this maintenance event do not send notifications to their subscribers.": "Les pages de statut qui affichent cet événement de maintenance n'envoient pas de notifications à leurs abonnés.",
+  "This episode is hidden from status pages.": "Cet épisode est masqué sur les pages de statut.",
+  "This maintenance event is hidden from status pages.": "Cet événement de maintenance est masqué sur les pages de statut.",
+  "This maintenance event is not published on status pages yet.": "Cet événement de maintenance n'est pas encore publié sur les pages de statut."
 }

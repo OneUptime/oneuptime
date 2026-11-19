@@ -57714,5 +57714,18 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} at {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (budget {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} cancelled {{path}}",
-  "{{method}} failed {{path}}": "{{method}} failed {{path}}"
+  "{{method}} failed {{path}}": "{{method}} failed {{path}}",
+  "Any status page that starts showing this episode shows this note too, without notifying its subscribers.": "Any status page that starts showing this episode shows this note too, without notifying its subscribers.",
+  "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.": "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.",
+  "No monitors are attached to the incidents in this episode. Subscribers hear about an episode through the monitors their status pages list.": "No monitors are attached to the incidents in this episode. Subscribers hear about an episode through the monitors their status pages list.",
+  "No status page shows this episode yet": "No status page shows this episode yet",
+  "No status page shows this episode yet.": "No status page shows this episode yet.",
+  "No status page shows this incident yet": "No status page shows this incident yet",
+  "No status page shows this maintenance event yet": "No status page shows this maintenance event yet",
+  "No status page shows this maintenance event yet.": "No status page shows this maintenance event yet.",
+  "The status pages that show this episode do not send notifications to their subscribers.": "The status pages that show this episode do not send notifications to their subscribers.",
+  "The status pages that show this maintenance event do not send notifications to their subscribers.": "The status pages that show this maintenance event do not send notifications to their subscribers.",
+  "This episode is hidden from status pages.": "This episode is hidden from status pages.",
+  "This maintenance event is hidden from status pages.": "This maintenance event is hidden from status pages.",
+  "This maintenance event is not published on status pages yet.": "This maintenance event is not published on status pages yet."
 }

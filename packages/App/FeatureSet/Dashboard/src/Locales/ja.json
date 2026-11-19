@@ -57714,5 +57714,18 @@
   "{{kind}} at {{time}}: {{title}}": "{{time}} の {{kind}}：{{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}}（予算 {{duration}}）",
   "{{method}} cancelled {{path}}": "{{method}} キャンセル {{path}}",
-  "{{method}} failed {{path}}": "{{method}} 失敗 {{path}}"
+  "{{method}} failed {{path}}": "{{method}} 失敗 {{path}}",
+  "Any status page that starts showing this episode shows this note too, without notifying its subscribers.": "このエピソードを表示し始めたステータスページには、このメモも表示されますが、購読者には通知されません。",
+  "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.": "このメンテナンスイベントを表示し始めたステータスページには、このメモも表示されますが、購読者には通知されません。",
+  "No monitors are attached to the incidents in this episode. Subscribers hear about an episode through the monitors their status pages list.": "このエピソード内のインシデントにはモニターが関連付けられていません。購読者は、ステータスページに掲載されたモニターを通じてエピソードを知ります。",
+  "No status page shows this episode yet": "このエピソードを表示しているステータスページはまだありません",
+  "No status page shows this episode yet.": "このエピソードを表示しているステータスページはまだありません。",
+  "No status page shows this incident yet": "このインシデントを表示しているステータスページはまだありません",
+  "No status page shows this maintenance event yet": "このメンテナンスイベントを表示しているステータスページはまだありません",
+  "No status page shows this maintenance event yet.": "このメンテナンスイベントを表示しているステータスページはまだありません。",
+  "The status pages that show this episode do not send notifications to their subscribers.": "このエピソードを表示するステータスページは、購読者に通知を送信しません。",
+  "The status pages that show this maintenance event do not send notifications to their subscribers.": "このメンテナンスイベントを表示するステータスページは、購読者に通知を送信しません。",
+  "This episode is hidden from status pages.": "このエピソードはステータスページで非表示になっています。",
+  "This maintenance event is hidden from status pages.": "このメンテナンスイベントはステータスページで非表示になっています。",
+  "This maintenance event is not published on status pages yet.": "このメンテナンスイベントはまだステータスページに公開されていません。"
 }

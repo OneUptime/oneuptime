@@ -57714,5 +57714,18 @@
   "{{kind}} at {{time}}: {{title}}": "{{kind}} ved {{time}}: {{title}}",
   "{{measure}} (budget {{duration}})": "{{measure}} (budsjett {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} avbrutt {{path}}",
-  "{{method}} failed {{path}}": "{{method}} mislyktes {{path}}"
+  "{{method}} failed {{path}}": "{{method}} mislyktes {{path}}",
+  "Any status page that starts showing this episode shows this note too, without notifying its subscribers.": "Enhver statusside som begynner å vise denne episoden, viser også dette notatet, uten å varsle abonnentene sine.",
+  "Any status page that starts showing this maintenance event shows this note too, without notifying its subscribers.": "Enhver statusside som begynner å vise denne vedlikeholdshendelsen, viser også dette notatet, uten å varsle abonnentene sine.",
+  "No monitors are attached to the incidents in this episode. Subscribers hear about an episode through the monitors their status pages list.": "Ingen monitorer er knyttet til hendelsene i denne episoden. Abonnenter får vite om en episode gjennom monitorene statussidene deres viser.",
+  "No status page shows this episode yet": "Ingen statusside viser denne episoden ennå",
+  "No status page shows this episode yet.": "Ingen statusside viser denne episoden ennå.",
+  "No status page shows this incident yet": "Ingen statusside viser denne hendelsen ennå",
+  "No status page shows this maintenance event yet": "Ingen statusside viser denne vedlikeholdshendelsen ennå",
+  "No status page shows this maintenance event yet.": "Ingen statusside viser denne vedlikeholdshendelsen ennå.",
+  "The status pages that show this episode do not send notifications to their subscribers.": "Statussidene som viser denne episoden, sender ikke varslinger til abonnentene sine.",
+  "The status pages that show this maintenance event do not send notifications to their subscribers.": "Statussidene som viser denne vedlikeholdshendelsen, sender ikke varslinger til abonnentene sine.",
+  "This episode is hidden from status pages.": "Denne episoden er skjult på statussider.",
+  "This maintenance event is hidden from status pages.": "Denne vedlikeholdshendelsen er skjult på statussider.",
+  "This maintenance event is not published on status pages yet.": "Denne vedlikeholdshendelsen er ikke publisert på statussider ennå."
 }

@@ -69,6 +69,15 @@ import NotesReads, { NotesRead } from "./NotesReads";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
+import {
+  getPublicNotesCopyForReach,
+  getUpdateNotifyDescriptions,
+  NotifyDescriptions,
+} from "./PublicNoteReachCopy";
+import usePublicNoteReach, {
+  PublicNoteReachRequest,
+  PublicNoteReachState,
+} from "./usePublicNoteReach";
 import usePublicNoteApproval, {
   UsePublicNoteApprovalResult,
 } from "./PublicNoteApproval/usePublicNoteApproval";
@@ -167,6 +176,37 @@ function EventNotes<TNote extends BaseModel>(
    * description, the audience of a note being edited and what deleting one
    * does are a private event's own (getPrivateEventPublicNotesCopy).
    */
+  /*
+   * What the viewer holds, blocks included - on a private record's page,
+   * what they hold on the record: its notes are written, changed and
+   * removed only by a team of theirs that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+  const heldPermissions: HeldPermissions =
+    PermissionGate.getHeldPermissions(privateRecordOptions);
+  const isMasterAdmin: boolean = User.isMasterAdmin();
+
+  /*
+   * Whether a status page shows the event, and whether a note notifies
+   * anyone (usePublicNoteReach), asked once for the page: the composer, a
+   * note being edited and the delete dialog all say it. Only where a reader
+   * writes or edits a public note - a private event's say their own words.
+   */
+  const mayWritePublicNotes: boolean =
+    PermissionGate.check(model, ModelAction.Create, privateRecordOptions)
+      .isAllowed ||
+    PermissionGate.check(model, ModelAction.Update, privateRecordOptions)
+      .isAllowed;
+  const reachRequest: PublicNoteReachRequest | null =
+    isPublic && !isPrivateEvent && props.statusPageReach && mayWritePublicNotes
+      ? {
+          apiPath: props.statusPageReach.apiPath,
+          eventId: props.parentId,
+        }
+      : null;
+  const reach: PublicNoteReachState = usePublicNoteReach(reachRequest);
+
   const visibilityCopy: NotesCopy = getNotesCopy(
     props.visibility,
     props.eventNoun,
@@ -179,20 +219,22 @@ function EventNotes<TNote extends BaseModel>(
           props.eventNoun,
           translator,
         )
-      : visibilityCopy),
+      : isPublic
+        ? /*
+           * Beside "Public" on a note being edited, and in the delete
+           * dialog: a status page only where one shows the event
+           * (PublicNoteReachCopy).
+           */
+          getPublicNotesCopyForReach({
+            copy: visibilityCopy,
+            eventNoun: props.eventNoun,
+            reach: reach.reach,
+            translator: translator,
+          })
+        : visibilityCopy),
     // The kind's own words for what its notes are for, where it has them.
     ...(props.description ? { description: props.description } : {}),
   };
-  /*
-   * What the viewer holds, blocks included - on a private record's page,
-   * what they hold on the record: its notes are written, changed and
-   * removed only by a team of theirs that owns it (PrivateRecordScope).
-   */
-  const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
-  const heldPermissions: HeldPermissions =
-    PermissionGate.getHeldPermissions(privateRecordOptions);
-  const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string, action: "create" | "update") => boolean = (
     column: string,
@@ -1046,13 +1088,21 @@ function EventNotes<TNote extends BaseModel>(
     await approval.refresh();
   };
 
+  /*
+   * Ticked, who gets the edited note - or why nobody does, as the composer
+   * says it of a new one (PublicNoteReachCopy).
+   */
+  const updateNotifyDescriptions: NotifyDescriptions =
+    getUpdateNotifyDescriptions({
+      eventNoun: props.eventNoun,
+      reach: reach.reach,
+    });
+
   const updateNotifyOption: NotifyOption | undefined = canNotifyAboutEdit
     ? {
         title: SubscriberUpdateNotification.formFieldTitle,
-        checkedDescription:
-          "Subscribers will receive the edited note, marked as an update.",
-        uncheckedDescription:
-          "Leave this unticked for small fixes such as typos.",
+        checkedDescription: updateNotifyDescriptions.checked,
+        uncheckedDescription: updateNotifyDescriptions.unchecked,
       }
     : undefined;
 
@@ -1483,6 +1533,8 @@ function EventNotes<TNote extends BaseModel>(
           isOpen: isComposerOpen,
           onOpenChange: setIsComposerOpen,
         }}
+        // Asked once, above, for the composer and the notes alike.
+        statusPageReach={reachRequest ? reach : undefined}
         onPosted={async () => {
           await refresh();
           await approval.refresh();
