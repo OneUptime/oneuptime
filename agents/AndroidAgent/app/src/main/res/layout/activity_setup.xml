@@ -9,7 +9,6 @@
     android:id="@+id/scroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:clipToPadding="false"
     android:fillViewport="true">
 
     <!-- SetupActivity widens the side padding on a wide screen, so the form stays a readable width. -->
@@ -134,7 +133,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:autofillHints=""
-            android:fontFamily="monospace"
             android:imeOptions="actionNext"
             android:inputType="textPassword" />
 

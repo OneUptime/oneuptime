@@ -109,7 +109,8 @@ object ManagedConfigParser {
     const val MIN_INTERVAL_SECONDS: Int = 30
     const val MAX_INTERVAL_SECONDS: Int = 600
 
-    private val PLACEHOLDER: Regex = Regex("""\$\{[^}]*}""")
+    // Both braces escaped: Android's regex engine (ICU) refuses a bare "}", which the JVM's accepts.
+    private val PLACEHOLDER: Regex = Regex("""\$\{[^}]*\}""")
 
     fun parse(values: Map<String, Any?>): ManagedSettings {
         val problems: MutableList<ConfigProblem> = mutableListOf()

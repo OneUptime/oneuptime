@@ -57,7 +57,7 @@
     <style name="AgentField">
         <item name="android:background">@drawable/bg_field</item>
         <item name="android:textColor">@color/text_primary</item>
-        <item name="android:textColorHint">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_hint</item>
         <item name="android:textSize">15sp</item>
         <item name="android:paddingStart">14dp</item>
         <item name="android:paddingEnd">14dp</item>

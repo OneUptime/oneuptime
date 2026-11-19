@@ -8,6 +8,7 @@
     <color name="outline">#FF374151</color>
     <color name="text_primary">#FFF9FAFB</color>
     <color name="text_secondary">#FF9CA3AF</color>
+    <color name="text_hint">#FF6B7280</color>
     <color name="accent">#FF818CF8</color>
     <color name="accent_pressed">#FF6366F1</color>
     <color name="on_accent">#FF0B0F19</color>

@@ -3,6 +3,7 @@ package com.oneuptime.androidagent.ui
 import android.app.Activity
 import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -95,6 +96,8 @@ class SetupActivity : Activity() {
         findViewById<TextView>(R.id.version).text = getString(R.string.setup_version, BuildConfig.VERSION_NAME)
 
         layOutEdgeToEdge()
+        // Android sets a password field in monospace, its hint too: keep the screen's one typeface.
+        token.typeface = Typeface.DEFAULT
         fillForm(runtime.configRepository.load())
         save.setOnClickListener { saveSettings() }
 
@@ -200,6 +203,8 @@ class SetupActivity : Activity() {
         statusDetail.text = status.detail
         statusDot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, colorFor(status.health)))
 
+        // Not set up, the headline already says nothing is sent: no second line saying it again.
+        statusLastReport.visibility = if (status.health == Health.NOT_SET_UP) View.GONE else View.VISIBLE
         val lastSuccess: Long? = runtime.uploader.status.lastSuccessAtMillis
         val lastReport: String =
             if (lastSuccess != null) {
