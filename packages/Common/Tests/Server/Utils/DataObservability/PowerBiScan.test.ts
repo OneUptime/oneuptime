@@ -1036,11 +1036,20 @@ describe("Power BI's reader, scanning only what changed", () => {
     expect(fake.scanned).toEqual([["sales", "finance"]]);
     expect(reportNames(read)).toEqual(["Pipeline", "Budget"]);
     expect(read.readState).toMatchObject({
-      version: 1,
+      version: 2,
       scannedFrom: START.toISOString(),
       fullScanAt: START.toISOString(),
       pendingWorkspaceIds: [],
+      hasEveryWorkspace: true,
     });
+    // Each workspace with when its scan started: how old it is, for the daily read (#9901).
+    expect(
+      (read.readState!["workspaces"] as Array<JSONObject>).map(
+        (workspace: JSONObject): unknown => {
+          return workspace["scannedAt"];
+        },
+      ),
+    ).toEqual([START.toISOString(), START.toISOString()]);
   });
 
   test("the next asks only for what changed since a half hour before the last read began, and keeps the rest", async () => {

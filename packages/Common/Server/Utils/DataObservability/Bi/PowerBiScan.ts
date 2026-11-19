@@ -91,6 +91,18 @@ export interface PowerBiDataflowRead {
   sources: Array<DataBiSource>;
 }
 
+/*
+ * What a trimmed workspace held when its reports and datasets were let go
+ * (PowerBiReadState, #9901): how many reports and dashboards, so they keep
+ * their place among those shown, and its datasets' ids, so a report that
+ * charts one has the workspace scanned again.
+ */
+export interface PowerBiWorkspaceTrim {
+  itemCount: number;
+  // Its datasets' ids, in lower case.
+  datasetIds: Array<string>;
+}
+
 // One workspace, as its scan read it: what a read keeps of it.
 export interface PowerBiWorkspaceRead {
   // Its id, in lower case.
@@ -101,6 +113,14 @@ export interface PowerBiWorkspaceRead {
   items: Array<PowerBiItem>;
   datasets: Array<PowerBiDatasetRead>;
   dataflows: Array<PowerBiDataflowRead>;
+  // When the scan that read it started (ISO); left out by a state kept before #9901.
+  scannedAt?: string | undefined;
+  /*
+   * Set when a tenant too big to keep whole let go of its reports and
+   * datasets, as it shows none (#9901): it holds its dataflows alone, and
+   * shows nothing until it is scanned again.
+   */
+  trimmed?: PowerBiWorkspaceTrim | undefined;
 }
 
 export interface PowerBiDataset {
@@ -149,7 +169,7 @@ const MAX_LOCATION_LENGTH: number = 400;
 const MAX_ID_LENGTH: number = 100;
 const MAX_EXPRESSION_LENGTH: number = 100_000;
 // How many datasets deep a composite model's upstream datasets are followed.
-const MAX_UPSTREAM_DEPTH: number = 5;
+export const MAX_UPSTREAM_DEPTH: number = 5;
 // The most reports and dashboards kept of one workspace: no more than one read keeps of a tool.
 const MAX_ITEMS_PER_WORKSPACE: number = 2_000;
 
@@ -784,19 +804,61 @@ export function composePowerBiScan(
     });
   }
 
-  const items: Array<PowerBiItem> = [];
+  const items: Array<PowerBiItem> = getShownPowerBiItems(
+    workspaces,
+    maxItems,
+  ).flatMap((shown: PowerBiShownItems): Array<PowerBiItem> => {
+    return shown.items;
+  });
+
+  return { datasets, items };
+}
+
+// The reports and dashboards a workspace shows, among the first a read shows.
+export interface PowerBiShownItems {
+  workspace: PowerBiWorkspaceRead;
+  items: Array<PowerBiItem>;
+}
+
+/*
+ * The workspaces whose reports and dashboards a read shows, in turn, with
+ * those it shows of each: at most `maxItems` in all. A trimmed workspace's
+ * keep their place, shown as none until it is scanned again (#9901), so
+ * the next workspace's do not take it for an hour and go.
+ */
+export function getShownPowerBiItems(
+  workspaces: Array<PowerBiWorkspaceRead>,
+  maxItems: number,
+): Array<PowerBiShownItems> {
+  const shown: Array<PowerBiShownItems> = [];
+  let count: number = 0;
 
   for (const workspace of workspaces) {
-    for (const item of workspace.items) {
-      if (items.length >= maxItems) {
-        break;
+    if (count >= maxItems) {
+      break;
+    }
+
+    if (workspace.trimmed) {
+      if (workspace.trimmed.itemCount > 0) {
+        shown.push({ workspace, items: [] });
+        count += workspace.trimmed.itemCount;
       }
 
-      items.push(item);
+      continue;
+    }
+
+    const items: Array<PowerBiItem> = workspace.items.slice(
+      0,
+      maxItems - count,
+    );
+
+    if (items.length > 0) {
+      shown.push({ workspace, items });
+      count += items.length;
     }
   }
 
-  return { datasets, items };
+  return shown;
 }
 
 // The dataflow entities the datasets of the reports and dashboards read: the dataflows worth exporting.
