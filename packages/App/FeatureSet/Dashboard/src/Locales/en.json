@@ -57653,5 +57653,19 @@
   "They appear here when OneUptime reads them in this service's own logs and traces - an attack in a request it answers, a failed sign-in, a prompt injection.": "They appear here when OneUptime reads them in this service's own logs and traces - an attack in a request it answers, a failed sign-in, a prompt injection.",
   "Traces is on: OneUptime reads the requests this project's services answer for attacks. See the Security Events {{connections}} page.": "Traces is on: OneUptime reads the requests this project's services answer for attacks. See the Security Events {{connections}} page.",
   "Turn on Traces, on the Security Events {{connections}} page, to read the requests this service answers.": "Turn on Traces, on the Security Events {{connections}} page, to read the requests this service answers.",
-  "Turn on this cloud's audit trail: Keystone's notifications and the audit filter on its APIs, written to the services' own logs, which the OneUptime OpenStack agent sends.": "Turn on this cloud's audit trail: Keystone's notifications and the audit filter on its APIs, written to the services' own logs, which the OneUptime OpenStack agent sends."
+  "Turn on this cloud's audit trail: Keystone's notifications and the audit filter on its APIs, written to the services' own logs, which the OneUptime OpenStack agent sends.": "Turn on this cloud's audit trail: Keystone's notifications and the audit filter on its APIs, written to the services' own logs, which the OneUptime OpenStack agent sends.",
+  "Add Reason": "Add Reason",
+  "Edit Reason": "Edit Reason",
+  "Not Now": "Not Now",
+  "Optional. Shown beside it, and kept in the audit log.": "Optional. Shown beside it, and kept in the audit log.",
+  "Save Reason": "Save Reason",
+  "The reason was not saved.": "The reason was not saved.",
+  "Turned Off At": "Turned Off At",
+  "Turned Off By User": "Turned Off By User",
+  "Turned Off By User ID": "Turned Off By User ID",
+  "Turned Off for the Whole Framework": "Turned Off for the Whole Framework",
+  "Turned off by {{name}} on {{date}}": "Turned off by {{name}} on {{date}}",
+  "Turned off here: its requirements are not scored for these data stores.": "Turned off here: its requirements are not scored for these data stores.",
+  "Turned off on {{date}}": "Turned off on {{date}}",
+  "Why does this not apply here?": "Why does this not apply here?"
 }
