@@ -216,7 +216,10 @@ export interface ResourceSecurityScopeJson {
   kind: SecurityConnectionKind;
   id: string;
   name: string;
-  // The record's exact identities, as searched for: names folded, public addresses its own.
+  /*
+   * The record's exact identities, as searched for: names folded, a cloud
+   * resource's own ID as its cloud writes it, public addresses its own.
+   */
   values: Array<string>;
   // Searched for by the events read from its logs alone.
   isSearchedByLogs: boolean;
@@ -546,6 +549,14 @@ export interface ResourceSecurityJson {
    * cloud resource with no ID or address of its own to search for.
    */
   isSearchedByLogs: boolean;
+  /*
+   * Whether the events read from its own logs are its too, beside the ones
+   * naming it: a network device's syslog, a container host's containers'
+   * logs, an OpenStack cloud's audit trail, a cloud resource's streamed
+   * logs, a function's logs and traces. Absent from an older server's
+   * answer: read as false.
+   */
+  isReadFromOwnLogs?: boolean | undefined;
   // The entity its Security Events page is opened on: its main name.
   entity: SecurityEntity | null;
   eventCount: number;

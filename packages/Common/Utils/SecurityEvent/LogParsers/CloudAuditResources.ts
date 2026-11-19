@@ -1,4 +1,10 @@
-import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
+import {
+  CloudProvider,
+  FaasCloudPlatform,
+  normalizeCloudPlatform,
+} from "../../../Types/Cloud/CloudPlatform";
+import { getAwsPartitionForRegion } from "../../../Types/Cloud/CloudResourceCatalog";
 import {
   AWS_CLOUDWATCH_DIMENSION_PREFIX,
   AWS_CLOUDWATCH_METRIC_NAME_PREFIX,
@@ -40,10 +46,11 @@ import { MAX_EVENT_RESOURCE_IDS } from "../SecurityRecordReading";
  * page search (Types/SecurityEvent/SecurityEventScope) - and the event
  * reaches the resource's page, its open cases and its risk:
  *
- *   - AWS: an ARN as AWS writes it, and the ARN the cloud catalog builds
- *     from a name or an id the same way the resource's own row got its
- *     (CloudResourceCatalog, through resolveCloudMonitoredResource), so the
- *     two can only be equal when they are the same resource;
+ *   - AWS: an ARN as AWS writes it, and the ARN built from a name or an id
+ *     the way the resource's own row got its - by the cloud catalog
+ *     (CloudResourceCatalog, through resolveCloudMonitoredResource), or as
+ *     the inventory builds a VPC's, a subnet's, a security group's and an
+ *     EKS cluster's - so the two can only be equal for the same resource;
  *   - Azure: the resource ID in lower case - Azure's own resource IDs are
  *     case-insensitive, and a record's search reads its own ID in lower
  *     case among its spellings;
@@ -479,47 +486,157 @@ export const CLOUDTRAIL_RESOURCE_FIELDS: ReadonlyArray<CloudTrailResourceField> 
   ];
 
 /*
- * The EC2 ids a record names, in any service's call - an instance a
- * Systems Manager command ran on is named by its id there too: the id's
- * prefix says what it is, and the catalog builds its ARN.
+ * The ARN of a resource the AWS inventory lists without metrics - a VPC, a
+ * subnet, a security group, an EKS cluster - built as the inventory builds
+ * it (AwsInventoryCatalog), in the record's account and Region. Null when
+ * either is not known.
  */
-export const EC2_RESOURCE_ID_PREFIXES: ReadonlyArray<{
+export function buildInventoryAwsArn(data: {
+  service: string;
+  resource: string;
+  place: CloudTrailPlace;
+}): string | null {
+  const region: string = data.place.region;
+  const accountId: string = data.place.accountId;
+
+  if (!isAwsRegion(region) || accountId.length !== 12 || !isDigits(accountId)) {
+    return null;
+  }
+
+  return `arn:${getAwsPartitionForRegion(region)}:${data.service}:${region}:${accountId}:${data.resource}`;
+}
+
+// A resource an EC2 id names: its type, and how its ARN is built.
+export interface Ec2ResourceIdKind {
+  prefix: string;
+  type: string;
+  arn: (id: string, place: CloudTrailPlace) => string | null;
+}
+
+function catalogEc2Kind(data: {
   prefix: string;
   namespace: string;
   dimension: string;
   type: string;
-}> = [
-  {
+}): Ec2ResourceIdKind {
+  return {
+    prefix: data.prefix,
+    type: data.type,
+    arn: (id: string, place: CloudTrailPlace): string | null => {
+      return buildCatalogAwsArn({
+        namespace: data.namespace,
+        dimensions: { [data.dimension]: id },
+        place,
+        type: data.type,
+      });
+    },
+  };
+}
+
+function inventoryEc2Kind(data: {
+  prefix: string;
+  type: string;
+  // What the ARN's resource part says before the id: "security-group".
+  resource: string;
+}): Ec2ResourceIdKind {
+  return {
+    prefix: data.prefix,
+    type: data.type,
+    arn: (id: string, place: CloudTrailPlace): string | null => {
+      return buildInventoryAwsArn({
+        service: "ec2",
+        resource: `${data.resource}/${id}`,
+        place,
+      });
+    },
+  };
+}
+
+/*
+ * The EC2 ids a record names, in any service's call - an instance a
+ * Systems Manager command ran on is named by its id there too, and a
+ * security group an RDS database was moved into by its id: the id's
+ * prefix says what it is, and its ARN is built as its Cloud Resource's
+ * was, by the cloud catalog or the inventory.
+ */
+export const EC2_RESOURCE_ID_KINDS: ReadonlyArray<Ec2ResourceIdKind> = [
+  catalogEc2Kind({
     prefix: "i-",
     namespace: "AWS/EC2",
     dimension: "InstanceId",
     type: "AWS::EC2::Instance",
-  },
-  {
+  }),
+  catalogEc2Kind({
     prefix: "vol-",
     namespace: "AWS/EBS",
     dimension: "VolumeId",
     type: "AWS::EC2::Volume",
-  },
-  {
+  }),
+  catalogEc2Kind({
     prefix: "nat-",
     namespace: "AWS/NATGateway",
     dimension: "NatGatewayId",
     type: "AWS::EC2::NatGateway",
-  },
-  {
+  }),
+  catalogEc2Kind({
     prefix: "tgw-",
     namespace: "AWS/TransitGateway",
     dimension: "TransitGateway",
     type: "AWS::EC2::TransitGateway",
-  },
-  {
+  }),
+  catalogEc2Kind({
     prefix: "vpn-",
     namespace: "AWS/VPN",
     dimension: "VpnId",
     type: "AWS::EC2::VPNConnection",
-  },
+  }),
+  inventoryEc2Kind({
+    prefix: "sg-",
+    type: "AWS::EC2::SecurityGroup",
+    resource: "security-group",
+  }),
+  inventoryEc2Kind({ prefix: "vpc-", type: "AWS::EC2::VPC", resource: "vpc" }),
+  inventoryEc2Kind({
+    prefix: "subnet-",
+    type: "AWS::EC2::Subnet",
+    resource: "subnet",
+  }),
 ];
+
+/*
+ * The EKS cluster a call names (#9375 lists them): by `name` on the
+ * cluster's own calls - UpdateClusterConfig opening its API to the
+ * internet - and by `clusterName` on everything inside it - an access
+ * entry, a node group, an identity provider.
+ */
+export const CLOUDTRAIL_EKS_CLUSTER_FIELDS: ReadonlyArray<{
+  field: string;
+  eventNameIncludes?: string | undefined;
+}> = [
+  { field: "name", eventNameIncludes: "Cluster" },
+  { field: "clusterName" },
+];
+
+// An EKS cluster's name: 1 to 100 letters, digits, hyphens and underscores, a letter or digit first.
+function isEksClusterName(value: string): boolean {
+  if (value.length < 1 || value.length > 100) {
+    return false;
+  }
+
+  for (let index: number = 0; index < value.length; index++) {
+    const code: number = value.charCodeAt(index);
+    const isLetterOrDigit: boolean =
+      (code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122);
+
+    if (!isLetterOrDigit && (index === 0 || (code !== 45 && code !== 95))) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 function isLowerHex(value: string): boolean {
   for (let index: number = 0; index < value.length; index++) {
@@ -967,14 +1084,9 @@ function readValueArns(data: {
 
   const arns: Array<string> = [];
 
-  for (const ec2 of EC2_RESOURCE_ID_PREFIXES) {
+  for (const ec2 of EC2_RESOURCE_ID_KINDS) {
     if (isEc2ResourceId(value, ec2.prefix)) {
-      const arn: string | null = buildCatalogAwsArn({
-        namespace: ec2.namespace,
-        dimensions: { [ec2.dimension]: value },
-        place: data.place,
-        type: ec2.type,
-      });
+      const arn: string | null = ec2.arn(value, data.place);
 
       if (arn) {
         arns.push(arn);
@@ -983,6 +1095,26 @@ function readValueArns(data: {
   }
 
   const field: string = data.walked.field.toLowerCase();
+
+  if (data.eventSource === "eks.amazonaws.com" && isEksClusterName(value)) {
+    for (const eks of CLOUDTRAIL_EKS_CLUSTER_FIELDS) {
+      if (
+        eks.field.toLowerCase() === field &&
+        (!eks.eventNameIncludes ||
+          data.eventName.indexOf(eks.eventNameIncludes) !== -1)
+      ) {
+        const arn: string | null = buildInventoryAwsArn({
+          service: "eks",
+          resource: `cluster/${value}`,
+          place: data.place,
+        });
+
+        if (arn) {
+          arns.push(arn);
+        }
+      }
+    }
+  }
 
   if (data.eventSource === "lambda.amazonaws.com" && field === "functionname") {
     const named: { name: string; accountId: string } | null =
@@ -1159,16 +1291,14 @@ export function normalizeAzureResourceId(value: string): string | null {
  * (a subscription, a resource group).
  */
 export function getAzureTopLevelResourceId(id: string): string | null {
+  // ["", "subscriptions", <id>, ("resourceGroups", <name>,) "providers", ...]
   const segments: Array<string> = id.split("/");
-  const providers: number = segments.findIndex(
-    (segment: string, index: number): boolean => {
-      return index > 1 && segment.toLowerCase() === "providers";
-    },
-  );
+  const providers: number =
+    (segments[3] || "").toLowerCase() === "resourcegroups" ? 5 : 3;
 
   // providers/<namespace>/<type>/<name>
   if (
-    providers === -1 ||
+    (segments[providers] || "").toLowerCase() !== "providers" ||
     !segments[providers + 1] ||
     !segments[providers + 2] ||
     !segments[providers + 3]
@@ -1461,4 +1591,73 @@ export function readGoogleCloudAuditResourceIds(data: {
   );
 
   return ids.toArray();
+}
+
+// ---------- A serverless function's own id ----------
+
+/*
+ * A serverless function's id at its cloud, the way an audit record names
+ * it (#9780) - or null where its telemetry does not say it in full:
+ *
+ *   - an AWS Lambda function: its ARN, from its account, its Region and
+ *     its name (faas.name), through the cloud catalog's own template, as
+ *     its Cloud Resource keeps it. A Lambda layer that reports no account
+ *     id leaves it unsaid, and nothing is guessed;
+ *   - a Google Cloud function: its full resource name, from its project,
+ *     its Region and its name;
+ *   - an Azure function: none. Its resource ID holds its resource group,
+ *     which no telemetry of a function reports, so the Activity Log's
+ *     records about it reach its Function App's own page in Cloud.
+ */
+export function getServerlessFunctionCloudResourceId(data: {
+  functionIdentifier: string | null | undefined;
+  cloudProvider?: string | null | undefined;
+  cloudPlatform?: string | null | undefined;
+  cloudRegion?: string | null | undefined;
+  cloudAccountId?: string | null | undefined;
+}): string | null {
+  const name: string = (data.functionIdentifier || "").trim();
+  const platform: string = normalizeCloudPlatform(data.cloudPlatform) || "";
+  const provider: string = (data.cloudProvider || "").trim().toLowerCase();
+  const region: string = (data.cloudRegion || "").trim().toLowerCase();
+  const accountId: string = (data.cloudAccountId || "").trim();
+
+  if (!name || !region || !accountId) {
+    return null;
+  }
+
+  if (
+    platform === FaasCloudPlatform.AwsLambda ||
+    (!platform && provider === CloudProvider.AWS)
+  ) {
+    const named: { name: string; accountId: string } | null =
+      readLambdaFunctionName(name);
+
+    if (
+      !named ||
+      named.accountId ||
+      named.name !== name ||
+      accountId.length !== 12 ||
+      !isDigits(accountId) ||
+      !isAwsRegion(region)
+    ) {
+      return null;
+    }
+
+    return buildCatalogAwsArn({
+      namespace: "AWS/Lambda",
+      dimensions: { FunctionName: named.name },
+      place: { accountId, region },
+      type: "AWS::Lambda::Function",
+    });
+  }
+
+  if (platform === FaasCloudPlatform.GcpCloudFunctions) {
+    return getGoogleMonitoredResourceName({
+      type: "cloud_function",
+      labels: { project_id: accountId, region, function_name: name },
+    });
+  }
+
+  return null;
 }
