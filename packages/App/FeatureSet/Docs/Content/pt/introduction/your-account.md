@@ -105,24 +105,30 @@ O link funciona uma vez, por 15 minutos, e um link mais recente o substitui. Voc
 
 ### Ativar a autenticação de dois fatores
 
-A autenticação de dois fatores vale quando você entra com sua senha ou com um link enviado por e-mail. Adicione primeiro uma segunda etapa, e depois ative-a.
+A autenticação de dois fatores vale quando você entra com sua senha ou com um link enviado por e-mail. Ela só é ativada quando sua segunda etapa funciona, então nunca pede uma etapa que você não tem.
 
 :::steps
-### Adicionar um aplicativo autenticador
+### Escolher sua segunda etapa
 
-Abra **Segurança → Autenticação de dois fatores**. Em **Apps autenticadores**, adicione um aplicativo e dê um nome a ele. Escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Para usar uma chave USB ou NFC, adicione-a em **Chaves de segurança**.
+Abra **Segurança → Autenticação de dois fatores** e clique em **Ativar a autenticação de dois fatores**. Escolha **Aplicativo autenticador** ou **Chave de segurança** e clique em **Continuar**.
+
+### Configurá-la
+
+Para um aplicativo autenticador, escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Para uma chave USB ou NFC, dê um nome a ela e siga as instruções do navegador. A autenticação de dois fatores fica então ativada, e o cartão mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede sua segunda etapa.
 
 ### Guardar seus códigos de backup
 
 Na primeira vez que você adiciona um aplicativo, uma chave ou uma chave de acesso, o OneUptime mostra **Seus códigos de backup**. Cada código permite entrar uma vez se você perder o aplicativo ou a chave. Copie-os ou baixe-os, marque a caixa dizendo que você os guardou e clique em **Concluído**.
-
-### Ativar
-
-No topo da página, clique em **Ativar a autenticação de dois fatores** e confirme. O cartão agora mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede a sua segunda etapa.
 :::
+
+Se você já tem um aplicativo em **Apps autenticadores** ou uma chave em **Chaves de segurança**, **Ativar a autenticação de dois fatores** só pede uma confirmação. Enquanto ela está ativada, seu último aplicativo, chave ou chave de acesso não pode ser removido: adicione outro antes ou desative a autenticação de dois fatores. Se o cartão mostrar **Configuração necessária**, a autenticação de dois fatores está ativada sem nada configurado, muitas vezes porque um administrador a exigiu: clique em **Concluir a configuração**, ou isso será pedido no seu próximo login.
 
 > [!TIP]
 > Seus códigos de backup estão acabando? **Gerar novos códigos** na mesma página dá a você um conjunto novo, e os códigos antigos param de funcionar na hora.
+
+### Quando sua organização gerencia seu login
+
+Em um servidor que exige login único, você entra apenas pelo provedor de identidade da sua organização, como Okta ou Microsoft Entra ID, e o OneUptime não define para você senha, chave de acesso nem autenticação de dois fatores. O **Perfil do usuário** então não tem a seção **Segurança**, e a **Visão geral** dele mostra seu provedor em **Login único**. Altere sua senha e sua segunda etapa no seu provedor de identidade. O que você configurou antes continua salvo: só volta a funcionar se o servidor deixar de exigir login único. Os administradores principais mantêm suas próprias configurações de **Segurança**.
 
 ## Seus projetos
 

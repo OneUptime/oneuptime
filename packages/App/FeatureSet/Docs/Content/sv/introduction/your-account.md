@@ -105,24 +105,30 @@ Länken fungerar en gång, i 15 minuter, och en nyare länk ersätter den. Du ka
 
 ### Slå på tvåfaktorsautentisering
 
-Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en länk via e-post. Lägg först till ett andra steg, och slå sedan på den.
+Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en länk via e-post. Den aktiveras först när ditt andra steg fungerar, så den ber aldrig om ett steg du inte har.
 
 :::steps
-### Lägg till en autentiseringsapp
+### Välj ditt andra steg
 
-Öppna **Säkerhet → Tvåfaktorsautentisering**. Under **Autentiseringsappar** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verifiera och slutför**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Säkerhetsnycklar**.
+Öppna **Säkerhet → Tvåfaktorsautentisering** och klicka på **Aktivera tvåfaktorsautentisering**. Välj **Autentiseringsapp** eller **Säkerhetsnyckel** och klicka på **Fortsätt**.
+
+### Konfigurera det
+
+För en autentiseringsapp skannar du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, anger den sexsiffriga kod den visar och klickar på **Verifiera och slutför**. En USB- eller NFC-nyckel ger du ett namn och följer webbläsarens anvisningar. Tvåfaktorsautentisering är sedan aktiverad, och kortet visar **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 
 ### Spara dina reservkoder
 
 Första gången du lägger till en app, en nyckel eller en passnyckel visar OneUptime **Dina reservkoder**. Varje kod loggar in dig en gång om du tappar bort din app eller nyckel. Kopiera eller ladda ned dem, kryssa i rutan som säger att du har sparat dem och klicka på **Klar**.
-
-### Slå på den
-
-Klicka på **Aktivera tvåfaktorsautentisering** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 :::
+
+Har du redan en app under **Autentiseringsappar** eller en nyckel under **Säkerhetsnycklar**, ber **Aktivera tvåfaktorsautentisering** dig bara att bekräfta. Så länge den är aktiverad går det inte att ta bort din sista app, nyckel eller passnyckel: lägg först till en annan, eller stäng av tvåfaktorsautentisering. Visar kortet **Konfiguration krävs**, är tvåfaktorsautentisering aktiverad utan att något är konfigurerat, ofta för att en administratör har krävt det: klicka på **Slutför konfigurationen**, annars blir du ombedd att göra det vid nästa inloggning.
 
 > [!TIP]
 > Håller reservkoderna på att ta slut? **Generera nya koder** på samma sida ger dig en ny uppsättning, och de gamla koderna slutar fungera direkt.
+
+### När din organisation hanterar din inloggning
+
+På en server som kräver enkel inloggning loggar du bara in via organisationens identitetsleverantör, till exempel Okta eller Microsoft Entra ID, och OneUptime konfigurerar inget lösenord, ingen passnyckel och ingen tvåfaktorsautentisering åt dig. **Användarprofil** har då ingen del som heter **Säkerhet**, och dess **Översikt** visar din leverantör under **Enkel inloggning**. Byt lösenord och andra steg hos din identitetsleverantör. Det du konfigurerade tidigare finns kvar: det fungerar igen först om servern slutar kräva enkel inloggning. Huvudadministratörer behåller sina egna inställningar under **Säkerhet**.
 
 ## Dina projekt
 

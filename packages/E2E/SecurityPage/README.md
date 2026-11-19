@@ -31,15 +31,24 @@ Picked with query parameters on a page's address:
   ("1Password") and one whose setup is incomplete ("Work phone"), a security key ("YubiKey 5C"),
   two passkeys ("MacBook Pro", "Pixel 9") and seven of ten backup codes left.
 - `state=low`: the same, with two backup codes left.
-- `state=new`: an account with nothing set up.
+- `state=new`: an account with nothing set up. **Enable two-factor authentication** walks through
+  setting up an authenticator app first (#9666): the fixture saves the app, accepts any six digits
+  as its first code, answers with ten synthetic backup codes, and only then records the account's
+  update that turns two-factor authentication on.
+- `state=pending`: two-factor authentication on with nothing set up, as an administrator's
+  requirement leaves an account: the card says **Setup needed** and offers **Finish setup**.
+- `state=sso`: what `set` holds, on a server that requires SSO and signs in with "Okta" (#9688):
+  the side menu has no Security section, and each Security page says who manages the sign-in.
 - `lang=de|ar|fa`: the Dashboard's German, Arabic or Persian words (Arabic and Persian read right
   to left).
 - `theme=dark`.
 
-Every list read (`lists`), update (`updates`) and API request (`api`) is recorded on
-`window.__securityPageFixture`, with `unhandled` for anything the fixture does not model; the spec
-fails on an unhandled request, on an uncaught page error and on any request that leaves the fixture
-server. The other User Profile pages the side menu leads to are stubs that show their path.
+Every list read (`lists`), create (`creates`), update (`updates`) and API request (`api`) is
+recorded on `window.__securityPageFixture`, with `unhandled` for anything the fixture does not
+model; the spec fails on an unhandled request, on an uncaught page error and on any request that
+leaves the fixture server. The other User Profile pages the side menu leads to are stubs that show
+their path.
 
-Screenshots of each page in each language, a new account in Persian dark, the regenerate dialog in
+Screenshots of each page in each language, a new account in Persian dark, the guided setup in
+German, Setup needed in English, both Security pages under SSO in Persian, the regenerate dialog in
 German and the Arabic page on a phone are written to `output/playwright/security-page-ui/`.

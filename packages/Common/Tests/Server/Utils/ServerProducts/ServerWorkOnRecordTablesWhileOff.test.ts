@@ -167,6 +167,12 @@ const OWNER_TABLE_PRODUCTS: ReadonlyArray<[string, Array<ProductKey>]> = [
   ["OnCallDutyPolicyOwner", [ProductKey.OnCall]],
   ["OnCallDutyPolicyScheduleOwner", [ProductKey.OnCall]],
   ["IncomingCallPolicyOwner", [ProductKey.OnCall]],
+  /*
+   * #9758: a monitor group's are Monitors'; a Runner's are Runbooks' and
+   * Code's both, since it runs runbook steps and AI code fixes.
+   */
+  ["MonitorGroupOwner", [ProductKey.Monitors]],
+  ["RunnerOwner", [ProductKey.Runbooks, ProductKey.Code]],
 ];
 
 describe("the owner rows the resource owner jobs tell of (#9700)", () => {

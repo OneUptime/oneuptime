@@ -87,8 +87,8 @@ Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Be
 | Abschnitt | Seiten |
 | --- | --- |
 | **Richtlinien** | **Bereitschaftsrichtlinien**, **Einsatzbereitschaft**: wen Ihre Richtlinien wirklich erreichen, und **Richtlinien für eingehende Anrufe**: eine Telefonnummer, unter der klingelt, wer Bereitschaft hat |
-| **Zeitpläne** | **Bereitschaftspläne**, **Zeitachse der Bereitschaftspläne** und **Kalender-Feeds** |
-| **Erweitert** | **Benutzerüberschreibungen**, **Ausführungsprotokolle** und **Archivierte Richtlinien** |
+| **Zeitpläne** | **Bereitschaftspläne**, **Zeitachse der Bereitschaftspläne**, **Benutzerüberschreibungen**: wer jemanden vertritt, solange er abwesend ist, und **Kalender-Feeds** |
+| **Erweitert** | **Ausführungsprotokolle** und **Archivierte Richtlinien** |
 | **Berichte** | **Bereitschaftszeit des Benutzers**: wie lange jede Person Bereitschaft hatte |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**: Regeln, die Bereitschaftsereignisse in einem Kanal posten |
 | **Einstellungen** | **Benutzerdefinierte Felder**, **Beschriftungsregeln** und **Eigentümerregeln** |
@@ -109,7 +109,7 @@ Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an
 :::
 
 :::details Eine Person im Urlaub wird weiter alarmiert
-Fügen Sie eine Benutzerüberschreibung mit ihr unter **Wer ist abwesend?** hinzu. Eine unter **Bereitschaft → Erweitert → Benutzerüberschreibungen** gilt für jede Richtlinie, eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie nur für diese Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
+Fügen Sie eine Benutzerüberschreibung mit ihr unter **Wer ist abwesend?** hinzu. Eine unter **Bereitschaft → Zeitpläne → Benutzerüberschreibungen** gilt für jede Richtlinie, eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie nur für diese Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 :::
 
 ## Nächste Schritte

@@ -49,6 +49,8 @@ import {
   SessionReplayCustomSignalConfig,
   SessionReplayRefreshRageRule,
 } from "Common/Types/Rum/SessionReplayFrustrationSignals";
+import { isSessionReplayPageRecorded } from "Common/Types/Rum/SessionReplayPageRules";
+import { maskSessionReplayProperties } from "Common/Types/Rum/SessionReplayReadableProperties";
 import CommonMasking from "Common/Utils/Rum/Masking";
 import SessionIdentity, {
   SessionIdentifyDecision,
@@ -637,11 +639,14 @@ export default class Recorder {
   private pausedForIdle: boolean = false;
 
   /*
-   * The page paused recording (pause()) and has not resumed it (resume()).
-   * It is the idle pause above, held by the page instead of by the clock:
-   * capture stops the same way and resumes the same way, on a fresh
-   * snapshot in the same session - but nothing the visitor does resumes it,
-   * and neither does captureSession(). Only resume() does.
+   * Capture is held for the page: it paused recording (pause()) and has not
+   * resumed it (resume()), or the replay policy's page rules keep the page
+   * now at the address out of recordings (issue #7502), or both. It is the
+   * idle pause above, held by the page instead of by the clock: capture
+   * stops the same way and resumes the same way, on a fresh snapshot in the
+   * same session - but nothing the visitor does resumes it, and neither does
+   * captureSession(). Only what held it lets go: resume(), or the policy on
+   * a page it records - and only once nothing else holds it.
    *
    * For a page that must not be recorded in places: OneUptime's Dashboard
    * records only its first-run pages, and pauses on every other one (issue
@@ -649,6 +654,20 @@ export default class Recorder {
    * stands still during an idle pause stands still here.
    */
   private pausedByPage: boolean = false;
+
+  // The page's own pause(), not yet resumed.
+  private pageAskedPause: boolean = false;
+
+  /*
+   * The replay policy keeps the page now at the address out of recordings
+   * (Record only these pages, Never record these pages: issue #7502). Set
+   * the moment the address changes to such a page, inside the history call
+   * - before the router draws it - and at start on one. Its address is then
+   * named nowhere: not as the entry, not as a route, not as the page a chunk
+   * was sent from (RouteRecorder.allowsPage). The page's own resume() does
+   * not let go of it.
+   */
+  private policyHolds: boolean = false;
   private resumeFromIdlePauseScheduled: boolean = false;
   private idlePausedAtUnixMs: number = 0;
 
@@ -1002,6 +1021,9 @@ export default class Recorder {
       isSuspended: (): boolean => {
         return this.pausedForIdle;
       },
+      allowsPage: (kind: RecordedRoute["kind"]): boolean => {
+        return this.allowsPage(kind);
+      },
       onRouteChange: (atUnixMs: number, route: RecordedRoute): void => {
         this.chunker.countSignal("routeCount");
         /*
@@ -1251,21 +1273,27 @@ export default class Recorder {
     this.isHidden = this.documentRef.visibilityState === "hidden";
 
     /*
+     * The replay policy's page rules (issue #7502): a page they keep out of
+     * recordings starts held, as one the page paused before the recorder
+     * started does - everything armed, nothing observed - and its address
+     * is named nowhere. Asked as an address change is (allowsPage): nothing
+     * held yet, so the page is either recorded or held from here.
+     */
+    this.allowsPage("replaceState");
+
+    /*
      * Captured once, here. Everything downstream that says "where did this
      * recording begin" reads it, and the answer has to KEEP being true after
      * the page navigates - which is why it is not re-read from
      * location.href, and why rotateSession re-captures it for the new
      * session rather than sharing this one.
+     *
+     * It also seeds routes[] with the landing page. Without it a session
+     * that never navigates would report an empty route list while pageCount
+     * said 0 - technically consistent, and useless for "which pages did this
+     * person see".
      */
-    this.entryUrl = this.scrubUrl(this.windowRef.location.href);
-
-    /*
-     * Seeds routes[] with the landing page. Without it a session that never
-     * navigates would report an empty route list while pageCount said 0 -
-     * technically consistent, and useless for "which pages did this person
-     * see".
-     */
-    this.chunker.addRoute(this.entryUrl);
+    this.beginAtCurrentPage();
 
     /*
      * A page load is itself activity. Without this seed a tab that loads and
@@ -1301,7 +1329,7 @@ export default class Recorder {
     this.networkRecorder.start(this.windowRef);
     this.performanceRecorder.start(this.windowRef);
     this.consoleRecorder.start();
-    this.routeRecorder.start(this.windowRef);
+    this.routeRecorder.start(this.windowRef, !this.policyHolds);
     this.frustrationDetector.start(this.documentRef);
     this.customSignalDetector.start(this.documentRef);
     this.clickRecorder.start(this.documentRef);
@@ -2163,15 +2191,29 @@ export default class Recorder {
    * idle simply becomes held by the page as well.
    */
   public pause(): void {
-    if (this.stopped || this.pausedByPage) {
+    if (this.stopped || this.pageAskedPause) {
       return;
     }
 
-    this.pausedByPage = true;
+    this.pageAskedPause = true;
 
     debugLog("recording-paused-page", "The page paused recording.", {
       sessionId: this.identity.sessionId,
     });
+
+    this.hold();
+  }
+
+  /*
+   * Hold capture for the page: the page's pause(), or the replay policy on
+   * a page it keeps out. Holding what is already held changes nothing.
+   */
+  private hold(): void {
+    if (this.pausedByPage) {
+      return;
+    }
+
+    this.pausedByPage = true;
 
     if (!this.started || this.pausedForIdle) {
       return;
@@ -2190,15 +2232,30 @@ export default class Recorder {
    * return after an idle seal does.
    */
   public resume(): void {
-    if (!this.pausedByPage) {
+    if (!this.pageAskedPause) {
       return;
     }
 
-    this.pausedByPage = false;
+    this.pageAskedPause = false;
 
     debugLog("recording-resumed-page", "The page resumed recording.", {
       sessionId: this.identity.sessionId,
     });
+
+    this.release();
+  }
+
+  /*
+   * Let capture go on, once nothing holds it: a page the replay policy keeps
+   * out stays unrecorded whatever the page's resume() says, and the page's
+   * own pause() outlasts the policy.
+   */
+  private release(): void {
+    if (this.pageAskedPause || this.policyHolds || !this.pausedByPage) {
+      return;
+    }
+
+    this.pausedByPage = false;
 
     if (this.stopped || !this.started) {
       return;
@@ -2210,6 +2267,103 @@ export default class Recorder {
     }
 
     this.resumeFromIdlePause();
+  }
+
+  // May a recording hold the page now at the address (issue #7502)?
+  private isPageRecorded(): boolean {
+    return isSessionReplayPageRecorded(
+      this.extendedConfig.pageRules,
+      CustomSignalDetector.pagePathsOf(this.windowRef.location),
+    );
+  }
+
+  /*
+   * The address changed (RouteRecorder asks before it reads it): may the
+   * recording name the page now there?
+   *
+   * Not when the replay policy keeps it out. Capture is held there and then,
+   * inside the history call or the popstate listener that told us - so
+   * rrweb stops before the router draws the page, and what it was about to
+   * observe of it is dropped with it.
+   *
+   * Not yet when the policy records it but held the page before: the router
+   * has not drawn it yet, and the snapshot capture goes on with must be of
+   * this page, not of the one the policy kept out (schedulePolicyRelease).
+   */
+  private allowsPage(kind: RecordedRoute["kind"]): boolean {
+    if (this.isPageRecorded()) {
+      if (this.policyHolds) {
+        this.schedulePolicyRelease(kind);
+        return false;
+      }
+
+      return true;
+    }
+
+    if (!this.policyHolds) {
+      this.policyHolds = true;
+
+      debugLog(
+        "recording-paused-page-rule",
+        "The replay policy does not record this page; recording paused.",
+        { sessionId: this.identity.sessionId },
+      );
+
+      this.hold();
+    }
+
+    return false;
+  }
+
+  /*
+   * Recording goes on, on a page the policy records, once the router has
+   * drawn it: after the next frame, then one task, as the route's own
+   * snapshot waits (RouteRecorder.deferSnapshot) - and only if the page is
+   * still one it records then. The route to it is recorded behind the
+   * fresh snapshot, from the last page the recording held. A burst of
+   * address changes schedules one release each; the first to find the
+   * page recorded lets go, and the others find nothing held.
+   */
+  private schedulePolicyRelease(kind: RecordedRoute["kind"]): void {
+    const releaseNow: () => void = (): void => {
+      setTimeout((): void => {
+        if (!this.policyHolds || this.stopped || !this.isPageRecorded()) {
+          return;
+        }
+
+        this.policyHolds = false;
+        this.release();
+
+        // A session that began on a page the policy kept out begins here.
+        if (!this.entryUrl) {
+          this.entryUrl = this.scrubUrl(this.windowRef.location.href);
+        }
+
+        this.routeRecorder.handle(kind, this.windowRef, true);
+      }, 0);
+    };
+
+    try {
+      this.windowRef.requestAnimationFrame(releaseNow);
+    } catch {
+      releaseNow();
+    }
+  }
+
+  /*
+   * Where a new recording begins: chunk 0 carries it as meta.entryUrl, and
+   * routes[] starts with it. Nothing while the replay policy keeps the page
+   * out of recordings: the first page it records begins the recording then
+   * (schedulePolicyRelease).
+   */
+  private beginAtCurrentPage(): void {
+    this.entryUrl = this.policyHolds
+      ? ""
+      : this.scrubUrl(this.windowRef.location.href);
+
+    if (this.entryUrl) {
+      this.chunker.addRoute(this.entryUrl);
+    }
   }
 
   public isPausedByPage(): boolean {
@@ -3016,8 +3170,7 @@ export default class Recorder {
      * user left hours ago. The new chunker is re-seeded for the same reason:
      * its routes list starts empty.
      */
-    this.entryUrl = this.scrubUrl(this.windowRef.location.href);
-    this.chunker.addRoute(this.entryUrl);
+    this.beginAtCurrentPage();
 
     this.lastUserActivityUnixMs = nowUnixMs;
     this.lastTouchedUnixMs = nowUnixMs;
@@ -3298,8 +3451,7 @@ export default class Recorder {
      * Where THIS tab began, like any page load: chunk 0 carries it as
      * meta.entryUrl, and routes[] starts with it.
      */
-    this.entryUrl = this.scrubUrl(this.windowRef.location.href);
-    this.chunker.addRoute(this.entryUrl);
+    this.beginAtCurrentPage();
 
     /* Returning is activity; written through on the next tick. */
     this.lastUserActivityUnixMs = nowUnixMs;
@@ -4463,6 +4615,7 @@ export default class Recorder {
           properties,
           CUSTOM_EVENT_PROPERTY_LIMITS,
         ),
+        this.extendedConfig.readableEventPropertyKeys,
       );
 
       if (Object.keys(sanitised).length > 0) {
@@ -4581,15 +4734,23 @@ export default class Recorder {
    * Values the host page hands us are page content by another route, so
    * under MaskAllText they get the text mask exactly as a console argument
    * does. Keys are the page's own vocabulary ("plan", "tenant") and stay.
+   *
+   * An event's properties are handed the application's readable event
+   * properties (issue #7501): a listed key keeps its value as written while
+   * the value is a short token; anything else under it is masked. Traits
+   * never are: they describe a person, and keep the mask.
    */
-  private maskStringMap(map: Record<string, string>): Record<string, string> {
-    const masked: Record<string, string> = {};
-
-    for (const key of Object.keys(map)) {
-      masked[key] = this.masking.maskConsoleArgument(map[key] as string);
-    }
-
-    return masked;
+  private maskStringMap(
+    map: Record<string, string>,
+    readableKeys: Array<string> = [],
+  ): Record<string, string> {
+    return maskSessionReplayProperties(
+      map,
+      readableKeys,
+      (value: string): string => {
+        return this.masking.maskConsoleArgument(value);
+      },
+    );
   }
 
   public getSessionId(): string {
@@ -4637,11 +4798,17 @@ export default class Recorder {
     return { userRef: this.getSessionUserRef() || "", traits: this.traits };
   }
 
-  /* A track() call's properties, masked as the replay masks them. */
+  /*
+   * A track() call's properties and a metric() point's attributes, masked
+   * as the replay masks an event's properties: the readable ones kept.
+   */
   public maskAnalyticsProperties(
     map: Record<string, string>,
   ): Record<string, string> {
-    return this.maskStringMap(map);
+    return this.maskStringMap(
+      map,
+      this.extendedConfig.readableEventPropertyKeys,
+    );
   }
 
   public getTabId(): string {

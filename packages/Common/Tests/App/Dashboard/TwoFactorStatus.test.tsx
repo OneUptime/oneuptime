@@ -13,55 +13,77 @@ import User from "../../../Models/DatabaseModels/User";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { TwoFactorAuthSetup } from "../../../Types/TwoFactorAuthSetup";
+import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "../../../UI/Utils/User";
 
+/*
+ * THE TWO-FACTOR AUTHENTICATION CARD (issue #9666).
+ *
+ * It switched the setting on whatever stood behind it: with no authenticator
+ * app, security key or passkey, Enable turned it on, and the card said
+ * "Enabled" in green over "No security keys added yet". It reads where the
+ * person stands now (GET /user/two-factor-auth-status) and offers only what
+ * the server allows:
+ *
+ *   - off with nothing set up: Enable starts setting up a second step (the
+ *     page's guided setup), and turns nothing on itself;
+ *   - off with a second step ready: Enable asks, then turns it on;
+ *   - on: Turn off asks, then turns it off;
+ *   - on with nothing set up: "Setup needed", never "Enabled", with why,
+ *     Finish setup and Turn off.
+ */
+
 const userId: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
-const userWithStatus: (enabled: boolean) => User = (enabled: boolean): User => {
-  const user: User = new User();
-  user.enableTwoFactorAuth = enabled;
-  return user;
+const answer: (status: TwoFactorAuthStatus, count: number) => JSONObject = (
+  status: TwoFactorAuthStatus,
+  count: number,
+): JSONObject => {
+  return { status: status, verifiedMethodCount: count };
 };
 
-const actionForStatus: (isEnabled: boolean) => string = (
-  isEnabled: boolean,
-): string => {
-  return isEnabled
-    ? "Turn off two-factor authentication"
-    : "Enable two-factor authentication";
-};
+const OFF_WITH_NOTHING: JSONObject = answer(TwoFactorAuthStatus.NotEnabled, 0);
+const OFF_WITH_AN_APP: JSONObject = answer(TwoFactorAuthStatus.NotEnabled, 1);
+const ON: JSONObject = answer(TwoFactorAuthStatus.EnabledConfigured, 1);
+const ON_WITH_NOTHING: JSONObject = answer(
+  TwoFactorAuthStatus.EnabledPendingSetup,
+  0,
+);
 
-const openConfirmation: (isEnabled?: boolean) => Promise<HTMLElement> = async (
-  isEnabled: boolean = false,
-): Promise<HTMLElement> => {
-  const action: string = actionForStatus(isEnabled);
-  fireEvent.click(
-    await screen.findByRole("button", {
-      name: action,
-      exact: true,
-    }),
-  );
-  return screen.getByRole("dialog", {
-    name: `${action}?`,
-  });
-};
+const ENABLE: string = "Enable two-factor authentication";
+const TURN_OFF: string = "Turn off two-factor authentication";
 
 describe("two-factor authentication status", () => {
-  let loadStatus: jest.SpyInstance;
+  let readStatus: jest.SpyInstance;
   let updateStatus: jest.SpyInstance;
+  // What the server says, read after read: the last one repeats.
+  let answers: Array<JSONObject | Error>;
+
+  const respond: () => Promise<HTTPResponse<JSONObject>> = async (): Promise<
+    HTTPResponse<JSONObject>
+  > => {
+    const next: JSONObject | Error | undefined =
+      answers.length > 1 ? answers.shift() : answers[0];
+
+    if (next instanceof Error) {
+      throw next;
+    }
+
+    return new HTTPResponse<JSONObject>(200, next || {}, {});
+  };
 
   beforeEach(() => {
+    answers = [OFF_WITH_NOTHING];
     jest.spyOn(UserUtil, "getUserId").mockReturnValue(userId);
     jest
       .spyOn(API, "getFriendlyMessage")
       .mockImplementation((error: unknown): string => {
         return (error as Error).message;
       });
-    loadStatus = jest
-      .spyOn(ModelAPI, "getItem")
-      .mockResolvedValue(userWithStatus(false));
+    readStatus = jest.spyOn(API, "get").mockImplementation(respond);
     updateStatus = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
@@ -72,358 +94,382 @@ describe("two-factor authentication status", () => {
     jest.restoreAllMocks();
   });
 
-  test("loads the current user's status before offering an action", async () => {
-    let finish: ((user: User) => void) | undefined;
-    loadStatus.mockReturnValue(
-      new Promise<User>((resolve: (user: User) => void) => {
-        finish = resolve;
-      }),
+  const badge: () => Promise<HTMLElement> = async (): Promise<HTMLElement> => {
+    return await screen.findByTestId("two-factor-status");
+  };
+
+  test("reads where the person stands before offering anything", async () => {
+    let finish: ((response: HTTPResponse<JSONObject>) => void) | undefined;
+    readStatus.mockReturnValue(
+      new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (response: HTTPResponse<JSONObject>) => void) => {
+          finish = resolve;
+        },
+      ),
     );
     render(<TwoFactorStatus />);
 
     expect(screen.queryByTestId("two-factor-status")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Enable|Turn off two-factor/ }),
+      screen.queryByRole("button", { name: /Enable|Turn off|Finish setup/ }),
     ).not.toBeInTheDocument();
-    expect(loadStatus).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modelType: User,
-        id: userId,
-        select: { enableTwoFactorAuth: true },
-      }),
+    expect(String(readStatus.mock.calls[0]![0].url)).toMatch(
+      /\/user\/two-factor-auth-status$/,
     );
 
     await act(async () => {
-      finish!(userWithStatus(false));
+      finish!(new HTTPResponse<JSONObject>(200, OFF_WITH_NOTHING, {}));
     });
+
     expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
       "Not enabled",
     );
-    expect(
-      screen.getByRole("button", { name: "Enable two-factor authentication" }),
-    ).toBeEnabled();
-    expect(updateStatus).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: ENABLE })).toBeEnabled();
   });
 
-  test("lets the current user turn off enabled two-factor authentication", async () => {
-    loadStatus.mockResolvedValue(userWithStatus(true));
-    render(<TwoFactorStatus />);
+  describe("off, with nothing set up", () => {
+    test("Enable starts setting up a second step, and turns nothing on itself", async () => {
+      const onStartSetup: jest.Mock = jest.fn();
+      render(<TwoFactorStatus onStartSetup={onStartSetup} />);
 
-    expect(await screen.findByTestId("two-factor-status")).toHaveTextContent(
-      "Enabled",
-    );
-    expect(
-      screen.getByText(
-        "Use an authenticator app or security key for your second step.",
-      ),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("button", {
-        name: "Turn off two-factor authentication",
-      }),
-    ).toBeEnabled();
-    expect(screen.queryByText(/administrator/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", {
-        name: "Enable two-factor authentication",
-      }),
-    ).not.toBeInTheDocument();
-    expect(updateStatus).not.toHaveBeenCalled();
-  });
-
-  test.each(["missing user", "missing setting"])(
-    "does not interpret missing status as disabled: %s",
-    async (missing: string) => {
-      loadStatus.mockResolvedValue(
-        missing === "missing user" ? null : new User(),
-      );
-      render(<TwoFactorStatus />);
-
+      expect(await badge()).toHaveTextContent("Not enabled");
       expect(
-        await screen.findByText(
-          "Your two-factor authentication status could not be loaded.",
+        screen.getByText(
+          "Turn it on to set up an authenticator app or a security key as the second step of your sign-in.",
         ),
       ).toBeVisible();
-      expect(screen.queryByTestId("two-factor-status")).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: /Enable|Turn off two-factor/ }),
-      ).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
-    },
-  );
 
-  test.each([false, true])(
-    "recovers from a failed status request without making an account change: enabled %s",
-    async (isEnabled: boolean) => {
-      loadStatus
-        .mockRejectedValueOnce(new Error("Unable to load account security"))
-        .mockResolvedValueOnce(userWithStatus(isEnabled));
+      fireEvent.click(screen.getByRole("button", { name: ENABLE }));
+
+      expect(onStartSetup).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(updateStatus).not.toHaveBeenCalled();
+    });
+
+    test("is never said to be enabled", async () => {
+      render(<TwoFactorStatus />);
+
+      expect(await badge()).not.toHaveTextContent(/^Enabled$/);
+      expect(
+        screen.queryByRole("button", { name: TURN_OFF }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("off, with a second step ready", () => {
+    beforeEach(() => {
+      answers = [OFF_WITH_AN_APP, ON];
+    });
+
+    test("Enable says what changes, and Cancel changes nothing", async () => {
+      render(<TwoFactorStatus />);
+      expect(await badge()).toHaveTextContent("Not enabled");
+      expect(
+        screen.getByText(
+          "Your second step is ready. Turn on two-factor authentication to ask for it each time you sign in with a password.",
+        ),
+      ).toBeVisible();
+
+      fireEvent.click(screen.getByRole("button", { name: ENABLE }));
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: `${ENABLE}?`,
+      });
+
+      expect(dialog).toHaveTextContent(
+        "Signing in with a password or an emailed link will then ask for your second step: an authenticator app, a security key or a passkey.",
+      );
+      // The old promise that setup happens at the next sign-in is gone.
+      expect(dialog).not.toHaveTextContent(/next sign-in/);
+
+      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(updateStatus).not.toHaveBeenCalled();
+    });
+
+    test("turns it on once confirmed, with one request, and reads again", async () => {
+      render(<TwoFactorStatus />);
+      await badge();
+
+      fireEvent.click(screen.getByRole("button", { name: ENABLE }));
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: `${ENABLE}?`,
+      });
+      const submit: HTMLElement = within(dialog).getByRole("button", {
+        name: ENABLE,
+      });
+
+      await act(async () => {
+        fireEvent.click(submit);
+        fireEvent.click(submit);
+      });
+
+      expect(updateStatus).toHaveBeenCalledTimes(1);
+      expect(updateStatus).toHaveBeenCalledWith({
+        modelType: User,
+        id: userId,
+        data: { enableTwoFactorAuth: true },
+      });
+      expect(await screen.findByText("Enabled", { exact: true })).toBeVisible();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(readStatus).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole("button", { name: TURN_OFF })).toBeEnabled();
+    });
+
+    test("keeps a refusal in the dialog, says it, and retries the same change", async () => {
+      updateStatus.mockRejectedValueOnce(
+        new Error(
+          "Set up an authenticator app, a security key or a passkey first, then turn on two factor authentication.",
+        ),
+      );
+      render(<TwoFactorStatus />);
+      await badge();
+
+      fireEvent.click(screen.getByRole("button", { name: ENABLE }));
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: `${ENABLE}?`,
+      });
+      fireEvent.click(within(dialog).getByRole("button", { name: ENABLE }));
+
+      expect(
+        await within(dialog).findByText(
+          "Set up an authenticator app, a security key or a passkey first, then turn on two factor authentication.",
+        ),
+      ).toBeVisible();
+      expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
+        "Not enabled",
+      );
+
+      fireEvent.click(within(dialog).getByRole("button", { name: ENABLE }));
+      expect(await screen.findByText("Enabled", { exact: true })).toBeVisible();
+      expect(updateStatus).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("on", () => {
+    beforeEach(() => {
+      answers = [ON, OFF_WITH_AN_APP];
+    });
+
+    test("says Enabled and what it asks for, and offers Turn off only", async () => {
+      render(<TwoFactorStatus />);
+
+      expect(await badge()).toHaveTextContent("Enabled");
+      expect(
+        screen.getByText(
+          "Use an authenticator app or security key for your second step.",
+        ),
+      ).toBeVisible();
+      expect(screen.getByRole("button", { name: TURN_OFF })).toBeEnabled();
+      expect(
+        screen.queryByRole("button", { name: ENABLE }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/administrator/i)).not.toBeInTheDocument();
+    });
+
+    test.each(["Cancel", "Escape"])(
+      "Turn off explains itself, and %s keeps it on",
+      async (dismissal: string) => {
+        render(<TwoFactorStatus />);
+        await badge();
+
+        fireEvent.click(screen.getByRole("button", { name: TURN_OFF }));
+        const dialog: HTMLElement = screen.getByRole("dialog", {
+          name: `${TURN_OFF}?`,
+        });
+
+        expect(dialog).toHaveTextContent(
+          "You will no longer be asked for a second step when signing in with a password.",
+        );
+        expect(dialog).toHaveTextContent(
+          "Your authenticator apps and security keys stay saved.",
+        );
+
+        if (dismissal === "Cancel") {
+          fireEvent.click(
+            within(dialog).getByRole("button", { name: "Cancel" }),
+          );
+        } else {
+          fireEvent.keyDown(dialog, { key: "Escape" });
+        }
+
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
+          "Enabled",
+        );
+        expect(updateStatus).not.toHaveBeenCalled();
+      },
+    );
+
+    test("turns it off once confirmed, and then offers to turn it back on", async () => {
+      render(<TwoFactorStatus />);
+      await badge();
+
+      fireEvent.click(screen.getByRole("button", { name: TURN_OFF }));
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: `${TURN_OFF}?`,
+      });
+      await act(async () => {
+        fireEvent.click(within(dialog).getByRole("button", { name: TURN_OFF }));
+      });
+
+      expect(updateStatus).toHaveBeenCalledWith({
+        modelType: User,
+        id: userId,
+        data: { enableTwoFactorAuth: false },
+      });
+      expect(
+        await screen.findByText("Not enabled", { exact: true }),
+      ).toBeVisible();
+      expect(screen.getByRole("button", { name: ENABLE })).toBeEnabled();
+    });
+  });
+
+  describe("on, with nothing set up (#9666)", () => {
+    beforeEach(() => {
+      answers = [ON_WITH_NOTHING];
+    });
+
+    test("says Setup needed, never Enabled, and why it does not protect the account", async () => {
+      render(<TwoFactorStatus />);
+
+      expect(await badge()).toHaveTextContent("Setup needed");
+      expect(screen.getByTestId("two-factor-status")).not.toHaveTextContent(
+        /^Enabled$/,
+      );
+      expect(
+        screen.getByText(
+          "Two-factor authentication is on, but no second step is set up yet, so it does not protect your account. Set one up now, or you will be asked to at your next sign-in.",
+        ),
+      ).toBeVisible();
+    });
+
+    test("Finish setup starts setting up a second step", async () => {
+      const onStartSetup: jest.Mock = jest.fn();
+      render(<TwoFactorStatus onStartSetup={onStartSetup} />);
+      await badge();
+
+      fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
+
+      expect(onStartSetup).toHaveBeenCalledTimes(1);
+      expect(updateStatus).not.toHaveBeenCalled();
+    });
+
+    test("Turn off is there too, for somebody who would rather not", async () => {
+      answers = [ON_WITH_NOTHING, OFF_WITH_NOTHING];
+      render(<TwoFactorStatus />);
+      await badge();
+
+      fireEvent.click(screen.getByRole("button", { name: TURN_OFF }));
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: `${TURN_OFF}?`,
+      });
+      await act(async () => {
+        fireEvent.click(within(dialog).getByRole("button", { name: TURN_OFF }));
+      });
+
+      expect(updateStatus).toHaveBeenCalledWith({
+        modelType: User,
+        id: userId,
+        data: { enableTwoFactorAuth: false },
+      });
+      expect(
+        await screen.findByText("Not enabled", { exact: true }),
+      ).toBeVisible();
+    });
+  });
+
+  describe("when where the person stands cannot be read", () => {
+    test.each([
+      ["an empty answer", {}],
+      ["an unknown status", { status: "Enabled", verifiedMethodCount: 1 }],
+      [
+        "configured over nothing",
+        { status: "EnabledConfigured", verifiedMethodCount: 0 },
+      ],
+    ])(
+      "%s is not taken for off: it says so, and offers nothing but Try again",
+      async (_label: string, value: JSONObject) => {
+        answers = [value];
+        render(<TwoFactorStatus />);
+
+        expect(
+          await screen.findByText(
+            "Your two-factor authentication status could not be loaded.",
+          ),
+        ).toBeVisible();
+        expect(
+          screen.queryByTestId("two-factor-status"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole("button", {
+            name: /Enable|Turn off|Finish setup/,
+          }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+      },
+    );
+
+    test("a failed read recovers with Try again, changing nothing", async () => {
+      answers = [new Error("Unable to load account security"), ON];
       render(<TwoFactorStatus />);
 
       expect(
         await screen.findByText("Unable to load account security"),
       ).toBeVisible();
-      expect(screen.queryByTestId("two-factor-status")).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: /Enable|Turn off two-factor/ }),
-      ).not.toBeInTheDocument();
+
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-      expect(await screen.findByTestId("two-factor-status")).toHaveTextContent(
-        isEnabled ? "Enabled" : "Not enabled",
-      );
-      expect(
-        screen.getByRole("button", { name: actionForStatus(isEnabled) }),
-      ).toBeEnabled();
+
+      expect(await badge()).toHaveTextContent("Enabled");
       expect(
         screen.queryByText("Unable to load account security"),
       ).not.toBeInTheDocument();
-      expect(loadStatus).toHaveBeenCalledTimes(2);
+      expect(readStatus).toHaveBeenCalledTimes(2);
       expect(updateStatus).not.toHaveBeenCalled();
-    },
-  );
-
-  test("explains the next sign-in before enabling, and cancel leaves it unchanged", async () => {
-    render(<TwoFactorStatus />);
-    const dialog: HTMLElement = await openConfirmation();
-
-    expect(dialog).toHaveTextContent("you set it up at your next sign-in");
-    expect(dialog).not.toHaveTextContent(/administrator/i);
-    expect(updateStatus).not.toHaveBeenCalled();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
-      "Not enabled",
-    );
-    expect(updateStatus).not.toHaveBeenCalled();
+    });
   });
 
-  test.each(["Cancel", "Escape"])(
-    "explains turning off two-factor authentication and preserves the account when dismissed with %s",
-    async (dismissal: string) => {
-      loadStatus.mockResolvedValue(userWithStatus(true));
-      render(<TwoFactorStatus />);
-      const dialog: HTMLElement = await openConfirmation(true);
+  describe("for the page", () => {
+    test("tells it what was read", async () => {
+      const onSetupLoaded: jest.Mock = jest.fn();
+      answers = [ON];
+      render(<TwoFactorStatus onSetupLoaded={onSetupLoaded} />);
+      await badge();
 
-      expect(dialog).toHaveTextContent(
-        "You will no longer be asked for a second step when signing in with a password.",
-      );
-      expect(dialog).toHaveTextContent(
-        "Your authenticator apps and security keys stay saved.",
-      );
-      expect(dialog).not.toHaveTextContent(/administrator/i);
-      expect(updateStatus).not.toHaveBeenCalled();
-      expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
-        "Enabled",
-      );
+      expect(onSetupLoaded).toHaveBeenLastCalledWith({
+        status: TwoFactorAuthStatus.EnabledConfigured,
+        verifiedMethodCount: 1,
+      } as TwoFactorAuthSetup);
+    });
 
-      if (dismissal === "Cancel") {
-        fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-      } else {
-        fireEvent.keyDown(dialog, { key: "Escape" });
-      }
-
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
-        "Enabled",
-      );
+    test("reads again when the page says a second step changed", async () => {
+      answers = [OFF_WITH_NOTHING, OFF_WITH_AN_APP];
+      const { rerender } = render(<TwoFactorStatus refreshToggle={0} />);
       expect(
-        screen.getByRole("button", {
-          name: "Turn off two-factor authentication",
-        }),
-      ).toBeEnabled();
-      expect(updateStatus).not.toHaveBeenCalled();
-    },
-  );
-
-  test.each([false, true])(
-    "sends one confirmed request and waits for the server before changing status: initially enabled %s",
-    async (isEnabled: boolean) => {
-      let finish: (() => void) | undefined;
-      loadStatus.mockResolvedValue(userWithStatus(isEnabled));
-      updateStatus.mockReturnValue(
-        new Promise<void>((resolve: () => void) => {
-          finish = resolve;
-        }),
-      );
-      render(<TwoFactorStatus />);
-      const dialog: HTMLElement = await openConfirmation(isEnabled);
-      const submit: HTMLElement = within(dialog).getByRole("button", {
-        name: actionForStatus(isEnabled),
-      });
-      expect(updateStatus).not.toHaveBeenCalled();
-
-      act(() => {
-        fireEvent.click(submit);
-        fireEvent.click(submit);
-      });
-      expect(updateStatus).toHaveBeenCalledTimes(1);
-      expect(updateStatus).toHaveBeenCalledWith({
-        modelType: User,
-        id: userId,
-        data: { enableTwoFactorAuth: !isEnabled },
-      });
-      expect(submit).toBeDisabled();
-      expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
-        isEnabled ? "Enabled" : "Not enabled",
-      );
-      expect(
-        within(dialog).queryByRole("button", { name: "Cancel" }),
-      ).not.toBeInTheDocument();
-      expect(
-        within(dialog).queryByRole("button", { name: "Close" }),
-      ).not.toBeInTheDocument();
-      fireEvent.keyDown(dialog, { key: "Escape" });
-      expect(dialog).toBeInTheDocument();
-      expect(updateStatus).toHaveBeenCalledTimes(1);
-
-      await act(async () => {
-        finish!();
-      });
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
-        isEnabled ? "Not enabled" : "Enabled",
-      );
-      expect(
-        screen.getByRole("button", { name: actionForStatus(!isEnabled) }),
-      ).toBeEnabled();
-      expect(
-        screen.queryByRole("button", { name: actionForStatus(isEnabled) }),
-      ).not.toBeInTheDocument();
-    },
-  );
-
-  test.each([false, true])(
-    "keeps a failed update visible and retries the same requested status: initially enabled %s",
-    async (isEnabled: boolean) => {
-      loadStatus.mockResolvedValue(userWithStatus(isEnabled));
-      updateStatus.mockRejectedValueOnce(
-        new Error("Your account could not be updated"),
-      );
-      render(<TwoFactorStatus />);
-      const dialog: HTMLElement = await openConfirmation(isEnabled);
-      fireEvent.click(
-        within(dialog).getByRole("button", {
-          name: actionForStatus(isEnabled),
-        }),
-      );
-
-      expect(
-        await within(dialog).findByText("Your account could not be updated"),
-      ).toBeVisible();
-      expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
-        isEnabled ? "Enabled" : "Not enabled",
-      );
-      const retry: HTMLElement = within(dialog).getByRole("button", {
-        name: actionForStatus(isEnabled),
-      });
-      expect(retry).toBeEnabled();
-      expect(
-        within(dialog).getByRole("button", { name: "Cancel" }),
-      ).toBeEnabled();
-      fireEvent.click(retry);
-      await screen.findByText(isEnabled ? "Not enabled" : "Enabled", {
-        exact: true,
-      });
-      expect(updateStatus).toHaveBeenCalledTimes(2);
-      for (const call of [1, 2]) {
-        expect(updateStatus).toHaveBeenNthCalledWith(call, {
-          modelType: User,
-          id: userId,
-          data: { enableTwoFactorAuth: !isEnabled },
-        });
-      }
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: actionForStatus(!isEnabled) }),
-      ).toBeEnabled();
-    },
-  );
-
-  test.each([false, true])(
-    "clears a failed update when its confirmation is closed and reopened: initially enabled %s",
-    async (isEnabled: boolean) => {
-      loadStatus.mockResolvedValue(userWithStatus(isEnabled));
-      updateStatus.mockRejectedValueOnce(new Error("Please try again later"));
-      render(<TwoFactorStatus />);
-      const dialog: HTMLElement = await openConfirmation(isEnabled);
-      fireEvent.click(
-        within(dialog).getByRole("button", {
-          name: actionForStatus(isEnabled),
-        }),
-      );
-      expect(
-        await within(dialog).findByText("Please try again later"),
+        await screen.findByText(
+          "Turn it on to set up an authenticator app or a security key as the second step of your sign-in.",
+        ),
       ).toBeVisible();
 
-      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(screen.getByTestId("two-factor-status")).toHaveTextContent(
-        isEnabled ? "Enabled" : "Not enabled",
+      rerender(<TwoFactorStatus refreshToggle={1} />);
+
+      expect(
+        await screen.findByText(
+          "Your second step is ready. Turn on two-factor authentication to ask for it each time you sign in with a password.",
+        ),
+      ).toBeVisible();
+      expect(readStatus).toHaveBeenCalledTimes(2);
+    });
+
+    test("stops reading when the page goes", () => {
+      readStatus.mockReturnValue(
+        new Promise<HTTPResponse<JSONObject>>(() => {}),
       );
+      const { unmount } = render(<TwoFactorStatus />);
+      const signal: AbortSignal = readStatus.mock.calls[0]![0].options.signal;
 
-      const reopened: HTMLElement = await openConfirmation(isEnabled);
-      expect(
-        within(reopened).queryByText("Please try again later"),
-      ).not.toBeInTheDocument();
-      expect(
-        within(reopened).getByRole("button", {
-          name: actionForStatus(isEnabled),
-        }),
-      ).toBeEnabled();
-      expect(updateStatus).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  test("can enable two-factor authentication again after turning it off", async () => {
-    loadStatus.mockResolvedValue(userWithStatus(true));
-    render(<TwoFactorStatus />);
-    const turnOffDialog: HTMLElement = await openConfirmation(true);
-    fireEvent.click(
-      within(turnOffDialog).getByRole("button", {
-        name: "Turn off two-factor authentication",
-      }),
-    );
-    await screen.findByText("Not enabled", { exact: true });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-
-    const enableDialog: HTMLElement = await openConfirmation();
-    expect(enableDialog).toHaveTextContent(
-      "you set it up at your next sign-in",
-    );
-    expect(enableDialog).not.toHaveTextContent(/administrator/i);
-    fireEvent.click(
-      within(enableDialog).getByRole("button", {
-        name: "Enable two-factor authentication",
-      }),
-    );
-    await screen.findByText("Enabled", { exact: true });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(updateStatus).toHaveBeenCalledTimes(2);
-    expect(updateStatus).toHaveBeenNthCalledWith(1, {
-      modelType: User,
-      id: userId,
-      data: { enableTwoFactorAuth: false },
+      expect(signal.aborted).toBe(false);
+      unmount();
+      expect(signal.aborted).toBe(true);
     });
-    expect(updateStatus).toHaveBeenNthCalledWith(2, {
-      modelType: User,
-      id: userId,
-      data: { enableTwoFactorAuth: true },
-    });
-    expect(
-      screen.getByRole("button", {
-        name: "Turn off two-factor authentication",
-      }),
-    ).toBeEnabled();
-  });
-
-  test("aborts a status request when the page unmounts", () => {
-    loadStatus.mockReturnValue(new Promise<User>(() => {}));
-    const { unmount } = render(<TwoFactorStatus />);
-    const signal: AbortSignal =
-      loadStatus.mock.calls[0][0].requestOptions.apiRequestOptions.signal;
-    expect(signal.aborted).toBe(false);
-    unmount();
-    expect(signal.aborted).toBe(true);
   });
 });

@@ -22,9 +22,11 @@ import path from "path";
  * got one bucket of placeholders and no word why.
  *
  * Both pages now say so, and where to put a value that must be read under
- * that mode: a session tag, which the recorder never masks. These tests
- * tie each sentence to the code it describes, and every translation to
- * the English line it stands beside.
+ * that mode: a session tag, which the recorder never masks - or, since
+ * #7501, a short code under a key the application lists in Readable event
+ * properties (SessionReplayPageRulesDocs). These tests tie each sentence
+ * to the code it describes, and every translation to the English line it
+ * stands beside.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -112,11 +114,21 @@ describe("what Mask all text does to the values a page hands the recorder", () =
       "name: name.trim().slice(0, SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH),",
     );
 
+    /*
+     * Every value through the console mask, but a short token under a key
+     * the application lists in Readable event properties (#7501, held by
+     * SessionReplayPageRulesDocs). Nothing is listed unless someone lists it.
+     */
+    expect(track).toContain("this.extendedConfig.readableEventPropertyKeys,");
+
     const maskStringMap: string = member(RECORDER, "private maskStringMap(");
 
-    expect(maskStringMap).toContain("for (const key of Object.keys(map)) {");
+    expect(maskStringMap).toContain("readableKeys: Array<string> = [],");
     expect(maskStringMap).toContain(
-      "masked[key] = this.masking.maskConsoleArgument(map[key] as string);",
+      "return maskSessionReplayProperties(\n      map,\n      readableKeys,",
+    );
+    expect(maskStringMap).toContain(
+      "return this.masking.maskConsoleArgument(value);",
     );
   });
 
@@ -159,7 +171,7 @@ describe("what Mask all text does to the values a page hands the recorder", () =
 
     expect(INDEX).toContain("return recorder.maskAnalyticsProperties(map);");
     expect(member(RECORDER, "public maskAnalyticsProperties(")).toContain(
-      "return this.maskStringMap(map);",
+      "return this.maskStringMap(\n      map,\n      this.extendedConfig.readableEventPropertyKeys,\n    );",
     );
   });
 

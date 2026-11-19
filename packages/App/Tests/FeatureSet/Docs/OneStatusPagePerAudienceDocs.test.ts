@@ -937,8 +937,19 @@ describe("One Status Page per Audience docs", () => {
       expect(readPage("incidents/declaring-incidents", "fa")).toContain(
         "وقتی کسی خبردار نخواهد شد (هیچ مانیتوری پیوست نشده",
       );
+      /*
+       * Under the note composer's box, why nobody will be told - hidden, no
+       * status page shows it, the pages send nothing - is the box's own
+       * line (#9735); the summary shows the pages the scope leaves out.
+       */
       expect(readPage("incidents/notes-owners-and-feed")).toContain(
-        "When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason.",
+        "When nobody will be told it shows nothing, unless the incident's status page scope is the reason; why nobody will be told (the incident is hidden, no status page shows it, or the pages that show it send nothing) is said by the line under the checkbox.",
+      );
+      expect(readPage("incidents/notes-owners-and-feed")).not.toContain(
+        "unless the incident is hidden from status pages",
+      );
+      expect(readPage("incidents/notes-owners-and-feed")).toContain(
+        "**Public · Visible on your status page**, or **Public · No status page shows this incident yet** while no status page shows the incident.",
       );
       expect(readPage("incidents/notes-owners-and-feed", "fa")).toContain(
         "وقتی کسی خبردار نخواهد شد چیزی نشان نمی‌دهد",

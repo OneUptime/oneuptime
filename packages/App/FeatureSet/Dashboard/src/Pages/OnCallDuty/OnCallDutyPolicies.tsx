@@ -53,6 +53,13 @@ import useProductFirstRun, {
 } from "../../Components/ProductOnboarding/UseProductFirstRun";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import usePagedFirst, {
+  PagedFirstOfPolicies,
+} from "../../Components/OnCallPolicy/PagedFirst/UsePagedFirst";
+import PagedFirstCell, {
+  PAGED_FIRST_COLUMN_TITLE,
+  getPagedFirstExportText,
+} from "../../Components/OnCallPolicy/PagedFirst/PagedFirstCell";
 
 /*
  * Whether the user may add escalation rules, which "Who gets paged first?"
@@ -144,6 +151,14 @@ const OnCallDutyPage: FunctionComponent<
     useEveryNewEventRulesOffer();
 
   /*
+   * Who each policy pages first - its first escalation rule's schedules,
+   * teams and people, a schedule with who is on call in it now - read for
+   * each page the list shows (#9701, Components/OnCallPolicy/PagedFirst), so
+   * nobody opens every policy to find out.
+   */
+  const pagedFirst: PagedFirstOfPolicies = usePagedFirst();
+
+  /*
    * Name, who gets paged first, and the description and labels folded under
    * Advanced (OnCallPolicyCreateForm.ts). Built once, not on every render of
    * the page - and again only when the switch's start changes: on while the
@@ -194,6 +209,7 @@ const OnCallDutyPage: FunctionComponent<
         onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
           onResourcesFetched(data);
           everyNewEventRules.onPoliciesListed(data.length);
+          pagedFirst.onPoliciesFetched(data);
         }}
         saveFilterProps={{
           tableId: "on-call-policies-table",
@@ -276,6 +292,33 @@ const OnCallDutyPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          /*
+           * Right after the name: who gets paged first is what the list is
+           * opened for, on a phone's card too. Drawn from the policy's id,
+           * so it does not sort (a column of several people would not), and
+           * exported as the names it shows.
+           */
+          {
+            field: {
+              _id: true,
+            },
+            title: PAGED_FIRST_COLUMN_TITLE,
+            type: FieldType.Element,
+            getExportValue: (item: OnCallDutyPolicy): string => {
+              return getPagedFirstExportText(
+                pagedFirst.getPagedFirst(item),
+                translator,
+              );
+            },
+            getElement: (item: OnCallDutyPolicy): ReactElement => {
+              return (
+                <PagedFirstCell
+                  pagedFirst={pagedFirst.getPagedFirst(item)}
+                  isLoading={pagedFirst.isLoading}
+                />
+              );
+            },
           },
           {
             field: {

@@ -272,6 +272,8 @@ describe("Monitor overview page", () => {
         "useMonitorOpenWork",
         "useMonitorOverviewData",
         "useMonitorOwners",
+        // Why a status that is not operational holds (#9592).
+        "useMonitorStatusCause",
         "useMonitorUptimeSummary",
         "useOutletContext",
         "useRef",
@@ -505,7 +507,19 @@ describe("Monitor overview data flow", () => {
       }
     }
 
-    expect(readers).toEqual(["Overview/useMonitorOverviewData"]);
+    /*
+     * The status cause (#9592) reads one status event, never the Monitor
+     * row: its root cause, once per status change.
+     */
+    expect(readers).toEqual([
+      "Overview/useMonitorOverviewData",
+      "Overview/useMonitorStatusCause",
+    ]);
+
+    const causeCode: string = getModuleCode("Overview/useMonitorStatusCause");
+
+    expect(causeCode).toContain("modelType: MonitorStatusTimeline,");
+    expect(causeCode).not.toContain("modelType: Monitor,");
 
     /*
      * getReadableMonitorSecretKeySelect() reads the permission snapshot when

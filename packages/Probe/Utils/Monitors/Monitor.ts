@@ -8,6 +8,7 @@ import PingMonitor, { PingResponse } from "./MonitorTypes/PingMonitor";
 import PortMonitor, { PortMonitorResponse } from "./MonitorTypes/PortMonitor";
 import SSLMonitor, { SslResponse } from "./MonitorTypes/SslMonitor";
 import SyntheticMonitor from "./MonitorTypes/SyntheticMonitor";
+import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
 import WebsiteMonitor, {
   ProbeWebsiteResponse,
 } from "./MonitorTypes/WebsiteMonitor";
@@ -659,6 +660,7 @@ export default class MonitorUtil {
             .screenSizeTypes as Array<ScreenSizeType>,
           browserTypes: monitorStep.data.browserTypes as Array<BrowserType>,
           retryCountOnError: monitorStep.data.retryCountOnError || 0,
+          totpSecrets: monitorStep.data.totpSecrets,
         });
 
       if (!response) {
@@ -679,6 +681,7 @@ export default class MonitorUtil {
         await CustomCodeMonitor.execute({
           script: monitorStep.data.customCode,
           monitorId: monitorId,
+          totpSecrets: monitorStep.data.totpSecrets,
         });
 
       if (!response) {
@@ -814,6 +817,10 @@ export default class MonitorUtil {
         tlsClientKey: monitorStep.data?.tlsClientKey || undefined,
         tlsClientKeyPassphrase:
           monitorStep.data?.tlsClientKeyPassphrase || undefined,
+        // One-time codes are made per attempt, at the moment it is sent.
+        totpCodes: new TotpCodeIssuer({
+          secrets: monitorStep.data?.totpSecrets || {},
+        }),
       });
 
       if (!response) {

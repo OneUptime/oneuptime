@@ -10,6 +10,10 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import { OwnedByMatch } from "../../../Types/BaseDatabase/OwnedBy";
+import {
+  NAME_WHITE_SPACE_RUN_PATTERN,
+  getNameKeySql,
+} from "../../../Types/Database/UniqueName";
 import buildJSONColumnQuery, {
   JSONColumnQuery,
   escapeLikePattern,
@@ -168,6 +172,36 @@ export default class QueryHelper {
       },
       {
         [rid]: `${text}`,
+      },
+    );
+  }
+
+  /*
+   * A name column holding the name `name` reads as (Types/Database/
+   * UniqueName, #9674): the same whatever its case, the white space around
+   * it, and how much - or which kind of - white space stands between its
+   * words. Both sides are read the same way in Postgres, so a name a project
+   * already holds is matched however it was saved: "Tenants ", "TENANTS"
+   * and "Tenants" are one name. findWithSameText compares case alone, and
+   * only after trimming the name it is handed.
+   */
+  public static findWithSameName(name: string): FindWhereProperty<any> {
+    const nameRid: string = Text.generateRandomText(10);
+    const patternRid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(${getNameKeySql({
+          textSql: alias,
+          patternSql: `:${patternRid}`,
+        })} = ${getNameKeySql({
+          textSql: `CAST(:${nameRid} AS TEXT)`,
+          patternSql: `:${patternRid}`,
+        })})`;
+      },
+      {
+        [nameRid]: `${name}`,
+        [patternRid]: NAME_WHITE_SPACE_RUN_PATTERN,
       },
     );
   }

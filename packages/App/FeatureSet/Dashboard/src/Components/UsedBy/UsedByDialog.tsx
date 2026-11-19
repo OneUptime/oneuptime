@@ -242,6 +242,7 @@ const RelationRows: FunctionComponent<{
         <UsedByRowList
           rows={shownRows}
           rowKind={getRowKindOf(props.relation)}
+          relation={props.relation}
         />
       </div>
       {hiddenNote ? (

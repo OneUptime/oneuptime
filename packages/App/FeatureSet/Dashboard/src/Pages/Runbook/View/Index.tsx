@@ -67,8 +67,11 @@ import {
   UnattendedTriggerText,
   getUnattendedTriggerText,
 } from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
+import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import {
   RUNBOOK_ADD_STEPS_BUTTON_TEST_ID,
+  RUNBOOK_EXECUTIONS_TABLE_ID,
+  RUNBOOK_FAILED_RUNS_LINK_TEST_ID,
   RUNBOOK_LAST_RUN_LINK_TEST_ID,
   RUNBOOK_LAST_RUN_TILE_TEST_ID,
   RUNBOOK_NO_STEPS_TEST_ID,
@@ -422,6 +425,14 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
     RouteMap[PageMap.RUNBOOK_VIEW_EXECUTIONS] as Route,
     { modelId },
   );
+  // The runs "N failed" counts: the Executions, its Status filter on Failed.
+  const failedRunsRoute: Route = new Route(
+    executionsRoute.toString(),
+  ).addQueryParams(
+    TableFilterUrlState.getLinkQueryParams(RUNBOOK_EXECUTIONS_TABLE_ID, {
+      filter: { status: RunbookExecutionStatus.Failed },
+    }),
+  );
 
   return (
     <Fragment>
@@ -726,12 +737,36 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
-                  <span className="font-semibold text-gray-900">
-                    {stats.isLoaded ? stats.failedRuns : <EmptyValue />}
-                  </span>
-                  <span className="text-gray-500">
-                    {translator.translateText("failed")}
-                  </span>
+                  {/*
+                   * "2 failed" opens those two runs (#9597): the
+                   * Executions, filtered to Failed.
+                   */}
+                  {stats.isLoaded && stats.failedRuns > 0 ? (
+                    <Link
+                      to={failedRunsRoute}
+                      dataTestId={RUNBOOK_FAILED_RUNS_LINK_TEST_ID}
+                      /*
+                       * A link of its own words, not stretched over the
+                       * tile: the completed count beside it opens nothing.
+                       */
+                      className="rounded font-medium text-red-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      {/* One sentence, its count in the reader's digits. */}
+                      {translator.translatePlural(
+                        { one: "{{count}} failed", other: "{{count}} failed" },
+                        stats.failedRuns,
+                      )}
+                    </Link>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-gray-900">
+                        {stats.isLoaded ? stats.failedRuns : <EmptyValue />}
+                      </span>
+                      <span className="text-gray-500">
+                        {translator.translateText("failed")}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="text-xs text-gray-500 mt-2">

@@ -205,25 +205,47 @@ describe("KubernetesCostAllocation aggregate statements (Costs pages)", () => {
     expect(Object.values(params)).toContain("__idle__");
   });
 
-  test("efficiency variant (Avg over totalEfficiency) is qualified the same way", () => {
-    const { query, params } = build(
+  /*
+   * #9635: efficiency is cost-weighted on every page, read as two sums -
+   * sum(weightedEfficiency) over sum(efficiencyWeight) - grouped like the
+   * figures it sits beside, never as an average of totalEfficiency.
+   */
+  test.each(["weightedEfficiency", "efficiencyWeight"] as const)(
+    "the efficiency sum over %s is qualified the same way",
+    (column: "weightedEfficiency" | "efficiencyWeight") => {
+      const { query, params } = build(
+        buildAggregateBy({
+          aggregateColumnName: column,
+          aggregationType: AggregationType.Sum,
+          groupBy: {
+            clusterName: true,
+          } as AggregateBy<KubernetesCostAllocation>["groupBy"],
+          aggregationInterval: AggregationInterval.Total,
+        }),
+      );
+
+      expect(query).toContain(`sum(${column}) as ${column}`);
+      expect(query).toContain("min(windowStart) as windowStart");
+      expect(query).not.toContain("avg(");
+      expectQualifiedWhere(query, params, [
+        "projectId",
+        "windowStart",
+        "windowStart",
+      ]);
+    },
+  );
+
+  test("the efficiency sums read the whole cluster with no group, as the overview's card does", () => {
+    const { query } = build(
       buildAggregateBy({
-        aggregateColumnName: "totalEfficiency",
-        aggregationType: AggregationType.Avg,
-        groupBy: {
-          clusterName: true,
-        } as AggregateBy<KubernetesCostAllocation>["groupBy"],
+        aggregateColumnName: "weightedEfficiency",
+        aggregationType: AggregationType.Sum,
         aggregationInterval: AggregationInterval.Total,
       }),
     );
 
-    expect(query).toContain("avg(totalEfficiency) as totalEfficiency");
-    expect(query).toContain("min(windowStart) as windowStart");
-    expectQualifiedWhere(query, params, [
-      "projectId",
-      "windowStart",
-      "windowStart",
-    ]);
+    expect(query).toContain("sum(weightedEfficiency) as weightedEfficiency");
+    expect(query).not.toContain("GROUP BY clusterName");
   });
 
   test("namespace/workload breakdowns group by multiple columns under Total", () => {

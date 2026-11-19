@@ -1023,14 +1023,15 @@ describe("Product Analytics: events from a React Native app", () => {
     const recorder: string = mobileSource("MobileReplayRecorder.ts");
 
     expect(recorder).toContain("public metric(");
+    // Masked whatever the policy's mode, but the readable event properties (#7501).
     expect(recorder).toContain(
-      "return maskStringMapValues(sanitizeEventProperties(value));",
+      "return maskStringMapValues(\n            sanitizeEventProperties(value),\n            this.readableEventPropertyKeys(),\n          );",
     );
-    /* Said after Mask all text and tags, which it is the mobile form of. */
+    /* Said after Mask all text, tags and readable event properties, which it is the mobile form of. */
     expect(
       lineStartingWith(send, "- **Masked as the recording is.**"),
     ).toContain(
-      "not in these pages' breakdowns. A React Native app's values are always masked, as its SDK masks all text. A page is sent as its path",
+      "A React Native app's values are masked the same way, as its SDK masks all text: only a short code under one of those keys is sent as written. A page is sent as its path",
     );
     expect(lineStartingWith(send, "- **In small batches**")).toContain(
       "every 5 seconds and when the tab is hidden or the app goes to the background.",

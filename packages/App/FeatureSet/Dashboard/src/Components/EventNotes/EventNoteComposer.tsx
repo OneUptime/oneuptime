@@ -65,6 +65,15 @@ import {
   PublicNoteApprovalCopy,
   getApproverNames,
 } from "./PublicNoteApproval/PublicNoteApprovalUtil";
+import {
+  getCreateNotifyDescriptions,
+  getPublicNotesCopyForReach,
+  NotifyDescriptions,
+} from "./PublicNoteReachCopy";
+import usePublicNoteReach, {
+  PublicNoteReachRequest,
+  PublicNoteReachState,
+} from "./usePublicNoteReach";
 
 /*
  * Where the composer is drawn.
@@ -102,6 +111,13 @@ export interface ComponentProps<TNote extends BaseModel> {
    * it and refreshes its feed.
    */
   onPosted: () => Promise<void> | void;
+  /*
+   * Whether a status page shows the event, and whether a note notifies
+   * anyone, as the Notes page has asked it already for its notes
+   * (usePublicNoteReach). Left out - the feed's dialog - the composer asks
+   * itself, through the kind's statusPageReach.
+   */
+  statusPageReach?: PublicNoteReachState | undefined;
 }
 
 export interface NoteCreateGate {
@@ -205,16 +221,63 @@ function EventNoteComposer<TNote extends BaseModel>(
   const presentation: EventNoteComposerPresentation = props.presentation;
   const isDialog: boolean = presentation.type === "dialog";
 
-  const copy: NotesCopy = getNotesCopy(
-    kind.visibility,
-    kind.eventNoun,
-    translator,
-  );
   const model: TNote = useMemo(() => {
     return new kind.modelType();
   }, [kind.modelType]);
 
   const isPublic: boolean = kind.visibility === "public";
+
+  /*
+   * What the viewer holds, blocks included - on a private record's page,
+   * what they hold on the record: its notes are posted only by a team of
+   * theirs that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+
+  const createGate: PermissionGateResult = PermissionGate.check(
+    model,
+    ModelAction.Create,
+    privateRecordOptions,
+  );
+
+  /*
+   * Whether a status page shows the event, and whether a note posted now
+   * notifies anyone - asked here only when the page has not asked it for
+   * the composer (the feed's dialog), and only where a public note can be
+   * written: not on a private incident or episode, which takes none.
+   */
+  const ownReachRequest: PublicNoteReachRequest | null =
+    !props.statusPageReach &&
+    isPublic &&
+    kind.statusPageReach &&
+    !kind.isPrivateEvent &&
+    createGate.isAllowed
+      ? {
+          apiPath: kind.statusPageReach.apiPath,
+          eventId: kind.parentId,
+        }
+      : null;
+  const ownReach: PublicNoteReachState = usePublicNoteReach(ownReachRequest);
+  const reach: PublicNoteReachState = props.statusPageReach || ownReach;
+
+  /*
+   * "Public" says where the note shows only once that is known, and never
+   * that a status page shows it when none does (PublicNoteReachCopy).
+   */
+  const visibilityCopy: NotesCopy = getNotesCopy(
+    kind.visibility,
+    kind.eventNoun,
+    translator,
+  );
+  const copy: NotesCopy = isPublic
+    ? getPublicNotesCopyForReach({
+        copy: visibilityCopy,
+        eventNoun: kind.eventNoun,
+        reach: reach.reach,
+        translator: translator,
+      })
+    : visibilityCopy;
 
   /*
    * When the project asks for this kind of note to be approved, the
@@ -248,13 +311,6 @@ function EventNoteComposer<TNote extends BaseModel>(
     </p>
   ) : undefined;
 
-  /*
-   * What the viewer holds, blocks included - on a private record's page,
-   * what they hold on the record: its notes are posted only by a team of
-   * theirs that owns it (PrivateRecordScope).
-   */
-  const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
   const heldPermissions: HeldPermissions =
     PermissionGate.getHeldPermissions(privateRecordOptions);
   const isMasterAdmin: boolean = User.isMasterAdmin();
@@ -271,12 +327,6 @@ function EventNoteComposer<TNote extends BaseModel>(
       })
     );
   };
-
-  const createGate: PermissionGateResult = PermissionGate.check(
-    model,
-    ModelAction.Create,
-    privateRecordOptions,
-  );
 
   /*
    * Whether the reader may write the event's private notes instead, where
@@ -517,20 +567,24 @@ function EventNoteComposer<TNote extends BaseModel>(
   };
 
   /*
-   * English keys, looked up where NoteComposer shows them; translationKey()
-   * is what lets the extractor find them in an object like this one.
+   * What posting does, ticked and unticked, as it is true for this event:
+   * whether a status page shows it and one that does notifies, or why not
+   * (PublicNoteReachCopy) - nothing promised while that is not known. English
+   * keys, looked up where NoteComposer shows them; translationKey() is what
+   * lets the extractor find the title in an object like this one.
    */
+  const notifyDescriptions: NotifyDescriptions = getCreateNotifyDescriptions({
+    eventNoun: kind.eventNoun,
+    reach: reach.reach,
+    isNotifyingByDefault: isNotifyingByDefault,
+    quietDescription: kind.subscriberNotifications?.quietDescription || "",
+  });
+
   const createNotifyOption: NotifyOption | undefined = isNotifyControlShown
     ? {
         title: translationKey("Notify status page subscribers"),
-        checkedDescription: translationKey(
-          "Subscribers will be notified about this update as soon as you post it.",
-        ),
-        uncheckedDescription: isNotifyingByDefault
-          ? translationKey(
-              "The update will appear on your status page without notifying subscribers.",
-            )
-          : kind.subscriberNotifications!.quietDescription,
+        checkedDescription: notifyDescriptions.checked,
+        uncheckedDescription: notifyDescriptions.unchecked,
       }
     : undefined;
 

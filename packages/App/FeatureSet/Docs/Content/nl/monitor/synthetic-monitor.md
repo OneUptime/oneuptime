@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 Hoe u een geheim aanmaakt en kiest welke monitoren het mogen gebruiken, leest u in [Monitor-geheimen](/docs/monitor/monitor-secrets).
 
+Een geheim voor eenmalige codes bevat de configuratiesleutel voor tweefactorauthenticatie van een site in plaats van een waarde. Zijn `{{monitorSecrets.NAME}}` is de code van het moment waarop het script start, en `await oneuptime.getTotpCode("NAME")` maakt een nieuwe code wanneer het script erom vraagt, wat past bij een aanmelding die pas na een paar pagina's bij de vraag om de code komt. Zie [Aanmelden met een eenmalige code](/docs/monitor/monitor-secrets#aanmelden-met-een-eenmalige-code).
+
 ## Aangepaste metrieken
 
 Met de functie `oneuptime.captureMetric()` legt u vanuit uw script aangepaste metrieken vast. Deze metrieken worden in OneUptime opgeslagen en kunnen met de metriekverkenner in dashboards in grafieken worden gezet.
@@ -258,6 +260,7 @@ In incident- en waarschuwingssjablonen staat elke uitvoering in `{{syntheticResp
 | `crypto` | Een browser-worker-implementatie van SHA-256-hashes, HMAC-SHA-256, `randomBytes`, `randomInt` en `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` en `error`. De berichten worden bij elke uitvoering bewaard. |
 | `oneuptime.captureMetric` | Legt een aangepaste metriek vast. Zie [Aangepaste metrieken](#aangepaste-metrieken). |
+| `oneuptime.getTotpCode` | Maakt de huidige code van een geheim voor eenmalige codes: `await oneuptime.getTotpCode("NAME")`. Zie [Monitorgeheimen gebruiken](#monitorgeheimen-gebruiken). |
 | `http` | Een gebufferde compatibiliteitsfaçade, alleen aan clientzijde, met `request`, `get` en `Agent`. |
 | `https` | De HTTPS-tegenhanger van de façade `http` aan clientzijde. |
 | `Buffer`, `setTimeout`, `setInterval` | En hun `clear`-functies. |

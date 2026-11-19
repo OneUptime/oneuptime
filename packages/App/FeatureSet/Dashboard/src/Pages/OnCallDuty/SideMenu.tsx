@@ -110,6 +110,22 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon: IconProp.Timeline,
         },
         /*
+         * Who covers for whom while someone is away, for every policy at
+         * once. It changes who the schedules page, so it sits with them,
+         * beside the timeline that draws the cover (#9701); it was the first
+         * entry of the folded Advanced section, a click away from where
+         * people look for it. Its address is the same, so links to it work.
+         */
+        {
+          link: {
+            title: "User Overrides",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        /*
          * Next to the schedules it exports: the project-wide feed and the
          * pointers to the personal and per-schedule links live here.
          */
@@ -127,15 +143,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     {
       title: "Advanced",
       items: [
-        {
-          link: {
-            title: "User Overrides",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
         {
           link: {
             title: "Execution Logs",

@@ -1183,6 +1183,19 @@ router.get(
             ? policy.productAnalyticsUserPropertyKeys
             : [],
         },
+        /*
+         * Which pages a recording may hold (issue #7502), always sent, the
+         * empty lists too. The browser recorder pauses on a page they keep
+         * out, before the page is drawn, and names it nowhere. The React
+         * Native recorder records screens, not pages, and ignores them.
+         */
+        pageRules: policy.pageRules,
+        /*
+         * Readable event properties (issue #7501): the keys whose short
+         * token values stay as written under every masking mode. Empty
+         * unless the application listed some.
+         */
+        readableEventPropertyKeys: policy.readableEventPropertyKeys,
         recordCanvas: policy.recordCanvas,
         captureUserIdentity: policy.captureUserIdentity,
         /*

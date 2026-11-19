@@ -12,6 +12,7 @@ import { httpPostJson, HttpResult } from "./HttpClient";
 import Logger from "./Logger";
 import {
   KubernetesCostAllocationIngestRow,
+  KubernetesCostEngineInfo,
   KubernetesCostIngestPayload,
   ShipperStatus,
 } from "./Types";
@@ -64,6 +65,7 @@ export class Shipper {
    */
   public async ship(
     rows: Array<KubernetesCostAllocationIngestRow>,
+    costEngine?: KubernetesCostEngineInfo | undefined,
   ): Promise<void> {
     /*
      * Every chunk carries the same shipment id and its own index. The server
@@ -82,6 +84,8 @@ export class Shipper {
         currency: COST_CURRENCY,
         shipmentId: shipment.id,
         shipmentChunk: i / SHIP_BATCH_SIZE,
+        // Every chunk says it: the server stamps it on the rows it carries.
+        ...(costEngine ? { costEngine } : {}),
         allocations: chunk,
       };
       await this.post(payload, chunk.length);

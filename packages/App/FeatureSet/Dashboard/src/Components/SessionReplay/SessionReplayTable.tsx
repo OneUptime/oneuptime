@@ -1336,17 +1336,14 @@ function getSessionReplayCells(
       <span
         className="block min-w-0 max-w-full truncate"
         tabIndex={0}
-        aria-label={
-          user.kind === "hidden"
-            ? translateLine(
-                "User hidden: your role cannot read end-user identity",
-                translator,
-              )
-            : translator.translateTemplate("{{label}}: {{description}}", {
-                label: user.text,
-                description: user.title,
-              })
-        }
+        /*
+         * The cell's words, then its hover: for a hidden user the request
+         * that names the grant (#7320), as the tooltip says it.
+         */
+        aria-label={translator.translateTemplate("{{label}}: {{description}}", {
+          label: user.text,
+          description: user.title,
+        })}
       >
         {userName}
       </span>

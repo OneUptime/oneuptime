@@ -38,6 +38,7 @@ import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import { isNotificationChannelOfferedForEvent } from "Common/Types/WhatsApp/WhatsAppEventTemplates";
 import ObjectID from "Common/Types/ObjectID";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
@@ -170,6 +171,33 @@ export const SETTING_CHANNELS: Array<SettingChannel> = [
 export const CHANNELS_NAMED_ONLY_WHEN_ALONE: ReadonlyArray<string> = ["Push"];
 
 /*
+ * Whether a row's switch for a channel is on, as Notification Settings shows
+ * it: a WhatsApp switch on an event WhatsApp cannot send - it has no
+ * approved template (Types/WhatsApp/WhatsAppEventTemplates) - is no switch
+ * the page offers, sends nothing whatever a method behind it, and is nothing
+ * the reader can see or change there (#9715). It counts for nothing here.
+ */
+export const isSettingSwitchOn: (
+  row: UserNotificationSetting,
+  channel: SettingChannel,
+) => boolean = (
+  row: UserNotificationSetting,
+  channel: SettingChannel,
+): boolean => {
+  if (!row[channel.column]) {
+    return false;
+  }
+
+  return (
+    !row.eventType ||
+    isNotificationChannelOfferedForEvent({
+      channel: channel.column,
+      eventType: row.eventType,
+    })
+  );
+};
+
+/*
  * The channels to name in "You switched on ..., but have no verified method
  * there": those the reader switched on for some update (any row) while no
  * usable method of theirs is on that channel, in the settings page's column
@@ -196,7 +224,7 @@ export const getUndeliverableSettingChannels: (data: {
     return SETTING_CHANNELS.some((other: SettingChannel): boolean => {
       return (
         other !== channel &&
-        Boolean(row[other.column]) &&
+        isSettingSwitchOn(row, other) &&
         data.usableMethodTypes.has(other.methodType)
       );
     });
@@ -209,7 +237,7 @@ export const getUndeliverableSettingChannels: (data: {
       }
 
       return data.rows.some((row: UserNotificationSetting): boolean => {
-        if (!row[channel.column]) {
+        if (!isSettingSwitchOn(row, channel)) {
           return false;
         }
 
@@ -299,7 +327,7 @@ export const getNotificationSettingProbes: (data: {
   const isOnForRoster: (channel: SettingChannel) => boolean = (
     channel: SettingChannel,
   ): boolean => {
-    return Boolean(rosterRow?.[channel.column]);
+    return Boolean(rosterRow && isSettingSwitchOn(rosterRow, channel));
   };
 
   const hasAnyChannelEnabled: boolean = offered.some(isOnForRoster);
@@ -315,7 +343,7 @@ export const getNotificationSettingProbes: (data: {
       return (
         !data.usableMethodTypes.has(channel.methodType) &&
         data.rows.some((row: UserNotificationSetting): boolean => {
-          return Boolean(row[channel.column]);
+          return isSettingSwitchOn(row, channel);
         })
       );
     },

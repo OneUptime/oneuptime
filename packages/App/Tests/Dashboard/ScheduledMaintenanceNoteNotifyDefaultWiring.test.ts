@@ -392,6 +392,7 @@ describePublicNotesTab({
   resolveArgument: "scheduledMaintenance",
   helperCall: "shouldNotifyForScheduledMaintenance",
   quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
+  statusPageReachApiPath: "/scheduled-maintenance",
 });
 
 describeSharedPublicNoteWiring();

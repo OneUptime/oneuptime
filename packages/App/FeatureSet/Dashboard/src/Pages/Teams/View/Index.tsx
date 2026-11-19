@@ -6,6 +6,7 @@ import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -105,6 +106,8 @@ const TeamViewIndex: FunctionComponent<
             },
             // Not the column's "Any friendly name of this object", written for the API.
             hideColumnDescription: true,
+            // Another team's name, said under the field (#9674).
+            ownsServerError: isNameTakenRefusal,
           },
           {
             field: {

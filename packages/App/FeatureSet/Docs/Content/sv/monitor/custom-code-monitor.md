@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 Ett hemligt värde som innehåller ett citattecken förstör strängen runt det. En hänvisning som monitorn inte kan använda blir kvar i skriptet som den skrevs. Se [Övervakningshemligheter](/docs/monitor/monitor-secrets) för att skapa en hemlighet och välja vilka monitorer som kan använda den.
 
+En engångskodshemlighet innehåller en webbplats inställningsnyckel för tvåfaktorsautentisering i stället för ett värde. Dess `{{monitorSecrets.NAME}}` är den kod som gäller när skriptet startar, och `await oneuptime.getTotpCode("NAME")` genererar en ny kod när skriptet ber om den. Se [Logga in med en engångskod](/docs/monitor/monitor-secrets#logga-in-med-en-engångskod).
+
 ## Anpassade mätvärden
 
 Du kan samla in anpassade mätvärden från ditt skript med funktionen `oneuptime.captureMetric()`. Mätvärdena lagras i OneUptime och kan visas i diagram på instrumentpaneler med Metric Explorer.
@@ -226,6 +228,7 @@ Lägg till ett filter per fält som du vill kontrollera; varje filter kan ha sit
 | `http`, `https` | Bara deras klass `Agent`, att skicka till `axios` — till exempel `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. Det finns ingen `request` eller `get`. |
 | `console.log` | Loggar data för felsökning. Bara `console.log` finns; `console.error` och de andra finns inte. |
 | `oneuptime.captureMetric` | Samlar in ett anpassat mätvärde. Se [Anpassade mätvärden](#anpassade-mätvärden). |
+| `oneuptime.getTotpCode` | Genererar den aktuella koden för en engångskodshemlighet: `await oneuptime.getTotpCode("NAME")`. Se [Använda övervakningshemligheter](#använda-övervakningshemligheter). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Vänta inne i skriptet. En fördröjning varar aldrig längre än skriptets tidsgräns. |
 
 ## Saker att tänka på

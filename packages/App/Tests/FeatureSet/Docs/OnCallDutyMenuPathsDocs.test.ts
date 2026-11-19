@@ -18,16 +18,17 @@ import path from "path";
  * THE DOCS SEND READERS DOWN ON-CALL'S REAL MENU, IN EVERY LANGUAGE.
  *
  * On-Call's side menu (On-Call Duty's, until #6817) folds its Advanced
- * section (User Overrides, Execution Logs, Archived Policies), Reports,
- * Workspace, Settings and Developer: a page in one is not on screen until
- * its section is opened, so a path to it names the section. The On-Call
+ * section (Execution Logs, Archived Policies), Reports, Workspace, Settings
+ * and Developer: a page in one is not on screen until its section is
+ * opened, so a path to it names the section. User Overrides was the first
+ * page of Advanced until #9701 moved it into the open Schedules section. The On-Call
  * Schedules page told readers a skip "is listed under On-Call Duty > User
  * Overrides", without Advanced, in all seventeen languages. Markdown is not
  * compiled, so these hold every page, in every language, to the menu as it
  * is drawn - as the product's own texts are held
  * (OnCallDutyMenuPathsInProductText):
  *
- *   - every path written with the English names ("On-Call → Advanced → User
+ *   - every path written with the English names ("On-Call → Schedules → User
  *     Overrides", "**On-Call** > **Readiness**") walks the menu;
  *   - no page goes from On-Call straight to a page of a folded section in
  *     the words its language's Dashboard draws them.
@@ -171,7 +172,6 @@ describe("the checks themselves", () => {
   it("knows the pages of On-Call's folded sections", () => {
     expect(FOLDED_PAGES).toEqual(
       expect.arrayContaining([
-        { section: "Advanced", page: "User Overrides" },
         { section: "Advanced", page: "Execution Logs" },
         { section: "Advanced", page: "Archived Policies" },
         { section: "Reports", page: "User On-Call Time" },
@@ -190,17 +190,23 @@ describe("the checks themselves", () => {
         "Calendar Feeds",
       ]),
     );
+    // Under Schedules since #9701, which is open.
+    expect(
+      FOLDED_PAGES.map((folded: FoldedPage): string => {
+        return folded.page;
+      }),
+    ).not.toContain("User Overrides");
   });
 
   it.each([
-    ["en", "It is listed under **On-Call** > **User Overrides**."],
-    ["da", "Det står under **Vagt** > **Brugertilsidesættelser**."],
-    ["ja", "**オンコール** > **ユーザーオーバーライド** に一覧表示され"],
+    ["en", "It is listed under **On-Call** > **Execution Logs**."],
+    ["da", "Det står under **Vagt** > **Udførelseslogs**."],
+    ["ja", "**オンコール** > **実行ログ** に一覧表示され"],
     // No space before the next word, as Japanese and Chinese often write it.
-    ["ja", "オンコール > ユーザーオーバーライドで削除してください。"],
-    ["zh-CN", "它列在 **值班** > **用户覆盖** 下"],
-    ["fa", "در **آنکال** > **جایگزینی‌های کاربر** فهرست می‌شود"],
-    ["fa", "در **آنکال ← جایگزینی‌های کاربر** فهرست می‌شود"],
+    ["ja", "オンコール > アーカイブ済みポリシーで戻してください。"],
+    ["zh-CN", "它列在 **值班** > **执行日志** 下"],
+    ["fa", "در **آنکال** > **گزارش اجراها** فهرست می‌شود"],
+    ["fa", "در **آنکال ← گزارش اجراها** فهرست می‌شود"],
     ["de", "Siehe **Bereitschaft → Ausführungsprotokolle**."],
   ])(
     "flags a %s path that leaves the folded section out: %s",
@@ -210,17 +216,17 @@ describe("the checks themselves", () => {
   );
 
   it.each([
-    [
-      "da",
-      "Det står under **Vagt** > **Avanceret** > **Brugertilsidesættelser**.",
-    ],
-    [
-      "ja",
-      "**オンコール** > **詳細** > **ユーザーオーバーライド** に一覧表示され",
-    ],
-    ["zh-CN", "它列在 **值班** > **高级** > **用户覆盖** 下"],
+    ["da", "Det står under **Vagt** > **Avanceret** > **Udførelseslogs**."],
+    ["ja", "**オンコール** > **詳細** > **実行ログ** に一覧表示され"],
+    ["zh-CN", "它列在 **值班** > **高级** > **执行日志** 下"],
     // A page of an open section needs nothing in between.
     ["de", "Öffnen Sie **Bereitschaft** > **Bereitschaftspläne**."],
+    // User Overrides among them, since #9701.
+    ["da", "Det står under **Vagt** > **Brugertilsidesættelser**."],
+    [
+      "ja",
+      "**オンコール** > **スケジュール** > **ユーザーオーバーライド** に一覧表示され",
+    ],
   ])(
     "follows a %s path that names it: %s",
     (language: string, text: string) => {
@@ -298,7 +304,7 @@ describe("every docs page sends readers down On-Call's real menu", () => {
       }),
     ).toEqual(
       expect.arrayContaining([
-        "On-Call > Advanced > User Overrides",
+        "On-Call > Schedules > User Overrides",
         "On-Call > Advanced > Execution Logs",
         "On-Call > Advanced > Archived Policies",
         "On-Call > Reports > User On-Call Time",
@@ -358,15 +364,16 @@ describe("every docs page sends readers down On-Call's real menu", () => {
       return [language];
     }),
   )(
-    "%s: the schedules page lists a skip under On-Call, Advanced, User Overrides",
+    "%s: the schedules page lists a skip under On-Call, Schedules, User Overrides",
     (language: string) => {
       const page: string = fs.readFileSync(
         path.join(CONTENT_DIR, language, "on-call", "schedules.md"),
         "utf8",
       );
+      // Under Schedules since #9701, beside the timeline that draws the cover.
       const steps: Array<string> = [
         ON_CALL_DUTY,
-        "Advanced",
+        "Schedules",
         "User Overrides",
       ].map((english: string): string => {
         return `**${drawnDashboardLabel(language, english)}**`;

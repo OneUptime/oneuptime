@@ -758,6 +758,13 @@ else
     COST_BUNDLED=1
     cost_deploy_check opencost "opencost (bundled cost engine)"
     cost_deploy_check cost-prometheus "cost-prometheus (engine's TSDB)"
+  elif [ "$(printf '%s' "$COST_ENGINE_URL" | tr '[:upper:]' '[:lower:]')" = "auto" ]; then
+    # cost.engine.url: auto - nothing is bundled, and the agent finds the
+    # cluster's own OpenCost or Kubecost by itself. Its /healthz (9a) names
+    # the engine it found and where, which is what 9b then probes.
+    COST_ENGINE_URL=""
+    info "cost.engine.url is auto: the cost agent finds the cluster's own OpenCost or Kubecost; nothing is bundled."
+    detail "Its /healthz below names the engine it found. With none installed, nothing is priced."
   else
     info "External cost engine configured: ${COST_ENGINE_URL:-?}"
     detail "The bundled OpenCost/Prometheus are intentionally not installed in this mode."
@@ -811,6 +818,22 @@ else
       add_finding "The cost-agent's health endpoint on :13134 is unreachable from inside the cluster, so the pod is failing its own readiness probe. Check: kubectl logs -n $NS deploy/$COST_AGENT_DEPLOY"
     else
       COST_STATUS=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p' | head -1)
+      # Which engine the agent reads (agents that find the cluster's own
+      # engine say so here; older ones say nothing, and the URL stands).
+      COST_READ_URL=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineUrl":"\([^"]*\)".*/\1/p' | head -1)
+      COST_READ_SERVICE=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"service":"\([^"]*\)".*/\1/p' | head -1)
+      COST_READ_ENGINE=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"engine":"\([^"]*\)".*/\1/p' | head -1)
+      if [ -n "$COST_READ_URL" ]; then
+        COST_ENGINE_URL=${COST_READ_URL%/}
+      fi
+      if [ -n "$COST_READ_SERVICE" ]; then
+        info "The cost agent reads the cluster's own ${COST_READ_ENGINE:-cost engine} at $COST_READ_SERVICE."
+        if [ "$COST_BUNDLED" = 1 ]; then
+          detail "The bundled OpenCost is not needed. To stop running it: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.engine.url=auto"
+        fi
+      elif [ -z "$COST_ENGINE_URL" ]; then
+        warn "The cost agent has not found an OpenCost or Kubecost in this cluster yet; its last poll error below says why."
+      fi
       COST_POLL_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastPollError":"\([^"]*\)".*/\1/p' | head -1)
       COST_SHIP_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastShipError":"\([^"]*\)".*/\1/p' | head -1)
       info "cost-agent /healthz → HTTP $RESP_CODE (status=${COST_STATUS:-?})"

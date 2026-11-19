@@ -116,6 +116,8 @@ console.log(apiKey.length > 0);
 
 En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
+En engangskodehemmelighet inneholder et nettsteds oppsettsnøkkel for tofaktorautentisering i stedet for en verdi. Dens `{{monitorSecrets.NAME}}` er koden som gjelder når skriptet starter, og `await oneuptime.getTotpCode("NAME")` genererer en ny kode når skriptet ber om den. Se [Logg inn med en engangskode](/docs/monitor/monitor-secrets#logg-inn-med-en-engangskode).
+
 ## Egendefinerte målinger
 
 Du kan samle inn egendefinerte målinger fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse målingene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
@@ -226,6 +228,7 @@ Legg til ett filter per felt du vil sjekke; hvert filter kan ha sitt eget vilkå
 | `http`, `https` | Bare klassen `Agent`, til å gi videre til `axios` — for eksempel `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. Det finnes ingen `request` eller `get`. |
 | `console.log` | Logger data for feilsøking. Bare `console.log` finnes; `console.error` og de andre gjør ikke det. |
 | `oneuptime.captureMetric` | Samler inn en egendefinert måling. Se [Egendefinerte målinger](#egendefinerte-målinger). |
+| `oneuptime.getTotpCode` | Genererer den gjeldende koden for en engangskodehemmelighet: `await oneuptime.getTotpCode("NAME")`. Se [Bruk av monitorhemmeligheter](#bruk-av-monitorhemmeligheter). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Vent inne i skriptet. En forsinkelse varer aldri lenger enn skriptets tidsavbrudd. |
 
 ## Ting å tenke på

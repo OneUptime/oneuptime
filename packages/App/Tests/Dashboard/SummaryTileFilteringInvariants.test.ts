@@ -540,9 +540,14 @@ describe("the Sites page turns a tile click into a moved chip", () => {
   )[1]!.split("return (")[0]!;
 
   test("the strip is handed the live chips and a click handler", () => {
+    /*
+     * And told when the counts arrive, so a link that names the Unhealthy
+     * tile (?show=unhealthy, the Network Overview's "2 unhealthy") presses
+     * it with the very chip the count came with (#9596).
+     */
     expect(SITES_PAGE).toContain(
       squash(
-        "<SiteSummaryCards refreshToggle={refreshToggle} facetSelections={facetSelections} facetOperators={facetOperators} onTileClick={onSummaryTileClick} />",
+        "<SiteSummaryCards refreshToggle={refreshToggle} facetSelections={facetSelections} facetOperators={facetOperators} onTileClick={onSummaryTileClick} onCountsLoaded={onSummaryCountsLoaded} />",
       ),
     );
   });
@@ -816,7 +821,17 @@ describe("SiteSummaryCards", () => {
      * guarantee: the ids cannot be re-derived from anything else because there
      * is nothing else on the client to derive them from.
      */
-    expect(SITE_CARDS).toContain("setCounts(await fetchSiteSummary());");
+    expect(SITE_CARDS).toContain(
+      squash(
+        "const summary: SiteSummaryCounts = await fetchSiteSummary(); setCounts(summary);",
+      ),
+    );
+    // A tile a link names is pressed with the chip of the same response.
+    expect(SITE_CARDS).toContain(
+      squash(
+        "return getSiteFacetSelectionForTile(tile, { unhealthyStatusIds: summary.unhealthyStatusIds || [], });",
+      ),
+    );
     expect(SITE_CARDS).toContain(
       squash(
         "const selection: FacetTileSelection | null = getSiteFacetSelectionForTile(tile, { unhealthyStatusIds: counts?.unhealthyStatusIds || [], });",

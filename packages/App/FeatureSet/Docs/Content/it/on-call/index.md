@@ -87,8 +87,8 @@ Aprite **Reperibilità** dal menu **Prodotti** nella barra superiore. Si apre su
 | Sezione | Pagine |
 | --- | --- |
 | **Policy** | **Policy di reperibilità**, **Prontezza**: chi le vostre policy raggiungono davvero, e **Policy chiamate in entrata**: un numero di telefono che fa squillare chi è reperibile |
-| **Pianificazioni** | **Pianificazioni di reperibilità**, **Cronologia delle reperibilità** e **Feed calendario** |
-| **Avanzato** | **Sostituzioni utente**, **Log di esecuzione** e **Policy archiviate** |
+| **Pianificazioni** | **Pianificazioni di reperibilità**, **Cronologia delle reperibilità**, **Sostituzioni utente**: chi sostituisce qualcuno mentre è assente, e **Feed calendario** |
+| **Avanzato** | **Log di esecuzione** e **Policy archiviate** |
 | **Report** | **Tempo di reperibilità dell'utente**: per quanto tempo ogni persona è stata reperibile |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**: regole che pubblicano gli eventi di reperibilità in un canale |
 | **Impostazioni** | **Campi personalizzati**, **Regole etichette** e **Regole del proprietario** |
@@ -109,7 +109,7 @@ Aprite **Reperibilità → Prontezza** e fate clic su **Copertura** nella sua ri
 :::
 
 :::details Una persona in ferie viene ancora avvisata
-Aggiungete una sostituzione utente con lei in **Chi è assente?**. Una sostituzione in **Reperibilità → Avanzato → Sostituzioni utente** copre tutte le policy; una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
+Aggiungete una sostituzione utente con lei in **Chi è assente?**. Una sostituzione in **Reperibilità → Pianificazioni → Sostituzioni utente** copre tutte le policy; una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 :::
 
 ## Passi successivi
