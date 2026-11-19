@@ -16,6 +16,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -531,6 +532,7 @@ export default class IncidentInternalNote extends BaseModel {
       "Unique identifier for the Slack message this note was created from (channel_id:message_ts). Used to prevent duplicate notes when multiple users react to the same message.",
     required: false,
     example: "C1234567890:1234567890.123456",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.LongText,

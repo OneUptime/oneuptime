@@ -28,7 +28,7 @@ Het adres wordt gecontroleerd door de eigen sonde van uw server, dus het moet va
 
 ![Start vraagt "Wat wil je eerst doen?", met "Weten wanneer mijn website of API plat ligt" aangevinkt](screen:home-goal-website)
 
-Bij een nieuw project stelt de pagina **Start** eerst de vraag **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt** aan en klik op **Doorgaan**. Klik daarna in de checklist **Welkom bij OneUptime 👋** op **Maak je eerste monitor**. Toont de checklist die stap niet, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `website down` en kies **Weten wanneer mijn website of API plat ligt**. Ook **Monitoren** biedt hem aan: **Begeleide installatie** in de lege lijst en onder **Hoe het werkt**, en een regel in **Monitor maken** zodra je **Website** of **API** kiest.
+Bij een nieuw project stelt de pagina **Start** eerst de vraag **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt** aan en klik op **Doorgaan**. Klik daarna in de checklist **Welkom bij OneUptime 👋** op **Maak je eerste monitor**. Toont de checklist die stap niet, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `website down` en kies **Weten wanneer mijn website of API plat ligt**. Ook **Monitoren** biedt hem aan: **Begeleide installatie** in de lege lijst en onder **Hoe het werkt**, en een regel in **Monitor maken** zodra je **Website** of **API** kiest. Of klik op **Beschrijf het liever**: AI vragen opent met de taak in het invoerveld, klaar om te versturen.
 
 ### Het adres invoeren
 

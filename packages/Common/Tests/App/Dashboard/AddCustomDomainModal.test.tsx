@@ -39,7 +39,10 @@ import * as React from "react";
  *   - on a self-hosted server, what the server still needs is said first.
  *
  * Only the network is replaced (API, ModelAPI); the dialogs are the real
- * BasicFormModal and DNS Setup.
+ * BasicFormModal and DNS Setup. So nothing here sees what the server makes
+ * of what the dialog sends: the project domain added below passed while
+ * the server refused every one (#9997). AddCustomDomainThroughTheServer runs
+ * this dialog against the server's own routes, over HTTP.
  */
 
 let mockCnameRecord: string = "statuspage.oneuptime.com";

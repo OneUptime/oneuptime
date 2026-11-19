@@ -20,6 +20,8 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import OnCallKeypadToken from "../../../Server/Utils/OnCall/OnCallKeypadToken";
 import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import OnCallPagePassOn from "../../../Server/Utils/OnCall/OnCallPagePassOn";
 import Response from "../../../Server/Utils/Response";
@@ -29,7 +31,9 @@ import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogT
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import OneUptimeDate from "../../../Types/Date";
+import { OnCallInputRequest } from "../../../Types/Call/CallRequest";
 import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import {
   ON_CALL_PASS_ON_NO_BREAK_SPACE,
@@ -48,6 +52,17 @@ import {
   UpdateOneByInput,
   updateNotificationWhileStill,
 } from "../TestingUtils/OnCallTimelineRows";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
+import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
+import Phone from "../../../Types/Phone";
+import {
+  TwilioRequestLike,
+  serverTwilioRow,
+  signedTwilioRequest,
+} from "../TestingUtils/TwilioSignedRequests";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 // The notification the routes read, and a call's first key acknowledges.
@@ -107,6 +122,9 @@ type RouterFunction = (
   next: NextFunction,
 ) => void | Promise<void>;
 
+// What a refused request was answered with (res.status, res.send).
+let refusedWith: { status: jest.Mock; send: jest.Mock };
+
 async function call(data: {
   method: "GET" | "POST";
   uri: string;
@@ -117,6 +135,15 @@ async function call(data: {
   const handler: RouterFunction = mockRouter.match(data.method, data.uri)
     .handlerFunction as RouterFunction;
 
+  const status: jest.Mock = jest.fn();
+  const send: jest.Mock = jest.fn();
+  const res: ExpressResponse = {
+    status: status,
+    send: send,
+  } as unknown as ExpressResponse;
+  status.mockReturnValue(res);
+  refusedWith = { status: status, send: send };
+
   await handler(
     {
       params: { itemId: ITEM.toString() },
@@ -124,7 +151,7 @@ async function call(data: {
       body: data.body || {},
       ...(data.extra || {}),
     } as unknown as ExpressRequest,
-    {} as unknown as ExpressResponse,
+    res,
     ((err: unknown) => {
       throw err || new Error("the route handler must not fall through");
     }) as unknown as NextFunction,
@@ -991,18 +1018,89 @@ describe("a call's second key", () => {
     default: { sayMessage: "Invalid input. Good bye" },
   };
 
-  async function press(digits: string, pageToken?: string): Promise<void> {
+  // The server's own Twilio account, which placed the call (TwilioWebhookSignature).
+  const SERVER_ACCOUNT: TwilioConfig = {
+    accountSid: "AC11111111111111111111111111111111",
+    authToken: "server-auth-token-0000000000000001",
+    primaryPhoneNumber: new Phone("+14155550100"),
+    secondaryPhoneNumbers: [],
+  };
+
+  beforeEach(() => {
+    jest
+      .spyOn(GlobalConfigService, "findOneBy")
+      .mockImplementation(async (): Promise<GlobalConfig | null> => {
+        return serverTwilioRow(SERVER_ACCOUNT);
+      });
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findBy")
+      .mockImplementation(async (): Promise<Array<ProjectCallSMSConfig>> => {
+        return [];
+      });
+  });
+
+  /*
+   * The key pressed, as Twilio posts it to the call's <Gather> action,
+   * signed: the call's own token in its address, naming the notification
+   * the call was placed for (OnCallKeypadToken) - or, for a call placed
+   * before this release, the page's link token beside a call token that
+   * names none.
+   */
+  async function press(
+    digits: string,
+    options: {
+      callPlacedFor?: ObjectID | undefined;
+      // A call placed before this release, with this page link token.
+      earlierCallPageToken?: string | undefined;
+    } = {},
+  ): Promise<void> {
+    const callToken: string =
+      options.earlierCallPageToken !== undefined
+        ? JSONWebToken.signJsonPayload(
+            JSONFunctions.serialize(CALL_TOKEN_DATA),
+            OneUptimeDate.getDayInSeconds(),
+          )
+        : OnCallKeypadToken.sign({
+            userOnCallLogTimelineId: options.callPlacedFor || ITEM,
+            answers: CALL_TOKEN_DATA as unknown as OnCallInputRequest,
+          });
+    const search: string = `?${new URLSearchParams({
+      ...(options.earlierCallPageToken !== undefined
+        ? { pageToken: options.earlierCallPageToken }
+        : {}),
+      token: callToken,
+    }).toString()}`;
+    const request: TwilioRequestLike = signedTwilioRequest({
+      publicUrl: `/api/user-notification-log-timeline/call/gather-input/${ITEM.toString()}${search}`,
+      body: {
+        AccountSid: SERVER_ACCOUNT.accountSid,
+        CallSid: "CA0123456789abcdef0123456789abcdef",
+        Digits: digits,
+      },
+      signedWith: SERVER_ACCOUNT.authToken,
+    });
+
     await call({
       method: "POST",
       uri: `${BASE}/call/gather-input/:itemId`,
-      query: pageToken ? { pageToken: pageToken, token: "call" } : {},
-      body: { Digits: digits },
-      extra: { callTokenData: CALL_TOKEN_DATA },
+      query: request.query,
+      body: request.body,
+      extra: {
+        // As NotificationMiddleware verified it.
+        callTokenData: JSONFunctions.deserialize(
+          JSONWebToken.decodeJsonPayload(callToken),
+        ),
+        headers: request.headers,
+        originalUrl: request.originalUrl,
+        url: request.url,
+        protocol: request.protocol,
+        get: request.get,
+      } as unknown as JSONObject,
     });
   }
 
   test("escalates the page, and says what came of it", async () => {
-    await press("2", VALID_TOKEN());
+    await press("2");
 
     expect(passOnSpy).toHaveBeenCalledWith({
       userId: ANA,
@@ -1045,7 +1143,7 @@ describe("a call's second key", () => {
       },
     });
 
-    await press("2", VALID_TOKEN());
+    await press("2");
 
     expect(
       (findSpy.mock.calls[0]![0] as { select: JSONObject }).select["user"],
@@ -1062,27 +1160,48 @@ describe("a call's second key", () => {
       refusal: OnCallPassOnRefusal.RecordAcknowledged,
     } as OnCallPassOnAnswer);
 
-    await press("2", VALID_TOKEN());
+    await press("2");
 
     expect(sayOf()).toContain(
       "This incident is already acknowledged, so there is nothing to escalate. Good bye.",
     );
   });
 
-  test("on a call that did not offer it - no token - is the wrong key, as it always was", async () => {
-    await press("2");
+  test("any other key is the wrong key, as it always was", async () => {
+    await press("3");
 
     expect(passOnSpy).not.toHaveBeenCalled();
     expect(sayOf()).toContain("Invalid input. Good bye");
   });
 
-  test("a token for another notification passes nothing on", async () => {
-    await press(
-      "2",
-      OnCallPageLinkToken.sign({ userOnCallLogTimelineId: OTHER_ITEM }),
-    );
+  test("a call placed for another notification passes nothing on, and says nothing", async () => {
+    await press("2", { callPlacedFor: OTHER_ITEM });
 
     expect(passOnSpy).not.toHaveBeenCalled();
+    expect(refusedWith.status).toHaveBeenCalledWith(403);
+    expect(Response.sendXmlResponse).not.toHaveBeenCalled();
+  });
+
+  test("a call placed before this release escalates through the page's link token its address carried", async () => {
+    await press("2", { earlierCallPageToken: VALID_TOKEN() });
+
+    expect(passOnSpy).toHaveBeenCalledWith({
+      userId: ANA,
+      executionLogId: RUN,
+      viaUserOnCallLogTimelineId: ITEM,
+    });
+    expect(sayOf()).toContain("You escalated this incident.");
+  });
+
+  test("a call placed before this release with another page's link token passes nothing on", async () => {
+    await press("2", {
+      earlierCallPageToken: OnCallPageLinkToken.sign({
+        userOnCallLogTimelineId: OTHER_ITEM,
+      }),
+    });
+
+    expect(passOnSpy).not.toHaveBeenCalled();
+    expect(refusedWith.status).toHaveBeenCalledWith(403);
   });
 
   test("the first key still acknowledges, and passes nothing on", async () => {
@@ -1092,7 +1211,7 @@ describe("a call's second key", () => {
         return updateNotificationWhileStill(currentItem, updateBy);
       }) as never);
 
-    await press("1", VALID_TOKEN());
+    await press("1");
 
     expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(updateSpy.mock.calls[0]![0]).toEqual({
@@ -1123,7 +1242,7 @@ describe("a call's second key", () => {
         return updateNotificationWhileStill(currentItem, updateBy);
       }) as never);
 
-    await press("1", VALID_TOKEN());
+    await press("1");
 
     expect(updateSpy).not.toHaveBeenCalled();
     expect(passOnSpy).not.toHaveBeenCalled();
@@ -1164,7 +1283,7 @@ describe("a call's second key", () => {
       },
     );
 
-    await press("1", VALID_TOKEN());
+    await press("1");
 
     expect(updateSpy).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
     expect(currentItem.isAcknowledged).toBeFalsy();
@@ -1179,7 +1298,7 @@ describe("a call's second key", () => {
       item.isAcknowledged = true;
     });
 
-    await press("1", VALID_TOKEN());
+    await press("1");
 
     expect(sayOf()).toContain("You have acknowledged this incident. Good bye");
     expect(sayOf()).not.toContain(ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE);

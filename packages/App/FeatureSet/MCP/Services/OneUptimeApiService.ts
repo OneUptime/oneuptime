@@ -24,6 +24,7 @@ import {
   OWNER_USERS_ON_CREATE_KEY,
   takesOwnersOnCreate,
 } from "Common/Types/Database/OwnersOnCreate";
+import { readDeleteChoices } from "Common/Utils/DeveloperDocs/DeleteChoices";
 
 export interface OneUptimeApiConfig {
   url: string;
@@ -347,9 +348,39 @@ export default class OneUptimeApiService {
         return this.buildReadData(args, tableName, modelType);
 
       case OneUptimeOperation.Delete:
+        return this.buildDeleteData(args, tableName);
+
       default:
         return undefined;
     }
+  }
+
+  /*
+   * What a delete says besides the record (Common/Utils/DeveloperDocs
+   * /DeleteChoices.ts, #9949), from its tool's inputs, as the API takes it:
+   * what the workflows that run as a deleted custom role run as instead.
+   * Checked before anything is sent, as the CLI checks its flags, so what
+   * the server would refuse - Project Owner, a value it does not take, half
+   * of a pair, the role being deleted - never reaches it, and is refused in
+   * the inputs' own names. A delete that says nothing sends no body, as it
+   * always did.
+   */
+  private static buildDeleteData(
+    args: OneUptimeToolCallArgs,
+    tableName: string,
+  ): JSONObject | undefined {
+    const miscDataProps: JSONObject = readDeleteChoices({
+      tableName,
+      given: args as Record<string, unknown>,
+      deletedId: args.id,
+      nameOf: (key: string): string => {
+        return key;
+      },
+    });
+
+    return Object.keys(miscDataProps).length > 0
+      ? { miscDataProps: miscDataProps }
+      : undefined;
   }
 
   private static buildCreateData(

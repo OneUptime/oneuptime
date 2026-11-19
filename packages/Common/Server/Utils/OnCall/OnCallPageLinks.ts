@@ -14,20 +14,23 @@ import OnCallPageLinkToken, {
  * THE LINKS IN A PERSON'S OWN PAGE.
  *
  * Every message a page sends - email, text, WhatsApp, Telegram, Slack,
- * Microsoft Teams, a call - is one notification (UserOnCallLogTimeline), and
- * its links open pages about it (UserOnCallLogTimelineAPI):
+ * Microsoft Teams, Mattermost, a push, a call - is one notification
+ * (UserOnCallLogTimeline), and its links open pages about it
+ * (UserOnCallLogTimelineAPI):
  *
- *   acknowledge-page   what the page is about, with Acknowledge - and, for a
- *                      link that carries the page's token, "Can't take it?
- *                      Escalate" beside it;
- *   pass-on-page       what passing it on would do, and the button that does
- *                      it (a form, so a mail scanner that follows every link
- *                      passes nothing on);
+ *   acknowledge-page   what the page is about, with Acknowledge - and
+ *                      "Can't take it? Escalate" beside it;
+ *   pass-on-page       what escalating it would do, and the button that
+ *                      does it;
  *   call/gather-input  where a call's key press goes.
  *
- * The links built here carry the page's token (OnCallPageLinkToken), which
- * is what lets them pass the page on. Links sent before there was a token
- * still acknowledge, as they always did.
+ * Opening a link changes nothing: each page asks, and only its button - a
+ * form, which mail scanners and link previews do not send - acknowledges
+ * (acknowledge) or escalates (pass-on). The links a message carries hold
+ * the page's token (OnCallPageLinkToken), the proof that the person pressing
+ * is the one the page was sent to, and the button sends it on. A call's
+ * <Gather> action holds none (CallService leaves it out): the call's own
+ * token (OnCallKeypadToken) and Twilio's signature stand for it there.
  */
 export default class OnCallPageLinks {
   // <api>/user-notification-log-timeline/<what>/<notification id>
@@ -57,8 +60,11 @@ export default class OnCallPageLinks {
   }
 
   /*
-   * The page a message's Acknowledge link opens, with the token: it offers
-   * "Can't take it? Escalate" too.
+   * The page a message's Acknowledge link opens, with the token: its
+   * Acknowledge and "Can't take it? Escalate" send it on. Every message
+   * leads here: an email and a push to this address, a text, a WhatsApp,
+   * Telegram or chat message through a short link to it
+   * (ShortLinkService).
    */
   public static async getAcknowledgePageUrl(
     userOnCallLogTimelineId: ObjectID,
@@ -70,22 +76,6 @@ export default class OnCallPageLinks {
       }),
       userOnCallLogTimelineId,
     );
-  }
-
-  /*
-   * The page an email's Acknowledge button opens, and the link under it to
-   * copy and paste - without the token. An email has its own Escalate
-   * button, so its acknowledge page need not offer passing on as well, and
-   * a token would stretch the link the email prints in full from one line
-   * to five (a token is some 300 characters).
-   */
-  public static async getEmailAcknowledgePageUrl(
-    userOnCallLogTimelineId: ObjectID,
-  ): Promise<URL> {
-    return await this.getUrl({
-      path: "acknowledge-page",
-      userOnCallLogTimelineId: userOnCallLogTimelineId,
-    });
   }
 
   // The page a message's Escalate link opens (its address keeps pass-on).
@@ -114,7 +104,12 @@ export default class OnCallPageLinks {
     });
   }
 
-  // The address that acknowledges, as the acknowledge page's button has always been.
+  /*
+   * Where the Acknowledge button sends its form, the token in the form, not
+   * in this address. Opened rather than sent - an acknowledge page drawn
+   * before this release linked its button here - it shows the acknowledge
+   * page, and acknowledges nothing.
+   */
   public static async getAcknowledgeUrl(
     userOnCallLogTimelineId: ObjectID,
   ): Promise<URL> {
@@ -125,8 +120,19 @@ export default class OnCallPageLinks {
   }
 
   /*
-   * Where a call sends the key the person pressed, with the token: pressing
-   * 2 passes the page on only through it.
+   * Where a call sends the key the person pressed, as a call request hands
+   * it to the Notification service. CallService builds the call's <Gather>
+   * action from it: without the page's link token, which escalates the page
+   * from a browser too - the action lands in Twilio's request logs and in
+   * the call's TwiML in the Twilio console - and with the call's own token,
+   * which names this notification (OnCallKeypadToken).
+   *
+   * The page's link token stays in this address for one release, between
+   * the worker and the Notification service only: while an upgrade rolls
+   * out, a Notification service of the release before places this
+   * release's calls as they come, and its keypad route takes the second key
+   * - this release's takes any key - of such a call only with the page's
+   * token in its action (OnCallKeypadToken's earlier form).
    */
   public static async getCallResponseUrl(
     userOnCallLogTimelineId: ObjectID,

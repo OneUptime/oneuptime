@@ -343,6 +343,18 @@ La herramienta **`get_data_table_lineage`** le dice a un agente a partir de qué
 
 La herramienta **`oneuptime_move_in_list`** mueve una fila de una lista ordenada, como una severidad de incidente, un estado de incidente o un estado de monitor, al lugar de otra fila, como hace arrastrarla en el panel: las filas intermedias se desplazan un lugar, y responde con cada fila cuyo número cambió. Pase `resource` (como `Incident Severity`), el `id` de la fila y `placeOfId`, el ID de la fila cuyo lugar ocupa. Escribir el número de una fila con su herramienta `update_` coloca solo esa fila, junto a cualquier fila que ya tenga ese número.
 
+## Herramientas para configurar
+
+El servidor también tiene las acciones de configuración de Preguntar a la IA, una llamada cada una: lo que configuras, en lugar de un registro cada vez. Cada una crea los registros que Preguntar a la IA y las configuraciones guiadas crean para las mismas respuestas, con las mismas comprobaciones:
+
+- **`set_up_website_monitoring`**: un monitor de sitio web o de API para una dirección, que abre un incidente cuando la dirección no responde o responde con un error. Es tuyo, y una dirección que un monitor ya comprueba no recibe un segundo
+- **`set_up_paging`**: en un proyecto que aún no avisa a nadie, su primera política de guardia, que te avisa a ti y a las personas y equipos que nombres ante cada nuevo incidente y cada nueva alerta
+- **`publish_status_page`**: una página de estado pública que muestra los monitores que nombres
+- **`add_monitors_to_status_page`**: monitores añadidos a una página de estado que el proyecto ya tiene
+- **`who_is_told`**: a quién se avisa cuando un monitor cae, y qué impediría que se le contactara. No cambia nada
+
+Actúan como tú, con la sesión iniciada mediante OAuth: una clave de API de proyecto no puede usar las cuatro que crean algo. Tu cliente te pregunta antes de cada una, y su respuesta dice qué se creó. Lo que falta, como un permiso, una dirección o espacio en el plan, se dice antes de crear nada.
+
 ## Consultar la telemetría
 
 Los logs, las métricas, las trazas (spans), las excepciones, los logs de monitores y los demás tipos de telemetría llegan como herramientas `list_` y `count_` de solo lectura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` y sus gemelas `count_`). La telemetría llega a través de OpenTelemetry, así que no hay herramientas de creación.

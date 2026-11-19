@@ -207,6 +207,20 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 > [!CAUTION]
 > `delete`는 레코드를 바로 삭제합니다. CLI는 확인을 묻지 않으며 되돌릴 수 없습니다. 그 플래그로 작성된 스크립트를 위해 `--force`를 받지만, `--force`는 아무것도 바꾸지 않습니다.
 
+### 워크플로가 실행에 쓰는 사용자 지정 역할
+
+OneUptime은 워크플로가 실행에 쓰는 사용자 지정 역할을, 대신 무엇으로 실행할지 삭제에서 밝힐 때만 삭제하고, 밝히지 않은 삭제는 워크플로의 이름을 들어 거부합니다. `--workflows-run-as`로 밝히세요. `Default`는 기본 권한이고, `CustomRole`은 내가 팀에 줄 수 있는 다른 사용자 지정 역할로, 그 ID를 `--workflows-run-as-custom-role-id`에 줍니다. Project Owner는 안 됩니다. 역할을 삭제해도 워크플로가 할 수 있는 일은 늘어나지 않습니다.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+거부된 삭제는 워크플로의 이름을 든 OneUptime의 거부 메시지를 출력하고, 이어서 다시 실행할 때 쓸 플래그를 출력합니다. 어떤 워크플로도 실행에 쓰지 않는 역할에는 두 플래그 모두 필요 없습니다.
+
 ## 레코드 개수 세기
 
 ```bash

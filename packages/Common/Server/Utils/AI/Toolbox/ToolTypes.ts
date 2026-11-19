@@ -111,6 +111,17 @@ export interface ToolContext {
    * Never a permission.
    */
   readerTimezone?: Timezone | undefined;
+  /*
+   * Set when the tool runs outside Ask AI's chat (#7241): one of the setup
+   * actions the MCP server offers as tools of its own, run by
+   * SetupActionRunner for an agent the person connected. Ask AI's answer
+   * carries what a run leaves under it - the approval card that said what
+   * is missing, a test page to send - and an MCP client draws none of it:
+   * there a tool's words point to the page in OneUptime where the same is
+   * done (SetupPlan's getTestPageOfferForModel). Never a permission: the
+   * person, their props and every check are the same.
+   */
+  isOutsideChat?: boolean | undefined;
 }
 
 // A tool call of the answer being prepared (ToolContext.plannedCalls).

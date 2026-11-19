@@ -6,6 +6,7 @@ import APIException from "../../../../../Types/Exception/ApiException";
 import { JSONArray, JSONObject, JSONValue } from "../../../../../Types/JSON";
 import logger from "../../../Logger";
 import { redactLogString, redactLogValue } from "../../../LogRedaction";
+import { describeGoogleSignInFailure } from "../../../LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken";
 
 /*
  * Minimal Google SecOps (Chronicle) API client for the detections poller.
@@ -223,6 +224,9 @@ const RECOGNIZED_SEARCH_FIELDS: Array<string> = [
  * the connection tester read the status back out of.
  */
 const HTTP_STATUS_TAIL_PATTERN: RegExp = /\(HTTP (\d{3})\)/;
+
+// Who a refused sign-in is said of, as the other Google sign-ins name theirs (#9983).
+export const GOOGLE_SECOPS_PROVIDER_TITLE: string = "Google SecOps";
 
 /*
  * europe-chronicle.googleapis.com is a documented live host while the
@@ -456,7 +460,14 @@ export default class GoogleSecOpsClient {
 
     if (!response.ok) {
       throw new APIException(
-        `Google token exchange failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}`,
+        `Google token exchange failed (HTTP ${response.status}): ${GoogleSecOpsClient.describeTokenExchangeFailure(
+          {
+            statusCode: response.status,
+            body: responseText,
+            clientEmail: this.credentials.clientEmail,
+            secrets: [this.credentials.privateKey, assertion],
+          },
+        )}`,
       );
     }
 
@@ -1405,6 +1416,62 @@ export default class GoogleSecOpsClient {
         return encodeURIComponent(segment);
       })
       .join("/");
+  }
+
+  /*
+   * What follows "Google token exchange failed (HTTP <status>): " (#9983).
+   * Google's token endpoint refuses a key with JSON - {"error":
+   * "invalid_grant", "error_description": "Invalid JWT Signature."} - and a
+   * Google API errs with {"error": {"status", "message"}}: either is said
+   * as every other Google sign-in says it (describeGoogleSignInFailure):
+   * who was refused, Google's code and words, and what to do, the key's
+   * secrets and the signed assertion taken out. The prefix stays, so the
+   * operator guidance, which tells failures apart by it, and readHttpStatus
+   * read it as they did. An answer that is not such JSON - a proxy's page,
+   * an empty body - is kept as it came, redacted: the endpoint is the key's
+   * own token_uri, and its words are all there is to go on.
+   */
+  public static describeTokenExchangeFailure(data: {
+    statusCode: number;
+    body: string;
+    clientEmail: string;
+    secrets: Array<string>;
+  }): string {
+    if (!GoogleSecOpsClient.isGoogleErrorAnswer(data.body)) {
+      return GoogleSecOpsClient.redactErrorBody(data.body);
+    }
+
+    return redactLogString(
+      describeGoogleSignInFailure({
+        providerTitle: GOOGLE_SECOPS_PROVIDER_TITLE,
+        clientEmail: data.clientEmail,
+        statusCode: data.statusCode,
+        body: data.body,
+        secrets: data.secrets,
+      }),
+    );
+  }
+
+  // Whether a body is Google's JSON error: an "error" code, or an API's error object.
+  private static isGoogleErrorAnswer(body: string): boolean {
+    let parsed: JSONValue;
+
+    try {
+      parsed = JSON.parse((body || "").trim()) as JSONValue;
+    } catch {
+      return false;
+    }
+
+    if (!GoogleSecOpsClient.isJsonObject(parsed)) {
+      return false;
+    }
+
+    const error: JSONValue | undefined = parsed["error"];
+
+    return (
+      (typeof error === "string" && error.trim().length > 0) ||
+      GoogleSecOpsClient.isJsonObject(error)
+    );
   }
 
   private static parseTokenResponse(responseText: string): JSONObject {

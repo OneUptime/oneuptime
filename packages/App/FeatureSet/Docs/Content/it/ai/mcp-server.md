@@ -343,6 +343,18 @@ Lo strumento **`get_data_table_lineage`** dice a un agente da cosa è costruita 
 
 Lo strumento **`oneuptime_move_in_list`** sposta una riga di un elenco ordinato, come una gravità di incidente, uno stato di incidente o uno stato di monitor, al posto di un'altra riga, come fa trascinarla nella dashboard: le righe in mezzo si spostano di un posto, e risponde con ogni riga il cui numero è cambiato. Passa `resource` (come `Incident Severity`), l'`id` della riga e `placeOfId`, l'ID della riga di cui prende il posto. Scrivere il numero di una riga con il suo strumento `update_` colloca solo quella riga, accanto a qualsiasi riga che ha già quel numero.
 
+## Strumenti per impostare
+
+Il server ha anche le azioni di configurazione di Chiedi all'IA, una chiamata ciascuna: ciò che imposti, invece di un record alla volta. Ognuna crea i record che Chiedi all'IA e le configurazioni guidate creano per le stesse risposte, con gli stessi controlli:
+
+- **`set_up_website_monitoring`**: un monitor di sito web o di API per un indirizzo, che apre un incidente quando l'indirizzo non risponde o risponde con un errore. È tuo, e un indirizzo che un monitor controlla già non ne riceve un secondo
+- **`set_up_paging`**: in un progetto che non avvisa ancora nessuno, la sua prima policy di reperibilità, che avvisa te e le persone e i team che nomini per ogni nuovo incidente e ogni nuovo avviso
+- **`publish_status_page`**: una pagina di stato pubblica che mostra i monitor che nomini
+- **`add_monitors_to_status_page`**: monitor aggiunti a una pagina di stato che il progetto ha già
+- **`who_is_told`**: chi viene avvisato quando un monitor non funziona, e cosa impedirebbe di raggiungerlo. Non cambia nulla
+
+Agiscono come te, con l'accesso tramite OAuth: una chiave API di progetto non può usare le quattro che creano qualcosa. Il tuo client ti chiede conferma prima di ciascuna, e la sua risposta dice cosa è stato creato. Ciò che manca, come un permesso, un indirizzo o spazio nel piano, viene detto prima di creare qualcosa.
+
 ## Interrogare la telemetria
 
 Log, metriche, tracce (span), eccezioni, log dei monitor e gli altri tipi di telemetria sono disponibili come strumenti `list_` e `count_` in sola lettura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e i loro gemelli `count_`). La telemetria arriva tramite OpenTelemetry, quindi non ci sono strumenti di creazione.

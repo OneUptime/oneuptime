@@ -32,7 +32,7 @@
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` 显示记录在 OneUptime 中的样子，包括它的 `id`。你没有设置、而由 OneUptime 填入的字段（例如默认值），会在记录创建后复制到 `spec.forProvider` 中，这样下一次检查就不会发现需要更改的内容。
+`status.atProvider` 显示记录在 OneUptime 中的样子，包括它的 `id`。你没有设置、而由 OneUptime 填入的字段（例如默认值），会在记录创建后复制到 `spec.forProvider` 中，这样下一次检查就不会发现需要更改的内容。但 OneUptime 自己持续更新的字段永远不会被复制过去，请参阅 [OneUptime 持续更新的字段](#oneuptime-持续更新的字段)。
 
 ## 引用其他资源
 
@@ -132,7 +132,16 @@ spec:
     name: oneuptime
 ```
 
-要在记录创建后把某个字段交给仪表板管理，请把它写在 `spec.initProvider` 而不是 `spec.forProvider` 中：它只用于创建记录，之后不会被改回。要把整条记录交给仪表板管理，请从它的管理策略中去掉 `Update`：`["Observe", "Create", "Delete", "LateInitialize"]`。
+要在记录创建后把某个字段交给仪表板管理，请把它写在 `spec.initProvider` 而不是 `spec.forProvider` 中：记录会用它创建，提供程序既不会把它复制到 `spec.forProvider`，也从不把它改回。这适用于每个可选字段；记录必需的字段，例如监视器的 `name`，应写在 `spec.forProvider` 中。要把整条记录交给仪表板管理，请从它的管理策略中去掉 `Update`：`["Observe", "Create", "Delete", "LateInitialize"]`。
+
+### OneUptime 持续更新的字段
+
+有些字段由 OneUptime 负责持续更新，提供程序把它们交给 OneUptime：从不把它们复制到 `spec.forProvider`，也从不把它们改回。
+
+- 只有 OneUptime 才会写入的字段，例如遥测监视器上次运行的时间（`telemetryMonitorLastMonitorAt`）或 Kubernetes 集群的节点数（`nodeCount`），只出现在 `status.atProvider` 中。
+- 可以指定记录初始值的字段，例如监视器的 `currentMonitorStatusId` 或事件的 `currentIncidentStateId`，可在创建记录时写在 `spec.initProvider` 或 `spec.forProvider` 中。此后 OneUptime 会改变它，就像监视器的检查会改变监视器的状态那样；`status.atProvider` 显示它当前的值。
+
+`kubectl explain` 会在每个可以指定初始值的字段的说明中注明这一点。如果早期版本的提供程序曾把这些字段填入某个资源的 `spec.forProvider`，该资源会自动不再与 OneUptime 冲突，你无需修改任何内容。
 
 ## 删除资源
 

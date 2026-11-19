@@ -1,5 +1,8 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
-import { readCloudAddedMetrics } from "../../../Types/Cloud/CloudAddedMetrics";
+import {
+  CloudAddedMetric,
+  readCloudAddedMetrics,
+} from "../../../Types/Cloud/CloudAddedMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -50,6 +53,7 @@ import CloudConnectorRegistry from "./CloudConnectorRegistry";
 import CloudResourceReadingsWriter, {
   CollectedCloudReadings,
 } from "./CloudResourceReadings";
+import CloudRetiredMetricReads from "./CloudRetiredMetricReads";
 import CloudStreamReadings from "./CloudStreamReadings";
 import { withoutStreamedMetrics } from "./CloudStreamedMetrics";
 import {
@@ -133,7 +137,18 @@ export interface CloudConnectionPullDependencies {
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   // Which queues a collector delivered lately: the stored metrics, unless a test's.
   findCollectorQueues?: CollectorMessagingQueuesFinder | undefined;
+  /*
+   * What the read keeps reading of a deprecated metric, for the monitors and
+   * charts still on it: the project's (CloudRetiredMetricReads), unless a test's.
+   */
+  findRetiredMetricReads?: CloudRetiredMetricReadsFinder | undefined;
 }
+
+export type CloudRetiredMetricReadsFinder = (data: {
+  projectId: ObjectID;
+  provider: CloudProvider | string | undefined;
+  now: Date;
+}) => Promise<Array<CloudAddedMetric>>;
 
 // Said when the read could not tell which queues a collector reads.
 export const COLLECTOR_QUEUES_UNKNOWN_WARNING: string =
@@ -176,6 +191,33 @@ export default class CloudConnectionPullRunner {
     }
 
     return new Date(data.now.getTime() + interval);
+  }
+
+  /*
+   * What a read keeps reading of a deprecated metric for what still reads
+   * it: a lookup that fails reads none this time, and is logged - the read
+   * itself goes on.
+   */
+  public static async findRetiredReads(data: {
+    projectId: ObjectID;
+    provider: CloudProvider | string | undefined;
+    now: Date;
+    find: CloudRetiredMetricReadsFinder;
+  }): Promise<Array<CloudAddedMetric>> {
+    try {
+      return await data.find({
+        projectId: data.projectId,
+        provider: data.provider,
+        now: data.now,
+      });
+    } catch (err) {
+      logger.error(
+        `CloudConnectionPullRunner: could not tell which deprecated metrics project ${data.projectId.toString()} still reads:`,
+      );
+      logger.error(err);
+
+      return [];
+    }
   }
 
   /*
@@ -342,6 +384,21 @@ export default class CloudConnectionPullRunner {
             })
           : null;
 
+      /*
+       * A deprecated metric a monitor or a chart of the project still reads
+       * is read of the resources it reads, as an addition of its own, until
+       * it is moved (CloudRetiredMetricReads, #9739's gap).
+       */
+      const retiredReads: Array<CloudAddedMetric> =
+        await CloudConnectionPullRunner.findRetiredReads({
+          projectId: connection.projectId,
+          provider: connection.provider,
+          now,
+          find:
+            dependencies.findRetiredMetricReads ||
+            CloudRetiredMetricReads.find.bind(CloudRetiredMetricReads),
+        });
+
       const read: CloudReadResult = await connector.read(settings, {
         transport,
         now: clock,
@@ -357,7 +414,10 @@ export default class CloudConnectionPullRunner {
           ? { awsStreamedReadingSources: streamed.freshSources }
           : {}),
         // What people added to the reads, beyond the key metrics.
-        addedMetrics: readCloudAddedMetrics(connection.addedMetrics),
+        addedMetrics: [
+          ...readCloudAddedMetrics(connection.addedMetrics),
+          ...retiredReads,
+        ],
       });
 
       // The resources first, so their metrics land on rows with the cloud's names.

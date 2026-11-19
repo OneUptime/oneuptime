@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | GET | `/l/*` | 簡訊、WhatsApp 和 Telegram 訊息中的短連結 |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | 顯示呼叫內容和 **Acknowledge** 按鈕的頁面 |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** 按鈕 |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** 按鈕 |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | 選用：把呼叫轉交給下一個人的頁面 |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | 選用：該頁面上的按鈕 |
 | GET | `/oneuptime-assets/*` | 這些頁面的字型、樣式和標誌 |

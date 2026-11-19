@@ -2,10 +2,12 @@ import crypto from "crypto";
 
 /*
  * Whether a provider's status callback carries the token its URL was given
- * - an SMS's delivery status (API/SMS.ts), a call's outcome (API/Call.ts).
- * Those callbacks are public webhooks: the provider signs in as nobody, so
- * the unguessable per-message token in the URL is all that says the
- * request is the provider's. Compared in constant time.
+ * - an SMS's delivery status (API/SMS.ts), a call's outcome and who
+ * answered it (API/Call.ts). Those callbacks are public webhooks: the
+ * provider signs in as nobody, so the unguessable per-message token in the
+ * URL says which message the request is about, and Twilio's signature
+ * (Common/Server/Utils/TwilioWebhookSignature) that it is Twilio's - the
+ * token travels in a URL, and alone is no proof. Compared in constant time.
  */
 export function isStatusCallbackTokenValid(
   provided: string,

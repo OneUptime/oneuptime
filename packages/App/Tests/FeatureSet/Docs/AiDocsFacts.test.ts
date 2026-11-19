@@ -782,6 +782,40 @@ describe("Code", () => {
     );
   });
 
+  /*
+   * Issue #9882: one fix at a time sees a reply working in the task, and is
+   * decided again with the task's INSERT, under the project's lock.
+   */
+  it("says every trigger finds a fix task on its way, a reply in it too, and that two at the same moment start one", () => {
+    const rule: string = flat(
+      readRepoFile("Common/Server/Utils/AI/CodeFix/CodeFixOnItsWay.ts"),
+    );
+    const subject: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/SubjectCodeFixRun.ts"),
+    );
+    const runs: string = flat(
+      readRepoFile("Common/Server/Services/AIRunService.ts"),
+    );
+
+    // A turn on its way that is a fix of the record, or whose task's first turn is: a reply.
+    expect(rule).toContain(
+      "AND ($" + '{isFixOf("turn")} OR $' + '{isFixOf("task")})',
+    );
+    // The incident's and alert's triggers and their button ask that rule.
+    expect(subject).toContain(
+      "return await CodeFixOnItsWay.findTurn(CodeFixOnItsWay.ofSubject(data));",
+    );
+    // And it is asked again as the task is written, under the project's lock.
+    expect(runs).toContain(
+      "return CodeFixOnItsWay.getCreateLimit(createBy.data);",
+    );
+    expect(rule).toContain("limitName: CODE_FIX_ON_ITS_WAY_LIMIT_NAME,");
+
+    expect(flat(englishPage(CODE_PAGE))).toContain(
+      "Every trigger first looks for a fix task already queued or running for the same incident or alert, also when what runs is a reply in the task, so an automatic trigger and a click become one task, not two pull requests. The check is made again as the task is written, under a lock, so two triggers at the very same moment start one task.",
+    );
+  });
+
   // Issue #6529: a task kept open past what one read of its turns takes.
   it("says a long task's page shows its first turn and its newest, with a line for the turns between, and counts every turn", () => {
     const thread: string = flat(

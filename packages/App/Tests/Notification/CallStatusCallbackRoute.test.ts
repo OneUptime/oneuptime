@@ -33,9 +33,15 @@ import type { Mock } from "jest-mock";
  * on-call notification it was made for, while it is only sent, becomes Not
  * Answered or Error, whose own hooks tell the record's feed ("Nitin did not
  * answer the phone call"). The route is a public webhook: no sign-in, no
- * cluster key, the token is its lock. A call ends once - a callback Twilio
- * sends twice, or two at once, writes once - and the person's answer, an
- * escalation or a skip is never written over.
+ * cluster key. It is held to two locks (#9979): the token, which says which
+ * call it is about, and Twilio's signature, made with the auth token of the
+ * account the call went out on - the project's own Twilio config or the
+ * OneUptime server's - by Twilio's own algorithm (getExpectedTwilioSignature)
+ * over the public URL Twilio was given, behind the ingress's rewrite. A
+ * request that fails either changes nothing, counts nothing, and is logged
+ * with why - never the token, an auth token or a whole account SID. A call
+ * ends once - a callback Twilio sends twice, or two at once, writes once -
+ * and the person's answer, an escalation or a skip is never written over.
  *
  * How it ended is counted for the platform's operator, too (#6648):
  * notification.delivery.count - answered, not answered or failed - and
@@ -134,7 +140,19 @@ jest.mock("Common/Server/Middleware/ClusterKeyAuthorization", () => {
 jest.mock("Common/Server/Services/ProjectCallSMSConfigService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), toTwilioConfig: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(),
+      toTwilioConfig: jest.fn(),
+    },
+  };
+});
+
+// The server's own Twilio account, as its settings hold it (TwilioWebhookSignature).
+jest.mock("Common/Server/Services/GlobalConfigService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn() },
   };
 });
 
@@ -160,7 +178,16 @@ jest.mock("../../FeatureSet/Notification/Services/CallService", () => {
 });
 
 import CallLogService from "Common/Server/Services/CallLogService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
+import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import Phone from "Common/Types/Phone";
+import {
+  serverTwilioRow,
+  signedTwilioRequest,
+} from "Common/Tests/Server/TestingUtils/TwilioSignedRequests";
 import "../../FeatureSet/Notification/API/Call";
 
 type RouterFunction = (
@@ -185,6 +212,9 @@ const ROUTE: RegisteredRoute | undefined = (
   );
 });
 
+const PROJECT_ID: ObjectID = new ObjectID(
+  "6c0e0000-0000-4000-8000-0000000000a0",
+);
 const CALL_LOG_ID: ObjectID = new ObjectID(
   "6c0e0000-0000-4000-8000-0000000000a1",
 );
@@ -197,6 +227,22 @@ const CALLED_NUMBER: string = "+15555550142";
 
 // What the call's log says once Twilio accepted the call (CallService).
 const PLACED_MESSAGE: string = `Call ID: ${CALL_SID}`;
+
+// The OneUptime server's own Twilio account, which places a call unless the project has its own.
+const SERVER_ACCOUNT: TwilioConfig = {
+  accountSid: "AC11111111111111111111111111111111",
+  authToken: "server-auth-token-0000000000000001",
+  primaryPhoneNumber: new Phone("+14155550100"),
+  secondaryPhoneNumbers: [],
+};
+
+// The project's own Twilio config.
+const PROJECT_ACCOUNT: TwilioConfig = {
+  accountSid: "AC22222222222222222222222222222222",
+  authToken: "project-auth-token-000000000000002",
+  primaryPhoneNumber: new Phone("+14155550199"),
+  secondaryPhoneNumbers: [],
+};
 
 // "Now", and the call placed a minute and a half before it.
 const NOW: number = Date.UTC(2026, 10, 10, 12, 0, 0);
@@ -216,9 +262,46 @@ const updateNotification: jest.Mock =
 const sendEmptySuccess: jest.Mock =
   Response.sendEmptySuccessResponse as jest.Mock;
 const sendError: jest.Mock = Response.sendErrorResponse as jest.Mock;
+const findConfigs: jest.Mock = ProjectCallSMSConfigService.findBy as jest.Mock;
+const toTwilioConfig: jest.Mock =
+  ProjectCallSMSConfigService.toTwilioConfig as jest.Mock;
+const findGlobalConfig: jest.Mock = GlobalConfigService.findOneBy as jest.Mock;
+const warn: jest.Mock = (
+  jest.requireMock("Common/Server/Utils/Logger") as {
+    default: { warn: jest.Mock };
+  }
+).default.warn;
 
 let callLog: CallLog | null;
 let notification: UserOnCallLogTimeline | null;
+// The project's own Twilio configs, each with the account it reads as.
+let projectConfigs: Array<{ row: ProjectCallSMSConfig; account: TwilioConfig }>;
+
+// How Twilio signs a callback: on the server's account, over what it posted, unless said.
+interface Signing {
+  // The account whose SID the request names.
+  account?: TwilioConfig | undefined;
+  // The auth token it is signed with - the account's unless said - or null for none.
+  signedWith?: string | null | undefined;
+  // What Twilio signed, when the body changed on the way.
+  signedBody?: JSONObject | undefined;
+}
+
+// Twilio's parameters as it posts them: text, with the account they are about.
+function posted(
+  account: TwilioConfig,
+  body: JSONObject,
+): Record<string, string> {
+  const parameters: Record<string, string> = {
+    AccountSid: account.accountSid,
+  };
+
+  for (const [key, value] of Object.entries(body)) {
+    parameters[key] = String(value);
+  }
+
+  return parameters;
+}
 
 /*
  * Typed as what jest.fn() from @jest/globals makes (jest-mock's Mock): the
@@ -231,19 +314,38 @@ interface Answer {
   next: Mock;
 }
 
+/*
+ * Twilio calling the call's status callback: posted to the public URL it was
+ * given - the log's id and token, the query - and signed over it.
+ */
 async function callback(
   body: JSONObject,
   params: { callLogId?: string; token?: string } = {},
   query: JSONObject = {},
+  signing: Signing = {},
 ): Promise<Answer> {
+  const account: TwilioConfig = signing.account || SERVER_ACCOUNT;
+  const callLogId: string = params.callLogId ?? CALL_LOG_ID.toString();
+  const token: string = params.token ?? TOKEN;
+  const search: string = Object.keys(query).length
+    ? `?${new URLSearchParams(query as Record<string, string>).toString()}`
+    : "";
+
+  const signed: ReturnType<typeof signedTwilioRequest> = signedTwilioRequest({
+    publicUrl: `/notification/call/status-callback/${callLogId}/${token}${search}`,
+    body: posted(account, body || {}),
+    signedWith:
+      signing.signedWith === undefined ? account.authToken : signing.signedWith,
+    signedBody: signing.signedBody
+      ? posted(account, signing.signedBody)
+      : undefined,
+    params: { callLogId: callLogId, token: token },
+  });
+
+  // A request with no body at all, as Express leaves one.
   const req: ExpressRequest = {
-    params: {
-      callLogId: params.callLogId ?? CALL_LOG_ID.toString(),
-      token: params.token ?? TOKEN,
-    },
-    query: query,
-    body: body,
-    headers: {},
+    ...signed,
+    body: body === undefined ? undefined : signed.body,
   } as unknown as ExpressRequest;
 
   const send: Mock = jest.fn();
@@ -333,6 +435,7 @@ beforeEach(() => {
 
   callLog = new CallLog();
   callLog.id = CALL_LOG_ID;
+  callLog.projectId = PROJECT_ID;
   callLog.status = CallStatus.Success;
   callLog.statusMessage = PLACED_MESSAGE;
   callLog.statusCallbackToken = TOKEN;
@@ -352,11 +455,49 @@ beforeEach(() => {
     return notification;
   }) as never);
   updateNotification.mockResolvedValue(1 as never);
+
+  findGlobalConfig.mockResolvedValue(serverTwilioRow(SERVER_ACCOUNT) as never);
+  projectConfigs = [];
+  findConfigs.mockImplementation((async () => {
+    return projectConfigs.map(
+      (config: { row: ProjectCallSMSConfig }): ProjectCallSMSConfig => {
+        return config.row;
+      },
+    );
+  }) as never);
+  toTwilioConfig.mockImplementation(((row: ProjectCallSMSConfig) => {
+    return projectConfigs.find(
+      (config: { row: ProjectCallSMSConfig }): boolean => {
+        return config.row === row;
+      },
+    )?.account;
+  }) as never);
 });
 
 afterEach(() => {
   jest.useRealTimers();
 });
+
+// A project's own Twilio config on an account.
+function addProjectConfig(account: TwilioConfig): void {
+  const row: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+  row.id = ObjectID.generate();
+  row.projectId = PROJECT_ID;
+  row.twilioAccountSID = account.accountSid;
+  projectConfigs.push({ row: row, account: account });
+}
+
+// What a refused callback leaves: the log as it was, the notification too, nothing counted.
+function expectRefusedAsItWas(answer: Answer): void {
+  expect(answer.status).toHaveBeenCalledWith(403);
+  expect(answer.send).toHaveBeenCalledWith("Forbidden");
+  expect(sendEmptySuccess).not.toHaveBeenCalled();
+  expectNothingWritten();
+  expectNothingCounted();
+  expect(callLog!.status).toBe(CallStatus.Success);
+  expect(callLog!.statusMessage).toBe(PLACED_MESSAGE);
+  expect(notification!.status).toBe(UserNotificationStatus.Sent);
+}
 
 describe("the route", () => {
   test("is registered, with nothing in front of it: Twilio signs in as nobody", () => {
@@ -371,6 +512,7 @@ describe("the route", () => {
       id: CALL_LOG_ID,
       select: {
         _id: true,
+        projectId: true,
         status: true,
         statusMessage: true,
         statusCallbackToken: true,
@@ -601,16 +743,15 @@ describe("a status that is not how a call ended", () => {
     },
   );
 
-  test("a callback with no body writes nothing", async () => {
-    await callback(undefined as unknown as JSONObject);
+  test("a callback with no body names no Twilio account: refused, and nothing is written", async () => {
+    const answer: Answer = await callback(undefined as unknown as JSONObject);
 
-    expectNothingWritten();
-    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    expectRefusedAsItWas(answer);
   });
 });
 
-describe("the token is the route's lock", () => {
-  test("a wrong token is refused with 403, and nothing is written", async () => {
+describe("the token and Twilio's signature are the route's locks (#9979)", () => {
+  test("a wrong token is refused with 403, and nothing is written - even signed by Twilio, and before the signature is looked at", async () => {
     const answer: Answer = await callback(ended("no-answer"), {
       token: "6c0e0000-0000-4000-8000-0000000000f2",
     });
@@ -619,6 +760,148 @@ describe("the token is the route's lock", () => {
     expect(answer.send).toHaveBeenCalledWith("Forbidden");
     expectNothingWritten();
     expect(sendEmptySuccess).not.toHaveBeenCalled();
+    expect(findConfigs).not.toHaveBeenCalled();
+    expect(findGlobalConfig).not.toHaveBeenCalled();
+  });
+
+  test("the right token without Twilio's signature is refused: the call's end, the notification and the count are as they were", async () => {
+    const answer: Answer = await callback(
+      ended("no-answer"),
+      {},
+      {},
+      { signedWith: null },
+    );
+
+    expectRefusedAsItWas(answer);
+  });
+
+  test("the right token, signed with another auth token, is refused", async () => {
+    const answer: Answer = await callback(
+      ended("no-answer"),
+      {},
+      {},
+      { signedWith: "an-auth-token-nobody-here-holds" },
+    );
+
+    expectRefusedAsItWas(answer);
+  });
+
+  test("a body changed on the way - answered made missed - no longer matches the signature, and is refused", async () => {
+    const answer: Answer = await callback(
+      ended("no-answer"),
+      {},
+      {},
+      { signedBody: ended("completed", { CallDuration: "42" }) },
+    );
+
+    expectRefusedAsItWas(answer);
+  });
+
+  test("a query added on the way - the account it went out on - no longer matches the signature, and is refused", async () => {
+    const signed: ReturnType<typeof signedTwilioRequest> = signedTwilioRequest({
+      publicUrl: `/notification/call/status-callback/${CALL_LOG_ID.toString()}/${TOKEN}`,
+      body: posted(SERVER_ACCOUNT, ended("no-answer")),
+      signedWith: SERVER_ACCOUNT.authToken,
+      params: { callLogId: CALL_LOG_ID.toString(), token: TOKEN },
+    });
+    const send: Mock = jest.fn();
+    const status: Mock = jest.fn();
+    const res: ExpressResponse = {
+      send: send,
+      json: jest.fn(),
+      status: status,
+    } as unknown as ExpressResponse;
+    status.mockReturnValue(res);
+
+    await ROUTE!.handlerFunction(
+      {
+        ...signed,
+        query: { providerConfig: "project" },
+        originalUrl: `${signed.originalUrl}?providerConfig=project`,
+      } as unknown as ExpressRequest,
+      res,
+      jest.fn() as unknown as NextFunction,
+    );
+
+    expectRefusedAsItWas({ status: status, send: send, next: jest.fn() });
+  });
+
+  test("an account that placed none of this project's calls is refused, even signed with its own auth token", async () => {
+    const stranger: TwilioConfig = {
+      ...PROJECT_ACCOUNT,
+      accountSid: "AC33333333333333333333333333333333",
+      authToken: "a-strangers-auth-token-00000000003",
+    };
+
+    const answer: Answer = await callback(
+      ended("no-answer"),
+      {},
+      {},
+      { account: stranger },
+    );
+
+    expectRefusedAsItWas(answer);
+  });
+
+  test("the accounts tried are the call's own project's configs, read as root, and the server's", async () => {
+    await callback(ended("no-answer"));
+
+    expect(findConfigs).toHaveBeenCalledTimes(1);
+    expect(
+      ((findConfigs.mock.calls[0]![0] as JSONObject)["query"] as JSONObject)[
+        "projectId"
+      ],
+    ).toEqual(PROJECT_ID);
+    expect(
+      (findConfigs.mock.calls[0]![0] as JSONObject)["props"] as JSONObject,
+    ).toEqual({ isRoot: true });
+    expect(findGlobalConfig).toHaveBeenCalledTimes(1);
+  });
+
+  test("signed by the server's own account: accepted, and the call's end written", async () => {
+    const answer: Answer = await callback(ended("no-answer"));
+
+    expect(answer.status).not.toHaveBeenCalled();
+    expect(writeCallLog).toHaveBeenCalledTimes(1);
+    expect(onlyDelivery()["notification.provider.config"]).toBe("global");
+  });
+
+  test("signed by the project's own Twilio config: accepted, written, and counted as the project's", async () => {
+    addProjectConfig(PROJECT_ACCOUNT);
+
+    const answer: Answer = await callback(
+      ended("no-answer"),
+      {},
+      { providerConfig: "project" },
+      { account: PROJECT_ACCOUNT },
+    );
+
+    expect(answer.status).not.toHaveBeenCalled();
+    expect(writeCallLog).toHaveBeenCalledTimes(1);
+    expect(onlyDelivery()["notification.provider.config"]).toBe("project");
+    // The project's own config signed: the server's settings are not read.
+    expect(findGlobalConfig).not.toHaveBeenCalled();
+  });
+
+  test("a refusal is logged with why - and never the token, an auth token or the whole account SID", async () => {
+    await callback(
+      ended("no-answer"),
+      {},
+      {},
+      { signedWith: "an-auth-token-nobody-here-holds" },
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `Twilio callback refused: the call status callback for log ${CALL_LOG_ID.toString()}. Its X-Twilio-Signature does not match the one Twilio account AC…1111 makes for https://oneuptime.example.com/notification/call/status-callback/${CALL_LOG_ID.toString()}/…`,
+      ),
+    );
+
+    const logged: string = JSON.stringify(warn.mock.calls);
+
+    expect(logged).not.toContain(TOKEN);
+    expect(logged).not.toContain(SERVER_ACCOUNT.authToken);
+    expect(logged).not.toContain(SERVER_ACCOUNT.accountSid);
   });
 
   test("a token of another length is refused the same way", async () => {

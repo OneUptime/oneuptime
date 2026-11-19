@@ -40,7 +40,7 @@ Alt andet ligger under **Flere felter**, foldet sammen, indtil du åbner det:
 | Felt | Hvad det gør |
 | --- | --- |
 | **Hver tørn varer** | **1 dag**, **1 uge**, **2 uger** eller **1 måned**, og **1 uge**, medmindre du ændrer det. Det spørges om, så snart nogen skiftes. Hver person har vagt så længe, og så tager den næste over, på det tidspunkt af dagen, hvor vagtplanen blev oprettet. |
-| **Tidszone** | Den tidszone, overdragelsestider og vagttimer holdes i. Den starter på din. |
+| **Tidszone** | Den tidszone, overdragelsestider og vagttimer holdes i. Den starter på din. Hver tidszone følger sin regions gældende regler: America/Vancouver (British Columbia) forbliver på UTC-7 hele året fra 2026. |
 | **Beskrivelse** | Noter om vagtplanen. |
 | **Etiketter** | Etiketter til at finde og gruppere vagtplanen. |
 

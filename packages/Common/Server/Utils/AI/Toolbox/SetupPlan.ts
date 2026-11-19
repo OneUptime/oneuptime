@@ -66,6 +66,71 @@ export const SETUP_PLAN_ORDER: {
   statusPageMonitors: 40,
 };
 
+/*
+ * What a setup action's result tells the model the person can do next, by
+ * where it is read (ToolContext.isOutsideChat, #7241).
+ *
+ * Under Ask AI's answer, a run leaves its offers - a test page to send to
+ * yourself, or to the policy it made (AskAiTestPageOffer) - and the
+ * approval card said what is missing before anyone approved it. A client
+ * of the setup actions outside the chat, the MCP server's tools, draws
+ * neither: there the words name the page in OneUptime where the same is
+ * done, by its menus, so the agent can send the person to it.
+ */
+export enum SetupTestPageTarget {
+  // A test page to the person themselves: a monitor they own, their ladder.
+  Self = "self",
+  // A test page to the policy just made or changed: its people.
+  Policy = "policy",
+}
+
+export const ASK_AI_TEST_PAGE_OFFERS: Readonly<
+  Record<SetupTestPageTarget, string>
+> = {
+  [SetupTestPageTarget.Self]:
+    "Under your answer the person can send themselves a test page; offer it in one sentence and never say one was sent.",
+  [SetupTestPageTarget.Policy]:
+    "Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.",
+};
+
+export const OUTSIDE_CHAT_TEST_PAGE_OFFERS: Readonly<
+  Record<SetupTestPageTarget, string>
+> = {
+  [SetupTestPageTarget.Self]:
+    "To check that a page reaches them, the person can send themselves one: Send me a test page, under User Settings > Notification Methods in OneUptime. No test page was sent.",
+  [SetupTestPageTarget.Policy]:
+    "To check that the policy reaches its people, On-Call > Readiness in OneUptime sends each of them a test page. No test page was sent.",
+};
+
+export function getTestPageOfferForModel(
+  ctx: Pick<ToolContext, "isOutsideChat">,
+  target: SetupTestPageTarget,
+): string {
+  return ctx.isOutsideChat
+    ? OUTSIDE_CHAT_TEST_PAGE_OFFERS[target]
+    : ASK_AI_TEST_PAGE_OFFERS[target];
+}
+
+/*
+ * What the model is told of a way to reach the person that is missing - a
+ * phone number, the app - which the person adds and verifies themselves:
+ * the approval card said so under Ask AI; outside the chat, the result's
+ * own details do (SetupActionRunner).
+ */
+export const ASK_AI_MISSING_METHOD_ADVICE: string =
+  'If the approval card said a phone number or the app is missing, tell the person to add and verify it in Notification Methods, and end with that page\'s citation (find_dashboard_page "Notification Methods").';
+
+export const OUTSIDE_CHAT_MISSING_METHOD_ADVICE: string =
+  "If the details say a phone number or the app is missing, tell the person to add and verify it under User Settings > Notification Methods in OneUptime.";
+
+export function getMissingMethodAdviceForModel(
+  ctx: Pick<ToolContext, "isOutsideChat">,
+): string {
+  return ctx.isOutsideChat
+    ? OUTSIDE_CHAT_MISSING_METHOD_ADVICE
+    : ASK_AI_MISSING_METHOD_ADVICE;
+}
+
 // The most names a call may hand a list: more is not a setup, it is an import.
 export const MAX_SETUP_NAMES: number = 25;
 

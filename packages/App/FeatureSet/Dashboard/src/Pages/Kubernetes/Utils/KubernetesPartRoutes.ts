@@ -90,8 +90,28 @@ export const KUBERNETES_PART_PAGES: Record<string, PageMap> = {
 
 export function getKubernetesPartRoute(
   clusterId: ObjectID,
-  part: { kind: string; name: string; namespace?: string | undefined },
+  part: {
+    kind: string;
+    name: string;
+    namespace?: string | undefined;
+    // A container's pod: a container is named within it (#9732).
+    pod?: string | undefined;
+  },
 ): Route | undefined {
+  /*
+   * A container's page only with its pod named: a link by its name alone
+   * would open the list of every pod that runs a container of that name.
+   */
+  if (part.kind === "Container") {
+    return part.name && part.pod
+      ? getKubernetesContainerRoute(clusterId, {
+          name: part.name,
+          pod: part.pod,
+          namespace: part.namespace,
+        })
+      : undefined;
+  }
+
   const page: PageMap | undefined = KUBERNETES_PART_PAGES[part.kind];
 
   if (!page || !part.name) {
@@ -121,6 +141,7 @@ export interface KubernetesPartRoutes {
     kind: string;
     name: string;
     namespace?: string | undefined;
+    pod?: string | undefined;
   }) => Route | undefined;
   getIncidentRoute: (incidentId: ObjectID) => Route;
   getAlertRoute: (alertId: ObjectID) => Route;
@@ -154,6 +175,7 @@ export function getKubernetesPartRoutes(
       kind: string;
       name: string;
       namespace?: string | undefined;
+      pod?: string | undefined;
     }): Route | undefined => {
       return getKubernetesPartRoute(clusterId, part);
     },

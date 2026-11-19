@@ -9,6 +9,7 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -194,7 +195,7 @@ const KubernetesCostPricingNote: FunctionComponent<ComponentProps> = (
           )}
           {prices && ownEngine ? (
             <span aria-hidden="true" className="text-gray-400">
-              ·
+              <InlineSeparator markOnly />
             </span>
           ) : (
             <></>

@@ -44,7 +44,7 @@ Si los teléfonos de las personas de guardia no pueden usar tu VPN, publica las 
 | --- | --- | --- |
 | GET | `/l/*` | Los enlaces cortos de los SMS y de los mensajes de WhatsApp y Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | La página con el motivo del aviso y su botón **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | El botón **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | El botón **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Opcional: la página que pasa el aviso a la siguiente persona |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Opcional: su botón |
 | GET | `/oneuptime-assets/*` | Las fuentes, los estilos y el logotipo de esas páginas |

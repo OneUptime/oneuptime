@@ -11,6 +11,7 @@ import CloudResourceOverview from "../Pages/Cloud/View/MonitoredResourceOverview
 import CloudResourceSettings from "../Pages/Cloud/View/Settings";
 import CloudResourceMetrics from "../Pages/Cloud/View/Metrics";
 import CloudResourceLogs from "../Pages/Cloud/View/Logs";
+import CloudResourceSecurityEvents from "../Pages/Cloud/View/SecurityEvents";
 import CloudResourceFeed from "../Pages/Cloud/View/Feed";
 import CloudResourceOwners from "../Pages/Cloud/View/Owners";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
@@ -432,6 +433,20 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudResourceLogs
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <CloudResourceSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS] as Route
+              }
             />
           }
         />

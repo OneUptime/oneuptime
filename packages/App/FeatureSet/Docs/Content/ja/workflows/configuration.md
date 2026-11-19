@@ -229,7 +229,7 @@ OneUptime のレコードを読み書きするステップ — Find、Create、U
 
 各実行は、何として、誰の権限で実行されたかを記録し、実行のウィンドウとダウンロードしたログに表示されます。[監査ログ](/docs/configuration/audit-logs) には、誰がワークフローの **Run As** を変更したかが、人または API キーの名前とともに記録され、ワークフローのステップが行った変更にはそれぞれ、そのステップが何として、誰の権限で実行されたかが記録されます。監査ログの **ワークフローの実行時の権限** と **ワークフローの権限の付与元** のフィルターで、それらの変更を見つけられます。
 
-ワークフローが実行に使っているカスタムロールを削除すると、それらは止まってしまうため、削除ではそれらを一覧にし、今後何として実行するかを尋ねます。**デフォルトの権限**、またはあなたがチームに与えられる別のカスタムロールです。ワークフローを編集できない人は、それらの Run As が変更されるまでロールを削除できません。API では、そのようなロールの削除は、代わりに何として実行するかをリクエストで示さない限り拒否されます。`miscDataProps` で `workflowsRunAs` を `Default` にするか、`CustomRole` にしてロールの id を `workflowsRunAsCustomRoleId` に入れます。Terraform では、`oneuptime_custom_role` に `workflows_run_as_on_delete` を、別のロールにする場合は `workflows_run_as_custom_role_id_on_delete` も設定し、ロールを破棄する前に適用してください。ロールのページでは、このロールで実行されるワークフローが **このロールとして実行されるワークフロー** に一覧表示されます。
+ワークフローが実行に使っているカスタムロールを削除すると、それらは止まってしまうため、削除ではそれらを一覧にし、今後何として実行するかを尋ねます。**デフォルトの権限**、またはあなたがチームに与えられる別のカスタムロールです。ワークフローを編集できない人は、それらの Run As が変更されるまでロールを削除できません。API では、そのようなロールの削除は、代わりに何として実行するかをリクエストで示さない限り拒否されます。`miscDataProps` で `workflowsRunAs` を `Default` にするか、`CustomRole` にしてロールの id を `workflowsRunAsCustomRoleId` に入れます。Terraform では、`oneuptime_custom_role` に `workflows_run_as_on_delete` を、別のロールにする場合は `workflows_run_as_custom_role_id_on_delete` も設定し、ロールを破棄する前に適用してください。CLI では、`oneuptime custom-role delete` に `--workflows-run-as Default` を、または `--workflows-run-as CustomRole` と `--workflows-run-as-custom-role-id` を付けます。ロールのページでは、このロールで実行されるワークフローが **このロールとして実行されるワークフロー** に一覧表示されます。
 
 ## プランの上限
 

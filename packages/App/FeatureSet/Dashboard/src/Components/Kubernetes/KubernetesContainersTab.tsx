@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import Route from "Common/Types/API/Route";
 import Card from "Common/UI/Components/Card/Card";
+import Link from "Common/UI/Components/Link/Link";
 import DictionaryOfStringsViewer from "Common/UI/Components/Dictionary/DictionaryOfStingsViewer";
 import {
   KubernetesContainerPort,
@@ -91,13 +93,23 @@ export interface ComponentProps {
   initContainers: Array<KubernetesContainerSpec>;
   containerStatuses?: Array<KubernetesContainerStatus> | undefined;
   initContainerStatuses?: Array<KubernetesContainerStatus> | undefined;
+  /*
+   * A container's own page, where its metrics and logs are its pod's alone
+   * (#9732): each card links to it. Left out on that page itself.
+   */
+  getContainerRoute?: ((containerName: string) => Route) | undefined;
 }
 
 interface ContainerCardProps {
   container: KubernetesContainerSpec;
   status?: KubernetesContainerStatus | undefined;
   isInit: boolean;
+  // The container's own page, when the tab is not on it.
+  route?: Route | undefined;
 }
+
+export const KUBERNETES_CONTAINER_PAGE_LINK_CLASS_NAME: string =
+  "rounded text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center";
 
 interface VolumeMountRow {
   name: string;
@@ -182,6 +194,21 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
         { name: props.container.name },
       )}
       description={props.container.image}
+      rightElement={
+        props.route ? (
+          /*
+           * Its own page: why it is not running, and its metrics and logs,
+           * its pod's alone - the address names the pod and namespace.
+           */
+          <Link
+            to={props.route}
+            dataTestId="kubernetes-container-page-link"
+            className={KUBERNETES_CONTAINER_PAGE_LINK_CLASS_NAME}
+          >
+            {translator.translateText("View container")}
+          </Link>
+        ) : undefined
+      }
     >
       <div className="space-y-5">
         {/* Status Info Cards */}
@@ -547,6 +574,11 @@ const KubernetesContainersTab: FunctionComponent<ComponentProps> = (
               container={item.container}
               status={getStatus(item.container.name, item.isInit)}
               isInit={item.isInit}
+              route={
+                props.getContainerRoute
+                  ? props.getContainerRoute(item.container.name)
+                  : undefined
+              }
             />
           );
         },
