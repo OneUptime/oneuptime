@@ -875,9 +875,16 @@ function buildSteps(
 ): Array<ActivityStep> {
   const steps: Array<ActivityStep> = [];
   const thinking: string = translator.translateText("Thinking") as string;
-  // The attempt the events belong to: each RunStarted after the first starts one.
+  /*
+   * The attempt the events belong to: each RunStarted after the first
+   * starts one, and so does the first event after an attempt's end. An
+   * attempt can end before the engine starts it - its incident's context
+   * could not be built (issue #6490) - so its end is the only event it
+   * has, and the next attempt's steps are still its own.
+   */
   let attempt: number = 1;
   let hasRunStarted: boolean = false;
+  let hasAttemptEnded: boolean = false;
 
   /*
    * The steps an attempt left open when it ended - it failed, its server
@@ -937,12 +944,13 @@ function buildSteps(
     switch (event.eventType) {
       case AIRunEventType.RunStarted:
         // Another attempt: what the last one left open ended with it.
-        if (hasRunStarted) {
+        if (hasRunStarted || hasAttemptEnded) {
           settleOpenSteps("stopped");
           attempt++;
         }
 
         hasRunStarted = true;
+        hasAttemptEnded = false;
         steps.push({
           key,
           text: translator.translateText("Starting investigation") as string,
@@ -976,6 +984,12 @@ function buildSteps(
         );
 
         if (attemptEnd) {
+          // The attempt before ended too, before this one ever started.
+          if (hasAttemptEnded) {
+            attempt++;
+          }
+
+          hasAttemptEnded = true;
           steps.push({
             key,
             text: describeAttemptEnd(attemptEnd, translator),

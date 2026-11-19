@@ -263,9 +263,14 @@ describe("AIInvestigationQueue.failOrRequeueWithDetails", () => {
   });
 
   test("failOrRequeue answers with the outcome alone, as its callers read it", async () => {
+    jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
+
     await expect(
       AIInvestigationQueue.failOrRequeue({
         aiRunId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
         attemptCount: 1,
         errorMessage: CUSTOMER_TIMEOUT,
         isPermanent: false,

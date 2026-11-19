@@ -1541,3 +1541,81 @@ describe("a run the record's own daily AI token limit stopped", () => {
     );
   });
 });
+
+/*
+ * Issue #6490: an incident's investigation whose context could not be
+ * built fails before the engine starts it, so it has no RunStarted - the
+ * queue says how each attempt ended (AttemptEnded, then RunFailed) after
+ * whatever events the run had. The card reads those as it reads the
+ * engine's: the cause, how many times OneUptime tried, Try again.
+ */
+describe("an investigation whose context could not be built", () => {
+  const CONTEXT_ERROR: string =
+    "Failed to build incident context: Database not connected";
+
+  const CONTEXT_FAILED_TWICE: Array<AIRunEvent> = [
+    event(AIRunEventType.AttemptEnded, {
+      attemptEnd: {
+        outcome: AIRunAttemptOutcome.WillRetry,
+        failureKind: AIRunFailureKind.Other,
+        attempt: 1,
+        maxAttempts: 2,
+        nextAttemptAt: "2026-11-09T14:01:00.000Z",
+      },
+      errorMessage: CONTEXT_ERROR,
+    }),
+    event(AIRunEventType.RunFailed, {
+      attemptEnd: {
+        outcome: AIRunAttemptOutcome.GaveUp,
+        failureKind: AIRunFailureKind.Other,
+        attempt: 2,
+        maxAttempts: 2,
+      },
+      errorMessage: CONTEXT_ERROR,
+    }),
+  ];
+
+  test("reads its last attempt's end: two attempts, of a kind the words cannot name", () => {
+    expect(
+      readAiRunFailure({
+        events: CONTEXT_FAILED_TWICE,
+        errorMessage: CONTEXT_ERROR,
+      }),
+    ).toEqual({ failureKind: AIRunFailureKind.Other, attempts: 2 });
+  });
+
+  test("says the cause, that OneUptime tried 2 times, and offers Try again", async () => {
+    const onTryAgain: TryAgainMock = jest.fn(async (): Promise<void> => {});
+
+    render(
+      <AiRunFailureNotice
+        title="The investigation stopped before it could report."
+        events={CONTEXT_FAILED_TWICE}
+        errorMessage={CONTEXT_ERROR}
+        onTryAgain={onTryAgain}
+        testId="investigation-failure"
+      />,
+    );
+
+    expect(screen.getByTestId("investigation-failure-cause")).toHaveTextContent(
+      "Something went wrong while it ran.",
+    );
+    expect(screen.getByTestId("investigation-failure-tries")).toHaveTextContent(
+      /^OneUptime tried 2 times\.$/,
+    );
+    // The error is all there is to say more: it shows from the start.
+    expect(screen.getByText(CONTEXT_ERROR)).toBeVisible();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    });
+
+    expect(onTryAgain).toHaveBeenCalledTimes(1);
+  });
+
+  test("before, with no end recorded, it could only guess from the error, with no count", () => {
+    expect(
+      readAiRunFailure({ events: [], errorMessage: CONTEXT_ERROR }),
+    ).toEqual({ failureKind: AIRunFailureKind.Other });
+  });
+});

@@ -29,6 +29,12 @@ import {
   AIRunFailureKind,
 } from "../../../../Types/AI/AIRunAttempt";
 
+/*
+ * How much of a failed attempt's error its AttemptEnded or RunFailed event
+ * keeps: the run's own errorMessage cut, and the engine's.
+ */
+export const MAX_ATTEMPT_ERROR_LENGTH: number = 400;
+
 // What failOrRequeueWithDetails did with a failed attempt, and how it ended.
 export interface FailedAttemptResult {
   outcome: "requeued" | "finalized" | "noop";
@@ -792,6 +798,17 @@ export default class AIInvestigationQueue {
    * so a run that already completed (e.g. only postAnalysis failed) is
    * never clobbered or re-run.
    *
+   * For an attempt that failed before the engine ran it - its context
+   * could not be built, its fix could not be prepared - which says nothing
+   * of how it ended itself. So it is said here, as the engine says it of
+   * its own attempts (issue #6490): an AttemptEnded event when the run goes
+   * back to the queue, a RunFailed event when it fails for good, each with
+   * the attempt's end - the kind of failure, attempt N of M, and when the
+   * next attempt starts. The run's activity then ends the attempt with a
+   * line, and its failure notice says how many times OneUptime tried.
+   * Nothing is written when the run had moved on ("noop"): its new owner
+   * says how it ends.
+   *
    * Returns what actually happened, so callers can settle post-terminal
    * work (the remediation hand-off) exactly once: "requeued" — a later
    * attempt owns the run now; "finalized" — THIS call moved the run to
@@ -801,22 +818,40 @@ export default class AIInvestigationQueue {
   @CaptureSpan()
   public static async failOrRequeue(data: {
     aiRunId: ObjectID;
+    // The run's project, whose activity the attempt's end is written to.
+    projectId: ObjectID;
     attemptCount: number;
     errorMessage: string;
     isPermanent: boolean;
     // The error itself, when there is one: its status code tells more.
     error?: unknown;
   }): Promise<"requeued" | "finalized" | "noop"> {
-    return (await this.failOrRequeueWithDetails(data)).outcome;
+    const failed: FailedAttemptResult =
+      await this.failOrRequeueWithDetails(data);
+
+    if (failed.outcome !== "noop") {
+      await this.recordAttemptEnd({
+        run: { id: data.aiRunId, projectId: data.projectId },
+        eventType:
+          failed.outcome === "requeued"
+            ? AIRunEventType.AttemptEnded
+            : AIRunEventType.RunFailed,
+        attemptEnd: failed.attemptEnd,
+        errorMessage: data.errorMessage,
+      });
+    }
+
+    return failed.outcome;
   }
 
   /*
-   * failOrRequeue, saying how the attempt ended too: for the AttemptEnded
-   * or RunFailed event its executor writes (AIInvestigationEngine), so the
-   * run's activity says what happened, how many times the run was tried
-   * and when it is tried next. Whether and when is AIRunRetryPolicy's
-   * decision: a provider failure waits a minute, then five, before the
-   * next attempt (retryAt), and gets three attempts in all.
+   * failOrRequeue, saying how the attempt ended too, for the AttemptEnded
+   * or RunFailed event its executor writes itself (AIInvestigationEngine,
+   * which numbers its own events), so the run's activity says what
+   * happened, how many times the run was tried and when it is tried next.
+   * Whether and when is AIRunRetryPolicy's decision: a provider failure
+   * waits a minute, then five, before the next attempt (retryAt), and gets
+   * three attempts in all.
    */
   @CaptureSpan()
   public static async failOrRequeueWithDetails(data: {
@@ -1060,15 +1095,17 @@ export default class AIInvestigationQueue {
 
   /*
    * Say on the run's activity how an attempt ended that cannot say so
-   * itself - its server is gone, or going - after every event it wrote
-   * (AIRunEventService.appendEventToRun, afterLastEvent). Best-effort: the
-   * run has already moved on, and the dashboard reads its state from the
-   * run's status as well.
+   * itself - its server is gone, or going, or it failed before the engine
+   * ran it - after every event it wrote (AIRunEventService.appendEventToRun,
+   * afterLastEvent). Best-effort: the run has already moved on, and the
+   * dashboard reads its state from the run's status as well.
    */
   private static async recordAttemptEnd(data: {
     run: { id: ObjectID; projectId?: ObjectID | undefined };
     eventType: AIRunEventType;
     attemptEnd: AIRunAttemptEnd;
+    // What the attempt failed with, kept as the engine keeps it.
+    errorMessage?: string | undefined;
   }): Promise<void> {
     if (!data.run.projectId) {
       return;
@@ -1079,7 +1116,17 @@ export default class AIInvestigationQueue {
         projectId: data.run.projectId,
         aiRunId: data.run.id,
         eventType: data.eventType,
-        resultSummary: { attemptEnd: data.attemptEnd },
+        resultSummary: {
+          attemptEnd: data.attemptEnd,
+          ...(data.errorMessage
+            ? {
+                errorMessage: data.errorMessage.substring(
+                  0,
+                  MAX_ATTEMPT_ERROR_LENGTH,
+                ),
+              }
+            : {}),
+        },
         afterLastEvent: true,
       });
     } catch (error) {
