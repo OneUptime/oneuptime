@@ -15,23 +15,16 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import { MonitorSecretTypeUtil } from "Common/Types/Monitor/MonitorSecretType";
 import {
+  StepTotpReferences,
   callsTotpCodeFunction,
-  getQuotedNames,
-  getReferencedSecretNames,
-} from "Common/Utils/Monitor/MonitorSecretTotp";
+  getStepTotpReferences,
+  getTotpSecretNamesNeeded,
+} from "Common/Utils/Monitor/MonitorSecretReferences";
 import { TotpParameters, TotpSecrets } from "Common/Utils/Totp/TotpParameters";
 import {
   TotpSecretReading,
   readTotpSecret,
 } from "Common/Utils/Totp/TotpSecret";
-
-// What a step references of the monitor's one-time code secrets.
-interface TotpReferences {
-  // The names its {{monitorSecrets.NAME}} references give.
-  names: Array<string>;
-  // A script that asks with oneuptime.getTotpCode, for the names it quotes.
-  script: string | undefined;
-}
 
 export default class MonitorUtil {
   /*
@@ -143,7 +136,7 @@ export default class MonitorUtil {
      * step as written - before any secret is filled in, so text a secret's
      * value carries is never taken for a reference (issue #9703).
      */
-    const totpReferences: Map<MonitorStep, TotpReferences> =
+    const totpReferences: Map<MonitorStep, StepTotpReferences> =
       MonitorUtil.getTotpReferences(monitorSteps, monitorType);
 
     if (monitorType === MonitorType.API) {
@@ -628,12 +621,14 @@ export default class MonitorUtil {
 
   /*
    * The one-time code secrets a step's probe makes codes for, where it
-   * makes them (MonitorSecretTotp): the {{monitorSecrets.NAME}} references
-   * of an API step's URL, headers and body, and of a Synthetic or Custom
-   * JavaScript Code step's script - and, for a script that asks with
-   * oneuptime.getTotpCode, the script itself, whose quoted names say which
-   * secrets it asks for. Every other field fills in Text secrets only, and
-   * leaves a reference to a one-time code secret as written.
+   * makes them (MonitorSecretReferences.getStepTotpReferences): the
+   * {{monitorSecrets.NAME}} references of an API step's URL, headers and
+   * body, and of a Synthetic or Custom JavaScript Code step's script - and,
+   * for a script that asks with oneuptime.getTotpCode, the script itself,
+   * whose quoted names say which secrets it asks for. Every other field
+   * fills in Text secrets only, and leaves a reference to a one-time code
+   * secret as written. The monitor forms read steps the same way, to warn
+   * of a probe too old to make the codes (issue #9759).
    *
    * Every step's carried parameters are cleared here first, so a step only
    * ever carries what the monitor's own secrets give it.
@@ -641,8 +636,8 @@ export default class MonitorUtil {
   private static getTotpReferences(
     monitorSteps: MonitorSteps,
     monitorType: MonitorType,
-  ): Map<MonitorStep, TotpReferences> {
-    const references: Map<MonitorStep, TotpReferences> = new Map();
+  ): Map<MonitorStep, StepTotpReferences> {
+    const references: Map<MonitorStep, StepTotpReferences> = new Map();
 
     for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
       []) {
@@ -652,42 +647,13 @@ export default class MonitorUtil {
 
       monitorStep.data.totpSecrets = undefined;
 
-      const texts: Array<string> = [];
-      let script: string | undefined = undefined;
+      const stepReferences: StepTotpReferences | null = getStepTotpReferences(
+        monitorStep,
+        monitorType,
+      );
 
-      if (monitorType === MonitorType.API) {
-        texts.push(
-          JSONFunctions.toString(monitorStep.data.monitorDestination || ""),
-          JSONFunctions.toString(monitorStep.data.requestHeaders || {}),
-          monitorStep.data.requestBody || "",
-        );
-      }
-
-      if (
-        monitorType === MonitorType.SyntheticMonitor ||
-        monitorType === MonitorType.CustomJavaScriptCode
-      ) {
-        const customCode: string = monitorStep.data.customCode || "";
-
-        texts.push(customCode);
-
-        if (callsTotpCodeFunction(customCode)) {
-          script = customCode;
-        }
-      }
-
-      const names: Array<string> = [];
-
-      for (const text of texts) {
-        for (const name of getReferencedSecretNames(text)) {
-          if (!names.includes(name)) {
-            names.push(name);
-          }
-        }
-      }
-
-      if (names.length > 0 || script !== undefined) {
-        references.set(monitorStep, { names, script });
+      if (stepReferences) {
+        references.set(monitorStep, stepReferences);
       }
     }
 
@@ -701,7 +667,7 @@ export default class MonitorUtil {
    * as written, as it does for a secret the monitor may not use.
    */
   private static async attachTotpSecrets(data: {
-    references: Map<MonitorStep, TotpReferences>;
+    references: Map<MonitorStep, StepTotpReferences>;
     getSecrets: () => Promise<Array<MonitorSecret>>;
   }): Promise<void> {
     if (data.references.size === 0) {
@@ -734,18 +700,10 @@ export default class MonitorUtil {
     for (const [monitorStep, references] of Array.from(
       data.references.entries(),
     )) {
-      const names: Array<string> = [...references.names];
-
-      if (references.script !== undefined) {
-        for (const name of getQuotedNames(
-          references.script,
-          parametersByName.keys(),
-        )) {
-          if (!names.includes(name)) {
-            names.push(name);
-          }
-        }
-      }
+      const names: Array<string> = getTotpSecretNamesNeeded(
+        references,
+        parametersByName.keys(),
+      );
 
       const totpSecrets: TotpSecrets = {};
 

@@ -127,16 +127,25 @@ describe("the one-time code section of Monitor Secrets", () => {
   });
 
   it("names the fields codes go into, as the server reads references in them", () => {
-    const filling: string = sourceBetween(
+    // The server reads a step's references with the shared reader (#9759).
+    const server: string = sourceBetween(
       readRepoFile("App/FeatureSet/Telemetry/Utils/Monitor.ts"),
       "private static getTotpReferences(",
       "private static async attachTotpSecrets(",
+    );
+
+    expect(server).toContain("getStepTotpReferences(");
+
+    const filling: string = sourceBetween(
+      readRepoFile("Common/Utils/Monitor/MonitorSecretReferences.ts"),
+      "export function getStepTotpReferences(",
+      "export function getTotpSecretNamesNeeded(",
     );
     // The API block, to its own closing brace.
     const api: string = sourceBetween(
       filling,
       "if (monitorType === MonitorType.API) {",
-      "\n      }",
+      "\n  }",
     );
 
     for (const field of [
@@ -148,7 +157,7 @@ describe("the one-time code section of Monitor Secrets", () => {
     }
 
     expect(filling).toContain(
-      "monitorType === MonitorType.SyntheticMonitor ||\n        monitorType === MonitorType.CustomJavaScriptCode",
+      "monitorType === MonitorType.SyntheticMonitor ||\n    monitorType === MonitorType.CustomJavaScriptCode",
     );
     expect(section()).toContain(
       "| API | `{{monitorSecrets.NAME}}` in the URL, a request header or the request body, just before each attempt is sent |",
