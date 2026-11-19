@@ -43,7 +43,7 @@ Clique em **Convidar Usuário**. A caixa de diálogo **Convidar Novo Usuário** 
 
 ### Informar o endereço de e-mail
 
-Digite o endereço em **E-mail**. Enquanto você digita, **E-mail** sugere as pessoas do projeto por nome ou endereço e mostra quem está **Convidado** e quem **Já está nesta equipe**: clique em uma delas para preencher o endereço. Em um servidor auto-hospedado, um administrador mestre também recebe como sugestão as outras contas do servidor, marcadas como **Ainda não está neste projeto**, assim como qualquer pessoa que possa convidar, depois que um administrador mestre permitir isso no Admin Dashboard. Para um endereço que você digita, a caixa de diálogo também pede um **Nome**, que é opcional: se essa pessoa ainda não tiver conta no OneUptime, ela será criada com esse nome.
+Digite o endereço em **E-mail**. Enquanto você digita, **E-mail** sugere as pessoas do projeto por nome ou endereço e mostra quem está **Convidado** e quem **Já está nesta equipe**: clique em uma delas para preencher o endereço. Em um servidor auto-hospedado, um administrador mestre também recebe como sugestão as outras contas do servidor, marcadas como **Ainda não está neste projeto**, assim como qualquer pessoa que possa convidar, depois que um administrador mestre permitir isso no Admin Dashboard. Para um endereço que você digita, a caixa de diálogo também pede um **Nome**, que é opcional: se essa pessoa ainda não tiver conta no OneUptime, ela será criada com esse nome. Até ela aceitar, o projeto a mostra com esse nome, ou só com o endereço, nunca com o nome ou a foto da conta dela. Os formulários de convite do Admin Dashboard sugerem pessoas da mesma forma.
 
 ### Escolher a equipe
 
@@ -61,9 +61,9 @@ Em um servidor auto-hospedado que ainda não consegue enviar e-mails, nenhum e-m
 
 ## Aceitar um convite
 
-O e-mail de convite nomeia o projeto e quem convidou a pessoa. O botão dele é **Create Your Account** para quem ainda não tem conta no OneUptime e **Sign In to OneUptime** para quem já tem.
+O e-mail de convite nomeia o projeto e quem convidou a pessoa. O botão dele é **Create Your Account** para quem ainda não tem conta no OneUptime e **Sign In to OneUptime** para quem já tem. Quando o SSO for gerenciar o login dela, porque o projeto gerencia o login das pessoas com SSO, assim como todos os outros projetos de que ela faz parte, ou porque todo o servidor exige SSO, o e-mail diz isso no lugar, e o botão dele é **Sign In with SSO**.
 
-**Create Your Account** abre a página de cadastro com o endereço dela e o nome que você digitou já preenchidos, e diz qual projeto a convidou e quem. Cadastrar-se ali a coloca no projeto, sem mais nada para aceitar.
+**Create Your Account** abre a página de cadastro com o endereço dela e o nome que você digitou já preenchidos, e diz qual projeto a convidou e quem. Cadastrar-se ali a coloca no projeto, sem mais nada para aceitar. **Sign In with SSO** abre a mesma página, que oferece single sign-on em vez de uma senha: fazer login ali com um dos provedores de identidade do projeto a coloca no projeto.
 
 Em um servidor auto-hospedado que ainda não consegue enviar e-mails, ninguém recebe e-mail: o link de convite que a pessoa recebe no lugar abre a mesma página de cadastro, ou a página de entrada para quem já tem conta.
 
@@ -82,7 +82,7 @@ Ao aceitar, a pessoa entra no projeto na hora, com as permissões da equipe dela
 
 | Coluna | O que mostra |
 | --- | --- |
-| **Usuário** | O nome e o endereço de e-mail dela. |
+| **Usuário** | O nome e o endereço de e-mail dela. Até ela aceitar, o nome que você digitou para ela, se houver. |
 | **Equipes** | Cada equipe do projeto de que ela participa, ou para a qual foi convidada. |
 | **Status** | **Membro** depois que ela entrou, com o número de convites para outras equipes que ainda não aceitou. **Convite enviado** até lá, ou **E-mail não enviado** quando o serviço de e-mail recusou o último e-mail de convite dela. Em um servidor auto-hospedado que ainda não consegue enviar e-mails, **Convidado** no lugar: o convite é criado, mas nenhum e-mail é enviado. |
 

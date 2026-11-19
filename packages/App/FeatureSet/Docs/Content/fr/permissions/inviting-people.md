@@ -43,7 +43,7 @@ Cliquez sur **Inviter un utilisateur**. La boîte de dialogue **Inviter un nouve
 
 ### Saisir son adresse e-mail
 
-Saisissez son adresse dans **E-mail**. Pendant la saisie, **E-mail** suggère les personnes du projet par nom ou par adresse, et indique qui est **Invité** et qui est **Déjà dans cette équipe** : cliquez sur l'une d'elles pour remplir son adresse. Sur un serveur auto-hébergé, un administrateur principal se voit aussi proposer les autres comptes du serveur, marqués **Pas encore dans ce projet**, tout comme toute personne pouvant inviter, dès qu'un administrateur principal l'autorise dans l'Admin Dashboard. Pour une adresse que vous saisissez, la boîte de dialogue demande aussi un **Nom**, facultatif : si cette personne n'a pas encore de compte OneUptime, il sera créé avec ce nom.
+Saisissez son adresse dans **E-mail**. Pendant la saisie, **E-mail** suggère les personnes du projet par nom ou par adresse, et indique qui est **Invité** et qui est **Déjà dans cette équipe** : cliquez sur l'une d'elles pour remplir son adresse. Sur un serveur auto-hébergé, un administrateur principal se voit aussi proposer les autres comptes du serveur, marqués **Pas encore dans ce projet**, tout comme toute personne pouvant inviter, dès qu'un administrateur principal l'autorise dans l'Admin Dashboard. Pour une adresse que vous saisissez, la boîte de dialogue demande aussi un **Nom**, facultatif : si cette personne n'a pas encore de compte OneUptime, il sera créé avec ce nom. Tant que la personne n'a pas accepté, le projet la montre sous ce nom, ou par sa seule adresse, jamais avec le nom ou la photo de son propre compte. Les formulaires d'invitation de l'Admin Dashboard suggèrent des personnes de la même façon.
 
 ### Choisir son équipe
 
@@ -61,9 +61,9 @@ Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, aucun e-
 
 ## Accepter une invitation
 
-L'e-mail d'invitation nomme le projet et la personne qui a envoyé l'invitation. Son bouton est **Create Your Account** pour quelqu'un qui n'a pas encore de compte OneUptime, et **Sign In to OneUptime** pour quelqu'un qui en a un.
+L'e-mail d'invitation nomme le projet et la personne qui a envoyé l'invitation. Son bouton est **Create Your Account** pour quelqu'un qui n'a pas encore de compte OneUptime, et **Sign In to OneUptime** pour quelqu'un qui en a un. Lorsque le SSO gérera sa connexion, parce que le projet gère la connexion de ses membres avec le SSO, comme chaque autre projet auquel elle appartient, ou parce que tout le serveur exige le SSO, l'e-mail le dit à la place, et son bouton est **Sign In with SSO**.
 
-**Create Your Account** ouvre la page d'inscription avec son adresse et le nom que vous avez saisi déjà remplis, et indique quel projet l'invite et qui. S'inscrire sur cette page fait rejoindre le projet, sans rien d'autre à accepter.
+**Create Your Account** ouvre la page d'inscription avec son adresse et le nom que vous avez saisi déjà remplis, et indique quel projet l'invite et qui. S'inscrire sur cette page fait rejoindre le projet, sans rien d'autre à accepter. **Sign In with SSO** ouvre la même page, qui propose l'authentification unique au lieu d'un mot de passe : se connecter là avec l'un des fournisseurs d'identité du projet fait rejoindre le projet.
 
 Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, personne ne reçoit d'e-mail : le lien d'invitation envoyé à la place ouvre la même page d'inscription, ou la page de connexion pour quelqu'un qui a déjà un compte.
 
@@ -82,7 +82,7 @@ L'acceptation la place aussitôt dans le projet, avec les autorisations de son �
 
 | Colonne | Ce qu'elle montre |
 | --- | --- |
-| **Utilisateur** | Son nom et son adresse e-mail. |
+| **Utilisateur** | Son nom et son adresse e-mail. Tant que la personne n'a pas accepté, le nom que vous avez saisi pour elle, s'il y en a un. |
 | **Équipes** | Chaque équipe du projet dont elle fait partie, ou à laquelle elle est invitée. |
 | **Statut** | **Membre** une fois qu'elle a rejoint le projet, avec le nombre d'invitations vers d'autres équipes qu'elle n'a pas encore acceptées. **Invitation envoyée** jusque-là, ou **E-mail non envoyé** lorsque le service de messagerie a refusé son dernier e-mail d'invitation. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, **Invité** à la place : l'invitation est créée, mais aucun e-mail ne part. |
 

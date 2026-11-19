@@ -230,7 +230,7 @@ const EMAIL_NOT_SENT_ANSWER: string =
  * (#7471), and of the link handed out where no email went (#7169).
  */
 const SIGN_UP_JOINS: string =
-  "**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept.";
+  "**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept. **Sign In with SSO** opens the same page, offering single sign-on instead of a password: signing in there with one of the project's identity providers joins the project.";
 const NO_EMAIL_ACCEPT: string =
   "On a self-hosted server that cannot send email yet, nobody is emailed: the invitation link they are sent instead opens the same sign-up page, or the sign-in page for someone who already has an account.";
 
@@ -799,7 +799,102 @@ describe("Inviting People", () => {
     );
 
     expect(accept[1]).toBe(SIGN_UP_JOINS);
-    expect(boldNames(SIGN_UP_JOINS)).toEqual(["Create Your Account"]);
+    expect(boldNames(SIGN_UP_JOINS)).toEqual([
+      "Create Your Account",
+      "Sign In with SSO",
+    ]);
+  });
+
+  /*
+   * #9819: someone whose sign-in SSO will manage once they join - the
+   * project manages its people's sign-in with SSO and so does every other
+   * project they are in, or the whole server requires SSO - is invited to
+   * sign in with SSO, never to choose a password: the email's button, and
+   * the page it opens, which offers the project's providers. Signing in
+   * through one of them accepts the invitation.
+   */
+  it("says an invitation for someone SSO will sign in offers SSO, and that signing in with it joins", () => {
+    const template: string = readPackageFile(
+      "App/FeatureSet/Notification/Templates/InviteMember.hbs",
+    );
+    const service: string = collapsed(
+      readCommonSource("Server/Services/TeamMemberService.ts"),
+    );
+    const rule: string = collapsed(
+      readCommonSource("Server/Utils/SsoManagedSignIn.ts"),
+    );
+    const register: string = collapsed(
+      readPackageFile("App/FeatureSet/Accounts/src/Pages/Register.tsx"),
+    );
+    const gate: string = collapsed(
+      readPackageFile("App/FeatureSet/Identity/Utils/ProjectSsoSignInGate.ts"),
+    );
+    const accept: Array<string> = paragraphs(
+      section(page, "## Accept an invitation"),
+    );
+
+    // The email: its own words and button, by the managed sign-in rule.
+    expect(template).toContain('{{#ifCond isSsoSignIn "true"}}');
+    expect(template).toContain('buttonText="Sign In with SSO"');
+    expect(service).toContain(
+      "return await SsoManagedSignIn.getManagedByOnceIn({",
+    );
+    expect(rule).toContain("public static async getManagedByOnceIn(data: {");
+    // The page: the project's providers, and no password.
+    expect(register).toContain(
+      "if (invitation?.ssoSignIn) { return <InvitedSsoSignIn invitation={invitation} />; }",
+    );
+    // Signing in through the project's SSO accepts the invitation.
+    expect(gate).toContain(
+      "hasAcceptedInvitation: false, }, data: { hasAcceptedInvitation: true, invitationAcceptedAt: OneUptimeDate.getCurrentDate(), },",
+    );
+
+    expect(accept[0]).toContain(
+      "or because the whole server requires SSO, the email says so instead, and its button is **Sign In with SSO**.",
+    );
+  });
+
+  /*
+   * #9823: until someone accepts, the project sees what it invited - the
+   * address, and the name typed for them - never their account's own name
+   * or picture, wherever it reads them. #9826: the Admin Dashboard's
+   * invitation forms draw the Dashboard's email box.
+   */
+  it("says the project knows someone only invited by the name typed for them, and that the Admin Dashboard suggests people too", () => {
+    const database: string = collapsed(
+      readCommonSource("Server/Services/DatabaseService.ts"),
+    );
+    const withheld: string = collapsed(
+      readCommonSource("Server/Utils/TeamMember/PendingInviteeProfiles.ts"),
+    );
+    const adminUsers: string = readPackageFile(
+      "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
+    );
+    const adminTeam: string = readPackageFile(
+      "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/TeamView.tsx",
+    );
+
+    expect(database).toContain(
+      "await PendingInviteeProfiles.withholdFromRows({",
+    );
+    expect(withheld).toContain(
+      '"name", "profilePictureId", "twoFactorAuthEnabled",',
+    );
+    expect(withheld).toContain(
+      'data.person["name"] = profile.inviteeName ? new Name(profile.inviteeName) : undefined;',
+    );
+    for (const adminPage of [adminUsers, adminTeam]) {
+      expect(adminPage).toContain(
+        'from "Common/UI/Components/InviteeEmailField/InviteeEmailFormField";',
+      );
+    }
+
+    expect(page).toContain(
+      "Until they accept, the project shows them by that name, or by their address alone, never by the name or picture of their own account. The Admin Dashboard's invitation forms suggest people in the same way.",
+    );
+    expect(page).toContain(
+      "| **User** | Their name and email address. Until they accept, the name you typed for them, if any. |",
+    );
   });
 
   it("says the link handed out where no email went opens the same sign-up page, or the sign-in page for an account", () => {
