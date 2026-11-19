@@ -12,7 +12,7 @@ provider "oneuptime" {
   api_key       = var.api_key
 }
 
-# Test: numbered lists converge (OneUptime/oneuptime#9573) - the update
+# Test: numbered lists converge (OneUptime/oneuptime#9573, #9609) - the update
 #
 # Every list renumbered in one apply, every write at once:
 #
@@ -21,7 +21,10 @@ provider "oneuptime" {
 #   - resources: rotated - three 3 -> 1, one 1 -> 2, two 2 -> 3;
 #   - escalation rules: Fallback added at 3 while the rest move round -
 #     Tertiary 3 -> 1, Primary 1 -> 2, Secondary 2 -> 4;
-#   - layers: reversed - Weekend 3 -> 1, Day 1 -> 3.
+#   - layers: reversed - Weekend 3 -> 1, Day 1 -> 3;
+#   - header links: Blog added at 2 while the rest are reversed - Support
+#     3 -> 1, Docs 1 -> 4;
+#   - severities: rotated - Green 202 -> 200, Red 200 -> 201, Amber 201 -> 202.
 #
 # The runner's plan gate after this apply must find nothing to do, and
 # verify-update.sh reads every row back from the API.
@@ -32,6 +35,8 @@ locals {
   resource_order = ["three", "one", "two"]
   levels         = ["Tertiary", "Primary", "Fallback", "Secondary"]
   layers         = ["Weekend", "Night", "Day"]
+  header_links   = ["Support", "Blog", "Status", "Docs"]
+  severities     = ["Green", "Red", "Amber"]
 }
 
 resource "oneuptime_status_page" "page" {
@@ -112,6 +117,26 @@ resource "oneuptime_on_call_schedule_layer" "layer" {
   })
 }
 
+# The drag-ordered lists (OneUptime/oneuptime#9609) are numbered the same
+# way: a status page's header links, and the project's incident severities.
+# The severities take numbers from 200, past the project's own and the
+# ones other tests give theirs (98, 100), so no two share a number.
+resource "oneuptime_status_page_header_link" "link" {
+  for_each       = toset(local.header_links)
+  status_page_id = oneuptime_status_page.page.id
+  title          = "terraform-e2e-ordered-${each.key}"
+  link           = "https://example.com/${lower(each.key)}"
+  order          = index(local.header_links, each.key) + 1
+}
+
+resource "oneuptime_incident_severity" "severity" {
+  for_each    = toset(local.severities)
+  name        = "terraform-e2e-ordered-${each.key}"
+  description = "Incident severity whose place Terraform numbers"
+  color       = "#FFA500"
+  order       = 200 + index(local.severities, each.key)
+}
+
 # Output names map to the API routes /api/status-page,
 # /api/on-call-duty-policy and /api/on-call-duty-policy-schedule so the
 # runner's deletion verification hits the real endpoints. The rows of the
@@ -131,7 +156,7 @@ output "on_call_duty_policy_schedule_id" {
   description = "ID of the on-call schedule"
 }
 
-# Every row of the four lists, with the number its configuration gives it,
+# Every row of the six lists, with the number its configuration gives it,
 # for verify.sh to read back from the API.
 output "expected_orders" {
   description = "Each row of the numbered lists, and the order configured for it"
@@ -159,6 +184,18 @@ output "expected_orders" {
       endpoint = "/api/on-call-duty-schedule-layer"
       id       = layer.id
       order    = index(local.layers, name) + 1
+    }],
+    [for name, link in oneuptime_status_page_header_link.link : {
+      label    = "status page header link ${name}"
+      endpoint = "/api/status-page-header-link"
+      id       = link.id
+      order    = index(local.header_links, name) + 1
+    }],
+    [for name, severity in oneuptime_incident_severity.severity : {
+      label    = "incident severity ${name}"
+      endpoint = "/api/incident-severity"
+      id       = severity.id
+      order    = 200 + index(local.severities, name)
     }],
   )
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Verify script for 64-ordered-lists-converge (OneUptime/oneuptime#9573):
-# every row of the four numbered lists holds exactly the order its
+# Verify script for 64-ordered-lists-converge (OneUptime/oneuptime#9573,
+# #9609): every row of the six numbered lists holds exactly the order its
 # configuration gives it, read back from the API.
 
 set -e

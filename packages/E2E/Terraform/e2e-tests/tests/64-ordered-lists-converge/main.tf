@@ -12,22 +12,25 @@ provider "oneuptime" {
   api_key       = var.api_key
 }
 
-# Test: numbered lists converge (OneUptime/oneuptime#9573)
+# Test: numbered lists converge (OneUptime/oneuptime#9573, #9609)
 #
 # A status page's groups and resources, an on-call policy's escalation rules
-# and a schedule's layers are numbered by `order`. Each list here is
-# numbered the way the issue's configuration numbers it - for_each over a
-# list, order = index(list, key) + 1 - so Terraform writes every row's
-# order on its own, the rows of a list all at once.
+# and a schedule's layers are numbered by `order`, and so are the lists put
+# in order by dragging: a status page's header links and the project's
+# incident severities here. Each list here is numbered the way the issue's
+# configuration numbers it - for_each over a list, order = index(list,
+# key) + 1 - so Terraform writes every row's order on its own, the rows of
+# a list all at once.
 #
 # update.tf renumbers every list in one apply: a group added in the middle
 # and one taken out while the rest are renumbered, the resources rotated, an
 # escalation rule added in the middle while the rest move round, the layers
-# reversed. The runner's plan gate after each apply is the point of the
-# test: when a write of `order` moved the rows it passed, those writes
-# renumbered each other and the next plan never came back empty. verify.sh
-# and verify-update.sh read every row back from the API and check it holds
-# exactly the number its configuration gives it.
+# reversed, a header link added in the middle while the rest are reversed,
+# the severities rotated. The runner's plan gate after each apply is the
+# point of the test: when a write of `order` moved the rows it passed, those
+# writes renumbered each other and the next plan never came back empty.
+# verify.sh and verify-update.sh read every row back from the API and check
+# it holds exactly the number its configuration gives it.
 
 locals {
   groups         = ["Alpha", "Bravo", "Charlie", "Echo"]
@@ -35,6 +38,8 @@ locals {
   resource_order = ["one", "two", "three"]
   levels         = ["Primary", "Secondary", "Tertiary"]
   layers         = ["Day", "Night", "Weekend"]
+  header_links   = ["Docs", "Status", "Support"]
+  severities     = ["Red", "Amber", "Green"]
 }
 
 resource "oneuptime_status_page" "page" {
@@ -115,6 +120,26 @@ resource "oneuptime_on_call_schedule_layer" "layer" {
   })
 }
 
+# The drag-ordered lists (OneUptime/oneuptime#9609) are numbered the same
+# way: a status page's header links, and the project's incident severities.
+# The severities take numbers from 200, past the project's own and the
+# ones other tests give theirs (98, 100), so no two share a number.
+resource "oneuptime_status_page_header_link" "link" {
+  for_each       = toset(local.header_links)
+  status_page_id = oneuptime_status_page.page.id
+  title          = "terraform-e2e-ordered-${each.key}"
+  link           = "https://example.com/${lower(each.key)}"
+  order          = index(local.header_links, each.key) + 1
+}
+
+resource "oneuptime_incident_severity" "severity" {
+  for_each    = toset(local.severities)
+  name        = "terraform-e2e-ordered-${each.key}"
+  description = "Incident severity whose place Terraform numbers"
+  color       = "#FFA500"
+  order       = 200 + index(local.severities, each.key)
+}
+
 # Output names map to the API routes /api/status-page,
 # /api/on-call-duty-policy and /api/on-call-duty-policy-schedule so the
 # runner's deletion verification hits the real endpoints. The rows of the
@@ -134,7 +159,7 @@ output "on_call_duty_policy_schedule_id" {
   description = "ID of the on-call schedule"
 }
 
-# Every row of the four lists, with the number its configuration gives it,
+# Every row of the six lists, with the number its configuration gives it,
 # for verify.sh to read back from the API.
 output "expected_orders" {
   description = "Each row of the numbered lists, and the order configured for it"
@@ -162,6 +187,18 @@ output "expected_orders" {
       endpoint = "/api/on-call-duty-schedule-layer"
       id       = layer.id
       order    = index(local.layers, name) + 1
+    }],
+    [for name, link in oneuptime_status_page_header_link.link : {
+      label    = "status page header link ${name}"
+      endpoint = "/api/status-page-header-link"
+      id       = link.id
+      order    = index(local.header_links, name) + 1
+    }],
+    [for name, severity in oneuptime_incident_severity.severity : {
+      label    = "incident severity ${name}"
+      endpoint = "/api/incident-severity"
+      id       = severity.id
+      order    = 200 + index(local.severities, name)
     }],
   )
 }
