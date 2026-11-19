@@ -18497,7 +18497,7 @@
   "Your on-call configuration, one page per thing you can change.": "내 온콜 구성입니다. 변경할 수 있는 항목마다 페이지가 하나씩 있습니다.",
   "Your on-call toolkit, in your pocket.": "Your on-call toolkit, in your pocket.",
   "Your own team is unaffected either way: the toggle does not apply to the API-key-authenticated status page tools, so project members with an API key can still read and manage this status page over MCP with it switched off.": "Your own team is unaffected either way: the toggle does not apply to the API-key-authenticated status page tools, so project members with an API key can still read and manage this status page over MCP with it switched off.",
-  "Your password has been updated.": "Your password has been updated.",
+  "Your password has been updated.": "비밀번호가 업데이트되었습니다.",
   "Your project asks team members for a few extra details, like a desk phone or a timezone.": "Your project asks team members for a few extra details, like a desk phone or a timezone.",
   "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted.": "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted.",
   "Your project is on the Free plan. Choose the monitoring that fits your needs.": "Your project is on the Free plan. Choose the monitoring that fits your needs.",
@@ -57538,5 +57538,17 @@
   "Only the latest {{count}} steps of this run are shown._one": "이 실행의 최근 {{count}}단계만 표시됩니다.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "이 프로젝트는 OneUptime 서버 관리자가 설정하는 글로벌 LLM 공급자를 사용합니다. 관리자에게 API 키와 모델을 확인해 달라고 요청하거나, 프로젝트 설정 > AI > LLM 공급자에서 직접 LLM 공급자를 추가하세요.",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "이 프로젝트는 OneUptime 서버 관리자가 설정하는 글로벌 LLM 공급자를 사용합니다. 몇 분 후에 다시 시도하세요. 계속 시간 초과되면 관리자에게 응답 시간 제한을 늘려 달라고 요청하거나, 프로젝트 설정 > AI > LLM 공급자에서 직접 LLM 공급자를 추가하세요.",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "이 프로젝트는 OneUptime 서버 관리자가 설정하는 글로벌 LLM 공급자를 사용합니다. 몇 분 후에 다시 시도하세요. 계속 연결할 수 없으면 관리자에게 확인을 요청하거나, 프로젝트 설정 > AI > LLM 공급자에서 직접 LLM 공급자를 추가하세요."
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "이 프로젝트는 OneUptime 서버 관리자가 설정하는 글로벌 LLM 공급자를 사용합니다. 몇 분 후에 다시 시도하세요. 계속 연결할 수 없으면 관리자에게 확인을 요청하거나, 프로젝트 설정 > AI > LLM 공급자에서 직접 LLM 공급자를 추가하세요.",
+  "Choose your second step. You can add more later.": "두 번째 단계를 선택하세요. 나중에 더 추가할 수 있습니다.",
+  "Set up two-factor authentication": "2단계 인증 설정",
+  "Setup needed": "설정 필요",
+  "Signing in with a password or an emailed link will then ask for your second step: an authenticator app, a security key or a passkey.": "이제 비밀번호나 이메일로 받은 링크로 로그인할 때 두 번째 단계(인증 앱, 보안 키 또는 패스키)를 요청합니다.",
+  "Turn it on to set up an authenticator app or a security key as the second step of your sign-in.": "켜면 로그인의 두 번째 단계로 인증 앱이나 보안 키를 설정합니다.",
+  "Two-factor authentication is on, but no second step is set up yet, so it does not protect your account. Set one up now, or you will be asked to at your next sign-in.": "2단계 인증이 켜져 있지만 아직 두 번째 단계가 설정되지 않아 계정이 보호되지 않습니다. 지금 설정하세요. 설정하지 않으면 다음 로그인 때 설정하라는 요청을 받습니다.",
+  "Two-factor authentication is on.": "2단계 인증이 켜졌습니다.",
+  "Two-factor authentication needs at least one second step. Add another, or turn off two-factor authentication, before you remove this one.": "2단계 인증에는 두 번째 단계가 하나 이상 필요합니다. 이 항목을 제거하기 전에 다른 항목을 추가하거나 2단계 인증을 끄세요.",
+  "You sign in with {{providers}}. Your password, passkeys and two-factor authentication are managed there, not in OneUptime.": "{{providers}}(으)로 로그인합니다. 비밀번호, 패스키, 2단계 인증은 OneUptime이 아니라 그곳에서 관리됩니다.",
+  "Your organization manages how you sign in to OneUptime.": "OneUptime 로그인 방식은 조직에서 관리합니다.",
+  "Your second step is ready. Turn on two-factor authentication to ask for it each time you sign in with a password.": "두 번째 단계가 준비되었습니다. 2단계 인증을 켜면 비밀번호로 로그인할 때마다 요청합니다.",
+  "single sign-on (SSO)": "싱글 사인온(SSO)"
 }

@@ -57538,5 +57538,17 @@
   "Only the latest {{count}} steps of this run are shown._one": "この実行の最新 {{count}} ステップのみを表示しています。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。管理者に API キーとモデルの確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。タイムアウトが続く場合は、管理者に応答タイムアウトを大きくするよう依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。接続できない状態が続く場合は、管理者に確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。"
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "このプロジェクトは、OneUptime サーバーの管理者が設定するグローバル LLM プロバイダーを使っています。数分後にもう一度お試しください。接続できない状態が続く場合は、管理者に確認を依頼するか、「プロジェクト設定 > AI > LLM プロバイダー」で独自の LLM プロバイダーを追加してください。",
+  "Choose your second step. You can add more later.": "2 段階目を選択してください。後から追加することもできます。",
+  "Set up two-factor authentication": "2 要素認証をセットアップ",
+  "Setup needed": "セットアップが必要",
+  "Signing in with a password or an emailed link will then ask for your second step: an authenticator app, a security key or a passkey.": "以後、パスワードまたはメールのリンクでサインインするときに、2 段階目（認証アプリ、セキュリティキー、またはパスキー）が求められます。",
+  "Turn it on to set up an authenticator app or a security key as the second step of your sign-in.": "有効にすると、サインインの 2 段階目として認証アプリまたはセキュリティキーを設定します。",
+  "Two-factor authentication is on, but no second step is set up yet, so it does not protect your account. Set one up now, or you will be asked to at your next sign-in.": "2 要素認証は有効ですが、2 段階目がまだ設定されていないため、アカウントはまだ保護されていません。今すぐ設定してください。設定しない場合は、次回のサインイン時に求められます。",
+  "Two-factor authentication is on.": "2 要素認証が有効になりました。",
+  "Two-factor authentication needs at least one second step. Add another, or turn off two-factor authentication, before you remove this one.": "2 要素認証には 2 段階目が少なくとも 1 つ必要です。これを削除する前に、別のものを追加するか、2 要素認証をオフにしてください。",
+  "You sign in with {{providers}}. Your password, passkeys and two-factor authentication are managed there, not in OneUptime.": "{{providers}} でサインインします。パスワード、パスキー、2 要素認証は OneUptime ではなく、そちらで管理されます。",
+  "Your organization manages how you sign in to OneUptime.": "OneUptime へのサインイン方法は、組織によって管理されています。",
+  "Your second step is ready. Turn on two-factor authentication to ask for it each time you sign in with a password.": "2 段階目の準備ができています。2 要素認証を有効にすると、パスワードでサインインするたびに求められます。",
+  "single sign-on (SSO)": "シングルサインオン (SSO)"
 }

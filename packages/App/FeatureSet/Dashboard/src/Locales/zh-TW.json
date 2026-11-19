@@ -18497,7 +18497,7 @@
   "Your on-call configuration, one page per thing you can change.": "你的值班設定，每項可變更的內容各有一頁。",
   "Your on-call toolkit, in your pocket.": "Your on-call toolkit, in your pocket.",
   "Your own team is unaffected either way: the toggle does not apply to the API-key-authenticated status page tools, so project members with an API key can still read and manage this status page over MCP with it switched off.": "Your own team is unaffected either way: the toggle does not apply to the API-key-authenticated status page tools, so project members with an API key can still read and manage this status page over MCP with it switched off.",
-  "Your password has been updated.": "Your password has been updated.",
+  "Your password has been updated.": "你的密碼已更新。",
   "Your project asks team members for a few extra details, like a desk phone or a timezone.": "Your project asks team members for a few extra details, like a desk phone or a timezone.",
   "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted.": "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted.",
   "Your project is on the Free plan. Choose the monitoring that fits your needs.": "Your project is on the Free plan. Choose the monitoring that fits your needs.",
@@ -57538,5 +57538,17 @@
   "Only the latest {{count}} steps of this run are shown._one": "僅顯示此執行最近的 {{count}} 個步驟。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請讓管理員檢查它的 API 金鑰與模型，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請幾分鐘後再試一次。如果仍然逾時，請讓管理員調高它的回應逾時，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請幾分鐘後再試一次。如果仍然無法連線，請讓管理員檢查它，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。"
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此專案使用全域 LLM 提供商，它由你的 OneUptime 伺服器管理員設定。請幾分鐘後再試一次。如果仍然無法連線，請讓管理員檢查它，或在「專案設定 > 人工智慧 > LLM 提供商」中新增你自己的 LLM 提供商。",
+  "Choose your second step. You can add more later.": "選擇你的第二步驟。之後還可以新增更多。",
+  "Set up two-factor authentication": "設定雙重驗證",
+  "Setup needed": "需要設定",
+  "Signing in with a password or an emailed link will then ask for your second step: an authenticator app, a security key or a passkey.": "此後使用密碼或電子郵件中的連結登入時，將要求第二步驟：驗證器應用程式、安全金鑰或通行密鑰。",
+  "Turn it on to set up an authenticator app or a security key as the second step of your sign-in.": "啟用後，可設定驗證器應用程式或安全金鑰作為登入的第二步驟。",
+  "Two-factor authentication is on, but no second step is set up yet, so it does not protect your account. Set one up now, or you will be asked to at your next sign-in.": "雙重驗證已啟用，但尚未設定第二步驟，因此還無法保護你的帳戶。請立即設定一個，否則下次登入時會要求你設定。",
+  "Two-factor authentication is on.": "雙重驗證已啟用。",
+  "Two-factor authentication needs at least one second step. Add another, or turn off two-factor authentication, before you remove this one.": "雙重驗證至少需要一個第二步驟。請先新增另一個，或關閉雙重驗證，再移除此項目。",
+  "You sign in with {{providers}}. Your password, passkeys and two-factor authentication are managed there, not in OneUptime.": "你透過 {{providers}} 登入。你的密碼、通行密鑰和雙重驗證都在那裡管理，而不是在 OneUptime 中。",
+  "Your organization manages how you sign in to OneUptime.": "你的組織負責管理你登入 OneUptime 的方式。",
+  "Your second step is ready. Turn on two-factor authentication to ask for it each time you sign in with a password.": "你的第二步驟已準備就緒。啟用雙重驗證後，每次使用密碼登入時都會要求這個步驟。",
+  "single sign-on (SSO)": "單一登入 (SSO)"
 }
