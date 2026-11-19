@@ -14,6 +14,7 @@ import {
   DataSourceHttpResponse,
 } from "../../../../Server/Utils/DataSource/HttpFetch";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { DataSourceUnreachedError } from "../../../../Server/Utils/DataSource/HttpFailure";
 
 /*
  * ASKING A DATA SOURCE AGAIN (#9540), AS EVERY COLLECTOR DOES.
@@ -422,6 +423,52 @@ describe("an outage is not asked again", () => {
 
     expect((await retry.exchange(get())).response.statusCode).toBe(200);
     expect(sent).toHaveLength(6 + 2);
+  });
+});
+
+describe("a request that got no answer", () => {
+  test("is never asked again, and is thrown with the transport's own words, told apart from a failure of the request's own making", async () => {
+    let sent: number = 0;
+    const retry: DataSourceHttpRetry = new DataSourceHttpRetry({
+      transport: async (): Promise<DataSourceHttpResponse> => {
+        sent++;
+        throw new Error("Could not reach data source: socket hang up");
+      },
+      classify: CLASSIFY,
+      provider: "Example",
+    });
+    const error: unknown = await retry
+      .exchange(get())
+      .catch((thrown: unknown): unknown => {
+        return thrown;
+      });
+
+    expect(sent).toBe(1);
+    expect(error).toBeInstanceOf(DataSourceUnreachedError);
+    expect((error as Error).message).toBe(
+      "Could not reach data source: socket hang up",
+    );
+    expect(
+      ((error as DataSourceUnreachedError).transportError as Error).message,
+    ).toBe("Could not reach data source: socket hang up");
+  });
+
+  test("a request that could not be built throws its own error, unmarked", async () => {
+    const { retry, sent } = world([]);
+    const refused: Error = new Error("The sign-in was refused.");
+    const error: unknown = await retry
+      .exchange({
+        build: (): DataSourceHttpRequest => {
+          throw refused;
+        },
+        isSafeToRepeat: true,
+      })
+      .catch((thrown: unknown): unknown => {
+        return thrown;
+      });
+
+    expect(error).toBe(refused);
+    expect(sent).toHaveLength(0);
   });
 });
 

@@ -247,6 +247,28 @@ export function describeFailedAnswer(answer: FailedAnswer): {
   return { message: parts.join(" "), reason: `${head}${tail}` };
 }
 
+/*
+ * A request that got no answer at all: the transport threw (a network that
+ * failed, a timeout, an address the egress guard refused). Its message is
+ * the transport's own, so a caller that reads the message reads it as
+ * before; a collector tells it apart from a failure of its own making (a
+ * sign-in refused while the request was built) and says what was being
+ * read (unreachedError).
+ */
+export class DataSourceUnreachedError extends Error {
+  // What the transport threw.
+  public readonly transportError: unknown;
+
+  public constructor(transportError: unknown) {
+    super(
+      transportError instanceof Error
+        ? transportError.message
+        : String(transportError ?? ""),
+    );
+    this.transportError = transportError;
+  }
+}
+
 // The error a failed answer is, said as describeFailedAnswer says it.
 export function failedAnswerError(
   answer: FailedAnswer,

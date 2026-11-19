@@ -1871,6 +1871,7 @@ class SnowflakeCatalog implements CatalogSession {
     // A connection that cannot list its database's schemas cannot collect.
     await session.api.query({
       statement: `SHOW SCHEMAS IN DATABASE ${snowflakeIdentifier(connection.database)} LIMIT 1`,
+      operation: "checking the connection (SHOW SCHEMAS)",
     });
 
     return session;
@@ -1884,6 +1885,7 @@ class SnowflakeCatalog implements CatalogSession {
       statement: sql,
       bindings: params,
       useWarehouse: true,
+      operation: "running a check",
     });
   }
 
@@ -1915,6 +1917,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: SNOWFLAKE_VIEW_LINEAGE_QUERY,
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading view lineage (OBJECT_DEPENDENCIES)",
       });
 
       for (const row of rows) {
@@ -1945,6 +1948,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: buildSnowflakeQueryLineageQuery(window),
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading query lineage (ACCESS_HISTORY)",
       })) {
         const upstream: ReturnType<typeof readSnowflakeObjectParts> =
           readSnowflakeObjectParts(row["upstream_object"], this.database);
@@ -1982,6 +1986,7 @@ class SnowflakeCatalog implements CatalogSession {
           statement: buildSnowflakeColumnLineageQuery(window),
           bindings: [this.database],
           useWarehouse: true,
+          operation: "reading column lineage (ACCESS_HISTORY)",
         })) {
           const edge: CollectedLineageEdge | undefined = queryEdges.get(
             `${row["upstream_object"]}\u0000${row["downstream_object"]}`.toUpperCase(),
@@ -2026,6 +2031,7 @@ class SnowflakeCatalog implements CatalogSession {
 
     for (const row of await this.api.query({
       statement: `SHOW TABLES IN DATABASE ${database} LIMIT ${limit}`,
+      operation: "listing the tables (SHOW TABLES)",
     })) {
       const kind: DataAssetKind | null = readSnowflakeTableKind(row);
       const schema: string = readText(
@@ -2054,6 +2060,7 @@ class SnowflakeCatalog implements CatalogSession {
     try {
       for (const row of await this.api.query({
         statement: `SHOW VIEWS IN DATABASE ${database} LIMIT ${limit}`,
+        operation: "listing the views (SHOW VIEWS)",
       })) {
         const schema: string = readText(
           row["schema_name"],
@@ -2105,6 +2112,7 @@ class SnowflakeCatalog implements CatalogSession {
 
         for (const row of await this.api.query({
           statement: `SHOW COLUMNS IN SCHEMA ${database}.${snowflakeIdentifier(schema)}`,
+          operation: `reading the columns of ${schema.slice(0, 60)} (SHOW COLUMNS)`,
         })) {
           const table: string = readText(
             row["table_name"],
@@ -2176,6 +2184,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: buildSnowflakeSpendQuery(true),
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading credits per job (QUERY_ATTRIBUTION_HISTORY)",
       });
     } catch (attributionError) {
       try {
@@ -2183,6 +2192,7 @@ class SnowflakeCatalog implements CatalogSession {
           statement: buildSnowflakeSpendQuery(false),
           bindings: [this.database],
           useWarehouse: true,
+          operation: "reading warehouse spend (QUERY_HISTORY)",
         });
         warnings.push(
           `Credits per job were left out (QUERY_ATTRIBUTION_HISTORY could not be read): ${describeError(attributionError).slice(0, 200)}`,
@@ -2207,6 +2217,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: SNOWFLAKE_WRITTEN_TABLES_QUERY,
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading the tables jobs wrote (ACCESS_HISTORY)",
       })) {
         const table: { schema: string; table: string } | null =
           readSnowflakeObjectName(row["object_name"], this.database);
@@ -2583,6 +2594,7 @@ class BigQueryCatalog implements CatalogSession {
         statement: sql,
         params,
         maximumBytesBilled: limits?.maxBytesScanned,
+        operation: "running a check",
       });
     } catch (error) {
       if (
@@ -2620,7 +2632,10 @@ class BigQueryCatalog implements CatalogSession {
     }
 
     try {
-      const rows: Array<Record<string, unknown>> = await this.api.query(query);
+      const rows: Array<Record<string, unknown>> = await this.api.query({
+        ...query,
+        operation: "reading lineage (INFORMATION_SCHEMA.JOBS)",
+      });
 
       return {
         edges: readLineageRows(rows, DataAssetLineageSource.QueryHistory),
@@ -2648,6 +2663,7 @@ class BigQueryCatalog implements CatalogSession {
         FROM ${this.datasetReference()}.__TABLES__
         ORDER BY table_id
         LIMIT ${options.maxTables}`,
+      operation: "listing the tables (__TABLES__)",
     })) {
       const kind: DataAssetKind | null = readBigQueryKind(row["type"]);
       const name: string = readText(row["table_id"], MAX_IDENTIFIER_LENGTH);
@@ -2682,6 +2698,7 @@ class BigQueryCatalog implements CatalogSession {
             FROM ${this.datasetReference()}.INFORMATION_SCHEMA.COLUMNS
             ORDER BY table_name, ordinal_position
             LIMIT ${options.maxColumns}`,
+          operation: "reading the columns (INFORMATION_SCHEMA.COLUMNS)",
         })
       )
         .map((row: Record<string, unknown>): RawColumn | null => {
@@ -2722,7 +2739,10 @@ class BigQueryCatalog implements CatalogSession {
     }
 
     try {
-      const rows: Array<Record<string, unknown>> = await this.api.query(query);
+      const rows: Array<Record<string, unknown>> = await this.api.query({
+        ...query,
+        operation: "reading warehouse spend (INFORMATION_SCHEMA.JOBS)",
+      });
 
       return {
         jobs: rows
@@ -2969,7 +2989,10 @@ class ClickHouseCatalog implements CatalogSession {
     );
 
     // A login that cannot read the server's catalog cannot collect.
-    await session.api.query({ statement: "SELECT 1 AS reachable" });
+    await session.api.query({
+      statement: "SELECT 1 AS reachable",
+      operation: "checking the connection",
+    });
 
     return session;
   }
@@ -2978,7 +3001,11 @@ class ClickHouseCatalog implements CatalogSession {
     sql: string,
     params: Array<string>,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    return await this.api.query({
+      statement: sql,
+      params,
+      operation: "running a check",
+    });
   }
 
   // The databases read: the connection's one, or every one but the server's own.
@@ -3026,11 +3053,13 @@ class ClickHouseCatalog implements CatalogSession {
       rows = await this.api.query({
         statement: tablesSql(true),
         params: filter.params,
+        operation: "listing the tables (system.tables, system.parts)",
       });
     } catch (error) {
       rows = await this.api.query({
         statement: tablesSql(false),
         params: filter.params,
+        operation: "listing the tables (system.tables)",
       });
       warnings.push(
         `Inserts are seen by a table's rows alone (system.parts could not be read): ${describeError(error).slice(0, 200)}`,
@@ -3051,6 +3080,7 @@ class ClickHouseCatalog implements CatalogSession {
           WHERE event_date >= yesterday() AND event_type = 'NewPart' AND ${partLogFilter.sql}
           GROUP BY database, table`,
         params: partLogFilter.params,
+        operation: "reading insert times (system.part_log)",
       })) {
         const seconds: number | null = readCount(row["seconds_since_change"]);
 
@@ -3124,6 +3154,7 @@ class ClickHouseCatalog implements CatalogSession {
             ORDER BY database, table, position
             LIMIT ${options.maxColumns}`,
           params: columnFilter.params,
+          operation: "reading the columns (system.columns)",
         })
       )
         .map((row: Record<string, unknown>): RawColumn | null => {
@@ -3167,6 +3198,7 @@ class ClickHouseCatalog implements CatalogSession {
             AND type = 'QueryFinish' AND query_kind = 'Select' AND user != currentUser()
           GROUP BY full_name
           LIMIT ${MAX_TABLES_PER_COLLECTION * 2}`,
+        operation: "reading when tables were read (system.query_log)",
       })) {
         const name: string = String(row["full_name"] ?? "");
         const dot: number = name.indexOf(".");
@@ -3206,6 +3238,7 @@ class ClickHouseCatalog implements CatalogSession {
             WHERE ${filter.sql} AND length(dependencies_table) > 0
             LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
           params: filter.params,
+          operation: "reading view lineage (system.tables)",
         })) {
           const databases: Array<unknown> = Array.isArray(
             row["dependencies_database"],
@@ -3234,6 +3267,7 @@ class ClickHouseCatalog implements CatalogSession {
             WHERE ${filter.sql} AND engine = 'MaterializedView'
             LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
           params: filter.params,
+          operation: "reading materialized view lineage (system.tables)",
         })) {
           const target: { schema: string; table: string } | null =
             readMaterializedViewTarget(
@@ -3272,6 +3306,7 @@ class ClickHouseCatalog implements CatalogSession {
           GROUP BY normalized_query_hash
           ORDER BY seconds_since_seen
           LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
+        operation: "reading insert lineage (system.query_log)",
       });
 
       return {
@@ -3587,7 +3622,11 @@ class DatabricksCatalog implements CatalogSession {
     sql: string,
     params: Array<string>,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    return await this.api.query({
+      statement: sql,
+      params,
+      operation: "running a check",
+    });
   }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -3680,6 +3719,7 @@ class DatabricksCatalog implements CatalogSession {
             await this.api.query({
               statement: buildDatabricksLineageQuery(lookback),
               namedParams: { catalog: this.api.catalog },
+              operation: "reading lineage (system.access.table_lineage)",
             }),
             this.api.catalog,
           );
@@ -3857,6 +3897,7 @@ class AthenaCatalog implements CatalogSession {
       statement: sql,
       params,
       maxBytesScanned: limits?.maxBytesScanned,
+      operation: "running a check",
     });
   }
 

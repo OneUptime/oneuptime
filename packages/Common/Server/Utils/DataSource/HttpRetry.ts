@@ -2,6 +2,7 @@ import RetryAfter from "../../../Utils/RetryAfter";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import logger from "../Logger";
 import { DataSourceHttpRequest, DataSourceHttpResponse } from "./HttpFetch";
+import { DataSourceUnreachedError } from "./HttpFailure";
 
 /*
  * ASKING A DATA SOURCE AGAIN WHEN IT FAILS FOR A MOMENT, WITHIN A BUDGET.
@@ -39,7 +40,10 @@ import { DataSourceHttpRequest, DataSourceHttpResponse } from "./HttpFetch";
  * Only answers are asked again. A request that got none - a network that
  * failed, a timeout - is the caller's: a timeout has used up most of its
  * time already, and asking again would add to the load of a service that
- * cannot answer.
+ * cannot answer. It is thrown as a DataSourceUnreachedError, which keeps
+ * the transport's words, so a collector can say what was being read and
+ * tell it apart from a failure of the request's own making, such as a
+ * sign-in refused while the request was built.
  */
 
 export type DataSourceTransport = (
@@ -201,7 +205,15 @@ export default class DataSourceHttpRetry {
       }
 
       const built: DataSourceHttpRequest = await request.build(attempts);
-      const response: DataSourceHttpResponse = await this.transport(built);
+      let response: DataSourceHttpResponse;
+
+      try {
+        response = await this.transport(built);
+      } catch (error) {
+        // No answer: the caller's to say, never asked again (see the top of this file).
+        throw new DataSourceUnreachedError(error);
+      }
+
       const verdict: HttpRetryVerdict | null = this.classify(response, built);
       const waitInMs: number | null =
         verdict && attempts < this.maxAttempts
