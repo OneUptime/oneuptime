@@ -23,7 +23,10 @@ import OpenLineageIngest, {
   ProjectCatalog,
 } from "../../../../Server/Utils/DataObservability/OpenLineageIngest";
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
-import { readDataBiLineageSummary } from "../../../../Types/DataObservability/DataBiLineage";
+import {
+  DataBiLineageProblem,
+  readDataBiLineageSummary,
+} from "../../../../Types/DataObservability/DataBiLineage";
 import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../../Types/JSON";
@@ -32,14 +35,18 @@ import ObjectID from "../../../../Types/ObjectID";
 /*
  * What a BI tool's read keeps so the next one reads less
  * (DataBiConnection.readState): handed to the tool's reader, kept after a
- * read that worked and never after one that failed - and, for Power BI's
- * OData connectors to Dataverse (#9554), each environment's entity set
- * names, asked of the environment once and matched through.
+ * read that worked and never after one that failed - but for one that read
+ * nothing yet and left Power BI's scans running (#9697). And a report on
+ * Power BI's OData connectors to Dataverse (#9554) matched through the
+ * entity set name each collection keeps with the table (#9696), so the read
+ * never asks the environment itself, whether OneUptime or a probe collects
+ * it.
  */
 
 const CONTOSO_STORE_ID: string = "33333333-3333-4333-8333-333333333333";
 
-function catalog(): ProjectCatalog {
+// The environment's tables as the catalog reads them: with the entity set name their collection kept, or none yet.
+function catalog(entitySetName: string | null = "accounts"): ProjectCatalog {
   return {
     stores: [
       {
@@ -55,6 +62,7 @@ function catalog(): ProjectCatalog {
         dataStoreId: CONTOSO_STORE_ID,
         schemaName: "dbo",
         name: "account",
+        ...(entitySetName ? { entitySetName } : {}),
       },
     ],
     storeNames: new Map([[CONTOSO_STORE_ID, "Contoso CRM"]]),
@@ -136,6 +144,7 @@ describe("a BI tool's read state", () => {
   function stubSync(
     connection: DataBiConnection,
     read: BiToolRead | Error,
+    projectCatalog: ProjectCatalog = catalog(),
   ): {
     updateTool: jest.SpyInstance;
     create: jest.SpyInstance;
@@ -153,7 +162,9 @@ describe("a BI tool's read state", () => {
       : jest
           .spyOn(PowerBiConnector, "read")
           .mockResolvedValue(read)) as unknown as jest.SpyInstance;
-    jest.spyOn(OpenLineageIngest, "readCatalog").mockResolvedValue(catalog());
+    jest
+      .spyOn(OpenLineageIngest, "readCatalog")
+      .mockResolvedValue(projectCatalog);
     jest.spyOn(DataDashboardService, "findBy").mockResolvedValue([]);
     const create: jest.SpyInstance = jest
       .spyOn(DataDashboardService, "create")
@@ -172,7 +183,7 @@ describe("a BI tool's read state", () => {
     return { updateTool, create, powerBiRead, listTables };
   }
 
-  test("a report on Dataverse's OData connector is tied to the table the environment names its entity set for", async () => {
+  test("a report on Dataverse's OData connector is tied to the table whose collection kept its entity set name, without asking the environment", async () => {
     const connection: DataBiConnection = connectionWith(undefined);
     const stubs: ReturnType<typeof stubSync> = stubSync(connection, cdsRead());
 
@@ -180,7 +191,8 @@ describe("a BI tool's read state", () => {
       await DataBiSync.syncConnection(connection.id!);
 
     expect(result).toMatchObject({ matchedTableCount: 1, error: null });
-    expect(stubs.listTables).toHaveBeenCalledTimes(1);
+    // The BI read asks no Dataverse environment: the collection kept the name.
+    expect(stubs.listTables).not.toHaveBeenCalled();
 
     const created: DataDashboard = stubs.create.mock.calls[0]![0]
       .data as DataDashboard;
@@ -200,23 +212,11 @@ describe("a BI tool's read state", () => {
       matchedTableCount: 1,
       problems: [],
     });
-    // The reader's own state under its name, and the environment's entity sets beside it.
-    expect(written["readState"]).toEqual({
-      powerBi: { workspaces: {} },
-      dataverseEntitySets: {
-        [CONTOSO_STORE_ID]: {
-          readAt: expect.any(String),
-          entitySets: { accounts: "account", contacts: "contact" },
-        },
-      },
-    });
-    // Nothing that gets in: the environment's secret is never kept.
-    expect(JSON.stringify(written["readState"])).not.toContain(
-      "dataverse-secret",
-    );
+    // The reader's own state under its name, and nothing else.
+    expect(written["readState"]).toEqual({ powerBi: { workspaces: {} } });
   });
 
-  test("the next read matches through what the environment said, without asking again", async () => {
+  test("the reader is handed its own state; entity set names an earlier read asked for are let go", async () => {
     const connection: DataBiConnection = connectionWith({
       powerBi: { workspaces: { w1: {} } },
       dataverseEntitySets: {
@@ -226,7 +226,10 @@ describe("a BI tool's read state", () => {
         },
       },
     });
-    const stubs: ReturnType<typeof stubSync> = stubSync(connection, cdsRead());
+    const stubs: ReturnType<typeof stubSync> = stubSync(connection, {
+      ...cdsRead(),
+      readState: undefined,
+    });
 
     const result: { matchedTableCount: number } =
       await DataBiSync.syncConnection(connection.id!, { isScheduled: true });
@@ -238,28 +241,40 @@ describe("a BI tool's read state", () => {
       readState: { workspaces: { w1: {} } },
       isScheduled: true,
     });
+
+    const written: JSONObject = stubs.updateTool.mock.calls[0]![0]
+      .data as unknown as JSONObject;
+
+    expect(written["readState"]).toEqual({
+      powerBi: { workspaces: { w1: {} } },
+    });
   });
 
-  test("an environment that refuses is said, and the read still keeps its dashboards", async () => {
+  test("an environment whose tables keep no entity set name yet (an older probe's): See Why names the table, and the read keeps its dashboards", async () => {
     const connection: DataBiConnection = connectionWith(undefined);
-    const stubs: ReturnType<typeof stubSync> = stubSync(connection, cdsRead());
-
-    stubs.listTables.mockRejectedValue(
-      new Error("Dataverse answered 403: the app has no security role."),
+    const stubs: ReturnType<typeof stubSync> = stubSync(
+      connection,
+      cdsRead(),
+      catalog(null),
     );
 
     const result: { dashboardCount: number; error: string | null } =
       await DataBiSync.syncConnection(connection.id!);
 
     expect(result).toMatchObject({ dashboardCount: 1, error: null });
+    expect(stubs.listTables).not.toHaveBeenCalled();
 
     const written: JSONObject = stubs.updateTool.mock.calls[0]![0]
       .data as unknown as JSONObject;
 
-    expect(written["lastSyncWarning"]).toContain(
-      "Dataverse contoso.crm.dynamics.com was not asked for its tables' entity set names",
-    );
     expect(written["matchedTableCount"]).toBe(0);
+    expect(readDataBiLineageSummary(written["lineageSummary"])).toMatchObject({
+      tableCount: 1,
+      matchedTableCount: 0,
+      unwatchedTables: [],
+      unknownEntitySets: ["accounts"],
+      problems: [DataBiLineageProblem.EntitySetsUnknown],
+    });
   });
 
   test("the hourly read reads every tool, a few at a time, as the hourly read; one that fails stops none", async () => {

@@ -479,6 +479,7 @@ function readCollectedTable(value: unknown): CollectedTable | null {
   }
 
   const columns: unknown = item["columns"];
+  const entitySetName: string | null = readName(item["entitySetName"]);
 
   return {
     schema,
@@ -496,6 +497,18 @@ function readCollectedTable(value: unknown): CollectedTable | null {
     ...(item["isChangeTimeFromData"] === true
       ? { isChangeTimeFromData: true }
       : {}),
+    /*
+     * Columns a Dataverse collection leaves unread by design, between its
+     * hourly reads: the columns last read stand, and the next read is
+     * compared with them. Dropped here, a probe's Dataverse table read as
+     * one whose columns could not be read, so a column changed between
+     * two hourly reads was compared with nothing and never said.
+     */
+    ...(item["columnsNotRead"] === true && columns === null
+      ? { columnsNotRead: true }
+      : {}),
+    // What Power BI's OData connectors name a Dataverse table by (#9696); an older probe says nothing.
+    ...(entitySetName ? { entitySetName } : {}),
     columns:
       columns === null
         ? null

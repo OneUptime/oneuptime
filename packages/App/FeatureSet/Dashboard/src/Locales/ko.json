@@ -58349,5 +58349,11 @@
   "{{percent}} of its quota used": "할당량의 {{percent}} 사용",
   "{{size}} reserved for root": "{{size}} root용 예약",
   "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Docker가 노드의 로컬 볼륨을 두는 디스크의 사용률이며, 모든 로컬 볼륨이 이 디스크를 공유합니다. 80%에서 노란색, 90%에서 빨간색이 됩니다.",
-  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "볼륨의 파일이 차지하는 공간으로, Docker가 최대 한 시간에 한 번 측정합니다. Docker는 로컬 볼륨만 측정합니다."
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "볼륨의 파일이 차지하는 공간으로, Docker가 최대 한 시간에 한 번 측정합니다. Docker는 로컬 볼륨만 측정합니다.",
+  "Dataverse Tables Named by Entity Set": "Dataverse Tables Named by Entity Set",
+  "Entity Set Name": "Entity Set Name",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.": "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them._one": "Power BI names {{count}} Dataverse table by its entity set ({{tables}}), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
+  "{{count}} Dataverse tables not matched yet": "{{count}} Dataverse tables not matched yet",
+  "{{count}} Dataverse tables not matched yet_one": "{{count}} Dataverse table not matched yet"
 }

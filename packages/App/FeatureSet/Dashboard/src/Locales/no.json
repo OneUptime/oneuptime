@@ -58349,5 +58349,11 @@
   "{{percent}} of its quota used": "{{percent}} av kvoten brukt",
   "{{size}} reserved for root": "{{size}} reservert for root",
   "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "Hvor full disken er som Docker lagrer nodens lokale volumer på: de deler den alle. Gul fra 80 % og rød fra 90 %.",
-  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "Plass volumets filer tar, slik Docker måler den, høyst én gang i timen. Docker måler bare lokale volumer."
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "Plass volumets filer tar, slik Docker måler den, høyst én gang i timen. Docker måler bare lokale volumer.",
+  "Dataverse Tables Named by Entity Set": "Dataverse Tables Named by Entity Set",
+  "Entity Set Name": "Entity Set Name",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.": "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them._one": "Power BI names {{count}} Dataverse table by its entity set ({{tables}}), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
+  "{{count}} Dataverse tables not matched yet": "{{count}} Dataverse tables not matched yet",
+  "{{count}} Dataverse tables not matched yet_one": "{{count}} Dataverse table not matched yet"
 }

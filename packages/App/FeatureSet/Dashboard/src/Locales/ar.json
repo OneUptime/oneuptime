@@ -58349,5 +58349,11 @@
   "{{percent}} of its quota used": "استُخدم {{percent}} من حصته",
   "{{size}} reserved for root": "{{size}} محجوزة لـ root",
   "How full the disk Docker keeps the node's local volumes on is: they all share it. Amber at 80% and red at 90%.": "مدى امتلاء القرص الذي يحفظ عليه Docker وحدات التخزين المحلية للعقدة: تتشاركه جميعها. كهرماني عند 80% وأحمر عند 90%.",
-  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "المساحة التي تشغلها ملفات وحدة التخزين، كما يقيسها Docker، مرة في الساعة على الأكثر. ولا يقيس Docker إلا وحدات التخزين المحلية."
+  "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "المساحة التي تشغلها ملفات وحدة التخزين، كما يقيسها Docker، مرة في الساعة على الأكثر. ولا يقيس Docker إلا وحدات التخزين المحلية.",
+  "Dataverse Tables Named by Entity Set": "جداول Dataverse المسمّاة بمجموعة كياناتها",
+  "Entity Set Name": "اسم مجموعة الكيانات",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.": "يسمّي Power BI {{count}} من جداول Dataverse بمجموعة كياناتها ({{tables}})، ولا تحتفظ البيئات التي هي فيها بأسماء مجموعات الكيانات بعد. يحتفظ بها كل جمع للبيئة، وتطابق القراءة التالية الجداول. وإن كان مسبار يجمع بيئة، فحدّث المسبار: فالمسبار الأقدم لا يرسلها.",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them._one": "يسمّي Power BI {{count}} جدول Dataverse بمجموعة كياناته ({{tables}})، ولا تحتفظ البيئة التي هو فيها بأسماء مجموعات الكيانات بعد. يحتفظ بها كل جمع للبيئة، وتطابق القراءة التالية الجدول. وإن كان مسبار يجمع البيئة، فحدّث المسبار: فالمسبار الأقدم لا يرسلها.",
+  "{{count}} Dataverse tables not matched yet": "{{count}} من جداول Dataverse لم تُطابَق بعد",
+  "{{count}} Dataverse tables not matched yet_one": "{{count}} جدول Dataverse لم يُطابَق بعد"
 }

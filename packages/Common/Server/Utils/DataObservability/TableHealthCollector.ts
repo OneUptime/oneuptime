@@ -272,6 +272,14 @@ export interface CollectedTable {
    * last read stand, compared again at the next read.
    */
   columnsNotRead?: boolean | undefined;
+  /*
+   * A Dataverse table's entity set: the name its Web API, and Power BI's
+   * OData connectors, call it by (accounts for account), kept with the
+   * table so a report that names it is matched to it (#9696). Unset for
+   * every other engine, and from a probe older than it, which keeps the
+   * name the table had.
+   */
+  entitySetName?: string | undefined;
 }
 
 // Where the database itself shows one table feeding another.
@@ -379,6 +387,8 @@ interface RawTable {
   // The engine's change time is its data's (Dataverse's modifiedon): see CollectedTable.
   isChangeTimeFromData?: boolean | undefined;
   columnsNotRead?: boolean | undefined;
+  // A Dataverse table's entity set name: see CollectedTable.
+  entitySetName?: string | undefined;
 }
 
 interface RawColumn {
@@ -5687,6 +5697,8 @@ class DataverseCatalog implements CatalogSession {
           secondsSinceRead: null,
           isChangeTimeFromData: true,
           ...(isColumnsRead ? {} : { columnsNotRead: true }),
+          // What Power BI's OData connectors name it by (#9696): the definition every collection reads says it.
+          entitySetName: table.entitySetName,
         };
       },
     );
