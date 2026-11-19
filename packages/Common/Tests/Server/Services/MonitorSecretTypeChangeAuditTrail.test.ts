@@ -11,6 +11,7 @@ import MonitorSecretType from "../../../Types/Monitor/MonitorSecretType";
 import ObjectID from "../../../Types/ObjectID";
 import {
   InMemoryTable,
+  StoredRow,
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import {
@@ -115,13 +116,13 @@ describe("a Text secret becoming a one-time code secret", () => {
     });
 
     // One write sets both: never the new type with the old value.
-    const writes: Array<JSONObject> = table.updates.map(
-      (entry: { set: JSONObject }): JSONObject => {
+    const writes: Array<StoredRow> = table.updates.map(
+      (entry: { id: string; set: StoredRow }): StoredRow => {
         return entry.set;
       },
     );
-    const typeWrites: Array<JSONObject> = writes.filter(
-      (set: JSONObject): boolean => {
+    const typeWrites: Array<StoredRow> = writes.filter(
+      (set: StoredRow): boolean => {
         return "secretType" in set;
       },
     );

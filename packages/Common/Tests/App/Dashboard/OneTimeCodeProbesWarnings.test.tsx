@@ -125,8 +125,16 @@ function probe(data: {
 }): Probe {
   const item: Probe = new Probe(new ObjectID(data.id));
   item.name = data.name;
-  item.reportedVersion = data.reportedVersion || undefined;
-  item.lastAlive = data.lastAlive || undefined;
+
+  // A probe that never said, or was never seen, has no value at all.
+  if (data.reportedVersion) {
+    item.reportedVersion = data.reportedVersion;
+  }
+
+  if (data.lastAlive) {
+    item.lastAlive = data.lastAlive;
+  }
+
   return item;
 }
 
