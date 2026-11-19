@@ -24226,7 +24226,6 @@
   "{{count}} verified": "проверено: {{count}}",
   "{{count}} waiting for approval": "ожидают подтверждения: {{count}}",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: расследований — {{investigations}}, с ошибкой — {{failed}}, исправлений — {{fixes}}",
-  "{{failed}} failed, {{timedOut}} never ran": "с ошибкой: {{failed}}, не запущено: {{timedOut}}",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "«{{resourceName}}» ({{resourceKind}}) тоже можно было бы исправить, но OneUptime AI исправляет один ресурс на {{signal}}.",
@@ -58179,5 +58178,13 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Этот ход не был запрошен в Code, поэтому его нельзя запросить снова. Вместо этого ответьте, что должен сделать ИИ.",
   "{{count}} tasks could not be tried again: each says why below.": "Не удалось повторить задачи ({{count}}): у каждой ниже сказано почему.",
   "{{count}} tasks could not be tried again: each says why below._one": "Не удалось повторить {{count}} задачу: ниже сказано почему.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} попросил(а) OneUptime AI повторить попытку."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} попросил(а) OneUptime AI повторить попытку.",
+  "Command not shown to your role": "Команда не показана для вашей роли",
+  "None of the commands OneUptime AI ran here failed.": "Ни одна из команд, которые OneUptime AI выполнил здесь, не завершилась ошибкой.",
+  "Show which commands failed and why": "Показать, какие команды не удались и почему",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "Команды, которые OneUptime AI выполнил здесь за последние 30 дней и которые не удались, и почему, сначала самые новые.",
+  "{{count}} commands failed": "Команд с ошибкой: {{count}}",
+  "{{count}} commands failed_one": "{{count}} команда завершилась ошибкой",
+  "{{count}} never ran": "Не запущено: {{count}}",
+  "{{count}} never ran_one": "Не запущено: {{count}}"
 }

@@ -63,6 +63,11 @@ export interface ComponentProps {
   description?: string | undefined;
   // The parts, when the page holds them; else `load` reads them on open.
   items?: Array<ResourceAttentionItem> | undefined;
+  /*
+   * With `items`: more matched than the page holds, so the list says it
+   * shows the first of them (as a read that says so does).
+   */
+  isTruncated?: boolean | undefined;
   load?: (() => Promise<ResourceAttentionDialogRead>) | undefined;
   // What it says when nothing matches any more, in English.
   emptyMessage: string;
@@ -92,7 +97,7 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [read, setRead] = useState<ResourceAttentionDialogRead | null>(
-    props.items ? { items: props.items } : null,
+    props.items ? { items: props.items, isTruncated: props.isTruncated } : null,
   );
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(!props.items);
@@ -148,10 +153,10 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
   // What the page holds, kept current while the dialog is open.
   useEffect(() => {
     if (props.items) {
-      setRead({ items: props.items });
+      setRead({ items: props.items, isTruncated: props.isTruncated });
       setIsLoading(false);
     }
-  }, [props.items]);
+  }, [props.items, props.isTruncated]);
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !read) {

@@ -24226,7 +24226,6 @@
   "{{count}} verified": "{{count}} 個已驗證",
   "{{count}} waiting for approval": "{{count}} 個等待核准",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}：{{investigations}} 次調查，{{failed}} 次失敗，{{fixes}} 個修正",
-  "{{failed}} failed, {{timedOut}} never ran": "{{failed}} 個失敗，{{timedOut}} 個從未執行",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}}「{{resourceName}}」也可以修復，但 OneUptime AI 每個{{signal}}只修復一個資源。",
@@ -58179,5 +58178,13 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "此回合不是在 Code 中提出的，因此無法再次提出。請改為回覆您希望 AI 做什麼。",
   "{{count}} tasks could not be tried again: each says why below.": "{{count}} 個任務無法重試：各自的原因見下方。",
   "{{count}} tasks could not be tried again: each says why below._one": "{{count}} 個任務無法重試：各自的原因見下方。",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} 請 OneUptime AI 再試一次。"
+  "{{name}} asked OneUptime AI to try again.": "{{name}} 請 OneUptime AI 再試一次。",
+  "Command not shown to your role": "您的角色無法檢視此指令",
+  "None of the commands OneUptime AI ran here failed.": "OneUptime AI 在此執行的指令皆未失敗。",
+  "Show which commands failed and why": "顯示哪些指令失敗及原因",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "OneUptime AI 過去 30 天在此執行但失敗的指令，以及失敗原因，最新的在前。",
+  "{{count}} commands failed": "{{count}} 個指令失敗",
+  "{{count}} commands failed_one": "{{count}} 個指令失敗",
+  "{{count}} never ran": "{{count}} 個從未執行",
+  "{{count}} never ran_one": "{{count}} 個從未執行"
 }

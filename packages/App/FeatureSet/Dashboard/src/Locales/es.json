@@ -24226,7 +24226,6 @@
   "{{count}} verified": "{{count}} verificadas",
   "{{count}} waiting for approval": "{{count}} esperando aprobación",
   "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes": "{{date}}: {{investigations}} investigaciones, {{failed}} fallidas, {{fixes}} correcciones",
-  "{{failed}} failed, {{timedOut}} never ran": "{{failed}} fallidos, {{timedOut}} nunca se ejecutaron",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here.": "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
   "{{object}} shows up in {{shown}} of the {{count}} investigations here._one": "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "«{{resourceName}}» ({{resourceKind}}) también se podría corregir, pero OneUptime AI corrige un solo recurso por {{signal}}.",
@@ -58179,5 +58178,13 @@
   "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Este turno no se pidió en Code, así que no se puede volver a pedir. Responde con lo que quieres que haga la IA.",
   "{{count}} tasks could not be tried again: each says why below.": "No se pudieron reintentar {{count}} tareas: cada una dice por qué abajo.",
   "{{count}} tasks could not be tried again: each says why below._one": "No se pudo reintentar {{count}} tarea: dice por qué abajo.",
-  "{{name}} asked OneUptime AI to try again.": "{{name}} pidió a OneUptime AI que lo volviera a intentar."
+  "{{name}} asked OneUptime AI to try again.": "{{name}} pidió a OneUptime AI que lo volviera a intentar.",
+  "Command not shown to your role": "Comando no visible para tu rol",
+  "None of the commands OneUptime AI ran here failed.": "Ninguno de los comandos que OneUptime AI ejecutó aquí ha fallado.",
+  "Show which commands failed and why": "Mostrar qué comandos fallaron y por qué",
+  "The commands OneUptime AI ran here in the last 30 days that failed, and why, the newest first.": "Los comandos que OneUptime AI ejecutó aquí en los últimos 30 días que fallaron, y por qué, los más recientes primero.",
+  "{{count}} commands failed": "{{count}} comandos fallidos",
+  "{{count}} commands failed_one": "{{count}} comando fallido",
+  "{{count}} never ran": "{{count}} nunca se ejecutaron",
+  "{{count}} never ran_one": "{{count}} nunca se ejecutó"
 }
