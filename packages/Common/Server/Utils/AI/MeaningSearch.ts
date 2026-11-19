@@ -238,7 +238,9 @@ export default class MeaningSearch {
    * returns it: embedded files left out, held to MAX_RESULT_FIELD_CHARS.
    * Undefined when empty, so the serializer drops it.
    */
-  public static resultField(value: string | null | undefined): string | undefined {
+  public static resultField(
+    value: string | null | undefined,
+  ): string | undefined {
     const text: string = PromptText.field(value, {
       maxLength: MAX_RESULT_FIELD_CHARS,
     }).trim();

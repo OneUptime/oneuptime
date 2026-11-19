@@ -584,9 +584,7 @@ export default class MeaningMatch {
       },
     );
 
-    const words: Array<[string, number]> = Array.from(
-      terms.weights.entries(),
-    )
+    const words: Array<[string, number]> = Array.from(terms.weights.entries())
       .filter(([term]: [string, number]): boolean => {
         return !term.startsWith(CONCEPT_PREFIX);
       })

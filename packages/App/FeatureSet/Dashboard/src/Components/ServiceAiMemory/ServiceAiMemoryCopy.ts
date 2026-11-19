@@ -1,4 +1,7 @@
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT ONEUPTIME AI LEARNED ABOUT A SERVICE, AND WHAT ITS TEAM TOLD IT, IN

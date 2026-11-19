@@ -1032,7 +1032,8 @@ export default class ServiceKnowledge {
       facts.set(id, {
         kind: "alert",
         id,
-        number: typeof alert.alertNumber === "number" ? alert.alertNumber : null,
+        number:
+          typeof alert.alertNumber === "number" ? alert.alertNumber : null,
         reference: `alert #${alert.alertNumber}`,
         title: alert.title || "Untitled",
         rootCause: alert.rootCause,
@@ -1148,6 +1149,8 @@ export default class ServiceKnowledge {
   private static shortText(text: string, length: number): string {
     const plain: string = PromptText.omitEmbeddedData(text).text.trim();
 
-    return plain.length > length ? `${plain.slice(0, length).trimEnd()}…` : plain;
+    return plain.length > length
+      ? `${plain.slice(0, length).trimEnd()}…`
+      : plain;
   }
 }

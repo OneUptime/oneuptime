@@ -36,7 +36,10 @@ import MeaningMatch, {
  */
 
 // A Raw condition's SQL for a column, with its parameters.
-function sqlOf(condition: unknown, alias: string): {
+function sqlOf(
+  condition: unknown,
+  alias: string,
+): {
   sql: string;
   parameters: Record<string, unknown>;
 } {
@@ -75,7 +78,9 @@ function candidate(
   return { record: { id }, text };
 }
 
-function ids(matches: Array<MeaningSearchMatch<{ id: string }>>): Array<string> {
+function ids(
+  matches: Array<MeaningSearchMatch<{ id: string }>>,
+): Array<string> {
   return matches.map((match: MeaningSearchMatch<{ id: string }>): string => {
     return match.record.id;
   });
@@ -128,9 +133,7 @@ describe("the pattern the database reads", () => {
   test("a question that says nothing gives no pattern", () => {
     for (const question of ["", "the and of", "1234"]) {
       expect(
-        MeaningSearch.getDatabasePattern(
-          MeaningMatch.getSearchTerms(question),
-        ),
+        MeaningSearch.getDatabasePattern(MeaningMatch.getSearchTerms(question)),
       ).toBeNull();
     }
   });

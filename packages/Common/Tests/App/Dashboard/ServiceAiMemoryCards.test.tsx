@@ -332,9 +332,7 @@ describe("what OneUptime AI learned, on a service's overview", () => {
       "This service was not found, or you may not see it.",
     );
 
-    fireEvent.click(
-      screen.getByTestId(SERVICE_AI_MEMORY_TEST_IDS.tryAgain),
-    );
+    fireEvent.click(screen.getByTestId(SERVICE_AI_MEMORY_TEST_IDS.tryAgain));
 
     expect(
       await screen.findByTestId(SERVICE_AI_MEMORY_TEST_IDS.failure),
@@ -401,7 +399,7 @@ describe("what OneUptime AI learned, on a service's overview", () => {
 describe("asking the server", () => {
   test("asks for the one service, with the project's headers", async () => {
     jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
-    const get: SpyInstance<typeof API.get> = jest
+    const get: ReturnType<typeof jest.spyOn> = jest
       .spyOn(API, "get")
       .mockResolvedValue(
         new HTTPResponse<JSONObject>(
@@ -414,7 +412,7 @@ describe("asking the server", () => {
     await expect(ServiceKnowledgeApi.getSummary(SERVICE)).resolves.toEqual(
       summary([]),
     );
-    expect(String(get.mock.calls[0]![0].url)).toBe(
+    expect(String((get.mock.calls[0]![0] as { url: unknown }).url)).toBe(
       getServiceKnowledgeUrl(SERVICE).toString(),
     );
     expect(getServiceKnowledgeUrl(SERVICE).toString()).toContain(
@@ -424,18 +422,16 @@ describe("asking the server", () => {
 
   test("a refusal is said as the server said it", async () => {
     jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
-    jest
-      .spyOn(API, "get")
-      .mockResolvedValue(
-        new HTTPErrorResponse(
-          404,
-          {
-            message:
-              "This service was not found, or you may not see it. Open it again from Services.",
-          },
-          {},
-        ) as never,
-      );
+    jest.spyOn(API, "get").mockResolvedValue(
+      new HTTPErrorResponse(
+        404,
+        {
+          message:
+            "This service was not found, or you may not see it. Open it again from Services.",
+        },
+        {},
+      ) as never,
+    );
 
     await expect(ServiceKnowledgeApi.getSummary(SERVICE)).rejects.toThrow(
       "This service was not found, or you may not see it.",

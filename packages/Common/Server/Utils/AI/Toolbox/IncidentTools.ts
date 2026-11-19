@@ -654,7 +654,9 @@ export const SearchIncidentsTool: ObservabilityTool = {
           }),
           similarity: Number(match.score.similarity.toFixed(2)),
           rootCause: MeaningSearch.resultField(incident.rootCause),
-          remediationNotes: MeaningSearch.resultField(incident.remediationNotes),
+          remediationNotes: MeaningSearch.resultField(
+            incident.remediationNotes,
+          ),
           postmortemNote: MeaningSearch.resultField(incident.postmortemNote),
         };
       },

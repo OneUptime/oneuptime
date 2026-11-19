@@ -95,8 +95,12 @@ function incident(data: {
   const row: Incident = new Incident(new ObjectID(data.id));
   row.incidentNumber = data.number;
   row.title = data.title;
-  row.rootCause = data.rootCause;
-  row.description = data.description;
+  if (data.rootCause) {
+    row.rootCause = data.rootCause;
+  }
+  if (data.description) {
+    row.description = data.description;
+  }
   row.remediationNotes = "Recycled the pool.";
   row.createdAt = new Date("2026-11-01T10:00:00.000Z");
 
@@ -120,7 +124,9 @@ function alert(data: {
   const row: Alert = new Alert(new ObjectID(data.id));
   row.alertNumber = data.number;
   row.title = data.title;
-  row.rootCause = data.rootCause;
+  if (data.rootCause) {
+    row.rootCause = data.rootCause;
+  }
   row.createdAt = new Date("2026-11-01T10:00:00.000Z");
 
   const state: AlertState = new AlertState();

@@ -110,9 +110,9 @@ export const KnowledgeRecordLink: FunctionComponent<{
 };
 
 // The fix that worked: the runbook OneUptime AI started, or the commands it ran.
-export const KnowledgeFix: FunctionComponent<{ fix: ServiceKnowledgeFix }> = (
-  props: { fix: ServiceKnowledgeFix },
-): ReactElement => {
+export const KnowledgeFix: FunctionComponent<{
+  fix: ServiceKnowledgeFix;
+}> = (props: { fix: ServiceKnowledgeFix }): ReactElement => {
   if (props.fix.runbookName) {
     return (
       <TranslatedSentence
@@ -219,11 +219,9 @@ export const KnowledgeFailure: FunctionComponent<{
       )}
 
       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-        {failure.records.map(
-          (record: ServiceKnowledgeRecord): ReactElement => {
-            return <KnowledgeRecordLink key={record.id} record={record} />;
-          },
-        )}
+        {failure.records.map((record: ServiceKnowledgeRecord): ReactElement => {
+          return <KnowledgeRecordLink key={record.id} record={record} />;
+        })}
       </div>
     </li>
   );

@@ -35,9 +35,7 @@ function sqlOf(condition: unknown, alias: string): string {
   for (const [key, value] of Object.entries(
     (operator.objectLiteralParameters || {}) as Record<string, unknown>,
   )) {
-    sql = sql
-      .split(`:${key}`)
-      .join(`'${String(value).replace(/'/g, "''")}'`);
+    sql = sql.split(`:${key}`).join(`'${String(value).replace(/'/g, "''")}'`);
   }
 
   return sql;

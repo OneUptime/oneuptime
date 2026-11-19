@@ -1071,9 +1071,7 @@ export default class AIMemory {
   }
 
   // The line each fix reads as in a prompt, by the same key.
-  private static textsOf(
-    fixes: Map<string, VerifiedFix>,
-  ): Map<string, string> {
+  private static textsOf(fixes: Map<string, VerifiedFix>): Map<string, string> {
     const texts: Map<string, string> = new Map<string, string>();
 
     for (const [key, fix] of fixes) {

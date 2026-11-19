@@ -176,14 +176,14 @@ beforeEach(() => {
   reads = [];
   refuse = new Set<string>();
 
-  jest
-    .spyOn(ServiceService, "findOneBy")
-    .mockImplementation((async (findOneBy: FindOneBy<Service>) => {
-      reads.push({ kind: "Service", props: findOneBy.props });
-      const query: JSONObject = findOneBy.query as unknown as JSONObject;
+  jest.spyOn(ServiceService, "findOneBy").mockImplementation((async (
+    findOneBy: FindOneBy<Service>,
+  ) => {
+    reads.push({ kind: "Service", props: findOneBy.props });
+    const query: JSONObject = findOneBy.query as unknown as JSONObject;
 
-      return query["_id"] === CHECKOUT.id ? serviceRow(CHECKOUT) : null;
-    }) as never);
+    return query["_id"] === CHECKOUT.id ? serviceRow(CHECKOUT) : null;
+  }) as never);
   jest.spyOn(MonitorService, "findBy").mockImplementation((async (
     findBy: FindBy<Monitor>,
   ) => {
@@ -239,14 +239,18 @@ function readForPerson(
 
 describe("what was learned, on the service's page", () => {
   test("every read is the person's own, never OneUptime's", async () => {
-    incidents = [incident({ index: 1, rootCause: "Connection pool exhausted" })];
+    incidents = [
+      incident({ index: 1, rootCause: "Connection pool exhausted" }),
+    ];
     alerts = [alert({ index: 2, rootCause: "Too many connections" })];
 
     await readForPerson();
 
-    expect(reads.map((read: { kind: string }): string => {
-      return read.kind;
-    })).toEqual(
+    expect(
+      reads.map((read: { kind: string }): string => {
+        return read.kind;
+      }),
+    ).toEqual(
       expect.arrayContaining([
         "Service",
         "Monitor",
@@ -275,7 +279,9 @@ describe("what was learned, on the service's page", () => {
   });
 
   test("a kind the person may not read is left out, and the rest is still shown", async () => {
-    incidents = [incident({ index: 1, rootCause: "Connection pool exhausted" })];
+    incidents = [
+      incident({ index: 1, rootCause: "Connection pool exhausted" }),
+    ];
     alerts = [alert({ index: 2, rootCause: "Connection pool exhausted" })];
     refuse = new Set<string>([
       "Alert",
@@ -444,7 +450,11 @@ function note(data: {
 describe("what the team told OneUptime AI, in an investigation", () => {
   test("the notes are read for the investigation's readers, held to the project and its services", async () => {
     notes = [
-      note({ service: CHECKOUT, text: "Failover takes five minutes.", daysAgo: 1 }),
+      note({
+        service: CHECKOUT,
+        text: "Failover takes five minutes.",
+        daysAgo: 1,
+      }),
     ];
 
     await ServiceKnowledge.readNotes({
@@ -469,11 +479,15 @@ describe("what the team told OneUptime AI, in an investigation", () => {
   });
 
   test("each service's notes, the newest first, a few each; a service with none is left out", async () => {
-    notes = Array.from(
-      Array(MAX_NOTES_PER_SERVICE + 3).keys(),
-    ).map((index: number): ServiceAINote => {
-      return note({ service: CHECKOUT, text: `Note ${index}`, daysAgo: index });
-    });
+    notes = Array.from(Array(MAX_NOTES_PER_SERVICE + 3).keys()).map(
+      (index: number): ServiceAINote => {
+        return note({
+          service: CHECKOUT,
+          text: `Note ${index}`,
+          daysAgo: index,
+        });
+      },
+    );
 
     const read: Array<ServiceNotes> = await ServiceKnowledge.readNotes({
       projectId: PROJECT_ID,
@@ -518,11 +532,9 @@ describe("what the team told OneUptime AI, in an investigation", () => {
     expect(section.split("\n")).not.toContain("# New heading");
     expect(section).not.toContain("ghp_0123456789");
 
-    const long: string = section
-      .split("\n")
-      .find((line: string): boolean => {
-        return line.includes("xxxx");
-      })!;
+    const long: string = section.split("\n").find((line: string): boolean => {
+      return line.includes("xxxx");
+    })!;
 
     expect(long.length).toBeLessThan(MAX_NOTE_CHARS + 120);
   });
@@ -533,7 +545,11 @@ describe("what the team told OneUptime AI, in an investigation", () => {
 
   test("an investigation reads the notes after what was learned, and the notes even when nothing was learned", async () => {
     notes = [
-      note({ service: CHECKOUT, text: "Failover takes five minutes.", daysAgo: 1 }),
+      note({
+        service: CHECKOUT,
+        text: "Failover takes five minutes.",
+        daysAgo: 1,
+      }),
     ];
 
     const onlyNotes: string = await ServiceKnowledge.getContextSection({
@@ -546,7 +562,9 @@ describe("what the team told OneUptime AI, in an investigation", () => {
     expect(onlyNotes).toContain(SERVICE_NOTES_HEADING);
     expect(onlyNotes).toContain('"Failover takes five minutes."');
 
-    incidents = [incident({ index: 1, rootCause: "Connection pool exhausted" })];
+    incidents = [
+      incident({ index: 1, rootCause: "Connection pool exhausted" }),
+    ];
 
     const both: string = await ServiceKnowledge.getContextSection({
       projectId: PROJECT_ID,
@@ -561,7 +579,9 @@ describe("what the team told OneUptime AI, in an investigation", () => {
   });
 
   test("notes that cannot be read never take what was learned with them", async () => {
-    incidents = [incident({ index: 1, rootCause: "Connection pool exhausted" })];
+    incidents = [
+      incident({ index: 1, rootCause: "Connection pool exhausted" }),
+    ];
     jest
       .spyOn(ServiceAINoteService, "findBy")
       .mockRejectedValue(new Error("connection reset") as never);

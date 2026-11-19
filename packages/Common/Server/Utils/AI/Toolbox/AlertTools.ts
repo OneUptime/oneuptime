@@ -597,7 +597,11 @@ export const SearchAlertsTool: ObservabilityTool = {
             record: alert,
             text: MeaningSearch.documentText({
               title: alert.title,
-              texts: [alert.rootCause, alert.remediationNotes, alert.description],
+              texts: [
+                alert.rootCause,
+                alert.remediationNotes,
+                alert.description,
+              ],
             }),
             wholeText: [
               alert.title,

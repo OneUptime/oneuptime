@@ -94,17 +94,14 @@ describe("ServiceAINote", () => {
       Permission.ReadServiceAINote,
     ]) {
       expect(PermissionHelper.isAssignableToTenant(permission)).toBe(true);
-      expect(PermissionHelper.getTitle(permission)).toMatch(
-        /Service AI Note$/,
-      );
+      expect(PermissionHelper.getTitle(permission)).toMatch(/Service AI Note$/);
     }
   });
 
   test("who wrote a note is OneUptime's to write, never the request's; who deleted it is never written", () => {
-    const deletedBy: { create: Array<Permission> } | undefined =
-      note.getColumnAccessControlFor("deletedByUserId") as never;
-
-    expect(deletedBy?.create).toEqual([]);
+    expect(note.getColumnAccessControlFor("deletedByUserId")?.create).toEqual(
+      [],
+    );
     expect(note.getColumnAccessControlFor("note")?.update).toEqual(
       SERVICE_AI_NOTE_UPDATE_PERMISSIONS,
     );
