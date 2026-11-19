@@ -59219,5 +59219,12 @@
   "Connect device manager": "Geräteverwaltung verbinden",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "In der Übersicht der App-Registrierung. Sie braucht die Anwendungsberechtigung DeviceManagementManagedDevices.Read.All für Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Geräte, die ein Geräteverwaltungsdienst wie Esper oder Microsoft Intune registriert, importiert von einer Verbindung zur Geräteverwaltung: Hardware, Betriebssystem, Gruppe und letzter Kontakt jedes Geräts. Von OneUptime geschrieben; nicht durch Benutzer bearbeitbar.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- und Microsoft Intune-Tenants, aus denen OneUptime über die API des Dienstes nach Zeitplan Geräte importiert: jedes Gerät, seine Gruppe, seine installierten Apps und seinen letzten Kontakt."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- und Microsoft Intune-Tenants, aus denen OneUptime über die API des Dienstes nach Zeitplan Geräte importiert: jedes Gerät, seine Gruppe, seine installierten Apps und seinen letzten Kontakt.",
+  "No unit is failed now.": "Im Moment ist keine Einheit fehlgeschlagen.",
+  "Show which units failed and why": "Zeigen, welche Einheiten fehlgeschlagen sind und warum",
+  "Showing the first {{count}}, the newest failure first.": "Die ersten {{count}}, der neueste Fehlschlag zuerst.",
+  "Showing the first {{count}}, the newest failure first._one": "Die erste ({{count}}), der neueste Fehlschlag zuerst.",
+  "{{count}} unit failed": "{{count}} Einheit fehlgeschlagen",
+  "{{count}} units failed": "{{count}} Einheiten fehlgeschlagen",
+  "{{count}} units failed_one": "{{count}} Einheit fehlgeschlagen"
 }

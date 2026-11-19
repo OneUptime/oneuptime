@@ -59219,5 +59219,12 @@
   "Connect device manager": "Anslut MDM",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "På appregistreringens sida Overview. Den behöver programbehörigheten DeviceManagementManagedDevices.Read.All i Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Enheter som en tjänst för enhetshantering, till exempel Esper eller Microsoft Intune, registrerar, importerade av en anslutning för enhetshantering: varje enhets hårdvara, operativsystem, grupp och senaste incheckning. Skrivs av OneUptime; kan inte redigeras av användare.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- och Microsoft Intune-tenanter som OneUptime importerar enheter från via tjänstens API, enligt ett schema: varje enhet, dess grupp, dess installerade appar och dess senaste incheckning."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- och Microsoft Intune-tenanter som OneUptime importerar enheter från via tjänstens API, enligt ett schema: varje enhet, dess grupp, dess installerade appar och dess senaste incheckning.",
+  "No unit is failed now.": "Ingen enhet har misslyckats just nu.",
+  "Show which units failed and why": "Visa vilka enheter som misslyckades och varför",
+  "Showing the first {{count}}, the newest failure first.": "Visar de första {{count}}, det senaste felet först.",
+  "Showing the first {{count}}, the newest failure first._one": "Visar den första {{count}}, det senaste felet först.",
+  "{{count}} unit failed": "{{count}} enhet misslyckades",
+  "{{count}} units failed": "{{count}} enheter misslyckades",
+  "{{count}} units failed_one": "{{count}} enhet misslyckades"
 }

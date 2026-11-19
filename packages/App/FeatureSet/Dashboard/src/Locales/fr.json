@@ -59219,5 +59219,12 @@
   "Connect device manager": "Connecter un gestionnaire d'appareils",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "Sur la page Overview de l'inscription d'application. Elle a besoin de l'autorisation d'application DeviceManagementManagedDevices.Read.All sur Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Appareils qu'enrôle un service de gestion des appareils comme Esper ou Microsoft Intune, importés par une connexion de gestion des appareils : le matériel, le système d'exploitation, le groupe et le dernier contact de chaque appareil. Écrits par OneUptime ; non modifiables par les utilisateurs.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Tenants Esper et Microsoft Intune dont OneUptime importe les appareils par l'API du service, selon une planification : chaque appareil, son groupe, ses applications installées et son dernier contact."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Tenants Esper et Microsoft Intune dont OneUptime importe les appareils par l'API du service, selon une planification : chaque appareil, son groupe, ses applications installées et son dernier contact.",
+  "No unit is failed now.": "Aucune unité n'est en échec pour l'instant.",
+  "Show which units failed and why": "Afficher quelles unités ont échoué et pourquoi",
+  "Showing the first {{count}}, the newest failure first.": "Affichage des {{count}} premières, l'échec le plus récent en premier.",
+  "Showing the first {{count}}, the newest failure first._one": "Affichage de la première ({{count}}), l'échec le plus récent en premier.",
+  "{{count}} unit failed": "{{count}} unité en échec",
+  "{{count}} units failed": "{{count}} unités en échec",
+  "{{count}} units failed_one": "{{count}} unité en échec"
 }

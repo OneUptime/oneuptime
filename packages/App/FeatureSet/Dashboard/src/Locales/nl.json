@@ -59219,5 +59219,12 @@
   "Connect device manager": "MDM koppelen",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "Op de pagina Overview van de app-registratie. Die heeft de toepassingsmachtiging DeviceManagementManagedDevices.Read.All op Microsoft Graph nodig.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Apparaten die een dienst voor apparaatbeheer zoals Esper of Microsoft Intune inschrijft, geïmporteerd door een koppeling voor apparaatbeheer: per apparaat de hardware, het besturingssysteem, de groep en de laatste check-in. Geschreven door OneUptime; niet door gebruikers te bewerken.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- en Microsoft Intune-tenants waaruit OneUptime volgens een schema apparaten importeert via de API van de dienst: elk apparaat, zijn groep, zijn geïnstalleerde apps en zijn laatste check-in."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- en Microsoft Intune-tenants waaruit OneUptime volgens een schema apparaten importeert via de API van de dienst: elk apparaat, zijn groep, zijn geïnstalleerde apps en zijn laatste check-in.",
+  "No unit is failed now.": "Er is nu geen eenheid mislukt.",
+  "Show which units failed and why": "Toon welke eenheden mislukten en waarom",
+  "Showing the first {{count}}, the newest failure first.": "De eerste {{count}} worden getoond, de nieuwste mislukking eerst.",
+  "Showing the first {{count}}, the newest failure first._one": "De eerste {{count}} wordt getoond, de nieuwste mislukking eerst.",
+  "{{count}} unit failed": "{{count}} eenheid mislukt",
+  "{{count}} units failed": "{{count}} eenheden mislukt",
+  "{{count}} units failed_one": "{{count}} eenheid mislukt"
 }

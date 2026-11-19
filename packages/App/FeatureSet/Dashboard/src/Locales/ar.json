@@ -59219,5 +59219,12 @@
   "Connect device manager": "ربط خدمة لإدارة الأجهزة",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "في صفحة Overview لتسجيل التطبيق. يحتاج إلى إذن التطبيق DeviceManagementManagedDevices.Read.All في Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "الأجهزة التي تسجّلها خدمة لإدارة الأجهزة مثل Esper أو Microsoft Intune، ويستوردها اتصال لإدارة الأجهزة: عتاد كل جهاز ونظام تشغيله ومجموعته وآخر إشارة حضور له. يكتبها OneUptime؛ ولا يمكن للمستخدم تعديلها.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "مستأجرو Esper وMicrosoft Intune الذين يستورد OneUptime منهم الأجهزة عبر واجهة API لدى الخدمة، وفق جدول زمني: كل جهاز ومجموعته وتطبيقاته المثبّتة وآخر إشارة حضور له."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "مستأجرو Esper وMicrosoft Intune الذين يستورد OneUptime منهم الأجهزة عبر واجهة API لدى الخدمة، وفق جدول زمني: كل جهاز ومجموعته وتطبيقاته المثبّتة وآخر إشارة حضور له.",
+  "No unit is failed now.": "لا توجد الآن وحدة فاشلة.",
+  "Show which units failed and why": "إظهار أي الوحدات فشلت ولماذا",
+  "Showing the first {{count}}, the newest failure first.": "عرض الأوائل (العدد: {{count}})، الأحدث فشلًا أولًا.",
+  "Showing the first {{count}}, the newest failure first._one": "عرض الأوائل (العدد: {{count}})، الأحدث فشلًا أولًا.",
+  "{{count}} unit failed": "{{count}} وحدة فاشلة",
+  "{{count}} units failed": "الوحدات الفاشلة: {{count}}",
+  "{{count}} units failed_one": "{{count}} وحدة فاشلة"
 }

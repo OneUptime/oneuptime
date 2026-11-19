@@ -59219,5 +59219,12 @@
   "Connect device manager": "Подключить систему управления устройствами",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "На странице Overview регистрации приложения. Ей нужно разрешение приложения DeviceManagementManagedDevices.Read.All в Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Устройства, зарегистрированные в службе управления устройствами, например Esper или Microsoft Intune, и импортированные подключением этой службы: оборудование, операционная система, группа и последний выход на связь каждого устройства. Записываются OneUptime; пользователи не могут их изменять.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Тенанты Esper и Microsoft Intune, из которых OneUptime по расписанию импортирует устройства через API службы: каждое устройство, его группу, установленные приложения и последний выход на связь."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Тенанты Esper и Microsoft Intune, из которых OneUptime по расписанию импортирует устройства через API службы: каждое устройство, его группу, установленные приложения и последний выход на связь.",
+  "No unit is failed now.": "Сейчас нет юнитов, завершившихся сбоем.",
+  "Show which units failed and why": "Показать, какие юниты завершились сбоем и почему",
+  "Showing the first {{count}}, the newest failure first.": "Показаны первые {{count}}, сначала самый недавний сбой.",
+  "Showing the first {{count}}, the newest failure first._one": "Показан первый ({{count}}), сначала самый недавний сбой.",
+  "{{count}} unit failed": "{{count}} юнит завершился сбоем",
+  "{{count}} units failed": "Юнитов со сбоем: {{count}}",
+  "{{count}} units failed_one": "{{count}} юнит завершился сбоем"
 }

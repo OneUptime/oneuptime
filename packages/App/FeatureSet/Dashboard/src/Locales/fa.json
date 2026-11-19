@@ -59219,5 +59219,12 @@
   "Connect device manager": "اتصال سرویس مدیریت دستگاه",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "در صفحه Overview ثبت برنامه. به مجوز برنامه DeviceManagementManagedDevices.Read.All در Microsoft Graph نیاز دارد.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "دستگاه‌هایی که در یک سرویس مدیریت دستگاه مانند Esper یا Microsoft Intune ثبت‌نام شده‌اند و یک اتصال مدیریت دستگاه آن‌ها را وارد می‌کند: سخت‌افزار، سیستم‌عامل، گروه و آخرین اعلام حضور هر دستگاه. OneUptime آن را می‌نویسد؛ کاربران نمی‌توانند ویرایشش کنند.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "مستأجرهای Esper و Microsoft Intune که OneUptime طبق زمان‌بندی و از طریق API همان سرویس، دستگاه‌ها را از آن‌ها وارد می‌کند: هر دستگاه، گروهش، برنامه‌های نصب‌شده‌اش و آخرین اعلام حضورش."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "مستأجرهای Esper و Microsoft Intune که OneUptime طبق زمان‌بندی و از طریق API همان سرویس، دستگاه‌ها را از آن‌ها وارد می‌کند: هر دستگاه، گروهش، برنامه‌های نصب‌شده‌اش و آخرین اعلام حضورش.",
+  "No unit is failed now.": "اکنون هیچ واحدی ناموفق نیست.",
+  "Show which units failed and why": "نمایش اینکه کدام واحدها ناموفق بودند و چرا",
+  "Showing the first {{count}}, the newest failure first.": "نمایش {{count}} مورد اول، تازه‌ترین شکست اول.",
+  "Showing the first {{count}}, the newest failure first._one": "نمایش {{count}} مورد اول، تازه‌ترین شکست اول.",
+  "{{count}} unit failed": "{{count}} واحد ناموفق",
+  "{{count}} units failed": "{{count}} واحد ناموفق",
+  "{{count}} units failed_one": "{{count}} واحد ناموفق"
 }

@@ -59219,5 +59219,12 @@
   "Connect device manager": "连接设备管理服务",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "在应用注册的 Overview 页面上。它需要 Microsoft Graph 的应用程序权限 DeviceManagementManagedDevices.Read.All。",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "由 Esper 或 Microsoft Intune 等设备管理服务注册、并由设备管理连接导入的设备：每台设备的硬件、操作系统、组和上次签入。由 OneUptime 写入；用户不可编辑。",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "OneUptime 按计划通过服务的 API 从中导入设备的 Esper 和 Microsoft Intune 租户：每台设备、其所属组、已安装的应用和上次签入。"
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "OneUptime 按计划通过服务的 API 从中导入设备的 Esper 和 Microsoft Intune 租户：每台设备、其所属组、已安装的应用和上次签入。",
+  "No unit is failed now.": "目前没有失败的单元。",
+  "Show which units failed and why": "显示哪些单元失败及原因",
+  "Showing the first {{count}}, the newest failure first.": "显示前 {{count}} 个，最近的失败排在前面。",
+  "Showing the first {{count}}, the newest failure first._one": "显示前 {{count}} 个，最近的失败排在前面。",
+  "{{count}} unit failed": "{{count}} 个单元失败",
+  "{{count}} units failed": "{{count}} 个单元失败",
+  "{{count}} units failed_one": "{{count}} 个单元失败"
 }

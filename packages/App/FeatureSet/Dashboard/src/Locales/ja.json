@@ -59219,5 +59219,12 @@
   "Connect device manager": "デバイス管理サービスを接続",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "アプリ登録の Overview にあります。Microsoft Graph のアプリケーション権限 DeviceManagementManagedDevices.Read.All が必要です。",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Esper や Microsoft Intune などのデバイス管理サービスに登録され、デバイス管理接続によってインポートされたデバイス。各デバイスのハードウェア、オペレーティングシステム、グループ、最終チェックインです。OneUptime が書き込み、ユーザーは編集できません。",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "OneUptime がサービスの API を通じてスケジュールに従ってデバイスをインポートする Esper と Microsoft Intune のテナント。各デバイスとそのグループ、インストール済みアプリ、最終チェックインをインポートします。"
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "OneUptime がサービスの API を通じてスケジュールに従ってデバイスをインポートする Esper と Microsoft Intune のテナント。各デバイスとそのグループ、インストール済みアプリ、最終チェックインをインポートします。",
+  "No unit is failed now.": "現在、失敗しているユニットはありません。",
+  "Show which units failed and why": "失敗したユニットとその理由を表示",
+  "Showing the first {{count}}, the newest failure first.": "最初の {{count}} 件を、新しい失敗から順に表示しています。",
+  "Showing the first {{count}}, the newest failure first._one": "最初の {{count}} 件を、新しい失敗から順に表示しています。",
+  "{{count}} unit failed": "{{count}} 個のユニットが失敗",
+  "{{count}} units failed": "{{count}} 個のユニットが失敗",
+  "{{count}} units failed_one": "{{count}} 個のユニットが失敗"
 }

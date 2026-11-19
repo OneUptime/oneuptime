@@ -59219,5 +59219,12 @@
   "Connect device manager": "Connect device manager",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.",
+  "No unit is failed now.": "No unit is failed now.",
+  "Show which units failed and why": "Show which units failed and why",
+  "Showing the first {{count}}, the newest failure first.": "Showing the first {{count}}, the newest failure first.",
+  "Showing the first {{count}}, the newest failure first._one": "Showing the first {{count}}, the newest failure first.",
+  "{{count}} unit failed": "{{count}} unit failed",
+  "{{count}} units failed": "{{count}} units failed",
+  "{{count}} units failed_one": "{{count}} unit failed"
 }

@@ -190,7 +190,8 @@ next, and how to change it last.
   metal class's "Failed: 3" open which ones and why, and App Platforms' "2 environments
   disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
   as systemd said it: its result, its exit code or the signal that killed it, since when and what
-  it printed last, from its journal (#9748). A count opens its parts only while the resource's
+  it printed last, from its journal (#9748), on its page and on its row of the host's Systemd
+  Units list, whose "3 units failed" opens all of them (#9960). A count opens its parts only while the resource's
   agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
   what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
   "fleet disconnected" where it counted its devices online, rather than calling every device

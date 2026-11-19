@@ -59219,5 +59219,12 @@
   "Connect device manager": "Koble til MDM",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "På appregistreringens side Overview. Den trenger programtillatelsen DeviceManagementManagedDevices.Read.All på Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Enheter som en tjeneste for enhetsadministrasjon som Esper eller Microsoft Intune registrerer, importert av en tilkobling for enhetsadministrasjon: hver enhets maskinvare, operativsystem, gruppe og siste innsjekking. Skrives av OneUptime; kan ikke redigeres av brukere.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- og Microsoft Intune-leiere som OneUptime importerer enheter fra gjennom tjenestens API, etter en tidsplan: hver enhet, gruppen dens, de installerte appene og siste innsjekking."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper- og Microsoft Intune-leiere som OneUptime importerer enheter fra gjennom tjenestens API, etter en tidsplan: hver enhet, gruppen dens, de installerte appene og siste innsjekking.",
+  "No unit is failed now.": "Ingen enhet har mislyktes nå.",
+  "Show which units failed and why": "Vis hvilke enheter som mislyktes, og hvorfor",
+  "Showing the first {{count}}, the newest failure first.": "Viser de første {{count}}, den nyeste feilen først.",
+  "Showing the first {{count}}, the newest failure first._one": "Viser den første {{count}}, den nyeste feilen først.",
+  "{{count}} unit failed": "{{count}} enhet mislyktes",
+  "{{count}} units failed": "{{count}} enheter mislyktes",
+  "{{count}} units failed_one": "{{count}} enhet mislyktes"
 }

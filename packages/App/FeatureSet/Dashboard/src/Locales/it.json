@@ -59219,5 +59219,12 @@
   "Connect device manager": "Collega un gestore dei dispositivi",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "Nella pagina Overview della registrazione dell'app. Le serve l'autorizzazione dell'applicazione DeviceManagementManagedDevices.Read.All su Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Dispositivi registrati da un servizio di gestione dei dispositivi come Esper o Microsoft Intune, importati da una connessione di gestione dei dispositivi: hardware, sistema operativo, gruppo e ultimo contatto di ciascun dispositivo. Scritti da OneUptime; non modificabili dagli utenti.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Tenant Esper e Microsoft Intune da cui OneUptime importa i dispositivi tramite l'API del servizio, secondo una pianificazione: ogni dispositivo, il suo gruppo, le sue app installate e il suo ultimo contatto."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Tenant Esper e Microsoft Intune da cui OneUptime importa i dispositivi tramite l'API del servizio, secondo una pianificazione: ogni dispositivo, il suo gruppo, le sue app installate e il suo ultimo contatto.",
+  "No unit is failed now.": "Al momento nessuna unità è non riuscita.",
+  "Show which units failed and why": "Mostra quali unità non sono riuscite e perché",
+  "Showing the first {{count}}, the newest failure first.": "Sono mostrate le prime {{count}}, l'errore più recente per primo.",
+  "Showing the first {{count}}, the newest failure first._one": "È mostrata la prima ({{count}}), l'errore più recente per primo.",
+  "{{count}} unit failed": "{{count}} unità non riuscita",
+  "{{count}} units failed": "{{count}} unità non riuscite",
+  "{{count}} units failed_one": "{{count}} unità non riuscita"
 }

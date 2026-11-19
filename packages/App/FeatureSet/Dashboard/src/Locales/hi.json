@@ -59219,5 +59219,12 @@
   "Connect device manager": "डिवाइस मैनेजर कनेक्ट करें",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "ऐप पंजीकरण के Overview पर। इसे Microsoft Graph पर ऐप्लिकेशन अनुमति DeviceManagementManagedDevices.Read.All चाहिए।",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Esper या Microsoft Intune जैसी किसी डिवाइस प्रबंधन सेवा में नामांकित डिवाइस, जिन्हें डिवाइस प्रबंधन कनेक्शन आयात करता है: हर डिवाइस का हार्डवेयर, ऑपरेटिंग सिस्टम, समूह और अंतिम चेक-इन। OneUptime इसे लिखता है; उपयोगकर्ता इसे संपादित नहीं कर सकते।",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper और Microsoft Intune के वे टेनेंट जिनसे OneUptime सेवा के API के ज़रिए शेड्यूल पर डिवाइस आयात करता है: हर डिवाइस, उसका समूह, उसके इंस्टॉल किए गए ऐप और उसका अंतिम चेक-इन।"
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Esper और Microsoft Intune के वे टेनेंट जिनसे OneUptime सेवा के API के ज़रिए शेड्यूल पर डिवाइस आयात करता है: हर डिवाइस, उसका समूह, उसके इंस्टॉल किए गए ऐप और उसका अंतिम चेक-इन।",
+  "No unit is failed now.": "अभी कोई यूनिट विफल नहीं है।",
+  "Show which units failed and why": "दिखाएँ कि कौन-से यूनिट विफल रहे और क्यों",
+  "Showing the first {{count}}, the newest failure first.": "पहले {{count}} दिखाए जा रहे हैं, सबसे नई विफलता पहले।",
+  "Showing the first {{count}}, the newest failure first._one": "पहला {{count}} दिखाया जा रहा है, सबसे नई विफलता पहले।",
+  "{{count}} unit failed": "{{count}} यूनिट विफल हुआ",
+  "{{count}} units failed": "{{count}} यूनिट विफल हुए",
+  "{{count}} units failed_one": "{{count}} यूनिट विफल हुआ"
 }

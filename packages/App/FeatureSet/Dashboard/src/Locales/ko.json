@@ -59219,5 +59219,12 @@
   "Connect device manager": "디바이스 관리 서비스 연결",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "앱 등록의 Overview에 있습니다. Microsoft Graph의 애플리케이션 권한 DeviceManagementManagedDevices.Read.All이 필요합니다.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Esper나 Microsoft Intune 같은 디바이스 관리 서비스에 등록되어 디바이스 관리 연결로 가져온 디바이스입니다. 각 디바이스의 하드웨어, 운영 체제, 그룹, 마지막 체크인을 담습니다. OneUptime이 기록하며 사용자가 편집할 수 없습니다.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "OneUptime이 서비스 API를 통해 일정에 따라 디바이스를 가져오는 Esper 및 Microsoft Intune 테넌트입니다. 각 디바이스와 그 그룹, 설치된 앱, 마지막 체크인을 가져옵니다."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "OneUptime이 서비스 API를 통해 일정에 따라 디바이스를 가져오는 Esper 및 Microsoft Intune 테넌트입니다. 각 디바이스와 그 그룹, 설치된 앱, 마지막 체크인을 가져옵니다.",
+  "No unit is failed now.": "지금 실패한 유닛이 없습니다.",
+  "Show which units failed and why": "어떤 유닛이 실패했는지와 그 이유 표시",
+  "Showing the first {{count}}, the newest failure first.": "처음 {{count}}개를 최근 실패부터 표시합니다.",
+  "Showing the first {{count}}, the newest failure first._one": "처음 {{count}}개를 최근 실패부터 표시합니다.",
+  "{{count}} unit failed": "유닛 {{count}}개 실패",
+  "{{count}} units failed": "유닛 {{count}}개 실패",
+  "{{count}} units failed_one": "유닛 {{count}}개 실패"
 }

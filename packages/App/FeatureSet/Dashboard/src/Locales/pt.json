@@ -59219,5 +59219,12 @@
   "Connect device manager": "Conectar um gerenciador de dispositivos",
   "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.": "Na página Overview do registro de aplicativo. Ele precisa da permissão de aplicativo DeviceManagementManagedDevices.Read.All no Microsoft Graph.",
   "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.": "Dispositivos que um serviço de gerenciamento de dispositivos como o Esper ou o Microsoft Intune registra, importados por uma conexão de gerenciamento de dispositivos: o hardware, o sistema operacional, o grupo e o último check-in de cada dispositivo. Gravados pelo OneUptime; não podem ser editados por usuários.",
-  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Locatários do Esper e do Microsoft Intune dos quais o OneUptime importa dispositivos pela API do serviço, em uma programação: cada dispositivo, o grupo, os aplicativos instalados e o último check-in dele."
+  "Esper and Microsoft Intune tenants whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.": "Locatários do Esper e do Microsoft Intune dos quais o OneUptime importa dispositivos pela API do serviço, em uma programação: cada dispositivo, o grupo, os aplicativos instalados e o último check-in dele.",
+  "No unit is failed now.": "Nenhuma unidade está com falha agora.",
+  "Show which units failed and why": "Mostrar quais unidades falharam e por quê",
+  "Showing the first {{count}}, the newest failure first.": "Mostrando as primeiras {{count}}, a falha mais recente primeiro.",
+  "Showing the first {{count}}, the newest failure first._one": "Mostrando a primeira ({{count}}), a falha mais recente primeiro.",
+  "{{count}} unit failed": "{{count}} unidade falhou",
+  "{{count}} units failed": "{{count}} unidades falharam",
+  "{{count}} units failed_one": "{{count}} unidade falhou"
 }
