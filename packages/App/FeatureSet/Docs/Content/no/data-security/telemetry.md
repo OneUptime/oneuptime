@@ -1,6 +1,6 @@
 # Sensitive data i telemetri
 
-Telemetri inneholder det koden din skriver: en e-postadresse i en logglinje, et kortnummer i et span-attributt, et token i en stakksporing, et spørsmål fra en kunde i en prompt. Datasikkerhet behandler loggene, sporene, unntakene og AI-samtalene til hver tjeneste, og øktene til hver RUM-applikasjon, som egne datalagre. Den tar stikkprøver av dem hver time, finner sensitive data i dem slik den gjør i en bucket, og **Rens** gjør et funn om til en rensingsregel som maskerer disse dataene ved inntak fra da av.
+Telemetri inneholder det koden din skriver: en e-postadresse i en logglinje, et kortnummer i et span-attributt, et token i en stakksporing, et spørsmål fra en kunde i en prompt, en brukers IP-adresse i etiketten til en måling. Datasikkerhet behandler loggene, sporene, målingene, unntakene og AI-samtalene til hver tjeneste, og øktene til hver RUM-applikasjon, som egne datalagre. Den tar stikkprøver av dem hver time, finner sensitive data i dem slik den gjør i en bucket, og **Rens** gjør et funn om til en regel som maskerer disse dataene ved inntak fra da av.
 
 Det er ingenting å sette opp: telemetrien til hver tjeneste skannes hver time, med mindre **Skann telemetri** er slått av i prosjektets innstillinger. For å utelate én tjenestes logger, sporinger eller et annet av dens signaler, slår du av **Skann innhold** i det datalagerets **Innstillinger**: fra neste skanning leses ingenting av det.
 
@@ -34,8 +34,19 @@ Et funn som en rensingsregel dekker, merkes som renset: det som er igjen av diss
 | Unntak | Meldingen, stakksporingen og attributtene | `message`, `stackTrace`, `attributes.<key>` |
 | AI-samtaler | Promptene og svarene i hvert AI-kall, under nøklene GenAI-konvensjonene legger dem i, og hvert annet attributt | Nøkkelen de ligger i, for eksempel `gen_ai.input.messages` eller `gen_ai.prompt[].content` |
 | Øktavspillinger | Attributtene til spans og logger fra en RUM-applikasjon, attributtene til øktene, egenskapene `identify()` ga brukerne, og brukerreferansen den fikk oppgitt | `spans.attributes.<key>`, `logs.attributes.<key>`, `sessions.attributes.<key>`, `sessions.identifiedUserTraits.<key>`, `sessions.identifiedUserLabel` |
+| Målinger | Hvert attributt i et datapunkt, også ressursens, og navnene på målingene | `attributes.<key>`, `attributes.resource.<key>`, `name` |
 
 Nummererte nøkler slås sammen til én plassering: `gen_ai.prompt.3.content` blir `gen_ai.prompt[].content`, så de tjue meldingene i en chat er ett funn, ikke tjue. Attributter som OneUptime legger til selv, og som starter med `oneuptime.`, leses ikke.
+
+### Målinger
+
+Attributtene til en måling er etikettene til seriene dens. De er like på hvert datapunkt i en serie, så en måling som skriver tusen punkter i minuttet, kan inneholde bare tre verdier, og en etikett som lekker en brukers e-postadresse, legger til en serie, ikke et punkt. Derfor tas det stikkprøver av en måling etter seriene, ikke etter punktene:
+
+- **Det nyeste minuttet.** Hver måling leses i det nyeste minuttet den skrev i løpet av den siste timen: opptil 100 av datapunktene fra det minuttet, som for en måling som sendes én gang i minuttet, slik OpenTelemetry gjør som standard, er ett punkt fra hver serie. En verdi klassifiseres én gang, uansett hvor mange punkter som gjentar den, så et funn teller de ulike verdiene på plasseringen sin.
+- **De travleste først, resten etter tur.** Hvilke målinger en tjeneste skrev, hentes fra sammendraget per minutt som målingstabellen holder, aldri fra punktene. Hver skanning leser en tjenestes travleste målinger, de som mest sannsynlig har mange serier, og noen av de andre, de neste hver time, så hver måling får sin tur.
+- **Hver målings eget område.** Målingene leses sammen, hver etter sitt eget område av tabellens primærnøkkel. En måling der det nyeste minuttet inneholder mer enn 16 384 punkter, for eksempel en som har e-postadressen til hver bruker som etikett, leses for seg, og lesingen stopper ved de første punktene, så den koster ikke mer enn noen annen måling.
+
+Et funn nevner attributtet, for eksempel `attributes.user.email`, eller `name` for data i navnet til en måling. Postene til funnet er datapunktene det ble funnet i: hver viser målingen sin og verdien til attributtet, maskert, og åpnes i **Målinger** på den målingen, gruppert etter det attributtet. Der navnet til en måling inneholder sensitive data, maskeres også navnet, og posten åpner tjenestens målinger i stedet.
 
 ### Hvorfor opptaket av en avspilling aldri leses
 
@@ -62,6 +73,8 @@ Hver time leses de nyeste postene fra den siste timen for hvert signal, og de kl
 | Attributter i én post | 128; 64 for et AI-kall |
 | Hendelser i ett span, og attributter i én hendelse | 16 og 32 |
 | Plasseringer i ett datalager | 500 |
+| Målinger som leses i én skanning | 100, delt mellom tjenestene, minst én fra hver; høyst 10 fra én tjeneste, halvparten blant de travleste og halvparten blant de andre etter tur |
+| Datapunkter i én måling | Fra det nyeste minuttet, høyst 100 |
 
 Hver verdi kortes ned i databasen, så ingen lang verdi forlater den, og hver lesing stopper etter 30 sekunder. En lesing som feiler, blir en advarsel på datalagrene den gjaldt; skanningen fortsetter med den neste.
 
@@ -69,16 +82,16 @@ For å utelate noe legger du det til i datalagerets **Skanneunntak**: en plasser
 
 ## Rens
 
-**Rens** på et funn lager rensingsregelen som skjuler den datatypen på den plasseringen fra da av, eller peker på den aktiverte regelen som allerede gjør det:
+**Rens** på et funn lager regelen som skjuler den datatypen på den plasseringen fra da av, eller peker på den aktiverte regelen som allerede gjør det:
 
 :::steps
 ### Åpne funnet
 
-Åpne telemetridatalageret – for eksempel **Logger** for en tjeneste – og funnet.
+Åpne problemet – **Hvor det ble funnet** viser hvert funn bak det – eller **Datasikkerhet > I telemetrien din**, der **Vis poster** åpner postene et funn ble gjort i, ved siden av listen.
 
 ### Trykk på Rens
 
-Klikk på **Rens**. For logger og loggene til en RUM-applikasjon lager OneUptime en rensingsregel for logger, og for spans, unntak og AI-kall en rensingsregel for spor, på den delen av posten funnet ligger i.
+Klikk på **Rens**. For logger og loggene til en RUM-applikasjon lager OneUptime en rensingsregel for logger, for spans, unntak og AI-kall en rensingsregel for spor, på den delen av posten funnet ligger i, og for attributtet til en måling en pipelineregel for målinger.
 
 ### Rett koden også
 
@@ -92,16 +105,18 @@ Regelen får navn etter det den skjuler, for eksempel «Data Security: Email add
 | E-postadresse, kortnummer, amerikansk Social Security-nummer, telefonnummer eller IP-adresse | Det innebygde mønsteret for den typen. Kortnumre, Social Security-numre og telefonnumre maskeres, resten sladdes. |
 | En verdi under en nøkkel som ser sensitiv ut, for eksempel `password` eller `token` | En regel av typen **Sensitive attributtnøkler**, som sladder hele verdien til hvert slikt attributt |
 | Enhver annen datatype et mønster kan finne | En regel av typen **Egendefinert regex**, laget av datatypens egne mønstre, som sladder hver verdi med den formen |
+| Enhver datatype i attributtet til en måling | En pipelineregel for målinger av typen **Sladd attributt** for tjenesten, som erstatter verdiene i attributtet som har datatypens form, med `[REDACTED]`, eller hver verdi i attributtet der ingen mønstre finner datatypen |
 
-Noen funn kan ikke renses av en regel, og **Rens** sier hvorfor:
+Noen funn kan ikke renses av en regel, og **Rens** sier hvorfor. Attributtet til en måling kan alltid renses, siden regelen kan skjule hver verdi i attributtet:
 
 - En datatype som bare finnes ut fra feltnavn, for eksempel en persons navn: ingen mønstre kan finne den. Gi attributtet nytt navn til en nøkkel som en regel for sensitive nøkler skjuler, eller slutt å sende det.
 - En datatype som bare skilles fra andre verdier av ordene rundt den, for eksempel et routingnummer: en regel ville skjult langt mer enn den datatypen.
 - En dokumentmerking: å skjule ordet ville ikke skjule dokumentet.
 - En av dine egne datatyper: legg selv til en egendefinert rensingsregel med mønsteret dens.
 - Detaljene til selve økten (`sessions.*`): inntak av øktavspillinger kjører ingen rensingsregler.
+- Navnet til en måling (`name`): koden som oppretter målingen, setter det, og en pipelineregel kan bare gi en måling nytt navn i sin helhet. Gi målingen nytt navn, og send det som varierer i navnet, som et attributt i stedet.
 
-**Rens** lager regelen som deg, med dine egne tillatelser: Prosjekteiere og Prosjektadministratorer kan trykke på den, og det kan også et team som har lov til å opprette rensingsregler for logger, og rensingsregler for spor når det gjelder spans, unntak og AI-kall.
+**Rens** lager regelen som deg, med dine egne tillatelser: Prosjekteiere og Prosjektadministratorer kan trykke på den, og det kan også et team som har lov til å opprette rensingsregler for logger, rensingsregler for spor når det gjelder spans, unntak og AI-kall, og pipelineregler for målinger.
 
 ## Hva som regnes som renset
 
@@ -111,6 +126,7 @@ Et funn merkes som renset bare når inntaket ville kjørt en aktivert regel over
 - **Den riktige delen.** Regelens **Felt som skal renses** inkluderer den delen av posten funnet ligger i, eller regelen lar dem stå på standardverdien.
 - **Et mønster som finner typen.** En innebygd **Mønstertype** finner sin egen datatype: **E-postadresse** finner e-postadresser, **Kredittkortnummer** kortnumre, **SSN (personnummer)** amerikanske Social Security-numre, **Telefonnummer** telefonnumre og **IP-adresse** IP-adresser. **Sensitive attributtnøkler** dekker hver verdi under en nøkkel som ser sensitiv ut, uansett hva verdien er.
 - **Dine egne mønstre teller aldri.** En **Egendefinert regex** dekker et funn bare når den er nøyaktig det mønsteret **Rens** lager for typen. Et funn beholder bare maskerte prøver, som ingen mønstre kan prøves på, så OneUptime kunne ikke bevise at mønsteret ditt skjuler dataene, og et funn som feilaktig kalles renset, er en lekkasje ingen ser på.
+- **Attributtet til en måling.** En pipelineregel for målinger av typen **Sladd attributt** eller **Fjern attributt** for nøkkelen til det attributtet, for tjenesten til funnet eller hele prosjektet, dekker funnet når den ikke har noe filter, eller nøyaktig filteret **Rens** lager. Et filter du har skrevet selv, teller aldri, av samme grunn.
 
 En regel som er slått av, eller som ikke renser noe, teller aldri. Dekningen beregnes på nytt etter hver skanning, så en regel du legger til eller fjerner manuelt, endrer hva som er merket som renset, innen en time.
 

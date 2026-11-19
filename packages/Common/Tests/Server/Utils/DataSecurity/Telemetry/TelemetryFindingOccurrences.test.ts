@@ -8,6 +8,7 @@ import {
 } from "@jest/globals";
 import ExceptionInstance from "../../../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../../../Models/AnalyticsModels/Log";
+import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import RumSession from "../../../../../Models/AnalyticsModels/RumSession";
 import Span from "../../../../../Models/AnalyticsModels/Span";
 import AnalyticsDatabaseService, {
@@ -45,6 +46,9 @@ import {
   buildOccurrenceExcerptReader,
   getOccurrencePrefilter,
   OccurrenceSearch,
+  buildMetricNameReader,
+  isKeptRecordReadNarrowed,
+  SAMPLED_ROWS_PER_METRIC_RECORD,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import logger from "../../../../../Server/Utils/Logger";
 import {
@@ -1731,5 +1735,284 @@ describe("where a finding's records are read", () => {
       );
       expect(statements.length).toBe(1);
     });
+  });
+});
+
+/*
+ * A METRIC'S DATA POINTS (issue #9604).
+ *
+ * A metric finding's records are its data points: a series of the metric
+ * at one moment. Every series of a metric is written in its export's
+ * millisecond, so a kept point is looked up by its metric and millisecond
+ * and narrowed by the type's patterns, each series is one record however
+ * many of its points come back, and a metric's name is shown masked where
+ * it holds data - and only a name that holds none opens the explorer.
+ */
+describe("a metric's data points", () => {
+  const POINT_TIME: string = new Date(NOW.getTime() - 60_000).toISOString();
+
+  function point(
+    attributes: Array<[string, string]>,
+    name: string,
+  ): JSONObject {
+    return rowAt(1, { readMetricName: name, readAttributes: attributes });
+  }
+
+  test("a metric's attribute is read by its key, and its name as its own text", () => {
+    expect(
+      planOccurrenceRead(
+        DataStoreKind.TelemetryMetrics,
+        "attributes.user.email",
+      ),
+    ).toEqual({
+      source: TelemetrySampleSource.Metrics,
+      read: { kind: "pairs", column: "attributes", key: "user.email" },
+    });
+    expect(
+      planOccurrenceRead(
+        DataStoreKind.TelemetryMetrics,
+        "attributes.resource.client.ip",
+      ),
+    ).toEqual({
+      source: TelemetrySampleSource.Metrics,
+      read: { kind: "pairs", column: "attributes", key: "resource.client.ip" },
+    });
+    expect(planOccurrenceRead(DataStoreKind.TelemetryMetrics, "name")).toEqual({
+      source: TelemetrySampleSource.Metrics,
+      read: { kind: "text", column: "name" },
+    });
+    expect(
+      planOccurrenceRead(DataStoreKind.TelemetryMetrics, "attributes."),
+    ).toBeNull();
+    expect(
+      planOccurrenceRead(DataStoreKind.TelemetryMetrics, "body"),
+    ).toBeNull();
+  });
+
+  test("read with the permissions of the metrics table", () => {
+    expect(getOccurrenceModel(TelemetrySampleSource.Metrics)).toBe(Metric);
+  });
+
+  test("an attribute's statement names each point's metric once, and narrows kept points by the type's patterns", () => {
+    const planned: OccurrencePlan = plan(
+      DataStoreKind.TelemetryMetrics,
+      "attributes.http.route",
+    );
+    const records: Array<FindingSampleRecord> = [
+      { time: POINT_TIME, metricName: "http.calls" },
+      { time: POINT_TIME },
+    ];
+    const statement: Statement = buildTelemetryOccurrenceStatement({
+      projectId: PROJECT_ID,
+      since: new Date(NOW.getTime() - 120_000),
+      until: NOW,
+      plan: planned,
+      ownerId: SERVICE,
+      limit: getOccurrenceReadLimit(planned, records),
+      caps: CAPS,
+      records,
+      prefilter: getDataTypePrefilter({ dataTypeId: "email-address" }),
+    });
+
+    expect(statement.query).toContain("FROM oneuptime.MetricItemV3");
+    expect(statement.query.match(/AS readMetricName/g)).toHaveLength(1);
+    // A kept point with its metric: that metric's range; one without: the millisecond.
+    expect(statement.query).toMatch(
+      /AND \(\(name = \{p\d+:String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time < \{p\d+:DateTime64\(9\)\}\) OR \(time >= /,
+    );
+    expect(parameterValues(statement)).toContain("http.calls");
+    expect(statement.query).toContain("match(substringUTF8(attributes[");
+    expect(statement.query).toContain("mapContains(attributes, {");
+    expect(Number(parameterAfter(statement, LIMIT))).toBe(
+      2 * SAMPLED_ROWS_PER_METRIC_RECORD,
+    );
+    expect(isKeptRecordReadNarrowed(planned)).toBe(true);
+    expect(
+      isKeptRecordReadNarrowed(plan(DataStoreKind.TelemetryLogs, "body")),
+    ).toBe(false);
+  });
+
+  test("a name's statement reads the name as the location's text, once, narrowed", () => {
+    const planned: OccurrencePlan = plan(
+      DataStoreKind.TelemetryMetrics,
+      "name",
+    );
+    const statement: Statement = buildTelemetryOccurrenceStatement({
+      projectId: PROJECT_ID,
+      since: new Date(NOW.getTime() - 120_000),
+      until: NOW,
+      plan: planned,
+      ownerId: SERVICE,
+      limit: getOccurrenceReadLimit(planned),
+      caps: CAPS,
+      prefilter: getDataTypePrefilter({ dataTypeId: "email-address" }),
+    });
+
+    expect(statement.query.match(/AS readMetricName/g)).toHaveLength(1);
+    expect(statement.query).toContain("substringUTF8(name, 1, {");
+    expect(statement.query).toContain("AND name != ''");
+    expect(statement.query).toContain("match(substringUTF8(name, 1, {");
+    expect(Number(parameterAfter(statement, LIMIT))).toBe(
+      OCCURRENCE_RECORDS_PER_READ,
+    );
+  });
+
+  test("each series is one record, of its metric, with its key and its masked value", () => {
+    const found: {
+      occurrences: Array<DataSecurityFindingOccurrence>;
+      recordsRead: number;
+    } = read({
+      kind: DataStoreKind.TelemetryMetrics,
+      location: "attributes.user.email",
+      dataTypeId: "email-address",
+      rows: [
+        point([["user.email", EMAIL]], "user.logins"),
+        // The same series again.
+        point([["user.email", EMAIL]], "user.logins"),
+        point([["user.email", "sam.lee@acme-corp.com"]], "user.logins"),
+        // The same value under another metric is another series.
+        point([["user.email", EMAIL]], "user.signups"),
+      ],
+    });
+
+    expect(found.recordsRead).toBe(4);
+    expect(
+      found.occurrences.map(
+        (occurrence: DataSecurityFindingOccurrence): unknown => {
+          return [
+            occurrence.recordKind,
+            occurrence.serviceId,
+            occurrence.name,
+            occurrence.metricName,
+            occurrence.maskedValue,
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        DataSecurityOccurrenceRecordKind.Metric,
+        SERVICE,
+        "user.logins",
+        "user.logins",
+        MASKED_EMAIL,
+      ],
+      [
+        DataSecurityOccurrenceRecordKind.Metric,
+        SERVICE,
+        "user.logins",
+        "user.logins",
+        "s***@a********.com",
+      ],
+      [
+        DataSecurityOccurrenceRecordKind.Metric,
+        SERVICE,
+        "user.signups",
+        "user.signups",
+        MASKED_EMAIL,
+      ],
+    ]);
+  });
+
+  test("a metric's name that holds data is shown masked, and never sent as a key", () => {
+    const found: {
+      occurrences: Array<DataSecurityFindingOccurrence>;
+      recordsRead: number;
+    } = read({
+      kind: DataStoreKind.TelemetryMetrics,
+      location: "name",
+      dataTypeId: "email-address",
+      rows: [
+        point([["plan", "pro"]], `signups.${EMAIL}.count`),
+        point([["plan", "free"]], `signups.${EMAIL}.count`),
+      ],
+    });
+
+    expect(found.occurrences).toHaveLength(1);
+    // The detector reads the dotted name as one email-shaped value: masked whole.
+    expect(found.occurrences[0]!.name).toBe("s***@a********.count");
+    expect(found.occurrences[0]!.metricName).toBeUndefined();
+    expect(JSON.stringify(found)).not.toContain("jane.doe");
+
+    // An attribute finding on a metric whose name holds data: masked there too.
+    const attribute: {
+      occurrences: Array<DataSecurityFindingOccurrence>;
+      recordsRead: number;
+    } = read({
+      kind: DataStoreKind.TelemetryMetrics,
+      location: "attributes.client.ip",
+      dataTypeId: "ip-address",
+      rows: [point([["client.ip", IP]], `logins/${EMAIL}`)],
+    });
+
+    expect(attribute.occurrences[0]!.name).toBe(`logins/${MASKED_EMAIL}`);
+    expect(attribute.occurrences[0]!.metricName).toBeUndefined();
+    expect(JSON.stringify(attribute)).not.toContain("jane.doe");
+  });
+
+  test("a metric's name with a project's own type in it is masked by its own detector", () => {
+    const loyalty: ScanDetector = compileCustomDataType({
+      dataTypeId: "custom:loyalty",
+      pattern: "LOY-[0-9]{6}",
+    })!;
+
+    expect(
+      buildMetricNameReader(options({ customDetectors: [loyalty] }))(
+        "orders.LOY-123456.total",
+      ).isKey,
+    ).toBe(false);
+    expect(buildMetricNameReader(options())("orders.total")).toEqual({
+      text: "orders.total",
+      isKey: true,
+    });
+  });
+
+  test("end to end: a kept point's series come back masked, each once", async () => {
+    const statements: Array<Statement> = [];
+
+    jest
+      .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+      .mockImplementation((async (statement: Statement): Promise<Results> => {
+        statements.push(statement);
+
+        return {
+          json: (): Promise<unknown> => {
+            return Promise.resolve({
+              data: [
+                point([["http.route", `/users/${EMAIL}`]], "http.calls"),
+                point([["http.route", `/users/${EMAIL}`]], "http.calls"),
+                point([["http.route", "/health"]], "http.calls"),
+              ],
+            });
+          },
+        } as unknown as Results;
+      }) as never);
+
+    const found: DataSecurityFindingOccurrences =
+      await findTelemetryFindingOccurrences({
+        projectId: PROJECT_ID,
+        plan: plan(DataStoreKind.TelemetryMetrics, "attributes.http.route"),
+        ownerId: SERVICE,
+        location: "attributes.http.route",
+        dataTypeId: "email-address",
+        options: options(),
+        sampleRecords: [{ time: POINT_TIME, metricName: "http.calls" }],
+        lastSeenAt: NOW,
+        now: NOW,
+      });
+
+    expect(statements).toHaveLength(1);
+    expect(statements[0]!.query).toContain("match(substringUTF8(attributes[");
+    expect(found.source).toBe(DataSecurityOccurrencesSource.SampledRecords);
+    expect(found.occurrences).toHaveLength(1);
+    expect(found.occurrences[0]!.excerpt?.field).toBe("http.route");
+    expect(
+      (found.occurrences[0]!.excerpt?.parts || [])
+        .map((part: DataSecurityOccurrenceExcerptPart): string => {
+          return part.text;
+        })
+        .join(""),
+    ).toBe(`/users/${MASKED_EMAIL}`);
+    expect(JSON.stringify(found)).not.toContain(EMAIL);
+    jest.restoreAllMocks();
   });
 });

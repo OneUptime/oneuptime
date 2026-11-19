@@ -104,7 +104,10 @@ import {
   OccurrencePlan,
   planOccurrenceRead,
 } from "../Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
-import { createScrubRuleForFinding } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  createScrubRuleForFinding,
+  CreatedScrubRule,
+} from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
@@ -145,10 +148,11 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    that resource;
  *  - Scan Now and Check Now on a store, for anyone who may edit it;
  *  - Scrub It on a telemetry finding, for anyone who may create scrub
- *    rules - the rule is theirs, made under their own permissions;
+ *    rules, or metric pipeline rules for a metric's attribute - the rule is
+ *    theirs, made under their own permissions;
  *  - a telemetry finding's newest records, read now
  *    (TelemetryFindingOccurrences), for anyone who may read its masked
- *    samples and the store's telemetry itself - its logs, traces,
+ *    samples and the store's telemetry itself - its logs, traces, metrics,
  *    exceptions or sessions, as the explorers would let them;
  *  - Explain and Fix With AI on an issue, under the project's OneUptime AI
  *    switches and limits, sending the issue, its evidence and how to fix
@@ -182,15 +186,18 @@ const OPERATE_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
- * Who may make a scrub rule of either signal; the rule itself is made with
- * the person's own permissions, so a log rule still needs the log
- * permission and a trace rule the trace one.
+ * Who may make a scrub rule of any signal - a log or trace scrub rule, or
+ * the metric pipeline rule that redacts a metric's attribute; the rule
+ * itself is made with the person's own permissions, so a log rule still
+ * needs the log permission, a trace rule the trace one and a metric rule
+ * the metric pipeline rule one.
  */
 const SCRUB_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.CreateProjectLogScrubRule,
   Permission.CreateProjectTraceScrubRule,
+  Permission.CreateProjectMetricPipelineRule,
 ];
 
 /*
@@ -466,7 +473,7 @@ export default class DataSecurityAPI extends BaseAPI<
               dataTypeId: true,
               location: true,
               dataStoreId: true,
-              dataStore: { kind: true },
+              dataStore: { kind: true, serviceId: true },
             },
             props: { isRoot: true },
           });
@@ -489,16 +496,14 @@ export default class DataSecurityAPI extends BaseAPI<
           );
         }
 
-        const created: {
-          signal: "log" | "trace";
-          scrubRuleId: string;
-          scrubRuleName: string;
-        } = await createScrubRuleForFinding({
+        const created: CreatedScrubRule = await createScrubRuleForFinding({
           projectId,
           userId: props.userId || undefined,
           kind: finding.dataStore.kind as DataStoreKind,
           dataTypeId: finding.dataTypeId,
           location: finding.location,
+          // A metric's rule is its service's.
+          serviceId: finding.dataStore.serviceId || null,
         });
 
         await DataStoreFindingService.updateColumnsByIdWithoutHooks({
