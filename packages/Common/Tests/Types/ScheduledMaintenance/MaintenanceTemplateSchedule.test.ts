@@ -341,7 +341,7 @@ const SWEEPS: Array<SweepCase> = SWEEP_ZONES.flatMap(
 
 describe("two years of events keep the first event's wall clock", () => {
   test.each(
-    SWEEPS.map((sweep: SweepCase) => {
+    SWEEPS.map((sweep: SweepCase): [string, SweepCase] => {
       return [sweep.name, sweep];
     }),
   )("%s", (_name: string, sweep: SweepCase) => {
