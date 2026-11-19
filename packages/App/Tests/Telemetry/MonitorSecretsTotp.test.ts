@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 // Substitution only: the sandbox runner, the logger and tracing are not needed.
 jest.mock("Common/Server/Utils/VM/VMRunner", () => {
@@ -86,8 +87,12 @@ import MonitorUtil from "../../FeatureSet/Telemetry/Utils/Monitor";
  */
 
 interface MonitorSecretServiceMock {
-  getSecretsForMonitors: jest.Mock;
-  getSecretsForUnsavedMonitor: jest.Mock;
+  getSecretsForMonitors: Mock<
+    typeof MonitorSecretService.getSecretsForMonitors
+  >;
+  getSecretsForUnsavedMonitor: Mock<
+    typeof MonitorSecretService.getSecretsForUnsavedMonitor
+  >;
 }
 
 const monitorSecretService: MonitorSecretServiceMock =
