@@ -713,7 +713,7 @@ describe("creating a policy", () => {
     }
 
     expect(english(ON_CALL_POLICIES)).toContain(
-      "The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
+      "The **On-Call Policies** list shows each policy's **Name**, **Paged First**, **Description**, **Labels** and **Owners**. **Paged First** is who the policy's first escalation rule pages: its schedules, each with who is on call in it now, its teams and its people, or **No escalation rules** or **No responders** where it pages nobody. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
     );
   });
 
@@ -2253,8 +2253,9 @@ describe("user overrides", () => {
       "**Global User Overrides**",
       "**On-Call Policy User Overrides**",
     ]);
+    // The global page is under Schedules since #9701.
     expect(placement).toEqual([
-      "**On-Call → Advanced → User Overrides**",
+      "**On-Call → Schedules → User Overrides**",
       "A policy's **User Overrides**",
     ]);
     expect(english(USER_OVERRIDES)).toContain(
@@ -2794,7 +2795,7 @@ describe("user overrides", () => {
       "A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project.",
     );
     expect(page).toContain(
-      "**Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
+      "**Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Schedules → User Overrides** are locked and say why",
     );
     expect(
       readDashboardSource(

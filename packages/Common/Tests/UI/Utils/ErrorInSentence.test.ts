@@ -45,6 +45,12 @@ import {
   readRefusalValues,
 } from "../../../Types/Exception/RefusalWithValues";
 import {
+  LABEL_NAME_TAKEN_REFUSAL,
+  TEAM_NAME_TAKEN_REFUSAL,
+  getLabelNameTakenRefusal,
+  getTeamNameTakenRefusal,
+} from "../../../Types/Database/UniqueName";
+import {
   dashboardTranslator,
   readDashboardLocale,
   readDashboardLocaleAsDrawn,
@@ -569,6 +575,7 @@ describe("getErrorReader: the page's reader", () => {
     expect(importsOf("UI/Utils/ErrorInSentence.ts")).toEqual(
       [
         "../../Types/DataObservability/DataCheckRefusals",
+        "../../Types/Database/UniqueName",
         "../../Types/Exception/RefusalWithValues",
         "../../Types/Exception/UnexplainedError",
         "../../Types/Translator",
@@ -593,6 +600,11 @@ describe("getErrorReader: the page's reader", () => {
       "../../Types/Translator",
     ]);
     expect(importsOf("Types/DataObservability/DataCheckRefusals.ts")).toEqual([
+      "../Exception/RefusalWithValues",
+      "../Translator",
+    ]);
+    // A team's or a label's name another one of the project has (#9674).
+    expect(importsOf("Types/Database/UniqueName.ts")).toEqual([
       "../Exception/RefusalWithValues",
       "../Translator",
     ]);
@@ -679,4 +691,41 @@ describe("why a data check could not be written is said in the reader's language
       ),
     ).toEqual({ reason: translatableTerm(reason) });
   });
+});
+
+describe("a name another team or label has is said in the reader's language, with the name as written (#9674)", () => {
+  const NAME: string = "Tenants";
+
+  test("in English, as the server wrote it", () => {
+    for (const refusal of [
+      getTeamNameTakenRefusal(NAME),
+      getLabelNameTakenRefusal(NAME),
+    ]) {
+      expect(wordsOf(refusal)).toEqual({ isUnexplained: false, text: refusal });
+    }
+  });
+
+  test.each(["de", "fr", "es", "ja", "fa", "ar", "hi", "zh-CN"])(
+    "in %s, the sentence in that language with the name where it puts it",
+    (language: string) => {
+      for (const [refusal, message] of [
+        [TEAM_NAME_TAKEN_REFUSAL, getTeamNameTakenRefusal(NAME)],
+        [LABEL_NAME_TAKEN_REFUSAL, getLabelNameTakenRefusal(NAME)],
+      ] as const) {
+        const said: string = getErrorInSentenceText({
+          message: message,
+          translator: dashboardTranslator(language),
+        });
+
+        expect(said).toBe(
+          readDashboardLocaleAsDrawn(language)[refusal.template]!.replace(
+            "{{name}}",
+            NAME,
+          ),
+        );
+        expect(said).toContain(NAME);
+        expect(said).not.toContain("in this project. Pick another name.");
+      }
+    },
+  );
 });

@@ -188,6 +188,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import { answerPublicNoteReach } from "./PublicNoteReachAnswers";
 
 /*
  * Reads the page makes that these tests leave unanswered: refused at
@@ -221,6 +222,8 @@ async function openPublicNote(
 }
 
 beforeEach(() => {
+  // Whether a status page shows the event: one does, and notifies (#9735).
+  answerPublicNoteReach();
   window.localStorage.clear();
   getListMock.mockResolvedValue({
     data: [],

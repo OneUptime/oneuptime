@@ -60,7 +60,7 @@ The two note types look similar in the dashboard and behave very differently.
 :::steps
 ### Open the public notes
 
-Open the incident and choose **Notes → Public Notes** in its side menu. The composer above the notes says who will read the note before you post it: **Public · Visible on your status page**.
+Open the incident and choose **Notes → Public Notes** in its side menu. The composer above the notes says who will read the note before you post it: **Public · Visible on your status page**, or **Public · No status page shows this incident yet** while no status page shows the incident.
 
 ### Write the update
 
@@ -88,7 +88,7 @@ The same composer opens in a dialog from **Add Public Note** in the **Actions** 
 
 **Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Public notes on [maintenance events](/docs/status-pages/subscribers#maintenance-events) and [incident episodes](/docs/status-pages/subscribers#incident-episodes) follow a similar rule, based on whether the event or episode itself notified subscribers when it was created. A private incident or episode takes no public notes at all.
 
-**See who the note will reach.** While **Notify status page subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+**See who the note will reach.** While **Notify status page subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident's status page scope is the reason; why nobody will be told (the incident is hidden, no status page shows it, or the pages that show it send nothing) is said by the line under the checkbox. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
 **See what they will get.** Beside the same checkbox, **Preview** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. It stays grey until the note has some text. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
 

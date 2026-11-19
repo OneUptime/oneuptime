@@ -18,10 +18,58 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamMemberService from "./TeamMemberService";
 import ProjectSCIMService from "./ProjectSCIMService";
 import EditionEnforcement from "../Utils/EditionEnforcement";
+import UniqueNameInProject, {
+  UniqueNameRules,
+} from "../Utils/Database/UniqueNameInProject";
+import {
+  TEAM_NAME_TAKEN_REFUSAL,
+  TEAMS_RENAMED_TOGETHER_REFUSAL,
+} from "../../Types/Database/UniqueName";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A TEAM'S NAME IS ONE TEAM'S IN ITS PROJECT (#9674): it is all every
+   * picker shows of a team - Invite User's Team, an escalation rule's
+   * teams, an owner, a permission's teams - so two teams called "Tenants"
+   * could not be told apart anywhere they were picked. Compared as it
+   * reads, whatever its case or spacing (Types/Database/UniqueName).
+   *
+   * Asked of a person's or an API key's create and rename, once they may
+   * make it (UniqueNameInProject). OneUptime's own are trusted: a new
+   * project's Owners, Admin and Members, and SCIM's groups, which the
+   * identity provider names. Teams that already share a name keep it, and
+   * can still be edited and renamed apart.
+   */
+  private getUniqueNameRules(): UniqueNameRules<Model> {
+    return {
+      service: this,
+      takenRefusal: TEAM_NAME_TAKEN_REFUSAL,
+      renamedTogetherRefusal: TEAMS_RENAMED_TOGETHER_REFUSAL,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await UniqueNameInProject.refuseCreateClash({
+      rules: this.getUniqueNameRules(),
+      createBy: createBy,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await UniqueNameInProject.refuseRenameClash({
+      rules: this.getUniqueNameRules(),
+      updateBy: updateBy,
+    });
   }
 
   /*

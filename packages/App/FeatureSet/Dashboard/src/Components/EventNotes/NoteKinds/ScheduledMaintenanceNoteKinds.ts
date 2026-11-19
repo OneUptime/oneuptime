@@ -72,6 +72,13 @@ export function getScheduledMaintenancePublicNoteKind(data: {
     approval: {
       apiPath: "/scheduled-maintenance-public-note",
     },
+    /*
+     * Whether a status page shows the event - the pages picked on it, once
+     * it is visible and published - and whether a note notifies anyone.
+     */
+    statusPageReach: {
+      apiPath: "/scheduled-maintenance",
+    },
   };
 }
 

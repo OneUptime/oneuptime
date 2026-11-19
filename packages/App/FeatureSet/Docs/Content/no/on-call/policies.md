@@ -26,7 +26,7 @@ Skjemaet spør også **Utløs den ved hver nye hendelse og hvert nye varsel**, h
 
 Vil du heller bli veiledet steg for steg, fra telefonen din til et testtilkall, klikker du på **Veiledet oppsett**: på den tomme listen **Vaktpolicyer** eller under **Slik fungerer det**. Se [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 
-Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver policy. Velg policyer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter policyer fra en eksport: en eksport inneholder policyens egne innstillinger, ikke eskaleringsreglene eller eierne.
+Listen **Vaktpolicyer** viser **Navn**, **Varsles først**, **Beskrivelse**, **Etiketter** og **Eiere** for hver policy. **Varsles først** viser hvem den første eskaleringsregelen i policyen tilkaller: vaktplanene dens, hver med den som har vakt i den akkurat nå, teamene dens og personene den nevner, eller **Ingen eskaleringsregler** eller **Ingen mottakere** når den ikke tilkaller noen. Velg policyer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter policyer fra en eksport: en eksport inneholder policyens egne innstillinger, ikke eskaleringsreglene eller eierne.
 
 ## Hva som kjører en policy
 

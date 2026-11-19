@@ -14,6 +14,7 @@ import {
   render,
   RenderResult,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React from "react";
@@ -49,6 +50,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getList: (...args: Array<any>) => {
         return getListMock(...args);
+      },
+      // The tenant header the composer's own asks send (#9735).
+      getCommonHeaders: (): Record<string, string> => {
+        return {};
       },
     },
   };
@@ -114,6 +119,15 @@ import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
+import { answerPublicNoteReach } from "./PublicNoteReachAnswers";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the public note dialog makes that these tests leave unanswered:
+ * refused at once, as the network refused them, and taken as reads it
+ * could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/scheduled-maintenance-public-note/approval/policy"]);
 
 interface RenderedFeedItem {
   key: string;
@@ -203,12 +217,15 @@ async function chooseAction(text: string): Promise<void> {
  */
 beforeEach(() => {
   window.localStorage.clear();
+  // Whether a status page shows the event: one does, and notifies (#9735).
+  answerPublicNoteReach();
 });
 
 afterEach(() => {
   cleanup();
   getListMock.mockReset();
   feedRenderMock.mockReset();
+  jest.restoreAllMocks();
 });
 
 describe("ScheduledMaintenanceFeedElement refresh", () => {
@@ -448,9 +465,12 @@ describe("scheduled maintenance note dialogs", () => {
     });
 
     expect(within(dialog).getByTestId("note-composer")).toBeInTheDocument();
-    expect(within(dialog).getByTestId("note-audience")).toHaveTextContent(
-      "Visible on your status page",
-    );
+    // Once the server says a status page shows the event (#9735).
+    await waitFor(() => {
+      expect(within(dialog).getByTestId("note-audience")).toHaveTextContent(
+        "Visible on your status page",
+      );
+    });
     expect(dialog).not.toHaveTextContent(/state change/i);
     // One step, posted as an update.
     expect(within(dialog).queryByRole("button", { name: "Next" })).toBeNull();

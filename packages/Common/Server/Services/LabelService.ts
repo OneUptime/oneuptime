@@ -9,10 +9,17 @@ import { getLabelListSort } from "../../Utils/LabelOrder";
 import { getNaturalSortKey } from "../../Utils/NaturalOrder";
 import DatabaseService from "./DatabaseService";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import UniqueNameInProject from "../Utils/Database/UniqueNameInProject";
 import {
   ARCHIVABLE_VALUES,
   ArchivableValueType,
+  isArchivedValue,
 } from "../../Utils/ArchivableValues";
+import {
+  LABEL_NAME_TAKEN_REFUSAL,
+  LABELS_RENAMED_TOGETHER_REFUSAL,
+  getLabelNameTakenRefusal,
+} from "../../Types/Database/UniqueName";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
@@ -118,12 +125,18 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
     });
 
+    /*
+     * A name another label of the project has, read as it reads: whatever
+     * its case and spacing (Types/Database/UniqueName). Asked of every
+     * create, OneUptime's own too: the labels telemetry names are looked up
+     * the same way first (findOrCreateLabelByName).
+     */
     let existingProjectWithSameNameCount: number = 0;
 
     existingProjectWithSameNameCount = (
       await this.countBy({
         query: {
-          name: QueryHelper.findWithSameText(createBy.data.name!),
+          name: QueryHelper.findWithSameName(createBy.data.name!),
           projectId: projectId,
         },
         props: {
@@ -133,12 +146,47 @@ export class Service extends DatabaseService<Model> {
     ).toNumber();
 
     if (existingProjectWithSameNameCount > 0) {
-      throw new BadDataException(
-        "Label with the same name already exists in this project.",
-      );
+      throw new BadDataException(getLabelNameTakenRefusal(createBy.data.name));
     }
 
     return Promise.resolve({ createBy, carryForward: null });
+  }
+
+  /*
+   * A RENAME TAKES A NAME NO OTHER LABEL HAS (#9674). A new label was
+   * refused another label's name, and a renamed one was not, so two labels
+   * read "Production" in every label picker and filter, each with its own
+   * records. Refused once the caller may make the rename, with the
+   * archived label's way back when that is the label named so
+   * (UniqueNameInProject). A label written with its own name again - its
+   * colour changed, its name in another case - is no rename.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await UniqueNameInProject.refuseRenameClash({
+      rules: {
+        service: this,
+        takenRefusal: LABEL_NAME_TAKEN_REFUSAL,
+        renamedTogetherRefusal: LABELS_RENAMED_TOGETHER_REFUSAL,
+        clashSelect: {
+          isArchived: true,
+        },
+        describeClash: (data: {
+          clash: Model;
+          name: string;
+        }): string | null => {
+          return isArchivedValue(data.clash)
+            ? ArchivableValueGuard.getArchivedNamesakeRefusal({
+                definition: ARCHIVABLE_VALUES[ArchivableValueType.Label],
+                name: data.name,
+              })
+            : null;
+        },
+      },
+      updateBy: updateBy,
+    });
   }
 
   /*
@@ -410,10 +458,11 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID,
     name: string,
   ): Promise<ObjectID | null> {
+    // Read as a label's create compares names: whatever its case and spacing.
     const existing: Model | null = await this.findOneBy({
       query: {
         projectId: projectId,
-        name: QueryHelper.findWithSameText(name),
+        name: QueryHelper.findWithSameName(name),
       },
       select: { _id: true },
       props: { isRoot: true },
@@ -448,7 +497,7 @@ export class Service extends DatabaseService<Model> {
       const refetched: Model | null = await this.findOneBy({
         query: {
           projectId: projectId,
-          name: QueryHelper.findWithSameText(name),
+          name: QueryHelper.findWithSameName(name),
         },
         select: { _id: true },
         props: { isRoot: true },
