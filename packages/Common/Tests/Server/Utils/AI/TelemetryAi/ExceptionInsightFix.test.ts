@@ -8,11 +8,14 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import AIInsightService from "../../../../../Server/Services/AIInsightService";
-import AIRunService from "../../../../../Server/Services/AIRunService";
 import AIService from "../../../../../Server/Services/AIService";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
+import CodeFixOnItsWay, {
+  CodeFixProblem,
+  CodeFixProblemKind,
+} from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import OpenPullRequestCap from "../../../../../Server/Utils/AI/CodeFix/OpenPullRequestCap";
 import CodeTaskAccess from "../../../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
@@ -43,7 +46,6 @@ import { AIFixReadiness } from "../../../../../Types/AI/AIFixReadiness";
 import { ExceptionStackTraceInsightEvidence } from "../../../../../Types/AI/AIInsightEvidence";
 import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
-import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import {
   CodeTaskBlockerType,
@@ -234,7 +236,7 @@ let startForOneUptime: SpyInstance<typeof CodeTaskRuns.startForOneUptime>;
 let startForPerson: SpyInstance<typeof CodeTaskRuns.start>;
 let readInsight: SpyInstance<typeof AIInsightService.findOneBy>;
 let linkInsight: SpyInstance<typeof AIInsightService.updateOneBy>;
-let readActiveRun: SpyInstance<typeof AIRunService.findOneBy>;
+let readActiveRun: SpyInstance<typeof CodeFixOnItsWay.findTurn>;
 const createdTaskId: ObjectID = ObjectID.generate();
 
 function firstArgument(spy: SpyInstance<never>, call: number = 0): JSONObject {
@@ -354,8 +356,9 @@ beforeEach(() => {
     .mockImplementation(async () => {
       return readiness;
     });
+  // The exception's own AI task on its way, by the one rule (its own suites).
   readActiveRun = jest
-    .spyOn(AIRunService, "findOneBy")
+    .spyOn(CodeFixOnItsWay, "findTurn")
     .mockImplementation(async () => {
       return activeExceptionRun;
     });
@@ -1102,17 +1105,17 @@ describe("ExceptionInsightFix - a person's Fix with AI on a new or rising except
       taskId: codeTaskId.toString(),
     });
 
-    const query: JSONObject = firstArgument(readActiveRun as never)[
-      "query"
-    ] as JSONObject;
+    // The exception's, of both of its own AI tasks - a reply in Code included.
+    const problem: CodeFixProblem = readActiveRun.mock.calls[0]![0];
 
-    expect(query["runType"]).toBe(AIRunType.CodeFix);
-    expect(String(query["triggeredByTelemetryExceptionId"])).toBe(EXCEPTION_ID);
-    expect(JSON.stringify(query["codeFixTaskType"])).toContain(
-      CodeFixTaskType.FixException,
-    );
-    expect(JSON.stringify(query["codeFixTaskType"])).toContain(
-      CodeFixTaskType.ImproveExceptionHandling,
+    expect(problem.kind).toBe(CodeFixProblemKind.Exception);
+    expect(problem.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(problem.recordId).toBe(EXCEPTION_ID);
+    expect(problem.taskTypes).toEqual(
+      expect.arrayContaining([
+        CodeFixTaskType.FixException,
+        CodeFixTaskType.ImproveExceptionHandling,
+      ]),
     );
   });
 
