@@ -165,6 +165,8 @@ const RAW_CLAIM_READERS: Record<string, string> = {
     "the state cookie of a status page OIDC sign-in in flight, matched to the provider's answer",
   "packages/App/FeatureSet/Identity/Utils/ProviderSignIn.ts":
     "the state cookie of a Sign in with Microsoft or Continue with Google in flight, matched to the provider's answer",
+  "packages/App/FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation.ts":
+    "the link a project's SSO emails an address no account uses yet, by its own purpose, kind, project and provider: it names no session, and confirming it signs nobody in",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
     "a status page's master-password cookie, by its type and status page",
   "packages/Common/Server/Services/StatusPageService.ts":
