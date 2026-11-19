@@ -71,6 +71,8 @@ flowchart TB
 
 每条日志都保留其条目精确到纳秒的时间、严重性、追踪和 span，以及采用 OpenTelemetry 语义约定名称的 HTTP 请求。当它的受监控资源是 OneUptime 读取其指标的一种类型时，例如虚拟机 (`gce_instance`)、Cloud Run 服务 (`cloud_run_revision`) 或 Cloud SQL 实例 (`cloudsql_database`)，日志就归档在该资源下，并以 `cloud.resource_id` 携带资源的 ID。外部负载均衡器的请求日志写在 `http_load_balancer` 下，但会归档在其 URL 映射，也就是其指标所落的 `https_lb_rule` 下。
 
+审计日志的条目会作为其日志的正文完整到达：开启 [在日志中查找安全事件](/docs/telemetry/security-events#在日志中查找安全事件) 后，每个条目都会像来自日志管道的条目一样被读取为安全事件，并且无论通过多少条途径到达 OneUptime，都只存储一次。
+
 实例组的日志是其虚拟机的日志，因此它的页面没有 **日志** 标签页。其他类型的条目照样会流式传输，归在其项目下。
 
 ## 命令创建的内容

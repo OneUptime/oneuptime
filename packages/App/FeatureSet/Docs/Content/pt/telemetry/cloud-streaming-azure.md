@@ -83,6 +83,8 @@ Um namespace do Service Bus ou do Event Hubs não transmite métricas. As leitur
 
 Um log é arquivado sob o recurso pelo ID do ARM do recurso, levado como `cloud.resource_id`, e mantém a categoria, a operação, o resultado e as propriedades como atributos, por exemplo `azure.category`.
 
+Um registro do log de atividades da categoria `Administrative`, `Security` ou `Policy`, e um registro de login, de auditoria ou de risco do Microsoft Entra ID, chegam inteiros, como corpo do log, mesmo um sobre um grupo de recursos, uma assinatura ou o locatário em vez de um recurso. Com [Encontrar eventos de segurança nos seus logs](/docs/telemetry/security-events#encontrar-eventos-de-segurança-nos-seus-logs) ativado, cada um é lido como um evento de segurança, como um de um pipeline de logs, e salvo uma única vez, por quantos caminhos chegar ao OneUptime. O comando configura só os logs de recursos: o log de atividades de uma assinatura e os logs do Microsoft Entra ID chegam ao stream por uma configuração de diagnóstico própria que os envia para um dos hubs de eventos dele.
+
 Máquinas virtuais, conjuntos de dimensionamento, discos, interfaces de rede, redes virtuais, pontos de extremidade privados, gateways NAT, zonas DNS e planos do App Service não enviam logs de recursos próprios, então as páginas deles não têm a aba **Registros**. Os logs de uma conta de armazenamento são os dos seus serviços, e os de um aplicativo de contêiner, os do seu ambiente.
 
 ## O que o comando cria

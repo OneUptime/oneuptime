@@ -83,6 +83,8 @@ Een Service Bus- of Event Hubs-namespace streamt geen metrieken. De leesacties l
 
 Een logboekregel wordt onder zijn resource gearchiveerd via de ARM-ID van de resource, meegegeven als `cloud.resource_id`, en houdt zijn categorie, bewerking, resultaat en eigenschappen als attributen, zoals `azure.category`.
 
+Een record van het activiteitenlogboek in de categorie `Administrative`, `Security` of `Policy`, en een aanmeldings-, audit- of risicorecord van Microsoft Entra ID, komen in hun geheel aan, als de tekst van hun logboekregel, ook een over een resourcegroep, een abonnement of de tenant in plaats van een resource. Met [Beveiligingsgebeurtenissen in uw logboeken vinden](/docs/telemetry/security-events#beveiligingsgebeurtenissen-in-uw-logs-vinden) aan wordt elk record gelezen als een beveiligingsgebeurtenis, net als een uit een logpijplijn, en één keer opgeslagen, langs hoeveel wegen het OneUptime ook bereikt. De opdracht stelt alleen resourcelogboeken in: het activiteitenlogboek van een abonnement en de logboeken van Microsoft Entra ID bereiken de stream via een eigen diagnostische instelling die ze naar een van zijn Event Hubs stuurt.
+
 Virtuele machines, schaalsets, schijven, netwerkinterfaces, virtuele netwerken, privé-eindpunten, NAT-gateways, DNS-zones en App Service-plannen sturen geen eigen resourcelogboeken, dus hun pagina's hebben geen tabblad **Logboeken**. De logboeken van een opslagaccount zijn die van zijn services, en die van een container-app die van haar omgeving.
 
 ## Wat de opdracht aanmaakt
