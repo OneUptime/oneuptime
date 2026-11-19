@@ -113,7 +113,7 @@ export async function findSavedMetricQueryRows(data: {
 
   found.monitors = toRows(
     (await MonitorService.getRepository().manager.query(
-      `SELECT "_id", "name", "monitorSteps" FROM "Monitor" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "monitorType" = $2 AND "monitorSteps" IS NOT NULL AND ${anyPattern(
+      `SELECT "monitorSteps", "_id", "name" FROM "Monitor" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "monitorType" = $2 AND "monitorSteps" IS NOT NULL AND ${anyPattern(
         { column: "monitorSteps", patterns, first: 3 },
       )} LIMIT $${3 + patterns.length}`,
       [project, MonitorType.Metrics, ...patterns, data.limit],
@@ -123,7 +123,7 @@ export async function findSavedMetricQueryRows(data: {
 
   found.dashboards = toRows(
     (await DashboardService.getRepository().manager.query(
-      `SELECT "_id", "name", "dashboardViewConfig" FROM "Dashboard" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "dashboardViewConfig" IS NOT NULL AND ${anyPattern(
+      `SELECT "dashboardViewConfig", "_id", "name" FROM "Dashboard" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "dashboardViewConfig" IS NOT NULL AND ${anyPattern(
         { column: "dashboardViewConfig", patterns, first: 2 },
       )} LIMIT $${2 + patterns.length}`,
       [project, ...patterns, data.limit],
@@ -134,7 +134,7 @@ export async function findSavedMetricQueryRows(data: {
   if (data.includeSlos) {
     found.slos = toRows(
       (await ServiceLevelObjectiveService.getRepository().manager.query(
-        `SELECT "_id", "name", "metricQueryConfig" FROM "ServiceLevelObjective" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isArchived" IS NOT TRUE AND "metricQueryConfig" IS NOT NULL AND ${anyPattern(
+        `SELECT "metricQueryConfig", "_id", "name" FROM "ServiceLevelObjective" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isArchived" IS NOT TRUE AND "metricQueryConfig" IS NOT NULL AND ${anyPattern(
           { column: "metricQueryConfig", patterns, first: 2 },
         )} LIMIT $${2 + patterns.length}`,
         [project, ...patterns, data.limit],
