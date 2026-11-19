@@ -15,7 +15,7 @@ import {
   LlmUsageSource,
 } from "Common/Types/Telemetry/LlmUsageApi";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { LlmTile } from "../LlmConversations/LlmSummaryTiles";
 import {
@@ -29,6 +29,15 @@ import {
   LLM_USAGE_SOURCE_WORDS,
   isFromUsageMetrics,
 } from "./LlmUsageSourceCopy";
+import { getFailedLlmCallsRoute } from "./LlmCallsRoute";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+
+// What the error rate's link opens, for its tooltip and a screen reader.
+export const SHOW_FAILED_AI_CALLS: string = translationKey(
+  "Show the AI calls that failed",
+);
 
 /*
  * THE TOTALS ABOVE WHO-SPENDS-WHAT.
@@ -199,6 +208,21 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
         }
         // "...from your apps" is what the hint says: never cut short.
         wrapHint={true}
+        /*
+         * An error rate opens what failed (#9750): Calls, on the AI calls of
+         * this range that failed - while any did.
+         */
+        hintRoute={
+          figures && figures.erroredCalls > 0
+            ? getFailedLlmCallsRoute({
+                callsRoute: RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.LLM_CALLS] as Route,
+                ),
+                range: props.range,
+              })
+            : undefined
+        }
+        hintRouteTitle={SHOW_FAILED_AI_CALLS}
         icon={IconProp.Sparkles}
         iconClassName="text-violet-600"
         iconTileClassName="bg-violet-50"

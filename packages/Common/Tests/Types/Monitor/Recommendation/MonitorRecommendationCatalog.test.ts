@@ -14,7 +14,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import { getAllCephAlertTemplates } from "../../../../Types/Monitor/CephAlertTemplates";
 import { getAllDockerAlertTemplates } from "../../../../Types/Monitor/DockerAlertTemplates";
 import { getAllDockerSwarmAlertTemplates } from "../../../../Types/Monitor/DockerSwarmAlertTemplates";
-import { getAllHostAlertTemplates } from "../../../../Types/Monitor/HostAlertTemplates";
+import {
+  getAllHostAlertTemplates,
+  getAndroidHostAlertTemplates,
+} from "../../../../Types/Monitor/HostAlertTemplates";
 import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
@@ -164,7 +167,9 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   {
     resourceType: MonitorRecommendationResourceType.Host,
     monitorTypes: [MonitorType.Host],
-    templateCount: getAllHostAlertTemplates().length,
+    // An Android device's own are offered to a host whose OS is Android alone (#9802).
+    templateCount:
+      getAllHostAlertTemplates().length + getAndroidHostAlertTemplates().length,
     contextFreeTemplateCount: getAllHostAlertTemplates().length,
     identifierFieldName: "hostIdentifier",
   },

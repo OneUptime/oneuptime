@@ -262,6 +262,12 @@ export interface FailedAnswer {
   requestIdLabel?: string | undefined;
   // Who a 401 or a 403 refused ("the app", "the user"), and what to do about it, when known.
   refused?: { who: string; advice?: string | undefined } | undefined;
+  /*
+   * Whether the answer refused a credential whatever its status: an OAuth
+   * 2.0 token endpoint refuses a key with a 400 (RFC 6749, 5.2), as Google's
+   * does a deleted one (invalid_grant). A 401 and a 403 are refusals anyway.
+   */
+  isRefusal?: boolean | undefined;
   // The connection's secrets, taken out of the provider's message.
   secrets?: Array<string> | undefined;
   // Why the provider's docs say it may pass, when they do (#9679).
@@ -283,7 +289,9 @@ export function describeFailedAnswer(answer: FailedAnswer): {
       .trim(),
   );
   const isRefusal: boolean =
-    answer.statusCode === 401 || answer.statusCode === 403;
+    answer.isRefusal === true ||
+    answer.statusCode === 401 ||
+    answer.statusCode === 403;
   const code: string | null = answer.errorCode;
   const head: string =
     isRefusal && answer.refused

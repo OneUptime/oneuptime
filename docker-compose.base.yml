@@ -830,6 +830,11 @@ services:
       ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
       NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
       NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
+      # HTTP/2 for HOST on the HTTPS port, which the ingress serves itself only
+      # with PROVISION_SSL=true; OTLP over gRPC to HOST needs it. "on" here
+      # too, so a config.env from before the setting keeps it on. off in
+      # config.env turns it off (see config.example.env).
+      NGINX_HTTP2: ${NGINX_HTTP2:-on}
       # Per-request access logging for the high-volume ingest locations
       # (/otlp, /telemetry, /session-replay, /kubernetes-cost, /pyroscope).
       # Defaults to "on" here rather than to config.env, so an operator who has

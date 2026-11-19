@@ -1,0 +1,3 @@
+# The value is write-only: nobody may read a monitor secret's value, so an
+# import cannot know it, and the settling apply sends it again.
+oneuptime_monitor_secret.sign_in secret_value  # nobody may read a secret's value, so an import cannot know it

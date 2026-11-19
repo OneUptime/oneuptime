@@ -84,7 +84,9 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
 import { STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
 import { resolveClientIp } from "../Utils/ClientIp";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -337,6 +339,10 @@ export const STATUS_PAGE_COUNT_STATEMENT: string =
 
 export const FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE: string =
   "You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.";
+
+// What a project whose subscription is unpaid is told when it adds a status page.
+export const UNPAID_SUBSCRIPTION_STATUS_PAGE_MESSAGE: string =
+  "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more status pages.";
 
 export class Service extends ProjectReferencesService<StatusPage> {
   /*
@@ -663,32 +669,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
       throw new BadDataException("The status page has no project.");
     }
 
-    // if the project is on the free plan, then only allow 1 status page.
-    if (IsBillingEnabled) {
-      const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
-        createBy.data.projectId,
-      );
+    // The project's plan: an unpaid subscription adds none, the Free plan one.
+    const planRefusal: string | null = await this.getCreateRefusal({
+      projectId: createBy.data.projectId,
+    });
 
-      if (currentPlan.isSubscriptionUnpaid) {
-        throw new BadDataException(
-          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more status pages.",
-        );
-      }
-
-      if (currentPlan.plan === PlanType.Free) {
-        const statusPageCount: PositiveNumber = await this.countBy({
-          query: {
-            projectId: createBy.data.projectId,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        if (statusPageCount.toNumber() >= AllowedStatusPageCountInFreePlan) {
-          throw new BadDataException(FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE);
-        }
-      }
+    if (planRefusal) {
+      throw new BadDataException(planRefusal);
     }
 
     if (!createBy.data.downtimeMonitorStatuses) {
@@ -776,6 +763,58 @@ export class Service extends ProjectReferencesService<StatusPage> {
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * WHY THE PROJECT'S PLAN REFUSES `adding` MORE STATUS PAGES NOW, or null
+   * when it does not: an unpaid subscription adds none, and OneUptime
+   * Cloud's Free plan allows AllowedStatusPageCountInFreePlan in all. The
+   * early check of every create (onBeforeCreate), and the answer Ask AI
+   * gives before its card (PublishStatusPageTool.checkBeforeApproval, #7250),
+   * so the two never disagree. Null without billing. Not under the limit's
+   * lock: an answer for now, which the INSERT's own check makes again
+   * (getCreateLimit).
+   */
+  @CaptureSpan()
+  public async getCreateRefusal(data: {
+    projectId: ObjectID;
+    adding?: number | undefined;
+  }): Promise<string | null> {
+    const adding: number = data.adding ?? 1;
+
+    if (!IsBillingEnabled || adding <= 0) {
+      return null;
+    }
+
+    const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
+      data.projectId,
+    );
+
+    if (currentPlan.isSubscriptionUnpaid) {
+      return UNPAID_SUBSCRIPTION_STATUS_PAGE_MESSAGE;
+    }
+
+    if (currentPlan.plan !== PlanType.Free) {
+      return null;
+    }
+
+    const statusPageCount: PositiveNumber = await this.countBy({
+      query: {
+        projectId: data.projectId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      statusPageCount.toNumber() + adding >
+      AllowedStatusPageCountInFreePlan
+    ) {
+      return FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE;
+    }
+
+    return null;
   }
 
   /*
@@ -1131,9 +1170,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the status page are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the status page are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: StatusPageOwnerUserService,
       ownerTeamService: StatusPageOwnerTeamService,
       resourceIdColumn: "statusPageId",

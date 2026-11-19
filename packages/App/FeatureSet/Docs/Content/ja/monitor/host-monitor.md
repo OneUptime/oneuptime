@@ -125,6 +125,21 @@ OneUptime にはマシン用のモニターが 2 つあります。同じホス�
 - **プロセス数** はホストの合計ではなく、最も多い単一のプロセス状態（`running`、`sleeping`、…）を比較するため、プロセス一覧とは一致しません。プロセスのスクレイパーは Linux、macOS、BSD で報告し、Windows では報告しません。
 - **Systemd Unit Failed** は、`failed` 状態の systemd サービスごとに 1 件のアラートを作ります。コレクターの `systemd` レシーバーから読み、OneUptime の既定の設定は systemd のある Linux ホストでこれを読みます。ユニットが再び動くか、`systemctl reset-failed` でクリアされると解決します。
 
+## Android デバイス
+
+OS が Android のホスト、たとえば [Android エージェント](/docs/telemetry/android-agent) を実行するキオスクや POS 端末には、エージェントが送信するものを読み取る専用のテンプレートが、Host Stopped Reporting、Host Restarted、High Memory Utilization とあわせて提示されます。スワップ、inode、ロード、systemd ユニットなど、デバイスが決して送信しないものを対象とするテンプレートは提示されません。
+
+| テンプレート | 重大度 | 監視対象 | 発火する条件 | 回復する条件 |
+| --- | --- | --- | --- | --- |
+| Device Unplugged | 警告 | `android.battery.plugged`、Max、過去 10 分 | ウィンドウ全体でデバイスがバッテリーで動作している | 再び電源につながる |
+| Low Battery | 警告 | `hw.battery.charge`、Min をパーセントで、過去 5 分 | 20% 未満 | 20% 以上 |
+| Device Overheating | 警告 | `android.thermal.status`、Max、過去 5 分 | 3（深刻）以上 | 3 未満 |
+| Restart Loop | 重大 | `android.boot.recent_count`、Max、過去 1 時間 | いずれかの値が 3 以上 | すべての値が 3 未満 |
+| Storage Nearly Full | 重大 | `system.filesystem.utilization`、`mountpoint` ごとの Max をパーセントで、過去 5 分 | 90% を超える | 90% 以下 |
+| High CPU Utilization | 警告 | `idle` の状態の `system.cpu.utilization` から、1 から idle を引いた値をビジーとしてパーセントで、過去 5 分 | 80% を超える | 80% 以下 |
+
+High CPU Utilization は、デバイスが CPU 使用率を報告するようになると提示されます。Android 8 以降では、そのためにエージェントがデバイスオーナーである必要があります。Android デバイスのアラートは、サーバーのシェルコマンドではなく、最初に実行する adb コマンド（`adb shell dumpsys battery` や `adb shell getprop sys.boot.reason` など）から始まります。
+
 ## 収集されるメトリクス
 
 **ホストのメトリクス** の一覧には次のメトリクスがあります。それぞれが `resource.host.name` を持ち、モニターはこれでクエリを 1 台のホストに限定します。そこで選ぶと、CPU は `user` 状態を、メモリとファイルシステムの使用量は `used` 状態を数え、ファイルシステムとプロセスはマウントポイントとステータスごとに 1 つの系列になります。

@@ -324,8 +324,21 @@ describe("what a resource's page leads with", () => {
       "requests",
       "httpresponsetime",
       "http5xx",
+      // Its Health check, where one is set (#9740).
+      "healthcheckstatus",
       "memoryworkingset",
       "functionexecutioncount",
+    ]);
+    // What it stores leads a Cosmos DB account's page (#9740).
+    expect(
+      getCloudHeadlineKeys("azure", "Microsoft.DocumentDB/databaseAccounts"),
+    ).toEqual([
+      "datausagev2",
+      "indexusagev2",
+      "documentcountv2",
+      "totalrequests",
+      "normalizedruconsumption",
+      "serversidelatencydirect",
     ]);
     expect(
       getCloudHeadlineKeys("azure", "Microsoft.Storage/storageAccounts"),

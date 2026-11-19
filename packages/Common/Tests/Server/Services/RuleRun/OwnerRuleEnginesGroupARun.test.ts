@@ -69,6 +69,7 @@ import logger from "../../../../Server/Utils/Logger";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
+import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import {
   RuleApplicationResult,
   RuleApplicationResultUtil,
@@ -976,3 +977,221 @@ describe.each(
     expect(mocks.createFeedItem).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * #9933: AN OWNER RULE IS CREDITED ONLY WITH THE OWNERS IT ADDED.
+ *
+ * createOwner skips a user who has left the project and a team that is not
+ * one of its teams. A run whose matched rules named only such owners used to
+ * report "already applied" - the summary then said the resource had the
+ * rules' owners, which it did not - and the feed credited every matched rule
+ * that named an owner, whether or not any of them was added. A run whose
+ * every owner was skipped is one it could not update now, with the skipped
+ * logged by id, and the feed counts and names only the rules that added
+ * someone.
+ */
+const DEPARTED_USER_ID: ObjectID = new ObjectID(
+  "99999999-9999-4999-8999-999999999999",
+);
+
+describe.each(
+  CASES.map((c: OwnerEngineCase): [string, OwnerEngineCase] => {
+    return [c.name, c];
+  }),
+)(
+  "%s - the owners its rules name that it skipped (#9933)",
+  (_name: string, c: OwnerEngineCase) => {
+    let warned: jest.SpyInstance;
+
+    beforeEach(() => {
+      jest.spyOn(logger, "error").mockImplementation(() => {});
+      jest.spyOn(logger, "debug").mockImplementation(() => {});
+      warned = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    // Only these users are members of the project; anyone else has left.
+    function membersAre(mocks: EngineMocks, members: Array<ObjectID>): void {
+      mocks.memberCheck.mockImplementation((async (data: {
+        userId: ObjectID;
+      }): Promise<boolean> => {
+        return members.some((member: ObjectID): boolean => {
+          return member.toString() === data.userId.toString();
+        });
+      }) as never);
+    }
+
+    function named(rule: BaseModel, name: string): BaseModel {
+      (rule as unknown as Record<string, unknown>)["name"] = name;
+      return rule;
+    }
+
+    it("counts the rule that names a member, and not the one that names only someone who left", async () => {
+      const mocks: EngineMocks = mockEngine(c);
+      membersAre(mocks, [USER_ID]);
+
+      const result: RuleApplicationResult = await runRules(
+        c,
+        [
+          fakeRule(c, { userIds: [USER_ID], teamIds: [] }),
+          named(
+            fakeRule(c, {
+              id: SECOND_RULE_ID,
+              userIds: [DEPARTED_USER_ID],
+              teamIds: [],
+            }),
+            "Leavers",
+          ),
+        ],
+        true,
+      );
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(mocks.createOwnerUser).toHaveBeenCalledTimes(1);
+      expect(writtenRow(mocks.createOwnerUser).userId.toString()).toBe(
+        USER_ID.toString(),
+      );
+
+      if (mocks.createFeedItem) {
+        expect(mocks.createFeedItem).toHaveBeenCalledTimes(1);
+        const feedItem: any = mocks.createFeedItem.mock.calls[0]![0];
+        expect(feedItem.feedInfoInMarkdown).toContain("by 1 owner rule.");
+        expect(feedItem.moreInformationInMarkdown).toContain(
+          "Production owners",
+        );
+        expect(feedItem.moreInformationInMarkdown).not.toContain("Leavers");
+      }
+
+      // The one skipped is logged, by id.
+      expect(warned).toHaveBeenCalledTimes(1);
+      expect(String(warned.mock.calls[0]![0])).toContain(
+        `user ${DEPARTED_USER_ID.toString()} (NotProjectMember)`,
+      );
+    });
+
+    it("does not credit a rule whose only owner the resource already had", async () => {
+      const mocks: EngineMocks = mockEngine(c, { assignedTeamIds: [TEAM_ID] });
+
+      const result: RuleApplicationResult = await runRules(
+        c,
+        [
+          fakeRule(c, { userIds: [USER_ID], teamIds: [] }),
+          named(
+            fakeRule(c, {
+              id: SECOND_RULE_ID,
+              userIds: [],
+              teamIds: [TEAM_ID],
+            }),
+            "Already there",
+          ),
+        ],
+        true,
+      );
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+
+      if (mocks.createFeedItem) {
+        const feedItem: any = mocks.createFeedItem.mock.calls[0]![0];
+        expect(feedItem.feedInfoInMarkdown).toContain("by 1 owner rule.");
+        expect(feedItem.moreInformationInMarkdown).not.toContain(
+          "Already there",
+        );
+      }
+
+      expect(warned).not.toHaveBeenCalled();
+    });
+
+    it("credits every rule that names an owner it added", async () => {
+      const mocks: EngineMocks = mockEngine(c);
+
+      const result: RuleApplicationResult = await runRules(
+        c,
+        [
+          fakeRule(c, { userIds: [USER_ID], teamIds: [] }),
+          named(
+            fakeRule(c, {
+              id: SECOND_RULE_ID,
+              userIds: [USER_ID],
+              teamIds: [],
+            }),
+            "Second rule",
+          ),
+        ],
+        true,
+      );
+
+      // One owner, named by both.
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+
+      if (mocks.createFeedItem) {
+        const feedItem: any = mocks.createFeedItem.mock.calls[0]![0];
+        expect(feedItem.feedInfoInMarkdown).toContain("by 2 owner rules.");
+        expect(feedItem.moreInformationInMarkdown).toContain("Second rule");
+      }
+    });
+
+    it("is a resource it could not update - never already applied - when every owner was someone who left", async () => {
+      const mocks: EngineMocks = mockEngine(c);
+      membersAre(mocks, []);
+
+      const result: RuleApplicationResult = await runRules(
+        c,
+        [fakeRule(c, { userIds: [DEPARTED_USER_ID], teamIds: [] })],
+        true,
+      );
+
+      expect(result).toEqual(RuleApplicationResultUtil.failed());
+      expect(result).not.toEqual(RuleApplicationResultUtil.alreadyApplied());
+      expect(mocks.createOwnerUser).not.toHaveBeenCalled();
+
+      if (mocks.createFeedItem) {
+        expect(mocks.createFeedItem).not.toHaveBeenCalled();
+      }
+
+      expect(warned).toHaveBeenCalledTimes(1);
+      expect(String(warned.mock.calls[0]![0])).toContain(
+        `user ${DEPARTED_USER_ID.toString()} (NotProjectMember)`,
+      );
+    });
+
+    it("is one it could not update when every owner was a team that is not the project's", async () => {
+      const mocks: EngineMocks = mockEngine(c);
+      mocks.createOwnerTeam.mockRejectedValue(
+        new ProjectScopedReferenceException(
+          `This owner team references records that are not in this project: Team "${TEAM_ID.toString()}". Please pick values from this project and try again.`,
+        ),
+      );
+
+      const result: RuleApplicationResult = await runRules(
+        c,
+        [fakeRule(c, { userIds: [], teamIds: [TEAM_ID] })],
+        true,
+      );
+
+      expect(result).toEqual(RuleApplicationResultUtil.failed());
+
+      if (mocks.createFeedItem) {
+        expect(mocks.createFeedItem).not.toHaveBeenCalled();
+      }
+
+      expect(String(warned.mock.calls[0]![0])).toContain(
+        `team ${TEAM_ID.toString()} (NotProjectRecord)`,
+      );
+    });
+
+    it("still says already applied, and warns of nothing, when every owner is there", async () => {
+      mockEngine(c, {
+        assignedUserIds: [USER_ID],
+        assignedTeamIds: [TEAM_ID],
+      });
+
+      await expect(runRules(c, [fakeRule(c)], true)).resolves.toEqual(
+        RuleApplicationResultUtil.alreadyApplied(),
+      );
+      expect(warned).not.toHaveBeenCalled();
+    });
+  },
+);

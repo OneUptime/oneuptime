@@ -234,7 +234,9 @@
     "noAccountPrompt": "Sie haben noch kein Konto?",
     "registerLink": "Registrieren.",
     "selectProjectTitle": "Projekt auswählen",
-    "notSetUpForDomain": "Single Sign-On ist für {{domain}} nicht eingerichtet. Bitten Sie Ihren Administrator, es einzurichten, oder melden Sie sich auf andere Weise an.",
+    "notSetUpForDomain": "Single Sign-On ist für {{domain}} nicht eingerichtet. Bitten Sie Ihren Administrator um den SSO-Anmeldelink Ihrer Organisation, oder melden Sie sich auf andere Weise an.",
+    "projectNoProvider": "Über diesen Link steht kein Single-Sign-On-Anbieter zur Anmeldung bereit. Bitten Sie Ihren Administrator, einen einzuschalten, oder melden Sie sich auf andere Weise an.",
+    "signInAnotherWay": "Auf andere Weise anmelden",
     "emailRequired": "E-Mail ist erforderlich, um diese Aktion auszuführen",
     "defaultProjectName": "Projekt",
     "globalProvidersTitle": "Mit Ihrer Organisation anmelden",
@@ -304,6 +306,19 @@
     "returnToApp": "Zurück zur App",
     "cancel": "Abbrechen und zur App zurückkehren",
     "setup": "Erstellen Sie im Web-Dashboard unter Benutzerprofil → Sicherheit → Passkeys einen Passkey."
+  },
+  "mobilePasskeyEnrolment": {
+    "title": "Passkey einrichten",
+    "description": "Verwenden Sie das Gesicht, den Fingerabdruck oder die Bildschirmsperre dieses Telefons oder einen Sicherheitsschlüssel. Damit melden Sie sich beim nächsten Mal bei OneUptime On-Call an.",
+    "create": "Passkey erstellen",
+    "tryAgain": "Erneut versuchen",
+    "notCompleted": "Der Passkey wurde nicht erstellt: Die Aufforderung wurde abgebrochen oder ist abgelaufen. Versuchen Sie es erneut, wenn Sie bereit sind.",
+    "expired": "Diese Einrichtung ist abgelaufen oder wurde bereits verwendet. Kehren Sie zur App zurück und beginnen Sie erneut.",
+    "failed": "Der Passkey konnte nicht erstellt werden. Versuchen Sie es erneut, oder kehren Sie zur App zurück und richten Sie stattdessen eine Authenticator-App ein.",
+    "complete": "Ihr Passkey ist bereit. Kehren Sie zur App zurück, um die Anmeldung abzuschließen.",
+    "invalid": "Starten Sie die Einrichtung eines Passkeys in der mobilen OneUptime-App. Diese Anfrage fehlt oder ist ungültig.",
+    "insecure": "Passkeys erfordern HTTPS. Kehren Sie zur App zurück, um stattdessen eine Authenticator-App einzurichten.",
+    "unsupported": "Dieser Browser kann keinen Passkey erstellen. Kehren Sie zur App zurück, um stattdessen eine Authenticator-App einzurichten."
   },
   "mcpAuthorize": {
     "title": "MCP-Client verbinden",

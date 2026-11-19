@@ -2253,9 +2253,10 @@ describe("RecommendationResourceRegistry", () => {
       });
     });
 
-    test("reads its cloud, type, attributes, readings, storage and connection off the row", () => {
+    test("reads its cloud, type, name, attributes, readings, storage and connection off the row", () => {
       expect(
         readCloudContext({
+          name: "orders-db",
           cloudProvider: "aws",
           cloudResourceType: "AWS::RDS::DBInstance",
           telemetryAttributes: { ...EC2_ATTRIBUTES, count: 3 },
@@ -2273,6 +2274,7 @@ describe("RecommendationResourceRegistry", () => {
       ).toEqual({
         cloudProvider: "aws",
         cloudResourceType: "AWS::RDS::DBInstance",
+        cloudResourceName: "orders-db",
         cloudTelemetryAttributes: EC2_ATTRIBUTES,
         cloudReadings: {
           "aws/rds/cpuutilization": {
@@ -2496,10 +2498,104 @@ describe("RecommendationResourceRegistry", () => {
       expect(readCloudContext({})).toEqual({
         cloudProvider: null,
         cloudResourceType: null,
+        cloudResourceName: null,
         cloudTelemetryAttributes: {},
         cloudReadings: {},
         cloudAllocatedStorageGiB: null,
         cloudReadByConnection: false,
+      });
+    });
+
+    /*
+     * #9741: a Compute Engine VM's memory and disks, which only the Ops
+     * Agent on it reports, are offered once it reports them, with a first
+     * command that names the VM as gcloud does: by its name.
+     */
+    describe("a Compute Engine VM's memory and disk monitors", () => {
+      const GCE_ATTRIBUTES: Record<string, string> = {
+        "resource.gcp.resource_type": "gce_instance",
+        "resource.project_id": "shop-prod",
+        "resource.zone": "us-central1-a",
+        "resource.instance_id": "4718294310295840123",
+      };
+      const AGENT_NOTE: string =
+        "Memory and disk monitors are offered once the Ops Agent runs on the VM and reports them.";
+
+      function vm(
+        readings: Record<string, unknown>,
+      ): MonitorRecommendationContext {
+        return readCloudContext({
+          name: "web-1",
+          cloudProvider: "gcp",
+          cloudResourceType: "gce_instance",
+          telemetryAttributes: GCE_ATTRIBUTES,
+          cloudReadings: readings,
+          cloudConnectionId: new ObjectID(CLOUD_RESOURCE_ID),
+        });
+      }
+
+      function agentReading(): { value: number; time: string } {
+        return { value: 41, time: "2026-11-19T10:00:00.000Z" };
+      }
+
+      test("reads the VM's name, which its first command names it by", () => {
+        expect(vm({}).cloudResourceName).toBe("web-1");
+        expect(readCloudContext({ name: "  " }).cloudResourceName).toBe(null);
+      });
+
+      test("a VM without the Ops Agent is offered its CPU, and told what would offer the rest", () => {
+        expect(templateIdsFor(vm({}))).toEqual(["cloud-gcp-compute-high-cpu"]);
+        expect(describeCloud(vm({}))).toBe(AGENT_NOTE);
+      });
+
+      test("a VM whose agent reports them is offered them, and told nothing", () => {
+        const context: MonitorRecommendationContext = vm({
+          "agent.googleapis.com/memory/percent_used": agentReading(),
+          "agent.googleapis.com/disk/percent_used": agentReading(),
+        });
+
+        expect(templateIdsFor(context)).toEqual([
+          "cloud-gcp-compute-high-cpu",
+          "cloud-gcp-compute-memory-nearly-full",
+          "cloud-gcp-compute-disk-nearly-full",
+          "cloud-gcp-compute-disk-full",
+        ]);
+        expect(describeCloud(context)).toBeUndefined();
+      });
+
+      test("a VM that reports one of them is told nothing: the agent runs", () => {
+        expect(
+          describeCloud(
+            vm({ "agent.googleapis.com/memory/percent_used": agentReading() }),
+          ),
+        ).toBeUndefined();
+      });
+
+      test("the monitor it makes says the first command, for the VM by its name", () => {
+        const recommendation: MonitorRecommendation | undefined =
+          MonitorRecommendationCatalog.getRecommendations(
+            MonitorRecommendationResourceType.CloudResource,
+            vm({ "agent.googleapis.com/disk/percent_used": agentReading() }),
+          ).find((candidate: MonitorRecommendation): boolean => {
+            return (
+              candidate.templateId === "cloud-gcp-compute-disk-nearly-full"
+            );
+          });
+        const step: MonitorStep = recommendation!.getMonitorStep({
+          resourceIdentifier: CLOUD_RESOURCE_ID,
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "web-1",
+        });
+
+        expect(
+          step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!
+            .data!.incidents[0]!.description,
+        ).toContain(
+          "First, run this in Google Cloud Shell: `gcloud compute ssh web-1 --zone us-central1-a --project shop-prod --command 'df -h'`",
+        );
       });
     });
 

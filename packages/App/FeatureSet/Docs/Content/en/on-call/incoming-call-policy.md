@@ -53,7 +53,7 @@ Go to **On-Call** > **Incoming Call Policies** and click **Create Incoming Call 
 
 ### Choose the Twilio account
 
-The policy's **Overview** shows a **Setup** card with three numbered steps. In the first one, click **Select**, pick the account under **Twilio Configuration** and click **Save**.
+The policy's **Overview** shows a **Setup** card with three numbered steps. In the first one, click **Select**, pick the account under **Twilio Configuration** and click **Save**. The list offers only the configurations used for **Calls and SMS** or **Calls only**. A policy whose configuration is later set to **SMS only** keeps it, and its card says what to change.
 
 ### Add a phone number
 

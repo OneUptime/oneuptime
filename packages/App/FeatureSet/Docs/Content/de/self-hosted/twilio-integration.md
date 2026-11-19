@@ -147,6 +147,12 @@ Was kein Standard sendet, geht so hinaus wie ohne Konfiguration: Solange der ein
 
 Statusseiten bieten nur die Konfigurationen an, die SMS senden, und **Test-SMS senden** und **Testanruf senden** erscheinen nur für das, was eine Konfiguration sendet. Jede bestehende Konfiguration ist wie bisher auf **Anrufe und SMS** gestellt. Über die API und Terraform ist die Auswahl das Feld `usedFor`, und eine Konfiguration ohne die Nummern, die ihre Auswahl braucht, wird abgelehnt.
 
+### Mailbox bei Bereitschaftsanrufen
+
+Für Twilio ist ein Anruf, den die Mailbox annimmt, angenommen, wie einer, den eine Person annimmt. Deshalb fragt jeder Bereitschaftsanruf Twilio im Hintergrund, ob eine Person oder die Mailbox ihn angenommen hat, mit der [Anrufbeantworter-Erkennung](https://www.twilio.com/docs/voice/answering-machine-detection): Wer abnimmt, hört die Alarmierung sofort. Ein Anruf, den die Mailbox annimmt, gilt als nicht angenommen, wie einer, der ins Leere läuft, und die Alarmierung geht weiter wie bei einem verpassten Anruf. Sobald die Ansage endet, hinterlässt OneUptime eine kurze Nachricht mit dem, was der Anruf sagte. Das Log des Anrufs sagt, ob eine Nachricht hinterlassen wurde, ebenso der Feed des Vorfalls: „Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left.“
+
+Twilio berechnet die Anrufbeantworter-Erkennung für jeden angenommenen Anruf, den es prüft, dem Konto, das den Anruf tätigt: dem installationsweiten Konto oder der eigenen Konfiguration des Projekts. Sie ist für jedes Projekt eingeschaltet. Um sie auszuschalten, schalten Sie **Mailbox bei Bereitschaftsanrufen** in **Weitere Einstellungen** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** aus: Ein Anruf, den die Mailbox annimmt, gilt dann wie bisher als angenommen. **Testanruf senden** und eingehende Anrufe werden nie geprüft. Wie die Anrufergebnisse braucht sie einen Server, den Twilio erreichen kann: siehe den nächsten Abschnitt.
+
 ## 3. Netzwerkzugriff konfigurieren
 
 Das Senden funktioniert allein mit ausgehendem Zugriff. Zustellungsupdates, Anrufergebnisse, die Bestätigung per Tastatur und eingehende Anrufe brauchen eine Verbindung von Twilio zu Ihrem Server.
@@ -171,7 +177,7 @@ Ob Twilio eingehend zugreifen muss, hängt von der Funktion ab:
 | --- | --- |
 | SMS absetzen | Nein. Updates zum Zustellungsstatus brauchen jedoch einen Callback. |
 | Ein einfacher Test-Sprachanruf | Nein. OneUptime liefert die gesprochenen Anweisungen mit der ausgehenden API-Anfrage. |
-| Erkennen, ob ein Bereitschaftsanruf angenommen wurde | Ja. Twilio meldet, wie jeder Anruf endete, damit der Feed des Vorfalls sagen kann, wenn eine Person nicht abgenommen hat. Anrufe gehen auch ohne das hinaus. |
+| Erkennen, ob ein Bereitschaftsanruf angenommen wurde | Ja. Twilio meldet, wie jeder Anruf endete und ob eine Person oder die Mailbox ihn angenommen hat, damit der Feed des Vorfalls sagen kann, wenn eine Person nicht abgenommen hat. Anrufe gehen auch ohne das hinaus. |
 | 1 drücken, um einen Bereitschaftsalarm zu bestätigen | Ja. Twilio übermittelt die Tastatureingabe an OneUptime. |
 | Richtlinien für eingehende Anrufe | Ja. Twilio fragt Anrufanweisungen ab und meldet die Ergebnisse der Wahl. |
 
@@ -181,13 +187,14 @@ Dies sind die externen Pfade über das Nginx-Gateway von OneUptime. Die Platzhal
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Zustellungsstatus der SMS |
 | POST | `/notification/call/status-callback/:callLogId/:token` | Anrufergebnis |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | Ob eine Person oder die Mailbox einen Bereitschaftsanruf angenommen hat |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bestätigung per Tastatur |
 | POST | `/notification/incoming-call/voice` | Optionale Anweisungen für eingehende Anrufe |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Optionale Ergebnisse der Weiterleitung eingehender Anrufe |
 
 OneUptime erzeugt die URLs für SMS, Anrufergebnisse und Bestätigung automatisch. Ersetzen Sie deren Tokens nicht durch eine statische Webhook-URL. Für eingehende Anrufe folgen Sie [Richtlinien für eingehende Anrufe](/docs/on-call/incoming-call-policy); dort wird der Webhook der Nummer konfiguriert, wenn Sie eine Nummer zuordnen.
 
-Twilio verlangt [öffentlich erreichbare Webhook-URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Verwenden Sie ein öffentlich vertrauenswürdiges TLS-Zertifikat und erhalten Sie über Proxys hinweg den ursprünglichen Host, das Protokoll, den Pfad, die Abfrageparameter, den Body und den Header `X-Twilio-Signature`. Die Handler für eingehende Anrufe prüfen die Signaturen von Twilio; die SMS-Zustellung und die Anrufergebnisse verwenden ein URL-Token pro Nachricht bzw. Anruf, und die Bestätigung per Tastatur ein signiertes Abfrage-Token. Legen Sie Tokens nicht in gemeinsam genutzten Logs oder Screenshots offen. Siehe [Twilio-Webhook-Sicherheit](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio verlangt [öffentlich erreichbare Webhook-URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Verwenden Sie ein öffentlich vertrauenswürdiges TLS-Zertifikat und erhalten Sie über Proxys hinweg den ursprünglichen Host, das Protokoll, den Pfad, die Abfrageparameter, den Body und den Header `X-Twilio-Signature`. Die Handler für eingehende Anrufe prüfen die Signaturen von Twilio; die SMS-Zustellung und die Anrufergebnisse verwenden ein URL-Token pro Nachricht bzw. Anruf, und die Bestätigung per Tastatur ein signiertes Abfrage-Token. Der Mailbox-Callback prüft sowohl sein URL-Token als auch die Signatur von Twilio. Legen Sie Tokens nicht in gemeinsam genutzten Logs oder Screenshots offen. Siehe [Twilio-Webhook-Sicherheit](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Callbacks aus einer privaten Installation veröffentlichen
 

@@ -12,6 +12,7 @@ import EntityType from "../../../Types/Telemetry/EntityType";
 import Dictionary from "../../../Types/Dictionary";
 import logger from "../Logger";
 import { ONEUPTIME_LABEL_ATTRIBUTE_PREFIX } from "./OneuptimeLabel";
+import { ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE } from "../../../Types/DeviceManagement/ManagedDeviceIdentity";
 import crypto from "crypto";
 import { writeOwnValue } from "../../../Utils/LookupTable";
 
@@ -1194,6 +1195,11 @@ export default class InventoryItem {
      * fills the same Asset details rows (Utils/Inventory/
      * InventoryAssetDetails), which otherwise derive them from the OS, the
      * name and the cloud zone.
+     *
+     * `android.os.security_patch` is an Android device's security patch
+     * level, which the OneUptime Android agent sends on every report and the
+     * Esper import writes under the same key (#9800): the Security Patch
+     * asset detail, and the column a fleet is audited by.
      */
     [EntityType.Host]: [
       "os.type",
@@ -1213,6 +1219,7 @@ export default class InventoryItem {
       "cloud.provider",
       "cloud.region",
       "cloud.availability_zone",
+      ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE,
     ],
     [EntityType.Service]: [
       "telemetry.sdk.language",

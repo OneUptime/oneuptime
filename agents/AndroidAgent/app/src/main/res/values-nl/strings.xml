@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dutch: the strings of res/values/strings.xml, in the same order. -->
+<resources>
+
+    <string name="notification_channel_name">Agentstatus</string>
+    <string name="notification_channel_description">Toont of dit apparaat gegevens naar OneUptime stuurt.</string>
+
+    <string name="notification_requests_channel_name">Verzoeken van OneUptime</string>
+    <string name="notification_requests_channel_description">Verzoeken van OneUptime om de logboeken van dit apparaat te lezen voor probleemoplossing.</string>
+    <string name="notification_request_title">OneUptime vraagt om de logboeken van dit apparaat</string>
+
+    <string name="status_not_set_up">Nog niet ingesteld</string>
+    <string name="status_not_set_up_detail">Voer de ingestiesleutel in, of stuur hem vanuit uw apparaatbeheer als oneuptime_token.</string>
+    <string name="status_unreachable">OneUptime is niet bereikbaar</string>
+    <string name="status_unreachable_detail">Controleer het netwerk van het apparaat. De agent probeert het automatisch opnieuw.</string>
+    <string name="status_key_refused">OneUptime heeft de ingestiesleutel geweigerd</string>
+    <string name="status_key_refused_detail">Gebruik een server-ingestiesleutel die is ingeschakeld en niet is verlopen (HTTP %1$d).</string>
+    <string name="status_not_found">Geen OneUptime op dit adres</string>
+    <string name="status_not_found_detail">Controleer de OneUptime-URL: %1$s.</string>
+    <string name="status_server_error">OneUptime accepteert op dit moment geen telemetrie</string>
+    <string name="status_server_error_detail">OneUptime antwoordde met %1$d. De agent probeert het automatisch opnieuw.</string>
+    <string name="status_server_error_unknown_detail">OneUptime antwoordde met een fout. De agent probeert het automatisch opnieuw.</string>
+    <string name="status_sending_failed">Verzenden mislukt</string>
+    <string name="status_retrying">De agent probeert het automatisch opnieuw.</string>
+    <string name="status_kept">Telemetrie blijft op het apparaat totdat die kan worden verzonden.</string>
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">Stuurt gegevens naar OneUptime</string>
+    <string name="status_as_device">Als %1$s</string>
+    <string name="status_starting">Wordt gestart</string>
+    <string name="status_starting_detail">Als %1$s. Het eerste rapport wordt binnen een minuut verzonden.</string>
+
+    <string name="address_empty">Voer uw OneUptime-URL in.</string>
+    <string name="address_not_a_url">De OneUptime-URL is geen webadres.</string>
+    <string name="address_not_https">De OneUptime-URL moet beginnen met https://, zodat de ingestiesleutel nooit onversleuteld wordt verzonden.</string>
+    <string name="address_query_or_fragment">Verwijder het deel met ? of # uit de OneUptime-URL.</string>
+    <string name="address_credentials">Verwijder de gebruikersnaam en het wachtwoord uit de OneUptime-URL.</string>
+
+    <string name="setup_subtitle">Stuurt de status, herstarts, apps en logboeken van dit apparaat naar OneUptime.</string>
+    <string name="setup_last_report">Laatste rapport verzonden: %1$s</string>
+    <string name="setup_no_report_yet">Nog niets verzonden</string>
+    <string name="setup_waiting">%1$s nog te verzenden</string>
+    <string name="setup_report_and_waiting">%1$s · %2$s</string>
+    <string name="setup_problem_placeholder">%1$s: uw apparaatbeheer heeft %2$s ongewijzigd verzonden, zonder het in te vullen.</string>
+    <string name="setup_problem_invalid">%1$s: %2$s kan niet worden gebruikt, dus geldt de standaardwaarde.</string>
+    <string name="setup_connection">Verbinding</string>
+    <string name="setup_managed_notice">Het apparaatbeheer van uw organisatie bepaalt de instellingen die als vergrendeld worden weergegeven.</string>
+    <string name="setup_url_label">OneUptime-URL</string>
+    <string name="setup_url_help">Wijzig deze alleen als u OneUptime zelf host.</string>
+    <string name="setup_token_label">Ingestiesleutel</string>
+    <string name="setup_token_hint">Plak een server-ingestiesleutel</string>
+    <string name="setup_token_stored_hint">Opgeslagen. Plak een nieuwe sleutel om deze te vervangen.</string>
+    <string name="setup_token_help">In OneUptime: Projectinstellingen, Telemetrie &amp; APM, Ingestiesleutels. Gebruik een serversleutel.</string>
+    <string name="setup_token_unreadable">De opgeslagen sleutel kan op dit apparaat niet meer worden gelezen. Plak hem opnieuw.</string>
+    <string name="setup_device_name_label">Apparaatnaam</string>
+    <string name="setup_device_name_help">Zo wordt dit apparaat weergegeven in Hosts en Inventaris.</string>
+    <string name="setup_set_by_organization">Ingesteld door uw organisatie</string>
+    <string name="setup_save">Opslaan en verbinden</string>
+    <string name="setup_saved">Opgeslagen. De agent stuurt nu een rapport.</string>
+    <string name="setup_token_required">Plak de ingestiesleutel.</string>
+    <string name="setup_save_failed">Dit apparaat kon de sleutel niet veilig opslaan: %1$s</string>
+    <string name="setup_readings">Wat dit apparaat de agent laat lezen</string>
+    <string name="setup_reading_yes">Ja</string>
+    <string name="setup_reading_cpu">CPU-gebruik</string>
+    <string name="setup_reading_cpu_device_owner">Ja, als apparaateigenaar</string>
+    <string name="setup_reading_cpu_not_device_owner">Alleen als de agent de apparaateigenaar is</string>
+    <string name="setup_reading_cpu_not_supported">Niet op dit apparaat: Android geeft hier geen CPU-gebruik door</string>
+    <string name="setup_reading_memory">Geheugen, opslag en netwerk</string>
+    <string name="setup_reading_battery">Batterij</string>
+    <string name="setup_reading_no_battery">Geen batterij</string>
+    <string name="setup_reading_thermal">Temperatuur en thermische beperking</string>
+    <string name="setup_reading_thermal_unavailable">Android 10 en hoger</string>
+    <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">Stack traces van crashes en redenen voor herstarts</string>
+    <string name="setup_reading_crash_details_yes">Ja, voor elke app</string>
+    <string name="setup_reading_crash_details_not_granted">Uit: READ_LOGS is niet verleend</string>
+    <string name="setup_reading_crash_details_no_usage_access">Uit: gebruikstoegang is niet toegestaan</string>
+    <string name="setup_reading_apps">Geïnstalleerde apps</string>
+    <string name="setup_reading_off_by_manager">Uit: uitgeschakeld door uw apparaatbeheer</string>
+    <string name="setup_reading_unknown">Na het eerste rapport</string>
+    <string name="setup_grants">Om logboeken en stack traces van andere apps te versturen, verleent u deze rechten eenmalig, met adb of met remote ADB van uw apparaatbeheer:</string>
+    <string name="setup_usage_access">Gebruikstoegang toestaan</string>
+
+    <string name="logcat_not_started">Niet gestart</string>
+    <string name="logcat_not_granted">Uit: READ_LOGS is niet verleend</string>
+    <string name="logcat_crashes_and_anrs">Crashes en ANR\'s van alle apps</string>
+    <string name="logcat_full">Logboeken, crashes en ANR\'s van alle apps</string>
+
+    <string name="log_session_title">Logboeken voor probleemoplossing</string>
+    <string name="log_session_request_by">%1$s vraagt in OneUptime om de logboeken van alle apps op dit apparaat, gedurende %2$s, vanaf niveau %3$s.</string>
+    <string name="log_session_request">OneUptime vraagt om de logboeken van alle apps op dit apparaat, gedurende %1$s, vanaf niveau %2$s.</string>
+    <string name="log_session_android_prompt">Daarna vraagt Android u om toegang tot alle apparaatlogboeken toe te staan. Kies daar ook Toestaan.</string>
+    <string name="log_session_allow">Toestaan</string>
+    <string name="log_session_decline">Weigeren</string>
+    <string name="log_session_stop">Verzenden stoppen</string>
+    <string name="log_session_starting">Sta in de vraag van Android toegang tot alle apparaatlogboeken toe.</string>
+    <string name="log_session_collecting_until">De logboeken van alle apps worden verzonden tot %1$s.</string>
+    <string name="log_session_collecting">De logboeken van alle apps worden verzonden.</string>
+    <string name="log_session_declined_here">Geweigerd. Er wordt niets meer verzonden.</string>
+    <string name="log_session_declined_by_android">Toegang tot alle apparaatlogboeken is niet toegestaan, dus er wordt niets meer verzonden.</string>
+    <string name="log_session_no_answer">Niemand heeft op de vraag van Android gereageerd, dus er wordt niets meer verzonden.</string>
+    <string name="log_session_time_up">Klaar: de logboeken van alle apps zijn verzonden gedurende de gevraagde tijd.</string>
+    <string name="log_session_stopped">Gestopt. Er wordt niets meer verzonden.</string>
+    <string name="log_session_agent_restarted">Beëindigd toen de agent opnieuw startte.</string>
+    <string name="log_session_logcat_stopped">Beëindigd: Logcat is gestopt met lezen.</string>
+    <string name="log_session_logcat_disabled">Dit apparaat kan ze niet verzenden: uw apparaatbeheer heeft Logcat uitgeschakeld.</string>
+    <string name="log_session_not_granted">Dit apparaat kan ze niet verzenden: READ_LOGS is niet verleend.</string>
+    <string name="log_session_expired">Niemand heeft het op tijd toegestaan.</string>
+    <string name="log_session_cancelled">Geannuleerd in OneUptime.</string>
+    <string name="log_session_ended">Beëindigd.</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minuut</item>
+        <item quantity="other">%d minuten</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d uur</item>
+        <item quantity="other">%d uur</item>
+    </plurals>
+
+    <string name="device_admin_description">Laat de agent als apparaateigenaar het CPU-gebruik van dit apparaat lezen. De agent vergrendelt, wist of beperkt het apparaat nooit.</string>
+
+    <string name="restriction_url_title">OneUptime-URL</string>
+    <string name="restriction_url_description">Waar telemetrie naartoe gaat. Laat dit op https://oneuptime.com staan, tenzij u OneUptime zelf host.</string>
+    <string name="restriction_token_title">Ingestiesleutel</string>
+    <string name="restriction_token_description">Een server-ingestiesleutel uit Projectinstellingen, Telemetrie en APM, Ingestiesleutels.</string>
+    <string name="restriction_device_name_title">Apparaatnaam</string>
+    <string name="restriction_device_name_description">De naam van het apparaat in OneUptime, bijvoorbeeld ${esper.deviceName}. Gebruik dezelfde naam als host.name in uw app, zodat beide als één apparaat worden weergegeven.</string>
+    <string name="restriction_device_serial_title">Serienummer</string>
+    <string name="restriction_device_serial_description">Het serienummer van het apparaat, bijvoorbeeld ${esper.serialNumber}. Android geeft het zelf niet aan apps.</string>
+    <string name="restriction_device_type_title">Apparaattype</string>
+    <string name="restriction_device_type_description">Wat het apparaat is: kiosk, kassaterminal, handheld, digital signage.</string>
+    <string name="restriction_device_location_title">Locatie</string>
+    <string name="restriction_device_location_description">Waar het apparaat staat, bijvoorbeeld een winkelnummer.</string>
+    <string name="restriction_labels_title">Labels</string>
+    <string name="restriction_labels_description">Labels voor het apparaat in OneUptime, als naam=waarde-paren gescheiden door komma\'s: store=0412, region=emea.</string>
+    <string name="restriction_interval_title">Verzamelinterval (seconden)</string>
+    <string name="restriction_interval_description">Hoe vaak de agent rapporteert, van 30 tot 600 seconden. Standaard 60.</string>
+    <string name="restriction_logcat_enabled_title">Logcat verzenden</string>
+    <string name="restriction_logcat_enabled_description">Crashes, ANR\'s en logboeken van andere apps verzenden, en de logsessies toestaan waarom OneUptime vraagt. Vereist READ_LOGS, verleend met adb.</string>
+    <string name="restriction_logcat_level_title">Laagste Logcat-niveau</string>
+    <string name="restriction_logcat_level_description">De minst ernstige Logcat-regels die worden verzonden, op Android 12 en eerder. Standaard Waarschuwing.</string>
+    <string name="restriction_apps_enabled_title">Geïnstalleerde apps verzenden</string>
+    <string name="restriction_apps_enabled_description">De geïnstalleerde apps en hun versies eenmaal per dag verzenden, plus elke installatie, update en verwijdering.</string>
+    <string name="logcat_level_verbose">Uitgebreid</string>
+    <string name="logcat_level_debug">Debug</string>
+    <string name="logcat_level_info">Info</string>
+    <string name="logcat_level_warn">Waarschuwing</string>
+    <string name="logcat_level_error">Fout</string>
+    <string name="logcat_level_fatal">Fataal</string>
+</resources>

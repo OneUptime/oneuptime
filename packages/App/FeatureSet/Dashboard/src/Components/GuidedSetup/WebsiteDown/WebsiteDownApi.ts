@@ -24,6 +24,7 @@ import {
   countRulesRunningPolicyInService,
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import {
+  MONITORS_CHECKING_ADDRESS_READ_LIMIT,
   WEBSITE_MONITOR_SEEDS_MISSING,
   pickWebsiteMonitorSeeds,
 } from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
@@ -181,12 +182,15 @@ export const OWN_MONITORS_READ_LIMIT: number = 100;
 
 /*
  * How many of the project's newest Website and API monitors are read to
- * find one a teammate made for an address (#7254). An address is in a
- * monitor's steps, which no query can ask for, so the newest are read and
- * matched here. A project with more than this misses an older one, and
- * the setup then makes a monitor of the person's own, as it did before.
+ * find one a teammate made for an address (#7254): as many as Ask AI's
+ * set_up_website_monitoring reads for the same answer (#7292). An address
+ * is in a monitor's steps, which no query can ask for, so the newest are
+ * read and matched here. A project with more than this misses an older
+ * one, and the setup then makes a monitor of the person's own, as it did
+ * before.
  */
-export const OTHER_MONITORS_READ_LIMIT: number = 200;
+export const OTHER_MONITORS_READ_LIMIT: number =
+  MONITORS_CHECKING_ADDRESS_READ_LIMIT;
 
 // How many status pages step 4 reads to offer (#7053).
 export const STATUS_PAGES_READ_LIMIT: number = 100;

@@ -125,6 +125,21 @@ OneUptime에는 머신용 모니터가 두 가지 있습니다. 같은 호스트
 - **프로세스 수** 는 호스트 전체가 아니라 가장 큰 단일 프로세스 상태(`running`, `sleeping`, …)를 비교하므로, 프로세스 목록과 맞지 않습니다. 프로세스 스크레이퍼는 Linux, macOS, BSD에서 보고하며 Windows에서는 보고하지 않습니다.
 - **Systemd Unit Failed** 템플릿은 `failed` 상태인 systemd 서비스마다 경고 하나를 엽니다. 수집기의 `systemd` 리시버에서 읽으며, OneUptime의 기본 구성은 systemd가 있는 Linux 호스트에서 이를 읽습니다. 유닛이 다시 실행되거나 `systemctl reset-failed`로 초기화되면 해결됩니다.
 
+## Android 기기
+
+OS가 Android인 호스트, 예를 들어 [Android 에이전트](/docs/telemetry/android-agent)를 실행하는 키오스크나 POS 단말기에는 에이전트가 보내는 것을 읽는 전용 템플릿이 Host Stopped Reporting, Host Restarted, High Memory Utilization과 함께 제공됩니다. 스왑, inode, 부하, systemd 유닛처럼 기기가 절대 보내지 않는 것을 다루는 템플릿은 제공되지 않습니다.
+
+| 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
+| --- | --- | --- | --- | --- |
+| Device Unplugged | 경고 | `android.battery.plugged`, Max, 최근 10분 | 기간 내내 기기가 배터리로 작동 | 다시 전원에 연결됨 |
+| Low Battery | 경고 | `hw.battery.charge`, Min, 퍼센트, 최근 5분 | 20% 미만 | 20% 이상 |
+| Device Overheating | 경고 | `android.thermal.status`, Max, 최근 5분 | 3(심각) 이상 | 3 미만 |
+| Restart Loop | 심각 | `android.boot.recent_count`, Max, 최근 1시간 | 값 하나라도 3 이상 | 모든 값이 3 미만 |
+| Storage Nearly Full | 심각 | `system.filesystem.utilization`, `mountpoint`별 Max, 퍼센트, 최근 5분 | 90% 초과 | 90% 이하 |
+| High CPU Utilization | 경고 | `idle` 상태의 `system.cpu.utilization`으로 1에서 idle을 뺀 값을 사용 중인 시간으로, 퍼센트, 최근 5분 | 80% 초과 | 80% 이하 |
+
+High CPU Utilization 템플릿은 기기가 CPU 사용량을 보고하면 제공되며, Android 8 이상에서는 그러려면 에이전트가 기기 소유자여야 합니다. Android 기기의 경고는 서버의 셸 명령 대신 먼저 실행할 adb 명령(`adb shell dumpsys battery`나 `adb shell getprop sys.boot.reason` 등)으로 시작합니다.
+
 ## 수집되는 메트릭
 
 **Host Metric** 목록은 다음 메트릭을 제공합니다. 각각 `resource.host.name`을 가지며, 모니터는 이것으로 쿼리를 호스트 한 대로 한정합니다. 거기서 고르면 CPU 는 `user` 상태를, 메모리와 파일 시스템 사용량은 `used` 상태를 세고, 파일 시스템과 프로세스는 마운트 지점과 상태마다 계열 하나를 냅니다.

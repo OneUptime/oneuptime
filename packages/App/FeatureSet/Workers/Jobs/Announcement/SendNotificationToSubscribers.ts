@@ -45,6 +45,9 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import AnnouncementUpdateNotification, {
+  AnnouncementUpdateNotSentReason,
+} from "Common/Types/StatusPage/AnnouncementUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
@@ -946,24 +949,22 @@ RunCron(
           continue;
         }
 
-        let skipReason: string | null =
-          SubscriberUpdateNotification.getSkipReasonForOriginalNotificationStatus(
-            announcement.subscriberNotificationStatus,
-          );
-
         /*
-         * An announcement scheduled for later is not on any status page yet,
-         * so there is nothing for an "updated" message to point at. Whoever
-         * is notified when it goes live sees the edited version.
+         * Skipped for the announcement's own state, by the rule its Edit
+         * says it by (AnnouncementUpdateNotification, #9921): its own
+         * notification has not gone out yet, and carries the edit; or it
+         * is scheduled for later, on no status page yet, so there is
+         * nothing for an "updated" message to point at.
          */
-        if (
-          !skipReason &&
-          announcement.showAnnouncementAt &&
-          OneUptimeDate.isInTheFuture(announcement.showAnnouncementAt)
-        ) {
-          skipReason =
-            "This announcement is not shown on status pages yet, so subscribers were not notified about this update.";
-        }
+        const notSentReason: AnnouncementUpdateNotSentReason | null =
+          AnnouncementUpdateNotification.getNotSentReason({
+            originalStatus: announcement.subscriberNotificationStatus,
+            showAnnouncementAt: announcement.showAnnouncementAt,
+          });
+
+        const skipReason: string | null = notSentReason
+          ? AnnouncementUpdateNotification.getSkippedMessage(notSentReason)
+          : null;
 
         if (skipReason) {
           logger.debug(

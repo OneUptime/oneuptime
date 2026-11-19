@@ -47,6 +47,7 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 /*
  * THE EVALUATION DETAILS LAND ON THE INCIDENT AND THE ALERT.
@@ -359,8 +360,12 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
         return alert;
       });
 
-    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
-    jest.spyOn(AlertService, "addOwners").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
+    jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   });
 
   afterEach(() => {

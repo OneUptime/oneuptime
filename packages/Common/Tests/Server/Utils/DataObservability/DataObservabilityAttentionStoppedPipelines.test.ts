@@ -22,6 +22,7 @@ import {
   DataAttentionKind,
 } from "../../../../Types/DataObservability/DataObservabilityAttention";
 import { MAX_LATENESS_WATCH_IN_SECONDS } from "../../../../Types/DataObservability/DataPipelineSchedule";
+import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -219,7 +220,7 @@ describe("what its message names", () => {
     });
 
     expect(items([stopped], new Set([CUSTOMERS]))[0]!.message).toBe(
-      "public.customers is late by 2 hours.",
+      `public.customers is late by 2${NO_BREAK_SPACE}hours.`,
     );
   });
 

@@ -7,6 +7,7 @@ L'agent Android de OneUptime signale à OneUptime un appareil Android qui appart
 - [Déployer avec Esper](#déployer-avec-esper): Téléverser l'APK, envoyer ses paramètres, le démarrer une fois.
 - [Paramètres](#paramètres): Chaque clé de sa configuration gérée.
 - [Lire les journaux des autres applications](#lire-les-journaux-des-autres-applications): Accorder READ_LOGS une fois, avec adb ou votre gestionnaire d'appareils.
+- [Sessions de journaux](#sessions-de-journaux): Les journaux de toutes les applications pendant un moment, autorisés par la personne devant l'appareil.
 :::
 
 ## Fonctionnement
@@ -93,6 +94,8 @@ L'agent lit ces clés dans sa configuration gérée. Un appareil qui n'en a pas 
 
 Un espace réservé que votre gestionnaire d'appareils n'a pas rempli, comme un `${esper.deviceName}` envoyé tel quel, est ignoré, et l'écran de l'agent le signale. Gardez le même `device_name` une fois qu'un appareil envoie ses données : un nouveau nom correspond à un nouvel hôte.
 
+L'écran de l'agent, ses notifications ainsi que les titres et les descriptions que votre gestionnaire d'appareils affiche pour ces clés sont dans la langue de l'appareil, dans toutes les langues que parle le tableau de bord de OneUptime.
+
 ## Lire les journaux des autres applications
 
 Android ne permet à une application de lire les journaux des autres applications qu'avec l'autorisation READ_LOGS, et seul adb peut l'accorder : ni l'application elle-même, ni une stratégie d'appareil. Accordez-la une fois sur chaque appareil, et elle reste accordée malgré les redémarrages et les mises à jour :
@@ -105,10 +108,51 @@ Avec Esper, lancez cette commande via **Secure Remote ADB** : activez l'accès A
 
 Ce que l'agent lit ensuite dépend de la version d'Android :
 
-- Android 13 et versions ultérieures : les plantages et les ANR de chaque application. Android ne montre les lignes de journal des autres applications qu'à une application affichée à l'écran, après que la personne devant l'appareil l'a autorisé : un agent qui tourne en arrière-plan ne peut donc pas les lire.
+- Android 13 et versions ultérieures : les plantages et les ANR de chaque application. Android ne montre les lignes de journal des autres applications qu'à une application affichée à l'écran, après que la personne devant l'appareil l'a autorisé : un agent qui tourne en arrière-plan ne peut donc pas les lire. Demandez-les pendant un moment avec une [session de journaux](#sessions-de-journaux).
 - Android 12 et versions antérieures : les plantages et les ANR de chaque application, ainsi que les lignes de journal de chaque application de niveau `logcat_min_level` ou supérieur.
 
 Sans READ_LOGS, l'agent signale tout le reste, et son écran comme les journaux de l'appareil indiquent comment l'accorder.
+
+### Stack traces des plantages et motifs de redémarrage
+
+Android conserve dans sa DropBox le rapport complet de chaque plantage d'application, de chaque plantage natif et de chaque ANR, ainsi que le motif de chaque redémarrage. L'agent les lit pour toutes les applications lorsqu'il dispose de READ_LOGS et de l'accès aux données d'utilisation, et, sous Android 15 et versions ultérieures, de READ_DROPBOX_DATA. Accordez-les une fois avec adb, comme READ_LOGS :
+
+```bash
+adb shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+```
+
+La première commande concerne Android 15 et versions ultérieures ; l'accès aux données d'utilisation peut aussi être activé sur l'appareil dans **Paramètres → Accès aux données d'utilisation**. Une stratégie d'appareil ne peut pas les accorder, et l'écran de l'agent liste les commandes qui restent à lancer. Avec elles, chaque plantage dans **Exceptions** a sa stack trace complète, un plantage natif son signal et la bibliothèque dans laquelle il s'est produit, un ANR la pile de son thread principal, et un redémarrage dans **Journaux** le motif qu'Android en donne. Les numéros de carte, adresses e-mail, jetons et mots de passe présents dans ce que lit l'agent sont remplacés par `[card number]`, `[email]`, `[token]` et `[redacted]` avant l'envoi.
+
+### Utilisation du processeur
+
+À partir d'Android 8, Android cache aux applications l'utilisation du processeur d'un appareil. Seule une application propriétaire de l'appareil peut la lire, et seulement sur les appareils dont le matériel la fournit. L'agent la lit lorsqu'il est le propriétaire de l'appareil, ce que vous définissez avec adb sur un appareil qui n'a aucun compte ni aucun autre propriétaire :
+
+```bash
+adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdminReceiver
+```
+
+Un appareil dont votre gestionnaire d'appareils est déjà propriétaire ne peut pas avoir de second propriétaire : son utilisation du processeur n'est donc pas disponible, et l'écran de l'agent le signale. Son utilisation du processeur est alors absente de la liste des hôtes, et le modèle **High CPU Utilization** ne lui est pas proposé.
+
+## Sessions de journaux
+
+Une session de journaux envoie pendant un moment les journaux de toutes les applications d'un appareil, pour le dépanner. Sous Android 13 et versions ultérieures, c'est le seul moyen de lire les lignes de journal des autres applications, car Android ne les montre qu'à une application affichée à l'écran, après que la personne devant l'appareil l'a autorisé.
+
+:::steps
+### En demander une
+
+Ouvrez l'appareil dans **Hôtes**, puis **Journaux**, et cliquez sur **Demander une session de journaux** dans **Sessions de journaux**. Choisissez pendant combien de temps l'appareil envoie ses journaux, de 15 minutes à 4 heures, et le niveau le plus bas qu'il envoie : **Info**, **Débogage** ou **Détaillé**.
+
+### L'autoriser sur l'appareil
+
+En moins d'une minute, l'appareil affiche une notification indiquant que quelqu'un a demandé ses journaux, avec son nom. La personne devant l'appareil ouvre l'agent et appuie sur **Autoriser**. Sous Android 13 et versions ultérieures, Android demande ensuite d'autoriser l'accès à tous les journaux de l'appareil, et elle l'autorise aussi.
+
+### Lire les lignes
+
+La session indique **Collecte en cours**, et les lignes de toutes les applications arrivent dans les journaux de l'appareil. Cliquez sur **Afficher les lignes** pour ne voir que les lignes de la session. La session se termine quand son temps est écoulé, ou quand quelqu'un l'arrête sur l'appareil ou l'annule dans OneUptime.
+:::
+
+Une session a besoin de READ_LOGS et de `logcat_enabled` ; sans eux, elle indique **Indisponible**. Une seule session à la fois s'exécute sur un appareil. Une demande que personne n'autorise dans l'heure expire, et une session pendant laquelle l'appareil redémarre se termine avec ce redémarrage, puisque l'autorisation d'Android prend fin avec le processus de l'agent. Demander une session nécessite l'autorisation de modifier l'hôte, et les **Journaux d'audit** de l'hôte conservent qui l'a demandée, et quand.
 
 ## Ce que l'agent signale
 
@@ -117,14 +161,15 @@ Sans READ_LOGS, l'agent signale tout le reste, et son écran comme les journaux 
 | Mémoire, stockage, réseau et temps de fonctionnement | La page de l'appareil dans **Hôtes** : les mêmes métriques que celles qu'envoie le collecteur d'un serveur, si bien que les modèles d'alerte pour hôtes fonctionnent |
 | Charge de la batterie et température, et si l'appareil est branché sur une alimentation externe | Les métriques `hw.battery.charge`, `hw.temperature` et `android.battery.plugged` |
 | État thermique | Les métriques `android.thermal.status` et `android.thermal.headroom` |
-| Redémarrages | **Journaux**, avec `@event.name:device.boot` : depuis combien de temps l'appareil tournait, s'il s'est arrêté proprement, combien de temps il est resté éteint, et les boucles de redémarrage |
+| Utilisation du processeur | La métrique `system.cpu.utilization` : sous Android 7, et sous Android 8 et versions ultérieures quand l'agent est le [propriétaire de l'appareil](#utilisation-du-processeur) |
+| Redémarrages | **Journaux**, avec `@event.name:device.boot` : depuis combien de temps l'appareil tournait, s'il s'est arrêté proprement, combien de temps il est resté éteint, pourquoi il a redémarré, et les boucles de redémarrage |
 | Applications installées | **Journaux**, avec `@event.name:android.package.inventory` une fois par jour, ainsi qu'à chaque installation, mise à jour et suppression |
-| Plantages et ANR de chaque application | **Exceptions**, comme non gérés, nommés d'après l'application |
-| Marque, modèle, numéro de série, version de l'OS et firmware | L'élément de l'appareil dans **Inventaire** |
+| Plantages et ANR de chaque application | **Exceptions**, comme non gérés, nommés d'après l'application, avec leurs piles quand l'agent lit la [DropBox](#stack-traces-des-plantages-et-motifs-de-redémarrage) |
+| Marque, modèle, numéro de série, version de l'OS, niveau de correctif de sécurité et firmware | L'élément de l'appareil dans **Inventaire** |
 
-À partir d'Android 8, Android cache aux applications l'utilisation du processeur de l'appareil : l'agent ne signale donc l'utilisation du processeur que sous Android 7, et sur les builds qui le permettent.
+Dans **Hôtes**, l'OS de l'appareil indique Android, avec le logo d'Android.
 
-Les modèles d'alerte pour hôtes adaptés à un appareil sont Host Stopped Reporting, High Memory Utilization, High Filesystem Usage et Host Restarted. Un appareil qui redémarre sans cesse écrit un avertissement dans ses journaux à chaque démarrage, avec `android.boot.recent_count` égal à son nombre de démarrages au cours de la dernière heure.
+Les démarrages de l'appareil au cours de la dernière heure forment la métrique `android.boot.recent_count`, et un appareil qui redémarre sans cesse écrit un avertissement dans ses journaux à chaque démarrage. Dans **Hôtes**, un appareil Android se voit proposer ses propres modèles d'alerte : Device Unplugged, Low Battery, Device Overheating, Restart Loop et Storage Nearly Full, avec Host Stopped Reporting, Host Restarted et High Memory Utilization, et High CPU Utilization dès qu'il signale son utilisation du processeur. Les premières commandes de débogage de chaque alerte sont des commandes adb. Voir [Surveillance des hôtes](/docs/monitor/host-monitor#appareils-android).
 
 ## Dépannage
 
@@ -137,7 +182,11 @@ Utilisez une clé **Serveur** activée et non expirée. Une clé **Navigateur** 
 :::
 
 :::details Aucun journal des autres applications
-Accordez READ_LOGS, comme l'explique [Lire les journaux des autres applications](#lire-les-journaux-des-autres-applications). Sous Android 13 et versions ultérieures, seuls les plantages et les ANR des autres applications sont lus.
+Accordez READ_LOGS, comme l'explique [Lire les journaux des autres applications](#lire-les-journaux-des-autres-applications). Sous Android 13 et versions ultérieures, seuls les plantages et les ANR des autres applications sont lus, sauf si une [session de journaux](#sessions-de-journaux) est en cours.
+:::
+
+:::details Une session de journaux reste sur En attente d'approbation
+Personne devant l'appareil ne l'a encore autorisée. Quelqu'un doit ouvrir l'agent sur l'appareil et appuyer sur **Autoriser**, puis, sous Android 13 et versions ultérieures, autoriser aussi la demande d'Android, pendant que l'agent est affiché à l'écran. Une session que la demande d'Android a refusée indique **Refusé** : demandez-en une autre.
 :::
 
 :::details Deux appareils apparaissent comme un seul hôte

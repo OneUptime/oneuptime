@@ -234,7 +234,9 @@
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer deg.",
     "selectProjectTitle": "Velg prosjekt",
-    "notSetUpForDomain": "Enkel pålogging er ikke satt opp for {{domain}}. Be administratoren om å sette det opp, eller logg inn på en annen måte.",
+    "notSetUpForDomain": "Enkel pålogging er ikke satt opp for {{domain}}. Be administratoren om organisasjonens SSO-påloggingslenke, eller logg inn på en annen måte.",
+    "projectNoProvider": "Denne lenken har ingen leverandør for enkel pålogging å logge inn med. Be administratoren om å slå på en, eller logg inn på en annen måte.",
+    "signInAnotherWay": "Logg inn på en annen måte",
     "emailRequired": "E-post er nødvendig for å utføre denne handlingen",
     "defaultProjectName": "Prosjekt",
     "globalProvidersTitle": "Logg på med organisasjonen din",
@@ -304,6 +306,19 @@
     "returnToApp": "Tilbake til appen",
     "cancel": "Avbryt og gå tilbake til appen",
     "setup": "Opprett en passnøkkel i nettdashbordet under Brukerprofil → Sikkerhet → Passnøkler."
+  },
+  "mobilePasskeyEnrolment": {
+    "title": "Konfigurer en passnøkkel",
+    "description": "Bruk ansikt, fingeravtrykk eller skjermlås på denne telefonen, eller en sikkerhetsnøkkel. Neste gang logger du inn på OneUptime On-Call med den.",
+    "create": "Opprett passnøkkel",
+    "tryAgain": "Prøv igjen",
+    "notCompleted": "Passnøkkelen ble ikke opprettet: forespørselen ble avbrutt eller tidsavbrutt. Prøv igjen når du er klar.",
+    "expired": "Dette oppsettet har utløpt eller er allerede brukt. Gå tilbake til appen og start på nytt.",
+    "failed": "Passnøkkelen kunne ikke opprettes. Prøv igjen, eller gå tilbake til appen og konfigurer en autentiseringsapp i stedet.",
+    "complete": "Passnøkkelen din er klar. Gå tilbake til appen for å fullføre innloggingen.",
+    "invalid": "Start oppsettet av en passnøkkel fra OneUptime-mobilappen. Forespørselen mangler eller er ugyldig.",
+    "insecure": "Passnøkler krever HTTPS. Gå tilbake til appen for å konfigurere en autentiseringsapp i stedet.",
+    "unsupported": "Denne nettleseren kan ikke opprette en passnøkkel. Gå tilbake til appen for å konfigurere en autentiseringsapp i stedet."
   },
   "mcpAuthorize": {
     "title": "Koble til en MCP-klient",

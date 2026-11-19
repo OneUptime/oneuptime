@@ -63,11 +63,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 成本指标（`node_total_hourly_cost`、`pv_hourly_cost` 等）都是普通指标：它们出现在指标浏览器中、自定义仪表板上和指标监视器中。要使用现成的仪表板，请转到 **产品 → 仪表板**，选择 **创建仪表板**，然后挑选 **Kubernetes Cost Dashboard**：其中包含节点每小时成本趋势、CPU 和内存单价，以及卷和负载均衡器的支出。
 
-在这些数字下方，概览和 **成本** 页面会说明价格从何而来：云厂商的公开价格、你的费率卡，或 OpenCost 的默认费率。效率在各处都是同一个数字，效率指标也不例外：它表示所请求的 CPU 和内存中有多少被实际使用，每个容器的每个小时都按其 CPU 和内存的成本加权，因此一个什么都不用的廉价任务无法拉低一个利用充分的集群，而且空闲容量不计算在内。
+在这些数字下方，概览和 **成本** 页面会说明价格从何而来：云厂商的公开价格、你的费率卡，或 OpenCost 的默认费率，无论由哪个引擎为集群定价，Kubecost 3 也包括在内。读取你的云账单的 Kubecost 会在每个小时结束约一天半后，按该账单对其价格进行对账，因此这行说明会指出这些数字是它对账之前的公开价格。效率在各处都是同一个数字，效率指标也不例外：它表示所请求的 CPU 和内存中有多少被实际使用，每个容器的每个小时都按其 CPU 和内存的成本加权，因此一个什么都不用的廉价任务无法拉低一个利用充分的集群，而且空闲容量不计算在内。
 
 ## 已经在运行 Kubecost 或 OpenCost？
 
-成本代理会找到它，并读取它而不是内置的 OpenCost，因此集群会按你的设置来定价：你的费率卡，或 Kubecost 所接入的云账单。它在启动时以及之后每小时，通过 Kubernetes API 在所有命名空间中查找这些引擎自己的 chart 所创建的 Service（Kubecost 的 `cost-analyzer` 或 `frontend`、OpenCost 的 chart 所创建的 Service，以及 OpenCost 的清单文件所创建的 `opencost` Service），并优先选择 Kubecost。它会跳过没有响应、需要登录或返回多个集群数据的引擎，转而读取内置的引擎。
+成本代理会找到它，并读取它而不是内置的 OpenCost，因此集群会按你的设置来定价：你的费率卡，或 Kubecost 所接入的云账单。它在启动时以及之后每小时，通过 Kubernetes API 在所有命名空间中查找这些引擎自己的 chart 所创建的 Service（Kubecost 的 `cost-analyzer` 或 `frontend`、OpenCost 的 chart 所创建的 Service，以及 OpenCost 的清单文件所创建的 `opencost` Service），并优先选择 Kubecost。它会跳过没有响应、需要登录或返回多个集群数据的引擎，转而读取内置的引擎。随后，Collector 也会为 Kubernetes Cost Dashboard 抓取你的引擎的价格指标，因此仪表板和成本页面显示的价格相同，而资源规格调整会从你的引擎所读取的 Prometheus 中读取内存峰值。
 
 随后，集群的概览会显示你的引擎名称，并说明不需要内置的 OpenCost。停止运行它：
 
@@ -86,7 +86,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 | Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Allocation API 路径会被自动找到（Kubecost 为 `/model/allocation`，OpenCost 为 `/allocation/compute` 或 `/allocation`）。只有在安装方式不寻常时才需要设置 `cost.engine.allocationPath`。使用 `auto` 或 URL 时不会内置任何东西，因此要获得内存建议，还需设置 `cost.engine.prometheusUrl`（见 [建议背后的数据](#建议背后的数据)）。价格指标也以同样的方式找到，因此指定引擎的哪个 Service 都可以：代理依次尝试引擎的 `/metrics`、Kubecost 2 前端或 OpenCost 的 UI 转给引擎的 `/model/metrics`、Kubecost 3 的 FinOps 代理，Collector 会抓取第一个带有价格序列的地址。要自己指定，请设置 `cost.metrics.endpoint`。
+Allocation API 路径会被自动找到（Kubecost 为 `/model/allocation`，OpenCost 为 `/allocation/compute` 或 `/allocation`）。只有在安装方式不寻常时才需要设置 `cost.engine.allocationPath`。用于内存建议的、你的引擎所读取的 Prometheus 也会被自动找到，但 Kubecost 3 不读取任何 Prometheus：此时请设置 `cost.engine.prometheusUrl`（见 [建议背后的数据](#建议背后的数据)）。价格指标也以同样的方式找到，因此指定引擎的哪个 Service 都可以：代理依次尝试引擎的 `/metrics`、Kubecost 2 前端或 OpenCost 的 UI 转给引擎的 `/model/metrics`、Kubecost 3 的 FinOps 代理，Collector 会抓取第一个带有价格序列的地址。要自己指定，请设置 `cost.metrics.endpoint`。
 
 ## 本地部署和裸金属定价
 
@@ -156,8 +156,8 @@ cost:
 内存还需要另一个数据源。Allocation API 只报告每个窗口的平均值，而每小时平均值会掩盖导致容器被 OOM kill 的突发，因此据此确定内存规格是危险的。所以轮询器改为从 Prometheus 读取每个容器的内存峰值，并按 `(namespace, pod, container)` 进行关联：
 
 - 使用内置引擎（默认）时，它使用 chart 自带的 Prometheus。无需任何设置。
-- 设置了 `cost.engine.url`（`auto` 或你的引擎的 URL）时，把 `cost.engine.prometheusUrl` 指向一个抓取 cAdvisor 的 Prometheus，如果其抓取任务的名称不是 `kubernetes-nodes-cadvisor`，还要设置 `cost.engine.prometheusCadvisorJob`。
-- 没有 Prometheus 时，CPU 建议仍可根据已存储的每小时平均值正常工作，而内存建议会被省略，而不是靠猜测得出。
+- 使用你自己的引擎时，它使用该引擎所读取的 Prometheus，由代理自动找到：OpenCost 的 `PROMETHEUS_SERVER_ENDPOINT`，或 Kubecost 2 自带的 Prometheus，前提是它能返回此集群的 cAdvisor 序列。Kubecost 3 不读取任何 Prometheus，因此只要 chart 运行着内置的 Prometheus，就由它来代替。
+- 否则，或者要自己选择一个时，把 `cost.engine.prometheusUrl` 指向一个抓取 cAdvisor 的 Prometheus；如果它在多个抓取任务下抓取 cAdvisor，且要读取的任务名称不是 `kubernetes-nodes-cadvisor`，还要设置 `cost.engine.prometheusCadvisorJob`。没有 Prometheus 时，CPU 建议仍可根据已存储的每小时平均值正常工作，而内存建议会被省略，而不是靠猜测得出。
 
 Prometheus 中断永远不会停止支出的采集：峰值只是附加信息，该小时会在没有峰值的情况下发送。CPU 有意不使用 Prometheus：CPU request 过大只会导致限流，而内存 request 过小则会让容器被终止，因此每小时平均值用于 CPU 是安全的；而且在整个集群中查询每个容器的 CPU 速率负载很重，足以压垮一个小型 Prometheus。
 
@@ -191,7 +191,7 @@ Kubernetes 监视器为它们提供了三个模板：Cluster Daily Cost Over Bud
 :::
 
 :::details 概览显示不需要内置的 OpenCost
-集群运行着自己的 Kubecost 或 OpenCost，而成本代理读取的是它，因此 chart 内置的 OpenCost 和 Prometheus 不为任何东西定价。使用 `--set cost.engine.url=auto` 升级即可停止运行它们，或者设置 `cost.engine.preferExisting=false`，改为读取内置的引擎。
+集群运行着自己的 Kubecost 或 OpenCost，而成本代理读取的是它，因此 chart 内置的 OpenCost 不为任何东西定价。使用 `--set cost.engine.url=auto` 升级即可停止运行它及其 Prometheus，或者设置 `cost.engine.preferExisting=false`，改为读取内置的引擎。使用 Kubecost 3 时，由于它不读取任何 Prometheus，内存建议来自内置的 Prometheus：请在同一次升级中用 `cost.engine.prometheusUrl` 指定另一个。
 :::
 
 :::details 成本代理没有读取你的引擎
@@ -203,7 +203,7 @@ Kubernetes 监视器为它们提供了三个模板：Cluster Daily Cost Over Bud
 :::
 
 :::details Kubernetes Cost Dashboard 没有数据
-该模板读取被抓取的成本指标：请检查 `cost.metrics.enabled` 是否为 `true`。设置了 `cost.engine.url` 时，成本代理会找到你的引擎提供这些指标的位置，它的日志会说明位置或它尝试过的地址：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。要自己指定，请设置 `cost.metrics.endpoint`。
+该模板读取被抓取的成本指标：请检查 `cost.metrics.enabled` 是否为 `true`。成本代理会找到它所读取的引擎（内置的引擎或你的引擎）提供这些指标的位置，它的日志会说明位置或它尝试过的地址：`kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`。要自己指定，请设置 `cost.metrics.endpoint`。
 :::
 
 :::details Right-Sizing 卡片为空
@@ -211,11 +211,11 @@ Kubernetes 监视器为它们提供了三个模板：Cluster Daily Cost Over Bud
 :::
 
 :::details 内存建议显示为 -，但 CPU 建议正常
-没有内存峰值到达 OneUptime，因此内存规格没有被确定，而不是根据平均值猜测。使用你自己的引擎时，请设置 `cost.engine.prometheusUrl`。卡片会说明这影响了多少个容器。
+没有内存峰值到达 OneUptime，因此内存规格没有被确定，而不是根据平均值猜测。使用你自己的引擎时，成本代理的日志会说明它读取的是哪个 Prometheus，或者为什么一个也没找到：请用 `cost.engine.prometheusUrl` 指定一个（Kubecost 3 不读取任何 Prometheus）。卡片会说明这影响了多少个容器。
 :::
 
 :::details 数字与引擎自身的 UI 不一致
-OneUptime 会把引擎的对账调整计入每个成本组成部分，并发送完整的、已结束的小时：当前小时的支出会在该小时结束后出现。
+OneUptime 发送完整的、已结束的小时，按引擎在这些小时结束时所定的价格，并计入其对账调整：当前小时的支出会在该小时结束后出现。读取你的云账单的 Kubecost 会在约一天半后按该账单对每个小时进行对账，而 OneUptime 会保留该小时最初定下的价格。
 :::
 
 :::details 内置的 Prometheus 重启过

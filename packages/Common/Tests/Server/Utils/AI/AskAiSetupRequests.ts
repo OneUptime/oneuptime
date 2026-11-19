@@ -23,6 +23,10 @@ export enum SetupRequestProject {
   PagesNobody = "PagesNobody",
   // A project whose on-call policies and rules page people already.
   PagesPeople = "PagesPeople",
+  // A project with a monitor that checks example.com already (#7292).
+  ChecksExampleCom = "ChecksExampleCom",
+  // A project on OneUptime Cloud's Free plan with its one status page (#7250).
+  FreePlanWithStatusPage = "FreePlanWithStatusPage",
 }
 
 export interface ExpectedSetupCall {
@@ -199,5 +203,108 @@ export const ASK_AI_SETUP_REQUESTS: ReadonlyArray<SetupRequest> = [
       { tool: "set_up_paging", arguments: { reachMeBy: ["sms"] } },
     ],
     note: "In German: the same plan, answered in German.",
+  },
+  {
+    request: "Monitor example.com and tell me when it is down.",
+    project: SetupRequestProject.ChecksExampleCom,
+    expected: [
+      {
+        tool: "set_up_website_monitoring",
+        arguments: { address: "example.com" },
+      },
+    ],
+    note: "#7292: a monitor checks example.com already, so the action is refused before any card, naming that monitor, and no second one is made.",
+  },
+  {
+    request: "Publish a status page that shows the API monitor.",
+    project: SetupRequestProject.FreePlanWithStatusPage,
+    expected: [
+      { tool: "publish_status_page", arguments: { monitors: ["API"] } },
+    ],
+    note: "#7250: the Free plan's one status page is taken, which is said before any card, in the plan's own sentence.",
+  },
+  {
+    request:
+      "Page me when example.com is down, and Ana Lopez if I don't answer in 5 minutes.",
+    project: SetupRequestProject.PagesNobody,
+    expected: [
+      {
+        tool: "set_up_website_monitoring",
+        arguments: { address: "example.com" },
+      },
+      {
+        tool: "set_up_paging",
+        arguments: { escalateTo: ["Ana Lopez"], afterMinutes: 5 },
+      },
+    ],
+    note: "#7244's sentence: one plan on one card; the policy has two levels, as the guided on-call setup makes them.",
+  },
+  {
+    request: "Page me, and again up to 3 times if I don't answer.",
+    project: SetupRequestProject.PagesNobody,
+    expected: [{ tool: "set_up_paging", arguments: { repeatTimes: 3 } }],
+    note: "#7244: the policy starts over, as the guided on-call setup's 'Page the same people again' - which the Free plan allows where a second level is not.",
+  },
+  {
+    request: "Page Ana Lopez too.",
+    project: SetupRequestProject.PagesPeople,
+    expected: [
+      {
+        tool: "add_to_on_call_policy",
+        arguments: {
+          policy: "Default on-call policy",
+          alsoPage: ["Ana Lopez"],
+        },
+      },
+    ],
+    note: "#7244: a project that pages people already gets no second policy; she is added to the first level of the one it names.",
+  },
+  {
+    request: "Text me, then call me after five minutes.",
+    project: SetupRequestProject.PagesPeople,
+    expected: [
+      {
+        tool: "set_how_to_reach_me",
+        arguments: {
+          steps: [
+            { by: "sms", afterMinutes: 0 },
+            { by: "call", afterMinutes: 5 },
+          ],
+        },
+      },
+    ],
+    note: "#7454's sentence: the person's How to Reach Me ladder, mapped to their verified methods; a missing phone is said on the card.",
+  },
+  {
+    request: "Invite ana@acme.example to the project and page her too.",
+    project: SetupRequestProject.PagesNobody,
+    expected: [
+      { tool: "invite_people", arguments: { emails: ["ana@acme.example"] } },
+      { tool: "set_up_paging", arguments: { alsoPage: ["ana@acme.example"] } },
+    ],
+    note: "#7242's sentence: the invitation first, then the policy that pages her once she joins - one plan, one card.",
+  },
+  {
+    request: "Set up monitoring for the checkout service.",
+    project: SetupRequestProject.PagesPeople,
+    expected: [
+      {
+        tool: "set_up_service_monitor",
+        arguments: { service: "checkout", monitor: "errors" },
+      },
+      {
+        tool: "set_up_service_monitor",
+        arguments: { service: "checkout", monitor: "slow_requests" },
+      },
+      {
+        tool: "set_up_service_monitor",
+        arguments: { service: "checkout", monitor: "exceptions" },
+      },
+      {
+        tool: "set_up_service_monitor",
+        arguments: { service: "checkout", monitor: "error_logs" },
+      },
+    ],
+    note: "#7243's sentence: one call for each of the telemetry guided setup's recommended monitors, each a line the person can skip; one of data the project does not send is refused before the card.",
   },
 ];

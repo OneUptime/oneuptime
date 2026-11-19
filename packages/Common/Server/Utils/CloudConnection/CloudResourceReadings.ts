@@ -7,6 +7,8 @@ import {
   getCloudHealthSeverity,
   getCloudReadingKey,
   isCloudReadingTheHighestOfItsSeries,
+  readCloudResourceReadings,
+  withHeldCloudReadings,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import { isCloudReadingKeyOfType } from "../../../Types/Cloud/CloudReadingKeys";
 import {
@@ -44,6 +46,13 @@ import { mergeCollectedReadings } from "./CloudStreamReadings";
  * reading one account each write their own. A resource the read brought no
  * reading for keeps the ones it had; once they are an hour old they are no
  * longer judged, and its severity is cleared.
+ *
+ * A resource the read did bring readings for gets them, and keeps of the
+ * ones it had each that is read less often than every read - an Azure key
+ * metric Azure Monitor keeps at five minutes, read every 15 - while its
+ * datapoint is younger than its hold (withHeldCloudReadings, #9740): its
+ * health and its page read it between its reads, rather than one read in
+ * three.
  */
 
 // Rows written in one statement at most.
@@ -508,6 +517,8 @@ export default class CloudResourceReadingsWriter {
             cloudProvider: true,
             cloudResourceType: true,
             cloudProperties: true,
+            // What it held: a slow reading is kept between its reads.
+            cloudReadings: true,
           },
           skip: 0,
           limit: LIMIT_MAX,
@@ -525,16 +536,25 @@ export default class CloudResourceReadingsWriter {
             continue;
           }
 
+          const provider: string = row.cloudProvider || entry.provider;
+          const type: string = row.cloudResourceType || entry.resourceType;
+          const readings: CloudResourceReadings = withHeldCloudReadings({
+            provider,
+            type,
+            previous: readCloudResourceReadings(row.cloudReadings),
+            current: entry.readings,
+            now: data.writtenAt,
+          });
           const severity: CloudHealthSeverity | null = getCloudHealthSeverity({
-            provider: row.cloudProvider || entry.provider,
-            type: row.cloudResourceType || entry.resourceType,
-            readings: entry.readings,
+            provider,
+            type,
+            readings,
             properties: row.cloudProperties,
           });
 
           pending.push({
             id: row.id.toString(),
-            readings: JSON.stringify(entry.readings),
+            readings: JSON.stringify(readings),
             severity,
           });
 

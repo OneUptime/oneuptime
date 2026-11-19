@@ -234,7 +234,9 @@
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Sign up.",
     "selectProjectTitle": "Select Project",
-    "notSetUpForDomain": "Single sign-on is not set up for {{domain}}. Ask your admin to set it up, or sign in another way.",
+    "notSetUpForDomain": "Single sign-on is not set up for {{domain}}. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
+    "projectNoProvider": "This link has no single sign-on provider to sign in with. Ask your admin to turn one on, or sign in another way.",
+    "signInAnotherWay": "Sign in another way",
     "emailRequired": "Email is required to perform this action",
     "defaultProjectName": "Project",
     "globalProvidersTitle": "Sign in with your organization",
@@ -304,6 +306,19 @@
     "returnToApp": "Return to app",
     "cancel": "Cancel and return to app",
     "setup": "Create a passkey in the web dashboard, under User Profile → Security → Passkeys."
+  },
+  "mobilePasskeyEnrolment": {
+    "title": "Set Up a Passkey",
+    "description": "Use this phone’s face, fingerprint or screen lock, or a security key. You’ll sign in to OneUptime On-Call with it next time.",
+    "create": "Create Passkey",
+    "tryAgain": "Try Again",
+    "notCompleted": "The passkey was not created: the prompt was canceled or timed out. Try again when you’re ready.",
+    "expired": "This setup has expired or was already used. Return to the app and start again.",
+    "failed": "The passkey could not be created. Try again, or return to the app and set up an authenticator app instead.",
+    "complete": "Your passkey is ready. Return to the app to finish signing in.",
+    "invalid": "Start setting up a passkey from the OneUptime mobile app. This request is missing or invalid.",
+    "insecure": "Passkeys require HTTPS. Return to the app to set up an authenticator app instead.",
+    "unsupported": "This browser can’t create a passkey. Return to the app to set up an authenticator app instead."
   },
   "mcpAuthorize": {
     "title": "Connect an MCP client",

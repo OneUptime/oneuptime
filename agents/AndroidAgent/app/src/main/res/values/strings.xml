@@ -1,10 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    The agent's words. Every language OneUptime's Dashboard speaks has its own
+    file, res/values-<language>/strings.xml, with every string here
+    (StringResourcesTest holds them to it). The keys of the managed
+    configuration, the Logcat levels' values and the adb commands are never
+    translated: device managers and adb read them as they are.
+-->
 <resources>
-    <string name="app_name">OneUptime Agent</string>
+    <string name="app_name" translatable="false">OneUptime Agent</string>
 
     <!-- The notification Android shows while the agent runs. -->
     <string name="notification_channel_name">Agent status</string>
     <string name="notification_channel_description">Shows whether this device is reporting to OneUptime.</string>
+
+    <!-- The notification for a log session OneUptime asks for. -->
+    <string name="notification_requests_channel_name">Requests from OneUptime</string>
+    <string name="notification_requests_channel_description">OneUptime asking to read this device\'s logs for troubleshooting.</string>
+    <string name="notification_request_title">OneUptime asks for this device\'s logs</string>
+
+    <!-- The status line: the notification and the top of the agent's screen. -->
+    <string name="status_not_set_up">Not set up yet</string>
+    <string name="status_not_set_up_detail">Enter the ingestion key, or send it from your device manager as oneuptime_token.</string>
+    <string name="status_unreachable">Can\'t reach OneUptime</string>
+    <string name="status_unreachable_detail">Check the device\'s network. The agent tries again on its own.</string>
+    <string name="status_key_refused">OneUptime refused the ingestion key</string>
+    <string name="status_key_refused_detail">Use a Server ingestion key that is on and not expired (HTTP %1$d).</string>
+    <string name="status_not_found">No OneUptime at this address</string>
+    <string name="status_not_found_detail">Check the OneUptime URL: %1$s.</string>
+    <string name="status_server_error">OneUptime is not accepting telemetry right now</string>
+    <string name="status_server_error_detail">OneUptime answered %1$d. The agent tries again on its own.</string>
+    <string name="status_server_error_unknown_detail">OneUptime answered with an error. The agent tries again on its own.</string>
+    <string name="status_sending_failed">Sending failed</string>
+    <string name="status_retrying">The agent tries again on its own.</string>
+    <string name="status_kept">Telemetry is kept on the device until it can be sent.</string>
+    <!-- Two sentences one after the other: languages written without spaces between sentences leave the space out. -->
+    <string name="status_detail_and_kept">%1$s %2$s</string>
+    <string name="status_reporting">Reporting to OneUptime</string>
+    <string name="status_as_device">As %1$s</string>
+    <string name="status_starting">Starting</string>
+    <string name="status_starting_detail">As %1$s. The first report goes out within a minute.</string>
+
+    <!-- Why the OneUptime URL cannot be used. -->
+    <string name="address_empty">Enter your OneUptime URL.</string>
+    <string name="address_not_a_url">The OneUptime URL is not a web address.</string>
+    <string name="address_not_https">The OneUptime URL must start with https://, so the ingestion key is never sent in the clear.</string>
+    <string name="address_query_or_fragment">Remove the ? or # part from the OneUptime URL.</string>
+    <string name="address_credentials">Remove the user name and password from the OneUptime URL.</string>
 
     <!-- The setup screen. -->
     <string name="setup_subtitle">Reports this device\'s health, restarts, apps and logs to OneUptime.</string>
@@ -34,20 +75,68 @@
     <string name="setup_readings">What this device lets the agent read</string>
     <string name="setup_reading_yes">Yes</string>
     <string name="setup_reading_cpu">CPU use</string>
-    <string name="setup_reading_cpu_unavailable">Not on Android 8 and later: Android keeps it from apps</string>
+    <string name="setup_reading_cpu_device_owner">Yes, as the device owner</string>
+    <string name="setup_reading_cpu_not_device_owner">Only when the agent is the device owner</string>
+    <string name="setup_reading_cpu_not_supported">Not on this device: Android reports no CPU use here</string>
     <string name="setup_reading_memory">Memory, storage and network</string>
     <string name="setup_reading_battery">Battery</string>
     <string name="setup_reading_no_battery">No battery</string>
     <string name="setup_reading_thermal">Temperature and throttling</string>
     <string name="setup_reading_thermal_unavailable">Android 10 and later</string>
     <string name="setup_reading_logcat">Logcat</string>
+    <string name="setup_reading_crash_details">Crash stacks and reboot reasons</string>
+    <string name="setup_reading_crash_details_yes">Yes, for every app</string>
+    <string name="setup_reading_crash_details_not_granted">Off: READ_LOGS has not been granted</string>
+    <string name="setup_reading_crash_details_no_usage_access">Off: usage access is not allowed</string>
     <string name="setup_reading_apps">Installed apps</string>
-    <string name="setup_reading_apps_off">Off: switched off by your device manager</string>
+    <string name="setup_reading_off_by_manager">Off: switched off by your device manager</string>
     <string name="setup_reading_unknown">After the first report</string>
-    <string name="setup_logcat_grant">To send other apps\' logs, grant READ_LOGS once, with adb or your device manager\'s remote ADB:</string>
-    <string name="setup_version">OneUptime Agent %1$s</string>
+    <string name="setup_grants">To send other apps\' logs and crash stacks, grant these once, with adb or your device manager\'s remote ADB:</string>
+    <string name="setup_usage_access">Allow usage access</string>
+    <string name="setup_version" translatable="false">OneUptime Agent %1$s</string>
 
-    <!-- Managed configuration, as device managers (Esper, Intune, Workspace ONE, SOTI) show it. -->
+    <!-- What the agent reads of Logcat. -->
+    <string name="logcat_not_started">Not started</string>
+    <string name="logcat_not_granted">Off: READ_LOGS has not been granted</string>
+    <string name="logcat_crashes_and_anrs">Crashes and ANRs of every app</string>
+    <string name="logcat_full">Every app\'s logs, crashes and ANRs</string>
+
+    <!-- A log session: every app's logs for a while, for troubleshooting, asked for in OneUptime. -->
+    <string name="log_session_title">Logs for troubleshooting</string>
+    <string name="log_session_request_by">%1$s asks, in OneUptime, for every app\'s logs on this device for %2$s, at %3$s and above.</string>
+    <string name="log_session_request">OneUptime asks for every app\'s logs on this device for %1$s, at %2$s and above.</string>
+    <string name="log_session_android_prompt">Android then asks you to allow access to all device logs. Choose Allow there too.</string>
+    <string name="log_session_allow">Allow</string>
+    <string name="log_session_decline">Decline</string>
+    <string name="log_session_stop">Stop sending</string>
+    <string name="log_session_starting">In Android\'s prompt, allow access to all device logs.</string>
+    <string name="log_session_collecting_until">Sending every app\'s logs until %1$s.</string>
+    <string name="log_session_collecting">Sending every app\'s logs.</string>
+    <string name="log_session_declined_here">Declined. Nothing more is sent.</string>
+    <string name="log_session_declined_by_android">Access to all device logs was not allowed, so nothing more is sent.</string>
+    <string name="log_session_no_answer">Nobody answered Android\'s prompt, so nothing more is sent.</string>
+    <string name="log_session_time_up">Done: every app\'s logs were sent for the time asked.</string>
+    <string name="log_session_stopped">Stopped. Nothing more is sent.</string>
+    <string name="log_session_agent_restarted">Ended when the agent restarted.</string>
+    <string name="log_session_logcat_stopped">Ended: Logcat stopped reading.</string>
+    <string name="log_session_logcat_disabled">This device cannot send them: your device manager switched Logcat off.</string>
+    <string name="log_session_not_granted">This device cannot send them: READ_LOGS has not been granted.</string>
+    <string name="log_session_expired">Nobody allowed it in time.</string>
+    <string name="log_session_cancelled">Cancelled in OneUptime.</string>
+    <string name="log_session_ended">Ended.</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+
+    <!-- The agent as a device owner (Settings, Device admin apps). -->
+    <string name="device_admin_description">Lets the agent read this device\'s CPU use as its device owner. It never locks, wipes or restricts the device.</string>
+
+    <!-- Managed configuration, as device managers (Esper, Intune, Workspace ONE, SOTI, managed Google Play) show it. -->
     <string name="restriction_url_title">OneUptime URL</string>
     <string name="restriction_url_description">Where to send telemetry. Leave it as https://oneuptime.com unless you host OneUptime yourself.</string>
     <string name="restriction_token_title">Ingestion key</string>
@@ -65,7 +154,7 @@
     <string name="restriction_interval_title">Collection interval (seconds)</string>
     <string name="restriction_interval_description">How often the agent reports, from 30 to 600 seconds. 60 by default.</string>
     <string name="restriction_logcat_enabled_title">Send Logcat</string>
-    <string name="restriction_logcat_enabled_description">Send other apps\' crashes, ANRs and logs. Needs READ_LOGS, granted with adb.</string>
+    <string name="restriction_logcat_enabled_description">Send other apps\' crashes, ANRs and logs, and allow the log sessions OneUptime asks for. Needs READ_LOGS, granted with adb.</string>
     <string name="restriction_logcat_level_title">Lowest Logcat level</string>
     <string name="restriction_logcat_level_description">The least severe Logcat lines to send, on Android 12 and earlier. Warning by default.</string>
     <string name="restriction_apps_enabled_title">Send installed apps</string>

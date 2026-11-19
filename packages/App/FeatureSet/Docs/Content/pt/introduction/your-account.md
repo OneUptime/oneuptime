@@ -137,14 +137,14 @@ Se você ainda não tem códigos de backup, o OneUptime os mostra então uma ún
 
 ### Quando sua organização gerencia seu login
 
-Em um servidor que exige login único, você entra apenas pelo provedor de identidade da sua organização, como Okta ou Microsoft Entra ID, e o OneUptime não define para você senha, chave de acesso nem autenticação de dois fatores. O **Perfil do usuário** então não tem a seção **Segurança**, e a **Visão geral** dele mostra seu provedor em **Login único**. Altere sua senha e sua segunda etapa no seu provedor de identidade. O que você configurou antes continua salvo: só volta a funcionar se o servidor deixar de exigir login único, a menos que um administrador do servidor o limpe. Os administradores principais mantêm suas próprias configurações de **Segurança**.
+Em um servidor que exige login único, você entra apenas pelo provedor de identidade da sua organização, como Okta ou Microsoft Entra ID, e o OneUptime não define para você senha, chave de acesso nem autenticação de dois fatores. O **Perfil do usuário** então não tem a seção **Segurança**, e a **Visão geral** dele mostra seu provedor em **Login único**. Altere sua senha e sua segunda etapa no seu provedor de identidade. O que você configurou antes continua salvo: só volta a funcionar se o servidor deixar de exigir login único, a menos que um administrador do servidor o limpe, e você recebe um e-mail se isso acontecer. Os administradores principais mantêm suas próprias configurações de **Segurança**.
 
 O mesmo acontece quando todos os projetos de que você faz parte exigem login único e têm **Gerenciar o login com SSO** ligado. Sua senha ainda faz seu login no OneUptime, mas todos os projetos pedem SSO, então o OneUptime não define para você nenhuma nova senha, chave de acesso ou segunda etapa:
 
 - **Um projeto que não faz isso**: assim que você é membro de um projeto, ou é convidado para um, que não exige SSO ou não tem **Gerenciar o login com SSO** ligado, sua seção **Segurança** volta. A **Visão geral** então mostra esses projetos em **Login único**, como o motivo de suas configurações serem suas. Sair desse projeto as tira de você de novo.
 - **Projetos com provedores diferentes**: se todos os seus projetos gerenciam o login, cada um com o próprio provedor de identidade, a **Visão geral** mostra cada provedor.
 - **Os administradores principais** sempre mantêm suas próprias configurações de **Segurança**.
-- **O que você configurou antes** continua salvo, e um administrador do servidor pode limpá-lo.
+- **O que você configurou antes** continua salvo. Um administrador do servidor pode limpá-lo, e também um proprietário de todos os projetos de que você faz parte; você recebe um e-mail quando isso acontece.
 
 ## Seus projetos
 

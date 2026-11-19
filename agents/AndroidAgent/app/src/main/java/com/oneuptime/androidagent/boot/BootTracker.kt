@@ -28,6 +28,19 @@ enum class PreviousShutdown(val value: String) {
     UNKNOWN("unknown"),
 }
 
+/**
+ * What Android kept of why the device rebooted (DropBox's SYSTEM_LAST_KMSG,
+ * which the agent reads with READ_LOGS and usage access).
+ */
+data class RebootFacts(
+    // The reason the bootloader passed the kernel: "reboot,shell", "kernel_panic", "watchdog", "shutdown,battery".
+    val reason: String?,
+    // "Kernel panic - not syncing: ...", when the kernel's last log has one.
+    val kernelPanic: String?,
+    // The kernel's last lines before the reboot, redacted.
+    val lastKernelLines: List<String>,
+)
+
 /** A boot the agent has not reported yet, and what it knows of the one before. */
 data class BootEvent(
     val boot: BootInfo,
@@ -59,18 +72,8 @@ class BootTracker(private val store: KeyValueStore, private val clock: Clock) {
     @Synchronized
     fun observe(current: BootInfo): BootEvent? {
         val storedId: String? = store.getString(KEY_BOOT_ID)
-        val storedCount: Long? = store.getLong(KEY_BOOT_COUNT)
-        val storedTime: Long? = store.getLong(KEY_BOOT_TIME)
-
-        val firstEver: Boolean = storedId == null && storedCount == null && storedTime == null
-        val isNewBoot: Boolean =
-            when {
-                firstEver -> false
-                current.bootId != null && storedId != null -> current.bootId != storedId
-                current.bootCount != null && storedCount != null -> current.bootCount.toLong() != storedCount
-                storedTime != null -> kotlin.math.abs(current.bootTimeMillis - storedTime) > BOOT_TIME_TOLERANCE_MILLIS
-                else -> false
-            }
+        val firstEver: Boolean = isFirstEver()
+        val isNewBoot: Boolean = isNew(current)
 
         if (!firstEver && !isNewBoot) {
             return null
@@ -91,6 +94,34 @@ class BootTracker(private val store: KeyValueStore, private val clock: Clock) {
         }
         return event?.copy(bootsInLastHour = recent.size)
     }
+
+    /**
+     * Whether [current] is a boot the agent has not reported yet, without
+     * recording it: [observe] records it. The very first boot the agent sees
+     * is not one, as [observe] does not report it either.
+     */
+    @Synchronized
+    fun isNew(current: BootInfo): Boolean {
+        if (isFirstEver()) {
+            return false
+        }
+        val storedId: String? = store.getString(KEY_BOOT_ID)
+        val storedCount: Long? = store.getLong(KEY_BOOT_COUNT)
+        val storedTime: Long? = store.getLong(KEY_BOOT_TIME)
+        return when {
+            current.bootId != null && storedId != null -> current.bootId != storedId
+            current.bootCount != null && storedCount != null -> current.bootCount.toLong() != storedCount
+            storedTime != null -> kotlin.math.abs(current.bootTimeMillis - storedTime) > BOOT_TIME_TOLERANCE_MILLIS
+            else -> false
+        }
+    }
+
+    /** The device's boots in the hour up to [nowMillis], the current one included once it is recorded. */
+    @Synchronized
+    fun bootsInLastHour(nowMillis: Long): Int = recentBoots().count { nowMillis - it in 0 until RECENT_WINDOW_MILLIS }
+
+    private fun isFirstEver(): Boolean =
+        store.getString(KEY_BOOT_ID) == null && store.getLong(KEY_BOOT_COUNT) == null && store.getLong(KEY_BOOT_TIME) == null
 
     /** Called at each collection: the device is up, and has been for this long. */
     @Synchronized
@@ -182,14 +213,15 @@ class BootTracker(private val store: KeyValueStore, private val clock: Clock) {
         // Before this, the clock was not set when the device booted: the record is stamped when it is read instead.
         private const val PLAUSIBLE_TIME_MILLIS: Long = 1_577_836_800_000L // 2020-01-01
 
-        fun record(event: BootEvent, nowMillis: Long): LogRecord {
+        fun record(event: BootEvent, nowMillis: Long, reboot: RebootFacts? = null): LogRecord {
             val time: Long = if (event.boot.bootTimeMillis >= PLAUSIBLE_TIME_MILLIS) event.boot.bootTimeMillis else nowMillis
             val loop: Boolean = event.bootsInLastHour >= RESTART_LOOP_BOOTS
+            val panicked: Boolean = reboot?.kernelPanic != null
             return LogRecord(
                 timeUnixNano = millisToNanos(time),
                 observedTimeUnixNano = millisToNanos(nowMillis),
-                severity = if (loop || event.previousShutdown == PreviousShutdown.UNEXPECTED) Severity.WARN else Severity.INFO,
-                body = describe(event),
+                severity = if (loop || panicked || event.previousShutdown == PreviousShutdown.UNEXPECTED) Severity.WARN else Severity.INFO,
+                body = describe(event, reboot),
                 attributes =
                     attributes {
                         text("event.name", "device.boot")
@@ -199,6 +231,9 @@ class BootTracker(private val store: KeyValueStore, private val clock: Clock) {
                         int("android.boot.offline_duration", event.offlineSeconds)
                         text("android.boot.previous_shutdown", event.previousShutdown.value)
                         int("android.boot.recent_count", event.bootsInLastHour.toLong())
+                        text("android.boot.reason", reboot?.reason)
+                        text("android.boot.kernel_panic", reboot?.kernelPanic)
+                        text("android.boot.last_kernel_log", reboot?.lastKernelLines?.joinToString("\n")?.takeIf { it.isNotBlank() })
                     },
             )
         }
@@ -206,7 +241,7 @@ class BootTracker(private val store: KeyValueStore, private val clock: Clock) {
         const val RESTART_LOOP_BOOTS: Int = 3
 
         /** The record's body: "Device started (boot 42). It had been up for 3d 4h 10m, and shut down cleanly. ..." */
-        fun describe(event: BootEvent): String {
+        fun describe(event: BootEvent, reboot: RebootFacts? = null): String {
             val sentences: MutableList<String> = mutableListOf()
             sentences.add("Device started" + (event.boot.bootCount?.let { " (boot $it)" } ?: "") + ".")
 
@@ -228,6 +263,8 @@ class BootTracker(private val store: KeyValueStore, private val clock: Clock) {
                 val bound: String = if (event.previousShutdown == PreviousShutdown.CLEAN) "" else "at most "
                 sentences.add("It was off for $bound${formatDuration(seconds)}.")
             }
+            reboot?.kernelPanic?.let { sentences.add("The kernel panicked: $it.") }
+            reboot?.reason?.let { sentences.add("Android gives the reboot's reason as $it.") }
             if (event.bootsInLastHour >= RESTART_LOOP_BOOTS) {
                 sentences.add("It has started ${event.bootsInLastHour} times in the last hour.")
             }

@@ -1,7 +1,6 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import AnnouncementReach, {
   AnnouncementReachResult,
@@ -9,7 +8,13 @@ import AnnouncementReach, {
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { useEffect, useState } from "react";
+import createPickedStatusPagesReachAsker, {
+  NOT_ASKED,
+  PICKED_STATUS_PAGES_REACH_KEPT_FOR_MS,
+  PickedStatusPagesReachAsker,
+  PickedStatusPagesReachState,
+  getPickedStatusPagesKey,
+} from "../StatusPage/PickedStatusPagesReachAsker";
 import { AnnouncementReachQuestion } from "./AnnouncementForm";
 
 /*
@@ -17,59 +22,24 @@ import { AnnouncementReachQuestion } from "./AnnouncementForm";
  * one of them, and whether it notifies anyone (Common/Types/StatusPage
  * /AnnouncementReach), from POST /status-page-announcement/reach: what the
  * Schedule & Notifications line says, and the notify boxes under them
- * (#9775).
+ * (#9775). On the Edit the answer also says where the announcement's own
+ * notification stands, which the update box reads (#9921).
  *
- * The form asks from more than one place at once - the folded line and the
- * notify box under it, then the review step's line - and asks again each
- * time the pages picked change. So one answer serves them all: an answer is
- * kept for a short while by the pages it is for (and the announcement an
- * Edit edits), and a question already on its way is not asked twice. The
- * review step then reads the answer the step before it was given, rather
- * than flashing the line it says while it does not know.
- *
- * Not known - while it is asked, or when it could not be answered - the
- * form promises nothing; the answer is advisory, and never stops the form
- * from being saved.
+ * Asked as every form that picks status pages asks
+ * (StatusPage/PickedStatusPagesReachAsker): once for every place that asks
+ * the same question, kept 30 seconds so the review reads it without
+ * flashing, handed out only for the pages it is for. Not known, the form
+ * promises nothing; the answer is advisory, and never stops the form from
+ * being saved.
  */
 
-export interface AnnouncementReachState {
-  // Null while it is not known.
-  reach: AnnouncementReachResult | null;
-  isLoading: boolean;
-  error: string;
-}
+export type AnnouncementReachState =
+  PickedStatusPagesReachState<AnnouncementReachResult>;
 
-export const NO_ANNOUNCEMENT_REACH: AnnouncementReachState = {
-  reach: null,
-  isLoading: false,
-  error: "",
-};
+export const NO_ANNOUNCEMENT_REACH: AnnouncementReachState = NOT_ASKED;
 
-interface KeptAnswer {
-  reach: AnnouncementReachResult | null;
-  error: string;
-  keptAt: number;
-}
-
-/*
- * How long an answer is kept: long enough to carry the line from the
- * Status Pages step to the review, short enough that a page's settings
- * changed meanwhile are read again by the next form.
- */
-export const ANNOUNCEMENT_REACH_KEPT_FOR_MS: number = 30 * 1000;
-
-const keptAnswers: Map<string, KeptAnswer> = new Map<string, KeptAnswer>();
-
-const questionsOnTheirWay: Map<string, Promise<KeptAnswer>> = new Map<
-  string,
-  Promise<KeptAnswer>
->();
-
-// Forgets every answer: for the tests, which each start from nothing.
-export const forgetAnnouncementReachAnswers: () => void = (): void => {
-  keptAnswers.clear();
-  questionsOnTheirWay.clear();
-};
+export const ANNOUNCEMENT_REACH_KEPT_FOR_MS: number =
+  PICKED_STATUS_PAGES_REACH_KEPT_FOR_MS;
 
 /*
  * The route is written out rather than read from AnnouncementReach
@@ -124,41 +94,30 @@ export const getAnnouncementReachKey: (
 ) => string = (
   question: AnnouncementReachQuestion | null | undefined,
 ): string => {
-  if (!question || question.statusPageIds.length === 0) {
+  if (!question) {
     return "";
   }
 
-  const statusPageIds: Array<string> = question.statusPageIds
-    .map((id: string): string => {
-      return id.toString().trim().toLowerCase();
-    })
-    .filter((id: string, index: number, all: Array<string>): boolean => {
-      return Boolean(id) && all.indexOf(id) === index;
-    })
-    .sort();
-
-  return `${(question.announcementId || "new").toString().toLowerCase()} ${statusPageIds.join(",")}`;
+  return getPickedStatusPagesKey({
+    statusPageIds: question.statusPageIds,
+    recordId: question.announcementId,
+  });
 };
 
-const readKeptAnswer: (key: string) => KeptAnswer | null = (
-  key: string,
-): KeptAnswer | null => {
-  const kept: KeptAnswer | undefined = keptAnswers.get(key);
+const announcementReachAsker: PickedStatusPagesReachAsker<
+  AnnouncementReachQuestion,
+  AnnouncementReachResult
+> = createPickedStatusPagesReachAsker<
+  AnnouncementReachQuestion,
+  AnnouncementReachResult
+>({
+  fetch: fetchAnnouncementReach,
+  getKey: getAnnouncementReachKey,
+});
 
-  if (!kept) {
-    return null;
-  }
-
-  if (
-    OneUptimeDate.getCurrentDate().getTime() - kept.keptAt >
-    ANNOUNCEMENT_REACH_KEPT_FOR_MS
-  ) {
-    keptAnswers.delete(key);
-    return null;
-  }
-
-  return kept;
-};
+// Forgets every answer: for the tests, which each start from nothing.
+export const forgetAnnouncementReachAnswers: () => void =
+  announcementReachAsker.forget;
 
 /*
  * The answer kept for `question`, or null when there is none: for what a
@@ -167,59 +126,7 @@ const readKeptAnswer: (key: string) => KeptAnswer | null = (
  */
 export const getKeptAnnouncementReach: (
   question: AnnouncementReachQuestion | null | undefined,
-) => AnnouncementReachResult | null = (
-  question: AnnouncementReachQuestion | null | undefined,
-): AnnouncementReachResult | null => {
-  const key: string = getAnnouncementReachKey(question);
-
-  return key ? readKeptAnswer(key)?.reach || null : null;
-};
-
-// Asks once for every place that asks the same question at the same time.
-const askAnnouncementReach: (
-  key: string,
-  question: AnnouncementReachQuestion,
-) => Promise<KeptAnswer> = (
-  key: string,
-  question: AnnouncementReachQuestion,
-): Promise<KeptAnswer> => {
-  const onItsWay: Promise<KeptAnswer> | undefined =
-    questionsOnTheirWay.get(key);
-
-  if (onItsWay) {
-    return onItsWay;
-  }
-
-  const asked: Promise<KeptAnswer> = fetchAnnouncementReach(question)
-    .then((reach: AnnouncementReachResult): KeptAnswer => {
-      return {
-        reach: reach,
-        error: "",
-        keptAt: OneUptimeDate.getCurrentDate().getTime(),
-      };
-    })
-    .catch((err: unknown): KeptAnswer => {
-      return {
-        reach: null,
-        error: API.getFriendlyMessage(err),
-        keptAt: OneUptimeDate.getCurrentDate().getTime(),
-      };
-    })
-    .then((answer: KeptAnswer): KeptAnswer => {
-      // Answers kept past their while go as a new one is kept.
-      for (const keptKey of Array.from(keptAnswers.keys())) {
-        readKeptAnswer(keptKey);
-      }
-
-      keptAnswers.set(key, answer);
-      questionsOnTheirWay.delete(key);
-      return answer;
-    });
-
-  questionsOnTheirWay.set(key, asked);
-
-  return asked;
-};
+) => AnnouncementReachResult | null = announcementReachAsker.getKept;
 
 /*
  * The answer for `question`; null asks nothing (no page picked yet), and
@@ -230,61 +137,5 @@ const askAnnouncementReach: (
 export default function useAnnouncementReach(
   question: AnnouncementReachQuestion | null | undefined,
 ): AnnouncementReachState {
-  const key: string = getAnnouncementReachKey(question);
-
-  const [answer, setAnswer] = useState<{
-    key: string;
-    kept: KeptAnswer;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!key || !question) {
-      return;
-    }
-
-    /*
-     * An answer kept from another place the form asked from: this one
-     * holds on to it for as long as it shows the same pages.
-     */
-    const keptAlready: KeptAnswer | null = readKeptAnswer(key);
-
-    if (keptAlready) {
-      setAnswer({ key: key, kept: keptAlready });
-      return;
-    }
-
-    let isStale: boolean = false;
-
-    askAnnouncementReach(key, question)
-      .then((kept: KeptAnswer) => {
-        if (!isStale) {
-          setAnswer({ key: key, kept: kept });
-        }
-      })
-      .catch(() => {
-        // askAnnouncementReach answers every failure itself.
-      });
-
-    return () => {
-      isStale = true;
-    };
-  }, [key]);
-
-  if (!key) {
-    return NO_ANNOUNCEMENT_REACH;
-  }
-
-  const kept: KeptAnswer | null =
-    answer && answer.key === key ? answer.kept : readKeptAnswer(key);
-
-  // Until this question's answer arrives, the last one is another's.
-  if (!kept) {
-    return { reach: null, isLoading: true, error: "" };
-  }
-
-  return {
-    reach: kept.reach,
-    isLoading: false,
-    error: kept.error,
-  };
+  return announcementReachAsker.useReach(question);
 }

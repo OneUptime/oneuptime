@@ -184,6 +184,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   // The row's cause and log, read when asked for.
   causeColumn?: string | undefined;
   noCauseText?: string | undefined;
+  /*
+   * The cause in the reader's language, from the stored one and the row's
+   * log (logColumn's value, read with it): a monitor's root cause words
+   * OneUptime's labels and the findings its check kept
+   * (StatusChangeCauseWording, #9752). Left out, the cause is drawn as
+   * stored.
+   */
+  wordCause?: ((data: { cause: string; log: unknown }) => string) | undefined;
   logColumn?: string | undefined;
   logsTitle?: string | undefined;
   // The logsTitle is in the reader's words already, drawn as given (Modal's isTitleTranslated).
@@ -812,6 +820,30 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
   };
 
   // ---- the row's actions ---------------------------------------------------
+  const readColumns: (data: {
+    item: TBaseModel;
+    columns: Array<string>;
+  }) => Promise<Array<unknown>> = async (data: {
+    item: TBaseModel;
+    columns: Array<string>;
+  }): Promise<Array<unknown>> => {
+    const select: JSONObject = {};
+
+    for (const column of data.columns) {
+      select[column] = true;
+    }
+
+    const row: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({
+      modelType: props.modelType,
+      id: new ObjectID(getRowId(data.item)),
+      select: select as Select<TBaseModel>,
+    });
+
+    return data.columns.map((column: string): unknown => {
+      return row ? readValue(row, column) : undefined;
+    });
+  };
+
   const readOneColumn: (data: {
     item: TBaseModel;
     column: string;
@@ -819,13 +851,12 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
     item: TBaseModel;
     column: string;
   }): Promise<unknown> => {
-    const row: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({
-      modelType: props.modelType,
-      id: new ObjectID(getRowId(data.item)),
-      select: { [data.column]: true } as Select<TBaseModel>,
+    const [value]: Array<unknown> = await readColumns({
+      item: data.item,
+      columns: [data.column],
     });
 
-    return row ? readValue(row, data.column) : undefined;
+    return value;
   };
 
   const openCause: (item: TBaseModel) => void = (item: TBaseModel): void => {
@@ -835,15 +866,32 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
 
     setCause({ isLoading: true, text: "" });
 
-    readOneColumn({ item: item, column: props.causeColumn })
-      .then((value: unknown) => {
+    /*
+     * A page that words the cause gets the row's log with it: the check
+     * the change kept, whose findings its wording reads.
+     */
+    const wordCause:
+      | ((data: { cause: string; log: unknown }) => string)
+      | undefined = props.wordCause;
+    const columns: Array<string> =
+      wordCause && props.logColumn
+        ? [props.causeColumn, props.logColumn]
+        : [props.causeColumn];
+
+    readColumns({ item: item, columns: columns })
+      .then(([value, log]: Array<unknown>) => {
         const noCause: string = props.noCauseText || DEFAULT_NO_CAUSE_TEXT;
 
         setCause({
           isLoading: false,
-          // The cause is what was recorded; only our own words translate.
+          /*
+           * The cause is what was recorded: as stored, or in the reader's
+           * language where the page words it. No cause is our own words.
+           */
           text: value
-            ? String(value)
+            ? wordCause
+              ? wordCause({ cause: String(value), log: log })
+              : String(value)
             : translator.translateText(noCause) || noCause,
         });
       })

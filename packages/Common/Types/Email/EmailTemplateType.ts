@@ -35,6 +35,12 @@ enum EmailTemplateType {
   TwoFactorBackupCodesRegenerated = "TwoFactorBackupCodesRegenerated.hbs",
   TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   TwoFactorWrongCodes = "TwoFactorWrongCodes.hbs",
+  /*
+   * A person's password, passkeys and second steps were cleared by a server
+   * admin or an owner of their projects (#9818, #9820,
+   * Types/SSO/SignInSettingsClearedEmail), in their own language.
+   */
+  SignInSettingsCleared = "SignInSettingsCleared.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
   // Made an owner of a table, a pipeline or a data store (#9681).
   DataAssetOwnerAdded = "DataAssetOwnerAdded.hbs",

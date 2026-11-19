@@ -43,7 +43,7 @@ Klicka på **Nästa** för att komma till **Berörda resurser**. Välj de **Moni
 
 ### Välj vem som får höra om det
 
-Välj statussidorna under **Visa händelse på dessa statussidor**. **Aviseringar till prenumeranter**, hopfällt, säger på en rad när händelsen visas på dem och vem som får veta och när; öppna det för att välja **Vid ett datum och en tid** under **Publicera på statussidor**, eller för att ändra **När händelsen schemaläggs**, **När händelsen börjar**, **När händelsen slutar** eller **Påminnelser före händelsen**.
+Välj statussidorna under **Visa händelse på dessa statussidor**. **Aviseringar till prenumeranter**, hopfällt, säger på en rad när händelsen visas på dem och vem som får veta och när; öppna det för att välja **Vid ett datum och en tid** under **Publicera på statussidor**, eller för att ändra **När händelsen schemaläggs**, **När händelsen börjar**, **När händelsen slutar** eller **Påminnelser före händelsen**. Raden följer de valda statussidorna: om ingen är vald, om ingen av dem visar underhållshändelser eller om de som visar dem inte skickar något till sina prenumeranter säger den det i stället för vem som får veta.
 
 ### Skapa den
 

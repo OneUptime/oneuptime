@@ -34,7 +34,7 @@ ARG BASE_TAG=12-slim
 
 # The release, a resource of hardening_manifest.yaml: Iron Bank's pipeline
 # pulls it by digest and gives it this name before it builds.
-FROM oneuptime/probe:14.0.102 AS release
+FROM oneuptime/probe:16.0.0 AS release
 
 # The release without its tests, which no image runs: one of Common's test
 # fixtures (an SVG data URI with a script in it) is what ClamAV calls
@@ -98,10 +98,10 @@ SHELL ["/bin/bash", "-c"]
 # hardening_manifest.yaml carry.
 LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs/probe/custom-probe"
-LABEL org.opencontainers.image.revision="eabb86bd64e59edcecab13b7f8bc3512babb2483"
+LABEL org.opencontainers.image.revision="dec5b8392bb8cb875251584a5d1b27774c3bf5a4"
 
-ENV APP_VERSION=14.0.102
-ENV GIT_SHA=eabb86bd64e59edcecab13b7f8bc3512babb2483
+ENV APP_VERSION=16.0.0
+ENV GIT_SHA=dec5b8392bb8cb875251584a5d1b27774c3bf5a4
 ENV NODE_OPTIONS="--use-openssl-ca"
 ENV PRODUCTION=true
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers

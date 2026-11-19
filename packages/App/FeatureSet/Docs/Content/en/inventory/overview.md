@@ -71,7 +71,7 @@ Open an item, and its own side menu has its **Overview** (its type, source and s
 
 ### Asset details
 
-A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
+A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. An Android device's card also has its security patch level, from the Android agent or Esper. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
 
 - A host's facts come from the resource attributes on its telemetry: its IP and MAC addresses, architecture and operating system out of the box, and its serial number, make, model and firmware once you stamp them on.
 - A network device's facts come from its SNMP poll, its role and its site. What its poll has not read comes from discovery: the last scan of its address, a router's ARP table, or its probe's DNS lookup. A device without ENTITY-MIB, such as a Meraki MX, still gets its make, model and operating system from its system description, and its MAC address from its own ports. Its IP address is never shown as its hostname.
