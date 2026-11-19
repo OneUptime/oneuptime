@@ -9,10 +9,38 @@ import MonitorType from "./MonitorType";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import SessionReplayBudgetMetricType from "../Rum/SessionReplayBudgetMetricType";
+import {
+  RUM_CLIENT_KIND_BROWSER,
+  RUM_CLIENT_KIND_MOBILE,
+  RumClientKind,
+  readRumClientKind,
+} from "../Rum/RumClientKind";
+import {
+  APP_ANR_EVENT_NAME,
+  APP_CRASH_EVENT_NAME,
+  APP_JANK_EVENT_NAME,
+  APP_JANK_THRESHOLD_ATTRIBUTE,
+  APP_START_SPAN_NAME,
+  APP_START_TYPE_ATTRIBUTE,
+  APP_START_TYPE_COLD,
+  EVENT_NAME_ATTRIBUTE,
+  EXCESSIVE_APP_START_MS,
+  FROZEN_FRAME_THRESHOLD,
+} from "../Rum/MobileAppTelemetry";
+import {
+  SESSION_REPLAY_SIGNAL_ID_ATTRIBUTE,
+  SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
+} from "../Rum/SessionReplaySignalMetric";
+import {
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNALS,
+} from "../Rum/SessionReplayFrustrationSignals";
 
 export type RumAlertTemplateCategory =
   | "Core Web Vitals"
   | "Errors"
+  | "Performance"
+  | "Availability"
   | "Session Replay";
 
 export type RumAlertTemplateSeverity = "Critical" | "Warning";
@@ -48,6 +76,32 @@ export interface RumAlertTemplateContext {
   sessionReplayHasRecorded?: boolean | null | undefined;
   // `sessionReplayMonthlyBudgetInGB`. Only a finite number above 0 is a budget.
   sessionReplayMonthlyBudgetInGB?: number | null | undefined;
+  /*
+   * Whether the application is a browser app or a mobile app, as ingest
+   * records it (`clientType`, read through Rum/RumClientKind). Unlike the
+   * fields above, not known does not withhold everything that depends on
+   * it: an application nothing has arrived from is offered the browser
+   * templates, which every RUM application was offered before mobile apps
+   * had templates of their own. The mobile templates need a "mobile".
+   */
+  clientKind?: RumClientKind | string | null | undefined;
+  /*
+   * The application's own signals that are switched on, from its
+   * Frustration Signals page (issue #6518): each is offered as an alert of
+   * its own, once the application records - only a recorded session counts
+   * a signal.
+   */
+  customSignals?:
+    | ReadonlyArray<RumAlertTemplateCustomSignal>
+    | null
+    | undefined;
+}
+
+/* A signal of the application's own that a recommendation can watch. */
+export interface RumAlertTemplateCustomSignal {
+  // Its id on the Frustration Signals page, which a rename keeps.
+  id: string;
+  name: string;
 }
 
 export interface RumAlertTemplateArgs {
@@ -71,8 +125,18 @@ export interface RumAlertTemplate {
    * which are offered to all of them.
    */
   requirement?: RumAlertTemplateRequirement | undefined;
+  /*
+   * The kinds of application whose SDK sends what the template reads: a
+   * Web Vital only ever comes from a browser, an app start or an ANR from a
+   * mobile app (#9589). Absent on the templates every application can use,
+   * such as a failed operation's error span. See getRumAlertTemplates.
+   */
+  clients?: ReadonlyArray<RumClientKind> | undefined;
   getMonitorStep: (args: RumAlertTemplateArgs) => MonitorStep;
 }
+
+const BROWSER_ONLY: ReadonlyArray<RumClientKind> = [RUM_CLIENT_KIND_BROWSER];
+const MOBILE_ONLY: ReadonlyArray<RumClientKind> = [RUM_CLIENT_KIND_MOBILE];
 
 interface CriteriaArgs {
   args: RumAlertTemplateArgs;
@@ -209,6 +273,8 @@ function buildWebVitalTemplate(data: WebVitalTemplateData): RumAlertTemplate {
     category: "Core Web Vitals",
     severity: data.severity,
     monitorType: MonitorType.Metrics,
+    // Only a browser reports a Web Vital: on a mobile app it never fires.
+    clients: BROWSER_ONLY,
     getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
       const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
         monitorName: args.monitorName,
@@ -407,8 +473,12 @@ const failedUserOperationsTemplate: RumAlertTemplate = {
         unhealthyDescription:
           "Triggers when at least one error-status span is reported in five minutes.",
         incidentTitle: `[RUM] Failed user operation - ${args.monitorName}`,
+        /*
+         * Offered to browser and mobile apps alike, so it names a page or a
+         * screen, and the device either runs on.
+         */
         incidentDescription:
-          "The RUM application reported an error-status span. Inspect the affected page, operation, trace, device, and browser for the user-visible failure.",
+          "The RUM application reported an error-status span. Inspect the affected page or screen, the operation, its trace and the device for the user-visible failure.",
       }),
     );
 
@@ -424,6 +494,11 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
   category: "Errors",
   severity: "Critical",
   monitorType: MonitorType.Exceptions,
+  /*
+   * A browser's page errors. A mobile app is offered App Crashes and App
+   * Not Responding (ANR) instead, which tell a crash from a freeze.
+   */
+  clients: BROWSER_ONLY,
   getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
     const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
       monitorName: args.monitorName,
@@ -457,6 +532,267 @@ const unhandledExceptionsTemplate: RumAlertTemplate = {
         incidentTitle: `[RUM] Unhandled browser exception - ${args.monitorName}`,
         incidentDescription:
           "The RUM application reported an unresolved exception. Inspect the exception group, stack trace, release, page, browser, and affected sessions.",
+      }),
+    );
+
+    return step;
+  },
+};
+
+/*
+ * THE MOBILE APP TEMPLATES (#9589).
+ *
+ * What a mobile team pages on, read from what OpenTelemetry Android sends on
+ * its own (Rum/MobileAppTelemetry): a crash, an ANR, a slow cold start, a
+ * frozen frame, and an app that has gone quiet. A browser app is never
+ * offered them (none of these spans or events comes from a browser), and a
+ * mobile app is never offered the Web Vitals, which only a browser reports.
+ *
+ * Crashes and ANRs are counted from their own log events rather than as
+ * Exceptions monitors. An Exceptions monitor counts every exception the app
+ * records - a failed network call's included - and counts an ANR as one too,
+ * so App Crashes would page on both, twice for an ANR. The events tell them
+ * apart exactly. Like the Web Vitals, each template names the one name it
+ * reads, and the earlier name where there is one, so retargeting is one
+ * visible edit.
+ *
+ * Every threshold is the first occurrence, on the Failed User Operations
+ * pattern: a kiosk fleet, the case these were written for (#9533), has few
+ * devices and wants to hear about each crash and each slow start. The
+ * performance pair is a Warning, as an app with a large audience on old
+ * phones will see some of both; such an app raises the count in the
+ * monitor's criteria. A rate over sessions is #9716.
+ */
+interface MobileLogEventTemplateData {
+  id: string;
+  name: string;
+  description: string;
+  category: RumAlertTemplateCategory;
+  severity: RumAlertTemplateSeverity;
+  // The event's attributes, `event.name` first.
+  attributes: Record<string, string>;
+  lastXSecondsOfLogs: number;
+  unhealthyName: string;
+  unhealthyDescription: string;
+  // What goes between "[RUM] " and " - <application>" in the titles.
+  incidentHeadline: string;
+  incidentDescription: string;
+}
+
+function buildMobileLogEventTemplate(
+  data: MobileLogEventTemplateData,
+): RumAlertTemplate {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    category: data.category,
+    severity: data.severity,
+    monitorType: MonitorType.Logs,
+    clients: MOBILE_ONLY,
+    getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Logs,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setLogMonitor({
+        attributes: { ...data.attributes },
+        body: "",
+        // An event carries no severity worth filtering on: every one counts.
+        severityTexts: [],
+        telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+        entityKeys: [],
+        lastXSecondsOfLogs: data.lastXSecondsOfLogs,
+      });
+
+      step.setMonitorCriteria(
+        buildCriteria({
+          args: args,
+          checkOn: CheckOn.LogCount,
+          unhealthyFilterType: FilterType.GreaterThan,
+          healthyFilterType: FilterType.LessThanOrEqualTo,
+          threshold: 0,
+          unhealthyName: data.unhealthyName,
+          unhealthyDescription: data.unhealthyDescription,
+          incidentTitle: `[RUM] ${data.incidentHeadline} - ${args.monitorName}`,
+          incidentDescription: data.incidentDescription,
+        }),
+      );
+
+      return step;
+    },
+  };
+}
+
+const appCrashesTemplate: RumAlertTemplate = buildMobileLogEventTemplate({
+  id: "rum-app-crashes",
+  name: "App Crashes",
+  description: `Alert when the app crashes: any ${APP_CRASH_EVENT_NAME} event in five minutes, which OpenTelemetry Android 1.5 and later send for every crash. An app on an earlier version sends device.crash; change the monitor's filter to that name.`,
+  category: "Errors",
+  /*
+   * A crash ends the person's use of the app, as an unhandled browser
+   * exception may not: Critical, the severity Android vitals gives the
+   * crash rate as a core vital.
+   */
+  severity: "Critical",
+  attributes: { [EVENT_NAME_ATTRIBUTE]: APP_CRASH_EVENT_NAME },
+  lastXSecondsOfLogs: 300,
+  unhealthyName: "App crash reported",
+  unhealthyDescription:
+    "Triggers when the app reports at least one crash in five minutes.",
+  incidentHeadline: "App crash",
+  incidentDescription:
+    "The app crashed for at least one person. Open Exceptions for the crash's stack trace, release and device, and the session it ended.",
+});
+
+const appNotRespondingTemplate: RumAlertTemplate = buildMobileLogEventTemplate({
+  id: "rum-app-not-responding",
+  name: "App Not Responding (ANR)",
+  description: `Alert when the app stops responding: any ${APP_ANR_EVENT_NAME} event in five minutes, which OpenTelemetry Android sends once the app's main thread has been blocked for five seconds.`,
+  category: "Errors",
+  // A core vital beside the crash rate in Android vitals, and as final to a kiosk.
+  severity: "Critical",
+  attributes: { [EVENT_NAME_ATTRIBUTE]: APP_ANR_EVENT_NAME },
+  lastXSecondsOfLogs: 300,
+  unhealthyName: "ANR reported",
+  unhealthyDescription:
+    "Triggers when the app reports at least one ANR in five minutes.",
+  incidentHeadline: "App not responding",
+  incidentDescription:
+    "The app's main thread was blocked for five seconds or more, so it stopped responding to input. Open Exceptions filtered to the type ANR for the main thread's stack, which shows what it was waiting on.",
+});
+
+const SLOW_COLD_START_MS: number = EXCESSIVE_APP_START_MS[APP_START_TYPE_COLD];
+
+const slowColdStartTemplate: RumAlertTemplate = {
+  id: "rum-slow-cold-start",
+  name: "Slow Cold Start",
+  description: `Alert when a cold start takes 5 seconds or longer, which Android vitals counts as excessive. Reads the ${APP_START_SPAN_NAME} spans OpenTelemetry Android sends with ${APP_START_TYPE_ATTRIBUTE} cold.`,
+  category: "Performance",
+  severity: "Warning",
+  monitorType: MonitorType.Traces,
+  clients: MOBILE_ONLY,
+  getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Traces,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setTraceMonitor({
+      attributes: { [APP_START_TYPE_ATTRIBUTE]: APP_START_TYPE_COLD },
+      spanName: APP_START_SPAN_NAME,
+      spanStatuses: [],
+      telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+      entityKeys: [],
+      /*
+       * Fifteen minutes: an app starts far less often than it makes
+       * requests, so a five-minute window would hold one start at most.
+       */
+      lastXSecondsOfSpans: 900,
+      minimumDurationInMs: SLOW_COLD_START_MS,
+    });
+
+    step.setMonitorCriteria(
+      buildCriteria({
+        args: args,
+        checkOn: CheckOn.SpanCount,
+        unhealthyFilterType: FilterType.GreaterThan,
+        healthyFilterType: FilterType.LessThanOrEqualTo,
+        threshold: 0,
+        unhealthyName: "Cold start of 5 seconds or longer",
+        unhealthyDescription:
+          "Triggers when at least one cold start takes 5 seconds or longer in fifteen minutes.",
+        incidentTitle: `[RUM] Slow cold start - ${args.monitorName}`,
+        incidentDescription:
+          "A cold start of the app took 5 seconds or longer. Open the app's Traces filtered to AppStart to see which devices and releases start slowly and what runs before the first screen. For an app with a large audience on older phones, raise the monitor's count above 0.",
+        healthyDescription: `Every cold start of ${args.monitorName} in the window took under 5 seconds.`,
+      }),
+    );
+
+    return step;
+  },
+};
+
+const frozenFramesTemplate: RumAlertTemplate = buildMobileLogEventTemplate({
+  id: "rum-frozen-frames",
+  name: "Frozen Frames",
+  description: `Alert when the app draws a frozen frame, one that takes longer than 700 milliseconds, in fifteen minutes. Reads the ${APP_JANK_EVENT_NAME} events OpenTelemetry Android sends with ${APP_JANK_THRESHOLD_ATTRIBUTE} ${FROZEN_FRAME_THRESHOLD}.`,
+  category: "Performance",
+  severity: "Warning",
+  attributes: {
+    [EVENT_NAME_ATTRIBUTE]: APP_JANK_EVENT_NAME,
+    [APP_JANK_THRESHOLD_ATTRIBUTE]: FROZEN_FRAME_THRESHOLD,
+  },
+  // Frames freeze as a screen opens, which is seldom: a longer window, as for starts.
+  lastXSecondsOfLogs: 900,
+  unhealthyName: "Frozen frame reported",
+  unhealthyDescription:
+    "Triggers when the app reports a frozen frame in fifteen minutes.",
+  incidentHeadline: "Frozen frames",
+  incidentDescription:
+    "The app took longer than 700 milliseconds to draw a frame, so it looked stuck to the person using it. The app's Overview lists the screens with the most frozen frames. For an app with a large audience on older phones, raise the monitor's count above 0.",
+});
+
+/*
+ * The app as a whole gone quiet, as Traffic Stopped is for a service: no
+ * span from any of its devices. Thirty minutes rather than fifteen, because
+ * the SDK keeps what it records on the device until it can send it, so a
+ * device that drops off the network for a moment is late rather than gone.
+ * A device of a fleet going quiet while the others report is not seen
+ * here: that needs a check per device.
+ */
+const appStoppedReportingTemplate: RumAlertTemplate = {
+  id: "rum-app-stopped-reporting",
+  name: "App Stopped Reporting",
+  description:
+    "Alert when the app sends no spans at all for thirty minutes: a release that broke its telemetry, a revoked key, or devices that went offline. An app with idle hours, such as kiosks at night, triggers it then too.",
+  category: "Availability",
+  severity: "Warning",
+  monitorType: MonitorType.Traces,
+  clients: MOBILE_ONLY,
+  getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Traces,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setTraceMonitor({
+      attributes: {},
+      spanName: "",
+      spanStatuses: [],
+      telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+      entityKeys: [],
+      lastXSecondsOfSpans: 1800,
+    });
+
+    step.setMonitorCriteria(
+      buildCriteria({
+        args: args,
+        checkOn: CheckOn.SpanCount,
+        // Below the threshold is the bad state here, as for Traffic Stopped.
+        unhealthyFilterType: FilterType.LessThan,
+        healthyFilterType: FilterType.GreaterThanOrEqualTo,
+        threshold: 1,
+        unhealthyName: "No spans in thirty minutes",
+        unhealthyDescription:
+          "Triggers when the app reports no spans at all over thirty minutes.",
+        incidentTitle: `[RUM] App stopped reporting - ${args.monitorName}`,
+        incidentDescription:
+          "OneUptime has received no spans from the app for thirty minutes. Check whether its devices are on and online, whether a recent release still starts OpenTelemetry, and whether its ingestion key was revoked or has expired. This resolves on its own once spans arrive again.",
+        healthyDescription: `Spans are arriving from ${args.monitorName}.`,
       }),
     );
 
@@ -691,10 +1027,179 @@ const sessionReplayBudgetTemplates: Array<RumAlertTemplate> = [
   }),
 ];
 
+/*
+ * A signal of the application's own (issue #6518): "Sessions hit Payment
+ * failed". One template per signal that is switched on, so a page can offer
+ * an alert on each without the person typing its name - and, built from
+ * the signal's id, the monitor it creates keeps counting the signal after a
+ * rename.
+ *
+ * It reads the series the session replay ingest writes
+ * (SESSION_REPLAY_SIGNAL_SESSIONS_METRIC): one point per recorded session,
+ * in the minute the signal first fired in it, filtered to the signal's id.
+ * Summed over 15 minutes, that is how many sessions hit the signal; the
+ * alert opens at 5, a number the monitor's own criteria change. A window
+ * with no session in it holds no point, which resolves an open alert - the
+ * signal has stopped firing.
+ *
+ * Offered once the application records (the SessionReplayRecording
+ * requirement), since only a recorded session reports a signal: the replay
+ * sample and an "On error or frustration" trigger narrow what is counted,
+ * and the description says so. Warning, never Critical: a signal is the
+ * team's own marker, from a payment error page to a support chat opened,
+ * and nothing says which of them should page anyone.
+ */
+export const RUM_CUSTOM_SIGNAL_TEMPLATE_ID_PREFIX: string =
+  "rum-custom-signal-";
+
+// Sessions in the window that open the alert, until the monitor says otherwise.
+export const RUM_CUSTOM_SIGNAL_SESSIONS_THRESHOLD: number = 5;
+
+const RUM_CUSTOM_SIGNAL_METRIC_ALIAS: string = "rum_signal_sessions";
+
+// The longest a signal id the page or the API writes can be.
+const MAX_CUSTOM_SIGNAL_ID_LENGTH: number = 64;
+
+export function getRumCustomSignalTemplateId(signalId: string): string {
+  return `${RUM_CUSTOM_SIGNAL_TEMPLATE_ID_PREFIX}${signalId}`;
+}
+
+export function buildRumCustomSignalTemplate(
+  signal: RumAlertTemplateCustomSignal,
+): RumAlertTemplate {
+  const threshold: number = RUM_CUSTOM_SIGNAL_SESSIONS_THRESHOLD;
+  const name: string = `Sessions Hit "${signal.name}"`;
+  const description: string = `Alert when ${threshold} or more recorded sessions hit your signal "${signal.name}" within 15 minutes. A session counts once, when the signal first fires in it.`;
+
+  return {
+    id: getRumCustomSignalTemplateId(signal.id),
+    name: name,
+    description: description,
+    category: "Session Replay",
+    severity: "Warning",
+    monitorType: MonitorType.Metrics,
+    requirement: "SessionReplayRecording",
+    getMonitorStep: (args: RumAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Metrics,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setMetricMonitor({
+        telemetryServiceIds: [new ObjectID(args.rumApplicationId)],
+        rollingTime: RollingTime.Past15Minutes,
+        metricViewConfig: {
+          queryConfigs: [
+            {
+              metricAliasData: {
+                metricVariable: RUM_CUSTOM_SIGNAL_METRIC_ALIAS,
+                title: name,
+                description: description,
+                legend: signal.name,
+                legendUnit: "",
+              },
+              metricQueryData: {
+                filterData: {
+                  metricName: SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
+                  attributes: {
+                    [SESSION_REPLAY_SIGNAL_ID_ATTRIBUTE]: signal.id,
+                  },
+                  aggegationType: MetricsAggregationType.Sum,
+                  aggregateBy: {},
+                },
+              },
+            },
+          ],
+          formulaConfigs: [],
+        },
+      });
+
+      step.setMonitorCriteria(
+        buildCriteria({
+          args: args,
+          checkOn: CheckOn.MetricValue,
+          unhealthyFilterType: FilterType.GreaterThanOrEqualTo,
+          healthyFilterType: FilterType.LessThan,
+          threshold: threshold,
+          // Load-bearing: without the alias the window is read as All Values.
+          metricAlias: RUM_CUSTOM_SIGNAL_METRIC_ALIAS,
+          metricAggregationType: EvaluateOverTimeType.Sum,
+          unhealthyName: `${name} - ${threshold} or more in 15 minutes`,
+          unhealthyDescription: `Triggers when ${threshold} or more recorded sessions hit the signal "${signal.name}" within 15 minutes.`,
+          incidentTitle: `[RUM] Sessions hit "${signal.name}" - ${args.monitorName}`,
+          incidentDescription: `${threshold} or more recorded sessions of ${args.monitorName} hit your signal "${signal.name}" in the last 15 minutes. Watch them from the signal's See sessions, on the application's Frustration Signals page, or filter its session list by Signal of your own.`,
+          healthyDescription: `Fewer than ${threshold} recorded sessions of ${args.monitorName} hit the signal "${signal.name}" in the last 15 minutes.`,
+        }),
+      );
+
+      return step;
+    },
+  };
+}
+
+/*
+ * The signals a context names that can be offered: a usable id and name,
+ * each id once, as many as an application can have.
+ */
+function readCustomSignals(
+  value: ReadonlyArray<RumAlertTemplateCustomSignal> | null | undefined,
+): Array<RumAlertTemplateCustomSignal> {
+  const signals: Array<RumAlertTemplateCustomSignal> = [];
+  const ids: Set<string> = new Set<string>();
+
+  if (!Array.isArray(value)) {
+    return signals;
+  }
+
+  for (const entry of value) {
+    const id: unknown = (entry as { id?: unknown } | null)?.id;
+    const name: unknown = (entry as { name?: unknown } | null)?.name;
+
+    if (
+      typeof id !== "string" ||
+      typeof name !== "string" ||
+      id.trim().length === 0 ||
+      id.length > MAX_CUSTOM_SIGNAL_ID_LENGTH ||
+      name.trim().length === 0 ||
+      name.trim().length > SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH ||
+      ids.has(id)
+    ) {
+      continue;
+    }
+
+    ids.add(id);
+    signals.push({ id: id, name: name.trim() });
+
+    if (signals.length >= SESSION_REPLAY_MAX_CUSTOM_SIGNALS) {
+      break;
+    }
+  }
+
+  return signals;
+}
+
+/*
+ * The Recommendations page draws its categories in the order their first
+ * template appears here, and each category's cards in this order. A browser
+ * app reads Core Web Vitals, then Errors (Failed User Operations, Unhandled
+ * Browser Exceptions), then Session Replay, as it always has. A mobile app
+ * reads Errors with App Crashes and its ANRs first, then Performance, then
+ * Availability, then Session Replay. An application's own signals' alerts
+ * (Session Replay too) follow these, from getRumAlertTemplates.
+ */
 const ALL_RUM_ALERT_TEMPLATES: Array<RumAlertTemplate> = [
   ...webVitalTemplates,
+  appCrashesTemplate,
+  appNotRespondingTemplate,
   failedUserOperationsTemplate,
   unhandledExceptionsTemplate,
+  slowColdStartTemplate,
+  frozenFramesTemplate,
+  appStoppedReportingTemplate,
   ...sessionReplayBudgetTemplates,
 ];
 
@@ -742,25 +1247,81 @@ function isRequirementMet(data: {
 }
 
 /*
+ * Whether one application is the kind of app a template is for. A template
+ * for every kind is offered to every application. An application of no known
+ * kind (nothing has arrived from it yet) is offered the browser templates and
+ * not the mobile ones: what every application was offered before mobile apps
+ * had templates of their own.
+ */
+function isClientMet(data: {
+  clients: ReadonlyArray<RumClientKind> | undefined;
+  context: RumAlertTemplateContext | undefined;
+}): boolean {
+  if (!data.clients || data.clients.length === 0) {
+    return true;
+  }
+
+  const kind: RumClientKind =
+    readRumClientKind(data.context?.clientKind) || RUM_CLIENT_KIND_BROWSER;
+
+  return data.clients.includes(kind);
+}
+
+/*
  * The templates to offer ONE application, given what is known about it.
  *
- * Every template without a requirement, always. The session replay budget
- * pairs only once their series can exist (see the storage budget comment
- * above): the daily pair once the application has session replay on and has
- * recorded, the monthly pair once it also has a Monthly budget. No context,
- * or a field that is null or undefined, withholds them - so what an unknown
- * application is offered is exactly the set every application was offered
- * before they existed.
+ * Only the templates for its kind of app (#9589): a browser app's Web Vitals
+ * and Unhandled Browser Exceptions, or a mobile app's App Crashes, App Not
+ * Responding (ANR), Slow Cold Start, Frozen Frames and App Stopped Reporting,
+ * and the templates every kind can use. An application of no known kind is
+ * offered the browser set.
+ *
+ * The session replay budget pairs only once their series can exist (see the
+ * storage budget comment above): the daily pair once the application has
+ * session replay on and has recorded, the monthly pair once it also has a
+ * Monthly budget. No context, or a field that is null or undefined,
+ * withholds them - so what an unknown application is offered is exactly the
+ * set every application was offered before they existed. Then an alert for
+ * each of the application's own signals, once it records, whatever its kind.
  */
 export function getRumAlertTemplates(
   context?: RumAlertTemplateContext | undefined,
 ): Array<RumAlertTemplate> {
-  return ALL_RUM_ALERT_TEMPLATES.filter((template: RumAlertTemplate) => {
-    return isRequirementMet({
-      requirement: template.requirement,
+  const templates: Array<RumAlertTemplate> = ALL_RUM_ALERT_TEMPLATES.filter(
+    (template: RumAlertTemplate) => {
+      return (
+        isClientMet({
+          clients: template.clients,
+          context: context,
+        }) &&
+        isRequirementMet({
+          requirement: template.requirement,
+          context: context,
+        })
+      );
+    },
+  );
+
+  /*
+   * One alert per signal of the application's own, after the shipped ones,
+   * once it records (issue #6518). Built from the context, so neither
+   * getAllRumAlertTemplates nor getRumAlertTemplateById knows them: they
+   * are the application's, not the catalog's. A browser app and a mobile
+   * one alike: both record sessions, and a React Native app's taps report
+   * signals too.
+   */
+  if (
+    isRequirementMet({
+      requirement: "SessionReplayRecording",
       context: context,
-    });
-  });
+    })
+  ) {
+    for (const signal of readCustomSignals(context?.customSignals)) {
+      templates.push(buildRumCustomSignalTemplate(signal));
+    }
+  }
+
+  return templates;
 }
 
 export function getRumAlertTemplateById(

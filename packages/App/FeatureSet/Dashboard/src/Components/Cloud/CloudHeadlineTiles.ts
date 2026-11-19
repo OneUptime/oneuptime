@@ -46,6 +46,7 @@ import {
   HEADLINE_UNHEALTHY_HOSTS,
   HEADLINE_WRITE_LATENCY,
   HEADLINE_WRITE_OPERATIONS,
+  getCloudHeadlineReadingOf,
   getCloudHeadlineReadings,
   getCloudReadingPeriodSeconds,
   isCloudHeadlineExpected,
@@ -71,9 +72,11 @@ import {
  * A level every resource of the type reports (its CPU, its free memory,
  * its connections) that a fresh read did not bring is said plainly - "Not
  * reported" in its tile - rather than left out, so a page never leaves the
- * reader wondering where a number went (isCloudHeadlineExpected). A sum
- * over the period is left out: the cloud writes none for a period it is
- * zero in.
+ * reader wondering where a number went (isCloudHeadlineExpected). One its
+ * cloud reports only with something installed says what, with the
+ * provider's instructions a click away: a Compute Engine VM's memory and
+ * disks "Need the Ops Agent" (CloudHeadlineReading.needs). A sum over the
+ * period is left out: the cloud writes none for a period it is zero in.
  *
  * React-free (the page maps these to its tiles), so App tests can read it.
  */
@@ -98,6 +101,11 @@ export interface CloudHeadlineTile {
   valueNote?: string | undefined;
   // The (i) beside the title: what a missing value means (English).
   description?: string | undefined;
+  /*
+   * Where to get what would give it a value, drawn in place of the line
+   * under it: the provider's own instructions (an English label).
+   */
+  link?: { url: string; label: string } | undefined;
   // For a percent: the tile's bar.
   percent?: number | null | undefined;
   // A share that is better the fuller it is: availability, healthy backends.
@@ -376,13 +384,25 @@ export function getCloudHeadlineTiles(data: {
       break;
     }
 
-    const reading: CloudResourceReading | undefined =
-      data.readings[headline.key];
+    const found: { key: string; reading: CloudResourceReading } | null =
+      getCloudHeadlineReadingOf(headline, data.readings);
     const look: { icon: IconProp; color: CloudHeadlineTile["iconColor"] } =
       ICONS[headline.label] || { icon: IconProp.ChartBar, color: "slate" };
 
-    if (!reading) {
-      if (isCloudHeadlineExpected(headline)) {
+    if (!found) {
+      if (headline.needs) {
+        // What its cloud needs installed to report it, and where to get it.
+        tiles.push({
+          key: headline.key,
+          title: headline.label,
+          value: "",
+          valueNote: headline.needs.note,
+          description: headline.needs.description,
+          link: headline.needs.link,
+          icon: look.icon,
+          iconColor: "slate",
+        });
+      } else if (isCloudHeadlineExpected(headline)) {
         tiles.push({
           key: headline.key,
           title: headline.label,
@@ -402,8 +422,8 @@ export function getCloudHeadlineTiles(data: {
       percent?: number;
     } = formatValue({
       format: headline.format,
-      reading,
-      periodSeconds: getCloudReadingPeriodSeconds(data.provider, headline.key),
+      reading: found.reading,
+      periodSeconds: getCloudReadingPeriodSeconds(data.provider, found.key),
       translator: data.translator,
     });
 

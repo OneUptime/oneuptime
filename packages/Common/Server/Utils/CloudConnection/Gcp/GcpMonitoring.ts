@@ -30,7 +30,11 @@ import {
  *       &aggregation.alignmentPeriod=60s&aggregation.perSeriesAligner=ALIGN_MEAN
  *   -> { timeSeries: [{ metric: { type, labels }, resource: { type, labels },
  *        metadata: { systemLabels, userLabels }, points: [{ interval,
- *        value: { doubleValue | int64Value } }] }], nextPageToken }
+ *        value: { doubleValue | int64Value | distributionValue } }] }],
+ *        nextPageToken }
+ *
+ * A call can also name metric labels (metric.labels.state="used"), and a
+ * distribution kept whole by its aligner is read for its count.
  *
  * One call returns a metric for every resource of the project. Cloud
  * Monitoring charges reads by the time series they return, past a million a
@@ -95,9 +99,29 @@ export default class GcpMonitoring {
   }
 
   /*
+   * The filter of a call: the metric type, and each metric label it is
+   * read with (an Ops Agent's memory in its "used" state), in name order.
+   * Values come from the catalog, never from what a person typed.
+   */
+  public static buildFilter(data: {
+    metricType: string;
+    metricLabels?: Readonly<Record<string, string>> | undefined;
+  }): string {
+    const parts: Array<string> = [`metric.type="${data.metricType}"`];
+
+    for (const name of Object.keys(data.metricLabels || {}).sort()) {
+      parts.push(`metric.labels.${name}="${data.metricLabels![name]}"`);
+    }
+
+    return parts.join(" AND ");
+  }
+
+  /*
    * A metric of every resource of a project over [start, end), aligned to
    * one point a period. A metric type the project has never had answers
-   * with nothing, not an error.
+   * with nothing, not an error. `readAs: "count"` reads how many values
+   * each point's distribution holds, for an aligner that keeps a
+   * distribution (ALIGN_SUM).
    */
   public async listTimeSeries(data: {
     projectId: string;
@@ -106,6 +130,8 @@ export default class GcpMonitoring {
     alignmentPeriodSeconds: number;
     start: Date;
     end: Date;
+    metricLabels?: Readonly<Record<string, string>> | undefined;
+    readAs?: "count" | undefined;
     firstPageOnly?: boolean | undefined;
   }): Promise<Array<GcpTimeSeries>> {
     GoogleMonitoringClient.validateProjectId(data.projectId);
@@ -120,7 +146,13 @@ export default class GcpMonitoring {
 
       const accessToken: string = await this.token.getAccessToken();
       const query: string = buildQueryString([
-        ["filter", `metric.type="${data.metricType}"`],
+        [
+          "filter",
+          GcpMonitoring.buildFilter({
+            metricType: data.metricType,
+            metricLabels: data.metricLabels,
+          }),
+        ],
         ["interval.startTime", data.start.toISOString()],
         ["interval.endTime", data.end.toISOString()],
         ["aggregation.alignmentPeriod", `${data.alignmentPeriodSeconds}s`],
@@ -158,7 +190,9 @@ export default class GcpMonitoring {
         throw failure;
       }
 
-      series.push(...GcpMonitoring.readSeries(response, data.metricType));
+      series.push(
+        ...GcpMonitoring.readSeries(response, data.metricType, data.readAs),
+      );
 
       const next: string = readText(response["nextPageToken"]);
 
@@ -202,9 +236,32 @@ export default class GcpMonitoring {
     return failure;
   }
 
+  /*
+   * How many values a point's distribution holds: its `count`, an int64
+   * written as a string - or 0 when the distribution leaves it out, as a
+   * proto3 answer leaves out a zero. NaN for a point that is no
+   * distribution.
+   */
+  public static readDistributionCount(value: JSONObject): number {
+    const distribution: unknown = value["distributionValue"];
+
+    if (
+      !distribution ||
+      typeof distribution !== "object" ||
+      Array.isArray(distribution)
+    ) {
+      return NaN;
+    }
+
+    const count: unknown = (distribution as JSONObject)["count"];
+
+    return count === undefined || count === null ? 0 : Number(count);
+  }
+
   public static readSeries(
     response: JSONObject,
     metricType: string,
+    readAs?: "count" | undefined,
   ): Array<GcpTimeSeries> {
     const series: Array<GcpTimeSeries> = [];
 
@@ -220,9 +277,10 @@ export default class GcpMonitoring {
         const point: JSONObject = readObject(rawPoint);
         const interval: JSONObject = readObject(point["interval"]);
         const value: JSONObject = readObject(point["value"]);
-        const numeric: number = Number(
-          value["doubleValue"] ?? value["int64Value"] ?? NaN,
-        );
+        const numeric: number =
+          readAs === "count"
+            ? GcpMonitoring.readDistributionCount(value)
+            : Number(value["doubleValue"] ?? value["int64Value"] ?? NaN);
         const time: number = Date.parse(readText(interval["endTime"]));
 
         if (Number.isFinite(numeric) && Number.isFinite(time)) {

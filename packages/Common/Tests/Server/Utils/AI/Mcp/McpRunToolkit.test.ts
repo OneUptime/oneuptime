@@ -13,6 +13,7 @@ import ToolOutputPager from "../../../../../Server/Utils/AI/Chat/ToolOutputPager
 import { ToolCallOutcome } from "../../../../../Server/Utils/AI/Toolbox/Index";
 import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
 import ExternalMcpServerAuthType from "../../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAuthType";
+import { readMcpToolCallFailure } from "../../../../../Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import FakeMcpServer, {
@@ -390,6 +391,77 @@ describe("McpRunToolkit: call_mcp_tool", () => {
     expect(fake.calls).toEqual([
       { name: "describe_instances", arguments: { region: "us-east-1" } },
     ]);
+  });
+
+  /*
+   * Why it called the tool, for the Remediation step's What it checked
+   * (#6526): asked for beside the call, never one of the arguments the
+   * server receives.
+   */
+  test("takes why it calls a tool, and never sends it to the server", async () => {
+    const fake: FakeMcpServer = await startServer();
+    const kit: McpRunToolkit = toolkit({ servers: [stored(fake)] });
+    const callSchema: JSONObject = getTool(kit, CALL_MCP_TOOL_TOOL_NAME)
+      .definition.inputSchema;
+
+    expect(Object.keys(callSchema["properties"] as JSONObject).sort()).toEqual([
+      "arguments",
+      "rationale",
+      "server",
+      "tool",
+    ]);
+    expect(callSchema["required"]).toEqual(["server", "tool"]);
+
+    const outcome: ToolCallOutcome = await call(kit, {
+      server: "AWS",
+      tool: "describe_instances",
+      arguments: { region: "us-east-1" },
+      rationale: "See whether the instances are running.",
+    });
+    await kit.close();
+
+    expect(outcome.success).toBe(true);
+    expect(fake.calls).toEqual([
+      { name: "describe_instances", arguments: { region: "us-east-1" } },
+    ]);
+  });
+
+  /*
+   * A call the server failed is worded so a fix's round reads the server's
+   * own words back (readMcpToolCallFailure, #6526).
+   */
+  test("a call the server failed says so with the tool, the server and the server's words", async () => {
+    const throwing: FakeMcpServer = await FakeMcpServer.start({
+      tools: [
+        {
+          name: "throttled_read",
+          readOnly: true,
+          handler: (): JSONObject => {
+            throw new Error("ThrottlingException: Rate exceeded");
+          },
+        },
+      ],
+    });
+    fakes.push(throwing);
+    const kit: McpRunToolkit = toolkit({ servers: [stored(throwing)] });
+
+    const outcome: ToolCallOutcome = await call(kit, {
+      server: "AWS",
+      tool: "throttled_read",
+    });
+    await kit.close();
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.errorMessage).toMatch(
+      /^Error calling throttled_read on AWS: .*ThrottlingException: Rate exceeded/,
+    );
+    expect(
+      readMcpToolCallFailure({
+        errorMessage: outcome.errorMessage || "",
+        tool: "throttled_read",
+        server: "AWS",
+      }),
+    ).toMatch(/ThrottlingException: Rate exceeded$/);
   });
 
   test("names the server by its id too", async () => {

@@ -2,7 +2,9 @@
  * WHAT THE OWNERS OF A RECORD ARE TOLD, OWNER BY OWNER (issues #8199,
  * #8509, #8510): an incident, an alert, an episode of either, a monitor, a
  * scheduled maintenance event, a status page, an SLO, a network device, a
- * probe or an AI agent.
+ * probe, an AI agent, a table, data store or pipeline (#9681), or a
+ * service, a piece of infrastructure, a dashboard, a workflow, a runbook or
+ * an on-call policy, schedule or incoming call policy (#9700).
  *
  * Each owner notification job takes (marks) the record it is about - the
  * incident or alert just created, a state change, a note, an owner row, a
@@ -55,6 +57,43 @@ export enum OwnerNotificationKind {
   NetworkDeviceOwnerAdded = "NetworkDeviceOwnerAdded",
   ProbeOwnerAdded = "ProbeOwnerAdded",
   AIAgentOwnerAdded = "AIAgentOwnerAdded",
+  /*
+   * Data Observability's tables and pipelines, and the data stores Data
+   * Observability and Data Security share: told as every other record's new
+   * owners are (#9681).
+   */
+  DataAssetOwnerAdded = "DataAssetOwnerAdded",
+  DataStoreOwnerAdded = "DataStoreOwnerAdded",
+  DataPipelineOwnerAdded = "DataPipelineOwnerAdded",
+  /*
+   * Services, apps and infrastructure; dashboards, workflows and runbooks;
+   * on-call policies, schedules and incoming call policies: told as every
+   * other record's new owners are, each by a job of its own
+   * (Workers ResourceOwnersAdded, #9700).
+   */
+  ServiceOwnerAdded = "ServiceOwnerAdded",
+  RumApplicationOwnerAdded = "RumApplicationOwnerAdded",
+  DatabaseServerOwnerAdded = "DatabaseServerOwnerAdded",
+  MessageQueueOwnerAdded = "MessageQueueOwnerAdded",
+  HostOwnerAdded = "HostOwnerAdded",
+  KubernetesClusterOwnerAdded = "KubernetesClusterOwnerAdded",
+  DockerHostOwnerAdded = "DockerHostOwnerAdded",
+  DockerSwarmClusterOwnerAdded = "DockerSwarmClusterOwnerAdded",
+  PodmanHostOwnerAdded = "PodmanHostOwnerAdded",
+  ProxmoxClusterOwnerAdded = "ProxmoxClusterOwnerAdded",
+  OpenStackCloudOwnerAdded = "OpenStackCloudOwnerAdded",
+  VMwareVCenterOwnerAdded = "VMwareVCenterOwnerAdded",
+  CephClusterOwnerAdded = "CephClusterOwnerAdded",
+  StorageArrayOwnerAdded = "StorageArrayOwnerAdded",
+  IoTFleetOwnerAdded = "IoTFleetOwnerAdded",
+  CloudResourceOwnerAdded = "CloudResourceOwnerAdded",
+  ServerlessFunctionOwnerAdded = "ServerlessFunctionOwnerAdded",
+  DashboardOwnerAdded = "DashboardOwnerAdded",
+  WorkflowOwnerAdded = "WorkflowOwnerAdded",
+  RunbookOwnerAdded = "RunbookOwnerAdded",
+  OnCallDutyPolicyOwnerAdded = "OnCallDutyPolicyOwnerAdded",
+  OnCallDutyPolicyScheduleOwnerAdded = "OnCallDutyPolicyScheduleOwnerAdded",
+  IncomingCallPolicyOwnerAdded = "IncomingCallPolicyOwnerAdded",
   // Someone assigned to an incident with a role: told as its owners are (#8573).
   IncidentMemberAdded = "IncidentMemberAdded",
 }

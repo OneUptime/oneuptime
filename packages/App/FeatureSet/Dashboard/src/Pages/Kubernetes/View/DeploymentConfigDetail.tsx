@@ -8,6 +8,7 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -51,6 +52,20 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import {
+  getKubernetesPodsTab,
+  getKubernetesWorkloadLogsTab,
+} from "../../../Components/Kubernetes/Part/KubernetesPartTabs";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const STATE_BADGES: Record<OpenShiftDeploymentConfigState, StatusBadgeType> = {
   [OpenShiftDeploymentConfigState.Available]: StatusBadgeType.Success,
@@ -85,6 +100,8 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          // The hero's link back to the cluster, and the Logs tab's chip.
+          name: true,
         },
       });
       setCluster(item);
@@ -151,6 +168,21 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
       "Kubernetes events for this DeploymentConfig and its pods in the last 24 hours.",
     resourceKind: OpenShiftKind.DeploymentConfig,
   });
+
+  /*
+   * The DeploymentConfig as the cluster's rules read it, with the pods its
+   * rollouts run: its hero (a rollout that failed says why - OpenShift's
+   * reason and message, since when), what needs attention on it and its
+   * Pods tab, as every other workload's page has them. It said
+   * "Unavailable" and nothing else (#9595).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: OpenShiftKind.DeploymentConfig,
+    name: deploymentConfigName,
+    namespace: namespace,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -244,9 +276,16 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
+  /*
+   * What OpenShift reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Name", value: deploymentConfigName },
-    { title: "Cluster", value: clusterIdentifier },
+    {
+      title: "Name",
+      value: deploymentConfigName,
+      copyText: deploymentConfigName,
+    },
   ];
 
   if (objectData) {
@@ -354,16 +393,42 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={objectData?.metadata.labels || {}}
-          annotations={objectData?.metadata.annotations || {}}
-          conditions={objectData?.status.conditions}
-          isLoading={isLoadingObject}
-        />
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind={OpenShiftKind.DeploymentConfig}
+            read={partState.read}
+            error={partState.error}
+            onRetry={partState.refresh}
+            routes={routes}
+          />
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={objectData?.metadata.labels || {}}
+            annotations={objectData?.metadata.annotations || {}}
+            conditions={objectData?.status.conditions}
+            isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard(
+              OpenShiftKind.DeploymentConfig,
+            )}
+          />
+        </>
       ),
     },
+    getKubernetesPodsTab({
+      kind: OpenShiftKind.DeploymentConfig,
+      part: partState,
+      routes: routes,
+    }),
     eventsTab,
+    getKubernetesWorkloadLogsTab({
+      kind: OpenShiftKind.DeploymentConfig,
+      name: deploymentConfigName,
+      namespace: resourceNamespace,
+      clusterIdentifier: clusterIdentifier,
+      clusterName: cluster.name,
+    }),
     {
       name: "Metrics",
       children: (
@@ -391,7 +456,24 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs label="DeploymentConfig" tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * What it is and how its rollout is doing, in OpenShift's own words,
+       * above its tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind={OpenShiftKind.DeploymentConfig}
+        name={deploymentConfigName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        clusterIdentifier={clusterIdentifier}
+        routes={routes}
+        namespace={namespace}
+      />
+      <Tabs label="DeploymentConfig" tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterDeploymentConfigDetail;

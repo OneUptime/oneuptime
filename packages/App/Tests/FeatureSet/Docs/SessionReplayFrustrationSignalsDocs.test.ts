@@ -15,6 +15,8 @@ import {
   DELETE_SIGNAL_TEXT,
   EDIT_SIGNAL_TEXT,
   FRUSTRATION_SIGNALS_TITLE,
+  SEE_SESSIONS_TEXT,
+  SET_UP_ALERT_TEXT,
   IGNORE_SELECTORS_HINT,
   IGNORE_SELECTORS_LABEL,
   MARKER_PILL_TEXT,
@@ -95,6 +97,7 @@ const SESSION_LIST_HEADING: string = "### The session list";
  */
 const EXAMPLE_MATCHES: Record<SessionReplayCustomSignalTrigger, string> = {
   click: "#pay-button",
+  tap: "pay-button",
   page: "/checkout/error",
   event: "payment_failed",
   error: "card declined",
@@ -266,7 +269,7 @@ describe("Session Replay docs: frustration signals, in every language", (): void
       );
     });
 
-    it("names the four things that can set a signal off, in the order the dialog offers them, and the one only the browser detects", (): void => {
+    it("names the five things that can set a signal off, in the order the dialog offers them, the one only the browser detects and the one only an app does", (): void => {
       const rows: Array<Array<string>> = sectionTable(language, 1);
 
       expect(rows).toHaveLength(HEADER_ROWS + CUSTOM_SIGNAL_TRIGGERS.length);
@@ -283,15 +286,21 @@ describe("Session Replay docs: frustration signals, in every language", (): void
         },
       );
       const clickIndex: number = CUSTOM_SIGNAL_TRIGGERS.indexOf("click");
+      const tapIndex: number = CUSTOM_SIGNAL_TRIGGERS.indexOf("tap");
       const others: Array<string> = detectedBy.filter(
         (_cell: string, index: number): boolean => {
-          return index !== clickIndex;
+          return index !== clickIndex && index !== tapIndex;
         },
       );
 
-      // Both recorders detect the other three; the browser one the click.
+      /*
+       * Both recorders detect the other three; the browser one the click,
+       * the React Native one the tap (issue #6517).
+       */
       expect(new Set(others).size).toBe(1);
       expect(others).not.toContain(detectedBy[clickIndex]);
+      expect(others).not.toContain(detectedBy[tapIndex]);
+      expect(detectedBy[tapIndex]).not.toBe(detectedBy[clickIndex]);
     });
 
     it("names the page, its cards, buttons and choices, and the list's filter, as the Dashboard draws them", (): void => {
@@ -318,6 +327,8 @@ describe("Session Replay docs: frustration signals, in every language", (): void
         MARKER_PILL_TEXT,
         EDIT_SIGNAL_TEXT,
         DELETE_SIGNAL_TEXT,
+        SEE_SESSIONS_TEXT,
+        SET_UP_ALERT_TEXT,
         signalOfYourOwn?.title || "",
       ]) {
         expect({
@@ -402,6 +413,7 @@ describe("Session Replay docs: frustration signals, held to the code", (): void 
 
     expect(detectedBy).toEqual({
       click: "The browser recorder",
+      tap: "The React Native recorder",
       page: "Both recorders",
       event: "Both recorders",
       error: "Both recorders",
@@ -422,7 +434,7 @@ describe("Session Replay docs: frustration signals, held to the code", (): void 
       }).toEqual({ trigger, problem: null, shown: true });
     }
 
-    // The app recorder sets the click signals aside and keeps the rest.
+    // The app recorder sets the click signals aside and keeps the rest, taps included.
     const mobile: Array<SessionReplayCustomSignalConfig> = readCustomSignals({
       customSignals: CUSTOM_SIGNAL_TRIGGERS.map(
         (
@@ -440,7 +452,7 @@ describe("Session Replay docs: frustration signals, held to the code", (): void 
       mobile.map((kept: SessionReplayCustomSignalConfig): string => {
         return kept.trigger;
       }),
-    ).toEqual(["page", "event", "error"]);
+    ).toEqual(["tap", "page", "event", "error"]);
 
     // The browser recorder listens for clicks when there is a click signal.
     const detector: CustomSignalDetector = new CustomSignalDetector({

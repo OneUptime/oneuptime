@@ -248,7 +248,7 @@ describe("custom signals on the way in", () => {
         customSignals: [{ name: "Hover", trigger: "hover", match: "x" }],
       }),
     ).toBe(
-      'Custom signal "Hover": choose what it reacts to (click, page, event or error).',
+      'Custom signal "Hover": choose what it reacts to (click, tap, page, event or error).',
     );
     expect(
       problemOf({ customSignals: [{ name: "Empty", trigger: "event" }] }),
@@ -306,6 +306,68 @@ describe("getSessionReplayCustomSignalMatchProblem", () => {
     expect(
       getSessionReplayCustomSignalMatchProblem("error", "e".repeat(201)),
     ).toBe("Enter the text the error contains, at most 200 characters.");
+  });
+
+  /*
+   * A tap on a view of a React Native app (issue #6517), named by its
+   * testID: exactly, or by its start and a star at the end.
+   */
+  it("wants a testID, with a star only at its end, after some of it", () => {
+    expect(
+      getSessionReplayCustomSignalMatchProblem("tap", "pay-button"),
+    ).toBeNull();
+    expect(
+      getSessionReplayCustomSignalMatchProblem("tap", " product-card-* "),
+    ).toBeNull();
+    expect(getSessionReplayCustomSignalMatchProblem("tap", "")).toBe(
+      "Enter the testID of the view, such as pay-button.",
+    );
+    expect(getSessionReplayCustomSignalMatchProblem("tap", "   ")).toBe(
+      "Enter the testID of the view, such as pay-button.",
+    );
+
+    for (const misplaced of ["*", "*-card", "product-*-card", "product**"]) {
+      expect(getSessionReplayCustomSignalMatchProblem("tap", misplaced)).toBe(
+        "Put * only at the end of a testID, after its start, such as product-card-*.",
+      );
+    }
+
+    expect(
+      getSessionReplayCustomSignalMatchProblem("tap", "t".repeat(200)),
+    ).toBeNull();
+    expect(
+      getSessionReplayCustomSignalMatchProblem("tap", "t".repeat(201)),
+    ).toBe("A testID can be at most 200 characters.");
+    expect(getSessionReplayCustomSignalMatchProblem("tap", "pay\nbutton")).toBe(
+      "A testID cannot contain line breaks or control characters.",
+    );
+  });
+
+  it("stores a tap signal as it stores the others, and names one it refuses", () => {
+    nextId = 0;
+
+    const result: SessionReplayFrustrationSettingsCheck = check({
+      customSignals: [
+        { name: " Pay tapped ", trigger: "tap", match: " pay-button " },
+      ],
+    });
+
+    expect(result.problem).toBeNull();
+    expect(result.settings?.customSignals).toEqual([
+      {
+        id: "generated-1",
+        name: "Pay tapped",
+        trigger: "tap",
+        match: "pay-button",
+        isFrustration: true,
+        isEnabled: true,
+      },
+    ]);
+    expect(
+      problemOf({
+        customSignals: [{ name: "Cards", trigger: "tap", match: "*-card" }],
+      }),
+    ).toContain("Put * only at the end of a testID");
   });
 
   it("refuses line breaks and control characters", () => {

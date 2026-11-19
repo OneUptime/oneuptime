@@ -51,6 +51,9 @@ const KIND_ICONS: Record<string, IconProp> = {
   PersistentVolumeClaim: IconProp.Disc,
   PersistentVolume: IconProp.Disc,
   HorizontalPodAutoscaler: IconProp.ChartBar,
+  Namespace: IconProp.Folder,
+  // A container of a pod: the pod's own cube is its parts'.
+  Container: IconProp.Cube,
 };
 
 // The kinds that live in a namespace: their pages need it to find them.
@@ -81,6 +84,8 @@ export const KUBERNETES_CURRENT_PART_LABELS: Record<string, string> = {
   Job: translationKey("This Job"),
   CronJob: translationKey("This CronJob"),
   DeploymentConfig: translationKey("This DeploymentConfig"),
+  Namespace: translationKey("This namespace"),
+  Container: translationKey("This container"),
 };
 
 export function getKubernetesKindChip(kind: string): string {

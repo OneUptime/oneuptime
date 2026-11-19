@@ -428,6 +428,36 @@ const EVENT_LIBRARY: Record<
     description:
       "Someone assigns an exception to you, or to a team you are on.",
   },
+  [NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as table owner",
+    description: "You are added as an owner of a table.",
+  },
+  [NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as pipeline owner",
+    description: "You are added as an owner of a pipeline.",
+  },
+  [NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as data store owner",
+    description: "You are added as an owner of a data store.",
+  },
+  [NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as service or infrastructure owner",
+      description:
+        "You are added as an owner of a service, a RUM application, a host, a cluster, a database, a queue, a cloud resource or other infrastructure.",
+    },
+  [NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as dashboard owner",
+    description: "You are added as an owner of a dashboard.",
+  },
+  [NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as workflow owner",
+    description: "You are added as an owner of a workflow.",
+  },
+  [NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as runbook owner",
+    description: "You are added as an owner of a runbook.",
+  },
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     {
       label: "Probe status changed for your monitor",
@@ -547,6 +577,20 @@ const EVENT_LIBRARY: Record<
     description:
       "A call to an incoming call policy you own ends without reaching anyone.",
   },
+  [NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as incoming call policy owner",
+      description: "You are added as an owner of an incoming call policy.",
+    },
+  [NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as on-call policy owner",
+    description: "You are added as an owner of an on-call policy.",
+  },
+  [NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as on-call schedule owner",
+      description: "You are added as an owner of an on-call schedule.",
+    },
 
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]: {
     label: "You go on-call",
@@ -824,6 +868,41 @@ const monitoring: Array<SectionDef> = [
       NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
     ],
   ),
+  /*
+   * Tables and pipelines (#9681): being made an owner, by an owner rule
+   * whose Notify Owners is on or on an Owners page.
+   */
+  buildSection(
+    translationKey("Data Observability"),
+    translationKey("Notify me about tables and pipelines I own."),
+    [
+      NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  /*
+   * Services, apps and infrastructure (#9700): one switch for being made an
+   * owner of any of them - a service, a RUM application, a host, a cluster,
+   * a database, a queue, a cloud resource - by an owner rule whose Notify
+   * Owners is on or on an Owners page. The message names which it is.
+   */
+  buildSection(
+    translationKey("Services and Infrastructure"),
+    translationKey("Notify me about the services and infrastructure I own."),
+    [
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  // Dashboards, workflows and runbooks (#9700), the products menu's own group.
+  buildSection(
+    translationKey("Dashboards & Automation"),
+    translationKey("Notify me about dashboards, workflows and runbooks I own."),
+    [
+      NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
 ];
 
 const statusPages: Array<SectionDef> = [
@@ -878,10 +957,26 @@ const onCall: Array<SectionDef> = [
       NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
     ],
   ),
+  /*
+   * The on-call policies and schedules the person owns (#9700): being made
+   * an owner of one. Apart from the card above, which is about the person's
+   * own shifts and the policies that page them.
+   */
+  buildSection(
+    translationKey("On-Call Policies and Schedules"),
+    translationKey("Notify me about on-call policies and schedules I own."),
+    [
+      NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
   buildSection(
     translationKey("Incoming Call Policies"),
-    translationKey("Notify me about calls to incoming call policies I own."),
-    [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION],
+    translationKey("Notify me about incoming call policies I own."),
+    [
+      NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    ],
   ),
 ];
 
@@ -906,6 +1001,15 @@ const security: Array<SectionDef> = [
       "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
     ),
     [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION],
+  ),
+  /*
+   * Data stores (#9681): being made an owner, by an owner rule whose Notify
+   * Owners is on or on a store's Owners page.
+   */
+  buildSection(
+    translationKey("Data Security"),
+    translationKey("Notify me about data stores I own."),
+    [NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION],
   ),
 ];
 

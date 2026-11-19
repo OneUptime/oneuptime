@@ -1,4 +1,5 @@
 import Span, { SpanStatus } from "../../Models/AnalyticsModels/Span";
+import GreaterThanOrEqual from "../BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
@@ -20,7 +21,22 @@ export default interface MonitorStepTraceMonitor {
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfSpans: number;
   spanName: string;
+  /*
+   * Only the spans that took at least this many milliseconds: a cold start
+   * of five seconds or more (the RUM "Slow Cold Start" recommendation), a
+   * checkout slower than its budget. A count of slow spans is how a Traces
+   * monitor alerts on latency, since its criteria count spans.
+   *
+   * Optional: monitors saved before this field existed, and monitors that
+   * leave it empty, count spans of any duration. Read it through
+   * MonitorStepTraceMonitorUtil.getMinimumDurationInMs, which drops
+   * anything that is not a positive number.
+   */
+  minimumDurationInMs?: number | undefined;
 }
+
+// Nanoseconds in a millisecond: spans store their duration in nanoseconds.
+const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
 
 export class MonitorStepTraceMonitorUtil {
   /*
@@ -69,6 +85,17 @@ export class MonitorStepTraceMonitorUtil {
       query.name = new Search(monitorStepTraceMonitor.spanName);
     }
 
+    const minimumDurationInMs: number | null =
+      MonitorStepTraceMonitorUtil.getMinimumDurationInMs(
+        monitorStepTraceMonitor,
+      );
+
+    if (minimumDurationInMs !== null) {
+      query.durationUnixNano = new GreaterThanOrEqual<number>(
+        Math.round(minimumDurationInMs * NANOSECONDS_PER_MILLISECOND),
+      );
+    }
+
     if (monitorStepTraceMonitor.lastXSecondsOfSpans) {
       const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveSeconds(
@@ -79,6 +106,31 @@ export class MonitorStepTraceMonitorUtil {
     }
 
     return query;
+  }
+
+  /*
+   * The step's duration floor in milliseconds, or null when it has none: a
+   * value left empty, zero, negative, not finite or not a number at all (a
+   * step written through the API is stored without passing through
+   * fromJSON, so this accepts a numeric string too).
+   */
+  public static getMinimumDurationInMs(
+    monitorStepTraceMonitor: Pick<
+      MonitorStepTraceMonitor,
+      "minimumDurationInMs"
+    >,
+  ): number | null {
+    const raw: unknown = monitorStepTraceMonitor.minimumDurationInMs;
+
+    let value: number = NaN;
+
+    if (typeof raw === "number") {
+      value = raw;
+    } else if (typeof raw === "string" && raw.trim().length > 0) {
+      value = Number(raw);
+    }
+
+    return Number.isFinite(value) && value > 0 ? value : null;
   }
 
   public static getDefault(): MonitorStepTraceMonitor {
@@ -93,6 +145,11 @@ export class MonitorStepTraceMonitorUtil {
   }
 
   public static fromJSON(json: JSONObject): MonitorStepTraceMonitor {
+    const minimumDurationInMs: number | null =
+      MonitorStepTraceMonitorUtil.getMinimumDurationInMs({
+        minimumDurationInMs: json["minimumDurationInMs"] as number | undefined,
+      });
+
     return {
       attributes:
         (json["attributes"] as Dictionary<string | number | boolean>) || {},
@@ -103,10 +160,15 @@ export class MonitorStepTraceMonitorUtil {
       ),
       entityKeys: (json["entityKeys"] as Array<string>) || [],
       lastXSecondsOfSpans: json["lastXSecondsOfSpans"] as number,
+      // Left out when there is none, as a step saved before it existed is.
+      ...(minimumDurationInMs !== null ? { minimumDurationInMs } : {}),
     };
   }
 
   public static toJSON(monitor: MonitorStepTraceMonitor): JSONObject {
+    const minimumDurationInMs: number | null =
+      MonitorStepTraceMonitorUtil.getMinimumDurationInMs(monitor);
+
     return {
       attributes: monitor.attributes,
       spanName: monitor.spanName,
@@ -114,6 +176,8 @@ export class MonitorStepTraceMonitorUtil {
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
       entityKeys: monitor.entityKeys || [],
       lastXSecondsOfSpans: monitor.lastXSecondsOfSpans,
+      // Left out when there is none, as a step saved before it existed is.
+      ...(minimumDurationInMs !== null ? { minimumDurationInMs } : {}),
     };
   }
 }

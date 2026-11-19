@@ -14,7 +14,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import OpenStackLoadBalancerTraffic from "../../../Components/OpenStack/Part/OpenStackLoadBalancerTraffic";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
-import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import OpenStackServicePartOverview, {
+  OpenStackServicePartWords,
+  getOpenStackServicePartAttention,
+} from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
@@ -57,66 +61,82 @@ function idsOfPool(pool: OpenStackResource): Array<string> {
   return Array.isArray(ids) ? (ids as Array<string>) : [];
 }
 
-const LoadBalancerOverview: FunctionComponent<{
-  part: OpenStackPart;
+const WORDS: OpenStackServicePartWords = {
+  thisOne: translationKey("This load balancer"),
+  attentionDescription: translationKey(
+    "What about this load balancer is broken or needs a look.",
+  ),
+  openTitle: translationKey("Open on this load balancer"),
+  openDescription: translationKey(
+    "Unresolved incidents and alerts about this load balancer, incidents first.",
+  ),
+  alertsTitle: translationKey("Load balancer alerts"),
+  alertsDescription: translationKey(
+    "The cloud's alerts that watch every load balancer, this one included: each is one monitor on the cloud.",
+  ),
+  detailsDescription: translationKey(
+    "What Octavia reports about this load balancer.",
+  ),
+};
+
+// Its pools, amphorae and listeners, read by the page once.
+function useLoadBalancerRelated(part: OpenStackPart): OpenStackRead<Related> {
+  return useOpenStackRead<Related>(async (): Promise<Related> => {
+    const [pools, amphorae, listeners] = await Promise.all([
+      fetchOpenStackRows({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.LoadBalancerPool,
+        limit: RELATED_ROWS_READ,
+      }),
+      fetchOpenStackRows({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.Amphora,
+        limit: RELATED_ROWS_READ,
+      }),
+      fetchOpenStackRows({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.Listener,
+        limit: RELATED_ROWS_READ,
+      }),
+    ]);
+    return {
+      pools: pools.filter((pool: OpenStackResource): boolean => {
+        return idsOfPool(pool).includes(part.externalId);
+      }),
+      listeners: listeners.filter((listener: OpenStackResource): boolean => {
+        return (
+          getOpenStackFactText(listener, "loadBalancerId") === part.externalId
+        );
+      }),
+      amphorae: amphorae.filter((amphora: OpenStackResource): boolean => {
+        return (
+          getOpenStackFactText(amphora, "loadBalancerId") === part.externalId
+        );
+      }),
+    };
+  }, [part.externalId, part.refreshToken]);
+}
+
+/*
+ * A row alone can't say its load balancer has two masters, and its amphorae are here, so this page
+ * says it by the same line Needs attention does (OpenStackResourceService.getAttentionRows): the
+ * row, with how many of its amphorae say they are the MASTER.
+ */
+function withMasterAmphoraCount(data: {
   row: OpenStackResource;
-}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
-  const { part } = props;
-
-  const related: OpenStackRead<Related> =
-    useOpenStackRead<Related>(async (): Promise<Related> => {
-      const [pools, amphorae, listeners] = await Promise.all([
-        fetchOpenStackRows({
-          openStackCloudId: part.openStackCloudId,
-          kind: OpenStackResourceKind.LoadBalancerPool,
-          limit: RELATED_ROWS_READ,
-        }),
-        fetchOpenStackRows({
-          openStackCloudId: part.openStackCloudId,
-          kind: OpenStackResourceKind.Amphora,
-          limit: RELATED_ROWS_READ,
-        }),
-        fetchOpenStackRows({
-          openStackCloudId: part.openStackCloudId,
-          kind: OpenStackResourceKind.Listener,
-          limit: RELATED_ROWS_READ,
-        }),
-      ]);
-      return {
-        pools: pools.filter((pool: OpenStackResource): boolean => {
-          return idsOfPool(pool).includes(part.externalId);
-        }),
-        listeners: listeners.filter((listener: OpenStackResource): boolean => {
-          return (
-            getOpenStackFactText(listener, "loadBalancerId") === part.externalId
-          );
-        }),
-        amphorae: amphorae.filter((amphora: OpenStackResource): boolean => {
-          return (
-            getOpenStackFactText(amphora, "loadBalancerId") === part.externalId
-          );
-        }),
-      };
-    }, [part.externalId, part.refreshToken]);
-
-  const pools: Array<OpenStackResource> = related.data?.pools || [];
-  const amphorae: Array<OpenStackResource> = related.data?.amphorae || [];
-  const listeners: Array<OpenStackResource> = related.data?.listeners || [];
-
-  /*
-   * A row alone can't say its load balancer has two masters, and its amphorae are here, so this page
-   * says it by the same line Needs attention does (OpenStackResourceService.getAttentionRows).
-   */
+  amphorae: Array<OpenStackResource>;
+  externalId: string;
+}): OpenStackResource {
   const masters: number = getOpenStackLoadBalancersWithTwoMasters(
-    amphorae.map((amphora: OpenStackResource) => {
+    data.amphorae.map((amphora: OpenStackResource) => {
       return {
         status: amphora.status,
         loadBalancerId: getOpenStackFactText(amphora, "loadBalancerId"),
         role: getOpenStackFactText(amphora, "role"),
       };
     }),
-  ).includes(part.externalId)
-    ? amphorae.filter((amphora: OpenStackResource): boolean => {
+  ).includes(data.externalId)
+    ? data.amphorae.filter((amphora: OpenStackResource): boolean => {
         return (
           amphora.status === "ALLOCATED" &&
           getOpenStackFactText(amphora, "role") === "MASTER"
@@ -124,16 +144,36 @@ const LoadBalancerOverview: FunctionComponent<{
       }).length
     : 0;
 
-  const row: OpenStackResource = Object.assign(
-    new OpenStackResource(),
-    props.row,
-    {
-      facts: {
-        ...((props.row.facts as JSONObject | undefined) || {}),
-        masterAmphoraCount: masters,
-      },
+  return Object.assign(new OpenStackResource(), data.row, {
+    facts: {
+      ...((data.row.facts as JSONObject | undefined) || {}),
+      masterAmphoraCount: masters,
     },
-  );
+  });
+}
+
+interface LoadBalancerOverviewProps {
+  part: OpenStackPart;
+  row: OpenStackResource;
+  // What the page read around it (useLoadBalancerRelated).
+  related: OpenStackRead<Related>;
+  // What needs attention on it, read once for its card and its hero.
+  attention: ResourcePartAttention;
+}
+
+const LoadBalancerOverview: FunctionComponent<LoadBalancerOverviewProps> = (
+  props: LoadBalancerOverviewProps,
+): ReactElement => {
+  const { part, related } = props;
+
+  const pools: Array<OpenStackResource> = related.data?.pools || [];
+  const amphorae: Array<OpenStackResource> = related.data?.amphorae || [];
+  const listeners: Array<OpenStackResource> = related.data?.listeners || [];
+  const row: OpenStackResource = withMasterAmphoraCount({
+    row: props.row,
+    amphorae: amphorae,
+    externalId: part.externalId,
+  });
 
   const detailRows: Array<ResourcePartDetailRow> = [
     {
@@ -298,23 +338,8 @@ const LoadBalancerOverview: FunctionComponent<{
       alertTemplateIds={OPENSTACK_LOAD_BALANCER_ALERT_TEMPLATE_IDS}
       detailRows={detailRows}
       whyNotKnown={WHY_NOT_KNOWN}
-      words={{
-        thisOne: translationKey("This load balancer"),
-        attentionDescription: translationKey(
-          "What about this load balancer is broken or needs a look.",
-        ),
-        openTitle: translationKey("Open on this load balancer"),
-        openDescription: translationKey(
-          "Unresolved incidents and alerts about this load balancer, incidents first.",
-        ),
-        alertsTitle: translationKey("Load balancer alerts"),
-        alertsDescription: translationKey(
-          "The cloud's alerts that watch every load balancer, this one included: each is one monitor on the cloud.",
-        ),
-        detailsDescription: translationKey(
-          "What Octavia reports about this load balancer.",
-        ),
-      }}
+      words={WORDS}
+      attention={props.attention}
       tiles={
         <>
           <GoldenMetricTile
@@ -351,12 +376,36 @@ const OpenStackCloudLoadBalancerDetail: FunctionComponent<
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.LoadBalancer,
   );
+  const related: OpenStackRead<Related> = useLoadBalancerRelated(part);
+  /*
+   * Read once, its row told how many of its amphorae say they are the
+   * MASTER: the Overview's card lists it, the hero's status opens it.
+   */
+  const attention: ResourcePartAttention = getOpenStackServicePartAttention({
+    part: part,
+    row: part.row
+      ? withMasterAmphoraCount({
+          row: part.row,
+          amphorae: related.data?.amphorae || [],
+          externalId: part.externalId,
+        })
+      : null,
+    words: WORDS,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
-        return <LoadBalancerOverview part={part} row={row} />;
+        return (
+          <LoadBalancerOverview
+            part={part}
+            row={row}
+            related={related}
+            attention={attention}
+          />
+        );
       }}
     />
   );

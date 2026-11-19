@@ -10,6 +10,7 @@ import {
   AzureTypeKeyMetrics,
   getAzureKeyMetricNames,
   getAzureStoredMetricName,
+  isAzureFiveMinuteKeyMetric,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
@@ -367,7 +368,10 @@ describe("every key metric of every type, while a stream delivers every type", (
                     name: label(entry, metric),
                     type: entry.type,
                     location: "eastus",
-                    grain: "PT1M",
+                    // A metric read at five minutes says so, as the read writes it.
+                    grain: isAzureFiveMinuteKeyMetric(entry.type, metric)
+                      ? "PT5M"
+                      : "PT1M",
                     ...(entry.splitByDimension ? { entity: "orders" } : {}),
                   }),
                 ],
@@ -385,7 +389,7 @@ describe("every key metric of every type, while a stream delivers every type", (
     },
   );
 
-  test("the read keeps exactly the ones a diagnostic setting cannot export, and every one of a namespace it splits by queue", () => {
+  test("the read keeps exactly the ones a diagnostic setting cannot export, those it reads at five minutes, and every one of a namespace it splits by queue", () => {
     const kept: Array<string> = [];
     let streamedCount: number = 0;
 
@@ -393,7 +397,9 @@ describe("every key metric of every type, while a stream delivers every type", (
       for (const metric of getAzureKeyMetricNames(entry.type)) {
         if (
           entry.splitByDimension ||
-          (entry.notExportedByDiagnosticSettings || []).includes(metric)
+          (entry.notExportedByDiagnosticSettings || []).includes(metric) ||
+          // A stream delivers a minute at a time: never a five-minute metric.
+          isAzureFiveMinuteKeyMetric(entry.type, metric)
         ) {
           kept.push(
             `11111111 ${getAzureStoredMetricName(metric, "Average")} ${label(entry, metric)}`,
@@ -414,8 +420,15 @@ describe("every key metric of every type, while a stream delivers every type", (
     expect(result.leftOut).toBe(streamedCount);
     // Both sides are real: some metrics are the stream's, some stay the read's.
     expect(streamedCount).toBeGreaterThan(50);
-    // 65 a diagnostic setting cannot export, and the namespaces' 10.
-    expect(kept.length).toBe(75);
+    /*
+     * 67 a diagnostic setting cannot export, the namespaces' 10, and an
+     * App Service app's health check, which it exports but the read reads
+     * at five minutes.
+     */
+    expect(kept.length).toBe(78);
+    expect(kept).toContain(
+      `11111111 azure_healthcheckstatus_average Microsoft.Web/sites HealthCheckStatus`,
+    );
   });
 
   test("a type whose every key metric a diagnostic setting cannot export loses none of them", () => {

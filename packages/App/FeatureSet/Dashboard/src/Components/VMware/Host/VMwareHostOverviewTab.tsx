@@ -27,25 +27,22 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
   formatReaderFigure,
   getDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
-import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
   VMWARE_HOST_SATURATION_PERCENT,
-  getVMwareAttentionItems,
-  getVMwareAttentionKey,
   getVMwareHostState,
   isVMwareIssueAbout,
   knowsVMwareHostVirtualMachineStates,
@@ -53,7 +50,6 @@ import {
   VMwareHostState,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMWARE_HOST_ALERT_TEMPLATE_IDS } from "../../../Pages/VMware/Utils/VMwarePartFacts";
-import { getVMwarePartRoutes } from "../Part/VMwarePartRoutes";
 import ResourceAiAgentStatusSummaryCard from "../../ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../ResourceAiAgent/ResourceAiAgentDescriptors";
 import AutoRefreshControl from "../../TelemetryResource/AutoRefreshControl";
@@ -88,9 +84,6 @@ import {
   VMwareHostNetworkAdaptersCard,
   VMwareHostStorageDevicesCard,
 } from "./VMwareHostDeviceTables";
-
-// How the host's own row reads in its Needs attention card.
-const THIS_HOST: string = translationKey("This host");
 
 /*
  * A tile's bar turns amber where the host's alerts and Needs attention do,
@@ -130,6 +123,12 @@ export interface ComponentProps {
   // The host's datacenter: what tells a host that reports no usage apart.
   datacenterRow: VMwareResourceModel | null;
   virtualMachineRows: Array<VMwareResourceModel>;
+  /*
+   * What needs attention on the host and the VMs it runs: the page reads
+   * it once (getVMwarePartAttention) for this card and for the hero's
+   * status.
+   */
+  attention: ResourcePartAttention;
   virtualMachineSummary: VMwareHostVirtualMachineSummary;
   clusterRoute?: Route | undefined;
   getVirtualMachineRoute: (externalId: string) => Route;
@@ -292,20 +291,6 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
     : undefined;
 
   const row: VMwareResourceModel | null = props.row;
-
-  /*
-   * What on this host and the VMs it runs needs attention, by the
-   * vCenter's one set of rules: its own row reads "This host".
-   */
-  const attentionItems: Array<ResourceAttentionItem> = row
-    ? getVMwareAttentionItems({
-        rows: [row, ...props.virtualMachineRows],
-        contextRows: props.datacenterRow ? [props.datacenterRow] : [],
-        now: OneUptimeDate.getCurrentDate(),
-        routeFor: getVMwarePartRoutes(props.vcenterId).getPartRoute,
-        listRouteFor: getVMwarePartRoutes(props.vcenterId).getListRoute,
-      })
-    : [];
 
   /*
    * A host vCenter cannot reach, or one that is off or in standby, reports
@@ -581,12 +566,9 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       <NeedsAttentionCard
         testId="vmware-host-attention"
-        items={attentionItems}
-        current={{
-          key: getVMwareAttentionKey(VMwareResourceKind.Host, props.externalId),
-          label: THIS_HOST,
-        }}
-        description="What about this host and the VMs it runs is broken or needs a look."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

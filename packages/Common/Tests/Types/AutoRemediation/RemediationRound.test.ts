@@ -12,9 +12,11 @@ import {
   MAX_RULED_OUT_FIX_LENGTH,
   MAX_RULED_OUT_FIXES,
   MAX_RULED_OUT_WHY_NOT_LENGTH,
+  MAX_ROUND_MCP_NAME_LENGTH,
   parseRemediationRoundAppliedSteps,
   parseRemediationRoundChecks,
   parseRemediationRoundExplanation,
+  parseRemediationRoundMcpToolCall,
   REMEDIATION_ROUND_PATH,
   REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED,
   REMEDIATION_ROUND_TRY_AGAIN_PATH,
@@ -23,6 +25,10 @@ import {
   RemediationRoundExplanation,
   RemediationRoundTryAgainRefusal,
 } from "../../../Types/AutoRemediation/RemediationRound";
+import {
+  describeMcpToolCallFailure,
+  readMcpToolCallFailure,
+} from "../../../Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -308,6 +314,179 @@ describe("parseRemediationRoundChecks: the commands a round checked with", () =>
   });
 });
 
+/*
+ * A fix through MCP servers' reads (#6526): a check that names the server
+ * and the tool it called instead of a command. A build from before reads
+ * no command in it and leaves it out, as it leaves out anything it cannot
+ * read.
+ */
+describe("parseRemediationRoundChecks: the MCP servers' tools a round read with", () => {
+  const READ: RemediationRoundCheck = {
+    command: "",
+    mcpTool: { server: "AWS", tool: "describe_services" },
+    why: "See how many tasks checkout-api runs.",
+    status: "ran",
+    at: "2026-11-19T06:00:00.000Z",
+    error: "",
+  };
+
+  test("reads a check that names a server's tool, with no command", () => {
+    expect(parseRemediationRoundChecks([READ])).toEqual([READ]);
+    expect(
+      parseRemediationRoundChecks([
+        { ...READ, status: "failed", error: "ThrottlingException" },
+      ])[0],
+    ).toMatchObject({ status: "failed", error: "ThrottlingException" });
+  });
+
+  test("a tool call names no command, even when one was sent beside it", () => {
+    expect(
+      parseRemediationRoundChecks([{ ...READ, command: "kubectl get ns" }]),
+    ).toEqual([READ]);
+  });
+
+  test("a tool call with no server or no tool falls back to its command, or is left out", () => {
+    expect(
+      parseRemediationRoundChecks([
+        { ...READ, mcpTool: { server: "AWS" } },
+        { ...READ, mcpTool: { tool: "describe_services" } },
+        { ...READ, mcpTool: { server: " ", tool: "describe_services" } },
+        { ...READ, mcpTool: "AWS · describe_services" },
+        { ...READ, mcpTool: ["AWS", "describe_services"] },
+      ]),
+    ).toEqual([]);
+    expect(
+      parseRemediationRoundChecks([
+        { ...READ, mcpTool: { server: 4 }, command: "kubectl get ns" },
+      ]),
+    ).toEqual([
+      {
+        command: "kubectl get ns",
+        why: READ.why,
+        status: "ran",
+        at: READ.at,
+        error: "",
+      },
+    ]);
+  });
+
+  test("clips the server's and the tool's names", () => {
+    const parsed: Array<RemediationRoundCheck> = parseRemediationRoundChecks([
+      {
+        ...READ,
+        mcpTool: {
+          server: "s".repeat(MAX_ROUND_MCP_NAME_LENGTH + 10),
+          tool: `describe\n  ${"t".repeat(MAX_ROUND_MCP_NAME_LENGTH)}`,
+        },
+      },
+    ]);
+
+    expect(parsed[0]!.mcpTool!.server.length).toBe(MAX_ROUND_MCP_NAME_LENGTH);
+    expect(parsed[0]!.mcpTool!.tool.startsWith("describe t")).toBe(true);
+    expect(parsed[0]!.mcpTool!.tool.length).toBe(MAX_ROUND_MCP_NAME_LENGTH);
+  });
+
+  test("parseRemediationRoundMcpToolCall reads both names or nothing", () => {
+    expect(
+      parseRemediationRoundMcpToolCall({ server: " AWS ", tool: "x" }),
+    ).toEqual({ server: "AWS", tool: "x" });
+
+    for (const value of [
+      null,
+      undefined,
+      "AWS",
+      [],
+      { server: "AWS" },
+      { server: "", tool: "x" },
+      { server: "AWS", tool: 7 },
+    ]) {
+      expect(parseRemediationRoundMcpToolCall(value)).toBeNull();
+    }
+  });
+});
+
+/*
+ * How call_mcp_tool words a call the server failed, and how a round reads
+ * the server's words back: one pair, so the two never drift (#6526).
+ */
+describe("an MCP tool call that failed at the server", () => {
+  test("is worded with the tool and the server, and read back to the server's own words", () => {
+    const failure: string = describeMcpToolCallFailure({
+      tool: "filter_log_events",
+      server: "AWS",
+      message: "ThrottlingException: Rate exceeded",
+    });
+
+    expect(failure).toBe(
+      "Error calling filter_log_events on AWS: ThrottlingException: Rate exceeded",
+    );
+    expect(
+      readMcpToolCallFailure({
+        errorMessage: failure,
+        tool: "filter_log_events",
+        server: "AWS",
+      }),
+    ).toBe("ThrottlingException: Rate exceeded");
+  });
+
+  test("the server as the model named it, whatever its case, or by its id", () => {
+    const failure: string = describeMcpToolCallFailure({
+      tool: "get_object",
+      server: "AWS: Prod",
+      message: "timed out after 30 s",
+    });
+
+    expect(
+      readMcpToolCallFailure({
+        errorMessage: failure,
+        tool: "get_object",
+        server: "aws: prod",
+      }),
+    ).toBe("timed out after 30 s");
+    // Named by its id: the first ": " after the server's label.
+    expect(
+      readMcpToolCallFailure({
+        errorMessage: describeMcpToolCallFailure({
+          tool: "get_object",
+          server: "AWS",
+          message: "timed out",
+        }),
+        tool: "get_object",
+        server: "3e000000-0000-4000-8000-0000000000a1",
+      }),
+    ).toBe("timed out");
+  });
+
+  test("a call refused before any server was called is none of these", () => {
+    for (const errorMessage of [
+      'Error: there is no MCP server named "Azure" in this run. The servers are: AWS.',
+      'Error: AWS has no tool named "x". Call list_mcp_tools to see its tools.',
+      "Error: arguments must be a JSON object. Adjust them and call again.",
+      "Refused: restart on AWS may change something, and an investigation only reads.",
+      "Tool excluded for this run: call_mcp_tool",
+      // Another tool's failure.
+      "Error calling describe_services on AWS: timed out",
+      "",
+    ]) {
+      expect(
+        readMcpToolCallFailure({
+          errorMessage,
+          tool: "get_object",
+          server: "AWS",
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      readMcpToolCallFailure({
+        errorMessage: "Error calling  on AWS: x",
+        tool: "",
+        server: "AWS",
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("what a round already did outside OneUptime", () => {
   test("parses the counts and the runbook, and anything unreadable counts as none", () => {
     expect(
@@ -410,6 +589,9 @@ describe("Try again's refusals", () => {
       AlertTokenLimitUsedUp:
         "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
       NotStarted: "The fix could not start again. Try again in a few minutes.",
+      // #6525: pressed more often than AutoRemediationRoundRateLimit allows.
+      TooManyTries:
+        "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.",
     });
   });
 

@@ -716,12 +716,15 @@ describe("the part read, as the server answers it", () => {
       part: { kind: "Pod", name: "web-1" },
       pods: [{ kind: "Pod", name: "web-1" }],
       jobs: [],
+      // A namespace's other objects, none from a server that sends none.
+      objects: [],
       isPodsTruncated: true,
     });
     expect(parseKubernetesPartRead(null)).toEqual({
       part: null,
       pods: [],
       jobs: [],
+      objects: [],
       isPodsTruncated: false,
     });
   });
@@ -916,10 +919,15 @@ describe("the words of a part's page", () => {
       "Job",
       "CronJob",
       "Node",
+      // A DeploymentConfig's and a namespace's pages have theirs too (#9595).
+      "DeploymentConfig",
+      "Namespace",
     ]) {
       expect(KUBERNETES_PART_COPY[kind]).toBeDefined();
       expect(KUBERNETES_CURRENT_PART_LABELS[kind]).toMatch(/^This /);
     }
+    // A container's page names its own row as its card would.
+    expect(KUBERNETES_CURRENT_PART_LABELS["Container"]).toBe("This container");
   });
 
   test("each kind's Details card says what reports its facts, in its own words", () => {
@@ -931,6 +939,11 @@ describe("the words of a part's page", () => {
       ["Job", "What Kubernetes reports about this Job."],
       ["CronJob", "What Kubernetes reports about this CronJob."],
       ["Node", "What Kubernetes reports about this node."],
+      [
+        "DeploymentConfig",
+        "What Kubernetes reports about this DeploymentConfig.",
+      ],
+      ["Namespace", "What Kubernetes reports about this namespace."],
     ];
 
     for (const [kind, description] of cases) {

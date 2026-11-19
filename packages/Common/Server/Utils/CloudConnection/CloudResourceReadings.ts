@@ -6,6 +6,7 @@ import {
   CLOUD_READINGS_STALE_MS,
   getCloudHealthSeverity,
   getCloudReadingKey,
+  isCloudReadingTheHighestOfItsSeries,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import { isCloudReadingKeyOfType } from "../../../Types/Cloud/CloudReadingKeys";
 import {
@@ -137,7 +138,9 @@ function readDatapointValue(point: JSONObject): number | null {
  * its type keeps, the value of its newest datapoint. A metric read split by
  * a dimension - a Service Bus or Event Hubs namespace's, one series per
  * queue and topic - reads the sum of its series at that newest time: the
- * namespace's whole count, the way its unsplit total read before. A
+ * namespace's whole count, the way its unsplit total read before. One read
+ * as its fullest part - an Ops Agent's disk use, a series per disk of a VM
+ * - reads the highest of them (isCloudReadingTheHighestOfItsSeries). A
  * datapoint whose resource cannot be told is left out, as the ingest
  * leaves its resource.
  */
@@ -299,9 +302,18 @@ export function collectCloudResourceReadings(
             /*
              * The newest datapoint wins; of two at one time, the first read -
              * but split series of one time add up: each is a part of the
-             * whole (a queue's messages of the namespace's).
+             * whole (a queue's messages of the namespace's) - and a metric
+             * read as its fullest part keeps the highest (a VM's disks).
              */
             if (existing && Date.parse(existing.time) === timeMs) {
+              if (isCloudReadingTheHighestOfItsSeries(provider, key)) {
+                if (value > existing.value) {
+                  entry.readings[key] = { ...existing, value };
+                }
+
+                continue;
+              }
+
               const summed: Set<string> | undefined =
                 summedSeries.get(summedKey);
 

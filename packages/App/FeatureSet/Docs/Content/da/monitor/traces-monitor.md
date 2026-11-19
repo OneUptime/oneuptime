@@ -48,7 +48,7 @@ I **Spans at holde øje med** angiver du **Span-status** og **Span-navnet indeho
 
 ### Indsnævr dem (valgfrit)
 
-Åbn **Flere felter** for at filtrere efter telemetritjeneste, infrastrukturentitet eller attribut.
+Åbn **Flere felter** for at filtrere efter telemetritjeneste, infrastrukturentitet eller attribut eller for kun at tælle de spans, der varede mindst en given tid.
 
 ### Sig, hvornår der skal advares
 
@@ -76,6 +76,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Filtrer efter tjeneste** (under **Flere felter**) | Spans fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Spans fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Filtrér efter attributter** (under **Flere felter**) | Spans, hvis attributter opfylder alle betingelser. Hver betingelse har sin egen operator, såsom "er lig med" eller "indeholder". | Tom: ingen betingelse |
+| **Varer mindst (ms)** (under **Flere felter**) | Spans, der varede så længe eller længere, i millisekunder, f.eks. 5000 for en koldstart på fem sekunder. | Tom: enhver varighed |
 
 Alle de filtre, du angiver, skal matche, før et span tælles.
 

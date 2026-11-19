@@ -677,12 +677,13 @@ function getIoTRecommendations(): Array<MonitorRecommendation> {
  * The RUM adapter — two functions for the same reason as Service's.
  *
  * `getRumRecommendations` answers "what should THIS application be offered":
- * everything except the session replay budget alerts, which wait until the
- * application records replays (and, for the monthly pair, has a monthly
- * budget), because only then does the sweep write the series they watch.
- * `getAllRumRecommendations` answers "what can an application ever be
- * offered" — without it, a dismissed or created budget alert could not be
- * resolved back from its id.
+ * the templates for its kind of app, browser or mobile (#9589), less the
+ * session replay budget alerts, which wait until the application records
+ * replays (and, for the monthly pair, has a monthly budget), because only
+ * then does the sweep write the series they watch. `getAllRumRecommendations`
+ * answers "what can an application ever be offered" — without it, a dismissed
+ * or created budget alert, or a mobile template on an application that turned
+ * out to be a browser app, could not be resolved back from its id.
  */
 function normalizeRumTemplate(
   template: RumAlertTemplate,
@@ -711,6 +712,8 @@ function getRumRecommendations(
     sessionReplayEnabled: context?.sessionReplayEnabled,
     sessionReplayHasRecorded: context?.sessionReplayHasRecorded,
     sessionReplayMonthlyBudgetInGB: context?.sessionReplayMonthlyBudgetInGB,
+    clientKind: context?.rumClientKind,
+    customSignals: context?.customSignals,
   }).map((template: RumAlertTemplate) => {
     return normalizeRumTemplate(template);
   });
@@ -1192,9 +1195,14 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.RumApplication,
+      /*
+       * Logs too: a mobile app's crashes, ANRs and frozen frames are log
+       * events (RumAlertTemplates' mobile templates, #9589).
+       */
       monitorTypes: [
         MonitorType.Metrics,
         MonitorType.Traces,
+        MonitorType.Logs,
         MonitorType.Exceptions,
       ],
       resourceLabel: "RUM Application",

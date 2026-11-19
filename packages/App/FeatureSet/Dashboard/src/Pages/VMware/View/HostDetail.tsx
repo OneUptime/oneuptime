@@ -44,7 +44,13 @@ import RecommendationFilterUtil, {
 } from "../../../Components/Recommendations/RecommendationFilterUtil";
 import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
 import VMwarePartReadError from "../../../Components/VMware/Part/VMwarePartReadError";
-import { getVMwareClusterExternalId } from "../../../Components/VMware/Part/VMwarePartRoutes";
+import {
+  VMwarePartRoutes,
+  getVMwareClusterExternalId,
+  getVMwarePartRoutes,
+} from "../../../Components/VMware/Part/VMwarePartRoutes";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
 import VMwareHostReportNotice from "../../../Components/VMware/Host/VMwareHostReportNotice";
 import VMwareHostOverviewTab from "../../../Components/VMware/Host/VMwareHostOverviewTab";
 import VMwareHostVirtualMachinesTab from "../../../Components/VMware/Host/VMwareHostVirtualMachinesTab";
@@ -327,6 +333,23 @@ const VMwareVCenterHostDetail: FunctionComponent<
     });
   };
 
+  /*
+   * What needs attention on the host and the VMs it runs, by the
+   * vCenter's one set of rules, read once: the Overview's card lists it,
+   * the hero's status opens it.
+   */
+  const partRoutes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
+  const attention: ResourcePartAttention = getVMwarePartAttention({
+    kind: VMwareResourceKind.Host,
+    externalId: externalId,
+    row: row,
+    virtualMachines: virtualMachineRows,
+    datacenters: datacenterRow ? [datacenterRow] : [],
+    now: OneUptimeDate.getCurrentDate(),
+    routeFor: partRoutes.getPartRoute,
+    listRouteFor: partRoutes.getListRoute,
+  });
+
   const showVirtualMachines: () => void = (): void => {
     setInitialTabName(VMWARE_HOST_TAB_VIRTUAL_MACHINES);
     setTabsKey((key: number): number => {
@@ -353,6 +376,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
           row={row}
           datacenterRow={datacenterRow}
           virtualMachineRows={virtualMachineRows}
+          attention={attention}
           virtualMachineSummary={virtualMachineSummary}
           clusterRoute={clusterRoute}
           getVirtualMachineRoute={getVirtualMachineRoute}
@@ -441,6 +465,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
         fallbackDatacenterName={identity.datacenterName}
         showLastReport={reportState === VMwareHostReportState.Reporting}
         now={OneUptimeDate.getCurrentDate()}
+        attention={attention}
       />
 
       {/*

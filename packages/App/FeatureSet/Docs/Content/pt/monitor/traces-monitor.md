@@ -48,7 +48,7 @@ Em **Spans a observar**, defina **Status do span** e **O nome do span contém**.
 
 ### Refinar (opcional)
 
-Abra **Mais campos** para filtrar por serviço de telemetria, entidade de infraestrutura ou atributo.
+Abra **Mais campos** para filtrar por serviço de telemetria, entidade de infraestrutura ou atributo, ou para contar só os spans que levaram pelo menos um tempo definido.
 
 ### Dizer quando alertar
 
@@ -76,6 +76,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Filtrar por serviço** (em **Mais campos**) | Spans de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
 | **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Spans de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Filtrar por atributos** (em **Mais campos**) | Spans cujos atributos atendem a todas as condições. Cada condição tem seu próprio operador, como "igual a" ou "contém". | Vazio: nenhuma condição |
+| **Leva pelo menos (ms)** (em **Mais campos**) | Spans que levaram esse tempo ou mais, em milissegundos, como 5000 para uma inicialização a frio de cinco segundos. | Vazio: qualquer duração |
 
 Todos os filtros que você definir precisam corresponder para que um span seja contado.
 

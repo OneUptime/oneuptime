@@ -2,9 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import AzureCloudConnector, {
   AZURE_DEFINITION_SAMPLES,
+  AZURE_FIVE_MINUTE_CURSOR,
   AZURE_MAX_RESOURCE_DEFINITIONS,
   SelectedMetric,
   getAzureKeyMetricsFingerprint,
+  getAzureReadGroupKey,
+  getAzureReadGroups,
   isAzureUnsupportedMetricsRefusal,
   mergeAzureSelections,
   pickAzureDefinitionSamples,
@@ -1385,5 +1388,416 @@ describe("choosing which resources' definitions to read", () => {
     ).toBe(false);
     expect(isAzureUnsupportedMetricsRefusal(undefined)).toBe(false);
     expect(AZURE_MAX_RESOURCE_DEFINITIONS).toBe(500);
+  });
+});
+
+/*
+ * A metric Azure Monitor keeps at five minutes at its finest takes a call
+ * of its own: one marked as earning it (an App Service app's health check,
+ * #9566) is read every 15 minutes, three points a call, beside its type's
+ * minute metrics, and a type whose metrics are all five-minute ones (a
+ * Static Web App) keeps reading them every read in its one call.
+ */
+describe("metrics Azure Monitor keeps at five minutes", () => {
+  const SITE: string = `/subscriptions/${SUB_A}/resourceGroups/rg-web/providers/Microsoft.Web/sites/shop`;
+  const STATIC: string = `/subscriptions/${SUB_A}/resourceGroups/rg-web/providers/Microsoft.Web/staticSites/docs`;
+  const SITE_DEFINITIONS: Array<JSONObject> = [
+    definition("Requests", "Total", ["PT1M", "PT1H"], "Count"),
+    definition("Http5xx", "Total", ["PT1M"], "Count"),
+    definition(
+      "HealthCheckStatus",
+      "Average",
+      ["PT5M", "PT1H", "P1D"],
+      "Count",
+    ),
+  ];
+  const STATIC_DEFINITIONS: Array<JSONObject> = [
+    definition("SiteHits", "Total", ["PT5M", "PT1H", "P1D"], "Count"),
+    definition("SiteErrors", "Total", ["PT5M", "PT1H", "P1D"], "Count"),
+  ];
+
+  function siteFake(): FakeAzure {
+    return createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(SITE, "Microsoft.Web/sites", "shop"),
+          resource(STATIC, "Microsoft.Web/staticSites", "docs"),
+        ],
+      },
+      definitions: { [SITE]: SITE_DEFINITIONS, [STATIC]: STATIC_DEFINITIONS },
+    });
+  }
+
+  // Each metrics call a resource got: what it asked, at which grain, for when.
+  function callsOf(
+    fake: FakeAzure,
+    id: string,
+  ): Array<{ metrics: string; interval: string; timespan: string }> {
+    return fake.metricCalls
+      .filter((url: URL): boolean => {
+        return url.pathname.startsWith(id);
+      })
+      .map((url: URL) => {
+        return {
+          metrics: url.searchParams.get("metricnames") || "",
+          interval: url.searchParams.get("interval") || "",
+          timespan: url.searchParams.get("timespan") || "",
+        };
+      });
+  }
+
+  function at(
+    time: string,
+  ): Partial<Parameters<AzureCloudConnector["read"]>[1]> {
+    return {
+      now: () => {
+        return new Date(time);
+      },
+    };
+  }
+
+  // The next read's state: it lists again, so the fake's resources are read.
+  function relisting(
+    state: CloudConnectionPullState,
+  ): CloudConnectionPullState {
+    const next: CloudConnectionPullState = { ...state };
+    delete next.inventoryAt;
+    return next;
+  }
+
+  test("a health check is read in a five-minute call of its own, the app's minute metrics in theirs, a Static Web App's in its one", async () => {
+    const fake: FakeAzure = siteFake();
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(callsOf(fake, SITE)).toEqual([
+      {
+        metrics: "Requests,Http5xx",
+        interval: "PT1M",
+        timespan: "2026-10-21T11:03:00.000Z/2026-10-21T12:03:00.000Z",
+      },
+      // Its window ends on a whole five minutes: 12:00, four minutes back.
+      {
+        metrics: "HealthCheckStatus",
+        interval: "PT5M",
+        timespan: "2026-10-21T11:00:00.000Z/2026-10-21T12:00:00.000Z",
+      },
+    ]);
+    expect(callsOf(fake, STATIC)).toEqual([
+      {
+        metrics: "SiteHits,SiteErrors",
+        interval: "PT5M",
+        timespan: "2026-10-21T11:00:00.000Z/2026-10-21T12:00:00.000Z",
+      },
+    ]);
+    // Each call's window has its own cursor.
+    expect(result.nextState.cursors).toEqual({
+      "60": "2026-10-21T12:03:00.000Z",
+      "300": "2026-10-21T12:00:00.000Z",
+      "300/900": "2026-10-21T12:00:00.000Z",
+    });
+
+    // Its points say their grain, as the azure_monitor receiver's do.
+    const health: Array<{ stored: JSONObject }> = datapoints(result).filter(
+      (point: { metricName: string }): boolean => {
+        return point.metricName === "azure_healthcheckstatus_average";
+      },
+    );
+
+    expect(health.length).toBeGreaterThan(0);
+    expect(health[0]!.stored["timegrain"]).toBe("PT5M");
+  });
+
+  test("the five-minute call waits for 15 minutes of points, three a call; the minute call and the Static Web App's are read every read", async () => {
+    const first: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(siteFake()),
+    );
+
+    // Five minutes on: the minute call and the Static Web App's, no health check.
+    const second: FakeAzure = siteFake();
+    const secondResult: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        second,
+        relisting(first.nextState),
+        at("2026-10-21T12:12:00Z"),
+      ),
+    );
+
+    expect(callsOf(second, SITE)).toEqual([
+      {
+        metrics: "Requests,Http5xx",
+        interval: "PT1M",
+        timespan: "2026-10-21T12:03:00.000Z/2026-10-21T12:08:00.000Z",
+      },
+    ]);
+    expect(callsOf(second, STATIC)).toEqual([
+      {
+        metrics: "SiteHits,SiteErrors",
+        interval: "PT5M",
+        timespan: "2026-10-21T12:00:00.000Z/2026-10-21T12:05:00.000Z",
+      },
+    ]);
+    // Not read: its cursor stays where its last call ended.
+    expect(secondResult.nextState.cursors?.["300/900"]).toBe(
+      "2026-10-21T12:00:00.000Z",
+    );
+
+    // Fifteen minutes of it are there: one call, three points.
+    const third: FakeAzure = siteFake();
+    const thirdResult: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        third,
+        relisting(secondResult.nextState),
+        at("2026-10-21T12:22:00Z"),
+      ),
+    );
+
+    expect(
+      callsOf(third, SITE).filter((call: { interval: string }): boolean => {
+        return call.interval === "PT5M";
+      }),
+    ).toEqual([
+      {
+        metrics: "HealthCheckStatus",
+        interval: "PT5M",
+        timespan: "2026-10-21T12:00:00.000Z/2026-10-21T12:15:00.000Z",
+      },
+    ]);
+    expect(thirdResult.nextState.cursors?.["300/900"]).toBe(
+      "2026-10-21T12:15:00.000Z",
+    );
+  });
+
+  test("a health check offered at a minute is read in the minute call, at no cost", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: { [SUB_A]: [resource(SITE, "Microsoft.Web/sites", "shop")] },
+      definitions: {
+        [SITE]: [
+          definition("Requests", "Total", ["PT1M"], "Count"),
+          definition("HealthCheckStatus", "Average", ["PT1M", "PT5M"], "Count"),
+        ],
+      },
+    });
+
+    await connector.read(settings(), readOptions(fake));
+
+    expect(callsOf(fake, SITE)).toEqual([
+      {
+        metrics: "Requests,HealthCheckStatus",
+        interval: "PT1M",
+        timespan: "2026-10-21T11:03:00.000Z/2026-10-21T12:03:00.000Z",
+      },
+    ]);
+  });
+
+  test("which call a metric is read in, and when each call is due", () => {
+    const metric: (name: string, grain: string) => SelectedMetric = (
+      name: string,
+      grain: string,
+    ): SelectedMetric => {
+      return { name, grain, aggregation: "Average", unit: "Count" };
+    };
+
+    expect(AZURE_FIVE_MINUTE_CURSOR).toBe("300/900");
+    expect(
+      getAzureReadGroupKey(
+        "Microsoft.Web/sites",
+        metric("HealthCheckStatus", "PT5M"),
+      ),
+    ).toBe(AZURE_FIVE_MINUTE_CURSOR);
+    expect(
+      getAzureReadGroupKey(
+        "microsoft.web/SITES",
+        metric("healthcheckstatus", "pt5m"),
+      ),
+    ).toBe(AZURE_FIVE_MINUTE_CURSOR);
+    // Offered at a minute: the minute call's.
+    expect(
+      getAzureReadGroupKey(
+        "Microsoft.Web/sites",
+        metric("HealthCheckStatus", "PT1M"),
+      ),
+    ).toBe("PT1M");
+    // Not marked: its grain's call, read every read.
+    expect(
+      getAzureReadGroupKey(
+        "Microsoft.Web/staticSites",
+        metric("SiteHits", "PT5M"),
+      ),
+    ).toBe("PT5M");
+    expect(
+      getAzureReadGroupKey("Microsoft.Web/sites", metric("Requests", "pt1m")),
+    ).toBe("PT1M");
+
+    const cursors: Record<string, string> = {
+      "300/900": "2026-10-21T12:00:00.000Z",
+    };
+    const windowAt: (time: string) => unknown = (time: string): unknown => {
+      return getAzureReadGroups({ cursors, now: new Date(time) }).get(
+        AZURE_FIVE_MINUTE_CURSOR,
+      )!.window;
+    };
+
+    // 12:12: five minutes of it are there, not fifteen.
+    expect(windowAt("2026-10-21T12:12:00Z")).toBeNull();
+    expect(windowAt("2026-10-21T12:18:00Z")).toBeNull();
+    expect(windowAt("2026-10-21T12:19:00Z")).toEqual({
+      periodSeconds: 300,
+      start: new Date("2026-10-21T12:00:00.000Z"),
+      end: new Date("2026-10-21T12:15:00.000Z"),
+    });
+    // The other grains keep their own cursors, every read.
+    expect(
+      getAzureReadGroups({
+        cursors,
+        now: new Date("2026-10-21T12:12:00Z"),
+      }).get("PT5M")!.window,
+    ).not.toBeNull();
+  });
+});
+
+/*
+ * A deprecated metric is no key metric (#9565): a Cosmos DB account's
+ * latency is read from ServerSideLatencyDirect and ServerSideLatencyGateway,
+ * and ServerSideLatency rides in the same call while its definitions list
+ * it, for the monitors built on it.
+ */
+describe("a deprecated metric still read", () => {
+  const COSMOS: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.DocumentDB/databaseAccounts/orders`;
+  const cosmos: AzureTypeKeyMetrics = getAzureKeyMetrics(
+    "Microsoft.DocumentDB/databaseAccounts",
+  )!;
+
+  test("rides in the minute call after the key metrics, stored under its own name", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(COSMOS, "Microsoft.DocumentDB/databaseAccounts", "orders"),
+        ],
+      },
+      definitions: {
+        [COSMOS]: [
+          definition("ServerSideLatency", "Average", ["PT1M"], "MilliSeconds"),
+          definition("TotalRequests", "Count", ["PT1M"], "Count"),
+          definition(
+            "ServerSideLatencyDirect",
+            "Average",
+            ["PT1M"],
+            "MilliSeconds",
+          ),
+          definition("DataUsageV2", "Total", ["PT5M", "PT1H"], "Bytes"),
+        ],
+      },
+      refuseUnpublished: true,
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(
+      fake.metricCalls.map((url: URL) => {
+        return [
+          url.searchParams.get("metricnames"),
+          url.searchParams.get("interval"),
+        ];
+      }),
+    ).toEqual([
+      ["TotalRequests,ServerSideLatencyDirect,ServerSideLatency", "PT1M"],
+      ["DataUsageV2", "PT5M"],
+    ]);
+    expect(
+      Array.from(
+        new Set(
+          datapoints(result).map((point: { metricName: string }): string => {
+            return point.metricName;
+          }),
+        ),
+      ).sort(),
+    ).toEqual([
+      // The fake answers no count: TotalRequests writes nothing here.
+      "azure_datausagev2_total",
+      "azure_serversidelatency_average",
+      "azure_serversidelatencydirect_average",
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("is not asked where the definitions no longer list it", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(COSMOS, "Microsoft.DocumentDB/databaseAccounts", "orders"),
+        ],
+      },
+      definitions: {
+        [COSMOS]: [
+          definition(
+            "ServerSideLatencyGateway",
+            "Average",
+            ["PT1M"],
+            "MilliSeconds",
+          ),
+        ],
+      },
+      refuseUnpublished: true,
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(
+      fake.metricCalls.map((url: URL): string | null => {
+        return url.searchParams.get("metricnames");
+      }),
+    ).toEqual(["ServerSideLatencyGateway"]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("selections keep it after the key metrics, and a type's fingerprint follows it", () => {
+    const selected: (name: string) => SelectedMetric = (
+      name: string,
+    ): SelectedMetric => {
+      return { name, aggregation: "Average", grain: "PT1M", unit: "Count" };
+    };
+
+    expect(
+      selectAzureMetrics(cosmos, [
+        {
+          name: "ServerSideLatency",
+          unit: "MilliSeconds",
+          primaryAggregationType: "Average",
+          timeGrains: ["PT1M"],
+        },
+        {
+          name: "TotalRequests",
+          unit: "Count",
+          primaryAggregationType: "Count",
+          timeGrains: ["PT1M"],
+        },
+      ]).map((metric: SelectedMetric): string => {
+        return metric.name;
+      }),
+    ).toEqual(["TotalRequests", "ServerSideLatency"]);
+    expect(
+      mergeAzureSelections(cosmos, [
+        [selected("ServerSideLatency")],
+        [selected("ServerSideLatencyGateway")],
+      ]).map((metric: SelectedMetric): string => {
+        return metric.name;
+      }),
+    ).toEqual(["ServerSideLatencyGateway", "ServerSideLatency"]);
+    expect(getAzureKeyMetricsFingerprint(cosmos)).not.toBe(
+      getAzureKeyMetricsFingerprint({ ...cosmos, retired: [] }),
+    );
   });
 });

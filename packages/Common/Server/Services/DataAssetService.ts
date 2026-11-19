@@ -91,6 +91,18 @@ export class Service extends ProjectReferencesService<DataAsset> {
     return createdItem;
   }
 
+  // The table's page in Data Observability.
+  public async getDataAssetLinkInDashboard(
+    projectId: ObjectID,
+    dataAssetId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/data-observability/tables/${dataAssetId.toString()}`,
+    );
+  }
+
   // The table, linked to its page, for a feed item.
   public async getDataAssetMarkdownLink(
     projectId: ObjectID,
@@ -104,9 +116,9 @@ export class Service extends ProjectReferencesService<DataAsset> {
     const name: string = asset?.schemaName
       ? `${asset.schemaName}.${asset.name || ""}`
       : asset?.name || "";
-    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-    const link: URL = URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/data-observability/tables/${dataAssetId.toString()}`,
+    const link: URL = await this.getDataAssetLinkInDashboard(
+      projectId,
+      dataAssetId,
     );
 
     return mdText`[Table ${name}](${link.toString()})`;

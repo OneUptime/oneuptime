@@ -1,3 +1,4 @@
+import Route from "Common/Types/API/Route";
 import { Gray500, Yellow } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { SessionReplayCustomSignal } from "Common/Types/Rum/SessionReplayFrustrationSignals";
@@ -13,6 +14,7 @@ import SaveStatus, {
 } from "Common/UI/Components/SaveStatus/SaveStatus";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
@@ -25,13 +27,25 @@ import {
   EDIT_SIGNAL_TEXT,
   FRUSTRATION_PILL_TEXT,
   MARKER_PILL_TEXT,
+  SEE_SESSIONS_TEXT,
+  SET_UP_ALERT_TEXT,
 } from "./FrustrationSignalsCopy";
 
 /*
  * One signal of the application's own: its name, whether it counts as
  * frustration or only marks the moment, what sets it off ("The page
- * /checkout/error"), its switch, and Edit and Delete in its ⋯ - so the row
- * stays one line of controls at phone width.
+ * /checkout/error"), its switch, and See sessions, Edit and Delete in its
+ * ⋯ - so the row stays one line of controls at phone width.
+ *
+ * See sessions opens the session list filtered to the signal's name
+ * (issue #6515). It changes nothing, so a reader who may only view the
+ * application has it too - their ⋯ holds only it - and a signal that is
+ * switched off keeps it, since the sessions recorded while it was on still
+ * carry it.
+ *
+ * Set up an alert opens the application's Recommendations page on the
+ * signal's own alert (issue #6518), for a signal that is switched on. That
+ * page says whether the reader may create it, as it does for every alert.
  *
  * The switch saves the moment it is flipped, as a built-in signal's does.
  * Delete asks first, in the row's own dialog (RowActions), and says that
@@ -40,6 +54,10 @@ import {
 
 export interface ComponentProps {
   signal: SessionReplayCustomSignal;
+  // The session list, filtered to this signal's sessions.
+  sessionsRoute: Route;
+  // The Recommendations page on this signal's alert, or null when none is offered.
+  alertRoute: Route | null;
   canEdit: boolean;
   isSaving: boolean;
   // Resolves to null once saved, or the reason it was not.
@@ -83,7 +101,21 @@ const CustomSignalRow: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const actions: Array<ActionButtonSchema<SessionReplayCustomSignal>> =
+  const seeSessions: ActionButtonSchema<SessionReplayCustomSignal> = {
+    title: SEE_SESSIONS_TEXT,
+    icon: IconProp.Film,
+    buttonStyleType: ButtonStyleType.NORMAL,
+    placement: ActionButtonPlacement.MoreMenu,
+    onClick: (
+      _signal: SessionReplayCustomSignal,
+      onCompleteAction: () => void,
+    ): void => {
+      onCompleteAction();
+      Navigation.navigate(props.sessionsRoute);
+    },
+  };
+
+  const editActions: Array<ActionButtonSchema<SessionReplayCustomSignal>> =
     props.canEdit
       ? [
           {
@@ -136,6 +168,33 @@ const CustomSignalRow: FunctionComponent<ComponentProps> = (
           },
         ]
       : [];
+
+  const alertRoute: Route | null = props.alertRoute;
+
+  const setUpAlert: Array<ActionButtonSchema<SessionReplayCustomSignal>> =
+    alertRoute
+      ? [
+          {
+            title: SET_UP_ALERT_TEXT,
+            icon: IconProp.Bell,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            placement: ActionButtonPlacement.MoreMenu,
+            onClick: (
+              _signal: SessionReplayCustomSignal,
+              onCompleteAction: () => void,
+            ): void => {
+              onCompleteAction();
+              Navigation.navigate(alertRoute);
+            },
+          },
+        ]
+      : [];
+
+  const actions: Array<ActionButtonSchema<SessionReplayCustomSignal>> = [
+    seeSessions,
+    ...setUpAlert,
+    ...editActions,
+  ];
 
   const triggerCopy: CustomSignalTriggerCopy =
     CUSTOM_SIGNAL_TRIGGER_COPY[props.signal.trigger];
@@ -210,13 +269,11 @@ const CustomSignalRow: FunctionComponent<ComponentProps> = (
               }
             }}
           />
-          {actions.length > 0 && (
-            <RowActions<SessionReplayCustomSignal>
-              item={props.signal}
-              actionButtons={actions}
-              itemLabel={props.signal.name}
-            />
-          )}
+          <RowActions<SessionReplayCustomSignal>
+            item={props.signal}
+            actionButtons={actions}
+            itemLabel={props.signal.name}
+          />
         </div>
       </div>
       {switchError && (

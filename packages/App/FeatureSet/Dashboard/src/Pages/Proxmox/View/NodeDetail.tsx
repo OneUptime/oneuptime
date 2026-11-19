@@ -52,6 +52,8 @@ import {
   sortProxmoxGuests,
   summarizeProxmoxGuests,
 } from "../Utils/ProxmoxPartFacts";
+import { getProxmoxPartAttention } from "../Utils/ProxmoxPartAttention";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
@@ -275,6 +277,17 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   } = getProxmoxRowsOnNode(nodeRows, pveNodeName);
   const guests: Array<ProxmoxResourceModel> = sortProxmoxGuests(onNode.guests);
   const storage: Array<ProxmoxResourceModel> = onNode.storage;
+  /*
+   * What needs attention on the node, its guests and its storage, read
+   * once: the Overview's card lists it, and the hero's status opens it.
+   */
+  const attention: ResourcePartAttention = getProxmoxPartAttention({
+    kind: "Node",
+    externalId: externalId,
+    row: row,
+    nodeRows: [...guests, ...storage],
+    routeFor: routes.getPartRoute,
+  });
   const guestResources: Array<InfrastructureResource> = guests.map(
     toProxmoxListResource,
   );
@@ -424,6 +437,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
           externalId={externalId}
           row={row}
           nodeRows={[...guests, ...storage]}
+          attention={attention}
           routes={routes}
           onShowGuests={showGuests}
           refreshToken={refreshToken}
@@ -593,6 +607,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
         clusterRoute={routes.clusterRoute}
         getPartRoute={routes.getPartRoute}
         guestSummary={summarizeProxmoxGuests(guests)}
+        attention={attention}
       />
       {/*
        * The tab row wraps on a phone, so Metrics is never out of sight past

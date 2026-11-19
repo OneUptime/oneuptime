@@ -428,6 +428,65 @@ describe("the dialog a count opens", () => {
   });
 });
 
+describe("the dialog a part's own status opens", () => {
+  /*
+   * A part's page lists the part itself among what needs attention: its
+   * hero above names it, and View would open the page the reader is on.
+   */
+  test("names the part whose page this is as its card does, with no View; the rest keep theirs", () => {
+    render(
+      <ResourceAttentionDialog
+        testId="status"
+        title="Needs attention"
+        items={[crashLoopingPod(), pendingPod()]}
+        emptyMessage="Nothing needs attention now."
+        onClose={() => {}}
+        current={{ key: "Pod:shop/queued", label: "This pod" }}
+      />,
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("status-item");
+    expect(rows[0]!).not.toHaveAttribute("data-current");
+    expect(within(rows[0]!).getByTestId("status-view")).toHaveAttribute(
+      "href",
+      "/dashboard/k8s/pods/checkout-7d9f8b6c5-x2k4q",
+    );
+
+    expect(rows[1]!).toHaveAttribute("data-current", "true");
+    expect(within(rows[1]!).getByTestId("status-name")).toHaveTextContent(
+      "This pod",
+    );
+    // Its kind is not repeated either: the hero says what it is.
+    expect(within(rows[1]!).queryByTestId("status-kind")).toBeNull();
+    expect(within(rows[1]!).queryByTestId("status-view")).toBeNull();
+    // Why it needs attention still reads in full.
+    expect(within(rows[1]!).getByTestId("status-reason")).toHaveTextContent(
+      "Can't be scheduled",
+    );
+  });
+
+  test("its own row's words are in the reader's language", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+
+    render(
+      <ResourceAttentionDialog
+        testId="status"
+        title="Needs attention"
+        items={[pendingPod()]}
+        emptyMessage="Nothing needs attention now."
+        onClose={() => {}}
+        current={{ key: "Pod:shop/queued", label: "This pod" }}
+      />,
+    );
+
+    const german: string = readLocale("de")["This pod"] || "";
+    expect(german).not.toBe("");
+    expect(screen.getByTestId("status-name")).toHaveTextContent(german);
+  });
+});
+
 describe("a count that opens the dialog", () => {
   test("is a real button that says it opens a dialog, and what a press shows", () => {
     render(

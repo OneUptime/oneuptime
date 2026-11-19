@@ -1214,6 +1214,8 @@ export const TEAM_OWNED_OTHER_PLANS: Array<
     ownerTeamModel: DataPipelineOwnerTeam,
     ownerColumn: "dataPipelineId",
     rowKind: UsedByRowKind.DataPipeline,
+    // A pipeline has no name of its own: it is its OpenLineage job's.
+    namedBy: { nameColumn: "jobName" },
   }),
   ownedByTeam({
     service: asService(ProbeService),

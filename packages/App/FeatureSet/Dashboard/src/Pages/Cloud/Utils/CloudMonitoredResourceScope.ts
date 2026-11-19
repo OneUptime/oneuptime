@@ -26,6 +26,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   CloudKeyMetricReference,
   getCloudKeyMetricOfStoredName,
+  hasAzureFiveMinuteKeyMetrics,
 } from "Common/Types/Cloud/CloudKeyMetrics";
 import {
   CLOUD_KEY_METRIC_GROUP_LABELS,
@@ -157,18 +158,35 @@ export function getCloudMonitoredResourceAttributeDisplayKeys(
  * range, an amount held (messages waiting) over a range read by the minute,
  * up to 3 hours. A summed row shows the intervals its cloud has delivered
  * whole (getSummedRowSettleMs). Each other row says it is the "average of
- * series". Undefined for every other resource, whose rows read and caption
- * exactly as they did.
+ * series". A key metric whose points come five minutes apart - an Azure
+ * metric kept at five minutes at its finest, an App Service app's health
+ * check (CloudKeyMetricReference.intervalSeconds) - says so, "every 5
+ * minutes", so its line is never read as a minute's. Undefined for every
+ * other resource, whose rows read and caption exactly as they did.
  */
 export interface CloudMonitoredResourceRowAggregation {
   getRowAggregation: GetMetricRowAggregation;
-  defaultRowValueCaption: string;
+  // The caption of every other row; unset: none.
+  defaultRowValueCaption?: string | undefined;
 }
 
 export const CLOUD_RESOURCE_SUMMED_ROW_CAPTION: string =
   translationKey("total of series");
 export const CLOUD_RESOURCE_AVERAGED_ROW_CAPTION: string =
   translationKey("average of series");
+export const CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION: string =
+  translationKey("every 5 minutes");
+
+// Seconds between two points of a key metric read at five minutes.
+const FIVE_MINUTES_IN_SECONDS: number = 300;
+
+// Whether a type has a key metric whose points come five minutes apart.
+function hasFiveMinuteKeyMetrics(provider: string, type: string): boolean {
+  return (
+    provider.trim().toLowerCase() === CloudProvider.Azure &&
+    hasAzureFiveMinuteKeyMetrics(type)
+  );
+}
 
 export interface CloudMonitoredResourceAggregationSource {
   cloudProvider?: unknown;
@@ -210,7 +228,12 @@ export function getCloudMonitoredResourceRowAggregation(
       ? source.cloudResourceType
       : "";
 
-  if (!hasCloudResourceSummedMetrics({ provider, type })) {
+  const hasSummedMetrics: boolean = hasCloudResourceSummedMetrics({
+    provider,
+    type,
+  });
+
+  if (!hasSummedMetrics && !hasFiveMinuteKeyMetrics(provider, type)) {
     return undefined;
   }
 
@@ -225,30 +248,44 @@ export function getCloudMonitoredResourceRowAggregation(
           startDate: startAndEndDate.startValue,
           endDate: startAndEndDate.endValue,
         });
-      const aggregationType: AggregationType | undefined =
-        getCloudResourceMetricAggregation({
+      const aggregationType: AggregationType | undefined = hasSummedMetrics
+        ? getCloudResourceMetricAggregation({
+            provider,
+            type,
+            metricName,
+            aggregationInterval,
+          })
+        : undefined;
+
+      if (aggregationType) {
+        const settleMs: number = getSummedRowSettleMs({
           provider,
-          type,
-          metricName,
           aggregationInterval,
         });
 
-      if (!aggregationType) {
-        return undefined;
+        return {
+          aggregationType: aggregationType,
+          caption: CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
+          ...(settleMs > 0 ? { settleMs } : {}),
+        };
       }
 
-      const settleMs: number = getSummedRowSettleMs({
-        provider,
-        aggregationInterval,
-      });
+      // Read as every row is, saying its points come five minutes apart.
+      if (
+        getCloudKeyMetricOfStoredName({ provider, type, metricName })
+          ?.intervalSeconds === FIVE_MINUTES_IN_SECONDS
+      ) {
+        return {
+          aggregationType: AggregationType.Avg,
+          caption: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+        };
+      }
 
-      return {
-        aggregationType: aggregationType,
-        caption: CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
-        ...(settleMs > 0 ? { settleMs } : {}),
-      };
+      return undefined;
     },
-    defaultRowValueCaption: CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+    ...(hasSummedMetrics
+      ? { defaultRowValueCaption: CLOUD_RESOURCE_AVERAGED_ROW_CAPTION }
+      : {}),
   };
 }
 

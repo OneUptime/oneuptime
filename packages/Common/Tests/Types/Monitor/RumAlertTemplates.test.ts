@@ -25,8 +25,17 @@ import { JSONObject } from "../../../Types/JSON";
 import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import MonitorStepMetricMonitor from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
-import MonitorStepTraceMonitor from "../../../Types/Monitor/MonitorStepTraceMonitor";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import MonitorStepExceptionMonitor from "../../../Types/Monitor/MonitorStepExceptionMonitor";
+import MonitorStepLogMonitor from "../../../Types/Monitor/MonitorStepLogMonitor";
+import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import {
+  MOBILE_APP_FAULT_EVENT_NAMES,
+  MobileAppFaultKind,
+} from "../../../Utils/Telemetry/MobileAppFaults";
+import { EXCESSIVE_APP_START_MS } from "../../../Types/Rum/MobileAppTelemetry";
 import {
   ServiceAlertTemplate,
   getAllServiceAlertTemplates,
@@ -147,6 +156,23 @@ const SEVERITY_CASES: Array<{
     severity: "Critical",
   },
   /*
+   * A mobile app's crash and ANR end the person's use of the app, and are
+   * the two stability core vitals of Android vitals: Critical. The two
+   * performance templates fire on a first occurrence, which an app with a
+   * large audience on old phones sees routinely: Warning, as Failed User
+   * Operations is for the same reason, and so is an app gone quiet, which
+   * an idle kiosk at night can be.
+   */
+  { id: "rum-app-crashes", category: "Errors", severity: "Critical" },
+  { id: "rum-app-not-responding", category: "Errors", severity: "Critical" },
+  { id: "rum-slow-cold-start", category: "Performance", severity: "Warning" },
+  { id: "rum-frozen-frames", category: "Performance", severity: "Warning" },
+  {
+    id: "rum-app-stopped-reporting",
+    category: "Availability",
+    severity: "Warning",
+  },
+  /*
    * "Nearly spent" warns while there is still time to act; "spent" means the
    * recorders have already been told to stop, so nothing more is recorded.
    */
@@ -247,7 +273,10 @@ const BUDGET_TEMPLATE_IDS: Array<string> = BUDGET_CASES.map(
   },
 );
 
-// The seven templates every RUM application was offered before the budgets.
+/*
+ * The seven templates every RUM application was offered before the budgets,
+ * and that a browser app (or one of no known kind) is offered still.
+ */
 const CORE_TEMPLATE_IDS: Array<string> = [
   "rum-poor-lcp",
   "rum-poor-inp",
@@ -257,6 +286,41 @@ const CORE_TEMPLATE_IDS: Array<string> = [
   "rum-failed-user-operations",
   "rum-unhandled-exceptions",
 ];
+
+/*
+ * What a mobile app is offered before the budgets (#9589), in the order the
+ * Recommendations page draws them: Errors, Performance, Availability.
+ */
+const MOBILE_TEMPLATE_IDS: Array<string> = [
+  "rum-app-crashes",
+  "rum-app-not-responding",
+  "rum-failed-user-operations",
+  "rum-slow-cold-start",
+  "rum-frozen-frames",
+  "rum-app-stopped-reporting",
+];
+
+// Only a mobile app sends what these read.
+const MOBILE_ONLY_TEMPLATE_IDS: Array<string> = [
+  "rum-app-crashes",
+  "rum-app-not-responding",
+  "rum-slow-cold-start",
+  "rum-frozen-frames",
+  "rum-app-stopped-reporting",
+];
+
+// Only a browser sends what these read.
+const BROWSER_ONLY_TEMPLATE_IDS: Array<string> = [
+  "rum-poor-lcp",
+  "rum-poor-inp",
+  "rum-poor-cls",
+  "rum-slow-fcp",
+  "rum-slow-ttfb",
+  "rum-unhandled-exceptions",
+];
+
+// Every template there is: 5 web vitals, 2 shared, 5 mobile, 4 budgets.
+const ALL_TEMPLATE_COUNT: number = 16;
 
 const DAILY_TEMPLATE_IDS: Array<string> = [
   "rum-session-replay-daily-budget-nearly-spent",
@@ -347,14 +411,19 @@ describe("RumAlertTemplates", () => {
       return template.id;
     });
 
-    expect(templates).toHaveLength(11);
+    expect(templates).toHaveLength(ALL_TEMPLATE_COUNT);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual([
       ...WEB_VITAL_CASES.map((item: WebVitalCase) => {
         return item.id;
       }),
+      "rum-app-crashes",
+      "rum-app-not-responding",
       "rum-failed-user-operations",
       "rum-unhandled-exceptions",
+      "rum-slow-cold-start",
+      "rum-frozen-frames",
+      "rum-app-stopped-reporting",
       "rum-session-replay-daily-budget-nearly-spent",
       "rum-session-replay-daily-budget-spent",
       "rum-session-replay-monthly-budget-nearly-spent",
@@ -366,7 +435,7 @@ describe("RumAlertTemplates", () => {
     const first: Array<RumAlertTemplate> = getAllRumAlertTemplates();
     first.pop();
 
-    expect(getAllRumAlertTemplates()).toHaveLength(11);
+    expect(getAllRumAlertTemplates()).toHaveLength(ALL_TEMPLATE_COUNT);
   });
 
   test("returns undefined for an unknown template id", () => {
@@ -1054,10 +1123,15 @@ describe("getRumAlertTemplates", () => {
       ...DAILY_TEMPLATE_IDS,
       ...MONTHLY_TEMPLATE_IDS,
     ]);
+    // Everything there is, less what only a mobile app reports.
     expect(offered).toEqual(
-      getAllRumAlertTemplates().map((template: RumAlertTemplate) => {
-        return template.id;
-      }),
+      getAllRumAlertTemplates()
+        .map((template: RumAlertTemplate) => {
+          return template.id;
+        })
+        .filter((id: string) => {
+          return !MOBILE_ONLY_TEMPLATE_IDS.includes(id);
+        }),
     );
   });
 
@@ -1166,7 +1240,364 @@ describe("getRumAlertTemplates", () => {
     first.length = 0;
 
     expect(getRumAlertTemplates(FULL_CONTEXT)).toHaveLength(11);
-    expect(getAllRumAlertTemplates()).toHaveLength(11);
+    expect(getAllRumAlertTemplates()).toHaveLength(ALL_TEMPLATE_COUNT);
+  });
+});
+
+/*
+ * A browser app and a mobile app are offered what their SDK can fire on
+ * (#9589): a mobile app never sends a Web Vital, and a browser never sends
+ * an app start or an ANR.
+ */
+describe("getRumAlertTemplates - browser and mobile apps", () => {
+  test("a mobile app is offered its own set, in the page's order", () => {
+    expect(offeredIds({ clientKind: "mobile" })).toEqual(MOBILE_TEMPLATE_IDS);
+  });
+
+  test("a mobile app is never offered a Web Vital or the browser exception monitor", () => {
+    const offered: Array<string> = offeredIds({
+      ...FULL_CONTEXT,
+      clientKind: "mobile",
+    });
+
+    for (const id of BROWSER_ONLY_TEMPLATE_IDS) {
+      expect(offered).not.toContain(id);
+    }
+  });
+
+  test("a browser app is offered exactly what every application was offered before", () => {
+    expect(offeredIds({ clientKind: "browser" })).toEqual(CORE_TEMPLATE_IDS);
+    expect(offeredIds({ ...FULL_CONTEXT, clientKind: "browser" })).toEqual([
+      ...CORE_TEMPLATE_IDS,
+      ...DAILY_TEMPLATE_IDS,
+      ...MONTHLY_TEMPLATE_IDS,
+    ]);
+  });
+
+  test.each([[null], [undefined], [""], ["desktop"], ["tablet"]])(
+    "an application of no known kind (%j) is offered the browser set",
+    (clientKind: string | null | undefined) => {
+      expect(offeredIds({ clientKind })).toEqual(CORE_TEMPLATE_IDS);
+    },
+  );
+
+  test("reads the kind as ingest writes it, whatever its case", () => {
+    expect(offeredIds({ clientKind: "Mobile" })).toEqual(MOBILE_TEMPLATE_IDS);
+    expect(offeredIds({ clientKind: " BROWSER " })).toEqual(CORE_TEMPLATE_IDS);
+  });
+
+  test("a mobile app that records replays gets its budget alerts too", () => {
+    expect(offeredIds({ ...FULL_CONTEXT, clientKind: "mobile" })).toEqual([
+      ...MOBILE_TEMPLATE_IDS,
+      ...DAILY_TEMPLATE_IDS,
+      ...MONTHLY_TEMPLATE_IDS,
+    ]);
+  });
+
+  test("the two sets share only what every app can fire on", () => {
+    const browser: Array<string> = offeredIds({
+      ...FULL_CONTEXT,
+      clientKind: "browser",
+    });
+    const mobile: Array<string> = offeredIds({
+      ...FULL_CONTEXT,
+      clientKind: "mobile",
+    });
+
+    expect(
+      browser.filter((id: string) => {
+        return mobile.includes(id);
+      }),
+    ).toEqual([
+      "rum-failed-user-operations",
+      ...DAILY_TEMPLATE_IDS,
+      ...MONTHLY_TEMPLATE_IDS,
+    ]);
+  });
+
+  test("every template is offered to some kind of app, and declares the kinds it is for", () => {
+    for (const template of getAllRumAlertTemplates()) {
+      if (MOBILE_ONLY_TEMPLATE_IDS.includes(template.id)) {
+        expect(template.clients).toEqual(["mobile"]);
+      } else if (BROWSER_ONLY_TEMPLATE_IDS.includes(template.id)) {
+        expect(template.clients).toEqual(["browser"]);
+      } else {
+        expect(template.clients).toBeUndefined();
+      }
+    }
+  });
+
+  test("a mobile template resolves from its id even on a browser app", () => {
+    for (const id of MOBILE_ONLY_TEMPLATE_IDS) {
+      expect(offeredIds({ clientKind: "browser" })).not.toContain(id);
+      expect(getRumAlertTemplateById(id)?.id).toBe(id);
+    }
+  });
+});
+
+/*
+ * The mobile templates (#9589). Each reads what OpenTelemetry Android sends
+ * on its own (Rum/MobileAppTelemetry), scoped to the application.
+ */
+describe("RumAlertTemplates - mobile apps", () => {
+  function logMonitorOf(id: string): MonitorStepLogMonitor {
+    const step: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+    const logMonitor: MonitorStepLogMonitor | undefined = step.data?.logMonitor;
+
+    expect(logMonitor).toBeDefined();
+
+    return logMonitor!;
+  }
+
+  function traceMonitorOf(id: string): MonitorStepTraceMonitor {
+    const step: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+    const traceMonitor: MonitorStepTraceMonitor | undefined =
+      step.data?.traceMonitor;
+
+    expect(traceMonitor).toBeDefined();
+
+    return traceMonitor!;
+  }
+
+  function serviceIdsOf(
+    monitor: MonitorStepLogMonitor | MonitorStepTraceMonitor,
+  ): Array<string> {
+    return monitor.telemetryServiceIds.map((id: ObjectID) => {
+      return id.toString();
+    });
+  }
+
+  test("App Crashes counts the crash event OpenTelemetry Android sends, over five minutes", () => {
+    const template: RumAlertTemplate = getTemplate("rum-app-crashes");
+    const logMonitor: MonitorStepLogMonitor = logMonitorOf("rum-app-crashes");
+
+    expect(template.name).toBe("App Crashes");
+    expect(template.monitorType).toBe(MonitorType.Logs);
+    expect(logMonitor.attributes).toEqual({ "event.name": "app.crash" });
+    // The event ingest files as a crash (MobileAppFaults), current name first.
+    expect(logMonitor.attributes["event.name"]).toBe(
+      MOBILE_APP_FAULT_EVENT_NAMES[MobileAppFaultKind.Crash][0],
+    );
+    expect(logMonitor.severityTexts).toEqual([]);
+    expect(logMonitor.body).toBe("");
+    expect(logMonitor.lastXSecondsOfLogs).toBe(300);
+    expect(serviceIdsOf(logMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+  });
+
+  test("App Crashes names the event it reads and the earlier one it does not", () => {
+    const description: string = getTemplate("rum-app-crashes").description;
+
+    expect(description).toContain("app.crash");
+    expect(description).toContain("device.crash");
+  });
+
+  test("App Not Responding counts the ANR event, never a crash", () => {
+    const template: RumAlertTemplate = getTemplate("rum-app-not-responding");
+    const logMonitor: MonitorStepLogMonitor = logMonitorOf(
+      "rum-app-not-responding",
+    );
+
+    expect(template.name).toBe("App Not Responding (ANR)");
+    expect(template.monitorType).toBe(MonitorType.Logs);
+    expect(logMonitor.attributes).toEqual({ "event.name": "device.anr" });
+    expect(logMonitor.attributes["event.name"]).toBe(
+      MOBILE_APP_FAULT_EVENT_NAMES[MobileAppFaultKind.Anr][0],
+    );
+    expect(logMonitor.lastXSecondsOfLogs).toBe(300);
+    expect(serviceIdsOf(logMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+  });
+
+  /*
+   * An Exceptions monitor would count both, and the network failures the
+   * app records as exceptions too: a crash and an ANR are told apart by
+   * their events, so an ANR never pages as a crash.
+   */
+  test("a crash and an ANR are counted by different events, so neither pages twice", () => {
+    const crash: MonitorStepLogMonitor = logMonitorOf("rum-app-crashes");
+    const anr: MonitorStepLogMonitor = logMonitorOf("rum-app-not-responding");
+
+    expect(crash.attributes["event.name"]).not.toBe(
+      anr.attributes["event.name"],
+    );
+    expect(getTemplate("rum-app-crashes").monitorType).not.toBe(
+      MonitorType.Exceptions,
+    );
+  });
+
+  test("Slow Cold Start counts cold AppStart spans of 5 seconds or more, over fifteen minutes", () => {
+    const template: RumAlertTemplate = getTemplate("rum-slow-cold-start");
+    const traceMonitor: MonitorStepTraceMonitor = traceMonitorOf(
+      "rum-slow-cold-start",
+    );
+
+    expect(template.monitorType).toBe(MonitorType.Traces);
+    expect(traceMonitor.spanName).toBe("AppStart");
+    expect(traceMonitor.attributes).toEqual({ "start.type": "cold" });
+    expect(traceMonitor.spanStatuses).toEqual([]);
+    expect(traceMonitor.minimumDurationInMs).toBe(5000);
+    expect(traceMonitor.lastXSecondsOfSpans).toBe(900);
+    expect(serviceIdsOf(traceMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+  });
+
+  test("Slow Cold Start's floor is the one Android vitals counts a cold start as excessive at", () => {
+    expect(traceMonitorOf("rum-slow-cold-start").minimumDurationInMs).toBe(
+      EXCESSIVE_APP_START_MS.cold,
+    );
+    expect(EXCESSIVE_APP_START_MS).toEqual({
+      cold: 5000,
+      warm: 2000,
+      hot: 1500,
+    });
+  });
+
+  test("Slow Cold Start's query keeps only those spans, in nanoseconds", () => {
+    const query: ReturnType<typeof MonitorStepTraceMonitorUtil.toQuery> =
+      MonitorStepTraceMonitorUtil.toQuery(
+        traceMonitorOf("rum-slow-cold-start"),
+      );
+
+    expect((query.durationUnixNano as GreaterThanOrEqual<number>).value).toBe(
+      5_000_000_000,
+    );
+    expect(query.attributes).toEqual({ "start.type": "cold" });
+  });
+
+  test("Frozen Frames counts the app.jank events at the 700 ms threshold, over fifteen minutes", () => {
+    const template: RumAlertTemplate = getTemplate("rum-frozen-frames");
+    const logMonitor: MonitorStepLogMonitor = logMonitorOf("rum-frozen-frames");
+
+    expect(template.monitorType).toBe(MonitorType.Logs);
+    expect(logMonitor.attributes).toEqual({
+      "event.name": "app.jank",
+      "app.jank.threshold": "0.7",
+    });
+    expect(logMonitor.lastXSecondsOfLogs).toBe(900);
+    expect(serviceIdsOf(logMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+  });
+
+  test("App Stopped Reporting fires on no spans at all for thirty minutes", () => {
+    const template: RumAlertTemplate = getTemplate("rum-app-stopped-reporting");
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const traceMonitor: MonitorStepTraceMonitor = traceMonitorOf(
+      "rum-app-stopped-reporting",
+    );
+
+    expect(template.monitorType).toBe(MonitorType.Traces);
+    expect(traceMonitor.spanName).toBe("");
+    expect(traceMonitor.attributes).toEqual({});
+    expect(traceMonitor.spanStatuses).toEqual([]);
+    expect(traceMonitor.minimumDurationInMs).toBeUndefined();
+    expect(traceMonitor.lastXSecondsOfSpans).toBe(1800);
+    expect(serviceIdsOf(traceMonitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+
+    const [breach, recovery]: Array<MonitorCriteriaInstance> =
+      getCriteria(step);
+
+    // Below the threshold is the bad state, as for a service's Traffic Stopped.
+    expect(breach?.data?.filters[0]?.checkOn).toBe(CheckOn.SpanCount);
+    expect(breach?.data?.filters[0]?.filterType).toBe(FilterType.LessThan);
+    expect(breach?.data?.filters[0]?.value).toBe(1);
+    expect(recovery?.data?.filters[0]?.filterType).toBe(
+      FilterType.GreaterThanOrEqualTo,
+    );
+    expect(recovery?.data?.filters[0]?.value).toBe(1);
+    expect(recovery?.data?.description).toBe(
+      "Spans are arriving from Storefront.",
+    );
+  });
+
+  test.each([
+    ["rum-app-crashes", CheckOn.LogCount],
+    ["rum-app-not-responding", CheckOn.LogCount],
+    ["rum-slow-cold-start", CheckOn.SpanCount],
+    ["rum-frozen-frames", CheckOn.LogCount],
+  ])(
+    "%s fires on the first occurrence and recovers when there is none",
+    (id: string, checkOn: CheckOn) => {
+      const [breach, recovery]: Array<MonitorCriteriaInstance> = getCriteria(
+        getTemplate(id).getMonitorStep(buildArgs()),
+      );
+
+      expect(breach?.data?.filters[0]?.checkOn).toBe(checkOn);
+      expect(breach?.data?.filters[0]?.filterType).toBe(FilterType.GreaterThan);
+      expect(breach?.data?.filters[0]?.value).toBe(0);
+      expect(recovery?.data?.filters[0]?.checkOn).toBe(checkOn);
+      expect(recovery?.data?.filters[0]?.filterType).toBe(
+        FilterType.LessThanOrEqualTo,
+      );
+      expect(recovery?.data?.filters[0]?.value).toBe(0);
+    },
+  );
+
+  test.each([
+    ["rum-app-crashes", "[RUM] App crash - Storefront"],
+    ["rum-app-not-responding", "[RUM] App not responding - Storefront"],
+    ["rum-slow-cold-start", "[RUM] Slow cold start - Storefront"],
+    ["rum-frozen-frames", "[RUM] Frozen frames - Storefront"],
+    ["rum-app-stopped-reporting", "[RUM] App stopped reporting - Storefront"],
+  ])("%s titles its incident and alert %j", (id: string, title: string) => {
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate(id).getMonitorStep(buildArgs()),
+    );
+
+    expect(breach?.data?.incidents[0]?.title).toBe(title);
+    expect(breach?.data?.alerts[0]?.title).toBe(title);
+  });
+
+  test("every mobile template says what it alerts on in plain words, without a browser in it", () => {
+    for (const id of MOBILE_ONLY_TEMPLATE_IDS) {
+      const template: RumAlertTemplate = getTemplate(id);
+      const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+        template.getMonitorStep(buildArgs()),
+      );
+
+      expect(template.description.startsWith("Alert when")).toBe(true);
+      expect(template.description.toLowerCase()).not.toContain("browser");
+      expect(breach?.data?.description?.startsWith("Triggers when")).toBe(true);
+      expect(
+        breach?.data?.incidents[0]?.description.toLowerCase(),
+      ).not.toContain("browser");
+    }
+  });
+
+  test("the performance templates say how to raise their bar for a large audience", () => {
+    for (const id of ["rum-slow-cold-start", "rum-frozen-frames"]) {
+      const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+        getTemplate(id).getMonitorStep(buildArgs()),
+      );
+
+      expect(breach?.data?.incidents[0]?.description).toContain(
+        "raise the monitor's count above 0",
+      );
+    }
+  });
+
+  test("the shared failed-operations monitor names a page or a screen, not only a browser", () => {
+    const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+      getTemplate("rum-failed-user-operations").getMonitorStep(buildArgs()),
+    );
+
+    expect(breach?.data?.incidents[0]?.description).toContain("page or screen");
+    expect(breach?.data?.incidents[0]?.description.toLowerCase()).not.toContain(
+      "browser",
+    );
+  });
+
+  test("log and trace monitor steps keep the application scope through serialization", () => {
+    for (const id of MOBILE_ONLY_TEMPLATE_IDS) {
+      const original: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+      const restored: MonitorStep = MonitorStep.fromJSON(original.toJSON());
+      const monitor: MonitorStepLogMonitor | MonitorStepTraceMonitor = (restored
+        .data?.logMonitor || restored.data?.traceMonitor)!;
+
+      expect(serviceIdsOf(monitor)).toEqual([RUM_APPLICATION_ID.toString()]);
+    }
+
+    const restored: MonitorStep = MonitorStep.fromJSON(
+      getTemplate("rum-slow-cold-start").getMonitorStep(buildArgs()).toJSON(),
+    );
+
+    expect(restored.data?.traceMonitor?.minimumDurationInMs).toBe(5000);
   });
 });
 
