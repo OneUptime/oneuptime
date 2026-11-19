@@ -1104,6 +1104,7 @@ import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddP
 import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelName";
 import { AddDeviceManagementConnection1809185900000 } from "./1809185900000-AddDeviceManagementConnection";
 import { AddServiceAINote1809185918000 } from "./1809185918000-AddServiceAINote";
+import { AddSsoProviderDomains1809186000000 } from "./1809186000000-AddSsoProviderDomains";
 
 export default [
   InitialMigration,
@@ -2212,4 +2213,5 @@ export default [
   AddAIRunModelName1809185800000,
   AddDeviceManagementConnection1809185900000,
   AddServiceAINote1809185918000,
+  AddSsoProviderDomains1809186000000,
 ];

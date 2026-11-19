@@ -1,3 +1,4 @@
+import Domain from "./Domain";
 import Project from "./Project";
 import Team from "./Team";
 import User from "./User";
@@ -504,6 +505,64 @@ export default class ProjectOIDC extends BaseModel {
     },
   })
   public teams?: Array<Team> = undefined; // teams that teammember should be added to when they sign into OIDC for the first time.
+
+  /*
+   * The project's verified domains this provider serves: "Sign in with SSO"
+   * offers it to an address on one of them, whoever types it, and never
+   * reads an account to decide (Identity/Utils/ProjectSsoDiscovery, #9824).
+   * A provider with none is offered to nobody by email. Each must be a
+   * domain of the provider's own project (ProjectOidcService's reference
+   * check).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectOIDC,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectOIDC,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectOIDC,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Domain,
+    title: "Domains",
+    description:
+      "Verified domains of the project. People whose email address is on one of them are offered this provider at Sign in with SSO.",
+    example: [{ id: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e" }],
+  })
+  @ManyToMany(
+    () => {
+      return Domain;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ProjectOidcDomain",
+    inverseJoinColumn: {
+      name: "domainId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "projectOidcId",
+      referencedColumnName: "_id",
+    },
+  })
+  public domains?: Array<Domain> = undefined;
 
   @ColumnAccessControl({
     create: [
