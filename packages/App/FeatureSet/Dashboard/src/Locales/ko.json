@@ -58360,7 +58360,7 @@
   "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "볼륨의 파일이 차지하는 공간으로, Docker가 최대 한 시간에 한 번 측정합니다. Docker는 로컬 볼륨만 측정합니다.",
   "All nodes in this cluster with their CPU, memory and disk use.": "CPU, 메모리, 디스크 사용량이 포함된 이 클러스터의 모든 노드입니다.",
   "CPU, memory, disk, and network usage for this node over the selected time range (the past hour by default).": "선택한 기간(기본값: 지난 1시간) 동안 이 노드의 CPU, 메모리, 디스크, 네트워크 사용량입니다.",
-  "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can request after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).": "용량은 파드의 로그, emptyDir 볼륨, 쓰기 가능한 레이어가 사용하는 노드 루트 파일 시스템의 크기이고, 할당 가능은 시스템 예약분을 뺀 뒤 파드가 요청할 수 있는 양입니다. Kubernetes 단위로 표시하며, Ki, Mi, Gi는 각각 키비바이트, 메비바이트, 기비바이트입니다(1 Gi = 1,024 Mi).",
+  "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).": "용량은 파드의 로그, emptyDir 볼륨, 쓰기 가능한 레이어가 사용하는 노드 루트 파일 시스템의 크기이고, 할당 가능은 시스템 예약분을 뺀 뒤 파드가 사용할 수 있는 양입니다. Kubernetes 단위로 표시하며, Ki, Mi, Gi는 각각 키비바이트, 메비바이트, 기비바이트입니다(1 Gi = 1,024 Mi).",
   "Container images and the files containers write. When it fills, new images stop pulling.": "컨테이너 이미지와 컨테이너가 쓰는 파일입니다. 가득 차면 새 이미지를 가져올 수 없게 됩니다.",
   "Disk Capacity and Free Space": "디스크 용량 및 여유 공간",
   "Disk Free": "디스크 여유 공간",

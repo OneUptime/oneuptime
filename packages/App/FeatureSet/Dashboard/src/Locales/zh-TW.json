@@ -58360,7 +58360,7 @@
   "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "磁碟區檔案占用的空間，由 Docker 測量，最多每小時一次。Docker 只測量本機磁碟區。",
   "All nodes in this cluster with their CPU, memory and disk use.": "此叢集中所有節點及其 CPU、記憶體與磁碟使用情況。",
   "CPU, memory, disk, and network usage for this node over the selected time range (the past hour by default).": "此節點在所選時間範圍內（預設為過去 1 小時）的 CPU、記憶體、磁碟與網路使用量。",
-  "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can request after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).": "容量是節點根檔案系統的大小，供 Pod 的日誌、emptyDir 磁碟區和可寫入層使用；可配置是扣除系統保留後 Pod 可請求的量。以 Kubernetes 單位顯示：Ki、Mi 和 Gi 分別為 kibibyte、mebibyte 和 gibibyte（1 Gi = 1,024 Mi）。",
+  "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).": "容量是節點根檔案系統的大小，供 Pod 的日誌、emptyDir 磁碟區和可寫入層使用；可配置是扣除系統保留後 Pod 可使用的量。以 Kubernetes 單位顯示：Ki、Mi 和 Gi 分別為 kibibyte、mebibyte 和 gibibyte（1 Gi = 1,024 Mi）。",
   "Container images and the files containers write. When it fills, new images stop pulling.": "容器映像和容器寫入的檔案。寫滿後，將無法再拉取新映像。",
   "Disk Capacity and Free Space": "磁碟容量與可用空間",
   "Disk Free": "磁碟可用空間",

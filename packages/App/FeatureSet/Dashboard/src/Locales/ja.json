@@ -58360,7 +58360,7 @@
   "Space the volume's files take, as Docker measures it, at most once an hour. Docker measures only local volumes.": "ボリュームのファイルが占める容量で、Docker が最大 1 時間に 1 回測定します。Docker が測定するのはローカルボリュームだけです。",
   "All nodes in this cluster with their CPU, memory and disk use.": "このクラスター内のすべてのノードと、その CPU、メモリ、ディスクの使用状況。",
   "CPU, memory, disk, and network usage for this node over the selected time range (the past hour by default).": "選択した期間（デフォルトは過去 1 時間）における、このノードの CPU、メモリ、ディスク、ネットワークの使用量。",
-  "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can request after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).": "容量はノードのルートファイルシステムのサイズで、Pod のログ、emptyDir ボリューム、書き込み可能レイヤーが使用します。割り当て可能は、システムの予約分を除いた、Pod が要求できる量です。Kubernetes の単位で表示されます。Ki、Mi、Gi はそれぞれキビバイト、メビバイト、ギビバイトです（1 Gi = 1,024 Mi）。",
+  "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).": "容量はノードのルートファイルシステムのサイズで、Pod のログ、emptyDir ボリューム、書き込み可能レイヤーが使用します。割り当て可能は、システムの予約分を除いた、Pod が使用できる量です。Kubernetes の単位で表示されます。Ki、Mi、Gi はそれぞれキビバイト、メビバイト、ギビバイトです（1 Gi = 1,024 Mi）。",
   "Container images and the files containers write. When it fills, new images stop pulling.": "コンテナイメージと、コンテナが書き込むファイル。いっぱいになると、新しいイメージを取得できなくなります。",
   "Disk Capacity and Free Space": "ディスク容量と空き容量",
   "Disk Free": "ディスク空き容量",
