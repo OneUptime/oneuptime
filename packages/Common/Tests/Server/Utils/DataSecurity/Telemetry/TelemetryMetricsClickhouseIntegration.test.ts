@@ -25,6 +25,7 @@ import {
   buildTelemetryMetricsStatement,
   buildTelemetryOwnersStatement,
   capsOf,
+  getNewMetricSince,
   getTelemetrySource,
   isLargeMetric,
   MetricToRead,
@@ -108,8 +109,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CHECKOUT: string = "0192f1a0-0000-7000-8000-0000000da001";
 const SIGNUP: string = "0192f1a0-0000-7000-8000-0000000da002";
 const PAYMENTS: string = "0192f1a0-0000-7000-8000-0000000da003";
+// The service of a metric written all day and one started lately (#9755).
+const REPORTS: string = "0192f1a0-0000-7000-8000-0000000da004";
 const MONITOR: string = "0192f1a0-0000-7000-8000-0000000dc001";
-const SERVICES: Array<string> = [CHECKOUT, SIGNUP, PAYMENTS];
+const SERVICES: Array<string> = [CHECKOUT, SIGNUP, PAYMENTS, REPORTS];
 
 // Ordinary metrics: each service's, each of a few series, a point every 10 seconds.
 const ORDINARY_METRICS: number = 8;
@@ -136,6 +139,13 @@ const BUSY_POINTS: number = 1_200;
 const QUIET_ROUTES: number = 60;
 const QUIET_EMAIL_ROUTE: number = 40;
 const QUIET_EMAIL: string = "quiet.user@acmecorp.io";
+/*
+ * #9755: a metric the reports service has written all day, a point every
+ * ten minutes for 23 hours - none in the minute the window starts in, which
+ * the rollup counts whole - and one it started writing half an hour ago.
+ */
+const DAYLONG_METRIC: string = "app.metric.daylong";
+const FRESH_METRIC: string = "app.metric.fresh";
 
 let client: ClickHouseClient;
 const queryIds: Array<{ id: string; query: string }> = [];
@@ -323,6 +333,9 @@ integration("a project's metrics, in a real ClickHouse", () => {
 
         return `INSERT INTO ${database}.MetricItemV3 (${POINT_COLUMNS}) SELECT '${PROJECT_ID.toString()}', '${PAYMENTS}', 'OpenTelemetry', '${SCRAPED_METRIC}', 'Gauge', fromUnixTimestamp64Nano(${nanos}), toUInt64(${nanos}), map('queue', concat('queue-', toString(number)), 'resource.host.name', concat('host-', toString(number % 4))), ['queue', 'resource.host.name'], rand() % 100, now() + toIntervalDay(15), generateUUIDv4(), now() FROM numbers(${SCRAPED_SERIES})`;
       }),
+      // A metric written all day, a point every ten minutes, and one started half an hour ago.
+      `INSERT INTO ${database}.MetricItemV3 (${POINT_COLUMNS}) SELECT '${PROJECT_ID.toString()}', '${REPORTS}', 'OpenTelemetry', '${DAYLONG_METRIC}', 'Gauge', toDateTime64(now64(3) - toIntervalMinute(3 + 10 * number), 9), toUInt64(toUnixTimestamp64Nano(toDateTime64(now64(3) - toIntervalMinute(3 + 10 * number), 9))), map('report', 'daily'), ['report'], 1, now() + toIntervalDay(15), generateUUIDv4(), now() FROM numbers(138)`,
+      `INSERT INTO ${database}.MetricItemV3 (${POINT_COLUMNS}) SELECT '${PROJECT_ID.toString()}', '${REPORTS}', 'OpenTelemetry', '${FRESH_METRIC}', 'Gauge', toDateTime64(now64(3) - toIntervalMinute(number), 9), toUInt64(toUnixTimestamp64Nano(toDateTime64(now64(3) - toIntervalMinute(number), 9))), map('report', 'weekly'), ['report'], 1, now() + toIntervalDay(15), generateUUIDv4(), now() FROM numbers(30)`,
       /*
        * Request durations written point by point, one insert: the busy
        * routes' points every 50 ms, then the quiet routes' one each, spread
@@ -360,6 +373,7 @@ integration("a project's metrics, in a real ClickHouse", () => {
         namedService(CHECKOUT, "checkout"),
         namedService(SIGNUP, "signup"),
         namedService(PAYMENTS, "payments"),
+        namedService(REPORTS, "reports"),
       ] as never);
     jest.spyOn(RumApplicationService, "findBy").mockResolvedValue([] as never);
     // The other signals' tables are not here: their reads fail, and are logged.
@@ -423,8 +437,8 @@ integration("a project's metrics, in a real ClickHouse", () => {
     };
 
     expect(fromRollup.map(keyOf).sort()).toEqual(fromPoints.map(keyOf).sort());
-    // Each service's ordinary metrics, the login counter, the named one, the queue and the requests.
-    expect(fromRollup.length).toBe(3 * ORDINARY_METRICS + 4);
+    // Each service's ordinary metrics, the login counter, the named one, the queue, the requests, the day's and the fresh one.
+    expect(fromRollup.length).toBe(3 * ORDINARY_METRICS + 6);
     // A series a minute: the login counter's newest minute holds a point of each user.
     expect(
       fromRollup.find((metric: MetricToRead): boolean => {
@@ -459,7 +473,7 @@ integration("a project's metrics, in a real ClickHouse", () => {
       new Set(SERVICES),
     );
 
-    expect(fewer.length).toBe(6);
+    expect(fewer.length).toBe(2 * SERVICES.length);
   });
 
   test("each metric's newest minute, at most a few points of it, each range of the table read once", async () => {
@@ -531,7 +545,9 @@ integration("a project's metrics, in a real ClickHouse", () => {
       30 +
       SCRAPED_SERIES * SCRAPES.length +
       BUSY_ROUTES * BUSY_POINTS +
-      QUIET_ROUTES;
+      QUIET_ROUTES +
+      138 +
+      30;
 
     // A metric of many series, by a branch of its own: stopped at its first points.
     const logins: MetricToRead = metrics.find((metric: MetricToRead) => {
@@ -562,6 +578,75 @@ integration("a project's metrics, in a real ClickHouse", () => {
     expect(loginRows.length).toBe(100);
     // Stopped early: no more than a few granules, however many series.
     expect(loginCost.readRows).toBeLessThanOrEqual(3 * 8192);
+  });
+
+  // #9755: when each metric first wrote, of the last day, from the rollup alone.
+  test("a metric the service started writing lately is listed first, with when it first wrote; one written all day is not new", async () => {
+    const listed: (
+      fromRollup: boolean,
+    ) => Promise<Array<MetricToRead>> = async (
+      fromRollup: boolean,
+    ): Promise<Array<MetricToRead>> => {
+      return readMetricsToRead(
+        await rowsOf(
+          buildTelemetryMetricsStatement({
+            ...window(),
+            ownerIds: [REPORTS],
+            perOwner: 100,
+            total: 2000,
+            fromRollup,
+          }),
+        ),
+        new Set([REPORTS]),
+      );
+    };
+    const metrics: Array<MetricToRead> = await listed(true);
+    const cost: ReadCost = await lastReadCost();
+    const newSince: Date = getNewMetricSince(new Date());
+    const byName: (name: string) => MetricToRead = (
+      name: string,
+    ): MetricToRead => {
+      return metrics.find((metric: MetricToRead): boolean => {
+        return metric.metricName === name;
+      })!;
+    };
+    const daylong: MetricToRead = byName(DAYLONG_METRIC);
+    const fresh: MetricToRead = byName(FRESH_METRIC);
+
+    // Written all day: its first minute about 23 hours ago, not new.
+    expect(daylong.firstMinute!.getTime()).toBeLessThan(
+      Date.now() - 22 * 60 * 60 * 1000,
+    );
+    expect(daylong.firstMinute!.getTime()).toBeLessThan(newSince.getTime());
+    // Its points: the window's alone, six of them, not the day's 138.
+    expect(daylong.points).toBeLessThanOrEqual(7);
+    // Started half an hour ago: new, listed before the day's metric.
+    expect(fresh.firstMinute!.getTime()).toBeGreaterThan(
+      Date.now() - 31 * 60 * 1000,
+    );
+    expect(fresh.firstMinute!.getTime()).toBeGreaterThanOrEqual(
+      newSince.getTime(),
+    );
+    expect(metrics.indexOf(fresh)).toBeLessThan(metrics.indexOf(daylong));
+    // The day's metric listed after every metric the service started lately.
+    expect(
+      metrics
+        .slice(metrics.indexOf(daylong) + 1)
+        .every((metric: MetricToRead): boolean => {
+          return (metric.firstMinute?.getTime() || 0) < newSince.getTime();
+        }),
+    ).toBe(true);
+
+    // From the points, the window alone: when nothing first wrote is known.
+    for (const metric of await listed(false)) {
+      expect(metric.firstMinute).toBeUndefined();
+    }
+
+    if (report) {
+      process.stdout.write(
+        `\n[metrics list] reports' ${metrics.length} metrics, a day of the rollup: ${describeCost(cost)}\n`,
+      );
+    }
   });
 
   /*

@@ -43,7 +43,8 @@ Numbered keys are folded into one location: `gen_ai.prompt.3.content` is `gen_ai
 A metric's attributes are its series' labels. They are the same on every data point of a series, so a metric that writes a thousand points a minute may hold three values, and a label that leaks a user's email adds a series, not a point. So a metric is sampled by its series, not by its points:
 
 - **A point of each series.** Each metric is read at the newest minute it wrote in the last hour: one data point of each of up to 100 of that minute's series, however often the metric is sent, so a busy series never crowds out a quiet one. A value is classified once, however many series repeat it, so a finding counts the distinct values at its place.
-- **The busiest first, the rest in turn.** Which metrics a service wrote comes from the per-minute rollup the metrics table keeps, never from its points. Each scan reads a service's busiest metrics, the likeliest to have many series, and some of its others, the next ones each hour, so every metric gets its turn.
+- **New metrics first, then the rest in turn.** Which metrics a service wrote, and when each first wrote in the last day, comes from the per-minute rollup the metrics table keeps, never from its points. Each scan reads a service's busiest metrics, the likeliest to have many series. Then come the metrics it started writing in the last 2 hours, since new code is where a new leak usually comes from, and then the next of its other metrics, in a fixed order, from where the last scan stopped. New metrics take at most half of those turns, so the others always keep theirs.
+- **Every metric within a set time.** A service of M metrics, read 10 a scan, has each of them read at least once every M ÷ 5 hours, rounded up: 60 hours for a service of 300 metrics. While it keeps starting new metrics every hour, it is at most twice that.
 - **Each metric's own range.** The metrics are read together, each by its own range of the table's primary key. A metric whose newest minute holds more than 16,384 points, such as one labeled with each user's email, is read on its own, and the read stops at its first points, so it costs no more than any other metric.
 
 A finding names the attribute, such as `attributes.user.email`, or `name` for data in a metric's name. Its records are the data points it was found in: each shows its metric and the attribute's value, masked, and opens in **Metrics** on that metric, grouped by that attribute. Where a metric's name holds sensitive data, the name is masked too, and the record opens the service's metrics instead.
@@ -73,7 +74,8 @@ Every hour, each signal's newest records of the last hour are read, and classifi
 | Attributes of one record | 128; 64 for an AI call |
 | Events of one span, and attributes of one event | 16 and 32 |
 | Locations of one store | 500 |
-| Metrics read in one scan | 100 shared between the services, at least one of each; at most 10 of one service, half its busiest and half its others in turn |
+| Metrics read in one scan | 100 shared between the services, at least one of each; at most 10 of one service, half its busiest and half its new and other metrics in turn |
+| A new metric | One whose first point of the last 24 hours came in the last 2 hours |
 | Series of one metric | A data point of each, of its newest minute, at most 100 |
 
 Every value is cut short in the database, so no long value leaves it, and each read stops after 30 seconds. A read that fails is a warning on the stores it was for; the scan goes on with the next one.
