@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "Stap {{number}} omlaag verplaatsen",
   "Move step {{number}} up": "Stap {{number}} omhoog verplaatsen",
   "Step {{from}} is now step {{to}}.": "Stap {{from}} is nu stap {{to}}.",
-  "step {{number}}": "stap {{number}}"
+  "step {{number}}": "stap {{number}}",
+  "Model (hardware model)": "Model"
 }

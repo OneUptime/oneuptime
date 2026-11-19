@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "단계 {{number}} 아래로 이동",
   "Move step {{number}} up": "단계 {{number}} 위로 이동",
   "Step {{from}} is now step {{to}}.": "단계 {{from}}이(가) 단계 {{to}}(으)로 이동했습니다.",
-  "step {{number}}": "단계 {{number}}"
+  "step {{number}}": "단계 {{number}}",
+  "Model (hardware model)": "모델"
 }

@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "ステップ {{number}} を下へ移動",
   "Move step {{number}} up": "ステップ {{number}} を上へ移動",
   "Step {{from}} is now step {{to}}.": "ステップ {{from}} はステップ {{to}} になりました。",
-  "step {{number}}": "ステップ {{number}}"
+  "step {{number}}": "ステップ {{number}}",
+  "Model (hardware model)": "モデル"
 }

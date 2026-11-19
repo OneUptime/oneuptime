@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "चरण {{number}} को नीचे ले जाएँ",
   "Move step {{number}} up": "चरण {{number}} को ऊपर ले जाएँ",
   "Step {{from}} is now step {{to}}.": "चरण {{from}} अब चरण {{to}} है।",
-  "step {{number}}": "चरण {{number}}"
+  "step {{number}}": "चरण {{number}}",
+  "Model (hardware model)": "मॉडल"
 }

@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "Schritt {{number}} nach unten verschieben",
   "Move step {{number}} up": "Schritt {{number}} nach oben verschieben",
   "Step {{from}} is now step {{to}}.": "Schritt {{from}} ist jetzt Schritt {{to}}.",
-  "step {{number}}": "Schritt {{number}}"
+  "step {{number}}": "Schritt {{number}}",
+  "Model (hardware model)": "Modell"
 }

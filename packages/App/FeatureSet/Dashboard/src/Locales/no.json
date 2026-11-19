@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "Flytt trinn {{number}} ned",
   "Move step {{number}} up": "Flytt trinn {{number}} opp",
   "Step {{from}} is now step {{to}}.": "Trinn {{from}} er nå trinn {{to}}.",
-  "step {{number}}": "trinn {{number}}"
+  "step {{number}}": "trinn {{number}}",
+  "Model (hardware model)": "Modell"
 }

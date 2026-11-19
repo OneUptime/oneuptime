@@ -19,7 +19,8 @@ export const INVENTORY_ASSET_FIELD_LABELS: Readonly<
   [InventoryAssetField.MacAddress]: translationKey("MAC Address"),
   [InventoryAssetField.SerialNumber]: translationKey("Serial Number"),
   [InventoryAssetField.Manufacturer]: translationKey("Manufacturer"),
-  [InventoryAssetField.Model]: translationKey("Model"),
+  // A machine's model, never an AI model's (Common/Types/MeaningKeys).
+  [InventoryAssetField.Model]: translationKey("Model (hardware model)"),
   [InventoryAssetField.FirmwareVersion]: translationKey("Firmware Version"),
   [InventoryAssetField.OperatingSystem]: translationKey("Operating System"),
   [InventoryAssetField.OsVersion]: translationKey("OS Version"),

@@ -971,7 +971,8 @@ const CONTROLLERS_COLUMNS: ColumnPairs = [
   ["Name", null],
   ["Mode", "controllerModeColumn"],
   ["Status", "controllerStatusColumn"],
-  ["Model", null],
+  // A controller's model, never an AI model's (#9838).
+  ["Model (hardware model)", null],
   ["Version", null],
   ["Type", null],
   ["Last Seen", null],

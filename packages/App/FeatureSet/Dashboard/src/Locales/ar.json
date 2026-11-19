@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "نقل الخطوة {{number}} لأسفل",
   "Move step {{number}} up": "نقل الخطوة {{number}} لأعلى",
   "Step {{from}} is now step {{to}}.": "أصبحت الخطوة {{from}} الآن الخطوة {{to}}.",
-  "step {{number}}": "الخطوة {{number}}"
+  "step {{number}}": "الخطوة {{number}}",
+  "Model (hardware model)": "الطراز"
 }

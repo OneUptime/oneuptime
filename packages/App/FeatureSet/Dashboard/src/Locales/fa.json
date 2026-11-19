@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "انتقال گام {{number}} به پایین",
   "Move step {{number}} up": "انتقال گام {{number}} به بالا",
   "Step {{from}} is now step {{to}}.": "گام {{from}} اکنون گام {{to}} است.",
-  "step {{number}}": "گام {{number}}"
+  "step {{number}}": "گام {{number}}",
+  "Model (hardware model)": "مدل"
 }

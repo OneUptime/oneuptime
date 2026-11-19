@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "下移步骤 {{number}}",
   "Move step {{number}} up": "上移步骤 {{number}}",
   "Step {{from}} is now step {{to}}.": "步骤 {{from}} 现在是步骤 {{to}}。",
-  "step {{number}}": "步骤 {{number}}"
+  "step {{number}}": "步骤 {{number}}",
+  "Model (hardware model)": "型号"
 }

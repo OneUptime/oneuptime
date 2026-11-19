@@ -58801,5 +58801,6 @@
   "Move step {{number}} down": "Descendre l'étape {{number}}",
   "Move step {{number}} up": "Monter l'étape {{number}}",
   "Step {{from}} is now step {{to}}.": "L'étape {{from}} est maintenant l'étape {{to}}.",
-  "step {{number}}": "l'étape {{number}}"
+  "step {{number}}": "l'étape {{number}}",
+  "Model (hardware model)": "Modèle"
 }

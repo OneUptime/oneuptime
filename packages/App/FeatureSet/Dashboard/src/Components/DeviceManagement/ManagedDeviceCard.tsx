@@ -194,7 +194,7 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
       },
       { label: "IMEI", value: text(device.imei) || undefined },
       {
-        label: "Model",
+        label: "Model (hardware model)",
         value:
           [text(device.manufacturer), text(device.model)]
             .filter(Boolean)
