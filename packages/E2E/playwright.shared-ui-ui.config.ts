@@ -16,7 +16,11 @@ const port: string = process.env["SHARED_UI_FIXTURE_PORT"] || "4329";
 
 export default defineConfig({
   testDir: "./SharedUi",
-  testMatch: "SharedUi.spec.ts",
+  /*
+   * Popups: menus, panels and definitions opened in boxes that clip, whole
+   * over the page (#9859, #9861, #9863).
+   */
+  testMatch: ["SharedUi.spec.ts", "Popups.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

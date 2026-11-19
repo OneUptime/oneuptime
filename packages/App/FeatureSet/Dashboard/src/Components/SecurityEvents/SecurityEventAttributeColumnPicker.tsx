@@ -3,7 +3,6 @@ import React, {
   ChangeEvent,
   FunctionComponent,
   ReactElement,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -11,6 +10,7 @@ import React, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import LayeredPopover from "Common/UI/Components/Tooltip/LayeredPopover";
 import {
   SecurityEventAttributeColumn,
   SecurityEventAttributeKeySearchResult,
@@ -125,30 +125,10 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
     !selectedKeys.includes(typedKey) &&
     searchResult.total === 0;
 
-  // Escape closes the panel and hands focus back to the button that opened it.
-  useEffect(() => {
-    if (!isComponentVisible) {
-      return undefined;
-    }
-
-    const handleEscape: (event: KeyboardEvent) => void = (
-      event: KeyboardEvent,
-    ): void => {
-      if (event.key !== "Escape") {
-        return;
-      }
-
-      event.stopPropagation();
-      setIsComponentVisible(false);
-      triggerRef.current?.focus();
-    };
-
-    document.addEventListener("keydown", handleEscape, true);
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape, true);
-    };
-  }, [isComponentVisible, setIsComponentVisible]);
+  /*
+   * Escape closes the panel and hands focus back to the button that opened
+   * it, and is spent there (LayeredPopover).
+   */
 
   const updateKeys: (keys: Array<string>) => void = (
     keys: Array<string>,
@@ -181,16 +161,14 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
 
   return (
     /*
-     * Anchored to the button from md up. Below md the panel spans the
-     * nearest positioned ancestor instead and drops below the button, since
-     * the wrapped toolbar can put the button anywhere on a phone's width —
-     * the same arrangement as the logs explorer's column selector.
+     * The panel is drawn over the page from the button, its end on the
+     * button's end (LayeredPopover), as the logs explorer's column selector
+     * is: inside a card or a scrolling panel, the box around the toolbar cut
+     * off its foot (#9859). It stays inside the window's sides, so a 26rem
+     * panel never runs off a phone wherever the wrapped toolbar puts the
+     * button.
      */
-    <div
-      className="md:relative"
-      ref={ref}
-      data-testid={SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_TEST_ID}
-    >
+    <div ref={ref} data-testid={SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_TEST_ID}>
       <button
         ref={triggerRef}
         type="button"
@@ -218,281 +196,291 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
       </button>
 
       {isComponentVisible && (
-        <div
-          role="dialog"
-          aria-label={translator.translateText("Attribute columns")}
-          className="absolute end-0 start-0 z-20 mt-2 rounded-lg border border-gray-200 bg-white p-4 shadow-xl md:start-auto md:w-[26rem]"
-          data-testid={SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_PANEL_TEST_ID}
+        <LayeredPopover
+          anchorRef={triggerRef}
+          ownerRef={ref}
+          align="end"
+          gap={8}
+          onClose={() => {
+            setIsComponentVisible(false);
+          }}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-gray-900">
-                {translator.translateText("Attribute columns")}
-              </h3>
-              <p className="mt-0.5 text-xs text-gray-500">
-                {translator.translateText(
-                  "Show source attributes on every event row. A row that does not carry one leaves it off.",
-                )}
-              </p>
+          <div
+            role="dialog"
+            aria-label={translator.translateText("Attribute columns")}
+            className="w-[26rem] max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white p-4 shadow-xl"
+            data-testid={SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_PANEL_TEST_ID}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {translator.translateText("Attribute columns")}
+                </h3>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {translator.translateText(
+                    "Show source attributes on every event row. A row that does not carry one leaves it off.",
+                  )}
+                </p>
+              </div>
+
+              {hasSelection && (
+                <button
+                  type="button"
+                  className="flex-shrink-0 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"
+                  onClick={() => {
+                    updateKeys([]);
+                  }}
+                >
+                  {translator.translateText("Clear all")}
+                </button>
+              )}
             </div>
 
-            {hasSelection && (
-              <button
-                type="button"
-                className="flex-shrink-0 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"
-                onClick={() => {
-                  updateKeys([]);
-                }}
-              >
-                {translator.translateText("Clear all")}
-              </button>
-            )}
-          </div>
-
-          <div className="mt-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-              {translator.translateText("Shown on rows")}
-            </p>
-
-            {!hasSelection ? (
-              <p className="rounded-md border border-dashed border-gray-200 px-3 py-3 text-xs text-gray-500">
-                {translator.translateText(
-                  "None yet. Add one below, or open an event and use the column button beside any of its attributes.",
-                )}
+            <div className="mt-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                {translator.translateText("Shown on rows")}
               </p>
-            ) : (
-              <ul
-                className="space-y-1.5"
-                aria-label={translator.translateText(
-                  "Attributes shown on rows",
+
+              {!hasSelection ? (
+                <p className="rounded-md border border-dashed border-gray-200 px-3 py-3 text-xs text-gray-500">
+                  {translator.translateText(
+                    "None yet. Add one below, or open an event and use the column button beside any of its attributes.",
+                  )}
+                </p>
+              ) : (
+                <ul
+                  className="space-y-1.5"
+                  aria-label={translator.translateText(
+                    "Attributes shown on rows",
+                  )}
+                >
+                  {selectedColumns.map(
+                    (
+                      column: SecurityEventAttributeColumn,
+                      index: number,
+                    ): ReactElement => {
+                      return (
+                        <li
+                          key={column.key}
+                          className="flex items-center gap-2 rounded-md border border-gray-200 px-2.5 py-1.5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-medium text-gray-900">
+                              {column.label}
+                            </p>
+                            <p className="break-all font-mono text-xs leading-snug text-gray-500">
+                              {column.key}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-shrink-0 items-center">
+                            <button
+                              type="button"
+                              className={getIconButtonClassName(index === 0)}
+                              aria-label={translator.translateTemplate(
+                                "Move {{key}} up",
+                                { key: column.key },
+                              )}
+                              title={translator.translateText("Move up")}
+                              disabled={index === 0}
+                              onClick={() => {
+                                moveKey(column.key, -1);
+                              }}
+                            >
+                              <Icon
+                                icon={IconProp.ChevronUp}
+                                className="h-3.5 w-3.5"
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              className={getIconButtonClassName(
+                                index === selectedColumns.length - 1,
+                              )}
+                              aria-label={translator.translateTemplate(
+                                "Move {{key}} down",
+                                { key: column.key },
+                              )}
+                              title={translator.translateText("Move down")}
+                              disabled={index === selectedColumns.length - 1}
+                              onClick={() => {
+                                moveKey(column.key, 1);
+                              }}
+                            >
+                              <Icon
+                                icon={IconProp.ChevronDown}
+                                className="h-3.5 w-3.5"
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              className={getIconButtonClassName(false)}
+                              aria-label={translator.translateTemplate(
+                                "Remove {{key}}",
+                                { key: column.key },
+                              )}
+                              title={translator.translateText("Remove")}
+                              onClick={() => {
+                                removeKey(column.key);
+                              }}
+                            >
+                              <Icon
+                                icon={IconProp.Close}
+                                className="h-3.5 w-3.5"
+                              />
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+              )}
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                {translator.translateText("Add an attribute")}
+              </p>
+
+              <input
+                data-unsaved-changes-ignore
+                type="text"
+                value={searchQuery}
+                aria-label={translator.translateText("Search attributes")}
+                placeholder={translator.translateText(
+                  "Search attributes, e.g. user firstName",
                 )}
-              >
-                {selectedColumns.map(
-                  (
-                    column: SecurityEventAttributeColumn,
-                    index: number,
-                  ): ReactElement => {
+                autoFocus={true}
+                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                  setSearchQuery(event.target.value);
+                }}
+                onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (event.key !== "Enter") {
+                    return;
+                  }
+
+                  event.preventDefault();
+
+                  /*
+                   * Enter takes the top match. It never adds the typed text
+                   * itself: a search that matched nothing is far more often a
+                   * phrase than an exact key, and a column for a key no event
+                   * carries is an empty column that looks like a broken one.
+                   * An unlisted key is added with its own Add button.
+                   */
+                  const key: string | undefined = searchResult.keys[0];
+
+                  if (key) {
+                    addKey(key);
+                    setSearchQuery("");
+                  }
+                }}
+              />
+
+              <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pe-1">
+                {canAddTypedKey && (
+                  <div className="flex items-center gap-2 rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 px-2.5 py-1.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-all font-mono text-xs text-gray-700">
+                        {typedKey}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {translator.translateText(
+                          "Add this exact key as a column.",
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="flex-shrink-0 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700"
+                      aria-label={translator.translateTemplate("Add {{key}}", {
+                        key: typedKey,
+                      })}
+                      onClick={() => {
+                        addKey(typedKey);
+                        setSearchQuery("");
+                      }}
+                    >
+                      {translator.translateText("Add")}
+                    </button>
+                  </div>
+                )}
+
+                {props.isLoading && searchResult.total === 0 && (
+                  <p className="px-1 py-2 text-xs text-gray-500">
+                    {translator.translateText("Loading attributes...")}
+                  </p>
+                )}
+
+                {!props.isLoading &&
+                  searchResult.total === 0 &&
+                  !canAddTypedKey && (
+                    <p className="px-1 py-2 text-xs text-gray-500">
+                      {typedKey
+                        ? translator.translateText(
+                            "No attribute matches that search.",
+                          )
+                        : translator.translateText(
+                            "No attributes seen on recent events yet.",
+                          )}
+                    </p>
+                  )}
+
+                {/*
+                 * The full key wraps rather than truncates: these keys share
+                 * long prefixes, so a right-hand ellipsis would cut off the
+                 * one part that tells them apart.
+                 */}
+                {resultColumns.map(
+                  (column: SecurityEventAttributeColumn): ReactElement => {
                     return (
-                      <li
+                      <div
                         key={column.key}
-                        className="flex items-center gap-2 rounded-md border border-gray-200 px-2.5 py-1.5"
+                        className="flex items-center gap-2 rounded-md px-2.5 py-1.5 hover:bg-gray-50"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-medium text-gray-900">
+                          <p className="truncate text-xs font-medium text-gray-800">
                             {column.label}
                           </p>
                           <p className="break-all font-mono text-xs leading-snug text-gray-500">
                             {column.key}
                           </p>
                         </div>
-
-                        <div className="flex flex-shrink-0 items-center">
-                          <button
-                            type="button"
-                            className={getIconButtonClassName(index === 0)}
-                            aria-label={translator.translateTemplate(
-                              "Move {{key}} up",
-                              { key: column.key },
-                            )}
-                            title={translator.translateText("Move up")}
-                            disabled={index === 0}
-                            onClick={() => {
-                              moveKey(column.key, -1);
-                            }}
-                          >
-                            <Icon
-                              icon={IconProp.ChevronUp}
-                              className="h-3.5 w-3.5"
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            className={getIconButtonClassName(
-                              index === selectedColumns.length - 1,
-                            )}
-                            aria-label={translator.translateTemplate(
-                              "Move {{key}} down",
-                              { key: column.key },
-                            )}
-                            title={translator.translateText("Move down")}
-                            disabled={index === selectedColumns.length - 1}
-                            onClick={() => {
-                              moveKey(column.key, 1);
-                            }}
-                          >
-                            <Icon
-                              icon={IconProp.ChevronDown}
-                              className="h-3.5 w-3.5"
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            className={getIconButtonClassName(false)}
-                            aria-label={translator.translateTemplate(
-                              "Remove {{key}}",
-                              { key: column.key },
-                            )}
-                            title={translator.translateText("Remove")}
-                            onClick={() => {
-                              removeKey(column.key);
-                            }}
-                          >
-                            <Icon
-                              icon={IconProp.Close}
-                              className="h-3.5 w-3.5"
-                            />
-                          </button>
-                        </div>
-                      </li>
+                        <button
+                          type="button"
+                          className="flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-indigo-700"
+                          aria-label={translator.translateTemplate(
+                            "Add {{key}}",
+                            { key: column.key },
+                          )}
+                          onClick={() => {
+                            addKey(column.key);
+                          }}
+                        >
+                          {translator.translateText("Add")}
+                        </button>
+                      </div>
                     );
                   },
                 )}
-              </ul>
-            )}
-          </div>
+              </div>
 
-          <div className="mt-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-              {translator.translateText("Add an attribute")}
-            </p>
-
-            <input
-              data-unsaved-changes-ignore
-              type="text"
-              value={searchQuery}
-              aria-label={translator.translateText("Search attributes")}
-              placeholder={translator.translateText(
-                "Search attributes, e.g. user firstName",
-              )}
-              autoFocus={true}
-              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                setSearchQuery(event.target.value);
-              }}
-              onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-                if (event.key !== "Enter") {
-                  return;
-                }
-
-                event.preventDefault();
-
-                /*
-                 * Enter takes the top match. It never adds the typed text
-                 * itself: a search that matched nothing is far more often a
-                 * phrase than an exact key, and a column for a key no event
-                 * carries is an empty column that looks like a broken one.
-                 * An unlisted key is added with its own Add button.
-                 */
-                const key: string | undefined = searchResult.keys[0];
-
-                if (key) {
-                  addKey(key);
-                  setSearchQuery("");
-                }
-              }}
-            />
-
-            <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pe-1">
-              {canAddTypedKey && (
-                <div className="flex items-center gap-2 rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 px-2.5 py-1.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="break-all font-mono text-xs text-gray-700">
-                      {typedKey}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {translator.translateText(
-                        "Add this exact key as a column.",
-                      )}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="flex-shrink-0 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700"
-                    aria-label={translator.translateTemplate("Add {{key}}", {
-                      key: typedKey,
-                    })}
-                    onClick={() => {
-                      addKey(typedKey);
-                      setSearchQuery("");
-                    }}
-                  >
-                    {translator.translateText("Add")}
-                  </button>
-                </div>
-              )}
-
-              {props.isLoading && searchResult.total === 0 && (
-                <p className="px-1 py-2 text-xs text-gray-500">
-                  {translator.translateText("Loading attributes...")}
+              {searchResult.total > searchResult.keys.length && (
+                <p className="mt-2 text-xs text-gray-500">
+                  {translator.translateTemplate(
+                    "Showing {{shown}} of {{total}} matching attributes. Keep typing to narrow.",
+                    {
+                      shown: translator.formatNumber(searchResult.keys.length),
+                      total: translator.formatNumber(searchResult.total),
+                    },
+                  )}
                 </p>
               )}
-
-              {!props.isLoading &&
-                searchResult.total === 0 &&
-                !canAddTypedKey && (
-                  <p className="px-1 py-2 text-xs text-gray-500">
-                    {typedKey
-                      ? translator.translateText(
-                          "No attribute matches that search.",
-                        )
-                      : translator.translateText(
-                          "No attributes seen on recent events yet.",
-                        )}
-                  </p>
-                )}
-
-              {/*
-               * The full key wraps rather than truncates: these keys share
-               * long prefixes, so a right-hand ellipsis would cut off the
-               * one part that tells them apart.
-               */}
-              {resultColumns.map(
-                (column: SecurityEventAttributeColumn): ReactElement => {
-                  return (
-                    <div
-                      key={column.key}
-                      className="flex items-center gap-2 rounded-md px-2.5 py-1.5 hover:bg-gray-50"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-medium text-gray-800">
-                          {column.label}
-                        </p>
-                        <p className="break-all font-mono text-xs leading-snug text-gray-500">
-                          {column.key}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-indigo-700"
-                        aria-label={translator.translateTemplate(
-                          "Add {{key}}",
-                          { key: column.key },
-                        )}
-                        onClick={() => {
-                          addKey(column.key);
-                        }}
-                      >
-                        {translator.translateText("Add")}
-                      </button>
-                    </div>
-                  );
-                },
-              )}
             </div>
-
-            {searchResult.total > searchResult.keys.length && (
-              <p className="mt-2 text-xs text-gray-500">
-                {translator.translateTemplate(
-                  "Showing {{shown}} of {{total}} matching attributes. Keep typing to narrow.",
-                  {
-                    shown: translator.formatNumber(searchResult.keys.length),
-                    total: translator.formatNumber(searchResult.total),
-                  },
-                )}
-              </p>
-            )}
           </div>
-        </div>
+        </LayeredPopover>
       )}
     </div>
   );

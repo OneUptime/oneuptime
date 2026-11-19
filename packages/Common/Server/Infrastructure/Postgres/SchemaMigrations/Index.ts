@@ -1108,6 +1108,7 @@ import { AddKubernetesDiskReadings1809186000000 } from "./1809186000000-AddKuber
 import { AddComplianceSettingNamespace1809186100000 } from "./1809186100000-AddComplianceSettingNamespace";
 import { AddTeamScimGroupLinkedAt1809186200000 } from "./1809186200000-AddTeamScimGroupLinkedAt";
 import { AddSamlSingleLogout1809186300000 } from "./1809186300000-AddSamlSingleLogout";
+import { AddDataAssetEntitySetName1809186396960 } from "./1809186396960-AddDataAssetEntitySetName";
 
 export default [
   InitialMigration,
@@ -2220,4 +2221,5 @@ export default [
   AddComplianceSettingNamespace1809186100000,
   AddTeamScimGroupLinkedAt1809186200000,
   AddSamlSingleLogout1809186300000,
+  AddDataAssetEntitySetName1809186396960,
 ];
