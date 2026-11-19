@@ -89,7 +89,8 @@ async function moveInList(
 
 describe("an escalation rule moved", () => {
   const orderCase: OrderCase = caseOf("OnCallDutyPolicyEscalationRuleService");
-  let forget: jest.SpiedFunction<typeof OnDutyPoliciesCache.forgetProjects>;
+  // A static method's spy, typed as getJestSpyOn types one.
+  let forget: ReturnType<typeof getJestSpyOn>;
 
   beforeEach(() => {
     const table: InMemoryTable = useInMemoryTable(
@@ -101,9 +102,10 @@ describe("an escalation rule moved", () => {
       table: table,
     });
     orderCase.stubCollaborators();
-    forget = jest
-      .spyOn(OnDutyPoliciesCache, "forgetProjects")
-      .mockResolvedValue(undefined);
+    forget = getJestSpyOn(
+      OnDutyPoliciesCache,
+      "forgetProjects",
+    ).mockResolvedValue(undefined);
   });
 
   test("has the project's on-call policies read again, in their new order", async () => {

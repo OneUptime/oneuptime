@@ -15,6 +15,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
+import { getJestSpyOn } from "../../../Spy";
 import {
   afterEach,
   beforeEach,
@@ -850,12 +851,14 @@ describe("ContiguousOrder", () => {
     });
 
     test("has the project's rules and status pages read again once a move renumbers rows", async () => {
-      const rules: jest.SpyInstance = jest
-        .spyOn(RuleSetCache, "afterUpdate")
-        .mockResolvedValue(undefined as never);
-      const pages: jest.SpyInstance = jest
-        .spyOn(StatusPageOverviewCache, "afterUpdate")
-        .mockResolvedValue(undefined as never);
+      const rules: jest.SpyInstance = getJestSpyOn(
+        RuleSetCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
+      const pages: jest.SpyInstance = getJestSpyOn(
+        StatusPageOverviewCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
 
       await ContiguousOrder.move({
         service: service.asService(),
@@ -876,12 +879,14 @@ describe("ContiguousOrder", () => {
     });
 
     test("has nothing read again for a move that changes nothing", async () => {
-      const rules: jest.SpyInstance = jest
-        .spyOn(RuleSetCache, "afterUpdate")
-        .mockResolvedValue(undefined as never);
-      const pages: jest.SpyInstance = jest
-        .spyOn(StatusPageOverviewCache, "afterUpdate")
-        .mockResolvedValue(undefined as never);
+      const rules: jest.SpyInstance = getJestSpyOn(
+        RuleSetCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
+      const pages: jest.SpyInstance = getJestSpyOn(
+        StatusPageOverviewCache,
+        "afterUpdate",
+      ).mockResolvedValue(undefined as never);
 
       await ContiguousOrder.move({
         service: service.asService(),
