@@ -131,8 +131,17 @@ function ruleRow(overrides: Partial<DetectionRule> = {}): DetectionRule {
   return rule;
 }
 
+/*
+ * A detection's fields to set over the defaults. A key given as undefined
+ * clears its default (Object.assign copies it): a threat-intel match has no
+ * detection rule.
+ */
+type DetectionOverrides = {
+  [Key in keyof SecurityDetection]?: SecurityDetection[Key] | undefined;
+};
+
 function detectionRow(
-  overrides: Partial<SecurityDetection> = {},
+  overrides: DetectionOverrides = {},
   id: string = DETECTION_ID,
 ): SecurityDetection {
   const detection: SecurityDetection = withId(new SecurityDetection(), id);

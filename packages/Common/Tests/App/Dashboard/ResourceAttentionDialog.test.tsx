@@ -10,6 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -266,7 +267,7 @@ describe("the dialog a count opens", () => {
   });
 
   test("is read and left: Close is its one way out, and no button in it is primary", () => {
-    const onClose: jest.Mock = jest.fn();
+    const onClose: Mock = jest.fn();
     render(
       <ResourceAttentionDialog
         testId="failed"
@@ -286,7 +287,7 @@ describe("the dialog a count opens", () => {
 
   test("reads its parts when it opens, drawing the list's shape meanwhile", async () => {
     let resolve: (read: ResourceAttentionDialogRead) => void = () => {};
-    const load: jest.Mock<() => Promise<ResourceAttentionDialogRead>> = jest.fn(
+    const load: Mock<() => Promise<ResourceAttentionDialogRead>> = jest.fn(
       () => {
         return new Promise<ResourceAttentionDialogRead>(
           (done: (read: ResourceAttentionDialogRead) => void) => {
@@ -316,7 +317,7 @@ describe("the dialog a count opens", () => {
   });
 
   test("reads once, though the page hands it a new read each time it draws", async () => {
-    const load: jest.Mock<() => Promise<ResourceAttentionDialogRead>> = jest.fn(
+    const load: Mock<() => Promise<ResourceAttentionDialogRead>> = jest.fn(
       () => {
         return Promise.resolve({ items: [pendingPod()] });
       },

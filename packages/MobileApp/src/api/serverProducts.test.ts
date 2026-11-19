@@ -7,7 +7,8 @@ import {
   readProductsOffOnServer,
 } from "./serverProducts";
 import ProductKey from "../../../Common/Types/Product/ProductKey";
-import { ServerProductOffReason } from "../../../Common/Types/Product/ServerProducts";
+// Its own module, which imports nothing: ServerProducts' JSON types reach typeorm.
+import { ServerProductOffReason } from "../../../Common/Types/Product/ServerProductOffReason";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
