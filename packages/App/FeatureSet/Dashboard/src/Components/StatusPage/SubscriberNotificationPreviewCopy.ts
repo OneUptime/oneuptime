@@ -93,9 +93,11 @@ export const SubscriberNotificationPreviewCopy: {
   privateIncident: "Private incidents are hidden from all status pages.",
   notifyOff: "'Notify Status Page Subscribers' is off.",
   /*
-   * Said of the moment it is declared, and of now for a note: a status page
-   * that lists one of its monitors later can show it (#9684). "Will show
-   * this incident" read as never, so a note seemed to go nowhere.
+   * Declaring, said of the moment it is declared; a note says of now that
+   * no page shows it yet (noStatusPagesForNote). A status page that lists
+   * one of its monitors later can show it (#9684): "will show this
+   * incident", said of no moment, read as never, and a note seemed to go
+   * nowhere.
    */
   noStatusPages:
     "No status page that lists these monitors will show this incident when it is declared.",
