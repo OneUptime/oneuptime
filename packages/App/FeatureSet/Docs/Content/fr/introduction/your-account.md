@@ -105,24 +105,30 @@ Le lien fonctionne une seule fois, pendant 15 minutes, et un lien plus récent l
 
 ### Activer l'authentification à deux facteurs
 
-L'authentification à deux facteurs s'applique quand vous vous connectez avec votre mot de passe ou un lien envoyé par e-mail. Ajoutez d'abord une deuxième étape, puis activez-la.
+L'authentification à deux facteurs s'applique quand vous vous connectez avec votre mot de passe ou un lien envoyé par e-mail. Elle ne s'active qu'une fois votre deuxième étape opérationnelle : elle ne vous demande donc jamais une étape que vous n'avez pas.
 
 :::steps
-### Ajouter une application d'authentification
+### Choisir votre deuxième étape
 
-Ouvrez **Sécurité → Authentification à deux facteurs**. Sous **Applications d'authentification**, ajoutez une application et donnez-lui un nom. Scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Vérifier et terminer**. Pour utiliser plutôt une clé USB ou NFC, ajoutez-la sous **Clés de sécurité**.
+Ouvrez **Sécurité → Authentification à deux facteurs** et cliquez sur **Activer l'authentification à deux facteurs**. Choisissez **Application d'authentification** ou **Clé de sécurité**, puis cliquez sur **Continuer**.
+
+### La configurer
+
+Pour une application d'authentification, scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Vérifier et terminer**. Pour une clé USB ou NFC, donnez-lui un nom et suivez les instructions de votre navigateur. L'authentification à deux facteurs est alors activée, et la carte indique **Activé**. Dès votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail, OneUptime vous demande votre deuxième étape.
 
 ### Conserver vos codes de secours
 
 La première fois que vous ajoutez une application, une clé ou une clé d'accès, OneUptime affiche **Vos codes de secours**. Chaque code vous connecte une fois si vous perdez votre application ou votre clé. Copiez-les ou téléchargez-les, cochez la case indiquant que vous les avez conservés et cliquez sur **Terminé**.
-
-### L'activer
-
-En haut de la page, cliquez sur **Activer l'authentification à deux facteurs** et confirmez. La carte indique maintenant **Activé**. Dès votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail, OneUptime vous demande votre deuxième étape.
 :::
+
+Si vous avez déjà une application sous **Applications d'authentification** ou une clé sous **Clés de sécurité**, **Activer l'authentification à deux facteurs** vous demande simplement de confirmer. Tant qu'elle est activée, votre dernière application, clé ou clé d'accès ne peut pas être supprimée : ajoutez-en d'abord une autre, ou désactivez l'authentification à deux facteurs. Si la carte indique **Configuration requise**, l'authentification à deux facteurs est activée sans rien de configuré, souvent parce qu'un administrateur l'a exigée : cliquez sur **Terminer la configuration**, sinon cela vous sera demandé à votre prochaine connexion.
 
 > [!TIP]
 > Il vous reste peu de codes de secours ? **Régénérer les codes** sur la même page vous donne un nouveau jeu, et les anciens codes cessent aussitôt de fonctionner.
+
+### Quand votre organisation gère votre connexion
+
+Sur un serveur qui exige l'authentification unique, vous vous connectez uniquement via le fournisseur d'identité de votre organisation, comme Okta ou Microsoft Entra ID, et OneUptime ne définit pour vous ni mot de passe, ni clé d'accès, ni authentification à deux facteurs. Le **Profil utilisateur** n'a alors pas de section **Sécurité**, et sa **Vue d'ensemble** indique votre fournisseur sous **Authentification unique**. Changez votre mot de passe et votre deuxième étape auprès de votre fournisseur d'identité. Ce que vous aviez configuré avant reste enregistré : cela ne fonctionne de nouveau que si le serveur cesse d'exiger l'authentification unique. Les administrateurs principaux conservent leurs propres réglages de **Sécurité**.
 
 ## Vos projets
 

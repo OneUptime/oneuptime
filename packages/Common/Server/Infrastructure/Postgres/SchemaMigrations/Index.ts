@@ -1087,6 +1087,8 @@ import { AddServiceOwnerIsOwnerNotified1809185000000 } from "./1809185000000-Add
 import { MarkOwnersAddedBeforeNotificationsAsTold1809185010000 } from "./1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
 import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020000-AddServiceOwnerIsOwnerNotifiedIndexes";
 import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
+import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
+import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
 
 export default [
   InitialMigration,
@@ -2178,4 +2180,6 @@ export default [
   MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
   AddServiceOwnerIsOwnerNotifiedIndexes1809185020000,
   AddMonitorSecretType1809185030000,
+  AddWorkflowRunAs1809185100000,
+  AddWorkflowRunAsKeys1809185100100,
 ];

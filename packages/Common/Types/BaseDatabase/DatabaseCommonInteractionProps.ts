@@ -52,6 +52,15 @@ export default interface DatabaseCommonInteractionProps {
   workflowId?: ObjectID | undefined;
   workflowName?: string | undefined;
   /*
+   * What the workflow whose step this is runs as, when it is more than the
+   * default permissions (Types/Workflow/WorkflowRunAs: ProjectOwner or
+   * CustomRole). Set by WorkflowPrincipal alone, and read by one check: a
+   * step of a workflow that runs with the default permissions - no mark -
+   * changes nobody's access (WorkflowPrincipal.assertDoesNotChangeAccess).
+   * What the step may do is in its permission rows, as for anyone.
+   */
+  workflowRunAs?: string | undefined;
+  /*
    * Where the change came from when it was not made by the person's own
    * hand: Ask AI, acting for them (Server/Utils/AI/Toolbox/
    * WorkflowBuilderTools). For attribution only, like the credential above:

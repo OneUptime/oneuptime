@@ -1105,6 +1105,57 @@ describe("the Global SSO guide", () => {
     );
   });
 
+  it("says which sign-in settings people other than master admins keep while the whole instance requires SSO, as the server refuses them (#9688)", () => {
+    const page: string = english(GLOBAL_SSO);
+    const repo: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(REPO_DIR, relative), "utf8");
+    };
+    const assertion: string = "SsoManagedSignIn.assertMayChangeLocalSignIn(";
+
+    // The rule is the instance's own Require SSO, which exempts master admins.
+    expect(repo("packages/Common/Server/Utils/SsoManagedSignIn.ts")).toContain(
+      "return await SsoRequiredSignIn.isNonSsoSignInRefused(account);",
+    );
+
+    /*
+     * Every write it names asks first: a password and two-factor
+     * authentication, an authenticator app (and its first code), a passkey
+     * or security key, and backup codes.
+     */
+    for (const file of [
+      "packages/Common/Server/Services/UserService.ts",
+      "packages/Common/Server/Services/UserTotpAuthService.ts",
+      "packages/Common/Server/API/UserTotpAuthAPI.ts",
+      "packages/Common/Server/Services/UserWebAuthnService.ts",
+      "packages/Common/Server/API/UserTwoFactorBackupCodeAPI.ts",
+    ]) {
+      expect({ file, asks: repo(file).includes(assertion) }).toEqual({
+        file,
+        asks: true,
+      });
+    }
+
+    // Forgot password mails such an account no link.
+    expect(repo(`${IDENTITY}/API/Authentication.ts`)).toContain(
+      "SsoManagedSignIn.isManagedBySsoFor(",
+    );
+
+    // User Profile: no Security section, and the providers on Overview.
+    expect(
+      repo(`${DASHBOARD}/Pages/Global/UserProfile/SideMenu.tsx`),
+    ).toContain("!props.signInManagement.isManagedBySso");
+    expect(repo(`${DASHBOARD}/Pages/Global/UserProfile/Index.tsx`)).toContain(
+      "<SsoManagedSignInNotice",
+    );
+
+    expect(page).toContain(
+      "- People other than master admins cannot set a password, a passkey, a security key, an authenticator app, backup codes or two-factor authentication, and a password reset emails them no link.",
+    );
+    expect(page).toContain(
+      "Their **User Profile** has no **Security** section, and its **Overview** names the providers they sign in with. What they set up before stays saved but unused until the requirement is turned off.",
+    );
+  });
+
   it("names the Admin Dashboard's Settings and Single Sign-On by the words its menus look up, which agree in every language", () => {
     const locales: string = path.join(
       PACKAGES_DIR,

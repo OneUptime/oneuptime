@@ -1056,3 +1056,101 @@ describe("status pages that send their subscribers nothing", () => {
     });
   });
 });
+
+/*
+ * Under the public note composer's notify box, the box itself now says why
+ * nothing will be sent (#9735): a hidden incident, and pages that all send
+ * their subscribers nothing (PublicNoteReachCopy). The summary under it
+ * (isNothingSentSaidAbove) leaves those out rather than say them twice, and
+ * keeps what only it can say: who will be told, and the pages the
+ * incident's scope keeps from being told, each with why. Everywhere else -
+ * declaring, the confirmation before sending again - it says them as before.
+ */
+describe("under the public note composer, which says why nothing is sent", () => {
+  const off: IncidentSubscriberAudienceResult["excludedStatusPages"][number] =
+    excluded(
+      "Site 05",
+      IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+    );
+
+  function underComposer(
+    partial: Partial<IncidentSubscriberAudienceResult>,
+  ): SubscriberAudienceView | null {
+    return buildSubscriberAudienceView({
+      audience: audience(partial),
+      translate: english,
+      isNothingSentSaidAbove: true,
+    });
+  }
+
+  test("a hidden incident: nothing, where it was said before", () => {
+    expect(
+      underComposer({ isHiddenFromStatusPages: true, statusPages: [SITE_03] }),
+    ).toBeNull();
+    expect(viewOrNothing({ isHiddenFromStatusPages: true })?.headline).toBe(
+      IncidentStatusPageScopeCopy.audienceHiddenIncident,
+    );
+  });
+
+  test("every page that shows it is switched off: nothing, where it was said before", () => {
+    expect(underComposer({ excludedStatusPages: [off] })).toBeNull();
+    expect(viewOrNothing({ excludedStatusPages: [off] })?.headline).toBe(
+      IncidentStatusPageScopeCopy.audienceNotificationsOffEverywhere,
+    );
+  });
+
+  test("who will be told is still said, with the page that is off beside it", () => {
+    const shown: SubscriberAudienceView | null = underComposer({
+      statusPages: [SITE_03],
+      excludedStatusPages: [off],
+    });
+
+    expect(shown?.headline).toBe(
+      IncidentStatusPageScopeCopy.audienceWillNotify,
+    );
+    expect(shown?.pages).toEqual(["Site 03 (up to 41 email)"]);
+    expect(shown?.notNotified).toEqual([
+      "Site 05 (does not send notifications to its subscribers)",
+    ]);
+  });
+
+  test("the pages the scope keeps from being told are still said, each with why", () => {
+    const shown: SubscriberAudienceView | null = underComposer({
+      isScoped: true,
+      excludedStatusPages: [
+        off,
+        excluded(
+          "Site 07",
+          IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+        ),
+      ],
+    });
+
+    expect(shown?.tone).toBe("warning");
+    expect(shown?.headline).toBe(
+      IncidentStatusPageScopeCopy.audienceNoStatusPages,
+    );
+    expect(shown?.notNotified).toEqual([
+      "Site 05 (does not send notifications to its subscribers)",
+      "Site 07 (not one of the pages this incident is limited to)",
+    ]);
+  });
+
+  test("nobody, and nothing the scope decides: nothing, as before", () => {
+    expect(underComposer({})).toBeNull();
+    expect(underComposer({ hasMonitors: false })).toBeNull();
+  });
+
+  test("the confirmation before sending again still says a hidden incident and pages that are off", () => {
+    expect(
+      buildSubscriberAudienceView({
+        audience: audience({ isHiddenFromStatusPages: true }),
+        translate: english,
+        saysWhenNobodyIsNotified: true,
+      })?.headline,
+    ).toBe(IncidentStatusPageScopeCopy.audienceHiddenIncident);
+    expect(confirmationView({ excludedStatusPages: [off] }).headline).toBe(
+      IncidentStatusPageScopeCopy.audienceNotificationsOffEverywhere,
+    );
+  });
+});

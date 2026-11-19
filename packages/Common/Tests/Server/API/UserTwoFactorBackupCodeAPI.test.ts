@@ -4,6 +4,9 @@ import UserTwoFactorBackupCodeService, {
   TwoFactorBackupCodeStatus,
 } from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import TwoFactorBackupCode from "../../../Server/Utils/TwoFactorBackupCode";
+import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SsoManagedSignIn";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -109,6 +112,13 @@ import {
  * What is left, and what this file is entirely about, is the two HTTP handlers
  * around all of that.
  */
+
+/*
+ * Whether the caller's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts). Here it
+ * lets everyone through, unless a test below says otherwise.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn");
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -1142,6 +1152,79 @@ describe("POST /user-two-factor-backup-code/generate -- telling the owner", () =
 
     expect(result.nextCallCount).toBe(0);
     expect(Array.isArray(sentJsonObject()["codes"])).toBe(true);
+  });
+});
+
+describe("POST /user-two-factor-backup-code/generate -- while the caller's sign-in is managed by single sign-on (#9688)", () => {
+  /*
+   * Backup codes stand in for a second step that guards a password or an
+   * emailed link, and the server signs a person whose organization manages
+   * their sign-in in with neither. None are minted for them - and since a
+   * regeneration starts by throwing the old set away, the refusal comes
+   * first: the codes they hold are not destroyed on the way to a refusal.
+   */
+  test("is refused with why, before anything is read or thrown away", async () => {
+    asMock(SsoManagedSignIn.assertMayChangeLocalSignIn).mockRejectedValueOnce(
+      new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE),
+    );
+
+    const result: RouteCallResult = await callRoute({
+      method: "POST",
+      route: GENERATE_ROUTE,
+    });
+
+    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+    expect((result.thrownToNext as Error).message).toBe(
+      SSO_MANAGED_SIGN_IN_MESSAGE,
+    );
+    expect(getStatusSpy).not.toHaveBeenCalled();
+    expect(regenerateSpy).not.toHaveBeenCalled();
+    expect(sendMailSpy).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("asks about the caller on the access token, never an id the request carries", async () => {
+    const supplied: string = "99999999-9999-4999-8999-999999999999";
+
+    await callRoute({
+      method: "POST",
+      route: GENERATE_ROUTE,
+      body: { userId: supplied },
+      query: { userId: supplied },
+      params: { userId: supplied },
+    });
+
+    expect(SsoManagedSignIn.assertMayChangeLocalSignIn).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      (
+        asMock(SsoManagedSignIn.assertMayChangeLocalSignIn).mock
+          .calls[0]![0] as ObjectID
+      ).toString(),
+    ).toBe(CALLER_ID.toString());
+  });
+
+  test("how many codes are left is still answered: reading takes nothing away", async () => {
+    asMock(SsoManagedSignIn.assertMayChangeLocalSignIn).mockImplementation(
+      async (): Promise<void> => {
+        throw new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE);
+      },
+    );
+
+    try {
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
+        route: STATUS_ROUTE,
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(
+        SsoManagedSignIn.assertMayChangeLocalSignIn,
+      ).not.toHaveBeenCalled();
+    } finally {
+      asMock(SsoManagedSignIn.assertMayChangeLocalSignIn).mockReset();
+    }
   });
 });
 

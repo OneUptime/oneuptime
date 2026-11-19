@@ -48,8 +48,26 @@ export interface NoteComposerValues {
 
 export interface NotifyOption {
   title: string;
-  checkedDescription: string;
-  uncheckedDescription: string;
+  /*
+   * What posting does, ticked and unticked: English keys looked up here, a
+   * sentence each, drawn a line each - or none, while it is not known
+   * (PublicNoteReachCopy): no line is better than a promise that may not
+   * hold.
+   */
+  checkedDescription: string | ReadonlyArray<string>;
+  uncheckedDescription: string | ReadonlyArray<string>;
+}
+
+// A description's sentences, however it was given.
+export function getNotifyDescriptionSentences(
+  description: string | ReadonlyArray<string>,
+): Array<string> {
+  const sentences: ReadonlyArray<string> =
+    typeof description === "string" ? [description] : description;
+
+  return sentences.filter((sentence: string): boolean => {
+    return sentence.trim().length > 0;
+  });
 }
 
 /*
@@ -146,6 +164,10 @@ export const AUDIENCE_STYLES: Record<
  * in English and in German alike (#7595). The sentence is the chip's
  * tooltip and is read out with it, and the composer says it in full the
  * moment it opens.
+ *
+ * A public note's sentence is said only once it is known where the note
+ * shows (PublicNoteReachCopy): until then the badge says "Public" alone,
+ * with no tooltip, rather than promise a status page.
  */
 export const AudienceBadge: FunctionComponent<{
   visibility: NoteVisibility;
@@ -159,24 +181,37 @@ export const AudienceBadge: FunctionComponent<{
   const { translateString } = useTranslateValue();
   const style: { icon: IconProp; className: string } =
     AUDIENCE_STYLES[props.visibility];
+  const hasHint: boolean = props.copy.audienceHint.trim().length > 0;
 
   if (props.isCompact) {
-    return (
-      <Tooltip text={props.copy.audienceHint} isTriggerAlreadyDescribed={true}>
-        <span
-          data-testid="note-audience-chip"
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${style.className}`}
-        >
-          <Icon icon={style.icon} className="h-3.5 w-3.5 shrink-0" />
-          <span>
-            {translateString(props.copy.audienceLabel) ||
-              props.copy.audienceLabel}
-          </span>
+    const chip: ReactElement = (
+      <span
+        data-testid="note-audience-chip"
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${style.className}`}
+      >
+        <Icon icon={style.icon} className="h-3.5 w-3.5 shrink-0" />
+        <span>
+          {translateString(props.copy.audienceLabel) ||
+            props.copy.audienceLabel}
+        </span>
+        {hasHint ? (
           <span className="sr-only">
             {translateString(props.copy.audienceHint) ||
               props.copy.audienceHint}
           </span>
-        </span>
+        ) : (
+          <></>
+        )}
+      </span>
+    );
+
+    if (!hasHint) {
+      return chip;
+    }
+
+    return (
+      <Tooltip text={props.copy.audienceHint} isTriggerAlreadyDescribed={true}>
+        {chip}
       </Tooltip>
     );
   }
@@ -192,12 +227,19 @@ export const AudienceBadge: FunctionComponent<{
           {translateString(props.copy.audienceLabel) ||
             props.copy.audienceLabel}
         </span>
-        <span aria-hidden="true" className="mx-1.5 opacity-50">
-          <InlineSeparator markOnly />
-        </span>
-        <span data-testid="note-audience-hint">
-          {translateString(props.copy.audienceHint) || props.copy.audienceHint}
-        </span>
+        {hasHint ? (
+          <>
+            <span aria-hidden="true" className="mx-1.5 opacity-50">
+              <InlineSeparator markOnly />
+            </span>
+            <span data-testid="note-audience-hint">
+              {translateString(props.copy.audienceHint) ||
+                props.copy.audienceHint}
+            </span>
+          </>
+        ) : (
+          <></>
+        )}
       </span>
     </span>
   );
@@ -265,6 +307,15 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
     KeyboardKey.Mod,
     KeyboardKey.Enter,
   ]);
+
+  // What the notify box says under its label, ticked or unticked.
+  const notifyDescription: Array<string> = props.notifyOption
+    ? getNotifyDescriptionSentences(
+        props.values.shouldNotify
+          ? props.notifyOption.checkedDescription
+          : props.notifyOption.uncheckedDescription,
+      )
+    : [];
 
   const postedAtLabel: string = props.values.postedAt
     ? translator.translateTemplate("Posted {{time}}", {
@@ -538,16 +589,20 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
                 <></>
               )}
             </div>
-            <p
-              className="mt-0.5 text-xs text-gray-500"
-              data-testid="note-notify-description"
-            >
-              {tx(
-                props.values.shouldNotify
-                  ? props.notifyOption.checkedDescription
-                  : props.notifyOption.uncheckedDescription,
-              )}
-            </p>
+            {notifyDescription.length > 0 ? (
+              <div
+                className="mt-0.5 space-y-0.5 text-xs text-gray-500"
+                data-testid="note-notify-description"
+              >
+                {notifyDescription.map(
+                  (sentence: string, index: number): ReactElement => {
+                    return <p key={index}>{tx(sentence)}</p>;
+                  },
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
             {props.values.shouldNotify && props.notifyAudience ? (
               <div data-testid="note-notify-audience">
                 {props.notifyAudience}

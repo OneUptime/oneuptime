@@ -14,12 +14,17 @@
  *   ?state=  set (default): two-factor authentication on, an authenticator
  *            app ready and one whose setup is incomplete, a security key, two
  *            passkeys, and seven of ten backup codes left. low: the same with
- *            two left. new: an account with nothing set up.
+ *            two left. new: an account with nothing set up. pending:
+ *            two-factor authentication on with nothing set up, as an
+ *            administrator's requirement leaves it (#9666). sso: what "set"
+ *            holds, on a server that requires SSO and signs in with "Okta",
+ *            so the person's sign-in is managed by it (#9688).
  *   ?theme=  dark adds html.dark (server.js).
  *
  * Recorded on window.__securityPageFixture: every list read (`lists`: the
- * table), every update (`updates`), every API request (`api`), and
- * anything the fixture does not model (`unhandled`; the spec fails on any).
+ * table), every create (`creates`), every update (`updates`), every API
+ * request (`api`), and anything the fixture does not model (`unhandled`;
+ * the spec fails on any).
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -47,6 +52,10 @@ import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import { SIGN_IN_MANAGEMENT_API_ROUTE } from "Common/Types/SSO/SsoManagedSignIn";
+import TwoFactorAuthSetupUtil, {
+  TWO_FACTOR_AUTH_STATUS_API_ROUTE,
+} from "Common/Types/TwoFactorAuthSetup";
 import API from "Common/UI/Utils/API/API";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -63,13 +72,14 @@ const params = new URLSearchParams(window.location.search);
 const language = ["de", "ar", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
-const state = ["low", "new"].includes(params.get("state"))
+const state = ["low", "new", "pending", "sso"].includes(params.get("state"))
   ? params.get("state")
   : "set";
 
 const fixture = {
   scenario: { language, state },
   lists: [],
+  creates: [],
   updates: [],
   api: [],
   unhandled: [],
@@ -90,9 +100,15 @@ function record(ModelType, fields) {
   return item;
 }
 
-const isNew = state === "new";
+// Nothing set up: a new account, or one an administrator required it of.
+const isNew = state === "new" || state === "pending";
 
-const account = { enableTwoFactorAuth: !isNew };
+const account = { enableTwoFactorAuth: state !== "new" };
+
+// The authenticator app the guided setup adds, as the server issues one.
+const NEW_AUTHENTICATOR_ID = "81000000-0000-4000-8000-0000000008c1";
+const NEW_AUTHENTICATOR_OTP_URL =
+  "otpauth://totp/OneUptime:maya.chen%40acme-shop.example?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=OneUptime&algorithm=SHA1&digits=6&period=30";
 
 const authenticatorApps = isNew
   ? []
@@ -154,6 +170,17 @@ const backupCodes = isNew
       unused: state === "low" ? 2 : 7,
       generatedAt: "2026-10-02T08:21:00.000Z",
     };
+
+/*
+ * What a sign-in's second step can ask for (UserService
+ * .countVerifiedTwoFactorAuthMethods): authenticator apps whose code was
+ * entered, security keys and passkeys.
+ */
+function verifiedMethodCount() {
+  return [...authenticatorApps, ...securityKeys, ...passkeys].filter((item) => {
+    return item.isVerified === true;
+  }).length;
+}
 
 // ---- the signed-in user and the data boundary ---------------------------------
 
@@ -238,6 +265,32 @@ ModelAPI.getItem = async (options) => {
   return null;
 };
 
+// The guided setup's authenticator app (#9666): saved unverified, with its code.
+ModelAPI.create = async (options) => {
+  const name = tableName(options.modelType);
+  fixture.creates.push({ table: name, name: options.model?.name });
+
+  if (name === tableName(UserTotpAuth)) {
+    const created = record(UserTotpAuth, {
+      _id: NEW_AUTHENTICATOR_ID,
+      userId: new ObjectID(USER_ID),
+      name: options.model?.name,
+      isVerified: false,
+      twoFactorOtpUrl: NEW_AUTHENTICATOR_OTP_URL,
+      createdAt: new Date("2026-11-19T09:00:00Z"),
+    });
+    authenticatorApps.push(created);
+
+    // The constructor reads its data as JSON; the page reads the model.
+    const response = new HTTPResponse(200, {}, {});
+    response.data = created;
+    return response;
+  }
+
+  fixture.unhandled.push({ kind: "create", table: name });
+  return new HTTPResponse(200, {}, {});
+};
+
 ModelAPI.updateById = async (options) => {
   const name = tableName(options.modelType);
   fixture.updates.push({
@@ -260,6 +313,70 @@ function handleApi(method, options) {
 
   if (method === "GET" && url.endsWith("/user-two-factor-backup-code/status")) {
     return new HTTPResponse(200, backupCodes, {});
+  }
+
+  // Where the person stands: on or off, and what is set up behind it.
+  if (method === "GET" && url.endsWith(TWO_FACTOR_AUTH_STATUS_API_ROUTE)) {
+    const count = verifiedMethodCount();
+
+    return new HTTPResponse(
+      200,
+      {
+        status: TwoFactorAuthSetupUtil.getStatus({
+          isTwoFactorAuthEnabled: account.enableTwoFactorAuth === true,
+          verifiedMethodCount: count,
+        }),
+        verifiedMethodCount: count,
+      },
+      {},
+    );
+  }
+
+  // Who manages the person's sign-in: the server's SSO, in the sso scenario.
+  if (method === "GET" && url.endsWith(SIGN_IN_MANAGEMENT_API_ROUTE)) {
+    return new HTTPResponse(
+      200,
+      state === "sso"
+        ? { isManagedBySso: true, ssoProviderNames: ["Okta"] }
+        : { isManagedBySso: false, ssoProviderNames: [] },
+      {},
+    );
+  }
+
+  /*
+   * The authenticator app's first code: any six digits (the server checks
+   * them). The first second step comes with the account's backup codes.
+   */
+  if (method === "POST" && url.endsWith("/user-totp-auth/validate")) {
+    const app = authenticatorApps.find((item) => {
+      return String(item._id) === String(options.data?.id);
+    });
+
+    if (!app || !/^\d{6}$/.test(String(options.data?.code))) {
+      fixture.unhandled.push({ kind: "api", method, url });
+      return new HTTPResponse(200, {}, {});
+    }
+
+    const isFirst = verifiedMethodCount() === 0;
+    app.isVerified = true;
+
+    if (!isFirst) {
+      return new HTTPResponse(200, {}, {});
+    }
+
+    backupCodes.total = 10;
+    backupCodes.unused = 10;
+    backupCodes.generatedAt = "2026-11-19T09:01:00.000Z";
+
+    return new HTTPResponse(
+      200,
+      {
+        backupCodes: Array.from({ length: 10 }, (_unused, index) => {
+          return `k7m2-9qx${index}`;
+        }),
+      },
+      {},
+    );
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

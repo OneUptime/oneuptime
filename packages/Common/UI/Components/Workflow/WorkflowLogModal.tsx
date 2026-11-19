@@ -36,6 +36,7 @@ import {
 } from "./StepTracePresentation";
 import WorkflowRunExportActions from "./WorkflowRunExportActions";
 import { WorkflowTestRunNote } from "./WorkflowTestRun";
+import { WorkflowRunRanAsNote } from "./WorkflowRunRanAs";
 import { WorkflowRunDetails, hasWorkflowRunContent } from "./WorkflowRunExport";
 import {
   WorkflowStepTrace,
@@ -209,6 +210,15 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
         {props.run?.isTestRun ? (
           <div className={props.statusMessage || props.toolbar ? "mt-2" : ""}>
             <WorkflowTestRunNote startedBy={props.run.startedBy} />
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {/* What it ran as, when more than Default, and whose permissions (#9695). */}
+        {props.run?.ranAs ? (
+          <div className="mt-2">
+            <WorkflowRunRanAsNote ranAs={props.run.ranAs} />
           </div>
         ) : (
           <></>
