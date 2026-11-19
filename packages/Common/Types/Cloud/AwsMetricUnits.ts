@@ -1,13 +1,17 @@
+import {
+  AWS_DOCUMENTED_METRIC_UNITS,
+  AwsDocumentedNamespaceUnits,
+} from "./AwsDocumentedMetricUnits";
 import { getAwsKeyMetric } from "./CloudKeyMetrics";
 
 /*
- * THE UNITS AWS DOCUMENTS FOR ITS CLOUDWATCH METRICS (#9809).
+ * THE UNIT OF AN AWS METRIC, AS AWS DOCUMENTS IT (#9809).
  *
  * CloudWatch's ListMetrics names no unit, so a metric a resource's More
  * Metrics lists has none until its datapoints say it (findAwsMetricUnit,
  * when it is added). Until then, and for a metric with no data lately, its
  * unit is the one its service's CloudWatch metrics page on
- * docs.aws.amazon.com states - the key metrics' from the catalog, every
+ * docs.aws.amazon.com states - a key metric's from the catalog, every
  * other's from AWS_DOCUMENTED_METRIC_UNITS - so the list shows it before
  * anything is read. A metric no page states one for has none: a unit is
  * never guessed from a name.
@@ -15,22 +19,10 @@ import { getAwsKeyMetric } from "./CloudKeyMetrics";
  * Each unit is spelled as CloudWatch's datapoints carry it (StandardUnit).
  */
 
-export interface AwsDocumentedNamespaceUnits {
-  // The pages the units were read from.
-  pages: Array<string>;
-  // Each metric's unit, by its name as AWS spells it.
-  units: Record<string, string>;
-}
-
-export const AWS_DOCUMENTED_METRIC_UNITS_READ_ON: string = "2026-11-19";
-
-export const AWS_DOCUMENTED_METRIC_UNITS: Readonly<
-  Record<string, AwsDocumentedNamespaceUnits>
-> = {};
-
 /*
  * The unit AWS documents for a metric of a namespace: the catalog's for a
- * key metric, else its service page's; "" when neither says.
+ * key metric, else its service page's; "" when neither says. A name as
+ * CloudWatch matches it: exactly.
  */
 export function getAwsDocumentedMetricUnit(
   namespace: string,
@@ -43,13 +35,13 @@ export function getAwsDocumentedMetricUnit(
     return keyMetricUnit;
   }
 
-  const units: Record<string, string> | undefined =
+  const documented: AwsDocumentedNamespaceUnits | undefined =
     Object.prototype.hasOwnProperty.call(AWS_DOCUMENTED_METRIC_UNITS, namespace)
-      ? AWS_DOCUMENTED_METRIC_UNITS[namespace]!.units
+      ? AWS_DOCUMENTED_METRIC_UNITS[namespace]
       : undefined;
 
-  // A metric's name as CloudWatch matches it: exactly.
-  return units && Object.prototype.hasOwnProperty.call(units, metricName)
-    ? units[metricName] || ""
+  return documented &&
+    Object.prototype.hasOwnProperty.call(documented.units, metricName)
+    ? documented.units[metricName] || ""
     : "";
 }
