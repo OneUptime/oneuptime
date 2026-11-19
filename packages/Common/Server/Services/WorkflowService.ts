@@ -9,6 +9,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import StandardWebhookSignature from "../Utils/Webhook/StandardWebhookSignature";
 import WorkflowRunAsAuthority, {
   WorkflowRunAsAction,
+  WorkflowRunAsGiver,
   WorkflowRunAsRole,
 } from "../Utils/Workflow/WorkflowRunAsAuthority";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -147,12 +148,15 @@ export class Service extends ProjectReferencesService<Model> {
    * A Run As as a write sends it, checked and tidied before anything else
    * reads it (#9695): one of WorkflowRunAs - an empty one is Default - or
    * refused in words that list them; the custom role kept only beside
-   * CustomRole, and named by its id alone. When the person and the time it
-   * was given are written is OneUptime's to say (giveRunAs): a value sent
-   * for either is dropped.
+   * CustomRole, and named by its id alone. Who gave it - the person or the
+   * API key - and when are OneUptime's to say (holdRunAsToItsHolders,
+   * giveRunAsOnCreate): a value sent for the key or the time is dropped, as
+   * UserAttribution drops a person sent.
    */
   public static normalizeRunAsWrite(data: Record<string, unknown>): void {
     delete data["runAsGivenAt"];
+    delete data["runAsGivenByApiKeyId"];
+    delete data["runAsGivenByApiKey"];
     delete data["runAsCustomRole"];
 
     if (data["runAs"] === undefined) {
@@ -204,24 +208,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Records that the person making a write gives the workflows it writes
-   * their permissions (#9695): who, and when. A run of a raised workflow
-   * runs with that person's permissions, checked again as it starts
-   * (WorkflowRunAsAuthority.resolveForRun). Written as OneUptime, without
-   * hooks: nobody may write these columns, and the write that made the
-   * person the giver has passed every check already. A variable of a raised
-   * workflow saved by someone who holds its permissions makes them the
-   * giver the same way (WorkflowVariableService).
+   * Records that whoever makes a write - a person, or a project API key
+   * (#9765) - gives the workflows it writes their permissions (#9695): who,
+   * and when. A run of a raised workflow runs with their permissions,
+   * checked again as it starts (WorkflowRunAsAuthority.resolveForRun).
+   * Written as OneUptime, without hooks: nobody may write these columns, and
+   * the write that made them the giver has passed every check already. A
+   * variable of a raised workflow saved by someone who holds its
+   * permissions makes them the giver the same way (WorkflowVariableService).
    */
   public async recordRunAsGiven(data: {
     workflowIds: Array<ObjectID>;
-    userId: ObjectID;
+    giver: WorkflowRunAsGiver;
   }): Promise<void> {
     for (const workflowId of data.workflowIds) {
       await this.updateColumnsByIdWithoutHooks({
         id: workflowId,
         data: {
-          runAsGivenByUserId: data.userId,
+          ...WorkflowRunAsAuthority.getGivenByColumns(data.giver),
           runAsGivenAt: OneUptimeDate.getCurrentDate(),
         } as any,
         skipUpdateDateColumn: true,
@@ -249,15 +253,18 @@ export class Service extends ProjectReferencesService<Model> {
    *
    *   - A row that runs as more than Default is changed - its steps, its
    *     Run As, its name, its labels, archived, turned on - only by a person
-   *     who could give it what it runs as now (WorkflowRunAsAuthority
-   *     .assertMayAct): anyone else who may edit it may only turn it off.
-   *   - A Run As written is given only by a person who could give it to a
-   *     team themselves (assertMayGive), one workflow at a time.
+   *     or a project API key that could give it what it runs as now
+   *     (WorkflowRunAsAuthority.assertMayAct): anyone else who may edit it
+   *     may only turn it off.
+   *   - A Run As written is given only by a person or a project API key
+   *     that could give it to a team themselves (assertMayGive), one
+   *     workflow at a time.
    *   - A row that runs as more than Default once written names none of the
    *     project's global variables (assertNoGlobalVariables).
    *   - Whoever writes its Run As or its steps while it runs as more than
    *     Default gives it their permissions: it runs with theirs from now on,
-   *     as long as they hold them. Setting it back to Default forgets who.
+   *     as long as they hold them - a person's, or a key's (#9765), never
+   *     both. Setting it back to Default forgets who.
    *   - A Run As changed to more than Default, or to another such, gives the
    *     workflow new trigger keys in the same write (giveNewTriggerKeys):
    *     whoever saw its webhook URL or incoming email address before may not
@@ -371,8 +378,15 @@ export class Service extends ProjectReferencesService<Model> {
       givesRunAs = true;
     }
 
-    if (givesRunAs && props.userId) {
-      data["runAsGivenByUserId"] = props.userId;
+    /*
+     * Whoever passed assertMayAct and assertMayGive is a person or a
+     * project API key: the one who gives it its permissions from now on.
+     */
+    const giver: WorkflowRunAsGiver | null =
+      WorkflowRunAsAuthority.getGiver(props);
+
+    if (givesRunAs && giver) {
+      Object.assign(data, WorkflowRunAsAuthority.getGivenByColumns(giver));
       data["runAsGivenAt"] = OneUptimeDate.getCurrentDate();
       return;
     }
@@ -383,6 +397,7 @@ export class Service extends ProjectReferencesService<Model> {
         WorkflowRunAs.Default
     ) {
       data["runAsGivenByUserId"] = null;
+      data["runAsGivenByApiKeyId"] = null;
       data["runAsGivenAt"] = null;
     }
   }
@@ -439,10 +454,10 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A workflow created to run as more than Default (#9695) - from the API,
-   * an import or a copy - is given its permissions by the person creating
-   * it, held to what they could give a team themselves, and names none of
-   * the project's global variables. OneUptime's own creates are its
-   * business.
+   * an import or a copy - is given its permissions by the person or the
+   * project API key creating it (#9765), held to what they could give a
+   * team themselves, and names none of the project's global variables.
+   * OneUptime's own creates are its business.
    */
   private async giveRunAsOnCreate(createBy: CreateBy<Model>): Promise<void> {
     if (createBy.props.isRoot) {
@@ -478,7 +493,16 @@ export class Service extends ProjectReferencesService<Model> {
       graph: data.graph,
     });
 
-    data.runAsGivenByUserId = createBy.props.userId!;
+    // assertMayGive let only a person or a project API key through.
+    const giver: WorkflowRunAsGiver | null = WorkflowRunAsAuthority.getGiver(
+      createBy.props,
+    );
+
+    if (!giver) {
+      return;
+    }
+
+    Object.assign(data, WorkflowRunAsAuthority.getGivenByColumns(giver));
     data.runAsGivenAt = OneUptimeDate.getCurrentDate();
   }
 

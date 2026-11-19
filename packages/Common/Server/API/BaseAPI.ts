@@ -516,8 +516,30 @@ export default class BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+    /*
+     * Choices that ride along with the delete but are not columns, as an
+     * update's do - what the workflows that run as a custom role run as
+     * once it is gone, for one (#9767). Sent in the body of the DELETE (or
+     * of POST /:id/delete-item); anything that is not a plain object is
+     * ignored, and a delete with none is the delete it always was.
+     */
+    const body: JSONObject =
+      req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? (req.body as JSONObject)
+        : {};
+    const miscDataInBody: JSONValue | undefined = body["miscDataProps"];
+
     const numberOfDocsDeleted: number = await this.service.deleteOneById({
       id: objectId,
+      ...(miscDataInBody &&
+      typeof miscDataInBody === "object" &&
+      !Array.isArray(miscDataInBody)
+        ? {
+            miscDataProps: JSONFunctions.deserialize(
+              miscDataInBody as JSONObject,
+            ),
+          }
+        : {}),
       props: props,
     });
 

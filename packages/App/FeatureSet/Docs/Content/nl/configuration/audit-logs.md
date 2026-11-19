@@ -67,10 +67,10 @@ Een wijziging van deze instellingen geldt binnen een minuut.
 | **Wanneer** | Hoe lang geleden, met datum en tijd. |
 | **Actie** | `Create`, `Update` of `Delete`, `Download` voor een pakketopnamebestand dat iemand heeft gedownload, of `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` of `Session Revoked` voor een aanmelding of een sessie. |
 | **Resource** | De naam van de resource, die deze opent zolang die bestaat, en het type. |
-| **Actor** | Wie de wijziging deed: een persoon, een API-sleutel, een workflow of `System` voor een wijziging die OneUptime zelf deed. Bij de wijziging van een persoon via een MCP-client staat welke. |
+| **Actor** | Wie de wijziging deed: een persoon, een API-sleutel, een workflow of `System` voor een wijziging die OneUptime zelf deed. Bij de wijziging van een persoon via een MCP-client staat welke. Bij de wijziging van een workflow staat waarmee hij draaide en met wiens machtigingen. |
 | **Wijzigingen** | Hoeveel velden zijn gewijzigd, of bij een aanmaak of verwijdering zijn vastgelegd. Bij een aanmelding of een sessie: hoe er is aangemeld, waarom dat mislukte of waarom de sessie eindigde. Klik erop om elk veld te zien. |
 
-Filter op **Resourcetype**, **Resourcenaam**, **Actie**, **E-mailadres gebruiker** of **Tijd**. Een wijziging toont alleen de velden die zijn veranderd, ervoor en erna, en een opslag die niets verandert, voegt geen vermelding toe.
+Filter op **Resourcetype**, **Resourcenaam**, **Actie**, **E-mailadres gebruiker**, **Workflow uitgevoerd als**, **Machtigingen van de workflow gegeven door** of **Tijd**. Een wijziging toont alleen de velden die zijn veranderd, ervoor en erna, en een opslag die niets verandert, voegt geen vermelding toe.
 
 Een resource zonder eigen naam krijgt de naam van wat hem in OneUptime benoemt: een uitzondering haar type en het begin van haar bericht, met id's, adressen en alles wat op een geheim lijkt gemaskeerd, een uitvoering van een runbook zijn runbook, het telefoonnummer van een beleid voor inkomende oproepen het nummer zelf, en een sjabloon of een domein zijn eigen naam.
 

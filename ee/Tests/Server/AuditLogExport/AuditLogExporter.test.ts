@@ -1198,7 +1198,7 @@ describe("the audit log exporter", () => {
     });
 
     test("a version the row holds that this release does not know is sent as version 1", async () => {
-      for (const schemaVersion of [0, 3, Number.NaN]) {
+      for (const schemaVersion of [0, 4, Number.NaN]) {
         jest.restoreAllMocks();
         webhook.batches.length = 0;
         useInMemoryExports([webhookExport({ schemaVersion })]);
@@ -1264,7 +1264,11 @@ describe("the audit log exporter", () => {
         expect(record.schemaVersion).toBe(schemaVersion);
         expect(
           Object.prototype.hasOwnProperty.call(record.changes[0], "summary"),
-        ).toBe(schemaVersion === 2);
+        ).toBe(schemaVersion >= 2);
+        // Version 3 says what a workflow's step ran as (#9766): null here.
+        expect(
+          Object.prototype.hasOwnProperty.call(record, "workflowRunAs"),
+        ).toBe(schemaVersion >= 3);
       }
     });
   });
@@ -1293,7 +1297,9 @@ describe("the audit log exporter", () => {
 
         expect(batch[0]!.schemaVersion).toBe(schemaVersion || 1);
         expect(batch[0]!.changes[0]!.summary).toEqual(
-          schemaVersion === 2 ? ['Added "Log" (log-1)'] : undefined,
+          schemaVersion && schemaVersion >= 2
+            ? ['Added "Log" (log-1)']
+            : undefined,
         );
       }
     });

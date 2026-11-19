@@ -5,6 +5,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CustomRoleSync from "../Utils/CustomRole/CustomRoleSync";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import WorkflowsOfDeletedRoles, {
+  WorkflowsOfDeletedRolesPlan,
+} from "../Utils/Workflow/WorkflowsOfDeletedRoles";
 import ApiKeyPermissionService from "./ApiKeyPermissionService";
 import DatabaseService from "./DatabaseService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -41,6 +44,10 @@ export const CUSTOM_ROLE_OWNED_ONLY_MESSAGE: string =
  *     cached permissions rebuilt right after
  *     (CustomRoleSync.refreshMembersOfTeams), and every server forgets the
  *     keys' (ApiKeyPermissionService.forgetPermissionsOfProjects).
+ *   - A role that workflows run as is deleted only by a delete that says
+ *     what they run as instead - Default, or another custom role - and they
+ *     are switched as it goes (WorkflowsOfDeletedRoles, #9767); a delete
+ *     that does not say is refused, naming them.
  *
  * What a role holds is CustomRolePermissionService's, and who it is given
  * to TeamCustomRoleService's and ApiKeyCustomRoleService's.
@@ -49,6 +56,13 @@ export const CUSTOM_ROLE_OWNED_ONLY_MESSAGE: string =
 interface TeamsOfDeletedRoles {
   projectId: ObjectID;
   teamIds: Array<ObjectID>;
+}
+
+// What onBeforeDelete hands onDeleteSuccess.
+interface DeletedRolesCarryForward {
+  teams: Array<TeamsOfDeletedRoles>;
+  // The workflows that ran as the roles, and what they run as instead.
+  workflows: WorkflowsOfDeletedRolesPlan | null;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -250,8 +264,21 @@ export class Service extends DatabaseService<Model> {
       {
         _id: true,
         projectId: true,
+        name: true,
       },
     );
+
+    /*
+     * The workflows that run as these roles (#9767): what they run as
+     * instead, as the delete says - or the delete is refused, naming them -
+     * switched once the roles are gone (onDeleteSuccess).
+     */
+    const workflows: WorkflowsOfDeletedRolesPlan | null =
+      await WorkflowsOfDeletedRoles.plan({
+        roles: roles,
+        props: deleteBy.props,
+        miscDataProps: deleteBy.miscDataProps,
+      });
 
     /*
      * The teams given these roles, read while the roles are still there:
@@ -278,7 +305,12 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    return { deleteBy, carryForward: teamsOfDeletedRoles };
+    const carryForward: DeletedRolesCarryForward = {
+      teams: teamsOfDeletedRoles,
+      workflows: workflows,
+    };
+
+    return { deleteBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
@@ -286,8 +318,16 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
+    const carryForward: DeletedRolesCarryForward | null =
+      (onDelete.carryForward as DeletedRolesCarryForward | null) || null;
     const teamsOfDeletedRoles: Array<TeamsOfDeletedRoles> =
-      (onDelete.carryForward as Array<TeamsOfDeletedRoles> | null) || [];
+      carryForward?.teams || [];
+
+    // What the workflows that ran as them run as now (#9767).
+    await WorkflowsOfDeletedRoles.apply({
+      plan: carryForward?.workflows,
+      props: onDelete.deleteBy.props,
+    });
 
     for (const teams of teamsOfDeletedRoles) {
       await CustomRoleSync.refreshMembersOfTeams({
