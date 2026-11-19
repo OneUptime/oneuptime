@@ -24,6 +24,7 @@ import User from "Common/Models/DatabaseModels/User";
 import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
 import { ICallProvider } from "Common/Types/Call/CallProvider";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -75,7 +76,7 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { findOneBy: jest.fn() },
+      default: { findBy: jest.fn() },
     };
   },
 );
@@ -275,10 +276,19 @@ const policyService: { findOneBy: JestMock; findOneById: JestMock } =
   };
 const numberService: { findOneBy: JestMock } =
   IncomingCallPolicyPhoneNumberService as unknown as { findOneBy: JestMock };
-const ruleService: { findOneBy: JestMock } =
+const ruleService: { findBy: JestMock } =
   IncomingCallPolicyEscalationRuleService as unknown as {
-    findOneBy: JestMock;
+    findBy: JestMock;
   };
+
+/*
+ * The policy's escalation rules, as the API reads them: every one, in one
+ * read, and tries them in the policy's order from the rule being dialled
+ * (IncomingCallEscalationOrder) - by number, rules that share one by id.
+ */
+function policyRules(...rules: Array<IncomingCallPolicyEscalationRule>): void {
+  ruleService.findBy.mockResolvedValue(rules);
+}
 const logService: {
   create: JestMock;
   findOneById: JestMock;
@@ -406,12 +416,16 @@ function makeRule(data?: {
   userId?: ObjectID | undefined;
   scheduleId?: ObjectID | undefined;
   timeout?: number | undefined;
+  createdAt?: Date | undefined;
 }): IncomingCallPolicyEscalationRule {
   const rule: IncomingCallPolicyEscalationRule =
     new IncomingCallPolicyEscalationRule();
   rule.id = data?.id || RULE_1_ID;
   rule.incomingCallPolicyId = POLICY_ID;
   rule.order = data?.order ?? 1;
+  if (data?.createdAt) {
+    rule.createdAt = data.createdAt;
+  }
   if (data?.userId) {
     rule.userId = data.userId;
   }
@@ -463,12 +477,21 @@ function makeCallLog(data?: {
   return log;
 }
 
+/*
+ * The attempt a callback is about: it names the rule it dialled, as every
+ * attempt the API makes does - none once that rule was deleted while its
+ * phone rang (the column is set null).
+ */
 function makeCallLogItem(
   incomingCallLogId: ObjectID = CALL_LOG_ID,
+  ruleId: ObjectID | null = RULE_1_ID,
 ): IncomingCallLogItem {
   const item: IncomingCallLogItem = new IncomingCallLogItem();
   item.id = CALL_LOG_ITEM_ID;
   item.incomingCallLogId = incomingCallLogId;
+  if (ruleId) {
+    item.incomingCallPolicyEscalationRuleId = ruleId;
+  }
   return item;
 }
 
@@ -596,9 +619,7 @@ function configureProviderDefaults(): void {
 
 function configureUserAndRuleDefaults(): void {
   membersExcept();
-  ruleService.findOneBy.mockResolvedValue(
-    makeRule({ order: 1, userId: USER_1 }),
-  );
+  policyRules(makeRule({ order: 1, userId: USER_1 }));
   incomingNumberService.findOneBy.mockResolvedValue(
     makeVerifiedNumber(USER_1, USER_1_NUMBER),
   );
@@ -758,11 +779,10 @@ describe("incoming call voice routing", () => {
   });
 
   test("skips unavailable and gapped rules before dialing an available user", async () => {
-    ruleService.findOneBy
-      .mockResolvedValueOnce(makeRule({ order: 1, userId: USER_1 }))
-      .mockResolvedValueOnce(
-        makeRule({ id: RULE_2_ID, order: 3, userId: USER_2, timeout: 45 }),
-      );
+    policyRules(
+      makeRule({ order: 1, userId: USER_1 }),
+      makeRule({ id: RULE_2_ID, order: 3, userId: USER_2, timeout: 45 }),
+    );
     incomingNumberService.findOneBy.mockImplementation((args: any) => {
       if (args.query.userId.toString() === USER_1.toString()) {
         return Promise.resolve(null);
@@ -773,7 +793,8 @@ describe("incoming call voice routing", () => {
 
     await invoke("/voice", { body: voiceBody() });
 
-    expect(ruleService.findOneBy).toHaveBeenCalledTimes(2);
+    // One read of the policy's rules, tried in its order.
+    expect(ruleService.findBy).toHaveBeenCalledTimes(1);
     expect(logService.updateOneById).toHaveBeenCalledWith({
       id: CALL_LOG_ID,
       data: { currentEscalationRuleOrder: 3 },
@@ -788,10 +809,74 @@ describe("incoming call voice routing", () => {
     );
   });
 
-  test("resolves a schedule rule to the current on-call user", async () => {
-    ruleService.findOneBy.mockResolvedValue(
-      makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
+  /*
+   * A policy's rules are a drag-ordered list (issue #9609): a write of a
+   * rule's number places that rule and moves no other, so rules written
+   * through the API may start at 0, share a number or leave gaps. The first
+   * rule is the policy's first in its order - never "the first numbered
+   * above 0".
+   */
+  test("reads every rule of the policy once, as root, in its order", async () => {
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(ruleService.findBy).toHaveBeenCalledTimes(1);
+    expect(ruleService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { incomingCallPolicyId: POLICY_ID },
+        // As the policy's page lists them: the older of two at one number first.
+        sort: { order: SortOrder.Ascending, createdAt: SortOrder.Ascending },
+        props: { isRoot: true },
+      }),
     );
+  });
+
+  test("rings a rule numbered 0, and keeps its number on the call log", async () => {
+    policyRules(makeRule({ order: 0, userId: USER_1 }));
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(
+      provider.generateEscalationResponse.mock.calls[0]?.[1],
+    ).toMatchObject({ toPhoneNumber: USER_1_NUMBER });
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: { currentEscalationRuleOrder: 0 },
+      props: { isRoot: true },
+    });
+  });
+
+  test("rings the older of two rules that share a number first, whatever order they are read in", async () => {
+    // Rule 2 was created first: it comes first, though its id sorts after.
+    policyRules(
+      makeRule({
+        order: 1,
+        userId: USER_1,
+        createdAt: new Date("2026-11-01T09:05:00.000Z"),
+      }),
+      makeRule({
+        id: RULE_2_ID,
+        order: 1,
+        userId: USER_2,
+        createdAt: new Date("2026-11-01T09:00:00.000Z"),
+      }),
+    );
+    incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      return Promise.resolve(
+        args.query.userId.toString() === USER_1.toString()
+          ? makeVerifiedNumber(USER_1, USER_1_NUMBER)
+          : makeVerifiedNumber(USER_2, USER_2_NUMBER),
+      );
+    });
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(
+      provider.generateEscalationResponse.mock.calls[0]?.[1],
+    ).toMatchObject({ toPhoneNumber: USER_2_NUMBER });
+  });
+
+  test("resolves a schedule rule to the current on-call user", async () => {
+    policyRules(makeRule({ order: 1, scheduleId: SCHEDULE_ID }));
     scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
       userId: USER_2,
       coveredUserId: null,
@@ -819,11 +904,10 @@ describe("incoming call voice routing", () => {
    */
   test("skips a rule naming somebody who is no longer a member, and rings the next one", async () => {
     membersExcept(USER_1);
-    ruleService.findOneBy
-      .mockResolvedValueOnce(makeRule({ order: 1, userId: USER_1 }))
-      .mockResolvedValueOnce(
-        makeRule({ id: RULE_2_ID, order: 3, userId: USER_2, timeout: 45 }),
-      );
+    policyRules(
+      makeRule({ order: 1, userId: USER_1 }),
+      makeRule({ id: RULE_2_ID, order: 3, userId: USER_2, timeout: 45 }),
+    );
     // USER_1 HAS a verified number; the membership condition finds nothing.
     incomingNumberService.findOneBy.mockImplementation((args: any) => {
       if (isNotAMember(args.query.userId)) {
@@ -870,9 +954,7 @@ describe("incoming call voice routing", () => {
    */
   test("a schedule's override whose substitute has left: the layer user it covers takes the call", async () => {
     membersExcept(USER_2);
-    ruleService.findOneBy.mockResolvedValue(
-      makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
-    );
+    policyRules(makeRule({ order: 1, scheduleId: SCHEDULE_ID }));
     scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
       userId: USER_2,
       coveredUserId: USER_1,
@@ -913,9 +995,7 @@ describe("incoming call voice routing", () => {
   });
 
   test("a schedule's override whose substitute is a member: the substitute takes the call", async () => {
-    ruleService.findOneBy.mockResolvedValue(
-      makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
-    );
+    policyRules(makeRule({ order: 1, scheduleId: SCHEDULE_ID }));
     scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
       userId: USER_2,
       coveredUserId: USER_1,
@@ -933,9 +1013,7 @@ describe("incoming call voice routing", () => {
 
   test("a schedule's override whose substitute and covered layer user have both left rings neither", async () => {
     membersExcept(USER_1, USER_2);
-    ruleService.findOneBy
-      .mockResolvedValueOnce(makeRule({ order: 1, scheduleId: SCHEDULE_ID }))
-      .mockResolvedValueOnce(null);
+    policyRules(makeRule({ order: 1, scheduleId: SCHEDULE_ID }));
     scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
       userId: USER_2,
       coveredUserId: USER_1,
@@ -963,9 +1041,7 @@ describe("incoming call voice routing", () => {
   });
 
   test("a membership read that fails keeps the substitute, whose number lookup still carries the condition", async () => {
-    ruleService.findOneBy.mockResolvedValue(
-      makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
-    );
+    policyRules(makeRule({ order: 1, scheduleId: SCHEDULE_ID }));
     scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
       userId: USER_2,
       coveredUserId: USER_1,
@@ -990,9 +1066,7 @@ describe("incoming call voice routing", () => {
 
   test("does not ring a schedule's on-call person who is no longer a member", async () => {
     membersExcept(USER_2);
-    ruleService.findOneBy
-      .mockResolvedValueOnce(makeRule({ order: 1, scheduleId: SCHEDULE_ID }))
-      .mockResolvedValueOnce(null);
+    policyRules(makeRule({ order: 1, scheduleId: SCHEDULE_ID }));
     scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
       userId: USER_2,
       coveredUserId: null,
@@ -1068,7 +1142,7 @@ describe("incoming call voice routing", () => {
   });
 
   test("ends with the configured no-one-available message after every rule is exhausted", async () => {
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
     policyService.findOneById.mockResolvedValue(
       makePolicy({ noOneAvailableMessage: "Please call support" }),
     );
@@ -1197,7 +1271,8 @@ describe("incoming call dial-status routing", () => {
   });
 
   test("escalates from the exact called number, never the policy's first number", async () => {
-    ruleService.findOneBy.mockResolvedValue(
+    policyRules(
+      makeRule({ order: 1, userId: USER_1 }),
       makeRule({ id: RULE_2_ID, order: 2, userId: USER_2, timeout: 25 }),
     );
     incomingNumberService.findOneBy.mockResolvedValue(
@@ -1237,6 +1312,100 @@ describe("incoming call dial-status routing", () => {
     expect(result.send).toHaveBeenCalledWith("<Response><Dial/></Response>");
   });
 
+  /*
+   * The next rule is the one after the rule just dialled in the policy's
+   * order (issue #9609). A newer rule that shares the dialled rule's number
+   * comes after it and is rung next - "the first numbered higher" skipped
+   * it.
+   */
+  test("rings the second of two rules at one number after the first, instead of skipping it", async () => {
+    policyRules(
+      makeRule({
+        order: 1,
+        userId: USER_1,
+        createdAt: new Date("2026-11-01T09:00:00.000Z"),
+      }),
+      makeRule({
+        id: RULE_2_ID,
+        order: 1,
+        userId: USER_2,
+        createdAt: new Date("2026-11-01T09:05:00.000Z"),
+      }),
+      makeRule({
+        id: new ObjectID("77777777-7777-4777-8777-777777777773"),
+        order: 2,
+        userId: USER_1,
+      }),
+    );
+    incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      return Promise.resolve(
+        args.query.userId.toString() === USER_1.toString()
+          ? makeVerifiedNumber(USER_1, USER_1_NUMBER)
+          : makeVerifiedNumber(USER_2, USER_2_NUMBER),
+      );
+    });
+
+    await invokeDialStatus();
+
+    expect(provider.generateEscalationResponse).toHaveBeenCalledWith(
+      "Connecting you to the next available engineer.",
+      expect.objectContaining({ toPhoneNumber: USER_2_NUMBER }),
+    );
+    expect(
+      logItemService.create.mock.calls[0]?.[0].data
+        .incomingCallPolicyEscalationRuleId,
+    ).toEqual(RULE_2_ID);
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: {
+        currentEscalationRuleOrder: 1,
+        status: IncomingCallStatus.Escalated,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("the attempt read for a callback names the rule it dialled", async () => {
+    await invokeDialStatus();
+
+    expect(logItemService.findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          incomingCallPolicyEscalationRuleId: true,
+        }),
+      }),
+    );
+  });
+
+  test("a rule deleted while its phone rang: the rules at its number and after it come next", async () => {
+    logService.findOneById.mockResolvedValue(
+      makeCallLog({ routingPhone: SECOND_NUMBER, currentOrder: 2 }),
+    );
+    // The attempt's rule was deleted: the column is set null.
+    logItemService.findOneById.mockResolvedValue(
+      makeCallLogItem(CALL_LOG_ID, null),
+    );
+    policyRules(
+      makeRule({ order: 1, userId: USER_1 }),
+      makeRule({ id: RULE_2_ID, order: 3, userId: USER_2 }),
+    );
+    incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      return Promise.resolve(
+        args.query.userId.toString() === USER_1.toString()
+          ? makeVerifiedNumber(USER_1, USER_1_NUMBER)
+          : makeVerifiedNumber(USER_2, USER_2_NUMBER),
+      );
+    });
+
+    await invokeDialStatus();
+
+    // Rule 1, before the deleted rule, is not rung again.
+    expect(provider.generateEscalationResponse).toHaveBeenCalledWith(
+      "Connecting you to the next available engineer.",
+      expect.objectContaining({ toPhoneNumber: USER_2_NUMBER }),
+    );
+  });
+
   test("repeats from the exact called number and increments repeat state only after resolving a user", async () => {
     policyService.findOneById.mockResolvedValue(
       makePolicy({
@@ -1246,9 +1415,8 @@ describe("incoming call dial-status routing", () => {
         repeatTimes: 2,
       }),
     );
-    ruleService.findOneBy
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(makeRule({ order: 1, userId: USER_1 }));
+    // Rule 1 is the only rule: none after it, and a repeat starts again at it.
+    policyRules(makeRule({ order: 1, userId: USER_1 }));
 
     await invokeDialStatus();
 
@@ -1294,7 +1462,7 @@ describe("incoming call dial-status routing", () => {
       },
       props: { isRoot: true },
     });
-    expect(ruleService.findOneBy).not.toHaveBeenCalled();
+    expect(ruleService.findBy).not.toHaveBeenCalled();
     expect(provider.generateHangupResponse).toHaveBeenCalledWith();
     expect(result.send).toHaveBeenCalledWith("<Response><Hangup/></Response>");
   });
@@ -1310,11 +1478,11 @@ describe("incoming call dial-status routing", () => {
         noAnswerMessage: "Leave a support ticket",
       }),
     );
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
 
     await invokeDialStatus();
 
-    expect(ruleService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(ruleService.findBy).toHaveBeenCalledTimes(1);
     expect(logService.updateOneById).toHaveBeenCalledWith({
       id: CALL_LOG_ID,
       data: {
@@ -1339,9 +1507,8 @@ describe("incoming call dial-status routing", () => {
     policyService.findOneById.mockResolvedValue(
       makePolicy({ repeat: true, repeatTimes: 0 }),
     );
-    ruleService.findOneBy
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(makeRule({ order: 1, userId: USER_1 }));
+    // Rule 1 is the only rule: none after it, and a repeat starts again at it.
+    policyRules(makeRule({ order: 1, userId: USER_1 }));
 
     await invokeDialStatus();
 
@@ -1364,11 +1531,11 @@ describe("incoming call dial-status routing", () => {
     policyService.findOneById.mockResolvedValue(
       makePolicy({ repeat: true, repeatTimes: 0 }),
     );
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
 
     await invokeDialStatus();
 
-    expect(ruleService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(ruleService.findBy).toHaveBeenCalledTimes(1);
     expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
     expect(provider.generateHangupResponse).toHaveBeenCalledWith(
       "Nobody answered",
@@ -1379,11 +1546,11 @@ describe("incoming call dial-status routing", () => {
     policyService.findOneById.mockResolvedValue(
       makePolicy({ repeat: false, repeatTimes: 3 }),
     );
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
 
     await invokeDialStatus();
 
-    expect(ruleService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(ruleService.findBy).toHaveBeenCalledTimes(1);
     expect(logService.updateOneById).toHaveBeenCalledWith({
       id: CALL_LOG_ID,
       data: {
@@ -1403,7 +1570,8 @@ describe("incoming call dial-status routing", () => {
       makeCallLog({ routingPhone: PRIMARY_NUMBER }),
     );
     numberService.findOneBy.mockResolvedValue(null);
-    ruleService.findOneBy.mockResolvedValue(
+    policyRules(
+      makeRule({ order: 1, userId: USER_1 }),
       makeRule({ id: RULE_2_ID, order: 2, userId: USER_2 }),
     );
     incomingNumberService.findOneBy.mockResolvedValue(
@@ -1442,7 +1610,7 @@ describe("incoming call dial-status routing", () => {
     );
     expect(logItemService.updateOneById).not.toHaveBeenCalled();
     expect(logService.updateOneById).not.toHaveBeenCalled();
-    expect(ruleService.findOneBy).not.toHaveBeenCalled();
+    expect(ruleService.findBy).not.toHaveBeenCalled();
     expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
   });
 
@@ -1521,7 +1689,8 @@ describe("incoming call dial-status after the caller hangs up", () => {
       makeAttachedNumber({ phone: SECOND_NUMBER, configId: CONFIG_SECOND }),
     );
     logItemService.findOneById.mockResolvedValue(makeCallLogItem());
-    ruleService.findOneBy.mockResolvedValue(
+    policyRules(
+      makeRule({ order: 1, userId: USER_1 }),
       makeRule({ id: RULE_2_ID, order: 2, userId: USER_2 }),
     );
     incomingNumberService.findOneBy.mockResolvedValue(
@@ -1585,7 +1754,7 @@ describe("incoming call dial-status after the caller hangs up", () => {
   test("never looks up, logs or dials another engineer", async () => {
     await invokeCallerHungUp();
 
-    expect(ruleService.findOneBy).not.toHaveBeenCalled();
+    expect(ruleService.findBy).not.toHaveBeenCalled();
     expect(incomingNumberService.findOneBy).not.toHaveBeenCalled();
     expect(logItemService.create).not.toHaveBeenCalled();
     expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
@@ -1596,19 +1765,8 @@ describe("incoming call dial-status after the caller hangs up", () => {
   });
 
   test("does not spend the repeat budget on a caller who is gone", async () => {
-    /*
-     * Rule 1 is the only rule, so a no-answer here would restart the policy
-     * from it. Answer by query rather than queueing one-off answers: the
-     * handler under test never asks, and queued answers would outlive it.
-     */
-    ruleService.findOneBy.mockImplementation((args: any) => {
-      const afterOrder: unknown = Object.values(
-        args.query.order.objectLiteralParameters,
-      )[0];
-      return Promise.resolve(
-        afterOrder === 0 ? makeRule({ order: 1, userId: USER_1 }) : null,
-      );
-    });
+    // Rule 1 is the only rule, so a no-answer here would restart the policy from it.
+    policyRules(makeRule({ order: 1, userId: USER_1 }));
     incomingNumberService.findOneBy.mockResolvedValue(
       makeVerifiedNumber(USER_1, USER_1_NUMBER),
     );
@@ -1627,7 +1785,7 @@ describe("incoming call dial-status after the caller hangs up", () => {
     policyService.findOneById.mockResolvedValue(
       makePolicy({ repeat: false, noAnswerMessage: "Leave a support ticket" }),
     );
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
 
     await invokeCallerHungUp();
 
@@ -1700,7 +1858,7 @@ describe("incoming call dial-status after the caller hangs up", () => {
     expect(logUpdates()).toEqual([
       { status: IncomingCallStatus.Completed, endedAt: expect.any(Date) },
     ]);
-    expect(ruleService.findOneBy).not.toHaveBeenCalled();
+    expect(ruleService.findBy).not.toHaveBeenCalled();
   });
 
   test("keeps hunting on the same dial result while the caller is still on the line", async () => {
@@ -1814,7 +1972,7 @@ describe("incoming call missed call notifications", () => {
   });
 
   test("a call nobody is available for is a missed call", async () => {
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
 
     await invoke("/voice", { body: voiceBody() });
 
@@ -1830,7 +1988,7 @@ describe("incoming call missed call notifications", () => {
   });
 
   test("a call whose hunt ran out is a missed call", async () => {
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
 
     await invokeDialStatus(dialBody("no-answer"));
 
@@ -1870,7 +2028,8 @@ describe("incoming call missed call notifications", () => {
   });
 
   test("escalating to the next engineer tells nobody", async () => {
-    ruleService.findOneBy.mockResolvedValue(
+    policyRules(
+      makeRule({ order: 1, userId: USER_1 }),
       makeRule({ id: RULE_2_ID, order: 2, userId: USER_2 }),
     );
     incomingNumberService.findOneBy.mockResolvedValue(
@@ -1887,14 +2046,7 @@ describe("incoming call missed call notifications", () => {
     policyService.findOneById.mockResolvedValue(
       makePolicy({ repeat: true, repeatTimes: 2 }),
     );
-    ruleService.findOneBy.mockImplementation((args: any) => {
-      const afterOrder: unknown = Object.values(
-        args.query.order.objectLiteralParameters,
-      )[0];
-      return Promise.resolve(
-        afterOrder === 0 ? makeRule({ order: 1, userId: USER_1 }) : null,
-      );
-    });
+    policyRules(makeRule({ order: 1, userId: USER_1 }));
 
     await invokeDialStatus(dialBody("no-answer"));
 
@@ -1907,7 +2059,7 @@ describe("incoming call missed call notifications", () => {
   });
 
   test("the reply to Twilio does not wait for the notification", async () => {
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
     missedCallNotifier.notifyOwnersOfMissedCall.mockReturnValue(
       new Promise<void>(() => {
         // Never settles: owners on a slow mail server.
@@ -1923,7 +2075,7 @@ describe("incoming call missed call notifications", () => {
   });
 
   test("a notification that fails is logged and the caller still gets the reply", async () => {
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
     const failure: Error = new Error("mail server down");
     missedCallNotifier.notifyOwnersOfMissedCall.mockRejectedValue(failure);
 
@@ -1939,7 +2091,7 @@ describe("incoming call missed call notifications", () => {
   });
 
   test("a failure ending the call is not reported as a missed call", async () => {
-    ruleService.findOneBy.mockResolvedValue(null);
+    policyRules();
     const failure: Error = new Error("database is down");
     logService.updateOneById.mockRejectedValue(failure);
 
@@ -1999,7 +2151,7 @@ describe("incoming call dial-status after the call ended", () => {
       expect(logItemService.updateOneById).not.toHaveBeenCalled();
       expect(logService.updateOneById).not.toHaveBeenCalled();
       expect(logItemService.create).not.toHaveBeenCalled();
-      expect(ruleService.findOneBy).not.toHaveBeenCalled();
+      expect(ruleService.findBy).not.toHaveBeenCalled();
       expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
       expect(
         missedCallNotifier.notifyOwnersOfMissedCall,
@@ -2056,10 +2208,12 @@ describe("incoming call answered by", () => {
 
     await invokeAnswered();
 
+    // The attempt's user, and the rule it dialled for where the hunt goes on.
     expect(logItemService.findOneById.mock.calls[0]?.[0].select).toEqual({
       _id: true,
       incomingCallLogId: true,
       userId: true,
+      incomingCallPolicyEscalationRuleId: true,
     });
     expect(logService.updateOneById).toHaveBeenCalledWith({
       id: CALL_LOG_ID,
