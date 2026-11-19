@@ -713,29 +713,30 @@ function getPagesCard(
       changes,
       weeks,
       (week: AiOutcomesWeek): AiResultsWeekBar => {
-      return {
-        weekStart: week.weekStart,
-        value: week.pagesAvoided,
-        total: week.pagesHeld,
-        description:
-          week.pagesHeld > 0
-            ? translatePlural(
-                {
-                  one: "Week of {{date}}: {{value}} of {{count}} held page ended with OneUptime AI's fix",
-                  other:
-                    "Week of {{date}}: {{value}} of {{count}} held pages ended with OneUptime AI's fix",
-                },
-                week.pagesHeld,
-                {
+        return {
+          weekStart: week.weekStart,
+          value: week.pagesAvoided,
+          total: week.pagesHeld,
+          description:
+            week.pagesHeld > 0
+              ? translatePlural(
+                  {
+                    one: "Week of {{date}}: {{value}} of {{count}} held page ended with OneUptime AI's fix",
+                    other:
+                      "Week of {{date}}: {{value}} of {{count}} held pages ended with OneUptime AI's fix",
+                  },
+                  week.pagesHeld,
+                  {
+                    date: describeTrendDate(week.weekStart),
+                    value: formatCount(week.pagesAvoided),
+                  },
+                )
+              : translateTemplate("Week of {{date}}: no held pages", {
                   date: describeTrendDate(week.weekStart),
-                  value: formatCount(week.pagesAvoided),
-                },
-              )
-            : translateTemplate("Week of {{date}}: no held pages", {
-                date: describeTrendDate(week.weekStart),
-              }),
-      };
-    }),
+                }),
+        };
+      },
+    ),
     recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
       return { value: week.pagesAvoided, total: week.pagesHeld };
     }),
@@ -970,29 +971,30 @@ function getFixesCard(
       changes,
       weeks,
       (week: AiOutcomesWeek): AiResultsWeekBar => {
-      return {
-        weekStart: week.weekStart,
-        value: week.fixesVerified,
-        total: week.fixesChecked,
-        description:
-          week.fixesChecked > 0
-            ? translatePlural(
-                {
-                  one: "Week of {{date}}: {{value}} of {{count}} checked fix worked",
-                  other:
-                    "Week of {{date}}: {{value}} of {{count}} checked fixes worked",
-                },
-                week.fixesChecked,
-                {
+        return {
+          weekStart: week.weekStart,
+          value: week.fixesVerified,
+          total: week.fixesChecked,
+          description:
+            week.fixesChecked > 0
+              ? translatePlural(
+                  {
+                    one: "Week of {{date}}: {{value}} of {{count}} checked fix worked",
+                    other:
+                      "Week of {{date}}: {{value}} of {{count}} checked fixes worked",
+                  },
+                  week.fixesChecked,
+                  {
+                    date: describeTrendDate(week.weekStart),
+                    value: formatCount(week.fixesVerified),
+                  },
+                )
+              : translateTemplate("Week of {{date}}: no checked fixes", {
                   date: describeTrendDate(week.weekStart),
-                  value: formatCount(week.fixesVerified),
-                },
-              )
-            : translateTemplate("Week of {{date}}: no checked fixes", {
-                date: describeTrendDate(week.weekStart),
-              }),
-      };
-    }),
+                }),
+        };
+      },
+    ),
     recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
       return { value: week.fixesVerified, total: week.fixesChecked };
     }),
@@ -1140,29 +1142,33 @@ function getRootCausesCard(
       changes,
       weeks,
       (week: AiOutcomesWeek): AiResultsWeekBar => {
-      return {
-        weekStart: week.weekStart,
-        value: week.rootCausesConfirmed,
-        total: week.rootCausesJudged,
-        description:
-          week.rootCausesJudged > 0
-            ? translatePlural(
-                {
-                  one: "Week of {{date}}: {{value}} of {{count}} judged investigation found the right root cause",
-                  other:
-                    "Week of {{date}}: {{value}} of {{count}} judged investigations found the right root cause",
-                },
-                week.rootCausesJudged,
-                {
-                  date: describeTrendDate(week.weekStart),
-                  value: formatCount(week.rootCausesConfirmed),
-                },
-              )
-            : translateTemplate("Week of {{date}}: no judged investigations", {
-                date: describeTrendDate(week.weekStart),
-              }),
-      };
-    }),
+        return {
+          weekStart: week.weekStart,
+          value: week.rootCausesConfirmed,
+          total: week.rootCausesJudged,
+          description:
+            week.rootCausesJudged > 0
+              ? translatePlural(
+                  {
+                    one: "Week of {{date}}: {{value}} of {{count}} judged investigation found the right root cause",
+                    other:
+                      "Week of {{date}}: {{value}} of {{count}} judged investigations found the right root cause",
+                  },
+                  week.rootCausesJudged,
+                  {
+                    date: describeTrendDate(week.weekStart),
+                    value: formatCount(week.rootCausesConfirmed),
+                  },
+                )
+              : translateTemplate(
+                  "Week of {{date}}: no judged investigations",
+                  {
+                    date: describeTrendDate(week.weekStart),
+                  },
+                ),
+        };
+      },
+    ),
     recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
       return { value: week.rootCausesConfirmed, total: week.rootCausesJudged };
     }),
@@ -1239,8 +1245,7 @@ export function describeRecentWeeks(
 export const BY_MODEL_TITLE: string = translationKey("By model");
 
 // The line of investigations, or fixes, done before models were recorded.
-export const UNKNOWN_MODEL_LABEL: string =
-  translationKey("Model not recorded");
+export const UNKNOWN_MODEL_LABEL: string = translationKey("Model not recorded");
 
 // A model's line: what went well out of what was counted.
 export const MODEL_RESULT_TEMPLATE: string = translationKey(
