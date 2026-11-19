@@ -80,7 +80,8 @@
           }
         }
       ],
-      "./plugins/withFoldableContinuity"
+      "./plugins/withFoldableContinuity",
+      "./plugins/withOptionalHardwareFeatures"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

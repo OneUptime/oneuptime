@@ -648,6 +648,16 @@ build on a device or the Android emulator - sign-in and single sign-on, a push
 page and its actions, critical alerts, the biometric lock, and a fold - since a
 missing keep rule fails only at run time.
 
+Publishing overview runs quick checks before it sends a release for review.
+On 1.7.0 it reported "Required hardware feature declarations are restricting
+your app's availability" for `android.hardware.wifi`, which Play infers from
+the `ACCESS_WIFI_STATE` permission `@react-native-community/netinfo` asks for;
+1.7.0 went to review with it acknowledged (no device was lost against 1.6.0).
+Since the release after 1.7.0, `plugins/withOptionalHardwareFeatures.js`
+declares Wi-Fi not required (`src/__tests__/optionalHardwareFeatures.test.ts`).
+A feature the check names again belongs in that plugin's list, not in an
+"ignore" in the console.
+
 EAS Submit can put the validated AAB into a production **draft** instead of an
 upload in Chrome. `eas.json`'s `submit.production.android` sets
 `track: production` and `releaseStatus: draft`, so it never publishes or sends
