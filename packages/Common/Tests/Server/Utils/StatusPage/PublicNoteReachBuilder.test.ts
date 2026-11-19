@@ -29,7 +29,10 @@ import {
  *   - the event is read with the caller's own permissions first: another
  *     project's, and one the caller may not read, are not found;
  *   - an incident's answer is its notification preview's for a note, so the
- *     composer and the preview never disagree.
+ *     composer and the preview never disagree;
+ *   - who may ask is decided for the event, as posting a note on it or
+ *     editing one of its notes is: never by the table's permissions alone
+ *     (Tests/Server/Utils/Permission/TableHalfWriteGuard).
  */
 
 jest.mock("../../../../Server/Utils/Logger", () => {
@@ -47,22 +50,33 @@ jest.mock("../../../../Server/Utils/Logger", () => {
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "../../../../Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentEpisodePublicNote from "../../../../Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../../Models/DatabaseModels/StatusPageResource";
 import IncidentEpisodeMemberService from "../../../../Server/Services/IncidentEpisodeMemberService";
+import IncidentEpisodePublicNoteService from "../../../../Server/Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
+import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import ScheduledMaintenancePublicNoteService from "../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import StatusPageResourceService from "../../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../../Server/Services/StatusPageSubscriberService";
+import CreateScopeException from "../../../../Server/Types/Database/Permissions/CreateScopeException";
+import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
+import { UnreadableParentException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import PublicNoteReachBuilder from "../../../../Server/Utils/StatusPage/PublicNoteReachBuilder";
 import SubscriberNotificationPreviewBuilder from "../../../../Server/Utils/StatusPage/SubscriberNotificationPreviewBuilder";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../../Types/Dictionary";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
@@ -513,6 +527,21 @@ beforeEach(() => {
       event.statusPages = toPageRefs(row.statusPageIds);
       return event;
     }) as never);
+
+  /*
+   * The caller may post a note on the event, as a create of one on it
+   * decides (DatabaseService.checkCallerMayCreate, which reads the event's
+   * own row). "Who may ask" below refuses it.
+   */
+  jest
+    .spyOn(IncidentPublicNoteService, "checkCallerMayCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(IncidentEpisodePublicNoteService, "checkCallerMayCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ScheduledMaintenancePublicNoteService, "checkCallerMayCreate")
+    .mockResolvedValue(undefined as never);
 });
 
 afterEach(() => {
@@ -1125,6 +1154,361 @@ describe("the answer for an incident is the audience's, and only that", () => {
     );
     expect(JSON.stringify(PublicNoteReach.toJSON(result))).not.toContain(
       SITE_1,
+    );
+  });
+});
+
+/*
+ * WHO MAY ASK IS DECIDED FOR THE EVENT (TableHalfWriteGuard).
+ *
+ * Whoever may write the event's public notes - post one on it, or edit one
+ * of its own - and that is the event's to decide: a permission to post
+ * notes limited to the "staging" label does not reach an incident labelled
+ * "production", nor one limited to what the caller's teams own an incident
+ * nobody on them owns. Posting one is asked as the create of a note on the
+ * event is (DatabaseService.checkCallerMayCreate); editing one, when that
+ * is refused, as a note of the event the caller's update permission
+ * reaches (ModelPermission.getUpdatableQuery, found as root). The table's
+ * permissions alone decide nothing.
+ */
+describe("who may ask, decided for the event", () => {
+  interface NoteEvent {
+    event: PublicNoteReachEvent;
+    eventId: string;
+    // The note's column that names its event.
+    eventColumn: string;
+    checkCallerMayCreate: () => jest.Mock;
+    findNote: () => jest.SpyInstance;
+    setUp: () => void;
+  }
+
+  const NOTE_EVENTS: Array<NoteEvent> = [
+    {
+      event: PublicNoteReachEvent.Incident,
+      eventId: INCIDENT,
+      eventColumn: "incidentId",
+      checkCallerMayCreate: (): jest.Mock => {
+        return IncidentPublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
+      },
+      findNote: (): jest.SpyInstance => {
+        return jest.spyOn(IncidentPublicNoteService, "findOneBy");
+      },
+      setUp: (): void => {
+        setIncident();
+      },
+    },
+    {
+      event: PublicNoteReachEvent.IncidentEpisode,
+      eventId: EPISODE,
+      eventColumn: "incidentEpisodeId",
+      checkCallerMayCreate: (): jest.Mock => {
+        return IncidentEpisodePublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
+      },
+      findNote: (): jest.SpyInstance => {
+        return jest.spyOn(IncidentEpisodePublicNoteService, "findOneBy");
+      },
+      setUp: (): void => {
+        setIncident();
+        setEpisode();
+      },
+    },
+    {
+      event: PublicNoteReachEvent.ScheduledMaintenance,
+      eventId: MAINTENANCE,
+      eventColumn: "scheduledMaintenanceId",
+      checkCallerMayCreate: (): jest.Mock => {
+        return ScheduledMaintenancePublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
+      },
+      findNote: (): jest.SpyInstance => {
+        return jest.spyOn(ScheduledMaintenancePublicNoteService, "findOneBy");
+      },
+      setUp: (): void => {
+        setMaintenance();
+      },
+    },
+  ];
+
+  // How many reads of the events were made as root.
+  function rootReads(): number {
+    const reads: Array<jest.Mock> = [
+      IncidentService.findOneBy as unknown as jest.Mock,
+      IncidentEpisodeService.findOneBy as unknown as jest.Mock,
+      ScheduledMaintenanceService.findOneBy as unknown as jest.Mock,
+    ];
+
+    return reads
+      .map((read: jest.Mock): number => {
+        return read.mock.calls.filter((call: Array<unknown>): boolean => {
+          return (
+            (call[0] as { props: DatabaseCommonInteractionProps }).props
+              .isRoot === true
+          );
+        }).length;
+      })
+      .reduce((sum: number, count: number): number => {
+        return sum + count;
+      }, 0);
+  }
+
+  // The event's notes the caller may update: its query, marked as narrowed.
+  function updatableNotesAre(): jest.SpyInstance {
+    return jest
+      .spyOn(ModelPermission, "getUpdatableQuery")
+      .mockImplementation((async (
+        _modelType: unknown,
+        query: JSONObject,
+      ): Promise<JSONObject> => {
+        return { ...query, ownedByTheCallersTeams: true };
+      }) as never);
+  }
+
+  describe.each(NOTE_EVENTS)(
+    "a public note of the event kind $event",
+    (noteEvent: NoteEvent) => {
+      beforeEach(() => {
+        noteEvent.setUp();
+      });
+
+      test("posting one is asked as the create of a note on this event, in the project, as the caller", async () => {
+        const caller: DatabaseCommonInteractionProps = props();
+
+        await reach(noteEvent.event, noteEvent.eventId, caller);
+
+        const create: jest.Mock = noteEvent.checkCallerMayCreate();
+
+        expect(create).toHaveBeenCalledTimes(1);
+
+        const asked: { data: JSONObject; props: unknown } = create.mock
+          .calls[0]![0] as { data: JSONObject; props: unknown };
+
+        expect(String(asked.data[noteEvent.eventColumn])).toBe(
+          noteEvent.eventId,
+        );
+        expect(String(asked.data["projectId"])).toBe(PROJECT_ID.toString());
+        expect(asked.props).toBe(caller);
+      });
+
+      test("one who may post one is answered, and asked nothing about editing", async () => {
+        const updatable: jest.SpyInstance = updatableNotesAre();
+
+        await reach(noteEvent.event, noteEvent.eventId);
+
+        expect(updatable).not.toHaveBeenCalled();
+      });
+
+      test("refused the post, one who may edit a note of this event is answered", async () => {
+        noteEvent
+          .checkCallerMayCreate()
+          .mockRejectedValue(
+            new CreateScopeException(
+              'This permission only lets you create public notes on records labelled "staging".',
+            ) as never,
+          );
+        const updatable: jest.SpyInstance = updatableNotesAre();
+        const findNote: jest.SpyInstance = noteEvent
+          .findNote()
+          .mockResolvedValue(new IncidentPublicNote() as never);
+
+        await reach(noteEvent.event, noteEvent.eventId);
+
+        // The notes of this event, narrowed to what the caller may update...
+        expect(updatable).toHaveBeenCalledTimes(1);
+
+        const notesOfEvent: JSONObject = updatable.mock
+          .calls[0]![1] as JSONObject;
+
+        expect(String(notesOfEvent[noteEvent.eventColumn])).toBe(
+          noteEvent.eventId,
+        );
+        expect(String(notesOfEvent["projectId"])).toBe(PROJECT_ID.toString());
+
+        // ...and one of them found, as root, by that query.
+        const found: {
+          query: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        } = findNote.mock.calls[0]![0] as {
+          query: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        };
+
+        expect(found.query["ownedByTheCallersTeams"]).toBe(true);
+        expect(found.props.isRoot).toBe(true);
+      });
+
+      test("refused the post, with no note of this event to edit, is refused - and nothing about the event is read as root", async () => {
+        noteEvent
+          .checkCallerMayCreate()
+          .mockRejectedValue(new NotAuthorizedException("No.") as never);
+        updatableNotesAre();
+        noteEvent.findNote().mockResolvedValue(null as never);
+
+        await expect(
+          reach(noteEvent.event, noteEvent.eventId),
+        ).rejects.toBeInstanceOf(NotAuthorizedException);
+
+        expect(rootReads()).toBe(0);
+        expect(
+          StatusPageSubscriberService.getStatusPagesToSendNotification,
+        ).not.toHaveBeenCalled();
+      });
+
+      test("refused the post, and allowed to edit no note at all, is refused", async () => {
+        noteEvent
+          .checkCallerMayCreate()
+          .mockRejectedValue(new NotAuthorizedException("No.") as never);
+        jest
+          .spyOn(ModelPermission, "getUpdatableQuery")
+          .mockRejectedValue(new NotAuthorizedException("No.") as never);
+        const findNote: jest.SpyInstance = noteEvent.findNote();
+
+        await expect(reach(noteEvent.event, noteEvent.eventId)).rejects.toThrow(
+          "public notes are shown. You need a permission that lets you post or edit them.",
+        );
+        expect(findNote).not.toHaveBeenCalled();
+      });
+
+      test("the event is read as the caller first: one they may not read is not found, and nobody asks whether they may write its notes", async () => {
+        readableEventIds = [];
+
+        await expect(
+          reach(noteEvent.event, noteEvent.eventId),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        expect(noteEvent.checkCallerMayCreate()).not.toHaveBeenCalled();
+      });
+
+      test("a master admin is not asked", async () => {
+        const masterAdmin: DatabaseCommonInteractionProps = {
+          ...props([]),
+          isMasterAdmin: true,
+        };
+
+        await reach(noteEvent.event, noteEvent.eventId, masterAdmin);
+
+        expect(noteEvent.checkCallerMayCreate()).not.toHaveBeenCalled();
+      });
+    },
+  );
+
+  /*
+   * What the create check refuses with: a permission that does not reach
+   * the event's labels or owners, an event the caller may not read, a plan
+   * that does not sell the write. Each is a "no", and editing is asked
+   * next.
+   */
+  test.each([
+    [
+      "a permission limited to labels the incident does not carry",
+      new CreateScopeException("Not on these labels."),
+    ],
+    ["no permission to post notes", new NotAuthorizedException("No.")],
+    [
+      "an incident the caller may not read",
+      new UnreadableParentException("Not readable."),
+    ],
+    [
+      "a plan that does not sell it",
+      new PaymentRequiredException("Upgrade your plan."),
+    ],
+  ] as Array<[string, Error]>)(
+    "%s is a refusal, not a failure",
+    async (_name: string, refusal: Error) => {
+      setIncident();
+      (
+        IncidentPublicNoteService.checkCallerMayCreate as unknown as jest.Mock
+      ).mockRejectedValue(refusal as never);
+      updatableNotesAre();
+      jest
+        .spyOn(IncidentPublicNoteService, "findOneBy")
+        .mockResolvedValue(null as never);
+
+      await expect(incidentReach()).rejects.toBeInstanceOf(
+        NotAuthorizedException,
+      );
+    },
+  );
+
+  test("a failure that is no refusal is thrown as it came", async () => {
+    setIncident();
+
+    const failure: Error = new Error("The database did not answer.");
+
+    (
+      IncidentPublicNoteService.checkCallerMayCreate as unknown as jest.Mock
+    ).mockRejectedValue(failure as never);
+
+    await expect(incidentReach()).rejects.toBe(failure);
+  });
+
+  test("an episode's and a maintenance event's notes are asked of their own services", async () => {
+    setIncident();
+    setEpisode();
+    setMaintenance();
+
+    await episodeReach();
+    await maintenanceReach();
+
+    const episodeCreate: jest.Mock =
+      IncidentEpisodePublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
+    const maintenanceCreate: jest.Mock =
+      ScheduledMaintenancePublicNoteService.checkCallerMayCreate as unknown as jest.Mock;
+
+    expect(episodeCreate).toHaveBeenCalledTimes(1);
+    expect(maintenanceCreate).toHaveBeenCalledTimes(1);
+    expect(
+      IncidentPublicNoteService.checkCallerMayCreate,
+    ).not.toHaveBeenCalled();
+    expect(
+      (episodeCreate.mock.calls[0]![0] as { data: unknown }).data,
+    ).toBeInstanceOf(IncidentEpisodePublicNote);
+    expect(
+      (maintenanceCreate.mock.calls[0]![0] as { data: unknown }).data,
+    ).toBeInstanceOf(ScheduledMaintenancePublicNote);
+  });
+});
+
+/*
+ * The route's first refusal, before it reads the body: a caller who may
+ * write that kind of note nowhere in the project. It lets nobody through on
+ * its own - build decides for the event.
+ */
+describe("the route's first refusal", () => {
+  test("lets through a caller whose permission to post notes is limited to some labels: the event decides", () => {
+    const limited: DatabaseCommonInteractionProps = props([]);
+
+    limited.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions = [
+      {
+        _type: "UserPermission",
+        permission: Permission.CreateIncidentPublicNote,
+        labelIds: [new ObjectID("70000000-0000-4000-8000-000000000001")],
+        isBlockPermission: false,
+      } as UserPermission,
+    ];
+
+    expect(() => {
+      PublicNoteReachBuilder.assertCallerMayAsk({
+        props: limited,
+        event: PublicNoteReachEvent.Incident,
+      });
+    }).not.toThrow();
+  });
+
+  test("refuses a credential that may only read, whatever it holds", () => {
+    expect(() => {
+      PublicNoteReachBuilder.assertCallerMayAsk({
+        props: { ...props(), isReadOnlyCredential: true },
+        event: PublicNoteReachEvent.Incident,
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("refuses a caller who may only read the notes", () => {
+    expect(() => {
+      PublicNoteReachBuilder.assertCallerMayAsk({
+        props: props([Permission.ReadIncidentPublicNote]),
+        event: PublicNoteReachEvent.Incident,
+      });
+    }).toThrow(
+      "You do not have permission to see where this incident's public notes are shown. You need a permission that lets you post or edit them.",
     );
   });
 });
