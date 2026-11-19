@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "{{count}} 分钟后呼叫 {{responders}}",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "他们将加入 {{team}} 团队，每人都会收到一封接受邀请的邮件。",
   "They join the {{team}} team.": "他们将加入 {{team}} 团队。",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "这将替换你现在被呼叫的方式，适用于所有严重程度的每个事件和警报。"
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "这将替换你现在被呼叫的方式，适用于所有严重程度的每个事件和警报。",
+  "Describe it instead": "改为用一句话描述",
+  "Open in guided setup": "在引导式设置中打开",
+  "Monitor my website and page me when it is down.": "监控我的网站，并在它宕机时呼叫我。",
+  "Monitor {{address}} and page me when it is down.": "监控 {{address}}，并在它宕机时呼叫我。",
+  "Monitor the API at {{address}} and page me when it is down.": "监控 {{address}} 上的 API，并在它宕机时呼叫我。",
+  "Page me for every new incident and alert.": "在每个新事件和每个新警报时呼叫我。",
+  "Publish a status page that shows my monitors.": "发布一个显示我的监视器的状态页。",
+  "Publish a status page called {{name}} that shows my monitors.": "发布一个名为 {{name}} 并显示我的监视器的状态页。",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "帮我把服务的日志、指标和追踪发送到 OneUptime，并在它出现错误时提醒我。"
 }

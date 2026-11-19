@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Затем вызывает {{responders}} через {{count}} минуту",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "Они войдут в команду {{team}}, и каждый получит письмо, чтобы принять приглашение.",
   "They join the {{team}} team.": "Они войдут в команду {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Это заменит то, как к вам сейчас приходят вызовы, для каждого инцидента и оповещения любой серьёзности."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Это заменит то, как к вам сейчас приходят вызовы, для каждого инцидента и оповещения любой серьёзности.",
+  "Describe it instead": "Лучше описать словами",
+  "Open in guided setup": "Открыть в пошаговой настройке",
+  "Monitor my website and page me when it is down.": "Следи за моим сайтом и вызывай меня, когда он недоступен.",
+  "Monitor {{address}} and page me when it is down.": "Следи за {{address}} и вызывай меня, когда он недоступен.",
+  "Monitor the API at {{address}} and page me when it is down.": "Следи за API по адресу {{address}} и вызывай меня, когда он недоступен.",
+  "Page me for every new incident and alert.": "Вызывай меня при каждом новом инциденте и каждом новом оповещении.",
+  "Publish a status page that shows my monitors.": "Опубликуй страницу статуса, на которой видны мои мониторы.",
+  "Publish a status page called {{name}} that shows my monitors.": "Опубликуй страницу статуса с названием {{name}}, на которой видны мои мониторы.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Помоги отправить логи, метрики и трассировки моего сервиса в OneUptime и оповещай меня, когда в нём появляются ошибки."
 }

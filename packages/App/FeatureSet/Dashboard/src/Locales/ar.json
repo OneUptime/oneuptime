@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "ثم تستدعي {{responders}} بعد {{count}} دقيقة",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "ينضمون إلى فريق {{team}}، ويتلقى كل منهم بريدًا لقبول الدعوة.",
   "They join the {{team}} team.": "ينضمون إلى فريق {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "يستبدل هذا طريقة وصول الاستدعاءات إليك الآن، لكل حادثة وتنبيه بكل درجات الخطورة."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "يستبدل هذا طريقة وصول الاستدعاءات إليك الآن، لكل حادثة وتنبيه بكل درجات الخطورة.",
+  "Describe it instead": "صِفه بدلًا من ذلك",
+  "Open in guided setup": "افتحه في الإعداد الموجَّه",
+  "Monitor my website and page me when it is down.": "راقب موقعي واستدعني حين يتعطل.",
+  "Monitor {{address}} and page me when it is down.": "راقب {{address}} واستدعني حين يتعطل.",
+  "Monitor the API at {{address}} and page me when it is down.": "راقب واجهة API على {{address}} واستدعني حين تتعطل.",
+  "Page me for every new incident and alert.": "استدعني عند كل حادثة جديدة وكل تنبيه جديد.",
+  "Publish a status page that shows my monitors.": "انشر صفحة حالة تعرض مراقباتي.",
+  "Publish a status page called {{name}} that shows my monitors.": "انشر صفحة حالة باسم {{name}} تعرض مراقباتي.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "ساعدني في إرسال سجلات خدمتي ومقاييسها وتتبّعاتها إلى OneUptime، ونبّهني حين تظهر فيها أخطاء."
 }

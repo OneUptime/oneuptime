@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "سپس پس از {{count}} دقیقه {{responders}} را فرا می‌خواند",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "آن‌ها به تیم {{team}} می‌پیوندند و هر کدام ایمیلی برای پذیرفتن دعوت دریافت می‌کنند.",
   "They join the {{team}} team.": "آن‌ها به تیم {{team}} می‌پیوندند.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "این، شیوهٔ رسیدن فراخوان‌ها به شما را برای هر حادثه و هشدار با هر شدتی جایگزین می‌کند."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "این، شیوهٔ رسیدن فراخوان‌ها به شما را برای هر حادثه و هشدار با هر شدتی جایگزین می‌کند.",
+  "Describe it instead": "به‌جایش توصیفش کنید",
+  "Open in guided setup": "باز کردن در راه‌اندازی گام‌به‌گام",
+  "Monitor my website and page me when it is down.": "وب‌سایتم را پایش کن و وقتی از کار افتاد مرا فرا بخوان.",
+  "Monitor {{address}} and page me when it is down.": "{{address}} را پایش کن و وقتی از کار افتاد مرا فرا بخوان.",
+  "Monitor the API at {{address}} and page me when it is down.": "API در {{address}} را پایش کن و وقتی از کار افتاد مرا فرا بخوان.",
+  "Page me for every new incident and alert.": "برای هر حادثه و هر هشدار تازه مرا فرا بخوان.",
+  "Publish a status page that shows my monitors.": "یک صفحهٔ وضعیت منتشر کن که مانیتورهایم را نشان دهد.",
+  "Publish a status page called {{name}} that shows my monitors.": "یک صفحهٔ وضعیت به نام {{name}} منتشر کن که مانیتورهایم را نشان دهد.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "کمکم کن لاگ‌ها، معیارها و ردگیری‌های سرویسم را به OneUptime بفرستم و وقتی خطا داشت به من هشدار بده."
 }

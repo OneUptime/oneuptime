@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "फिर {{count}} मिनट बाद {{responders}} को पेज करती है",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "वे {{team}} टीम में शामिल होते हैं, और हर किसी को आमंत्रण स्वीकार करने के लिए एक ईमेल मिलता है।",
   "They join the {{team}} team.": "वे {{team}} टीम में शामिल होते हैं।",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "यह हर गंभीरता की हर घटना और अलर्ट के लिए, अभी पेज आप तक पहुंचने का तरीका बदल देता है।"
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "यह हर गंभीरता की हर घटना और अलर्ट के लिए, अभी पेज आप तक पहुंचने का तरीका बदल देता है।",
+  "Describe it instead": "इसके बजाय लिखकर बताएँ",
+  "Open in guided setup": "गाइडेड सेटअप में खोलें",
+  "Monitor my website and page me when it is down.": "मेरी वेबसाइट को मॉनिटर करें और उसके डाउन होने पर मुझे पेज करें।",
+  "Monitor {{address}} and page me when it is down.": "{{address}} को मॉनिटर करें और उसके डाउन होने पर मुझे पेज करें।",
+  "Monitor the API at {{address}} and page me when it is down.": "{{address}} पर API को मॉनिटर करें और उसके डाउन होने पर मुझे पेज करें।",
+  "Page me for every new incident and alert.": "हर नई घटना और हर नए अलर्ट पर मुझे पेज करें।",
+  "Publish a status page that shows my monitors.": "एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
+  "Publish a status page called {{name}} that shows my monitors.": "{{name}} नाम का एक स्थिति पृष्ठ प्रकाशित करें जो मेरे मॉनिटर दिखाए।",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "मेरी सेवा के लॉग, मेट्रिक्स और ट्रेस OneUptime पर भेजने में मेरी मदद करें, और उसमें त्रुटियाँ होने पर मुझे अलर्ट करें।"
 }

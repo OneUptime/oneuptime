@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "{{count}}분 후 {{responders}} 호출",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "{{team}} 팀에 합류하며, 각자 초대를 수락할 이메일을 받습니다.",
   "They join the {{team}} team.": "{{team}} 팀에 합류합니다.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "모든 심각도의 인시던트와 경고에 대해, 지금 호출이 나에게 전달되는 방법을 바꿉니다."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "모든 심각도의 인시던트와 경고에 대해, 지금 호출이 나에게 전달되는 방법을 바꿉니다.",
+  "Describe it instead": "대신 말로 설명하기",
+  "Open in guided setup": "안내형 설정에서 열기",
+  "Monitor my website and page me when it is down.": "내 웹사이트를 모니터링하고 다운되면 나를 호출해 주세요.",
+  "Monitor {{address}} and page me when it is down.": "{{address}}을(를) 모니터링하고 다운되면 나를 호출해 주세요.",
+  "Monitor the API at {{address}} and page me when it is down.": "{{address}}의 API를 모니터링하고 다운되면 나를 호출해 주세요.",
+  "Page me for every new incident and alert.": "새 인시던트와 새 경고마다 나를 호출해 주세요.",
+  "Publish a status page that shows my monitors.": "내 모니터를 보여 주는 상태 페이지를 게시해 주세요.",
+  "Publish a status page called {{name}} that shows my monitors.": "내 모니터를 보여 주는 {{name}}(이)라는 상태 페이지를 게시해 주세요.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "내 서비스의 로그, 메트릭, 트레이스를 OneUptime으로 보내도록 도와주고, 오류가 생기면 경고해 주세요."
 }

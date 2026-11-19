@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Poi chiama {{responders}} dopo {{count}} minuto",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "Entrano nel team {{team}} e ognuno riceve un'email per accettare l'invito.",
   "They join the {{team}} team.": "Entrano nel team {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Sostituisce il modo in cui ti raggiungono ora le chiamate di reperibilità, per ogni incidente e avviso di ogni gravità."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Sostituisce il modo in cui ti raggiungono ora le chiamate di reperibilità, per ogni incidente e avviso di ogni gravità.",
+  "Describe it instead": "Descrivilo invece",
+  "Open in guided setup": "Apri nella configurazione guidata",
+  "Monitor my website and page me when it is down.": "Monitora il mio sito web e avvisami quando non funziona.",
+  "Monitor {{address}} and page me when it is down.": "Monitora {{address}} e avvisami quando non funziona.",
+  "Monitor the API at {{address}} and page me when it is down.": "Monitora l'API all'indirizzo {{address}} e avvisami quando non funziona.",
+  "Page me for every new incident and alert.": "Avvisami per ogni nuovo incidente e ogni nuovo avviso.",
+  "Publish a status page that shows my monitors.": "Pubblica una pagina di stato che mostri i miei monitor.",
+  "Publish a status page called {{name}} that shows my monitors.": "Pubblica una pagina di stato chiamata {{name}} che mostri i miei monitor.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Aiutami a inviare log, metriche e trace del mio servizio a OneUptime, e avvisami quando ha errori."
 }

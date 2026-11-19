@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "{{count}} 分後に {{responders}} を呼び出し",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "{{team}} チームに参加し、それぞれ招待を承認するためのメールが届きます。",
   "They join the {{team}} team.": "{{team}} チームに参加します。",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "すべての重大度のインシデントとアラートについて、現在の呼び出しの届き方を置き換えます。"
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "すべての重大度のインシデントとアラートについて、現在の呼び出しの届き方を置き換えます。",
+  "Describe it instead": "代わりに文章で頼む",
+  "Open in guided setup": "ガイド付きセットアップで開く",
+  "Monitor my website and page me when it is down.": "私の Web サイトを監視し、ダウンしたら私を呼び出してください。",
+  "Monitor {{address}} and page me when it is down.": "{{address}} を監視し、ダウンしたら私を呼び出してください。",
+  "Monitor the API at {{address}} and page me when it is down.": "{{address}} の API を監視し、ダウンしたら私を呼び出してください。",
+  "Page me for every new incident and alert.": "新しいインシデントやアラートのたびに私を呼び出してください。",
+  "Publish a status page that shows my monitors.": "私のモニターを表示するステータスページを公開してください。",
+  "Publish a status page called {{name}} that shows my monitors.": "私のモニターを表示する {{name}} という名前のステータスページを公開してください。",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "サービスのログ、メトリクス、トレースを OneUptime に送れるよう手伝い、エラーが起きたら私に通知してください。"
 }

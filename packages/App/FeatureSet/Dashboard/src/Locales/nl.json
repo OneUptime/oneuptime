@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Roept daarna {{responders}} op na {{count}} minuut",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "Ze worden lid van het team {{team}} en krijgen elk een e-mail om de uitnodiging te accepteren.",
   "They join the {{team}} team.": "Ze worden lid van het team {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dit vervangt hoe oproepen je nu bereiken, voor elk incident en elke waarschuwing van elke ernst."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dit vervangt hoe oproepen je nu bereiken, voor elk incident en elke waarschuwing van elke ernst.",
+  "Describe it instead": "Beschrijf het liever",
+  "Open in guided setup": "Openen in de begeleide installatie",
+  "Monitor my website and page me when it is down.": "Monitor mijn website en roep mij op als hij plat ligt.",
+  "Monitor {{address}} and page me when it is down.": "Monitor {{address}} en roep mij op als het plat ligt.",
+  "Monitor the API at {{address}} and page me when it is down.": "Monitor de API op {{address}} en roep mij op als hij plat ligt.",
+  "Page me for every new incident and alert.": "Roep mij op bij elk nieuw incident en elke nieuwe waarschuwing.",
+  "Publish a status page that shows my monitors.": "Publiceer een statuspagina die mijn monitoren toont.",
+  "Publish a status page called {{name}} that shows my monitors.": "Publiceer een statuspagina met de naam {{name}} die mijn monitoren toont.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me de logs, metrics en traces van mijn service naar OneUptime te sturen, en waarschuw me als er fouten zijn."
 }

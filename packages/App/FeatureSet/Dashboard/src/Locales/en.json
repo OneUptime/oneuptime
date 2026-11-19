@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Then pages {{responders}} after {{count}} minute",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "They join the {{team}} team, and each gets an email to accept the invitation.",
   "They join the {{team}} team.": "They join the {{team}} team.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "This replaces how pages reach you now, for every incident and alert at every severity."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "This replaces how pages reach you now, for every incident and alert at every severity.",
+  "Describe it instead": "Describe it instead",
+  "Open in guided setup": "Open in guided setup",
+  "Monitor my website and page me when it is down.": "Monitor my website and page me when it is down.",
+  "Monitor {{address}} and page me when it is down.": "Monitor {{address}} and page me when it is down.",
+  "Monitor the API at {{address}} and page me when it is down.": "Monitor the API at {{address}} and page me when it is down.",
+  "Page me for every new incident and alert.": "Page me for every new incident and alert.",
+  "Publish a status page that shows my monitors.": "Publish a status page that shows my monitors.",
+  "Publish a status page called {{name}} that shows my monitors.": "Publish a status page called {{name}} that shows my monitors.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors."
 }

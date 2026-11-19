@@ -58956,5 +58956,14 @@
   "Then pages {{responders}} after {{count}} minutes_one": "Tilkaller deretter {{responders}} etter {{count}} minutt",
   "They join the {{team}} team, and each gets an email to accept the invitation.": "De blir med i teamet {{team}}, og hver får en e-post for å godta invitasjonen.",
   "They join the {{team}} team.": "De blir med i teamet {{team}}.",
-  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dette erstatter hvordan tilkallinger når deg nå, for hver hendelse og hvert varsel av alle alvorlighetsgrader."
+  "This replaces how pages reach you now, for every incident and alert at every severity.": "Dette erstatter hvordan tilkallinger når deg nå, for hver hendelse og hvert varsel av alle alvorlighetsgrader.",
+  "Describe it instead": "Beskriv det i stedet",
+  "Open in guided setup": "Åpne i veiledet oppsett",
+  "Monitor my website and page me when it is down.": "Overvåk nettstedet mitt, og tilkall meg når det er nede.",
+  "Monitor {{address}} and page me when it is down.": "Overvåk {{address}}, og tilkall meg når den er nede.",
+  "Monitor the API at {{address}} and page me when it is down.": "Overvåk API-et på {{address}}, og tilkall meg når det er nede.",
+  "Page me for every new incident and alert.": "Tilkall meg ved hver ny hendelse og hvert nytt varsel.",
+  "Publish a status page that shows my monitors.": "Publiser en statusside som viser monitorene mine.",
+  "Publish a status page called {{name}} that shows my monitors.": "Publiser en statusside som heter {{name}} og viser monitorene mine.",
+  "Help me send my service's logs, metrics and traces to OneUptime, and alert me when it has errors.": "Hjelp meg med å sende loggene, målingene og sporene fra tjenesten min til OneUptime, og varsle meg når den har feil."
 }
