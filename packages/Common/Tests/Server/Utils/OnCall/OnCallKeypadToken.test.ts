@@ -101,8 +101,35 @@ describe("a call's keypad token, as this release signs it", () => {
 
     expect(claims["purpose"]).toBe(ON_CALL_KEYPAD_TOKEN_PURPOSE);
     expect(claims["notification"]).toBe(NOTIFICATION.toString());
-    expect(claims["answers"]).toEqual(ANSWERS);
+    expect(claims).toMatchObject(ANSWERS as unknown as JSONObject);
     expect(ON_CALL_KEYPAD_TOKEN_PARAM).toBe("token");
+  });
+
+  test("keeps what each key answers where a call token always held it: a keypad route of the release before reads it there while an upgrade rolls out", () => {
+    const claims: JSONObject = claimsOf(
+      OnCallKeypadToken.sign({
+        userOnCallLogTimelineId: NOTIFICATION,
+        answers: ANSWERS,
+      }),
+    );
+
+    expect((claims["1"] as JSONObject)["sayMessage"]).toBe(
+      "You have acknowledged this incident. Good bye",
+    );
+    expect((claims["default"] as JSONObject)["sayMessage"]).toBe(
+      "Invalid input. Good bye",
+    );
+  });
+
+  test("leaves the answers it is handed as they were", () => {
+    const answers: OnCallInputRequest = JSON.parse(JSON.stringify(ANSWERS));
+
+    OnCallKeypadToken.sign({
+      userOnCallLogTimelineId: NOTIFICATION,
+      answers: answers,
+    });
+
+    expect(answers).toEqual(ANSWERS);
   });
 
   test("lasts a day, as a call's token always has", () => {
@@ -142,7 +169,7 @@ describe("a call's keypad token, as this release signs it", () => {
 
     expect(reading).toEqual({
       isAccepted: true,
-      answers: ANSWERS,
+      answers: expect.objectContaining(ANSWERS),
       isEarlierCall: false,
     });
   });
@@ -238,9 +265,9 @@ describe("a token signed for anything else is no keypad token", () => {
     const claims: JSONObject = claimsOf(
       JSONWebToken.signJsonPayload(
         {
+          ...JSONFunctions.serialize(ANSWERS as unknown as JSONObject),
           purpose: "sign-in",
           notification: NOTIFICATION.toString(),
-          answers: JSONFunctions.serialize(ANSWERS as unknown as JSONObject),
         },
         3600,
       ),
@@ -252,21 +279,22 @@ describe("a token signed for anything else is no keypad token", () => {
     });
   });
 
-  test("a keypad token whose answers are not answers", () => {
-    for (const answers of [null, "1", [ANSWERS], { "1": ANSWERS["1"] }]) {
+  test("a keypad token whose answers are not answers: nothing for any other key", () => {
+    for (const fallback of [undefined, null, "Good bye", { sayMessage: 42 }]) {
       const claims: JSONObject = claimsOf(
         JSONWebToken.signJsonPayload(
           {
+            "1": ANSWERS["1"] as unknown as JSONObject,
+            default: fallback as unknown as JSONObject,
             purpose: ON_CALL_KEYPAD_TOKEN_PURPOSE,
             notification: NOTIFICATION.toString(),
-            answers: answers as unknown as JSONObject,
           },
           3600,
         ),
       );
 
-      expect({ answers, reading: read(claims) }).toEqual({
-        answers,
+      expect({ fallback, reading: read(claims) }).toEqual({
+        fallback,
         reading: {
           isAccepted: false,
           refusal: OnCallKeypadTokenRefusal.NotAKeypadToken,
@@ -330,9 +358,9 @@ describe("a call placed before this release, while its call token lasts", () => 
     const token: string = signedAgo(DAY_MS - 60 * 1000);
 
     // Its signature and its expiry, as NotificationMiddleware checks them.
-    expect(
-      read(claimsOf(token), pageTokenFor(NOTIFICATION)).isAccepted,
-    ).toBe(true);
+    expect(read(claimsOf(token), pageTokenFor(NOTIFICATION)).isAccepted).toBe(
+      true,
+    );
   });
 
   test("a call placed a day and a second ago is not: its call token has expired", () => {

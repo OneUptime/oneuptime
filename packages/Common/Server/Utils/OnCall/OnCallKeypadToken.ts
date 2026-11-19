@@ -15,17 +15,22 @@ import OnCallPageLinkToken from "./OnCallPageLinkToken";
  * Twilio posts the key there, and signs the request with the auth token of
  * the account that placed the call (TwilioWebhookSignature). The action's
  * query carries this token, signed with TokenSigningKey (JSONWebToken) by
- * the call itself (CallService): what each key answers, and the one
- * notification the call was placed for. The keypad route takes a key only
- * when Twilio signed the request and this token names the notification in
- * the route's path, so a key press is bound to its own call's page.
+ * the call itself (CallService): what each key answers, what it is for, and
+ * the one notification the call was placed for. The keypad route takes a
+ * key only when Twilio signed the request and this token names the
+ * notification in the route's path, so a key press is bound to its own
+ * call's page.
  *
  * The action URL lands in Twilio's request logs and in the call's TwiML in
  * the Twilio console, so it carries nothing that works anywhere else: the
- * page's own link token (OnCallPageLinkToken), which a call's address
- * carried until this release, escalated the page from a browser too. This
- * token is refused by every other route, and the page's link token is no
- * call token here.
+ * page's own link token (OnCallPageLinkToken), which a call's action carried
+ * until this release, escalated the page from a browser too. This token is
+ * refused by every other route, and the page's link token is no call token
+ * here.
+ *
+ * What each key answers stays where a call token always held it, beside
+ * the two claims: a keypad route of the release before, still answering
+ * while an upgrade rolls out, reads it there.
  *
  * A call placed before this release has the earlier action - the page's
  * link token beside a call token that names no notification - and keeps it
@@ -88,24 +93,25 @@ export function getOnCallKeypadTokenRefusalSentence(
 
 export default class OnCallKeypadToken {
   /*
-   * The token of a call's keypad: what each key answers, and the
-   * notification the call is placed for.
+   * The token of a call's keypad: what each key answers, what it is for,
+   * and the notification the call is placed for.
    */
   public static sign(data: {
     // An id, or its text: the Notification service reads it from JSON.
     userOnCallLogTimelineId: ObjectID | string | undefined;
     answers: OnCallInputRequest;
   }): string {
+    const claims: JSONObject = JSONFunctions.serialize(
+      data.answers as unknown as JSONObject,
+    );
+
+    claims["purpose"] = ON_CALL_KEYPAD_TOKEN_PURPOSE;
+    claims["notification"] = data.userOnCallLogTimelineId
+      ? data.userOnCallLogTimelineId.toString()
+      : "";
+
     return JSONWebToken.signJsonPayload(
-      {
-        purpose: ON_CALL_KEYPAD_TOKEN_PURPOSE,
-        notification: data.userOnCallLogTimelineId
-          ? data.userOnCallLogTimelineId.toString()
-          : "",
-        answers: JSONFunctions.serialize(
-          data.answers as unknown as JSONObject,
-        ),
-      },
+      claims,
       ON_CALL_KEYPAD_TOKEN_EXPIRES_IN_SECONDS,
     );
   }
@@ -125,12 +131,16 @@ export default class OnCallKeypadToken {
     const claims: JSONObject = data.claims || {};
     const purpose: unknown = claims["purpose"];
 
+    if (!OnCallKeypadToken.isAnswers(claims)) {
+      return {
+        isAccepted: false,
+        refusal: OnCallKeypadTokenRefusal.NotAKeypadToken,
+      };
+    }
+
     // A call placed before this release: its token says nothing of what it is for.
     if (purpose === undefined || purpose === null) {
-      if (
-        !OnCallKeypadToken.livesADayAtMost(claims) ||
-        !OnCallKeypadToken.isAnswers(claims)
-      ) {
+      if (!OnCallKeypadToken.livesADayAtMost(claims)) {
         return {
           isAccepted: false,
           refusal: OnCallKeypadTokenRefusal.NotAKeypadToken,
@@ -156,10 +166,7 @@ export default class OnCallKeypadToken {
       };
     }
 
-    if (
-      purpose !== ON_CALL_KEYPAD_TOKEN_PURPOSE ||
-      !OnCallKeypadToken.isAnswers(claims["answers"])
-    ) {
+    if (purpose !== ON_CALL_KEYPAD_TOKEN_PURPOSE) {
       return {
         isAccepted: false,
         refusal: OnCallKeypadTokenRefusal.NotAKeypadToken,
@@ -182,7 +189,7 @@ export default class OnCallKeypadToken {
 
     return {
       isAccepted: true,
-      answers: claims["answers"] as unknown as OnCallInputRequest,
+      answers: claims as unknown as OnCallInputRequest,
       isEarlierCall: false,
     };
   }
