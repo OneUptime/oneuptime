@@ -121,8 +121,12 @@ describe("the Probes & Interval page", () => {
   });
 
   test("reads what its cards start from with the monitor's type, in one read", () => {
+    /*
+     * And the monitor's steps: whether they need one-time codes its old
+     * probes cannot make (#9759).
+     */
     expect(page).toContain(
-      "select: { monitorType: true, monitoringInterval: true, minimumProbeAgreement: true, },",
+      "select: { monitorType: true, monitoringInterval: true, minimumProbeAgreement: true, monitorSteps: true, },",
     );
     expect(page).toContain("initialInterval={monitor.monitoringInterval}");
     expect(page).toContain("initialValue={monitor.minimumProbeAgreement}");

@@ -127,7 +127,7 @@ Keycloak is een veelgebruikte opensourceoplossing voor identiteits- en toegangsb
 4. **De clientinstellingen aanpassen**
 
    - Zet **Name ID Format** op `email` en schakel **Force Name ID Format** in, zodat Keycloak het e-mailadres altijd als Name ID stuurt
-   - Zet op het tabblad **Keys** van de client **Client signature required** (onder **Signing keys config**) uit: OneUptime ondertekent zijn verzoeken niet
+   - Zet op het tabblad **Keys** van de client **Client signature required** (onder **Signing keys config**) uit: OneUptime ondertekent zijn aanmeldverzoeken niet
 
 5. **De provider inschakelen en testen**
 
@@ -259,11 +259,33 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 6. Open de link in de kaart **Test Single Sign On (SSO)** en kies de provider, om u er via aan te melden voordat u voor het project SSO verplicht.
 :::
 
-### Ook afmelden bij de identiteitsprovider
+## Ook afmelden bij de identiteitsprovider
 
-Afmelden bij OneUptime laat iemand aangemeld bij de identiteitsprovider, dus op een gedeelde computer, zoals een NOC-scherm of een kiosk, komt de volgende persoon die op de aanmeldpagina de provider kiest binnen als degene die wegging. Zet **Ook afmelden bij de identiteitsprovider** aan onder **Meer velden** om bij een afmelding bij OneUptime ook de sessie bij de provider te beëindigen. Het staat standaard uit: op een persoonlijke laptop zou het iemand ook afmelden bij elke andere app die de provider gebruikt.
+Afmelden bij OneUptime laat iemand aangemeld bij de identiteitsprovider, dus op een gedeelde computer, zoals een NOC-scherm of een kiosk, komt de volgende persoon die op de aanmeldpagina de provider kiest binnen als degene die wegging. Zet bij een SAML- of OIDC-provider **Ook afmelden bij de identiteitsprovider** aan onder **Meer velden** om bij een afmelding bij OneUptime ook de sessie bij de provider te beëindigen. Het staat standaard uit: op een persoonlijke laptop zou het iemand ook afmelden bij elke andere app die de provider gebruikt. Het geldt voor mensen die zich na het aanzetten in een browser aanmelden; de mobiele app meldt alleen af bij OneUptime.
 
-Staat het aan, dan gaat de browser naar de afmelding van de provider zodra OneUptime hem heeft afgemeld, en de provider stuurt hem terug naar de aanmeldpagina van OneUptime. Registreer die pagina bij uw provider: het dialoogvenster **OIDC-configuratie** toont haar als omleidings-URI na afmelden, die providers een post-logout redirect URI noemen. Een provider waarvan het discovery-document geen `end_session_endpoint` noemt, zoals Google, kan het niet aanzetten. Het geldt voor mensen die zich na het aanzetten in een browser aanmelden; de mobiele app meldt alleen af bij OneUptime. SAML-providers melden nooit iemand af bij de identiteitsprovider.
+:::tabs
+@tab SAML
+Vul de afmeldings-URL van uw identiteitsprovider in als **Afmeldings-URL** van de provider, onder **Meer velden**: zonder kan de schakelaar niet aan. Geef uw identiteitsprovider daarna de **Single Logout-URL** uit het dialoogvenster **SSO-configuratie** en het certificaat waarmee OneUptime zijn afmeldverzoeken ondertekent, via **Ondertekeningscertificaat downloaden** in hetzelfde dialoogvenster.
+
+| Identiteitsprovider | Afmeldings-URL | Waar de Single Logout-URL en het certificaat heen gaan |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, onder **View SAML setup instructions** op het tabblad **Sign On** | Bewerk op het tabblad **General** de **SAML Settings**, klik op **Show Advanced Settings** en selecteer **Allow application to initiate Single Logout**. Zet **Single Logout URL** op de Single Logout-URL en **SP Issuer** op de identificatie (Entity ID), en upload het certificaat als **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, onder **Set up OneUptime** | Zet in **Basic SAML Configuration** de **Logout Url (Optional)** op de Single Logout-URL. Entra ID heeft geen certificaat nodig. |
+| Keycloak | Het SAML-eindpunt van de realm, hetzelfde als de aanmeldings-URL | Zet op het tabblad **Advanced** van de client de **Logout Service Redirect Binding URL** op de Single Logout-URL. Laat **Front channel logout** aan. Keycloak heeft geen certificaat nodig zolang **Client signature required** uit staat, zoals hierboven ingesteld. |
+
+Na een afmelding daar stuurt de identiteitsprovider de browser terug naar de Single Logout-URL, die de aanmeldpagina opent of meldt dat de identiteitsprovider de afmelding niet heeft bevestigd. Meldt iemand zich af bij de identiteitsprovider, of bij een andere app die hem gebruikt, dan meldt een identiteitsprovider die zijn apps afmeldverzoeken stuurt, zoals Keycloak en Microsoft Entra ID, diegene ook af bij OneUptime. OneUptime neemt alleen een verzoek aan dat de identiteitsprovider heeft ondertekend.
+@tab OpenID Connect
+De browser gaat naar de afmelding van de provider zodra OneUptime hem heeft afgemeld, en de provider stuurt hem terug naar de aanmeldpagina van OneUptime. Registreer die pagina bij uw provider: het dialoogvenster **OIDC-configuratie** toont haar als omleidings-URI na afmelden, die providers een post-logout redirect URI noemen. Een provider waarvan het discovery-document geen `end_session_endpoint` noemt, zoals Google, kan het niet aanzetten.
+
+| Identiteitsprovider | Waar u de omleidings-URI na afmelden registreert |
+| --- | --- |
+| Okta | Klik op het tabblad **General** van de app-integratie in **General Settings** op **Edit** en voeg haar toe aan **Sign-out redirect URIs**. |
+| Microsoft Entra ID | Voeg haar in de app-registratie onder **Authentication** toe aan de **Redirect URIs** van het platform **Web**. De **Front-channel logout URL** is een andere instelling, die OneUptime niet gebruikt. |
+| Auth0 | Voeg haar in de **Settings** van de applicatie toe aan **Allowed Logout URLs**. Een tenant die vóór 14 november 2023 is aangemaakt, moet ook **RP-Initiated Logout End Session Endpoint Discovery** aanzetten in zijn **Advanced**-instellingen, zodat zijn discovery-document een `end_session_endpoint` noemt. |
+| Keycloak | Voeg haar in de instellingen van de client toe aan **Valid post logout redirect URIs** (Keycloak 19 en nieuwer). |
+
+Een provider waar ze niet geregistreerd is, toont na een afmelding bij OneUptime zijn eigen foutpagina in plaats van iemand terug te sturen; bij OneUptime is diegene toch afgemeld.
+:::
 
 ## Rollen en teams voor SSO-gebruikers
 
@@ -293,6 +315,21 @@ Het uitzetten van **SSO vereisen om aan te melden** slaat op zodra u de schakela
 
 > [!NOTE]
 > Op OneUptime Cloud vereist het verplichten van SSO het **Scale**-abonnement, en uitzetten werkt op elk abonnement. Onder Scale toont **Projectinstellingen** > **Beveiliging** > **SSO** het upgrade-aanbod van het abonnement; een project dat na een Scale-proefperiode nog SSO verplicht, vindt daar onder het aanbod ook **SSO vereisen om aan te melden**, zodat het kan worden uitgezet. Opnieuw aanzetten vereist **Scale**.
+
+### De aanmelding van uw leden beheren met SSO
+
+SSO verplichten houdt de gegevens van uw project achter uw identiteitsprovider, maar uw leden kunnen in OneUptime nog steeds een wachtwoord, passkeys en tweefactorauthenticatie instellen, waar uw project nooit om vraagt. Zolang **SSO vereisen om aan te melden** aan staat, voorkomt een tweede schakelaar eronder, **Aanmelden beheren met SSO**, dat.
+
+Iemands aanmelding wordt door SSO beheerd als elk project waartoe diegene behoort, inclusief elk project waarvoor diegene is uitgenodigd, SSO vereist en **Aanmelden beheren met SSO** heeft ingeschakeld. Diegene kan dan geen wachtwoord, passkey, beveiligingssleutel, authenticator-app, back-upcodes of tweefactorauthenticatie instellen, **Wachtwoord vergeten?** mailt geen link, en het **Gebruikersprofiel** noemt de identiteitsprovider in plaats van die instellingen aan te bieden. Aan het aanmelden zelf verandert niets: het wachtwoord meldt diegene nog steeds aan bij OneUptime, en uw project vraagt zoals voorheen om SSO.
+
+De regel wordt elke keer gecontroleerd, dus:
+
+- **Iemand in een project dat het aanmelden niet beheert**: zodra diegene lid is van, of uitgenodigd is voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, krijgt diegene de instellingen terug, en het **Gebruikersprofiel** noemt dat project als de reden. Na het verlaten ervan wordt het aanmelden weer beheerd. Een account kan bij veel organisaties horen, dus beslist een organisatie nooit over de projecten van een andere.
+- **Projecten met verschillende providers**: iemand in twee projecten die allebei het aanmelden beheren, elk met een eigen identiteitsprovider, wordt beheerd, en het profiel noemt beide providers.
+- **Master-admins** houden altijd hun eigen instellingen.
+- **Wat mensen eerder hebben ingesteld**, blijft bewaard, ongebruikt door uw project. Een serverbeheerder kan het wissen op de pagina **Authenticatie** van de persoon in het Admin Dashboard, met **Aanmeldinstellingen wissen**.
+
+**Aanmelden beheren met SSO** slaat op zodra u de schakelaar omzet, verwijdert niets, en uitzetten geeft iedereen meteen de instellingen terug. Wie **SSO vereisen om aan te melden** kan wijzigen, kan ook deze schakelaar wijzigen, op dezelfde abonnementen. Staat **SSO vereisen om aan te melden** uit, dan is hij verborgen en verandert hij niets.
 
 ## Een provider uitzetten of verwijderen
 

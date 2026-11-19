@@ -127,7 +127,7 @@ Keycloak 是一款熱門的開放原始碼身分與存取管理解決方案。�
 4. **調整用戶端設定**
 
    - 將 **Name ID Format** 設為 `email`，並開啟 **Force Name ID Format**，讓 Keycloak 一律以電子郵件作為 Name ID 傳送
-   - 在用戶端的 **Keys** 分頁上，關閉 **Client signature required**（位於 **Signing keys config** 中）：OneUptime 不會為其請求簽章
+   - 在用戶端的 **Keys** 分頁上，關閉 **Client signature required**（位於 **Signing keys config** 中）：OneUptime 不會為其登入請求簽章
 
 5. **開啟提供者並進行測試**
 
@@ -259,11 +259,33 @@ OneUptime 的 SSO 使用 SAML 2.0，可與任何相容的身分提供者搭配�
 6. 在為專案要求使用 SSO 之前，開啟 **Test Single Sign On (SSO)** 卡片中的連結並選擇該提供者，透過它登入一次。
 :::
 
-### 同時登出身分提供者
+## 同時登出身分提供者
 
-登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，例如 NOC 螢幕或資訊站，下一個在登入頁面選擇該提供者的人，會以離開的那個人的身分進入。在 **更多欄位** 下開啟 **同時登出身分提供者**，即可在有人登出 OneUptime 時，也結束其在提供者那裡的工作階段。此設定預設為關閉：在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。
+登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，例如 NOC 螢幕或資訊站，下一個在登入頁面選擇該提供者的人，會以離開的那個人的身分進入。在 SAML 或 OIDC 提供者的 **更多欄位** 下開啟 **同時登出身分提供者**，即可在有人登出 OneUptime 時，也結束其在提供者那裡的工作階段。此設定預設為關閉：在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。它適用於開啟後在瀏覽器中登入的人；行動應用程式只登出 OneUptime。
 
-開啟後，OneUptime 讓瀏覽器登出後，瀏覽器會前往提供者自己的登出頁面，提供者再將它送回 OneUptime 登入頁面。請在提供者那裡註冊該頁面：**OIDC 設定** 對話方塊會將其顯示為登出後的重新導向 URI，提供者稱之為 post-logout redirect URI。像 Google 這樣探索文件中沒有 `end_session_endpoint` 的提供者無法開啟此設定。它適用於開啟後在瀏覽器中登入的人；行動應用程式只登出 OneUptime。SAML 提供者從不讓任何人登出身分提供者。
+:::tabs
+@tab SAML
+在 **更多欄位** 下，將身分提供者的登出 URL 填為提供者的 **登出 URL**：沒有它就無法開啟此開關。接著將 **SSO 設定** 對話方塊中的 **單一登出 URL**，以及 OneUptime 用來簽署其登出要求的憑證提供給身分提供者；憑證可在同一對話方塊的 **下載簽署憑證** 取得。
+
+| 身分提供者 | 登出 URL | 單一登出 URL 與憑證要填在哪裡 |
+| --- | --- | --- |
+| Okta | **Sign On** 索引標籤 **View SAML setup instructions** 中的 **Identity Provider Single Logout URL** | 在 **General** 索引標籤編輯 **SAML Settings**，按一下 **Show Advanced Settings** 並選取 **Allow application to initiate Single Logout**。將 **Single Logout URL** 設為單一登出 URL，將 **SP Issuer** 設為識別碼（Entity ID），並將憑證上傳為 **Signature Certificate**。 |
+| Microsoft Entra ID | **Set up OneUptime** 中的 **Logout URL** | 在 **Basic SAML Configuration** 中，將 **Logout Url (Optional)** 設為單一登出 URL。Entra ID 不需要憑證。 |
+| Keycloak | 領域的 SAML 端點，與登入 URL 相同 | 在用戶端的 **Advanced** 索引標籤，將 **Logout Service Redirect Binding URL** 設為單一登出 URL。保持 **Front channel logout** 開啟。只要 **Client signature required** 如上文設定保持關閉，Keycloak 就不需要憑證。 |
+
+在那裡登出後，身分提供者會將瀏覽器送回單一登出 URL，由它開啟登入頁面，或提示身分提供者未確認此次登出。當使用者在身分提供者那裡，或在使用它的其他應用程式中登出時，會向其應用程式傳送登出要求的身分提供者（例如 Keycloak 與 Microsoft Entra ID）也會讓其登出 OneUptime。OneUptime 只接受身分提供者簽署的要求。
+@tab OpenID Connect
+OneUptime 讓瀏覽器登出後，瀏覽器會前往提供者自己的登出頁面，提供者再將它送回 OneUptime 登入頁面。請在提供者那裡註冊該頁面：**OIDC 設定** 對話方塊會將其顯示為登出後的重新導向 URI，提供者稱之為 post-logout redirect URI。像 Google 這樣探索文件中沒有 `end_session_endpoint` 的提供者無法開啟此設定。
+
+| 身分提供者 | 在哪裡註冊登出後的重新導向 URI |
+| --- | --- |
+| Okta | 在應用程式整合的 **General** 索引標籤，按一下 **General Settings** 中的 **Edit**，將其加入 **Sign-out redirect URIs**。 |
+| Microsoft Entra ID | 在應用程式註冊的 **Authentication** 中，將其加入 **Web** 平台的 **Redirect URIs**。**Front-channel logout URL** 是另一項設定，OneUptime 不使用。 |
+| Auth0 | 在應用程式的 **Settings** 中，將其加入 **Allowed Logout URLs**。2023 年 11 月 14 日之前建立的租用戶，還需要在租用戶的 **Advanced** 設定中開啟 **RP-Initiated Logout End Session Endpoint Discovery**，其探索文件才會列出 `end_session_endpoint`。 |
+| Keycloak | 在用戶端設定中，將其加入 **Valid post logout redirect URIs**（Keycloak 19 及更新版本）。 |
+
+未註冊該位址的提供者，會在有人登出 OneUptime 後顯示自己的錯誤頁面，而不是將人送回；但使用者仍已登出 OneUptime。
+:::
 
 ## SSO 使用者的角色和團隊
 
@@ -293,6 +315,21 @@ OneUptime 不會對應身分提供者中的角色或群組。一個人能做什�
 
 > [!NOTE]
 > 在 OneUptime Cloud 上，要求使用 SSO 需要 **Scale** 方案，而關閉它在任何方案上都可以。低於 Scale 時，**專案設定** > **安全性** > **SSO** 會顯示方案的升級提示；對於 Scale 試用期結束後仍要求使用 SSO 的專案，升級提示下方也會顯示 **登入時要求使用 SSO**，以便將其關閉。再次開啟需要 **Scale**。
+
+### 透過 SSO 管理成員的登入
+
+要求使用 SSO 能把專案的資料擋在你的身分提供者之後，但你的成員仍可以在 OneUptime 中設定密碼、通行密鑰和雙重驗證，而這些是你的專案從不要求的。在 **登入時要求使用 SSO** 開啟期間，它下方的第二個開關 **透過 SSO 管理登入** 可以阻止這一點。
+
+如果某人所屬的每個專案（包括其受邀加入的任何專案）都要求使用 SSO 並開啟了 **透過 SSO 管理登入**，那麼此人的登入就由 SSO 管理。此後他們無法設定密碼、通行密鑰、安全金鑰、驗證器應用程式、備用代碼或雙重驗證，**忘記密碼？** 不會寄連結給他們，他們的 **使用者設定檔** 會顯示其身分提供者，而不再提供這些設定。登入本身沒有任何變化：他們的密碼仍然可以讓他們登入 OneUptime，你的專案也照常要求使用 SSO。
+
+該規則每次都會檢查，因此：
+
+- **所在專案不管理登入的人**：一旦此人成為某個不要求 SSO、或未開啟 **透過 SSO 管理登入** 的專案的成員，或受邀加入這樣的專案，就會拿回自己的設定，其 **使用者設定檔** 會將該專案列為原因。離開該專案後，其登入會再次受到管理。一個帳戶可以屬於多個組織，因此一個組織絕不會替另一個組織的專案做決定。
+- **使用不同提供者的專案**：如果某人所在的兩個專案都管理登入，且各自使用自己的身分提供者，此人仍受管理，其設定檔會列出這兩個提供者。
+- **主管理員** 始終保留自己的設定。
+- **成員之前設定的內容** 會被保留，但你的專案不會使用。伺服器管理員可以在 Admin Dashboard 中此人的 **驗證** 頁面上，透過 **清除登入設定** 將其清除。
+
+**透過 SSO 管理登入** 會在你切換開關時立即儲存，不會刪除任何內容，關閉它會立即把設定還給所有人。能變更 **登入時要求使用 SSO** 的人也能變更它，所需的方案也相同。當 **登入時要求使用 SSO** 關閉時，它會被隱藏，也不會改變任何內容。
 
 ## 關閉或刪除提供者
 

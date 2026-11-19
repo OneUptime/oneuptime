@@ -7,6 +7,7 @@ import {
 import {
   ReaderFigureOptions,
   formatReaderFigure,
+  writeFigureInLanguage,
 } from "Common/Types/DateLanguage";
 
 /*
@@ -20,12 +21,17 @@ import {
  * with and the language's own decimal and percent signs: a host's "/var
  * 96% full" reads "۹۶٪" in Persian under the Filesystem tile's "۹۶٫۴٪", its
  * "15-minute load 9.6" "۹٫۶", and German writes "96 %" and "9,6" beside its
- * tiles' "96,4 %" (#7106). Anything else (a state, a size, an address,
- * Kubernetes' own word) is drawn as written. So a rule never hands a
- * version as a bare "1.29": it would read as a figure, "۱٫۲۹".
+ * tiles' "96,4 %" (#7106). A size in binary units, as StorageUsage writes
+ * it - its number held to its unit by a no-break space, "4.5 GiB" free on a
+ * claim - is in the sentence's digits too, its unit kept: "۴٫۵ GiB",
+ * "4,5 GiB" (#9643). Anything else (a state, a size written otherwise, an
+ * address, Kubernetes' own word) is drawn as written. So a rule never hands
+ * a version as a bare "1.29": it would read as a figure, "۱٫۲۹".
  */
 const WHOLE_NUMBER: RegExp = /^\d{1,15}$/;
 const FIGURE: RegExp = /^\d{1,15}(?:\.(\d{1,6}))?(%?)$/;
+const STORAGE_SIZE: RegExp =
+  /^\d{1,15}(?:\.\d{1,6})?\u00A0(?:B|KiB|MiB|GiB|TiB|PiB|EiB)$/;
 
 export function withSentenceDigits(
   values: Record<string, string> | undefined,
@@ -59,6 +65,10 @@ export function withSentenceDigits(
             language: sentence.language,
           },
         );
+      });
+    } else if (STORAGE_SIZE.test(value)) {
+      result[key] = composedValue((sentence: Translator): string => {
+        return writeFigureInLanguage(value, sentence.language);
       });
     } else {
       result[key] = value;

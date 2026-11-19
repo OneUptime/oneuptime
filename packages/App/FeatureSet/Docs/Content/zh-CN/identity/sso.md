@@ -127,7 +127,7 @@ Keycloak 是一款流行的开源身份和访问管理解决方案。您需要�
 4. **调整客户端设置**
 
    - 将 **Name ID Format** 设为 `email`，并开启 **Force Name ID Format**，使 Keycloak 始终以电子邮件作为 Name ID 发送
-   - 在客户端的 **Keys** 选项卡上，关闭 **Client signature required**（位于 **Signing keys config** 中）：OneUptime 不会对其请求签名
+   - 在客户端的 **Keys** 选项卡上，关闭 **Client signature required**（位于 **Signing keys config** 中）：OneUptime 不会对其登录请求签名
 
 5. **开启提供商并进行测试**
 
@@ -259,11 +259,33 @@ OneUptime 的 SSO 使用 SAML 2.0，可与任何兼容的身份提供商配合�
 6. 在为项目要求使用 SSO 之前，打开 **Test Single Sign On (SSO)** 卡片中的链接并选择该提供商，通过它登录一次。
 :::
 
-### 同时退出身份提供商的登录
+## 同时退出身份提供商的登录
 
-退出 OneUptime 后，用户在身份提供商处仍保持登录。因此在共享计算机上，例如 NOC 屏幕或自助终端，下一个在登录页面选择该提供商的人会以离开的那个人的身份进入。在 **更多字段** 下开启 **同时退出身份提供商的登录**，即可在有人退出 OneUptime 时也结束其在提供商处的会话。该设置默认关闭：在个人笔记本电脑上，它也会让用户退出所有使用该提供商的其他应用。
+退出 OneUptime 后，用户在身份提供商处仍保持登录。因此在共享计算机上，例如 NOC 屏幕或自助终端，下一个在登录页面选择该提供商的人会以离开的那个人的身份进入。在 SAML 或 OIDC 提供商的 **更多字段** 下开启 **同时退出身份提供商的登录**，即可在有人退出 OneUptime 时也结束其在提供商处的会话。该设置默认关闭：在个人笔记本电脑上，它也会让用户退出所有使用该提供商的其他应用。它适用于开启后在浏览器中登录的人；移动应用只退出 OneUptime。
 
-开启后，OneUptime 让浏览器退出登录后，浏览器会转到提供商自己的退出页面，提供商再把它送回 OneUptime 登录页面。请在提供商处注册该页面：**OIDC 配置** 对话框会将其显示为退出登录后的重定向 URI，提供商称之为 post-logout redirect URI。像 Google 这样发现文档中没有 `end_session_endpoint` 的提供商无法开启此设置。它适用于开启后在浏览器中登录的人；移动应用只退出 OneUptime。SAML 提供商从不让任何人退出身份提供商的登录。
+:::tabs
+@tab SAML
+在 **更多字段** 下，把身份提供商的退出登录 URL 填为提供商的 **退出登录 URL**：没有它就无法开启该开关。然后把 **SSO 配置** 对话框中的 **单点注销 URL**，以及 OneUptime 用来签名其退出请求的证书提供给身份提供商；证书可在同一对话框的 **下载签名证书** 中获取。
+
+| 身份提供商 | 退出登录 URL | 单点注销 URL 和证书填在哪里 |
+| --- | --- | --- |
+| Okta | **Sign On** 标签页 **View SAML setup instructions** 中的 **Identity Provider Single Logout URL** | 在 **General** 标签页编辑 **SAML Settings**，点击 **Show Advanced Settings** 并选中 **Allow application to initiate Single Logout**。将 **Single Logout URL** 设为单点注销 URL，将 **SP Issuer** 设为标识符（Entity ID），并把证书上传为 **Signature Certificate**。 |
+| Microsoft Entra ID | **Set up OneUptime** 中的 **Logout URL** | 在 **Basic SAML Configuration** 中，将 **Logout Url (Optional)** 设为单点注销 URL。Entra ID 不需要证书。 |
+| Keycloak | 领域的 SAML 端点，与登录 URL 相同 | 在客户端的 **Advanced** 标签页，将 **Logout Service Redirect Binding URL** 设为单点注销 URL。保持 **Front channel logout** 开启。只要 **Client signature required** 如上文设置保持关闭，Keycloak 就不需要证书。 |
+
+在那里退出后，身份提供商会把浏览器送回单点注销 URL，由它打开登录页面，或提示身份提供商未确认这次退出。当用户在身份提供商处，或在使用它的其他应用中退出时，会向其应用发送退出请求的身份提供商（如 Keycloak 和 Microsoft Entra ID）也会让其退出 OneUptime。OneUptime 只接受身份提供商签名的请求。
+@tab OpenID Connect
+OneUptime 让浏览器退出登录后，浏览器会转到提供商自己的退出页面，提供商再把它送回 OneUptime 登录页面。请在提供商处注册该页面：**OIDC 配置** 对话框会将其显示为退出登录后的重定向 URI，提供商称之为 post-logout redirect URI。像 Google 这样发现文档中没有 `end_session_endpoint` 的提供商无法开启此设置。
+
+| 身份提供商 | 在哪里注册退出登录后的重定向 URI |
+| --- | --- |
+| Okta | 在应用集成的 **General** 标签页，点击 **General Settings** 中的 **Edit**，将其添加到 **Sign-out redirect URIs**。 |
+| Microsoft Entra ID | 在应用注册的 **Authentication** 中，将其添加到 **Web** 平台的 **Redirect URIs**。**Front-channel logout URL** 是另一项设置，OneUptime 不使用。 |
+| Auth0 | 在应用的 **Settings** 中，将其添加到 **Allowed Logout URLs**。2023 年 11 月 14 日之前创建的租户还需要在租户的 **Advanced** 设置中开启 **RP-Initiated Logout End Session Endpoint Discovery**，这样其发现文档才会列出 `end_session_endpoint`。 |
+| Keycloak | 在客户端设置中，将其添加到 **Valid post logout redirect URIs**（Keycloak 19 及更高版本）。 |
+
+未注册该地址的提供商会在有人退出 OneUptime 后显示自己的错误页面，而不是把人送回；但用户仍已退出 OneUptime。
+:::
 
 ## SSO 用户的角色和团队
 
@@ -293,6 +315,21 @@ OneUptime 不会映射身份提供商中的角色或组。一个人能做什么�
 
 > [!NOTE]
 > 在 OneUptime Cloud 上，要求使用 SSO 需要 **Scale** 套餐，而关闭它在任何套餐上都可以。低于 Scale 时，**项目设置** > **安全** > **SSO** 会显示套餐的升级提示；对于 Scale 试用期结束后仍要求使用 SSO 的项目，升级提示下方也会显示 **登录时要求使用 SSO**，以便将其关闭。再次开启需要 **Scale**。
+
+### 通过 SSO 管理成员的登录
+
+要求使用 SSO 能把项目的数据挡在你的身份提供商之后，但你的成员仍可以在 OneUptime 中设置密码、通行密钥和双因素身份验证，而这些是你的项目从不要求的。在 **登录时要求使用 SSO** 开启期间，它下方的第二个开关 **通过 SSO 管理登录** 可以阻止这一点。
+
+如果某人所属的每个项目（包括其受邀加入的任何项目）都要求使用 SSO 并开启了 **通过 SSO 管理登录**，那么此人的登录就由 SSO 管理。此后他们无法设置密码、通行密钥、安全密钥、身份验证器应用、备用代码或双因素身份验证，**忘记密码？** 不会给他们发送链接，他们的 **用户配置** 会显示其身份提供商，而不再提供这些设置。登录本身没有任何变化：他们的密码仍然可以让他们登录 OneUptime，你的项目也照常要求使用 SSO。
+
+该规则每次都会检查，因此：
+
+- **所在项目不管理登录的人**：一旦此人成为某个不要求 SSO、或未开启 **通过 SSO 管理登录** 的项目的成员，或受邀加入这样的项目，就会拿回自己的设置，其 **用户配置** 会将该项目列为原因。离开该项目后，其登录会再次受到管理。一个账户可以属于多个组织，因此一个组织绝不会替另一个组织的项目做决定。
+- **使用不同提供商的项目**：如果某人所在的两个项目都管理登录，且各自使用自己的身份提供商，此人仍受管理，其配置会列出这两个提供商。
+- **主管理员** 始终保留自己的设置。
+- **成员之前设置的内容** 会被保留，但你的项目不会使用。服务器管理员可以在 Admin Dashboard 中此人的 **认证** 页面上，通过 **清除登录设置** 将其清除。
+
+**通过 SSO 管理登录** 会在你切换开关时立即保存，不会删除任何内容，关闭它会立即把设置还给所有人。能更改 **登录时要求使用 SSO** 的人也能更改它，所需的套餐也相同。当 **登录时要求使用 SSO** 关闭时，它会被隐藏，也不会改变任何内容。
 
 ## 关闭或删除提供商
 

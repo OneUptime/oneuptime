@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 57551,
+    "keys": 57990,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -52,6 +52,7 @@
     "Amphorae",
     "Apache Kafka · kafka-1:9092",
     "App Store",
+    "AppArmor",
     "Apple Calendar / Outlook",
     "Atmosphere",
     "Azure",
@@ -67,6 +68,7 @@
     "Basic Auth",
     "Brute force detected",
     "CIDR",
+    "CIS Kubernetes Benchmark v2.0",
     "CPU Ready",
     "CPU Ready {{percent}}",
     "CPU ready {{percent}}",
@@ -133,6 +135,7 @@
     "HTTP {{status}}",
     "HackerBay, Inc.",
     "Horizontal Pod Autoscalers",
+    "HostProcess",
     "IBAN",
     "ICMP (ping)",
     "INP 120 ms",
@@ -153,6 +156,7 @@
     "KeyDB",
     "Keystone",
     "Kolla-Ansible",
+    "Kubelet",
     "LXC 201 · pve3",
     "Largest Contentful Paint",
     "Log4Shell",
@@ -224,6 +228,7 @@
     "SELECT COUNT(*) AS value FROM orders WHERE created_at < now() - interval '1 hour'",
     "SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED'",
     "SELECT COUNT(*) FROM orders WHERE total < 0",
+    "SELinux",
     "SHA",
     "SHA-256",
     "SHA-512",
@@ -235,6 +240,8 @@
     "SSH",
     "SSH: {{command}}",
     "SSID",
+    "Seccomp",
+    "Seccomp (Restricted)",
     "SendGrid",
     "Shift",
     "Shift + Enter",

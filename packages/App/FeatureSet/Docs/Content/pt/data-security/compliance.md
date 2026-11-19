@@ -68,11 +68,15 @@ O menu de um recurso tem uma seção **Segurança**, recolhida até você abri-l
 - **Segurança de dados** lista esses repositórios, os de maior risco primeiro, e os problemas abertos neles. Cada um abre na Segurança de dados, onde é tratado.
 - **Conformidade** pontua as estruturas só para esses repositórios. As estruturas que os dados deles trazem para o escopo vêm primeiro; as desativadas, e aquelas para as quais nenhum desses repositórios guarda dados, ficam recolhidas abaixo.
 
-Cada estrutura tem um interruptor, **Applies Here**, e cada um dos requisitos dela também. Desativar um deles deixa os repositórios do recurso fora dessa estrutura, ou desse requisito, na página do recurso e em **Segurança de dados → Conformidade**, que diz quantos repositórios foram desativados nos seus recursos. Ativá-lo de novo os traz de volta. Cada interruptor é salvo na hora, e cada mudança fica nos [Registros de auditoria](/docs/configuration/audit-logs) do projeto.
+Cada estrutura tem um interruptor, **Aplica-se aqui**, e cada um dos requisitos dela também. Desativar um deles deixa os repositórios do recurso fora dessa estrutura, ou desse requisito, na página do recurso e em **Segurança de dados → Conformidade**, que diz quantos repositórios foram desativados nos seus recursos. Ativá-lo de novo os traz de volta. Cada interruptor é salvo na hora, e cada mudança fica nos [Registros de auditoria](/docs/configuration/audit-logs) do projeto.
+
+Desativar um deles faz aparecer, logo abaixo, a pergunta **Por que isto não se aplica aqui?** O motivo é opcional: escreva um motivo curto e escolha **Salvar motivo**, ou **Agora não** para deixar para depois. A partir daí, abaixo dele aparecem quem o desativou e quando, além do motivo, com **Adicionar motivo** ou **Editar motivo** para escrevê-lo ou alterá-lo depois. Assim como o interruptor, o motivo fica nos registros de auditoria.
+
+**Segurança de dados → Conformidade** diz o mesmo para cada recurso. Uma estrutura escolhida lista, em **Desativado para a estrutura inteira**, os recursos que a desativaram por completo, e cada requisito mostra, abaixo do seu status, os recursos que desativaram esse requisito: cada um com um link para a própria página de Conformidade, com quem o desativou, quando e por quê. O **Exportar CSV** dela os traz em uma coluna `Turned Off On`, e o **Exportar JSON**, em uma lista `turnedOff`.
 
 Um repositório segue os interruptores de um único recurso. Um banco de dados executado em um cluster do Kubernetes, ou em um host do Docker ou do Podman, segue os desse cluster ou host: desative uma estrutura para o cluster, e ela fica desativada para todo banco de dados nele. A própria página de Conformidade do banco de dados diz isso e leva à do cluster ou do host, com os interruptores dela bloqueados.
 
-As funções Membro de segurança, Administrador de segurança, Administrador do projeto e Proprietário do projeto podem ativar e desativar estruturas e requisitos, como podem ajustar uma verificação. A função Visualizador de segurança vê o que está desativado.
+As funções Membro de segurança, Administrador de segurança, Administrador do projeto e Proprietário do projeto podem ativar e desativar estruturas e requisitos, como podem ajustar uma verificação. A função Visualizador de segurança vê o que está desativado e por quê.
 
 ## Requisitos e as suas verificações
 

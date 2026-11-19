@@ -142,6 +142,22 @@ export interface PeoplePickerFieldConfig {
    * keeps its button, locked.
    */
   isReadOnly?: boolean | undefined;
+  /*
+   * The search list offers only the people of these teams - their accepted
+   * members - by team id: a user override's pickers, for a reader whose
+   * permission reaches the people of their own team only (Manage On-Call
+   * Policy User Overrides for Own Team, issue #9733). An empty list offers
+   * nobody. Teams and the other kinds are offered as ever, and a pick
+   * already made still shows as a chip. Leave it out to offer every person
+   * in the project.
+   */
+  onlyMembersOfTeamIds?: Array<string> | undefined;
+  /*
+   * A line above the search list saying why it offers whom it does, in the
+   * reader's words already: "Only people in Payments are listed: ...".
+   * Drawn as given.
+   */
+  searchHint?: string | undefined;
 }
 
 // What an empty picker stands for (PeoplePickerFieldConfig.whenNobodyPicked).

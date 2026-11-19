@@ -4992,6 +4992,22 @@
     "kind": "page"
   },
   {
+    "title": "Issues",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "data incidents",
+      "data issues",
+      "failed runs",
+      "failing checks",
+      "late tables",
+      "no owner"
+    ],
+    "path": "/dashboard/:projectId/data-observability/issues",
+    "kind": "page"
+  },
+  {
     "title": "Tables",
     "where": [
       "Data Observability"

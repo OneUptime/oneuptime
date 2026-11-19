@@ -17,8 +17,11 @@ import { readProjectMemberSearchText } from "./ProjectMemberSearch";
  *     on a server somebody runs alike;
  *   - on a server somebody runs (not OneUptime Cloud), to its master admin,
  *     who sees every account in the Admin Dashboard already: the server's
- *     other accounts too, as not in this project yet. Nobody else is ever
- *     shown an account of another project, there or on Cloud.
+ *     other accounts too, as not in this project yet. And to anyone who may
+ *     invite people to the project, once a master admin turns on Suggest
+ *     Every Account When Inviting (#9744): off until then, for a server
+ *     that hosts several organizations. Nobody else is ever shown an
+ *     account of another project, there, and nobody at all on Cloud.
  *
  * Each says where they stand, so a pick is never a surprise: already in
  * the team being invited to, or invited to it and not yet accepted (both
@@ -52,7 +55,10 @@ export enum InviteSuggestionStanding {
   Invited = "Invited",
   // A member of the project.
   Member = "Member",
-  // An account on this server, not in this project (a master admin's).
+  /*
+   * An account on this server, not in this project: for a master admin, or
+   * anyone who may invite while the server lets them (#9744).
+   */
   NotInProject = "NotInProject",
 }
 

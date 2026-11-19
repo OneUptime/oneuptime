@@ -850,7 +850,8 @@ test.describe("a host's Overview", () => {
     // Whether OneUptime hears from it, then how it is.
     const health: Locator = page.getByTestId("host-hero-health");
     await expect(health).toHaveText("Unhealthy");
-    await expect(health).toHaveAttribute("data-health", "unhealthy");
+    // Said as every resource hero's health pill says it (ResourceHealthPill).
+    await expect(health).toHaveAttribute("data-health", "Unhealthy");
     /*
      * Up 41 days and 7 seconds, and more by the time it is drawn: its
      * largest unit and the next one down only, never days with seconds

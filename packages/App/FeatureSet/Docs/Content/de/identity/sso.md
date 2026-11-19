@@ -127,7 +127,7 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
 4. **Die Client-Einstellungen anpassen**
 
    - Setzen Sie **Name ID Format** auf `email` und schalten Sie **Force Name ID Format** ein, damit Keycloak die E-Mail immer als Name ID sendet
-   - Schalten Sie auf dem Tab **Keys** des Clients **Client signature required** (unter **Signing keys config**) aus: OneUptime signiert seine Anfragen nicht
+   - Schalten Sie auf dem Tab **Keys** des Clients **Client signature required** (unter **Signing keys config**) aus: OneUptime signiert seine Anmeldeanfragen nicht
 
 5. **Den Anbieter einschalten und testen**
 
@@ -259,11 +259,33 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 6. Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
-### Auch beim Identitätsanbieter abmelden
+## Auch beim Identitätsanbieter abmelden
 
-Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt.
+Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie bei einem SAML- oder OIDC-Anbieter **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab.
 
-Ist sie eingeschaltet, geht der Browser zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet hat, und der Anbieter schickt ihn zur Anmeldeseite von OneUptime zurück. Registrieren Sie diese Seite bei Ihrem Anbieter: Der Dialog **OIDC-Konfiguration** zeigt sie als Weiterleitungs-URI nach der Abmeldung, die Anbieter Post-Logout-Redirect-URI nennen. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab. SAML-Anbieter melden niemanden beim Identitätsanbieter ab.
+:::tabs
+@tab SAML
+Tragen Sie die Abmelde-URL Ihres Identitätsanbieters als **Abmelde-URL** des Anbieters unter **Weitere Felder** ein: Ohne sie lässt sich der Schalter nicht einschalten. Geben Sie Ihrem Identitätsanbieter dann die **Single-Logout-URL** aus dem Dialog **SSO-Konfiguration** und das Zertifikat, mit dem OneUptime seine Abmeldeanfragen signiert, über **Signaturzertifikat herunterladen** im selben Dialog.
+
+| Identitätsanbieter | Abmelde-URL | Wohin die Single-Logout-URL und das Zertifikat gehören |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, unter **View SAML setup instructions** auf dem Tab **Sign On** | Bearbeiten Sie auf dem Tab **General** die **SAML Settings**, klicken Sie auf **Show Advanced Settings** und wählen Sie **Allow application to initiate Single Logout**. Setzen Sie **Single Logout URL** auf die Single-Logout-URL und **SP Issuer** auf die Kennung (Entity ID), und laden Sie das Zertifikat als **Signature Certificate** hoch. |
+| Microsoft Entra ID | **Logout URL**, unter **Set up OneUptime** | Setzen Sie in **Basic SAML Configuration** die **Logout Url (Optional)** auf die Single-Logout-URL. Entra ID braucht kein Zertifikat. |
+| Keycloak | Der SAML-Endpunkt des Realms, derselbe wie die Anmelde-URL | Setzen Sie auf dem Tab **Advanced** des Clients die **Logout Service Redirect Binding URL** auf die Single-Logout-URL. Lassen Sie **Front channel logout** eingeschaltet. Keycloak braucht kein Zertifikat, solange **Client signature required** aus ist, wie oben eingerichtet. |
+
+Nach einer Abmeldung dort schickt der Identitätsanbieter den Browser zur Single-Logout-URL zurück, die die Anmeldeseite öffnet oder meldet, dass der Identitätsanbieter die Abmeldung nicht bestätigt hat. Meldet sich die Person beim Identitätsanbieter oder bei einer anderen App ab, die ihn nutzt, meldet ein Identitätsanbieter, der seinen Apps Abmeldeanfragen schickt, wie Keycloak und Microsoft Entra ID, sie auch von OneUptime ab. OneUptime nimmt nur eine Anfrage an, die der Identitätsanbieter signiert hat.
+@tab OpenID Connect
+Der Browser geht zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet hat, und der Anbieter schickt ihn zur Anmeldeseite von OneUptime zurück. Registrieren Sie diese Seite bei Ihrem Anbieter: Der Dialog **OIDC-Konfiguration** zeigt sie als Weiterleitungs-URI nach der Abmeldung, die Anbieter Post-Logout-Redirect-URI nennen. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten.
+
+| Identitätsanbieter | Wo die Weiterleitungs-URI nach der Abmeldung registriert wird |
+| --- | --- |
+| Okta | Klicken Sie auf dem Tab **General** der App-Integration in **General Settings** auf **Edit** und fügen Sie sie zu **Sign-out redirect URIs** hinzu. |
+| Microsoft Entra ID | Fügen Sie sie in der App-Registrierung unter **Authentication** zu den **Redirect URIs** der Plattform **Web** hinzu. Die **Front-channel logout URL** ist eine andere Einstellung, die OneUptime nicht nutzt. |
+| Auth0 | Fügen Sie sie in den **Settings** der Anwendung zu **Allowed Logout URLs** hinzu. Ein Tenant, der vor dem 14. November 2023 angelegt wurde, braucht außerdem **RP-Initiated Logout End Session Endpoint Discovery** in seinen **Advanced**-Einstellungen eingeschaltet, damit sein Discovery-Dokument einen `end_session_endpoint` nennt. |
+| Keycloak | Fügen Sie sie in den Einstellungen des Clients zu **Valid post logout redirect URIs** hinzu (Keycloak 19 und neuer). |
+
+Ein Anbieter, bei dem sie nicht registriert ist, zeigt nach einer Abmeldung von OneUptime seine eigene Fehlerseite, statt die Person zurückzuschicken; von OneUptime ist sie trotzdem abgemeldet.
+:::
 
 ## Rollen und Teams für SSO-Benutzer
 
@@ -293,6 +315,21 @@ Das Ausschalten von **SSO für die Anmeldung erzwingen** speichert, sobald Sie d
 
 > [!NOTE]
 > Auf OneUptime Cloud braucht das Verlangen von SSO den Plan **Scale**; das Ausschalten funktioniert in jedem Plan. Unterhalb von Scale zeigt **Projekteinstellungen** > **Sicherheit** > **SSO** das Upgrade-Angebot des Plans; ein Projekt, das nach einer Scale-Testphase noch SSO verlangt, findet dort unter dem Angebot auch **SSO für die Anmeldung erzwingen**, damit es ausgeschaltet werden kann. Wieder einschalten erfordert **Scale**.
+
+### Die Anmeldung Ihrer Mitglieder mit SSO verwalten
+
+Das Verlangen von SSO hält die Daten Ihres Projekts hinter Ihrem Identitätsanbieter, doch Ihre Mitglieder können in OneUptime weiterhin ein Passwort, Passkeys und die Zwei-Faktor-Authentifizierung einrichten, wonach Ihr Projekt nie fragt. Solange **SSO für die Anmeldung erzwingen** eingeschaltet ist, verhindert das ein zweiter Schalter darunter, **Anmeldung mit SSO verwalten**.
+
+Die Anmeldung einer Person wird von SSO verwaltet, wenn jedes Projekt, zu dem sie gehört, einschließlich jedes Projekts, zu dem sie eingeladen ist, SSO verlangt und **Anmeldung mit SSO verwalten** eingeschaltet hat. Sie kann dann kein Passwort, keinen Passkey, keinen Sicherheitsschlüssel, keine Authenticator-App, keine Backup-Codes und keine Zwei-Faktor-Authentifizierung einrichten, **Passwort vergessen?** schickt ihr keinen Link, und ihr **Benutzerprofil** nennt ihren Identitätsanbieter, statt diese Einstellungen anzubieten. An der Anmeldung selbst ändert sich nichts: Mit ihrem Passwort meldet sie sich weiterhin bei OneUptime an, und Ihr Projekt verlangt wie bisher SSO.
+
+Die Regel wird jedes Mal geprüft, daher gilt:
+
+- **Jemand in einem Projekt, das die Anmeldung nicht verwaltet**: Sobald die Person Mitglied eines Projekts ist oder zu einem Projekt eingeladen wird, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, erhält sie ihre Einstellungen zurück, und ihr **Benutzerprofil** nennt dieses Projekt als Grund. Verlässt sie es, wird ihre Anmeldung wieder verwaltet. Ein Konto kann zu vielen Organisationen gehören, daher entscheidet eine Organisation nie über die Projekte einer anderen.
+- **Projekte mit unterschiedlichen Anbietern**: Wer in zwei Projekten ist, die beide die Anmeldung verwalten, jedes mit seinem eigenen Identitätsanbieter, wird verwaltet, und sein Profil nennt beide Anbieter.
+- **Master-Admins** behalten immer ihre eigenen Einstellungen.
+- **Was Personen vorher eingerichtet haben**, bleibt gespeichert und wird von Ihrem Projekt nicht genutzt. Ein Server-Admin kann es auf der Seite **Authentifizierung** der Person im Admin Dashboard mit **Anmeldeeinstellungen löschen** löschen.
+
+**Anmeldung mit SSO verwalten** speichert, sobald Sie den Schalter umlegen, löscht nichts, und das Ausschalten gibt allen ihre Einstellungen sofort zurück. Wer **SSO für die Anmeldung erzwingen** ändern kann, kann auch diesen Schalter ändern, in denselben Plänen. Ist **SSO für die Anmeldung erzwingen** ausgeschaltet, ist er ausgeblendet und ändert nichts.
 
 ## Einen Anbieter ausschalten oder löschen
 

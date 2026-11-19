@@ -12,6 +12,7 @@ import {
   unreachedError,
 } from "../DataSource/HttpFailure";
 import DataSourceHttpRetry, {
+  busyOfExchange,
   HttpRetryExchange,
   HttpRetryReason,
   HttpRetryVerdict,
@@ -64,6 +65,28 @@ const PROJECT_PATTERN: RegExp = /^[a-z][a-z0-9:.-]{4,62}$/i;
 const RATE_LIMIT_REASONS: ReadonlyArray<string> = [
   "rateLimitExceeded",
   "userRateLimitExceeded",
+];
+
+/*
+ * A query job BigQuery took and then failed for a moment (#9679): the
+ * reasons its error reference ("Troubleshoot errors") says to retry the
+ * job, with a new job ID - which a check started again gets, as each query
+ * is sent under a requestId of its own. backendError and internalError ("a
+ * temporary server failure"), jobBackendError and jobInternalError ("Retry
+ * the job with a new jobId"), jobRateLimitExceeded and rateLimitExceeded
+ * (a short-term limit) and tableUnavailable (a table another Google
+ * product backs, for now). Never quotaExceeded (a quota spent for long),
+ * resourcesExceeded or timeout (the job would do the same again), or
+ * stopped.
+ */
+export const BIGQUERY_BUSY_JOB_REASONS: ReadonlyArray<string> = [
+  "backendError",
+  "internalError",
+  "jobBackendError",
+  "jobInternalError",
+  "jobRateLimitExceeded",
+  "rateLimitExceeded",
+  "tableUnavailable",
 ];
 const DATASET_PATTERN: RegExp = /^[A-Za-z0-9_]{1,1024}$/;
 
@@ -284,11 +307,14 @@ export default class BigQueryApi {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       const error: { reason: string; status: string; message: string } =
         readGoogleError(response);
+      const errorCode: string | null = readErrorCode(
+        error.reason || error.status,
+      );
 
       throw failedAnswerError({
         provider: PROVIDER_TITLE,
         statusCode: response.statusCode,
-        errorCode: readErrorCode(error.reason || error.status),
+        errorCode,
         operation: data.operation,
         message:
           error.message ||
@@ -297,6 +323,12 @@ export default class BigQueryApi {
         requestId: null,
         refused: { who: "the service account" },
         secrets: [accessToken],
+        // An answer whose tries ran out, or a query job that failed for a moment, may pass (#9679).
+        busy:
+          busyOfExchange(exchange, { code: errorCode, nowMs: Date.now() }) ||
+          (BIGQUERY_BUSY_JOB_REASONS.includes(error.reason)
+            ? { code: errorCode }
+            : null),
       });
     }
 

@@ -13,6 +13,7 @@ import {
   unreachedError,
 } from "../DataSource/HttpFailure";
 import DataSourceHttpRetry, {
+  busyOfExchange,
   HttpRetryExchange,
   HttpRetryReason,
   HttpRetryVerdict,
@@ -403,11 +404,12 @@ export default class SnowflakeSqlApi {
 
     if (response.statusCode >= 400) {
       const queryId: unknown = json["statementHandle"];
+      const errorCode: string | null = readErrorCode(json["code"]);
 
       throw failedAnswerError({
         provider: "Snowflake",
         statusCode: response.statusCode,
-        errorCode: readErrorCode(json["code"]),
+        errorCode,
         operation: data.operation,
         message:
           readText(json["message"]) ||
@@ -419,6 +421,13 @@ export default class SnowflakeSqlApi {
         requestIdLabel: "Query ID",
         refused: { who: "the user" },
         secrets: this.secrets(),
+        /*
+         * A 429 or a 5xx whose tries ran out may pass (#9679). A statement
+         * that failed (a 422) is no such answer: the SQL API's reference
+         * names no statement error that passes, and Snowflake runs a query
+         * again itself when its own network or hardware fails it.
+         */
+        busy: busyOfExchange(exchange, { code: errorCode, nowMs: Date.now() }),
       });
     }
 

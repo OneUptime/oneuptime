@@ -1,6 +1,11 @@
-import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
-import { DataSecurityResourceComplianceFramework } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import OneUptimeDate from "Common/Types/Date";
+import { ComplianceSettingFramework } from "Common/Types/DataSecurity/ComplianceSettingFramework";
+import {
+  DataSecurityComplianceTurnedOff,
+  DataSecurityResourceComplianceFramework,
+} from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
+import type { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT A RESOURCE'S COMPLIANCE PAGE DRAWS (#9555), worked out without React
@@ -18,9 +23,12 @@ const translationKey: (text: string) => string = (text: string): string => {
   return text;
 };
 
-// One switch: a framework, or one of its requirements.
+/*
+ * One switch: a framework, or one of its requirements. A resource's rows can
+ * hold a Kubernetes cluster's own frameworks too (#9627), keyed the same way.
+ */
 export interface ComplianceSwitchKey {
-  framework: ComplianceFramework;
+  framework: ComplianceSettingFramework;
   requirement?: string | null | undefined;
 }
 
@@ -83,6 +91,96 @@ export function getAppliesSwitchState(
   }
 
   return !framework.turnedOffRequirements.includes(requirement);
+}
+
+/*
+ * WHY IT IS TURNED OFF, BY WHOM AND WHEN (#9629). Turning a framework or a
+ * requirement off asks for a short reason, which is optional, shown beside
+ * it and kept in the audit log with the change itself.
+ */
+
+// The longest reason a setting keeps: its column's (ColumnLength.LongText).
+export const COMPLIANCE_REASON_MAX_LENGTH: number = 500;
+
+export const TURNED_OFF_BY_ON: string = translationKey(
+  "Turned off by {{name}} on {{date}}",
+);
+
+export const TURNED_OFF_ON: string = translationKey("Turned off on {{date}}");
+
+export const TURNED_OFF: string = translationKey("Turned off");
+
+export const REASON_QUESTION: string = translationKey(
+  "Why does this not apply here?",
+);
+
+export const REASON_HINT: string = translationKey(
+  "Optional. Shown beside it, and kept in the audit log.",
+);
+
+export const REASON_SAVE_FAILED: string = translationKey(
+  "The reason was not saved.",
+);
+
+/*
+ * What is turned off of a framework for one requirement, or for the whole
+ * framework (no requirement): the entries of the resources that turned it
+ * off, the latest first.
+ */
+export function getTurnedOffEntries(
+  framework: {
+    turnedOff?: Array<DataSecurityComplianceTurnedOff> | undefined;
+  },
+  requirement?: string | null | undefined,
+): Array<DataSecurityComplianceTurnedOff> {
+  const wanted: string = (requirement || "").trim();
+
+  return (framework.turnedOff || []).filter(
+    (entry: DataSecurityComplianceTurnedOff): boolean => {
+      return (entry.requirement || "").trim() === wanted;
+    },
+  );
+}
+
+// The one entry of a switch where a resource's compliance is set.
+export function findTurnedOffEntry(
+  framework: {
+    turnedOff?: Array<DataSecurityComplianceTurnedOff> | undefined;
+  },
+  key: ComplianceSwitchKey,
+): DataSecurityComplianceTurnedOff | undefined {
+  return getTurnedOffEntries(framework, key.requirement)[0];
+}
+
+/*
+ * Who turned it off and when, in the reader's words: "Turned off by Jane
+ * Doe on 12 Nov 2026", "Turned off on 12 Nov 2026" for an API key, or
+ * "Turned off" when nobody knows - a setting from before they were kept.
+ */
+export function getTurnedOffLine(
+  entry: Pick<DataSecurityComplianceTurnedOff, "turnedOffAt" | "turnedOffBy">,
+  translator: Translator,
+): string {
+  if (!entry.turnedOffAt) {
+    return translator.translateText(TURNED_OFF) || TURNED_OFF;
+  }
+
+  const date: string = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+    entry.turnedOffAt,
+    true,
+  );
+
+  return entry.turnedOffBy
+    ? translator.translateTemplate(TURNED_OFF_BY_ON, {
+        name: entry.turnedOffBy,
+        date,
+      })
+    : translator.translateTemplate(TURNED_OFF_ON, { date });
+}
+
+// A reason as it is typed: no longer than its column holds. It is trimmed when saved.
+export function readReasonInput(value: string): string {
+  return value.slice(0, COMPLIANCE_REASON_MAX_LENGTH);
 }
 
 // Where a database's switches are, when it runs on a cluster or a container host.

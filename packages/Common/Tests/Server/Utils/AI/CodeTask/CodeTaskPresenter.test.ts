@@ -8,7 +8,9 @@ import AlertService from "../../../../../Server/Services/AlertService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import UserService from "../../../../../Server/Services/UserService";
-import CodeTaskListRows from "../../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
+import CodeTaskListRows, {
+  CODE_TASK_NEWEST_REPLY_SELECT,
+} from "../../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
 import CodeTaskOrigin from "../../../../../Server/Utils/AI/CodeTask/CodeTaskOrigin";
 import CodeTaskPresenter from "../../../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -224,6 +226,8 @@ describe("CodeTaskPresenter.summarize", () => {
       taskNumber: 42,
       title: "Add retries to the users API",
       recipe: CodeFixTaskType.CodeRequest,
+      // The reply's recipe: what Try again would ask again (#6509).
+      latestRecipe: CodeFixTaskType.CodeRequest,
       // The first turn asked a question; the reply now being worked on wins.
       state: CodeTaskState.Working,
       isQueued: true,
@@ -250,6 +254,62 @@ describe("CodeTaskPresenter.summarize", () => {
         taskIds: [TASK_ID],
       });
     }
+  });
+
+  /*
+   * What Try again asks again is the latest turn's recipe (#6509): a fix
+   * asked again is a turn of its fix's recipe; a task of one turn says
+   * none - its first turn's recipe is the one.
+   */
+  test("a row names its latest turn's recipe when a later turn is the latest - a fix asked again too", async () => {
+    const task: AIRun = requestTurn({
+      id: TASK_ID,
+      status: AIRunStatus.Error,
+      createdAt: "2026-10-19T08:00:00.000Z",
+      message: "Fix it",
+    });
+    task.codeFixTaskType = CodeFixTaskType.FixException;
+    const again: AIRun = requestTurn({
+      id: REPLY_ID,
+      codeTaskId: TASK_ID,
+      status: AIRunStatus.Error,
+      createdAt: "2026-10-19T09:30:00.000Z",
+      message: "",
+    });
+    again.codeFixTaskType = CodeFixTaskType.FixException;
+
+    readReplies.mockResolvedValue(ofTask({ count: 1, newest: again }));
+    // What started a fix is read from its context: none here.
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+
+    const [asked]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [task],
+        props: READER,
+      });
+
+    expect(asked!.recipe).toBe(CodeFixTaskType.FixException);
+    expect(asked!.latestRecipe).toBe(CodeFixTaskType.FixException);
+    expect(asked!.state).toBe(CodeTaskState.Failed);
+
+    readReplies.mockResolvedValue(new Map());
+
+    const [alone]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [task],
+        props: READER,
+      });
+
+    expect(alone).not.toHaveProperty("latestRecipe");
+  });
+
+  test("a row's newest reply is read with its recipe", () => {
+    expect(CODE_TASK_NEWEST_REPLY_SELECT).toHaveProperty(
+      "codeFixTaskType",
+      true,
+    );
   });
 
   /*

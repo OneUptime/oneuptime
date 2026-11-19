@@ -3,6 +3,7 @@ import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { StorageUsageLevel } from "Common/Utils/Storage/StorageUsage";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -89,6 +90,20 @@ export interface GoldenMetricTileProps {
 }
 
 export type GoldenMetricTileTone = "positive" | "warning" | "danger";
+
+/*
+ * A storage tile's bar as the shared storage reading says it (StorageUsage):
+ * amber when nearly full and red when almost out of space, at the product's
+ * own lines, so a tile says what the list's bar beside it says (#9646).
+ */
+export const STORAGE_USAGE_TILE_TONES: Record<
+  StorageUsageLevel,
+  GoldenMetricTileTone
+> = {
+  [StorageUsageLevel.Normal]: "positive",
+  [StorageUsageLevel.Warning]: "warning",
+  [StorageUsageLevel.Critical]: "danger",
+};
 
 const TONE_BAR_CLASS_NAMES: Record<GoldenMetricTileTone, string> = {
   positive: "bg-emerald-500",

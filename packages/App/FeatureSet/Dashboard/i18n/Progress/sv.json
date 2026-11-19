@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 57551,
-    "untranslated": 8080
+    "keys": 57990,
+    "untranslated": 8183
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -323,6 +323,8 @@
     "Team {{name}}",
     "Team: {{name}}",
     "Tenancy",
+    "Tenant",
+    "Tenant: {{tenant}}",
     "Text",
     "Token",
     "Tokens",
@@ -349,6 +351,7 @@
     "VMware vCenter",
     "Valkey",
     "Version",
+    "Version 2",
     "Version {{number}}",
     "Version {{version}}",
     "Vital",
@@ -522,6 +525,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{minutes}} min {{seconds}} s",
+    "{{online}} online, {{offline}} offline",
     "{{percent}} full",
     "{{rate}}/min",
     "{{rate}}/s",

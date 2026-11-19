@@ -18,7 +18,7 @@ Wenn Sie auf der Seite **Bereitschaftspläne** einen Plan anlegen, fragt das For
 
 :::steps
 1. Öffnen Sie **Bereitschaft** > **Bereitschaftspläne** und klicken Sie auf **Bereitschaftsplan erstellen**.
-2. Geben Sie einen **Name** ein.
+2. Geben Sie einen **Name** ein. Ein Name, den schon ein anderer Plan des Projekts trägt, wird abgelehnt, unabhängig von Groß- und Kleinschreibung und Leerzeichen, damit sich die Pläne in jeder Auswahlliste unterscheiden lassen.
 3. Klicken Sie unter **Wer wechselt sich ab?** auf **Benutzer hinzufügen** und wählen Sie die Personen in der Reihenfolge, in der sie sich abwechseln.
 4. Öffnen Sie bei Bedarf **Weitere Felder**, um zu ändern, wie lange jede Schicht dauert, die Zeitzone, die Beschreibung oder die Beschriftungen.
 5. Klicken Sie auf **Bereitschaftsplan erstellen**. Der neue Plan öffnet sich danach auf seiner Seite **Ebenen**, wo Sie die Rotation ändern oder weitere Ebenen hinzufügen können.
@@ -101,7 +101,7 @@ So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie und braucht d
 
 Über die API überspringt eine Benutzervertretung (`/api/on-call-duty-policy-user-override`), die ohne `routeAlertsToUserId` angelegt wird, die Person in `overrideUserId` von `startsAt` bis `endsAt`.
 
-Die **Übersicht** eines Plans hat eine Karte **Verwendet von**: die Bereitschaftsrichtlinien, deren Eskalationsregeln alarmieren, wer gerade Bereitschaft hat, mit den Regeln, die das tun. Tut das keine, sagt die Karte es und verlinkt zu den Bereitschaftsrichtlinien. Wer den Plan löscht, auf seiner Seite oder aus der Liste, sieht zuerst, welche Richtlinien über ihn alarmieren. Richtlinien, die Sie nicht öffnen dürfen, werden gezählt, aber nicht genannt.
+Die **Übersicht** eines Plans hat eine Karte **Verwendet von**: die Bereitschaftsrichtlinien, deren Eskalationsregeln alarmieren, wer gerade Bereitschaft hat, mit den Regeln, die das tun. Tut das keine, sagt die Karte es und verlinkt zu den Bereitschaftsrichtlinien. Wer den Plan löscht, auf seiner Seite oder aus der Liste, sieht zuerst, welche Richtlinien über ihn alarmieren. Richtlinien, die Sie nicht öffnen dürfen, werden gezählt, aber nicht genannt. Ein Plan, der noch aus der Zeit, bevor Namen verschieden sein mussten, denselben Namen wie ein anderer Plan hat, ist in der Liste **Bereitschaftspläne** mit **Gleicher Name wie ein anderer Zeitplan** markiert, und die Liste zeigt, wie viele es sind: Vergleichen Sie ihre Ebenen, und benennen Sie dann einen davon über **Umbenennen** in seiner Zeile um.
 
 ## Pläne mit der API oder Terraform anlegen
 

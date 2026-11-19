@@ -95,6 +95,10 @@ import RequireSsoForLoginSwitchCopy, {
   REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN,
   REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Project/RequireSsoForLoginSwitchCopy";
+import ManageSignInWithSsoSwitchCopy, {
+  MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN,
+  MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Project/ManageSignInWithSsoSwitchCopy";
 import MonitorGroupsSwitchCopy, {
   MONITOR_GROUPS_SWITCH_COLUMN,
   MONITOR_GROUPS_SWITCH_TEST_ID,
@@ -578,7 +582,120 @@ describe("Settings > SSO: Require SSO to Sign In", () => {
 
     const call: ItemCall = getItemMock.mock.calls[0]![0] as ItemCall;
 
-    expect(call.select).toEqual({ requireSsoForLogin: true });
+    // With the switch that hangs under it while it is on (#9763).
+    expect(call.select).toEqual({
+      requireSsoForLogin: true,
+      manageSignInWithSso: true,
+    });
+
+    // While SSO is not required, the switch under it changes nothing: not drawn.
+    expect(
+      screen.queryByTestId(MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("while SSO is required, Manage Sign-In with SSO hangs under it, off until turned on", async () => {
+    stored = { requireSsoForLogin: true };
+
+    await renderCard();
+
+    const manage: HTMLElement = screen.getByRole("switch", {
+      name: ManageSignInWithSsoSwitchCopy.switchTitle,
+    });
+
+    expect(manage).toBe(
+      screen.getByTestId(MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID),
+    );
+    expect(manage).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByText(ManageSignInWithSsoSwitchCopy.switchOffDescription),
+    ).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId(`${REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID}-details`),
+      ).getByTestId(MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID),
+    ).toBe(manage);
+  });
+
+  test("turning it on saves its own column at once, without asking: it deletes nothing", async () => {
+    stored = { requireSsoForLogin: true };
+
+    await renderCard();
+
+    const manage: HTMLElement = screen.getByTestId(
+      MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID,
+    );
+
+    await press(manage);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(updateCall().data).toEqual({ manageSignInWithSso: true });
+    expect(manage).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByText(ManageSignInWithSsoSwitchCopy.switchOnDescription),
+    ).toBeInTheDocument();
+  });
+
+  test("a project that manages sign-in shows the switch on, and turning it off saves at once", async () => {
+    stored = { requireSsoForLogin: true, manageSignInWithSso: true };
+
+    await renderCard();
+
+    const manage: HTMLElement = screen.getByTestId(
+      MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID,
+    );
+
+    expect(manage).toHaveAttribute("aria-checked", "true");
+
+    await press(manage);
+
+    expect(updateCall().data).toEqual({ manageSignInWithSso: false });
+  });
+
+  test("requiring SSO never turns Manage Sign-In with SSO on with it", async () => {
+    const control: HTMLElement = await renderCard();
+
+    await press(control);
+
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: RequireSsoForLoginSwitchCopy.requireConfirmButton,
+      }),
+    );
+    await flush();
+
+    expect(updateCall().data).toEqual({ requireSsoForLogin: true });
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+
+    const manage: HTMLElement = screen.getByTestId(
+      MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID,
+    );
+
+    expect(manage).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("a member who may not change the project's SSO may not change it either", async () => {
+    stored = { requireSsoForLogin: true };
+    permit([Permission.ProjectMember]);
+
+    await renderCard();
+
+    expect(
+      screen.getByTestId(MANAGE_SIGN_IN_WITH_SSO_SWITCH_TEST_ID),
+    ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("its words are one short sentence each, and its column is the model's", () => {
+    for (const sentence of [
+      ManageSignInWithSsoSwitchCopy.switchOnDescription,
+      ManageSignInWithSsoSwitchCopy.switchOffDescription,
+    ]) {
+      expect(sentence.length).toBeLessThanOrEqual(150);
+      expect(sentence).toMatch(/^[A-Z].*\.$/);
+    }
+
+    expect(MANAGE_SIGN_IN_WITH_SSO_SWITCH_COLUMN).toBe("manageSignInWithSso");
+    expect(new Project().isTableColumn("manageSignInWithSso")).toBe(true);
   });
 
   test("requiring SSO asks first with a red button, saying everyone - you included - is locked out until they sign in with SSO", async () => {

@@ -4,7 +4,7 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
 import HashedString from "../../../Types/HashedString";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import crypto from "crypto";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Password hashing with scrypt.
@@ -582,4 +582,141 @@ describe("PasswordHash.needsUpgrade", () => {
 
     expect(stored.startsWith(PasswordHash.getCurrentPrefix())).toBe(true);
   });
+});
+
+/*
+ * A sign-in with no password to check - an address no account has, or an
+ * account nobody has set a password on - used to be refused in the time a
+ * database read takes, and a wrong password for a real account in the time
+ * a scrypt derivation takes: how long "Email or password does not match."
+ * took said which addresses have accounts (#9745). spendVerificationTime is
+ * the derivation spent in place of a check, and a legacy SHA-256 check
+ * spends one too, so every refusal costs what a scrypt check costs.
+ */
+describe("PasswordHash - every check costs one scrypt derivation (#9745)", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  interface Derivation {
+    keyLength: number;
+    options: Record<string, number>;
+  }
+
+  // The derivations crypto.scrypt was asked for, with their parameters.
+  const derivationsOf: (spy: jest.SpyInstance) => Array<Derivation> = (
+    spy: jest.SpyInstance,
+  ): Array<Derivation> => {
+    return spy.mock.calls.map((call: Array<unknown>): Derivation => {
+      return {
+        keyLength: call[2] as number,
+        options: call[3] as Record<string, number>,
+      };
+    });
+  };
+
+  const currentParams: Record<string, number> =
+    PasswordHash.getCurrentParams() as unknown as Record<string, number>;
+
+  test("spendVerificationTime derives one key, at today's parameters", async () => {
+    const scrypt: jest.SpyInstance = jest.spyOn(crypto, "scrypt");
+
+    await expect(
+      PasswordHash.spendVerificationTime("whatever was typed"),
+    ).resolves.toBeUndefined();
+
+    const derivations: Array<Derivation> = derivationsOf(scrypt);
+
+    expect(derivations).toHaveLength(1);
+    expect(derivations[0]!.keyLength).toBe(32);
+    expect(derivations[0]!.options).toMatchObject(currentParams);
+  });
+
+  test("spendVerificationTime costs what checking a wrong password does", async () => {
+    const stored: string = await PasswordHash.hash({
+      plainValue: "the real password",
+      salt: SALT,
+    });
+
+    const scrypt: jest.SpyInstance = jest.spyOn(crypto, "scrypt");
+
+    await PasswordHash.verify({
+      plainValue: "a guess",
+      storedValue: stored,
+      salt: SALT,
+    });
+
+    const checked: Array<Derivation> = derivationsOf(scrypt);
+
+    scrypt.mockClear();
+
+    await PasswordHash.spendVerificationTime("a guess");
+
+    expect(checked).toHaveLength(1);
+    expect(derivationsOf(scrypt)).toEqual(checked);
+  });
+
+  test("spendVerificationTime spends nothing on nothing typed", async () => {
+    const scrypt: jest.SpyInstance = jest.spyOn(crypto, "scrypt");
+
+    await PasswordHash.spendVerificationTime("");
+
+    expect(scrypt).not.toHaveBeenCalled();
+  });
+
+  test("spendVerificationTime salts every derivation afresh, so nothing is kept or compared", async () => {
+    const scrypt: jest.SpyInstance = jest.spyOn(crypto, "scrypt");
+
+    await PasswordHash.spendVerificationTime("same input");
+    await PasswordHash.spendVerificationTime("same input");
+
+    const salts: Array<unknown> = scrypt.mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return call[1];
+      },
+    );
+
+    expect(salts).toHaveLength(2);
+    expect(salts[0]).not.toBe(salts[1]);
+  });
+
+  test.each([
+    ["a bare SHA-256 hash", null],
+    ["a salted SHA-256 hash", SALT],
+  ])(
+    "checking %s spends a derivation too, right password or wrong",
+    async (_case: string, salt: string | null) => {
+      const legacy: string = await HashedString.hashValue(
+        "old-password",
+        EncryptionSecret,
+        salt || undefined,
+      );
+
+      const scrypt: jest.SpyInstance = jest.spyOn(crypto, "scrypt");
+
+      await expect(
+        PasswordHash.verify({
+          plainValue: "old-password",
+          storedValue: legacy,
+          salt: salt,
+        }),
+      ).resolves.toBe(true);
+
+      await expect(
+        PasswordHash.verify({
+          plainValue: "a guess",
+          storedValue: legacy,
+          salt: salt,
+        }),
+      ).resolves.toBe(false);
+
+      const derivations: Array<Derivation> = derivationsOf(scrypt);
+
+      expect(derivations).toHaveLength(2);
+
+      for (const derivation of derivations) {
+        expect(derivation.options).toMatchObject(currentParams);
+      }
+    },
+  );
 });

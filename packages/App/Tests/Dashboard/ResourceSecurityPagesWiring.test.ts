@@ -10,6 +10,7 @@ import {
 } from "Common/Types/DataSecurity/DataStoreResource";
 import {
   ResourceSecurityScopeJson,
+  SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
   SecurityConnectionKind,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SECURITY_EVENT_SCOPE_QUERY_KEY } from "Common/Types/SecurityEvent/SecurityEventScope";
@@ -20,7 +21,10 @@ import {
   RESOURCE_SECURITY_EVENTS_NAMING_LABEL,
   RESOURCE_SECURITY_EVENTS_NO_SEARCH_REASON,
   RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTION,
+  RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTIONS,
   RESOURCE_SECURITY_EVENTS_OWN_LOGS_LABEL,
+  RESOURCE_SECURITY_EVENTS_SUMMARIES_BOTH,
+  RESOURCE_SECURITY_EVENTS_SUMMARIES_OWN_LOGS,
   RESOURCE_SECURITY_EVENTS_SUMMARY_BOTH,
   RESOURCE_SECURITY_EVENTS_SUMMARY_NAMING,
   RESOURCE_SECURITY_EVENTS_SUMMARY_OWN_LOGS,
@@ -138,9 +142,10 @@ describe("a record's Security Events chip", () => {
   });
 
   test("a record read by its own logs, and one read both ways", () => {
+    // A serverless function's own logs are its logs: the shared words.
     const ownLogs: ActiveFilter = getResourceSecurityEventsChip(
       scopeOf({
-        kind: SecurityConnectionKind.Service,
+        kind: SecurityConnectionKind.ServerlessFunction,
         values: [],
         isSearchedByLogs: true,
         scope: {
@@ -176,6 +181,110 @@ describe("a record's Security Events chip", () => {
       RESOURCE_SECURITY_EVENTS_SUMMARY_BOTH,
     );
     expect(both.lockedDetail?.scopeMatches).toHaveLength(2);
+  });
+
+  test("a Docker or Podman host's own logs are its containers' logs (#9628)", () => {
+    for (const kind of [
+      SecurityConnectionKind.DockerHost,
+      SecurityConnectionKind.PodmanHost,
+    ]) {
+      const chip: ActiveFilter = getResourceSecurityEventsChip(
+        scopeOf({
+          kind,
+          name: "build-1",
+          values: ["build-1"],
+          scope: {
+            observables: ["build-1", "BUILD-1"],
+            attributeKey: SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+            attributeValues: ["build-1"],
+          },
+        }),
+      );
+
+      expect(chip.lockedDetail?.scopeSummary).toBe(
+        RESOURCE_SECURITY_EVENTS_SUMMARIES_BOTH[kind],
+      );
+      expect(chip.lockedDetail?.scopeSummary).toBe(
+        "The security events about it: read from its containers' logs, or naming it.",
+      );
+      expect(chip.lockedDetail?.scopeMatches?.[0]).toEqual({
+        label: RESOURCE_SECURITY_EVENTS_OWN_LOGS_LABEL,
+        description:
+          "Every security event read from its containers' logs, whatever it names.",
+        values: ["build-1"],
+      });
+    }
+  });
+
+  test("a container host known by its name alone is said to be named, not read", () => {
+    const chip: ActiveFilter = getResourceSecurityEventsChip(
+      scopeOf({
+        kind: SecurityConnectionKind.DockerHost,
+        name: "Build Box",
+        values: ["build box"],
+        scope: { observables: ["build box", "BUILD BOX"] },
+      }),
+    );
+
+    expect(chip.lockedDetail?.scopeSummary).toBe(
+      RESOURCE_SECURITY_EVENTS_SUMMARY_NAMING,
+    );
+  });
+
+  test("a service's own logs are its logs and its traces (#9628)", () => {
+    const chip: ActiveFilter = getResourceSecurityEventsChip(
+      scopeOf({
+        kind: SecurityConnectionKind.Service,
+        name: "checkout",
+        values: [],
+        isSearchedByLogs: true,
+        scope: {
+          observables: [],
+          attributeKey: "oneuptime.log.resource.id",
+          attributeValues: [ID],
+        },
+      }),
+    );
+
+    expect(chip.displayKey).toBe("Service");
+    expect(chip.lockedDetail?.scopeSummary).toBe(
+      RESOURCE_SECURITY_EVENTS_SUMMARIES_OWN_LOGS[
+        SecurityConnectionKind.Service
+      ],
+    );
+    expect(chip.lockedDetail?.scopeMatches).toEqual([
+      {
+        label: RESOURCE_SECURITY_EVENTS_OWN_LOGS_LABEL,
+        description:
+          RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTIONS[
+            SecurityConnectionKind.Service
+          ],
+        values: ["checkout"],
+      },
+    ]);
+  });
+
+  test("an OpenStack cloud is read both ways, in the shared words", () => {
+    const chip: ActiveFilter = getResourceSecurityEventsChip(
+      scopeOf({
+        kind: SecurityConnectionKind.OpenStackCloud,
+        name: "production",
+        values: ["production"],
+        scope: {
+          observables: ["production", "PRODUCTION"],
+          attributeKey: "oneuptime.log.resource.id",
+          attributeValues: [ID],
+        },
+      }),
+    );
+
+    expect(chip.displayKey).toBe("OpenStack Cloud");
+    expect(chip.lockedDetail?.scopeSummary).toBe(
+      RESOURCE_SECURITY_EVENTS_SUMMARY_BOTH,
+    );
+    expect(chip.lockedDetail?.scopeMatches?.[0]?.description).toBe(
+      RESOURCE_SECURITY_EVENTS_OWN_LOGS_DESCRIPTION,
+    );
   });
 
   test("a page's own words win: a device's syslog", () => {
@@ -411,8 +520,9 @@ describe("the pages' wiring", () => {
     expect(readCode("Pages/Kubernetes/View/DataSecurity.tsx")).toContain(
       "<ResourceDataSecurityPage {...props} kind={DataStoreResourceKind.KubernetesCluster} />",
     );
+    // A cluster's scores the cluster itself first, and its databases while Data Security is shown (#9627).
     expect(readCode("Pages/Kubernetes/View/Compliance.tsx")).toContain(
-      "<ResourceCompliancePage {...props} kind={DataStoreResourceKind.KubernetesCluster} />",
+      "<KubernetesComplianceSection clusterId={modelId} /> {dataSecurity ? ( <ResourceCompliancePage {...props} kind={DataStoreResourceKind.KubernetesCluster} title={DATABASES_TITLE} />",
     );
   });
 
@@ -456,10 +566,10 @@ describe("the pages' wiring", () => {
       "useResourceDataSecurityMenu({ kind: DataStoreResourceKind.KubernetesCluster, modelId: props.modelId, })",
     );
     expect(kubernetes).toContain(
-      '{dataSecurityMenu ? ( <SideMenuSection title="Security"> <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
+      '{dataSecurityMenu || counts.pods ? ( <SideMenuSection title="Security"> {dataSecurityMenu ? ( <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
     );
     expect(kubernetes).toContain(
-      'title: "Compliance", to: dataSecurityMenu.complianceRoute,',
+      'title: "Compliance", to: RouteUtil.populateRouteParams( RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE] as Route, { modelId: props.modelId }, ),',
     );
   });
 
@@ -546,6 +656,189 @@ describe("the pages' wiring", () => {
         pages.split(`[DataStoreResourceKind.${kind}]:`).length - 1,
       ).toBeGreaterThanOrEqual(4);
     }
+  });
+});
+
+/*
+ * A Docker or Podman host, an OpenStack cloud and a service have a Security
+ * Events page of their own too (#9628), wired as a host's is: a page of the
+ * record at :id/security-events, routed beside its Logs, crumbed under it,
+ * in its menu right after Logs behind the product's gate, found by Search
+ * under the menu's section, gated on Security Events, and opened by the
+ * record's Security card. A cloud resource and a serverless function have
+ * none: nothing ties their own events to them reliably yet.
+ */
+describe("Security Events on a Docker or Podman host, an OpenStack cloud and a service", () => {
+  interface SecurityEventsWiring {
+    kind: SecurityConnectionKind;
+    prefix: string;
+    root: string;
+    pathDictionary: string;
+    folder: string;
+    routes: string;
+    crumbs: string;
+    trail: [string, string];
+    component: string;
+    logsComponent: string;
+    section: string;
+  }
+
+  const RECORDS: Array<SecurityEventsWiring> = [
+    {
+      kind: SecurityConnectionKind.DockerHost,
+      prefix: "DOCKER_HOST_VIEW",
+      root: "docker",
+      pathDictionary: "DockerRoutePath",
+      folder: "Docker",
+      routes: "DockerRoutes.tsx",
+      crumbs: "DockerBreadcrumbs.ts",
+      trail: ["Docker", "View Host"],
+      component: "DockerHostSecurityEvents",
+      logsComponent: "DockerHostLogs",
+      section: "Observability",
+    },
+    {
+      kind: SecurityConnectionKind.PodmanHost,
+      prefix: "PODMAN_HOST_VIEW",
+      root: "podman",
+      pathDictionary: "PodmanRoutePath",
+      folder: "Podman",
+      routes: "PodmanRoutes.tsx",
+      crumbs: "PodmanBreadcrumbs.ts",
+      trail: ["Podman", "View Host"],
+      component: "PodmanHostSecurityEvents",
+      logsComponent: "PodmanHostLogs",
+      section: "Observability",
+    },
+    {
+      kind: SecurityConnectionKind.OpenStackCloud,
+      prefix: "OPENSTACK_CLOUD_VIEW",
+      root: "openstack",
+      pathDictionary: "OpenStackRoutePath",
+      folder: "OpenStack",
+      routes: "OpenStackRoutes.tsx",
+      crumbs: "OpenStackBreadcrumbs.ts",
+      trail: ["OpenStack", "View Cloud"],
+      component: "OpenStackCloudSecurityEvents",
+      logsComponent: "OpenStackCloudLogs",
+      section: "Telemetry",
+    },
+    {
+      kind: SecurityConnectionKind.Service,
+      prefix: "SERVICE_VIEW",
+      root: "service",
+      pathDictionary: "ServiceRoutePath",
+      folder: "Service",
+      routes: "ServiceRoutes.tsx",
+      crumbs: "ServiceBreadcrumbs.ts",
+      trail: ["Services", "View Service"],
+      component: "ServiceViewSecurityEvents",
+      logsComponent: "ServiceViewLogs",
+      section: "Telemetry",
+    },
+  ];
+
+  describe.each(RECORDS)("$kind", (record: SecurityEventsWiring) => {
+    const page: string = `${record.prefix}_SECURITY_EVENTS`;
+
+    test("its page is a page of the record at :id/security-events", () => {
+      expect(readCode("Utils/PageMap.ts")).toContain(`${page} = "${page}",`);
+      expect(readCode("Utils/RouteMap.ts")).toContain(
+        `[PageMap.${page}]: \`\${RouteParams.ModelID}/security-events\`,`,
+      );
+      expect(readWhole("Utils/RouteMap.ts")).toContain(
+        `[PageMap.${page}]: new Route( \`/dashboard/\${RouteParams.ProjectID}/${record.root}/\${ ${record.pathDictionary}[PageMap.${page}] }\`, ),`,
+      );
+    });
+
+    test("it is routed beside its Logs, to a page that hands the shared page this kind", () => {
+      const routes: string = readCode(`Routes/${record.routes}`);
+
+      expect(routes).toContain(
+        `import ${record.component} from "../Pages/${record.folder}/View/SecurityEvents";`,
+      );
+      // However the formatter breaks the element, its route is this page's.
+      expect(routes).toMatch(
+        new RegExp(
+          `<${record.component} \\{\\.\\.\\.props\\} pageRoute=\\{ ?RouteMap\\[PageMap\\.${page}\\] as Route ?\\} />`,
+        ),
+      );
+      expect(routes.indexOf(`PageMap.${page}`)).toBeGreaterThan(
+        routes.indexOf(`<${record.logsComponent}`),
+      );
+      expect(
+        readCode(`Pages/${record.folder}/View/SecurityEvents.tsx`),
+      ).toContain(
+        `<ResourceSecurityEventsPage {...props} kind={SecurityConnectionKind.${record.kind}} />`,
+      );
+    });
+
+    test("its breadcrumbs end in Security Events, under the record", () => {
+      expect(readCode(`Utils/Breadcrumbs/${record.crumbs}`)).toMatch(
+        new RegExp(
+          `PageMap\\.${page},?\\s*\\[\\s*"Project",\\s*"${record.trail[0]}",\\s*"${record.trail[1]}",\\s*"Security Events",?\\s*\\]`,
+        ),
+      );
+    });
+
+    test("its menu draws it right after Logs, behind the product's gate", () => {
+      const menu: string = readCode(`Pages/${record.folder}/View/SideMenu.tsx`);
+      const logs: number = menu.indexOf(
+        `RouteMap[PageMap.${record.prefix}_LOGS] as Route`,
+      );
+      const entry: number = menu.indexOf(`RouteMap[PageMap.${page}] as Route`);
+
+      expect(menu).toContain(
+        "const showSecurityEvents: boolean = useResourceSecurityEventsMenu();",
+      );
+      expect(menu).toContain(
+        '{showSecurityEvents ? ( <SideMenuItem link={{ title: "Security Events",',
+      );
+      expect(logs).toBeGreaterThan(-1);
+      expect(entry).toBeGreaterThan(logs);
+      // Nothing of the menu sits between Logs and it.
+      expect(menu.slice(logs, entry).split("<SideMenuItem").length).toBe(2);
+    });
+
+    test("Search finds it under its menu's section, and it needs Security Events", () => {
+      expect(
+        readCode("Components/CommandPalette/RecordPageSearchIndex.ts"),
+      ).toContain(
+        `page: PageMap.${page}, section: "${record.section}", title: "Security Events",`,
+      );
+      expect(readCode("Utils/ProjectProducts/ProductOfRoute.ts")).toContain(
+        `[PageMap.${page}]: ProductKey.SecurityEvents,`,
+      );
+    });
+
+    test("its Security card opens it", () => {
+      expect(
+        readCode("Components/SecurityConnections/SecurityConnectionsModel.ts"),
+      ).toMatch(
+        new RegExp(
+          `\\[SecurityConnectionKind\\.${record.kind}\\]:\\s*PageMap\\.${page},`,
+        ),
+      );
+    });
+  });
+
+  test("a cloud resource and a serverless function have no page of their own", () => {
+    const pageMap: string = readCode("Utils/PageMap.ts");
+    const model: string = readCode(
+      "Components/SecurityConnections/SecurityConnectionsModel.ts",
+    );
+    const pages: string = model.slice(
+      model.indexOf("export const RECORD_SECURITY_EVENTS_PAGES"),
+      model.indexOf(
+        "};",
+        model.indexOf("export const RECORD_SECURITY_EVENTS_PAGES"),
+      ),
+    );
+
+    expect(pageMap).not.toContain("CLOUD_RESOURCE_VIEW_SECURITY_EVENTS");
+    expect(pageMap).not.toContain("SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS");
+    expect(pages).not.toContain("SecurityConnectionKind.CloudResource]");
+    expect(pages).not.toContain("SecurityConnectionKind.ServerlessFunction]");
   });
 });
 
@@ -659,6 +952,17 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
     ],
   ];
 
+  // A cluster's Compliance also scores the cluster itself (#9627), so it is wired its own way.
+  function isClusterCompliance(
+    resource: DataStoreResourceWiring,
+    end: string,
+  ): boolean {
+    return (
+      resource.kind === DataStoreResourceKind.KubernetesCluster &&
+      end === "COMPLIANCE"
+    );
+  }
+
   test("every kind a store belongs to is one of these, once", () => {
     expect(
       RESOURCES.map((resource: DataStoreResourceWiring): string => {
@@ -700,7 +1004,10 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
           expect(
             readCode(`Pages/${resource.folder}/View/${file}.tsx`),
           ).toContain(
-            `<${shared} {...props} kind={DataStoreResourceKind.${resource.kind}} />`,
+            isClusterCompliance(resource, end)
+              ? // It scores the cluster itself first (#9627), then its databases' frameworks.
+                `<${shared} {...props} kind={DataStoreResourceKind.${resource.kind}} title={DATABASES_TITLE} />`
+              : `<${shared} {...props} kind={DataStoreResourceKind.${resource.kind}} />`,
           );
         },
       );
@@ -726,12 +1033,20 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
       expect(menu).toContain(
         `useResourceDataSecurityMenu({ kind: DataStoreResourceKind.${resource.kind}, modelId: props.modelId, })`,
       );
-      expect(menu).toContain(
-        '{dataSecurityMenu ? ( <SideMenuSection title="Security"> <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
-      );
-      expect(menu).toContain(
-        'title: "Compliance", to: dataSecurityMenu.complianceRoute,',
-      );
+
+      if (resource.kind === DataStoreResourceKind.KubernetesCluster) {
+        // Its Compliance scores the cluster itself (#9627): drawn once it reports pods.
+        expect(menu).toContain(
+          '{dataSecurityMenu || counts.pods ? ( <SideMenuSection title="Security"> {dataSecurityMenu ? ( <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
+        );
+      } else {
+        expect(menu).toContain(
+          '{dataSecurityMenu ? ( <SideMenuSection title="Security"> <SideMenuItem link={{ title: "Data Security", to: dataSecurityMenu.dataSecurityRoute, }}',
+        );
+        expect(menu).toContain(
+          'title: "Compliance", to: dataSecurityMenu.complianceRoute,',
+        );
+      }
       expect(
         menu.indexOf('<SideMenuSection title="Security">'),
       ).toBeGreaterThan(menu.indexOf('<SideMenuSection title="Activity">'));
@@ -752,9 +1067,17 @@ describe("Data Security and Compliance on every resource a store belongs to", ()
         expect(index).toContain(
           `page: PageMap.${resource.prefix}_${end}, section: "Security", title: "${title}",`,
         );
-        expect(products).toContain(
-          `[PageMap.${resource.prefix}_${end}]: ProductKey.DataSecurity,`,
-        );
+
+        // A cluster's Compliance is the cluster's own (#9627): offered without Data Security.
+        if (isClusterCompliance(resource, end)) {
+          expect(products).not.toContain(
+            `[PageMap.${resource.prefix}_${end}]: ProductKey.DataSecurity,`,
+          );
+        } else {
+          expect(products).toContain(
+            `[PageMap.${resource.prefix}_${end}]: ProductKey.DataSecurity,`,
+          );
+        }
       }
     });
 
@@ -780,6 +1103,8 @@ describe("the pages' words are keys of every locale", () => {
     RESOURCE_SECURITY_EVENTS_NO_SEARCH_REASON,
     "No security events about this cluster yet",
     "No security events about this host yet",
+    "No security events about this cloud yet",
+    "No security events about this service yet",
     "No data stores here yet",
     "Nothing to score yet",
     "Turned Off and Not in Scope",

@@ -63,7 +63,7 @@ Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen: een 
 Klik op een rij. De details openen naast de lijst.
 :::
 
-Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken.
+Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken. Een link naar één logregel, zoals **Logboekregel bekijken** bij een beveiligingsgebeurtenis, opent die regel boven de lijst, gelezen met uw eigen machtigingen.
 
 ## Een logboek lezen
 
@@ -170,7 +170,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Logboeken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Logboeken**, dat de regels waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent. Een storing die geen logregel schrijft, heeft geen regels om te openen: **Openen in Traces** opent in plaats daarvan haar mislukte spans. Bij een foutlog stelt **Monitor maken** een logmonitor in die de regels van het bericht telt.
-- **Logboeken → AI → Activiteit** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat. Een afgerond onderzoek zegt ook wat OneUptime AI vond, zoals de oorzaak van een fout buiten de code, en daarom kreeg die foutlog niet vanzelf een pull request.
+- **Logboeken → AI → Activiteit** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat. Een afgerond onderzoek zegt ook wat OneUptime AI vond, zoals de oorzaak van een fout buiten de code, en daarom kreeg die foutlog niet vanzelf een pull request. Een pull request zegt hoe de taak ervan nu in Code staat: een fix die na een mislukking met Opnieuw proberen nog eens is gevraagd, staat niet langer als mislukt en noemt de pull request die hij opende.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met logboeken gebeurt als ze binnenkomen

@@ -805,7 +805,45 @@ describe("Code", () => {
       'other: "{{count}} earlier turns are not shown",',
     );
     expect(conversation).toContain(
-      "{index === 0 && data.turnsNotShown ? ( <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />",
+      "const entries: Array<CodeTaskConversationEntry> = getConversationEntries({ turns, turnsNotShown: data.turnsNotShown?.count || 0, earlier, });",
+    );
+    expect(conversation).toContain("count={entry.count}");
+
+    /*
+     * Show earlier turns (#7128): the line reads the turns before the ones
+     * shown, MAX_EARLIER_TURNS_PER_READ at a time, and the Log page's
+     * picker lists them; Jump to newest (#7129) takes the reader to the
+     * newest turn.
+     */
+    const types: string = flat(readRepoFile("Common/Types/AI/CodeTask.ts"));
+    const perRead: string =
+      "export const MAX_EARLIER_TURNS_PER_READ: number = ";
+    const perReadAt: number = types.indexOf(perRead);
+    expect(perReadAt).toBeGreaterThanOrEqual(0);
+    const turnsPerRead: number = parseInt(
+      types.substring(perReadAt + perRead.length),
+      10,
+    );
+    expect(turnsPerRead).toBeGreaterThan(1);
+    expect(notShown).toContain(
+      'CODE_TASK_SHOW_EARLIER_TURNS: string = translationKey("Show earlier turns");',
+    );
+    expect(conversation).toContain(
+      "void showEarlierTurns(entry.beforeRunId, line);",
+    );
+    expect(flat(dashboardSource("Pages/Code/Task/Log.tsx"))).toContain(
+      "earlierTurns: task ? getKeptEarlierTurns(taskKey) : [],",
+    );
+    expect(
+      flat(dashboardSource("Components/Code/CodeTaskJumpToNewest.tsx")),
+    ).toContain(
+      'CODE_TASK_JUMP_TO_NEWEST: string = translationKey("Jump to newest");',
+    );
+    expect(conversation).toContain("<CodeTaskJumpToNewest");
+    expect(
+      flat(englishSection(CODE_PAGE, "## A task's conversation")),
+    ).toContain(
+      `${bold("Show earlier turns")}, under that line, shows the ${turnsPerRead} turns before the ones shown, each time you press it, and the ${bold("Log")} page's picker lists them too. A task opens at its top; while its newest turn is out of view, ${bold("Jump to newest")} above the reply box takes you there.`,
     );
 
     // The top of the page counts every turn: the ones not shown too.
@@ -1003,6 +1041,21 @@ describe("Code", () => {
     );
     expect(rowStartingWith(states, bold("Failed"))[1]).toContain(
       `${bold("Try again")} asks the same again.`,
+    );
+
+    /*
+     * A fix OneUptime started is asked again too (#6509), unless it may
+     * already have written: the server's own words say why
+     * (CodeTaskFixRetry).
+     */
+    expect(rowStartingWith(states, bold("Failed"))[1]).toContain(
+      "A fix OneUptime started is asked again with what it started from, unless it may already have pushed a branch or opened a pull request: then the turn says so instead.",
+    );
+    expect(readRepoFile("Common/Types/AI/CodeFixTaskType.ts")).toContain(
+      "public static getTaskTypesAskedAgain(): Array<CodeFixTaskType> {",
+    );
+    expect(readRepoFile("Common/Types/AI/CodeTaskTryAgain.ts")).toContain(
+      '"OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.";',
     );
   });
 
@@ -1462,12 +1515,22 @@ describe("Code", () => {
       "and after how many attempts when AI tried it again by itself.",
     );
 
-    // The list's filters, its search and Retry selected on a repository's page.
+    /*
+     * The list's filters, its search and Retry selected - on Code's own
+     * page too, across repositories (#6508): a row offers it where the
+     * server says the reader may try its task again (CodeTaskTryAgain).
+     */
     expect(ask).toContain(
       "filter them by how they stand, each filter with its count, or search them by title or number.",
     );
     expect(ask).toContain(
-      `and there you can tick the requests that failed or were stopped and try them all again with ${bold("Retry selected")}.`,
+      `On both pages you can tick the tasks that failed or were stopped, in the repositories where you may ask AI, and try them all again with ${bold("Retry selected")}; a task that cannot be tried again says why.`,
+    );
+    expect(flat(dashboardSource("Components/Code/CodeTaskList.tsx"))).toContain(
+      "task.canTryAgain === true &&",
+    );
+    expect(flat(readRepoFile("Common/Server/API/CodeTaskAPI.ts"))).toContain(
+      "await CodeTaskTryAgain.markWhoMayTryAgain({",
     );
     // The shared Button translates its title (302656298df).
     expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toMatch(
@@ -2200,11 +2263,18 @@ describe("MCP Server", () => {
      * dashboards, and warehouse jobs; and Cloud's monthly budgets (Cloud
      * Budget), so agents manage them as people do; and a postmortem's action
      * items (Postmortem Action Item, #6801), so an agent can track what an
-     * incident's postmortem says the team will do.
+     * incident's postmortem says the team will do; and the compliance
+     * frameworks and requirements a resource turned off (Compliance Setting,
+     * #9555, #9708), a Data Security setting like Check Setting, so an agent
+     * can say what is off where and why, as Data Security's Integrations
+     * page promises.
      */
-    expect(records()).toHaveLength(54);
+    expect(records()).toHaveLength(55);
     expect(namesIn(0)).toEqual(records());
-    // Every database model with MCP on gets all six tools.
+    /*
+     * Every database model with MCP on gets these tools, the update tool
+     * when it has a field to change (Tools/ToolGenerator).
+     */
     for (const tool of [
       "createCreateTool(",
       "createReadTool(",
@@ -2289,6 +2359,42 @@ describe("MCP Server", () => {
         });
       }
     }
+  });
+
+  /*
+   * The move of a row of an ordered list (#9651): one tool for every list,
+   * named by the server's constant, taking the arguments the page names, and
+   * doing what the page says - the API's move, as the dashboard's drag.
+   */
+  it("names the tool that moves a row of an ordered list by the server's own name, with the arguments it takes", () => {
+    const move: string = readRepoFile("App/FeatureSet/MCP/Tools/MoveInList.ts");
+    const paragraph: string =
+      englishSection(MCP_SERVER, "## Tools for incident response")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("**`oneuptime_move_in_list`**");
+        }) || "";
+
+    expect(move).toContain(
+      'MOVE_IN_LIST_TOOL_NAME: string = "oneuptime_move_in_list"',
+    );
+    expect(move).toContain('required: ["resource", "id", "placeOfId"]');
+    // The API's move request, as the dashboard's drag sends it.
+    expect(move).toContain("${getMoveInListRoute(id)}");
+    expect(move).toContain("body: { placeOfId: placeOfId }");
+
+    for (const argument of ["`resource`", "`id`", "`placeOfId`"]) {
+      expect({ argument, named: paragraph.includes(argument) }).toEqual({
+        argument,
+        named: true,
+      });
+    }
+
+    expect(paragraph).toContain("as dragging it in the dashboard does");
+    expect(paragraph).toContain("such as `Incident Severity`");
+    expect(paragraph).toContain(
+      "Writing a row's number with its `update_` tool places only that row",
+    );
   });
 
   it("pages lists with the server's default and largest limit", () => {

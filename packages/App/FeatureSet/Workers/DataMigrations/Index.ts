@@ -148,6 +148,7 @@ import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBr
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
+import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1467,9 +1468,9 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Ties the Ping, IP, Port, NTP, Website, API and SSL Certificate monitors
    * people made before issue #9545 to the network device they check
    * (Monitor.networkDeviceId, added by AddMonitorNetworkDeviceId1809184900000),
-   * when exactly one device in the project is at the address every step
-   * checks - the rule a monitor created today is tied by. Postgres only,
-   * idempotent, a page of monitors at a time by id; before the last slot
+   * when the monitor's probes see one device at the address every step
+   * checks (#9677) - the rule a monitor created today is tied by. Postgres
+   * only, idempotent, a page of monitors at a time by id; before the last slot
    * AddAuditLogMcpClientColumns asserts for itself, and before
    * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
    * before it (the two are independent).
@@ -1484,6 +1485,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
    */
   new BackfillIncidentCallTranscriptSignInAccount(),
+  /*
+   * What a workflow's step ran as, and with whose permissions (#9766): adds
+   * the five audit-log columns that say it (AuditLogV2.workflowRunAs and
+   * the four beside it). Metadata-only and idempotent; rows written before
+   * it read NULL. Before the last slot AddAuditLogMcpClientColumns keeps.
+   */
+  new AddAuditLogWorkflowRunAsColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -19,9 +19,10 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import ComplianceFramework, {
-  ALL_COMPLIANCE_FRAMEWORKS,
-} from "../../Types/DataSecurity/ComplianceFramework";
+import {
+  ALL_COMPLIANCE_SETTING_FRAMEWORKS,
+  ComplianceSettingFramework,
+} from "../../Types/DataSecurity/ComplianceSettingFramework";
 import {
   ALL_DATA_STORE_RESOURCE_KINDS,
   DataStoreResourceKind,
@@ -40,6 +41,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * Turning one off makes a row; turning it on again sets the row's isEnabled,
  * so whoever may turn a framework off for a resource may turn it back on.
+ *
+ * A Kubernetes cluster is also scored itself, against the Pod Security
+ * Standards and the CIS Kubernetes Benchmark (#9627,
+ * Types/Kubernetes/Compliance): a row can turn one of those, or one of their
+ * controls, off for the cluster - or, naming a namespace, for that namespace
+ * alone, as Pod Security Admission exempts a namespace.
  *
  * It tunes how Data Security scores what its checks found, as a check
  * setting tunes the checks themselves, so the same permissions read and
@@ -111,7 +118,17 @@ const createOnlyColumnAccess: {
 
 @EnableDocumentation()
 @EnableMCP()
-@EnableAuditLog()
+/*
+ * Every change is recorded: who turned a framework or requirement off, on
+ * or back, and the reason written for it (#9629). An entry is named by the
+ * framework and requirement ("PCI DSS 3.4"), never by the setting's id.
+ */
+@EnableAuditLog({
+  create: true,
+  update: true,
+  delete: true,
+  resourceNameColumns: ["framework", "requirement", "namespace"],
+})
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
@@ -213,19 +230,19 @@ export default class DataSecurityComplianceSetting extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
-    allowedValues: [...ALL_COMPLIANCE_FRAMEWORKS],
+    allowedValues: [...ALL_COMPLIANCE_SETTING_FRAMEWORKS],
     required: true,
     canReadOnRelationQuery: true,
     title: "Framework",
     description:
-      "The compliance framework this setting changes for the resource: GDPR, CCPA, HIPAA, PCI DSS, SOC 2, ISO 27001, NIST CSF, LGPD or DPDP.",
+      "The compliance framework this setting changes for the resource: GDPR, CCPA, HIPAA, PCI DSS, SOC 2, ISO 27001, NIST CSF, LGPD or DPDP, or for a Kubernetes cluster PSS Baseline, PSS Restricted or CIS Kubernetes.",
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: false,
   })
-  public framework?: ComplianceFramework = undefined;
+  public framework?: ComplianceSettingFramework = undefined;
 
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
@@ -242,6 +259,28 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     nullable: true,
   })
   public requirement?: string = undefined;
+
+  /*
+   * A namespace of the Kubernetes cluster the setting names (#9627): the
+   * cluster's own frameworks, or one of their controls, turned off for that
+   * namespace alone. Empty for the whole resource; only a Kubernetes
+   * framework's setting names one.
+   */
+  @ColumnAccessControl(createOnlyColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Namespace",
+    description:
+      "For a Kubernetes cluster's PSS Baseline, PSS Restricted or CIS Kubernetes setting, the one namespace it is for. Empty for the whole resource.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public namespace?: string = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
@@ -275,6 +314,65 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     nullable: true,
   })
   public note?: string = undefined;
+
+  /*
+   * Who last turned it off, and when (#9629): an auditor's first question
+   * about a framework that does not apply here. The row is made the first
+   * time it is turned off and only changed after that, so who made it may
+   * not be who turned it off last. OneUptime writes both whenever it goes
+   * from on to off, and clears them when it is turned on again.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "turnedOffByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Turned Off By User",
+    description:
+      "Relation to the user who last turned the framework or requirement off for the resource.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "turnedOffByUserId" })
+  public turnedOffByUser?: User = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Turned Off By User ID",
+    description:
+      "ID of the user who last turned the framework or requirement off for the resource. Empty while it applies, or when an API key turned it off.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public turnedOffByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Turned Off At",
+    description:
+      "When the framework or requirement was last turned off for the resource. Empty while it applies.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public turnedOffAt?: Date = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

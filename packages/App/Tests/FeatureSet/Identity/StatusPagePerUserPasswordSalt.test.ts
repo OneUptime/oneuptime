@@ -528,3 +528,85 @@ describe("Status page POST /login — per-user salt", () => {
     );
   });
 });
+
+/*
+ * The words were already one refusal for an unknown address and a wrong
+ * password (above). The time was not: a wrong password cost a scrypt
+ * derivation, an address the page does not know - or a private user with
+ * no password yet - only a database read, so timing the refusal said which
+ * addresses the page knows (#9745). Each now costs one derivation: a real
+ * check, or one spent in its place (PasswordHash.spendVerificationTime).
+ */
+describe("Status page POST /login — the time a refusal takes", () => {
+  let spend: jest.SpyInstance;
+  let verify: jest.SpyInstance;
+
+  beforeEach(() => {
+    spend = jest.spyOn(PasswordHash, "spendVerificationTime");
+    verify = jest.spyOn(
+      StatusPagePrivateUserService,
+      "verifyHashedColumnValue",
+    );
+  });
+
+  it("an address the page does not know spends one derivation, on what was typed", async () => {
+    mockLookup(null);
+
+    const result: InvokeResult = await login("a guess");
+
+    expect(spend).toHaveBeenCalledTimes(1);
+    expect(spend).toHaveBeenCalledWith("a guess");
+    expect(verify).not.toHaveBeenCalled();
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Email or password does not match.",
+    );
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("a private user with no password yet spends one too, and is refused alike", async () => {
+    const user: StatusPagePrivateUser = await storedPrivateUser({
+      password: "unused",
+      salt: PasswordHash.generateSalt(),
+    });
+
+    delete (user as unknown as Record<string, unknown>)["password"];
+    mockLookup(user);
+
+    const result: InvokeResult = await login("a guess");
+
+    expect(spend).toHaveBeenCalledTimes(1);
+    expect(verify).not.toHaveBeenCalled();
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Email or password does not match.",
+    );
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("a wrong password is checked for real, with nothing more spent", async () => {
+    mockLookup(
+      await storedPrivateUser({
+        password: "correct",
+        salt: PasswordHash.generateSalt(),
+      }),
+    );
+
+    await login("wrong");
+
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(spend).not.toHaveBeenCalled();
+  });
+
+  it("the right password still signs in, with nothing spent", async () => {
+    mockLookup(
+      await storedPrivateUser({
+        password: "correct",
+        salt: PasswordHash.generateSalt(),
+      }),
+    );
+
+    await login("correct");
+
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(spend).not.toHaveBeenCalled();
+  });
+});

@@ -69,6 +69,12 @@ export interface DataCheckRunResult {
   error: string | null;
   // A few of the rows it found failing, already masked, when the project keeps them.
   failingRows?: Array<FailingRow> | undefined;
+  /*
+   * Why its first try failed for a moment, when the warehouse failed it so
+   * and it ran when started again (DataCheckRestart, #9679) - sanitized.
+   * Unset when it ran at its first try, and from an older probe.
+   */
+  restartedAfter?: string | undefined;
 }
 
 // The segment a NULL segment value is reported as.

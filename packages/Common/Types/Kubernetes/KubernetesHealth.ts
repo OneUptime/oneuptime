@@ -1,4 +1,11 @@
 import { JSONObject } from "../JSON";
+import { StorageUsageLevel } from "../../Utils/Storage/StorageUsage";
+import {
+  KubernetesStorageRow,
+  KubernetesStorageVerdict,
+  assessKubernetesNodeStorage,
+  assessKubernetesVolumeClaimStorage,
+} from "./KubernetesStorageHealth";
 
 /*
  * WHAT IN A KUBERNETES CLUSTER NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -17,7 +24,8 @@ import { JSONObject } from "../JSON";
  *     CreateContainerConfigError, ...), its init containers too; a
  *     Deployment, StatefulSet or DaemonSet with none of its replicas
  *     available; a rollout past its progress deadline; a volume claim that
- *     lost its volume; a volume whose reclaim failed.
+ *     lost its volume; a volume whose reclaim failed; a claim's or a node's
+ *     disk almost out of space (90% used, or a claim with no inode free).
  *   Warning - needs a look soon:
  *     a node under memory, disk or PID pressure; a workload short of
  *     replicas while no rollout explains it; a DaemonSet on nodes it
@@ -25,7 +33,9 @@ import { JSONObject } from "../JSON";
  *     minutes (with the scheduler's reason); a container OOMKilled in the
  *     last hour; a pod evicted or failed in the last hour; a Job that
  *     failed (the newest run of a CronJob); a claim waiting for a volume;
- *     an autoscaler at its maximum or unable to scale.
+ *     an autoscaler at its maximum or unable to scale; a claim's or a
+ *     node's disk nearly full (80% used). A disk counts only by a fresh
+ *     reading, the metrics' not the snapshot's (KubernetesStorageHealth).
  *
  * What is never a problem by itself: a completed pod or Job, a workload
  * scaled to zero or paused, a suspended CronJob, a cordoned node (it is a
@@ -114,9 +124,12 @@ export interface KubernetesHealthAssessment {
 /*
  * An inventory row as the rules read it: the KubernetesResource columns,
  * whether they come from Postgres on the server or from ModelAPI in the
- * Dashboard. spec and status hold what KubernetesObjectParser parsed.
+ * Dashboard. spec and status hold what KubernetesObjectParser parsed. A
+ * claim's and a node's disk columns (KubernetesStorageRow) are what the
+ * metrics last reported; a reader that leaves them out gets the verdict of
+ * the snapshot alone.
  */
-export interface KubernetesHealthRow {
+export interface KubernetesHealthRow extends KubernetesStorageRow {
   kind?: string | null | undefined;
   namespaceKey?: string | null | undefined;
   name?: string | null | undefined;
@@ -628,6 +641,49 @@ function worse(
   return a || b;
 }
 
+function severityRank(severity: KubernetesHealthSeverity | null): number {
+  if (severity === KubernetesHealthSeverity.Critical) {
+    return 2;
+  }
+  return severity === KubernetesHealthSeverity.Warning ? 1 : 0;
+}
+
+/*
+ * An object's verdict with its disk's (KubernetesStorageHealth): the disk
+ * leads when it is the worse - a Ready node almost out of disk reads "Disk
+ * almost full" - and otherwise adds its reasons after the object's own, so
+ * a node not ready still reads "Not ready", with its full disk among why.
+ */
+function withStorage(
+  assessment: KubernetesHealthAssessment,
+  storage: KubernetesStorageVerdict | null,
+): KubernetesHealthAssessment {
+  if (!storage) {
+    return assessment;
+  }
+
+  const severity: KubernetesHealthSeverity =
+    storage.level === StorageUsageLevel.Critical
+      ? KubernetesHealthSeverity.Critical
+      : KubernetesHealthSeverity.Warning;
+
+  if (severityRank(severity) > severityRank(assessment.severity)) {
+    return {
+      ...assessment,
+      severity: severity,
+      status: storage.status,
+      tone:
+        severity === KubernetesHealthSeverity.Critical ? "danger" : "warning",
+      reasons: [...storage.reasons, ...assessment.reasons],
+    };
+  }
+
+  return {
+    ...assessment,
+    reasons: [...assessment.reasons, ...storage.reasons],
+  };
+}
+
 function lastRestartReason(container: ContainerStatus): KubernetesHealthText {
   const reason: string = container.lastTerminationReason;
   if (
@@ -1129,7 +1185,22 @@ export function assessKubernetesContainer(
   };
 }
 
+/*
+ * A node's verdict: its conditions (assessKubernetesNodeState) and, from a
+ * fresh reading, its disks.
+ */
 export function assessKubernetesNode(
+  row: KubernetesHealthRow,
+  options?: KubernetesHealthOptions,
+): KubernetesHealthAssessment {
+  return withStorage(
+    assessKubernetesNodeState(row),
+    assessKubernetesNodeStorage(row, clockOf(row, options).observedAt),
+  );
+}
+
+// What a node's conditions say about it: ready, reachable, under pressure.
+function assessKubernetesNodeState(
   row: KubernetesHealthRow,
 ): KubernetesHealthAssessment {
   const status: Json = asObject(row.status);
@@ -1561,8 +1632,15 @@ export function assessKubernetesVolumeClaim(
     };
   }
 
+  /*
+   * A bound claim is fine until its disk is nearly full, by a reading a
+   * running pod reported lately.
+   */
   if (phase === "Bound") {
-    return healthy(text(STATUS_BOUND));
+    return withStorage(
+      healthy(text(STATUS_BOUND)),
+      assessKubernetesVolumeClaimStorage(row, clock.observedAt),
+    );
   }
 
   return healthy(phase ? asWritten(phase) : text(STATUS_NO_DATA), "neutral");
@@ -1891,7 +1969,7 @@ export function assessKubernetesResource(
     case "Pod":
       return assessKubernetesPod(row, options);
     case "Node":
-      return assessKubernetesNode(row);
+      return assessKubernetesNode(row, options);
     case "Deployment":
       return assessKubernetesDeployment(row, options);
     case "StatefulSet":
@@ -1963,6 +2041,12 @@ export interface KubernetesAttentionFinding {
   message?: string | undefined;
   // How many of its pods need attention, for a workload that has some.
   podCount?: number | undefined;
+  /*
+   * For a claim: a pod in its namespace that mounts it - the workload that
+   * writes to it - which the cluster's Needs attention read adds
+   * (KubernetesResourceService.getNeedsAttention). The rules leave it out.
+   */
+  pod?: string | undefined;
 }
 
 // The order the kinds are listed in at one severity.

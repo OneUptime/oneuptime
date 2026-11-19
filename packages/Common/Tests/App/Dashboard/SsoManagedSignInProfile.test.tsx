@@ -1,11 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import {
@@ -76,6 +70,18 @@ const USER_ID: ObjectID = new ObjectID("47474747-4747-4747-8747-474747474747");
 const MANAGED: SignInManagement = {
   isManagedBySso: true,
   ssoProviderNames: ["Okta"],
+  localSignInProjectNames: [],
+};
+
+/*
+ * Somebody some of whose projects manage sign-in with SSO, but not every
+ * one (#9763): they keep their settings, and the profile says which
+ * projects keep them.
+ */
+const PARTLY_MANAGED: SignInManagement = {
+  isManagedBySso: false,
+  ssoProviderNames: ["Okta"],
+  localSignInProjectNames: ["Side Project"],
 };
 
 // What the server answers to GET /user/sign-in-management.
@@ -218,6 +224,43 @@ describe("what the profile says instead", () => {
     expect(screen.getByTestId("sso-managed-sign-in")).toHaveTextContent(
       "You sign in with single sign-on (SSO).",
     );
+  });
+
+  test("to somebody some of whose projects manage it, names the projects that keep their settings theirs (#9763)", () => {
+    render(
+      <SsoManagedSignInNotice
+        ssoProviderNames={["Okta"]}
+        localSignInProjectNames={["Side Project", "Acme Labs"]}
+      />,
+    );
+
+    expect(screen.getByText("Single Sign-On")).toBeVisible();
+    expect(
+      screen.getByText("Some of your projects manage how you sign in."),
+    ).toBeVisible();
+    expect(screen.queryByTestId("sso-managed-sign-in")).not.toBeInTheDocument();
+    expect(screen.getByTestId("sso-partly-managed-sign-in")).toHaveTextContent(
+      "Projects that manage your sign-in use Okta. You keep your own password, passkeys and two-factor authentication because these projects don't: Side Project and Acme Labs.",
+    );
+  });
+
+  test("draws a project's name as it was typed, never as markup", () => {
+    render(
+      <SsoManagedSignInNotice
+        ssoProviderNames={[]}
+        localSignInProjectNames={["<i>Side</i> & co"]}
+      />,
+    );
+
+    expect(screen.getByTestId("sso-partly-managed-sign-in")).toHaveTextContent(
+      "Projects that manage your sign-in use single sign-on (SSO). You keep your own password, passkeys and two-factor authentication because these projects don't: <i>Side</i> & co.",
+    );
+    expect(
+      within(screen.getByTestId("sso-partly-managed-sign-in")).queryByText(
+        "Side",
+        { selector: "i" },
+      ),
+    ).not.toBeInTheDocument();
   });
 
   test("draws a provider's name as it was typed, never as markup", () => {
@@ -393,6 +436,56 @@ describe("the Security pages, for somebody whose organization manages their sign
     );
 
     expect(screen.getByTestId("basic-info")).toBeVisible();
+    expect(screen.queryByTestId("sso-managed-sign-in")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("sso-partly-managed-sign-in"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the Overview says why somebody some of whose projects manage it keeps their settings (#9763)", () => {
+    renderPage(
+      UserProfileOverview as never,
+      "/dashboard/user-profile/overview",
+      PARTLY_MANAGED,
+    );
+
+    expect(screen.getByTestId("basic-info")).toBeVisible();
+    expect(screen.queryByTestId("sso-managed-sign-in")).not.toBeInTheDocument();
+    expect(screen.getByTestId("sso-partly-managed-sign-in")).toHaveTextContent(
+      "because these projects don't: Side Project.",
+    );
+  });
+});
+
+describe("somebody some of whose projects manage their sign-in (#9763)", () => {
+  test("keeps the Security section", () => {
+    renderMenu(PARTLY_MANAGED);
+
+    for (const entry of SECURITY_ENTRIES) {
+      expect(screen.getByRole("link", { name: entry })).toBeInTheDocument();
+    }
+  });
+
+  test("reads the answer, with the projects that keep the settings", async () => {
+    signInAnswer = {
+      isManagedBySso: false,
+      ssoProviderNames: ["Okta"],
+      localSignInProjectNames: ["Side Project"],
+    };
+
+    await expect(fetchSignInManagement()).resolves.toEqual(PARTLY_MANAGED);
+  });
+
+  test("keeps the settings on a Security page", () => {
+    render(
+      <SignInManagementContext.Provider value={PARTLY_MANAGED}>
+        <LocalSignInSettings>
+          <div data-testid="settings">Settings</div>
+        </LocalSignInSettings>
+      </SignInManagementContext.Provider>,
+    );
+
+    expect(screen.getByTestId("settings")).toBeVisible();
     expect(screen.queryByTestId("sso-managed-sign-in")).not.toBeInTheDocument();
   });
 });

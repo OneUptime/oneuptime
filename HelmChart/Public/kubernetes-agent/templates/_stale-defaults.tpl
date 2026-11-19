@@ -91,5 +91,5 @@ the same reason, and kept equal to it by the same test. The collector configs
 read it too (kubernetes-agent.collectorAtLeast) when a tag is not a version.
 */}}
 {{- define "kubernetes-agent.defaultCollectorImageTag" -}}
-0.161.0
+0.165.0
 {{- end -}}

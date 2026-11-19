@@ -319,10 +319,11 @@ describe("Where it came from", () => {
     expect(section).toHaveTextContent("wasn't written inside a traced request");
     expect(section).toHaveTextContent("From a log line in your telemetry");
     expect(screen.queryByTestId("security-event-view-trace")).toBeNull();
-    // Its neighbours in the logs, rather than its request's.
-    expect(screen.getByTestId("security-event-view-logs")).toHaveTextContent(
-      "Logs around it",
-    );
+    // The line itself, open in the Logs explorer with its neighbours; no request's lines.
+    expect(
+      screen.getByTestId("security-event-view-log-line"),
+    ).toHaveTextContent("View log line");
+    expect(screen.queryByTestId("security-event-view-logs")).toBeNull();
   });
 
   test("a reader who may not read logs is told so, and nothing breaks", async () => {

@@ -41,7 +41,7 @@ flowchart TB
 - **计划维护**：创建和管理维护事件。
 - **遥测**：查询日志、指标、追踪、异常、监视器日志、安全事件等，只读。
 
-有针对 54 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。只读工具带有 `readOnlyHint`，每个会更改内容的工具都带有 `destructiveHint`，只有公共状态页工具带有 `openWorldHint`，因此客户端可以自行执行只读调用，并在做出任何更改之前询问您。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
+有针对 55 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。像事件与警报之间的关联这样、创建后没有任何字段可以更改的记录类型，没有更新工具。只读工具带有 `readOnlyHint`，每个会更改内容的工具都带有 `destructiveHint`，因此客户端可以自行执行只读调用，并在做出任何更改之前询问您。`openWorldHint` 标记那些会触及您的项目之外的工具：公共状态页工具，以及会显示在状态页上并发送给其订阅者的更改，例如新事件、事件状态的变化或公开备注。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
 
 ## 开始之前
 
@@ -341,6 +341,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`get_data_table_lineage`** 工具在智能体更改某张表或信任其数据之前，告诉它 Data Observability 监视的这张表由什么构建、由它构建了什么：延迟、被删除、有未关闭的警报或其管道上次运行失败的上游和下游表，由近及远，每张表都附上相隔几步，然后是其余的表、从外部加载其来源的管道，以及基于它构建的 BI 仪表板。它每个方向走三步，用 `depth` 最多五步。`table` 的传法与 `get_data_table_freshness` 相同。它不做任何更改。
 
+**`oneuptime_move_in_list`** 工具把有序列表中的一行（例如事件严重性、事件状态或监视器状态）移到另一行的位置，与在仪表板中拖动它的效果相同：两者之间的行各移动一位，它返回编号发生变化的每一行。传入 `resource`（例如 `Incident Severity`）、该行的 `id`，以及 `placeOfId`，即它要占据其位置的那一行的 ID。用其 `update_` 工具写入某行的编号只会放置该行，排在已有该编号的任何行旁边。
+
 ## 查询遥测
 
 日志、指标、追踪（span）、异常、监视器日志和其他种类的遥测以只读的 `list_` 和 `count_` 工具提供（`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` 及其对应的 `count_` 工具）。遥测通过 OpenTelemetry 传入，因此没有创建工具。
@@ -489,7 +491,7 @@ MCP 服务器是无状态的：它既不发放也不跟踪会话 ID，因此每�
 | 团队和值班 | Team, On-Call Policy |
 | 标签 | Label |
 | 安全 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| 数据安全 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| 数据安全 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | 数据可观测性 | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | 云 | Cloud Budget |
 

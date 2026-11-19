@@ -354,7 +354,14 @@ export interface SaveFilterProps {
 export interface BaseTableCallbacks<
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 > {
-  deleteItem: (item: TBaseModel) => Promise<void>;
+  /*
+   * Deletes a row; `miscDataProps` are the choices its confirmation held
+   * (DeleteConfirmation.getMiscDataProps), sent beside its id.
+   */
+  deleteItem: (
+    item: TBaseModel,
+    miscDataProps?: JSONObject | undefined,
+  ) => Promise<void>;
   getModelFromJSON: (item: JSONObject) => TBaseModel;
   getJSONFromModel: (item: TBaseModel) => JSONObject;
   addSlugToSelect: (select: Select<TBaseModel>) => Select<TBaseModel>;
@@ -499,6 +506,13 @@ export interface DeleteConfirmation {
    * alternative (as its one action) and Cancel.
    */
   isDeleteBlocked?: boolean | undefined;
+  /*
+   * What the delete sends beside the record's id, read as Delete is
+   * pressed (ModelAPI.deleteItem's miscDataProps): a choice the dialog's
+   * details hold - what the workflows that run as a deleted custom role
+   * run as instead (#9767), for one.
+   */
+  getMiscDataProps?: (() => JSONObject | undefined) | undefined;
 }
 
 export interface DeleteConfirmationAlternative {
@@ -2343,9 +2357,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     };
 
-  type DeleteItemFunction = (item: TBaseModel) => Promise<void>;
+  type DeleteItemFunction = (
+    item: TBaseModel,
+    miscDataProps?: JSONObject | undefined,
+  ) => Promise<void>;
 
-  const deleteItem: DeleteItemFunction = async (item: TBaseModel) => {
+  const deleteItem: DeleteItemFunction = async (
+    item: TBaseModel,
+    miscDataProps?: JSONObject | undefined,
+  ) => {
     if (!item.id) {
       throw new BadDataException("item.id cannot be null");
     }
@@ -2353,7 +2373,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setIsLoading(true);
 
     try {
-      await props.callbacks.deleteItem(item);
+      await props.callbacks.deleteItem(item, miscDataProps);
 
       // The record is gone from every count beside the list too.
       refreshSideMenuCounts();
@@ -6673,7 +6693,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             }
 
             if (currentDeleteableItem && currentDeleteableItem["_id"]) {
-              await deleteItem(currentDeleteableItem);
+              await deleteItem(
+                currentDeleteableItem,
+                deleteConfirmation?.getMiscDataProps?.(),
+              );
               setShowDeleteConfirmModal(false);
             }
           }}

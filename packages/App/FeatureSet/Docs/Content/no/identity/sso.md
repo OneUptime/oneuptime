@@ -127,7 +127,7 @@ Keycloak er en populær åpen kildekode-løsning for identitets- og tilgangsstyr
 4. **Juster klientinnstillingene**
 
    - Sett **Name ID Format** til `email`, og slå på **Force Name ID Format**, slik at Keycloak alltid sender e-posten som Name ID
-   - Slå av **Client signature required** (under **Signing keys config**) på klientens fane **Keys**: OneUptime signerer ikke forespørslene sine
+   - Slå av **Client signature required** (under **Signing keys config**) på klientens fane **Keys**: OneUptime signerer ikke påloggingsforespørslene sine
 
 5. **Slå på leverandøren, og test den**
 
@@ -259,11 +259,33 @@ Et prosjekt kan også logge inn via en OpenID Connect-leverandør, for eksempel 
 6. Åpne lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren for å logge inn via den før du krever SSO for prosjektet.
 :::
 
-### Logg også ut av identitetsleverandøren
+## Logg også ut av identitetsleverandøren
 
-Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin, som en NOC-skjerm eller en kiosk, kommer den neste som velger leverandøren på påloggingssiden, inn som den som gikk. Slå på **Logg også ut av identitetsleverandøren** under **Flere felt** for å avslutte økten hos leverandøren når noen logger ut av OneUptime. Den er slått av som standard: På en personlig bærbar ville den også logge personen ut av alle andre apper som bruker leverandøren.
+Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin, som en NOC-skjerm eller en kiosk, kommer den neste som velger leverandøren på påloggingssiden, inn som den som gikk. Slå på **Logg også ut av identitetsleverandøren** under **Flere felt** på en SAML- eller OIDC-leverandør for å avslutte økten hos leverandøren når noen logger ut av OneUptime. Den er slått av som standard: På en personlig bærbar ville den også logge personen ut av alle andre apper som bruker leverandøren. Den gjelder for personer som logger inn i en nettleser etter at den er slått på; mobilappen logger bare ut av OneUptime.
 
-Når den er slått på, går nettleseren til leverandørens egen utlogging så snart OneUptime har logget den ut, og leverandøren sender den tilbake til påloggingssiden til OneUptime. Registrer den siden hos leverandøren din: Dialogen **OIDC-konfigurasjon** viser den som omdirigerings-URI etter utlogging, som leverandører kaller en post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på. Den gjelder for personer som logger inn i en nettleser etter at den er slått på; mobilappen logger bare ut av OneUptime. SAML-leverandører logger aldri noen ut av identitetsleverandøren.
+:::tabs
+@tab SAML
+Skriv inn utloggings-URL-en til identitetsleverandøren din som leverandørens **Utloggings-URL** under **Flere felt**: Uten den kan bryteren ikke slås på. Gi deretter identitetsleverandøren **Single Logout-URL** fra dialogen **SSO-konfigurasjon** og sertifikatet som OneUptime signerer utloggingsforespørslene sine med, via **Last ned signeringssertifikat** i samme dialog.
+
+| Identitetsleverandør | Utloggings-URL | Hvor Single Logout-URL-en og sertifikatet skal |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, under **View SAML setup instructions** på fanen **Sign On** | Rediger **SAML Settings** på fanen **General**, klikk på **Show Advanced Settings**, og velg **Allow application to initiate Single Logout**. Sett **Single Logout URL** til Single Logout-URL-en og **SP Issuer** til identifikatoren (Entity ID), og last opp sertifikatet som **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, under **Set up OneUptime** | Sett **Logout Url (Optional)** i **Basic SAML Configuration** til Single Logout-URL-en. Entra ID trenger ikke noe sertifikat. |
+| Keycloak | Realmens SAML-endepunkt, det samme som påloggings-URL-en | Sett **Logout Service Redirect Binding URL** på klientens fane **Advanced** til Single Logout-URL-en. La **Front channel logout** være slått på. Keycloak trenger ikke noe sertifikat så lenge **Client signature required** er slått av, som satt opp ovenfor. |
+
+Etter en utlogging der sender identitetsleverandøren nettleseren tilbake til Single Logout-URL-en, som åpner påloggingssiden eller sier at identitetsleverandøren ikke bekreftet utloggingen. Når personen logger ut hos identitetsleverandøren eller av en annen app som bruker den, logger en identitetsleverandør som sender utloggingsforespørsler til appene sine, slik Keycloak og Microsoft Entra ID gjør, også personen ut av OneUptime. OneUptime tar bare imot en forespørsel som identitetsleverandøren har signert.
+@tab OpenID Connect
+Nettleseren går til leverandørens egen utlogging så snart OneUptime har logget den ut, og leverandøren sender den tilbake til påloggingssiden til OneUptime. Registrer den siden hos leverandøren din: Dialogen **OIDC-konfigurasjon** viser den som omdirigerings-URI etter utlogging, som leverandører kaller en post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på.
+
+| Identitetsleverandør | Hvor omdirigerings-URI-en etter utlogging registreres |
+| --- | --- |
+| Okta | Klikk på **Edit** i **General Settings** på fanen **General** i appintegrasjonen, og legg den til i **Sign-out redirect URIs**. |
+| Microsoft Entra ID | Legg den til i appregistreringens **Authentication** under **Redirect URIs** for plattformen **Web**. **Front-channel logout URL** er en annen innstilling, som OneUptime ikke bruker. |
+| Auth0 | Legg den til i applikasjonens **Settings** under **Allowed Logout URLs**. En tenant som ble opprettet før 14. november 2023, må også ha **RP-Initiated Logout End Session Endpoint Discovery** slått på i **Advanced**-innstillingene, slik at oppdagelsesdokumentet nevner et `end_session_endpoint`. |
+| Keycloak | Legg den til i klientens innstillinger under **Valid post logout redirect URIs** (Keycloak 19 og nyere). |
+
+En leverandør der den ikke er registrert, viser sin egen feilside etter at noen har logget ut av OneUptime, i stedet for å sende dem tilbake; de er logget ut av OneUptime likevel.
+:::
 
 ## Roller og team for SSO-brukere
 
@@ -293,6 +315,21 @@ Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pål
 
 > [!NOTE]
 > På OneUptime Cloud krever det planen **Scale** å kreve SSO, mens det fungerer på alle planer å slå det av. Under Scale viser **Prosjektinnstillinger** > **Sikkerhet** > **SSO** planens oppgraderingstilbud; et prosjekt som en Scale-prøveperiode etterlot med krav om SSO, finner også **Krev SSO for å logge på** der, under tilbudet, slik at det kan slås av. Å slå det på igjen krever **Scale**.
+
+### Styr påloggingen til brukerne dine med SSO
+
+Å kreve SSO holder prosjektets data bak identitetsleverandøren din, men brukerne dine kan fortsatt sette opp passord, passnøkler og tofaktorautentisering i OneUptime, noe prosjektet ditt aldri ber om. Så lenge **Krev SSO for å logge på** er slått på, hindrer en andre bryter under den, **Styr pålogging med SSO**, dette.
+
+En persons pålogging styres av SSO når alle prosjektene vedkommende hører til, inkludert alle prosjekter vedkommende er invitert til, krever SSO og har **Styr pålogging med SSO** slått på. Vedkommende kan da ikke sette opp passord, passnøkkel, sikkerhetsnøkkel, autentiseringsapp, reservekoder eller tofaktorautentisering, **Glemt passord?** sender ingen lenke, og vedkommendes **Brukerprofil** viser identitetsleverandøren i stedet for å tilby disse innstillingene. Ingenting ved påloggingen endres: Passordet logger fortsatt vedkommende på OneUptime, og prosjektet ditt ber om SSO som før.
+
+Regelen sjekkes hver gang, så:
+
+- **Noen i et prosjekt som ikke styrer påloggingen**: Så snart vedkommende er medlem av eller invitert til et prosjekt som ikke krever SSO eller ikke har **Styr pålogging med SSO** slått på, får vedkommende innstillingene sine tilbake, og vedkommendes **Brukerprofil** viser det prosjektet som grunnen. Forlater vedkommende det, styres påloggingen igjen. En konto kan høre til mange organisasjoner, så én organisasjon bestemmer aldri over en annens prosjekter.
+- **Prosjekter med ulike leverandører**: Noen i to prosjekter som begge styrer påloggingen, hvert med sin egen identitetsleverandør, blir styrt, og profilen viser begge leverandørene.
+- **Master-admins** beholder alltid sine egne innstillinger.
+- **Det folk har satt opp før**, blir beholdt, ubrukt av prosjektet ditt. En serveradministrator kan fjerne det på personens side **Autentisering** i Admin Dashboard, med **Fjern påloggingsinnstillinger**.
+
+**Styr pålogging med SSO** lagres så snart du slår om bryteren, sletter ingenting, og slår du den av, får alle innstillingene sine tilbake med en gang. Den som kan endre **Krev SSO for å logge på**, kan endre den, på de samme planene. Når **Krev SSO for å logge på** er slått av, er den skjult og endrer ingenting.
 
 ## Slå av eller slette en leverandør
 

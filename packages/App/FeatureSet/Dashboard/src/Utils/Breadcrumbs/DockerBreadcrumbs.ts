@@ -60,6 +60,12 @@ export function getDockerBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS, [
+      "Project",
+      "Docker",
+      "View Host",
+      "Security Events",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_INCIDENTS, [
       "Project",
       "Docker",

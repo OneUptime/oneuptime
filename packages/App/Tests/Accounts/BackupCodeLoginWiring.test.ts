@@ -1173,12 +1173,13 @@ describe("codes the server mints are shown once, before anything redirects", () 
 
   test("every second-factor handler goes through completeTwoFactorLogin", () => {
     /*
-     * Four call sites: the TOTP challenge, the security key, the backup code
-     * and the enrolment. Any one of them calling `login` directly skips the
-     * show-once screen for its path -- and for the enrolment path that means
-     * navigating away from the only copy of the codes.
+     * Five call sites: the TOTP challenge, the security key, the backup code,
+     * the authenticator app's enrolment and the security key's enrolment
+     * (#9764). Any one of them calling `login` directly skips the show-once
+     * screen for its path -- and for an enrolment that means navigating away
+     * from the only copy of the codes.
      */
-    expect(countOccurrences(loginSource, "completeTwoFactorLogin(")).toBe(4);
+    expect(countOccurrences(loginSource, "completeTwoFactorLogin(")).toBe(5);
     expect(guardedBlockFor(TOTP_FORM).block).toContain(
       "completeTwoFactorLogin(",
     );
@@ -1189,6 +1190,29 @@ describe("codes the server mints are shown once, before anything redirects", () 
     expect(loginSource).toMatch(
       /verifyResult instanceof HTTPErrorResponse[\s\S]{0,400}?completeTwoFactorLogin\(/,
     );
+
+    /*
+     * The security key's enrolment (#9764) is a handler of its own: it hands
+     * the codes its answer carried on, as the authenticator app's does.
+     */
+    const marker: string =
+      "const registerSecurityKey: RegisterSecurityKeyFunction";
+    const start: number = loginSource.indexOf(marker);
+
+    expect(start).toBeGreaterThan(-1);
+
+    const securityKeyEnrolment: string = loginSource.slice(
+      start,
+      loginSource.indexOf("finally {", start),
+    );
+
+    expect(securityKeyEnrolment).toContain(
+      "const enrolmentMiscData: JSONObject = getMiscData(result);",
+    );
+    expect(securityKeyEnrolment).toMatch(
+      /completeTwoFactorLogin\(\s*user,\s*enrolmentMiscData,\s*enrolmentMiscData\["hasBackupCodes"\] !== true,/,
+    );
+    expect(securityKeyEnrolment).not.toMatch(DIRECT_LOGIN_CALL);
   });
 
   test("the password-only path still signs in directly", () => {

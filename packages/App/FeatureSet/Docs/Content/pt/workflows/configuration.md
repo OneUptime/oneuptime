@@ -217,15 +217,19 @@ Por padrão, um workflow é executado com as permissões acima, e a maioria dos 
 
 Seja como for executado, um passo nunca lê configurações que guardam credenciais, nunca vê incidentes, alertas ou episódios privados e nunca altera chaves de API, login único ou configurações de SCIM. Quando dá a uma equipe uma permissão ou uma função, só pode dar o que ele mesmo tem, e se faltar algo, o log da execução nomeia a permissão.
 
-Um workflow executado com mais do que as permissões padrão é executado com as permissões da pessoa que as deu a ele: quem escolheu por último o seu **Run As** ou salvou os seus passos ou as suas variáveis. Para que ninguém consiga por meio dele mais do que tem:
+Um workflow executado com mais do que as permissões padrão é executado com as permissões de quem as deu a ele: a pessoa ou a chave de API do projeto que escolheu por último o seu **Run As** ou salvou os seus passos ou as suas variáveis. Para que ninguém consiga por meio dele mais do que tem:
 
 - Só as pessoas que têm essas permissões podem alterar o workflow ou as suas variáveis, arquivá-lo ou excluí-lo, executá-lo ou um dos seus passos manualmente, ou ver a sua URL de webhook e o seu endereço de e-mail de entrada. Qualquer pessoa que possa editá-lo ainda pode desativá-lo. Quando passa a ser executado com mais do que as permissões padrão, ou muda a forma como é executado, ele recebe uma nova URL de webhook e um novo endereço de e-mail de entrada, então cópias dos antigos não o iniciam mais.
-- Só uma pessoa pode dá-las, nunca uma chave de API.
-- Cada execução verifica primeiro se a pessoa que as deu ainda as tem. Se não, a execução para antes do seu primeiro passo, e o seu log diz por quê e quem pode dá-las de novo.
+- Uma pessoa ou uma das chaves de API do projeto pode dá-las, e só o que ela mesma tem: as permissões de uma chave, incluídas as suas funções personalizadas, são pesadas como as de uma pessoa. Os passos de um workflow e a chave de API mestra não podem dá-las, e redefinir uma chave exige todas as permissões que a chave tem.
+- Cada execução verifica primeiro se quem as deu ainda as tem: uma pessoa que ainda está no projeto, ou uma chave que ainda existe, não expirou e não as perdeu. Se não, a execução para antes do seu primeiro passo, e o seu log diz por quê e quem pode dá-las de novo.
 - Ele não lê as variáveis globais do projeto, que qualquer pessoa que possa editar variáveis de workflow pode alterar.
 - O passo **Executar outro fluxo de trabalho** de outro workflow só pode iniciá-lo se esse workflow for executado com as mesmas permissões ou mais.
 
-Cada execução registra como foi executada e com as permissões de quem, o que aparece na janela da execução e em um log baixado, e o [log de auditoria](/docs/configuration/audit-logs) registra quem alterou o **Run As** de um workflow.
+Um workflow exportado, importado ou duplicado é executado com as permissões padrão, seja qual for o do original: alguém que tem mais escolhe o seu **Run As** de novo.
+
+Cada execução registra como foi executada e com as permissões de quem, o que aparece na janela da execução e em um log baixado. O [log de auditoria](/docs/configuration/audit-logs) registra quem alterou o **Run As** de um workflow, uma pessoa ou uma chave de API pelo nome, e cada alteração que um passo de um workflow faz diz como o passo foi executado e com as permissões de quem. Os filtros **Fluxo de trabalho executado como** e **Permissões do fluxo de trabalho dadas por** do log de auditoria encontram essas alterações.
+
+Excluir uma função personalizada com a qual workflows são executados os pararia, então a exclusão os lista e pergunta com o que eles são executados daqui em diante: **Permissões padrão** ou outra função personalizada que você poderia dar a uma equipe. Quem não pode editar workflows não pode excluir a função até que o Run As deles seja alterado. Pela API, excluir uma função assim é recusado, a menos que a solicitação diga com o que eles são executados no lugar: `miscDataProps` com `workflowsRunAs` definido como `Default`, ou como `CustomRole` com o id da função em `workflowsRunAsCustomRoleId`.
 
 ## Limites do plano
 

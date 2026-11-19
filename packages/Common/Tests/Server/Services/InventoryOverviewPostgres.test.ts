@@ -17,6 +17,7 @@ import ObjectID from "../../../Types/ObjectID";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import { InventoryLiveness } from "../../../Types/Telemetry/InventoryLiveness";
+import { MANAGED_DEVICE_RESOURCE_TYPE } from "../../../Types/DeviceManagement/ManagedDeviceIdentity";
 import {
   INVENTORY_SUMMARY_TILES,
   InventorySummaryTile,
@@ -81,6 +82,7 @@ describePostgres("inventory overview counts against Postgres", () => {
       "displayName" varchar NOT NULL,
       "entityType" varchar NOT NULL,
       "source" varchar,
+      "resourceType" varchar,
       "firstSeenAt" timestamptz,
       "lastSeenAt" timestamptz,
       "isArchived" boolean NOT NULL DEFAULT false,
@@ -101,6 +103,16 @@ describePostgres("inventory overview counts against Postgres", () => {
     // Ancient timestamps that must never read as stale.
     await seed(EntityType.Host, EntitySource.Inventory, 365 * 1440 * MINUTE);
     await seed(EntityType.Host, EntitySource.Inventory, null);
+    /*
+     * The hosts of devices an Esper connection imports, which check in
+     * (issue #9586): one that went quiet two days ago, one checking in.
+     */
+    await seed(EntityType.Host, EntitySource.Inventory, 2 * 1440 * MINUTE, {
+      resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+    });
+    await seed(EntityType.Host, EntitySource.Inventory, 5 * MINUTE, {
+      resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+    });
     await seed(
       EntityType.ExternalService,
       EntitySource.Manual,
@@ -155,16 +167,21 @@ describePostgres("inventory overview counts against Postgres", () => {
     entityType: string,
     source: string | null,
     age: number | null,
-    options: { archived?: boolean; projectId?: ObjectID } = {},
+    options: {
+      archived?: boolean;
+      projectId?: ObjectID;
+      resourceType?: string;
+    } = {},
   ): Promise<void> {
     await runner.query(
-      `INSERT INTO "${schema}"."InventoryItem" ("_id", "projectId", "displayName", "entityType", "source", "firstSeenAt", "lastSeenAt", "isArchived") VALUES ($1, $2, $3, $4, $5, $6, $6, $7)`,
+      `INSERT INTO "${schema}"."InventoryItem" ("_id", "projectId", "displayName", "entityType", "source", "resourceType", "firstSeenAt", "lastSeenAt", "isArchived") VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8)`,
       [
         ObjectID.generate().toString(),
         (options.projectId || projectId).toString(),
         `${entityType} ${source}`,
         entityType,
         source,
+        options.resourceType || null,
         age === null ? null : new Date(now.getTime() - age),
         Boolean(options.archived),
       ],
@@ -219,14 +236,15 @@ describePostgres("inventory overview counts against Postgres", () => {
   test("the counts are the estate's, with archived and foreign rows left out", () => {
     // Pinned as numbers too, so a degenerate estate cannot pass the tiles above vacuously.
     expect(counts).toEqual({
-      total: 11,
+      total: 13,
       discovered: 7,
-      mirrored: 2,
+      mirrored: 4,
       manual: 1,
-      stale: 3,
+      // Discovered rows and the managed device that went quiet.
+      stale: 4,
       countsByType: {
         [EntityType.Service]: 5,
-        [EntityType.Host]: 4,
+        [EntityType.Host]: 6,
         [EntityType.ExternalService]: 1,
         "some.future.type": 1,
       },

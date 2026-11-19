@@ -64,6 +64,11 @@ import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedExc
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import UserSessionService from "../Services/UserSessionService";
 import SsoRequiredSignIn from "../Utils/SsoRequiredSignIn";
+import LocalSignInClearing from "../Utils/LocalSignInClearing";
+import {
+  ClearSavedSignInSettingsAnswer,
+  SavedSignInSettingsAnswer,
+} from "../../Types/SSO/LocalSignInClearing";
 import logger from "../Utils/Logger";
 import {
   EndSessionsWithoutSsoAnswer,
@@ -288,6 +293,86 @@ export default class GlobalConfigAPI extends BaseAPI<
           logger.info(
             `A master admin signed out everyone signed in without SSO: ${answer.sessionsEnded} session(s) ended.`,
           );
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/saved-sign-in-settings - how many people the
+     * server's SSO requirement covers, master admins left out, still have a
+     * password, passkey, security key, authenticator app, backup codes or
+     * two-factor authentication saved (Types/SSO/LocalSignInClearing,
+     * #9762): what the Require SSO card says while the server requires
+     * SSO, before it offers to clear them. Master admins only.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/saved-sign-in-settings`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const answer: SavedSignInSettingsAnswer = {
+            peopleCount:
+              await LocalSignInClearing.countPeopleCoveredBySsoRequirement(),
+          };
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/saved-sign-in-settings/clear - a master admin
+     * clearing those settings for everyone the server's SSO requirement
+     * covers (LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement):
+     * never a master admin's, each person recorded in their projects' audit
+     * logs. Refused while the server does not require SSO, when the
+     * settings still sign people in; a read of the rule that fails refuses
+     * too. It cannot be undone, and the card asks first. Master admins
+     * only, by session: the master admin is the session's own person.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/saved-sign-in-settings/clear`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          /*
+           * The master admin as their session names them: the middleware
+           * read the session, and sets no userAuthorization for a handler
+           * to read.
+           */
+          const clearedByUserId: ObjectID | null =
+            await GlobalConfigAPI.getSessionUserId(req);
+
+          if (!clearedByUserId) {
+            throw new NotAuthenticatedException(
+              "Sign in as a master admin to clear people's sign-in settings.",
+            );
+          }
+
+          const answer: ClearSavedSignInSettingsAnswer = {
+            peopleCleared:
+              await LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement(
+                {
+                  clearedByUserId: clearedByUserId,
+                },
+              ),
+          };
 
           return Response.sendJsonObjectResponse(
             req,

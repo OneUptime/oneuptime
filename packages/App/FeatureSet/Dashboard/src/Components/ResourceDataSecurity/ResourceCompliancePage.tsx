@@ -22,16 +22,19 @@ import {
   ComplianceSwitchKey,
   OWNER_NOTICE_TEMPLATES,
   SET_ON_OWNER_SENTENCES,
+  findTurnedOffEntry,
   getAppliesSwitchState,
   getComplianceSwitchKey,
   splitResourceFrameworks,
 } from "./ResourceComplianceModel";
+import { ComplianceTurnedOffNote } from "./ComplianceTurnedOffNote";
 import DataSecurityComplianceSetting from "Common/Models/DatabaseModels/DataSecurityComplianceSetting";
 import Route from "Common/Types/API/Route";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { COMPLIANCE_FRAMEWORK_INFO } from "Common/Types/DataSecurity/ComplianceFramework";
 import { ComplianceRequirementResult } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
 import {
+  DataSecurityComplianceTurnedOff,
   DataSecurityResourceComplianceFramework,
   DataSecurityResourceComplianceResponse,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
@@ -128,8 +131,18 @@ const SETTINGS_READ_FAILED: string = translationKey(
   "What is turned off for this resource could not be read.",
 );
 
+const TURNED_OFF_FRAMEWORK_DESCRIPTION: string = translationKey(
+  "Turned off here: its requirements are not scored for these data stores.",
+);
+
 export interface ComponentProps extends PageComponentProps {
   kind: DataStoreResourceKind;
+  /*
+   * The card's title, in English: "Compliance" unless the page holds more
+   * than the data frameworks - a Kubernetes cluster's, which scores the
+   * cluster itself first (#9627), names this card for its databases.
+   */
+  title?: string | undefined;
 }
 
 const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
@@ -155,6 +168,11 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
    * save that failed, the switches are drawn again from the server's values.
    */
   const [redrawCount, setRedrawCount] = useState<number>(0);
+  /*
+   * The switch just turned off, whose reason is asked for at once (#9629):
+   * a short form under it, which may be put off.
+   */
+  const [askReasonFor, setAskReasonFor] = useState<string>("");
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -326,6 +344,8 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
       }
 
       Toast.success(translator.translateText(CHANGES_SAVED) || CHANGES_SAVED);
+      // Turned off: why is asked for next. Turned on again: nothing is.
+      setAskReasonFor(isOn ? "" : key);
       setReadCount((count: number): number => {
         return count + 1;
       });
@@ -343,7 +363,66 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const title: string = translationKey("Compliance");
+  // A reason written for what is turned off, then the page read again to show it.
+  const saveReason: (
+    entry: DataSecurityComplianceTurnedOff,
+    reason: string,
+  ) => Promise<void> = async (
+    entry: DataSecurityComplianceTurnedOff,
+    reason: string,
+  ): Promise<void> => {
+    await ModelAPI.updateById<DataSecurityComplianceSetting>({
+      modelType: DataSecurityComplianceSetting,
+      id: new ObjectID(entry.id),
+      data: { note: reason },
+    });
+
+    Toast.success(translator.translateText(CHANGES_SAVED) || CHANGES_SAVED);
+    setReadCount((count: number): number => {
+      return count + 1;
+    });
+  };
+
+  // Who turned a switch off, when and why, under it; the reason asked for where it was turned off.
+  const renderTurnedOffNote: (
+    item: DataSecurityResourceComplianceFramework,
+    switchKey: ComplianceSwitchKey,
+    dataTestId: string,
+    options?: { isAskedHere?: boolean; onDone?: () => void },
+  ) => ReactElement = (
+    item: DataSecurityResourceComplianceFramework,
+    switchKey: ComplianceSwitchKey,
+    dataTestId: string,
+    options: { isAskedHere?: boolean; onDone?: () => void } = {},
+  ): ReactElement => {
+    const entry: DataSecurityComplianceTurnedOff | undefined =
+      findTurnedOffEntry(item, switchKey);
+    const key: string = getComplianceSwitchKey(switchKey);
+    const onDone: (() => void) | undefined = options.onDone;
+
+    if (!entry) {
+      return <></>;
+    }
+
+    return (
+      <ComplianceTurnedOffNote
+        key={`${key}-${entry.id}`}
+        entry={entry}
+        isEditable={!lockedReason}
+        isAsking={askReasonFor === key && options.isAskedHere !== false}
+        onSaveReason={saveReason}
+        onDone={(): void => {
+          setAskReasonFor((current: string): string => {
+            return current === key ? "" : current;
+          });
+          onDone?.();
+        }}
+        dataTestId={dataTestId}
+      />
+    );
+  };
+
+  const title: string = props.title || translationKey("Compliance");
   const description: string = RESOURCE_COMPLIANCE_DESCRIPTIONS[props.kind];
 
   if (error) {
@@ -416,6 +495,20 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
   const frameworkSwitch: ComplianceSwitchKey | null = framework
     ? { framework: framework.framework }
     : null;
+  /*
+   * A framework turned off from its own card keeps that card, asking why
+   * (#9629), with its switch to turn it on again; Save Reason or Not Now
+   * closes it, and it is in the fold below.
+   */
+  const turnedOffFramework:
+    | DataSecurityResourceComplianceFramework
+    | undefined = framework
+    ? undefined
+    : turnedOff.find(
+        (item: DataSecurityResourceComplianceFramework): boolean => {
+          return item.framework === selected;
+        },
+      );
   const foldItems: Array<FoldedSectionItem> = [
     ...turnedOff.map(
       (item: DataSecurityResourceComplianceFramework): FoldedSectionItem => {
@@ -598,17 +691,36 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
                   title: "Status",
                   type: FieldType.Element,
                   disableSort: true,
+                  // A reason turned off beside its status wraps (#9629).
+                  wrapContent: true,
+                  wrapMaxWidthClassName: "max-w-xs",
                   getElement: (
                     row: ComplianceRequirementResult,
                   ): ReactElement => {
+                    const rowSwitch: ComplianceSwitchKey = {
+                      framework: framework.framework,
+                      requirement: row.requirement,
+                    };
+
                     return (
-                      <Pill
-                        text={row.status}
-                        tone={
-                          REQUIREMENT_STATUS_TONES[row.status] ||
-                          PillTone.Neutral
-                        }
-                      />
+                      <div className="min-w-[8rem]">
+                        <Pill
+                          text={row.status}
+                          tone={
+                            REQUIREMENT_STATUS_TONES[row.status] ||
+                            PillTone.Neutral
+                          }
+                        />
+                        {getAppliesSwitchState(framework, rowSwitch) ? (
+                          <></>
+                        ) : (
+                          renderTurnedOffNote(
+                            framework,
+                            rowSwitch,
+                            `${RESOURCE_COMPLIANCE_TEST_ID}-turned-off-${framework.framework}-${row.requirement}`,
+                          )
+                        )}
+                      </div>
                     );
                   },
                 },
@@ -694,6 +806,61 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {turnedOffFramework ? (
+        <Card
+          title={
+            translator.translateText(turnedOffFramework.fullName) ||
+            turnedOffFramework.fullName
+          }
+          description={TURNED_OFF_FRAMEWORK_DESCRIPTION}
+        >
+          <div
+            className="space-y-2"
+            data-testid={`${RESOURCE_COMPLIANCE_TEST_ID}-framework-turned-off`}
+          >
+            <Toggle
+              key={`framework-off-${redrawCount}`}
+              title={APPLIES_LABEL}
+              description={APPLIES_DESCRIPTION}
+              value={false}
+              disabled={
+                Boolean(lockedReason) ||
+                saving[
+                  getComplianceSwitchKey({
+                    framework: turnedOffFramework.framework,
+                  })
+                ]
+              }
+              tooltip={lockedReason}
+              isTooltipTranslated={true}
+              error={
+                switchErrors[
+                  getComplianceSwitchKey({
+                    framework: turnedOffFramework.framework,
+                  })
+                ]
+              }
+              onChange={(isOn: boolean): void => {
+                void flip({ framework: turnedOffFramework.framework }, isOn);
+              }}
+              dataTestId={`${RESOURCE_COMPLIANCE_TEST_ID}-applies-here-${turnedOffFramework.framework}`}
+            />
+            {renderTurnedOffNote(
+              turnedOffFramework,
+              { framework: turnedOffFramework.framework },
+              `${RESOURCE_COMPLIANCE_TEST_ID}-framework-turned-off-note`,
+              {
+                onDone: (): void => {
+                  setSelected("");
+                },
+              },
+            )}
+          </div>
+        </Card>
+      ) : (
+        <></>
+      )}
+
       {foldItems.length > 0 ? (
         <FoldedSection
           title="Turned Off and Not in Scope"
@@ -733,6 +900,13 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
                       }}
                       dataTestId={`${RESOURCE_COMPLIANCE_TEST_ID}-applies-${item.framework}`}
                     />
+                    {renderTurnedOffNote(
+                      item,
+                      itemSwitch,
+                      `${RESOURCE_COMPLIANCE_TEST_ID}-turned-off-${item.framework}`,
+                      // Turned off from its own card, which asks why there.
+                      { isAskedHere: item.framework !== selected },
+                    )}
                   </li>
                 );
               },

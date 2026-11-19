@@ -127,7 +127,7 @@ O Keycloak é uma solução de código aberto bastante usada para gestão de ide
 4. **Ajustar as configurações do cliente**
 
    - Defina **Name ID Format** como `email` e ative **Force Name ID Format**, para que o Keycloak sempre envie o email como Name ID
-   - Na aba **Keys** do cliente, desative **Client signature required** (em **Signing keys config**): o OneUptime não assina suas solicitações
+   - Na aba **Keys** do cliente, desative **Client signature required** (em **Signing keys config**): o OneUptime não assina suas solicitações de entrada
 
 5. **Ativar o provedor e testá-lo**
 
@@ -259,11 +259,33 @@ Um projeto também pode fazer login por meio de um provedor OpenID Connect, como
 6. Abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
 :::
 
-### Sair também do provedor de identidade
+## Sair também do provedor de identidade
 
-Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, como uma tela do NOC ou um quiosque, a próxima pessoa que escolhe o provedor na página de entrada entra como quem saiu. Ative **Sair também do provedor de identidade** em **Mais campos** para que sair do OneUptime também encerre a sessão no provedor. Vem desativado: em um notebook pessoal, também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
+Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, como uma tela do NOC ou um quiosque, a próxima pessoa que escolhe o provedor na página de entrada entra como quem saiu. Em um provedor SAML ou OIDC, ative **Sair também do provedor de identidade** em **Mais campos** para que sair do OneUptime também encerre a sessão no provedor. Vem desativado: em um notebook pessoal, também encerraria a sessão da pessoa em todos os outros apps que usam o provedor. Vale para as pessoas que entram em um navegador depois de ativado; o app para celular sai apenas do OneUptime.
 
-Com a opção ativada, o navegador passa pela saída do provedor assim que o OneUptime encerra a sessão, e o provedor o devolve à página de entrada do OneUptime. Registre essa página no seu provedor: a caixa de diálogo **Configuração OIDC** a mostra como URI de redirecionamento após sair, que os provedores chamam de post-logout redirect URI. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la. Ela vale para as pessoas que entram em um navegador depois de ativada; o app para celular sai apenas do OneUptime. Provedores SAML nunca encerram a sessão de ninguém no provedor de identidade.
+:::tabs
+@tab SAML
+Informe a URL de saída do seu provedor de identidade como **URL de saída** do provedor, em **Mais campos**: sem ela, a opção não pode ser ativada. Depois, informe ao seu provedor de identidade a **URL de Single Logout** da caixa de diálogo **Configuração de SSO** e o certificado com que o OneUptime assina suas solicitações de saída, em **Baixar certificado de assinatura** na mesma caixa de diálogo.
+
+| Provedor de identidade | URL de saída | Onde ficam a URL de Single Logout e o certificado |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, em **View SAML setup instructions** na guia **Sign On** | Na guia **General**, edite **SAML Settings**, clique em **Show Advanced Settings** e selecione **Allow application to initiate Single Logout**. Defina **Single Logout URL** como a URL de Single Logout e **SP Issuer** como o identificador (Entity ID), e envie o certificado como **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, em **Set up OneUptime** | Em **Basic SAML Configuration**, defina **Logout Url (Optional)** como a URL de Single Logout. O Entra ID não precisa de certificado. |
+| Keycloak | O endpoint SAML do realm, o mesmo da URL de login | Na guia **Advanced** do cliente, defina **Logout Service Redirect Binding URL** como a URL de Single Logout. Mantenha **Front channel logout** ativado. O Keycloak não precisa de certificado enquanto **Client signature required** estiver desativado, como configurado acima. |
+
+Depois de sair por lá, o provedor de identidade devolve o navegador à URL de Single Logout, que abre a página de entrada ou informa que o provedor de identidade não confirmou a saída. Quando a pessoa sai no provedor de identidade, ou de outro app que o usa, um provedor de identidade que envia solicitações de saída aos seus apps, como o Keycloak e o Microsoft Entra ID, também a tira do OneUptime. O OneUptime só aceita uma solicitação assinada pelo provedor de identidade.
+@tab OpenID Connect
+O navegador passa pela saída do provedor assim que o OneUptime encerra a sessão, e o provedor o devolve à página de entrada do OneUptime. Registre essa página no seu provedor: a caixa de diálogo **Configuração OIDC** a mostra como URI de redirecionamento após sair, que os provedores chamam de post-logout redirect URI. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la.
+
+| Provedor de identidade | Onde registrar o URI de redirecionamento após sair |
+| --- | --- |
+| Okta | Na guia **General** da integração, clique em **Edit** em **General Settings** e adicione-o a **Sign-out redirect URIs**. |
+| Microsoft Entra ID | No registro do aplicativo, em **Authentication**, adicione-o aos **Redirect URIs** da plataforma **Web**. A **Front-channel logout URL** é outra configuração, que o OneUptime não usa. |
+| Auth0 | Nas **Settings** do aplicativo, adicione-o a **Allowed Logout URLs**. Um tenant criado antes de 14 de novembro de 2023 também precisa ativar **RP-Initiated Logout End Session Endpoint Discovery** nas configurações **Advanced**, para que o documento de descoberta nomeie um `end_session_endpoint`. |
+| Keycloak | Nas configurações do cliente, adicione-o a **Valid post logout redirect URIs** (Keycloak 19 e posteriores). |
+
+Um provedor em que ele não está registrado mostra a própria página de erro depois que alguém sai do OneUptime, em vez de devolver a pessoa; mesmo assim, ela saiu do OneUptime.
+:::
 
 ## Funções e equipes dos usuários de SSO
 
@@ -293,6 +315,21 @@ Desligar **Exigir SSO para entrar** salva assim que você muda o interruptor e d
 
 > [!NOTE]
 > No OneUptime Cloud, exigir SSO requer o plano **Scale**, e desligar funciona em qualquer plano. Abaixo do Scale, **Configurações do projeto** > **Segurança** > **SSO** mostra a oferta do plano; um projeto que um teste do Scale deixou exigindo SSO também encontra ali **Exigir SSO para entrar**, abaixo da oferta, para poder desligá-lo. Ligá-lo de novo requer o **Scale**.
+
+### Gerenciar o login dos seus membros com SSO
+
+Exigir SSO mantém os dados do seu projeto atrás do seu provedor de identidade, mas seus membros ainda podem definir no OneUptime uma senha, chaves de acesso e a autenticação de dois fatores, que seu projeto nunca pede. Enquanto **Exigir SSO para entrar** está ligado, um segundo interruptor abaixo dele, **Gerenciar o login com SSO**, impede isso.
+
+O login de uma pessoa é gerenciado pelo SSO quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, exigem SSO e têm **Gerenciar o login com SSO** ligado. Ela então não pode definir senha, chave de acesso, chave de segurança, aplicativo autenticador, códigos de backup nem autenticação de dois fatores, **Esqueceu a senha?** não lhe envia nenhum link, e o **Perfil do usuário** dela mostra seu provedor de identidade em vez de oferecer essas configurações. Nada muda no login: a senha dela ainda faz seu login no OneUptime, e seu projeto pede SSO como antes.
+
+A regra é verificada todas as vezes, então:
+
+- **Alguém em um projeto que não gerencia o login**: assim que a pessoa é membro de um projeto, ou é convidada para um, que não exige SSO ou não tem **Gerenciar o login com SSO** ligado, ela recebe suas configurações de volta, e o **Perfil do usuário** dela mostra esse projeto como o motivo. Se ela sair dele, o login dela volta a ser gerenciado. Uma conta pode pertencer a muitas organizações, então uma organização nunca decide pelos projetos de outra.
+- **Projetos com provedores diferentes**: alguém em dois projetos que gerenciam o login, cada um com o próprio provedor de identidade, é gerenciado, e o perfil dele mostra os dois provedores.
+- **Os administradores mestres** sempre mantêm suas próprias configurações.
+- **O que as pessoas configuraram antes** é mantido, sem uso pelo seu projeto. Um administrador do servidor pode limpá-lo na página **Autenticação** da pessoa no Admin Dashboard, com **Limpar configurações de login**.
+
+**Gerenciar o login com SSO** salva assim que você muda o interruptor, não exclui nada, e desligá-lo devolve a todos suas configurações na hora. Quem pode alterar **Exigir SSO para entrar** pode alterá-lo, nos mesmos planos. Com **Exigir SSO para entrar** desligado, ele fica oculto e não muda nada.
 
 ## Desligar ou excluir um provedor
 

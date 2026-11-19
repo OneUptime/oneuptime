@@ -7,7 +7,9 @@
  * Read on the server (Server/Utils/AI/Outcomes/AiOutcomesReader) behind the
  * caller's own read access: a part the caller may not read is null and the
  * page leaves it out. Every number comes with what it is out of, so a page
- * never says "12 pages avoided" without "of 40 held".
+ * never says "12 pages avoided" without "of 40 held". Each number opens the
+ * records it counts (AI_OUTCOMES_RECORDS_PATH, #7768), and the investigations
+ * and fixes are also counted by the model that ran them (models, #7762).
  */
 
 // The page's call: POST, {}.
@@ -99,6 +101,55 @@ export interface AiOutcomesWeek {
   rootCausesJudged: number;
 }
 
+/*
+ * WHICH MODEL (issue #7762). Every investigation records the model that
+ * wrote its answer when it completes (AIRun.modelName): the model of its
+ * last call, which wrote the analysis people judged. An investigation that
+ * completed before OneUptime recorded it has none, and counts under
+ * AI_OUTCOMES_UNKNOWN_MODEL.
+ */
+export const AI_OUTCOMES_UNKNOWN_MODEL: string = "";
+
+// One model's part of a card: "gpt-5.1: 23 of 27".
+export interface AiOutcomesModelResult {
+  /*
+   * The model as its LLM provider named it, written as is in every
+   * language; AI_OUTCOMES_UNKNOWN_MODEL for work done before OneUptime
+   * recorded it.
+   */
+  modelName: string;
+  // What went well (confirmed, verified), out of what was counted (judged, checked).
+  value: number;
+  total: number;
+}
+
+/*
+ * The week OneUptime AI's investigations started running on a model after
+ * another one had run them in the window: what a project's switch of its
+ * LLM provider or model looks like in what actually ran, an AI rule's
+ * provider included. A model first seen after investigations with none
+ * recorded is no change: that is only when OneUptime started recording.
+ */
+export interface AiOutcomesModelChange {
+  // The week's first day, YYYY-MM-DD (UTC), as AiOutcomesWeek writes it.
+  weekStart: string;
+  modelName: string;
+}
+
+export interface AiOutcomesModels {
+  // Root Causes Confirmed by the model of each investigation, most judged first.
+  rootCauses: Array<AiOutcomesModelResult>;
+  /*
+   * Fixes Verified, for the fixes that came from an investigation, by its
+   * model: the latest investigation of the fix's incident or alert counted
+   * on the page that started before the fix did - the one the fix was
+   * handed (AI SRE's investigation-first hand-off). Most checked first.
+   */
+  fixes: Array<AiOutcomesModelResult>;
+  // Oldest first.
+  changes: Array<AiOutcomesModelChange>;
+}
+
 export interface AiOutcomes {
   // The window: AI_OUTCOMES_WEEK_COUNT weeks up to now, ISO 8601.
   windowStart: string;
@@ -111,10 +162,143 @@ export interface AiOutcomes {
   pullRequestFixes: AiOutcomesPullRequestFixes | null;
   // Null: the caller may read neither incidents nor alerts.
   rootCauses: AiOutcomesRootCauses | null;
+  /*
+   * Null: the caller may not read the project's AI Logs, where each call's
+   * model is listed, so the page names no model (#7762).
+   */
+  models: AiOutcomesModels | null;
   // AI_OUTCOMES_WEEK_COUNT weeks, oldest first.
   weeks: Array<AiOutcomesWeek>;
   // A kind of row reached AI_OUTCOMES_SCAN_LIMIT: the newest were counted.
   isPartial: boolean;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * THE RECORDS BEHIND A NUMBER (issue #7768).
+ * ---------------------------------------------------------------------------
+ *
+ * Each part of a card's breakdown - "Paged: the hold time ran out (4)",
+ * "Missed the root cause (15)" - opens the records it counts:
+ *
+ *   POST /ai-activity/outcomes/records
+ *   { part, outcome, windowEnd?, skip? }
+ *
+ * Read by the same rows, filters and limits as the number (AiOutcomesReader),
+ * so it lists exactly what the number counts: only incidents and alerts the
+ * reader may read, private ones included, and `total` is the number.
+ */
+export const AI_OUTCOMES_RECORDS_PATH: string = "/ai-activity/outcomes/records";
+
+// The most records one answer lists; `nextSkip` reads the next ones.
+export const AI_OUTCOMES_RECORDS_PAGE_SIZE: number = 50;
+
+// How much of an investigation's finding travels with its record.
+export const AI_OUTCOMES_RECORDS_TEXT_MAX_LENGTH: number = 300;
+
+export enum AiOutcomesPart {
+  Pages = "pages",
+  RemediationFixes = "remediationFixes",
+  PullRequestFixes = "pullRequestFixes",
+  RootCauses = "rootCauses",
+}
+
+export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
+  AiOutcomesPart.Pages,
+  AiOutcomesPart.RemediationFixes,
+  AiOutcomesPart.PullRequestFixes,
+  AiOutcomesPart.RootCauses,
+];
+
+/*
+ * The outcomes of each part, by the key its count has in the part's counts:
+ * what a record request may name.
+ */
+export const AI_OUTCOMES_PAGE_OUTCOMES: ReadonlyArray<keyof AiOutcomesPages> = [
+  "resolvedByAi",
+  "recoveredOnItsOwn",
+  "handledByPerson",
+  "handedOff",
+  "holdTimeRanOut",
+  "pageNowPressed",
+  "holding",
+];
+
+export const AI_OUTCOMES_REMEDIATION_FIX_OUTCOMES: ReadonlyArray<
+  keyof AiOutcomesRemediationFixes
+> = ["verified", "failed", "pending", "skipped"];
+
+export const AI_OUTCOMES_PULL_REQUEST_FIX_OUTCOMES: ReadonlyArray<
+  keyof AiOutcomesPullRequestFixes
+> = ["verified", "regressed", "watching", "awaitingDeploy", "unverifiable"];
+
+// How an investigation was judged: a person's verdict before its grade.
+export type AiOutcomesRootCauseOutcome = "confirmed" | "partial" | "wrong";
+
+export const AI_OUTCOMES_ROOT_CAUSE_OUTCOMES: ReadonlyArray<AiOutcomesRootCauseOutcome> =
+  ["confirmed", "partial", "wrong"];
+
+export const AI_OUTCOMES_PART_OUTCOMES: Record<
+  AiOutcomesPart,
+  ReadonlyArray<string>
+> = {
+  [AiOutcomesPart.Pages]: AI_OUTCOMES_PAGE_OUTCOMES,
+  [AiOutcomesPart.RemediationFixes]: AI_OUTCOMES_REMEDIATION_FIX_OUTCOMES,
+  [AiOutcomesPart.PullRequestFixes]: AI_OUTCOMES_PULL_REQUEST_FIX_OUTCOMES,
+  [AiOutcomesPart.RootCauses]: AI_OUTCOMES_ROOT_CAUSE_OUTCOMES,
+};
+
+export function isAiOutcomesPartOutcome(
+  part: AiOutcomesPart,
+  outcome: string,
+): boolean {
+  return AI_OUTCOMES_PART_OUTCOMES[part].includes(outcome);
+}
+
+export type AiOutcomesRecordSubjectKind = "incident" | "alert";
+
+// The incident or alert a record was about.
+export interface AiOutcomesRecordSubject {
+  kind: AiOutcomesRecordSubjectKind;
+  id: string;
+  title?: string | undefined;
+  number?: number | undefined;
+  // The number with the project's prefix ("INC-42"), when it has one.
+  numberWithPrefix?: string | undefined;
+}
+
+export interface AiOutcomesRecord {
+  // The row's own id: the held page's run, the fix, the pull request, the investigation.
+  id: string;
+  // ISO: when the work started, the moment its week counts it at.
+  at: string;
+  /*
+   * The incident or alert it was about. A fix pull request about neither
+   * (an exception's, say) has none.
+   */
+  subject?: AiOutcomesRecordSubject | undefined;
+  // A fix OneUptime AI ran: its runbook, or what kind of fix it was.
+  runbookName?: string | undefined;
+  suggestionType?: string | undefined;
+  // A fix pull request.
+  pullRequestNumber?: number | undefined;
+  pullRequestTitle?: string | undefined;
+  pullRequestUrl?: string | undefined;
+  // An investigation: its one-line finding, and how it was judged.
+  summary?: string | undefined;
+  humanVerdict?: string | undefined;
+  autoGrade?: string | undefined;
+}
+
+export interface AiOutcomesRecords {
+  part: AiOutcomesPart;
+  outcome: string;
+  // How many the number counts: the card's number, when nothing changed since.
+  total: number;
+  // Newest first: one page of them.
+  records: Array<AiOutcomesRecord>;
+  // Where the next page starts (its request's `skip`); null after the last.
+  nextSkip: number | null;
 }
 
 // Held pages that finished: every outcome but still holding.

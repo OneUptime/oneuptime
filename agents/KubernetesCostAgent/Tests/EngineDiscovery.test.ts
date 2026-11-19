@@ -5,6 +5,7 @@ import {
   ENGINE_SERVICE_QUERIES,
   EngineCandidate,
   discoverEngineCandidates,
+  engineKindOfService,
   normalizeEngineHost,
   rankEngineCandidates,
   toEngineCandidate,
@@ -303,4 +304,73 @@ test("normalizeEngineHost reads a Service's name and namespace off any spelling 
   );
   // An address is compared whole, never as a name.
   assert.strictEqual(normalizeEngineHost("http://10.0.1.5:9003"), "10.0.1.5");
+});
+
+/*
+ * #9776: which engine a URL reaches, whichever of its Services it names, so
+ * a Kubecost cost model or an OpenCost UI named in cost.engine.url is called
+ * what it is.
+ */
+test("engineKindOfService names the engine of every Service its chart labels", (): void => {
+  assert.strictEqual(engineKindOfService(KUBECOST_2), "Kubecost");
+  assert.strictEqual(engineKindOfService(KUBECOST_3_FRONTEND), "Kubecost");
+  // Labelled as Kubecost, without a frontend port discovery would read.
+  assert.strictEqual(engineKindOfService(KUBECOST_3_AGGREGATOR), "Kubecost");
+  assert.strictEqual(engineKindOfService(OPENCOST_CHART), "OpenCost");
+  assert.strictEqual(engineKindOfService(OPENCOST_MANIFEST), "OpenCost");
+});
+
+test("engineKindOfService does not care which port the URL names", (): void => {
+  // Kubecost 2's Service with its cost model port only.
+  assert.strictEqual(
+    engineKindOfService({
+      ...KUBECOST_2,
+      spec: { ports: [{ name: "tcp-model", port: 9003 }] },
+    }),
+    "Kubecost",
+  );
+  // OpenCost's UI port, which discovery never reads allocations from.
+  assert.strictEqual(
+    engineKindOfService({
+      ...OPENCOST_CHART,
+      spec: { ports: [{ name: "http-ui", port: 9090 }] },
+    }),
+    "OpenCost",
+  );
+});
+
+test("engineKindOfService names no engine for a Service no engine's chart labels so", (): void => {
+  // Kubecost 3.3.2's aggregator, as its chart labels it on a cluster.
+  assert.strictEqual(
+    engineKindOfService({
+      metadata: {
+        name: "kubecost-aggregator",
+        namespace: "kubecost",
+        labels: {
+          app: "aggregator",
+          "app.kubernetes.io/instance": "kubecost",
+          "app.kubernetes.io/name": "aggregator",
+        },
+      },
+      spec: { ports: [{ name: "tcp-api", port: 9004 }] },
+    }),
+    null,
+  );
+  assert.strictEqual(
+    engineKindOfService({
+      metadata: {
+        name: "kubecost-finopsagent",
+        namespace: "kubecost",
+        labels: {
+          "app.kubernetes.io/name": "finopsagent",
+          "app.kubernetes.io/part-of": "finops-agent",
+        },
+      },
+    }),
+    null,
+  );
+  assert.strictEqual(
+    engineKindOfService({ metadata: { name: "billing", namespace: "shop" } }),
+    null,
+  );
 });

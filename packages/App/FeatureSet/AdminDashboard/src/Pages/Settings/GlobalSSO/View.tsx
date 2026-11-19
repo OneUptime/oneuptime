@@ -14,7 +14,11 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
-import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
+import {
+  getSamlProviderFormFields,
+  SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+  SAML_SIGN_OUT_URL_TITLE,
+} from "Common/UI/Components/Sso/SamlProviderFormFields";
 import {
   getSsoGlobalReachAnswerTitle,
   getSsoGlobalSignUpAnswerTitle,
@@ -44,6 +48,17 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
 
   const acsURL: string = `${HTTP_PROTOCOL}${HOST}/identity/global-idp-login/${modelId.toString()}`;
   const issuerURL: string = `${HTTP_PROTOCOL}${HOST}/global-sso/${modelId.toString()}`;
+
+  /*
+   * Where the identity provider answers a sign-out, and sends its own, and
+   * the certificate OneUptime signs its sign-out requests with: what it
+   * needs to sign people out of it too (#9603).
+   */
+  const singleLogoutURL: string = `${HTTP_PROTOCOL}${HOST}/identity/global-idp-logout/${modelId.toString()}`;
+
+  const signingCertificateURL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+    new Route("/saml-signing-certificate"),
+  );
 
   /*
    * Service-provider initiated login endpoint (same base the Accounts login
@@ -108,6 +123,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           formSteps={getSsoProviderFormSteps<GlobalSSO>()}
           formFields={getSamlProviderFormFields<GlobalSSO>({
             withGlobalAccessSwitches: true,
+            withIdentityProviderSignOut: true,
           })}
           modelDetailProps={{
             modelType: GlobalSSO,
@@ -182,6 +198,22 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
               },
               {
                 field: {
+                  singleLogoutURL: true,
+                },
+                title: SAML_SIGN_OUT_URL_TITLE,
+                fieldType: FieldType.URL,
+              },
+              {
+                field: {
+                  signOutOfIdentityProvider: true,
+                },
+                title: SAML_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
+                fieldType: FieldType.Boolean,
+                placeholder: t("common.no"),
+                isPlaceholderTranslated: true,
+              },
+              {
+                field: {
                   isEnabled: true,
                 },
                 title: "Enabled",
@@ -218,8 +250,28 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 label: "Issuer (Entity ID):",
                 value: issuerURL,
               },
+              {
+                label: "Single Logout URL:",
+                value: singleLogoutURL,
+              },
             ]}
           />
+          <p
+            className="mt-3 text-sm text-gray-500"
+            data-testid="global-sso-sign-out-note"
+          >
+            {t(
+              "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.",
+            )}{" "}
+            <Link
+              openInNewTab={true}
+              to={signingCertificateURL}
+              className="text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+              dataTestId="global-sso-signing-certificate"
+            >
+              {t("Download Signing Certificate")}
+            </Link>
+          </p>
         </Card>
 
         {/*

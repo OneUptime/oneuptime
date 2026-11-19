@@ -93,15 +93,22 @@ Med **Alla projekt** uppfyller inloggning med leverantören SSO-kravet i alla pr
 
 ## Logga även ut från identitetsleverantören
 
-När man loggar ut från OneUptime förblir man inloggad hos identitetsleverantören, så på en delad dator kommer nästa person som loggar in med den leverantören in som den som gick. Klicka på **Redigera konfiguration** för en OpenID Connect-leverantör och slå på **Logga även ut från identitetsleverantören** under **Fler fält**: en utloggning från OneUptime avslutar då även sessionen hos leverantören, och leverantören skickar tillbaka webbläsaren till OneUptimes inloggningssida. Den är avstängd som standard, eftersom den på en personlig bärbar dator även skulle logga ut personen från alla andra appar som använder leverantören.
+När man loggar ut från OneUptime förblir man inloggad hos identitetsleverantören, så på en delad dator kommer nästa person som loggar in med den leverantören in som den som gick. Klicka på **Redigera konfiguration** på en SAML- eller OpenID Connect-leverantör och slå på **Logga även ut från identitetsleverantören** under **Fler fält**: en utloggning från OneUptime avslutar då även sessionen hos leverantören, och leverantören skickar tillbaka webbläsaren till OneUptime. Den är avstängd som standard, eftersom den på en personlig bärbar dator även skulle logga ut personen från alla andra appar som använder leverantören.
 
-Registrera omdirigerings-URI:n efter utloggning som kortet **Identitetsleverantörens URL** visar hos din leverantör, som en tillåten post-logout redirect URI. En leverantör vars discovery-dokument inte nämner någon `end_session_endpoint`, som Google, kan inte slå på den.
+:::tabs
+@tab SAML
+Ange identitetsleverantörens utloggnings-URL som **Utloggnings-URL** under **Fler fält**: utan den går reglaget inte att slå på. Ge sedan identitetsleverantören den **Single Logout URL** som kortet **Identitetsleverantörens URL:er** visar, och certifikatet som OneUptime signerar sina utloggningsbegäranden med, via **Ladda ned signeringscertifikat** på samma kort. När personen loggar ut hos identitetsleverantören eller från en annan app som använder den, loggar en identitetsleverantör som skickar utloggningsbegäranden till sina appar även ut personen från OneUptime.
+@tab OpenID Connect
+Registrera den omdirigerings-URI efter utloggning som kortet **Identitetsleverantörens URL** visar hos din leverantör som tillåten post-logout redirect URI. En leverantör vars discovery-dokument inte nämner någon `end_session_endpoint`, som Google, kan inte slå på den.
+:::
+
+Var Okta, Microsoft Entra ID, Auth0 och Keycloak har de här inställningarna står på sidan [SSO](/docs/identity/sso).
 
 ## Kräv SSO
 
 Att konfigurera en global leverantör tvingar ingen att använda den; inloggning med lösenord fungerar fortfarande. För att kräva SSO slår du på kravet för ett projekt eller för hela instansen:
 
-- **Per projekt:** ett projekt kan kräva SSO, och eventuellt kräva en _specifik_ leverantör (projekt eller global). Se [Kräv SSO för ditt projekt](/docs/identity/sso#kräv-sso-för-ditt-projekt).
+- **Per projekt:** ett projekt kan kräva SSO, och eventuellt kräva en _specifik_ leverantör (projekt eller global). Med **Hantera inloggning med SSO** också påslaget får personer vars alla projekt hanterar inloggningen så inget lösenord, ingen passnyckel och ingen tvåfaktorsautentisering i OneUptime. Se [Kräv SSO för ditt projekt](/docs/identity/sso#kräv-sso-för-ditt-projekt).
 - **Hela instansen:** kortet **Kräv SSO** längst ned på **Admin** > **Inställningar** > **Enkel inloggning** har ett reglage **Kräv SSO för inloggning** som tvingar fram SSO för alla användare på instansen. Det ber om bekräftelse innan det slås på och sparas så snart du bekräftar. Master admins förblir undantagna så att de inte kan stängas ute.
 
 Så länge hela instansen kräver SSO:
@@ -109,6 +116,8 @@ Så länge hela instansen kräver SSO:
 - Inloggningssidan erbjuder bara SSO: en knapp för varje påslagen global leverantör, och inget lösenord, ingen passnyckel, ingen länk via e-post, ingen Google- eller Microsoft-inloggning och ingen registrering. Den behåller sökningen via e-post, som hittar ett projekts egen leverantör, bara så länge något projekt har en.
 - OneUptime avvisar ett lösenord, en passnyckel, en länk via e-post, en Google- eller Microsoft-inloggning och en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bara en master admins lösenord eller passnyckel loggar fortfarande in personen. Användare får sitt konto genom att logga in med SSO eller genom en inbjudan.
 - Personer som inte är master admins kan inte konfigurera lösenord, passnyckel, säkerhetsnyckel, autentiseringsapp, reservkoder eller tvåfaktorsautentisering, och en lösenordsåterställning skickar ingen länk till dem. Deras **Användarprofil** har ingen del som heter **Säkerhet**, och dess **Översikt** visar leverantörerna de loggar in med. Det de konfigurerade tidigare finns kvar men används inte, tills kravet stängs av.
+- Kortet **Kräv SSO** visar hur många av dem som fortfarande har ett lösenord eller tvåfaktorsautentisering sparat, som skulle logga in dem igen om SSO slutade krävas. **Rensa inloggningsinställningar** raderar deras lösenord, passnycklar, säkerhetsnycklar, autentiseringsappar och reservkoder, stänger av tvåfaktorsautentisering och avslutar de sessioner de loggade in i utan SSO, efter att ha frågat. Det går inte att ångra, master admins behåller sina, och varje persons projekt registrerar det i sina granskningsloggar.
+- På en persons sida **Autentisering** under **Användare** gör **Rensa inloggningsinställningar** samma sak för just den personen, och **Ange lösenord** och **Skicka återställningslänk** säger att ett lösenord inte kommer att logga in personen. Du kan inte rensa dina egna där, och när du rensar en annan master admins inställningar måste du bekräfta att personen är master admin.
 - Den som redan är inloggad med lösenord loggar in med SSO för att öppna ett projekt. Personen hamnar på projektets sida för enkel inloggning, som erbjuder projektets egna leverantörer och de globala leverantörer som loggar in användare i det. Kortet **Kräv SSO** visar hur många som fortfarande är inloggade utan SSO, och **Logga ut dem** avslutar deras sessioner på alla enheter på en gång. Huvudadministratörer förblir inloggade.
 - Master admins loggar in med sitt lösenord på `/accounts/admin-login`, en adress som inloggningssidan inte länkar till. Kortet **Kräv SSO** visar hela adressen under reglaget, som **Inloggning för huvudadministratörer**: spara den, så att du kan stänga av kravet om din identitetsleverantör slutar fungera.
 

@@ -20,6 +20,10 @@ import {
   hasAzureFiveMinuteKeyMetrics,
 } from "Common/Types/Cloud/CloudKeyMetrics";
 import { GCP_OPS_AGENT_ASK_EVERY_MS } from "Common/Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
+import {
+  CLOUD_MAX_ADDED_METRICS_PER_CONNECTION,
+  CLOUD_MAX_ADDED_METRICS_PER_RESOURCE,
+} from "Common/Types/Cloud/CloudAddedMetrics";
 import { CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION } from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
   CloudConnectionAuthMethod,
@@ -185,6 +189,8 @@ const SOURCES: Record<string, string> = {
   awsCommitments: `${SERVER}/Utils/CloudConnection/Aws/AwsCommitments.ts`,
   gcpCommitments: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
   cliReadme: "packages/CLI/README.md",
+  moreMetrics: `${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics.tsx`,
+  resourceSideMenu: `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`,
 };
 
 const BASH_FENCE: RegExp = /```bash\n([\s\S]*?)\n```/g;
@@ -690,6 +696,39 @@ describe("Connect a Cloud Account", () => {
     expect(paragraph).toContain(
       "A project none of whose VMs runs it is asked once an hour, not every read.",
     );
+  });
+
+  /*
+   * A resource's other metrics (#9563) and the key metrics it did not
+   * report (#9569): where they are listed and added, in the card's own
+   * words, the caps the server keeps, and who may add them.
+   */
+  it("says where a resource's other metrics are listed and added, how many can be, and who may add them", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith(
+          "A resource's **Metrics** tab lists, under **More Metrics**",
+        );
+      });
+
+    expect(paragraph).toBeDefined();
+    expect(paragraph).toContain(
+      `At most ${CLOUD_MAX_ADDED_METRICS_PER_RESOURCE} added metrics are read for a resource, and ${CLOUD_MAX_ADDED_METRICS_PER_CONNECTION} for a connection`,
+    );
+    expect(paragraph).toContain(
+      "Project Owners and Project Admins can add and remove them",
+    );
+
+    // The tab, the card and its button, as the Dashboard names them.
+    expect(source("resourceSideMenu")).toContain('title: "Metrics"');
+    for (const words of [
+      '"More Metrics"',
+      '"List Metrics"',
+      "Project Owners and Project Admins can add and remove metrics.",
+    ]) {
+      expect(source("moreMetrics")).toContain(words);
+    }
   });
 
   /*

@@ -1714,7 +1714,7 @@ Las imágenes están fijadas en `docker-compose.yml`, así que lo que replicas e
 
 | Imagen | De dónde viene | Para qué |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | El collector. Siempre, y los perfiles de [registros](#registros-de-servicios) y [trazas](#trazar-solicitudes-a-través-del-plano-de-control) ejecutan el mismo |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | El collector. Siempre, y los perfiles de [registros](#registros-de-servicios) y [trazas](#trazar-solicitudes-a-través-del-plano-de-control) ejecutan el mismo |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | El exporter incluido, y el que lee las cuotas de proyecto. No hace falta si [ejecutas tu propio exporter](#instala-e-inicia-el-agente) |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | El [agente de IA](#agente-de-ia). No hace falta si quitas su servicio de `docker-compose.yml`. La etiqueta `release` se mueve con cada versión de OneUptime, así que cópiala otra vez cuando actualices |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | Solo la [ruta de la base de datos](/docs/telemetry/openstack-very-large-clouds#la-vía-de-la-base-de-datos) |
@@ -1722,7 +1722,7 @@ Las imágenes están fijadas en `docker-compose.yml`, así que lo que replicas e
 Las dos que nombran un digest se copian por digest, así que un espejo que conserva el digest contiene los mismos bytes. En una máquina que llega a internet y a tu registro, `crane copy` lo conserva (`skopeo copy --all --preserve-digests` también). O guárdalas en un archivo con `docker save`, llévalo al otro lado y cárgalo con `docker load` en la máquina del agente.
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

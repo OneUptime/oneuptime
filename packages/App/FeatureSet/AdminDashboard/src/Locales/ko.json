@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "새 비밀번호를 설정할 수 있는 링크를 이 사용자에게 이메일로 보냅니다. 링크는 24시간 후 만료되며 이전에 보낸 링크를 대체합니다.",
       "resetLinkModalSubmit": "링크 보내기",
       "resetLinkSuccess": "비밀번호 재설정 링크를 보냈습니다.",
-      "resetLinkSentTo": "{{email}}(으)로 비밀번호 재설정 링크를 보냈습니다."
+      "resetLinkSentTo": "{{email}}(으)로 비밀번호 재설정 링크를 보냈습니다.",
+      "ssoManagedByServerWarning": "이 서버가 SSO를 요구하는 동안에는 이 사용자가 비밀번호로 로그인할 수 없습니다.",
+      "ssoManagedByProjectsWarning": "이 사용자의 모든 프로젝트가 SSO로 로그인을 관리하므로 비밀번호로는 어떤 프로젝트도 열 수 없습니다.",
+      "clearSignInCardTitle": "로그인 설정 지우기",
+      "clearSignInCardDescription": "비밀번호, 패스키, 보안 키, 인증 앱, 백업 코드를 삭제하고 2단계 인증을 끕니다.",
+      "clearSignInButton": "로그인 설정 지우기",
+      "clearSignInOwnAccountTooltip": "자신의 로그인 설정은 사용자 프로필에서 변경하세요.",
+      "clearSignInModalTitle": "로그인 설정 지우기",
+      "clearSignInModalDescription": "비밀번호, 패스키, 보안 키, 인증 앱, 백업 코드를 삭제하고 2단계 인증을 끕니다. 이 작업은 되돌릴 수 없습니다.",
+      "clearSignInMasterAdminConfirmation": "이 사용자는 마스터 관리자입니다. 로그인하려면 SSO 또는 비밀번호 재설정 링크가 필요하다는 것을 이해합니다.",
+      "clearSignInModalSubmit": "로그인 설정 지우기",
+      "clearSignInSuccess": "로그인 설정을 지웠습니다. SSO 없이 로그인한 세션은 종료되었습니다."
     },
     "userProjects": {
       "title": "사용자 프로젝트",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "이 OneUptime 서버에서 새 프로젝트를 생성할 수 있는 사용자를 제어합니다.",
         "projectCreationSwitchTitle": "사용자의 프로젝트 생성 허용",
         "projectCreationSwitchOnDescription": "이 서버에 로그인한 누구나 프로젝트를 만들 수 있습니다.",
-        "projectCreationSwitchOffDescription": "마스터 관리자만 프로젝트를 만들 수 있습니다."
+        "projectCreationSwitchOffDescription": "마스터 관리자만 프로젝트를 만들 수 있습니다.",
+        "inviteSuggestionsCardTitle": "초대 제안",
+        "inviteSuggestionsCardDescription": "프로젝트에 초대하는 사람이 이 서버에 계정이 있는 누구든 찾을 수 있는지 여부입니다. 서버에 둘 이상의 조직이 있다면 꺼 두세요.",
+        "inviteSuggestionsSwitchTitle": "이 서버의 모든 계정 제안",
+        "inviteSuggestionsSwitchOnDescription": "프로젝트에 사람을 초대할 수 있는 모든 사람이 입력하는 동안 각 계정의 이름과 이메일을 '아직 이 프로젝트에 없음' 표시와 함께 봅니다.",
+        "inviteSuggestionsSwitchOffDescription": "초대 양식은 프로젝트의 사람들을 제안합니다. 마스터 관리자에게는 서버의 다른 계정도 제안됩니다."
       },
       "email": {
         "adminNotificationCardTitle": "관리자 알림 이메일",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "버전 2는 워크플로 단계와 JSON에서 무엇이 바뀌었는지도 알려 줍니다. 버전 1은 원래 레코드이며, 이에 맞게 만든 리더를 위한 것입니다.",
   "Version 2 (newest)": "버전 2 (최신)",
   "Version 1 (original)": "버전 1 (원래 형식)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "버전 3은 워크플로의 각 단계가 무엇으로 실행되었는지를 더합니다. 버전 2는 단계와 JSON에서 무엇이 바뀌었는지를 더합니다. 버전 1은 원래 형식입니다.",
+  "Version 3 (newest)": "버전 3 (최신)",
+  "Version 2": "버전 2",
   "Unchanged": "변경 없음",
   "Setup guide": "설정 가이드",
   "Write a test file": "테스트 파일 쓰기",
@@ -4110,6 +4129,13 @@
   "Sign them out": "로그아웃시키기",
   "Sign out everyone signed in without SSO?": "SSO 없이 로그인한 모든 사용자를 로그아웃하시겠습니까?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "모든 기기에서 세션이 즉시 끝나며, SSO로 다시 로그인해야 합니다. 마스터 관리자는 로그인 상태가 유지됩니다.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "OneUptime에 비밀번호나 2단계 인증이 아직 저장되어 있는 사용자가 {{count}}명 있습니다. SSO가 더 이상 필수가 아니게 되면 이것으로 다시 로그인할 수 있습니다.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "OneUptime에 비밀번호나 2단계 인증이 아직 저장되어 있는 사용자가 {{count}}명 있습니다. SSO가 더 이상 필수가 아니게 되면 이것으로 다시 로그인할 수 있습니다.",
+  "Clear Sign-In Settings": "로그인 설정 지우기",
+  "Clear everyone's saved sign-in settings?": "모든 사용자의 저장된 로그인 설정을 지우시겠습니까?",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "비밀번호, 패스키, 보안 키, 인증 앱, 백업 코드가 삭제됩니다. 이 작업은 되돌릴 수 없습니다. 마스터 관리자는 자신의 설정을 유지합니다.",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}}명의 로그인 설정을 지웠습니다.",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}}명의 로그인 설정을 지웠습니다.",
   "Made by {{name}} on {{date}}": "{{name}}님이 {{date}}에 생성",
   "Made on {{date}}": "{{date}}에 생성",
   "Ends in {{hint}}": "끝자리 {{hint}}",
@@ -4284,5 +4310,14 @@
   "Sign Out of the Identity Provider Too": "ID 공급자에서도 로그아웃",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime에서 로그아웃하면 이 공급자와 이를 사용하는 다른 모든 앱에서도 로그아웃됩니다. 공용 컴퓨터에서는 켜세요.",
   "Sign-out Redirect URI:": "로그아웃 후 리디렉션 URI:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "리디렉션 URI를 OIDC ID 공급자에 등록하고, 'ID 공급자에서도 로그아웃'이 켜져 있으면 로그아웃 후 리디렉션 URI도 등록하세요."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "리디렉션 URI를 OIDC ID 공급자에 등록하고, 'ID 공급자에서도 로그아웃'이 켜져 있으면 로그아웃 후 리디렉션 URI도 등록하세요.",
+  "If they have no OneUptime account yet, it is set up with this name.": "이 사람에게 아직 OneUptime 계정이 없으면 이 이름으로 계정이 만들어집니다.",
+  "Suggest every account on this server?": "이 서버의 모든 계정을 제안할까요?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "사람을 초대할 수 있는 모든 사람이 입력하는 동안 모든 계정의 이름과 이메일을 보게 됩니다. 여기의 모든 계정이 한 조직에 속한 경우에만 켜세요.",
+  "Suggest Every Account": "모든 계정 제안",
+  "Sign Out URL": "로그아웃 URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다.",
+  "Single Logout URL:": "단일 로그아웃 URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID 공급자에서도 로그아웃시키려면 단일 로그아웃 URL과 OneUptime의 서명 인증서도 공급자에 등록하세요.",
+  "Download Signing Certificate": "서명 인증서 다운로드"
 }

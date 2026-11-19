@@ -16,7 +16,6 @@ import {
   ProxmoxGuestSummary,
   formatProxmoxDuration,
   getProxmoxBusiestGuests,
-  getProxmoxDiskPercent,
   getProxmoxGuestAlertTemplateIds,
   getProxmoxGuestBackup,
   getProxmoxGuestKind,
@@ -36,6 +35,7 @@ import {
   toProxmoxNumber,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/ProxmoxPartFacts";
 import { ResourcePartStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartTypes";
+import { getProxmoxDiskUsage } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/ProxmoxHealth";
 
 /*
  * What a Proxmox node, guest or storage is, in the words its pages use
@@ -469,12 +469,18 @@ describe("how a part reads", () => {
       null,
     );
     expect(
-      getProxmoxDiskPercent(
-        row({ latestDiskBytes: 30 * GIB, maxDiskBytes: 120 * GIB }),
-      ),
+      getProxmoxDiskUsage(
+        row({
+          kind: "Node",
+          latestDiskBytes: 30 * GIB,
+          maxDiskBytes: 120 * GIB,
+        }),
+      )?.usedPercent,
     ).toBe(25);
     expect(
-      getProxmoxDiskPercent(row({ maxDiskBytes: 0, latestDiskBytes: 1 })),
+      getProxmoxDiskUsage(
+        row({ kind: "Node", maxDiskBytes: 0, latestDiskBytes: 1 }),
+      ),
     ).toBe(null);
   });
 

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The agent's managed configuration: what a device manager (Esper, Intune,
+    Workspace ONE, SOTI, any Android Enterprise EMM) can set on every device
+    of a fleet at once. Keys are read by config/ManagedSettings.kt; the docs
+    (telemetry/android-agent) list them for people setting up a fleet.
+-->
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+    <restriction
+        android:key="oneuptime_url"
+        android:title="@string/restriction_url_title"
+        android:description="@string/restriction_url_description"
+        android:restrictionType="string"
+        android:defaultValue="https://oneuptime.com" />
+    <restriction
+        android:key="oneuptime_token"
+        android:title="@string/restriction_token_title"
+        android:description="@string/restriction_token_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="device_name"
+        android:title="@string/restriction_device_name_title"
+        android:description="@string/restriction_device_name_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="device_serial"
+        android:title="@string/restriction_device_serial_title"
+        android:description="@string/restriction_device_serial_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="device_type"
+        android:title="@string/restriction_device_type_title"
+        android:description="@string/restriction_device_type_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="device_location"
+        android:title="@string/restriction_device_location_title"
+        android:description="@string/restriction_device_location_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="labels"
+        android:title="@string/restriction_labels_title"
+        android:description="@string/restriction_labels_description"
+        android:restrictionType="string" />
+    <restriction
+        android:key="collection_interval_seconds"
+        android:title="@string/restriction_interval_title"
+        android:description="@string/restriction_interval_description"
+        android:restrictionType="integer"
+        android:defaultValue="60" />
+    <restriction
+        android:key="logcat_enabled"
+        android:title="@string/restriction_logcat_enabled_title"
+        android:description="@string/restriction_logcat_enabled_description"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
+    <restriction
+        android:key="logcat_min_level"
+        android:title="@string/restriction_logcat_level_title"
+        android:description="@string/restriction_logcat_level_description"
+        android:restrictionType="choice"
+        android:entries="@array/logcat_level_entries"
+        android:entryValues="@array/logcat_level_values"
+        android:defaultValue="warn" />
+    <restriction
+        android:key="installed_apps_enabled"
+        android:title="@string/restriction_apps_enabled_title"
+        android:description="@string/restriction_apps_enabled_description"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
+</restrictions>

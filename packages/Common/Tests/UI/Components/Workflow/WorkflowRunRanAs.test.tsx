@@ -107,12 +107,28 @@ describe("what a run row says it ran as", () => {
     });
   });
 
-  test("the run lists ask for what it ran as, and whose permissions", () => {
+  test("the run lists ask for what it ran as, and whose permissions: a person's or an API key's", () => {
     expect(Object.keys(WORKFLOW_RUN_RAN_AS_SELECT).sort()).toEqual([
       "runAs",
       "runAsCustomRoleName",
+      "runAsGivenByApiKeyName",
       "runAsGivenByUser",
     ]);
+  });
+
+  test("an API key's permissions, by the key's name when the run started (#9765)", () => {
+    const log: WorkflowLog = runRow({
+      runAs: WorkflowRunAs.CustomRole,
+      roleName: "Team Provisioner",
+    });
+    log.runAsGivenByApiKeyName = " Terraform ";
+
+    expect(getWorkflowRunRanAs(log)).toEqual({
+      runAs: WorkflowRunAs.CustomRole,
+      roleName: "Team Provisioner",
+      givenBy: "Terraform",
+      isGivenByApiKey: true,
+    });
   });
 });
 
@@ -136,6 +152,34 @@ describe("the sentence", () => {
     ).toBe(
       'Ran as the custom role "Team Provisioner", with the permissions of Jane Doe.',
     );
+  });
+
+  test("names an API key as one (#9765)", () => {
+    expect(
+      describeWorkflowRunRanAs(ENGLISH, {
+        runAs: WorkflowRunAs.ProjectOwner,
+        givenBy: "Terraform",
+        isGivenByApiKey: true,
+      }),
+    ).toBe(
+      'Ran as Project Owner, with the permissions of the API key "Terraform".',
+    );
+    expect(
+      describeWorkflowRunRanAs(ENGLISH, {
+        runAs: WorkflowRunAs.CustomRole,
+        roleName: "Team Provisioner",
+        givenBy: "Terraform",
+        isGivenByApiKey: true,
+      }),
+    ).toBe(
+      'Ran as the custom role "Team Provisioner", with the permissions of the API key "Terraform".',
+    );
+  });
+
+  test("Default, as the audit log says it (#9766)", () => {
+    expect(
+      describeWorkflowRunRanAs(ENGLISH, { runAs: WorkflowRunAs.Default }),
+    ).toBe("Ran with the default permissions.");
   });
 
   test("the run's window draws it as a note", () => {
@@ -162,6 +206,17 @@ describe("a downloaded log", () => {
 
     expect(text).toContain(
       "Ran as: Ran as Project Owner, with the permissions of Jane Doe.",
+    );
+  });
+
+  test("of a run an API key gave its permissions to names the key", () => {
+    const log: WorkflowLog = runRow({ runAs: WorkflowRunAs.ProjectOwner });
+    log.runAsGivenByApiKeyName = "Terraform";
+
+    expect(
+      buildWorkflowRunLogText(getWorkflowRunExportFromWorkflowLog(log)),
+    ).toContain(
+      'Ran as: Ran as Project Owner, with the permissions of the API key "Terraform".',
     );
   });
 

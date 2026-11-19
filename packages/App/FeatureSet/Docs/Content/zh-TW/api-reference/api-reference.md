@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 兩個名稱以同樣方式檢查。關於你所指定之記錄的規則，無論你用哪個名稱傳送都適用：狀態頁面群組的上層群組必須位於同一個狀態頁面上，一個狀態頁面最多有三個頁首連結，群組名稱在其狀態頁面上必須唯一。
 
+#### 其他記錄已在使用的名稱
+
+團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格：`Primary`、` primary` 和 `PRIMARY` 是同一個名稱。以同類其他記錄已有的名稱建立記錄，或透過更新重新命名為這樣的名稱，都會被拒絕，並傳回一個說明此情況的 `400`：
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+以任意大小寫再次傳送記錄自身名稱的更新不算重新命名，因此先前同名的記錄仍然可以修改，也可以重新命名以區分開來。對於團隊、待命策略和待命排程，`GET /api/shared-names/team`（或 `on-call-policy`、`on-call-schedule`）會回答哪些記錄同名：`{"groups": [["<id>", "<id>"]]}`，每個群組是名稱讀起來相同的記錄中你的金鑰可以讀取的那些記錄的 ID。
+
 ### 開關
 
 開或關的欄位——`isEnabled`、`isVisibleOnStatusPage`、`isArchived` 以及其他所有 `true` 或 `false` 欄位——接受 `true` 或 `false`。資料庫會讀作其中之一的文字和數字會被當作該值接受，對 API、Terraform 和工作流程都一樣：`"true"`、`"yes"`、`"on"`、`"1"` 和 `1` 是 `true`，`"false"`、`"no"`、`"off"`、`"0"` 和 `0` 是 `false`，不區分大小寫。OneUptime 對該記錄所做的一切也都把它當作該值處理：以 `"isVisibleOnStatusPage": "true"` 傳送的維護事件會在狀態頁面上顯示其圖片，而 `"isEnabled": "false"` 會像 `false` 一樣在低於方案時關閉資源。任何其他值，例如 `"maybe"`、`""` 或 `2`，都會被拒絕，並傳回一個指明欄位的 `400`：

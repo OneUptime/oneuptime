@@ -2,6 +2,7 @@ import {
   AI_ACTIVITY_INSIGHTS_RECENT_WINDOW_IN_DAYS,
   AI_ACTIVITY_INSIGHTS_RECURRING_ATTENTION_MIN,
   AiActivityCoverage,
+  AiActivityFailedCommand,
   AiActivityFinding,
   AiActivityFixApprovalSources,
   AiActivityFixOutcomes,
@@ -284,6 +285,42 @@ function readCoverage(value: JSONObject): AiActivityCoverage {
           : null;
       },
     ),
+  };
+}
+
+/*
+ * A failed command (#9749): its id and when it ended, or nothing. What it
+ * ran, its exit code, the agent's words, why AI ran it and its incident or
+ * alert only when the body has them.
+ */
+function readFailedCommand(value: unknown): AiActivityFailedCommand | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const id: string | null = readString(value["id"]);
+  const at: string | null = readString(value["at"]);
+
+  if (!id || !at || Number.isNaN(Date.parse(at))) {
+    return null;
+  }
+
+  const command: string | null = readString(value["command"]);
+  const exitCode: unknown = value["exitCode"];
+  const errorMessage: string | null = readString(value["errorMessage"]);
+  const origin: string | null = readString(value["origin"]);
+  const subject: AiActivitySubject | null = readSubject(value["subject"]);
+
+  return {
+    id,
+    at,
+    ...(command ? { command } : {}),
+    ...(typeof exitCode === "number" && Number.isInteger(exitCode)
+      ? { exitCode }
+      : {}),
+    ...(errorMessage ? { errorMessage } : {}),
+    ...(origin ? { origin } : {}),
+    ...(subject ? { subject } : {}),
   };
 }
 
@@ -698,6 +735,15 @@ export function parseAiActivityInsights(
       value["preventiveInsights"],
       readPreventiveInsight,
     ),
+    // What "N failed" opens: only beside a count that says so.
+    ...(Array.isArray(value["failedCommandList"]) && readTotals.failedCommands
+      ? {
+          failedCommandList: readList(
+            value["failedCommandList"],
+            readFailedCommand,
+          ),
+        }
+      : {}),
     isPartial: value["isPartial"] === true,
     // The incidents' and alerts' own sections, only when the body has them.
     ...(subjectKind === "incident" || subjectKind === "alert"

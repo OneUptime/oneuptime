@@ -137,12 +137,29 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * A step's props without the record of what it ran as, which the audit log
+ * alone reads (#9766): what it may do, and who it is.
+ */
+function withoutAuditRecord(
+  props: DatabaseCommonInteractionProps,
+): DatabaseCommonInteractionProps {
+  const rest: DatabaseCommonInteractionProps = { ...props };
+  delete rest.workflowRunAsAudit;
+  return rest;
+}
+
 describe("Default: exactly as before Run As existed", () => {
-  test("no Run As, and Run As Default, give the very props a step had", () => {
-    expect(principal()).toEqual(propsBeforeRunAs());
-    expect(principal({ runAs: WorkflowRunAs.Default })).toEqual(
-      propsBeforeRunAs(),
-    );
+  test("no Run As, and Run As Default, give the very props a step had - and say, for the audit log alone, that it ran as Default", () => {
+    for (const props of [
+      principal(),
+      principal({ runAs: WorkflowRunAs.Default }),
+    ]) {
+      expect(withoutAuditRecord(props)).toEqual(propsBeforeRunAs());
+      expect(props.workflowRunAsAudit).toEqual({
+        runAs: WorkflowRunAs.Default,
+      });
+    }
   });
 
   test("they carry no mark, so the access rule reads them as Default", () => {
@@ -305,5 +322,74 @@ describe("whatever it runs as", () => {
     expect(WorkflowPrincipal.isRaised("Root")).toBe(false);
     expect(WorkflowPrincipal.isRaised(WorkflowRunAs.ProjectOwner)).toBe(true);
     expect(WorkflowPrincipal.isRaised(WorkflowRunAs.CustomRole)).toBe(true);
+  });
+});
+
+describe("what a step ran as, for the audit log (#9766)", () => {
+  const GIVER_ID: ObjectID = new ObjectID(
+    "99950000-0000-4000-8000-0000000000a1",
+  );
+  const KEY_ID: ObjectID = new ObjectID("99950000-0000-4000-8000-0000000000b1");
+
+  test("Project Owner, with the person who gave it, by name", () => {
+    expect(
+      principal({
+        runAs: WorkflowRunAs.ProjectOwner,
+        givenByUserId: GIVER_ID,
+        givenByName: "Jane Doe",
+      }).workflowRunAsAudit,
+    ).toEqual({
+      runAs: WorkflowRunAs.ProjectOwner,
+      givenByUserId: GIVER_ID,
+      givenByName: "Jane Doe",
+    });
+  });
+
+  test("a custom role by its name, with the API key that gave it", () => {
+    expect(
+      principal({
+        ...ROLE_RUN,
+        givenByApiKeyId: KEY_ID,
+        givenByName: "Terraform",
+      }).workflowRunAsAudit,
+    ).toEqual({
+      runAs: WorkflowRunAs.CustomRole,
+      customRoleName: "Team Provisioner",
+      givenByApiKeyId: KEY_ID,
+      givenByName: "Terraform",
+    });
+  });
+
+  test("a Run As that cannot be read is recorded as Default, as its steps act", () => {
+    expect(
+      principal({ runAs: "Root" as unknown as WorkflowRunAs })
+        .workflowRunAsAudit,
+    ).toEqual({ runAs: WorkflowRunAs.Default });
+  });
+
+  test("the record holds nothing a step acts with: its permissions are the same with it or without", () => {
+    const run: WorkflowRunAsGrant = {
+      ...ROLE_RUN,
+      givenByApiKeyId: KEY_ID,
+      givenByName: "Terraform",
+    };
+
+    expect(withoutAuditRecord(principal(run))).toEqual(
+      withoutAuditRecord(principal({ ...ROLE_RUN })),
+    );
+    expect(allowed(principal(run))).toEqual(allowed(principal(ROLE_RUN)));
+  });
+
+  test("each step gets its own record", () => {
+    const first: DatabaseCommonInteractionProps = principal({
+      runAs: WorkflowRunAs.ProjectOwner,
+      givenByName: "Jane Doe",
+    });
+    first.workflowRunAsAudit!.givenByName = "Someone Else";
+
+    expect(
+      principal({ runAs: WorkflowRunAs.ProjectOwner, givenByName: "Jane Doe" })
+        .workflowRunAsAudit?.givenByName,
+    ).toBe("Jane Doe");
   });
 });

@@ -364,7 +364,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 ### Voir ce qu'il a fait
 
 - **Produits → Profils → IA → Analyses** liste le code lent trouvé, chaque constat avec ses preuves et **Ouvrir dans Profils**.
-- **Produits → Profils → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
+- **Produits → Profils → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé. Une pull request dit où en est sa tâche dans Code : un correctif redemandé avec Réessayer après un échec n'apparaît plus comme en échec, avec la pull request qu'il a ouverte.
 - Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
 
 ## Rétention des données

@@ -87,7 +87,7 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 | Categoria | Métricas |
 | --- | --- |
 | Pod | Consumo de CPU do Pod, Uso de memória do Pod, Fase do Pod (código), Uso do sistema de arquivos do Pod, Capacidade do volume, Espaço livre do volume, Utilização do limite de memória do Pod, Utilização do limite de CPU do Pod, E/S de rede do Pod (acumulada, ambas as direções) |
-| Nó | Consumo de CPU do nó, CPU alocável do nó, Uso de memória do nó, Working set de memória do nó, Uso do sistema de arquivos do nó, Memória alocável do nó, Condição Ready do nó, Condição MemoryPressure do nó, Condição DiskPressure do nó, Condição PIDPressure do nó, Sistema de arquivos disponível do nó |
+| Nó | Consumo de CPU do nó, CPU alocável do nó, Uso de memória do nó, Working set de memória do nó, Uso do sistema de arquivos do nó, Memória alocável do nó, Condição Ready do nó, Condição MemoryPressure do nó, Condição DiskPressure do nó, Condição PIDPressure do nó, Sistema de arquivos disponível do nó, Capacidade do sistema de arquivos do nó |
 | Contêiner | Reinicializações do contêiner, Reinicializações do contêiner (aumento), Limite de CPU do contêiner, Solicitação de CPU do contêiner, Limite de memória do contêiner, Solicitação de memória do contêiner, Contêiner pronto |
 | Carga de trabalho | Réplicas disponíveis do Deployment, Réplicas desejadas do Deployment, Nós desejados do DaemonSet, Nós agendados incorretamente do DaemonSet, Nós prontos do DaemonSet, Réplicas desejadas do StatefulSet, Réplicas prontas do StatefulSet, Pods com falha do Job, Pods com falha do Job (aumento), Pods bem-sucedidos do Job |
 | HPA | Réplicas atuais do HPA, Réplicas desejadas do HPA, Réplicas máximas do HPA, Réplicas mínimas do HPA |

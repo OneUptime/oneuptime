@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-La télémétrie de l'application reste avec son application RUM, et l'appareil ne devient pas un hôte dans **Hôtes** : une application ne signale aucune métrique d'hôte, il n'y aurait donc rien à y montrer. La page de l'appareil dans **Inventaire** montre ses propres journaux, traces et exceptions, et `@resource.host.name:` les retrouve dans **Traces** et **Journaux**. Un appareil qui n'envoie rien pendant 30 jours quitte **Inventaire**.
+La télémétrie de l'application reste avec son application RUM, et l'appareil ne devient pas un hôte dans **Hôtes** : une application ne signale aucune métrique d'hôte, il n'y aurait donc rien à y montrer. La page de l'appareil dans **Inventaire** montre ses propres journaux, traces et exceptions, et `@resource.host.name:` les retrouve dans **Traces** et **Journaux**. Un appareil qui n'envoie rien pendant 30 jours quitte **Inventaire**. Pour voir l'appareil lui-même, sa mémoire, son stockage et ses redémarrages, ainsi que les plantages de chaque application qui y tourne, ajoutez l'[Agent Android](/docs/telemetry/android-agent) et donnez-lui le même nom dans son `device_name` : l'appareil est alors aussi un hôte dans **Hôtes**, et toujours un seul élément dans **Inventaire**.
 
 ### Configurer le parc depuis votre MDM
 
@@ -248,6 +248,12 @@ Passez ensuite `token` à `baseHeaders` à la place de `BuildConfig.ONEUPTIME_TO
 ```
 
 Après une modification, lancez un Converge des appareils pour qu'ils lisent les nouvelles valeurs. Déclarez les mêmes clés dans un `app_restrictions.xml` si votre MDM demande un schéma. Esper refuse un APK sans signature v1 : signez donc la version avec le schéma v1 en plus de v2 ou v3.
+
+### Importer le parc depuis Esper
+
+Connectez votre tenant Esper à l'inventaire, et chaque appareil qu'enrôle Esper est listé, y compris les appareils dont l'application n'a jamais démarré, avec ce que seul Esper sait : son groupe, sa version d'Android, son niveau de correctif de sécurité, son numéro de série, sa batterie, son stockage, ses applications installées et son dernier contact. Un appareil qui cesse de contacter Esper apparaît hors ligne, avec le temps écoulé depuis son dernier contact. Voir [Importer des appareils depuis Esper](/docs/inventory/overview#importer-des-appareils-depuis-esper).
+
+Un appareil que son application nomme comme ci-dessus ne forme qu'un seul élément avec ce que l'application envoie : `host.name` est son nom dans Esper. OneUptime trouve l'élément d'un appareil par `host.name`, puis par `host.serial_number` : donnez donc à chaque appareil le même nom et le même numéro de série dans chaque application qui envoie des données depuis cet appareil, ainsi que dans les paramètres `device_name` et `device_serial` de l'Agent Android.
 
 ### Conserver ce qui est enregistré hors ligne
 
@@ -281,6 +287,7 @@ Seul un appareil dont l'application définit `host.name` est listé. Vérifiez l
 
 :::cards
 - [Configuration mobile](/docs/rum/mobile-setup): iOS, React Native et les autres plateformes.
+- [Agent Android](/docs/telemetry/android-agent): Surveiller l'appareil lui-même : son état de santé, ses redémarrages, ses applications installées et les plantages de chaque application.
 - [Exceptions](/docs/telemetry/exceptions): Trier les plantages et les ANR que signale votre application.
 - [Explorateur de traces](/docs/telemetry/traces-explorer): Suivre une commande de la borne jusqu'à la cuisine.
 - [Gérer les applications](/docs/rum/applications): Noms, étiquettes, propriétaires et rétention.

@@ -1040,8 +1040,8 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         accessKeyId: "AKIAIOSFODNN7EXAMPLE",
       },
       secrets: { secretAccessKey: SECRET },
-      // Tested in the record version it will send: the newest (issue #6247).
-      schemaVersion: 2,
+      // Tested in the record version it will send: the newest (issues #6247, #9766).
+      schemaVersion: 3,
     });
     expect(posts()[0]!["headers"]).toEqual({
       tenantid: PROJECT_ID.toString(),
@@ -1080,7 +1080,7 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     // From now on: no Export From picked.
     expect(saved.startsAt).toBeUndefined();
     // The newest record version, the More fields default.
-    expect(saved.schemaVersion).toBe(2);
+    expect(saved.schemaVersion).toBe(3);
   });
 
   test("a destination that refuses the test says what to fix", async () => {

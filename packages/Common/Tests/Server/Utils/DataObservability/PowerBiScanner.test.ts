@@ -3,6 +3,7 @@ import BiRequestError from "../../../../Server/Utils/DataObservability/Bi/BiRequ
 import {
   askPowerBi,
   chunkWorkspaces,
+  describeRunningScans,
   describeUnscannedWorkspaces,
   listPowerBiWorkspaces,
   MAX_SIMULTANEOUS_SCANS,
@@ -10,10 +11,12 @@ import {
   POWER_BI_SCAN_QUERY,
   POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
   PowerBiLimitError,
+  PowerBiPendingScan,
   PowerBiScannerApi,
   PowerBiScanRun,
   PowerBiScanTiming,
   runPowerBiScans,
+  settlePowerBiScans,
 } from "../../../../Server/Utils/DataObservability/Bi/PowerBiScanner";
 import { JSONObject } from "../../../../Types/JSON";
 
@@ -103,7 +106,10 @@ interface FakeScanner {
 /*
  * Power BI's scanner, in memory: each scan answers Running for as many
  * asks of its status as `polls(workspaceIds)` says, then Succeeded (or
- * what `status` says), and its result names each of its workspaces.
+ * what `status` says), and its result names each of its workspaces. Scans
+ * an earlier read started (`started`) are running when the read begins; a
+ * scan it never started is unknown to it (a 404), as is one whose result it
+ * no longer keeps.
  */
 function fakeScanner(
   data: {
@@ -111,15 +117,43 @@ function fakeScanner(
     status?: (workspaceIds: Array<string>) => JSONObject | null;
     onGetInfo?: (call: number) => void;
     listed?: Array<JSONObject>;
+    started?: Array<{ scanId: string; workspaceIds: Array<string> }>;
+    // An answer to a request about a scan, in place of the scan's own: a thrown error.
+    onScanRequest?: (path: string) => void;
   } = {},
 ): FakeScanner {
-  const scans: Map<string, { workspaceIds: Array<string>; asked: number }> =
-    new Map();
-  let running: number = 0;
+  const scans: Map<
+    string,
+    { workspaceIds: Array<string>; asked: number; isDone: boolean }
+  > = new Map(
+    (data.started || []).map(
+      (scan: {
+        scanId: string;
+        workspaceIds: Array<string>;
+      }): [
+        string,
+        { workspaceIds: Array<string>; asked: number; isDone: boolean },
+      ] => {
+        return [
+          scan.scanId,
+          { workspaceIds: scan.workspaceIds, asked: 0, isDone: false },
+        ];
+      },
+    ),
+  );
+  let running: number = scans.size;
   let getInfoCalls: number = 0;
+  const end: (scan: { isDone: boolean }) => void = (scan: {
+    isDone: boolean;
+  }): void => {
+    if (!scan.isDone) {
+      scan.isDone = true;
+      running--;
+    }
+  };
   const scanner: FakeScanner = {
     calls: [],
-    maxRunning: 0,
+    maxRunning: running,
     api: {
       get: async (path: string): Promise<unknown> => {
         scanner.calls.push(`GET ${path}`);
@@ -128,9 +162,19 @@ function fakeScanner(
           return data.listed || [];
         }
 
+        data.onScanRequest?.(path);
+
         const scanId: string = decodeURIComponent(path.split("/").pop()!);
-        const scan: { workspaceIds: Array<string>; asked: number } =
-          scans.get(scanId)!;
+        const scan:
+          | { workspaceIds: Array<string>; asked: number; isDone: boolean }
+          | undefined = scans.get(scanId);
+
+        if (!scan) {
+          throw new BiRequestError(
+            "Power BI answered 404: The scan was not found.",
+            404,
+          );
+        }
 
         if (path.startsWith("/admin/workspaces/scanStatus/")) {
           scan.asked++;
@@ -140,12 +184,12 @@ function fakeScanner(
             : null;
 
           if (said) {
-            running--;
+            end(scan);
             return said;
           }
 
           if (scan.asked > (data.polls ? data.polls(scan.workspaceIds) : 0)) {
-            running--;
+            end(scan);
             return { id: scanId, status: "Succeeded" };
           }
 
@@ -168,6 +212,7 @@ function fakeScanner(
         scans.set(scanId, {
           workspaceIds: body["workspaces"] as Array<string>,
           asked: 0,
+          isDone: false,
         });
         running++;
         scanner.maxRunning = Math.max(scanner.maxRunning, running);
@@ -288,8 +333,9 @@ describe("scanning them", () => {
     expect(run.unscanned).toEqual([]);
   });
 
-  test("a scan that does not finish within the read's wait is left unscanned, and says so", async () => {
+  test("a scan that does not finish within the read's wait is kept by its id for the next read, not given up on (#9697)", async () => {
     const scheduled: ReturnType<typeof fakeTiming> = fakeTiming();
+    const startedAt: string = new Date(scheduled.clock()).toISOString();
     const never: () => FakeScanner = (): FakeScanner => {
       return fakeScanner({
         polls: (): number => {
@@ -305,11 +351,12 @@ describe("scanning them", () => {
     });
 
     expect(run.scanned).toEqual([]);
-    expect(run.unscanned).toEqual([
-      {
-        workspaceIds: ids(3),
-        reason: "Power BI's workspace scan did not finish within 20 minutes.",
-      },
+    expect(run.unscanned).toEqual([]);
+    expect(run.running).toEqual([
+      { scanId: "scan-1", workspaceIds: ids(3), startedAt },
+    ]);
+    expect(run.outcomes).toEqual([
+      { kind: "running", scanId: "scan-1", workspaceIds: ids(3), startedAt },
     ]);
     // It stopped asking at the wait's end, not after.
     expect(
@@ -317,6 +364,11 @@ describe("scanning them", () => {
         return total + ms;
       }, 0),
     ).toBeLessThanOrEqual(POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS);
+    expect(
+      describeRunningScans(run.running, POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS),
+    ).toBe(
+      "Power BI was still scanning 3 workspaces when the read stopped waiting after 20 minutes. The next read reads those scans once Power BI has finished them, and until then the workspaces show what was read before.",
+    );
 
     const asked: PowerBiScanRun = await runPowerBiScans({
       api: never().api,
@@ -325,8 +377,14 @@ describe("scanning them", () => {
       waitInMs: POWER_BI_ASKED_SCAN_WAIT_IN_MS,
     });
 
-    expect(asked.unscanned[0]!.reason).toBe(
-      "Power BI's workspace scan did not finish within 4 minutes.",
+    expect(asked.running).toHaveLength(1);
+    expect(
+      describeRunningScans(
+        [{ ...asked.running[0]!, workspaceIds: ["only"] }],
+        POWER_BI_ASKED_SCAN_WAIT_IN_MS,
+      ),
+    ).toBe(
+      "Power BI was still scanning 1 workspace when the read stopped waiting after 4 minutes. The next read reads that scan once Power BI has finished it, and until then the workspace shows what was read before.",
     );
   });
 
@@ -497,5 +555,441 @@ describe("what a read says it could not scan", () => {
     ).toBe(
       "120 workspaces were not scanned this time: Power BI's workspace scan did not finish within 20 minutes. The next read scans them again, and until then they show what was read before.",
     );
+  });
+});
+
+/*
+ * A scan an earlier read stopped waiting for, picked up by the next read
+ * (#9697): Power BI goes on with it and keeps its result for 24 hours, so
+ * the next read asks for its status first and reads its result, instead
+ * of starting a scan of its workspaces that, in a tenant whose scans
+ * outlast the wait, would never be read either.
+ */
+describe("picking up a scan an earlier read stopped waiting for", () => {
+  const STARTED_AT: string = "2026-11-19T09:00:00.000Z";
+
+  function pending(
+    scanId: string,
+    workspaceIds: Array<string>,
+    startedAt: string = STARTED_AT,
+  ): PowerBiPendingScan {
+    return { scanId, workspaceIds, startedAt };
+  }
+
+  function posts(scanner: FakeScanner): Array<string> {
+    return scanner.calls.filter((call: string): boolean => {
+      return call.startsWith("POST");
+    });
+  }
+
+  function chunksOf(run: PowerBiScanRun): Array<Array<string>> {
+    return run.scanned.map(
+      (chunk: PowerBiScanRun["scanned"][number]): Array<string> => {
+        return chunk.workspaceIds;
+      },
+    );
+  }
+
+  test("a scan that finished since is asked about at once and read: no scan starts for its workspaces", async () => {
+    const timing: ReturnType<typeof fakeTiming> = fakeTiming();
+    const scanner: FakeScanner = fakeScanner({
+      started: [{ scanId: "earlier", workspaceIds: ids(3) }],
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: [],
+      pickUp: [pending("earlier", ids(3))],
+      timing,
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(scanner.calls).toEqual([
+      "GET /admin/workspaces/scanStatus/earlier",
+      "GET /admin/workspaces/scanResult/earlier",
+    ]);
+    // Asked at once: a scan that ran through a read already needs no first wait.
+    expect(timing.waits).toEqual([]);
+    expect(run.scanned).toEqual([
+      {
+        workspaceIds: ids(3),
+        result: {
+          workspaces: ids(3).map((id: string): JSONObject => {
+            return { id, name: `Workspace ${id}`, state: "Active" };
+          }),
+        },
+      },
+    ]);
+    expect(run.running).toEqual([]);
+    expect(run.unscanned).toEqual([]);
+  });
+
+  test("one still running is asked every 30 seconds while the read waits, and kept with its first start for the next", async () => {
+    const timing: ReturnType<typeof fakeTiming> = fakeTiming();
+    const scanner: FakeScanner = fakeScanner({
+      started: [{ scanId: "slow", workspaceIds: ids(2) }],
+      polls: (): number => {
+        return Number.POSITIVE_INFINITY;
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: [],
+      pickUp: [pending("slow", ids(2))],
+      timing,
+      waitInMs: POWER_BI_ASKED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(timing.waits).toEqual(Array(8).fill(30_000));
+    expect(posts(scanner)).toEqual([]);
+    expect(run.running).toEqual([pending("slow", ids(2))]);
+  });
+
+  test("one that finishes while the read waits is read beside the read's own scans, as the older", async () => {
+    const scanner: FakeScanner = fakeScanner({
+      started: [{ scanId: "earlier", workspaceIds: ["old-1", "old-2"] }],
+      polls: (workspaceIds: Array<string>): number => {
+        return workspaceIds[0] === "old-1" ? 3 : 0;
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ["new-1"],
+      pickUp: [pending("earlier", ["old-1", "old-2"])],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(chunksOf(run)).toEqual([["old-1", "old-2"], ["new-1"]]);
+    expect(posts(scanner)).toHaveLength(1);
+  });
+
+  test("scans picked up are followed oldest first, whatever order they were kept in", async () => {
+    const scanner: FakeScanner = fakeScanner({
+      started: [
+        { scanId: "newer", workspaceIds: ["b"] },
+        { scanId: "older", workspaceIds: ["a"] },
+      ],
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: [],
+      pickUp: [
+        pending("newer", ["b"], "2026-11-19T09:30:00.000Z"),
+        pending("older", ["a"], "2026-11-19T08:30:00.000Z"),
+      ],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(chunksOf(run)).toEqual([["a"], ["b"]]);
+  });
+
+  test("one that failed has its workspaces scanned anew in the same read, and Power BI's reason is kept with the first", async () => {
+    let failed: boolean = false;
+    const scanner: FakeScanner = fakeScanner({
+      started: [{ scanId: "failed", workspaceIds: ids(2) }],
+      status: (): JSONObject | null => {
+        if (failed) {
+          return null;
+        }
+
+        failed = true;
+
+        return {
+          status: "Failed",
+          error: { message: "The workspace scan could not complete." },
+        };
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: [],
+      pickUp: [pending("failed", ids(2))],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(posts(scanner)).toEqual([
+      `POST /admin/workspaces/getInfo?${POWER_BI_SCAN_QUERY}`,
+    ]);
+    expect(
+      run.outcomes.map((outcome: PowerBiScanRun["outcomes"][number]) => {
+        return outcome.kind;
+      }),
+    ).toEqual(["unscanned", "scanned"]);
+    expect(run.unscanned).toEqual([
+      {
+        workspaceIds: ids(2),
+        reason:
+          "Power BI's workspace scan failed: The workspace scan could not complete.",
+      },
+    ]);
+    // The newer scan worked: nothing is left for the next read.
+    expect(settlePowerBiScans(run.outcomes)).toEqual({
+      unscanned: [],
+      running: [],
+    });
+  });
+
+  test("one Power BI no longer has (a 404) is scanned anew; one it could not answer about (a 500) is asked again by the next read", async () => {
+    const gone: FakeScanner = fakeScanner();
+    const goneRun: PowerBiScanRun = await runPowerBiScans({
+      api: gone.api,
+      workspaceIds: [],
+      pickUp: [pending("unknown", ["a"])],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(posts(gone)).toHaveLength(1);
+    expect(settlePowerBiScans(goneRun.outcomes)).toEqual({
+      unscanned: [],
+      running: [],
+    });
+
+    const flaky: FakeScanner = fakeScanner({
+      started: [{ scanId: "earlier", workspaceIds: ["a"] }],
+      onScanRequest: (): void => {
+        throw new BiRequestError("Power BI answered 500: Internal error", 500);
+      },
+    });
+    const flakyRun: PowerBiScanRun = await runPowerBiScans({
+      api: flaky.api,
+      workspaceIds: [],
+      pickUp: [pending("earlier", ["a"])],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(posts(flaky)).toEqual([]);
+    expect(flakyRun.running).toEqual([pending("earlier", ["a"])]);
+  });
+
+  test("one whose workspaces changed again gives only the others: those are scanned anew, and a scan left with none is followed to its end, its result unread", async () => {
+    const scanner: FakeScanner = fakeScanner({
+      started: [{ scanId: "earlier", workspaceIds: ["a", "b"] }],
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ["a"],
+      pickUp: [pending("earlier", ["a", "b"])],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    // Only b is still the earlier scan's to give: a is scanned anew.
+    expect(chunksOf(run)).toEqual([["b"], ["a"]]);
+
+    const superseded: FakeScanner = fakeScanner({
+      started: [{ scanId: "earlier", workspaceIds: ["a"] }],
+    });
+
+    await runPowerBiScans({
+      api: superseded.api,
+      workspaceIds: ["a"],
+      pickUp: [pending("earlier", ["a"])],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    // Followed until it ended, as Power BI counts it toward its 16 until then.
+    expect(superseded.calls).toContain(
+      "GET /admin/workspaces/scanStatus/earlier",
+    );
+    expect(superseded.calls).not.toContain(
+      "GET /admin/workspaces/scanResult/earlier",
+    );
+  });
+
+  test("scans picked up count toward the 16 Power BI runs at once", async () => {
+    const earlier: Array<PowerBiPendingScan> = Array.from(
+      { length: 10 },
+      (_: unknown, index: number): PowerBiPendingScan => {
+        return pending(`earlier-${index}`, [`old-${index}`]);
+      },
+    );
+    const scanner: FakeScanner = fakeScanner({
+      started: earlier,
+      polls: (): number => {
+        return 2;
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ids(2_000),
+      pickUp: earlier,
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(run.scanned).toHaveLength(30);
+    expect(scanner.maxRunning).toBe(MAX_SIMULTANEOUS_SCANS);
+  });
+
+  test("a scan whose status Power BI asks to wait longer than a read does for is kept as it was; the scans running beside it go on", async () => {
+    const scanner: FakeScanner = fakeScanner({
+      started: [{ scanId: "first", workspaceIds: ["a"] }],
+      polls: (): number => {
+        return 1;
+      },
+      onScanRequest: (path: string): void => {
+        if (path.endsWith("/first")) {
+          throw new BiRequestError(
+            "Power BI answered 429: Too many requests",
+            429,
+            45 * 60 * 1000,
+          );
+        }
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ids(250),
+      pickUp: [pending("first", ["a"], "2026-11-19T08:00:00.000Z")],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(run.running).toEqual([
+      pending("first", ["a"], "2026-11-19T08:00:00.000Z"),
+    ]);
+    // The three scans started beside it, before the refusal, are followed to their end and read.
+    expect(chunksOf(run)).toHaveLength(3);
+  });
+
+  test("once starting a scan meets Power BI's limit, the scans picked up are still followed and read", async () => {
+    const scanner: FakeScanner = fakeScanner({
+      started: [
+        { scanId: "first", workspaceIds: ["a"] },
+        { scanId: "second", workspaceIds: ["b"] },
+      ],
+      polls: (workspaceIds: Array<string>): number => {
+        // The picked-up scans finish after a few asks, long after the refusal.
+        return ["a", "b"].includes(workspaceIds[0]!) ? 4 : 0;
+      },
+      onGetInfo: (): void => {
+        throw new BiRequestError(
+          "Power BI answered 429: Too many requests",
+          429,
+          45 * 60 * 1000,
+        );
+      },
+    });
+    const run: PowerBiScanRun = await runPowerBiScans({
+      api: scanner.api,
+      workspaceIds: ["c", ...ids(150)],
+      pickUp: [
+        pending("first", ["a"], "2026-11-19T08:00:00.000Z"),
+        pending("second", ["b"], "2026-11-19T08:30:00.000Z"),
+      ],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(chunksOf(run)).toEqual([["a"], ["b"]]);
+    expect(run.running).toEqual([]);
+    expect(
+      run.unscanned.map((entry: PowerBiScanRun["unscanned"][number]) => {
+        return entry.reason;
+      }),
+    ).toEqual([
+      "Power BI asked for fewer requests for 45 minutes (its scanner takes 500 scans an hour, and 30 lists of workspaces); the next read goes on.",
+      "Power BI asked for fewer requests for 45 minutes (its scanner takes 500 scans an hour, and 30 lists of workspaces); the next read goes on.",
+    ]);
+  });
+
+  test("a scan of the read's own whose status could not be asked (a 503) is kept; one Power BI refuses to say of (a 403) is scanned anew next time", async () => {
+    const flaky: FakeScanner = fakeScanner({
+      onScanRequest: (): void => {
+        throw new BiRequestError("Power BI answered 503: Unavailable", 503);
+      },
+    });
+    const flakyRun: PowerBiScanRun = await runPowerBiScans({
+      api: flaky.api,
+      workspaceIds: ["a"],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(
+      flakyRun.running.map((scan: PowerBiPendingScan): string => {
+        return scan.scanId;
+      }),
+    ).toEqual(["scan-1"]);
+
+    const refused: FakeScanner = fakeScanner({
+      onScanRequest: (): void => {
+        throw new BiRequestError("Power BI answered 403: Forbidden", 403);
+      },
+    });
+    const refusedRun: PowerBiScanRun = await runPowerBiScans({
+      api: refused.api,
+      workspaceIds: ["a"],
+      timing: fakeTiming(),
+      waitInMs: POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+    });
+
+    expect(refusedRun.running).toEqual([]);
+    expect(refusedRun.unscanned).toEqual([
+      { workspaceIds: ["a"], reason: "Power BI answered 403: Forbidden" },
+    ]);
+  });
+});
+
+describe("what a read's scans leave for the next", () => {
+  test("each workspace by its newest scan: a later scan's outcome wins, and a scan keeps only what no later one took", () => {
+    expect(
+      settlePowerBiScans([
+        {
+          kind: "running",
+          scanId: "old",
+          workspaceIds: ["a", "b"],
+          startedAt: "2026-11-19T08:00:00.000Z",
+        },
+        { kind: "unscanned", workspaceIds: ["b", "c"], reason: "Failed." },
+        { kind: "scanned", workspaceIds: ["c"], result: {} },
+        {
+          kind: "running",
+          scanId: "new",
+          workspaceIds: ["d"],
+          startedAt: "2026-11-19T09:00:00.000Z",
+        },
+      ]),
+    ).toEqual({
+      unscanned: [{ workspaceIds: ["b"], reason: "Failed." }],
+      running: [
+        {
+          scanId: "old",
+          workspaceIds: ["a"],
+          startedAt: "2026-11-19T08:00:00.000Z",
+        },
+        {
+          scanId: "new",
+          workspaceIds: ["d"],
+          startedAt: "2026-11-19T09:00:00.000Z",
+        },
+      ],
+    });
+  });
+
+  test("a first read that read nothing does not say its workspaces show what was read before", () => {
+    expect(
+      describeRunningScans(
+        [
+          {
+            scanId: "s",
+            workspaceIds: ids(250),
+            startedAt: "2026-11-19T09:00:00.000Z",
+          },
+        ],
+        POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS,
+        { isFirstRead: true },
+      ),
+    ).toBe(
+      "Power BI was still scanning 250 workspaces when the read stopped waiting after 20 minutes. The next read reads those scans once Power BI has finished them, rather than scanning again.",
+    );
+    expect(
+      describeRunningScans([], POWER_BI_SCHEDULED_SCAN_WAIT_IN_MS),
+    ).toBeNull();
   });
 });

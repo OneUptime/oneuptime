@@ -54,6 +54,23 @@ more the member may not see counted and never named; without it, that nobody on
 the schedule is paged and where to add it - at 1280 and 390 pixels, light and
 dark, in German and in Persian right to left.
 
+`OwnerTooltip.spec.ts` checks the first row's owner tooltip (#9769): hovering
+Payments Primary's owner shows a tooltip drawn on the page's body, inside the
+window, showing at all four corners and pointing at its avatar - above it on a
+laptop, across the list's top edge while the list scrolls sideways (1150px),
+following its avatar as the list and the page scroll, below it at the window's
+top edge, in dark mode on the dark surface, in Persian right to left, and on a
+card at 820px. On a 390px phone a card leaves the owners out, so there is no
+owner tooltip there to cut off.
+
+`OwnerTapOnTouch.spec.ts` checks a card's owner on a touch screen (#9866): at 820,
+1024 and 844 pixels wide, where the rows are cards that keep their owners, the first
+tap on Payments Primary's owner shows its tooltip, whole, and the schedules list stays
+- it stays once the finger lifts; a second tap on the owner, or a tap elsewhere on the
+card, opens the schedule; a tap away from the card puts the tooltip away. In the dark
+theme and in Persian, right to left, as well. A mouse's click on a table row's owner
+still opens the schedule at once.
+
 `Fixture/Fixture.js` records every list read on `window.__fixture.listRequests`
 and every read of a table it does not model on `window.__fixture.unhandled` (the
 suite fails on any).

@@ -63,7 +63,7 @@ Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett 
 Klicka på en rad. Dess detaljer öppnas bredvid listan.
 :::
 
-Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar.
+Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar. En länk till en enda loggrad, till exempel en säkerhetshändelses **Visa loggrad**, öppnar den raden ovanför listan, läst med dina egna behörigheter.
 
 ## Läs en logg
 
@@ -170,7 +170,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 ### Se vad den gjorde
 
 - **Loggar → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Loggar**, som öppnar de rader det gäller, från timmen då det hittades, i **Tittare**. Ett misslyckande som inte skriver någon loggrad har inga rader att öppna: **Öppna i Spår** öppnar i stället dess misslyckade spans. För en fellogg skapar **Skapa monitor** en loggmonitor som räknar meddelandets rader.
-- **Loggar → AI → Aktivitet** visar varje utredning och varje pull request, nyast först, med hur var och en står. En avslutad utredning säger också vad OneUptime AI hittade, till exempel orsaken till ett fel utanför koden, och därför fick den felloggen ingen pull request av sig själv.
+- **Loggar → AI → Aktivitet** visar varje utredning och varje pull request, nyast först, med hur var och en står. En avslutad utredning säger också vad OneUptime AI hittade, till exempel orsaken till ett fel utanför koden, och därför fick den felloggen ingen pull request av sig själv. En pull request visar hur dess uppgift i Code står nu: en åtgärd som begärdes igen med Försök igen efter att den misslyckades visas inte längre som misslyckad och anger den pull request den öppnade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ## Vad som händer med loggar när de kommer in

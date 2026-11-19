@@ -127,7 +127,7 @@ Keycloak is a popular open-source identity and access management solution. You n
 4. **Adjust the client settings**
 
    - Set **Name ID Format** to `email`, and turn on **Force Name ID Format**, so Keycloak always sends the email as the Name ID
-   - On the client's **Keys** tab, turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its requests
+   - On the client's **Keys** tab, turn off **Client signature required** (in **Signing keys config**): OneUptime does not sign its sign-in requests
 
 5. **Turn the provider on and test it**
 
@@ -259,11 +259,33 @@ A project can also sign in through an OpenID Connect provider, such as Google Wo
 6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.
 :::
 
-### Signing out of the identity provider too
+## Signing out of the identity provider too
 
-Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer, such as a NOC screen or a kiosk, the next person who picks the provider on the sign-in page gets in as the one who left. Turn on **Sign Out of the Identity Provider Too** under **More fields** to end the provider's session as well when someone signs out of OneUptime. It is off by default: on a personal laptop it would also sign the person out of every other app that uses the provider.
+Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer, such as a NOC screen or a kiosk, the next person who picks the provider on the sign-in page gets in as the one who left. Turn on **Sign Out of the Identity Provider Too** under **More fields**, on a SAML or an OIDC provider, to end the provider's session as well when someone signs out of OneUptime. It is off by default: on a personal laptop it would also sign the person out of every other app that uses the provider. It applies to people who sign in with a browser after it is turned on; the mobile app signs out of OneUptime alone.
 
-With it on, the browser goes to the provider's own sign-out once OneUptime has signed it out, and the provider sends it back to the OneUptime sign-in page. Register that page with your provider: the **OIDC Configuration** dialog shows it as the sign-out redirect URI, which providers call a post-logout redirect URI. A provider whose discovery document names no `end_session_endpoint`, such as Google, cannot turn it on. It applies to people who sign in with a browser after it is turned on; the mobile app signs out of OneUptime alone. SAML providers never sign people out of the identity provider.
+:::tabs
+@tab SAML
+Enter your identity provider's sign-out URL as the provider's **Sign Out URL**, under **More fields**: the switch cannot be turned on without it. Then give your identity provider the **Single Logout URL** from the **SSO Configuration** dialog, and the certificate OneUptime signs its sign-out requests with, from **Download Signing Certificate** in the same dialog.
+
+| Identity provider | Sign Out URL | Where the Single Logout URL and the certificate go |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, in **View SAML setup instructions** on the **Sign On** tab | On the **General** tab, edit **SAML Settings**, click **Show Advanced Settings** and select **Allow application to initiate Single Logout**. Set **Single Logout URL** to the Single Logout URL and **SP Issuer** to the Identifier (Entity ID), and upload the certificate as the **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, in **Set up OneUptime** | In **Basic SAML Configuration**, set **Logout Url (Optional)** to the Single Logout URL. Entra ID needs no certificate. |
+| Keycloak | The realm's SAML endpoint, the same as the Sign On URL | On the client's **Advanced** tab, set **Logout Service Redirect Binding URL** to the Single Logout URL. Keep **Front channel logout** on. Keycloak needs no certificate while **Client signature required** is off, as set up above. |
+
+After a sign-out there, the identity provider sends the browser back to the Single Logout URL, which opens the sign-in page, or says that the identity provider did not confirm the sign-out. When the person signs out at the identity provider, or of another app that uses it, an identity provider that sends sign-out requests to its apps, as Keycloak and Microsoft Entra ID do, signs them out of OneUptime too. OneUptime takes only a request the identity provider signed.
+@tab OpenID Connect
+The browser goes to the provider's own sign-out once OneUptime has signed it out, and the provider sends it back to the OneUptime sign-in page. Register that page with your provider: the **OIDC Configuration** dialog shows it as the sign-out redirect URI, which providers call a post-logout redirect URI. A provider whose discovery document names no `end_session_endpoint`, such as Google, cannot turn it on.
+
+| Identity provider | Where to register the sign-out redirect URI |
+| --- | --- |
+| Okta | On the app integration's **General** tab, click **Edit** in **General Settings** and add it to **Sign-out redirect URIs**. |
+| Microsoft Entra ID | In the app registration's **Authentication**, add it to the **Redirect URIs** of the **Web** platform. The **Front-channel logout URL** is another setting, which OneUptime does not use. |
+| Auth0 | In the application's **Settings**, add it to **Allowed Logout URLs**. A tenant created before 14 November 2023 also needs **RP-Initiated Logout End Session Endpoint Discovery** on, in its **Advanced** settings, for its discovery document to name an `end_session_endpoint`. |
+| Keycloak | In the client's settings, add it to **Valid post logout redirect URIs** (Keycloak 19 and later). |
+
+A provider that does not have it registered shows its own error page after someone signs out of OneUptime, instead of sending them back; they are signed out of OneUptime all the same.
+:::
 
 ## Roles and teams for SSO users
 
@@ -293,6 +315,21 @@ Turning **Require SSO to Sign In** off saves as soon as you flip it and lets mem
 
 > [!NOTE]
 > On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO to Sign In** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
+
+### Managing your people's sign-in with SSO
+
+Requiring SSO keeps your project's data behind your identity provider, but your people can still set a password, passkeys and two-factor authentication in OneUptime, which your project never asks for. While **Require SSO to Sign In** is on, a second switch under it, **Manage Sign-In with SSO**, stops that.
+
+Someone's sign-in is managed by SSO when every project they belong to, including any project they are invited to, requires SSO and has **Manage Sign-In with SSO** on. They then cannot set a password, a passkey, a security key, an authenticator app, backup codes or two-factor authentication, **Forgot password?** emails them no link, and their **User Profile** names their identity provider instead of offering those settings. Nothing about signing in changes: their password still signs them in to OneUptime, and your project asks for SSO as before.
+
+The rule is checked every time, so:
+
+- **Someone in a project that does not manage sign-in**: as soon as they are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, they get their settings back, and their **User Profile** names that project as the reason. Leaving it manages their sign-in again. An account can belong to many organizations, so one organization never decides for another's projects.
+- **Projects with different providers**: someone in two projects that both manage sign-in, each with its own identity provider, is managed, and their profile names both providers.
+- **Master admins** always keep their own settings.
+- **What people set up before** is kept, unused by your project. A server admin can clear it on the person's **Authentication** page in the Admin Dashboard, with **Clear Sign-In Settings**.
+
+**Manage Sign-In with SSO** saves as soon as you flip it, deletes nothing, and turning it off gives everyone their settings back at once. Whoever can change **Require SSO to Sign In** can change it, on the same plans. With **Require SSO to Sign In** off, it is hidden and changes nothing.
 
 ## Turning a provider off or deleting it
 

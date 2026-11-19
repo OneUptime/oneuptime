@@ -802,7 +802,12 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
 describe(`${RELEASE}: nothing writes the release once it is published`, () => {
   const jobs = readYaml(RELEASE).jobs;
   const PUBLISH = "finalize-github-release";
-  const APP_JOBS = ["mobile-app-android-build", "mobile-app-ios-build"];
+  // The two apps, and the Android device agent's APK, which is optional the same way.
+  const APP_JOBS = [
+    "mobile-app-android-build",
+    "mobile-app-ios-build",
+    "android-agent-build",
+  ];
   const SCAN_JOB = "scan-sbom-vulnerabilities";
   const OPTIONAL_JOBS = [...APP_JOBS, SCAN_JOB];
 
@@ -910,6 +915,7 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
       "Attach SBOMs to release",
       "Attach vulnerability reports to release",
       "Attach the infrastructure agent to release",
+      "Attach the Android agent to release",
       "Upload APK to GitHub Release",
       "Upload IPA to GitHub Release",
     ]);

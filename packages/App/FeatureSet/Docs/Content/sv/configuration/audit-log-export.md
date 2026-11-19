@@ -121,7 +121,7 @@ OneUptime skickar varje batch med POST till **URL**, som en JSON-array (`applica
 Varje post är ett RFC 5424-meddelande till **Värd** och **Port**, över TLS på port `6514` om inte **Protokoll** anger TCP eller UDP, med facility 13 (log audit) och severity 6 (informational):
 
 ```text
-<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
+<110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":3,"id":"..."}
 ```
 
 Över TLS och TCP avgränsas meddelanden med oktetträkning (RFC 5425), om inte **Meddelandeavgränsning** anger ett meddelande per rad. En mottagare vars certifikat en privat CA har signerat behöver den CA:ns certifikat i **CA-certifikat**. Båda väntar under **Fler fält**.
@@ -136,7 +136,7 @@ Varje post är ett JSON-objekt, med nycklarna alltid i den här ordningen:
 
 | Nyckel | Vad den innehåller |
 | --- | --- |
-| `schemaVersion` | `2` för en ny export, `1` för en som sparades före version 2. En version lägger bara till nycklar. |
+| `schemaVersion` | `3` för en ny export, `1` för en som sparades före version 2. En version lägger bara till nycklar. |
 | `id` | Postens ID. Samma post, skickad två gånger, har samma ID. |
 | `createdAt` | När ändringen registrerades, i UTC. |
 | `projectId` | Projektet där ändringen gjordes. |
@@ -147,6 +147,8 @@ Varje post är ett JSON-objekt, med nycklarna alltid i den här ordningen:
 | `apiKeyId`, `apiKeyName` | API-nyckeln den gjordes med, om någon. |
 | `mcpOAuthGrantId`, `mcpClientName` | MCP-klienten den gjordes genom, om någon. |
 | `workflowId`, `workflowName` | Arbetsflödet som gjorde den, om något. |
+| `workflowRunAs`, `workflowRunAsCustomRoleName` | I version 3, vad arbetsflödets steg kördes som: `Default`, `ProjectOwner` eller `CustomRole`, och rollens namn då. |
+| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | I version 3, vems behörigheter det kördes med: id för personen eller projektets API-nyckel, och deras namn då. Var och en av dessa fem nycklar är `null` när inget arbetsflöde gjorde ändringen. |
 | `changes` | Varje ändrat fält: `field`, med `oldValue` och `newValue`, och i version 2 `summary`. |
 
 En fil har en post per rad, komprimerad med gzip, och arkiveras under timmen för sin första post: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
@@ -159,10 +161,11 @@ Nycklar, tokens och lösenord lämnar aldrig OneUptime: De registreras som `[RED
 
 | Version | Vad den skickar |
 | --- | --- |
+| `3` | Varje post säger också vad steget i arbetsflödet som gjorde ändringen kördes som, och med vems behörigheter, i fem nycklar efter `workflowName`. |
 | `2` | Varje ändring har också `summary`: vad som ändrades, i de rader granskningsloggen visar, till exempel `Added "Send Email" (send-email-1)` för ett steg i ett arbetsflöde eller sökvägen som ändrades i JSON, annars `null`. Raderna nämner inställningar och sökvägar, aldrig värden. |
 | `1` | Posten som den först skickades, utan `summary`. Ett arbetsflödes steg skickas som deras storlek före och efter, till exempel `3 steps and 2 connections`. |
 
-En ny export skickar version 2. En export som sparades före version 2 fortsätter att skicka version 1, så det som läser den behöver ingen ändring: När det är redo för `summary` klickar du på **Redigera** vid exporten och väljer version 2 i **Postversion** under **Fler fält**. Versionen gäller de poster som skickas från och med då, och varje post anger sin egen i `schemaVersion`.
+En ny export skickar version 3. En export som sparades före version 2 fortsätter att skicka version 1, och en som sparades före version 3 fortsätter att skicka version 2, så det som läser den behöver ingen ändring: När det är redo för det som en nyare version lägger till klickar du på **Redigera** vid exporten och väljer version 3 i **Postversion** under **Fler fält**. Versionen gäller de poster som skickas från och med då, och varje post anger sin egen i `schemaVersion`.
 
 ## När poster skickas
 

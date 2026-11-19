@@ -15,6 +15,7 @@ import ServiceView from "../Pages/Service/View/Index";
 import ServiceViewRecommendations from "../Pages/Service/View/Recommendations";
 
 import ServiceViewLogs from "../Pages/Service/View/Logs";
+import ServiceViewSecurityEvents from "../Pages/Service/View/SecurityEvents";
 
 import ServiceViewTraces from "../Pages/Service/View/Traces";
 
@@ -207,6 +208,20 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewLogs
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <ServiceViewSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_VIEW_SECURITY_EVENTS] as Route
+              }
             />
           }
         />

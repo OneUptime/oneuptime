@@ -251,6 +251,42 @@ describe("a row", () => {
     });
   });
 
+  /*
+   * A managed disk's size (properties.diskSizeGB, an int in Azure's ARM
+   * reference), so its page says how big it is (#9648): one more column of
+   * the same Resource Graph query, read only for a disk.
+   */
+  test("a managed disk keeps its size, read only for a disk", () => {
+    expect(AZURE_INVENTORY_PROPERTIES).toContain("diskSizeGB");
+    expect(buildAzureInventoryQuery()).toContain(
+      "diskSizeGB = iff(type =~ 'microsoft.compute/disks', tolong(properties.diskSizeGB), long(null))",
+    );
+
+    const disk: CloudInventoryItem | null = buildAzureInventoryItem({
+      id: `${RG}/providers/Microsoft.Compute/disks/vm-web-1-data`,
+      name: "vm-web-1-data",
+      type: "Microsoft.Compute/disks",
+      location: "westeurope",
+      resourceGroup: "rg-prod",
+      subscriptionId: SUBSCRIPTION,
+      skuName: "Premium_LRS",
+      diskSizeGB: 512,
+    });
+    expect(disk!.properties).toMatchObject({ diskSizeGB: 512 });
+
+    // Any other type's row has none: nothing is kept.
+    const vm: CloudInventoryItem | null = buildAzureInventoryItem({
+      id: VM_ID,
+      name: "vm-web-1",
+      type: "Microsoft.Compute/virtualMachines",
+      location: "westeurope",
+      resourceGroup: "rg-prod",
+      subscriptionId: SUBSCRIPTION,
+      diskSizeGB: null,
+    });
+    expect(vm!.properties).not.toHaveProperty("diskSizeGB");
+  });
+
   test("a disk is attached to the VM that manages it, a database is part of its server", () => {
     const disk: CloudInventoryItem | null = buildAzureInventoryItem({
       id: `${RG}/providers/Microsoft.Compute/disks/vm-web-1-os`,

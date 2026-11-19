@@ -1,0 +1,126 @@
+name: Android Agent Test
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  # Only the pull requests that change the Android agent, a Gradle project
+  # of its own that reads nothing outside its directory. Main runs it
+  # nightly, whatever changed, and it can be started by hand.
+  pull_request:
+    paths:
+      - "agents/AndroidAgent/**"
+      - ".github/workflows/test.android-agent.yaml"
+  schedule:
+    - cron: "41 1 * * *"
+  workflow_dispatch:
+
+# Read-only: these jobs check out the code, build and test it, nothing more.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit tests, lint and builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: agents/AndroidAgent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The agent compiles against Android 16 (API 36). The runner image's
+      # SDK may not have it yet.
+      - name: Install the Android SDK packages the agent builds with
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      # JVM and Robolectric tests (every parser, builder, the outbox, the
+      # agent's cycle, the golden OTLP payloads OneUptime's ingest tests read
+      # too), lint with warnings as errors, and both builds: the release
+      # build is the shrunk one that ships.
+      - name: Test, lint and build
+        run: ./gradlew test lint assembleDebug assembleRelease --no-daemon --stacktrace
+
+      # The release path: sign the release APK the way release.yml does,
+      # with a key made for this run, and check its v1, v2 and v3 signatures.
+      - name: Sign the release APK with a throwaway key
+        run: |
+          keystore="$RUNNER_TEMP/throwaway.jks"
+          keytool -genkeypair -keystore "$keystore" -storepass throwaway -keypass throwaway \
+            -alias agent -keyalg RSA -keysize 3072 -validity 1 -dname "CN=Throwaway CI key" > /dev/null
+          ANDROID_AGENT_KEYSTORE_FILE="$keystore" \
+          ANDROID_AGENT_KEYSTORE_PASSWORD=throwaway \
+          ANDROID_AGENT_KEY_ALIAS=agent \
+          ANDROID_AGENT_KEY_PASSWORD=throwaway \
+            scripts/sign-release.sh app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/oneuptime-android-agent.apk"
+
+      - name: Keep the reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-agent-reports
+          path: |
+            agents/AndroidAgent/app/build/reports
+            agents/AndroidAgent/app/build/test-results
+          retention-days: 7
+
+  # The agent on an Android 15 emulator: the parsers under Android's own
+  # regular expressions (ICU refuses patterns the JVM accepts), the Android
+  # Keystore, the real readings, and another app's crash read from Logcat
+  # with READ_LOGS granted, as an administrator grants it.
+  on-device:
+    name: On an Android 15 emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install the Android SDK packages the agent builds with
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: Let the emulator use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build the app and its on-device tests
+        working-directory: agents/AndroidAgent
+        run: ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon --stacktrace
+
+      # READ_LOGS is granted before the tests start: granting it restarts the
+      # app's process (Android adds the log group to it), the tests' own
+      # process included. `am instrument` exits 0 whatever the result, so
+      # its summary is checked.
+      - name: Run the on-device tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot
+          working-directory: agents/AndroidAgent
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+            adb shell am instrument -w com.oneuptime.androidagent.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/instrument.txt"
+            grep -q "^OK (" "$RUNNER_TEMP/instrument.txt"

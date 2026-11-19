@@ -78,9 +78,16 @@ type CapturedColumn = {
   getElement?: ((item: AuditLog) => React.ReactElement) | undefined;
 };
 
+type CapturedFilter = {
+  title: string;
+  field: Record<string, boolean>;
+  filterDropdownOptions?: Array<{ label: string; value: unknown }>;
+};
+
 type CapturedTableProps = {
   selectMoreFields?: Record<string, boolean>;
   columns?: Array<CapturedColumn>;
+  filters?: Array<CapturedFilter>;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -145,6 +152,10 @@ interface EntryData {
   mcpClientName?: string | undefined;
   workflowId?: ObjectID | undefined;
   workflowName?: string | undefined;
+  workflowRunAs?: string | undefined;
+  workflowRunAsCustomRoleName?: string | undefined;
+  workflowRunAsGivenByName?: string | undefined;
+  workflowRunAsGivenByApiKeyId?: ObjectID | undefined;
 }
 
 type MakeEntryFunction = (data: EntryData) => AuditLog;
@@ -185,6 +196,18 @@ const makeEntry: MakeEntryFunction = (data: EntryData): AuditLog => {
   }
   if (data.workflowName !== undefined) {
     entry.workflowName = data.workflowName;
+  }
+  if (data.workflowRunAs !== undefined) {
+    entry.workflowRunAs = data.workflowRunAs;
+  }
+  if (data.workflowRunAsCustomRoleName !== undefined) {
+    entry.workflowRunAsCustomRoleName = data.workflowRunAsCustomRoleName;
+  }
+  if (data.workflowRunAsGivenByName !== undefined) {
+    entry.workflowRunAsGivenByName = data.workflowRunAsGivenByName;
+  }
+  if (data.workflowRunAsGivenByApiKeyId !== undefined) {
+    entry.workflowRunAsGivenByApiKeyId = data.workflowRunAsGivenByApiKeyId;
   }
 
   return entry;
@@ -349,6 +372,128 @@ describe("a change a workflow made", () => {
     });
 
     expect(cell).not.toHaveTextContent("System");
+  });
+});
+
+/*
+ * WHAT THE WORKFLOW'S STEP RAN AS, AND WITH WHOSE PERMISSIONS (#9766): a
+ * third line under the workflow's name, for every identity an entry can
+ * record - and nothing for an entry recorded before entries said it, which
+ * is never read as Default.
+ */
+describe("what a workflow's change ran as", () => {
+  const WORKFLOW_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-999999999999",
+  );
+  const KEY_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
+
+  function ranAsLine(data: EntryData): HTMLElement | null {
+    const cell: HTMLElement = renderActorCell({
+      userType: "Workflow",
+      workflowId: WORKFLOW_ID,
+      workflowName: "Close stale incidents",
+      ...data,
+    });
+
+    return within(cell).queryByTestId("audit-log-workflow-ran-as");
+  }
+
+  test("the table asks for it", () => {
+    expect(capturedTableProps?.selectMoreFields).toEqual(
+      expect.objectContaining({
+        workflowRunAs: true,
+        workflowRunAsCustomRoleName: true,
+        workflowRunAsGivenByName: true,
+        workflowRunAsGivenByApiKeyId: true,
+      }),
+    );
+  });
+
+  test("Default", () => {
+    expect(ranAsLine({ workflowRunAs: "Default" })).toHaveTextContent(
+      "Ran with the default permissions.",
+    );
+  });
+
+  test("Project Owner, with a person's permissions", () => {
+    expect(
+      ranAsLine({
+        workflowRunAs: "ProjectOwner",
+        workflowRunAsGivenByName: "Jane Doe",
+      }),
+    ).toHaveTextContent(
+      "Ran as Project Owner, with the permissions of Jane Doe.",
+    );
+  });
+
+  test("Project Owner, with an API key's permissions", () => {
+    expect(
+      ranAsLine({
+        workflowRunAs: "ProjectOwner",
+        workflowRunAsGivenByName: "Terraform",
+        workflowRunAsGivenByApiKeyId: KEY_ID,
+      }),
+    ).toHaveTextContent(
+      'Ran as Project Owner, with the permissions of the API key "Terraform".',
+    );
+  });
+
+  test("a custom role, by its name then, with a person's permissions", () => {
+    expect(
+      ranAsLine({
+        workflowRunAs: "CustomRole",
+        workflowRunAsCustomRoleName: "Incident Responder",
+        workflowRunAsGivenByName: "Jane Doe",
+      }),
+    ).toHaveTextContent(
+      'Ran as the custom role "Incident Responder", with the permissions of Jane Doe.',
+    );
+  });
+
+  test("a custom role, with an API key's permissions", () => {
+    expect(
+      ranAsLine({
+        workflowRunAs: "CustomRole",
+        workflowRunAsCustomRoleName: "Incident Responder",
+        workflowRunAsGivenByName: "Deploy Bot",
+        workflowRunAsGivenByApiKeyId: KEY_ID,
+      }),
+    ).toHaveTextContent(
+      'Ran as the custom role "Incident Responder", with the permissions of the API key "Deploy Bot".',
+    );
+  });
+
+  test("an entry recorded before entries said it says nothing of it", () => {
+    expect(ranAsLine({})).toBeNull();
+  });
+
+  test("the line is readable and wraps, under the workflow's name", () => {
+    const line: HTMLElement | null = ranAsLine({ workflowRunAs: "Default" });
+
+    expect(line!.className).toContain("text-gray-600");
+    expect(line!.className).toContain("break-words");
+  });
+
+  test("two filters find the entries: what it ran as, and whose permissions", () => {
+    const filters: Array<CapturedFilter> = capturedTableProps?.filters || [];
+    const ranAs: CapturedFilter | undefined = filters.find(
+      (filter: CapturedFilter) => {
+        return filter.title === "Workflow Ran As";
+      },
+    );
+    const givenBy: CapturedFilter | undefined = filters.find(
+      (filter: CapturedFilter) => {
+        return filter.title === "Workflow Permissions Given By";
+      },
+    );
+
+    expect(ranAs!.field).toEqual({ workflowRunAs: true });
+    expect(
+      ranAs!.filterDropdownOptions!.map((option: { value: unknown }) => {
+        return option.value;
+      }),
+    ).toEqual(["Default", "ProjectOwner", "CustomRole"]);
+    expect(givenBy!.field).toEqual({ workflowRunAsGivenByName: true });
   });
 });
 

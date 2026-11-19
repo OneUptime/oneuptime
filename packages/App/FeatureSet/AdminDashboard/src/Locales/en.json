@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "We will email this user a link that lets them set a new password. The link expires in 24 hours and replaces any link sent earlier.",
       "resetLinkModalSubmit": "Send Reset Link",
       "resetLinkSuccess": "Password reset link sent.",
-      "resetLinkSentTo": "Password reset link sent to {{email}}."
+      "resetLinkSentTo": "Password reset link sent to {{email}}.",
+      "ssoManagedByServerWarning": "While this server requires SSO, a password won't sign this person in.",
+      "ssoManagedByProjectsWarning": "Every project this person is in manages sign-in with SSO, so a password won't open any of them.",
+      "clearSignInCardTitle": "Clear Sign-In Settings",
+      "clearSignInCardDescription": "Delete their password, passkeys, security keys, authenticator apps and backup codes, and turn off two factor authentication.",
+      "clearSignInButton": "Clear Sign-In Settings",
+      "clearSignInOwnAccountTooltip": "Change your own sign-in settings in User Profile.",
+      "clearSignInModalTitle": "Clear Sign-In Settings",
+      "clearSignInModalDescription": "Deletes their password, passkeys, security keys, authenticator apps and backup codes, and turns off two factor authentication. This cannot be undone.",
+      "clearSignInMasterAdminConfirmation": "This person is a master admin. I understand they will need SSO or a password reset link to sign in.",
+      "clearSignInModalSubmit": "Clear Sign-In Settings",
+      "clearSignInSuccess": "Sign-in settings cleared. The sessions they signed in to without SSO have ended."
     },
     "userProjects": {
       "title": "User Projects",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "Control who can create new projects on this OneUptime Server.",
         "projectCreationSwitchTitle": "Let users create projects",
         "projectCreationSwitchOnDescription": "Anyone signed in to this server can create a project.",
-        "projectCreationSwitchOffDescription": "Only master admins can create projects."
+        "projectCreationSwitchOffDescription": "Only master admins can create projects.",
+        "inviteSuggestionsCardTitle": "Invite Suggestions",
+        "inviteSuggestionsCardDescription": "Whether people who invite to a project can find anyone with an account on this server. Leave it off if the server hosts more than one organization.",
+        "inviteSuggestionsSwitchTitle": "Suggest every account on this server",
+        "inviteSuggestionsSwitchOnDescription": "Anyone who may invite people to a project sees every account's name and email as they type, marked Not in this project yet.",
+        "inviteSuggestionsSwitchOffDescription": "The invite forms suggest a project's own people. Master admins are also offered the server's other accounts."
       },
       "email": {
         "adminNotificationCardTitle": "Admin Notification Email",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.",
   "Version 2 (newest)": "Version 2 (newest)",
   "Version 1 (original)": "Version 1 (original)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.",
+  "Version 3 (newest)": "Version 3 (newest)",
+  "Version 2": "Version 2",
   "Unchanged": "Unchanged",
   "Setup guide": "Setup guide",
   "Write a test file": "Write a test file",
@@ -4110,6 +4129,13 @@
   "Sign them out": "Sign them out",
   "Sign out everyone signed in without SSO?": "Sign out everyone signed in without SSO?",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "{{count}} person still has a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.",
+  "Clear Sign-In Settings": "Clear Sign-In Settings",
+  "Clear everyone's saved sign-in settings?": "Clear everyone's saved sign-in settings?",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.",
+  "Cleared the sign-in settings of {{count}} people.": "Cleared the sign-in settings of {{count}} people.",
+  "Cleared the sign-in settings of {{count}} people._one": "Cleared the sign-in settings of {{count}} person.",
   "Made by {{name}} on {{date}}": "Made by {{name}} on {{date}}",
   "Made on {{date}}": "Made on {{date}}",
   "Ends in {{hint}}": "Ends in {{hint}}",
@@ -4284,5 +4310,14 @@
   "Sign Out of the Identity Provider Too": "Sign Out of the Identity Provider Too",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.",
   "Sign-out Redirect URI:": "Sign-out Redirect URI:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on."
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.",
+  "If they have no OneUptime account yet, it is set up with this name.": "If they have no OneUptime account yet, it is set up with this name.",
+  "Suggest every account on this server?": "Suggest every account on this server?",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.",
+  "Suggest Every Account": "Suggest Every Account",
+  "Sign Out URL": "Sign Out URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Your identity provider's single sign-out URL. Needed to sign people out of it too.",
+  "Single Logout URL:": "Single Logout URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.",
+  "Download Signing Certificate": "Download Signing Certificate"
 }

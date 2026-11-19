@@ -2,6 +2,7 @@ import { ProbeExpressRequest } from "../Types/Request";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeReportedVersionUtil from "Common/Types/Probe/ProbeReportedVersion";
 import ProbeService from "Common/Server/Services/ProbeService";
 import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import WrongComponentKeyLimit, {
@@ -203,7 +204,15 @@ export default class ProbeAuthorization {
        * which is precisely the coupling that let a slow database mark
        * healthy probes Disconnected.
        */
-      ProbeService.updateLastAlive(probeId).catch((err: Error) => {
+      /*
+       * The release the probe says it runs rides along with the stamp
+       * (issue #9759): its page and the monitor forms read it to say when a
+       * custom probe is too old to make one-time codes.
+       */
+      ProbeService.updateLastAlive(
+        probeId,
+        ProbeReportedVersionUtil.readFromRequest(data),
+      ).catch((err: Error) => {
         logger.error(
           `Failed to update lastAlive for probe ${probeId.toString()}`,
           getLogAttributesFromRequest(req as any),

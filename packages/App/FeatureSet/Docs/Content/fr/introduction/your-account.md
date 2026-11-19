@@ -123,12 +123,28 @@ La première fois que vous ajoutez une application, une clé ou une clé d'accè
 
 Si vous avez déjà une application sous **Applications d'authentification** ou une clé sous **Clés de sécurité**, **Activer l'authentification à deux facteurs** vous demande simplement de confirmer. Tant qu'elle est activée, votre dernière application, clé ou clé d'accès ne peut pas être supprimée : ajoutez-en d'abord une autre, ou désactivez l'authentification à deux facteurs. Si la carte indique **Configuration requise**, l'authentification à deux facteurs est activée sans rien de configuré, souvent parce qu'un administrateur l'a exigée : cliquez sur **Terminer la configuration**, sinon cela vous sera demandé à votre prochaine connexion.
 
+### Configurer l'authentification à deux facteurs à la connexion
+
+Quand un administrateur exige l'authentification à deux facteurs et que vous n'avez encore rien configuré, votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail vous demande de la configurer avant de vous laisser entrer. Choisissez **Application d'authentification** ou **Clé de sécurité**, puis cliquez sur **Continuer** :
+
+- **Application d'authentification** : scannez le code QR, saisissez le code à 6 chiffres affiché par votre application et cliquez sur **Vérifier et se connecter**.
+- **Clé de sécurité** : cliquez sur **Enregistrer la clé de sécurité** et suivez les instructions de votre navigateur. Touchez une clé USB ou NFC, ou utilisez l'empreinte digitale, le visage ou le verrouillage d'écran de votre téléphone ou de votre ordinateur.
+
+Si vous n'avez pas encore de codes de secours, OneUptime vous les affiche alors une seule fois, et vous êtes connecté. **Choisir une autre méthode** revient au choix. Un navigateur qui ne peut pas enregistrer de clé de sécurité, par exemple sur une page sans HTTPS, ne propose que l'application d'authentification.
+
 > [!TIP]
 > Il vous reste peu de codes de secours ? **Régénérer les codes** sur la même page vous donne un nouveau jeu, et les anciens codes cessent aussitôt de fonctionner.
 
 ### Quand votre organisation gère votre connexion
 
-Sur un serveur qui exige l'authentification unique, vous vous connectez uniquement via le fournisseur d'identité de votre organisation, comme Okta ou Microsoft Entra ID, et OneUptime ne définit pour vous ni mot de passe, ni clé d'accès, ni authentification à deux facteurs. Le **Profil utilisateur** n'a alors pas de section **Sécurité**, et sa **Vue d'ensemble** indique votre fournisseur sous **Authentification unique**. Changez votre mot de passe et votre deuxième étape auprès de votre fournisseur d'identité. Ce que vous aviez configuré avant reste enregistré : cela ne fonctionne de nouveau que si le serveur cesse d'exiger l'authentification unique. Les administrateurs principaux conservent leurs propres réglages de **Sécurité**.
+Sur un serveur qui exige l'authentification unique, vous vous connectez uniquement via le fournisseur d'identité de votre organisation, comme Okta ou Microsoft Entra ID, et OneUptime ne définit pour vous ni mot de passe, ni clé d'accès, ni authentification à deux facteurs. Le **Profil utilisateur** n'a alors pas de section **Sécurité**, et sa **Vue d'ensemble** indique votre fournisseur sous **Authentification unique**. Changez votre mot de passe et votre deuxième étape auprès de votre fournisseur d'identité. Ce que vous aviez configuré avant reste enregistré : cela ne fonctionne de nouveau que si le serveur cesse d'exiger l'authentification unique, sauf si un administrateur du serveur l'efface. Les administrateurs principaux conservent leurs propres réglages de **Sécurité**.
+
+Il en va de même quand chaque projet auquel vous appartenez exige l'authentification unique et a activé **Gérer la connexion avec le SSO**. Votre mot de passe vous connecte toujours à OneUptime, mais chaque projet demande le SSO ; OneUptime ne définit donc pour vous ni nouveau mot de passe, ni nouvelle clé d'accès, ni nouvelle deuxième étape :
+
+- **Un projet qui ne le fait pas** : dès que vous êtes membre d'un projet, ou invité dans un projet, qui n'exige pas le SSO ou n'a pas activé **Gérer la connexion avec le SSO**, votre section **Sécurité** revient. La **Vue d'ensemble** nomme alors ces projets sous **Authentification unique**, comme la raison pour laquelle vos réglages vous appartiennent. Quitter ce projet vous les retire de nouveau.
+- **Des projets avec des fournisseurs différents** : si tous vos projets gèrent la connexion, chacun avec son propre fournisseur d'identité, la **Vue d'ensemble** nomme chaque fournisseur.
+- **Les administrateurs principaux** gardent toujours leurs propres réglages de **Sécurité**.
+- **Ce que vous aviez configuré avant** reste enregistré, et un administrateur du serveur peut l'effacer.
 
 ## Vos projets
 

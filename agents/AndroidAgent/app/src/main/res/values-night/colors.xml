@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Color tokens, dark theme. -->
+<resources>
+    <color name="background">#FF0B0F19</color>
+    <color name="surface">#FF111827</color>
+    <color name="field">#FF1F2937</color>
+    <color name="field_disabled">#FF161E2C</color>
+    <color name="outline">#FF374151</color>
+    <color name="text_primary">#FFF9FAFB</color>
+    <color name="text_secondary">#FF9CA3AF</color>
+    <color name="text_hint">#FF6B7280</color>
+    <color name="accent">#FF818CF8</color>
+    <color name="accent_pressed">#FF6366F1</color>
+    <color name="on_accent">#FF0B0F19</color>
+    <color name="status_ok">#FF4ADE80</color>
+    <color name="status_warn">#FFFBBF24</color>
+    <color name="status_error">#FFF87171</color>
+    <color name="status_idle">#FF9CA3AF</color>
+    <color name="code_background">#FF1F2937</color>
+</resources>

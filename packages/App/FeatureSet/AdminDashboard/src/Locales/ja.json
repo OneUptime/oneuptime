@@ -262,7 +262,18 @@
       "resetLinkModalDescription": "新しいパスワードを設定できるリンクをこのユーザーにメールで送信します。リンクは 24 時間で期限切れになり、以前に送信したリンクは無効になります。",
       "resetLinkModalSubmit": "リンクを送信",
       "resetLinkSuccess": "パスワード再設定リンクを送信しました。",
-      "resetLinkSentTo": "パスワード再設定リンクを {{email}} に送信しました。"
+      "resetLinkSentTo": "パスワード再設定リンクを {{email}} に送信しました。",
+      "ssoManagedByServerWarning": "このサーバーが SSO を必須にしている間は、このユーザーはパスワードではサインインできません。",
+      "ssoManagedByProjectsWarning": "このユーザーのすべてのプロジェクトが SSO でサインインを管理しているため、パスワードではどのプロジェクトも開けません。",
+      "clearSignInCardTitle": "サインイン設定を消去",
+      "clearSignInCardDescription": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードを削除し、2 要素認証をオフにします。",
+      "clearSignInButton": "サインイン設定を消去",
+      "clearSignInOwnAccountTooltip": "自分のサインイン設定はユーザープロフィールで変更してください。",
+      "clearSignInModalTitle": "サインイン設定を消去",
+      "clearSignInModalDescription": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードを削除し、2 要素認証をオフにします。この操作は元に戻せません。",
+      "clearSignInMasterAdminConfirmation": "このユーザーはマスター管理者です。サインインには SSO またはパスワード再設定リンクが必要になることを理解しています。",
+      "clearSignInModalSubmit": "サインイン設定を消去",
+      "clearSignInSuccess": "サインイン設定を消去しました。SSO を使わずにサインインしたセッションは終了しました。"
     },
     "userProjects": {
       "title": "ユーザーのプロジェクト",
@@ -538,7 +549,12 @@
         "projectCreationCardDescription": "このOneUptimeサーバーで新しいプロジェクトを作成できるユーザーを制御します。",
         "projectCreationSwitchTitle": "ユーザーにプロジェクトの作成を許可",
         "projectCreationSwitchOnDescription": "このサーバーにサインインしている人は誰でもプロジェクトを作成できます。",
-        "projectCreationSwitchOffDescription": "プロジェクトを作成できるのはマスター管理者のみです。"
+        "projectCreationSwitchOffDescription": "プロジェクトを作成できるのはマスター管理者のみです。",
+        "inviteSuggestionsCardTitle": "招待の候補",
+        "inviteSuggestionsCardDescription": "プロジェクトに招待する人が、このサーバーにアカウントを持つ誰でも見つけられるかどうか。サーバーに複数の組織がある場合はオフのままにしてください。",
+        "inviteSuggestionsSwitchTitle": "このサーバーのすべてのアカウントを候補に表示",
+        "inviteSuggestionsSwitchOnDescription": "プロジェクトに招待できる人は、入力中にすべてのアカウントの名前とメールアドレスを見られます。「このプロジェクトに未参加」と表示されます。",
+        "inviteSuggestionsSwitchOffDescription": "招待フォームの候補はプロジェクト自身のメンバーです。マスター管理者には、サーバーのほかのアカウントも表示されます。"
       },
       "email": {
         "adminNotificationCardTitle": "管理者通知メール",
@@ -1290,6 +1306,9 @@
   "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "バージョン 2 では、ワークフローのステップと JSON で何が変わったかも伝えます。バージョン 1 は元のレコードで、それに合わせて作られた読み手向けです。",
   "Version 2 (newest)": "バージョン 2 (最新)",
   "Version 1 (original)": "バージョン 1 (元の形式)",
+  "Version 3 adds what each workflow step ran as. Version 2 adds what changed in steps and JSON. Version 1 is the original.": "バージョン 3 では、ワークフローの各ステップが何として実行されたかが加わります。バージョン 2 では、ステップと JSON で何が変わったかが加わります。バージョン 1 は元の形式です。",
+  "Version 3 (newest)": "バージョン 3 (最新)",
+  "Version 2": "バージョン 2",
   "Unchanged": "変更なし",
   "Setup guide": "セットアップガイド",
   "Write a test file": "テストファイルを書き込む",
@@ -4110,6 +4129,13 @@
   "Sign them out": "サインアウトさせる",
   "Sign out everyone signed in without SSO?": "SSO を使わずにサインインしている全員をサインアウトしますか？",
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "すべてのデバイスでセッションがすぐに終了し、SSO で再度サインインすることになります。マスター管理者はサインインしたままです。",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.": "OneUptime にパスワードまたは 2 要素認証を保存したままのユーザーが {{count}} 人います。SSO が必須でなくなると、それで再びサインインできてしまいます。",
+  "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required._one": "OneUptime にパスワードまたは 2 要素認証を保存したままのユーザーが {{count}} 人います。SSO が必須でなくなると、それで再びサインインできてしまいます。",
+  "Clear Sign-In Settings": "サインイン設定を消去",
+  "Clear everyone's saved sign-in settings?": "全員の保存済みサインイン設定を消去しますか？",
+  "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードが削除されます。この操作は元に戻せません。マスター管理者の設定は残ります。",
+  "Cleared the sign-in settings of {{count}} people.": "{{count}} 人のサインイン設定を消去しました。",
+  "Cleared the sign-in settings of {{count}} people._one": "{{count}} 人のサインイン設定を消去しました。",
   "Made by {{name}} on {{date}}": "{{name}} が {{date}} に作成",
   "Made on {{date}}": "{{date}} に作成",
   "Ends in {{hint}}": "末尾は {{hint}}",
@@ -4284,5 +4310,14 @@
   "Sign Out of the Identity Provider Too": "ID プロバイダーからもサインアウト",
   "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime からサインアウトすると、このプロバイダーと、それを使うほかのすべてのアプリからもサインアウトします。共用コンピューターではオンにしてください。",
   "Sign-out Redirect URI:": "サインアウト後のリダイレクト URI:",
-  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "リダイレクト URI を OIDC の ID プロバイダーに登録してください。「ID プロバイダーからもサインアウト」がオンの場合は、サインアウト後のリダイレクト URI も登録してください。"
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "リダイレクト URI を OIDC の ID プロバイダーに登録してください。「ID プロバイダーからもサインアウト」がオンの場合は、サインアウト後のリダイレクト URI も登録してください。",
+  "If they have no OneUptime account yet, it is set up with this name.": "この人がまだ OneUptime のアカウントを持っていない場合は、この名前でアカウントが作成されます。",
+  "Suggest every account on this server?": "このサーバーのすべてのアカウントを候補に表示しますか？",
+  "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "メンバーを招待できる人は、入力中にすべてのアカウントの名前とメールアドレスを見られるようになります。ここのすべてのアカウントが 1 つの組織に属している場合にのみオンにしてください。",
+  "Suggest Every Account": "すべてのアカウントを表示",
+  "Sign Out URL": "サインアウト URL",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID プロバイダーのシングルサインアウト URL です。プロバイダーからもサインアウトさせるのに必要です。",
+  "Single Logout URL:": "シングルログアウト URL:",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID プロバイダーからもサインアウトさせるには、シングルログアウト URL と OneUptime の署名証明書もプロバイダーに登録してください。",
+  "Download Signing Certificate": "署名証明書をダウンロード"
 }

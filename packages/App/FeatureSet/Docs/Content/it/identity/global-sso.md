@@ -93,15 +93,22 @@ Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogn
 
 ## Uscire anche dal provider di identità
 
-Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso la persona successiva che accede con quel provider entra al posto di chi se n'è andato. Su un provider OpenID Connect, fai clic su **Modifica configurazione** e attiva **Esci anche dal provider di identità** in **Altri campi**: l'uscita da OneUptime chiude allora anche la sessione presso il provider, e il provider rimanda il browser alla pagina di accesso di OneUptime. È disattivato per impostazione predefinita, perché su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
+Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso la persona successiva che accede con quel provider entra al posto di chi se n'è andato. Su un provider SAML o OpenID Connect, fai clic su **Modifica configurazione** e attiva **Esci anche dal provider di identità** in **Altri campi**: l'uscita da OneUptime chiude allora anche la sessione presso il provider, e il provider rimanda il browser a OneUptime. È disattivato per impostazione predefinita, perché su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
 
-Registra presso il tuo provider l'URI di reindirizzamento dopo l'uscita che mostra la scheda **URL del provider di identità**, come post-logout redirect URI consentito. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla.
+:::tabs
+@tab SAML
+Inserisci l'URL di uscita del tuo provider di identità come **URL di uscita**, in **Altri campi**: senza di esso l'opzione non si può attivare. Poi fornisci al tuo provider di identità la **Single Logout URL** mostrata dalla scheda **URL del provider di identità (SAML)** e il certificato con cui OneUptime firma le sue richieste di uscita, da **Scarica il certificato di firma** nella stessa scheda. Quando la persona esce dal provider di identità, o da un'altra app che lo usa, un provider di identità che invia richieste di uscita alle sue app la fa uscire anche da OneUptime.
+@tab OpenID Connect
+Registra presso il tuo provider l'URI di reindirizzamento dopo l'uscita mostrato dalla scheda **URL del provider di identità**, come post-logout redirect URI consentito. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla.
+:::
+
+Dove Okta, Microsoft Entra ID, Auth0 e Keycloak tengono queste impostazioni è spiegato nella pagina [SSO](/docs/identity/sso).
 
 ## Imporre l'SSO
 
 Configurare un provider globale non obbliga nessuno a usarlo; l'accesso con password continua a funzionare. Per richiedere l'SSO, attiva l'obbligo per un progetto o per l'intera istanza:
 
-- **Per progetto:** un progetto può richiedere l'SSO e, facoltativamente, un provider *specifico* (di progetto o globale). Vedi [Richiedere l'SSO per il progetto](/docs/identity/sso#richiedere-lsso-per-il-progetto).
+- **Per progetto:** un progetto può richiedere l'SSO e, facoltativamente, un provider *specifico* (di progetto o globale). Se è attivo anche **Gestisci l'accesso con l'SSO**, le persone i cui progetti gestiscono tutti l'accesso in questo modo non ottengono in OneUptime password, passkey né autenticazione a due fattori. Vedi [Richiedere l'SSO per il progetto](/docs/identity/sso#richiedere-lsso-per-il-progetto).
 - **Per tutta l'istanza:** la scheda **Richiedi l'SSO** in fondo a **Admin** > **Impostazioni** > **Single sign-on** ha un interruttore **Richiedi l'SSO per l'accesso** che impone l'SSO a ogni utente dell'istanza. Chiede conferma prima di attivarsi e salva non appena confermi. Gli amministratori principali restano esenti, così non possono rimanere esclusi.
 
 Finché l'intera istanza richiede l'SSO:
@@ -109,6 +116,8 @@ Finché l'intera istanza richiede l'SSO:
 - La pagina di accesso offre solo l'SSO: un pulsante per ogni provider globale attivo, e nessuna password, passkey, link inviato via e-mail, accesso con Google o Microsoft, o registrazione. Mantiene la ricerca per email, che trova il provider proprio di un progetto, solo finché qualche progetto ne ha uno.
 - OneUptime rifiuta una password, una passkey, un link inviato via e-mail, un accesso con Google o Microsoft e una registrazione con "This server requires single sign-on (SSO). Sign in with SSO instead." Solo la password o la passkey di un amministratore principale lo fanno ancora accedere. Le persone ottengono l'account accedendo con l'SSO o tramite un invito.
 - Chi non è amministratore principale non può impostare password, passkey, chiavi di sicurezza, app di autenticazione, codici di backup né l'autenticazione a due fattori, e il ripristino della password non gli invia alcun link. Il suo **Profilo utente** non ha la sezione **Sicurezza**, e la sua **Panoramica** indica i provider con cui accede. Quello che aveva configurato prima resta salvato ma inutilizzato, finché l'obbligo non viene disattivato.
+- La scheda **Richiedi l'SSO** indica quante di queste persone hanno ancora salvati una password o l'autenticazione a due fattori, che le farebbero accedere di nuovo se l'SSO smettesse di essere richiesto. **Cancella impostazioni di accesso** elimina le loro password, passkey, chiavi di sicurezza, app di autenticazione e codici di backup, disattiva l'autenticazione a due fattori e termina le sessioni in cui hanno effettuato l'accesso senza SSO, dopo aver chiesto conferma. Non si può annullare, gli amministratori principali mantengono le proprie, e i progetti di ciascuna persona lo registrano nei loro log di audit.
+- Nella pagina **Autenticazione** di una persona in **Utenti**, **Cancella impostazioni di accesso** fa lo stesso per quella sola persona, e **Imposta password** e **Invia link di reimpostazione** avvisano che una password non la farà accedere. Lì non puoi cancellare le tue, e cancellare quelle di un altro amministratore principale ti chiede di confermare che lo è.
 - Chi ha già effettuato l'accesso con una password accede con l'SSO per aprire un progetto. Arriva alla pagina di single sign-on del progetto, che offre i provider propri del progetto e i provider globali che vi fanno accedere. La scheda **Richiedi l'SSO** indica quante persone hanno ancora un accesso senza SSO, e **Disconnettile** termina le loro sessioni su ogni dispositivo in un colpo solo. Gli amministratori principali restano connessi.
 - Gli amministratori principali accedono con la loro password su `/accounts/admin-login`, un indirizzo a cui la pagina di accesso non rimanda. La scheda **Richiedi l'SSO** mostra l'indirizzo completo sotto l'interruttore, come **Accesso amministratori principali**: conservalo, per disattivare l'obbligo se il tuo provider di identità smette di funzionare.
 

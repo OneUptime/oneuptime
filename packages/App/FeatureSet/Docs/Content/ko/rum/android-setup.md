@@ -221,7 +221,7 @@ resource {
 }
 ```
 
-앱의 텔레메트리는 해당 RUM 애플리케이션에 남고, 기기가 **호스트**에 호스트로 나타나지는 않습니다. 앱은 호스트 메트릭을 보고하지 않으므로 그곳에 보여 줄 것이 없기 때문입니다. **인벤토리**의 기기 페이지에는 그 기기의 로그, 트레이스, 예외가 표시되며, `@resource.host.name:`으로 **트레이스**와 **로그**에서 이를 찾을 수 있습니다. 30일 동안 아무것도 보내지 않은 기기는 **인벤토리**에서 빠집니다.
+앱의 텔레메트리는 해당 RUM 애플리케이션에 남고, 기기가 **호스트**에 호스트로 나타나지는 않습니다. 앱은 호스트 메트릭을 보고하지 않으므로 그곳에 보여 줄 것이 없기 때문입니다. **인벤토리**의 기기 페이지에는 그 기기의 로그, 트레이스, 예외가 표시되며, `@resource.host.name:`으로 **트레이스**와 **로그**에서 이를 찾을 수 있습니다. 30일 동안 아무것도 보내지 않은 기기는 **인벤토리**에서 빠집니다. 기기 자체, 즉 메모리, 저장 공간, 재시작과 기기에 있는 모든 앱의 크래시를 보려면 [Android 에이전트](/docs/telemetry/android-agent)를 추가하고 그 `device_name`에 같은 이름을 지정하세요. 그러면 기기는 **호스트**에도 호스트로 나타나고, **인벤토리**에서는 여전히 항목 하나입니다.
 
 ### MDM에서 기기 플릿 설정하기
 
@@ -248,6 +248,12 @@ val serialNumber = restrictions.getString("device_serial").orEmpty()
 ```
 
 변경한 뒤에는 기기에 Converge를 실행해 새 값을 읽게 하세요. MDM이 스키마를 요구하면 같은 키를 `app_restrictions.xml`에 선언하세요. Esper는 v1 서명이 없는 APK를 거부하므로, 릴리스에 v2나 v3와 함께 v1 방식으로도 서명하세요.
+
+### Esper에서 기기 플릿 가져오기
+
+Esper 테넌트를 인벤토리에 연결하면 Esper에 등록된 모든 기기가 목록에 나타나며, 앱이 한 번도 시작되지 않은 기기도 포함됩니다. Esper만 아는 정보도 함께 표시됩니다. 그룹, Android 버전, 보안 패치 수준, 일련 번호, 배터리, 스토리지, 설치된 앱, 마지막 체크인입니다. 체크인을 멈춘 기기는 오프라인으로 표시되며, 마지막 체크인이 얼마나 전이었는지도 보여 줍니다. [Esper에서 기기 가져오기](/docs/inventory/overview#esper에서-기기-가져오기)를 참조하세요.
+
+위와 같이 앱이 이름을 지정한 기기는 앱이 보내는 데이터와 함께 하나의 항목이 됩니다. `host.name`은 Esper에서의 기기 이름입니다. OneUptime은 `host.name`, 그다음 `host.serial_number` 순으로 기기의 항목을 찾으므로, 기기에서 보고하는 모든 앱과 Android Agent의 `device_name` 및 `device_serial` 설정에서 각 기기에 같은 이름과 일련 번호를 지정하세요.
 
 ### 오프라인 동안 기록된 데이터 보존하기
 
@@ -281,6 +287,7 @@ OpenTelemetry Android는 `device.model.identifier`를 스스로 설정하므로,
 
 :::cards
 - [모바일 설정](/docs/rum/mobile-setup): iOS, React Native 및 그 밖의 플랫폼.
+- [Android 에이전트](/docs/telemetry/android-agent): 기기 자체의 상태, 재시작, 설치된 앱, 모든 앱의 크래시를 모니터링합니다.
 - [예외](/docs/telemetry/exceptions): 앱이 보고하는 크래시와 ANR을 분류합니다.
 - [트레이스 탐색기](/docs/telemetry/traces-explorer): 키오스크에서 주방까지 주문을 따라갑니다.
 - [애플리케이션 관리](/docs/rum/applications): 이름, 레이블, 소유자, 보존 기간.

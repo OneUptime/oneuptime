@@ -556,15 +556,22 @@ describe("a monitor made by hand is tied to its device (#9545)", () => {
     expect(card).toContain("props.onMonitorAdded?.();");
   });
 
-  test("both device pages read their monitors again once one is added", () => {
+  // A page's one way to read its device's monitors again: bumping a count.
+  const READS_MONITORS_AGAIN: RegExp =
+    /const readMonitorsAgain: \(\) => void = \(\): void => \{ set\w*ReadCount\(/;
+
+  test("both device pages read their monitors again once one is added or removed (#9676)", () => {
     for (const page of ["Index.tsx", "Monitors.tsx"]) {
       const code: string = readCode(
         path.join(DASHBOARD_SRC, "Pages", "NetworkDevice", "View", page),
       );
 
-      expect({ page, wired: code.includes("onMonitorAdded={() => {") }).toEqual(
-        { page, wired: true },
-      );
+      expect({
+        page,
+        added: code.includes("onMonitorAdded={readMonitorsAgain}"),
+        removed: code.includes("onMonitorRemoved={readMonitorsAgain}"),
+        readsAgain: READS_MONITORS_AGAIN.test(code),
+      }).toEqual({ page, added: true, removed: true, readsAgain: true });
     }
   });
 });

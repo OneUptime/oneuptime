@@ -44,6 +44,11 @@ export interface DescribableResource {
   singularName: string;
   modelType: ModelType;
   tools: Record<string, string>;
+  /*
+   * The column its rows are numbered by, when they are a list in order whose
+   * rows the move tool moves (Tools/MoveInList).
+   */
+  listColumn?: string | undefined;
 }
 
 interface DescribedField {
@@ -338,6 +343,15 @@ function buildUsage(
   ) {
     usage["owners"] =
       `The create tool takes ${OWNER_USERS_ON_CREATE_KEY} and ${OWNER_TEAMS_ON_CREATE_KEY} beside the fields: the IDs of the users and teams who own it from the start, who are told it was created. A caller who may not add them is refused before anything is saved. Owners added later may miss the created notification.`;
+  }
+
+  /*
+   * A list in order (#9650): a write of the number places that row alone,
+   * so moving a row past others is the move tool's (Tools/MoveInList).
+   */
+  if (resource.listColumn && resource.tools["move"]) {
+    usage["order"] =
+      `Its rows are a list in order by ${resource.listColumn}, top first. Writing ${resource.listColumn} places only that row, even beside a row at the same number. To move a row past others, as dragging it in the dashboard does, call ${resource.tools["move"]} with resource "${resource.singularName}", the row's id and placeOfId.`;
   }
 
   return usage;

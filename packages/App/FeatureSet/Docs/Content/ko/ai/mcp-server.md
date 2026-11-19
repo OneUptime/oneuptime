@@ -41,7 +41,7 @@ flowchart TB
 - **예정된 유지 관리**: 유지 관리 이벤트를 만들고 관리합니다.
 - **텔레메트리**: 로그, 메트릭, 트레이스, 예외, 모니터 로그, 보안 이벤트 등을 조회합니다(읽기 전용).
 
-54가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가, 공개 상태 페이지 도구에만 `openWorldHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
+55가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 인시던트와 경고의 연결처럼 만들어진 뒤에는 바꿀 수 있는 필드가 없는 종류의 레코드에는 업데이트 도구가 없습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. `openWorldHint` 는 프로젝트 밖까지 닿는 도구에 붙습니다. 공개 상태 페이지 도구, 그리고 상태 페이지에 표시되고 그 구독자에게 전송되는 변경, 예를 들어 새 인시던트, 그 상태의 변경, 공개 메모입니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
 
 ## 시작하기 전에
 
@@ -341,6 +341,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`get_data_table_lineage`** 도구는 에이전트가 테이블을 바꾸거나 그 데이터를 믿기 전에 Data Observability가 감시하는 테이블이 무엇으로 만들어지고 그 테이블로 무엇이 만들어지는지 알려 줍니다. 지연되었거나, 삭제되었거나, 열린 경고가 있거나, 파이프라인이 마지막 실행에 실패한 업스트림과 다운스트림 테이블을 가까운 순서로 각각 몇 단계 떨어져 있는지와 함께 보여 주고, 이어서 나머지 테이블, 바깥에서 원본을 적재하는 파이프라인, 그 위에 만든 BI 대시보드를 보여 줍니다. 방향마다 3단계, `depth`로 최대 5단계까지 따라갑니다. `table`은 `get_data_table_freshness`와 같은 방식으로 전달합니다. 아무것도 변경하지 않습니다.
 
+**`oneuptime_move_in_list`** 도구는 대시보드에서 끌어 옮길 때와 마찬가지로 인시던트 심각도, 인시던트 상태, 모니터 상태 같은 순서 있는 목록의 행을 다른 행의 자리로 옮깁니다. 그 사이의 행은 한 자리씩 밀리고, 번호가 바뀐 행을 하나하나 돌려줍니다. `resource`(예: `Incident Severity`), 행의 `id`, 그리고 그 행이 자리를 차지할 행의 ID인 `placeOfId`를 전달합니다. 행의 번호를 그 `update_` 도구로 쓰면 그 행만 놓이며, 이미 그 번호를 가진 행 옆에 나란히 섭니다.
+
 ## 텔레메트리 조회하기
 
 로그, 메트릭, 트레이스(스팬), 예외, 모니터 로그 등의 텔레메트리는 읽기 전용 `list_` 및 `count_` 도구로 제공됩니다(`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` 와 각각의 `count_` 짝). 텔레메트리는 OpenTelemetry로 들어오므로 생성 도구는 없습니다.
@@ -489,7 +491,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 팀과 온콜 | Team, On-Call Policy |
 | 레이블 | Label |
 | 보안 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| 데이터 보안 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| 데이터 보안 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | 데이터 옵저버빌리티 | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | 클라우드 | Cloud Budget |
 

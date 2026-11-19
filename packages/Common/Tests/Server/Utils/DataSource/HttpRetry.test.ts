@@ -14,7 +14,10 @@ import {
   DataSourceHttpResponse,
 } from "../../../../Server/Utils/DataSource/HttpFetch";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { DataSourceUnreachedError } from "../../../../Server/Utils/DataSource/HttpFailure";
+import {
+  DataSourceStatusException,
+  DataSourceUnreachedError,
+} from "../../../../Server/Utils/DataSource/HttpFailure";
 
 /*
  * ASKING A DATA SOURCE AGAIN (#9540), AS EVERY COLLECTOR DOES.
@@ -488,12 +491,12 @@ describe("as a transport, for a caller that takes one", () => {
     expect(sent[0]!.acceptAnyStatus).toBe(true);
   });
 
-  test("a last answer outside 2xx is thrown as the plain transport throws it, for a caller that reads that message", async () => {
+  test("a last answer outside 2xx is thrown as a sentence of who answered which request with what status, then the provider's words, both kept for a caller that reads them", async () => {
     const retry: DataSourceHttpRetry = new DataSourceHttpRetry({
       transport: async (): Promise<DataSourceHttpResponse> => {
         return {
           statusCode: 400,
-          bodyText: '{"error":"invalid_grant"}',
+          bodyText: ' {"error":"invalid_grant"}\n',
           bodyJson: { error: "invalid_grant" },
         };
       },
@@ -506,11 +509,44 @@ describe("as a transport, for a caller that takes one", () => {
       },
     });
 
-    await expect(transport({ method: "POST", url: URL })).rejects.toEqual(
-      new BadDataException(
-        'Data source responded with HTTP 400: {"error":"invalid_grant"}',
-      ),
+    const error: unknown = await transport({
+      method: "POST",
+      url: `${URL}?key=a-key-in-the-query`,
+    }).catch((thrown: unknown): unknown => {
+      return thrown;
+    });
+
+    // Thrown as the plain transport throws a status, so a caller that catches one catches it.
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error).toBeInstanceOf(DataSourceStatusException);
+    // The address without its query, which can hold a key.
+    expect((error as DataSourceStatusException).message).toBe(
+      'Example answered HTTP 400 to POST https://example.test/api. {"error":"invalid_grant"}',
     );
+    expect((error as DataSourceStatusException).statusCode).toBe(400);
+    expect((error as DataSourceStatusException).bodyText).toBe(
+      '{"error":"invalid_grant"}',
+    );
+  });
+
+  test("an answer outside 2xx with no words says it gave none", async () => {
+    const { retry } = world([answer(404)]);
+    const transport: DataSourceTransport = retry.asTransport({
+      isSafeToRepeat: (): boolean => {
+        return true;
+      },
+    });
+
+    const error: unknown = await transport({ method: "GET", url: URL }).catch(
+      (thrown: unknown): unknown => {
+        return thrown;
+      },
+    );
+
+    expect((error as DataSourceStatusException).message).toBe(
+      "Example answered HTTP 404 to GET https://example.test/api. It gave no error message.",
+    );
+    expect((error as DataSourceStatusException).bodyText).toBe("");
   });
 
   test("a request that asked for every status is handed its last answer, whatever it is", async () => {
@@ -536,7 +572,7 @@ describe("as a transport, for a caller that takes one", () => {
     });
 
     await expect(transport({ method: "POST", url: URL })).rejects.toThrow(
-      "Data source responded with HTTP 503",
+      "Example answered HTTP 503 to POST https://example.test/api.",
     );
     expect(sent).toHaveLength(1);
   });
