@@ -65,6 +65,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import NewPasswordRule from "../Utils/NewPasswordRule";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
 import {
   PASSWORD_RESET_LINK_CANNOT_BE_EMAILED_MESSAGE,
   RESET_PASSWORD_PAGE_ROUTE,
@@ -357,6 +360,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * Someone only invited to the project is named as the project knows
+     * them - the name typed for them, else their address - never by their
+     * account's own name, which it does not see until they join (#9823).
+     * Whoever acted in the project has joined it, so only the people a line
+     * is about can be named so.
+     */
+    const withheld: Map<string, WithheldProfile> = data.projectId
+      ? await PendingInviteeProfiles.readWithheldProfilesInProject({
+          userIds: [data.userId.toString()],
+          projectId: data.projectId,
+        })
+      : new Map<string, WithheldProfile>();
+
+    /*
      * A user's name is theirs to set, and it is placed inside the link's own
      * text in feed items and chat messages, so every Markdown character in it
      * is escaped: a "]" cannot end the text early and point the rest of the
@@ -364,7 +381,12 @@ export class Service extends DatabaseService<Model> {
      * mentions nobody. The name still reads exactly as typed.
      */
     const displayName: string =
-      user.name?.toString() || user.email?.toString() || "User";
+      PendingInviteeProfiles.getNameInProject({
+        userId: data.userId,
+        name: user.name,
+        email: user.email,
+        withheld: withheld,
+      }) || "User";
 
     return mdText`[${displayName}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }

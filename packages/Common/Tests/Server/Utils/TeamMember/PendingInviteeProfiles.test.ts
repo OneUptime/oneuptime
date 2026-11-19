@@ -743,3 +743,87 @@ describe("withholdFromPerson, one person at a time", () => {
     expect(And(Equal("x"), Equal("y")).type).toBe("and");
   });
 });
+
+describe("what a project calls someone OneUptime read for it", () => {
+  const withheld: Map<string, WithheldProfile> = new Map<
+    string,
+    WithheldProfile
+  >([
+    [PENDING_ID, { inviteeName: "Grace from Payments" }],
+    [OTHER_PROJECT_ID, { inviteeName: null }],
+  ]);
+
+  test("someone only invited is named by the name typed for them, never their own", () => {
+    expect(
+      PendingInviteeProfiles.getNameInProject({
+        userId: new ObjectID(PENDING_ID.toUpperCase()),
+        name: new Name("Their Own Name"),
+        email: "grace@example.com",
+        withheld: withheld,
+      }),
+    ).toBe("Grace from Payments");
+  });
+
+  test("someone only invited with no name typed is named by their address", () => {
+    expect(
+      PendingInviteeProfiles.getNameInProject({
+        userId: OTHER_PROJECT_ID,
+        name: new Name("Their Own Name"),
+        email: " invited@example.com ",
+        withheld: withheld,
+      }),
+    ).toBe("invited@example.com");
+  });
+
+  test("a member is named by their own name, else their address", () => {
+    expect(
+      PendingInviteeProfiles.getNameInProject({
+        userId: MEMBER_ID,
+        name: new Name("Ada Lovelace"),
+        email: "ada@example.com",
+        withheld: withheld,
+      }),
+    ).toBe("Ada Lovelace");
+
+    expect(
+      PendingInviteeProfiles.getNameInProject({
+        userId: MEMBER_ID,
+        name: undefined,
+        email: "ada@example.com",
+        withheld: withheld,
+      }),
+    ).toBe("ada@example.com");
+
+    expect(
+      PendingInviteeProfiles.getNameInProject({
+        userId: undefined,
+        name: undefined,
+        email: undefined,
+        withheld: withheld,
+      }),
+    ).toBe("");
+  });
+
+  test("a person's entry is found however their id is spelled", () => {
+    expect(
+      PendingInviteeProfiles.getWithheldProfile({
+        userId: PENDING_ID.toUpperCase(),
+        withheld: withheld,
+      }),
+    ).toEqual({ inviteeName: "Grace from Payments" });
+
+    expect(
+      PendingInviteeProfiles.getWithheldProfile({
+        userId: MEMBER_ID,
+        withheld: withheld,
+      }),
+    ).toBeUndefined();
+
+    expect(
+      PendingInviteeProfiles.getWithheldProfile({
+        userId: null,
+        withheld: withheld,
+      }),
+    ).toBeUndefined();
+  });
+});
