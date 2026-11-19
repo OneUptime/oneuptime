@@ -17,12 +17,14 @@ import CommonAPI from "../../../Server/API/CommonAPI";
 import DomainService, {
   DOMAIN_NAME_REFUSAL_MESSAGE,
 } from "../../../Server/Services/DomainService";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DomainModel from "../../../Models/DatabaseModels/Domain";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DomainType from "../../../Types/Domain";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { customDomainCaller } from "./CustomDomainCallers";
 import DashboardRequestsOverHttp, {
@@ -228,6 +230,74 @@ describe("POST /api/domain, as Add Custom Domain sends it", () => {
     expect(sent.status).toBe(400);
     expect(refusalOf(sent)).not.toBe(DOMAIN_NAME_REFUSAL_MESSAGE);
     expect(refusalOf(sent)).not.toContain("instance of Domain");
+    expect(table.inserts).toHaveLength(0);
+  });
+});
+
+describe("POST /api/domain, as the other ways to add a domain send it", () => {
+  test("Settings > Domains' request, as its form sends it, adds the domain", async () => {
+    /*
+     * As ModelForm builds a Create form's model: the field's text, read
+     * into the model as it is (BaseModel.fromJSON), and sent by
+     * ModelAPI.createOrUpdate. A Domain field is not turned into a Domain,
+     * so this form sends text.
+     */
+    const model: DomainModel = BaseModel.fromJSON(
+      { domain: "Customer.com", projectId: PROJECT_ID.toString() },
+      DomainModel,
+    ) as DomainModel;
+
+    await ModelAPI.createOrUpdate<DomainModel>({
+      model: model,
+      modelType: DomainModel,
+      formType: FormType.Create,
+    });
+
+    const sent: SentRequest = server.sentTo("POST", "/api/domain")[0]!;
+    const data: JSONObject = (sent.body as JSONObject)["data"] as JSONObject;
+
+    expect(data["domain"]).toBe("Customer.com");
+    expect(sent.status).toBe(200);
+    expect(table.inserts).toHaveLength(1);
+    expect(storedName(table.inserts[0]!["domain"])).toBe("customer.com");
+  });
+
+  test("Terraform's request, as its provider sends it, adds the domain, verified at once on a reserved test domain", async () => {
+    /*
+     * The provider sends a string attribute as it is when it is not JSON
+     * (ResourceGenerator.generateValueAssignment), and names the project
+     * by its API key rather than in the body - as its E2E suites add a
+     * domain for a status page domain.
+     */
+    const sent: SentRequest = await server.request("POST", "/api/domain", {
+      data: {
+        domain: "sp-domain-1a2b3c4d.example.com",
+        isVerified: true,
+      },
+    });
+
+    expect({ status: sent.status, refusal: refusalOf(sent) }).toEqual({
+      status: 200,
+      refusal: "",
+    });
+    expect(table.inserts).toHaveLength(1);
+    expect(storedName(table.inserts[0]!["domain"])).toBe(
+      "sp-domain-1a2b3c4d.example.com",
+    );
+    expect(table.inserts[0]!["isVerified"]).toBe(true);
+    expect(String(table.inserts[0]!["projectId"])).toBe(PROJECT_ID.toString());
+  });
+
+  test("Terraform's request for a real domain, verified at once, is refused: it is verified after it is added", async () => {
+    const sent: SentRequest = await server.request("POST", "/api/domain", {
+      data: { domain: "customer.com", isVerified: true },
+    });
+
+    expect({ status: sent.status, refusal: refusalOf(sent) }).toEqual({
+      status: 400,
+      refusal:
+        "Domain cannot be verified during creation. Please verify the domain after creation. Please set isVerified to false.",
+    });
     expect(table.inserts).toHaveLength(0);
   });
 });
