@@ -58706,5 +58706,5 @@
   "{{count}} selected devices already have a monitor, so they are left out.": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
   "{{count}} selected devices already have a monitor, so they are left out._one": "選択したデバイスのうち {{count}} 台はすでにモニターがあるため、除外されます。",
   "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} はこのデバイスに表示されなくなり、今後発生するものはこのデバイスに関連付けられません。インポートと自動インポートルールはこのモニターを数えなくなるため、このデバイスに同様のモニターを付けることがあります。モニター自体は変わらずチェックを続けます。",
-  "Invitee Name": "Invitee Name"
+  "Invitee Name": "招待された人の名前"
 }

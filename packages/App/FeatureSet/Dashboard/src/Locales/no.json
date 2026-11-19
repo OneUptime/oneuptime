@@ -58706,5 +58706,5 @@
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} valgte enheter har allerede en monitor, så de utelates.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} valgt enhet har allerede en monitor, så den utelates.",
   "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} vises ikke lenger på denne enheten, og det den utløser fra nå av, knyttes ikke til enheten. Importer og regler for automatisk import slutter å telle den med, så de kan gi enheten en monitor av samme slag. Selve monitoren fortsetter å sjekke, uendret.",
-  "Invitee Name": "Invitee Name"
+  "Invitee Name": "Navnet til den inviterte"
 }

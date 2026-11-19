@@ -58706,5 +58706,5 @@
   "{{count}} selected devices already have a monitor, so they are left out.": "所选设备中有 {{count}} 台已有监视器，因此被排除。",
   "{{count}} selected devices already have a monitor, so they are left out._one": "所选设备中有 {{count}} 台已有监视器，因此被排除。",
   "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} 将不再列在此设备上，它今后触发的内容也不会关联到此设备。导入和自动导入规则不再将它计入，因此可能为此设备提供一个同类监视器。监视器本身会继续检查，不做任何更改。",
-  "Invitee Name": "Invitee Name"
+  "Invitee Name": "受邀者姓名"
 }

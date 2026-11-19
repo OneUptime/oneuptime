@@ -58706,5 +58706,5 @@
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} ausgewählte Geräte haben bereits einen Monitor und werden daher ausgelassen.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} ausgewähltes Gerät hat bereits einen Monitor und wird daher ausgelassen.",
   "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} wird nicht mehr auf diesem Gerät aufgeführt, und was er ab jetzt auslöst, wird nicht mit dem Gerät verknüpft. Importe und Regeln für automatischen Import zählen ihn nicht mehr, sodass sie dem Gerät einen gleichartigen Monitor geben können. Der Monitor selbst prüft unverändert weiter.",
-  "Invitee Name": "Invitee Name"
+  "Invitee Name": "Name der eingeladenen Person"
 }
