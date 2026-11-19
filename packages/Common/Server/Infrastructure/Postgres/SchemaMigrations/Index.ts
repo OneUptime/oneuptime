@@ -1090,6 +1090,7 @@ import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSec
 import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
 import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
 import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
+import { AddAIRunModelName1809185300000 } from "./1809185300000-AddAIRunModelName";
 
 export default [
   InitialMigration,
@@ -2184,4 +2185,5 @@ export default [
   AddWorkflowRunAs1809185100000,
   AddWorkflowRunAsKeys1809185100100,
   AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
+  AddAIRunModelName1809185300000,
 ];
