@@ -106,11 +106,27 @@ export default class GcpMonitoring {
   public static buildFilter(data: {
     metricType: string;
     metricLabels?: Readonly<Record<string, string>> | undefined;
+    /*
+     * An added metric's (CloudAddedMetrics): only the series of resources of
+     * this type, and of the one resource these labels identify. Checked
+     * when the metric is added (validateCloudAddedMetric): no quote or
+     * backslash can reach the filter.
+     */
+    resourceType?: string | undefined;
+    resourceLabels?: Readonly<Record<string, string>> | undefined;
   }): string {
     const parts: Array<string> = [`metric.type="${data.metricType}"`];
 
     for (const name of Object.keys(data.metricLabels || {}).sort()) {
       parts.push(`metric.labels.${name}="${data.metricLabels![name]}"`);
+    }
+
+    if (data.resourceType) {
+      parts.push(`resource.type="${data.resourceType}"`);
+    }
+
+    for (const name of Object.keys(data.resourceLabels || {}).sort()) {
+      parts.push(`resource.labels.${name}="${data.resourceLabels![name]}"`);
     }
 
     return parts.join(" AND ");
@@ -133,6 +149,8 @@ export default class GcpMonitoring {
     metricLabels?: Readonly<Record<string, string>> | undefined;
     readAs?: "count" | undefined;
     firstPageOnly?: boolean | undefined;
+    resourceType?: string | undefined;
+    resourceLabels?: Readonly<Record<string, string>> | undefined;
   }): Promise<Array<GcpTimeSeries>> {
     GoogleMonitoringClient.validateProjectId(data.projectId);
 
@@ -151,6 +169,8 @@ export default class GcpMonitoring {
           GcpMonitoring.buildFilter({
             metricType: data.metricType,
             metricLabels: data.metricLabels,
+            resourceType: data.resourceType,
+            resourceLabels: data.resourceLabels,
           }),
         ],
         ["interval.startTime", data.start.toISOString()],

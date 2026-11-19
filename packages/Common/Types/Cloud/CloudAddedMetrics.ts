@@ -109,7 +109,6 @@ export const AWS_ADDED_METRIC_STATISTICS: ReadonlyArray<string> = [
   "Sum",
   "Maximum",
   "Minimum",
-  "SampleCount",
 ];
 export const GCP_ADDED_METRIC_ALIGNERS: ReadonlyArray<string> = [
   "ALIGN_MEAN",
@@ -131,6 +130,8 @@ const MAX_NAME_LENGTH: number = 256;
 const MAX_FIELD_LENGTH: number = 512;
 // A Cloud Monitoring metric type, as the filter of a call quotes it.
 const GCP_METRIC_TYPE_PATTERN: RegExp = /^[a-z0-9][a-z0-9._/-]*$/i;
+// A Cloud Monitoring monitored resource type, as the filter of a call quotes it.
+const GCP_RESOURCE_TYPE_PATTERN: RegExp = /^[a-z][a-z0-9_.]*$/i;
 // A Cloud Monitoring label's key and value, as the filter of a call quotes them.
 const GCP_LABEL_KEY_PATTERN: RegExp = /^[a-z][a-z0-9_]*$/i;
 const GCP_LABEL_VALUE_PATTERN: RegExp = /^[^"\\]*$/;
@@ -458,6 +459,7 @@ export function validateCloudAddedMetric(metric: CloudAddedMetric): void {
     case CloudProvider.GCP:
       if (
         !GCP_METRIC_TYPE_PATTERN.test(name) ||
+        !GCP_RESOURCE_TYPE_PATTERN.test(metric.resourceType) ||
         !GCP_ADDED_METRIC_ALIGNERS.includes(metric.aggregation)
       ) {
         throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["invalid"]!);

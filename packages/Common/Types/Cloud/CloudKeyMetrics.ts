@@ -2285,7 +2285,9 @@ export type GcpAligner =
   | "ALIGN_MAX"
   | "ALIGN_RATE"
   | "ALIGN_SUM"
-  | "ALIGN_PERCENTILE_95";
+  | "ALIGN_PERCENTILE_95"
+  // A true-or-false gauge's share of true: only a metric someone added (CloudAddedMetrics).
+  | "ALIGN_FRACTION_TRUE";
 
 /*
  * Who reports a metric when Google Cloud does not itself: the Ops Agent,
