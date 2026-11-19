@@ -128,6 +128,11 @@ jobs:
       # label and private tables (ReadAudiencePostgres, #9576). A schema of
       # its own, dropped after.
       RUN_POSTGRES_READ_AUDIENCE_TESTS: "true"
+      # A team's and a label's name compared as it reads - case, spaces and
+      # every kind of space aside - by Postgres as by the server, and a team
+      # or a label refused another one's name (UniqueNamePostgres, #9674).
+      # A schema of its own, dropped after.
+      RUN_POSTGRES_UNIQUE_NAME_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

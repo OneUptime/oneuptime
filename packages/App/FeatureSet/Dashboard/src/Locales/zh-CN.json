@@ -57538,5 +57538,9 @@
   "Only the latest {{count}} steps of this run are shown._one": "仅显示此运行最近的 {{count}} 个步骤。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Ask them to check its API key and model, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此项目使用全局 LLM 提供商，它由你的 OneUptime 服务器管理员设置。请让管理员检查它的 API 密钥和模型，或在“项目设置 > 人工智能 > LLM 提供商”中添加你自己的 LLM 提供商。",
   "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it keeps timing out, ask them to raise its Response Timeout, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此项目使用全局 LLM 提供商，它由你的 OneUptime 服务器管理员设置。请几分钟后重试。如果仍然超时，请让管理员调高它的响应超时，或在“项目设置 > 人工智能 > LLM 提供商”中添加你自己的 LLM 提供商。",
-  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此项目使用全局 LLM 提供商，它由你的 OneUptime 服务器管理员设置。请几分钟后重试。如果仍然无法访问，请让管理员检查它，或在“项目设置 > 人工智能 > LLM 提供商”中添加你自己的 LLM 提供商。"
+  "This project uses the global LLM provider, which your OneUptime server's admin sets up. Try again in a few minutes. If it stays unreachable, ask them to check it, or add an LLM provider of your own in Project Settings > AI > LLM Providers.": "此项目使用全局 LLM 提供商，它由你的 OneUptime 服务器管理员设置。请几分钟后重试。如果仍然无法访问，请让管理员检查它，或在“项目设置 > 人工智能 > LLM 提供商”中添加你自己的 LLM 提供商。",
+  "Several labels cannot be given one name. Rename one label at a time.": "Several labels cannot be given one name. Rename one label at a time.",
+  "Several teams cannot be given one name. Rename one team at a time.": "Several teams cannot be given one name. Rename one team at a time.",
+  "There is already a label called {{name}} in this project. Pick another name.": "There is already a label called {{name}} in this project. Pick another name.",
+  "There is already a team called {{name}} in this project. Pick another name.": "There is already a team called {{name}} in this project. Pick another name."
 }
