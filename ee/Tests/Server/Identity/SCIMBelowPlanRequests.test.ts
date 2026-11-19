@@ -223,7 +223,10 @@ const matchesQuery: (
 const toUser: (fake: FakeUser) => User = (fake: FakeUser): User => {
   const user: User = new User(new ObjectID(fake.id));
   user.email = new Email(fake.email);
-  user.name = new Name(fake.name);
+  // An account SCIM creates without a name has none.
+  if (fake.name) {
+    user.name = new Name(fake.name);
+  }
   user.isMasterAdmin = false;
   return user;
 };
@@ -355,13 +358,13 @@ jest.mock("Common/Server/Services/UserService", () => {
       },
       createByEmail: async (args: {
         email: Email;
-        name: Name;
+        name: Name | undefined;
       }): Promise<User> => {
         world.writes.push("user created");
         const user: FakeUser = {
           id: idOf(ObjectID.generate()),
           email: args.email.toString(),
-          name: args.name.toString(),
+          name: args.name?.toString() || "",
         };
         world.users.push(user);
         return toUser(user);
@@ -1668,7 +1671,15 @@ describe.each([PlanType.Free, PlanType.Growth])(
     });
 
     describe("what changes nothing OneUptime keeps is answered, as on every plan", () => {
-      test("a name this project may not change - the account is also in another project - is no change", async () => {
+      /*
+       * #9825: a change is one of the SCIM user - what the identity
+       * provider sends against what the connection answers - and never of
+       * the account. Whether the account would take a name depends on its
+       * other projects, and a 402 for one account and a 200 for another
+       * would say which accounts belong to other projects: for the users
+       * SCIM provisioned, which addresses had an account before.
+       */
+      test("a new name is refused alike for an account this project manages and one also in another project", async () => {
         world.memberships.push({
           id: idOf(ObjectID.generate()),
           projectId: "aa000000-0000-4000-8000-000000000009",
@@ -1677,7 +1688,7 @@ describe.each([PlanType.Free, PlanType.Growth])(
           hasAcceptedInvitation: true,
         });
 
-        const result: HttpResult = await send(
+        const elsewhere: HttpResult = await send(
           "PUT",
           project(`Users/${people.bob}`),
           {
@@ -1686,8 +1697,64 @@ describe.each([PlanType.Free, PlanType.Growth])(
           },
         );
 
-        expect(result.status).toBe(200);
+        const managed: HttpResult = await send(
+          "PUT",
+          project(`Users/${people.carol}`),
+          {
+            userName: "carol@acme.example",
+            name: { formatted: "Carol Elsewhere" },
+          },
+        );
+
+        expectRefusedBelowPlan(elsewhere);
+        expectRefusedBelowPlan(managed);
         expect(userOf(people.bob).name).toBe("Bob Builder");
+        expect(userOf(people.carol).name).toBe("Carol Coder");
+        expect(world.writes).toEqual([]);
+      });
+
+      test("the name the connection has, sent again, is no change - whatever the account is called, and whatever its other projects", async () => {
+        world.memberships.push({
+          id: idOf(ObjectID.generate()),
+          projectId: "aa000000-0000-4000-8000-000000000009",
+          userId: people.bob,
+          teamId: "aa000000-0000-4000-8000-0000000000f9",
+          hasAcceptedInvitation: true,
+        });
+
+        // What the identity provider sent on the plan, before it lapsed.
+        for (const [userId, userName, formatted] of [
+          [people.bob, "bob@acme.example", "Bob Elsewhere"],
+          [people.carol, "carol@acme.example", "Carol Elsewhere"],
+        ] as Array<[string, string, string]>) {
+          fakeProjectSCIMUserService.seed({
+            projectId: new ObjectID(PROJECT_ID),
+            projectScimId: new ObjectID(PROJECT_SCIM_ID),
+            userId: new ObjectID(userId),
+            isActive: true,
+            userName: userName,
+            externalId: null,
+            scimAttributes: { name: { formatted: formatted } },
+          });
+        }
+
+        for (const [userId, userName, formatted] of [
+          [people.bob, "bob@acme.example", "Bob Elsewhere"],
+          [people.carol, "carol@acme.example", "Carol Elsewhere"],
+        ] as Array<[string, string, string]>) {
+          const result: HttpResult = await send(
+            "PUT",
+            project(`Users/${userId}`),
+            { userName: userName, name: { formatted: formatted } },
+          );
+
+          expect(result.status).toBe(200);
+          expect(result.body["name"]).toEqual({ formatted: formatted });
+        }
+
+        // The accounts keep their own names: below the plan nothing else changes.
+        expect(userOf(people.bob).name).toBe("Bob Builder");
+        expect(userOf(people.carol).name).toBe("Carol Coder");
         expect(world.writes).toEqual([]);
       });
 
