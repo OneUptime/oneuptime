@@ -94,6 +94,7 @@ import {
   formatCompact,
   formatDurationMsInLanguage,
   formatPercent,
+  parseBucketTimeMs,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -355,6 +356,90 @@ describe("summarizeLogAndExceptionBuckets", () => {
     expect(series(result.logs.errorSeries)).toEqual([[T0, 1]]);
     expect(result.exceptions.unhandledSeries).toEqual([]);
     expect(series(result.exceptions.handledSeries)).toEqual([[T1, 1]]);
+  });
+
+  /*
+   * The histograms hand a bucket's time over as ClickHouse writes it, in
+   * UTC with no zone. Read with `new Date`, a browser took it as its own
+   * local time, so in New York the Exceptions and Logs charts sat four
+   * hours early beside the span charts and the time axis.
+   */
+  describe("in a browser in New York", () => {
+    /*
+     * Jest keeps its own copy of process.env, so the time zone cannot be
+     * changed from here. A browser in New York is played instead: `new Date`
+     * of a zoneless date and time reads it as New York's wall clock, four
+     * hours behind UTC in September, as V8 does there. Every other way of
+     * making a Date is the real one.
+     */
+    const RealDate: DateConstructor = Date;
+    const ZONELESS: RegExp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+    const NEW_YORK_OFFSET_MS: number = 4 * 60 * 60 * 1000;
+
+    class NewYorkDate extends RealDate {
+      public constructor(...args: Array<unknown>) {
+        if (
+          args.length === 1 &&
+          typeof args[0] === "string" &&
+          ZONELESS.test(args[0])
+        ) {
+          super(
+            RealDate.parse(`${args[0].replace(" ", "T")}Z`) +
+              NEW_YORK_OFFSET_MS,
+          );
+          return;
+        }
+
+        super(...(args as []));
+      }
+    }
+
+    beforeEach(() => {
+      global.Date = NewYorkDate as unknown as DateConstructor;
+    });
+
+    afterEach(() => {
+      global.Date = RealDate;
+    });
+
+    test("the stand-in reads a zoneless time as a New York browser does", () => {
+      expect(new Date("2026-09-24 10:00:00").toISOString()).toBe(
+        "2026-09-24T14:00:00.000Z",
+      );
+    });
+
+    test("a bucket time as ClickHouse writes it is the UTC moment it names", () => {
+      const result: LogAndExceptionSignals = summarizeLogAndExceptionBuckets(
+        [{ time: "2026-09-24 10:00:00", severity: "Error", count: 3 }],
+        [{ time: "2026-09-24 10:05:00", series: "unhandled", count: 1 }],
+      );
+
+      expect(result.logs.countSeries[0]!.x.toISOString()).toBe(
+        "2026-09-24T10:00:00.000Z",
+      );
+      expect(result.logs.errorSeries[0]!.x.toISOString()).toBe(
+        "2026-09-24T10:00:00.000Z",
+      );
+      expect(result.exceptions.unhandledSeries[0]!.x.toISOString()).toBe(
+        "2026-09-24T10:05:00.000Z",
+      );
+    });
+
+    test("an ISO time keeps the zone it was written in", () => {
+      expect(parseBucketTimeMs("2026-09-24T10:00:00.000Z")).toBe(
+        RealDate.parse("2026-09-24T10:00:00.000Z"),
+      );
+      expect(parseBucketTimeMs("2026-09-24T12:00:00+02:00")).toBe(
+        RealDate.parse("2026-09-24T10:00:00.000Z"),
+      );
+    });
+  });
+
+  test("no time, or none worth reading, is no point", () => {
+    expect(parseBucketTimeMs(undefined)).toBeNull();
+    expect(parseBucketTimeMs("")).toBeNull();
+    expect(parseBucketTimeMs("  ")).toBeNull();
+    expect(parseBucketTimeMs(42)).toBeNull();
   });
 
   test("a bucket whose count is missing or not a number adds nothing", () => {

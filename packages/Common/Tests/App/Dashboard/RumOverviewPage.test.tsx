@@ -48,6 +48,13 @@ const fetchWebVitalByRouteMock: MockFunction = getJestMockFunction();
 const fetchSignalsMock: MockFunction = getJestMockFunction();
 const fetchSessionReplayListMock: MockFunction = getJestMockFunction();
 const lineChartMock: MockFunction = getJestMockFunction();
+// A mobile app's reads (#9588): MobileRumSignalReads.
+const fetchMobileAppStartsMock: MockFunction = getJestMockFunction();
+const fetchMobileSessionsMock: MockFunction = getJestMockFunction();
+const fetchMobileFaultsMock: MockFunction = getJestMockFunction();
+const fetchMobileFramesMock: MockFunction = getJestMockFunction();
+const fetchNewestAppStartAtMock: MockFunction = getJestMockFunction();
+const fetchNewestFrameEventAtMock: MockFunction = getJestMockFunction();
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -249,6 +256,33 @@ jest.mock(
 );
 
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Rum/MobileOverview/MobileRumSignalReads",
+  () => {
+    return {
+      __esModule: true,
+      fetchMobileAppStarts: (...args: Array<unknown>): unknown => {
+        return fetchMobileAppStartsMock(...args);
+      },
+      fetchMobileSessions: (...args: Array<unknown>): unknown => {
+        return fetchMobileSessionsMock(...args);
+      },
+      fetchMobileFaults: (...args: Array<unknown>): unknown => {
+        return fetchMobileFaultsMock(...args);
+      },
+      fetchMobileFrames: (...args: Array<unknown>): unknown => {
+        return fetchMobileFramesMock(...args);
+      },
+      fetchNewestAppStartAt: (...args: Array<unknown>): unknown => {
+        return fetchNewestAppStartAtMock(...args);
+      },
+      fetchNewestFrameEventAt: (...args: Array<unknown>): unknown => {
+        return fetchNewestFrameEventAtMock(...args);
+      },
+    };
+  },
+);
+
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth",
   () => {
     return {
@@ -317,9 +351,18 @@ import {
   WebVitalByRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryMetrics";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import {
+  MobileAppStarts,
+  MobileFaults,
+  MobileFrames,
+  MobileSessions,
+  emptyAppStarts,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/MobileOverview/MobileRumSignalData";
+import { RUM_ANDROID_SETUP_DOCS_URL } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import OneUptimeDate from "../../../Types/Date";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import {
   WebVitalDefinition,
   WebVitalDefinitions,
@@ -658,6 +701,12 @@ beforeEach(() => {
     fetchSignalsMock,
     fetchSessionReplayListMock,
     lineChartMock,
+    fetchMobileAppStartsMock,
+    fetchMobileSessionsMock,
+    fetchMobileFaultsMock,
+    fetchMobileFramesMock,
+    fetchNewestAppStartAtMock,
+    fetchNewestFrameEventAtMock,
   ]) {
     mock.mockReset();
   }
@@ -2044,5 +2093,622 @@ describe("RUM overview: telemetry refused at ingest", () => {
 
     expect(refusalReads()).toBe(2);
     expect(textOf("exceptions", "title")).toBe("Exceptions are being refused");
+  });
+});
+
+/*
+ * A MOBILE APP'S OVERVIEW (#9588). The same page, for an application ingest
+ * names mobile (clientType "mobile"): sessions, crash-free sessions,
+ * crashes, ANRs, app starts, cold start time, frozen frames and the share
+ * of failed spans, with charts and a frames-by-screen card of its own, and
+ * no page load or Web Vital read or drawn.
+ */
+const MOBILE_APP: Record<string, unknown> = {
+  name: "Kiosk Ordering",
+  appIdentifier: "kiosk-ordering",
+  clientType: "mobile",
+  sdkLanguage: "java",
+  agentVersion: "1.8.1",
+  otelCollectorStatus: "connected",
+  lastSeenAt: new Date(),
+};
+
+function mobileAppStarts(): MobileAppStarts {
+  const result: MobileAppStarts = emptyAppStarts(false);
+  result.total = 42;
+  result.byType = {
+    cold: { count: 12, p50DurationMs: 1100, p95DurationMs: 2300 },
+    warm: { count: 30, p50DurationMs: 400, p95DurationMs: 900 },
+    hot: { count: 0, p50DurationMs: null, p95DurationMs: null },
+  };
+  result.countSeries = {
+    cold: points([T0, 8], [T1, 4]),
+    warm: points([T0, 30]),
+    hot: [],
+  };
+  result.p95Series = {
+    cold: points([T0, 2200], [T1, 2400]),
+    warm: points([T0, 900]),
+    hot: [],
+  };
+  return result;
+}
+
+const MOBILE_SESSIONS: MobileSessions = {
+  sessions: 200,
+  spans: 4000,
+  failed: false,
+};
+
+const MOBILE_FAULTS: MobileFaults = {
+  crashes: {
+    total: 3,
+    series: points([T0, 2], [T1, 1]),
+    sessions: 2,
+    failed: false,
+  },
+  anrs: { total: 1, series: points([T1, 1]), sessions: 1, failed: false },
+};
+
+const MOBILE_FRAMES: MobileFrames = {
+  slow: 52,
+  frozen: 3,
+  slowSeries: points([T0, 40], [T1, 12]),
+  frozenSeries: points([T1, 3]),
+  byScreen: [
+    { screen: "MenuActivity", slow: 40, frozen: 3 },
+    { screen: "CartActivity", slow: 12, frozen: 0 },
+  ],
+  failed: false,
+  byScreenFailed: false,
+};
+
+const NO_FRAMES: MobileFrames = {
+  slow: 0,
+  frozen: 0,
+  slowSeries: [],
+  frozenSeries: [],
+  byScreen: [],
+  failed: false,
+  byScreenFailed: false,
+};
+
+const MOBILE_HOUR_MS: number = 60 * 60 * 1000;
+
+/*
+ * A description as the page draws it: English drawn as written holds each
+ * figure to the duration's word after it ("15\u00A0minutes", #8811).
+ */
+function asDrawn(english: string): string {
+  return withDurationWordsHeld(english);
+}
+
+interface MobileScenario {
+  appStarts?: Promise<MobileAppStarts> | undefined;
+  sessions?: Promise<MobileSessions> | undefined;
+  faults?: Promise<MobileFaults> | undefined;
+  frames?: Promise<MobileFrames> | undefined;
+  newestAppStart?: Promise<Date | null> | undefined;
+  newestFrameEvent?: Promise<Date | null> | undefined;
+}
+
+function arrangeMobile(
+  scenario: MobileScenario = {},
+  page: Scenario = {},
+): void {
+  arrange({ app: MOBILE_APP, ...page });
+
+  fetchMobileAppStartsMock.mockImplementation(() => {
+    return scenario.appStarts ?? Promise.resolve(mobileAppStarts());
+  });
+  fetchMobileSessionsMock.mockImplementation(() => {
+    return scenario.sessions ?? Promise.resolve(MOBILE_SESSIONS);
+  });
+  fetchMobileFaultsMock.mockImplementation(() => {
+    return scenario.faults ?? Promise.resolve(MOBILE_FAULTS);
+  });
+  fetchMobileFramesMock.mockImplementation(() => {
+    return scenario.frames ?? Promise.resolve(MOBILE_FRAMES);
+  });
+  fetchNewestAppStartAtMock.mockImplementation(() => {
+    return scenario.newestAppStart ?? Promise.resolve(ago(DAY_MS));
+  });
+  fetchNewestFrameEventAtMock.mockImplementation(() => {
+    return scenario.newestFrameEvent ?? Promise.resolve(ago(DAY_MS));
+  });
+}
+
+async function renderMobilePage(): Promise<void> {
+  render(<RumApplicationOverview {...({} as PageComponentProps)} />);
+  await screen.findByText("Kiosk Ordering");
+  await flush();
+}
+
+const MOBILE_TILE_TITLES: Array<[string, RumMetric]> = [
+  ["Sessions", "sessions"],
+  ["Crash-free sessions", "crashFreeSessions"],
+  ["Crashes", "crashes"],
+  ["ANRs", "anrs"],
+  ["App starts", "appStarts"],
+  ["Cold start (p95)", "coldStartTime"],
+  ["Frozen frames", "frozenFrames"],
+  ["Error rate", "errorRateMobile"],
+];
+
+const MOBILE_CHART_TITLES: Array<[string, RumMetric]> = [
+  ["App starts", "appStartsChart"],
+  ["Startup time (p95)", "startupTimeChart"],
+  ["Crashes and ANRs", "crashesChart"],
+  ["Slow and frozen frames", "framesChart"],
+  ["Events", "eventsChartMobile"],
+  ["Logs", "logsChartMobile"],
+];
+
+function tileTitles(): Array<string> {
+  return Array.from(document.querySelectorAll("[aria-busy]")).map(
+    (root: Element): string => {
+      return root.querySelector("span.uppercase")?.textContent || "";
+    },
+  );
+}
+
+function tileHref(title: string): string {
+  const link: HTMLAnchorElement | null = tile(title).querySelector("a");
+  expect(link).not.toBeNull();
+  return decodeURIComponent(link!.getAttribute("href") || "");
+}
+
+function mobileEmpty(signal: string): Array<HTMLElement> {
+  return screen.queryAllByTestId(`rum-mobile-${signal}-empty`);
+}
+
+describe("RUM overview: a mobile app's tiles (#9588)", () => {
+  test("shows a mobile app's tiles, in the order a mobile team scans them", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(tileTitles()).toEqual(
+      MOBILE_TILE_TITLES.map(([title]: [string, RumMetric]): string => {
+        return title;
+      }),
+    );
+  });
+
+  test("every tile shows the value and the line under it that its data supports", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expectTile("Sessions", "200", "past 1 hour");
+    expectTile("Crash-free sessions", "99.00%", "2 sessions crashed");
+    expectTile("Crashes", "3", "in 2 sessions");
+    expectTile("ANRs", "1", "in 1 session");
+    expectTile("App starts", "42", "cold 12, warm 30, hot 0");
+    expectTile("Cold start (p95)", "2.30 s", "median 1.10 s");
+    expectTile("Frozen frames", "3", "52 slow frames");
+    expectTile("Error rate", "2.0%", "912 errored");
+  });
+
+  test("no browser tile is drawn", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    for (const title of [
+      "Page loads",
+      "Page load time (p95)",
+      "Event duration (p95)",
+      "Clients",
+      "Sessions recorded",
+    ]) {
+      expect(tileTitles()).not.toContain(title);
+    }
+  });
+
+  test("each tile carries its (i), worded by RUM_METRIC_DESCRIPTIONS", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    for (const [title, key] of MOBILE_TILE_TITLES) {
+      expect(await tooltipTextOf(tileInfo(title))).toBe(
+        asDrawn(RUM_METRIC_DESCRIPTIONS[key]),
+      );
+    }
+
+    // A session's limits read as one figure and its word each.
+    expect(await tooltipTextOf(tileInfo("Sessions"))).toContain(
+      "after 15 minutes in the background, or after 4 hours.",
+    );
+  });
+
+  test("the hero says it is a mobile app", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(screen.getAllByText("mobile").length).toBeGreaterThan(0);
+  });
+});
+
+describe("RUM overview: a mobile app's reads", () => {
+  test("asks each mobile read for this app over the page's window", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    for (const mock of [
+      fetchMobileAppStartsMock,
+      fetchMobileSessionsMock,
+      fetchMobileFaultsMock,
+      fetchMobileFramesMock,
+    ]) {
+      expect(mock).toHaveBeenCalledTimes(1);
+
+      const scope: { primaryEntityId: ObjectID; start: Date; end: Date } = mock
+        .mock.calls[0]![0] as never;
+
+      expect(scope.primaryEntityId.toString()).toBe(MODEL_ID);
+      expect(scope.end.getTime() - scope.start.getTime()).toBe(MOBILE_HOUR_MS);
+    }
+  });
+
+  test("reads no page load and no Web Vital, and draws no Web Vitals card", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(fetchWebVitalsMock).not.toHaveBeenCalled();
+    expect(fetchWebVitalByRouteMock).not.toHaveBeenCalled();
+    expect(fetchSpanNameStatsMock).not.toHaveBeenCalled();
+
+    for (const call of fetchSpanMetricsMock.mock.calls) {
+      expect((call[0] as { spanName?: string }).spanName).toBeUndefined();
+    }
+
+    expect(screen.queryByText("Core Web Vitals")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "About Core Web Vitals" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("looks up the newest app start or slow frame only when the range has none", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(fetchNewestAppStartAtMock).not.toHaveBeenCalled();
+    expect(fetchNewestFrameEventAtMock).not.toHaveBeenCalled();
+  });
+
+  test("a browser app never asks a mobile read", async () => {
+    arrange();
+    await renderPage();
+
+    for (const mock of [
+      fetchMobileAppStartsMock,
+      fetchMobileSessionsMock,
+      fetchMobileFaultsMock,
+      fetchMobileFramesMock,
+    ]) {
+      expect(mock).not.toHaveBeenCalled();
+    }
+    expect(fetchWebVitalsMock).toHaveBeenCalled();
+  });
+
+  test("a refresh reads the mobile signals again, keeping the tiles on screen", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    fetchMobileSessionsMock.mockImplementation(() => {
+      return never<MobileSessions>();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    await flush();
+
+    expect(fetchMobileSessionsMock).toHaveBeenCalledTimes(2);
+    // The answer is out; the old figure stays rather than a spinner.
+    expectTile("Sessions", "200", "past 1 hour");
+  });
+});
+
+describe("RUM overview: a mobile app's charts and cards", () => {
+  test("draws the six mobile charts, each with its (i)", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    for (const [title, key] of MOBILE_CHART_TITLES) {
+      expect(await tooltipTextOf(chartInfo(title))).toBe(
+        asDrawn(RUM_METRIC_DESCRIPTIONS[key]),
+      );
+    }
+  });
+
+  test("the start charts draw a line per kind of start", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    const counts: ChartProps = chartWithSeries([
+      "Cold starts",
+      "Warm starts",
+      "Hot starts",
+    ]);
+    const times: ChartProps = chartWithSeries([
+      "Cold start",
+      "Warm start",
+      "Hot start",
+    ]);
+
+    expect(counts.data[0]!.data).toEqual(points([T0, 8], [T1, 4]));
+    expect(counts.data[1]!.data).toEqual(points([T0, 30]));
+    expect(times.data[0]!.data).toEqual(points([T0, 2200], [T1, 2400]));
+  });
+
+  test("crashes and ANRs are lines of their own, beside every other exception", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    const chart: ChartProps = chartWithSeries([
+      "Crashes",
+      "ANRs",
+      "Other exceptions",
+    ]);
+
+    expect(chart.data[0]!.data).toEqual(points([T0, 2], [T1, 1]));
+    expect(chart.data[1]!.data).toEqual(points([T1, 1]));
+    /*
+     * Every exception (T0: 6, T1: 8, T2: 3, from SIGNALS) less the crashes
+     * and the ANRs.
+     */
+    expect(chart.data[2]!.data).toEqual(points([T0, 4], [T1, 6], [T2, 3]));
+  });
+
+  test("frames are drawn slow and frozen", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    const chart: ChartProps = chartWithSeries(["Slow frames", "Frozen frames"]);
+
+    expect(chart.data[0]!.data).toEqual(points([T0, 40], [T1, 12]));
+    expect(chart.data[1]!.data).toEqual(points([T1, 3]));
+  });
+
+  test("the frames by screen card lists the screens that froze most first", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "rum-frames-by-screen-row",
+    );
+
+    expect(
+      rows.map((row: HTMLElement): string => {
+        return row.textContent || "";
+      }),
+    ).toEqual(["MenuActivity340", "CartActivity012"]);
+    expect(
+      await tooltipTextOf(
+        screen.getByRole("button", { name: "About Frozen frames by screen" }),
+      ),
+    ).toBe(asDrawn(RUM_METRIC_DESCRIPTIONS.framesByScreen));
+  });
+});
+
+describe("RUM overview: a mobile app's tiles link where the number is read", () => {
+  test("crashes open the app's exceptions, ANRs only the type ANR", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(tileHref("Crashes")).toContain(
+      `/dashboard/${PROJECT_ID}/exceptions/unresolved?range=Past 1 Hour`,
+    );
+    expect(tileHref("Crashes")).toContain(
+      `filters=[["rumApplicationId","${MODEL_ID}"]]`,
+    );
+    expect(tileHref("Crash-free sessions")).toBe(tileHref("Crashes"));
+    expect(tileHref("ANRs")).toContain(
+      `[["rumApplicationId","${MODEL_ID}"],["exceptionType","ANR"]]`,
+    );
+  });
+
+  test("app starts open the app's AppStart spans, the cold start tile the cold ones", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(tileHref("App starts")).toContain(
+      `/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/traces?`,
+    );
+    expect(tileHref("App starts")).toContain('filters=[["name","AppStart"]]');
+    expect(tileHref("Cold start (p95)")).toContain("search=@start.type:cold");
+  });
+
+  test("frozen frames open the app's app.jank events, the error rate its failed spans", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(tileHref("Frozen frames")).toContain(
+      `/dashboard/${PROJECT_ID}/logs?`,
+    );
+    expect(tileHref("Frozen frames")).toContain(
+      '["attributes.app.jank.threshold",["0.7"]]',
+    );
+    expect(tileHref("Error rate")).toContain('filters=[["statusCode","2"]]');
+  });
+
+  test("sessions open the app's spans, and its recordings when it records them", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    expect(tileHref("Sessions")).toContain(
+      `/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/traces?range=Past 1 Hour`,
+    );
+
+    cleanup();
+    arrangeMobile(
+      {},
+      {
+        app: { ...MOBILE_APP, sessionReplayLastChunkReceivedAt: new Date() },
+      },
+    );
+    await renderMobilePage();
+
+    expect(tileHref("Sessions")).toBe(
+      `/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/session-replay?range=Past 1 Hour`,
+    );
+  });
+
+  test("no (i) on a mobile app's page is nested in a link or another button", async () => {
+    arrangeMobile();
+    await renderMobilePage();
+
+    for (const info of screen.getAllByRole("button", { name: /^About / })) {
+      expect(info.closest("a")).toBeNull();
+      expect(info.parentElement?.closest("button")).toBeNull();
+    }
+  });
+});
+
+describe("RUM overview: a mobile app's empty and failed reads", () => {
+  test("an app that never reported an app start says what turns it on, with the Android Setup docs", async () => {
+    arrangeMobile({
+      appStarts: Promise.resolve(emptyAppStarts(false)),
+      newestAppStart: Promise.resolve(null),
+    });
+    await renderMobilePage();
+
+    expectTile("App starts", "0", "no app starts");
+    expect(
+      within(tile("Cold start (p95)")).getByText("no app starts"),
+    ).toBeInTheDocument();
+
+    // Both start charts say so.
+    const empties: Array<HTMLElement> = mobileEmpty("appStarts");
+    expect(empties).toHaveLength(2);
+    expect(empties[0]).toHaveAttribute("data-state", "not-reported");
+    expect(
+      within(empties[0]!).getByText("No app starts reported yet"),
+    ).toBeInTheDocument();
+    expect(
+      within(empties[0]!).getByRole("link", { name: "Open Android Setup" }),
+    ).toHaveAttribute("href", RUM_ANDROID_SETUP_DOCS_URL);
+    expect(fetchNewestAppStartAtMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("starts quiet in this range say when the last one was", async () => {
+    arrangeMobile({
+      appStarts: Promise.resolve(emptyAppStarts(false)),
+      newestAppStart: Promise.resolve(ago(3 * MOBILE_HOUR_MS)),
+    });
+    await renderMobilePage();
+
+    const empty: HTMLElement = mobileEmpty("appStarts")[0]!;
+
+    expect(empty).toHaveAttribute("data-state", "quiet");
+    expect(
+      within(empty).getByText("No app starts in this range"),
+    ).toBeInTheDocument();
+    expect(
+      within(empty).getByText("The last app start was 3 hours ago."),
+    ).toBeInTheDocument();
+    expect(within(empty).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  test("no slow frame in range is good news, and the frames-by-screen card stays away", async () => {
+    arrangeMobile({
+      frames: Promise.resolve(NO_FRAMES),
+      newestFrameEvent: Promise.resolve(ago(DAY_MS)),
+    });
+    await renderMobilePage();
+
+    const empty: HTMLElement = mobileEmpty("frames")[0]!;
+
+    expect(
+      within(empty).getByText("No slow or frozen frames in this range"),
+    ).toBeInTheDocument();
+    expect(
+      within(empty).getByText(
+        "Every frame drew in time. The last slow frame was reported a day ago.",
+      ),
+    ).toBeInTheDocument();
+    expectTile("Frozen frames", "0", "0 slow frames");
+    expect(
+      screen.queryByTestId("rum-frames-by-screen"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("frames never reported say what turns them on", async () => {
+    arrangeMobile({
+      frames: Promise.resolve(NO_FRAMES),
+      newestFrameEvent: Promise.resolve(null),
+    });
+    await renderMobilePage();
+
+    const empty: HTMLElement = mobileEmpty("frames")[0]!;
+
+    expect(
+      within(empty).getByText("No slow or frozen frames reported yet"),
+    ).toBeInTheDocument();
+    expect(
+      within(empty).getByRole("link", { name: "Open Android Setup" }),
+    ).toHaveAttribute("href", RUM_ANDROID_SETUP_DOCS_URL);
+  });
+
+  test("a failed read could not load on its tiles, and the others still draw", async () => {
+    arrangeMobile({
+      sessions: Promise.resolve({ sessions: 0, spans: 0, failed: true }),
+    });
+    await renderMobilePage();
+
+    expect(
+      within(tile("Sessions")).getByText("could not load"),
+    ).toBeInTheDocument();
+    expect(
+      within(tile("Crash-free sessions")).getByText("could not load"),
+    ).toBeInTheDocument();
+    expectTile("Crashes", "3", "in 2 sessions");
+  });
+
+  test("failed app start and frame reads say so on their charts", async () => {
+    arrangeMobile({
+      appStarts: Promise.resolve(emptyAppStarts(true)),
+      frames: Promise.resolve({
+        ...NO_FRAMES,
+        failed: true,
+        byScreenFailed: true,
+      }),
+    });
+    await renderMobilePage();
+
+    expect(screen.getAllByText("Could not load app starts")).toHaveLength(2);
+    expect(screen.getByText("Could not load frames")).toBeInTheDocument();
+    expect(fetchNewestAppStartAtMock).not.toHaveBeenCalled();
+    expect(fetchNewestFrameEventAtMock).not.toHaveBeenCalled();
+  });
+
+  test("spans that name no session say so, and open the setup guide", async () => {
+    arrangeMobile({
+      sessions: Promise.resolve({ sessions: 0, spans: 512, failed: false }),
+    });
+    await renderMobilePage();
+
+    expect(
+      within(tile("Sessions")).getByText("No session.id"),
+    ).toBeInTheDocument();
+    expect(
+      within(tile("Sessions")).getByText("spans name no session"),
+    ).toBeInTheDocument();
+    expect(tileHref("Sessions")).toBe(
+      `/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/documentation`,
+    );
+    expect(
+      within(tile("Crash-free sessions")).getByText("needs session.id"),
+    ).toBeInTheDocument();
+  });
+
+  test("tiles still loading already carry their (i)", async () => {
+    arrangeMobile({
+      appStarts: never<MobileAppStarts>(),
+      sessions: never<MobileSessions>(),
+      faults: never<MobileFaults>(),
+      frames: never<MobileFrames>(),
+    });
+    await renderMobilePage();
+
+    for (const [title] of MOBILE_TILE_TITLES.slice(0, 7)) {
+      expect(tile(title)).toHaveAttribute("aria-busy", "true");
+    }
   });
 });

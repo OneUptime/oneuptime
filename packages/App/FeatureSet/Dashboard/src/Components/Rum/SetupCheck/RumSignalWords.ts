@@ -8,6 +8,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { RecordingHealthState } from "Common/Types/Rum/SessionReplayHealth";
+import { RumClientKind } from "Common/Types/Rum/RumClientKind";
 import { RECORDING_HEALTH_ROW_WORDS } from "../../../Pages/Rum/View/OverviewHelpers";
 import { SessionReplayHealthError } from "../../SessionReplay/SessionReplayHealthError";
 import {
@@ -36,7 +37,8 @@ import {
  * values of the looked-up sentence, so they follow its language.
  */
 
-export type RumClientKind = "browser" | "mobile";
+// One definition, shared with Recommendations (Common/Types/Rum/RumClientKind).
+export type { RumClientKind };
 
 // The two charts (and the Logs page) that explain why they are empty.
 export type RumPanelSignal = "exceptions" | "logs";

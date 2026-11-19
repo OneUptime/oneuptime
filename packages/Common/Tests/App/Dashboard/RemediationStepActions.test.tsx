@@ -43,6 +43,10 @@ import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import {
+  REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
+  RemediationRoundTryAgainRefusal,
+} from "../../../Types/AutoRemediation/RemediationRound";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -484,6 +488,43 @@ describe("Try again", () => {
     fireEvent.click(within(notice).getByRole("button"));
 
     expect(screen.queryByTestId("remediation-try-again-error")).toBeNull();
+  });
+
+  /*
+   * Try again pressed more often than the limit allows (#6525): the 429's
+   * sentence is said in the notice under Try again, as its other refusals.
+   */
+  test("a press refused as one too many says so in the notice, and Try again stays offered", async () => {
+    serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
+    const refusal: string =
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[
+        RemediationRoundTryAgainRefusal.TooManyTries
+      ];
+    postSpy.mockResolvedValue(
+      new HTTPErrorResponse(
+        429,
+        { message: refusal },
+        { "retry-after": "300" },
+      ) as never,
+    );
+
+    renderStep();
+    await screen.findByTestId("remediation-try-again");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(tryAgainButton()!);
+    });
+    await settle();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "remediation-try-again-error",
+    );
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice).toHaveTextContent(REMEDIATION_TRY_AGAIN_FAILED);
+    expect(notice).toHaveTextContent(
+      "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.",
+    );
+    expect(tryAgainButton()).toBeEnabled();
   });
 
   test("a refusal on one record is not shown on the next", async () => {
