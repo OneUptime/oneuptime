@@ -125,6 +125,16 @@ export interface DeviceAddressViewpoint {
 }
 
 /*
+ * What a viewpoint sees at one address, and every device in the project
+ * there (issue #9905): enough to say why a host at an address several
+ * devices share is the one it is, or why it cannot be named.
+ */
+export interface AddressSeen<T> {
+  seen: DeviceSeenFrom<T>;
+  devices: Array<T>;
+}
+
+/*
  * The fleet's numbers, defined beside the scan that counts them
  * (DeviceHealthAggregation) and named here too, where callers find them.
  */
@@ -1153,6 +1163,10 @@ export class Service extends ProjectReferencesService<Model> {
    * tell apart answer nothing either, and their address is added to
    * `ambiguousHostnames`, since a device is there all the same. Without
    * `seenFrom`, any device at the address answers: the last one read.
+   *
+   * With `seenFrom`, `seenInto` is given each address that has a device:
+   * what the probes see there and why, and every device there (issue
+   * #9905).
    */
   @CaptureSpan()
   public async getDevicesByHostnames(data: {
@@ -1162,6 +1176,7 @@ export class Service extends ProjectReferencesService<Model> {
     props: DatabaseCommonInteractionProps;
     seenFrom?: DeviceAddressViewpoint | undefined;
     ambiguousHostnames?: Set<string> | undefined;
+    seenInto?: Map<string, AddressSeen<Model>> | undefined;
   }): Promise<Map<string, Model>> {
     const registered: Map<string, Model> = new Map<string, Model>();
 
@@ -1205,6 +1220,11 @@ export class Service extends ProjectReferencesService<Model> {
       } else if (match.kind === "ambiguous") {
         data.ambiguousHostnames?.add(hostname);
       }
+
+      data.seenInto?.set(hostname, {
+        seen: match,
+        devices: atHostnames.get(hostname) || [],
+      });
     }
 
     return registered;

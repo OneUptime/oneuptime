@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddKubernetesComplianceAcceptancesAndSummaries1809186700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186700000-AddKubernetesComplianceAcceptancesAndSummaries";
+import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
 import DataSecurityComplianceSetting from "../../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
@@ -56,9 +56,9 @@ function columnArgs(
   );
 }
 
-describe("AddKubernetesComplianceAcceptancesAndSummaries1809186700000", () => {
-  const migration: AddKubernetesComplianceAcceptancesAndSummaries1809186700000 =
-    new AddKubernetesComplianceAcceptancesAndSummaries1809186700000();
+describe("AddKubernetesComplianceAcceptancesAndSummaries1809186710000", () => {
+  const migration: AddKubernetesComplianceAcceptancesAndSummaries1809186710000 =
+    new AddKubernetesComplianceAcceptancesAndSummaries1809186710000();
 
   test("adds the five columns, nullable, and nothing else", async () => {
     expect(
@@ -101,24 +101,24 @@ describe("AddKubernetesComplianceAcceptancesAndSummaries1809186700000", () => {
   test("is registered once, numbered after every migration before it", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
     const position: number = registered.indexOf(
-      AddKubernetesComplianceAcceptancesAndSummaries1809186700000,
+      AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
     );
 
     expect(
       registered.filter((candidate: unknown): boolean => {
         return (
           candidate ===
-          AddKubernetesComplianceAcceptancesAndSummaries1809186700000
+          AddKubernetesComplianceAcceptancesAndSummaries1809186710000
         );
       }),
     ).toHaveLength(1);
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
     ).toBeLessThan(
-      timestampOf(AddKubernetesComplianceAcceptancesAndSummaries1809186700000),
+      timestampOf(AddKubernetesComplianceAcceptancesAndSummaries1809186710000),
     );
     expect(migration.name).toBe(
-      "AddKubernetesComplianceAcceptancesAndSummaries1809186700000",
+      "AddKubernetesComplianceAcceptancesAndSummaries1809186710000",
     );
   });
 

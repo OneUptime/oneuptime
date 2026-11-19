@@ -44,7 +44,7 @@ import { DataSource } from "typeorm";
  * (#9874, #9876, #9880).
  *
  * Opt in with RUN_POSTGRES_KUBERNETES_COMPLIANCE_TESTS=true against a
- * database the registered migrations (1809186700000-AddKubernetesCompliance
+ * database the registered migrations (1809186710000-AddKubernetesCompliance
  * AcceptancesAndSummaries included) have been applied to, e.g. from
  * packages/Common:
  *

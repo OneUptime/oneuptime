@@ -14,11 +14,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration. Five nullable columns
  * with no default: adding them rewrites nothing and reads no row.
  */
-export class AddKubernetesComplianceAcceptancesAndSummaries1809186700000
+export class AddKubernetesComplianceAcceptancesAndSummaries1809186710000
   implements MigrationInterface
 {
   public name: string =
-    "AddKubernetesComplianceAcceptancesAndSummaries1809186700000";
+    "AddKubernetesComplianceAcceptancesAndSummaries1809186710000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
