@@ -128,7 +128,7 @@ import {
   actionTitleText,
 } from "../../../../Helpers/AIActionText";
 import { dashboardTranslator } from "../../../../Helpers/DashboardLocales";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * ASK AI SETS THINGS UP (issue #6829): each setup action, on its own.
@@ -431,6 +431,18 @@ function stubTeams(): Spy {
     ] as never);
 }
 
+// The project's plan has room for the status pages a plan publishes (#7250).
+function planAllowsStatusPages(): Spy {
+  return jest
+    .spyOn(StatusPageService, "getCreateRefusal")
+    .mockResolvedValue(null as never);
+}
+
+// The project's Website and API monitors, read as the person: none (#7292).
+function noMonitorChecksAnAddress(): Spy {
+  return jest.spyOn(MonitorService, "findBy").mockResolvedValue([] as never);
+}
+
 function monitorsNamed(names: Array<{ id: string; name: string }>): Spy {
   return jest.spyOn(MonitorService, "findBy").mockResolvedValue(
     names.map((each: { id: string; name: string }) => {
@@ -575,6 +587,11 @@ describe("reading the arguments", () => {
 });
 
 describe("set_up_website_monitoring", () => {
+  // No monitor of the project checks the address yet (#7292).
+  beforeEach(() => {
+    noMonitorChecksAnAddress();
+  });
+
   test("its card is titled by the address the person knows", () => {
     expect(
       actionTitleText(
@@ -1167,6 +1184,10 @@ describe("set_up_website_monitoring", () => {
  * English - worded as the Dashboard words them for the guided setup.
  */
 describe("set_up_website_monitoring, in the person's language", () => {
+  beforeEach(() => {
+    noMonitorChecksAnAddress();
+  });
+
   // Each criteria's name and description, and what it opens, as written.
   const criteriaWords: (monitor: Monitor) => Array<string> = (
     monitor: Monitor,
@@ -2093,6 +2114,7 @@ describe("publish_status_page", () => {
 
   test("nothing to show, or a name too short, is not proposed; a monitor the plan sets up counts", async () => {
     monitorsNamed([]);
+    planAllowsStatusPages();
 
     expect(
       (

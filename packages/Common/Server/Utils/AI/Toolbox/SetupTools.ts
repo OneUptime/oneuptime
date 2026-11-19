@@ -73,13 +73,16 @@ import {
 } from "../../../../Utils/GuidedSetup/StatusPageRecords";
 import {
   GUIDED_SETUP_MONITORING_INTERVAL,
+  MONITORS_CHECKING_ADDRESS_READ_LIMIT,
   WEBSITE_MONITOR_SEEDS_MISSING,
   WebsiteAddress,
   WebsiteMonitorSeeds,
   buildWebsiteMonitor,
+  isMonitorCheckingAddress,
   parseWebsiteAddress,
   pickWebsiteMonitorSeeds,
 } from "../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import AlertOnCallRuleService from "../../../Services/AlertOnCallRuleService";
 import AlertSeverityService from "../../../Services/AlertSeverityService";
@@ -411,6 +414,23 @@ export function countMonitorsSetUpInPlan(
 }
 
 /*
+ * How many status pages the same plan publishes: one for each
+ * publish_status_page call, and at least the one being checked - the
+ * Free plan's limit is on them all (#7250).
+ */
+export function countStatusPagesSetUpInPlan(
+  plannedCalls: ReadonlyArray<PlannedToolCall> | undefined,
+): number {
+  const count: number = (plannedCalls || []).filter(
+    (call: PlannedToolCall): boolean => {
+      return call.name === PUBLISH_STATUS_PAGE_TOOL_NAME;
+    },
+  ).length;
+
+  return Math.max(1, count);
+}
+
+/*
  * What the project's plan says to the monitors a plan sets up, asked before
  * its card so a project that may not add them is told now, not after an
  * approval: the two answers MonitorService.create gives when it runs - and
@@ -670,10 +690,100 @@ export interface FoundMonitors {
   notFound: Array<string>;
 }
 
+// A monitor of the project that checks an address now (#7292).
+export interface MonitorCheckingAddress extends SetupMonitor {
+  // Made by the person asking.
+  isOwn: boolean;
+}
+
+/*
+ * The project's newest Website and API monitors the person may read, with
+ * what isMonitorCheckingAddress reads of each: as many as the website
+ * guided setup reads to find one for an address (#7254).
+ */
+async function readWebsiteMonitors(ctx: ToolContext): Promise<Array<Monitor>> {
+  return await MonitorService.findBy({
+    query: {
+      projectId: ctx.projectId,
+      monitorType: QueryHelper.any([MonitorType.Website, MonitorType.API]),
+    },
+    select: {
+      _id: true,
+      name: true,
+      monitorSteps: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+      createdByUserId: true,
+    },
+    sort: { createdAt: SortOrder.Descending },
+    limit: MONITORS_CHECKING_ADDRESS_READ_LIMIT,
+    skip: 0,
+    props: ctx.props,
+  });
+}
+
+/*
+ * The monitor among these that checks the address now, by the website
+ * guided setup's rule (isMonitorCheckingAddress: the same address, neither
+ * archived nor turned off): the person's own first, as the guided setup
+ * looks for theirs before a teammate's, then the newest. A monitor someone
+ * else made - a teammate, the API, Terraform - watches the address just as
+ * well. Null when none does.
+ */
+export function pickMonitorCheckingAddress(data: {
+  monitors: ReadonlyArray<Monitor>;
+  address: WebsiteAddress;
+  userId?: string | undefined;
+}): MonitorCheckingAddress | null {
+  const checking: Array<Monitor> = data.monitors.filter(
+    (monitor: Monitor): boolean => {
+      return (
+        Boolean(monitor.id) &&
+        isMonitorCheckingAddress({ monitor: monitor, address: data.address })
+      );
+    },
+  );
+  const own: Monitor | undefined = data.userId
+    ? checking.find((monitor: Monitor): boolean => {
+        return monitor.createdByUserId?.toString() === data.userId;
+      })
+    : undefined;
+  const found: Monitor | undefined = own || checking[0];
+
+  if (!found?.id) {
+    return null;
+  }
+
+  return {
+    id: found.id.toString(),
+    name: found.name || data.address.monitorName,
+    isOwn: Boolean(own),
+  };
+}
+
+/*
+ * NO SECOND MONITOR FOR AN ADDRESS A MONITOR CHECKS ALREADY (#7292), as
+ * the website guided setup makes none (#7059, #7254): the project's monitor
+ * that checks it now, read as the person - one they may not read is never
+ * seen, and never named. Null when none does.
+ */
+export async function findMonitorCheckingAddress(
+  ctx: ToolContext,
+  address: WebsiteAddress,
+): Promise<MonitorCheckingAddress | null> {
+  return pickMonitorCheckingAddress({
+    monitors: await readWebsiteMonitors(ctx),
+    address: address,
+    userId: ctx.props.userId?.toString(),
+  });
+}
+
 /*
  * The project's monitors a call names, read as the person: by the name
  * each has (without case), else - for "https://example.com" - by the name
- * the website setup gives an address (example.com). Each monitor once.
+ * the website setup gives an address (example.com), else by the address a
+ * monitor checks (#7292): "example.com" names the monitor "Acme website"
+ * that checks it. Each monitor once.
  */
 async function findMonitorsByName(
   ctx: ToolContext,
@@ -719,6 +829,20 @@ async function findMonitorsByName(
 
   const found: Array<SetupMonitor> = [];
   const notFound: Array<string> = [];
+  const add: (monitor: SetupMonitor) => void = (
+    monitor: SetupMonitor,
+  ): void => {
+    if (
+      !found.some((each: SetupMonitor): boolean => {
+        return each.id === monitor.id;
+      })
+    ) {
+      found.push(monitor);
+    }
+  };
+
+  // The project's Website and API monitors, read once, for the addresses named.
+  let websiteMonitors: Array<Monitor> | null = null;
 
   for (const name of names) {
     const address: WebsiteAddress | null = parseWebsiteAddress(name);
@@ -726,20 +850,34 @@ async function findMonitorsByName(
       byName.get(name.trim().toLowerCase()) ||
       (address ? byName.get(address.monitorName.toLowerCase()) : undefined);
 
-    if (!monitor) {
-      notFound.push(name);
+    if (monitor) {
+      add({ id: monitor.id!.toString(), name: monitor.name || name });
       continue;
     }
 
-    const id: string = monitor.id!.toString();
+    if (address) {
+      if (websiteMonitors === null) {
+        try {
+          websiteMonitors = await readWebsiteMonitors(ctx);
+        } catch {
+          websiteMonitors = [];
+        }
+      }
 
-    if (
-      !found.some((each: SetupMonitor): boolean => {
-        return each.id === id;
-      })
-    ) {
-      found.push({ id: id, name: monitor.name || name });
+      const checking: MonitorCheckingAddress | null =
+        pickMonitorCheckingAddress({
+          monitors: websiteMonitors,
+          address: address,
+          userId: ctx.props.userId?.toString(),
+        });
+
+      if (checking) {
+        add({ id: checking.id, name: checking.name });
+        continue;
+      }
     }
+
+    notFound.push(name);
   }
 
   return { found, notFound };
@@ -883,6 +1021,21 @@ async function addMonitorsToPage(
 
 const NOT_AN_ADDRESS: string =
   "That is not a web address a website monitor can check. Ask the person for the address, such as example.com or https://example.com/health, and propose the setup again.";
+
+/*
+ * A monitor checks the address already (#7292): what the model is told
+ * instead of a card - its name, so the answer says the address is watched
+ * and by what, and what can be done with it instead.
+ */
+export const MONITOR_CHECKS_ADDRESS_ALREADY: (data: {
+  monitor: MonitorCheckingAddress;
+  address: WebsiteAddress;
+}) => string = (data: {
+  monitor: MonitorCheckingAddress;
+  address: WebsiteAddress;
+}): string => {
+  return `Nothing proposed: ${data.monitor.isOwn ? "the person's own monitor" : "the monitor"} "${data.monitor.name}" already checks ${data.address.url}, so no second monitor is made, as the website guided setup makes none. Say so in one sentence, naming it. who_is_told says who it reaches; to show it on a status page, name it in publish_status_page or add_monitors_to_status_page.`;
+};
 
 // The address a call names: the parsed one, or null.
 function readAddress(args: JSONObject): WebsiteAddress | null {
@@ -1080,8 +1233,27 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<SetupActionRefusal | null> => {
-    if (!readAddress(args)) {
+    const address: WebsiteAddress | null = readAddress(args);
+
+    if (!address) {
       return { toldModel: NOT_AN_ADDRESS };
+    }
+
+    // One monitor for one address, as the website guided setup (#7292).
+    try {
+      const checking: MonitorCheckingAddress | null =
+        await findMonitorCheckingAddress(ctx, address);
+
+      if (checking) {
+        return {
+          toldModel: MONITOR_CHECKS_ADDRESS_ALREADY({
+            monitor: checking,
+            address: address,
+          }),
+        };
+      }
+    } catch {
+      // Unreadable now: the card shows, and running it reads again.
     }
 
     try {
@@ -1115,6 +1287,26 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
 
     if (!address) {
       throw new BadDataException(NOT_AN_ADDRESS);
+    }
+
+    /*
+     * Asked again now (#7292): a monitor of the address may have been made
+     * since the card was shown - by a teammate, or by a second card of
+     * the same request - and two would page twice for one outage. A read
+     * that fails makes the monitor the card promised.
+     */
+    let checking: MonitorCheckingAddress | null = null;
+
+    try {
+      checking = await findMonitorCheckingAddress(ctx, address);
+    } catch {
+      checking = null;
+    }
+
+    if (checking) {
+      throw new BadDataException(
+        `The monitor "${checking.name}" already checks ${address.url}, so no second monitor was made.`,
+      );
     }
 
     const isApi: boolean = ToolArgs.getBoolean(args, "isApi") === true;
@@ -2060,6 +2252,29 @@ export const PublishStatusPageTool: ObservabilityTool = {
         toldModel:
           "Nothing proposed: a status page's name needs at least two characters. Ask the person what to call it.",
       };
+    }
+
+    /*
+     * The project's plan, asked before the card (#7250): on OneUptime
+     * Cloud's Free plan a project has one status page, and an unpaid
+     * subscription adds none - StatusPageService's own answer, which it
+     * gives again when the page is created.
+     */
+    try {
+      const planRefusal: string | null =
+        await StatusPageService.getCreateRefusal({
+          projectId: ctx.projectId,
+          adding: countStatusPagesSetUpInPlan(ctx.plannedCalls),
+        });
+
+      if (planRefusal) {
+        return {
+          toldModel: `Nothing proposed: the project's plan does not allow another status page now. ${planRefusal} Tell the person what is needed, in these words. A status page the project has already can show the monitor: add_monitors_to_status_page adds it.`,
+          refusal: AIToolRefusal.Plan,
+        };
+      }
+    } catch {
+      // Unreadable now: running it says why.
     }
 
     try {
