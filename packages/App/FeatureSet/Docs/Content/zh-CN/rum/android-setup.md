@@ -249,6 +249,12 @@ val serialNumber = restrictions.getString("device_serial").orEmpty()
 
 更改后对设备执行 Converge，让它们读取新值。如果你的 MDM 要求提供架构，请在 `app_restrictions.xml` 中声明相同的键。Esper 会拒绝没有 v1 签名的 APK，因此除了 v2 或 v3 之外，还要用 v1 方案为发布版本签名。
 
+### 从 Esper 导入设备群
+
+将你的 Esper 租户连接到资产清单后，Esper 注册的每台设备都会列在其中，包括应用从未启动过的设备，并带有只有 Esper 才知道的信息：它的组、Android 版本、安全补丁级别、序列号、电池、存储、已安装的应用和上次签入。不再签入的设备会显示为离线，并注明它上次签入是多久以前。请参阅 [从 Esper 导入设备](/docs/inventory/overview#从-esper-导入设备)。
+
+如果设备上的应用按上文所述为其命名，该设备就是一个条目，并带有应用发送的内容：`host.name` 就是它在 Esper 中的名称。OneUptime 先按 `host.name` 查找设备的条目，再按 `host.serial_number` 查找，因此请在每个从该设备上报数据的应用中，以及在 Android Agent 的 `device_name` 和 `device_serial` 设置中，为每台设备使用相同的名称和序列号。
+
 ### 保留离线期间记录的数据
 
 代理在发送每个 span、日志和指标之前都会先将其写入磁盘。网络中断期间，它会把数据保留在那里，并在网络恢复后发送，最长可延后 18 小时。它保留 10 MB；对于经常离线的设备，请调高这个值：

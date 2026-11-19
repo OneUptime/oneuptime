@@ -249,6 +249,12 @@ val serialNumber = restrictions.getString("device_serial").orEmpty()
 
 Führen Sie nach einer Änderung ein Converge der Geräte aus, damit sie die neuen Werte lesen. Deklarieren Sie dieselben Schlüssel in einer `app_restrictions.xml`, wenn Ihr MDM ein Schema verlangt. Esper lehnt ein APK ohne v1-Signatur ab, signieren Sie das Release also mit dem v1-Schema sowie mit v2 oder v3.
 
+### Die Flotte aus Esper importieren
+
+Verbinden Sie Ihren Esper-Tenant mit dem Inventar, und jedes Gerät, das Esper registriert, wird aufgeführt, auch die Geräte, deren App nie gestartet wurde, mit dem, was nur Esper weiß: Gruppe, Android-Version, Sicherheitspatch-Ebene, Seriennummer, Akku, Speicher, installierte Apps und letzter Kontakt. Ein Gerät, das sich nicht mehr meldet, wird als offline angezeigt, mit der Zeit seit seinem letzten Kontakt. Siehe [Geräte aus Esper importieren](/docs/inventory/overview#geräte-aus-esper-importieren).
+
+Ein Gerät, dessen App es wie oben benennt, ist ein einziges Element mit dem, was die App sendet: `host.name` ist sein Name in Esper. OneUptime findet das Element eines Geräts über `host.name`, dann über `host.serial_number`, also geben Sie jedem Gerät denselben Namen und dieselbe Seriennummer in jeder App, die von ihm aus meldet, und in den Einstellungen `device_name` und `device_serial` des Android-Agents.
+
 ### Behalten, was offline aufgezeichnet wird
 
 Der Agent schreibt jeden Span, jedes Log und jede Metrik auf den Datenträger, bevor er sie sendet. Solange das Netzwerk ausgefallen ist, behält er sie dort und sendet sie, sobald es wieder da ist, bis zu 18 Stunden später. Er behält 10 MB; erhöhen Sie den Wert für ein Gerät, das oft offline ist:
