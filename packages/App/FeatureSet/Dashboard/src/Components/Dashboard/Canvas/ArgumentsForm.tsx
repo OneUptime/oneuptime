@@ -817,6 +817,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       retryLoadTelemetryAttributes(metricName);
                     }}
                     hideCard={true}
+                    /*
+                     * Every added query comes after Query 1, so each can be
+                     * drawn on the chart before it instead of its own
+                     * (issue #9961). Without the switch, each added query
+                     * was always its own chart, stacked in the widget.
+                     */
+                    canOverlayWithPreviousQuery={true}
                     onChange={(data: MetricQueryConfigData) => {
                       const updated: Array<MetricQueryConfigData> = [
                         ...multiQueryConfigs,
