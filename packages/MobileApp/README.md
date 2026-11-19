@@ -78,7 +78,8 @@ The session's tokens and the server URL are stored in AsyncStorage, the app's ow
 MobileApp/
 ├── src/
 │   ├── api/           # Axios client, auth API calls
-│   ├── components/    # Reusable UI components (badges, skeleton, empty state)
+│   ├── components/    # Reusable UI components (badges, skeleton, empty state, filters/)
+│   ├── filters/       # Pure list-filter logic (facets, option visibility, chip summaries, owner scope)
 │   ├── hooks/         # Auth hook / context, data hooks
 │   ├── navigation/    # React Navigation (auth stack, main tabs)
 │   ├── oncall/        # Pure on-call domain logic (shifts, duty state, overrides)
@@ -143,6 +144,63 @@ cases (see [Security cases](#security-cases)). Pick a project in any workspace
 header; the selection is remembered for this account and server across
 restarts. Switching returns to Home and clears open forms and details so
 projects never share an editing context.
+
+## Filtering lists
+
+Monitors, incidents, alerts and both kinds of episodes filter the way the
+Dashboard's tables do. A **Filter** button beside each list's search opens a
+sheet with one section per question, in the order people reach for them:
+
+| List                        | Sections                                 |
+| --------------------------- | ---------------------------------------- |
+| Incidents, alerts           | Owner, Severity, State, Labels, Monitors |
+| Incident and alert episodes | Owner, Severity, State, Labels           |
+| Monitors                    | Owner, Status, Type, Labels              |
+
+- **Owner** offers **You** first: records you own, or one of your teams owns.
+  The project's teams and people follow, searched together as the web's one
+  Owners field is. You are not listed again under People.
+- Several values in a section match any of them; sections combine, so a row
+  shows when it matches every section that is set. Nothing applies until
+  **Show results**, so closing the sheet leaves the list as it was.
+- The filters that are on show as chips under the search. A chip opens the
+  sheet; its cross takes that filter off; **Reset** clears them with the
+  search and the quick chips. The Filter button carries how many are on.
+- Picking states (or statuses) in the sheet puts the Active / Resolved (or
+  health) chip back to All, so the two never contradict each other into an
+  empty list. A count on Home opens every record it counted: its shortcut
+  clears the filters, as it clears the search.
+- One set of filters serves a screen's two lists: "Owner: You" stays on
+  from incidents to episodes. A section only one of them asks (an
+  incident's Monitors) is kept, not counted, while the other is on screen.
+
+The filters are asked of the **server**, so they reach every record of the
+project, not only the newest hundred a list holds (`src/api/recordFilters.ts`):
+state, severity and an alert's monitor on their id columns with `Includes`,
+labels through their join table, a monitor's type on `monitorType`, and owners
+with the server's owners filter, `{ "_type": "OwnedBy", "match": "AnyOf",
+"userIds", "teamIds" }`. A server older than that filter refuses it as a bad
+request; the app then reads the record's owner tables
+(`/api/<kind>-owner-user`, `/api/<kind>-owner-team`) and asks for the records
+by id. An incident's monitors are matched in a step of their own, so each row
+keeps every monitor it is about. "You" is made concrete in
+`src/filters/ownerScope.ts`: the reader, and the teams they are on in the
+project (`/api/team-member/get-list`). The sheet's values are read only while it
+is open or a filter is on (`src/hooks/useFilterOptions.ts`).
+
+The rules are pure and unit tested in `src/filters/`; the screens use
+`useRecordFilterControls()` (state in the navigator, so a fold keeps it),
+`SearchFilterRow`, `ActiveFilterBar` and `FilterSheet` from
+`src/components/filters/`. `tests/ui/filters.spec.js` walks the flow in the
+browser build at every size.
+
+### Owners and labels on a record
+
+The Details section of an incident, alert, episode or monitor lists its
+owners - the people and teams in its owner tables, with You first and
+marked - and its labels with their colours (`src/components/RecordOwnersAndLabels.tsx`).
+Owners that could not be read say so with a retry and are never shown as
+nobody; labels show only when there are some.
 
 ## Foldables, tablets and wide windows
 
