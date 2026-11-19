@@ -131,9 +131,13 @@ Eso ocurre cuando la clave que gestiona un recurso ya no puede leerlo: su permis
 
 ### Una prioridad o un orden que se mueve
 
-Los estados de monitor, los estados y severidades de incidentes y alertas, y las demás listas que ordena en el panel, tienen cada número una sola vez. Un número que no tiene ningún otro se conserva tal como se escribió. Un número que otro ya tiene se toma, y los que están en medio bajan un puesto, como hace un arrastre en el panel. Así, dos de ellos configurados con el mismo número intercambian sus puestos en cada apply.
+Cada lista que ordena en el panel conserva el número que recibe cada recurso: los estados de monitor (`priority`), los estados y severidades de incidentes y alertas, los campos personalizados, las canalizaciones de registros y los filtros de descarte (`sort_order`), los grupos y recursos de las páginas de estado, las reglas de escalado, las capas de las programaciones y el resto. Fijar un número coloca ese recurso y no mueve ningún otro, así que una configuración que numera una lista entera, como `order = index(local.severities, each.key) + 1` sobre un `for_each` de `local.severities`, se aplica exactamente como está escrita, lleguen en el orden que lleguen las escrituras del proveedor, y el siguiente plan queda vacío.
 
-Dé a cada uno su propio número con huecos entre ellos, como `101`, `102` y `103`, y reordene los que gestiona Terraform en Terraform, no arrastrándolos en el panel.
+- Dé a cada recurso su propio número: dos con el mismo número lo conservan ambos, uno junto al otro, en un orden que usted no elige.
+- Un recurso creado sin número va al final de su lista. Un estado nuevo de incidente o de alerta va en cambio justo por encima del estado resuelto, y un estado de monitor nuevo justo por encima del estado sin conexión.
+- Eliminar un recurso deja un hueco en los números, lo que no cambia nada: una lista se rige por sus números, no por la cuenta.
+- Arrastrar un recurso en el panel de OneUptime vuelve a numerar toda su lista desde arriba, y el siguiente plan lo muestra como cambios. Ordene en Terraform los recursos que gestiona Terraform.
+- Los estados integrados conservan su orden: un cambio que pondría a dos de ellos en el mismo número, o fuera de orden, se rechaza, explicando por qué. Cuando un apply mueve estados integrados más allá de los números antiguos de los otros, una de sus escrituras puede llegar primero y encontrarse con ese rechazo; vuelva a ejecutar el apply y termina.
 
 ### Atributos de solo lectura
 

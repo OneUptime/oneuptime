@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "이 엔드포인트는 진행 중인 재정의를 서버 시계 기준으로 끝냅니다. 종료 시각이 지금이 되고, 그때부터 호출은 다시 부재 중이던 사람에게 갑니다. 업데이트와 같은 권한이 필요하며, 재정의의 새 endsAt 을 반환합니다.",
       "userOverrideEndNowRequestTitle": "지금 종료 요청",
       "userOverrideIdDescription": "사용자 재정의의 ID",
-      "userOverrideEndNowRefused": "400 Bad Request: 재정의가 아직 시작되지 않았거나 (대신 삭제하세요), 이미 끝났거나, 어차피 1분 안에 끝납니다."
+      "userOverrideEndNowRefused": "400 Bad Request: 재정의가 아직 시작되지 않았거나 (대신 삭제하세요), 이미 끝났거나, 어차피 1분 안에 끝납니다.",
+      "moveInListHeading": "이동",
+      "moveInListIntro": "이 엔드포인트는 레코드를 두 레코드가 함께 있는 목록에서 placeOfId가 가리키는 레코드의 자리로 옮깁니다. 위로 옮기면 그 레코드 바로 위에, 아래로 옮기면 바로 아래에 놓이고, 그 사이의 레코드는 원래 자리 쪽으로 한 칸씩 옮겨집니다. 그다음 목록은 위에서부터 1, 2, 3 순서로 다시 번호가 매겨지며(아래로 세는 목록은 가장 큰 번호부터 아래로), 이는 하나의 트랜잭션에서 이루어지므로 동시에 옮겨도 두 레코드가 같은 번호에 남지 않습니다. 응답은 changedRows입니다. 다른 번호를 받은 각 레코드를 _id와 목록 자체의 번호 열에 있는 새 번호로 보여 줍니다. 그 번호를 쓰는 생성이나 업데이트는 그 레코드만 배치하고 다른 것은 움직이지 않으며, 이것이 Terraform에 필요한 동작입니다. 레코드를 다른 레코드 너머로 옮기려면 이 요청을 보내세요. 레코드의 번호를 업데이트할 때와 같은 권한이 필요합니다.",
+      "moveInListRequestTitle": "이동 요청",
+      "moveInListIdDescription": "옮길 레코드의 ID",
+      "placeOfIdDescription": "이 레코드가 자리를 차지하는, 같은 목록에 있는 레코드의 ID입니다.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId가 없거나 ID가 아니거나, 옮기는 레코드와 같은 목록에 없는 레코드(다른 상위 항목, 다른 프로젝트 또는 다른 종류의 레코드)를 가리킵니다.",
+      "moveInListRecordNotFound": "404 Not Found: 옮길 레코드가 없습니다. 삭제되었거나 호출자가 읽을 수 없습니다.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: 호출자는 레코드를 읽을 수 있지만 번호는 바꿀 수 없으며, 업데이트도 마찬가지로 거부됩니다.",
+      "moveInListBuiltInOrder": "400 Bad Request: 이 이동은 프로젝트의 기본 제공 상태의 순서를 깨뜨립니다(예: 해결 상태를 확인 상태와 같은 위치나 그 위로). 응답에 그 이름이 나옵니다."
     },
     "dataType": {
       "enumBadge": "Enum",

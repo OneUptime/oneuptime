@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "此端點依伺服器的時鐘結束進行中的覆寫：其結束時間變為現在，從那時起呼叫重新歸不在崗的人所有。它需要與更新相同的權限，並傳回覆寫新的 endsAt。",
       "userOverrideEndNowRequestTitle": "立即結束請求",
       "userOverrideIdDescription": "使用者覆寫的 ID",
-      "userOverrideEndNowRefused": "400 Bad Request：覆寫尚未開始（請改為刪除它）、已經結束，或者無論如何都會在一分鐘內結束。"
+      "userOverrideEndNowRefused": "400 Bad Request：覆寫尚未開始（請改為刪除它）、已經結束，或者無論如何都會在一分鐘內結束。",
+      "moveInListHeading": "移動",
+      "moveInListIntro": "此端點把記錄移到同一清單中 placeOfId 所指記錄的位置：往上移動時落在該記錄正上方；往下移動時落在其正下方；中間的記錄朝它原本的位置依序移動一位。接著清單會在一個交易中從頂端重新編號為 1、2、3 等（對於倒序計數的清單，則從最大編號往下），因此同時進行的移動絕不會讓兩筆記錄處於同一編號。回應為 changedRows：每筆編號有變化的記錄，帶有其 _id，以及清單本身編號欄中的新編號。寫入該編號的建立或更新只會放置這筆記錄，不會移動其他記錄，這正是 Terraform 所需要的；若要把一筆記錄移過其他記錄，請傳送此請求。它需要與更新記錄編號相同的權限。",
+      "moveInListRequestTitle": "移動請求",
+      "moveInListIdDescription": "要移動的記錄的 ID",
+      "placeOfIdDescription": "同一清單中、本記錄將佔據其位置的那筆記錄的 ID。",
+      "moveInListPlaceRefused": "400 Bad Request：缺少 placeOfId 或其不是 ID，或它所指的記錄與被移動的記錄不在同一清單中：屬於另一個父項、另一個專案或另一種類型。",
+      "moveInListRecordNotFound": "404 Not Found：沒有可移動的記錄：它已被刪除，或呼叫者無權讀取它。",
+      "moveInListNotAllowed": "422 Unprocessable Entity：呼叫者可以讀取該記錄，但不能變更其編號，正如對它的更新會被拒絕一樣。",
+      "moveInListBuiltInOrder": "400 Bad Request：此移動會打亂專案內建狀態的順序，例如讓解決狀態與確認狀態同級或更靠上。回應會說明是哪些狀態。"
     },
     "dataType": {
       "enumBadge": "列舉",

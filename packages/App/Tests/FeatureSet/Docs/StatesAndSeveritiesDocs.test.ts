@@ -48,6 +48,21 @@ describe("the states and severities page", () => {
     );
   });
 
+  /*
+   * Through the API and Terraform a number written is kept and moves no
+   * other state (issue #9609); the states that used to step down for it
+   * stay where they are.
+   */
+  test("says a number written through the API or Terraform moves no other state", () => {
+    expect(STATES_DOC).toContain(
+      "A number you write is kept as written and moves no other state, so a Terraform-managed state reads back the number it was given",
+    );
+    expect(STATES_DOC).toContain(
+      "a write that would put two of them at one number, or out of order, is refused",
+    );
+    expect(STATES_DOC).not.toContain("the states in the way step down");
+  });
+
   test("says the rows are dragged, and that there is no number to type", () => {
     expect(STATES_DOC).toContain("Drag a row by its grip");
     expect(STATES_DOC).toContain("there is no order number to type");

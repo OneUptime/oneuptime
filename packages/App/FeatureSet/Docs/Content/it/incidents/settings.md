@@ -381,7 +381,7 @@ Ogni `to` deve essere una delle opzioni del campo una volta salvato, e ogni `fro
 
 Le impostazioni si trovano sulla risorsa `oneuptime_incident_custom_field` come `sort_order`, `show_on_create`, `is_required_on_create` e `include_in_subscriber_notifications`. `variable_key` è in sola lettura: la chiave che OneUptime ha ricavato quando il campo è stato creato.
 
-Omettete `sort_order` e un nuovo campo va in fondo all'elenco. Dategli il numero che ha già un altro campo e prende quel posto, mentre i campi che lo intralciano avanzano di una posizione. Un numero che nessun altro campo ha viene mantenuto come l'avete scritto.
+Omettete `sort_order` e un nuovo campo va in fondo all'elenco. Un numero che date viene mantenuto come l'avete scritto, e nessun altro campo si sposta per esso, anche quando un altro campo lo ha già: dei due si mostra prima il più vecchio.
 
 ## Misurazioni
 

@@ -431,8 +431,15 @@ describe("adding them to a project", () => {
 
     expect(added.filters).toHaveLength(OPENSTACK_DEFAULT_DROP_FILTERS.length);
     expect(added.rules).toHaveLength(OPENSTACK_DEFAULT_SCRUB_RULES.length);
-    expect(added.filters[0]?.sortOrder).toBe(1);
-    expect(added.rules[0]?.sortOrder).toBe(2);
+
+    /*
+     * Created without a number, one after another: the server puts each at
+     * the end of its list, after the project's own. A number written would
+     * be kept beside the row holding it (issue #9609).
+     */
+    for (const row of [...added.filters, ...added.rules]) {
+      expect(row.sortOrder).toBeUndefined();
+    }
   });
 
   test("a project with filters and no rules gets the rules", async () => {

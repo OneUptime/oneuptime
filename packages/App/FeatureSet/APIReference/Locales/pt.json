@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Este endpoint encerra uma substituição em andamento, pelo relógio do servidor: o fim dela passa a ser agora, e a partir daí os acionamentos voltam a ser da pessoa ausente. Ele exige a mesma permissão de uma atualização e retorna o novo endsAt da substituição.",
       "userOverrideEndNowRequestTitle": "Solicitação para encerrar agora",
       "userOverrideIdDescription": "ID da substituição de usuário",
-      "userOverrideEndNowRefused": "400 Bad Request: a substituição ainda não começou (exclua-a em vez disso), já terminou ou termina de qualquer forma dentro do minuto."
+      "userOverrideEndNowRefused": "400 Bad Request: a substituição ainda não começou (exclua-a em vez disso), já terminou ou termina de qualquer forma dentro do minuto.",
+      "moveInListHeading": "Mover",
+      "moveInListIntro": "Este endpoint move o registro para o lugar do registro que placeOfId indica, na lista que compartilham: movido para cima, fica logo acima desse registro; movido para baixo, logo abaixo; os registros no meio avançam uma posição em direção a onde ele estava. Depois a lista é numerada a partir do topo, 1, 2, 3 e assim por diante (do seu maior número para baixo, numa lista que conta para baixo), numa única transação, para que movimentos simultâneos nunca deixem dois registros com o mesmo número. Responde com changedRows: cada registro que recebeu outro número, pelo seu _id, com o seu novo número na coluna de número da própria lista. Uma criação ou atualização que escreve esse número posiciona o registro sozinho e não move nenhum outro, que é o que o Terraform precisa; para mover um registro para além de outros, envie esta solicitação. Exige a mesma permissão que uma atualização do número do registro.",
+      "moveInListRequestTitle": "Solicitação de mover",
+      "moveInListIdDescription": "ID do registro a mover",
+      "placeOfIdDescription": "O ID do registro da mesma lista cujo lugar este registro ocupa.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId está ausente ou não é um ID, ou indica um registro que não está na mesma lista que o registro movido: o de outro pai, de outro projeto ou de outro tipo.",
+      "moveInListRecordNotFound": "404 Not Found: o registro não está lá para mover: foi excluído, ou quem chama não pode lê-lo.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: quem chama pode ler o registro, mas não mudar o seu número, assim como uma atualização dele seria recusada.",
+      "moveInListBuiltInOrder": "400 Bad Request: o movimento tiraria de ordem os estados embutidos do projeto, como o estado resolvido no nível do reconhecido ou acima dele. A resposta os nomeia."
     },
     "dataType": {
       "enumBadge": "Enum",

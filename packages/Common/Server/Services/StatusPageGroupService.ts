@@ -107,7 +107,7 @@ export class Service extends ProjectReferencesService<Model> {
    * send; a write of `order` places the group alone.
    */
   @CaptureSpan()
-  public async moveInList(data: {
+  public override async moveInList(data: {
     id: ObjectID;
     placeOfId: ObjectID;
     props: DatabaseCommonInteractionProps;

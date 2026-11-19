@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Dieser Endpunkt beendet eine laufende Überschreibung nach der Uhr des Servers: Ihr Ende wird jetzt, und die Alarme gehören ab dann wieder der abwesenden Person. Er braucht dieselbe Berechtigung wie eine Aktualisierung und gibt das neue endsAt der Überschreibung zurück.",
       "userOverrideEndNowRequestTitle": "Anfrage zum Jetzt-Beenden",
       "userOverrideIdDescription": "ID der Benutzerüberschreibung",
-      "userOverrideEndNowRefused": "400 Bad Request: Die Überschreibung hat noch nicht begonnen (lösche sie stattdessen), hat schon geendet oder endet ohnehin innerhalb der Minute."
+      "userOverrideEndNowRefused": "400 Bad Request: Die Überschreibung hat noch nicht begonnen (lösche sie stattdessen), hat schon geendet oder endet ohnehin innerhalb der Minute.",
+      "moveInListHeading": "Verschieben",
+      "moveInListIntro": "Dieser Endpunkt verschiebt den Datensatz an den Platz des Datensatzes, den placeOfId nennt, in der Liste, die beide teilen: nach oben verschoben landet er direkt über diesem Datensatz, nach unten verschoben direkt darunter; die Datensätze dazwischen rücken einen Platz in Richtung seiner alten Stelle. Danach wird die Liste von oben nummeriert, 1, 2, 3 und so weiter (bei einer Liste, die abwärts zählt, von ihrer höchsten Zahl abwärts), in einer Transaktion, sodass gleichzeitige Verschiebungen nie zwei Datensätze mit derselben Zahl hinterlassen. Er antwortet mit changedRows: jedem Datensatz, der eine andere Zahl bekam, mit seiner _id und seiner neuen Zahl unter der Zahlenspalte der Liste. Ein Anlegen oder Aktualisieren, das diese Zahl schreibt, platziert den Datensatz allein und verschiebt keinen anderen, was Terraform braucht; um einen Datensatz an anderen vorbei zu verschieben, senden Sie diese Anfrage. Er braucht dieselbe Berechtigung wie eine Aktualisierung der Zahl des Datensatzes.",
+      "moveInListRequestTitle": "Anfrage zum Verschieben",
+      "moveInListIdDescription": "ID des zu verschiebenden Datensatzes",
+      "placeOfIdDescription": "Die ID des Datensatzes derselben Liste, dessen Platz dieser Datensatz einnimmt.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId fehlt oder ist keine ID, oder es nennt einen Datensatz, der nicht in derselben Liste ist wie der verschobene: der eines anderen übergeordneten Datensatzes, eines anderen Projekts oder einer anderen Art.",
+      "moveInListRecordNotFound": "404 Not Found: Der Datensatz ist nicht da, um verschoben zu werden: Er wurde gelöscht, oder der Aufrufer darf ihn nicht lesen.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: Der Aufrufer darf den Datensatz lesen, aber seine Zahl nicht ändern, so wie eine Aktualisierung abgelehnt würde.",
+      "moveInListBuiltInOrder": "400 Bad Request: Die Verschiebung brächte die eingebauten Status des Projekts aus ihrer Reihenfolge, etwa den behobenen Status auf oder über den bestätigten. Die Antwort nennt sie."
     },
     "dataType": {
       "enumBadge": "Enum",
