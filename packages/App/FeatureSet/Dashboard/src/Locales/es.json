@@ -56996,7 +56996,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "Para ver qué niveles recomendados de la política de presupuesto de errores le faltan a un SLO, se necesita un rol que pueda leer niveles de política de presupuesto de errores de SLO.",
   "Show Whole Map": "Mostrar todo el mapa",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "Se muestran los flujos de las tablas, canalizaciones, servicios y paneles cuyos nombres contienen {{search}}, de todo tu proyecto.",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "Recopilación de tablas intentada el",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "No se pudo añadir la política recomendada a este SLO, así que no se añadió nada. Volver a añadirla añade lo que falta.",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "El servidor no indicó qué pasó con este SLO. Su página Política de presupuesto de errores muestra lo que le falta.",

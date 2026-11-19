@@ -56996,7 +56996,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "SLO에 없는 추천 오류 예산 정책 단계를 보려면 SLO 오류 예산 정책 단계를 읽을 수 있는 역할이 필요합니다.",
   "Show Whole Map": "전체 지도 표시",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "프로젝트 전체에서 이름에 {{search}}이(가) 포함된 테이블, 파이프라인, 서비스, 대시보드의 흐름을 표시합니다.",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "테이블 상태 수집 시도 시각",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "이 SLO에 추천 정책을 추가하지 못해 아무것도 추가되지 않았습니다. 다시 추가하면 없는 단계가 추가됩니다.",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "서버가 이 SLO에 어떤 일이 있었는지 알려 주지 않았습니다. 없는 단계는 이 SLO의 오류 예산 정책 페이지에서 확인할 수 있습니다.",

@@ -56996,7 +56996,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "Чтобы видеть, каких рекомендуемых уровней политики бюджета ошибок не хватает SLO, нужна роль с правом читать уровни политики бюджета ошибок SLO.",
   "Show Whole Map": "Показать всю карту",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "Показаны потоки таблиц, пайплайнов, сервисов и панелей, в названиях которых есть {{search}}, из всего вашего проекта.",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "Попытка сбора таблиц",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "Не удалось добавить рекомендуемую политику в этот SLO, поэтому ничего не добавлено. При повторном добавлении будет добавлено то, чего не хватает.",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "Сервер не сообщил, что произошло с этим SLO. Чего ему не хватает, видно на его странице «Политика бюджета ошибок».",

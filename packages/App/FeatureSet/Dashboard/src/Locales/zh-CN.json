@@ -56996,7 +56996,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "查看 SLO 缺少哪些推荐的错误预算策略级别需要一个可以读取 SLO 错误预算策略级别的角色。",
   "Show Whole Map": "显示整张地图",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "正在显示整个项目中名称包含 {{search}} 的表、管道、服务和仪表板的数据流。",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "表健康状况采集尝试时间",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "无法为此 SLO 添加推荐的策略，因此未添加任何内容。再次添加会添加缺少的部分。",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "服务器没有说明此 SLO 的处理结果。其“错误预算策略”页面会显示它缺少的级别。",

@@ -56996,7 +56996,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "دیدن اینکه یک SLO کدام سطح‌های سیاست بودجه خطای پیشنهادی را ندارد به نقشی نیاز دارد که بتواند سطح‌های سیاست بودجه خطای SLO را بخواند.",
   "Show Whole Map": "نمایش کل نقشه",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "جریان‌های جدول‌ها، خطوط لوله، سرویس‌ها و داشبوردهایی که نامشان {{search}} را دارد، از کل پروژهٔ شما نمایش داده می‌شود.",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "زمان تلاش برای جمع‌آوری سلامت جدول",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "سیاست پیشنهادی به این SLO افزوده نشد، پس چیزی افزوده نشد. افزودن دوباره آنچه را کم است می‌افزاید.",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "سرور نگفت برای این SLO چه اتفاقی افتاد. صفحه سیاست بودجه خطای آن نشان می‌دهد چه چیزی کم دارد.",

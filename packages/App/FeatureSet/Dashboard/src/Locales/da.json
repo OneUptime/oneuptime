@@ -56996,7 +56996,7 @@
   "Seeing which recommended error budget policy tiers an SLO is missing takes a role that can read SLO error budget policy tiers.": "For at se, hvilke anbefalede niveauer i fejlbudgetpolitikken et SLO mangler, skal du have en rolle, der kan læse SLO-fejlbudgetpolitikniveauer.",
   "Show Whole Map": "Vis hele kortet",
   "Showing the flows of the tables, pipelines, services and dashboards whose names hold {{search}}, from your whole project.": "Viser flows fra de tabeller, pipelines, tjenester og dashboards, der har {{search}} i navnet, fra hele dit projekt.",
-  "Table Health Attempted At": "Table Health Attempted At",
+  "Table Health Attempted At": "Indsamling af tabeller forsøgt den",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "The recommended policy could not be added to this SLO, so nothing was added. Adding it again adds what is missing.": "Den anbefalede politik kunne ikke tilføjes til dette SLO, så intet blev tilføjet. Tilføjer du den igen, tilføjes det, der mangler.",
   "The server did not say what happened to this SLO. Its Error Budget Policy page shows what it is missing.": "Serveren oplyste ikke, hvad der skete med dette SLO. Dets side Fejlbudgetpolitik viser, hvad det mangler.",
