@@ -78,6 +78,7 @@ import {
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
+  ResourceAttentionText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 import { ResourceAttentionDialogRead } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttentionDialog";
 import KubernetesPartHero from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/Part/KubernetesPartHero";
@@ -298,11 +299,9 @@ const CRASH_LOOPING: Array<JSONObject> = [
 ];
 
 function textsOf(item: ResourceAttentionItem): Array<string> {
-  return item.reasons.map(
-    (reason: { text: string; values?: Record<string, string> }) => {
-      return ENGLISH.translateTemplate(reason.text, reason.values || {});
-    },
-  );
+  return item.reasons.map((reason: ResourceAttentionText): string => {
+    return ENGLISH.translateTemplate(reason.text, reason.values || {});
+  });
 }
 
 /*
