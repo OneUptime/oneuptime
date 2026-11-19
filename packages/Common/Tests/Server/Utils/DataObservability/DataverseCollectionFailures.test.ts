@@ -665,14 +665,26 @@ describe("asking again", () => {
 
   test("one collection waits a minute at most in all; after that, nothing is asked again", async () => {
     const waits: Array<number> = [];
+    let asked: number = 0;
+    // Each of the first ten reads fails twice and is answered at its third try; after that, nothing is answered.
     const fake: FakeDataverse = new FakeDataverse().answer(
       (request: FakeRequest) => {
-        return request.path === "/accounts" ? fakeEmpty(500) : null;
+        if (request.path !== "/accounts") {
+          return null;
+        }
+
+        asked++;
+
+        return asked <= 30 && asked % 3 === 0 ? null : fakeEmpty(500);
       },
     );
     const api: DataverseApi = client(fake, { waits });
 
-    for (let read: number = 0; read < 12; read++) {
+    for (let read: number = 0; read < 10; read++) {
+      await api.readNewestChange("accounts");
+    }
+
+    for (let read: number = 0; read < 2; read++) {
       await rejectionOf(api.readNewestChange("accounts"));
     }
 
@@ -683,6 +695,33 @@ describe("asking again", () => {
         return sum + wait;
       }, 0),
     ).toBe(DATAVERSE_RETRY_BUDGET_IN_MS);
+  });
+
+  test("an outage is not asked again: once two reads in a row fail every try, the rest are asked once, until something answers", async () => {
+    const waits: Array<number> = [];
+    let isDown: boolean = true;
+    const fake: FakeDataverse = new FakeDataverse().answer(
+      (request: FakeRequest) => {
+        return request.path === "/accounts" && isDown ? fakeEmpty(503) : null;
+      },
+    );
+    const api: DataverseApi = client(fake, { waits });
+
+    for (let read: number = 0; read < 5; read++) {
+      await rejectionOf(api.readNewestChange("accounts"));
+    }
+
+    // Two reads asked three times each, then three asked once: five more requests, not fifteen.
+    expect(fake.requests).toHaveLength(2 * 3 + 3);
+    expect(waits).toEqual([2_000, 4_000, 2_000, 4_000]);
+
+    // An answer lifts it: the next read that fails for a moment is asked again.
+    isDown = false;
+    await api.readNewestChange("accounts");
+    isDown = true;
+    await rejectionOf(api.readNewestChange("accounts"));
+
+    expect(fake.requests).toHaveLength(2 * 3 + 3 + 1 + 3);
   });
 
   test("Entra ID that fails for now is asked again, then said in its own words", async () => {

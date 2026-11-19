@@ -135,6 +135,7 @@ router.post(
           probeConnectionVariable: true,
           scanExclusions: true,
           tableHealthCollectedAt: true,
+          tableHealthSkippedTables: true,
         },
         limit: claimed.length,
         skip: 0,

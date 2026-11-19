@@ -147,7 +147,7 @@ Or with a Dataverse connection string, as its SDKs take it: `AuthType=ClientSecr
 
 An environment holds hundreds of tables of its own, so only these are watched: the core business tables (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` and `annotation`) and your own custom tables. The tables of Microsoft's apps, whose names start with `msdyn_`, `adx_` or another `ms` prefix, are left out. Name any other table by its logical name to watch it too: `"tables": ["msdyn_workorder", "systemuser"]`.
 
-Every five minutes the Web API gives each table's definition, its rows and its newest `modifiedon`, which is when it last changed. The rows come from the count Dataverse takes once a day, so they lag by up to a day. The columns are read once an hour. Each collection makes two requests, and one more per watched table, against the app's limit of 6,000 requests in five minutes. A request Dataverse fails for a moment, or asks to wait a few seconds for, is sent again, twice at most; when it asks to wait longer, the rest of the reads wait for the next collection. A table Dataverse cannot read is left out on its own, and the database's warning names it, with Dataverse's own error code and message. Exclude a table to stop reading it.
+Every five minutes the Web API gives each table's definition, its rows and its newest `modifiedon`, which is when it last changed. The rows come from the count Dataverse takes once a day, so they lag by up to a day. The columns are read once an hour. Each collection makes two requests, and one more per watched table, against the app's limit of 6,000 requests in five minutes. A request Dataverse fails for a moment, or asks to wait a few seconds for, is sent again, twice at most; when it asks to wait longer, the rest of the reads wait for the next collection. A table Dataverse cannot read is left out on its own, with Dataverse's own error code and message, and skipped until its next try: an hour later, then two hours, then four, up to a day. The database's page lists the skipped tables under **Skipped Tables**. **Collect Now** asks them all again at once, and so does a change to the environment's tables or to the app that reads them. Exclude a table to stop reading it.
 
 Checks run as read-only SQL on the environment's TDS endpoint, on port 1433 or 5558, signed in as the same app. It is on unless an admin turned it off. Where user level access control for it is on, the app's role needs the **Allow user to access TDS endpoint** privilege. Its SQL has no regular expressions, no `WITH` and no sample, so a check there reads every row.
 :::
@@ -160,7 +160,7 @@ Checks run as read-only SQL on the environment's TDS endpoint, on port 1433 or 5
 | Checks | Every 15 minutes, hour, 6 hours or day, as each says |
 | Lineage and last reads from query history | Once an hour, back to the last read |
 
-Every statement runs read-only, with a statement and lock timeout where the engine has them. The connection string is never logged and is taken out of every error. A statistic the login may not read is left out with a warning on the database, never a failed collection. Connections to private addresses are refused on OneUptime Cloud: use a probe.
+Every statement runs read-only, with a statement and lock timeout where the engine has them. A request that Snowflake, Databricks, BigQuery, Athena, ClickHouse or Dataverse turns away or fails for a moment, with a 429, a 503 or its own answer that it is too busy, is sent again, twice at most and within a minute of waiting per collection, and never in a way that could run a statement twice. The connection string is never logged and is taken out of every error. A statistic the login may not read is left out with a warning on the database, never a failed collection. Connections to private addresses are refused on OneUptime Cloud: use a probe.
 
 ## Read replicas
 
@@ -174,11 +174,12 @@ Each path then shows under **Tables**: its newest object is when it last changed
 
 ## Troubleshooting
 
-- **The database shows Failed.** Its message says why: a host OneUptime cannot reach, a login refused, a TLS mode the server does not accept. For a database inside your network, connect it through a probe. A Dataverse environment's names what was being read and Dataverse's own error code and message, and for a failure on Dataverse's side the request ID Microsoft support can trace. **Collect Now** tries again at once, and the page shows how it went.
+- **The database shows Failed.** Its message says why: a host OneUptime cannot reach, a login refused, a TLS mode the server does not accept. For a database inside your network, connect it through a probe. For Snowflake, Databricks, BigQuery, Athena, ClickHouse and Dataverse, it names what was being read, the service's own error code and message, and the request or query ID its support can trace, where it gives one. **Collect Now** tries again at once, and the page shows how it went.
 - **Tables show no last change.** The login cannot read the engine's statistics: grant what your engine's tab lists, or wait for a table's rows to change twice.
 - **A table is missing.** It is in a schema the login cannot use, or it is excluded on the database. Grant `USAGE` on its schema, or remove the exclusion.
 - **A MySQL table has no columns.** The login needs `REFERENCES`, as above: it shows a table's columns without giving any read of its rows.
 - **A Dataverse environment says it refused the app.** Add the app to the environment as an application user, with a security role that may read the tables, as on the Microsoft Dataverse tab.
+- **A Dataverse table is skipped.** Dataverse could not read it, and **Skipped Tables** on the database's page says why, in Dataverse's own words. If the app's security role may not read the table, give it read access, then choose **Collect Now**: every skipped table is asked again at once.
 - **A Dataverse table is missing.** Only the core business tables and your own custom tables are watched. Name it in `tables`, by its logical name.
 
 ## Next steps

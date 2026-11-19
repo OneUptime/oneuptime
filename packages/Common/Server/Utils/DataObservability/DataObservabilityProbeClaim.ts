@@ -20,6 +20,10 @@ import {
 } from "./TableHealthCollector";
 import { PlannedDataCheck } from "./DataCheckResults";
 import {
+  readSkippedTables,
+  SkippedTables,
+} from "../../../Types/DataObservability/SkippedTables";
+import {
   SetAsideCounts,
   getClaimSetAsideParameters,
   getClaimSetAsideStatement,
@@ -257,5 +261,19 @@ export function buildProbeCollectWork(
       store.tableHealthCollectedAt,
       now,
     ),
+    ...readSkippedTablesOf(store, now),
   };
+}
+
+// What the database refused at earlier collections, for the probe to skip until each one's next try (#9541).
+function readSkippedTablesOf(
+  store: DataStore,
+  now: Date,
+): Pick<DataObservabilityProbeStoreWork, "skippedTables"> {
+  const skippedTables: SkippedTables | null = readSkippedTables(
+    store.tableHealthSkippedTables,
+    now,
+  );
+
+  return skippedTables ? { skippedTables } : {};
 }

@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDataBiConnectionReadState1809184910000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184910000-AddDataBiConnectionReadState";
+import { AddDataBiConnectionReadState1809184920000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184920000-AddDataBiConnectionReadState";
 import DataBiConnection from "../../../../Models/DatabaseModels/DataBiConnection";
 import Permission from "../../../../Types/Permission";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -22,12 +22,12 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * statement to the model (it was generated from it).
  */
 
-const MIGRATION_TIMESTAMP: string = "1809184910000";
+const MIGRATION_TIMESTAMP: string = "1809184920000";
 const MIGRATION_BASE_NAME: string = "AddDataBiConnectionReadState";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "AddMonitorNetworkDeviceIdIndexAndKey1809184900100";
+  "AddTableHealthSkippedTables1809184919541";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -42,7 +42,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddDataBiConnectionReadState1809184910000();
+    new AddDataBiConnectionReadState1809184920000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -53,7 +53,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddDataBiConnectionReadState1809184910000", () => {
+describe("AddDataBiConnectionReadState1809184920000", () => {
   test("adds readState to DataBiConnection, a nullable JSON column", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "DataBiConnection" ADD "readState" jsonb`,
@@ -109,7 +109,7 @@ describe("AddDataBiConnectionReadState1809184910000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddDataBiConnectionReadState1809184910000().name).toBe(
+    expect(new AddDataBiConnectionReadState1809184920000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 
