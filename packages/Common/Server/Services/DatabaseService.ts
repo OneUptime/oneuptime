@@ -2878,7 +2878,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * Once the record is saved: handed the create's one OnCreate, the very
-   * object onCreatePermitted was handed (see onCreateError).
+   * object onCreatePermitted was handed (see onCreateError). The record is
+   * in the audit log already, as it was inserted. One that throws fails the
+   * create, whose record stays: open pages still hear of it, and no
+   * workflow starts on it (_create, #9616).
    */
   protected async onCreateSuccess(
     _onCreate: OnCreate<TBaseModel>,
@@ -2939,6 +2942,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve(error);
   }
 
+  /*
+   * Once the rows are deleted, last: they are in the audit log already, and
+   * their workflow and realtime events went. One that throws fails the
+   * delete, whose rows stay deleted (_deleteBy, #9616).
+   */
   protected async onDeleteSuccess(
     onDelete: OnDelete<TBaseModel>,
     _itemIdsBeforeDelete: Array<ObjectID>,
@@ -7432,6 +7440,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whether the row was written: a rule's then changes its project's rules.
     let isRowWritten: boolean = false;
 
+    /*
+     * Whether the record is there to stay: its row written, and not taken
+     * out again because its creator could not be made its owner
+     * (makeCreatorOwnerOrUndo). From then on it is in the audit log, and
+     * open pages hear of it, however the create ends (#9616).
+     */
+    let isRecordKept: boolean = false;
+
+    // Whether open pages were told of the record (its realtime event).
+    let isRealtimeEventSent: boolean = false;
+
     try {
       /*
        * The INSERT itself, in save()'s own transaction - or, held to a
@@ -7472,6 +7491,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (isOwnedByCreatorFirst) {
         await this.makeCreatorOwnerOrUndo(createBy.data, createBy.props);
       }
+
+      isRecordKept = true;
+
+      // In the audit log at once, as it was inserted. See the helper.
+      await this.recordCreateInAuditLog(createBy);
 
       // The rows that make room for it, now that it exists.
       await this.applyListOrderCreatePlan(listOrderPlan);
@@ -7537,15 +7561,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         await this.autoOwnerOnCreate(createBy.data, createBy.props);
       }
 
-      let tenantId: ObjectID | undefined = createBy.props.tenantId;
+      const tenantId: ObjectID | undefined = this.getTenantIdOfCreate(createBy);
 
-      if (!tenantId && this.getModel().getTenantColumn()) {
-        tenantId = createBy.data.getValue<ObjectID>(
-          this.getModel().getTenantColumn()!,
-        );
-      }
-
-      // hit workflow, never failing the create, whose row is written. See the helper.
+      /*
+       * hit workflow, never failing the create, whose row is written. See
+       * the helper. After the hooks: a run reads the record as they leave it.
+       */
       if (this.getModel().enableWorkflowOn?.create && tenantId) {
         await this.triggerWorkflowAfterWrite({
           id: createBy.data.id!,
@@ -7554,36 +7575,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         });
       }
 
-      if (tenantId) {
-        await this.onTriggerRealtime(
-          createBy.data.id!,
-          tenantId,
-          ModelEventType.Create,
-        );
-      }
-
-      if (
-        !createBy.props.ignoreHooks &&
-        this.getModel().enableAuditLogOn?.create
-      ) {
-        /*
-         * Lazy require to avoid circular dependency between DatabaseService and
-         * AuditLogService (which depends on ProjectService/UserService, both of
-         * which extend DatabaseService). A top-level import leaves
-         * DatabaseService undefined at class-extension time for subclasses.
-         */
-        const auditLogService: typeof AuditLogServiceType =
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require("./AuditLogService").default;
-        await auditLogService.recordCreate({
-          model: this.getModel(),
-          createdItem: createBy.data,
-          props: createBy.props,
-        });
-      }
+      // Open pages hear of it last, as its hooks leave it.
+      isRealtimeEventSent = true;
+      await this.triggerRealtimeOfCreate(createBy);
 
       return createBy.data;
     } catch (error) {
+      /*
+       * A create that fails once its record is there to stay - a service's
+       * onCreateSuccess that threw, a step after the INSERT - still fails:
+       * create() hands its error to onCreateError (WriteStep.AroundWrite),
+       * as it does every failure of a create. But its record was made, so
+       * it is in the audit log already (above), and open pages hear of it
+       * as of any record created: nobody is left looking at a list without
+       * a record that is there, and its creator, told the create failed,
+       * can see that it was made (#9616). A page hearing of one a hook took
+       * out again reads the list as it is. No workflow starts on it: a run
+       * reads the record as the hooks leave it, and they did not finish
+       * with it.
+       */
+      if (isRecordKept && !isRealtimeEventSent) {
+        isRealtimeEventSent = true;
+
+        try {
+          await this.triggerRealtimeOfCreate(createBy);
+        } catch (realtimeError) {
+          // Never in place of the failure the caller is told of.
+          logger.error(realtimeError, {
+            projectId: this.getTenantIdOfCreate(createBy)?.toString(),
+          } as LogAttributes);
+        }
+      }
+
       /*
        * The database's own refusal, in words its caller can act on; create()
        * hands it to onCreateError, as it does every failure of a create.
@@ -7604,6 +7627,78 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         });
       }
     }
+  }
+
+  /*
+   * The audit log's entry of a create (#9616): recorded once the record is
+   * there to stay (_create), as it was inserted, before anything else
+   * happens to it. Nothing in the entry depends on what comes after - the
+   * list it joins, the caches, the service's own onCreateSuccess, its
+   * owners - so none of those failing leaves a record that the audit log
+   * never saw created, though the create itself still fails. And what the
+   * hooks change of the record once it exists - its status set, a secret
+   * filled in, the record taken out again when its first verification
+   * code cannot be sent - is in the audit log after its create, as the
+   * changes they are, never before it. Skipped with ignoreHooks, as it
+   * always was. Never throws (AuditLogService).
+   */
+  private async recordCreateInAuditLog(
+    createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    if (createBy.props.ignoreHooks || !this.getModel().enableAuditLogOn?.create) {
+      return;
+    }
+
+    /*
+     * Lazy require to avoid circular dependency between DatabaseService and
+     * AuditLogService (which depends on ProjectService/UserService, both of
+     * which extend DatabaseService). A top-level import leaves
+     * DatabaseService undefined at class-extension time for subclasses.
+     */
+    const auditLogService: typeof AuditLogServiceType =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("./AuditLogService").default;
+
+    await auditLogService.recordCreate({
+      model: this.getModel(),
+      createdItem: createBy.data,
+      props: createBy.props,
+    });
+  }
+
+  // The project of a record created: the create's own, or the record's.
+  private getTenantIdOfCreate(
+    createBy: CreateBy<TBaseModel>,
+  ): ObjectID | undefined {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (createBy.props.tenantId || !tenantColumn) {
+      return createBy.props.tenantId;
+    }
+
+    return createBy.data.getValue<ObjectID>(tenantColumn);
+  }
+
+  /*
+   * Tells the open pages listening for this table that the record was
+   * created (onTriggerRealtime): once, at the end of a create that
+   * succeeds, or of one that failed once its record was there to stay
+   * (_create).
+   */
+  private async triggerRealtimeOfCreate(
+    createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    const tenantId: ObjectID | undefined = this.getTenantIdOfCreate(createBy);
+
+    if (!tenantId) {
+      return;
+    }
+
+    await this.onTriggerRealtime(
+      createBy.data.id!,
+      tenantId,
+      ModelEventType.Create,
+    );
   }
 
   /*
@@ -9530,6 +9625,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           },
         );
 
+        // In the audit log at once, as read before the DELETE. See the helper.
+        await this.recordDeleteInAuditLog(items, deleteBy.props);
+
         /*
          * Their attached files go with them, unless something still holds
          * them. See AttachedFiles.
@@ -9620,6 +9718,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      /*
+       * The service's own hook, last. One that throws fails the delete
+       * (onDeleteError, WriteStep.AroundWrite), whose rows are gone: they
+       * are in the audit log already, and their workflow and realtime events
+       * went, above (#9616).
+       */
       if (!deleteBy.props.ignoreHooks) {
         await this.onDeleteSuccess(
           { deleteBy, carryForward },
@@ -9627,22 +9731,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             return new ObjectID(i._id!);
           }),
         );
-      }
-
-      if (this.getModel().enableAuditLogOn?.delete && items.length > 0) {
-        const auditLogService: typeof AuditLogServiceType =
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require("./AuditLogService").default;
-        for (const item of items) {
-          if (item.id) {
-            await auditLogService.recordDelete({
-              model: this.getModel(),
-              deletedItem: item,
-              itemId: item.id,
-              props: deleteBy.props,
-            });
-          }
-        }
       }
 
       return numberOfDocsAffected;
@@ -9659,6 +9747,40 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         tableName: this.model.tableName,
         rows: rowsOfDelete,
       });
+    }
+  }
+
+  /*
+   * The audit log's entry of each row a delete removed (#9616): recorded
+   * right after the DELETE (_deleteBy), from the row as it was read before
+   * it - whole, when the table's deletes are audited. Nothing in an entry
+   * depends on what comes after - the files let go of, the caches, the
+   * workflow and realtime events, the service's own onDeleteSuccess - so
+   * none of those failing leaves rows deleted that the audit log never saw
+   * go, though the delete itself still fails. Never throws
+   * (AuditLogService).
+   */
+  private async recordDeleteInAuditLog(
+    items: Array<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    if (!this.getModel().enableAuditLogOn?.delete || items.length === 0) {
+      return;
+    }
+
+    const auditLogService: typeof AuditLogServiceType =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("./AuditLogService").default;
+
+    for (const item of items) {
+      if (item.id) {
+        await auditLogService.recordDelete({
+          model: this.getModel(),
+          deletedItem: item,
+          itemId: item.id,
+          props: props,
+        });
+      }
     }
   }
 
