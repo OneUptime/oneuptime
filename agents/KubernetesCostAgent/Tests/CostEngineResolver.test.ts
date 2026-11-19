@@ -71,11 +71,11 @@ class World {
 
   public resolver(
     mode: CostEngineMode,
-    overrides?: { rateCardHint?: string },
+    overrides?: { rateCardHint?: string; engineUrl?: string },
   ): CostEngineResolver {
     return new CostEngineResolver({
       mode: mode,
-      engineUrl: mode === "auto" ? "" : BUNDLED_URL,
+      engineUrl: overrides?.engineUrl ?? (mode === "auto" ? "" : BUNDLED_URL),
       rateCardHint: overrides?.rateCardHint || "",
       listServices: async (
         query: ServiceQuery,
@@ -411,4 +411,76 @@ test("the same engine found again keeps its client, so its detected API path sta
   // One more client to verify it again, but the one in use is the same.
   assert.strictEqual(world.clientsCreated.length, clients + 1);
   assert.strictEqual(resolver.describe()?.service, "opencost/opencost");
+});
+
+// --- whose price metrics the collector scrapes (#9776) ---------------------
+
+test("the price metrics are those of the engine cost.engine.url names, from the start", (): void => {
+  const world: World = new World();
+
+  assert.deepStrictEqual(
+    world
+      .resolver("configured", {
+        engineUrl: "http://kubecost-frontend.kubecost.svc.cluster.local:9090",
+      })
+      .metricsEngine(),
+    {
+      url: "http://kubecost-frontend.kubecost.svc.cluster.local:9090",
+      namespace: "kubecost",
+    },
+  );
+  // Not a Service: no namespace to find a finops agent in.
+  assert.deepStrictEqual(
+    world
+      .resolver("configured", { engineUrl: "https://kubecost.example.com/" })
+      .metricsEngine(),
+    { url: "https://kubecost.example.com", namespace: null },
+  );
+  assert.strictEqual(world.lists, 0);
+});
+
+test("the price metrics follow the engine the allocations are read from", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  world.engine(KUBECOST_URL, { kind: "Kubecost" });
+  world.engine(BUNDLED_URL, {});
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+
+  // Before the first look: the bundled engine.
+  assert.deepStrictEqual(resolver.metricsEngine(), {
+    url: BUNDLED_URL,
+    namespace: "oneuptime",
+  });
+
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(resolver.metricsEngine(), {
+    url: KUBECOST_URL,
+    namespace: "kubecost",
+  });
+});
+
+test("auto has no price metrics to scrape until it has an engine, nor after losing it", async (): Promise<void> => {
+  const world: World = new World();
+  const resolver: CostEngineResolver = world.resolver("auto");
+
+  assert.strictEqual(resolver.metricsEngine(), null);
+
+  world.services = [OPENCOST];
+  const engine: FakeEngine = world.engine(OPENCOST_URL, {});
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.deepStrictEqual(resolver.metricsEngine(), {
+    url: OPENCOST_URL,
+    namespace: "opencost",
+  });
+
+  // It keeps failing, and is dropped.
+  engine.answer = new Error("ECONNREFUSED");
+  for (let i: number = 0; i < 3; i++) {
+    await assert.rejects(resolver.fetchAllocations(WINDOW));
+  }
+
+  assert.strictEqual(resolver.metricsEngine(), null);
 });

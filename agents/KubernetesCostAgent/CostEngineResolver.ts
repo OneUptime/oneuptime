@@ -13,7 +13,9 @@ import {
   EngineCandidate,
   EngineKind,
   discoverEngineCandidates,
+  serviceOfUrl,
 } from "./EngineDiscovery";
+import { MetricsEngine } from "./EngineMetrics";
 import { EnginePricing, readEnginePricing } from "./EnginePricing";
 import { ListServices, listServices } from "./KubernetesApi";
 import Logger from "./Logger";
@@ -376,6 +378,48 @@ export class CostEngineResolver implements CostEngineSource {
   // What the next shipment says priced its rows; undefined before any engine.
   public engineUrl(): string | undefined {
     return this.selected?.client.baseUrl;
+  }
+
+  /*
+   * The engine whose price metrics the collector should scrape (#9776): the
+   * one the allocations are read from, so the Cost dashboard and the Costs
+   * pages are priced alike. The engine cost.engine.url names from the start;
+   * otherwise the one in use, the bundled one before the first look, and in
+   * auto mode none until one is found. Its namespace, when it is an
+   * in-cluster Service, is where a Kubecost 3 finops agent would be.
+   */
+  public metricsEngine(): MetricsEngine | null {
+    if (this.options.mode === "configured") {
+      return this.metricsEngineAt(this.options.engineUrl, null);
+    }
+
+    if (this.selected) {
+      return this.metricsEngineAt(
+        this.selected.client.baseUrl,
+        this.selected.candidate,
+      );
+    }
+
+    return this.options.mode === "bundled"
+      ? this.metricsEngineAt(this.options.engineUrl, null)
+      : null;
+  }
+
+  private metricsEngineAt(
+    url: string,
+    candidate: EngineCandidate | null,
+  ): MetricsEngine | null {
+    const trimmed: string = url.trim().replace(/\/+$/, "");
+
+    if (!trimmed) {
+      return null;
+    }
+
+    return {
+      url: trimmed,
+      namespace:
+        candidate?.namespace || serviceOfUrl(trimmed)?.namespace || null,
+    };
   }
 
   public describe(): KubernetesCostEngineInfo | undefined {

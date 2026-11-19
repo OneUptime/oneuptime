@@ -1,3 +1,4 @@
+import { URL } from "url";
 import { KubernetesService, ListServices, ServiceQuery } from "./KubernetesApi";
 
 /*
@@ -237,6 +238,41 @@ export const discoverEngineCandidates: (data: {
   }
 
   return rankEngineCandidates(Array.from(byService.values()));
+};
+
+/*
+ * The Service an in-cluster URL names, or null for any other address. A
+ * Service is reached as <service>.<namespace>, optionally followed by .svc
+ * and the cluster's domain (.svc.cluster.local); an ingress host
+ * (kubecost.example.com), an IP address or a bare name is not read as one.
+ */
+export const serviceOfUrl: (
+  url: string,
+) => { name: string; namespace: string } | null = (
+  url: string,
+): { name: string; namespace: string } | null => {
+  let host: string;
+
+  try {
+    host = new URL(url.trim()).hostname.toLowerCase().replace(/\.$/, "");
+  } catch {
+    return null;
+  }
+
+  const parts: Array<string> = host.split(".");
+  const isServiceHost: boolean =
+    parts.length === 2 || (parts.length >= 3 && parts[2] === "svc");
+
+  if (
+    !isServiceHost ||
+    IPV4_PATTERN.test(host) ||
+    !isDnsLabel(parts[0] || "") ||
+    !isDnsLabel(parts[1] || "")
+  ) {
+    return null;
+  }
+
+  return { name: parts[0]!, namespace: parts[1]! };
 };
 
 /*
