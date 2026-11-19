@@ -5,7 +5,7 @@ Un moniteur Kubernetes alerte sur les métriques que l'agent Kubernetes de OneUp
 :::cards
 - [Installer l'agent](/docs/monitor/kubernetes-agent): Une seule commande Helm fait entrer le cluster dans OneUptime.
 - [Créer le moniteur](#créer-un-moniteur-kubernetes): Choisir le cluster, puis un modèle, une métrique ou une requête.
-- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Vingt-quatre alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
+- [Modèles d'alerte](#modèles-dalerte-prêts-à-lemploi): Vingt-cinq alertes prêtes à l'emploi, d'un cluster devenu silencieux à etcd.
 - [Critères](#critères-de-surveillance): Seuils statiques et détection d'anomalies.
 :::
 
