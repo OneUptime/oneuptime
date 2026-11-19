@@ -38,11 +38,15 @@ import ObjectID from "../../Types/ObjectID";
  *      record). No parent or subdomain matches: verifying acme.com offers
  *      nothing to sales.acme.com, and the reverse.
  *   3. The providers that are on and list one of those domains, in the
- *      domain's own project (Provider.domains). A provider that lists no
- *      domain is offered to nobody here: its admin decides what a domain of
- *      theirs reveals. Such a provider still signs people in from the
- *      identity provider's own dashboard, and from the project's sign-in
- *      page that a project requiring SSO sends its people to.
+ *      domain's own project (Provider.domains). The upgrade gave every
+ *      provider made before domains existed the verified domains its
+ *      project alone held (BackfillSsoProviderDomains1809186540000, #9918);
+ *      an admin picks the rest. A provider that lists no verified domain is
+ *      offered to nobody here, and the SSO settings page says so. Such a
+ *      provider still signs people in from the identity provider's own
+ *      dashboard, and from the project's SSO sign-in link
+ *      (/accounts/sso/<project>, by the project's id, with no address
+ *      asked), which its admin shares with people on other domains.
  *
  * No account, membership or invitation is read, so two addresses at one
  * domain get the same answer after the same work, whether or not either has

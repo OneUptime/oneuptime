@@ -7,6 +7,7 @@ import {
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
 import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
+import { getProjectSignInMethodsRoute } from "Common/Types/SSO/SignInMethods";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/signup"),
@@ -126,6 +127,20 @@ export const SERVICE_PROVIDER_LOGIN_OIDC_URL: URL = URL.fromURL(
 export const SIGN_IN_METHODS_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/sign-in-methods"),
 );
+
+/*
+ * The providers that sign people in to one project - its own and the
+ * instance-wide ones that reach it - for the page a project's SSO sign-in
+ * link opens (Pages/LoginWithProjectSso, #9918). Asked by the project's id
+ * alone: no address, so the answer says nothing about accounts.
+ */
+export const getProjectSignInMethodsApiUrl: (projectId: string) => URL = (
+  projectId: string,
+): URL => {
+  return URL.fromURL(IDENTITY_URL).addRoute(
+    new Route(getProjectSignInMethodsRoute(projectId)),
+  );
+};
 
 export const GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,
