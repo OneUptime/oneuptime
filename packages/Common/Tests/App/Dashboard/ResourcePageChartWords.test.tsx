@@ -21,6 +21,7 @@ import path from "path";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 import {
   getChartWordTexts,
@@ -411,6 +412,11 @@ interface PageGroup {
     name: string;
     Page: React.FunctionComponent<PageComponentProps>;
     source: string;
+    /*
+     * The files beside it that build some of its charts, under src: their
+     * words are the page's too.
+     */
+    helpers?: Array<string>;
   }>;
 }
 
@@ -422,6 +428,8 @@ const GROUPS: Array<PageGroup> = [
         name: "node",
         Page: NodeDetailPage,
         source: "Kubernetes/View/NodeDetail.tsx",
+        // Its disk charts (#9645), built as a claim's are.
+        helpers: ["Pages/Kubernetes/Utils/KubernetesNodeDiskCharts.ts"],
       },
       {
         name: "pod",
@@ -528,9 +536,11 @@ const GROUPS: Array<PageGroup> = [
  */
 const WORDED_SOURCES: Array<string> = [
   ...GROUPS.flatMap((group: PageGroup): Array<string> => {
-    return group.pages.map((page: { source: string }): string => {
-      return `Pages/${page.source}`;
-    });
+    return group.pages.flatMap(
+      (page: { source: string; helpers?: Array<string> }): Array<string> => {
+        return [`Pages/${page.source}`, ...(page.helpers || [])];
+      },
+    );
   }),
   "Pages/Kubernetes/View/ControlPlane.tsx",
   "Pages/Docker/View/ContainerDetail.tsx",
@@ -637,8 +647,17 @@ describe.each(
   )(
     "the %s page: English as the page wrote it; German and Arabic in their words, metric and unit untouched",
     async (_page: string, page: PageGroup["pages"][number]) => {
-      const pageWords: Set<string> = new Set<string>(
-        wordsOf(`Pages/${page.source}`),
+      /*
+       * Each word the page wrote, by the English it draws: a key that names
+       * its meaning, "Free (storage space)", draws its word, "Free".
+       */
+      const pageWords: Map<string, string> = new Map<string, string>(
+        [
+          ...wordsOf(`Pages/${page.source}`),
+          ...(page.helpers || []).flatMap(wordsOf),
+        ].map((word: string): [string, string] => {
+          return [withMeaningKeyAsItsWord(word), word];
+        }),
       );
       const englishCharts: Array<ChartWords> = await everyChart(
         page.Page,
@@ -677,11 +696,13 @@ describe.each(
           const worded: (english: string) => string = (
             english: string,
           ): string => {
-            const value: string | LocaleTree | undefined = locale[english];
+            // Looked up by the key the page wrote, which a meaning names.
+            const key: string = pageWords.get(english) || english;
+            const value: string | LocaleTree | undefined = locale[key];
 
             // As the page draws it: each number with its unit (NoBreakSpaces).
-            return typeof value === "string" && value !== english
-              ? withNoBreakSpaces(value, english, language)
+            return typeof value === "string" && value !== key
+              ? withNoBreakSpaces(value, key, language)
               : english;
           };
 

@@ -288,6 +288,22 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Node,
     unit: "bytes",
   },
+  /*
+   * The size of a node's root filesystem (#9645): what High Node Disk Usage
+   * divides by, as the kubelet measures nodefs.available against it.
+   */
+  {
+    id: "node-filesystem-capacity",
+    friendlyName: translationKey("Node Filesystem Capacity"),
+    description: translationKey(
+      "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.",
+    ),
+    metricName: "k8s.node.filesystem.capacity",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "bytes",
+  },
 
   // Container Metrics
   {

@@ -499,6 +499,37 @@ data:
       {{- end }}
 
     processors:
+      {{- if .Values.kubeletstats.volumeMetrics.enabled }}
+      # The volume series nobody reads, dropped before they leave the node
+      # (issue #9644). The volume group reports every volume a pod mounts,
+      # five series each, on every pod: its service account token, and its
+      # configMap, secret and downwardAPI volumes. Those hold a few small
+      # files on a memory-backed filesystem, so their capacity says nothing
+      # about any disk, and they were most of the group's series. Kept: a
+      # claim's volume (k8s.persistentvolumeclaim.name), an emptyDir and a
+      # hostPath, which fill a node's disk, and every volume this cannot
+      # name, among them a generic ephemeral volume's claim: the receiver
+      # labels no `ephemeral:` volume, and OneUptime files it under the claim
+      # its pod made, `<pod>-<volume>`.
+      #
+      # The receiver gives a volume k8s.volume.type from its pod's spec
+      # (extra_metadata_labels above) for configMap, secret, downwardAPI,
+      # emptyDir, hostPath and persistentVolumeClaim volumes, and for no
+      # projected one. So a projected token is told by its name: the
+      # service account token Kubernetes mounts in every pod
+      # (kube-api-access-<suffix>), and the tokens the EKS (IRSA, Pod
+      # Identity), Azure Workload Identity, Istio and Linkerd webhooks add.
+      # A projected volume of any other name is still sent.
+      #
+      # The same OTTL runs on collector 0.96.0, which --reuse-values keeps.
+      # tests/volume-series-filter_test.yaml pins it.
+      filter/volume-series:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'resource.attributes["k8s.volume.name"] != nil and resource.attributes["k8s.persistentvolumeclaim.name"] == nil and (resource.attributes["k8s.volume.type"] == "configMap" or resource.attributes["k8s.volume.type"] == "secret" or resource.attributes["k8s.volume.type"] == "downwardAPI" or (resource.attributes["k8s.volume.type"] == nil and IsMatch(resource.attributes["k8s.volume.name"], "^(kube-api-access-[a-z0-9]+|aws-iam-token|eks-pod-identity-token|azure-identity-token|istio-token|linkerd-identity-token)$")))'
+      {{- end }}
+
       # kubelet CPU under the names OneUptime reads. The kubeletstats
       # receiver stopped sending k8s.node.cpu.utilization,
       # k8s.pod.cpu.utilization and container.cpu.utilization in collector
@@ -710,6 +741,10 @@ data:
             {{- end }}
           processors:
             - memory_limiter
+            {{- if .Values.kubeletstats.volumeMetrics.enabled }}
+            # First: a dropped volume series costs nothing further down.
+            - filter/volume-series
+            {{- end }}
             # In this order: the filter clears the way for the copies.
             - filter/cpu-utilization
             - transform/cpu-utilization

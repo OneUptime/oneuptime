@@ -713,4 +713,95 @@ describe("the Needs attention card draws the same row", () => {
       );
     });
   });
+
+  /*
+   * A nearly full claim under the cluster's Needs attention (#9643): how
+   * much is used and free, how soon it is full, and the pod that mounts it.
+   */
+  function nearlyFullClaim(): ResourceAttentionItem {
+    return {
+      key: "PersistentVolumeClaim/data/data-postgres-0",
+      kind: "PVC",
+      kindAsWritten: true,
+      icon: IconProp.Database,
+      name: "data-postgres-0",
+      detail: "data",
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [
+        { text: "Almost out of space" },
+        {
+          text: "{{percent}} used, {{free}} free",
+          values: { percent: "95%", free: "2.5 GiB" },
+        },
+        {
+          text: "Full in about {{count}} hours",
+          plural: { one: "Full in about {{count}} hour", count: 5 },
+        },
+      ],
+      route: new Route("/dashboard/k8s/pvcs/data-postgres-0"),
+      facts: [
+        {
+          key: "pod",
+          label: "Pod",
+          value: "postgres-0",
+          route: new Route("/dashboard/k8s/pods/postgres-0"),
+        },
+      ],
+    };
+  }
+
+  test("a nearly full claim: used and free, how soon it is full, and its pod", () => {
+    render(
+      <NeedsAttentionCard
+        testId="needs-attention"
+        items={[nearlyFullClaim()]}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId("needs-attention-item");
+    const links: Array<HTMLElement> = within(row).getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]?.getAttribute("href")).toBe(
+      "/dashboard/k8s/pvcs/data-postgres-0",
+    );
+    expect(
+      within(row)
+        .getAllByTestId("needs-attention-reason")
+        .map((chip: HTMLElement): string => {
+          return chip.textContent || "";
+        }),
+    ).toEqual([
+      "Almost out of space",
+      "95% used, 2.5 GiB free",
+      // A count holds to the word it counts.
+      "Full in about 5 hours",
+    ]);
+    expect(within(row).getByTestId("needs-attention-facts")).toHaveTextContent(
+      "postgres-0",
+    );
+  });
+
+  test("in the dialog a count opens, its pod is a step to the pod's page", () => {
+    render(
+      <ResourceAttentionDialog
+        testId="full"
+        title="1 claim"
+        description="Claims nearly full."
+        items={[nearlyFullClaim()]}
+        emptyMessage="No claim is nearly full."
+        onClose={() => {}}
+        showKind={true}
+      />,
+    );
+
+    const facts: HTMLElement = screen.getByTestId("full-facts");
+    expect(facts).toHaveTextContent("Pod:");
+    expect(
+      within(facts)
+        .getAllByTestId("full-fact-link")
+        .map((link: HTMLElement): string | null => {
+          return link.getAttribute("href");
+        }),
+    ).toEqual(["/dashboard/k8s/pods/postgres-0"]);
+  });
 });
