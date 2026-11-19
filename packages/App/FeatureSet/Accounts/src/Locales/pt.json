@@ -244,7 +244,13 @@
     "signInWithProvider": "Entrar com {{name}}",
     "requiredSubtitle": "Este servidor exige login único (SSO).",
     "requiredNotSetUp": "O login único ainda não está configurado neste servidor. Peça ao administrador do servidor para configurá-lo.",
-    "useDifferentEmail": "Usar outro e-mail"
+    "useDifferentEmail": "Usar outro e-mail",
+    "lastUsedTitle": "Usado por último neste dispositivo",
+    "forgetLastUsed": "Esquecer este provedor",
+    "emailLinksPrompt": "Podemos enviar para este endereço os links de login SSO de todas as organizações às quais ele pertence.",
+    "emailLinksButton": "Enviar meus links de login",
+    "emailLinksSent": "Se este endereço pertence a uma organização que usa login único, enviamos para ele os links de login SSO.",
+    "emailLinksCaptchaRequired": "Conclua o captcha antes de pedir os links."
   },
   "adminLogin": {
     "title": "Login de administrador principal",

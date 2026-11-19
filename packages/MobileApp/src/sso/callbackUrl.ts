@@ -119,6 +119,16 @@ export type SsoCallbackResult =
       projectSsoToken: { projectId: string; ssoToken: string } | null;
     }
   | {
+      /*
+       * The sign-in handed back as a one-time code and the app's own state
+       * (#9989): redeemed with the verifier of the sign-in whose state it
+       * is (./session), never taken as a sign-in by itself.
+       */
+      status: "code";
+      code: string;
+      state: string;
+    }
+  | {
       // The server reported a failure and told us why.
       status: "error";
       message: string;
@@ -129,8 +139,21 @@ export type SsoCallbackResult =
       message: string;
     };
 
+// A callback that carried the sign-in itself, or a redeemed code's answer.
+export type SsoCallbackSuccess = Extract<
+  SsoCallbackResult,
+  { status: "success" }
+>;
+
 const GENERIC_FAILURE_MESSAGE: string =
   "Authentication failed. Please try again.";
+
+// What a code or a state that cannot be the server's is answered with.
+export const UNVERIFIED_SSO_CALLBACK_MESSAGE: string =
+  "This sign-in could not be verified. Please sign in with single sign-on again.";
+
+// 32 random bytes, base64url: what the server makes a code of.
+const CODE_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
 
 /**
  * Turns an `oneuptime://sso-callback?...` URL into the outcome it represents.
@@ -184,6 +207,31 @@ export function parseSsoCallbackUrl(
   const refreshToken: string | undefined = params["refreshToken"];
   const refreshTokenExpiresAt: string | undefined =
     params["refreshTokenExpiresAt"];
+
+  /*
+   * A one-time code (#9989). Only with a state, and never beside tokens: a
+   * link that carries both is nobody's the server made, and is not read as
+   * either.
+   */
+  const code: string | undefined = params["code"];
+
+  if (code !== undefined) {
+    const state: string | undefined = params["state"];
+
+    if (
+      !CODE_PATTERN.test(code) ||
+      !state ||
+      accessToken !== undefined ||
+      refreshToken !== undefined
+    ) {
+      return {
+        status: "invalid",
+        message: UNVERIFIED_SSO_CALLBACK_MESSAGE,
+      };
+    }
+
+    return { status: "code", code, state };
+  }
 
   if (!accessToken || !refreshToken || !refreshTokenExpiresAt) {
     return {

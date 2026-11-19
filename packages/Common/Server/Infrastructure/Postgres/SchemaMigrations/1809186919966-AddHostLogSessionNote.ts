@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * no key: adding it rewrites nothing and blocks nothing. Sessions asked for
  * before it have no note.
  */
-export class AddHostLogSessionNote1809186910000 implements MigrationInterface {
-  public name: string = "AddHostLogSessionNote1809186910000";
+export class AddHostLogSessionNote1809186919966 implements MigrationInterface {
+  public name: string = "AddHostLogSessionNote1809186919966";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

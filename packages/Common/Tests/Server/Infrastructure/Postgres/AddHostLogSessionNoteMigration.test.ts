@@ -4,7 +4,7 @@ import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import HostLogSession from "../../../../Models/DatabaseModels/HostLogSession";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddHostLogSessionNote1809186910000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186910000-AddHostLogSessionNote";
+import { AddHostLogSessionNote1809186919966 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186919966-AddHostLogSessionNote";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -25,7 +25,7 @@ import Permission from "../../../../Types/Permission";
  * written by the requester when they ask, and never changed after.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186910000";
+const MIGRATION_TIMESTAMP: string = "1809186919966";
 
 const MIGRATION_BASE_NAME: string = "AddHostLogSessionNote";
 
@@ -72,13 +72,13 @@ const makeQueryRunner: () => MakeQueryRunnerResult =
 
 async function upStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddHostLogSessionNote1809186910000().up(runner);
+  await new AddHostLogSessionNote1809186919966().up(runner);
   return statements;
 }
 
 async function downStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddHostLogSessionNote1809186910000().down(runner);
+  await new AddHostLogSessionNote1809186919966().down(runner);
   return statements;
 }
 
@@ -123,13 +123,13 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new AddHostLogSessionNote1809186910000();
+      new AddHostLogSessionNote1809186919966();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
     expect(
       Object.getOwnPropertyNames(
-        AddHostLogSessionNote1809186910000.prototype,
+        AddHostLogSessionNote1809186919966.prototype,
       ).sort(),
     ).toEqual(["constructor", "down", "up"]);
   });
@@ -149,10 +149,10 @@ describe("the migration runs", () => {
   });
 
   test("it is in the exported migration list, exactly once", () => {
-    expect(SchemaMigrations).toContain(AddHostLogSessionNote1809186910000);
+    expect(SchemaMigrations).toContain(AddHostLogSessionNote1809186919966);
     expect(
       SchemaMigrations.filter((migration: unknown): boolean => {
-        return migration === AddHostLogSessionNote1809186910000;
+        return migration === AddHostLogSessionNote1809186919966;
       }),
     ).toHaveLength(1);
   });
@@ -163,12 +163,12 @@ describe("the migration runs", () => {
    * the boot the second time.
    */
   test("its declared name, its class name and its timestamp agree", () => {
-    expect(new AddHostLogSessionNote1809186910000().name).toBe(
+    expect(new AddHostLogSessionNote1809186919966().name).toBe(
       MIGRATION_CLASS_NAME,
     );
-    expect(AddHostLogSessionNote1809186910000.name).toBe(MIGRATION_CLASS_NAME);
+    expect(AddHostLogSessionNote1809186919966.name).toBe(MIGRATION_CLASS_NAME);
     expect(
-      AddHostLogSessionNote1809186910000.name.match(CLASS_TIMESTAMP)?.[1],
+      AddHostLogSessionNote1809186919966.name.match(CLASS_TIMESTAMP)?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
   });
 
@@ -184,7 +184,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddHostLogSessionNote1809186910000,
+      AddHostLogSessionNote1809186919966,
     );
 
     expect(position).toBeGreaterThan(-1);

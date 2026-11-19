@@ -8,11 +8,55 @@ import {
   getSsoTokens,
 } from "../storage/ssoTokens";
 import { decodeJwtPayload, isJwtExpired, type JwtPayload } from "../utils/jwt";
+import { exchangeSsoCode } from "../api/sso";
 import {
   completeSsoLoginFromUrl,
+  SSO_SIGN_IN_NOT_STARTED_MESSAGE,
   type CompleteSsoLoginOutcome,
 } from "./session";
+import {
+  clearPendingSsoHandOff,
+  forgetCachedSsoHandOffForTesting,
+  SSO_HAND_OFF_TTL_MS,
+  startSsoHandOff,
+  type SsoHandOffRequest,
+} from "./handOff";
+import {
+  UNVERIFIED_SSO_CALLBACK_MESSAGE,
+  type SsoCallbackSuccess,
+} from "./callbackUrl";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+
+/*
+ * The phone's own crypto, as Node's: a real verifier and its real S256
+ * challenge, so what the app sends is what a server would check.
+ */
+jest.mock("expo-crypto", () => {
+  const crypto: typeof import("node:crypto") =
+    jest.requireActual("node:crypto");
+
+  return {
+    CryptoDigestAlgorithm: { SHA256: "SHA-256" },
+    CryptoEncoding: { BASE64: "base64" },
+    getRandomBytesAsync: async (length: number): Promise<Uint8Array> => {
+      return new Uint8Array(crypto.randomBytes(length));
+    },
+    digestStringAsync: async (
+      _algorithm: string,
+      value: string,
+    ): Promise<string> => {
+      return crypto.createHash("sha256").update(value, "utf8").digest("base64");
+    },
+  };
+});
+
+// The server's half of a code's redemption: what the exchange route answers.
+jest.mock("../api/sso", () => {
+  return {
+    exchangeSsoCode: jest.fn(),
+    fetchServerHandsBackSsoCodes: jest.fn(),
+  };
+});
 
 /*
  * completeSsoLoginFromUrl is the single place a callback becomes a signed-in
@@ -150,6 +194,11 @@ async function expectNothingStored(): Promise<void> {
   expect(await rawStorageValue(GLOBAL_SSO_TOKEN_STORAGE_KEY)).toBeNull();
 }
 
+const SERVER_URL: string = "https://oneuptime.example.com";
+
+// The on-disk key of the sign-in the app waits for, as a literal (see above).
+const HAND_OFF_STORAGE_KEY: string = "oneuptime_sso_hand_off";
+
 beforeEach(async () => {
   /*
    * The AsyncStorage fake is a module-level Map that survives between tests,
@@ -160,6 +209,16 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   await clearAllSsoTokens();
   await clearTokens();
+  await clearPendingSsoHandOff();
+
+  /*
+   * A callback is taken only for the sign-in the app started (#9989). Most
+   * of this file is about what one is stored as, so each test begins as an
+   * SSO sign-in started on a server from before #9989 - one that hands the
+   * session back on the link. The hand-off's own tests start their own.
+   */
+  await startSsoHandOff({ serverUrl: SERVER_URL, serverHandsBackCodes: false });
+  (AsyncStorage.setItem as unknown as jest.Mock).mockClear();
 });
 
 describe("The JWT helpers these tests rely on", () => {
@@ -314,6 +373,11 @@ describe("A project SSO callback", () => {
         projectId: "project-a",
       }),
     );
+    // Each sign-in starts its own hand-off, and its callback ends it.
+    await startSsoHandOff({
+      serverUrl: SERVER_URL,
+      serverHandsBackCodes: false,
+    });
     await completeSsoLoginFromUrl(projectCallbackUrl);
 
     expect(await getSsoTokens()).toEqual({
@@ -326,6 +390,10 @@ describe("A project SSO callback", () => {
     const refreshedToken: string = freshJwt("project-sso-refreshed");
 
     await completeSsoLoginFromUrl(projectCallbackUrl);
+    await startSsoHandOff({
+      serverUrl: SERVER_URL,
+      serverHandsBackCodes: false,
+    });
     await completeSsoLoginFromUrl(
       buildCallbackUrl({
         ...authParams(),
@@ -639,5 +707,312 @@ describe("The auth tokens are persisted first, and unconditionally", () => {
 
     expect(outcome.status).toBe("success");
     expect(await rawStorageValue(SSO_TOKENS_STORAGE_KEY)).toBeNull();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * WHICH CALLBACKS ARE THIS APP'S TO TAKE (#9989).
+ *
+ * oneuptime://sso-callback is a custom scheme: on Android any app can say it
+ * handles it, and anybody - a web page, another app - can open it. So the
+ * app takes a callback only for the sign-in it started and is waiting for:
+ * a one-time code with that sign-in's state, redeemed with the verifier
+ * that never left the phone. A link that carries the session itself only
+ * from a server that said, when the sign-in started, that it hands back no
+ * codes. And nothing while no sign-in is waiting.
+ * ---------------------------------------------------------------------------
+ */
+
+function exchange(): jest.Mock {
+  return exchangeSsoCode as unknown as jest.Mock;
+}
+
+// What the server's exchange answers for a project SSO sign-in.
+function redeemed(): SsoCallbackSuccess {
+  return {
+    status: "success",
+    tokens: {
+      accessToken: "access-token-from-the-code",
+      refreshToken: "refresh-token-from-the-code",
+      refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+    },
+    user: {
+      userId: "user-1",
+      email: "responder@example.com",
+      name: "Test Responder",
+      isMasterAdmin: false,
+    },
+    globalSsoToken: null,
+    projectSsoToken: { projectId: "project-42", ssoToken: freshJwt("sso") },
+  };
+}
+
+// 43 base64url characters, as the server makes a code.
+const CODE: string = "C0de_".repeat(8) + "abc";
+
+// The sign-in the app is waiting for, as it is kept on the phone.
+async function storedHandOff(): Promise<{
+  state: string;
+  codeVerifier: string;
+  serverUrl: string;
+}> {
+  return JSON.parse((await rawStorageValue(HAND_OFF_STORAGE_KEY))!) as {
+    state: string;
+    codeVerifier: string;
+    serverUrl: string;
+  };
+}
+
+// Starts a sign-in on a server that hands back codes, as every one since #9989.
+async function startWithHandOff(): Promise<SsoHandOffRequest> {
+  return startSsoHandOff({ serverUrl: SERVER_URL, serverHandsBackCodes: true });
+}
+
+describe("A callback while no sign-in is waiting", () => {
+  beforeEach(async () => {
+    await clearPendingSsoHandOff();
+  });
+
+  test.each([
+    [
+      "the session itself",
+      (): string => {
+        return buildCallbackUrl(authParams());
+      },
+    ],
+    [
+      "a code and a state",
+      (): string => {
+        return buildCallbackUrl({ code: CODE, state: "a".repeat(64) });
+      },
+    ],
+    [
+      "an error",
+      (): string => {
+        return buildCallbackUrl({ error: "access_denied" });
+      },
+    ],
+  ])(
+    "carrying %s signs nobody in, and redeems nothing",
+    async (_label: string, url: () => string) => {
+      const outcome: CompleteSsoLoginOutcome =
+        await completeSsoLoginFromUrl(url());
+
+      expect(outcome).toEqual({
+        status: "error",
+        message: SSO_SIGN_IN_NOT_STARTED_MESSAGE,
+      });
+      expect(exchange()).not.toHaveBeenCalled();
+      await expectNothingStored();
+    },
+  );
+
+  test("one that has expired is no longer waited for", async () => {
+    await startSsoHandOff({
+      serverUrl: SERVER_URL,
+      serverHandsBackCodes: false,
+    });
+
+    const now: number = Date.now();
+    const clock: jest.SpyInstance = jest
+      .spyOn(Date, "now")
+      .mockReturnValue(now + SSO_HAND_OFF_TTL_MS + 1);
+
+    try {
+      const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+        buildCallbackUrl(authParams()),
+      );
+
+      expect(outcome).toEqual({
+        status: "error",
+        message: SSO_SIGN_IN_NOT_STARTED_MESSAGE,
+      });
+      await expectNothingStored();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+});
+
+describe("A one-time code, from a server that hands back codes", () => {
+  test("is redeemed at the server the sign-in started on, with its verifier and state, and the session stored", async () => {
+    const request: SsoHandOffRequest = await startWithHandOff();
+    const kept: { state: string; codeVerifier: string; serverUrl: string } =
+      await storedHandOff();
+
+    exchange().mockResolvedValue(redeemed());
+
+    const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({ code: CODE, state: request.state }),
+    );
+
+    expect(exchange()).toHaveBeenCalledTimes(1);
+    expect(exchange()).toHaveBeenCalledWith({
+      serverUrl: SERVER_URL,
+      code: CODE,
+      codeVerifier: kept.codeVerifier,
+      state: request.state,
+    });
+    expect(kept.state).toBe(request.state);
+    expect(outcome).toEqual({
+      status: "success",
+      isGlobal: false,
+      projectId: "project-42",
+    });
+    expect((await getTokens())!.accessToken).toBe("access-token-from-the-code");
+    expect(Object.keys(await getSsoTokens())).toEqual(["project-42"]);
+  });
+
+  test("ends the sign-in: the same code is not redeemed twice", async () => {
+    const request: SsoHandOffRequest = await startWithHandOff();
+
+    exchange().mockResolvedValue(redeemed());
+
+    await completeSsoLoginFromUrl(
+      buildCallbackUrl({ code: CODE, state: request.state }),
+    );
+
+    expect(await rawStorageValue(HAND_OFF_STORAGE_KEY)).toBeNull();
+
+    const again: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({ code: CODE, state: request.state }),
+    );
+
+    expect(again).toEqual({
+      status: "error",
+      message: SSO_SIGN_IN_NOT_STARTED_MESSAGE,
+    });
+    expect(exchange()).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A link somebody else made - their own sign-in's code and state, to sign
+   * this app in to their account - or another sign-in's: not this one's.
+   */
+  test("with another state is refused, redeemed nowhere, and the sign-in still waits", async () => {
+    const request: SsoHandOffRequest = await startWithHandOff();
+
+    const forged: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({ code: CODE, state: "f".repeat(64) }),
+    );
+
+    expect(forged).toEqual({
+      status: "error",
+      message: UNVERIFIED_SSO_CALLBACK_MESSAGE,
+    });
+    expect(exchange()).not.toHaveBeenCalled();
+    await expectNothingStored();
+
+    exchange().mockResolvedValue(redeemed());
+
+    const own: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({ code: CODE, state: request.state }),
+    );
+
+    expect(own.status).toBe("success");
+  });
+
+  test("the server refusing the code is said, and nothing is stored", async () => {
+    const request: SsoHandOffRequest = await startWithHandOff();
+
+    exchange().mockRejectedValue(
+      new Error(
+        "This sign-in has expired or was already used. Sign in with single sign-on again in the app.",
+      ),
+    );
+
+    const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({ code: CODE, state: request.state }),
+    );
+
+    expect(outcome).toEqual({
+      status: "error",
+      message:
+        "This sign-in has expired or was already used. Sign in with single sign-on again in the app.",
+    });
+    await expectNothingStored();
+  });
+
+  test("beside the session on the same link is neither: nothing redeemed, nothing stored", async () => {
+    const request: SsoHandOffRequest = await startWithHandOff();
+
+    const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({
+        ...authParams(),
+        code: CODE,
+        state: request.state,
+      }),
+    );
+
+    expect(outcome).toEqual({
+      status: "error",
+      message: UNVERIFIED_SSO_CALLBACK_MESSAGE,
+    });
+    expect(exchange()).not.toHaveBeenCalled();
+    await expectNothingStored();
+  });
+
+  /*
+   * Android often stops the app while the person is at their identity
+   * provider; the deep link then starts it afresh, and the sign-in it was
+   * waiting for is read back from the phone's storage.
+   */
+  test("completes a sign-in the OS stopped the app in the middle of", async () => {
+    const request: SsoHandOffRequest = await startWithHandOff();
+
+    forgetCachedSsoHandOffForTesting();
+    exchange().mockResolvedValue(redeemed());
+
+    const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({ code: CODE, state: request.state }),
+    );
+
+    expect(outcome.status).toBe("success");
+    expect((await getTokens())!.accessToken).toBe("access-token-from-the-code");
+  });
+
+  test("a link carrying the session instead is refused: that server sends no such link", async () => {
+    await startWithHandOff();
+
+    const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({ ...authParams(), globalSsoToken: freshJwt("g") }),
+    );
+
+    expect(outcome).toEqual({
+      status: "error",
+      message: UNVERIFIED_SSO_CALLBACK_MESSAGE,
+    });
+    await expectNothingStored();
+  });
+
+  test("an error from the server ends the sign-in, and is said", async () => {
+    await startWithHandOff();
+
+    const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl({
+        error: "sso_mobile_sign_in_expired",
+        errorDescription: "This sign-in has expired or was already used.",
+      }),
+    );
+
+    expect(outcome).toEqual({
+      status: "error",
+      message:
+        "sso_mobile_sign_in_expired: This sign-in has expired or was already used.",
+    });
+    expect(await rawStorageValue(HAND_OFF_STORAGE_KEY)).toBeNull();
+  });
+});
+
+describe("The session on the link, from a server from before #9989", () => {
+  test("is taken for the sign-in the app started there, which then ends", async () => {
+    const outcome: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      buildCallbackUrl(authParams()),
+    );
+
+    expect(outcome.status).toBe("success");
+    expect(exchange()).not.toHaveBeenCalled();
+    expect(await rawStorageValue(HAND_OFF_STORAGE_KEY)).toBeNull();
   });
 });

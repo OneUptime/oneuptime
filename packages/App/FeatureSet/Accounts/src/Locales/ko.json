@@ -244,7 +244,13 @@
     "signInWithProvider": "{{name}} 계정으로 로그인",
     "requiredSubtitle": "이 서버는 SSO(Single Sign-On)가 필수입니다.",
     "requiredNotSetUp": "이 서버에는 아직 SSO(Single Sign-On)가 설정되지 않았습니다. 서버 관리자에게 설정을 요청하세요.",
-    "useDifferentEmail": "다른 이메일 사용"
+    "useDifferentEmail": "다른 이메일 사용",
+    "lastUsedTitle": "이 기기에서 마지막으로 사용함",
+    "forgetLastUsed": "이 공급자 잊기",
+    "emailLinksPrompt": "이 주소가 속한 모든 조직의 SSO 로그인 링크를 이 주소로 보내 드릴 수 있습니다.",
+    "emailLinksButton": "로그인 링크를 이메일로 받기",
+    "emailLinksSent": "이 주소가 싱글 사인온을 사용하는 조직에 속해 있다면 SSO 로그인 링크를 이메일로 보냈습니다.",
+    "emailLinksCaptchaRequired": "링크를 요청하기 전에 캡차를 완료하세요."
   },
   "adminLogin": {
     "title": "마스터 관리자 로그인",

@@ -244,7 +244,13 @@
     "signInWithProvider": "使用 {{name}} 登入",
     "requiredSubtitle": "此伺服器要求使用單一登入（SSO）。",
     "requiredNotSetUp": "此伺服器尚未設定單一登入。請聯絡伺服器管理員進行設定。",
-    "useDifferentEmail": "使用其他電子郵件"
+    "useDifferentEmail": "使用其他電子郵件",
+    "lastUsedTitle": "上次在此裝置上使用",
+    "forgetLastUsed": "忘記此提供者",
+    "emailLinksPrompt": "我們可以將此地址所屬的每個組織的 SSO 登入連結寄到此地址。",
+    "emailLinksButton": "以電子郵件寄送我的登入連結",
+    "emailLinksSent": "如果此地址屬於使用單一登入的組織，我們已將 SSO 登入連結寄到此地址。",
+    "emailLinksCaptchaRequired": "請先完成人機驗證，再要求這些連結。"
   },
   "adminLogin": {
     "title": "主要管理員登入",
