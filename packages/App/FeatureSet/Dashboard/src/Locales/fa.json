@@ -58159,5 +58159,19 @@
   "Record only these pages": "فقط این صفحه‌ها ضبط شوند",
   "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
   "If they have no OneUptime account yet, it is set up with this name.": "اگر این فرد هنوز حساب OneUptime ندارد، حساب با همین نام ساخته می‌شود.",
-  "Suggest Every Account When Inviting": "پیشنهاد همه حساب‌ها هنگام دعوت"
+  "Suggest Every Account When Inviting": "پیشنهاد همه حساب‌ها هنگام دعوت",
+  "Jump to newest": "رفتن به جدیدترین",
+  "Not tried again: {{reason}}": "دوباره امتحان نشد: {{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "OneUptime AI از قبل روی رفع دیگری برای همین مشکل کار می‌کند. صبر کنید تا تمام شود، سپس اگر هنوز لازم است دوباره تلاش کنید.",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "ممکن است OneUptime AI برای این وظیفه از قبل شاخه‌ای را ارسال کرده یا درخواست کششی باز کرده باشد، پس آن را دوباره شروع نمی‌کند: این کار ممکن است دومی را باز کند. به جای آن، پاسخ دهید که می‌خواهید هوش مصنوعی چه کند.",
+  "Only a turn that failed or was stopped can be tried again.": "فقط نوبتی را که شکست خورده یا متوقف شده است می‌توان دوباره امتحان کرد.",
+  "Show earlier turns": "نمایش نوبت‌های قبلی",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "استثنایی که این رفع برای آن بود دیگر وجود ندارد، پس OneUptime AI نمی‌تواند دوباره آن را رفع کند.",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "این استثنا بایگانی شده است، پس OneUptime AI دوباره آن را رفع نمی‌کند. ابتدا آن را از بایگانی خارج کنید، سپس دوباره تلاش کنید.",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "این استثنا برطرف‌شده است، پس OneUptime AI دوباره آن را رفع نمی‌کند. ابتدا آن را برطرف‌نشده کنید، سپس دوباره تلاش کنید.",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "این رفع از بررسی‌ای آمده است که دیگر جدیدترین نیست. به جای آن، رفع را از جدیدترین بررسی شروع کنید.",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "این نوبت در Code درخواست نشده بود، پس نمی‌توان دوباره آن را درخواست کرد. به جای آن، پاسخ دهید که می‌خواهید هوش مصنوعی چه کند.",
+  "{{count}} tasks could not be tried again: each says why below.": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: هر کدام در پایین می‌گوید چرا.",
+  "{{count}} tasks could not be tried again: each says why below._one": "{{count}} وظیفه را نمی‌توان دوباره امتحان کرد: در پایین می‌گوید چرا.",
+  "{{name}} asked OneUptime AI to try again.": "{{name}} از OneUptime AI خواست دوباره تلاش کند."
 }

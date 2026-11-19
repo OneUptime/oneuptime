@@ -58159,5 +58159,19 @@
   "Record only these pages": "이 페이지만 녹화",
   "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
   "If they have no OneUptime account yet, it is set up with this name.": "이 사람에게 아직 OneUptime 계정이 없으면 이 이름으로 계정이 만들어집니다.",
-  "Suggest Every Account When Inviting": "초대할 때 모든 계정 제안"
+  "Suggest Every Account When Inviting": "초대할 때 모든 계정 제안",
+  "Jump to newest": "최신으로 이동",
+  "Not tried again: {{reason}}": "다시 시도하지 않음: {{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "OneUptime AI가 같은 문제에 대한 다른 수정을 이미 진행하고 있습니다. 끝날 때까지 기다린 후 필요하면 다시 시도하세요.",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "OneUptime AI가 이 작업의 브랜치를 이미 푸시했거나 풀 리퀘스트를 열었을 수 있어 다시 시작하지 않습니다: 두 번째 풀 리퀘스트가 열릴 수 있습니다. 대신 AI가 할 일을 답장으로 보내세요.",
+  "Only a turn that failed or was stopped can be tried again.": "실패했거나 중지된 차례만 다시 시도할 수 있습니다.",
+  "Show earlier turns": "이전 차례 보기",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "이 수정의 대상이었던 예외가 더 이상 없으므로 OneUptime AI가 다시 수정할 수 없습니다.",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "이 예외는 보관되어 있어 OneUptime AI가 다시 수정하지 않습니다. 먼저 보관을 취소한 후 다시 시도하세요.",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "이 예외는 해결되어 OneUptime AI가 다시 수정하지 않습니다. 먼저 해결을 취소한 후 다시 시도하세요.",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "이 수정은 더 이상 최신이 아닌 조사에서 나왔습니다. 대신 최신 조사에서 수정을 시작하세요.",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "이 차례는 Code에서 요청한 것이 아니어서 다시 요청할 수 없습니다. 대신 AI가 할 일을 답장으로 보내세요.",
+  "{{count}} tasks could not be tried again: each says why below.": "작업 {{count}}개를 다시 시도할 수 없습니다: 각 작업 아래에 이유가 있습니다.",
+  "{{count}} tasks could not be tried again: each says why below._one": "작업 {{count}}개를 다시 시도할 수 없습니다: 각 작업 아래에 이유가 있습니다.",
+  "{{name}} asked OneUptime AI to try again.": "{{name}} 님이 OneUptime AI에게 다시 시도를 요청했습니다."
 }

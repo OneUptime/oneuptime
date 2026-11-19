@@ -58159,5 +58159,19 @@
   "Record only these pages": "Gravar somente estas páginas",
   "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
   "If they have no OneUptime account yet, it is set up with this name.": "Se essa pessoa ainda não tiver conta no OneUptime, ela será criada com este nome.",
-  "Suggest Every Account When Inviting": "Sugerir todas as contas ao convidar"
+  "Suggest Every Account When Inviting": "Sugerir todas as contas ao convidar",
+  "Jump to newest": "Ir para o mais recente",
+  "Not tried again: {{reason}}": "Não foi tentada novamente: {{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "O OneUptime AI já está trabalhando em outra correção para o mesmo problema. Aguarde terminar e tente novamente se ainda precisar.",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "O OneUptime AI pode já ter enviado um ramo ou aberto um pedido de pull para esta tarefa, por isso não a inicia novamente: isso poderia abrir um segundo. Responda com o que você quer que a IA faça.",
+  "Only a turn that failed or was stopped can be tried again.": "Só é possível tentar novamente um turno que falhou ou foi parado.",
+  "Show earlier turns": "Mostrar turnos anteriores",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "A exceção para a qual era esta correção já não existe, por isso o OneUptime AI não pode corrigi-la novamente.",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "Esta exceção está arquivada, por isso o OneUptime AI não a corrige novamente. Desarquive-a primeiro e tente novamente.",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "Esta exceção está resolvida, por isso o OneUptime AI não a corrige novamente. Reabra-a primeiro e tente novamente.",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "Esta correção veio de uma investigação que já não é a mais recente. Inicie uma correção a partir da investigação mais recente.",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Este turno não foi pedido no Code, por isso não pode ser pedido novamente. Responda com o que você quer que a IA faça.",
+  "{{count}} tasks could not be tried again: each says why below.": "Não foi possível tentar novamente {{count}} tarefas: cada uma diz o porquê abaixo.",
+  "{{count}} tasks could not be tried again: each says why below._one": "Não foi possível tentar novamente {{count}} tarefa: ela diz o porquê abaixo.",
+  "{{name}} asked OneUptime AI to try again.": "{{name}} pediu ao OneUptime AI para tentar novamente."
 }

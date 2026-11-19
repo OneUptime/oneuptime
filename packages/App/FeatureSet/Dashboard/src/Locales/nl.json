@@ -58159,5 +58159,19 @@
   "Record only these pages": "Alleen deze pagina's opnemen",
   "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
   "If they have no OneUptime account yet, it is set up with this name.": "Heeft deze persoon nog geen OneUptime-account, dan wordt het met deze naam aangemaakt.",
-  "Suggest Every Account When Inviting": "Bij uitnodigen elk account voorstellen"
+  "Suggest Every Account When Inviting": "Bij uitnodigen elk account voorstellen",
+  "Jump to newest": "Naar nieuwste",
+  "Not tried again: {{reason}}": "Niet opnieuw geprobeerd: {{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "OneUptime AI werkt al aan een andere oplossing voor hetzelfde probleem. Wacht tot die klaar is en probeer het dan opnieuw als dat nog nodig is.",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "OneUptime AI heeft voor deze taak mogelijk al een branch gepusht of een pullverzoek geopend, dus start het de taak niet opnieuw: dat kan een tweede openen. Antwoord in plaats daarvan met wat AI moet doen.",
+  "Only a turn that failed or was stopped can be tried again.": "Alleen een beurt die is mislukt of gestopt, kan opnieuw worden geprobeerd.",
+  "Show earlier turns": "Eerdere beurten tonen",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "De uitzondering waarvoor deze oplossing bedoeld was, bestaat niet meer, dus OneUptime AI kan haar niet opnieuw oplossen.",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "Deze uitzondering is gearchiveerd, dus OneUptime AI lost haar niet opnieuw op. Haal haar eerst uit het archief en probeer het dan opnieuw.",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "Deze uitzondering is opgelost, dus OneUptime AI lost haar niet opnieuw op. Open haar eerst opnieuw en probeer het dan nog eens.",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "Deze oplossing komt uit een onderzoek dat niet meer het nieuwste is. Start in plaats daarvan een oplossing vanuit het nieuwste onderzoek.",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "Deze beurt is niet in Code gevraagd, dus kan niet opnieuw worden gevraagd. Antwoord in plaats daarvan met wat AI moet doen.",
+  "{{count}} tasks could not be tried again: each says why below.": "{{count}} taken konden niet opnieuw worden geprobeerd: elke taak zegt hieronder waarom.",
+  "{{count}} tasks could not be tried again: each says why below._one": "{{count}} taak kon niet opnieuw worden geprobeerd: die zegt hieronder waarom.",
+  "{{name}} asked OneUptime AI to try again.": "{{name}} heeft OneUptime AI gevraagd het opnieuw te proberen."
 }

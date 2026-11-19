@@ -18,6 +18,7 @@ import CodeTaskPresenter, {
   TURN_NOT_SHOWN_SELECT,
 } from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import CodeTaskThread, {
+  CodeTaskEarlierTurnsRead,
   CodeTaskNumberedTurn,
   CodeTaskTurnsRead,
   MAX_TURNS_PER_TASK,
@@ -79,7 +80,10 @@ import { dropSchemaOneTableAtATime } from "../../Helpers/DropSchemaOneTableAtATi
  *    reached (issue #7131);
  *  - a link to a turn the page does not show comes back with its place in
  *    the task, as the conversation orders its turns, ties included - and
- *    never a run of another task (issue #7130).
+ *    never a run of another task (issue #7130);
+ *  - the turns the page does not show, read a page at a time back to the
+ *    first turn (Show earlier turns, issue #7128), come back each once, in
+ *    that order, numbered where the conversation places them.
  *
  * Opt in with RUN_POSTGRES_CODE_TASK_TESTS=true against a database the
  * registered migrations have been applied to:
@@ -976,6 +980,64 @@ FROM generate_series($6::int, $7::int) AS n`,
           number: index + 1,
         });
       }
+    });
+
+    /*
+     * Show earlier turns (#7128): the turns the page does not show, read a
+     * page at a time back from the oldest it shows - each once, in the
+     * conversation's order (the two asked the same moment included), each
+     * page numbered from its place, and never the first turn.
+     */
+    test("the turns a page does not show, paged back to the first turn: each once, in order, numbered where the conversation places it", async () => {
+      const task: AIRun = await taskOf("ties");
+      const read: CodeTaskTurnsRead = await CodeTaskThread.getTurns({
+        projectId: new ObjectID(PROJECT_ID),
+        task,
+      });
+      const leftOut: Array<AIRun> = await CodeTaskThread.getTurnsLeftOut({
+        projectId: new ObjectID(PROJECT_ID),
+        task: read.turns[0]!,
+        read,
+        select: TURN_NOT_SHOWN_SELECT,
+      });
+
+      const paged: Array<string> = [];
+      let before: ObjectID = read.turns[1]!.id!;
+      let expectedFirst: number = 2 + leftOut.length;
+
+      for (let page: number = 0; page < 10; page++) {
+        const earlier: CodeTaskEarlierTurnsRead | null =
+          await CodeTaskThread.getRepliesBefore({
+            projectId: new ObjectID(PROJECT_ID),
+            task,
+            beforeRunId: before,
+            limit: 2,
+          });
+
+        expect(earlier).not.toBeNull();
+
+        if (earlier!.turns.length === 0) {
+          expect(earlier!.firstNumber).toBe(2);
+          break;
+        }
+
+        expectedFirst -= earlier!.turns.length;
+        expect(earlier!.firstNumber).toBe(expectedFirst);
+
+        paged.unshift(
+          ...earlier!.turns.map((turn: AIRun): string => {
+            return turn.id!.toString();
+          }),
+        );
+        before = earlier!.turns[0]!.id!;
+      }
+
+      expect(paged).toEqual(
+        leftOut.map((turn: AIRun): string => {
+          return turn.id!.toString();
+        }),
+      );
+      expect(paged).not.toContain(task.id!.toString());
     });
 
     test("turns of a task of 10,205 are numbered by their place, however far back", async () => {

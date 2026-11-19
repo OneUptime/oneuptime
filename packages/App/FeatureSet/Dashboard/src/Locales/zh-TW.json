@@ -58159,5 +58159,19 @@
   "Record only these pages": "只錄製這些頁面",
   "[\"/admin*\", \"/account*\"]": "[\"/admin*\", \"/account*\"]",
   "If they have no OneUptime account yet, it is set up with this name.": "如果此人還沒有 OneUptime 帳戶，將用這個名稱建立帳戶。",
-  "Suggest Every Account When Inviting": "邀請時建議所有帳戶"
+  "Suggest Every Account When Inviting": "邀請時建議所有帳戶",
+  "Jump to newest": "跳到最新",
+  "Not tried again: {{reason}}": "未重試：{{reason}}",
+  "OneUptime AI is already working on another fix for the same problem. Wait for it to finish, then try again if you still need to.": "OneUptime AI 已在處理同一問題的另一個修正。請等待其完成，如仍需要再重試。",
+  "OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.": "OneUptime AI 可能已為此任務推送分支或開啟拉取請求，因此不會再次啟動：那可能會開啟第二個。請改為回覆您希望 AI 做什麼。",
+  "Only a turn that failed or was stopped can be tried again.": "只有失敗或已停止的回合才能重試。",
+  "Show earlier turns": "顯示之前的回合",
+  "The exception this fix was for is gone, so OneUptime AI cannot fix it again.": "此修正所針對的例外已不存在，因此 OneUptime AI 無法再次修正。",
+  "This exception is archived, so OneUptime AI does not fix it again. Unarchive it first, then try again.": "此例外已封存，因此 OneUptime AI 不會再次修正。請先取消封存，然後再試一次。",
+  "This exception is resolved, so OneUptime AI does not fix it again. Unresolve it first, then try again.": "此例外已解決，因此 OneUptime AI 不會再次修正。請先取消解決，然後再試一次。",
+  "This fix came from an investigation that is no longer the latest one. Start a fix from the latest investigation instead.": "此修正來自一個已不是最新的調查。請改為從最新的調查開始修正。",
+  "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.": "此回合不是在 Code 中提出的，因此無法再次提出。請改為回覆您希望 AI 做什麼。",
+  "{{count}} tasks could not be tried again: each says why below.": "{{count}} 個任務無法重試：各自的原因見下方。",
+  "{{count}} tasks could not be tried again: each says why below._one": "{{count}} 個任務無法重試：各自的原因見下方。",
+  "{{name}} asked OneUptime AI to try again.": "{{name}} 請 OneUptime AI 再試一次。"
 }
