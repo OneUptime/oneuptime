@@ -1,0 +1,2638 @@
+[
+  {
+    "kind": "status-pages",
+    "recordName": "Status Page",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/status-pages/:id",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Announcements",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/status-pages/:id/announcements",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Overview",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/owners",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Monitors",
+        "section": "Resources",
+        "keywords": [
+          "resources",
+          "groups",
+          "components"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/resources",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Monitor Rules",
+        "section": "Rules",
+        "path": "/dashboard/:projectId/status-pages/:id/monitor-rules",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Subscribers",
+        "section": "Subscribers",
+        "keywords": [
+          "Email Subscribers",
+          "SMS Subscribers",
+          "Slack Subscribers",
+          "Microsoft Teams Subscribers",
+          "MS Teams Subscribers",
+          "Webhook Subscribers"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/subscribers",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Subscriber Settings",
+        "section": "Subscribers",
+        "path": "/dashboard/:projectId/status-pages/:id/subscriber-settings",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Notification Logs",
+        "section": "Subscribers",
+        "keywords": [
+          "sent notifications"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/notification-logs",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Branding",
+        "section": "Branding",
+        "keywords": [
+          "Essential Branding",
+          "Header",
+          "Footer",
+          "Languages",
+          "Overview Page",
+          "logo",
+          "favicon",
+          "colors"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/branding",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Custom Domains",
+        "section": "Branding",
+        "keywords": [
+          "custom domain",
+          "cname"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/domains",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "HTML, CSS & JavaScript",
+        "section": "Branding",
+        "keywords": [
+          "custom code",
+          "custom css",
+          "custom html",
+          "custom javascript"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/custom-code",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Access",
+        "section": "Security",
+        "keywords": [
+          "Authentication Settings",
+          "password",
+          "private status page",
+          "who can see"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/authentication-settings",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Private Users",
+        "section": "Security",
+        "path": "/dashboard/:projectId/status-pages/:id/private-users",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Single Sign-On",
+        "section": "Security",
+        "keywords": [
+          "SSO",
+          "OIDC",
+          "saml",
+          "openid connect"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/sso",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "SCIM",
+        "section": "Security",
+        "path": "/dashboard/:projectId/status-pages/:id/scim",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "MCP",
+        "section": "Advanced",
+        "keywords": [
+          "mcp server"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/mcp",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Embedded Status",
+        "section": "Advanced",
+        "keywords": [
+          "embed",
+          "badge",
+          "widget"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/embedded",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Reports",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/status-pages/:id/reports",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Custom Fields",
+        "section": "Advanced",
+        "keywords": [
+          "fields"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/custom-fields",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "keywords": [
+          "Advanced Settings"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/settings",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/audit-logs",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Delete Status Page",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/status-pages/:id/delete",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/developer/terraform",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/developer/api",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/developer/cli",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/developer/ai-assistants",
+        "products": [
+          "status-pages"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "monitors",
+    "recordName": "Monitor",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/monitors/:id",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Metrics",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/monitors/:id/metrics",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Status Timeline",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/monitors/:id/status-timeline",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "SLOs",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/monitors/:id/slos",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Incidents",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/monitors/:id/incidents",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Alerts",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/monitors/:id/alerts",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Notification Logs",
+        "section": "Activity",
+        "keywords": [
+          "sent notifications"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/notification-logs",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Monitoring Logs",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/monitors/:id/logs",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Criteria",
+        "section": "Configuration",
+        "path": "/dashboard/:projectId/monitors/:id/criteria",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Dependencies",
+        "section": "Configuration",
+        "path": "/dashboard/:projectId/monitors/:id/dependencies",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Probes & Interval",
+        "section": "Configuration",
+        "keywords": [
+          "Probes",
+          "Interval"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/probes",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Advanced",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/owners",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Custom Fields",
+        "section": "Advanced",
+        "keywords": [
+          "fields"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/custom-fields",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/monitors/:id/settings",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/audit-logs",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Delete Monitor",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/monitors/:id/delete",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/developer/terraform",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/developer/api",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/developer/cli",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/developer/ai-assistants",
+        "products": [
+          "monitors"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "incidents",
+    "recordName": "Incident",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/incidents/:id",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "State Timeline",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/incidents/:id/state-timeline",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "SLA",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/incidents/:id/sla",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Description",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/incidents/:id/description",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Root Cause",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/incidents/:id/root-cause",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Remediation",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/incidents/:id/remediation",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Runbooks",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/incidents/:id/runbooks",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Postmortem",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/incidents/:id/postmortem",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Linked Alerts",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/incidents/:id/alerts",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Roles",
+        "section": "Team",
+        "path": "/dashboard/:projectId/incidents/:id/roles",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "On-Call Executions",
+        "section": "Team",
+        "path": "/dashboard/:projectId/incidents/:id/on-call-policy-execution-logs",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Team",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/owners",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Notification Logs",
+        "section": "Notifications",
+        "keywords": [
+          "sent notifications"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/notification-logs",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "AI Logs",
+        "section": "Notifications",
+        "path": "/dashboard/:projectId/incidents/:id/ai-logs",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Private Notes",
+        "section": "Notes",
+        "keywords": [
+          "internal notes"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/internal-notes",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Public Notes",
+        "section": "Notes",
+        "path": "/dashboard/:projectId/incidents/:id/public-notes",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Custom Fields",
+        "section": "Advanced",
+        "keywords": [
+          "fields"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/custom-fields",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/incidents/:id/settings",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/audit-logs",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Delete Incident",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/incidents/:id/delete",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/developer/terraform",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/developer/api",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/developer/cli",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/developer/ai-assistants",
+        "products": [
+          "incidents"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "alerts",
+    "recordName": "Alert",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/alerts/:id",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "State Timeline",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/alerts/:id/state-timeline",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Description",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/alerts/:id/description",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Root Cause",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/alerts/:id/root-cause",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Remediation",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/alerts/:id/remediation",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Runbooks",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/alerts/:id/runbooks",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Linked Incidents",
+        "section": "Investigation",
+        "path": "/dashboard/:projectId/alerts/:id/incidents",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Private Notes",
+        "section": "Investigation",
+        "keywords": [
+          "internal notes"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/internal-notes",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "On-Call Executions",
+        "section": "Team",
+        "path": "/dashboard/:projectId/alerts/:id/on-call-policy-execution-logs",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Team",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/owners",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Notification Logs",
+        "section": "Notifications",
+        "keywords": [
+          "sent notifications"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/notification-logs",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "AI Logs",
+        "section": "Notifications",
+        "path": "/dashboard/:projectId/alerts/:id/ai-logs",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Custom Fields",
+        "section": "Advanced",
+        "keywords": [
+          "fields"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/custom-fields",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/alerts/:id/settings",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/audit-logs",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Delete Alert",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/alerts/:id/delete",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/developer/terraform",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/developer/api",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/developer/cli",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/developer/ai-assistants",
+        "products": [
+          "alerts"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "on-call-policies",
+    "recordName": "On-Call Policy",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Escalation Rules",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/escalation",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Basic",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/owners",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Execution Logs",
+        "section": "Logs",
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/execution-logs",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Notification Logs",
+        "section": "Logs",
+        "keywords": [
+          "sent notifications"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/notification-logs",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "User Overrides",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/user-overrides",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Custom Fields",
+        "section": "Advanced",
+        "keywords": [
+          "fields"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/custom-fields",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/settings",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/audit-logs",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Delete Policy",
+        "section": "Advanced",
+        "keywords": [
+          "Archive or Delete"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/delete",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/developer/terraform",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/developer/api",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/developer/cli",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/developer/ai-assistants",
+        "products": [
+          "on-call"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "on-call-schedules",
+    "recordName": "On-Call Schedule",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Layers",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/layers",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Notification Logs",
+        "section": "Basic",
+        "keywords": [
+          "sent notifications"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/notification-logs",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Basic",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/owners",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/settings",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/audit-logs",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Delete Schedule",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/delete",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/developer/terraform",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/developer/api",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/developer/cli",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/developer/ai-assistants",
+        "products": [
+          "on-call"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "incoming-call-policies",
+    "recordName": "Incoming Call Policy",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Escalation Rules",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/escalation",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Call Logs",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/logs",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Basic",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/owners",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/settings",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/audit-logs",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Delete Policy",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/delete",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/developer/terraform",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/developer/api",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/developer/cli",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/developer/ai-assistants",
+        "products": [
+          "on-call"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "scheduled-maintenance",
+    "recordName": "Maintenance Event",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "State Timeline",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/state-timeline",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Description",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/description",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Runbooks",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/runbooks",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Overview",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/owners",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Notification Logs",
+        "section": "Notifications",
+        "keywords": [
+          "sent notifications"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/notification-logs",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "AI Logs",
+        "section": "Notifications",
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/ai-logs",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Private Notes",
+        "section": "Notes",
+        "keywords": [
+          "internal notes"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/internal-notes",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Public Notes",
+        "section": "Notes",
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/public-notes",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Custom Fields",
+        "section": "Advanced",
+        "keywords": [
+          "fields"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/custom-fields",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/settings",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/audit-logs",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Delete Maintenance Event",
+        "section": "Advanced",
+        "keywords": [
+          "Delete Event"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/delete",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/developer/terraform",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/developer/api",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/developer/cli",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/developer/ai-assistants",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "services",
+    "recordName": "Service",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/service/:id",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Recommendations",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/service/:id/recommendations",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "SLOs",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/service/:id/slos",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Basic",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/service/:id/owners",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Feed",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/service/:id/feed",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Logs",
+        "section": "Telemetry",
+        "path": "/dashboard/:projectId/service/:id/logs",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Security Events",
+        "section": "Telemetry",
+        "keywords": [
+          "security",
+          "siem",
+          "threats"
+        ],
+        "path": "/dashboard/:projectId/service/:id/security-events",
+        "products": [
+          "services",
+          "security-events"
+        ]
+      },
+      {
+        "title": "Traces",
+        "section": "Telemetry",
+        "path": "/dashboard/:projectId/service/:id/traces",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Metrics",
+        "section": "Telemetry",
+        "path": "/dashboard/:projectId/service/:id/metrics",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Profiles",
+        "section": "Telemetry",
+        "keywords": [
+          "Performance Profiles",
+          "profiling"
+        ],
+        "path": "/dashboard/:projectId/service/:id/profiles",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Exceptions",
+        "section": "Telemetry",
+        "path": "/dashboard/:projectId/service/:id/exceptions",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Source Maps",
+        "section": "Telemetry",
+        "path": "/dashboard/:projectId/service/:id/source-maps",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Incidents",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/service/:id/incidents",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Alerts",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/service/:id/alerts",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Scheduled Maintenance",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/service/:id/scheduled-maintenance",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Data Security",
+        "section": "Security",
+        "keywords": [
+          "sensitive data",
+          "pii",
+          "telemetry"
+        ],
+        "path": "/dashboard/:projectId/service/:id/data-security",
+        "products": [
+          "services",
+          "data-security"
+        ]
+      },
+      {
+        "title": "Compliance",
+        "section": "Security",
+        "keywords": [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks"
+        ],
+        "path": "/dashboard/:projectId/service/:id/compliance",
+        "products": [
+          "services",
+          "data-security"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/service/:id/settings",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/service/:id/audit-logs",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Delete Service",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/service/:id/delete",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/service/:id/developer/terraform",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/service/:id/developer/api",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/service/:id/developer/cli",
+        "products": [
+          "services"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/service/:id/developer/ai-assistants",
+        "products": [
+          "services"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "teams",
+    "recordName": "Team",
+    "pages": [
+      {
+        "title": "Team Details",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/teams/:id"
+      },
+      {
+        "title": "On-Call Schedules",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/teams/:id/on-call-schedules"
+      },
+      {
+        "title": "Members",
+        "section": "Members & Access",
+        "path": "/dashboard/:projectId/teams/:id/members"
+      },
+      {
+        "title": "Permissions",
+        "section": "Members & Access",
+        "keywords": [
+          "Block Permissions"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/permissions"
+      },
+      {
+        "title": "Custom Fields",
+        "section": "Settings",
+        "keywords": [
+          "fields"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/custom-fields"
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Settings",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/audit-logs"
+      },
+      {
+        "title": "Delete Team",
+        "section": "Settings",
+        "path": "/dashboard/:projectId/teams/:id/delete"
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/developer/terraform"
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/developer/api"
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/developer/cli"
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/developer/ai-assistants"
+      }
+    ]
+  },
+  {
+    "kind": "workflows",
+    "recordName": "Workflow",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/workflows/:id",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Builder",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/workflows/:id/builder",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Workflow Variables",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/workflows/:id/variables",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Runs",
+        "section": "Basic",
+        "keywords": [
+          "Runs & Logs",
+          "logs"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/logs",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "keywords": [
+          "run as",
+          "permissions"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/settings",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Advanced",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/owners",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/audit-logs",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Delete Workflow",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/workflows/:id/delete",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/developer/terraform",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/developer/api",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/developer/cli",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/developer/ai-assistants",
+        "products": [
+          "workflows"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "dashboards",
+    "recordName": "Dashboard",
+    "pages": [
+      {
+        "title": "Dashboard",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/dashboards/:id",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Overview",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/dashboards/:id/overview",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Sharing",
+        "section": "Basic",
+        "keywords": [
+          "Authentication",
+          "public link",
+          "who can view"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/authentication-settings",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Branding",
+        "section": "Public Link",
+        "path": "/dashboard/:projectId/dashboards/:id/branding",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Custom Domains",
+        "section": "Public Link",
+        "path": "/dashboard/:projectId/dashboards/:id/custom-domains",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/dashboards/:id/settings",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Advanced",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/owners",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/audit-logs",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Delete Dashboard",
+        "section": "Advanced",
+        "keywords": [
+          "Delete"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/delete",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/developer/terraform",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/developer/api",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/developer/cli",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/developer/ai-assistants",
+        "products": [
+          "dashboards"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "runbooks",
+    "recordName": "Runbook",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/runbooks/:id",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Steps",
+        "section": "Basic",
+        "path": "/dashboard/:projectId/runbooks/:id/steps",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Triggers",
+        "section": "Settings",
+        "path": "/dashboard/:projectId/runbooks/:id/triggers",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Variables",
+        "section": "Settings",
+        "path": "/dashboard/:projectId/runbooks/:id/variables",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Settings",
+        "path": "/dashboard/:projectId/runbooks/:id/settings",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Executions",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/runbooks/:id/executions",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Advanced",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/runbooks/:id/owners",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/runbooks/:id/audit-logs",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Delete Runbook",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/runbooks/:id/delete",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/runbooks/:id/developer/terraform",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/runbooks/:id/developer/api",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/runbooks/:id/developer/cli",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/runbooks/:id/developer/ai-assistants",
+        "products": [
+          "runbooks"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "slos",
+    "recordName": "SLO",
+    "pages": [
+      {
+        "title": "Overview",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/slos/:id",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Monitors",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/slos/:id/monitors",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Metrics",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/slos/:id/metrics",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Monthly Report",
+        "section": "Overview",
+        "path": "/dashboard/:projectId/slos/:id/monthly-report",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Incidents",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/slos/:id/incidents",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Alerts",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/slos/:id/alerts",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Feed",
+        "section": "Activity",
+        "path": "/dashboard/:projectId/slos/:id/feed",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Monitor Rules",
+        "section": "Rules",
+        "path": "/dashboard/:projectId/slos/:id/monitor-rules",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Burn Rate Rules",
+        "section": "Rules",
+        "path": "/dashboard/:projectId/slos/:id/burn-rate-rules",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Error Budget Policy",
+        "section": "Rules",
+        "path": "/dashboard/:projectId/slos/:id/error-budget-policy",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Owners",
+        "section": "Management",
+        "keywords": [
+          "owner",
+          "ownership"
+        ],
+        "path": "/dashboard/:projectId/slos/:id/owners",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Settings",
+        "section": "Management",
+        "path": "/dashboard/:projectId/slos/:id/settings",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Management",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/slos/:id/audit-logs",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Delete SLO",
+        "section": "Management",
+        "path": "/dashboard/:projectId/slos/:id/delete",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/slos/:id/developer/terraform",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/slos/:id/developer/api",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/slos/:id/developer/cli",
+        "products": [
+          "slos"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/slos/:id/developer/ai-assistants",
+        "products": [
+          "slos"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "forms",
+    "recordName": "Form",
+    "pages": [
+      {
+        "title": "Build",
+        "section": "Form",
+        "path": "/dashboard/:projectId/forms/:id",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Templates",
+        "section": "Form",
+        "path": "/dashboard/:projectId/forms/:id/templates",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "On Submit",
+        "section": "Form",
+        "path": "/dashboard/:projectId/forms/:id/on-submit",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Share",
+        "section": "Form",
+        "path": "/dashboard/:projectId/forms/:id/share",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Custom Domains",
+        "section": "Form",
+        "path": "/dashboard/:projectId/forms/:id/custom-domains",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Submissions",
+        "section": "Form",
+        "path": "/dashboard/:projectId/forms/:id/submissions",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Duplicate Form",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/forms/:id/duplicate",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Audit Logs",
+        "section": "Advanced",
+        "keywords": [
+          "history",
+          "audit trail",
+          "activity log"
+        ],
+        "path": "/dashboard/:projectId/forms/:id/audit-logs",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Delete Form",
+        "section": "Advanced",
+        "path": "/dashboard/:projectId/forms/:id/delete",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Terraform",
+        "section": "Developer",
+        "keywords": [
+          "terraform provider",
+          "infrastructure as code",
+          "iac"
+        ],
+        "path": "/dashboard/:projectId/forms/:id/developer/terraform",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "API",
+        "section": "Developer",
+        "keywords": [
+          "rest api",
+          "api reference",
+          "curl"
+        ],
+        "path": "/dashboard/:projectId/forms/:id/developer/api",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "CLI",
+        "section": "Developer",
+        "keywords": [
+          "command line",
+          "terminal",
+          "bash",
+          "script"
+        ],
+        "path": "/dashboard/:projectId/forms/:id/developer/cli",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "AI Assistants",
+        "section": "Developer",
+        "keywords": [
+          "mcp",
+          "claude",
+          "cursor"
+        ],
+        "path": "/dashboard/:projectId/forms/:id/developer/ai-assistants",
+        "products": [
+          "forms"
+        ]
+      }
+    ]
+  }
+]

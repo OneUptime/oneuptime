@@ -1468,16 +1468,18 @@ describe("raising an alert, and what an alert rule is (issue #5301)", () => {
   );
 
   test.each(Object.values(AIChatPermissionMode))(
-    "the %s prompt says a rule is a monitor, that only a website or API monitor is set up by a tool, and what to do instead",
+    "the %s prompt says a rule is a monitor, which monitors a tool sets up - a website's or API's, and a service's recommended ones - and what to do instead",
     (permissionMode: AIChatPermissionMode) => {
       const prompt: string = promptFor(permissionMode);
 
       expect(prompt).toContain(
         "An incident or an alert is created once, now, and watches nothing.",
       );
+      // A service's recommended monitors are set up too since #9953 (#7243).
       expect(prompt).toContain(
-        "A request to be alerted when or whenever something happens asks for a monitor. The only monitor a tool here sets up watches a website or API address (set_up_website_monitoring",
+        "A request to be alerted when or whenever something happens asks for a monitor. The monitors a tool here sets up watch a website or API address (set_up_website_monitoring), and a service that sends telemetry, with the monitors its Recommendations recommend",
       );
+      expect(prompt).toContain("(set_up_service_monitor)");
       expect(prompt).toContain(
         'For any other condition ("alert me when memory goes above 75%") no tool here creates one',
       );
@@ -1502,11 +1504,12 @@ describe("raising an alert, and what an alert rule is (issue #5301)", () => {
   });
 
   /*
-   * Issue #6829: the one monitor Ask AI sets up is the website guided
-   * setup's - a Website or API monitor - so the claim that no tool creates
-   * any other kind holds.
+   * Issue #6829: the monitors Ask AI sets up are the website guided
+   * setup's - a Website or API monitor - and, since #9953 (#7243), the
+   * telemetry guided setup's for a service, so the claim that no tool
+   * creates any other kind holds.
    */
-  test("the claim that only a website or API monitor is set up holds: the toolbox's one monitor writer is set_up_website_monitoring", () => {
+  test("the claim of which monitors a tool sets up holds: the toolbox's monitor writers are set_up_website_monitoring and set_up_service_monitor", () => {
     const monitorWriters: Array<string> = AIToolbox.getTools()
       .filter((tool: ObservabilityTool): boolean => {
         return (
@@ -1520,7 +1523,10 @@ describe("raising an alert, and what an alert rule is (issue #5301)", () => {
         return tool.name;
       });
 
-    expect(monitorWriters).toEqual(["set_up_website_monitoring"]);
+    expect(monitorWriters).toEqual([
+      "set_up_website_monitoring",
+      "set_up_service_monitor",
+    ]);
     expect(AIToolbox.getToolByName("create_monitor")).toBeUndefined();
   });
 

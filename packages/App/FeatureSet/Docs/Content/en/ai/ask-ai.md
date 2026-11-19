@@ -30,7 +30,7 @@ In **Read-only** mode the actions are never offered to the model, so the convers
 
 Ask AI also answers questions about OneUptime itself: "How do I get a text when my site is down?", "What is an episode?", "Where do I add a second phone number?". It answers them from these docs, the copy your OneUptime serves, so it works without internet access and sends nothing anywhere new. It reads a page in your language where the page is translated, cites the page and section for every step, and says the docs do not cover something rather than guess.
 
-An answer to a "how do I" ends with a button that opens the page of your project where you do it, such as **Create Monitor** or **Notification Methods**. It only opens pages OneUptime has: the ones Search (`Ctrl` + `K`) finds.
+An answer to a "how do I" ends with a button that opens the page of your project where you do it, such as **Create Monitor** or **Notification Methods**. It only opens pages OneUptime has: the ones Search (`Ctrl` + `K`) finds. Asked about one record, such as a status page, it opens that record's own page, such as its **Custom Domains**, and only for a record you may open.
 
 ## Open Ask AI
 
@@ -60,7 +60,7 @@ Ask AI reads your project with your own permissions, so it sees what you may see
 
 ## Page context
 
-Ask AI knows which page you opened it from. On an incident page, "why did this happen?" means that incident: the composer shows a chip with the page's subject, and the questions it suggests are that page's own. Remove the chip to ask about the whole project instead, and add it back the same way. Open Ask AI on another page and the context follows you. The conversation also remembers its first subject on the server, so a follow-up days later still resolves "this incident".
+Ask AI knows which page you opened it from. On an incident page, "why did this happen?" means that incident: the composer shows a chip with the page's subject, and the questions it suggests are that page's own. Remove the chip to ask about the whole project instead, and add it back the same way. Open Ask AI on another page and the context follows you. The conversation also remembers its first subject on the server, so a follow-up days later still resolves "this incident". It also knows the pages where you set a project up: **Home**, **Project Settings**, **User Settings**, **On-Call**, **Status Pages** and the forms that create something, so "how do I add one here?" is answered for the page you are on.
 
 On an incident, an alert, a monitor or a maintenance event, the questions also follow where that record stands, read each time Ask AI opens on it. A resolved incident asks how the response went and what would stop it happening again, a resolved alert whether it was a real problem and how often alerts like it fire, and a monitor that is not operational asks why. A maintenance event that has not started asks whether its monitors are healthy before it does, and one that has ended whether they are back to normal.
 
@@ -147,7 +147,7 @@ Ask AI counts toward the project's own daily AI limits when the project sets the
 ## Troubleshooting
 
 :::details Ask AI says AI is not available
-Ask AI says why before you type: the project's plan does not include AI, **Enable AI** is off, or the project has no LLM provider. Each notice links to the page that changes it.
+Ask AI says why before you type: the project's plan does not include AI, **Enable AI** is off, or the project has no LLM provider. Each notice links to the page that changes it. Above the notice, Ask AI still searches these docs for your question. An answer that fails, at a daily limit or with the provider down, shows the docs pages for its question under it too.
 :::
 
 :::details An action was refused
