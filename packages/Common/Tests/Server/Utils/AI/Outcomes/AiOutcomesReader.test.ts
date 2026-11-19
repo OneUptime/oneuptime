@@ -3,6 +3,7 @@ import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
+import LlmLogService from "../../../../../Server/Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import AiOutcomesReader from "../../../../../Server/Utils/AI/Outcomes/AiOutcomesReader";
 import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
@@ -67,7 +68,9 @@ type TableName =
   | "pullRequests"
   | "runs"
   | "incidents"
-  | "alerts";
+  | "alerts"
+  // The project's AI Logs: who may read them is told each model's name (#7762).
+  | "llmLogs";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -101,6 +104,7 @@ function emptyTables(): Tables {
     runs: [],
     incidents: [],
     alerts: [],
+    llmLogs: [],
   };
 }
 
@@ -112,6 +116,7 @@ function readsAll(): Record<TableName, Access> {
     runs: "read",
     incidents: "read",
     alerts: "read",
+    llmLogs: "read",
   };
 }
 
@@ -217,6 +222,9 @@ function install(
   jest
     .spyOn(AlertService, "findBy")
     .mockImplementation(find("alerts") as never);
+  jest
+    .spyOn(LlmLogService, "findBy")
+    .mockImplementation(find("llmLogs") as never);
 
   return store;
 }
@@ -270,6 +278,10 @@ function nextId(group: number): string {
   return uuid(group, rowCount);
 }
 
+/*
+ * A held page counts only next to an incident or alert the caller may read
+ * (#7768): a run is about INCIDENT_A unless it says otherwise.
+ */
 function pageLog(
   outcome: OnCallPolicyAiHoldOutcome | string | undefined,
   overrides: Partial<FakeRow> = {},
@@ -279,6 +291,7 @@ function pageLog(
     projectId: PROJECT_ID,
     createdAt: daysAgo(3),
     aiHoldOutcome: outcome,
+    triggeredByIncidentId: new ObjectID(INCIDENT_A._id),
     ...overrides,
   };
 }
@@ -419,6 +432,8 @@ describe("what it reads, for whom, in which window", () => {
       _id: true,
       createdAt: true,
       aiHoldOutcome: true,
+      triggeredByIncidentId: true,
+      triggeredByAlertId: true,
     });
     expect(call.sort).toEqual({ createdAt: SortOrder.Descending });
     expect(call.limit).toBe(AI_OUTCOMES_SCAN_LIMIT);
@@ -452,7 +467,7 @@ describe("what it reads, for whom, in which window", () => {
     expect(call.limit).toBe(AI_OUTCOMES_SCAN_LIMIT);
   });
 
-  test("fix pull requests: production statuses and dates, never a title or a summary", async () => {
+  test("fix pull requests: production statuses, dates and the fix task that opened each - never a title or a summary", async () => {
     await read();
 
     const call: Call = onlyCallTo("pullRequests");
@@ -472,12 +487,13 @@ describe("what it reads, for whom, in which window", () => {
       _id: true,
       createdAt: true,
       productionStatus: true,
+      aiRunId: true,
     });
     expect(call.sort).toEqual({ createdAt: SortOrder.Descending });
     expect(call.limit).toBe(AI_OUTCOMES_SCAN_LIMIT);
   });
 
-  test("investigations: read as root, completed ones of this project's window, grades and verdicts only", async () => {
+  test("investigations: read as root, completed ones of this project's window, grades, verdicts and models only", async () => {
     await read();
 
     const call: Call = onlyCallTo("runs");
@@ -498,6 +514,7 @@ describe("what it reads, for whom, in which window", () => {
       createdAt: true,
       autoGrade: true,
       humanVerdict: true,
+      modelName: true,
       triggeredByIncidentId: true,
       triggeredByAlertId: true,
     });
@@ -770,7 +787,7 @@ describe("a kind the caller may not read is left out, not zeros", () => {
     expect(weekly(outcomes, "fixesChecked")).toBe(0);
   });
 
-  test("neither incidents nor alerts readable: no root causes and no fixes AI ran, though the fixes were readable", async () => {
+  test("neither incidents nor alerts readable: no held pages, no root causes and no fixes AI ran, though the pages and fixes were readable", async () => {
     install(
       {
         incidents: [INCIDENT_A],
@@ -796,11 +813,16 @@ describe("a kind the caller may not read is left out, not zeros", () => {
 
     expect(outcomes.rootCauses).toBeNull();
     expect(outcomes.remediationFixes).toBeNull();
-    // Held pages and fix pull requests are about neither.
-    expect(outcomes.pages!.resolvedByAi).toBe(1);
+    /*
+     * A held page is about its incident or alert, and opens it (#7768):
+     * with neither readable there is nothing it could open.
+     */
+    expect(outcomes.pages).toBeNull();
+    // A fix pull request about neither still counts.
     expect(outcomes.pullRequestFixes!.verified).toBe(1);
     expect(weekly(outcomes, "fixesVerified")).toBe(1);
     expect(weekly(outcomes, "rootCausesJudged")).toBe(0);
+    expect(weekly(outcomes, "pagesHeld")).toBe(0);
   });
 
   test("incidents readable, alerts not: the work about incidents counts, the work about alerts does not", async () => {

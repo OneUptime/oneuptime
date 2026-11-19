@@ -10,7 +10,16 @@ import Response from "../Utils/Response";
 import IncidentAlertAiInsightsReader from "../Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsReader";
 import IncidentAlertAiLogsReader from "../Utils/AI/IncidentAlertActivity/IncidentAlertAiLogsReader";
 import AiOutcomesReader from "../Utils/AI/Outcomes/AiOutcomesReader";
-import { AI_OUTCOMES_PATH, AiOutcomes } from "../../Types/AI/AiOutcomes";
+import {
+  AI_OUTCOMES_PARTS,
+  AI_OUTCOMES_PATH,
+  AI_OUTCOMES_RECORDS_PATH,
+  AI_OUTCOMES_SCAN_LIMIT,
+  AiOutcomes,
+  AiOutcomesPart,
+  AiOutcomesRecords,
+  isAiOutcomesPartOutcome,
+} from "../../Types/AI/AiOutcomes";
 import {
   INCIDENT_ALERT_AI_INSIGHTS_PATHS,
   IncidentAlertAiInsights,
@@ -58,10 +67,18 @@ const router: ExpressRouter = Express.getRouter();
  *   POST /ai-activity/outcomes   {}
  *     What OneUptime AI's work came to across the project (Settings → AI →
  *     AI Results, issue #6800): the pages it kept from waking people, the
- *     fixes it verified and the root causes people confirmed, week by week
- *     (AiOutcomes). For any signed-in user of the project; each part follows
- *     the caller's own read access, and a part they may not read is left
- *     out (AiOutcomesReader).
+ *     fixes it verified and the root causes people confirmed, week by week,
+ *     and by the model that ran them (AiOutcomes). For any signed-in user of
+ *     the project; each part follows the caller's own read access, and a
+ *     part they may not read is left out (AiOutcomesReader).
+ *
+ *   POST /ai-activity/outcomes/records   { part, outcome, windowEnd?, skip? }
+ *     The records one of those numbers counts (#7768) - the held pages, the
+ *     fixes, the fix pull requests or the investigations of one outcome,
+ *     each with its incident or alert - newest first, a page at a time
+ *     (AiOutcomesRecords). Read by the same rows and filters as the number,
+ *     so it lists exactly what the number counts, and only what the caller
+ *     may read.
  */
 
 /*
@@ -126,6 +143,80 @@ export function parseLogsRequest(body: unknown): ParsedLogsRequest {
     }
 
     parsed.kinds = kinds as Array<IncidentAlertAiLogKind>;
+  }
+
+  return parsed;
+}
+
+export interface ParsedRecordsRequest {
+  part: AiOutcomesPart;
+  outcome: string;
+  windowEnd?: Date | undefined;
+  skip?: number | undefined;
+}
+
+// What a records request asks for; anything else in the body is ignored.
+export function parseRecordsRequest(body: unknown): ParsedRecordsRequest {
+  const request: JSONObject =
+    body && typeof body === "object" && !Array.isArray(body)
+      ? (body as JSONObject)
+      : {};
+
+  const part: unknown = request["part"];
+
+  if (
+    typeof part !== "string" ||
+    !AI_OUTCOMES_PARTS.includes(part as AiOutcomesPart)
+  ) {
+    throw new BadDataException(
+      `part must be one of: ${AI_OUTCOMES_PARTS.join(", ")}.`,
+    );
+  }
+
+  const outcome: unknown = request["outcome"];
+
+  if (
+    typeof outcome !== "string" ||
+    !isAiOutcomesPartOutcome(part as AiOutcomesPart, outcome)
+  ) {
+    throw new BadDataException(
+      `outcome must be one of the outcomes of ${part}, as the page counts them.`,
+    );
+  }
+
+  const parsed: ParsedRecordsRequest = {
+    part: part as AiOutcomesPart,
+    outcome,
+  };
+
+  const windowEnd: unknown = request["windowEnd"];
+
+  if (windowEnd !== undefined && windowEnd !== null && windowEnd !== "") {
+    const date: Date =
+      typeof windowEnd === "string" ? new Date(windowEnd) : new Date(NaN);
+
+    if (Number.isNaN(date.getTime())) {
+      throw new BadDataException("windowEnd must be an ISO date.");
+    }
+
+    parsed.windowEnd = date;
+  }
+
+  const skip: unknown = request["skip"];
+
+  if (skip !== undefined && skip !== null) {
+    if (
+      typeof skip !== "number" ||
+      !Number.isInteger(skip) ||
+      skip < 0 ||
+      skip > AI_OUTCOMES_SCAN_LIMIT
+    ) {
+      throw new BadDataException(
+        `skip must be a whole number from 0 to ${AI_OUTCOMES_SCAN_LIMIT}.`,
+      );
+    }
+
+    parsed.skip = skip;
   }
 
   return parsed;
@@ -229,6 +320,44 @@ router.post(
         req,
         res,
         outcomes as unknown as JSONObject,
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  AI_OUTCOMES_RECORDS_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const {
+        projectId,
+        props,
+      }: { projectId: ObjectID; props: DatabaseCommonInteractionProps } =
+        await getTenantProps(req);
+      const request: ParsedRecordsRequest = parseRecordsRequest(req.body);
+
+      const records: AiOutcomesRecords = await AiOutcomesReader.readRecords({
+        projectId,
+        props,
+        part: request.part,
+        outcome: request.outcome,
+        windowEnd: request.windowEnd,
+        skip: request.skip,
+      });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        records as unknown as JSONObject,
       );
       return;
     } catch (err) {

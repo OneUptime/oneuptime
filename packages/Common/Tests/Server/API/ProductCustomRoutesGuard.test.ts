@@ -703,6 +703,8 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "INCIDENT_ALERT_AI_LOGS_PATHS[subjectKind]": READ,
       "INCIDENT_ALERT_AI_INSIGHTS_PATHS[subjectKind]": READ,
       AI_OUTCOMES_PATH: READ,
+      // The records one of AI Results' numbers counts (#7768).
+      AI_OUTCOMES_RECORDS_PATH: READ,
     },
   },
   "packages/Common/Server/API/TelemetryAiAPI.ts": {
