@@ -473,8 +473,9 @@ export default class DeviceMonitorLookupUtil {
       /*
        * 5. A monitor a person TIED to the device (Monitor.networkDeviceId,
        *    issue #9545): made by hand from Monitors > Create, from this
-       *    device's page, or on an address only this device has - of any
-       *    kind. Nothing in its steps names the device either.
+       *    device's page, or on an address its probes see as this device
+       *    (issue #9677) - of any kind. Nothing in its steps names the
+       *    device either. Remove unties it (issue #9676).
        */
       ModelAPI.getList<Monitor>({
         modelType: Monitor,
