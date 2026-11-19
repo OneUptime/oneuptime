@@ -58677,5 +58677,11 @@
   "Sign Out URL": "로그아웃 URL",
   "Single Logout URL:": "단일 로그아웃 URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "ID 공급자에서도 로그아웃시키려면 단일 로그아웃 URL과 OneUptime의 서명 인증서도 공급자에 등록하세요.",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다."
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "ID 공급자의 단일 로그아웃 URL입니다. ID 공급자에서도 로그아웃시키려면 필요합니다.",
+  "Dataverse Tables Named by Entity Set": "Dataverse Tables Named by Entity Set",
+  "Entity Set Name": "Entity Set Name",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.": "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them._one": "Power BI names {{count}} Dataverse table by its entity set ({{tables}}), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
+  "{{count}} Dataverse tables not matched yet": "{{count}} Dataverse tables not matched yet",
+  "{{count}} Dataverse tables not matched yet_one": "{{count}} Dataverse table not matched yet"
 }

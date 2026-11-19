@@ -58677,5 +58677,11 @@
   "Sign Out URL": "साइन आउट URL",
   "Single Logout URL:": "सिंगल लॉगआउट URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "लोगों को पहचान प्रदाता से भी साइन आउट करने के लिए उसे सिंगल लॉगआउट URL और OneUptime का साइनिंग प्रमाणपत्र भी दें।",
-  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "आपके पहचान प्रदाता का सिंगल साइन आउट URL। लोगों को वहां से भी साइन आउट करने के लिए ज़रूरी है।"
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "आपके पहचान प्रदाता का सिंगल साइन आउट URL। लोगों को वहां से भी साइन आउट करने के लिए ज़रूरी है।",
+  "Dataverse Tables Named by Entity Set": "Dataverse Tables Named by Entity Set",
+  "Entity Set Name": "Entity Set Name",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.": "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+  "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them._one": "Power BI names {{count}} Dataverse table by its entity set ({{tables}}), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
+  "{{count}} Dataverse tables not matched yet": "{{count}} Dataverse tables not matched yet",
+  "{{count}} Dataverse tables not matched yet_one": "{{count}} Dataverse table not matched yet"
 }

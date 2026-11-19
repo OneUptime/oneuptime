@@ -659,3 +659,86 @@ describe("getTableMetricValues", () => {
     );
   });
 });
+
+/*
+ * A Dataverse table's entity set name, kept with the table (#9696): what
+ * Power BI's OData connectors name it by. Written when the collection says
+ * one the asset does not keep yet - the first collection since the names
+ * were kept rewrites each table once - and never cleared by a collection
+ * that says none (another engine, or a probe older than the names).
+ */
+describe("a Dataverse table's entity set name", () => {
+  function dataverse(overrides: Partial<CollectedTable> = {}): CollectedTable {
+    return table({
+      schema: "dbo",
+      name: "account",
+      sizeInBytes: null,
+      writeCount: null,
+      columns: null,
+      columnsNotRead: true,
+      isChangeTimeFromData: true,
+      entitySetName: "accounts",
+      ...overrides,
+    });
+  }
+
+  function kept(
+    overrides: Partial<PreviousAssetState> = {},
+  ): PreviousAssetState {
+    return previous({
+      sizeInBytes: null,
+      writeCount: null,
+      entitySetName: "accounts",
+      ...overrides,
+    });
+  }
+
+  test("a table found is created with it", () => {
+    expect(planAssetUpdate(null, dataverse(), COLLECTED_AT)).toMatchObject({
+      entitySetName: "accounts",
+      needsWrite: true,
+    });
+  });
+
+  test("a table kept without one is written with it, though nothing else moved", () => {
+    const plan: AssetPlan = planAssetUpdate(
+      kept({ entitySetName: null }),
+      dataverse(),
+      COLLECTED_AT,
+    );
+
+    expect(plan.entitySetName).toBe("accounts");
+    expect(plan.needsWrite).toBe(true);
+  });
+
+  test("a table that keeps it is not written for it again", () => {
+    const plan: AssetPlan = planAssetUpdate(kept(), dataverse(), COLLECTED_AT);
+
+    expect(plan).not.toHaveProperty("entitySetName");
+    expect(plan.needsWrite).toBe(false);
+  });
+
+  test("a maker's new name for its entity set is written", () => {
+    expect(
+      planAssetUpdate(
+        kept(),
+        dataverse({ entitySetName: "customers" }),
+        COLLECTED_AT,
+      ),
+    ).toMatchObject({ entitySetName: "customers", needsWrite: true });
+  });
+
+  test("a collection that says none - an older probe's, or another engine's - keeps what was kept", () => {
+    const olderProbe: AssetPlan = planAssetUpdate(
+      kept(),
+      dataverse({ entitySetName: undefined }),
+      COLLECTED_AT,
+    );
+
+    expect(olderProbe).not.toHaveProperty("entitySetName");
+    expect(olderProbe.needsWrite).toBe(false);
+    expect(
+      planAssetUpdate(previous(), table(), COLLECTED_AT),
+    ).not.toHaveProperty("entitySetName");
+  });
+});
