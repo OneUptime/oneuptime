@@ -794,7 +794,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
           title="Scrub This Data at Ingest"
           description={
             props.store?.kind === DataStoreKind.TelemetryMetrics
-              ? "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics, before they are stored. What is already stored does not change."
+              ? "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored metrics do not change."
               : "OneUptime adds a scrub rule that masks this kind of data at this place in new telemetry, before it is stored. What is already stored does not change."
           }
           submitButtonText="Scrub It"

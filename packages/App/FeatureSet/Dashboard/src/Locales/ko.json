@@ -58703,5 +58703,6 @@
   "{{count}} selected devices already have a monitor, so they are left out.": "선택한 장치 중 {{count}}개는 이미 모니터가 있어 제외됩니다.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "선택한 장치 중 {{count}}개는 이미 모니터가 있어 제외됩니다.",
   "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}}은(는) 더 이상 이 디바이스에 표시되지 않으며, 이제부터 발생시키는 항목은 이 디바이스에 연결되지 않습니다. 가져오기와 자동 가져오기 규칙이 이 모니터를 더 이상 세지 않으므로 이 디바이스에 같은 종류의 모니터를 추가할 수 있습니다. 모니터 자체는 변경 없이 계속 확인합니다.",
-  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "이 규칙이 케이스를 열 때 할 일입니다. 각 단계는 선택한 구분 아래, 케이스 대응 계획의 일반 단계보다 앞에 표시됩니다."
+  "What to do when this rule opens a case. Each step is shown in the case's Response Plan under the part you pick, ahead of the general steps.": "이 규칙이 케이스를 열 때 할 일입니다. 각 단계는 선택한 구분 아래, 케이스 대응 계획의 일반 단계보다 앞에 표시됩니다.",
+  "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored metrics do not change.": "OneUptime은 서비스의 새 메트릭에서 이 속성에 있는 이 종류의 데이터를 가리는 메트릭 파이프라인 규칙을 추가합니다. 저장된 메트릭은 변경되지 않습니다."
 }
