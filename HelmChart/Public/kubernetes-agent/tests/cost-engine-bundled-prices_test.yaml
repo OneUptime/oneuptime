@@ -1,0 +1,314 @@
+# With the bundled engine, the prices shown come from the engine the cost
+# agent reads (issue #9852), and memory peaks from the Prometheus it reads
+# (issue #9777).
+#
+# cost.engine.url empty (the default) bundles OpenCost, and the cost agent
+# reads the cluster's own Kubecost or OpenCost instead when it finds one
+# (cost.engine.preferExisting, #9633). The collector's cost-engine job used
+# to scrape the bundled OpenCost's /metrics as a static target all the same,
+# so the Kubernetes Cost dashboard and Metric Explorer showed the bundled
+# engine's list prices or default rates while the Costs pages and the
+# oneuptime.kubernetes.cost.* metrics showed the cluster's own engine's rate
+# card or cloud bill. The job now asks the agent (Prometheus http_sd, at its
+# /scrape-targets), which answers with the bundled OpenCost until it reads
+# another engine, then with that engine's prices. Where the agent always
+# reads the bundled engine (preferExisting false, or a rate card of the
+# bundled engine's own), the static target stays: nothing to follow, and no
+# reliance on the agent. An explicit cost.metrics.endpoint, and the agent
+# off, scrape as written.
+#
+# COST_PROMETHEUS_BUNDLED tells the agent that COST_PROMETHEUS_URL is the
+# chart's bundled Prometheus, which it reads for the bundled engine and as a
+# stand-in when the cluster's own engine's Prometheus is not found, rather
+# than a cost.engine.prometheusUrl someone set, which it reads whatever the
+# engine.
+#
+# The job is read with the ConfigMap's own indent stripped, as in
+# cost-engine-metrics_test.yaml: `- job_name:` at 8 spaces, its keys at 10.
+suite: with the bundled engine, the prices and peaks follow the engine the agent reads
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+  - templates/service-cost-agent.yaml
+  - templates/deployment-cost-agent.yaml
+  - templates/opencost.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- The default: ask the agent ------------------------------------------------
+  - it: asks the agent which engine's prices to scrape, the whole job spelled out
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          http_sd_configs:\\n            - url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\"\\n              refresh_interval: 60s\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"\\^\\(node_cpu_hourly_cost\\|node_gpu_hourly_cost\\|node_ram_hourly_cost\\|node_total_hourly_cost\\|pv_hourly_cost\\|kubecost_cluster_management_cost\\|kubecost_load_balancer_cost\\|kubecost_network_zone_egress_cost\\|kubecost_network_region_egress_cost\\|kubecost_network_internet_egress_cost\\)\\$\"\\n              action: keep\\n(?: {0,8}\\S|\\n)"
+
+  - it: never scrapes the bundled OpenCost as a static target beside it
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003"
+      # One cost-engine job: never two engines' prices for one node.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine(?:.|\\n)*job_name: cost-engine"
+      # Nor finds engines itself: the agent knows which one it reads.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "__tmp_cost_engine"
+
+  - it: reaches the agent through its Service, ready or not
+    template: templates/service-cost-agent.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-cost
+      - equal:
+          path: spec.ports
+          value:
+            - name: health
+              port: 13134
+              targetPort: health
+              protocol: TCP
+      - equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: kubernetes-agent
+            app.kubernetes.io/instance: oneuptime-agent
+            component: cost-agent
+      # The agent reports Not Ready while allocations stall; prices do not wait.
+      - equal:
+          path: spec.publishNotReadyAddresses
+          value: true
+      # A OneUptime agent's own, which no engine discovery takes for an engine.
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: oneuptime
+
+  - it: tells the agent to prefer the cluster's own engine, which is what the job follows
+    template: templates/deployment-cost-agent.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PREFER_EXISTING_ENGINE
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: http://oneuptime-agent-kubernetes-agent-opencost.oneuptime.svc.cluster.local:9003
+
+  - it: keeps the scrape interval and the price series allowlist the values set
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.metrics.scrapeInterval: 5m
+      cost.metrics.metricsAllowlist:
+        - node_total_hourly_cost
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 5m\\n          http_sd_configs:\\n            - url: \"[^\"]+\"\\n              refresh_interval: 60s\\n          metric_relabel_configs:\\n            - source_labels: \\[__name__\\]\\n              regex: \"\\^\\(node_total_hourly_cost\\)\\$\"\\n              action: keep\\n"
+
+  - it: follows fullnameOverride in the Service and in the job alike
+    set:
+      fullnameOverride: k8s-agent
+    asserts:
+      - template: templates/service-cost-agent.yaml
+        equal:
+          path: metadata.name
+          value: k8s-agent-cost
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- url: \"http://k8s-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+
+  # --- The bundled engine the agent always reads: as written ------------------------
+  - it: scrapes the bundled OpenCost where the chart put it when the agent always reads it
+    set:
+      cost.engine.preferExisting: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003\"\\n"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "http_sd_configs"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+
+  - it: scrapes the bundled OpenCost where the chart put it when it has a rate card someone chose
+    set:
+      cost.opencost.customPricing.enabled: true
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003\"\\n"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PREFER_EXISTING_ENGINE
+            value: "false"
+
+  - it: scrapes the bundled OpenCost where the chart put it while the agent is off
+    set:
+      cost.agent.enabled: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003\"\\n"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 0
+
+  - it: scrapes a metrics endpoint of your own as written, bundled engine or not
+    set:
+      cost.metrics.endpoint: https://prices.example.com/opencost/metrics
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          scheme: https\\n          metrics_path: \"/opencost/metrics\"\\n          static_configs:\\n            - targets:\\n(?:                #[^\\n]*\\n)*                - \"prices\\.example\\.com\"\\n"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+
+  - it: asks nothing and adds no Service while the price scrape is off
+    set:
+      cost.metrics.enabled: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+      - template: templates/service-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      # The allocations are still read, from the cluster's own engine too.
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+
+  # --- Where the memory peaks come from (#9777) ------------------------------------
+  - it: gives the agent the bundled Prometheus, and says it is the bundled one
+    template: templates/deployment-cost-agent.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_URL
+            value: http://oneuptime-agent-kubernetes-agent-cost-prometheus.oneuptime.svc.cluster.local:9090
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_BUNDLED
+            value: "true"
+
+  - it: says the same when the agent always reads the bundled engine
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.preferExisting: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_BUNDLED
+            value: "true"
+
+  - it: gives a Prometheus someone named as theirs, not as the bundled one
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.prometheusUrl: http://prometheus-server.monitoring.svc:80
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_URL
+            value: http://prometheus-server.monitoring.svc:80
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_BUNDLED
+          any: true
+
+  - it: leaves the bundled OpenCost reading the bundled Prometheus
+    template: templates/opencost.yaml
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROMETHEUS_SERVER_ENDPOINT
+            value: http://oneuptime-agent-kubernetes-agent-cost-prometheus.oneuptime.svc.cluster.local:9090
+
+  - it: names no Prometheus with auto, so the agent finds the one the engine reads
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.url: auto
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_URL
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_BUNDLED
+          any: true
+
+  - it: names no Prometheus with an engine URL, so the agent finds the one the engine reads
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_URL
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_BUNDLED
+          any: true
+
+  - it: passes a cAdvisor job someone named, and none otherwise, so the agent reads it off the Prometheus
+    template: templates/deployment-cost-agent.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_CADVISOR_JOB
+          any: true
+
+  - it: passes the cAdvisor job when one is named
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.url: auto
+      cost.engine.prometheusCadvisorJob: kubelet
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_CADVISOR_JOB
+            value: kubelet
