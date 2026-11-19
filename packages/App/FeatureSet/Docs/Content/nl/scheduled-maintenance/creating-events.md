@@ -65,7 +65,7 @@ Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op g
 | **Monitoren**                        | **Getroffen middelen** | Geen                        | De monitoren die niet worden gecontroleerd zolang de gebeurtenis loopt.          |
 | **Monitorstatus wijzigen naar**      | **Getroffen middelen** | Geen wijziging              | De status die deze monitoren tijdens de gebeurtenis tonen. Wordt gevraagd zodra er een monitor is gekozen. |
 | **Andere getroffen resources**       | **Getroffen middelen** | Geen                        | Hosts, clusters, databases, netwerklocaties, services en meer.                   |
-| **Gebeurtenis weergeven op deze statuspagina's** | **Getroffen middelen** | Geen           | De statuspagina's die de gebeurtenis tonen en hun abonnees informeren.           |
+| **Gebeurtenis weergeven op deze statuspagina's** | **Getroffen middelen** | Geen           | De enige statuspagina's die de gebeurtenis kunnen tonen of hun abonnees kunnen informeren. |
 | **Meldingen aan abonnees**           | **Getroffen middelen** | Meteen gepubliceerd, alle drie de momenten aan, geen herinneringen | Wanneer de gebeurtenis op die pagina's verschijnt, en wanneer hun abonnees bericht krijgen. |
 
 Twee dingen vullen het formulier onderweg voor je in:
@@ -104,8 +104,9 @@ Plan het werk zo vroeg als je wilt, en houd het binnen je team tot je klanten er
 | Haar **Eindigt op**      | Ze eindigt                                                            | Voorbij              |
 
 - **Tot dan horen abonnees niets.** Herinneringen vóór de gebeurtenis, statuswijzigingen en openbare notities worden hun niet gestuurd zolang de gebeurtenis wacht.
-- **Haar pagina zegt het.** Haar kop toont **Nog niet op statuspagina's**, met het tijdstip vanaf wanneer ze verschijnt, en **Nu publiceren** publiceert haar meteen, na een bevestiging. Haar **Instellingen** zeggen hetzelfde, en de lijst met gebeurtenissen toont het tijdstip onder haar statuspagina's.
+- **Haar pagina zegt het.** Haar kop toont **Nog niet op statuspagina's**, met het tijdstip vanaf wanneer ze verschijnt, en **Nu publiceren** publiceert haar meteen, na een bevestiging. Als geen van haar statuspagina's onderhoudsgebeurtenissen toont, zegt de kop dat in plaats van het tijdstip. Haar **Instellingen** zeggen hetzelfde, en de lijst met gebeurtenissen toont het tijdstip onder haar statuspagina's.
 - **Wijzig het, of publiceer meteen.** Verplaats het **Publiceren op** in de stap **Statuspagina's** van **Bewerken**, of kies **Meteen**. Zet **Zichtbaar op statuspagina** uit in haar **Instellingen** om haar van haar statuspagina's te houden, welk tijdstip het ook is.
+- **Wat haar statuspagina's doen.** In dezelfde stap zegt een opmerking onder de statuspagina's wanneer de gekozen pagina's de gebeurtenis aan niemand tonen of niemand informeren, en waarom, en een opmerking onder **Herinneringen vóór de gebeurtenis** zegt welke herinneringen niet worden verzonden. De kaart **Onderhoudsgegevens** zegt het onder **Weergegeven op statuspagina's** wanneer geen van hen onderhoudsgebeurtenissen toont.
 
 ## Een gebeurtenis later wijzigen
 

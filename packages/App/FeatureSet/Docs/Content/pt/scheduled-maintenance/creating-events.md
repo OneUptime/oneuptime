@@ -65,7 +65,7 @@ Nada é enviado até você escolher uma página de status: um evento que não ap
 | **Monitores**                        | **Recursos afetados** | Nenhum                       | Os monitores que não são verificados enquanto o evento está em andamento.        |
 | **Alterar status do monitor para**   | **Recursos afetados** | Sem alteração                | O status que esses monitores mostram durante o evento. Perguntado assim que um monitor é escolhido. |
 | **Outros recursos afetados**         | **Recursos afetados** | Nenhum                       | Hosts, clusters, bancos de dados, sites de rede, serviços e mais.                |
-| **Mostrar evento nestas páginas de status** | **Recursos afetados** | Nenhuma            | As páginas de status que mostram o evento e avisam seus assinantes.              |
+| **Mostrar evento nestas páginas de status** | **Recursos afetados** | Nenhuma            | As únicas páginas de status que podem mostrar o evento ou avisar seus assinantes. |
 | **Notificações aos assinantes**      | **Recursos afetados** | Publicado imediatamente, os três momentos ativados, sem lembretes | Quando o evento aparece nessas páginas, e quando os assinantes delas são avisados. |
 
 Duas coisas preenchem o formulário para você no caminho:
@@ -104,8 +104,9 @@ Planeje o trabalho com a antecedência que quiser e mantenha-o dentro da sua equ
 | O **Termina em** dele    | Ele termina                                                          | Encerrado                  |
 
 - **Até lá, os assinantes não ficam sabendo de nada.** Enquanto o evento espera, os lembretes antes do evento, as mudanças de estado e as notas públicas não são enviados a eles.
-- **A página dele avisa.** O cabeçalho dele mostra **Ainda não está nas páginas de status**, com o horário a partir do qual ele aparece, e **Publicar agora** o publica na hora, após confirmação. As **Configurações** dele dizem o mesmo, e a lista de eventos mostra o horário abaixo das páginas de status dele.
+- **A página dele avisa.** O cabeçalho dele mostra **Ainda não está nas páginas de status**, com o horário a partir do qual ele aparece, e **Publicar agora** o publica na hora, após confirmação. Quando nenhuma das páginas de status dele mostra eventos de manutenção, o cabeçalho diz isso no lugar do horário. As **Configurações** dele dizem o mesmo, e a lista de eventos mostra o horário abaixo das páginas de status dele.
 - **Mude-o, ou publique já.** Mova o **Publicar em** no passo **Páginas de status** de **Editar**, ou escolha **Imediatamente**. Desative **Visível na página de status** nas **Configurações** dele para mantê-lo fora das páginas de status dele, seja qual for o horário.
+- **O que as páginas de status dele fazem.** No mesmo passo, uma nota abaixo das páginas de status diz quando as páginas escolhidas não vão mostrar o evento a ninguém ou não vão avisar ninguém, e por quê, e uma nota abaixo de **Lembretes antes do evento** diz quais lembretes não são enviados. O cartão **Detalhes da manutenção** diz isso abaixo de **Exibido nas páginas de status** quando nenhuma delas mostra eventos de manutenção.
 
 ## Alterar um evento depois
 

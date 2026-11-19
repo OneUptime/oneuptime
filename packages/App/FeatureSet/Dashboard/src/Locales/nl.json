@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Titel en zoekmachinebeschrijving",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Bezoekers lezen dit bovenaan uw statuspagina, bijvoorbeeld wat de pagina dekt en waar ze ondersteuning krijgen.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Wat bezoekers als eerste lezen, bovenaan uw statuspagina, boven al het andere. Markdown wordt ondersteund.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Gebeurtenissen uit dit sjabloon verschijnen alleen op deze statuspagina's en informeren alleen hun abonnees. Zonder keuze verschijnen ze op geen enkele statuspagina.",
   "Events from this template will not appear on any status page.": "Gebeurtenissen uit dit sjabloon verschijnen op geen enkele statuspagina.",
   "Not shown on any status page": "Op geen enkele statuspagina weergegeven",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Alleen deze statuspagina's tonen deze gebeurtenis en informeren hun abonnees. Anders dan een incident verschijnt een gebeurtenis zonder keuze op geen enkele statuspagina.",
   "Show event on these status pages": "Gebeurtenis weergeven op deze statuspagina's",
   "This event will not appear on any status page.": "Deze gebeurtenis verschijnt op geen enkele statuspagina.",
   "Change sharing": "Delen wijzigen",
@@ -59147,5 +59145,11 @@
   "Right axis": "Rechteras",
   "Right axis: {{unit}}": "Rechteras: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Deze query is in {{unit}} en de grafiek van de vorige query in {{chartUnit}}, dus hij wordt tegen de rechteras van de grafiek getekend.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Deze query is in {{unit}}, en de grafiek van de vorige query heeft assen in {{chartUnit}} en {{secondUnit}}, dus de waarden ervan zijn op geen van beide assen goed af te lezen."
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Deze query is in {{unit}}, en de grafiek van de vorige query heeft assen in {{chartUnit}} en {{secondUnit}}, dus de waarden ervan zijn op geen van beide assen goed af te lezen.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "Gebeurtenissen uit dit sjabloon houden het hele jaar hetzelfde tijdstip in deze tijdzone, ook nadat de klok is verzet.",
+  "First Event": "Eerste gebeurtenis",
+  "It can show on its status pages at once.": "Ze kan meteen op haar statuspagina's worden getoond.",
+  "It can show on its status pages from {{time}}.": "Ze kan vanaf {{time}} op haar statuspagina's worden getoond.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Alleen deze statuspagina's kunnen gebeurtenissen uit dit sjabloon tonen of hun abonnees informeren. Zonder keuze verschijnen ze op geen enkele statuspagina.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Alleen deze statuspagina's kunnen deze gebeurtenis tonen of hun abonnees informeren. Anders dan een incident verschijnt een gebeurtenis zonder keuze op geen enkele statuspagina."
 }

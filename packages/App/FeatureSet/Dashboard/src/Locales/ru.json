@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Заголовок и описание для поисковых систем",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Посетители читают это вверху страницы статуса: например, что она охватывает и где получить поддержку.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "То, что посетители читают первым, вверху страницы статуса, над всем остальным. Поддерживается Markdown.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "События из этого шаблона показываются только на этих страницах статуса и уведомляют только их подписчиков. Если ничего не выбрано, они не показываются ни на одной странице статуса.",
   "Events from this template will not appear on any status page.": "События из этого шаблона не появятся ни на одной странице статуса.",
   "Not shown on any status page": "Не показывается ни на одной странице статуса",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Только эти страницы статуса показывают это событие и уведомляют своих подписчиков. В отличие от инцидента, событие без выбранных страниц не показывается нигде.",
   "Show event on these status pages": "Показывать событие на этих страницах статуса",
   "This event will not appear on any status page.": "Это событие не появится ни на одной странице статуса.",
   "Change sharing": "Изменить общий доступ",
@@ -59147,5 +59145,11 @@
   "Right axis": "Правая ось",
   "Right axis: {{unit}}": "Правая ось: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому он построен по правой оси диаграммы.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Этот запрос в единицах «{{unit}}», а у диаграммы предыдущего запроса оси в «{{chartUnit}}» и «{{secondUnit}}», поэтому его значения нельзя правильно прочитать ни по одной из осей."
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Этот запрос в единицах «{{unit}}», а у диаграммы предыдущего запроса оси в «{{chartUnit}}» и «{{secondUnit}}», поэтому его значения нельзя правильно прочитать ни по одной из осей.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "События из этого шаблона весь год проходят в одно и то же время суток в этом часовом поясе, в том числе после перевода часов.",
+  "First Event": "Первое событие",
+  "It can show on its status pages at once.": "Оно может сразу показываться на своих страницах статуса.",
+  "It can show on its status pages from {{time}}.": "Оно может показываться на своих страницах статуса с {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Только эти страницы статуса могут показывать события из этого шаблона или уведомлять своих подписчиков. Если ничего не выбрано, они не показываются ни на одной странице статуса.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Только эти страницы статуса могут показывать это событие или уведомлять своих подписчиков. В отличие от инцидента, событие без выбранных страниц не показывается нигде."
 }

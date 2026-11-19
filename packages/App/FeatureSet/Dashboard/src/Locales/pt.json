@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "Título e descrição para buscadores",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Os visitantes leem isto no topo da sua página de status, como o que ela cobre e onde obter suporte.",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "O que os visitantes leem primeiro, no topo da sua página de status, antes de tudo. Markdown é suportado.",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Os eventos deste modelo aparecem apenas nestas páginas de status e notificam apenas os seus assinantes. Sem nenhuma selecionada, não aparecem em nenhuma página de status.",
   "Events from this template will not appear on any status page.": "Os eventos deste modelo não aparecerão em nenhuma página de status.",
   "Not shown on any status page": "Não exibido em nenhuma página de status",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Apenas estas páginas de status exibem este evento e notificam seus assinantes. Ao contrário de um incidente, um evento sem nenhuma selecionada não aparece em nenhuma.",
   "Show event on these status pages": "Mostrar evento nestas páginas de status",
   "This event will not appear on any status page.": "Este evento não aparecerá em nenhuma página de status.",
   "Change sharing": "Alterar o compartilhamento",
@@ -59147,5 +59145,11 @@
   "Right axis": "Eixo direito",
   "Right axis: {{unit}}": "Eixo direito: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então ela é desenhada no eixo direito do gráfico.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Esta consulta está em {{unit}}, e o gráfico da consulta anterior tem eixos em {{chartUnit}} e {{secondUnit}}, então os valores dela não serão lidos corretamente em nenhum dos dois eixos."
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Esta consulta está em {{unit}}, e o gráfico da consulta anterior tem eixos em {{chartUnit}} e {{secondUnit}}, então os valores dela não serão lidos corretamente em nenhum dos dois eixos.",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "Os eventos deste modelo mantêm a mesma hora do dia neste fuso horário durante todo o ano, inclusive depois da mudança de horário.",
+  "First Event": "Primeiro evento",
+  "It can show on its status pages at once.": "Ele pode aparecer de imediato nas suas páginas de status.",
+  "It can show on its status pages from {{time}}.": "Ele pode aparecer nas suas páginas de status a partir de {{time}}.",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Apenas estas páginas de status podem exibir os eventos deste modelo ou notificar seus assinantes. Sem nenhuma selecionada, não aparecem em nenhuma página de status.",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Apenas estas páginas de status podem exibir este evento ou notificar seus assinantes. Ao contrário de um incidente, um evento sem nenhuma selecionada não aparece em nenhuma."
 }

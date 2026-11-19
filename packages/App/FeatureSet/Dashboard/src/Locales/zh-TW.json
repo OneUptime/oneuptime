@@ -56484,10 +56484,8 @@
   "Title and Search Engine Description": "標題和搜尋引擎描述",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "訪客會在狀態頁頂端讀到這段文字，例如它涵蓋的範圍以及取得支援的管道。",
   "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "訪客最先讀到的內容，顯示在狀態頁頂端，位於所有其他內容之上。支援 Markdown。",
-  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "以此範本建立的維護事件只會顯示在這些狀態頁面上，且只通知其訂閱者。未選擇任何頁面時，不會顯示在任何狀態頁面上。",
   "Events from this template will not appear on any status page.": "以此範本建立的維護事件不會顯示在任何狀態頁面上。",
   "Not shown on any status page": "不在任何狀態頁面上顯示",
-  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面會顯示此維護事件並通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。",
   "Show event on these status pages": "在這些狀態頁面上顯示事件",
   "This event will not appear on any status page.": "此維護事件不會顯示在任何狀態頁面上。",
   "Change sharing": "變更分享設定",
@@ -59147,5 +59145,11 @@
   "Right axis": "右軸",
   "Right axis: {{unit}}": "右軸：{{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表單位為 {{chartUnit}}，因此此查詢依圖表的右軸繪製。",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表座標軸單位為 {{chartUnit}} 和 {{secondUnit}}，因此無法在任一座標軸上正確讀出此查詢的數值。"
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表座標軸單位為 {{chartUnit}} 和 {{secondUnit}}，因此無法在任一座標軸上正確讀出此查詢的數值。",
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.": "以此範本建立的維護事件全年都在此時區的同一時間進行，日光節約時間調整時鐘後也一樣。",
+  "First Event": "第一個事件",
+  "It can show on its status pages at once.": "可能會立即顯示在其狀態頁面上。",
+  "It can show on its status pages from {{time}}.": "可能從 {{time}} 起顯示在其狀態頁面上。",
+  "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "只有這些狀態頁面可以顯示以此範本建立的維護事件或通知其訂閱者。未選擇任何頁面時，不會顯示在任何狀態頁面上。",
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面可以顯示此維護事件或通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。"
 }
