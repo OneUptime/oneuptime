@@ -61,7 +61,7 @@ import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionC
 import {
   ResourceAttentionItem,
   ResourceHealth,
-  getResourceAttentionHealth,
+  getResourceAttentionTone,
 } from "../../../Components/ResourcePart/ResourceAttention";
 import { ComponentProps as ResourceAttentionPillProps } from "../../../Components/ResourcePart/ResourceAttentionPill";
 import {
@@ -155,8 +155,7 @@ export function getStorageArrayHardwarePill(data: {
     label:
       data.translator.translateText(RESOURCE_HEALTH_HINT) ||
       RESOURCE_HEALTH_HINT,
-    tone:
-      getResourceAttentionHealth(items) === "Unhealthy" ? "danger" : "warning",
+    tone: getResourceAttentionTone(items),
     hint: STORAGE_ARRAY_HARDWARE_HINT,
     dialog: {
       title: data.translator.translatePlural(

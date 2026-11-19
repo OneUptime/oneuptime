@@ -17,7 +17,7 @@ import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/Res
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import {
   ResourceAttentionItem,
-  ResourceAttentionSeverity,
+  getResourceAttentionTone,
   ResourceHealth,
 } from "../../../Components/ResourcePart/ResourceAttention";
 import DockerSwarmNodesCard from "../../../Components/DockerSwarm/DockerSwarmNodesCard";
@@ -114,15 +114,6 @@ interface SpecChip {
    * those and why (#9594). The chip itself still opens the whole list.
    */
   problem?: ResourceAttentionPillProps | undefined;
-}
-
-// The worst of the parts a count lists says its pill's tone.
-function toneOf(items: Array<ResourceAttentionItem>): "danger" | "warning" {
-  return items.some((item: ResourceAttentionItem): boolean => {
-    return item.severity === ResourceAttentionSeverity.Critical;
-  })
-    ? "danger"
-    : "warning";
 }
 
 interface InventorySummary {
@@ -420,7 +411,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
             ? {
                 testId: "docker-swarm-hero-nodes-not-ready",
                 label: notReadyWords,
-                tone: toneOf(nodesNotReady),
+                tone: getResourceAttentionTone(nodesNotReady),
                 hint: "Show which nodes and why",
                 dialog: {
                   title: notReadyWords,
@@ -476,7 +467,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
             ? {
                 testId: "docker-swarm-hero-tasks-failing",
                 label: failingWords,
-                tone: toneOf(failingTasks),
+                tone: getResourceAttentionTone(failingTasks),
                 hint: "Show which tasks and why",
                 dialog: {
                   title: failingWords,

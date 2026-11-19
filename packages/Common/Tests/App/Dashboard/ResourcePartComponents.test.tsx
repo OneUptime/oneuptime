@@ -118,6 +118,7 @@ import {
   ResourceAttentionSeverity,
   countResourceAttention,
   getResourceAttentionHealth,
+  getResourceAttentionTone,
   mergeResourceAttentionSeverity,
   sortResourceAttention,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
@@ -200,6 +201,24 @@ describe("what needs attention, ordered and counted", () => {
         item("c", ResourceAttentionSeverity.Warning),
       ]),
     ).toEqual({ critical: 1, warning: 2 });
+  });
+
+  // One rule for every count that opens what failed (#9594).
+  test("a count's tone is red while any part it lists is broken, amber while they only need a look", () => {
+    expect(
+      getResourceAttentionTone([
+        item("a", ResourceAttentionSeverity.Warning),
+        item("b", ResourceAttentionSeverity.Critical),
+      ]),
+    ).toBe("danger");
+    expect(
+      getResourceAttentionTone([
+        item("a", ResourceAttentionSeverity.Warning),
+        item("b", ResourceAttentionSeverity.Warning),
+      ]),
+    ).toBe("warning");
+    // Nothing listed: a look at most, never red.
+    expect(getResourceAttentionTone([])).toBe("warning");
   });
 
   test("a part's findings merge to the worst severity", () => {

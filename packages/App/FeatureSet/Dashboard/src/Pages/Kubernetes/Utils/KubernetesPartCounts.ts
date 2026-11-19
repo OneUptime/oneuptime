@@ -18,12 +18,10 @@ import {
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
+  getResourceAttentionTone,
 } from "../../../Components/ResourcePart/ResourceAttention";
 import type { ResourceAttentionDialogRead } from "../../../Components/ResourcePart/ResourceAttentionDialog";
-import {
-  ResourcePartChipAttention,
-  ResourcePartTone,
-} from "../../../Components/ResourcePart/ResourcePartTypes";
+import { ResourcePartChipAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import type { KubernetesProblemRowsLoader } from "./KubernetesProblemLoader";
 import {
   KubernetesPartRouteFor,
@@ -91,21 +89,16 @@ const NAMESPACE_PODS: PluralTemplate = {
 };
 const WORKLOADS_HINT: string = translationKey("Show which workloads and why");
 
-function toneOfSeverities(
-  severities: Array<
-    ResourceAttentionSeverity | KubernetesHealthSeverity | null
-  >,
-): ResourcePartTone {
-  return severities.some(
-    (severity: ResourceAttentionSeverity | KubernetesHealthSeverity | null) => {
-      return (
-        severity === ResourceAttentionSeverity.Critical ||
-        severity === KubernetesHealthSeverity.Critical
-      );
-    },
-  )
-    ? "danger"
-    : "warning";
+// A pod as the tone of a count of pods reads it: critical, or a look.
+function podSeverity(pod: KubernetesPartRow): {
+  severity: ResourceAttentionSeverity;
+} {
+  return {
+    severity:
+      assessKubernetesPod(pod).severity === KubernetesHealthSeverity.Critical
+        ? ResourceAttentionSeverity.Critical
+        : ResourceAttentionSeverity.Warning,
+  };
 }
 
 function readFirst(
@@ -341,11 +334,7 @@ export function getKubernetesNamespaceCountChips(data: {
       key: "workloads",
       label: label,
       attention: {
-        tone: toneOfSeverities(
-          workloads.map((item: ResourceAttentionItem) => {
-            return item.severity;
-          }),
-        ),
+        tone: getResourceAttentionTone(workloads),
         hint: WORKLOADS_HINT,
         testId: "kubernetes-namespace-workloads",
         dialog: {
@@ -366,11 +355,7 @@ export function getKubernetesNamespaceCountChips(data: {
       key: "pods",
       label: label,
       attention: {
-        tone: toneOfSeverities(
-          pods.map((pod: KubernetesPartRow) => {
-            return assessKubernetesPod(pod).severity;
-          }),
-        ),
+        tone: getResourceAttentionTone(pods.map(podSeverity)),
         hint: KUBERNETES_POD_HINT,
         testId: "kubernetes-namespace-pods",
         dialog: {

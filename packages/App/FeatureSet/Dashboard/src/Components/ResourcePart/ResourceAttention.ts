@@ -215,6 +215,24 @@ export function getResourceAttentionHealth(
 }
 
 /*
+ * The tone of a count of these parts, as its pill draws it: red when any
+ * of them is broken, amber when they only need a look. Every count that
+ * opens what failed reads it here, so a hero's chips, a tile's pill and a
+ * card's figure agree.
+ */
+export function getResourceAttentionTone(
+  items: Array<Pick<ResourceAttentionItem, "severity">>,
+): "danger" | "warning" {
+  return items.some(
+    (item: Pick<ResourceAttentionItem, "severity">): boolean => {
+      return item.severity === ResourceAttentionSeverity.Critical;
+    },
+  )
+    ? "danger"
+    : "warning";
+}
+
+/*
  * One item from several of a part's findings: the worst severity, every
  * reason in turn.
  */

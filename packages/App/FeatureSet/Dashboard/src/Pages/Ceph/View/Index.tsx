@@ -78,7 +78,7 @@ import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import {
   ResourceAttentionItem,
   ResourceHealth,
-  getResourceAttentionHealth,
+  getResourceAttentionTone,
 } from "../../../Components/ResourcePart/ResourceAttention";
 import { ResourcePartTone } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
@@ -200,10 +200,7 @@ export function getCephCountPill(data: {
   if (data.items.length === 0) {
     return undefined;
   }
-  const tone: ResourcePartTone =
-    getResourceAttentionHealth(data.items) === "Unhealthy"
-      ? "danger"
-      : "warning";
+  const tone: ResourcePartTone = getResourceAttentionTone(data.items);
   return {
     testId: data.testId,
     label: data.label,
