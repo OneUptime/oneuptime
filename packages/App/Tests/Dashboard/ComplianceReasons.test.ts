@@ -240,9 +240,12 @@ describe("the auditor's files", () => {
 
     jest
       .spyOn(DownloadFile, "default")
-      .mockImplementation((data: { content: string }): void => {
-        written = data.content;
-      });
+      .mockImplementation(
+        (data: Parameters<typeof DownloadFile.default>[0]): void => {
+          // The JSON is written as text.
+          written = data.content as string;
+        },
+      );
 
     downloadFrameworkReportJson(
       framework,
