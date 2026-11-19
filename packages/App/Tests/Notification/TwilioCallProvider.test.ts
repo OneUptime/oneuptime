@@ -4,8 +4,23 @@ import type { AvailablePhoneNumber } from "Common/Types/Call/CallProvider";
 import Phone from "Common/Types/Phone";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
-import Twilio, { validateRequest } from "twilio";
+import Twilio from "twilio";
 import TwilioCallProvider from "../../FeatureSet/Notification/Providers/TwilioCallProvider";
+
+/*
+ * This server's HOST and HTTP_PROTOCOL, set per test: the URL it gives
+ * Twilio, which a signature is checked at too (TwilioWebhookSignature).
+ */
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  return {
+    ...(jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
+    Host: "",
+    HttpProtocol: "https://",
+  };
+});
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -26,9 +41,21 @@ jest.mock("twilio", () => {
         VoiceResponse: jest.fn(),
       },
     },
-    validateRequest: jest.fn(),
   };
 });
+
+// Twilio's own signing, which the REST client stood in for above leaves as it is.
+const { getExpectedTwilioSignature } = jest.requireActual("twilio") as {
+  getExpectedTwilioSignature: (
+    authToken: string,
+    url: string,
+    params: Record<string, unknown>,
+  ) => string;
+};
+
+const environment: { Host: string; HttpProtocol: string } = jest.requireMock(
+  "Common/Server/EnvironmentConfig",
+);
 
 const CONFIG: TwilioConfig = {
   accountSid: "AC-account",
@@ -90,8 +117,6 @@ const client: {
 const twilioConstructor: UnknownMock = Twilio.Twilio as unknown as UnknownMock;
 const voiceResponseConstructor: UnknownMock = Twilio.twiml
   .VoiceResponse as unknown as UnknownMock;
-const validate: Mock<(...args: Array<unknown>) => boolean> =
-  validateRequest as unknown as Mock<(...args: Array<unknown>) => boolean>;
 let voiceResponses: Array<VoiceResponseMocks> = [];
 
 function newProvider(): TwilioCallProvider {
@@ -320,7 +345,8 @@ describe("TwilioCallProvider webhook parsing and validation", () => {
     twilioConstructor.mockImplementation(() => {
       return client;
     });
-    validate.mockReturnValue(true);
+    environment.Host = "";
+    environment.HttpProtocol = "https://";
   });
 
   test("parses every incoming call identity field", () => {
@@ -517,13 +543,28 @@ describe("TwilioCallProvider webhook parsing and validation", () => {
     });
   });
 
+  /*
+   * Twilio signs the public URL it was given, with every parameter posted as
+   * text: what it signs here is Twilio's own algorithm.
+   */
+  function signed(url: string, body: Record<string, unknown>): string {
+    const parameters: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(body)) {
+      parameters[key] = String(value);
+    }
+
+    return getExpectedTwilioSignature(CONFIG.authToken, url, parameters);
+  }
+
   test("validates against the public forwarded URL and removes only the internal /api prefix", () => {
+    const body: Record<string, unknown> = {
+      CallSid: "CA-one",
+      Attempt: 2,
+      Answered: false,
+    };
     const request: any = makeWebhookRequest({
-      body: {
-        CallSid: "CA-one",
-        Attempt: 2,
-        Answered: false,
-      },
+      body: body,
       originalUrl:
         "/api/notification/incoming-call/dial-status/log/item?attempt=2",
       protocol: "http",
@@ -535,18 +576,33 @@ describe("TwilioCallProvider webhook parsing and validation", () => {
     });
 
     expect(
-      newProvider().validateWebhookSignature(request, "twilio-signature"),
+      newProvider().validateWebhookSignature(
+        request,
+        signed(
+          "https://calls.oneuptime.example/notification/incoming-call/dial-status/log/item?attempt=2",
+          body,
+        ),
+      ),
     ).toBe(true);
-    expect(validate).toHaveBeenCalledWith(
-      "auth-token",
-      "twilio-signature",
-      "https://calls.oneuptime.example/notification/incoming-call/dial-status/log/item?attempt=2",
-      {
-        CallSid: "CA-one",
-        Attempt: "2",
-        Answered: "false",
-      },
-    );
+    // Not at the path the app was reached at, nor at its own host.
+    expect(
+      newProvider().validateWebhookSignature(
+        request,
+        signed(
+          "https://calls.oneuptime.example/api/notification/incoming-call/dial-status/log/item?attempt=2",
+          body,
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      newProvider().validateWebhookSignature(
+        request,
+        signed(
+          "http://internal-notification:3000/notification/incoming-call/dial-status/log/item?attempt=2",
+          body,
+        ),
+      ),
+    ).toBe(false);
   });
 
   test("falls back to the request protocol and Host header", () => {
@@ -557,30 +613,81 @@ describe("TwilioCallProvider webhook parsing and validation", () => {
       headers: { host: "localhost:3000" },
     });
 
-    newProvider().validateWebhookSignature(request, "signature");
-
-    expect(validate).toHaveBeenCalledWith(
-      "auth-token",
-      "signature",
-      "http://localhost:3000/notification/incoming-call/voice",
-      { CallSid: "CA-one" },
-    );
+    expect(
+      newProvider().validateWebhookSignature(
+        request,
+        signed("http://localhost:3000/notification/incoming-call/voice", {
+          CallSid: "CA-one",
+        }),
+      ),
+    ).toBe(true);
   });
 
-  test("returns false and logs URL diagnostics when signature validation fails", () => {
-    validate.mockReturnValue(false);
+  test("behind a proxy that forwards neither the public host nor the scheme, checks the URL this server gives Twilio (HOST, HTTP_PROTOCOL)", () => {
+    const request: any = makeWebhookRequest({
+      body: { CallSid: "CA-one" },
+      originalUrl: "/api/notification/incoming-call/voice",
+      protocol: "http",
+      headers: { host: "internal-notification:3000" },
+    });
+    const signature: string = signed(
+      "https://calls.oneuptime.example/notification/incoming-call/voice",
+      { CallSid: "CA-one" },
+    );
 
+    expect(newProvider().validateWebhookSignature(request, signature)).toBe(
+      false,
+    );
+
+    environment.Host = "calls.oneuptime.example";
+
+    expect(newProvider().validateWebhookSignature(request, signature)).toBe(
+      true,
+    );
+    // Another account's token still makes no signature of this one's.
+    expect(
+      new TwilioCallProvider({
+        ...CONFIG,
+        authToken: "another-auth-token",
+      }).validateWebhookSignature(request, signature),
+    ).toBe(false);
+  });
+
+  test("returns false, and logs the URLs it checked - never the signature, nor a query value", () => {
     expect(
       newProvider().validateWebhookSignature(
         makeWebhookRequest({
           body: { CallSid: "CA-one" },
+          originalUrl:
+            "/api/notification/incoming-call/dial-status/log/item?attempt=2",
           headers: { host: "localhost" },
         }),
         "bad-signature",
       ),
     ).toBe(false);
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining("URL used for validation"),
+      "Twilio webhook signature not valid for http://localhost/notification/incoming-call/dial-status/log/item?attempt=…",
+      { service: "notification" },
+    );
+    expect(JSON.stringify((logger.debug as Mock).mock.calls)).not.toContain(
+      "bad-signature",
+    );
+  });
+
+  test("a request without a signature is not valid, and the log says so", () => {
+    expect(
+      newProvider().validateWebhookSignature(
+        makeWebhookRequest({
+          body: { CallSid: "CA-one" },
+          headers: { host: "localhost" },
+        }),
+        "",
+      ),
+    ).toBe(false);
+    expect(logger.debug).toHaveBeenCalledWith(
+      expect.stringContaining(
+        ": the request carries no X-Twilio-Signature",
+      ),
       { service: "notification" },
     );
   });

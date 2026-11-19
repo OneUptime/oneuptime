@@ -34,23 +34,33 @@ export interface TwilioRequestLike {
   get: (name: string) => string | undefined;
 }
 
-// The path and query Twilio calls, from the URL it was given.
-function publicPathOf(publicUrl: string): { path: string; search: string } {
+// The scheme, host, path and query Twilio calls, from the URL it was given.
+function publicPartsOf(publicUrl: string): {
+  proto: string;
+  host: string;
+  path: string;
+  search: string;
+} {
   const url: globalThis.URL = new globalThis.URL(
     publicUrl.split("#")[0]!,
     TWILIO_PUBLIC_ORIGIN,
   );
 
-  return { path: url.pathname, search: url.search };
+  return {
+    proto: url.protocol.replace(":", ""),
+    host: url.host,
+    path: url.pathname,
+    search: url.search,
+  };
 }
 
 /*
- * A request Twilio sent to `publicUrl`, signed with `signedWith` - an auth
- * token, or null for a request that carries no signature - over
- * `signedBody`, or the body itself when nothing changed it on the way. The
- * ingress forwards the public scheme and host unless `forwarded` says
- * otherwise: null leaves a header out, as a proxy that does not set it
- * does.
+ * A request Twilio sent to `publicUrl` - a path on TWILIO_PUBLIC_ORIGIN, or a
+ * whole URL - signed with `signedWith` - an auth token, or null for a request
+ * that carries no signature - over `signedBody`, or the body itself when
+ * nothing changed it on the way. The ingress forwards the public scheme and
+ * host unless `forwarded` says otherwise: null leaves a header out, as a
+ * proxy that does not set it does.
  */
 export function signedTwilioRequest(data: {
   publicUrl: string;
@@ -69,17 +79,17 @@ export function signedTwilioRequest(data: {
   // The scheme the app itself was reached over.
   protocol?: string | undefined;
 }): TwilioRequestLike {
-  const signedUrl: string = data.publicUrl.split("#")[0]!.startsWith("http")
-    ? data.publicUrl.split("#")[0]!
-    : `${TWILIO_PUBLIC_ORIGIN}${data.publicUrl.split("#")[0]!}`;
-  const { path, search } = publicPathOf(signedUrl);
+  // Twilio leaves the fragment out of the request and of its signature.
+  const requested: string = data.publicUrl.split("#")[0]!;
+  const signedUrl: string = requested.startsWith("http")
+    ? requested
+    : `${TWILIO_PUBLIC_ORIGIN}${requested}`;
+  const { proto, host, path, search } = publicPartsOf(signedUrl);
 
   const forwardedProto: string | null =
-    data.forwarded?.proto === undefined ? "https" : data.forwarded.proto;
+    data.forwarded?.proto === undefined ? proto : data.forwarded.proto;
   const forwardedHost: string | null =
-    data.forwarded?.host === undefined
-      ? TWILIO_PUBLIC_HOST
-      : data.forwarded.host;
+    data.forwarded?.host === undefined ? host : data.forwarded.host;
 
   const headers: Record<string, string> = {
     host: data.host ?? TWILIO_INTERNAL_HOST,
