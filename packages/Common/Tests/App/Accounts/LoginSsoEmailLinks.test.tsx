@@ -92,7 +92,7 @@ jest.mock("../../../UI/Components/Captcha/Captcha", () => {
   return {
     __esModule: true,
     default: (props: { onTokenChange?: (token: string) => void }) => {
-      const react: typeof React = jest.requireActual("react");
+      const react: typeof React = jest.requireActual<typeof React>("react");
 
       return react.createElement(
         "button",
