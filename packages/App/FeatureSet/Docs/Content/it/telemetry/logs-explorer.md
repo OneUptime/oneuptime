@@ -112,7 +112,9 @@ Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono le s
 
 ## Rappresentare i log in grafici
 
-Passate l'elenco ad **Analisi** per contare i log invece di leggerli. Scegliete una serie temporale, una classifica o una tabella; contate ogni log, o i valori univoci di un campo; e raggruppate per gravità, servizio, traccia, span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra i primi 5, 10, 25 o 50 gruppi.
+Passate l'elenco ad **Analisi** per rappresentare i log in grafici invece di leggerli. Scegliete una serie temporale, una classifica o una tabella, e cosa misura: ogni log contato, i valori univoci di un campo, oppure la somma, la media, la mediana, il P90, il P95, il P99, il minimo o il massimo di un attributo numerico, come il P95 di `duration_ms`. Raggruppate per gravità, servizio, traccia, span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra i primi 5, 10, 25 o 50 gruppi.
+
+Un attributo numerico viene letto solo dove il suo valore è un numero: un intero o un decimale, con o senza segno, in notazione scientifica o no, come `42`, `-7`, `3.14` o `1e3`. Un log senza l'attributo, o con qualsiasi altra cosa dentro, come `12ms` o `n/a`, viene escluso invece di essere letto come 0. Un percentile è calcolato da un massimo di 8.192 valori per punto, quindi un punto con più log ha una stima vicina invece del valore esatto.
 
 Fate clic su **Elenco** per tornare alle righe stesse.
 

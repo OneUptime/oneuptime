@@ -4,7 +4,7 @@ import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import ManagedDevice from "../../../../Models/DatabaseModels/ManagedDevice";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddManagedDevicePlatform1809186720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186720000-AddManagedDevicePlatform";
+import { AddManagedDevicePlatform1809186810000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186810000-AddManagedDevicePlatform";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import { MANAGED_DEVICE_PLATFORMS } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
@@ -21,7 +21,7 @@ import { MANAGED_DEVICE_PLATFORMS } from "../../../../Types/DeviceManagement/Man
  * to what the migration made: nullable text, written by OneUptime only.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186720000";
+const MIGRATION_TIMESTAMP: string = "1809186810000";
 
 const MIGRATION_BASE_NAME: string = "AddManagedDevicePlatform";
 
@@ -68,13 +68,13 @@ const makeQueryRunner: () => MakeQueryRunnerResult =
 
 async function upStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddManagedDevicePlatform1809186720000().up(runner);
+  await new AddManagedDevicePlatform1809186810000().up(runner);
   return statements;
 }
 
 async function downStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddManagedDevicePlatform1809186720000().down(runner);
+  await new AddManagedDevicePlatform1809186810000().down(runner);
   return statements;
 }
 
@@ -123,13 +123,13 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new AddManagedDevicePlatform1809186720000();
+      new AddManagedDevicePlatform1809186810000();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
     expect(
       Object.getOwnPropertyNames(
-        AddManagedDevicePlatform1809186720000.prototype,
+        AddManagedDevicePlatform1809186810000.prototype,
       ).sort(),
     ).toEqual(["constructor", "down", "up"]);
   });
@@ -151,21 +151,21 @@ describe("the migration runs", () => {
   test("it is in the exported migration list, exactly once", () => {
     expect(
       SchemaMigrations.filter((migration: unknown): boolean => {
-        return migration === AddManagedDevicePlatform1809186720000;
+        return migration === AddManagedDevicePlatform1809186810000;
       }),
     ).toHaveLength(1);
   });
 
   // TypeORM records applied migrations by `name`: a mismatch re-runs it on every boot.
   test("its declared name, its class name and its timestamp agree", () => {
-    expect(new AddManagedDevicePlatform1809186720000().name).toBe(
+    expect(new AddManagedDevicePlatform1809186810000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
-    expect(AddManagedDevicePlatform1809186720000.name).toBe(
+    expect(AddManagedDevicePlatform1809186810000.name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
-      AddManagedDevicePlatform1809186720000.name.match(CLASS_TIMESTAMP)?.[1],
+      AddManagedDevicePlatform1809186810000.name.match(CLASS_TIMESTAMP)?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
   });
 
@@ -179,7 +179,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddManagedDevicePlatform1809186720000,
+      AddManagedDevicePlatform1809186810000,
     );
 
     expect(position).toBeGreaterThan(-1);

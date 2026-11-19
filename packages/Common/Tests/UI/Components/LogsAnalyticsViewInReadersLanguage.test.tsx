@@ -38,12 +38,15 @@ import {
  * word looked up twice would say so.
  */
 
+// The rows each analytics read answers with: none, unless a test sets some.
+let mockAnalyticsRows: Array<unknown> = [];
+
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
       post: async () => {
-        return { data: { data: [] } };
+        return { data: { data: mockAnalyticsRows } };
       },
       getFriendlyMessage: (error: Error) => {
         return error.message;
@@ -76,7 +79,11 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
 import LogsAnalyticsView, {
   LOGS_ANALYTICS_CAPTIONS,
   LOGS_ANALYTICS_CHART_OPTIONS,
+  LOGS_ANALYTICS_CHOOSE_ATTRIBUTE,
+  LOGS_ANALYTICS_CHOOSE_FIELD,
+  LOGS_ANALYTICS_CHOOSE_FIELD_TEST_ID,
   LOGS_ANALYTICS_MEASURE_OPTIONS,
+  LOGS_ANALYTICS_VALUE_LABELS,
 } from "../../../UI/Components/LogsViewer/components/LogsAnalyticsView";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
@@ -111,6 +118,13 @@ const WORDS: Array<string> = [
   ...LOG_FIELDS,
   "None",
   "Select field...",
+  /*
+   * What the chart says it measures ("P95 of duration_ms"), and what to
+   * pick while a measure has no field (#7716).
+   */
+  ...Object.values(LOGS_ANALYTICS_VALUE_LABELS),
+  LOGS_ANALYTICS_CHOOSE_ATTRIBUTE,
+  LOGS_ANALYTICS_CHOOSE_FIELD,
 ];
 
 const TWICE: string = "TWICE";
@@ -150,6 +164,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup();
+  mockAnalyticsRows = [];
 });
 
 async function drawIn(instance: i18n, language: string): Promise<void> {
@@ -239,10 +254,12 @@ describe("in German", () => {
 
     const measure: HTMLElement = picker(wordOf("de", "Measure"));
 
-    expect(await listDropdownOptions(measure)).toEqual([
-      wordOf("de", "Count"),
-      wordOf("de", "Unique Count"),
-    ]);
+    expect(await listDropdownOptions(measure)).toEqual(
+      LOGS_ANALYTICS_MEASURE_OPTIONS.map((option: { label: string }) => {
+        return wordOf("de", option.label);
+      }),
+    );
+    expect(wordOf("de", "Average")).not.toBe("Average");
 
     const groupBy: HTMLElement = picker(wordOf("de", "Group by"));
 
@@ -282,6 +299,44 @@ describe("in German", () => {
     for (const english of ["Group by", "then by", "Timeseries", "Measure"]) {
       expect(document.body).not.toHaveTextContent(english);
     }
+  });
+});
+
+/*
+ * A measure of a number (#7716): what to pick while it has no attribute,
+ * and what the chart says it measures, in German - the attribute's key as
+ * written.
+ */
+describe("a measure of a number, in German", () => {
+  test("asks for its attribute, then says it charts the P95 of it", async () => {
+    mockAnalyticsRows = [
+      { time: "2026-09-28 11:00:00", count: 182.25, groupValues: {} },
+    ];
+
+    await drawIn(realI18n, "de");
+
+    await pickDropdownOption(picker(wordOf("de", "Measure")), "P95");
+
+    expect(
+      await screen.findByTestId(LOGS_ANALYTICS_CHOOSE_FIELD_TEST_ID),
+    ).toHaveTextContent(wordOf("de", LOGS_ANALYTICS_CHOOSE_ATTRIBUTE));
+    expect(wordOf("de", LOGS_ANALYTICS_CHOOSE_ATTRIBUTE)).not.toBe(
+      LOGS_ANALYTICS_CHOOSE_ATTRIBUTE,
+    );
+
+    await pickDropdownOption(
+      await screen.findByRole("combobox", { name: wordOf("de", "of") }),
+      ATTRIBUTE,
+    );
+
+    const label: string = wordOf("de", "P95 of {{attribute}}").replace(
+      "{{attribute}}",
+      ATTRIBUTE,
+    );
+
+    expect(label).toBe(`P95 von ${ATTRIBUTE}`);
+    expect(await screen.findByText(label)).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("P95 of");
   });
 });
 

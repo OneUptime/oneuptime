@@ -106,7 +106,7 @@ Kun de monitorer, begivenheden nævner under **Monitorer**, holder op med at bli
 :::
 
 :::details Begivenheden vises ikke på min statusside
-Kontrollér, at begivenheden nævner siden under **Vis begivenhed på disse statussider**, og at **Synlig på statussiden** er slået til i begivenhedens **Indstillinger**. Viser dens overskrift **Endnu ikke på statussider**, vises den fra dens **Offentliggør den**: se [Offentliggør den senere](/docs/scheduled-maintenance/creating-events#offentliggør-den-senere). Kontrollér derefter selve statussiden: den skal vise vedligeholdelseshændelser, og en begivenhed, der startede længere tilbage end sidens historikvindue, 14 dage medmindre du har ændret det, vises ikke længere.
+Kontrollér, at begivenheden nævner siden under **Vis begivenhed på disse statussider**, og at **Synlig på statussiden** er slået til i begivenhedens **Indstillinger**. Viser dens overskrift **Endnu ikke på statussider**, vises den fra dens **Offentliggør den**: se [Offentliggør den senere](/docs/scheduled-maintenance/creating-events#offentliggør-den-senere). Kontrollér derefter selve statussiden: den skal vise vedligeholdelseshændelser (begivenhedens kort **Detaljer om vedligeholdelse** siger det, når ingen af dens statussider gør det), og en begivenhed, der startede længere tilbage end sidens historikvindue, 14 dage medmindre du har ændret det, vises ikke længere.
 :::
 
 ## Næste skridt
