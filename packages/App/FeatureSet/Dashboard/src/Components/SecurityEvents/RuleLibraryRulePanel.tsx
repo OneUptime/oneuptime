@@ -22,6 +22,13 @@ import {
   getDataSourceDetail,
 } from "./RuleLibraryCopy";
 import RuleLibraryDataStatus from "./RuleLibraryDataStatus";
+import DetectionRuleResponseStepsList from "./ResponseSteps/DetectionRuleResponseStepsList";
+import {
+  RESPONSE_STEPS_LIBRARY_NOTE,
+  RESPONSE_STEPS_TITLE,
+} from "./ResponseSteps/DetectionRuleResponseStepsCopy";
+import { getDetectionRuleLibraryResponseSteps } from "Common/Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
+import { DetectionRuleResponseStep } from "Common/Types/SecurityEvent/DetectionRuleResponseSteps";
 import { LibraryRuleDataStatus, LibraryRuleView } from "./RuleLibraryUtil";
 import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
 import { getMitreAttackUrl } from "../SecurityCase/MitreAttackLinks";
@@ -50,9 +57,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * stays where the reader left it): what it finds and how severe that is,
  * the events it reads and whether the project sends them - and, when it
  * does not, how to start - how it runs, the ATT&CK tactics and techniques
- * it is tagged with (each a link to its page on attack.mitre.org) and its
- * Sigma rule, to read or copy. Add Rule in the footer adds it; a rule the
- * project has already says so, and whether it is on.
+ * it is tagged with (each a link to its page on attack.mitre.org), what to
+ * do when it opens a case - the response steps it comes with (#9621) - and
+ * its Sigma rule, to read or copy. Add Rule in the footer adds it; a rule
+ * the project has already says so, and whether it is on.
  */
 
 export const RULE_LIBRARY_PANEL_TEST_ID: string = "rule-library-details";
@@ -190,6 +198,9 @@ const RuleLibraryRulePanel: FunctionComponent<ComponentProps> = (
     .filter((tactic: MitreTactic | undefined): tactic is MitreTactic => {
       return Boolean(tactic);
     });
+
+  const responseSteps: Array<DetectionRuleResponseStep> =
+    getDetectionRuleLibraryResponseSteps(entry.id);
 
   const isNotReceived: boolean =
     view.dataStatus === LibraryRuleDataStatus.NotReceived;
@@ -415,6 +426,20 @@ const RuleLibraryRulePanel: FunctionComponent<ComponentProps> = (
             </dl>
           </div>
         </section>
+
+        {responseSteps.length > 0 ? (
+          <section data-testid="rule-library-details-response-steps">
+            <SectionTitle text={RESPONSE_STEPS_TITLE} />
+            <p className="mt-1 text-sm text-gray-500">
+              {translator.translateText(RESPONSE_STEPS_LIBRARY_NOTE)}
+            </p>
+            <div className="mt-2">
+              <DetectionRuleResponseStepsList steps={responseSteps} />
+            </div>
+          </section>
+        ) : (
+          <></>
+        )}
 
         {tactics.length > 0 || view.attack.techniqueIds.length > 0 ? (
           <section data-testid="rule-library-details-attack">

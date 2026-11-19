@@ -1044,7 +1044,7 @@ describe("a rule's response steps", () => {
     ).toEqual([]);
     expect(
       getRuleResponseSteps({
-        responseSteps: undefined,
+        responseSteps: undefined as never,
         sigmaRuleYaml: CORRELATION_YAML,
       }),
     ).toEqual([]);

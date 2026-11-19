@@ -622,7 +622,7 @@ describe("the events a detection keeps", () => {
     const stored: SecurityDetection = new SecurityDetection();
     stored.matchedEvents = matched([1, 2], {
       Rejected: 10,
-    }) as unknown as SecurityDetection["matchedEvents"];
+    }) as never;
 
     const readKept: Spy = getJestSpyOn(
       SecurityDetectionService,

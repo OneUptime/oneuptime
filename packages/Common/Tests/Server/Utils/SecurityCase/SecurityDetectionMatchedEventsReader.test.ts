@@ -1,4 +1,5 @@
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
+import type { SpyInstance } from "jest-mock";
 import {
   SQL,
   Statement,
@@ -79,7 +80,7 @@ function eventRow(overrides: JSONObject = {}): JSONObject {
 let statements: Array<Statement>;
 let eventRows: Array<JSONObject>;
 let outcomeRows: Array<JSONObject>;
-let executeQuery: jest.SpiedFunction<typeof SecurityEventService.executeQuery>;
+let executeQuery: SpyInstance<typeof SecurityEventService.executeQuery>;
 
 beforeEach(() => {
   statements = [];
