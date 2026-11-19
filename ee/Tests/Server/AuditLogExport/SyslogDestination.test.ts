@@ -33,11 +33,13 @@ import {
   AUDIT_LOG_EXPORT_MIN_SYSLOG_UDP_MESSAGE_SIZE,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import {
-  AUDIT_LOG_EXPORT_RECORD_KEYS,
   AuditLogExportChange,
   AuditLogExportRecord,
+  AuditLogExportSchemaVersion,
+  getAuditLogExportRecordKeys,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import {
   describeLargeJson,
   limitText,
@@ -259,7 +261,9 @@ describe("syslog over TCP", () => {
         "-",
       ]);
       expect(json["id"]).toBe(records[index]!.id);
-      expect(Object.keys(json)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+      expect(Object.keys(json)).toEqual(
+        getAuditLogExportRecordKeys(records[index]!.schemaVersion),
+      );
     });
 
     // A line break inside a value stays inside its message.
@@ -699,7 +703,9 @@ describe("syslog over UDP", () => {
         "-",
       ]);
       expect(json["id"]).toBe(records[index]!.id);
-      expect(Object.keys(json)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+      expect(Object.keys(json)).toEqual(
+        getAuditLogExportRecordKeys(records[index]!.schemaVersion),
+      );
     });
 
     // A line break inside a value stays inside its message.
@@ -1448,9 +1454,57 @@ describe("an entry fitted to a datagram", () => {
     expect(fitted.isShortened).toBe(true);
     expect(bytesOf(fitted.message)).toBeGreaterThan(1024);
     expect(bytesOf(fitted.message)).toBeLessThan(2048);
-    expect(Object.keys(json)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+    expect(Object.keys(json)).toEqual(
+      getAuditLogExportRecordKeys(record.schemaVersion),
+    );
     expect(json["changes"]).toEqual([{ field: "[… 1 change]" }]);
     expect(json["workflowName"]).toBe(limitText("W".repeat(500), 128));
+  });
+
+  /*
+   * Version 3 (#9766): what a workflow's step ran as is fitted as the rest
+   * is - every key kept, the role's and the giver's names cut to a name's
+   * length once the values are being cut, the ids and the Run As whole.
+   */
+  test("a version 3 entry keeps every key, its custom role and giver names cut like any name", () => {
+    const schemaVersion: AuditLogExportSchemaVersion = 3;
+    const keyId: string = ObjectID.generate().toString();
+    const record: AuditLogExportRecord = {
+      ...auditLogRecord({ createdAt: "2026-10-24T09:15:03.000Z" }),
+      schemaVersion: schemaVersion,
+      userType: "Workflow",
+      workflowName: "Give new teams their role",
+      workflowRunAs: "CustomRole",
+      workflowRunAsCustomRoleName: "R".repeat(500),
+      workflowRunAsGivenByUserId: null,
+      workflowRunAsGivenByApiKeyId: keyId,
+      workflowRunAsGivenByName: "K".repeat(500),
+      changes: [
+        { field: "description", oldValue: "x".repeat(6000), newValue: "y" },
+      ],
+    };
+
+    const whole: string = toSyslogMessage({ record, hostName: HOST_NAME });
+    const fitted: { message: string; isShortened: boolean } = fitSyslogMessage({
+      record,
+      hostName: HOST_NAME,
+      maxBytes: 2048,
+    });
+    const json: Record<string, unknown> = parseMessage(fitted.message).json;
+
+    expect(bytesOf(whole)).toBeGreaterThan(2048);
+    expect(fitted.isShortened).toBe(true);
+    expect(bytesOf(fitted.message)).toBeLessThanOrEqual(2048);
+    expect(Object.keys(json)).toEqual(getAuditLogExportRecordKeys(3));
+    expect(json["workflowRunAs"]).toBe("CustomRole");
+    expect(json["workflowRunAsGivenByApiKeyId"]).toBe(keyId);
+    expect(json["workflowRunAsGivenByUserId"]).toBeNull();
+    expect(json["workflowRunAsCustomRoleName"]).toBe(
+      limitText("R".repeat(500), 128),
+    );
+    expect(json["workflowRunAsGivenByName"]).toBe(
+      limitText("K".repeat(500), 128),
+    );
   });
 
   test("any entry, any size: at most that many bytes, whole UTF-8, whole JSON, every key, the changes in order", () => {
@@ -1579,7 +1633,9 @@ describe("an entry fitted to a datagram", () => {
         "changes"
       ] as Array<AuditLogExportChange>;
 
-      expect(Object.keys(json)).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
+      expect(Object.keys(json)).toEqual(
+        getAuditLogExportRecordKeys(schemaVersion),
+      );
       expect([json["id"], json["createdAt"], json["schemaVersion"]]).toEqual([
         record.id,
         record.createdAt,

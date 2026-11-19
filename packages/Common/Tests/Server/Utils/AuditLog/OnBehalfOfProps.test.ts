@@ -8,6 +8,7 @@ import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
+import { WorkflowRunAs } from "../../../../Types/Workflow/WorkflowRunAs";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -63,6 +64,12 @@ function everything(): DatabaseCommonInteractionProps {
     writeSource: WriteSource.AskAi,
     isReadOnlyCredential: true,
     requestOrigin: { ipAddress: "203.0.113.7" } as never,
+    workflowRunAs: WorkflowRunAs.ProjectOwner,
+    workflowRunAsAudit: {
+      runAs: WorkflowRunAs.ProjectOwner,
+      givenByApiKeyId: KEY_ID,
+      givenByName: "Terraform",
+    },
   };
 }
 
@@ -86,6 +93,8 @@ const NOT_IDENTITY: Readonly<Record<string, string>> = {
   isReadOnlyCredential:
     "the action's own rules decide, as they did before the write was credited",
   requestOrigin: "for the security emails of a person's own account changes",
+  workflowRunAs:
+    "what a workflow's step may do to who has access: root asks nothing, and what it ran as is carried by workflowRunAsAudit",
 };
 
 // The members DatabaseCommonInteractionProps declares, read from its source.
@@ -129,6 +138,12 @@ describe("the props of a write OneUptime makes on someone's behalf", () => {
       mcpClientName: "Claude",
       workflowId: WORKFLOW_ID,
       workflowName: "Nightly",
+      // What the workflow ran as, and whose permissions: for the audit log (#9766).
+      workflowRunAsAudit: {
+        runAs: WorkflowRunAs.ProjectOwner,
+        givenByApiKeyId: KEY_ID,
+        givenByName: "Terraform",
+      },
       writeSource: WriteSource.AskAi,
     });
   });
