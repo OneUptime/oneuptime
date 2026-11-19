@@ -49,6 +49,10 @@ import {
 } from "../../../Types/DataObservability/DataCheckType";
 import { MAX_CUSTOM_SQL_LENGTH } from "./DataCheckSql";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  readSkippedTables,
+  SkippedTables,
+} from "../../../Types/DataObservability/SkippedTables";
 
 /*
  * A DATABASE ONLY A CUSTOMER'S PROBE CAN REACH, COLLECTED FROM THAT PROBE.
@@ -121,6 +125,8 @@ export interface DataObservabilityProbeStoreWork {
   waitWhenBusy?: boolean | undefined;
   // How far back to read the query history for lineage; 0 reads no lineage this time.
   queryHistoryLookbackInSeconds?: number | undefined;
+  // The tables the database refused at earlier collections, skipped until their next try (#9541).
+  skippedTables?: SkippedTables | undefined;
 }
 
 // The most checks one work item carries, and one report records.
@@ -414,7 +420,20 @@ export function readProbeCollectWork(
       0,
       MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS,
     ),
+    ...readSkippedTablesOf(item["skippedTables"]),
   };
+}
+
+// The skipped tables a work item hands the probe, read strictly; none from an older server.
+function readSkippedTablesOf(
+  value: unknown,
+): Pick<DataObservabilityProbeStoreWork, "skippedTables"> {
+  const skippedTables: SkippedTables | null = readSkippedTables(
+    value,
+    OneUptimeDate.getCurrentDate(),
+  );
+
+  return skippedTables ? { skippedTables } : {};
 }
 
 export function buildProbeCollectOptions(
@@ -428,6 +447,7 @@ export function buildProbeCollectOptions(
     ...(work.freshnessReads ? { freshnessReads: work.freshnessReads } : {}),
     ...(work.waitWhenBusy ? { waitWhenBusy: true } : {}),
     queryHistoryLookbackInSeconds: work.queryHistoryLookbackInSeconds || 0,
+    ...(work.skippedTables ? { skippedTables: work.skippedTables } : {}),
   };
 }
 
@@ -630,6 +650,14 @@ export function readTableHealthSnapshot(
             return warning.slice(0, MAX_WARNING_LENGTH);
           })
       : [],
+    /*
+     * The tables the database refused (#9541): null when the probe says
+     * none is; unset when it says nothing (an older probe), so the store
+     * keeps what it had.
+     */
+    ...(item["skippedTables"] !== undefined
+      ? { skippedTables: readSkippedTables(item["skippedTables"], now) }
+      : {}),
   };
 }
 

@@ -51,11 +51,16 @@ import {
   DataObservabilityOverview,
   DataObservabilityOverviewAsset,
   DataObservabilityOverviewChange,
+  DataObservabilitySkippedTable,
   DataObservabilityStoragePathStore,
   DataObservabilityStoreSummary,
   MAX_CHECK_HEALTH_IDS,
   SCHEMA_CHANGE_WINDOW_IN_DAYS,
 } from "../../Types/DataObservability/DataObservabilityApiTypes";
+import {
+  readSkippedTables,
+  SkippedTable,
+} from "../../Types/DataObservability/SkippedTables";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "../Services/AlertService";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -505,6 +510,8 @@ export default class DataObservabilityAPI extends BaseAPI<
           id: store.id!,
           data: {
             nextTableHealthCollectionAt: requestedAt,
+            // Asked for by hand: every table the database refused is asked again at once (#9541).
+            tableHealthSkippedTables: null,
           } as never,
         });
 
@@ -1606,6 +1613,7 @@ export default class DataObservabilityAPI extends BaseAPI<
       tableHealthCollectedAt: true,
       tableHealthAttemptedAt: true,
       tableHealthAssetCount: true,
+      tableHealthSkippedTables: true,
       connectionString: true,
       cloudConnectionId: true,
       watchedPaths: true,
@@ -1711,6 +1719,16 @@ export default class DataObservabilityAPI extends BaseAPI<
           assetCount: store.tableHealthAssetCount || 0,
           lateAssetCount: lateByStore.get(store.id!.toString()) || 0,
           alertMonitorCount: alertsByStore.get(store.id!.toString()) || 0,
+          skippedTables: (
+            readSkippedTables(store.tableHealthSkippedTables, now)?.tables || []
+          ).map((table: SkippedTable): DataObservabilitySkippedTable => {
+            return {
+              table: table.table,
+              read: table.read,
+              reason: table.reason,
+              nextTryAt: table.nextTryAt,
+            };
+          }),
         };
       });
   }

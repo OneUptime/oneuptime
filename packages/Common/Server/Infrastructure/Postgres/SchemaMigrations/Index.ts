@@ -1074,6 +1074,7 @@ import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIden
 import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000-AddSecurityCaseTaskResponseStepKey";
 import { AddIncidentCallTranscriptPostsAndSignIn1809184830000 } from "./1809184830000-AddIncidentCallTranscriptPostsAndSignIn";
 import { AddIncidentCallTranscriptSignInIndexes1809184840000 } from "./1809184840000-AddIncidentCallTranscriptSignInIndexes";
+import { AddTableHealthSkippedTables1809184859541 } from "./1809184859541-AddTableHealthSkippedTables";
 
 export default [
   InitialMigration,
@@ -2152,4 +2153,5 @@ export default [
   AddSecurityCaseTaskResponseStepKey1809184720000,
   AddIncidentCallTranscriptPostsAndSignIn1809184830000,
   AddIncidentCallTranscriptSignInIndexes1809184840000,
+  AddTableHealthSkippedTables1809184859541,
 ];

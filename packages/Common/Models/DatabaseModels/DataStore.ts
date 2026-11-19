@@ -1250,6 +1250,29 @@ export default class DataStore extends BaseModel {
   })
   public tableHealthTarget?: JSONObject = undefined;
 
+  /*
+   * The tables the database keeps refusing (Types/DataObservability/
+   * SkippedTables, #9541): a Dataverse table the app's role may not read,
+   * or one Dataverse cannot count or describe. Collections skip each until
+   * its next try instead of finding it again every five minutes, and the
+   * database's page lists them. Collect Now clears it, so every table is
+   * asked again at once.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Skipped Tables",
+    description:
+      "The tables the database keeps refusing, skipped until their next try: what is not read of each, why, and when it is asked again.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public tableHealthSkippedTables?: JSONObject = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.JSON,

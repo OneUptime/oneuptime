@@ -1,4 +1,5 @@
 import { WatchedTablePricing } from "../Billing/PayAsYouGoPricing";
+import { SkippedTableRead } from "./SkippedTables";
 import { DataCheckAlertCondition } from "./DataCheckType";
 import {
   DataAttentionItem,
@@ -296,6 +297,24 @@ export interface DataObservabilityStoreSummary {
   lateAssetCount: number;
   // The monitors on, scoped to the whole database: its recommended alerts, or its own.
   alertMonitorCount: number;
+  /*
+   * The tables the database keeps refusing, skipped until their next try
+   * (#9541): a Dataverse table the app may not read, or one Dataverse
+   * cannot count or describe. Empty when none is; left out by an older
+   * server.
+   */
+  skippedTables?: Array<DataObservabilitySkippedTable> | undefined;
+}
+
+// One table a database keeps refusing, as the database's page lists it.
+export interface DataObservabilitySkippedTable {
+  table: string;
+  // What is not read of it.
+  read: SkippedTableRead;
+  // The database's answer, in its own words.
+  reason: string;
+  // When it is asked again, ISO 8601.
+  nextTryAt: string;
 }
 
 export interface DataObservabilityOverviewAsset {

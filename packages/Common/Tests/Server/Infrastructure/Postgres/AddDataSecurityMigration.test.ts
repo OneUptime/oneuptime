@@ -7,6 +7,7 @@ import { AddDataAssetOwnersAndFeedback1808992700000 } from "../../../../Server/I
 import { AddDataAssetUsage1808991300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808991300000-AddDataAssetUsage";
 import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182490000-AddRuleEmptiedLimits";
 import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
+import { AddTableHealthSkippedTables1809184859541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184859541-AddTableHealthSkippedTables";
 import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddDataStoreFindingSampleRecords";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -162,6 +163,12 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     "DataStore",
     "tableHealthAttemptedAt",
     AddTableHealthAttemptedAt1809184570000,
+  ],
+  // The tables the database keeps refusing (#9541), skipped until their next try.
+  [
+    "DataStore",
+    "tableHealthSkippedTables",
+    AddTableHealthSkippedTables1809184859541,
   ],
   // Why OneUptime switched a rule off (#9066), on every rule's table.
   ["DataStoreOwnerRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],

@@ -893,6 +893,11 @@ export default class DataverseApi {
     return this.connection.tables;
   }
 
+  // The app's client ID: which app reads the environment.
+  public get clientId(): string {
+    return this.connection.clientId;
+  }
+
   // The SQL endpoint's ports to try, in order.
   public get sqlPorts(): Array<number> {
     return this.connection.sqlPort !== null
