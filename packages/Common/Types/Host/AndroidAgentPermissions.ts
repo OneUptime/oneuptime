@@ -13,9 +13,9 @@
  * Every report of the agent says which it still lacks, as the resource
  * attribute `oneuptime.agent.permissions.missing`: the adb names of the
  * missing grants ("READ_LOGS GET_USAGE_STATS"), or "none". Inventory keeps
- * it on the device's item (TelemetryEntity), and its Agent Permissions
- * filter and column list the devices of a fleet that still need them -
- * with an Esper import, beside each device's Esper ID.
+ * it with the device's item (InventoryItem's descriptive attributes), and
+ * its Agent Permissions filter and column list the devices of a fleet that
+ * still need them.
  */
 
 export const ANDROID_AGENT_PERMISSIONS_ATTRIBUTE: string =
