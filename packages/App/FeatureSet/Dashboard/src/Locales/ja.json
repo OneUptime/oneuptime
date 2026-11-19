@@ -58744,5 +58744,5 @@
   "{{level}} and above": "{{level}} 以上",
   "Requested By User ID": "リクエストしたユーザーの ID",
   "Request Log Session": "ログセッションをリクエスト",
-  "An Android device runs no OpenTelemetry Collector: the OneUptime Android agent sends its health, restarts, apps and logs.": "Android デバイスでは OpenTelemetry Collector は動作しません。OneUptime Android エージェントが、デバイスの状態、再起動、アプリ、ログを送信します。"
+  "An Android device runs no OpenTelemetry Collector: the OneUptime Android agent sends its health, restarts, apps and logs.": "Android デバイスでは OpenTelemetry Collector は動作しません。OneUptime Android エージェントが、デバイスのヘルス、再起動、アプリ、ログを送信します。"
 }
