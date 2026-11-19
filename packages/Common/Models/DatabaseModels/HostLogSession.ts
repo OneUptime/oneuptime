@@ -306,7 +306,7 @@ export default class HostLogSession extends BaseModel {
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
     modelType: User,
-    title: "Requested by",
+    title: "Requested By",
     description: "The person who asked for the session.",
   })
   @ManyToOne(
@@ -326,7 +326,7 @@ export default class HostLogSession extends BaseModel {
   @ColumnAccessControl(deviceColumnAccess)
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "Requested by User ID",
+    title: "Requested By User ID",
     description: "ID of the person who asked for the session.",
   })
   @Column({
