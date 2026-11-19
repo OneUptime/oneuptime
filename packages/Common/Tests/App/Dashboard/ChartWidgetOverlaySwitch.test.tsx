@@ -383,7 +383,10 @@ describe("flipping the switch writes the widget's setting", () => {
     // Saved as JSON, the way the dashboard is: no key at all.
     expect(
       Object.keys(
-        JSON.parse(JSON.stringify(committedAddedQueries()[0])) as object,
+        JSON.parse(JSON.stringify(committedAddedQueries()[0])) as Record<
+          string,
+          unknown
+        >,
       ),
     ).not.toContain("overlayWithPreviousQuery");
   });
