@@ -1,0 +1,146 @@
+name: Ask AI Eval
+
+# The Ask AI eval (npm run ask-ai-eval, Docs/ai/evals.md, #7246, #7066):
+# Ask AI's own chat turn - today's prompt, tools and limits - asked by a
+# real model what people ask it, each answer graded:
+#
+#   - setup: each request of AskAiSetupRequests.ts passes when the plan
+#     proposed for one approval card is the request's;
+#   - how-do-i: each question of AskAiHowDoIQuestions.ts passes when the
+#     answer cites the docs page that answers it and ends with the Go to
+#     button for its page, or says the docs do not cover it.
+#
+# It runs by hand only (Run workflow): it spends real model credits, a few
+# calls a question, and it is how a change to Ask AI's prompt or tools is
+# measured, or a model compared, before it ships. Not on pull requests, so
+# a fork's pull request never reaches the key.
+#
+# The model's key is the repository secret AI_EVAL_LLM_API_KEY, the one the
+# AI Benchmark uses, which a maintainer sets (Settings, Secrets and
+# variables, Actions). Without it the job says so in its summary and
+# passes: nothing runs, nothing is spent. The script refuses a key given as
+# an argument, so it travels in the environment only.
+#
+# Results: the report goes to the job's summary - ready to post on an issue
+# - and every answer and grade to the ask-ai-eval-results artifact (kept 30
+# days). The job fails when fewer cases pass than the threshold asks.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "setup, how-do-i, or empty for both."
+        required: false
+        default: ""
+      cases:
+        description: "Case ids to ask, separated by commas (npm run ask-ai-eval -- --list). Empty: all of them."
+        required: false
+        default: ""
+      repeat:
+        description: "Runs per case (1 to 10). A case passes when more than half its runs pass."
+        required: false
+        default: "1"
+      fail_under:
+        description: "Fail when fewer cases pass: a number of them, or a percentage (60%)."
+        required: false
+        default: "0"
+
+# Read-only: the job checks out the code, asks the model and uploads the
+# results as an artifact, nothing more.
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    name: Eval
+    runs-on: ubuntu-latest
+    # 74 cases of a few model calls each, one after another.
+    timeout-minutes: 120
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      # The model under test, pinned so one run can be compared with the
+      # next: the current Claude Opus, as the AI Benchmark runs.
+      ASK_AI_EVAL_LLM_TYPE: Anthropic
+      ASK_AI_EVAL_MODEL: claude-opus-5-5
+    steps:
+      - name: Check for the model's key
+        id: key
+        env:
+          AI_EVAL_LLM_API_KEY: ${{ secrets.AI_EVAL_LLM_API_KEY }}
+        run: |
+          if [ -n "$AI_EVAL_LLM_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "present=false" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Ask AI eval: skipped"
+            echo
+            echo "Nothing was run and no model was called: the repository secret AI_EVAL_LLM_API_KEY is not set. A maintainer sets it to a key for the model below (Settings, Secrets and variables, Actions)."
+            echo
+            echo "It would run ${ASK_AI_EVAL_LLM_TYPE} ${ASK_AI_EVAL_MODEL}. To run it yourself, see Docs/ai/evals.md."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::notice title=Ask AI eval skipped::Nothing was run: the repository secret AI_EVAL_LLM_API_KEY is not set."
+
+      - name: Checkout code
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.key.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install Common dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      # The eval runs from the App, which serves the docs it reads.
+      - name: Install App dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+
+      # The inputs reach the command through the environment, never pasted
+      # into the script; the eval refuses a suite, a case or a repeat it
+      # does not know before it calls the model.
+      - name: Run the eval
+        if: steps.key.outputs.present == 'true'
+        working-directory: packages/App
+        env:
+          AI_EVAL_LLM_API_KEY: ${{ secrets.AI_EVAL_LLM_API_KEY }}
+          SUITE: ${{ inputs.suite || '' }}
+          CASES: ${{ inputs.cases || '' }}
+          REPEAT: ${{ inputs.repeat || '1' }}
+          FAIL_UNDER: ${{ inputs.fail_under || '0' }}
+          INIT_CWD: ${{ github.workspace }}
+        run: |
+          node --require ts-node/register/transpile-only scripts/ask-ai-eval.ts \
+            --llm-type="$ASK_AI_EVAL_LLM_TYPE" \
+            --model="$ASK_AI_EVAL_MODEL" \
+            --suite="$SUITE" \
+            --case="$CASES" \
+            --repeat="$REPEAT" \
+            --fail-under="$FAIL_UNDER" \
+            --report-markdown="$GITHUB_STEP_SUMMARY"
+
+      - name: Keep every answer and grade
+        if: always() && steps.key.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ask-ai-eval-results
+          path: ask-ai-eval-results.json
+          if-no-files-found: ignore
+          retention-days: 30
