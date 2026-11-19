@@ -271,7 +271,15 @@ export interface TerraformAttribute {
    *     optional and computed, a create sends it, no update does, and once
    *     the record exists the plan keeps the state's value whatever the
    *     configuration says (StaticFiles/serverowned.go): never a change,
-   *     never a replacement.
+   *     never a replacement;
+   *   - "shared": people set it and OneUptime changes it too - the labels a
+   *     label rule adds, an exception OneUptime resolves (#10052). It is an
+   *     ordinary optional attribute that a create and an update send, with
+   *     two differences (StaticFiles/shared.go): left out of a
+   *     configuration, the plan keeps OneUptime's value even where the
+   *     attribute has a default; and under Crossplane a manifest's value is
+   *     sent when it changes, not every time OneUptime moves the record's,
+   *     and a list keeps the entries OneUptime added.
    */
   serverOwned?: TerraformServerOwned | undefined;
   forceNew?: boolean;
@@ -333,11 +341,21 @@ export interface TerraformAttribute {
   deleteChoice?: TerraformDeleteChoice | undefined;
 }
 
+/*
+ * An attribute people set and OneUptime changes too (serverOwned "shared"),
+ * as a resource's ModifyPlan names it to planShared (StaticFiles/shared.go):
+ * its Terraform name, and whether it is a list or a set held entry by entry.
+ */
+export interface SharedAttribute {
+  name: string;
+  entries: boolean;
+}
+
 // The spec's x-oneuptime-server-owned: who keeps the value once the record exists.
-export type TerraformServerOwned = "always" | "after-create";
+export type TerraformServerOwned = "always" | "after-create" | "shared";
 
 export const TERRAFORM_SERVER_OWNED_KINDS: ReadonlyArray<TerraformServerOwned> =
-  ["always", "after-create"];
+  ["always", "after-create", "shared"];
 
 export interface TerraformPersonAttribute {
   // The companion's Terraform name: user_email, owner_user_emails.
