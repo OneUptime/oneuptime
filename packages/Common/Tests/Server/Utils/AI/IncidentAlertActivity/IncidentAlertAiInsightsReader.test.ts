@@ -745,6 +745,142 @@ describe("what it reads", () => {
   });
 });
 
+/*
+ * #9812: Try again on a failed fix asks it again as a later turn of the
+ * same Code task, with the same incident or alert. The fix pull requests
+ * counted every turn: one fix read as one failed and one opened.
+ */
+describe("fix pull requests, as their tasks stand", () => {
+  let one: FakeRow;
+  let task: FakeRow;
+
+  beforeEach(() => {
+    one = incident(1);
+    tables.incidents.push(one);
+    task = run(onIncident(one), {
+      runType: AIRunType.CodeFix,
+      status: AIRunStatus.Error,
+      createdAt: daysAgo(3),
+      analysisTldr: undefined,
+    });
+    tables.runs.push(task);
+  });
+
+  function askedAgain(overrides: Partial<FakeRow> = {}): FakeRow {
+    return run(onIncident(one), {
+      runType: AIRunType.CodeFix,
+      codeTaskId: new ObjectID(task._id),
+      createdAt: daysAgo(2),
+      analysisTldr: undefined,
+      ...overrides,
+    });
+  }
+
+  test.each([
+    [
+      AIRunStatus.Running,
+      { inProgress: 1, failed: 0, pullRequestsOpened: 0 },
+    ],
+    [
+      AIRunStatus.Completed,
+      { inProgress: 0, failed: 0, pullRequestsOpened: 1 },
+    ],
+    [AIRunStatus.Error, { inProgress: 0, failed: 1, pullRequestsOpened: 0 }],
+  ])(
+    "a failed fix asked again that is %s counts once, as that",
+    async (
+      status: AIRunStatus,
+      outcome: {
+        inProgress: number;
+        failed: number;
+        pullRequestsOpened: number;
+      },
+    ) => {
+      tables.runs.push(askedAgain({ status }));
+
+      const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+      expect(insights.totals.fixTasks).toBe(1);
+      expect(insights.fixTaskOutcomes).toMatchObject({ total: 1, ...outcome });
+    },
+  );
+
+  test("a reply sent in Code, about no incident, says how the task stands too", async () => {
+    tables.runs.push(
+      askedAgain({ status: AIRunStatus.Error, createdAt: daysAgo(2) }),
+      run(
+        {},
+        {
+          runType: AIRunType.CodeFix,
+          codeTaskId: new ObjectID(task._id),
+          status: AIRunStatus.Completed,
+          createdAt: daysAgo(1),
+          analysisTldr: undefined,
+        },
+      ),
+    );
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.fixTaskOutcomes).toMatchObject({
+      total: 1,
+      failed: 0,
+      pullRequestsOpened: 1,
+    });
+  });
+
+  test("a task of one turn counts as it always did", async () => {
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.fixTasks).toBe(1);
+    expect(insights.fixTaskOutcomes).toMatchObject({ total: 1, failed: 1 });
+  });
+
+  test("lists tasks by their first turns only, and reads each one's turns by its id", async () => {
+    tables.runs.push(askedAgain({ status: AIRunStatus.Completed }));
+
+    await readInsights("incident");
+
+    const taskRead: FakeCall = store
+      .callsTo("runs")
+      .find((call: FakeCall): boolean => {
+        return call.query["runType"] === AIRunType.CodeFix;
+      })!;
+
+    expect(matchesFilter(undefined, taskRead.query["codeTaskId"])).toBe(true);
+    expect(
+      matchesFilter(new ObjectID(task._id), taskRead.query["codeTaskId"]),
+    ).toBe(false);
+
+    // An investigation is no task: its read names no turn.
+    expect(
+      store.callsTo("runs").find((call: FakeCall): boolean => {
+        return call.query["runType"] === AIRunType.Investigation;
+      })!.query["codeTaskId"],
+    ).toBeUndefined();
+  });
+
+  test("a task asked before the window is not counted, even when it was asked again in it", async () => {
+    task["createdAt"] = daysAgo(40);
+    tables.runs.push(
+      askedAgain({ status: AIRunStatus.Completed, createdAt: daysAgo(2) }),
+    );
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.fixTasks).toBe(0);
+  });
+
+  test("a task about an incident the caller may not read is left out, however it stands", async () => {
+    tables.runs.push(askedAgain({ status: AIRunStatus.Completed }));
+    store.access.readableIncidentIds = new Set<string>();
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.fixTasks).toBe(0);
+  });
+});
+
 describe("the whole picture, for each product", () => {
   test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
     "%s: recurring problems, findings, hotspots, fixes and the trend come from the rows",

@@ -7,6 +7,12 @@ import IncidentService from "../../../../../Server/Services/IncidentService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import RunnerJobService from "../../../../../Server/Services/RunnerJobService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
+import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import AIRun from "../../../../../Models/DatabaseModels/AIRun";
+import AIRunType from "../../../../../Types/AI/AIRunType";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -28,8 +34,13 @@ import { jest } from "@jest/globals";
  * Who may read what is the access below: root reads everything; a caller's
  * read of a table their role may not read throws NotAuthorizedException, the
  * way the permission layer does, and a caller's read of incidents, alerts,
- * monitors or services only returns the ones they may read (labels, private
- * incidents).
+ * monitors, services or Runner jobs only returns the ones they may read
+ * (labels, private incidents, a command of someone else's chat).
+ *
+ * A Code task's turns are runs too: a later turn names its task's first run
+ * in codeTaskId. What Code's lists read of each task in SQL
+ * (CodeTaskListRows: its newest turn, and the pull request it shows) is
+ * worked out here from those runs and the pull requests in `pullRequests`.
  */
 
 export type FakeRow = Record<string, unknown> & {
@@ -48,6 +59,11 @@ export interface FakeTables {
   // Read as root only (InvestigationReportSummary).
   incidentFeeds: Array<FakeRow>;
   alertFeeds: Array<FakeRow>;
+  /*
+   * The pull requests the runs opened (aiRunId), read only as a task's
+   * (CodeTaskListRows.readPullRequests).
+   */
+  pullRequests?: Array<FakeRow> | undefined;
 }
 
 export interface FakeAccess {
@@ -62,9 +78,16 @@ export interface FakeAccess {
   readableAlertIds?: Set<string> | undefined;
   readableMonitorIds?: Set<string> | undefined;
   readableServiceIds?: Set<string> | undefined;
+  /*
+   * The Runner jobs a caller may read (RunnerJobService's privacy filters:
+   * not a command of someone else's chat, nor one about a private incident
+   * they do not see); every one when left out.
+   */
+  readableJobIds?: Set<string> | undefined;
 }
 
-export type FakeTableName = keyof FakeTables;
+// The tables behind a service's own findBy and countBy.
+export type FakeTableName = Exclude<keyof FakeTables, "pullRequests">;
 
 export interface FakeCall {
   table: FakeTableName;
@@ -263,6 +286,7 @@ export function installFakeStore(
       alerts: store.access.readableAlertIds,
       monitors: store.access.readableMonitorIds,
       services: store.access.readableServiceIds,
+      jobs: store.access.readableJobIds,
     };
 
     const ids: Set<string> | undefined = readable[table];
@@ -358,6 +382,9 @@ export function installFakeStore(
     .spyOn(RunnerJobService, "findBy")
     .mockImplementation(find("jobs") as never);
   jest
+    .spyOn(RunnerJobService, "countBy")
+    .mockImplementation(count("jobs") as never);
+  jest
     .spyOn(MonitorService, "findBy")
     .mockImplementation(find("monitors") as never);
   jest
@@ -369,8 +396,136 @@ export function installFakeStore(
   jest
     .spyOn(AlertFeedService, "findBy")
     .mockImplementation(find("alertFeeds") as never);
+  jest
+    .spyOn(CodeTaskListRows, "readReplies")
+    .mockImplementation((async (data: { taskIds: Array<ObjectID> }) => {
+      return readTaskReplies(store.tables, data.taskIds);
+    }) as never);
+  jest
+    .spyOn(CodeTaskListRows, "readPullRequests")
+    .mockImplementation((async (data: { taskIds: Array<ObjectID> }) => {
+      return readTaskPullRequests(store.tables, data.taskIds);
+    }) as never);
 
   return store;
+}
+
+// A Code task's turns are code-fix runs: its first, and those naming it.
+function getTaskOf(row: FakeRow | undefined): string | undefined {
+  if (!row || row["runType"] !== AIRunType.CodeFix) {
+    return undefined;
+  }
+
+  const codeTaskId: unknown = row["codeTaskId"];
+
+  return (codeTaskId ? String(codeTaskId) : row._id).toLowerCase();
+}
+
+/*
+ * CodeTaskListRows.readReplies over the fake runs: each task's later turns,
+ * how many, when one was last asked or ended, and the newest - by when it
+ * was asked, a tie by the smaller id, as Postgres orders them.
+ */
+function readTaskReplies(
+  tables: FakeTables,
+  taskIds: Array<ObjectID>,
+): Map<string, CodeTaskRepliesRead> {
+  const read: Map<string, CodeTaskRepliesRead> = new Map<
+    string,
+    CodeTaskRepliesRead
+  >();
+
+  for (const taskId of taskIds) {
+    const key: string = CodeTaskListRows.key(taskId);
+    const replies: Array<FakeRow> = tables.runs
+      .filter((row: FakeRow): boolean => {
+        return (
+          row["runType"] === AIRunType.CodeFix &&
+          Boolean(row["codeTaskId"]) &&
+          String(row["codeTaskId"]).toLowerCase() === key
+        );
+      })
+      .sort((a: FakeRow, b: FakeRow): number => {
+        return (
+          b.createdAt.getTime() - a.createdAt.getTime() ||
+          a._id.localeCompare(b._id)
+        );
+      });
+
+    if (replies.length === 0) {
+      continue;
+    }
+
+    let lastActivityAt: Date = replies[0]!.createdAt;
+
+    for (const reply of replies) {
+      for (const moment of [reply.createdAt, reply["completedAt"]]) {
+        if (moment instanceof Date && moment > lastActivityAt) {
+          lastActivityAt = moment;
+        }
+      }
+    }
+
+    read.set(key, {
+      count: replies.length,
+      newest: toModel(replies[0]!) as unknown as AIRun,
+      lastActivityAt,
+    });
+  }
+
+  return read;
+}
+
+/*
+ * CodeTaskListRows.readPullRequests over the fake pull requests: the one
+ * each task shows, of every one its turns opened - the newest open one (one
+ * recorded without a state is open), else the newest.
+ */
+function readTaskPullRequests(
+  tables: FakeTables,
+  taskIds: Array<ObjectID>,
+): Map<string, AIAgentTaskPullRequest> {
+  const keys: Set<string> = new Set<string>(
+    taskIds.map((taskId: ObjectID): string => {
+      return CodeTaskListRows.key(taskId);
+    }),
+  );
+  const shown: Map<string, FakeRow> = new Map<string, FakeRow>();
+  const isOpen: (row: FakeRow) => boolean = (row: FakeRow): boolean => {
+    return !row["pullRequestState"] || row["pullRequestState"] === "open";
+  };
+
+  for (const pullRequest of tables.pullRequests || []) {
+    const turn: FakeRow | undefined = tables.runs.find(
+      (row: FakeRow): boolean => {
+        return row._id === String(pullRequest["aiRunId"]);
+      },
+    );
+    const taskId: string | undefined = getTaskOf(turn);
+
+    if (!taskId || !keys.has(taskId)) {
+      continue;
+    }
+
+    const current: FakeRow | undefined = shown.get(taskId);
+
+    if (
+      !current ||
+      (isOpen(pullRequest) && !isOpen(current)) ||
+      (isOpen(pullRequest) === isOpen(current) &&
+        pullRequest.createdAt > current.createdAt)
+    ) {
+      shown.set(taskId, pullRequest);
+    }
+  }
+
+  return new Map<string, AIAgentTaskPullRequest>(
+    Array.from(shown.entries()).map(
+      ([taskId, row]: [string, FakeRow]): [string, AIAgentTaskPullRequest] => {
+        return [taskId, toModel(row) as unknown as AIAgentTaskPullRequest];
+      },
+    ),
+  );
 }
 
 // A UUID that reads as its number, so a failing assertion says which row.

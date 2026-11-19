@@ -10,6 +10,8 @@ import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
+import FixProductionCheck from "../../../../../Types/AI/FixProductionCheck";
+import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import {
   INCIDENT_ALERT_AI_LOGS_COMMAND_MAX_LENGTH,
   INCIDENT_ALERT_AI_LOGS_TEXT_MAX_LENGTH,
@@ -731,6 +733,157 @@ describe("fix pull requests", () => {
       },
     ]);
     expect(store.callsTo("runs")[0]!.query["runType"]).toBe(AIRunType.CodeFix);
+  });
+
+  /*
+   * #9812: Try again on a failed fix asks it again as a later turn of the
+   * same Code task, with the same incident. The log listed every turn as a
+   * fix pull request of its own: the first one failed for good, beside a
+   * second without its task's number, link or production verdict.
+   */
+  describe("a fix asked again from Code", () => {
+    beforeEach(() => {
+      tables.incidents.push(incident(1));
+      tables.runs.push(
+        // The task: its first turn failed.
+        run(1, 60, {
+          runType: AIRunType.CodeFix,
+          triggeredByIncidentId: idOf(tables.incidents[0]!),
+          codeFixTaskType: CodeFixTaskType.FixFromIncident,
+          taskNumber: 12,
+          status: AIRunStatus.Error,
+          completedAt: ago(59),
+          analysisTldr: undefined,
+        }),
+        // Asked again: a later turn, with the same recipe and incident.
+        run(2, 20, {
+          runType: AIRunType.CodeFix,
+          codeTaskId: new ObjectID(uuid(30, 1)),
+          triggeredByIncidentId: idOf(tables.incidents[0]!),
+          codeFixTaskType: CodeFixTaskType.FixFromIncident,
+          status: AIRunStatus.Running,
+          completedAt: undefined,
+          analysisTldr: undefined,
+        }),
+      );
+    });
+
+    async function readFixTasks(): Promise<Array<IncidentAlertAiLogEntry>> {
+      return (
+        await readLogs("incident", { kinds: [IncidentAlertAiLogKind.FixTask] })
+      ).entries;
+    }
+
+    test("is one entry, its task's, working while the fix asked again works", async () => {
+      expect(await readFixTasks()).toEqual([
+        {
+          kind: IncidentAlertAiLogKind.FixTask,
+          id: uuid(30, 1),
+          // Asked an hour ago: the task's own time and number.
+          at: ago(60).toISOString(),
+          subject: expect.objectContaining({ id: tables.incidents[0]!._id }),
+          status: AIRunStatus.Running,
+          taskNumber: 12,
+          codeFixTaskType: CodeFixTaskType.FixFromIncident,
+        },
+      ]);
+
+      // Only first turns are listed: a later one is no entry of its own.
+      expect(
+        matchesFilter(undefined, store.callsTo("runs")[0]!.query["codeTaskId"]),
+      ).toBe(true);
+      expect(
+        matchesFilter(
+          new ObjectID(uuid(30, 1)),
+          store.callsTo("runs")[0]!.query["codeTaskId"],
+        ),
+      ).toBe(false);
+    });
+
+    test("opened its pull request once the fix asked again did, with what production showed", async () => {
+      tables.runs[1]!["status"] = AIRunStatus.Completed;
+      tables.runs[1]!["completedAt"] = ago(5);
+      tables.pullRequests = [
+        {
+          _id: uuid(60, 1),
+          createdAt: ago(6),
+          // Opened by the later turn: the task's all the same.
+          aiRunId: new ObjectID(uuid(30, 2)),
+          pullRequestState: "merged",
+          productionStatus: FixProductionStatus.Verified,
+          productionCheck: FixProductionCheck.Recurrence,
+          productionSummary: "No new incident since the deploy.",
+        },
+      ];
+
+      const [entry] = (await readFixTasks()) as [IncidentAlertAiLogEntry];
+
+      expect(entry.id).toBe(uuid(30, 1));
+      expect(entry.status).toBe(AIRunStatus.Completed);
+      expect(entry.completedAt).toBe(ago(5).toISOString());
+      expect(entry.taskNumber).toBe(12);
+      expect(entry.production).toEqual({
+        status: FixProductionStatus.Verified,
+        check: FixProductionCheck.Recurrence,
+        summary: "No new incident since the deploy.",
+      });
+    });
+
+    test("fails again, when the fix asked again fails too", async () => {
+      tables.runs[1]!["status"] = AIRunStatus.Error;
+      tables.runs[1]!["completedAt"] = ago(15);
+
+      const entries: Array<IncidentAlertAiLogEntry> = await readFixTasks();
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.status).toBe(AIRunStatus.Error);
+      expect(entries[0]!.completedAt).toBe(ago(15).toISOString());
+    });
+
+    test("a reply sent in Code, about no incident, still says how the task stands", async () => {
+      tables.runs.push(
+        run(3, 10, {
+          runType: AIRunType.CodeFix,
+          codeTaskId: new ObjectID(uuid(30, 1)),
+          codeFixTaskType: CodeFixTaskType.CodeRequest,
+          status: AIRunStatus.Completed,
+          needsUserInput: true,
+          completedAt: ago(8),
+          analysisTldr: undefined,
+        }),
+      );
+
+      const entries: Array<IncidentAlertAiLogEntry> = await readFixTasks();
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.status).toBe(AIRunStatus.Completed);
+      expect(entries[0]!.completedAt).toBe(ago(8).toISOString());
+    });
+
+    test("a task of one turn reads as it always did", async () => {
+      tables.runs.splice(1, 1);
+
+      const entries: Array<IncidentAlertAiLogEntry> = await readFixTasks();
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.status).toBe(AIRunStatus.Error);
+      expect(entries[0]!.completedAt).toBe(ago(59).toISOString());
+      expect(entries[0]!.production).toBeUndefined();
+    });
+  });
+
+  test("an investigation is never read as a task's turn", async () => {
+    tables.incidents.push(incident(1));
+    tables.runs.push(
+      run(1, 10, { triggeredByIncidentId: idOf(tables.incidents[0]!) }),
+    );
+
+    const logs: IncidentAlertAiLogs = await readLogs("incident", {
+      kinds: [IncidentAlertAiLogKind.Investigation],
+    });
+
+    expect(logs.entries).toHaveLength(1);
+    expect(store.callsTo("runs")[0]!.query["codeTaskId"]).toBeUndefined();
   });
 });
 

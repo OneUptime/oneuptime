@@ -5,6 +5,9 @@ import IncidentService from "../../../Services/IncidentService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import FixProductionReportUtil from "../CodeFix/FixProductionReportUtil";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../CodeTask/CodeTaskListRows";
 import InvestigationReportSummary, {
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
@@ -12,6 +15,7 @@ import IncidentAlertAiLogsPage, {
   IncidentAlertAiLogsKindScan,
   IncidentAlertAiLogsPageResult,
 } from "./IncidentAlertAiLogsPage";
+import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
@@ -19,7 +23,6 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import FixProductionReport from "../../../../Types/AI/FixProductionReport";
 import {
   INCIDENT_ALERT_AI_LOGS_COMMAND_MAX_LENGTH,
   INCIDENT_ALERT_AI_LOGS_PAGE_SIZE,
@@ -58,6 +61,10 @@ import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
  *     caller may read - the same finding its AI panel shows them. A
  *     completed run without a TL;DR has its report's own Summary instead
  *     (InvestigationReportSummary), as a resource's AI Logs show it.
+ *   - A fix pull request is its Code task: one entry, its first turn, that
+ *     stands as Code says the task does - by its newest turn, a fix asked
+ *     again from Code (Try again) or a reply, with the pull request any of
+ *     its turns opened (#9812).
  *   - Fixes and commands are read under the caller's props: the suggestion
  *     and Runner job tables have read access of their own, and a caller
  *     without it gets that kind in hiddenKinds instead of rows. Which
@@ -487,6 +494,12 @@ export default class IncidentAlertAiLogsReader {
         ...this.getCreatedAtQuery(data.before),
         projectId: options.projectId,
         runType: isInvestigation ? AIRunType.Investigation : AIRunType.CodeFix,
+        /*
+         * A fix pull request is its Code task, listed once by its first
+         * turn: a fix asked again from Code (Try again) is a later turn of
+         * the same task, with the same record, and says how it stands.
+         */
+        ...(isInvestigation ? {} : { codeTaskId: QueryHelper.isNull() }),
       } as never,
       select: {
         _id: true,
@@ -505,19 +518,32 @@ export default class IncidentAlertAiLogsReader {
       props: { isRoot: true },
     });
 
-    // What production showed of the fix tasks' merged pull requests.
-    const productionByRunId: Map<string, FixProductionReport> = isInvestigation
-      ? new Map<string, FixProductionReport>()
-      : await FixProductionReportUtil.readForRuns({
-          projectId: options.projectId,
-          runIds: runs
-            .filter((run: AIRun): boolean => {
-              return Boolean(run.id);
-            })
-            .map((run: AIRun): ObjectID => {
-              return run.id!;
-            }),
-        });
+    /*
+     * Each fix task as it stands now (#9812): its newest turn, and the pull
+     * request any of its turns opened - with what production showed once it
+     * merged - read per task as Code's own lists read them
+     * (CodeTaskListRows).
+     */
+    const taskIds: Array<ObjectID> = isInvestigation
+      ? []
+      : runs
+          .filter((run: AIRun): boolean => {
+            return Boolean(run.id);
+          })
+          .map((run: AIRun): ObjectID => {
+            return run.id!;
+          });
+
+    const [replies, pullRequests]: [
+      Map<string, CodeTaskRepliesRead>,
+      Map<string, AIAgentTaskPullRequest>,
+    ] = await Promise.all([
+      CodeTaskListRows.readReplies({ projectId: options.projectId, taskIds }),
+      CodeTaskListRows.readPullRequests({
+        projectId: options.projectId,
+        taskIds,
+      }),
+    ]);
 
     return {
       kind: data.kind,
@@ -529,6 +555,12 @@ export default class IncidentAlertAiLogsReader {
           return Boolean(run.id && run.createdAt);
         })
         .map((run: AIRun): ScannedRow => {
+          const key: string = CodeTaskListRows.key(run.id!);
+          // A fix task's newest turn; an investigation is its own.
+          const latest: AIRun = replies.get(key)?.newest || run;
+          const pullRequest: AIAgentTaskPullRequest | undefined =
+            pullRequests.get(key);
+
           return {
             subjectId: this.getRunSubjectId(options.subjectKind, run),
             createdAt: new Date(run.createdAt!),
@@ -540,8 +572,8 @@ export default class IncidentAlertAiLogsReader {
                 id: run.id!.toString(),
                 at: toIso(run.createdAt)!,
                 subject,
-                status: run.status || undefined,
-                completedAt: toIso(run.completedAt),
+                status: latest.status || undefined,
+                completedAt: toIso(latest.completedAt),
                 ...(isInvestigation
                   ? {
                       summary: clipText(
@@ -557,7 +589,10 @@ export default class IncidentAlertAiLogsReader {
                           ? run.taskNumber
                           : undefined,
                       codeFixTaskType: run.codeFixTaskType || undefined,
-                      production: productionByRunId.get(run.id!.toString()),
+                      // What production showed once its pull request merged.
+                      production: pullRequest
+                        ? FixProductionReportUtil.fromPullRequest(pullRequest)
+                        : undefined,
                     }),
               };
             },

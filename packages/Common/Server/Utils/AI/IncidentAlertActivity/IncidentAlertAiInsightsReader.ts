@@ -9,6 +9,9 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import AiActivityInsightsBuilder, {
   AiActivityCommandStats,
 } from "../ActivityInsights/AiActivityInsightsBuilder";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../CodeTask/CodeTaskListRows";
 import InvestigationReportSummary, {
   InvestigationReportConclusion,
   InvestigationReportSummaryRun,
@@ -78,6 +81,11 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  *     as root and counted only for incidents the caller may read; the
  *     incident's own AI panel shows the same reason to the same people;
  *   - command counts are read as root: only counts leave.
+ *
+ * A fix pull request is its Code task, counted once, by the first turn
+ * asked in the window, and stands as Code says it does: by its newest turn
+ * - a fix asked again from Code (Try again), which carries the same
+ * incident or alert, or a reply (#9812).
  *
  * Bounded: the window's newest INCIDENT_ALERT_AI_INSIGHTS_MAX_* rows of each
  * kind, and its newest INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT
@@ -178,7 +186,12 @@ export default class IncidentAlertAiInsightsReader {
       createdAt: QueryHelper.greaterThanEqualTo(windowStart),
     };
 
-    // 1. The window's investigations and fix pull requests (root).
+    /*
+     * 1. The window's investigations and fix pull requests (root). A fix
+     * pull request is its Code task, counted once by its first turn: a fix
+     * asked again from Code (Try again) is a later turn of the same task,
+     * with the same record, and says how the task stands (step 5).
+     */
     const readRuns: (
       runType: AIRunType,
       limit: number,
@@ -191,6 +204,9 @@ export default class IncidentAlertAiInsightsReader {
           ...IncidentAlertAiLogsReader.getRunSubjectQuery(subjectKind),
           ...inWindow,
           runType,
+          ...(runType === AIRunType.CodeFix
+            ? { codeTaskId: QueryHelper.isNull() }
+            : {}),
         } as never,
         select: {
           _id: true,
@@ -330,9 +346,23 @@ export default class IncidentAlertAiInsightsReader {
           );
         })
       : null;
+    const readableTasks: Array<AIRun> = tasks.filter((task: AIRun): boolean => {
+      const subjectId: string | undefined = subjectIdOfRun(task);
+      return Boolean(
+        task.id && task.createdAt && subjectId && subjects.has(subjectId),
+      );
+    });
 
-    const commands: { stats: AiActivityCommandStats; isPartial: boolean } =
-      await this.countCommands({
+    /*
+     * With them, each fix pull request as it stands now: its task's newest
+     * turn - a fix asked again from Code, or a reply - read per task by
+     * Postgres (CodeTaskListRows), as Code's own lists read it.
+     */
+    const [commands, taskReplies]: [
+      { stats: AiActivityCommandStats; isPartial: boolean },
+      Map<string, CodeTaskRepliesRead>,
+    ] = await Promise.all([
+      this.countCommands({
         projectId,
         runIds: getUniqueIds(
           readableRuns.map((run: AIRun): ObjectID | null | undefined => {
@@ -348,7 +378,14 @@ export default class IncidentAlertAiInsightsReader {
             },
           ),
         ),
-      });
+      }),
+      CodeTaskListRows.readReplies({
+        projectId,
+        taskIds: readableTasks.map((task: AIRun): ObjectID => {
+          return task.id!;
+        }),
+      }),
+    ]);
 
     // 6. How many of the window's incidents there are, and why some were skipped.
     const [subjectsInWindow, notInvestigated]: [
@@ -410,21 +447,18 @@ export default class IncidentAlertAiInsightsReader {
             },
           )
         : null,
-      fixTasks: tasks
-        .filter((task: AIRun): boolean => {
-          const subjectId: string | undefined = subjectIdOfRun(task);
-          return Boolean(
-            task.id && task.createdAt && subjectId && subjects.has(subjectId),
-          );
-        })
-        .map((task: AIRun): IncidentAlertAiFixTaskInput => {
-          return {
-            id: task.id!.toString(),
-            status: task.status,
-            createdAt: new Date(task.createdAt!),
-            subjectId: subjectIdOfRun(task)!,
-          };
-        }),
+      fixTasks: readableTasks.map((task: AIRun): IncidentAlertAiFixTaskInput => {
+        // Asked in the window by its first turn; standing as its newest.
+        const latest: AIRun =
+          taskReplies.get(CodeTaskListRows.key(task.id!))?.newest || task;
+
+        return {
+          id: task.id!.toString(),
+          status: latest.status,
+          createdAt: new Date(task.createdAt!),
+          subjectId: subjectIdOfRun(task)!,
+        };
+      }),
       subjects,
       occurrenceIds: read.occurrenceIds,
       monitorNames,
