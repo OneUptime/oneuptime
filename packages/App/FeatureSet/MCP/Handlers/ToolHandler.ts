@@ -41,6 +41,14 @@ import McpCredentialUtil, {
 } from "../Types/McpCredential";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import {
+  DeleteChoice,
+  DeleteChoiceError,
+  DeleteChoiceWay,
+  getDeleteChoiceWays,
+  isRefusedForDeleteChoices,
+  readDeleteChoices,
+} from "Common/Utils/DeveloperDocs/DeleteChoices";
 
 /*
  * Result shape for MCP tools/call responses. The index signature keeps the
@@ -177,10 +185,12 @@ function buildErrorResult(
     if (error.details !== undefined && error.details !== null) {
       payload["details"] = error.details as JSONValue;
     }
-    payload["suggestion"] = getSuggestionForStatusCode(
-      error.statusCode,
-      McpCredentialUtil.isOAuth(credential),
-    );
+    payload["suggestion"] =
+      suggestion ||
+      getSuggestionForStatusCode(
+        error.statusCode,
+        McpCredentialUtil.isOAuth(credential),
+      );
   } else {
     payload["suggestion"] =
       suggestion ||
@@ -198,6 +208,83 @@ function buildErrorResult(
     isError: true,
   };
   return result;
+}
+
+/*
+ * What to try next when a delete was refused for what it says besides the
+ * record (Common/Utils/DeveloperDocs/DeleteChoices.ts, #9949): a choice the
+ * call gave that the server would refuse (a DeleteChoiceError, before any
+ * request), or none where OneUptime needs one - the API's refusal names what
+ * depends on the record, and the choice as the API takes it
+ * (miscDataProps.workflowsRunAs), which no tool input is called. Says how in
+ * the tool's own inputs, and to ask the user: the choice changes what
+ * depends on the record, so an agent never picks it alone. Undefined for
+ * any other error, which the default suggestion covers.
+ */
+export function getDeleteChoicesSuggestion(data: {
+  tool: McpToolInfo | undefined;
+  args: Record<string, unknown>;
+  error: unknown;
+}): string | undefined {
+  const tool: McpToolInfo | undefined = data.tool;
+
+  if (
+    !tool ||
+    tool.operation !== OneUptimeOperation.Delete ||
+    getDeleteChoiceWays(tool.tableName).length === 0
+  ) {
+    return undefined;
+  }
+
+  if (data.error instanceof DeleteChoiceError) {
+    return `Nothing was deleted. Fix what the error names and call ${tool.name} again, with what the user chose: ask them if they have not said.`;
+  }
+
+  if (
+    !(data.error instanceof OneUptimeApiError) ||
+    !isRefusedForDeleteChoices({
+      tableName: tool.tableName,
+      refusal: data.error.message,
+      sent: sentDeleteChoices(tool.tableName, data.args),
+    })
+  ) {
+    return undefined;
+  }
+
+  const ways: Array<string> = getDeleteChoiceWays(tool.tableName).map(
+    (way: DeleteChoiceWay): string => {
+      const withIt: Array<string> = way.with.map(
+        (companion: DeleteChoice): string => {
+          return companion.relatedTableName
+            ? `${companion.key} set to an ID`
+            : companion.key;
+        },
+      );
+
+      return `${way.key} set to "${way.value}"${withIt.length > 0 ? ` and ${withIt.join(" and ")}` : ""}`;
+    },
+  );
+
+  return `Nothing was deleted: the error names what depends on it. Ask the user which they want, then call ${tool.name} again with ${ways.join(", or with ")}. Do not choose for them.`;
+}
+
+// What a delete's inputs said besides the record: {} when nothing, or what could not be read.
+function sentDeleteChoices(
+  tableName: string,
+  args: Record<string, unknown>,
+): JSONObject {
+  try {
+    return readDeleteChoices({
+      tableName,
+      given: args,
+      deletedId: typeof args["id"] === "string" ? args["id"] : undefined,
+      nameOf: (key: string): string => {
+        return key;
+      },
+    });
+  } catch {
+    return {};
+  }
 }
 
 /*
@@ -388,7 +475,19 @@ async function handleCallTool(
     }
 
     // Execution errors are returned in-band so the agent can self-correct
-    return buildErrorResult(name, error, credential);
+    return buildErrorResult(
+      name,
+      error,
+      credential,
+      // A delete refused for what it says besides the record says how in its inputs.
+      getDeleteChoicesSuggestion({
+        tool: tools.find((each: McpToolInfo): boolean => {
+          return each.name === name;
+        }),
+        args,
+        error,
+      }),
+    );
   }
 }
 

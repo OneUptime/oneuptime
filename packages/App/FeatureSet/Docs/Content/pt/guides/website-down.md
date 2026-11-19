@@ -28,7 +28,7 @@ O endereço é verificado pela própria sonda do seu servidor, então precisa es
 
 ![Início pergunta "O que você quer fazer primeiro?", com "Saber quando meu site ou API cair" marcado](screen:home-goal-website)
 
-A página **Início** de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair** e clique em **Continuar**. Depois clique em **Crie seu primeiro monitor**, na lista **Boas-vindas ao OneUptime 👋**. Se a lista não mostrar esse passo, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `website down` e escolha **Saber quando meu site ou API cair**. **Monitores** também a oferece: **Configuração guiada** na lista vazia e em **Como funciona**, e uma linha em **Criar monitor** assim que você escolhe **Site** ou **API**.
+A página **Início** de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair** e clique em **Continuar**. Depois clique em **Crie seu primeiro monitor**, na lista **Boas-vindas ao OneUptime 👋**. Se a lista não mostrar esse passo, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `website down` e escolha **Saber quando meu site ou API cair**. **Monitores** também a oferece: **Configuração guiada** na lista vazia e em **Como funciona**, e uma linha em **Criar monitor** assim que você escolhe **Site** ou **API**. Ou clique em **Descreva em vez disso**: o Pergunte à IA abre com a tarefa escrita na caixa, pronta para enviar.
 
 ### Digitar o endereço
 

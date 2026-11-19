@@ -28,7 +28,7 @@ La dirección se comprueba desde la propia sonda de tu servidor, así que debe s
 
 ![Inicio pregunta «¿Qué quieres hacer primero?», con «Saber cuándo cae mi sitio web o mi API» marcado](screen:home-goal-website)
 
-La página **Inicio** de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API** y haz clic en **Continuar**. Después haz clic en **Crea tu primer monitor**, en la lista **Te damos la bienvenida a OneUptime 👋**. Si la lista no lo muestra, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `website down` y elige **Saber cuándo cae mi sitio web o mi API**. **Monitores** también la ofrece: **Configuración guiada** en la lista vacía y en **Cómo funciona**, y una línea en **Crear monitor** en cuanto eliges **Sitio web** o **API**.
+La página **Inicio** de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API** y haz clic en **Continuar**. Después haz clic en **Crea tu primer monitor**, en la lista **Te damos la bienvenida a OneUptime 👋**. Si la lista no lo muestra, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `website down` y elige **Saber cuándo cae mi sitio web o mi API**. **Monitores** también la ofrece: **Configuración guiada** en la lista vacía y en **Cómo funciona**, y una línea en **Crear monitor** en cuanto eliges **Sitio web** o **API**. O haz clic en **Mejor descríbelo**: Preguntar a la IA se abre con la tarea escrita en su cuadro, lista para enviar.
 
 ### Escribir la dirección
 

@@ -46,11 +46,13 @@ import IconProp from "Common/Types/Icon/IconProp";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { fetchDockerSwarmInventoryRows } from "../Utils/DockerSwarmResourceUtils";
 import {
+  DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
   countDockerSwarmTasks,
   getDockerSwarmAttentionItems,
   getDockerSwarmFailingTaskItems,
   getDockerSwarmHealth,
   getDockerSwarmManagerQuorum,
+  getDockerSwarmManagersOutOfReachItems,
   getDockerSwarmNodesNotReadyItems,
   DockerSwarmManagerQuorum,
   DockerSwarmTaskCount,
@@ -73,7 +75,11 @@ import { getResourceConnectionLabel } from "../../../Components/TelemetryResourc
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import ResourceHealthPill, {
   ResourceHealthDialogWords,
 } from "../../../Components/ResourcePart/ResourceHealthPill";
@@ -83,6 +89,63 @@ export const DOCKER_SWARM_HEALTH_WORDS: ResourceHealthDialogWords = {
   degradedTitle: translationKey("Why this swarm is Degraded"),
   unhealthyTitle: translationKey("Why this swarm is Unhealthy"),
 };
+
+/*
+ * What "3 managers" opens while a manager is out of reach (#9729): which
+ * managers, why, and what that costs the swarm - its majority lost, or one
+ * manager from lost.
+ */
+export const DOCKER_SWARM_MANAGERS_OUT_OF_REACH: PluralTemplate = {
+  one: "{{count}} manager unreachable",
+  other: "{{count}} managers unreachable",
+};
+export const DOCKER_SWARM_MANAGERS_HINT: string = translationKey(
+  "Show which managers and why",
+);
+export const DOCKER_SWARM_MANAGERS_DESCRIPTION: string = translationKey(
+  "A swarm schedules and changes nothing unless more than half of its managers can reach each other.",
+);
+export const DOCKER_SWARM_NO_MANAGER_OUT_OF_REACH: string = translationKey(
+  "Every manager is reachable now.",
+);
+
+/*
+ * The pill after the managers chip, or none while every manager is in
+ * reach: how many managers the majority cannot count on, red while any of
+ * them is broken (an unreachable manager, a majority lost), amber
+ * otherwise. It counts managers; the swarm's own row only rides along.
+ */
+export function getDockerSwarmManagersPill(data: {
+  items: Array<ResourceAttentionItem>;
+  translator: Translator;
+}): ResourceAttentionPillProps | undefined {
+  const managers: Array<ResourceAttentionItem> = data.items.filter(
+    (item: ResourceAttentionItem): boolean => {
+      return item.key !== DOCKER_SWARM_CLUSTER_ATTENTION_KEY;
+    },
+  );
+  if (managers.length === 0) {
+    return undefined;
+  }
+  const words: string = data.translator.translatePlural(
+    DOCKER_SWARM_MANAGERS_OUT_OF_REACH,
+    managers.length,
+  );
+  return {
+    testId: "docker-swarm-hero-managers-out-of-reach",
+    label: words,
+    tone: getResourceAttentionTone(data.items),
+    hint: DOCKER_SWARM_MANAGERS_HINT,
+    dialog: {
+      title: words,
+      description: DOCKER_SWARM_MANAGERS_DESCRIPTION,
+      items: data.items,
+      emptyMessage: DOCKER_SWARM_NO_MANAGER_OUT_OF_REACH,
+      // A list of managers alone names no kind on each; with the swarm's row it does.
+      showKind: managers.length !== data.items.length,
+    },
+  };
+}
 
 /*
  * A Docker Swarm cluster's Overview, what `docker node ls` and
@@ -386,6 +449,18 @@ const DockerSwarmClusterOverview: FunctionComponent<
             now: inventoryReadAt,
           })
         : [];
+    // The managers its majority cannot count on, and what that costs it.
+    const managersProblem: ResourceAttentionPillProps | undefined =
+      inventory && isConnected
+        ? getDockerSwarmManagersPill({
+            items: getDockerSwarmManagersOutOfReachItems({
+              rows: inventory.rows,
+              clusterName: (cluster.name as string | undefined) || "",
+              routeFor: routes.getPartRoute,
+            }),
+            translator: translator,
+          })
+        : undefined;
 
     const specChips: Array<SpecChip> = [];
     if (nodesTotal > 0) {
@@ -432,6 +507,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
           { one: "{{count}} manager", other: "{{count}} managers" },
           managersTotal,
         ),
+        problem: managersProblem,
       });
     }
     if (servicesTotal > 0) {

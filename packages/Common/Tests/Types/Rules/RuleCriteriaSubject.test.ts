@@ -55,6 +55,8 @@ const PLURAL_NAME: RegExp = /pluralName:\s*"([^"]+)"/;
 const SHORTER_NAMES: Record<string, string> = {
   // "Data Assets": Data Observability says tables.
   DataAsset: "tables",
+  // "Data Pipelines": Data Observability says pipelines, as its menu does.
+  DataPipeline: "pipelines",
   // "DockerSwarm Clusters": the product writes the name in two words.
   DockerSwarmCluster: "docker swarm clusters",
   // "On-Call Duty Policies": the Dashboard says on-call policies.

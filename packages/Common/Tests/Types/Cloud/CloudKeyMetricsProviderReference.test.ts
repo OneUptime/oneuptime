@@ -4,6 +4,7 @@ import path from "path";
 import {
   AWS_KEY_METRICS,
   AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_HOURLY_GRAIN,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AwsKeyMetric,
@@ -326,13 +327,17 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
           readable: true,
         });
 
+        // A mark says the finest grain Azure Monitor keeps it at (#9982).
         if (keyMetric?.grain) {
-          marked++;
           expect({ type: entry.type, metric, grain }).toEqual({
             type: entry.type,
             metric,
-            grain: AZURE_FIVE_MINUTE_GRAIN,
+            grain: keyMetric.grain,
           });
+        }
+
+        if (keyMetric?.grain === AZURE_FIVE_MINUTE_GRAIN) {
+          marked++;
           continue;
         }
 
@@ -361,7 +366,7 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
 
     for (const entry of AZURE_KEY_METRICS) {
       for (const metric of entry.metrics) {
-        if (metric.grain) {
+        if (metric.grain === AZURE_FIVE_MINUTE_GRAIN) {
           marked[entry.type] = [...(marked[entry.type] || []), metric.name];
         }
       }
@@ -374,6 +379,49 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
         "IndexUsageV2",
         "DocumentCountV2",
       ],
+    });
+  });
+
+  /*
+   * #9982: a key metric Azure Monitor keeps at an hour at its finest is
+   * read once an hour, and its reading is kept between those reads - so
+   * the catalog marks every one of them, as Microsoft's tables list them.
+   */
+  test("every key metric kept at an hour at its finest is marked as one, and only those", () => {
+    const hourly: Record<string, Array<string>> = {};
+    const kept: Record<string, Array<string>> = {};
+
+    for (const entry of AZURE_KEY_METRICS) {
+      const reference: AzureReference["types"][string] = azureReferenceOf(
+        entry.type,
+      );
+
+      for (const metric of entry.metrics) {
+        const row: AzureReferenceMetric | undefined =
+          reference.metrics[metric.name];
+        const grain: string | undefined = row
+          ? pickAzureGrain(row.timeGrains)
+          : undefined;
+
+        if (grain === AZURE_HOURLY_GRAIN) {
+          kept[entry.type] = [...(kept[entry.type] || []), metric.name];
+        }
+
+        if (metric.grain === AZURE_HOURLY_GRAIN) {
+          hourly[entry.type] = [...(hourly[entry.type] || []), metric.name];
+        }
+      }
+    }
+
+    expect(hourly).toEqual(kept);
+    expect(hourly).toEqual({
+      "Microsoft.DocumentDB/databaseAccounts": ["ServiceAvailability"],
+      "Microsoft.Storage/storageAccounts": ["UsedCapacity"],
+      "Microsoft.Network/dnszones": [
+        "QueryVolume",
+        "RecordSetCapacityUtilization",
+      ],
+      "Microsoft.ContainerRegistry/registries": ["StorageUsed"],
     });
   });
 

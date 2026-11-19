@@ -543,7 +543,11 @@ clickhouse:
     # stricter schema validation (26.7 rejects AggregatingMergeTree dimensions
     # outside the sort key unless they are modeled as aggregate measures).
     # Keep this aligned with docker-compose.base.yml and production.
-    tag: "26.7"
+    # Pinned to the patch: ClickHouse builds its time zone data into the
+    # server and cuts charts' days in the reader's zone with it. 26.7.1 to
+    # 26.7.12 carry tzdata 2025a, without British Columbia's permanent UTC-7
+    # (#9999), and a node that pulled "26.7" early kept it (IfNotPresent).
+    tag: "26.7.38.18"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -745,10 +749,11 @@ clickhouse:
 clickhouseOperator:
   altinity:
     enabled: false
-    # ClickHouse operand image. Pin a specific version for production.
+    # ClickHouse operand image. Pin a specific version for production. The
+    # same patch as clickhouse.image above, for its time zone data.
     image:
       repository: clickhouse/clickhouse-server
-      tag: "26.7"
+      tag: "26.7.38.18"
       pullPolicy: IfNotPresent
     # Cluster topology. shardsCount distributes data; replicasCount adds copies for
     # HA. replicasCount > 1 requires a coordinator — keeper.enabled (below) provides
@@ -848,7 +853,7 @@ clickhouseOperator:
       image:
         repository: clickhouse/clickhouse-keeper
         # Keep Keeper aligned with the ClickHouse server version pinned above.
-        tag: "26.7-alpine"
+        tag: "26.7.38.18-alpine"
         pullPolicy: IfNotPresent
       persistence:
         size: 10Gi

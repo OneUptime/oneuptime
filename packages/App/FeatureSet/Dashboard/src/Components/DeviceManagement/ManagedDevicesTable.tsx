@@ -88,7 +88,7 @@ const ManagedDevicesTable: FunctionComponent<ComponentProps> = (
         {
           field: { model: true },
           type: FieldType.Text,
-          title: "Model",
+          title: "Model (hardware model)",
         },
         {
           field: { osVersion: true },
@@ -173,7 +173,7 @@ const ManagedDevicesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { model: true },
-          title: "Model",
+          title: "Model (hardware model)",
           type: FieldType.Element,
           hideOnMobile: true,
           getLineText: drawsItsOwnLines,

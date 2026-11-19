@@ -30,7 +30,7 @@ Din server skal have sit eget værtsnavn med en A-post, der peger på den, for e
 
 ![Hjem spørger »Hvad vil du gøre først?«, med »Fortælle mine kunder det via en statusside« markeret](screen:home-goal-status-page)
 
-På siden **Hjem** i dit projekt klikker du på **Udgiv en statusside** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Fortælle mine kunder det via en statusside**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `status page`, og vælg **Udgiv en statusside**.
+På siden **Hjem** i dit projekt klikker du på **Udgiv en statusside** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Fortælle mine kunder det via en statusside**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `status page`, og vælg **Udgiv en statusside**. Eller klik på **Beskriv det i stedet**: Spørg AI åbner med opgaven skrevet i feltet, klar til at sende.
 
 Også **Statussider** åbner den: klik på **Guidet opsætning** på den tomme liste, eller under **Sådan fungerer det**, når projektet har en statusside.
 

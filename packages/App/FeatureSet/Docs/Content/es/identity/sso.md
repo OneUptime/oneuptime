@@ -342,9 +342,21 @@ La regla se comprueba cada vez, así que:
 - **Alguien en un proyecto que no gestiona el inicio de sesión**: en cuanto es miembro de un proyecto, o está invitado a uno, que no exige SSO o no tiene activado **Gestionar el inicio de sesión con SSO**, recupera sus ajustes, y su **Perfil de usuario** nombra ese proyecto como el motivo. Si lo deja, su inicio de sesión vuelve a estar gestionado. Una cuenta puede pertenecer a muchas organizaciones, así que una organización nunca decide por los proyectos de otra.
 - **Proyectos con proveedores distintos**: alguien en dos proyectos que gestionan ambos el inicio de sesión, cada uno con su propio proveedor de identidad, está gestionado, y su perfil nombra ambos proveedores.
 - **Los administradores maestros** conservan siempre sus propios ajustes.
-- **Lo que las personas configuraron antes** se conserva, sin que tu proyecto lo use. Un administrador del servidor puede borrarlo en la página **Autenticación** de la persona en el Admin Dashboard, con **Borrar configuración de inicio de sesión**.
+- **Lo que las personas configuraron antes** se conserva, sin que tu proyecto lo use, hasta que se borra: lo pueden borrar los Propietarios del proyecto (ver más abajo), o un administrador del servidor en la página **Autenticación** de la persona en el Admin Dashboard, con **Borrar configuración de inicio de sesión**.
 
 **Gestionar el inicio de sesión con SSO** se guarda en cuanto cambias el interruptor, no borra nada, y desactivarlo devuelve a todos sus ajustes al instante. Quien puede cambiar **Requerir SSO para iniciar sesión** puede cambiarlo, en los mismos planes. Con **Requerir SSO para iniciar sesión** desactivado, queda oculto y no cambia nada.
+
+### Borrar lo que tus miembros guardaron antes
+
+Mientras **Gestionar el inicio de sesión con SSO** está activado, los Propietarios del proyecto ven debajo cuántos de sus miembros aún tienen guardada en OneUptime una contraseña o la autenticación de dos factores. **Borrar configuración de inicio de sesión** elimina, tras pedir confirmación, sus contraseñas con cualquier enlace de restablecimiento o de inicio de sesión, sus llaves de acceso, llaves de seguridad, aplicaciones de autenticación y códigos de respaldo, desactiva la autenticación de dos factores y termina las sesiones que iniciaron sin SSO. No se puede deshacer.
+
+Una cuenta puede pertenecer a muchas organizaciones, así que solo puedes borrar la configuración de las personas de las que tu organización es responsable. Tu organización son los proyectos de los que eres propietario: a una persona solo se le borra cuando todos los proyectos a los que pertenece, incluido cualquier proyecto al que esté invitada, son proyectos de los que eres **Propietario del proyecto** y tienen activado **Gestionar el inicio de sesión con SSO**. Todos los demás conservan sus ajustes:
+
+- alguien que es miembro de un proyecto, o está invitado a uno, del que no eres propietario o que no gestiona el inicio de sesión con SSO;
+- alguien solo invitado a tu proyecto, que aún no se ha unido a él;
+- los administradores maestros, y tú: cambia los tuyos en tu **Perfil de usuario**.
+
+Cada persona a la que se le borra recibe un correo que le indica lo que se eliminó y que ahora inicia sesión con SSO, y los registros de auditoría de tus proyectos registran el borrado como tuyo. Solo un **Propietario del proyecto** puede borrar, con la sesión iniciada en el panel: nunca con una clave de API.
 
 ## Desactivar o eliminar un proveedor
 

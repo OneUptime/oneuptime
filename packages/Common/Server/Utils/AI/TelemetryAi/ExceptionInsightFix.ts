@@ -1,5 +1,4 @@
 import AIInsightService from "../../../Services/AIInsightService";
-import AIRunService from "../../../Services/AIRunService";
 import AIService from "../../../Services/AIService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import ProjectService, { CurrentPlan } from "../../../Services/ProjectService";
@@ -12,6 +11,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../CodeFix/OpenPullRequestCap";
+import CodeFixOnItsWay from "../CodeFix/CodeFixOnItsWay";
 import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
@@ -31,8 +31,6 @@ import { ExceptionStackTraceInsightEvidence } from "../../../../Types/AI/AIInsig
 import AIInsightStatus, {
   AIInsightStatusHelper,
 } from "../../../../Types/AI/AIInsightStatus";
-import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
-import AIRunType from "../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import {
   CODE_TASK_LIMITS,
@@ -637,25 +635,21 @@ export default class ExceptionInsightFix {
 
   /*
    * The exception's own AI task already on its way - for this finding, or
-   * one a person started on the exception's page - or null.
+   * one a person started on the exception's page - or null: a turn of it
+   * queued or running, a reply someone sent in Code included, by the rule
+   * every fix holds to (CodeFixOnItsWay).
    */
   private static async findActiveExceptionTaskId(data: {
     projectId: ObjectID;
     telemetryExceptionId: ObjectID;
   }): Promise<string | null> {
-    const run: AIRun | null = await AIRunService.findOneBy({
-      query: {
+    return await CodeFixOnItsWay.findTaskId(
+      CodeFixOnItsWay.ofException({
         projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        triggeredByTelemetryExceptionId: data.telemetryExceptionId,
-        codeFixTaskType: QueryHelper.any(EXCEPTION_FIX_TASK_TYPES),
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: { _id: true, codeTaskId: true },
-      props: { isRoot: true },
-    });
-
-    return run ? (run.codeTaskId || run.id)?.toString() || null : null;
+        telemetryExceptionId: data.telemetryExceptionId,
+        taskTypes: EXCEPTION_FIX_TASK_TYPES,
+      }),
+    );
   }
 
   /*

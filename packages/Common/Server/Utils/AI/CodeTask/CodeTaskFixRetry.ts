@@ -1,17 +1,15 @@
 import AIRunService from "../../../Services/AIRunService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
 import Select from "../../../Types/Database/Select";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CodeFixAutoRetry from "../CodeFix/CodeFixAutoRetry";
+import CodeFixOnItsWay, { CodeFixProblem } from "../CodeFix/CodeFixOnItsWay";
 import FixRunBudget from "../CodeFix/FixRunBudget";
 import InvestigationSubjectLock from "../SRE/InvestigationSubjectLock";
 import SubjectCodeFixRun from "../SRE/SubjectCodeFixRun";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
-import AIRunStatus, {
-  AIRunStatusHelper,
-} from "../../../../Types/AI/AIRunStatus";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import CarriedRecords from "../../../../Types/AI/CarriedRecords";
 import CodeFixTaskContext from "../../../../Types/AI/CodeFixTaskContext";
@@ -320,9 +318,9 @@ export default class CodeTaskFixRetry {
 
   /*
    * One fix at a time of the same problem, as its creation holds it: of
-   * the exception (per recipe), the incident or alert, the trace, or the
-   * service. The task's own turns are all done: a task takes one turn at a
-   * time, and its latest failed or was stopped.
+   * the exception (per recipe), the incident or alert, the insight, the
+   * trace, or the service. The task's own turns are all done: a task takes
+   * one turn at a time, and its latest failed or was stopped.
    */
   private static async assertNoOtherFixOnItsWay(data: {
     projectId: ObjectID;
@@ -337,82 +335,39 @@ export default class CodeTaskFixRetry {
     }
   }
 
+  /*
+   * Another fix of what the turn is a fix of, on its way: a turn queued or
+   * running of a task of the same problem - its first turn, a fix asked
+   * again, or a reply someone sent in Code - by the rule every fix holds to
+   * (CodeFixOnItsWay). The turn carries the problem as its task's first
+   * turn did; `taskType` is its recipe, a null one read as an exception fix.
+   */
   public static async findOtherFixOnItsWay(data: {
     projectId: ObjectID;
     taskType: CodeFixTaskType;
     turn: AIRun;
   }): Promise<AIRun | null> {
-    const turn: AIRun = data.turn;
+    const problems: Array<CodeFixProblem> = CodeFixOnItsWay.problemsOf({
+      projectId: data.projectId,
+      runType: AIRunType.CodeFix,
+      codeFixTaskType: data.taskType,
+      triggeredByTelemetryExceptionId:
+        data.turn.triggeredByTelemetryExceptionId,
+      triggeredByIncidentId: data.turn.triggeredByIncidentId,
+      triggeredByAlertId: data.turn.triggeredByAlertId,
+      triggeredByAiInsightId: data.turn.triggeredByAiInsightId,
+      taskContext: data.turn.taskContext,
+    });
 
-    switch (CodeFixTaskTypeHelper.getContextKind(data.taskType)) {
-      case CodeFixContextKind.TelemetryException:
-        if (!turn.triggeredByTelemetryExceptionId) {
-          return null;
-        }
+    for (const problem of problems) {
+      const onItsWay: AIRun | null = await CodeFixOnItsWay.findTurn(problem);
 
-        return await AIRunService.findOneBy({
-          query: {
-            projectId: data.projectId,
-            runType: AIRunType.CodeFix,
-            triggeredByTelemetryExceptionId:
-              turn.triggeredByTelemetryExceptionId,
-            // A null recipe is an exception fix (rows from before recipes).
-            codeFixTaskType:
-              data.taskType === CodeFixTaskType.FixException
-                ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
-                : data.taskType,
-            status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-          } as never,
-          select: { _id: true },
-          props: { isRoot: true },
-        });
-      case CodeFixContextKind.IncidentOrAlertSubject:
-        if (
-          Boolean(turn.triggeredByIncidentId) ===
-          Boolean(turn.triggeredByAlertId)
-        ) {
-          return null;
-        }
-
-        return await SubjectCodeFixRun.findNonTerminalRunForSubject({
-          taskType: data.taskType,
-          incidentId: turn.triggeredByIncidentId || undefined,
-          alertId: turn.triggeredByIncidentId
-            ? undefined
-            : turn.triggeredByAlertId || undefined,
-        });
-      default: {
-        const traceId: unknown = turn.taskContext?.traceId;
-
-        if (
-          data.taskType === CodeFixTaskType.FixPerformance &&
-          typeof traceId === "string" &&
-          traceId
-        ) {
-          return await SubjectCodeFixRun.findNonTerminalPerformanceFixRunForTrace(
-            { projectId: data.projectId, traceId },
-          );
-        }
-
-        const telemetryServiceId: unknown =
-          turn.taskContext?.telemetryServiceId;
-
-        if (
-          (data.taskType === CodeFixTaskType.ImproveLogging ||
-            data.taskType === CodeFixTaskType.ImproveTracing) &&
-          typeof telemetryServiceId === "string" &&
-          telemetryServiceId
-        ) {
-          return await SubjectCodeFixRun.findNonTerminalRunForTelemetryService({
-            projectId: data.projectId,
-            taskType: data.taskType,
-            telemetryServiceId,
-          });
-        }
-
-        return null;
+      if (onItsWay) {
+        return onItsWay;
       }
     }
+
+    return null;
   }
 
   /*

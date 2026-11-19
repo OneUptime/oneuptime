@@ -2836,7 +2836,8 @@ export default class NetworkDevice extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Model",
+    // Named "Model" in the API, and as a machine's model on screen (MeaningKeys).
+    title: "Model (hardware model)",
     description:
       "Hardware model from ENTITY-MIB (entPhysicalModelName). Managed by the probe.",
     example: "WS-C2960X-48TS-L",

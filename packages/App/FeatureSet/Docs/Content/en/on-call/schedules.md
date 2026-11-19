@@ -40,7 +40,7 @@ Everything else waits under **More fields**, folded until you open it:
 | Field | What it does |
 | --- | --- |
 | **Each turn lasts** | **1 day**, **1 week**, **2 weeks** or **1 month**, and **1 week** unless you change it. It is asked once somebody takes turns. Each person is on call that long, then the next one takes over, at the time of day the schedule was created. |
-| **Timezone** | The time zone hand-off times and on-call hours are kept in. It starts at yours. |
+| **Timezone** | The time zone hand-off times and on-call hours are kept in. It starts at yours. Each zone follows its region's current rules: America/Vancouver (British Columbia) stays on UTC-7 all year from 2026. |
 | **Description** | Notes about the schedule. |
 | **Labels** | Labels for finding and grouping the schedule. |
 

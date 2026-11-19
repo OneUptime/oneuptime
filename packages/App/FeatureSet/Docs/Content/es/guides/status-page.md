@@ -30,7 +30,7 @@ Tu servidor necesita un nombre de host propio con un registro A que apunte a él
 
 ![Inicio pregunta «¿Qué quieres hacer primero?», con «Informar a mis clientes con una página de estado» marcado](screen:home-goal-status-page)
 
-En la página **Inicio** de tu proyecto, haz clic en **Publica una página de estado**, en la lista **Te damos la bienvenida a OneUptime 👋**. La página de inicio de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Informar a mis clientes con una página de estado** y haz clic en **Continuar**. Si el paso no aparece o ya está hecho, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `status page` y elige **Publica una página de estado**.
+En la página **Inicio** de tu proyecto, haz clic en **Publica una página de estado**, en la lista **Te damos la bienvenida a OneUptime 👋**. La página de inicio de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Informar a mis clientes con una página de estado** y haz clic en **Continuar**. Si el paso no aparece o ya está hecho, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `status page` y elige **Publica una página de estado**. O haz clic en **Mejor descríbelo**: Preguntar a la IA se abre con la tarea escrita en su cuadro, lista para enviar.
 
 **Páginas de estado** también la abre: haz clic en **Configuración guiada** en su lista vacía, o en **Cómo funciona** cuando el proyecto ya tenga una página de estado.
 

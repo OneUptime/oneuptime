@@ -342,9 +342,21 @@ Regelen sjekkes hver gang, så:
 - **Noen i et prosjekt som ikke styrer påloggingen**: Så snart vedkommende er medlem av eller invitert til et prosjekt som ikke krever SSO eller ikke har **Styr pålogging med SSO** slått på, får vedkommende innstillingene sine tilbake, og vedkommendes **Brukerprofil** viser det prosjektet som grunnen. Forlater vedkommende det, styres påloggingen igjen. En konto kan høre til mange organisasjoner, så én organisasjon bestemmer aldri over en annens prosjekter.
 - **Prosjekter med ulike leverandører**: Noen i to prosjekter som begge styrer påloggingen, hvert med sin egen identitetsleverandør, blir styrt, og profilen viser begge leverandørene.
 - **Master-admins** beholder alltid sine egne innstillinger.
-- **Det folk har satt opp før**, blir beholdt, ubrukt av prosjektet ditt. En serveradministrator kan fjerne det på personens side **Autentisering** i Admin Dashboard, med **Fjern påloggingsinnstillinger**.
+- **Det folk har satt opp før**, blir beholdt, ubrukt av prosjektet ditt, til det blir fjernet: av Prosjekteierne i prosjektet ditt (se nedenfor), eller av en serveradministrator på personens side **Autentisering** i Admin Dashboard, med **Fjern påloggingsinnstillinger**.
 
 **Styr pålogging med SSO** lagres så snart du slår om bryteren, sletter ingenting, og slår du den av, får alle innstillingene sine tilbake med en gang. Den som kan endre **Krev SSO for å logge på**, kan endre den, på de samme planene. Når **Krev SSO for å logge på** er slått av, er den skjult og endrer ingenting.
+
+### Fjerne det brukerne dine har lagret før
+
+Mens **Styr pålogging med SSO** er slått på, ser Prosjekteierne i prosjektet ditt under den hvor mange av brukerne der som fortsatt har et passord eller tofaktorautentisering lagret i OneUptime. **Fjern påloggingsinnstillinger** sletter, etter å ha spurt, passordene deres med eventuelle lenker for tilbakestilling eller pålogging, passnøklene, sikkerhetsnøklene, autentiseringsappene og reservekodene, slår av tofaktorautentisering og avslutter øktene de logget på uten SSO. Det kan ikke angres.
+
+En konto kan høre til mange organisasjoner, så du kan bare fjerne innstillingene til personene organisasjonen din har ansvar for. Organisasjonen din er prosjektene du eier: En persons innstillinger fjernes bare når alle prosjektene vedkommende hører til, inkludert alle prosjekter vedkommende er invitert til, er prosjekter du er **Prosjekteier** for, og har **Styr pålogging med SSO** slått på. Alle andre beholder innstillingene sine:
+
+- noen som er medlem av eller invitert til et prosjekt du ikke eier, eller et prosjekt som ikke styrer pålogging med SSO;
+- noen som bare er invitert til prosjektet ditt og ikke har blitt med ennå;
+- master-admins, og deg selv: endre dine egne i **Brukerprofil**.
+
+Hver person som får innstillingene fjernet, får en e-post om hva som ble fjernet og at vedkommende nå logger på med SSO, og revisjonsloggene til prosjektene dine registrerer fjerningen som din. Bare en **Prosjekteier** kan fjerne, pålogget i dashbordet: aldri med en API-nøkkel.
 
 ## Slå av eller slette en leverandør
 

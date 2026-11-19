@@ -342,9 +342,21 @@ Regeln kontrolleras varje gång, så:
 - **Någon i ett projekt som inte hanterar inloggningen**: så snart personen är medlem i, eller inbjuden till, ett projekt som inte kräver SSO eller inte har **Hantera inloggning med SSO** påslaget, får personen tillbaka sina inställningar, och personens **Användarprofil** visar det projektet som skälet. Lämnar personen det hanteras inloggningen igen. Ett konto kan tillhöra många organisationer, så en organisation bestämmer aldrig över en annans projekt.
 - **Projekt med olika leverantörer**: någon i två projekt som båda hanterar inloggningen, vart och ett med sin egen identitetsleverantör, hanteras, och profilen visar båda leverantörerna.
 - **Master admins** behåller alltid sina egna inställningar.
-- **Det användare konfigurerade tidigare** finns kvar, oanvänt av ditt projekt. En serveradministratör kan rensa det på personens sida **Autentisering** i Admin Dashboard, med **Rensa inloggningsinställningar**.
+- **Det användare konfigurerade tidigare** finns kvar, oanvänt av ditt projekt, tills det rensas: av Projektägare i ditt projekt (se nedan), eller av en serveradministratör på personens sida **Autentisering** i Admin Dashboard, med **Rensa inloggningsinställningar**.
 
 **Hantera inloggning med SSO** sparas så snart du slår om reglaget, raderar inget, och att stänga av det ger alla tillbaka sina inställningar direkt. Den som kan ändra **Kräv SSO för inloggning** kan ändra det, med samma planer. När **Kräv SSO för inloggning** är avstängt är det dolt och ändrar inget.
+
+### Rensa det dina användare sparade tidigare
+
+Så länge **Hantera inloggning med SSO** är påslaget ser Projektägare i ditt projekt under det hur många av projektets användare som fortfarande har ett lösenord eller tvåfaktorsautentisering sparat i OneUptime. **Rensa inloggningsinställningar** raderar, efter att ha frågat, deras lösenord med eventuella länkar för återställning eller inloggning, passnycklar, säkerhetsnycklar, autentiseringsappar och reservkoder, stänger av tvåfaktorsautentisering och avslutar de sessioner de loggade in i utan SSO. Det går inte att ångra.
+
+Ett konto kan tillhöra många organisationer, så du kan bara rensa inställningarna för de personer som din organisation ansvarar för. Din organisation är de projekt du äger: en persons inställningar rensas bara när alla projekt personen tillhör, inklusive alla projekt personen är inbjuden till, är projekt där du är **Projektägare** och som har **Hantera inloggning med SSO** påslaget. Alla andra behåller sina inställningar:
+
+- någon som är medlem i, eller inbjuden till, ett projekt du inte äger, eller ett som inte hanterar inloggningen med SSO;
+- någon som bara är inbjuden till ditt projekt och inte har gått med än;
+- master admins, och du själv: ändra dina egna i din **Användarprofil**.
+
+Varje person vars inställningar rensas får ett e-postmeddelande om vad som togs bort och att personen nu loggar in med SSO, och dina projekts granskningsloggar registrerar rensningen som din. Bara en **Projektägare** kan rensa, inloggad i instrumentpanelen: aldrig med en API-nyckel.
 
 ## Stänga av eller ta bort en leverantör
 

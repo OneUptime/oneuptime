@@ -12,6 +12,7 @@ import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
+import SetupActionAPI from "Common/Server/API/SetupActionAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
@@ -7593,6 +7594,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
+
+    /*
+     * Ask AI's setup actions, one call each, outside the chat: the MCP
+     * server's outcome-level tools (#7241).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupActionAPI);
 
     // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);

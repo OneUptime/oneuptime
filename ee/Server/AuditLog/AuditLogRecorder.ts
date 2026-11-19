@@ -616,18 +616,20 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   }
 
   /*
-   * SIGN-IN SETTINGS A MASTER ADMIN CLEARED (issue #9762): a person's
-   * password, passkeys, security keys, authenticator apps, backup codes and
-   * two-factor authentication, removed from the Admin Dashboard
+   * SIGN-IN SETTINGS SOMEBODY CLEARED (issue #9762): a person's password,
+   * passkeys, security keys, authenticator apps, backup codes and
+   * two-factor authentication, removed by a master admin in the Admin
+   * Dashboard, or by an owner of every project the person is in, from a
+   * project's SSO page (#9820)
    * (Common/Types/AuditLog/AuditLogSignInSettingsCleared).
    *
    * Filed as a person's session is: in every project they are a member of
    * that records audit logs, whether or not it stores system events - a
-   * master admin did it by hand. The entry is an Update of the person (a
-   * User, by their id, named by their name or email); its actor is the
-   * master admin who cleared it, so filtering by their email finds every
-   * clear they made; its fields are what was removed, never a value of it.
-   * A clear that removed nothing makes no entry.
+   * person did it by hand. The entry is an Update of the person (a User, by
+   * their id, named by their name or email); its actor is whoever cleared
+   * it, so filtering by their email finds every clear they made; its fields
+   * are what was removed, never a value of it. A clear that removed nothing
+   * makes no entry.
    */
   public async recordSignInSettingsCleared(
     events: Array<SignInSettingsClearedAuditEvent>,

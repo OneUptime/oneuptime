@@ -58,10 +58,12 @@ import useKubernetesPart, {
 } from "../Utils/UseKubernetesPart";
 import {
   KubernetesPartRoutes,
+  getKubernetesContainerRoute,
   getKubernetesNamespaceParam,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
 import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
+import Route from "Common/Types/API/Route";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -459,6 +461,14 @@ const KubernetesClusterPodDetail: FunctionComponent<
           initContainers={podObject.spec.initContainers}
           containerStatuses={podObject.status.containerStatuses}
           initContainerStatuses={podObject.status.initContainerStatuses}
+          // Each container's own page, this pod's (#9732).
+          getContainerRoute={(containerName: string): Route => {
+            return getKubernetesContainerRoute(modelId, {
+              name: containerName,
+              pod: podName,
+              namespace: podNamespace,
+            });
+          }}
         />
       ) : isLoadingObject ? (
         <TableSkeleton rows={3} />

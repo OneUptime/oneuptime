@@ -1,6 +1,7 @@
 import { JSONObject } from "../JSON";
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import RollingTime from "../RollingTime/RollingTime";
+import MetricLatestReading from "../../Utils/Metrics/MetricLatestReading";
 
 /**
  * The kind of IoT resource a metric series belongs to. Enum values are
@@ -80,34 +81,16 @@ export class MonitorStepIoTMonitorUtil {
    * A per-device breakdown judged on each device's latest reading
    * (judgeLatestReading): every query's and formula's series keeps only its
    * newest row. A series with no rows stays empty, so a silent device is
-   * still judged by its no-data policy.
+   * still judged by its no-data policy. A Metrics monitor's step that asks
+   * for it reads the same (MetricLatestReading).
    */
   public static keepLatestReadings<
     T extends {
       aggregatedResults: Array<{ data: Array<{ timestamp: Date }> }>;
     },
   >(series: Array<T>): Array<T> {
-    return series.map((entry: T): T => {
-      return {
-        ...entry,
-        aggregatedResults: entry.aggregatedResults.map(
-          (result: { data: Array<{ timestamp: Date }> }) => {
-            let latest: { timestamp: Date } | undefined = undefined;
-
-            for (const row of result.data || []) {
-              if (
-                !latest ||
-                new Date(row.timestamp).getTime() >
-                  new Date(latest.timestamp).getTime()
-              ) {
-                latest = row;
-              }
-            }
-
-            return { ...result, data: latest ? [latest] : [] };
-          },
-        ),
-      };
-    });
+    return MetricLatestReading.keepLatestReadings<{ timestamp: Date }, T>(
+      series,
+    );
   }
 }

@@ -425,6 +425,34 @@ describe("what a clear's entry says", () => {
     expect(entry.userType).toBe(UserType.User);
   });
 
+  test("an owner's clear of their organization's people (#9820) is filed as that owner's, in the person's projects only", async () => {
+    const OWNER_ID: ObjectID = new ObjectID(
+      "57575757-5757-4757-8757-575757575757",
+    );
+    users.set(
+      OWNER_ID.toString(),
+      makeUser(OWNER_ID, "Acme Owner", "owner@acme.test"),
+    );
+
+    await recorder.recordSignInSettingsCleared([
+      cleared({ clearedByUserId: OWNER_ID }),
+    ]);
+
+    expect(inserted).toHaveLength(2);
+    expect(entriesIn(STRANGERS_PROJECT)).toHaveLength(0);
+
+    for (const entry of inserted) {
+      expect(entry.action).toBe(AuditLogAction.Update);
+      expect(entry.resourceId?.toString()).toBe(PERSON_ID.toString());
+      expect(entry.userId?.toString()).toBe(OWNER_ID.toString());
+      expect(entry.userName).toBe("Acme Owner");
+      expect(entry.userEmail).toBe("owner@acme.test");
+      expect(entry.changes).toEqual(
+        getSignInSettingsClearedChanges(EVERYTHING),
+      );
+    }
+  });
+
   test("each master admin is looked up once, however many people they cleared", async () => {
     await recorder.recordSignInSettingsCleared([
       cleared(),

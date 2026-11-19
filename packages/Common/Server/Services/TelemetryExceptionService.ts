@@ -10,13 +10,16 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import CodeTaskAccess from "../Utils/AI/CodeTask/CodeTaskAccess";
 import AIRunType from "../../Types/AI/AIRunType";
-import AIRunStatus, { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIRunService from "./AIRunService";
 import FixRunBudget from "../Utils/AI/CodeFix/FixRunBudget";
+import CodeFixOnItsWay, {
+  CodeFixProblem,
+} from "../Utils/AI/CodeFix/CodeFixOnItsWay";
 import AIService from "./AIService";
 import CodeFixReadiness from "../Utils/AI/CodeFix/CodeFixReadiness";
 import ServiceService from "./ServiceService";
@@ -1736,10 +1739,11 @@ export class Service extends ProjectReferencesService<Model> {
        * FixException run must not block queuing a WriteRegressionTest run
        * and vice versa.
        */
-      await this.validateNoActiveCodeFixRunExists(
+      await this.validateNoActiveCodeFixRunExists({
+        projectId: telemetryException.projectId,
         telemetryExceptionId,
         taskType,
-      );
+      });
 
       /*
        * Cross-group duplicate guard: interpolated dynamic values (garbage
@@ -1830,38 +1834,28 @@ export class Service extends ProjectReferencesService<Model> {
     return createdRun;
   }
 
+  /*
+   * One task of a recipe at a time per exception, by the rule every fix
+   * holds to (CodeFixOnItsWay): a task of the exception and the recipe -
+   * a null recipe is an exception fix (rows from before recipes) - whose
+   * turn is queued or running, its first turn, a fix asked again or a reply
+   * someone sent in Code alike. Refused saying what is on its way, and
+   * where to follow it.
+   */
   @CaptureSpan()
-  private async validateNoActiveCodeFixRunExists(
-    telemetryExceptionId: ObjectID,
-    taskType: CodeFixTaskType,
-  ): Promise<void> {
-    const existingRun: AIRun | null = await AIRunService.findOneBy({
-      query: {
-        runType: AIRunType.CodeFix,
-        triggeredByTelemetryExceptionId: telemetryExceptionId,
-        /*
-         * A null codeFixTaskType means FixException (rows created before
-         * task recipes existed), so the FixException guard must also match
-         * legacy null rows.
-         */
-        codeFixTaskType:
-          taskType === CodeFixTaskType.FixException
-            ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
-            : taskType,
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
+  private async validateNoActiveCodeFixRunExists(data: {
+    projectId: ObjectID;
+    telemetryExceptionId: ObjectID;
+    taskType: CodeFixTaskType;
+  }): Promise<void> {
+    const problem: CodeFixProblem = CodeFixOnItsWay.ofException({
+      projectId: data.projectId,
+      telemetryExceptionId: data.telemetryExceptionId,
+      taskTypes: [data.taskType],
     });
 
-    if (existingRun) {
-      throw new BadDataException(
-        `An AI agent task (${taskType}) is already in progress for this exception. Please wait for it to complete before creating a new one.`,
-      );
+    if (await CodeFixOnItsWay.findTurn(problem)) {
+      throw new BadDataException(CodeFixOnItsWay.getRefusal(problem));
     }
   }
 
@@ -1870,11 +1864,12 @@ export class Service extends ProjectReferencesService<Model> {
    * for the fix lane when their exceptionType and NORMALIZED message match
    * (normalizeExceptionText replaces UUIDs, IDs, emails, paths' dynamic
    * segments, timestamps...). Candidates are the exceptions behind
-   * (a) non-terminal CodeFix runs of the same recipe, and (b) OPEN
-   * AI-authored pull requests — a completed run whose PR is still open
-   * must keep blocking, or every interpolated variant re-fixes the same
-   * root cause (observed: 15 near-identical PRs for one invalid-uuid
-   * throw site).
+   * (a) tasks of the same recipe still on their way - a turn queued or
+   * running, a reply in Code included (CodeFixOnItsWay) - and (b) OPEN
+   * AI-authored pull requests, whichever turn of the task opened them — a
+   * completed run whose PR is still open must keep blocking, or every
+   * interpolated variant re-fixes the same root cause (observed: 15
+   * near-identical PRs for one invalid-uuid throw site).
    */
   @CaptureSpan()
   private async validateNoOpenFixForSimilarException(data: {
@@ -1884,29 +1879,16 @@ export class Service extends ProjectReferencesService<Model> {
     message: string;
     exceptionType: string;
   }): Promise<void> {
-    // (a) Exceptions with a non-terminal run of the same recipe.
-    const activeRuns: Array<AIRun> = await AIRunService.findBy({
-      query: {
+    /*
+     * (a) Exceptions with a task of the same recipe on its way - a null
+     * recipe is FixException, as for validateNoActiveCodeFixRunExists.
+     */
+    const activeExceptionIds: Array<ObjectID> =
+      await CodeFixOnItsWay.findExceptionIds({
         projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        /*
-         * A null codeFixTaskType means FixException (rows created before
-         * task recipes existed) — same legacy-null matching as
-         * validateNoActiveCodeFixRunExists.
-         */
-        codeFixTaskType:
-          data.taskType === CodeFixTaskType.FixException
-            ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
-            : data.taskType,
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: {
-        triggeredByTelemetryExceptionId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+        taskTypes: [data.taskType],
+        limit: LIMIT_MAX,
+      });
 
     // (b) Exceptions behind still-open AI pull requests.
     const openPullRequests: Array<AIAgentTaskPullRequest> =
@@ -1928,7 +1910,7 @@ export class Service extends ProjectReferencesService<Model> {
      * candidate-scan truncation instead of quietly missing duplicates.
      */
     if (
-      activeRuns.length >= LIMIT_MAX ||
+      activeExceptionIds.length >= LIMIT_MAX ||
       openPullRequests.length >= LIMIT_MAX
     ) {
       logger.warn(
@@ -1944,26 +1926,12 @@ export class Service extends ProjectReferencesService<Model> {
         return Boolean(runId);
       });
 
-    const openPrRuns: Array<AIRun> =
-      openPrRunIds.length > 0
-        ? await AIRunService.findBy({
-            query: {
-              _id: new Includes(openPrRunIds),
-              projectId: data.projectId,
-              runType: AIRunType.CodeFix,
-              codeFixTaskType:
-                data.taskType === CodeFixTaskType.FixException
-                  ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
-                  : data.taskType,
-            },
-            select: {
-              triggeredByTelemetryExceptionId: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: { isRoot: true },
-          })
-        : [];
+    const openPrExceptionIds: Array<ObjectID> =
+      await this.findExceptionsOfPullRequestTasks({
+        projectId: data.projectId,
+        taskType: data.taskType,
+        runIds: openPrRunIds,
+      });
 
     /*
      * The target exception is deliberately NOT excluded: its own COMPLETED
@@ -1974,15 +1942,8 @@ export class Service extends ProjectReferencesService<Model> {
     const candidateExceptionIds: Array<ObjectID> = [];
     const seenIds: Set<string> = new Set<string>();
 
-    for (const run of [...activeRuns, ...openPrRuns]) {
-      const exceptionId: ObjectID | undefined =
-        run.triggeredByTelemetryExceptionId;
-
-      if (!exceptionId) {
-        continue;
-      }
-
-      const idString: string = exceptionId.toString();
+    for (const exceptionId of [...activeExceptionIds, ...openPrExceptionIds]) {
+      const idString: string = exceptionId.toString().toLowerCase();
 
       if (seenIds.has(idString)) {
         continue;
@@ -2034,6 +1995,79 @@ export class Service extends ProjectReferencesService<Model> {
         `A similar exception (same type and normalized message, exception ${candidate._id?.toString()}) already has an AI agent task in progress or an open AI pull request. Review that pull request instead of opening another one for the same root cause.`,
       );
     }
+  }
+
+  /*
+   * The exceptions behind the pull requests the runs `runIds` opened, for
+   * fixes of the recipe (a null recipe is FixException). A pull request is
+   * its task's, whichever turn opened it: a reply someone sent in Code
+   * carries no exception or recipe of its own, so each run is read with its
+   * task's first turn, and whichever of the two is a fix of the recipe names
+   * the exception.
+   */
+  private async findExceptionsOfPullRequestTasks(data: {
+    projectId: ObjectID;
+    taskType: CodeFixTaskType;
+    runIds: Array<ObjectID>;
+  }): Promise<Array<ObjectID>> {
+    if (data.runIds.length === 0) {
+      return [];
+    }
+
+    const runs: Array<AIRun> = await AIRunService.findBy({
+      query: {
+        _id: new Includes(data.runIds),
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+      },
+      select: {
+        _id: true,
+        codeTaskId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const turnAndTaskIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const run of runs) {
+      for (const id of [run.id, run.codeTaskId]) {
+        if (id) {
+          turnAndTaskIds.set(id.toString().toLowerCase(), id);
+        }
+      }
+    }
+
+    if (turnAndTaskIds.size === 0) {
+      return [];
+    }
+
+    const fixes: Array<AIRun> = await AIRunService.findBy({
+      query: {
+        _id: new Includes(Array.from(turnAndTaskIds.values())),
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        codeFixTaskType:
+          data.taskType === CodeFixTaskType.FixException
+            ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
+            : data.taskType,
+      },
+      select: {
+        triggeredByTelemetryExceptionId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return fixes
+      .map((fix: AIRun): ObjectID | undefined => {
+        return fix.triggeredByTelemetryExceptionId;
+      })
+      .filter((exceptionId: ObjectID | undefined): exceptionId is ObjectID => {
+        return Boolean(exceptionId);
+      });
   }
 
   @CaptureSpan()

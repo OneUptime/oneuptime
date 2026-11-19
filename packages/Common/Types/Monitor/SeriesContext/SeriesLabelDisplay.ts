@@ -231,6 +231,18 @@ const FriendlyLabelNames: Record<string, string> = {
   "device.name": "Device",
 
   /*
+   * --- Managed devices ---
+   *
+   * The check-ins each read of a device management connection writes
+   * (ManagedDeviceCheckIn, #9835): a device by its name in the service, which
+   * Esper Device Stopped Checking In groups by, one alert per device; its
+   * alias and its group, for a monitor of someone's own.
+   */
+  "oneuptime.managed_device.name": "Device",
+  "oneuptime.managed_device.alias": "Device Alias",
+  "oneuptime.managed_device.group": "Device Group",
+
+  /*
    * --- Mobile apps ---
    *
    * The install OpenTelemetry Android names on its resource (#9711): what a
@@ -370,6 +382,10 @@ const LabelPriority: Record<string, number> = {
   host: 30,
   "device.id": 25,
   "device.name": 25,
+  // A managed device first, then the name people gave it, then its group.
+  "oneuptime.managed_device.name": 25,
+  "oneuptime.managed_device.alias": 26,
+  "oneuptime.managed_device.group": 40,
   "app.installation.id": 25,
   /*
    * Network events: what the event happened to (the interface, the

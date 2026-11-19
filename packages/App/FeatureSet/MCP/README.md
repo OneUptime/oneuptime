@@ -149,6 +149,20 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 - `oneuptime_whoami` — returns the project (ID and name) the credential belongs to; for an OAuth sign-in, also who is signed in, through which client, and whether the connection is read-only
 - `oneuptime_move_in_list` — moves a row of an ordered list (an incident or alert severity or state, a monitor status, a maintenance state, a postmortem or security case status, a security case priority) to another row's place, as a drag in the dashboard does: `{ resource, id, placeOfId }`, sent as the API's `POST <list>/:id/move`, answered with each row whose number changed (`Tools/MoveInList.ts`). A write of a row's number with its `update_` tool places only that row since #9650, so this is how an agent moves a row past others. One tool for every list, which takes every model with MCP tools whose rows the move request answers for; `oneuptime_list_resources` and `oneuptime_describe_resource` name it among each such resource's tools
 
+### Setup tools
+
+Ask AI's setup actions, one call each, for what a person sets up rather than one table at a time (`packages/App/FeatureSet/MCP/Tools/SetupTools.ts`, #7241):
+
+- `set_up_website_monitoring` — a Website monitor (or an API monitor, with `isApi`) for an address, with the criteria the website guided setup gives it: an incident when the address does not answer or answers with an error, checked from the locations a new monitor starts with. The person owns it. An address a monitor already checks gets no second one.
+- `set_up_paging` — in a project that pages nobody yet, the on-call policy "Default on-call policy", paging the person and the members and teams named for every new incident and alert, with who is paged next (`escalateTo`, `afterMinutes`) and repeats (`repeatTimes`). A project that pages people already is refused: it keeps its own policies.
+- `publish_status_page` — a public status page that shows the monitors named, by name or the address they check.
+- `add_monitors_to_status_page` — monitors put on a status page the project has, as its Add Multiple Monitors puts them.
+- `who_is_told` — who is told when a monitor goes down, and what would stop them being reached (read-only).
+
+They build nothing in the MCP layer. Each call is `POST /api/setup-actions/run` with `{ action, arguments }` (`Common/Server/API/SetupActionAPI`), which runs Ask AI's own tool through `Common/Server/Utils/AI/Toolbox/SetupActionRunner`: the same prepare, the same checks Ask AI makes before its approval card (permissions, the products switched on, the plan, what is missing), then the same writes as the person - so an agent and Ask AI make the same records for the same arguments. There is no approval card: a client asks before a tool that is not read-only, so each tool's description says what it makes, and its answer says what was made (`made`, `details` in the card's words, `message`, `record`). A refusal is an error of its own status: `403` for a permission or a product switched off, `402` for the plan, `400` for what is missing.
+
+They act as the person signed in with OAuth: the monitor is theirs and the policy pages them. A project API key is not a person, so it is refused the four that make something, with what to do instead; `who_is_told` reads for a key too. A connection authorized read-only is refused them as every write is.
+
 ### Helper and public tools
 
 - `oneuptime_help`, `oneuptime_list_resources`
@@ -159,9 +173,9 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 
 Every tool has a title and states all three MCP hints, set in `Tools/ToolAnnotations.ts`, so clients can auto-approve safe calls and confirm the rest:
 
-- `readOnlyHint: true` on the tools that change nothing: `get_`, `list_`, `count_`, `oneuptime_whoami`, the helper tools and the public status page tools.
+- `readOnlyHint: true` on the tools that change nothing: `get_`, `list_`, `count_`, `oneuptime_whoami`, `who_is_told`, the helper tools and the public status page tools.
 - `destructiveHint: true` on every tool that changes something: create, update and delete tools, acknowledging and resolving, adding notes, and moving a row of a list. Most writes overwrite or delete a record, change an incident's or alert's state, page someone on call or post to a status page, and the directories allow `false` only for a write that adds and sends nothing.
-- `openWorldHint: true` on the tools that reach past the caller's project: the public status page tools, which read any public status page on the instance, and the writes that are published, shown on a status page and sent to its subscribers. Those are the create, update and delete tools of status pages, status page announcements, incidents, incident state timelines, incident public notes, scheduled maintenance events and their state timelines (`PUBLISHED_TABLE_NAMES` in `Tools/ToolAnnotations.ts`), and `acknowledge_incident`, `resolve_incident` and `add_incident_note`. Every other tool stays inside the caller's project.
+- `openWorldHint: true` on the tools that reach past the caller's project: the public status page tools, which read any public status page on the instance, and the writes that are published, shown on a status page and sent to its subscribers. Those are the create, update and delete tools of status pages, status page announcements, incidents, incident state timelines, incident public notes, scheduled maintenance events and their state timelines (`PUBLISHED_TABLE_NAMES` in `Tools/ToolAnnotations.ts`), and `acknowledge_incident`, `resolve_incident`, `add_incident_note`, `publish_status_page` and `add_monitors_to_status_page`. Every other tool stays inside the caller's project.
 
 MCP directories require them: the Claude Connectors Directory flags any tool without a `title` or a `readOnlyHint`/`destructiveHint`, and ChatGPT's requires all three hints as booleans. `Tests/ToolAnnotationsForDirectories.test.ts` fails on a tool that lacks one, or that breaks the rules above. On the server itself, `MCP_ALLOW_DESTRUCTIVE=false` removes the delete tools only, and `MCP_READ_ONLY=true` removes every tool that is not read-only (`Tests/WritePolicy.test.ts`). Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
 
@@ -174,7 +188,7 @@ Many clients load every tool definition before the first question, so `tools/lis
 - `create_` tools explain only the fields a call cannot leave out, and `update_` tools name and type their fields without explaining them. Every field is still listed and typed, so a client that validates a call still can.
 - Tool names, titles and annotations are unchanged.
 
-`Tests/ToolListBudget.test.ts` reads `tools/list` through the SDK's client and fails above 250,000 bytes, or for any tool above 5,000 bytes. A new model adds about 4 KB. When a change goes over, make the tools say less, or raise the budget in the same change and say why.
+`Tests/ToolListBudget.test.ts` reads `tools/list` through the SDK's client and fails above 290,000 bytes, or for any tool above 5,000 bytes. A new model adds about 4 KB. When a change goes over, make the tools say less, or raise the budget in the same change and say why.
 
 ## Query, sort, select, and pagination
 

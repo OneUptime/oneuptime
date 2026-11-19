@@ -15,8 +15,9 @@
  * https://www.twilio.com/docs/usage/webhooks/webhooks-connection-overrides.
  * A browser or a proxy never sends a fragment, and Twilio leaves it out of
  * its signature, so the callback reaches the same route with the same
- * token. Never on a 4xx: the callback was refused - its token is wrong -
- * and sending it again changes nothing.
+ * token. Never on a 4xx: the callback was refused - its token or Twilio's
+ * signature is wrong (TwilioWebhookSignature) - and sending it again
+ * changes nothing.
  *
  * A callback sent again is safe: every write it makes is a compare-and-set,
  * a message is counted once, and a page is corrected only while it still

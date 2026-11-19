@@ -14,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -126,7 +127,8 @@ const DEVICE_LABELS: Array<string> = [
   "VLAN",
   "System name",
   "Vendor",
-  "Model",
+  // A machine's model, never an AI model's: Arabic الطراز (#9838).
+  "Model (hardware model)",
   "Interfaces",
 ];
 
@@ -205,8 +207,12 @@ describe("the network device drawer in the reader's language", () => {
     renderDevicePanel();
 
     for (const label of DEVICE_LABELS) {
-      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+      // A key that names its meaning reads in English as its word.
+      expect(
+        screen.getAllByText(withMeaningKeyAsItsWord(label)).length,
+      ).toBeGreaterThan(0);
     }
+    expect(screen.queryByText("Model (hardware model)")).toBeNull();
     expect(valueBeside("Interfaces")).toBe("40 up / 2 down");
   });
 

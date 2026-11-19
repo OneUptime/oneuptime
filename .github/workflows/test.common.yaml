@@ -140,6 +140,11 @@ jobs:
       # (UniqueNamePostgres, #9674, #9742, #9746). A schema of its own,
       # dropped after.
       RUN_POSTGRES_UNIQUE_NAME_TESTS: "true"
+      # Postgres's own tz database keeps British Columbia on UTC-7 after
+      # 2026-11-01, so a status page's uptime days start at a Vancouver
+      # visitor's midnight (MonitorStatusTimelineBritishColumbiaPostgres,
+      # #9999). Creates nothing.
+      RUN_POSTGRES_TIME_ZONE_DATA_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

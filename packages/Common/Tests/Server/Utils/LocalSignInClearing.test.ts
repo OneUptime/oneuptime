@@ -8,8 +8,10 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
   };
 });
 
+import DatabaseConfig from "../../../Server/DatabaseConfig";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import MailService from "../../../Server/Services/MailService";
 import UserService from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
@@ -20,9 +22,17 @@ import LocalSignInClearing, {
   MAX_CLEAR_BATCHES,
 } from "../../../Server/Utils/LocalSignInClearing";
 import logger from "../../../Server/Utils/Logger";
+import SignInSettingsClearedEmail, {
+  SignInSettingsClearedEmailEvent,
+} from "../../../Server/Utils/SignInSettingsClearedEmail";
+import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
 import TwoFactorWrongCodes from "../../../Server/Utils/TwoFactorWrongCodes";
 import User from "../../../Models/DatabaseModels/User";
+import Hostname from "../../../Types/API/Hostname";
+import Protocol from "../../../Types/API/Protocol";
+import Email from "../../../Types/Email";
 import { SignInSettingsClearedAuditEvent } from "../../../Types/AuditLog/AuditLogSignInSettingsCleared";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import HashedString from "../../../Types/HashedString";
@@ -36,6 +46,7 @@ import {
   LocalSignInSettings,
   NO_LOCAL_SIGN_IN_SETTINGS,
 } from "../../../Types/SSO/LocalSignInClearing";
+import { SignInSettingsClearedBy } from "../../../Types/SSO/SignInSettingsClearedEmail";
 import { getJestSpyOn } from "../../Spy";
 import { readQueryValues } from "../TestingUtils/SsoManagedProjects";
 // The global jest: its mocks are the jest.Mock the fake query is typed with.
@@ -59,6 +70,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *     with SSO;
  *   - one audit-log entry per person cleared, by the master admin who
  *     cleared it, naming what was removed;
+ *   - one email per person cleared, handed over once they are cleared and
+ *     recorded, and never waited for (#9818): the emails themselves are
+ *     SignInSettingsClearedEmail's, pinned in its own suite;
  *   - for everyone: refused while the server does not require SSO, or when
  *     the rule cannot be read; never a master admin - the query, the
  *     re-read of each batch and the write all leave them out, so somebody
@@ -118,6 +132,7 @@ const store: (
  */
 interface FakeQuery {
   where: jest.Mock;
+  andWhere: jest.Mock;
   select: jest.Mock;
   orderBy: jest.Mock;
   limit: jest.Mock;
@@ -126,6 +141,8 @@ interface FakeQuery {
 }
 
 let whereSql: Array<string>;
+// Each andWhere: its SQL and its parameters.
+let andWheres: Array<{ sql: string; parameters: Record<string, unknown> }>;
 let batches: Array<Array<string>>;
 let count: number;
 let limits: Array<number>;
@@ -137,6 +154,12 @@ const fakeQuery: () => FakeQuery = (): FakeQuery => {
     whereSql.push(sql);
     return query;
   });
+  query.andWhere = jest.fn(
+    (sql: string, parameters: Record<string, unknown>): FakeQuery => {
+      andWheres.push({ sql: sql, parameters: parameters });
+      return query;
+    },
+  );
   query.select = jest.fn((): FakeQuery => {
     return query;
   });
@@ -168,12 +191,14 @@ let deleteCodes: jest.SpyInstance;
 let forgetWrongCodes: jest.SpyInstance;
 let endSessions: jest.SpyInstance;
 let recordCleared: jest.SpyInstance;
+let notifyCleared: jest.SpyInstance;
 let getRequireSsoForLogin: jest.SpyInstance;
 let getQueryBuilder: jest.SpyInstance;
 
 beforeEach(() => {
   people = new Map<string, StoredPerson>();
   whereSql = [];
+  andWheres = [];
   batches = [];
   count = 0;
   limits = [];
@@ -262,6 +287,10 @@ beforeEach(() => {
     AuditLogService,
     "recordSignInSettingsCleared",
   ).mockResolvedValue(undefined);
+  notifyCleared = getJestSpyOn(
+    SignInSettingsClearedEmail,
+    "notify",
+  ).mockResolvedValue(undefined);
   getRequireSsoForLogin = getJestSpyOn(
     GlobalConfigService,
     "getRequireSsoForLogin",
@@ -305,6 +334,18 @@ const nothingCleared: () => void = (): void => {
   expect(deleteCodes).not.toHaveBeenCalled();
   expect(endSessions).not.toHaveBeenCalled();
   expect(recordCleared).not.toHaveBeenCalled();
+  expect(notifyCleared).not.toHaveBeenCalled();
+};
+
+// The people each email batch was handed, by call, lower-cased.
+const emailedIds: () => Array<Array<string>> = (): Array<Array<string>> => {
+  return notifyCleared.mock.calls.map((call: Array<unknown>): Array<string> => {
+    return (call[0] as Array<SignInSettingsClearedEmailEvent>).map(
+      (event: SignInSettingsClearedEmailEvent): string => {
+        return keyOf(event.userId);
+      },
+    );
+  });
 };
 
 describe("LocalSignInClearing.readSettings: what one person has saved", () => {
@@ -581,6 +622,148 @@ describe("LocalSignInClearing.clearForPerson", () => {
       sessionsEnded: 2,
     });
   });
+
+  describe("the email (#9818)", () => {
+    test("the person is emailed what was removed, as cleared by a server admin, and nobody else", async () => {
+      await clear();
+
+      expect(notifyCleared).toHaveBeenCalledTimes(1);
+      const events: Array<SignInSettingsClearedEmailEvent> = notifyCleared.mock
+        .calls[0]![0] as Array<SignInSettingsClearedEmailEvent>;
+      expect(events).toHaveLength(1);
+      expect(keyOf(events[0]!.userId)).toBe(keyOf(PERSON_ID));
+      expect(events[0]!.cleared).toEqual(EVERYTHING);
+      expect(events[0]!.clearedBy).toBe(SignInSettingsClearedBy.ServerAdmin);
+      // Never the master admin who cleared it.
+      expect(JSON.stringify(events)).not.toContain(ADMIN_ID.toString());
+    });
+
+    test("is handed over only once the settings are cleared and recorded", async () => {
+      const order: Array<string> = [];
+
+      endSessions.mockImplementation(async (): Promise<number> => {
+        order.push("sessions");
+        return 2;
+      });
+      recordCleared.mockImplementation(async (): Promise<void> => {
+        order.push("audit");
+      });
+      notifyCleared.mockImplementation(async (): Promise<void> => {
+        order.push("email");
+      });
+
+      await clear();
+
+      expect(order).toEqual(["sessions", "audit", "email"]);
+    });
+
+    test("the clear answers without waiting for the email", async () => {
+      // An email that never goes.
+      notifyCleared.mockReturnValue(new Promise<void>((): void => {}));
+
+      await expect(clear()).resolves.toEqual({
+        cleared: EVERYTHING,
+        sessionsEnded: 2,
+      });
+      expect(notifyCleared).toHaveBeenCalledTimes(1);
+    });
+
+    test("someone with nothing saved is handed over as such, and the sender sends nothing for them", async () => {
+      store(PERSON_ID, { settings: NO_LOCAL_SIGN_IN_SETTINGS });
+
+      await clear();
+
+      const events: Array<SignInSettingsClearedEmailEvent> = notifyCleared.mock
+        .calls[0]![0] as Array<SignInSettingsClearedEmailEvent>;
+      expect(events[0]!.cleared).toEqual(NO_LOCAL_SIGN_IN_SETTINGS);
+    });
+
+    test("another master admin, confirmed and cleared, is emailed too", async () => {
+      const otherAdmin: ObjectID = ObjectID.generate();
+      store(otherAdmin, { isMasterAdmin: true });
+
+      await clear({ userId: otherAdmin, isMasterAdminConfirmed: true });
+
+      expect(emailedIds()).toEqual([[keyOf(otherAdmin)]]);
+    });
+
+    test("a refused clear emails nobody: their own account, an unconfirmed master admin, an account that does not exist", async () => {
+      const otherAdmin: ObjectID = ObjectID.generate();
+      store(otherAdmin, { isMasterAdmin: true });
+
+      await expect(
+        clear({ userId: ADMIN_ID, clearedByUserId: ADMIN_ID }),
+      ).rejects.toThrow();
+      await expect(clear({ userId: otherAdmin })).rejects.toThrow();
+      await expect(clear({ userId: ObjectID.generate() })).rejects.toThrow();
+
+      expect(notifyCleared).not.toHaveBeenCalled();
+    });
+
+    test("a clear that fails emails nobody", async () => {
+      updateBy.mockRejectedValue(new Error("connection refused"));
+
+      await expect(clear()).rejects.toThrow("connection refused");
+      expect(notifyCleared).not.toHaveBeenCalled();
+    });
+
+    test("a failed send does not fail the clear: the real sender, with the mail service down", async () => {
+      // The real sender this time, its own reads stood in.
+      notifyCleared.mockRestore();
+      const notifySpy: jest.SpyInstance = getJestSpyOn(
+        SignInSettingsClearedEmail,
+        "notify",
+      );
+
+      const readPerson: (data: { id: ObjectID }) => Promise<User | null> =
+        findOneById.getMockImplementation() as (data: {
+          id: ObjectID;
+        }) => Promise<User | null>;
+
+      findOneById.mockImplementation(
+        async (data: { id: ObjectID }): Promise<User | null> => {
+          const user: User | null = await readPerson(data);
+
+          if (user) {
+            user.email = new Email("person@example.com");
+          }
+
+          return user;
+        },
+      );
+
+      getJestSpyOn(SsoManagedSignIn, "getSignInManagement").mockResolvedValue({
+        isManagedBySso: true,
+        ssoProviderNames: ["Okta"],
+        localSignInProjectNames: [],
+      });
+      getJestSpyOn(DatabaseConfig, "getHost").mockResolvedValue(
+        new Hostname("oneuptime.example.com"),
+      );
+      getJestSpyOn(DatabaseConfig, "getHttpProtocol").mockResolvedValue(
+        Protocol.HTTPS,
+      );
+
+      const sendMail: jest.SpyInstance = getJestSpyOn(
+        MailService,
+        "sendMail",
+      ).mockRejectedValue(new Error("mail service down"));
+
+      await expect(clear()).resolves.toEqual({
+        cleared: EVERYTHING,
+        sessionsEnded: 2,
+      });
+
+      // The email's own promise, which the clear did not wait for: it never rejects.
+      await expect(notifySpy.mock.results[0]!.value).resolves.toBe(undefined);
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(
+        (sendMail.mock.calls[0]![0] as { toEmail: Email }).toEmail.toString(),
+      ).toBe("person@example.com");
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
 });
 
 describe("LocalSignInClearing.countPeopleCoveredBySsoRequirement", () => {
@@ -620,6 +803,68 @@ describe("LocalSignInClearing.countPeopleCoveredBySsoRequirement", () => {
     expect(sql).toContain('FROM "UserTwoFactorBackupCode"');
     // A spent backup code signs nobody in.
     expect(sql).toContain('"code"."usedAt" IS NULL');
+  });
+});
+
+describe("LocalSignInClearing.findPeopleWithSettings: which of these people have anything saved (#9820)", () => {
+  test("asks the clear of everyone's own query, narrowed to exactly these people", async () => {
+    const first: ObjectID = ObjectID.generate();
+    const second: ObjectID = ObjectID.generate();
+    batches = [[first.toString()]];
+
+    await expect(
+      LocalSignInClearing.findPeopleWithSettings([first, second]),
+    ).resolves.toEqual([first]);
+
+    // Never a master admin, never a deleted account, every kind of setting.
+    expect(whereSql[0]).toContain('"person"."isMasterAdmin" = false');
+    expect(whereSql[0]).toContain('"person"."deletedAt" IS NULL');
+    expect(whereSql[0]).toContain('"person"."password" IS NOT NULL');
+    expect(whereSql[0]).toContain('"UserWebAuthn"');
+
+    expect(andWheres).toHaveLength(1);
+    expect(andWheres[0]!.sql).toBe('"person"."_id" IN (:...userIds)');
+    expect(andWheres[0]!.parameters["userIds"]).toEqual([
+      first.toString(),
+      second.toString(),
+    ]);
+  });
+
+  test("answers each person once, and nothing that is not an id", async () => {
+    const first: ObjectID = ObjectID.generate();
+    batches = [[first.toString(), first.toString().toUpperCase(), "not-an-id"]];
+
+    const found: Array<ObjectID> =
+      await LocalSignInClearing.findPeopleWithSettings([first]);
+
+    expect(found.map(keyOf)).toEqual([keyOf(first)]);
+  });
+
+  test("reads the people a batch at a time, LIMIT_MAX each", async () => {
+    const many: Array<ObjectID> = Array.from(
+      { length: LIMIT_MAX + 1 },
+      (): ObjectID => {
+        return ObjectID.generate();
+      },
+    );
+    batches = [[], []];
+
+    await LocalSignInClearing.findPeopleWithSettings(many);
+
+    expect(andWheres).toHaveLength(2);
+    expect((andWheres[0]!.parameters["userIds"] as Array<string>).length).toBe(
+      LIMIT_MAX,
+    );
+    expect((andWheres[1]!.parameters["userIds"] as Array<string>).length).toBe(
+      1,
+    );
+  });
+
+  test("nobody asked about is nobody, with nothing read", async () => {
+    await expect(
+      LocalSignInClearing.findPeopleWithSettings([]),
+    ).resolves.toEqual([]);
+    expect(getQueryBuilder).not.toHaveBeenCalled();
   });
 });
 
@@ -822,5 +1067,120 @@ describe("LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement", () => {
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining(ADMIN_ID.toString()),
     );
+  });
+
+  describe("the emails (#9818)", () => {
+    test("each person cleared is emailed what they had, as cleared by a server admin", async () => {
+      const first: ObjectID = someone();
+      const second: ObjectID = someone();
+      store(second, {
+        settings: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPassword: true },
+      });
+      batches = [[first.toString(), second.toString()]];
+
+      await clearEveryone();
+
+      expect(notifyCleared).toHaveBeenCalledTimes(1);
+      const events: Array<SignInSettingsClearedEmailEvent> = notifyCleared.mock
+        .calls[0]![0] as Array<SignInSettingsClearedEmailEvent>;
+      const byPerson: Map<string, SignInSettingsClearedEmailEvent> = new Map(
+        events.map(
+          (
+            event: SignInSettingsClearedEmailEvent,
+          ): [string, SignInSettingsClearedEmailEvent] => {
+            return [keyOf(event.userId), event];
+          },
+        ),
+      );
+
+      expect(byPerson.get(keyOf(first))!.cleared).toEqual(EVERYTHING);
+      expect(byPerson.get(keyOf(second))!.cleared).toEqual({
+        ...NO_LOCAL_SIGN_IN_SETTINGS,
+        hasPassword: true,
+      });
+      for (const event of events) {
+        expect(event.clearedBy).toBe(SignInSettingsClearedBy.ServerAdmin);
+      }
+      expect(JSON.stringify(events)).not.toContain(ADMIN_ID.toString());
+    });
+
+    test("a batch's emails are handed over once it is cleared and recorded, batch by batch", async () => {
+      const full: Array<string> = Array.from(
+        { length: CLEAR_BATCH_SIZE },
+        (): string => {
+          return someone().toString();
+        },
+      );
+      const last: Array<string> = [someone().toString()];
+      batches = [full, last];
+
+      const order: Array<string> = [];
+      updateBy.mockImplementation(async (): Promise<number> => {
+        order.push("clear");
+        return 1;
+      });
+      recordCleared.mockImplementation(async (): Promise<void> => {
+        order.push("audit");
+      });
+      notifyCleared.mockImplementation(async (): Promise<void> => {
+        order.push("email");
+      });
+
+      await clearEveryone();
+
+      expect(order).toEqual([
+        "clear",
+        "audit",
+        "email",
+        "clear",
+        "audit",
+        "email",
+      ]);
+      expect(emailedIds()[0]).toHaveLength(CLEAR_BATCH_SIZE);
+      expect(emailedIds()[1]).toEqual([keyOf(new ObjectID(last[0]!))]);
+    });
+
+    test("a master admin left out of the clear is never emailed", async () => {
+      const plain: ObjectID = someone();
+      const promoted: ObjectID = someone();
+      batches = [[plain.toString(), promoted.toString()]];
+      store(promoted, { isMasterAdmin: true });
+
+      await clearEveryone();
+
+      expect(emailedIds()).toEqual([[keyOf(plain)]]);
+    });
+
+    test("a batch of only master admins emails nobody", async () => {
+      const promoted: ObjectID = someone();
+      store(promoted, { isMasterAdmin: true });
+      batches = [[promoted.toString()]];
+
+      await clearEveryone();
+
+      expect(emailedIds().flat()).toEqual([]);
+    });
+
+    test("the clear of everyone does not wait for its emails: it answers while they are still going", async () => {
+      batches = [[someone().toString(), someone().toString()]];
+      notifyCleared.mockReturnValue(new Promise<void>((): void => {}));
+
+      await expect(clearEveryone()).resolves.toBe(2);
+    });
+
+    test("refused, it emails nobody", async () => {
+      getRequireSsoForLogin.mockResolvedValue(false);
+
+      await expect(clearEveryone()).rejects.toThrow();
+      expect(notifyCleared).not.toHaveBeenCalled();
+    });
+
+    test("nobody cleared, nobody emailed", async () => {
+      batches = [[]];
+
+      await clearEveryone();
+
+      expect(notifyCleared).not.toHaveBeenCalled();
+    });
   });
 });

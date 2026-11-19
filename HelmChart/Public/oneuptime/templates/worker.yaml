@@ -78,6 +78,11 @@ spec:
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        # The worker connects to PostgreSQL as it starts: wait for it here
+        # rather than exit and restart while it starts
+        # (oneuptime.postgres.runtimeWaitInitContainer).
+        {{- include "oneuptime.postgres.runtimeWaitInitContainer" (dict "Values" $.Values "Release" $.Release "ServiceName" "worker" "ImageName" "app" "SecurityContext" ($.Values.worker.containerSecurityContext | default $.Values.containerSecurityContext)) | nindent 8 }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "worker" "ImageName" "app") }}
           name: {{ printf "%s-%s" $.Release.Name "worker"  }}

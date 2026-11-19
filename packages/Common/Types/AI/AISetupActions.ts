@@ -71,6 +71,59 @@ export const AI_SETUP_ACTION_TOOL_NAMES: ReadonlyArray<string> = Object.keys(
   AI_SETUP_ACTION_PARTS,
 );
 
+/*
+ * THE SETUP ACTIONS RUN OUTSIDE ASK AI'S CHAT (#7241): what the MCP
+ * server offers as tools of its own - a website monitor, paging, a status
+ * page with monitors, monitors put on a status page - and the read beside
+ * them, each one call. The API runs them (SETUP_ACTION_RUN_ROUTE,
+ * Server/API/SetupActionAPI) through the same tools as Ask AI: the same
+ * prepare, the same checks before anything is made, the same writes as
+ * the person, so the two cannot drift.
+ */
+export const SETUP_ACTIONS_RUN_OUTSIDE_CHAT: ReadonlyArray<string> = [
+  SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+  SET_UP_PAGING_TOOL_NAME,
+  PUBLISH_STATUS_PAGE_TOOL_NAME,
+  ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
+  WHO_IS_TOLD_TOOL_NAME,
+];
+
+export function isSetupActionRunOutsideChat(
+  toolName: string | undefined,
+): boolean {
+  return (
+    Boolean(toolName) && SETUP_ACTIONS_RUN_OUTSIDE_CHAT.includes(toolName!)
+  );
+}
+
+/*
+ * The route that runs one of them, under the API's base (/api): POST with
+ * { action, arguments }, as the caller. Answered with what was made
+ * (SetupActionRunResult), or refused with why, as an error of its own
+ * status (403 for a permission, 402 for the plan, 400 for what is missing).
+ */
+export const SETUP_ACTION_RUN_ROUTE: string = "/setup-actions/run";
+
+/*
+ * What a run of one of them answers with: the action, what it made - as
+ * the approval card titles it, and the card's line under that title, in
+ * English - and the tool's own words for the agent, which name the records
+ * made and say what to tell the person. `record` is the record the action
+ * made or read, by the kind of page it opens and that page's ids.
+ */
+export interface SetupActionRunResult {
+  action: string;
+  title?: string | undefined;
+  details: Array<string>;
+  message: string;
+  record?:
+    | {
+        type: string;
+        params: Record<string, string>;
+      }
+    | undefined;
+}
+
 export function isAISetupAction(toolName: string | undefined): boolean {
   return Boolean(toolName) && AI_SETUP_ACTION_TOOL_NAMES.includes(toolName!);
 }

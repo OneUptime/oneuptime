@@ -15,12 +15,15 @@ import { DATA_PIPELINE_ID_SCOPE_ATTRIBUTE } from "../DataPipelineAlertTemplates"
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../KubernetesEventAlertTemplates";
 import { PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE } from "../ProxmoxNotificationAlertTemplates";
 import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "../../../Utils/OpenStack/OpenStackLogs";
+import { ManagedDeviceCheckInAttribute } from "../../DeviceManagement/ManagedDeviceCheckIn";
 
 // The query filters that name the one resource a metric step watches.
 const ATTRIBUTE_SCOPES: ReadonlyArray<string> = [
   DATABASE_SERVER_ID_SCOPE_ATTRIBUTE,
   DATA_STORE_ID_SCOPE_ATTRIBUTE,
   DATA_PIPELINE_ID_SCOPE_ATTRIBUTE,
+  // A device management connection's devices' check-ins (#9835).
+  ManagedDeviceCheckInAttribute.ConnectionId,
 ];
 
 /*
@@ -67,6 +70,7 @@ interface RecommendationMonitorStepConfig {
   metricViewConfig?: MetricsViewConfig | undefined;
   rollingTime?: unknown;
   aggregatesWholeWindow?: unknown;
+  judgeLatestReading?: unknown;
   attributes?: Record<string, unknown> | undefined;
   spanStatuses?: Array<unknown> | undefined;
   spanName?: string | undefined;
@@ -664,6 +668,15 @@ export default class MonitorRecommendationUtil {
        */
       if (config.aggregatesWholeWindow === true) {
         values.push("aggregatesWholeWindow=true");
+      }
+
+      /*
+       * So is a step that judges each series on its latest reading
+       * (judgeLatestReading): a managed device's check-ins judged over the
+       * whole window would alert an hour late. Said only when it is.
+       */
+      if (config.judgeLatestReading === true) {
+        values.push("judgeLatestReading=true");
       }
     }
 

@@ -76,8 +76,9 @@
  *   - no sign-in changes: a project's requirement is already enforced when
  *     the project is opened, so their password still signs them in to
  *     OneUptime, and only their projects ask for SSO. What they set before
- *     is kept, as for the server's requirement, and only a master admin
- *     clears it.
+ *     is kept, as for the server's requirement, until a master admin
+ *     clears it - or an owner of every one of their projects does, from a
+ *     project's SSO page (#9820, Server/Utils/ProjectSignInClearing).
  *
  * Every refusal above holds for them as it does for the server's
  * requirement, as does a forced enrolment of a second step at sign-in and

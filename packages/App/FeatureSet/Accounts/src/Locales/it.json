@@ -307,6 +307,19 @@
     "cancel": "Annulla e torna all’app",
     "setup": "Crea una passkey nella dashboard web, in Profilo utente → Sicurezza → Passkey."
   },
+  "mobilePasskeyEnrolment": {
+    "title": "Configura una passkey",
+    "description": "Usa il volto, l’impronta digitale o il blocco schermo di questo telefono, oppure una chiave di sicurezza. La prossima volta la userai per accedere a OneUptime On-Call.",
+    "create": "Crea una passkey",
+    "tryAgain": "Riprova",
+    "notCompleted": "La passkey non è stata creata: la richiesta è stata annullata o è scaduta. Riprova quando sei pronto.",
+    "expired": "Questa configurazione è scaduta o è già stata usata. Torna all’app e ricomincia.",
+    "failed": "Impossibile creare la passkey. Riprova, oppure torna all’app e configura invece un’app di autenticazione.",
+    "complete": "La tua passkey è pronta. Torna all’app per completare l’accesso.",
+    "invalid": "Avvia la configurazione di una passkey dall’app mobile OneUptime. La richiesta è assente o non valida.",
+    "insecure": "Le passkey richiedono HTTPS. Torna all’app per configurare invece un’app di autenticazione.",
+    "unsupported": "Questo browser non può creare una passkey. Torna all’app per configurare invece un’app di autenticazione."
+  },
   "mcpAuthorize": {
     "title": "Collega un client MCP",
     "wantsAccess": "{{clientName}} vuole accedere a OneUptime per tuo conto.",

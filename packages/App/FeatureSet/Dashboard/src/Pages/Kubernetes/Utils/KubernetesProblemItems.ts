@@ -325,6 +325,13 @@ export function toKubernetesPodProblemItem(data: {
       key: "container",
       label: KUBERNETES_PROBLEM_FACT_LABELS.container,
       value: assessment.container,
+      // Its own page, this pod's: why it is not running, its logs (#9732).
+      route: data.routeFor({
+        kind: "Container",
+        name: assessment.container,
+        namespace: namespace,
+        pod: name,
+      }),
     });
   }
   if (restarts > 0) {

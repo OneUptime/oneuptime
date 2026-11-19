@@ -83,6 +83,12 @@ export enum ProductEventName {
   AskAiSetupProposed = "ask_ai/setup_proposed",
   AskAiSetupApproved = "ask_ai/setup_approved",
   AskAiSetupTestPageSent = "ask_ai/setup_test_page_sent",
+  /*
+   * The guided setups and Ask AI link to each other (#7245): a guided
+   * setup's Describe it instead, and a plan's Open in guided setup.
+   */
+  AskAiSetupDescribedInstead = "ask_ai/setup_described_instead",
+  AskAiSetupOpenedInGuidedSetup = "ask_ai/setup_opened_in_guided_setup",
 
   // "Import from another tool" was opened.
   ImporterOpened = "importer/opened",
@@ -424,6 +430,18 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     properties: [token("target")],
   },
   {
+    name: ProductEventName.AskAiSetupDescribedInstead,
+    description:
+      "Describe it instead was pressed on a guided setup's first step: Ask AI opened with the setup's goal in its composer, unsent. Which setup (setup: website_down, on_call, status_page, telemetry).",
+    properties: [token("setup")],
+  },
+  {
+    name: ProductEventName.AskAiSetupOpenedInGuidedSetup,
+    description:
+      "Open in guided setup was pressed on an Ask AI setup plan's card: the guided setup it opened (setup) and the plan's parts (parts, as ask_ai/setup_proposed names them).",
+    properties: [token("setup"), token("parts")],
+  },
+  {
     name: ProductEventName.ImporterOpened,
     description:
       '"Import from another tool" was opened, and from where (?from= on its address, "settings" when it says nothing).',
@@ -457,7 +475,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.GuidedSetupStarted,
     description:
-      "A guided setup was opened, and where from when the way in names itself (from: empty_list, how_it_works, create_monitor, website_down_summary).",
+      "A guided setup was opened, and where from when the way in names itself (from: empty_list, how_it_works, create_monitor, website_down_summary, home, ask_ai).",
     properties: [token("setup"), token("from")],
   },
   {

@@ -322,6 +322,78 @@ describe("ApiClient", () => {
       const callArgs: any = (mockDelete as jest.Mock).mock.calls[0][0];
       expect(callArgs.url.toString()).toContain("/api/incident");
     });
+
+    /*
+     * What a delete says besides the record (#9949): what the workflows
+     * that run as a deleted custom role run as instead, in the body the
+     * API reads it from.
+     */
+    it("sends what the delete says besides the record as miscDataProps", async () => {
+      (mockDelete as jest.Mock).mockResolvedValue(createSuccessResponse({}));
+
+      await executeApiRequest({
+        ...baseOptions,
+        apiPath: "/custom-role",
+        operation: "delete",
+        id: "5a0e0000-0000-4000-8000-0000000000aa",
+        miscDataProps: {
+          workflowsRunAs: "CustomRole",
+          workflowsRunAsCustomRoleId: "5a0e0000-0000-4000-8000-0000000000bb",
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const callArgs: any = (mockDelete as jest.Mock).mock.calls[0][0];
+      expect(callArgs.url.toString()).toContain(
+        "/api/custom-role/5a0e0000-0000-4000-8000-0000000000aa/",
+      );
+      expect(callArgs.data).toEqual({
+        miscDataProps: {
+          workflowsRunAs: "CustomRole",
+          workflowsRunAsCustomRoleId: "5a0e0000-0000-4000-8000-0000000000bb",
+        },
+      });
+    });
+
+    it("sends no body for a delete that says nothing besides the record", async () => {
+      for (const miscDataProps of [{}, undefined]) {
+        (mockDelete as jest.Mock).mockReset();
+        (mockDelete as jest.Mock).mockResolvedValue(createSuccessResponse({}));
+
+        await executeApiRequest({
+          ...baseOptions,
+          apiPath: "/custom-role",
+          operation: "delete",
+          id: "5a0e0000-0000-4000-8000-0000000000aa",
+          miscDataProps,
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const callArgs: any = (mockDelete as jest.Mock).mock.calls[0][0];
+        expect(callArgs.data).toBeUndefined();
+        expect("data" in callArgs).toBe(false);
+      }
+    });
+
+    it("shows a refused delete as the API's own words", async () => {
+      (mockDelete as jest.Mock).mockResolvedValue(
+        createErrorResponse(
+          400,
+          'The workflow "Close stale incidents" runs as the custom role "Incident Responder".',
+        ),
+      );
+
+      await expect(
+        executeApiRequest({
+          ...baseOptions,
+          apiPath: "/custom-role",
+          operation: "delete",
+          id: "5a0e0000-0000-4000-8000-0000000000aa",
+        }),
+      ).rejects.toThrow(
+        'API error (400): The workflow "Close stale incidents" runs as the custom role "Incident Responder".',
+      );
+    });
   });
 
   describe("error handling", () => {

@@ -1,0 +1,107 @@
+name: Time Zone Data
+
+# Is OneUptime's time zone data as new as IANA's latest tz database release?
+#
+# OneUptime computes and shows times with four copies of the tz database:
+# moment-timezone's (every rotation, handoff, restriction, maintenance
+# window, report and summary), the ICU in each image's Node.js (dates in the
+# reader's language), ClickHouse's (charts' days in the reader's zone) and
+# the Postgres image's zoneinfo (a status page's uptime days). Each is
+# updated on its own schedule, and nothing said when one fell behind: British
+# Columbia moved to permanent UTC-7 in tzdata 2026b (April 2026), and
+# OneUptime still carried 2024b in November, an hour off for everyone there
+# (#9999).
+#
+#   check    Scripts/TimeZoneData/CheckTimeZoneData.js reads IANA's latest
+#            release and the one each copy carries (moment's from the npm
+#            package the lockfile pins, the others by running the images the
+#            repository names). It fails when a copy has been behind for more
+#            than 30 days after IANA's release, or could not be read.
+#   report   Scripts/TimeZoneData/ReportTimeZoneData.js opens the issue "Time
+#            zone data is behind IANA's latest release" on the first day a
+#            copy is behind, rewrites it while one is, and closes it once
+#            every copy is current. Main only; the only job that may write.
+#
+# Weekly, by hand, and for a pull request that changes the check (which
+# reports nothing). Tests/Ops/TimeZoneData.test.js tests both scripts and
+# holds this workflow to the above.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/time-zone-data.yml"
+      - "Scripts/TimeZoneData/**"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Every copy against IANA's latest release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      checked: ${{ steps.check.outputs.checked }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      # Not through mirror.gcr.io: a mirror answers for a tag (postgres:15,
+      # node:26-alpine3.24) with whatever image it holds, which can be older
+      # than the one people pull, and this reads the one they pull.
+      - name: Read each copy's release
+        id: check
+        run: |
+          set +e
+          node Scripts/TimeZoneData/CheckTimeZoneData.js --output output/time-zone-data
+          status=$?
+          if [ -f output/time-zone-data/check.json ]; then
+            echo "checked=true" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$status"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.check.outputs.checked == 'true' }}
+        with:
+          name: time-zone-data-check
+          path: output/time-zone-data
+          retention-days: 14
+
+  # On the runner, which has gh: the only job that may write, and only
+  # issues. After the check, whether it passed or failed for a copy behind
+  # for too long: the issue says which, and how to update it.
+  report:
+    name: Open, update or close the issue
+    needs: check
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.check.outputs.checked == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: Scripts/TimeZoneData
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: time-zone-data-check
+          path: output/time-zone-data
+
+      - name: Keep the one issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node Scripts/TimeZoneData/ReportTimeZoneData.js --output output/time-zone-data

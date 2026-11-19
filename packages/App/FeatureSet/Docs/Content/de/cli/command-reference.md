@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Löscht einen Datensatz sofort, ohne nachzufragen.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Argument oder Option | Erforderlich | Was es ist |
 | --- | --- | --- |
 | `<id>` | Ja | Die ID des Datensatzes |
 | `--force` | Nein | Wird angenommen und ändert nichts: `delete` fragt nie nach einer Bestätigung |
+| `--workflows-run-as <value>` | Nein | Nur benutzerdefinierte Rollen: womit die Workflows, die mit der Rolle laufen, laufen, sobald sie gelöscht ist, `Default` oder `CustomRole`. Eine Rolle, mit der Workflows laufen, wird nur damit gelöscht |
+| `--workflows-run-as-custom-role-id <id>` | Nein | Nur benutzerdefinierte Rollen: mit `--workflows-run-as CustomRole` die andere benutzerdefinierte Rolle, mit der sie laufen |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ Jede Operation ist eine Anfrage an die API, mit dem Schlüssel im Header `APIKey
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | Keiner |
+| `delete` | `DELETE /api/<path>/<id>/` | Keiner, oder `miscDataProps` mit `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 Eine Aktion liest die Status Ihres Projekts und den Datensatz und erstellt dann eine Zeile im Statusverlauf des Datensatzes, wie die Schaltfläche im Dashboard: `acknowledge` bei einem Vorfall erstellt eine `incident-state-timeline`. `add-note` erstellt eine `incident-internal-note`, oder mit `--public` eine `incident-public-note`. Ein E-Mail-Flag listet zuerst die Teammitglieder des Projekts mit dieser Adresse auf. Lehnt OneUptime ein Feld ab, das der Schlüssel nicht lesen darf, fragt eine Liste oder ein Lesen ohne es erneut.
