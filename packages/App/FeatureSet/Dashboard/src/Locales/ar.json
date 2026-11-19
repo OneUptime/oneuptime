@@ -58698,5 +58698,9 @@
   "{{count}} new devices: {{names}}_one": "{{count}} جهاز جديد: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} من الأجهزة المحددة لديها مراقبة بالفعل، لذا تُستبعد.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} جهاز محدد لديه مراقبة بالفعل، لذا يُستبعد.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "يتوقف إدراج {{monitorName}} على هذا الجهاز، ولا يُربط ما تثيره من الآن فصاعدًا بالجهاز. وتتوقف عمليات الاستيراد وقواعد الاستيراد التلقائي عن احتسابها، لذا قد تمنح الجهاز مراقبة مثلها. وتواصل المراقبة نفسها الفحص دون تغيير."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "يتوقف إدراج {{monitorName}} على هذا الجهاز، ولا يُربط ما تثيره من الآن فصاعدًا بالجهاز. وتتوقف عمليات الاستيراد وقواعد الاستيراد التلقائي عن احتسابها، لذا قد تمنح الجهاز مراقبة مثلها. وتواصل المراقبة نفسها الفحص دون تغيير.",
+  "Move step {{number}} down": "نقل الخطوة {{number}} لأسفل",
+  "Move step {{number}} up": "نقل الخطوة {{number}} لأعلى",
+  "Step {{from}} is now step {{to}}.": "أصبحت الخطوة {{from}} الآن الخطوة {{to}}.",
+  "step {{number}}": "الخطوة {{number}}"
 }

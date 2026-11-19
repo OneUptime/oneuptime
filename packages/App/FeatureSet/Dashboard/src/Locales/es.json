@@ -58698,5 +58698,9 @@
   "{{count}} new devices: {{names}}_one": "{{count}} dispositivo nuevo: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} dispositivos seleccionados ya tienen un monitor, así que se dejan fuera.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} dispositivo seleccionado ya tiene un monitor, así que se deja fuera.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} deja de aparecer en este dispositivo, y lo que genere a partir de ahora no se vincula al dispositivo. Las importaciones y las reglas de importación automática dejan de contarlo, así que pueden darle al dispositivo un monitor igual. El monitor en sí sigue comprobando, sin cambios."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} deja de aparecer en este dispositivo, y lo que genere a partir de ahora no se vincula al dispositivo. Las importaciones y las reglas de importación automática dejan de contarlo, así que pueden darle al dispositivo un monitor igual. El monitor en sí sigue comprobando, sin cambios.",
+  "Move step {{number}} down": "Bajar el paso {{number}}",
+  "Move step {{number}} up": "Subir el paso {{number}}",
+  "Step {{from}} is now step {{to}}.": "El paso {{from}} ahora es el paso {{to}}.",
+  "step {{number}}": "el paso {{number}}"
 }

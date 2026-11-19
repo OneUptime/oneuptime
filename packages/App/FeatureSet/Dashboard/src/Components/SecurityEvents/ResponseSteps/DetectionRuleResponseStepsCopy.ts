@@ -51,6 +51,28 @@ export const RESPONSE_STEP_PLACEHOLDER: string = translationKey(
   "e.g. Page the payments on-call",
 );
 
+/*
+ * Putting the steps in order (#9796): a line's Move Up and Move Down, named
+ * by the step's number, its grip, and what a screen reader hears once a
+ * step has moved - its number before and after.
+ */
+export const RESPONSE_STEP_MOVE_UP: string = translationKey("Move Up");
+export const RESPONSE_STEP_MOVE_DOWN: string = translationKey("Move Down");
+export const RESPONSE_STEP_MOVE_UP_LABEL: string = translationKey(
+  "Move step {{number}} up",
+);
+export const RESPONSE_STEP_MOVE_DOWN_LABEL: string = translationKey(
+  "Move step {{number}} down",
+);
+/*
+ * The step a grip drags, as "Drag to reorder {{item}}" (DragHandle) names
+ * it: worded as the line's other labels word a step ("Remove step 2").
+ */
+export const RESPONSE_STEP_NAME: string = translationKey("step {{number}}");
+export const RESPONSE_STEP_MOVED: string = translationKey(
+  "Step {{from}} is now step {{to}}.",
+);
+
 // A library rule's details: what it says to do when it fires.
 export const RESPONSE_STEPS_LIBRARY_NOTE: string = translationKey(
   "Shown in the Response Plan of each case this rule opens. Change them on the rule's form once it is added.",
@@ -60,22 +82,30 @@ export const DETECTION_RULE_RESPONSE_STEPS_TEST_IDS: {
   field: string;
   fromLibrary: string;
   empty: string;
+  fieldPart: string;
   row: string;
   part: string;
   text: string;
+  moveUp: string;
+  moveDown: string;
   remove: string;
   add: string;
+  moved: string;
   list: string;
   listPart: string;
 } = {
   field: "detection-rule-response-steps",
   fromLibrary: "detection-rule-response-steps-from-library",
   empty: "detection-rule-response-steps-empty",
+  fieldPart: "detection-rule-response-steps-part",
   row: "detection-rule-response-step",
   part: "detection-rule-response-step-part",
   text: "detection-rule-response-step-text",
+  moveUp: "detection-rule-response-step-move-up",
+  moveDown: "detection-rule-response-step-move-down",
   remove: "detection-rule-response-step-remove",
   add: "detection-rule-response-step-add",
+  moved: "detection-rule-response-steps-moved",
   list: "detection-rule-response-steps-list",
   listPart: "detection-rule-response-steps-list-part",
 };

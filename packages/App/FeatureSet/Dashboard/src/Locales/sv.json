@@ -58698,5 +58698,9 @@
   "{{count}} new devices: {{names}}_one": "{{count}} ny enhet: {{names}}",
   "{{count}} selected devices already have a monitor, so they are left out.": "{{count}} valda enheter har redan en monitor, så de utelämnas.",
   "{{count}} selected devices already have a monitor, so they are left out._one": "{{count}} vald enhet har redan en monitor, så den utelämnas.",
-  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} visas inte längre på den här enheten, och det den utlöser från och med nu kopplas inte till enheten. Importer och regler för automatisk import slutar räkna den, så de kan ge enheten en monitor av samma slag. Själva monitorn fortsätter att kontrollera, oförändrad."
+  "{{monitorName}} stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.": "{{monitorName}} visas inte längre på den här enheten, och det den utlöser från och med nu kopplas inte till enheten. Importer och regler för automatisk import slutar räkna den, så de kan ge enheten en monitor av samma slag. Själva monitorn fortsätter att kontrollera, oförändrad.",
+  "Move step {{number}} down": "Flytta ned steg {{number}}",
+  "Move step {{number}} up": "Flytta upp steg {{number}}",
+  "Step {{from}} is now step {{to}}.": "Steg {{from}} är nu steg {{to}}.",
+  "step {{number}}": "steg {{number}}"
 }
