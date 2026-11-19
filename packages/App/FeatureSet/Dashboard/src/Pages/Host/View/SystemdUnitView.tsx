@@ -92,13 +92,84 @@ import {
   unitTypeOf,
 } from "../Utils/SystemdUnits";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
 import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
+import ResourceAttentionPill from "../../../Components/ResourcePart/ResourceAttentionPill";
+import {
+  ResourceAttentionDialogRead,
+  RESOURCE_ATTENTION_VIEW_LINK_CLASS_NAME,
+} from "../../../Components/ResourcePart/ResourceAttentionDialog";
+import {
+  ResourceAttentionItem,
+  ResourceAttentionSeverity,
+} from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  getResourceAttentionSinceText,
+  getResourceAttentionText,
+} from "../../../Components/ResourcePart/ResourceAttentionRow";
+import {
+  SYSTEMD_UNIT_CURRENT,
+  SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS,
+  SYSTEMD_UNIT_RECENT_LINES_SHOWN,
+  SystemdUnitFailure,
+  SystemdUnitJournalLine,
+  getSystemdFailureReason,
+  getSystemdUnitFailureItem,
+  getSystemdUnitFailureSince,
+  getSystemdUnitLogsRoute,
+  getSystemdUnitOwnLines,
+  readSystemdUnitFailure,
+} from "../Utils/SystemdUnitFailure";
+import {
+  SystemdUnitJournalWindow,
+  getSystemdUnitJournalWindow,
+  readSystemdUnitJournal,
+} from "../Utils/SystemdUnitJournal";
+
+// The dialog a failed unit's state opens (#9748).
+const FAILED_TITLE: string = translationKey("Why {{unit}} failed");
+const FAILED_HINT: string = translationKey("Show why");
+const FAILED_EMPTY: string = translationKey("Nothing needs attention now.");
+const FAILED_READ_FAILED: string = translationKey(
+  "Couldn't read what needs attention",
+);
+const STATE_FAILED: string = translationKey("Failed");
+const KIND_SYSTEMD_UNIT: string = translationKey("Systemd unit");
+
+/*
+ * A failed unit whose journal says nothing of why: the host's collector
+ * does not send each line's unit (a Collector Config of the project's own),
+ * or the unit failed before the window.
+ */
+const NO_REASON_IN_JOURNAL: string = translationKey(
+  "Its journal of the last {{days}} days does not say why. OneUptime's default collector config sends each journal line with its unit.",
+);
+
+const RECENT_LOGS_TITLE: string = translationKey("Recent logs");
+const RECENT_LOGS_DESCRIPTION: string = translationKey(
+  "What this unit and systemd wrote about it in the last {{days}} days, newest first.",
+);
+const RECENT_LOGS_EMPTY: string = translationKey(
+  "Nothing from this unit in the last {{days}} days. OneUptime's default collector config sends each journal line with its unit.",
+);
+const OPEN_IN_LOGS: string = translationKey("Open in Logs");
+const RECENT_LOGS_READ_FAILED: string = translationKey(
+  "Couldn't read this unit's journal.",
+);
 
 interface UnitIdentity {
   latestSampleAt: Date | null;
   currentState: string | null;
+  /*
+   * Read for a range that ends now - every range but a custom one or a
+   * zoom, which end when they were drawn - so currentState is the unit's.
+   */
+  isAsOfNow: boolean;
 }
 
 /*
@@ -146,6 +217,8 @@ interface StatTileProps {
   // No reading is no value: the tile draws the figure's quiet dash (#8264).
   value?: string | ReactElement | null | undefined;
   sublabel?: string | undefined;
+  // The sublabel is in the reader's words already: drawn as given.
+  isSublabelTranslated?: boolean | undefined;
   percent?: number | null | undefined;
   barClassName?: string | undefined;
   // What the tile shows, in an (i) tooltip beside the title.
@@ -183,8 +256,13 @@ const StatTile: FunctionComponent<StatTileProps> = (
         {getFigure(props.value)}
       </div>
       {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500">
-          {translator.translateText(props.sublabel)}
+        <div
+          className="mt-1 text-xs text-gray-500"
+          data-testid="stat-tile-sublabel"
+        >
+          {props.isSublabelTranslated
+            ? props.sublabel
+            : translator.translateText(props.sublabel)}
         </div>
       ) : (
         <div className="mt-1 text-xs text-gray-500">&nbsp;</div>
@@ -241,6 +319,11 @@ const HostSystemdUnitView: FunctionComponent<
 
   const [host, setHost] = useState<Host | null>(null);
   const [identity, setIdentity] = useState<UnitIdentity | null>(null);
+  /*
+   * Whether the unit is failed now, as the last read of a range ending now
+   * found it: a zoom into the past leaves it as it was.
+   */
+  const [isFailedNow, setIsFailedNow] = useState<boolean>(false);
   const [samples, setSamples] = useState<Array<SystemdUnitSample>>([]);
   const [transitions, setTransitions] = useState<Array<SystemdStateTransition>>(
     [],
@@ -383,10 +466,17 @@ const HostSystemdUnitView: FunctionComponent<
       const latest: SystemdUnitSample | null =
         parsed.length > 0 ? parsed[parsed.length - 1]! : null;
 
+      const isAsOfNow: boolean = timeRange.range !== TimeRange.CUSTOM;
+
       setIdentity({
         latestSampleAt: latest ? latest.time : null,
         currentState: latest ? latest.state : null,
+        isAsOfNow: isAsOfNow,
       });
+
+      if (isAsOfNow) {
+        setIsFailedNow(latest?.state === "failed");
+      }
       setSamples(parsed);
       setTransitions(newTransitions);
 
@@ -454,6 +544,144 @@ const HostSystemdUnitView: FunctionComponent<
     };
   }, [autoRefreshInterval]);
 
+  /*
+   * The hero's Failed is the unit's now when the samples drawn were read
+   * for a range that ends now: only then is the unit's latest failure in
+   * its journal the one the hero shows.
+   */
+  const isFailed: boolean = Boolean(identity?.isAsOfNow) && isFailedNow;
+
+  /*
+   * The unit's journal (#9748): why it failed, as systemd said it, and the
+   * last lines it printed - always the latest, whatever the range. Read when
+   * the page opens, when the unit fails or comes back and on Refresh - not on
+   * a tick of the metrics' auto-refresh, nor on a zoom.
+   */
+  const [journal, setJournal] = useState<{
+    state: "idle" | "loading" | "loaded" | "failed";
+    lines: Array<SystemdUnitJournalLine>;
+    window: SystemdUnitJournalWindow | null;
+    error: string;
+  }>({ state: "idle", lines: [], window: null, error: "" });
+  const [journalRefresh, setJournalRefresh] = useState<number>(0);
+  const hostIdentifier: string = (host?.hostIdentifier as string) || "";
+
+  useEffect(() => {
+    if (!hostIdentifier) {
+      return undefined;
+    }
+
+    let isCancelled: boolean = false;
+    const window: SystemdUnitJournalWindow = getSystemdUnitJournalWindow(
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    setJournal(
+      (current: {
+        state: "idle" | "loading" | "loaded" | "failed";
+        lines: Array<SystemdUnitJournalLine>;
+        window: SystemdUnitJournalWindow | null;
+        error: string;
+      }) => {
+        // What it holds stays drawn while it reads again.
+        return { ...current, state: "loading" };
+      },
+    );
+
+    readSystemdUnitJournal({
+      hostIdentifier: hostIdentifier,
+      unitName: unitName,
+      window: window,
+    })
+      .then((lines: Array<SystemdUnitJournalLine>) => {
+        if (!isCancelled) {
+          setJournal({
+            state: "loaded",
+            lines: lines,
+            window: window,
+            error: "",
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        if (!isCancelled) {
+          setJournal({
+            state: "failed",
+            lines: [],
+            window: window,
+            error: API.getFriendlyMessage(err),
+          });
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [hostIdentifier, unitName, isFailedNow, journalRefresh]);
+
+  const failure: SystemdUnitFailure | null =
+    journal.state === "loaded" || journal.lines.length > 0
+      ? readSystemdUnitFailure(journal.lines)
+      : null;
+
+  /*
+   * What the Failed pill opens: the unit, why, since when, and the lines
+   * it printed before it failed - read again when pressed, so it is never
+   * the page's older read.
+   */
+  const loadFailure: () => Promise<ResourceAttentionDialogRead> =
+    async (): Promise<ResourceAttentionDialogRead> => {
+      const window: SystemdUnitJournalWindow = getSystemdUnitJournalWindow(
+        OneUptimeDate.getCurrentDate(),
+      );
+      const lines: Array<SystemdUnitJournalLine> = await readSystemdUnitJournal(
+        {
+          hostIdentifier: hostIdentifier,
+          unitName: unitName,
+          window: window,
+        },
+      );
+      const read: SystemdUnitFailure | null = readSystemdUnitFailure(lines);
+
+      if (read) {
+        return {
+          items: [
+            getSystemdUnitFailureItem({
+              unitName: unitName,
+              failure: read,
+              lines: lines,
+            }),
+          ],
+        };
+      }
+
+      // Its journal says nothing of why: say so, with what it printed last.
+      const item: ResourceAttentionItem = {
+        key: SYSTEMD_UNIT_CURRENT.key,
+        kind: KIND_SYSTEMD_UNIT,
+        icon: IconProp.Cog6Tooth,
+        name: unitName,
+        severity: ResourceAttentionSeverity.Critical,
+        reasons: [{ text: STATE_FAILED }],
+        explanation: translator.translateTemplate(NO_REASON_IN_JOURNAL, {
+          days: translator.formatNumber(SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS),
+        }),
+        events: getSystemdUnitOwnLines({ lines: lines }).map(
+          (line: SystemdUnitJournalLine, index: number) => {
+            return {
+              key: `${line.time.getTime()}-${index}`,
+              reason: unitName,
+              message: line.body,
+              count: 1,
+              lastSeenAt: line.time,
+            };
+          },
+        ),
+      };
+
+      return { items: [item] };
+    };
+
   const onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void = (
     interval: AutoRefreshInterval,
   ): void => {
@@ -471,6 +699,10 @@ const HostSystemdUnitView: FunctionComponent<
         onManualRefresh={() => {
           fetchDataRef.current().catch((err: Error) => {
             setError(API.getFriendlyMessage(err));
+          });
+          // And the unit's journal, which the auto-refresh leaves alone.
+          setJournalRefresh((count: number): number => {
+            return count + 1;
           });
         }}
         isRefreshing={isRefreshing}
@@ -554,7 +786,36 @@ const HostSystemdUnitView: FunctionComponent<
                     <h1 className="text-xl font-semibold text-gray-900 truncate">
                       {unitName}
                     </h1>
-                    {identity && <StatePill state={identity.currentState} />}
+                    {/*
+                     * Failed opens why (#9748): systemd's result and exit
+                     * status, since when, and what the unit printed.
+                     */}
+                    {identity && isFailed && hostIdentifier ? (
+                      <ResourceAttentionPill
+                        label={
+                          translator.translateText(STATE_FAILED) || STATE_FAILED
+                        }
+                        tone="danger"
+                        testId="systemd-unit-failed"
+                        hint={FAILED_HINT}
+                        dialog={{
+                          title: translator.translateTemplate(
+                            FAILED_TITLE,
+                            { unit: unitName },
+                            { setsValuesApart: true },
+                          ),
+                          load: loadFailure,
+                          emptyMessage: FAILED_EMPTY,
+                          whatFailed: FAILED_READ_FAILED,
+                          showKind: false,
+                          current: SYSTEMD_UNIT_CURRENT,
+                        }}
+                      />
+                    ) : identity ? (
+                      <StatePill state={identity.currentState} />
+                    ) : (
+                      <></>
+                    )}
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
                     <Link
@@ -631,6 +892,26 @@ const HostSystemdUnitView: FunctionComponent<
     const availability: SystemdAvailability =
       computeSystemdAvailability(samples);
 
+    /*
+     * Under Failed, why and since when, as systemd said it and as the
+     * dialog behind Failed says it (#9748): "Exited with code 1 · Failed
+     * 2 hours ago".
+     */
+    const failedLine: string | null =
+      isFailed && failure
+        ? [
+            getResourceAttentionText(
+              translator,
+              getSystemdFailureReason(failure),
+            ),
+            getResourceAttentionSinceText(
+              translator,
+              getSystemdUnitFailureSince(failure),
+              OneUptimeDate.getCurrentDate(),
+            ),
+          ].join(" · ")
+        : null;
+
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
@@ -648,12 +929,15 @@ const HostSystemdUnitView: FunctionComponent<
             activeStateMeta(identity.currentState).label,
           )}
           sublabel={
-            identity.latestSampleAt
-              ? translator.translateTemplate("as of {{time}}", {
-                  time: OneUptimeDate.fromNow(identity.latestSampleAt),
-                })
-              : "no samples in range"
+            failedLine
+              ? failedLine
+              : identity.latestSampleAt
+                ? translator.translateTemplate("as of {{time}}", {
+                    time: OneUptimeDate.fromNow(identity.latestSampleAt),
+                  })
+                : "no samples in range"
           }
+          isSublabelTranslated={Boolean(failedLine)}
         />
         <StatTile
           title="Availability"
@@ -729,6 +1013,116 @@ const HostSystemdUnitView: FunctionComponent<
               : "in selected range"
           }
         />
+      </div>
+    );
+  };
+
+  /*
+   * What the unit and systemd wrote about it lately (#9748), newest first -
+   * a failed unit's last words among them - a step from the host's Logs on
+   * exactly these lines.
+   */
+  const renderRecentLogs: () => ReactElement = (): ReactElement => {
+    if (
+      isInitialLoading ||
+      !hostIdentifier ||
+      !journal.window ||
+      journal.state === "idle" ||
+      (journal.state === "loading" && journal.lines.length === 0)
+    ) {
+      return <Fragment />;
+    }
+
+    const days: TemplateValues = {
+      days: translator.formatNumber(SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS),
+    };
+    const lines: Array<SystemdUnitJournalLine> = journal.lines.slice(
+      0,
+      SYSTEMD_UNIT_RECENT_LINES_SHOWN,
+    );
+
+    // A unit with nothing to say and nothing wrong takes no room.
+    if (journal.state === "loaded" && lines.length === 0 && !isFailed) {
+      return <Fragment />;
+    }
+
+    const logsRoute: Route = getSystemdUnitLogsRoute({
+      hostLogsRoute: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.HOST_VIEW_LOGS] as Route,
+        { modelId: modelId },
+      ),
+      unitName: unitName,
+      startTime: journal.window.startTime,
+      endTime: journal.window.endTime,
+    });
+
+    return (
+      <div className="mb-6" data-testid="systemd-unit-recent-logs">
+        <Card
+          title={RECENT_LOGS_TITLE}
+          description={translator.translateTemplate(
+            RECENT_LOGS_DESCRIPTION,
+            days,
+          )}
+          rightElement={
+            <Link
+              to={logsRoute}
+              dataTestId="systemd-unit-open-in-logs"
+              className={RESOURCE_ATTENTION_VIEW_LINK_CLASS_NAME}
+            >
+              <>
+                {translator.translateText(OPEN_IN_LOGS)}
+                <Icon
+                  icon={IconProp.ChevronRight}
+                  className="h-3.5 w-3.5 rtl:-scale-x-100"
+                />
+              </>
+            </Link>
+          }
+        >
+          {journal.state === "failed" ? (
+            <ErrorMessage
+              message={journal.error}
+              whatFailed={
+                translator.translateText(RECENT_LOGS_READ_FAILED) ||
+                RECENT_LOGS_READ_FAILED
+              }
+              onRefreshClick={() => {
+                setJournalRefresh((count: number): number => {
+                  return count + 1;
+                });
+              }}
+            />
+          ) : lines.length === 0 ? (
+            <p
+              className="text-sm text-gray-600"
+              data-testid="systemd-unit-recent-logs-empty"
+            >
+              {translator.translateTemplate(RECENT_LOGS_EMPTY, days)}
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {lines.map(
+                (line: SystemdUnitJournalLine, index: number): ReactElement => {
+                  return (
+                    <li
+                      key={`${line.time.getTime()}-${index}`}
+                      data-testid="systemd-unit-recent-log"
+                      className="flex flex-col gap-0.5 py-2 sm:flex-row sm:gap-3"
+                    >
+                      <span className="flex-none text-xs text-gray-500 sm:w-44">
+                        {OneUptimeDate.getDateAsLocalFormattedString(line.time)}
+                      </span>
+                      <span className="min-w-0 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]">
+                        <bdi>{line.body}</bdi>
+                      </span>
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          )}
+        </Card>
       </div>
     );
   };
@@ -982,6 +1376,7 @@ const HostSystemdUnitView: FunctionComponent<
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryTiles()}
+      {renderRecentLogs()}
       {renderStateChart()}
       {renderTransitions()}
       {renderNoDataNote()}

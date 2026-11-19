@@ -185,7 +185,11 @@ next, and how to change it last.
   ("3 pods failed") is a pill of its own (#9594, #9595). A count in a tile or a bar opens its
   parts without making the tile or the bar a control around another: a pill under the tile's
   figure (`GoldenMetricTile`'s `attention`), the bar's legend entry (`StackedProgressBar`'s
-  `onClick`). Enforced by
+  `onClick`). A list says it the same way: Ceph's ERR and WARN on its Clusters list and a bare
+  metal class's "Failed: 3" open which ones and why, and App Platforms' "2 environments
+  disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
+  as systemd said it: its result, its exit code or the signal that killed it, since when and what
+  it printed last, from its journal (#9748). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
 - **An error rate opens the requests that failed.** On a service's, a function's, a cloud
   environment's and app's, a RUM application's, a queue's and a database's Overview, the Error rate
