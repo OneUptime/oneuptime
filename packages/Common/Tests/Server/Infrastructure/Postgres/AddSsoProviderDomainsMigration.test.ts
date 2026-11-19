@@ -12,7 +12,7 @@ import Domain from "../../../../Models/DatabaseModels/Domain";
 import ProjectOIDC from "../../../../Models/DatabaseModels/ProjectOidc";
 import ProjectSSO from "../../../../Models/DatabaseModels/ProjectSso";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSsoProviderDomains1809186000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186000000-AddSsoProviderDomains";
+import { AddSsoProviderDomains1809186400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186400000-AddSsoProviderDomains";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -43,7 +43,7 @@ import Permission from "../../../../Types/Permission";
  * to generate once it had run, and down() then up() ran cleanly.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1809186000000";
+const MIGRATION_TIMESTAMP: string = "1809186400000";
 const MIGRATION_BASE_NAME: string = "AddSsoProviderDomains";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
@@ -115,7 +115,7 @@ async function statementsOf(step: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddSsoProviderDomains1809186000000()[step](runner);
+  await new AddSsoProviderDomains1809186400000()[step](runner);
 
   return statements;
 }
@@ -196,7 +196,7 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new AddSsoProviderDomains1809186000000();
+      new AddSsoProviderDomains1809186400000();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
@@ -292,7 +292,7 @@ describe("registering it", () => {
     expect(
       fs.existsSync(path.join(MIGRATION_DIRECTORY, MIGRATION_FILE_NAME)),
     ).toBe(true);
-    expect(new AddSsoProviderDomains1809186000000().name).toBe(
+    expect(new AddSsoProviderDomains1809186400000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
   });
