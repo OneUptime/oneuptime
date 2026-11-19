@@ -120,8 +120,21 @@ function count(code: string, needle: string): number {
 describe("Import brings in what is ticked and shown", () => {
   test("the hosts to import are the shared helper's, over the whole view", () => {
     expect(readCode(DIALOG)).toContain(
-      "const hostsToImport: Array<DiscoveredNetworkDevice> = useMemo(() => { return getDiscoveredHostsToImport({ hosts: hosts, filter: fullQuery, selectedIpAddresses: selection, }); }, [hosts, fullQuery, selection]);",
+      "const hostsToImport: Array<DiscoveredNetworkDevice> = useMemo(() => { return getDiscoveredHostsToImport({ hosts: hosts, filter: fullQuery, selectedIpAddresses: selection, selectability: selectability, }); }, [hosts, fullQuery, selection, selectability]);",
     );
+  });
+
+  test("what is picked is told apart by the shared rule: hosts to import, and devices already added that get a monitor (#9544)", () => {
+    const code: string = readCode(DIALOG);
+
+    expect(code).toContain(
+      "const newHosts: Array<DiscoveredNetworkDevice> = hostsToImport.filter( (host: DiscoveredNetworkDevice): boolean => { return !isAddingMonitorToExistingHost(host, selectability); }, );",
+    );
+    expect(code).toContain(
+      "const existingHosts: Array<DiscoveredNetworkDevice> = hostsToImport.filter( (host: DiscoveredNetworkDevice): boolean => { return isAddingMonitorToExistingHost(host, selectability); }, );",
+    );
+    // The table and the dialog read the same answer about each host.
+    expect(code).toContain("selectability={selectability}");
   });
 
   test("the view is the query the list shows, with the scan's naming", () => {
@@ -143,8 +156,16 @@ describe("Import brings in what is ticked and shown", () => {
       "const stopImport",
     );
 
+    /*
+     * Every host picked, when each gets a monitor - a device already added
+     * is picked for nothing else (#9544) - and the new ones only when the
+     * import makes no monitor.
+     */
     expect(start).toContain(
-      "ipAddresses: hostsToImport.map( (host: DiscoveredNetworkDevice): string => { return host.ipAddress; }, ),",
+      "const hostsSent: Array<DiscoveredNetworkDevice> = settings.alerting === DiscoveryImportAlerting.MonitorTemplate ? hostsToImport : newHosts;",
+    );
+    expect(start).toContain(
+      "ipAddresses: hostsSent.map((host: DiscoveredNetworkDevice): string => { return host.ipAddress; }),",
     );
     // No second spelling of "selected and importable" anywhere in the dialog.
     expect(readCode(DIALOG)).not.toContain("selection[");
@@ -161,21 +182,32 @@ describe("Import brings in what is ticked and shown", () => {
     expect(code).toContain(
       'secondaryButton = getSteppedModalFooter({ hasSteps: true, isOnLastStep: false, onAction: undefined, onNext: goToMonitoring, nextButtonDataTestId: "discovery-import-next", isNextButtonDisabled: isNextDisabled, }).secondaryButton;',
     );
-    // "N hosts will be imported" under the list.
+    /*
+     * "N hosts will be imported" under the list - the new ones - and, set
+     * apart, "M devices already added get a monitor" (#9544).
+     */
     expect(code).toContain(
-      'translator.translatePlural( { one: "{{count}} host will be imported", other: "{{count}} hosts will be imported", }, hostsToImport.length, { count: translator.formatNumber(hostsToImport.length) }, )',
+      'translator.translatePlural( { one: "{{count}} host will be imported", other: "{{count}} hosts will be imported", }, newHosts.length, { count: translator.formatNumber(newHosts.length) }, )',
     );
-    // "Import N devices" on the button that sends them.
     expect(code).toContain(
-      'translator.translatePlural( { one: "Import {{count}} device", other: "Import {{count}} devices", }, hostsToImport.length, { count: translator.formatNumber(hostsToImport.length) }, )',
+      'translator.translatePlural( { one: "{{count}} device already added gets a monitor", other: "{{count}} devices already added get a monitor", }, existingHosts.length, { count: translator.formatNumber(existingHosts.length) }, )',
     );
-    // And what is checked before sending is about that same list.
-    expect(code).toContain("hostCount: hostsToImport.length,");
+    // "Import N devices" on the button that sends them, or "Add N monitors".
+    expect(code).toContain(
+      'translator.translatePlural( { one: "Import {{count}} device", other: "Import {{count}} devices", }, newHosts.length, { count: translator.formatNumber(newHosts.length) }, )',
+    );
+    expect(code).toContain(
+      'translator.translatePlural( { one: "Add {{count}} monitor", other: "Add {{count}} monitors", }, existingHosts.length, { count: translator.formatNumber(existingHosts.length) }, )',
+    );
+    // And what is checked before sending is about those same lists.
+    expect(code).toContain(
+      "hostCount: newHosts.length, existingDeviceCount: existingHosts.length,",
+    );
   });
 
   test("more hosts than one import may carry are refused before Next, not after Import, and the footer says how to go on", () => {
     expect(readCode(DIALOG)).toContain(
-      '{hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT ? translator.translateTemplate( "One import brings in up to {{max}} hosts: narrow the selection, then import the rest after.",',
+      '{hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT ? ( translator.translateTemplate( "One import brings in up to {{max}} hosts: narrow the selection, then import the rest after.",',
     );
   });
 });
@@ -200,7 +232,7 @@ describe("the list's facets and selection", () => {
 
   test("select all toggles the shown hosts only, from the selection as it is", () => {
     expect(section(TABLE, "const toggleShown", "return (")).toContain(
-      "props.onSelectionChange((current: Record<string, boolean>) => { return toggleSelectionForShownHosts({ hosts: hosts, filter: query, selectedIpAddresses: current, }); });",
+      "props.onSelectionChange((current: Record<string, boolean>) => { return toggleSelectionForShownHosts({ hosts: hosts, filter: query, selectedIpAddresses: current, selectability: props.selectability, }); });",
     );
   });
 
@@ -218,7 +250,7 @@ describe("the list's facets and selection", () => {
 
   test("the count of ticked hosts the view hides is the shared helper's", () => {
     expect(readCode(TABLE)).toContain(
-      "countSelectedDiscoveredHosts({ hosts: hosts, filter: query, selectedIpAddresses: props.selectedIpAddresses, });",
+      "countSelectedDiscoveredHosts({ hosts: hosts, filter: query, selectedIpAddresses: props.selectedIpAddresses, selectability: props.selectability, });",
     );
   });
 });
@@ -240,7 +272,7 @@ describe("each row agrees with the counts above it", () => {
 
   test("the box is enabled by the shared selectability rule", () => {
     expect(row()).toContain(
-      "const isSelectable: boolean = isSelectableDiscoveredHost(entry);",
+      "const isSelectable: boolean = isSelectableDiscoveredHost( entry, props.selectability, );",
     );
     expect(row()).toContain("disabled={!isSelectable || props.isDisabled}");
   });
@@ -250,7 +282,7 @@ describe("each row agrees with the counts above it", () => {
       "const isChecked: boolean = isSelectable && props.isChecked;",
     );
     expect(readCode(TABLE)).toContain(
-      "isChecked={ isSelectableDiscoveredHost(shown.host) && isSelectedIpAddress({ selectedIpAddresses: props.selectedIpAddresses, ipAddress: shown.host.ipAddress, }) }",
+      "isChecked={ isSelectableDiscoveredHost( shown.host, props.selectability, ) && isSelectedIpAddress({ selectedIpAddresses: props.selectedIpAddresses, ipAddress: shown.host.ipAddress, }) }",
     );
   });
 });
