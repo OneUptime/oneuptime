@@ -44,6 +44,7 @@ import Query from "../../Types/BaseDatabase/Query";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import EmailMessage from "../../Types/Email/EmailMessage";
@@ -194,6 +195,24 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
   public constructor() {
     super(TeamMember);
+  }
+
+  /*
+   * A name typed for someone invited, as a membership keeps it
+   * (TeamMember.inviteeName, #9823): trimmed, cut to the column's length,
+   * and undefined when there is none.
+   */
+  public static toInviteeName(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+      return undefined;
+    }
+
+    const name: string = value
+      .trim()
+      .substring(0, ColumnLength.ShortText)
+      .trim();
+
+    return name || undefined;
   }
 
   /*
@@ -352,6 +371,20 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
     createBy.data.projectId = projectId;
     RelationIdUtil.stamp(createData, TEAM_KEYS, teamId);
+
+    /*
+     * A name the request gave the membership itself (an API client's
+     * inviteeName): kept as the invite forms' Name is, trimmed and cut to
+     * fit, and none at all when blank. The forms' Name, below, wins.
+     */
+    const givenInviteeName: string | undefined =
+      TeamMemberService.toInviteeName(createBy.data.inviteeName);
+
+    if (givenInviteeName) {
+      createBy.data.inviteeName = givenInviteeName;
+    } else {
+      delete createBy.data.inviteeName;
+    }
 
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
       if (
@@ -580,6 +613,17 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         const nameValue: string | undefined = createBy.miscDataProps?.["name"]
           ? (createBy.miscDataProps["name"] as string).trim()
           : undefined;
+
+        /*
+         * The same name, kept on the membership (#9823): what the project
+         * sees of the person until they accept, whoever the address
+         * belongs to - never the profile of an account it already had
+         * (PendingInviteeProfiles).
+         */
+        if (nameValue) {
+          createBy.data.inviteeName =
+            TeamMemberService.toInviteeName(nameValue);
+        }
 
         let user: User | null = userWithInvitedEmail;
 
