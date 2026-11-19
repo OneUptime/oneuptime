@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} مقياس كُتب في اليوم الأخير يحمل اسمًا كهذا.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "لا يمكن إسقاط إلا النتائج الموجودة في اسم مقياس. تُخفي التنقية النتائج الأخرى في المقاييس.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "تُسقِط قاعدة مسار معالجة المقاييس {{name}} الآن نقاط البيانات الجديدة لهذه المقاييس. احذف القاعدة لتخزينها مرة أخرى.",
-  "To store them again, delete the rule from the {{rules}}.": "لتخزينها مرة أخرى، احذف القاعدة من {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "لتخزينها مرة أخرى، احذف القاعدة من {{rules}}.",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "أقدم من OneUptime {{version}} الذي يرسل إليه نتائجه. حدِّث المسبار للحصول على أحدث الفحوصات والإصلاحات.",
+  "Update available: {{version}}": "يتوفر تحديث: {{version}}"
 }

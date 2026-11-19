@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "过去一天写入的指标中，有 {{count}} 个具有这样的名称。",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "只有指标名称中的发现才能被丢弃。指标中的其他发现可以用“清除”隐藏。",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "指标管道规则 {{name}} 现在会丢弃这些指标的新数据点。删除该规则即可重新存储它们。",
-  "To store them again, delete the rule from the {{rules}}.": "要重新存储它们，请从{{rules}}中删除该规则。"
+  "To store them again, delete the rule from the {{rules}}.": "要重新存储它们，请从{{rules}}中删除该规则。",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "版本早于它上报结果的 OneUptime {{version}}。请更新探测器，以获得最新的检查和修复。",
+  "Update available: {{version}}": "有可用更新：{{version}}"
 }

@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} метрика, записанная за последний день, имеет такое имя.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Отбросить можно только находки в имени метрики. Другие находки в метриках скрывает кнопка «Очистить».",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "Правило конвейера метрик «{{name}}» теперь отбрасывает новые точки данных этих метрик. Удалите правило, чтобы снова сохранять их.",
-  "To store them again, delete the rule from the {{rules}}.": "Чтобы снова сохранять их, удалите правило в списке {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "Чтобы снова сохранять их, удалите правило в списке {{rules}}.",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "Версия старше OneUptime {{version}}, которому зонд отправляет результаты. Обновите зонд, чтобы получить последние проверки и исправления.",
+  "Update available: {{version}}": "Доступно обновление: {{version}}"
 }

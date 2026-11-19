@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "पिछले एक दिन में लिखे गए {{count}} मेट्रिक का नाम ऐसा है।",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "केवल किसी मेट्रिक के नाम में मिले निष्कर्ष ही ड्रॉप किए जा सकते हैं। मेट्रिक्स के दूसरे निष्कर्षों को साफ़ करें छिपाता है।",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "मेट्रिक पाइपलाइन नियम {{name}} अब इन मेट्रिक्स के नए डेटा पॉइंट ड्रॉप करता है। इन्हें फिर से संग्रहीत करने के लिए नियम हटाएं।",
-  "To store them again, delete the rule from the {{rules}}.": "इन्हें फिर से संग्रहीत करने के लिए, {{rules}} से नियम हटाएं।"
+  "To store them again, delete the rule from the {{rules}}.": "इन्हें फिर से संग्रहीत करने के लिए, {{rules}} से नियम हटाएं।",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "जिस OneUptime {{version}} को यह अपने नतीजे भेजता है, उससे पुराना। नवीनतम जाँचें और सुधार पाने के लिए प्रोब को अपडेट करें।",
+  "Update available: {{version}}": "अपडेट उपलब्ध है: {{version}}"
 }

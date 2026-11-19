@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} متریک که در روز گذشته نوشته شده چنین نامی دارد.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "فقط یافته‌هایی که در نام یک متریک هستند رها می‌شوند. پاک‌سازی یافته‌های دیگر در متریک‌ها را می‌پوشاند.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "قاعده خط لوله متریک {{name}} اکنون نقطه‌های دادهٔ تازهٔ این متریک‌ها را رها می‌کند. برای ذخیرهٔ دوبارهٔ آن‌ها، قاعده را حذف کنید.",
-  "To store them again, delete the rule from the {{rules}}.": "برای ذخیرهٔ دوبارهٔ آن‌ها، قاعده را از {{rules}} حذف کنید."
+  "To store them again, delete the rule from the {{rules}}.": "برای ذخیرهٔ دوبارهٔ آن‌ها، قاعده را از {{rules}} حذف کنید.",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "قدیمی‌تر از OneUptime {{version}} که نتایجش را به آن می‌فرستد. پراب را به‌روزرسانی کنید تا جدیدترین بررسی‌ها و اصلاحات را بگیرد.",
+  "Update available: {{version}}": "به‌روزرسانی موجود است: {{version}}"
 }

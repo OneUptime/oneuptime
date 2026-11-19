@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "지난 하루 동안 기록된 메트릭 중 {{count}}개가 이런 이름을 가지고 있습니다.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "메트릭 이름에 있는 발견 사항만 삭제할 수 있습니다. 메트릭의 다른 발견 사항은 정리로 가릴 수 있습니다.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "이제 메트릭 파이프라인 규칙 {{name}}이(가) 이 메트릭들의 새 데이터 포인트를 삭제합니다. 다시 저장하려면 이 규칙을 삭제하세요.",
-  "To store them again, delete the rule from the {{rules}}.": "다시 저장하려면 {{rules}}에서 규칙을 삭제하세요."
+  "To store them again, delete the rule from the {{rules}}.": "다시 저장하려면 {{rules}}에서 규칙을 삭제하세요.",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "결과를 보내는 OneUptime {{version}}보다 오래된 버전입니다. 최신 검사와 수정 사항을 받으려면 프로브를 업데이트하세요.",
+  "Update available: {{version}}": "업데이트 가능: {{version}}"
 }

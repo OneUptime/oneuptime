@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} mätvärde som skrevs det senaste dygnet har ett sådant namn.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Bara fynd i ett mätvärdes namn kan kasseras. Rensa döljer de andra fynden i mätvärden.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "Pipelineregeln {{name}} kasserar nu de här mätvärdenas nya datapunkter. Ta bort regeln för att lagra dem igen.",
-  "To store them again, delete the rule from the {{rules}}.": "Ta bort regeln från {{rules}} för att lagra dem igen."
+  "To store them again, delete the rule from the {{rules}}.": "Ta bort regeln från {{rules}} för att lagra dem igen.",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "Äldre än OneUptime {{version}}, som den skickar sina resultat till. Uppdatera sonden för att få de senaste kontrollerna och korrigeringarna.",
+  "Update available: {{version}}": "Uppdatering tillgänglig: {{version}}"
 }

@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} måling skrevet det siste døgnet har et slikt navn.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Bare funn i navnet til en måling kan forkastes. Rens skjuler de andre funnene i målinger.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "Pipelineregelen {{name}} forkaster nå de nye datapunktene til disse målingene. Slett regelen for å lagre dem igjen.",
-  "To store them again, delete the rule from the {{rules}}.": "Slett regelen fra {{rules}} for å lagre dem igjen."
+  "To store them again, delete the rule from the {{rules}}.": "Slett regelen fra {{rules}} for å lagre dem igjen.",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "Eldre enn OneUptime {{version}}, som den sender resultatene sine til. Oppdater sonden for å få de nyeste kontrollene og rettelsene.",
+  "Update available: {{version}}": "Oppdatering tilgjengelig: {{version}}"
 }

@@ -209,8 +209,12 @@ next, and how to change it last.
   Notes page. Enforced by
   [FeedNotesUseNotesComposerGuard](../../packages/App/Tests/Dashboard/FeedNotesUseNotesComposerGuard.test.ts).
 - **An outdated agent says so where its version is shown,** with how to upgrade it one click away.
-  Enforced by
-  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts).
+  So does a custom probe older than the OneUptime it reports to: Custom Probes says "Update
+  available" under its release, and its page says what it misses until it is updated, both linked
+  to Update a probe (#9815). Enforced by
+  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts)
+  and
+  [ProbeVersionDisplayGuard](../../packages/App/Tests/Dashboard/ProbeVersionDisplayGuard.test.ts).
 
 ### Settings and danger
 

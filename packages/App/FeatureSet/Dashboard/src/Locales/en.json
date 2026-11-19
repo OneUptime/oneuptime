@@ -58783,5 +58783,7 @@
   "{{count}} metrics written in the last day have such a name._one": "{{count}} metric written in the last day has such a name.",
   "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.": "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.",
   "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.": "The metric pipeline rule {{name}} now drops these metrics' new data points. Delete it to store them again.",
-  "To store them again, delete the rule from the {{rules}}.": "To store them again, delete the rule from the {{rules}}."
+  "To store them again, delete the rule from the {{rules}}.": "To store them again, delete the rule from the {{rules}}.",
+  "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.": "Older than OneUptime {{version}}, which it reports to. Update the probe to get the latest checks and fixes.",
+  "Update available: {{version}}": "Update available: {{version}}"
 }
