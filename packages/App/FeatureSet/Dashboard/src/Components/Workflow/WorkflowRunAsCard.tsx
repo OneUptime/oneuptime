@@ -88,7 +88,9 @@ export const WorkflowRunAsCardCopy: {
   readonly givenByNobody: string;
   readonly changedByOwners: string;
   readonly changedByRoleHolders: string;
-  readonly unknownRole: string;
+  readonly runsWithUnnamedRole: string;
+  readonly changedByUnnamedRoleHolders: string;
+  readonly roleDeleted: string;
 } = {
   title: translationKey("Run As"),
   description: translationKey(
@@ -149,7 +151,20 @@ export const WorkflowRunAsCardCopy: {
   changedByRoleHolders: translationKey(
     "Only people who have every permission in {{roleName}} can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
   ),
-  unknownRole: translationKey("a custom role"),
+  // A role the viewer can't read by name: there, but not listed for them.
+  runsWithUnnamedRole: translationKey(
+    "Its steps can do exactly what one of the project's custom roles allows.",
+  ),
+  changedByUnnamedRoleHolders: translationKey(
+    "Only people who have every permission in that role can change this workflow or run it by hand. Anyone who can edit it can still turn it off.",
+  ),
+  /*
+   * The role was deleted (its id cleared with it): the runs stop, and the
+   * server lets anyone who may edit the workflow choose again.
+   */
+  roleDeleted: translationKey(
+    "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.",
+  ),
 };
 
 const RUN_AS_KEY: string = "runAs";
@@ -458,23 +473,30 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
       return [];
     }
 
-    const roleName: string =
-      currentRoleName ||
-      translator.translateText(WorkflowRunAsCardCopy.unknownRole) ||
-      "";
-
     if (loaded.runAs === WorkflowRunAs.Default) {
       return [
         translator.translateText(WorkflowRunAsCardCopy.runsWithDefault) || "",
       ];
     }
 
+    const isRole: boolean = loaded.runAs === WorkflowRunAs.CustomRole;
+
+    if (isRole && !loaded.roleId) {
+      return [
+        translator.translateText(WorkflowRunAsCardCopy.roleDeleted) || "",
+      ];
+    }
+
     const lines: Array<string> = [
-      loaded.runAs === WorkflowRunAs.CustomRole
-        ? translator.translateTemplate(WorkflowRunAsCardCopy.runsWithRole, {
-            roleName: roleName,
-          })
-        : translator.translateText(WorkflowRunAsCardCopy.runsWithOwner) || "",
+      !isRole
+        ? translator.translateText(WorkflowRunAsCardCopy.runsWithOwner) || ""
+        : currentRoleName
+          ? translator.translateTemplate(WorkflowRunAsCardCopy.runsWithRole, {
+              roleName: currentRoleName,
+            })
+          : translator.translateText(
+              WorkflowRunAsCardCopy.runsWithUnnamedRole,
+            ) || "",
     ];
 
     lines.push(
@@ -489,12 +511,16 @@ const WorkflowRunAsCard: FunctionComponent<ComponentProps> = (
     );
 
     lines.push(
-      loaded.runAs === WorkflowRunAs.CustomRole
-        ? translator.translateTemplate(
-            WorkflowRunAsCardCopy.changedByRoleHolders,
-            { roleName: roleName },
-          )
-        : translator.translateText(WorkflowRunAsCardCopy.changedByOwners) || "",
+      !isRole
+        ? translator.translateText(WorkflowRunAsCardCopy.changedByOwners) || ""
+        : currentRoleName
+          ? translator.translateTemplate(
+              WorkflowRunAsCardCopy.changedByRoleHolders,
+              { roleName: currentRoleName },
+            )
+          : translator.translateText(
+              WorkflowRunAsCardCopy.changedByUnnamedRoleHolders,
+            ) || "",
     );
 
     return lines;

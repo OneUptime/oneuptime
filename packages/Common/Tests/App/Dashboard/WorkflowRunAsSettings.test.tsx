@@ -344,6 +344,52 @@ describe("the card", () => {
       ).toBeDisabled();
     });
   });
+
+  /*
+   * A deleted role takes its id with it (ON DELETE SET NULL): the runs stop,
+   * and the server lets anyone who may edit the workflow choose again - so
+   * the card says so, and leaves Change Run As open to a Workflow Admin.
+   */
+  test("of one whose custom role was deleted says it doesn't run, and who can choose again", async () => {
+    stored = { runAs: WorkflowRunAs.CustomRole, givenBy: "Jane Doe" };
+
+    await openPage(`#${WORKFLOW_RUN_AS_PLACE}`);
+
+    const card: HTMLElement = await screen.findByTestId("workflow-run-as-card");
+
+    await waitFor(() => {
+      expect(card).toHaveTextContent(
+        "The custom role this workflow runs as was deleted, so it doesn't run. Anyone who can edit it can choose what it runs as.",
+      );
+    });
+    expect(card).not.toHaveTextContent("It runs with the permissions of");
+    expect(card).not.toHaveTextContent("the custom role a custom role");
+    expect(
+      screen.getByRole("button", { name: "Change Run As" }),
+    ).not.toBeDisabled();
+  });
+
+  test("of one whose custom role the viewer can't see by name says so without a name", async () => {
+    stored = {
+      runAs: WorkflowRunAs.CustomRole,
+      roleId: "c1c1c1c1-0000-4000-8000-0000000000c9",
+      givenBy: "Jane Doe",
+    };
+
+    await openPage(`#${WORKFLOW_RUN_AS_PLACE}`);
+
+    const card: HTMLElement = await screen.findByTestId("workflow-run-as-card");
+
+    await waitFor(() => {
+      expect(card).toHaveTextContent(
+        "Its steps can do exactly what one of the project's custom roles allows.",
+      );
+    });
+    expect(card).toHaveTextContent(
+      "Only people who have every permission in that role can change this workflow or run it by hand.",
+    );
+    expect(card).not.toHaveTextContent("the custom role a custom role");
+  });
 });
 
 describe("Change Run As", () => {
