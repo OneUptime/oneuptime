@@ -20,6 +20,8 @@ import {
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import RollingTime from "../../../Types/RollingTime/RollingTime";
 import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import {
   MonitorRecommendation,
@@ -78,7 +80,7 @@ const TEMPLATES: Array<DataPipelineAlertTemplate> =
   getAllDataPipelineAlertTemplates();
 
 describe("DataPipelineAlertTemplates", () => {
-  test("ships failed, unusually long and late", () => {
+  test("ships failed, unusually long, late and stopped by the circuit breaker", () => {
     expect(
       TEMPLATES.map((template: DataPipelineAlertTemplate) => {
         return template.id;
@@ -87,6 +89,7 @@ describe("DataPipelineAlertTemplates", () => {
       "data-pipeline-run-failed",
       "data-pipeline-run-unusually-long",
       "data-pipeline-late",
+      "data-pipeline-stopped-by-circuit-breaker",
     ]);
     expect(getDataPipelineAlertTemplate("no-such-template")).toBe(undefined);
   });
@@ -196,6 +199,51 @@ describe("DataPipelineAlertTemplates", () => {
       EvaluateOverTimeType.AllValues,
     );
     expect(getFilter(recovery!).filterType).toBe(FilterType.LessThanOrEqualTo);
+  });
+
+  /*
+   * #9683: the circuit breaker writes 1 as it stops the pipeline and 0 as it
+   * says go, and the five-minute schedule check writes the kept answer
+   * again, so any stop in the last fifteen minutes fires at once, and the
+   * alert clears fifteen minutes after the stop ends.
+   */
+  test("Pipeline Stopped by Circuit Breaker fires on a stop the circuit breaker answered or still keeps", () => {
+    const template: DataPipelineAlertTemplate = getDataPipelineAlertTemplate(
+      "data-pipeline-stopped-by-circuit-breaker",
+    )!;
+    const step: MonitorStep = template.getMonitorStep(buildArgs());
+    const [breach, recovery] = getInstances(step);
+
+    expect(template.name).toBe("Pipeline Stopped by Circuit Breaker");
+    // A stop is a run held back: with the runs, a warning beside a failure.
+    expect(template.category).toBe("Runs");
+    expect(template.severity).toBe("Warning");
+    expect(template.description).toContain("circuit breaker");
+
+    const query: MetricQueryConfigData = getQueries(step)[0]!;
+
+    expect(query.metricQueryData.filterData.metricName).toBe(
+      DataPipelineMetricName.CircuitBreakerStopped,
+    );
+    expect(query.metricQueryData.filterData.aggegationType).toBe(
+      MetricsAggregationType.Max,
+    );
+    expect(step.data?.metricMonitor?.rollingTime).toBe(
+      RollingTime.Past15Minutes,
+    );
+
+    expect(getFilter(breach!).filterType).toBe(FilterType.GreaterThan);
+    expect(getFilter(breach!).value).toBe(0);
+    expect(getFilter(breach!).metricMonitorOptions?.metricAggregationType).toBe(
+      EvaluateOverTimeType.AnyValue,
+    );
+    expect(getFilter(recovery!).filterType).toBe(FilterType.LessThanOrEqualTo);
+
+    // The alert says where the reasons are, and when it clears.
+    const description: string = breach!.data?.alerts?.[0]?.description || "";
+
+    expect(description).toContain("Circuit Breaker page");
+    expect(description).toContain("answers go");
   });
 
   test("an alert can name the pipeline it is about", () => {

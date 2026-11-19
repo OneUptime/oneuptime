@@ -2,7 +2,7 @@
  * WHAT THE OWNERS OF A RECORD ARE TOLD, OWNER BY OWNER (issues #8199,
  * #8509, #8510): an incident, an alert, an episode of either, a monitor, a
  * scheduled maintenance event, a status page, an SLO, a network device, a
- * probe or an AI agent.
+ * probe, an AI agent, or a table, data store or pipeline (#9681).
  *
  * Each owner notification job takes (marks) the record it is about - the
  * incident or alert just created, a state change, a note, an owner row, a
@@ -55,6 +55,14 @@ export enum OwnerNotificationKind {
   NetworkDeviceOwnerAdded = "NetworkDeviceOwnerAdded",
   ProbeOwnerAdded = "ProbeOwnerAdded",
   AIAgentOwnerAdded = "AIAgentOwnerAdded",
+  /*
+   * Data Observability's tables and pipelines, and the data stores Data
+   * Observability and Data Security share: told as every other record's new
+   * owners are (#9681).
+   */
+  DataAssetOwnerAdded = "DataAssetOwnerAdded",
+  DataStoreOwnerAdded = "DataStoreOwnerAdded",
+  DataPipelineOwnerAdded = "DataPipelineOwnerAdded",
   // Someone assigned to an incident with a role: told as its owners are (#8573).
   IncidentMemberAdded = "IncidentMemberAdded",
 }
