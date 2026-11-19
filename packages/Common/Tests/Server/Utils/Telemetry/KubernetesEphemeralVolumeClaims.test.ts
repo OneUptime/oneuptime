@@ -12,14 +12,11 @@ import KubernetesEphemeralVolumeClaims, {
 } from "../../../../Server/Utils/Telemetry/KubernetesEphemeralVolumeClaims";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types jest.spyOn() as a spy
+ * the global jest.SpiedFunction annotations here do not accept.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A generic ephemeral volume's usage, filed under its claim (#9644). The
