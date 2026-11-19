@@ -30,7 +30,11 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -72,11 +76,15 @@ import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionC
 import {
   ResourceAttentionItem,
   ResourceHealth,
+  getResourceAttentionHealth,
 } from "../../../Components/ResourcePart/ResourceAttention";
+import { ComponentProps as ResourceAttentionPillProps } from "../../../Components/ResourcePart/ResourceAttentionPill";
+import { ResourceAttentionDialogRead } from "../../../Components/ResourcePart/ResourceAttentionDialog";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
 import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import ResourceHealthPill, {
+  RESOURCE_HEALTH_HINT,
   ResourceHealthDialogWords,
 } from "../../../Components/ResourcePart/ResourceHealthPill";
 import PageMap from "../../../Utils/PageMap";
@@ -84,6 +92,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   getOpenStackAttentionItems,
   getOpenStackHealth,
+  getOpenStackLostHypervisorItems,
+  getOpenStackWorkersDownItems,
 } from "../Utils/OpenStackHealth";
 import {
   OpenStackAttentionAnswer,
@@ -170,6 +180,81 @@ const NOT_CURRENT: string = translationKey("Nothing current");
 const CANNOT_READ: string = translationKey("This credential can't read these");
 // Not "not reported": the cloud may be reporting fine while OneUptime could not answer.
 const READ_FAILED: string = translationKey("Couldn't read this");
+
+/*
+ * What the Control plane and Hypervisors tiles open (#9594): the workers
+ * that are down and the hypervisors Nova lost, each with why.
+ */
+export const OPENSTACK_WORKERS_HINT: string = translationKey(
+  "Show which workers and why",
+);
+export const OPENSTACK_WORKERS_DOWN_TITLE: PluralTemplate = {
+  one: "{{count}} worker down",
+  other: "{{count}} workers down",
+};
+export const OPENSTACK_NO_WORKER_DOWN: string = translationKey(
+  "Every worker is up now.",
+);
+export const OPENSTACK_HYPERVISORS_HINT: string = translationKey(
+  "Show which hypervisors and why",
+);
+export const OPENSTACK_HYPERVISORS_LOST_TITLE: PluralTemplate = {
+  one: "{{count}} hypervisor lost",
+  other: "{{count}} hypervisors lost",
+};
+export const OPENSTACK_NO_HYPERVISOR_LOST: string = translationKey(
+  "No hypervisor is lost now.",
+);
+
+/*
+ * A tile's pill for the parts its count is about, or none while there is
+ * nothing to list. It says "Show why": the line above it already says how
+ * many, and the dialog's title says it again. A count can hold more than
+ * the read brought (a cloud of thousands of hosts brings few of its
+ * workers, `isPartial`): the list then says it shows only the first.
+ */
+export function getOpenStackTilePill(data: {
+  testId: string;
+  items: Array<ResourceAttentionItem>;
+  // What the tile counts: the dialog's title says it.
+  count: number;
+  isPartial: boolean;
+  hint: string;
+  title: PluralTemplate;
+  description: string;
+  emptyMessage: string;
+  translator: Translator;
+  // True when the list holds more than one kind of part.
+  showKind?: boolean | undefined;
+}): ResourceAttentionPillProps | undefined {
+  if (data.items.length === 0) {
+    return undefined;
+  }
+  const items: Array<ResourceAttentionItem> = data.items;
+  return {
+    testId: data.testId,
+    label:
+      data.translator.translateText(RESOURCE_HEALTH_HINT) ||
+      RESOURCE_HEALTH_HINT,
+    tone:
+      getResourceAttentionHealth(items) === "Unhealthy" ? "danger" : "warning",
+    hint: data.hint,
+    dialog: {
+      title: data.translator.translatePlural(data.title, data.count),
+      description: data.description,
+      // A count the read holds only some of says so under its list.
+      ...(data.isPartial
+        ? {
+            load: (): Promise<ResourceAttentionDialogRead> => {
+              return Promise.resolve({ items: items, isTruncated: true });
+            },
+          }
+        : { items: items }),
+      emptyMessage: data.emptyMessage,
+      showKind: data.showKind === true,
+    },
+  };
+}
 
 /*
  * What a page of the kinds Needs attention caps a read of holds, for the line under it. A
@@ -996,6 +1081,54 @@ const OpenStackCloudOverview: FunctionComponent<
   const hypervisorCounts: OpenStackHypervisorCounts =
     getOpenStackHypervisorCounts(hypervisors, leftOut);
   const isCurrent: boolean = isConnected && attention !== null;
+
+  /*
+   * Which workers are down and which hypervisors Nova lost, and why
+   * (#9594): while the read is current, as the tiles' numbers are.
+   */
+  const canSayWhich: boolean = isCurrent && !attentionError;
+  const workersDownPill: ResourceAttentionPillProps | undefined =
+    canSayWhich && workerCounts.down > 0
+      ? getOpenStackTilePill({
+          testId: "openstack-tile-workers-down",
+          items: getOpenStackWorkersDownItems({
+            items: items,
+            workers: workers,
+          }),
+          count: workerCounts.down,
+          isPartial: workerCounts.down > getOpenStackWorkerCounts(workers).down,
+          hint: OPENSTACK_WORKERS_HINT,
+          title: OPENSTACK_WORKERS_DOWN_TITLE,
+          description: OPENSTACK_METRIC_DESCRIPTIONS.controlPlane,
+          emptyMessage: OPENSTACK_NO_WORKER_DOWN,
+          translator: translator,
+        })
+      : undefined;
+  const hypervisorsLostPill: ResourceAttentionPillProps | undefined =
+    canSayWhich && hypervisorCounts.lost > 0
+      ? getOpenStackTilePill({
+          testId: "openstack-tile-hypervisors-lost",
+          items: getOpenStackLostHypervisorItems({
+            items: items,
+            rows: rows,
+            hypervisors: hypervisors,
+            now: now,
+            routeFor: routes.routeFor,
+          }),
+          // A host's nova-compute beside a hypervisor named on its own.
+          showKind: true,
+          count: hypervisorCounts.lost,
+          isPartial:
+            hypervisorCounts.lost >
+            getOpenStackHypervisorCounts(hypervisors).lost,
+          hint: OPENSTACK_HYPERVISORS_HINT,
+          title: OPENSTACK_HYPERVISORS_LOST_TITLE,
+          description: OPENSTACK_METRIC_DESCRIPTIONS.hypervisors,
+          emptyMessage: OPENSTACK_NO_HYPERVISOR_LOST,
+          translator: translator,
+        })
+      : undefined;
+
   const hasAccessGap: (key: string) => boolean = (key: string): boolean => {
     return accessGaps.some((gap: OpenStackAccessGap): boolean => {
       return gap.key === key;
@@ -1379,6 +1512,7 @@ const OpenStackCloudOverview: FunctionComponent<
           }
           tone={controlPlaneTone}
           description={OPENSTACK_METRIC_DESCRIPTIONS.controlPlane}
+          attention={workersDownPill}
         />
         <GoldenMetricTile
           title="Hypervisors"
@@ -1407,6 +1541,7 @@ const OpenStackCloudOverview: FunctionComponent<
           }
           tone={hypervisorCounts.lost > 0 ? "danger" : "positive"}
           description={OPENSTACK_METRIC_DESCRIPTIONS.hypervisors}
+          attention={hypervisorsLostPill}
         />
         <GoldenMetricTile
           title="vCPUs allocated"

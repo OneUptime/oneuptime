@@ -66,13 +66,22 @@ import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/
 import {
   fetchIoTInventoryRows,
   routeParamFromExternalId,
-  displayNameForDevice,
-  METRIC_STALE_MS,
 } from "../Utils/IoTDeviceUtils";
+import {
+  IOT_LOW_BATTERY_PERCENT,
+  IoTAtRiskDevice,
+  IoTAtRiskReason,
+  getIoTAtRiskDevices,
+  getIoTOfflineDeviceItems,
+} from "../Utils/IoTDeviceAttention";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../../../Components/ResourcePart/ResourceAttentionPill";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Link from "Common/UI/Components/Link/Link";
 import {
-  TemplateValues,
+  PluralTemplate,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -86,20 +95,56 @@ interface GoldenStats {
 }
 
 /*
- * Why a device needs attention, as a sentence to translate when it is drawn
- * (so a language switch rewords it without reloading the inventory).
+ * What the devices-online chip and the Online Devices tile open (#9594):
+ * the devices offline, each with when it last reported.
  */
-interface AtRiskReason {
-  template: string;
-  values?: TemplateValues | undefined;
-}
+export const IOT_DEVICES_OFFLINE: PluralTemplate = {
+  one: "{{count}} offline",
+  other: "{{count}} offline",
+};
+export const IOT_DEVICES_HINT: string = translationKey(
+  "Show which devices and why",
+);
+export const IOT_DEVICES_OFFLINE_TITLE: PluralTemplate = {
+  one: "{{count}} device offline",
+  other: "{{count}} devices offline",
+};
+export const IOT_NO_DEVICE_OFFLINE: string = translationKey(
+  "Every device is online now.",
+);
 
-interface AtRiskDevice {
-  externalId: string;
-  name: string;
-  reasons: Array<AtRiskReason>;
-  /* true = drives the red (offline) treatment, false = amber (warning). */
-  isCritical: boolean;
+/*
+ * The pill that opens the devices offline, or none while every device the
+ * inventory holds is online. A count of offline devices is red: an offline
+ * device is critical.
+ */
+export function getIoTOfflineDevicesPill(data: {
+  testId: string;
+  items: Array<ResourceAttentionItem>;
+  translator: Translator;
+}): ResourceAttentionPillProps | undefined {
+  if (data.items.length === 0) {
+    return undefined;
+  }
+  return {
+    testId: data.testId,
+    label: data.translator.translatePlural(
+      IOT_DEVICES_OFFLINE,
+      data.items.length,
+    ),
+    tone: "danger",
+    hint: IOT_DEVICES_HINT,
+    dialog: {
+      title: data.translator.translatePlural(
+        IOT_DEVICES_OFFLINE_TITLE,
+        data.items.length,
+      ),
+      description: IOT_METRIC_DESCRIPTIONS.onlineDevices,
+      items: data.items,
+      emptyMessage: IOT_NO_DEVICE_OFFLINE,
+      showKind: false,
+    },
+  };
 }
 
 const formatPercent: (value: number | null) => string = (
@@ -119,14 +164,6 @@ const formatDbm: (value: number | null) => string = (
   }
   return `${value.toFixed(0)}\u00A0dBm`;
 };
-
-/*
- * Thresholds that drive the "at risk" device list and the battery/
- * signal tile coloring. Match the default IoT alert templates
- * (lowBattery < 20%, weakSignal < -100 dBm).
- */
-const LOW_BATTERY_PERCENT: number = 20;
-const WEAK_SIGNAL_DBM: number = -100;
 
 const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_THIRTY_MINS,
@@ -184,7 +221,9 @@ const IoTFleetOverview: FunctionComponent<
   const [goldenError, setGoldenError] = useState<string>("");
 
   // At-risk device list — derived from the Postgres inventory (instant).
-  const [atRiskDevices, setAtRiskDevices] = useState<Array<AtRiskDevice>>([]);
+  const [atRiskDevices, setAtRiskDevices] = useState<Array<IoTAtRiskDevice>>(
+    [],
+  );
   const [isInventoryLoading, setIsInventoryLoading] = useState<boolean>(true);
 
   const [timeRange, setTimeRange] =
@@ -220,64 +259,8 @@ const IoTFleetOverview: FunctionComponent<
         iotFleetId: modelId,
       });
 
-      const now: number = Date.now();
-      const atRisk: Array<AtRiskDevice> = [];
-
-      for (const row of rows) {
-        const name: string = displayNameForDevice(row);
-        const externalId: string = row.externalId || "";
-        const reasons: Array<AtRiskReason> = [];
-        let isCritical: boolean = false;
-
-        if (row.isUp === false) {
-          reasons.push({ template: translationKey("Offline") });
-          isCritical = true;
-        }
-
-        const metricsFresh: boolean = row.metricsUpdatedAt
-          ? now - new Date(row.metricsUpdatedAt as Date).getTime() <=
-            METRIC_STALE_MS
-          : false;
-
-        if (metricsFresh) {
-          if (
-            row.latestBatteryPercent !== null &&
-            row.latestBatteryPercent !== undefined &&
-            Number(row.latestBatteryPercent) < LOW_BATTERY_PERCENT
-          ) {
-            reasons.push({
-              template: translationKey("Battery {{percent}}%"),
-              values: {
-                percent: Number(row.latestBatteryPercent).toFixed(0),
-              },
-            });
-          }
-          if (
-            row.latestSignalStrengthDbm !== null &&
-            row.latestSignalStrengthDbm !== undefined &&
-            Number(row.latestSignalStrengthDbm) < WEAK_SIGNAL_DBM
-          ) {
-            reasons.push({
-              template: translationKey("Signal {{dbm}} dBm"),
-              values: { dbm: Number(row.latestSignalStrengthDbm).toFixed(0) },
-            });
-          }
-        }
-
-        if (reasons.length > 0) {
-          atRisk.push({ externalId, name, reasons, isCritical });
-        }
-      }
-
-      // Critical (offline) devices first, then by name for a stable list.
-      atRisk.sort((a: AtRiskDevice, b: AtRiskDevice): number => {
-        if (a.isCritical !== b.isCritical) {
-          return a.isCritical ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      });
-
-      setAtRiskDevices(atRisk);
+      // One rule for the card, the chip and the tile (IoTDeviceAttention).
+      setAtRiskDevices(getIoTAtRiskDevices({ rows: rows, now: Date.now() }));
     } catch {
       // At-risk list is supplementary — keep it empty on failure.
     } finally {
@@ -577,6 +560,23 @@ const IoTFleetOverview: FunctionComponent<
     );
   };
 
+  /*
+   * The devices the online count leaves out, by the same rule as the
+   * attention card: each offline device, when it last reported and why.
+   */
+  const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading
+    ? []
+    : getIoTOfflineDeviceItems({
+        devices: atRiskDevices,
+        routeFor: getDeviceRoute,
+      });
+  const offlineDevicesPill: ResourceAttentionPillProps | undefined =
+    getIoTOfflineDevicesPill({
+      testId: "iot-hero-devices-offline",
+      items: offlineDeviceItems,
+      translator: translator,
+    });
+
   const renderRefreshControl: () => ReactElement = (): ReactElement => {
     return (
       <AutoRefreshControl
@@ -721,6 +721,15 @@ const IoTFleetOverview: FunctionComponent<
                     );
                   },
                 )}
+                {/*
+                 * Beside "3/5 devices online": which are offline, since
+                 * when, a step from each device's page.
+                 */}
+                {totalDevices > 0 && offlineDevicesPill ? (
+                  <ResourceAttentionPill {...offlineDevicesPill} />
+                ) : (
+                  <></>
+                )}
                 <AgentVersion
                   kind={AgentKind.IoTExporter}
                   version={fleet.agentVersion}
@@ -805,6 +814,11 @@ const IoTFleetOverview: FunctionComponent<
           percent={onlinePct}
           thresholds={{ warn: 99, danger: 75 }}
           higherIsBetter={true}
+          attention={getIoTOfflineDevicesPill({
+            testId: "iot-tile-devices-offline",
+            items: offlineDeviceItems,
+            translator: translator,
+          })}
         />
         <GoldenMetricTile
           title="Total Devices"
@@ -822,7 +836,7 @@ const IoTFleetOverview: FunctionComponent<
           value={formatPercent(batteryPct)}
           sublabel="across reporting devices"
           percent={batteryPct}
-          thresholds={{ warn: 40, danger: LOW_BATTERY_PERCENT }}
+          thresholds={{ warn: 40, danger: IOT_LOW_BATTERY_PERCENT }}
           higherIsBetter={true}
         />
         <GoldenMetricTile
@@ -860,7 +874,7 @@ const IoTFleetOverview: FunctionComponent<
       >
         <div className="divide-y divide-gray-100">
           {atRiskDevices.map(
-            (item: AtRiskDevice, index: number): ReactElement => {
+            (item: IoTAtRiskDevice, index: number): ReactElement => {
               const iconBgClass: string = item.isCritical
                 ? "bg-red-100"
                 : "bg-amber-100";
@@ -892,7 +906,7 @@ const IoTFleetOverview: FunctionComponent<
                       <span className="text-sm font-medium text-gray-900 truncate">
                         {item.name}
                       </span>
-                      {item.reasons.map((reason: AtRiskReason) => {
+                      {item.reasons.map((reason: IoTAtRiskReason) => {
                         return (
                           <span
                             key={reason.template}

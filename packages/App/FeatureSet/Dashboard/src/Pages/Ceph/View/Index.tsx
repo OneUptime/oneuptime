@@ -68,13 +68,19 @@ import {
 import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import ResourceHealthPill, {
+  RESOURCE_HEALTH_HINT,
   ResourceHealthDialogWords,
 } from "../../../Components/ResourcePart/ResourceHealthPill";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../../../Components/ResourcePart/ResourceAttentionPill";
 import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import {
   ResourceAttentionItem,
   ResourceHealth,
+  getResourceAttentionHealth,
 } from "../../../Components/ResourcePart/ResourceAttention";
+import { ResourcePartTone } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
   CephPartRoutes,
   getCephPartRoutes,
@@ -83,10 +89,15 @@ import {
   CEPH_CLUSTER_FULL_PERCENT,
   CEPH_CLUSTER_NEARFULL_PERCENT,
   CephHealthCheck,
+  CephOsdQuadrant,
   CephPoolPgStates,
   getCephAttentionItems,
+  getCephDownOsdItems,
   getCephHealth,
+  getCephOsdAttentionItems,
+  getCephOsdQuadrant,
   getCephPoolReadings,
+  getCephProblemPgPoolItems,
 } from "../Utils/CephHealth";
 import {
   CephHealthCheckReadings,
@@ -110,13 +121,103 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 // What a Degraded or Unhealthy Ceph cluster's pill opens (ResourceHealthPill).
 export const CEPH_HEALTH_WORDS: ResourceHealthDialogWords = {
   degradedTitle: translationKey("Why this cluster is Degraded"),
   unhealthyTitle: translationKey("Why this cluster is Unhealthy"),
 };
+
+/*
+ * What a count of OSDs or pools that are not well says, and the list it
+ * opens (#9594): "1 down" beside "5/6 OSDs up", "Show why" in a state of
+ * the OSD States card, "2 pools" under Problem PGs.
+ */
+export const CEPH_OSD_HINT: string = translationKey("Show which OSDs and why");
+export const CEPH_POOL_HINT: string = translationKey(
+  "Show which pools and why",
+);
+export const CEPH_OSDS_DOWN: PluralTemplate = {
+  one: "{{count}} down",
+  other: "{{count}} down",
+};
+export const CEPH_OSDS_DOWN_TITLE: PluralTemplate = {
+  one: "{{count}} OSD down",
+  other: "{{count}} OSDs down",
+};
+export const CEPH_NO_OSD_DOWN: string = translationKey("Every OSD is up now.");
+export const CEPH_OSD_QUADRANT_TITLES: Record<
+  Exclude<CephOsdQuadrant, "upIn">,
+  PluralTemplate
+> = {
+  upOut: {
+    one: "{{count}} OSD up but out of the cluster",
+    other: "{{count}} OSDs up but out of the cluster",
+  },
+  downIn: {
+    one: "{{count}} OSD down, still in the cluster",
+    other: "{{count}} OSDs down, still in the cluster",
+  },
+  downOut: {
+    one: "{{count}} OSD down and out of the cluster",
+    other: "{{count}} OSDs down and out of the cluster",
+  },
+};
+export const CEPH_NO_OSD_IN_STATE: string = translationKey(
+  "No OSD is in this state now.",
+);
+export const CEPH_PROBLEM_PG_POOLS: PluralTemplate = {
+  one: "{{count}} pool",
+  other: "{{count}} pools",
+};
+export const CEPH_PROBLEM_PG_POOLS_TITLE: PluralTemplate = {
+  one: "{{count}} pool with problem placement groups",
+  other: "{{count}} pools with problem placement groups",
+};
+export const CEPH_NO_PROBLEM_PG_POOL: string = translationKey(
+  "No pool has problem placement groups now.",
+);
+
+/*
+ * The pill a count of OSDs or pools that are not well opens, or none while
+ * there is nothing to list: red while anything in it is broken, amber
+ * otherwise, its words in the reader's language.
+ */
+export function getCephCountPill(data: {
+  testId: string;
+  items: Array<ResourceAttentionItem>;
+  label: string;
+  hint: string;
+  title: string;
+  description?: string | undefined;
+  emptyMessage: string;
+}): ResourceAttentionPillProps | undefined {
+  if (data.items.length === 0) {
+    return undefined;
+  }
+  const tone: ResourcePartTone =
+    getResourceAttentionHealth(data.items) === "Unhealthy"
+      ? "danger"
+      : "warning";
+  return {
+    testId: data.testId,
+    label: data.label,
+    tone: tone,
+    hint: data.hint,
+    dialog: {
+      title: data.title,
+      description: data.description,
+      items: data.items,
+      emptyMessage: data.emptyMessage,
+      showKind: false,
+    },
+  };
+}
 
 /*
  * A Ceph cluster's Overview, what `ceph status` and `ceph health detail`
@@ -232,6 +333,8 @@ export const CephMetricTitle: FunctionComponent<CephMetricTitleProps> = (
 };
 
 export interface OsdStateCell {
+  // Which OSDs it counts (getCephOsdQuadrant), for the list it opens.
+  quadrant: CephOsdQuadrant;
   label: string;
   sublabel: string;
   count: number;
@@ -246,6 +349,7 @@ export interface OsdStateCell {
 export function buildOsdStateCells(matrix: OsdMatrix): Array<OsdStateCell> {
   return [
     {
+      quadrant: "upIn",
       label: "Up + In",
       sublabel: "healthy",
       count: matrix.upIn,
@@ -253,6 +357,7 @@ export function buildOsdStateCells(matrix: OsdMatrix): Array<OsdStateCell> {
       description: CEPH_METRIC_DESCRIPTIONS.osdUpIn,
     },
     {
+      quadrant: "upOut",
       label: "Up + Out",
       sublabel: "draining / rebalancing",
       count: matrix.upOut,
@@ -260,6 +365,7 @@ export function buildOsdStateCells(matrix: OsdMatrix): Array<OsdStateCell> {
       description: CEPH_METRIC_DESCRIPTIONS.osdUpOut,
     },
     {
+      quadrant: "downIn",
       label: "Down + In",
       sublabel: "failed but still mapped",
       count: matrix.downIn,
@@ -267,6 +373,7 @@ export function buildOsdStateCells(matrix: OsdMatrix): Array<OsdStateCell> {
       description: CEPH_METRIC_DESCRIPTIONS.osdDownIn,
     },
     {
+      quadrant: "downOut",
       label: "Down + Out",
       sublabel: "removed from placement",
       count: matrix.downOut,
@@ -276,12 +383,59 @@ export function buildOsdStateCells(matrix: OsdMatrix): Array<OsdStateCell> {
   ];
 }
 
+/*
+ * A state of the OSD States card that says something is wrong ("1 Down +
+ * In") opens those OSDs and why, under its words (#9594): the cell stays a
+ * card, so its (i) is never inside another control.
+ */
+export function getOsdStateCellPill(data: {
+  cell: OsdStateCell;
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResourceModel>;
+  translator: Translator;
+}): ResourceAttentionPillProps | undefined {
+  const quadrant: CephOsdQuadrant = data.cell.quadrant;
+  if (quadrant === "upIn") {
+    return undefined;
+  }
+  const items: Array<ResourceAttentionItem> = getCephOsdAttentionItems({
+    items: data.items,
+    rows: data.rows,
+    isCounted: (row: CephResourceModel): boolean => {
+      return getCephOsdQuadrant(row) === quadrant;
+    },
+  });
+  return getCephCountPill({
+    testId: `ceph-osd-state-${quadrant}`,
+    items: items,
+    label:
+      data.translator.translateText(RESOURCE_HEALTH_HINT) ||
+      RESOURCE_HEALTH_HINT,
+    hint: CEPH_OSD_HINT,
+    title: data.translator.translatePlural(
+      CEPH_OSD_QUADRANT_TITLES[quadrant],
+      items.length,
+    ),
+    description: data.cell.description,
+    emptyMessage: CEPH_NO_OSD_IN_STATE,
+  });
+}
+
 export const OsdStateCellView: FunctionComponent<{
   cell: OsdStateCell;
-}> = (props: { cell: OsdStateCell }): ReactElement => {
+  // Which OSDs it counts and why, for a state that says something is wrong.
+  attention?: ResourceAttentionPillProps | undefined;
+}> = (props: {
+  cell: OsdStateCell;
+  attention?: ResourceAttentionPillProps | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   return (
-    <div className={`rounded-lg p-4 ring-1 ring-inset ${props.cell.className}`}>
+    <div
+      data-testid="ceph-osd-state-cell"
+      data-quadrant={props.cell.quadrant}
+      className={`rounded-lg p-4 ring-1 ring-inset ${props.cell.className}`}
+    >
       <div className="text-2xl font-semibold leading-none">
         {props.cell.count}
       </div>
@@ -294,6 +448,13 @@ export const OsdStateCellView: FunctionComponent<{
       <div className="text-xs opacity-75">
         {translator.translateText(props.cell.sublabel) || props.cell.sublabel}
       </div>
+      {props.attention ? (
+        <div className="mt-2">
+          <ResourceAttentionPill {...props.attention} />
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
@@ -454,15 +615,8 @@ const CephClusterOverview: FunctionComponent<
     for (const row of rows) {
       if (row.kind === "Osd") {
         matrix.total++;
-        if (row.isUp && row.isIn) {
-          matrix.upIn++;
-        } else if (row.isUp && !row.isIn) {
-          matrix.upOut++;
-        } else if (!row.isUp && row.isIn) {
-          matrix.downIn++;
-        } else {
-          matrix.downOut++;
-        }
+        // One rule for the count and for the OSDs its state opens.
+        matrix[getCephOsdQuadrant(row)]++;
       } else if (row.kind === "Mon") {
         monTotal++;
         if (row.inQuorum) {
@@ -743,6 +897,43 @@ const CephClusterOverview: FunctionComponent<
     : [];
   const clusterHealth: ResourceHealth = getCephHealth(attentionItems);
 
+  /*
+   * What the counts of OSDs and pools that are not well open (#9594), while
+   * the agent reports - a disconnected cluster's last picture is no longer
+   * the truth, as Needs attention says: the items they count, each with
+   * why, a step from its page.
+   */
+  const isAttentionCurrent: boolean =
+    isConnected && !isInventoryLoading && !inventoryError;
+  const downOsdItems: Array<ResourceAttentionItem> = isAttentionCurrent
+    ? getCephDownOsdItems({ items: attentionItems, rows: inventoryRows })
+    : [];
+  const getDownOsdsPill: (
+    testId: string,
+  ) => ResourceAttentionPillProps | undefined = (
+    testId: string,
+  ): ResourceAttentionPillProps | undefined => {
+    return getCephCountPill({
+      testId: testId,
+      items: downOsdItems,
+      label: translator.translatePlural(CEPH_OSDS_DOWN, downOsdItems.length),
+      hint: CEPH_OSD_HINT,
+      title: translator.translatePlural(
+        CEPH_OSDS_DOWN_TITLE,
+        downOsdItems.length,
+      ),
+      description: CEPH_METRIC_DESCRIPTIONS.osdsUp,
+      emptyMessage: CEPH_NO_OSD_DOWN,
+    });
+  };
+  const problemPgPoolItems: Array<ResourceAttentionItem> = isAttentionCurrent
+    ? getCephProblemPgPoolItems({
+        items: attentionItems,
+        rows: inventoryRows,
+        pgStatesByPool: pgStatesByPool,
+      })
+    : [];
+
   const renderHero: () => ReactElement | null = (): ReactElement | null => {
     if (!cluster) {
       return null;
@@ -783,13 +974,15 @@ const CephClusterOverview: FunctionComponent<
 
     /*
      * The count chips open their list: the Overview's one step to the
-     * OSDs, the monitors (the Daemons list) and the pools.
+     * OSDs, the monitors (the Daemons list) and the pools. Beside "5/6 OSDs
+     * up", "1 down" opens the OSDs that are down and why.
      */
     const specChips: Array<{
       icon: IconProp;
       label: string;
       route?: Route | undefined;
       testId?: string | undefined;
+      attention?: ResourceAttentionPillProps | undefined;
     }> = [];
 
     if (cluster.osdCount) {
@@ -802,6 +995,7 @@ const CephClusterOverview: FunctionComponent<
           cluster.osdCount,
           { up: formatCount(cluster.osdUpCount || 0) },
         ),
+        attention: getDownOsdsPill("ceph-hero-osds-down"),
       });
     }
     if (monsTotal !== null) {
@@ -966,6 +1160,7 @@ const CephClusterOverview: FunctionComponent<
                       label: string;
                       route?: Route | undefined;
                       testId?: string | undefined;
+                      attention?: ResourceAttentionPillProps | undefined;
                     },
                     idx: number,
                   ): ReactElement => {
@@ -978,24 +1173,32 @@ const CephClusterOverview: FunctionComponent<
                         <span className="font-medium">{chip.label}</span>
                       </>
                     );
-                    return chip.route ? (
-                      <Link
-                        key={`spec-${idx}`}
-                        to={chip.route}
-                        dataTestId={chip.testId}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-100"
-                      >
-                        {content}
-                      </Link>
-                    ) : (
-                      <Pill
-                        key={`spec-${idx}`}
-                        text={chip.label}
-                        isUserContent={true}
-                        tone={PillTone.Neutral}
-                        icon={chip.icon}
-                        dataTestId={chip.testId}
-                      />
+                    return (
+                      <Fragment key={`spec-${idx}`}>
+                        {chip.route ? (
+                          <Link
+                            to={chip.route}
+                            dataTestId={chip.testId}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                          >
+                            {content}
+                          </Link>
+                        ) : (
+                          <Pill
+                            text={chip.label}
+                            isUserContent={true}
+                            tone={PillTone.Neutral}
+                            icon={chip.icon}
+                            dataTestId={chip.testId}
+                          />
+                        )}
+                        {/* What the count leaves out, and why. */}
+                        {chip.attention ? (
+                          <ResourceAttentionPill {...chip.attention} />
+                        ) : (
+                          <></>
+                        )}
+                      </Fragment>
                     );
                   },
                 )}
@@ -1118,6 +1321,7 @@ const CephClusterOverview: FunctionComponent<
           percent={osdTotal > 0 ? (osdUp / osdTotal) * 100 : null}
           thresholds={{ warn: 100, danger: 90 }}
           higherIsBetter={true}
+          attention={getDownOsdsPill("ceph-tile-osds-down")}
         />
         <GoldenMetricTile
           title="Mons In Quorum"
@@ -1150,6 +1354,25 @@ const CephClusterOverview: FunctionComponent<
                 )
               : tx("degraded + undersized")
           }
+          /*
+           * The pools that hold them, and why - on a Ceph that reports its
+           * placement groups per pool (older ones report the cluster's).
+           */
+          attention={getCephCountPill({
+            testId: "ceph-tile-problem-pg-pools",
+            items: problemPgPoolItems,
+            label: translator.translatePlural(
+              CEPH_PROBLEM_PG_POOLS,
+              problemPgPoolItems.length,
+            ),
+            hint: CEPH_POOL_HINT,
+            title: translator.translatePlural(
+              CEPH_PROBLEM_PG_POOLS_TITLE,
+              problemPgPoolItems.length,
+            ),
+            description: CEPH_METRIC_DESCRIPTIONS.problemPgs,
+            emptyMessage: CEPH_NO_PROBLEM_PG_POOL,
+          })}
         />
       </div>
     );
@@ -1195,7 +1418,22 @@ const CephClusterOverview: FunctionComponent<
         >
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {cells.map((cell: OsdStateCell): ReactElement => {
-              return <OsdStateCellView key={cell.label} cell={cell} />;
+              return (
+                <OsdStateCellView
+                  key={cell.label}
+                  cell={cell}
+                  attention={
+                    isAttentionCurrent
+                      ? getOsdStateCellPill({
+                          cell: cell,
+                          items: attentionItems,
+                          rows: inventoryRows,
+                          translator: translator,
+                        })
+                      : undefined
+                  }
+                />
+              );
             })}
           </div>
         </Card>
