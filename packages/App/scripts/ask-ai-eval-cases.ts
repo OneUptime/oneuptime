@@ -2,9 +2,13 @@ import {
   ASK_AI_HOW_DO_I_QUESTIONS,
   ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
   ASK_AI_NOT_COVERED_QUESTIONS,
+  ASK_AI_PAGE_CONTEXT_PROJECT,
+  ASK_AI_PAGE_CONTEXT_QUESTIONS,
   AskAiHowDoIQuestion,
   AskAiHowDoIQuestionTranslated,
+  AskAiPageContextQuestion,
 } from "../Tests/FeatureSet/Docs/AskAiHowDoIQuestions";
+import { RECORD_KIND_OF_PAGE_CONTEXT } from "Common/Server/Utils/AI/Chat/PageContextPage";
 import {
   AskAiHowDoICase,
   AskAiSetupCase,
@@ -21,9 +25,11 @@ import {
  * they are kept: Common's setup requests (Tests/Server/Utils/AI/
  * AskAiSetupRequests.ts), and the how-do-I questions beside the docs
  * (Tests/FeatureSet/Docs/AskAiHowDoIQuestions.ts) - the English ones, the
- * German and Persian ones, and the ones the docs do not cover. Each case
- * has an id by its place in its list (setup-1, how-do-i-1), so a run can
- * name the ones it asks again.
+ * German and Persian ones, the ones the docs do not cover, and the ones
+ * asked on a page, with that page's context (#7062, #7065). Each case has
+ * an id by its place in its list (setup-1, how-do-i-1), so a run can name
+ * the ones it asks again; the ones asked on a page come last, so the ids
+ * before them stay theirs.
  */
 
 export interface AskAiEvalCase {
@@ -100,18 +106,49 @@ export function getHowDoICases(): Array<AskAiEvalCase> {
         return { question, language: "en", notCovered: true };
       },
     ),
+    ...ASK_AI_PAGE_CONTEXT_QUESTIONS.map(
+      (question: AskAiPageContextQuestion): Omit<AskAiHowDoICase, "id"> => {
+        // On a record, the button must open that record's own page (#7065).
+        const isOnRecord: boolean = Boolean(
+          RECORD_KIND_OF_PAGE_CONTEXT[question.pageContext.type],
+        );
+
+        return {
+          question: question.question,
+          language: "en",
+          docsPage: question.docsPage,
+          alsoAnswers: question.alsoAnswers,
+          dashboardPage: question.dashboardPage,
+          dashboardPath: question.dashboardPath,
+          ...(isOnRecord && question.dashboardPage
+            ? { dashboardRecordId: question.pageContext.entityId }
+            : {}),
+          pageContext: question.pageContext,
+          projectKind: ASK_AI_PAGE_CONTEXT_PROJECT,
+        };
+      },
+    ),
   ].map((howDoI: Omit<AskAiHowDoICase, "id">, index: number) => {
     return { ...howDoI, id: `how-do-i-${index + 1}` };
   });
 
-  return cases.map((howDoI: AskAiHowDoICase): AskAiEvalCase => {
+  // The questions asked on a page are the last ones, in their list's order.
+  const firstOnAPage: number =
+    cases.length - ASK_AI_PAGE_CONTEXT_QUESTIONS.length;
+
+  return cases.map((howDoI: AskAiHowDoICase, index: number): AskAiEvalCase => {
+    const onAPage: AskAiPageContextQuestion | undefined =
+      ASK_AI_PAGE_CONTEXT_QUESTIONS[index - firstOnAPage];
+
     return {
       suite: AskAiEvalSuite.HowDoI,
       id: howDoI.id,
       asked: howDoI.question,
       context: howDoI.notCovered
         ? `${howDoI.language}, not covered`
-        : howDoI.language,
+        : onAPage
+          ? `${howDoI.language}, on ${onAPage.where}`
+          : howDoI.language,
       howDoI,
     };
   });

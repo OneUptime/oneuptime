@@ -3,6 +3,7 @@
  * the toolbox lists them whole only when it is the one loaded first.
  */
 import AIToolbox from "../../Toolbox/Index";
+import { AIChatPageContext } from "../../../../../Types/AI/AIChatPageContext";
 import {
   AIChatCitation,
   AIChatCitationTargetType,
@@ -40,8 +41,11 @@ import { AskAiEvalCall, AskAiEvalTurn } from "./AskAiEvalTurn";
  * passes when the answer cites the docs page that answers it (or another
  * the list says does) and, for a question done on a Dashboard page, ends
  * with that page's Go to button: a DashboardPage citation the answer's text
- * cites, as AskAiPageLinks draws one. A question the docs do not cover
- * passes when the answer says "The docs do not cover this."
+ * cites, as AskAiPageLinks draws one. Asked on a record's page - a status
+ * page, a monitor, an on-call policy - the button must open that record's
+ * own page (#7062, #7065): its citation carries the record's ID. A
+ * question the docs do not cover passes when the answer says "The docs do
+ * not cover this."
  *
  * Every grade is a pass or a fail, with the reasons a person reads in the
  * report. Pure functions: they read the turn, never a model or a database.
@@ -71,8 +75,29 @@ export interface AskAiHowDoICase {
   // The Dashboard page where it is done: its title, and its route.
   dashboardPage?: string | undefined;
   dashboardPath?: string | undefined;
+  /*
+   * The record that page is of, by its ID (#7065): the Go to button must
+   * open this record's own page, not the project's.
+   */
+  dashboardRecordId?: string | undefined;
   // A question the docs do not cover: the answer must say so.
   notCovered?: boolean | undefined;
+  /*
+   * The page Ask AI is open on when it is asked (#7062), as the Dashboard
+   * sends it, and the project it is asked in: the one that pages nobody,
+   * unless it says.
+   */
+  pageContext?: AIChatPageContext | undefined;
+  projectKind?: AskAiEvalProjectKind | undefined;
+}
+
+// A Go to button under an answer: the page it opens, and the record it is of.
+export interface AskAiOfferedPage {
+  path: string;
+  title: string;
+  recordId?: string | undefined;
+  // The record's name, as the button draws it beside the page's.
+  recordTitle?: string | undefined;
 }
 
 export interface AskAiGrade {
@@ -400,19 +425,28 @@ export function getCitedDocsPages(turn: AskAiEvalTurn): Array<string> {
 }
 
 // The Go to buttons under an answer: the Dashboard pages its text cites.
-export function getOfferedPages(
-  turn: AskAiEvalTurn,
-): Array<{ path: string; title: string }> {
+export function getOfferedPages(turn: AskAiEvalTurn): Array<AskAiOfferedPage> {
   return getCitedCitations(turn.answer, turn.citations)
     .filter((citation: AIChatCitation): boolean => {
       return citation.target?.type === AIChatCitationTargetType.DashboardPage;
     })
-    .map((citation: AIChatCitation) => {
+    .map((citation: AIChatCitation): AskAiOfferedPage => {
+      const params: Record<string, string> = citation.target?.params || {};
+
       return {
-        path: String(citation.target?.params?.["path"] || ""),
-        title: String(citation.target?.params?.["title"] || citation.label),
+        path: String(params["path"] || ""),
+        title: String(params["title"] || citation.label),
+        ...(params["recordId"] ? { recordId: String(params["recordId"]) } : {}),
+        ...(params["recordTitle"]
+          ? { recordTitle: String(params["recordTitle"]) }
+          : {}),
       };
     });
+}
+
+// A button as the report names it: its page, and the record it is of.
+export function describeOfferedPage(page: AskAiOfferedPage): string {
+  return page.recordTitle ? `${page.title} (${page.recordTitle})` : page.title;
 }
 
 export function gradeHowDoITurn(
@@ -459,25 +493,31 @@ export function gradeHowDoITurn(
   }
 
   if (howDoICase.dashboardPath || howDoICase.dashboardPage) {
-    const offered: Array<{ path: string; title: string }> =
-      getOfferedPages(turn);
+    const offered: Array<AskAiOfferedPage> = getOfferedPages(turn);
     const isOffered: boolean = offered.some(
-      (page: { path: string; title: string }): boolean => {
-        return howDoICase.dashboardPath
+      (page: AskAiOfferedPage): boolean => {
+        const isThePage: boolean = howDoICase.dashboardPath
           ? page.path === howDoICase.dashboardPath
           : page.title === howDoICase.dashboardPage;
+
+        // A record's own page counts for that record only (#7065).
+        return (
+          isThePage &&
+          (!howDoICase.dashboardRecordId ||
+            page.recordId === howDoICase.dashboardRecordId)
+        );
       },
     );
 
     if (!isOffered) {
       reasons.push(
-        `Offered no Go to ${howDoICase.dashboardPage || howDoICase.dashboardPath} button; offered ${
+        `Offered no Go to ${howDoICase.dashboardPage || howDoICase.dashboardPath} button${
+          howDoICase.dashboardRecordId
+            ? ` of record ${howDoICase.dashboardRecordId}`
+            : ""
+        }; offered ${
           offered.length > 0
-            ? offered
-                .map((page: { path: string; title: string }): string => {
-                  return page.title;
-                })
-                .join(", ")
+            ? offered.map(describeOfferedPage).join(", ")
             : "none"
         }.`,
       );

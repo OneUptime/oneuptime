@@ -27,6 +27,7 @@ import User from "../../../../../Models/DatabaseModels/User";
 import AIChatMessageRole from "../../../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../../../Types/AI/AIChatMessageStatus";
 import AIChatPermissionMode from "../../../../../Types/AI/AIChatPermissionMode";
+import { AIChatPageContext } from "../../../../../Types/AI/AIChatPageContext";
 import {
   AIChatCitation,
   AIChatToolAction,
@@ -120,7 +121,10 @@ import {
  *   - Ask AI's other reads answer from the same project, except the docs':
  *     search_docs, read_docs and find_dashboard_page run for real, over the
  *     docs reader the caller registered (AIDocsLibrary.setReader) and the
- *     Dashboard's page catalog;
+ *     Dashboard's page catalogs, and the record a Go to button is for is
+ *     read from the project by its ID (#7065);
+ *   - a question asked on a page carries that page's context (#7062), as
+ *     the Dashboard sends it;
  *   - no action runs: a plan waits on its card, and the turn ends there.
  *
  * What it returns is what the person would see: the plan on the card, as
@@ -169,6 +173,12 @@ export interface AskAiEvalQuestion {
   callModel: PinnedModelCall;
   // The language the person reads the Dashboard in (en, de, fa, ...).
   language: string;
+  /*
+   * The page Ask AI is open on (#7062), as the Dashboard sends it: one of
+   * the project's records, a settings page, a create form. None when it is
+   * asked from no page in particular.
+   */
+  pageContext?: AIChatPageContext | undefined;
 }
 
 // The project's statuses and severities: what a new monitor is made with.
@@ -525,6 +535,7 @@ export default class AskAiEvalTurnRunner {
         permissionMode: AIChatPermissionMode.AskForApproval,
         props: props,
         language: data.language,
+        ...(data.pageContext ? { pageContext: data.pageContext } : {}),
       });
     } catch (error) {
       seen.error = error instanceof Error ? error.message : String(error);
@@ -1044,6 +1055,71 @@ export default class AskAiEvalTurnRunner {
       resolve("https://status.acme.example"),
     );
     patches.set(StatusPageResourceService, "findBy", resolve([]));
+
+    /*
+     * One record by its ID: how find_dashboard_page reads the record a Go
+     * to button is for (#7065). The project's own, and null for any other,
+     * as a record the person may not read answers.
+     */
+    const isId: (id: unknown, recordId: unknown) => boolean = (
+      id: unknown,
+      recordId: unknown,
+    ): boolean => {
+      return String(id).toLowerCase() === String(recordId).toLowerCase();
+    };
+
+    patches.set(
+      StatusPageService,
+      "findOneById",
+      async (args: { id: ObjectID }): Promise<StatusPage | null> => {
+        const page: AskAiEvalNamedRecord | undefined = project.statusPages.find(
+          (candidate: AskAiEvalNamedRecord): boolean => {
+            return isId(args.id, candidate.id);
+          },
+        );
+
+        return page
+          ? model(StatusPage, { _id: page.id, name: page.name })
+          : null;
+      },
+    );
+    patches.set(
+      MonitorService,
+      "findOneById",
+      async (args: { id: ObjectID }): Promise<Monitor | null> => {
+        return (
+          monitors.find((monitor: Monitor): boolean => {
+            return isId(args.id, monitor._id);
+          }) || null
+        );
+      },
+    );
+    patches.set(
+      OnCallDutyPolicyService,
+      "findOneById",
+      async (args: { id: ObjectID }): Promise<OnCallDutyPolicy | null> => {
+        return (
+          policies.find((policy: OnCallDutyPolicy): boolean => {
+            return isId(args.id, policy._id);
+          }) || null
+        );
+      },
+    );
+    patches.set(
+      ServiceService,
+      "findOneById",
+      async (args: { id: ObjectID }): Promise<Service | null> => {
+        const service: AskAiEvalNamedRecord | undefined = project.services.find(
+          (candidate: AskAiEvalNamedRecord): boolean => {
+            return isId(args.id, candidate.id);
+          },
+        );
+
+        return service
+          ? model(Service, { _id: service.id, name: service.name })
+          : null;
+      },
+    );
 
     // Services, each sending every kind of telemetry.
     patches.set(

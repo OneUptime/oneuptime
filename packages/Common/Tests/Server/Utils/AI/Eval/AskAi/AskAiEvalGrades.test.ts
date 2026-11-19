@@ -1,6 +1,8 @@
 import {
   AskAiHowDoICase,
   AskAiSetupCase,
+  describeOfferedPage,
+  getOfferedPages,
   getQuestionsAsked,
   gradeHowDoITurn,
   gradeSetupTurn,
@@ -399,6 +401,73 @@ describe("a how-do-I answer", () => {
       "Cited no page that answers it (notifications/notification-methods or guides/paging); cited monitor/website-monitor.",
       "Offered no Go to Phone Numbers for SMS Notifications button; offered none.",
     ]);
+  });
+
+  // Asked on a status page, the button is that status page's own (#7065).
+  test("asked on a record's page, passes only with a button to that record's own page", () => {
+    const statusPageId: string = "e7246000-0000-4000-8000-0000000000d1";
+    const ownDomain: AskAiHowDoICase = {
+      id: "how-do-i-60",
+      question: "How do I put this on my own domain?",
+      language: "en",
+      docsPage: "status-pages/branding-and-domains",
+      dashboardPage: "Custom Domains",
+      dashboardPath: "/dashboard/:projectId/status-pages/:id/domains",
+      dashboardRecordId: statusPageId,
+    };
+    const recordButton: (recordId: string | undefined) => AIChatCitation = (
+      recordId: string | undefined,
+    ): AIChatCitation => {
+      const citation: AIChatCitation = pageCitation(
+        "C3",
+        "/dashboard/:projectId/status-pages/:id/domains",
+        "Custom Domains",
+      );
+
+      return {
+        ...citation,
+        target: {
+          type: AIChatCitationTargetType.DashboardPage,
+          params: {
+            ...citation.target!.params,
+            ...(recordId ? { recordId, recordTitle: "Acme Status" } : {}),
+          },
+        },
+      };
+    };
+    const answerWith: (button: AIChatCitation) => AskAiEvalTurn = (
+      button: AIChatCitation,
+    ): AskAiEvalTurn => {
+      return turnOf({
+        answer: "Add your domain [C2].\n\nOpen Custom Domains [C3]",
+        citations: [
+          docsCitation("C2", "status-pages/branding-and-domains"),
+          button,
+        ],
+      });
+    };
+
+    expect(
+      gradeHowDoITurn(ownDomain, answerWith(recordButton(statusPageId))),
+    ).toEqual({ passed: true, reasons: [] });
+    expect(
+      getOfferedPages(answerWith(recordButton(statusPageId))).map(
+        describeOfferedPage,
+      ),
+    ).toEqual(["Custom Domains (Acme Status)"]);
+
+    // Another status page's, or no record's, is not the button it wants.
+    expect(
+      gradeHowDoITurn(
+        ownDomain,
+        answerWith(recordButton("e7246000-0000-4000-8000-0000000000ff")),
+      ).reasons,
+    ).toEqual([
+      `Offered no Go to Custom Domains button of record ${statusPageId}; offered Custom Domains (Acme Status).`,
+    ]);
+    expect(
+      gradeHowDoITurn(ownDomain, answerWith(recordButton(undefined))).passed,
+    ).toBe(false);
   });
 
   test("a question the docs do not cover passes only when the answer says so", () => {
