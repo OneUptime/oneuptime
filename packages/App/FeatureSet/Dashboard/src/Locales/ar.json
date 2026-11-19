@@ -57372,5 +57372,6 @@
   "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.": "ما يعرّض هذه البيانات للخطر الآن، الأعلى خطورة أولًا. تُفتح كل مشكلة في «أمن البيانات»، حيث يُعمل عليها.",
   "{{requirement}} applies here": "{{requirement}} ينطبق هنا",
   "{{count}} stores turned off on their resources": "{{count}} من المخازن أُوقفت على مواردها",
-  "{{count}} stores turned off on their resources_one": "{{count}} مخزن أُوقف على مورده"
+  "{{count}} stores turned off on their resources_one": "{{count}} مخزن أُوقف على مورده",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "الجداول التي يقرؤها مسار البيانات هذا ويكتبها، مع حال كل منها الآن. تتبّع عمودًا لترى من أين يأتي وإلى أين يذهب، أو اختر خطوات أكثر لترى مما بُنيت وما بُني منها."
 }

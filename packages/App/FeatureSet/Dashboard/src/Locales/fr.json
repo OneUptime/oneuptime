@@ -57372,5 +57372,6 @@
   "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.": "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.",
   "{{requirement}} applies here": "{{requirement}} applies here",
   "{{count}} stores turned off on their resources": "{{count}} stores turned off on their resources",
-  "{{count}} stores turned off on their resources_one": "{{count}} store turned off on its resource"
+  "{{count}} stores turned off on their resources_one": "{{count}} store turned off on its resource",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "Les tables que ce pipeline lit et écrit, avec l'état actuel de chacune. Suivez une colonne pour voir d'où elle vient et où elle va, ou choisissez plus d'étapes pour voir à partir de quoi elles sont construites et ce qui est construit à partir d'elles."
 }

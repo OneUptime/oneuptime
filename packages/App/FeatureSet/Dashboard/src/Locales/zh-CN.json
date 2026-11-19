@@ -57372,5 +57372,6 @@
   "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.": "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.",
   "{{requirement}} applies here": "{{requirement}} applies here",
   "{{count}} stores turned off on their resources": "{{count}} stores turned off on their resources",
-  "{{count}} stores turned off on their resources_one": "{{count}} store turned off on its resource"
+  "{{count}} stores turned off on their resources_one": "{{count}} store turned off on its resource",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "此管道读取和写入的表，以及每个表的当前状况。追踪某一列可查看它从哪里来、到哪里去；选择更多步数可查看它们由什么构建、又构建了什么。"
 }

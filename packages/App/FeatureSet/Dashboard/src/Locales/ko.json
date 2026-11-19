@@ -57372,5 +57372,6 @@
   "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.": "What puts this data at risk now, the riskiest first. Each issue opens in Data Security, where it is worked.",
   "{{requirement}} applies here": "{{requirement}} applies here",
   "{{count}} stores turned off on their resources": "{{count}} stores turned off on their resources",
-  "{{count}} stores turned off on their resources_one": "{{count}} store turned off on its resource"
+  "{{count}} stores turned off on their resources_one": "{{count}} store turned off on its resource",
+  "The tables this pipeline reads and writes, with how each is now. Follow a column to see where it comes from and where it goes, or pick more steps to see what they are built from and what is built from them.": "이 파이프라인이 읽고 쓰는 테이블과 각각의 현재 상태입니다. 열을 따라가면 그 열이 어디에서 와서 어디로 가는지 볼 수 있고, 단계를 늘리면 그 테이블들의 원본과 그 테이블들로 만든 것을 볼 수 있습니다."
 }
