@@ -32,6 +32,7 @@ import AndroidAgentLogSessions, {
 } from "../../Utils/Host/AndroidAgentLogSessions";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import logger from "../Utils/Logger";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import HostLogSessionNote, {
   HostLogSessionNoteResult,
 } from "../../Utils/Host/HostLogSessionNote";
@@ -81,7 +82,19 @@ export class Service extends ProjectReferencesService<Model> {
     const data: Model = createBy.data;
     const projectId: ObjectID | undefined =
       data.projectId || createBy.props.tenantId;
-    const hostId: ObjectID | undefined = data.hostId;
+
+    /*
+     * The device, by either name a write can give it - the Dashboard sends
+     * hostId, an API caller may send the host - and refused when the two
+     * disagree (ReferenceNamesReadTogether). It is left in hostId, so the
+     * session is saved for the device checked here, and the hooks after
+     * this one read it there.
+     */
+    const hostId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      data as unknown as Record<string, unknown>,
+      ["hostId", "host"],
+      "Host",
+    );
 
     if (!projectId || !hostId) {
       throw new BadDataException(
@@ -177,8 +190,8 @@ export class Service extends ProjectReferencesService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     const created: Model = await super.onCreateSuccess(onCreate, createdItem);
-    const hostId: ObjectID | undefined =
-      createdItem.hostId || onCreate.createBy.data.hostId;
+    // The saved row's device: onBeforeCreate left it in hostId, under either name it came.
+    const hostId: ObjectID | undefined = createdItem.hostId;
 
     if (hostId) {
       try {

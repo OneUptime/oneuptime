@@ -284,6 +284,47 @@ describe("asking for a log session", () => {
     );
   });
 
+  /*
+   * ReferenceNamesReadTogether: the device is a reference with two names, and
+   * a write may give either. Both are read, two that disagree are refused,
+   * and the device checked is the device saved.
+   */
+  test("is for the device named by the relation too, and saves it under its ID column", async () => {
+    const relation: Host = new Host();
+    relation._id = HOST_ID.toString();
+    const findHost: unknown = HostService.findOneBy;
+
+    const data: HostLogSession = (
+      await hooks.onBeforeCreate(
+        createBy({ hostId: undefined, host: relation } as never),
+      )
+    ).createBy.data;
+
+    expect(data.hostId?.toString()).toBe(HOST_ID.toString());
+    expect(findHost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ _id: expect.anything() }),
+      }),
+    );
+    const askedFor: unknown = (
+      (
+        findHost as {
+          mock: { calls: Array<Array<{ query: { _id: unknown } }>> };
+        }
+      ).mock.calls[0]![0]!.query._id as ObjectID
+    ).toString();
+    expect(askedFor).toBe(HOST_ID.toString());
+  });
+
+  test("a device named one way under hostId and another under host is refused", async () => {
+    const other: Host = new Host();
+    other._id = ObjectID.generate().toString();
+
+    await expect(
+      hooks.onBeforeCreate(createBy({ host: other } as never)),
+    ).rejects.toThrow("Conflicting Host references");
+  });
+
   test("is for a device of the project", async () => {
     host = null;
 
@@ -396,6 +437,12 @@ describe("asking for a log session", () => {
     );
 
     expect(result).toBe(created);
+    // The saved row's device is the one whose sessions are read.
+    expect(HostLogSessionService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ hostId: created.hostId }),
+      }),
+    );
     expect(updates).toEqual([
       {
         id: stale._id!.toString(),
