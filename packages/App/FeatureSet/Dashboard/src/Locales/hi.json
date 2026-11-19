@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "{{count}} व्यक्ति की साइन-इन सेटिंग्स हटा दी गईं।",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "उनके पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटा दिए जाते हैं, और हर व्यक्ति को ईमेल भेजा जाता है। इसे पहले जैसा नहीं किया जा सकता।",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "जिनके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} लोगों का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "जिसके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} व्यक्ति का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।"
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "जिसके सभी प्रोजेक्ट आपके हैं, ऐसे {{count}} व्यक्ति का पासवर्ड या दो-कारक प्रमाणीकरण अब भी OneUptime में सहेजा हुआ है।",
+  "Esper Connection": "Esper कनेक्शन",
+  "Get an alert when one of its devices stops checking in.": "इसका कोई डिवाइस चेक-इन करना बंद करे तो अलर्ट पाएं।",
+  "Model (hardware model)": "मॉडल",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "इस कनेक्शन द्वारा आयात किए गए डिवाइसों के लिए OneUptime के सुझाए गए मॉनिटर, इस आधार पर कि हर डिवाइस के अंतिम चेक-इन को कितना समय बीत चुका है। जो चाहिए उन्हें चुनें और एक ही चरण में बनाएँ।"
 }

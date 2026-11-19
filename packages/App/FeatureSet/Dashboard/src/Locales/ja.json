@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "{{count}} 人のサインイン設定を消去しました。",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードが削除され、各ユーザーにメールが送信されます。この操作は元に戻せません。",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。"
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "あなたが所有するプロジェクトにだけ参加しているユーザーのうち、{{count}} 人が OneUptime にパスワードまたは 2 要素認証を保存したままです。",
+  "Esper Connection": "Esper 接続",
+  "Get an alert when one of its devices stops checking in.": "いずれかのデバイスがチェックインしなくなったらアラートを受け取る。",
+  "Model (hardware model)": "モデル",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "この接続がインポートするデバイスについて、各デバイスの最終チェックインからの経過時間に基づいて OneUptime が推奨するモニター。必要なものを選び、1 ステップで作成できます。"
 }

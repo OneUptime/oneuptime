@@ -330,6 +330,43 @@ describe("Recommendation templates produce debuggable alerts", () => {
     });
   });
 
+  /*
+   * Not an infrastructure type, but a series that names one machine: Esper
+   * Device Stopped Checking In alerts per device (#9835), and the device's
+   * last readings - when it went quiet, its alias and its group - are the
+   * first thing to look at. Every Esper connection template gets one.
+   */
+  describe("a managed device's templates hand the engineer a first command", () => {
+    const CASES: Array<TemplateCase> = GROUPED_TEMPLATE_CASES.filter(
+      (testCase: TemplateCase) => {
+        return testCase.recommendationId.startsWith(
+          "DeviceManagementConnection:",
+        );
+      },
+    );
+
+    test("there are managed device templates to check", () => {
+      expect(CASES.length).toBeGreaterThan(0);
+    });
+
+    test.each(CASES)("$recommendationId", (testCase: TemplateCase) => {
+      const commands: Array<string> = SeriesDebugHints.getDebugCommands({
+        monitorType: testCase.monitorType,
+        seriesLabels: buildSeriesLabels(testCase.groupByKeys),
+      }).map((command: { command: string }) => {
+        return command.command;
+      });
+
+      expect(commands.length).toBeGreaterThan(0);
+
+      for (const command of commands) {
+        expect(command.startsWith("oneuptime metric list ")).toBe(true);
+        expect(command).not.toMatch(/\s\s/);
+        expect(command.trim()).toBe(command);
+      }
+    });
+  });
+
   describe("ungrouped templates stay untouched", () => {
     const UNGROUPED: Array<TemplateCase> = ALL_TEMPLATE_CASES.filter(
       (testCase: TemplateCase) => {

@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "Cleared the sign-in settings of {{count}} person.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person whose projects are all yours still has a password or two-factor authentication saved in OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person whose projects are all yours still has a password or two-factor authentication saved in OneUptime.",
+  "Esper Connection": "Esper Connection",
+  "Get an alert when one of its devices stops checking in.": "Get an alert when one of its devices stops checking in.",
+  "Model (hardware model)": "Model (hardware model)",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step."
 }

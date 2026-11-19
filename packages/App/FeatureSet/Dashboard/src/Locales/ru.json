@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "Настройки входа удалены у {{count}} пользователя.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Их пароли, ключи доступа, ключи безопасности, приложения-аутентификаторы и резервные коды удаляются, и каждый получает письмо. Это нельзя отменить.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "Пользователей, все проекты которых принадлежат вам и у которых в OneUptime всё ещё сохранены пароль или двухфакторная аутентификация: {{count}}.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} пользователь, все проекты которого принадлежат вам, всё ещё хранит в OneUptime пароль или двухфакторную аутентификацию."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} пользователь, все проекты которого принадлежат вам, всё ещё хранит в OneUptime пароль или двухфакторную аутентификацию.",
+  "Esper Connection": "Подключение Esper",
+  "Get an alert when one of its devices stops checking in.": "Получить оповещение, когда одно из его устройств перестаёт выходить на связь.",
+  "Model (hardware model)": "Модель",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Мониторы, которые OneUptime рекомендует для устройств, импортируемых этим подключением, на основе времени с последнего выхода каждого из них на связь. Выберите нужные и создайте их за один шаг."
 }

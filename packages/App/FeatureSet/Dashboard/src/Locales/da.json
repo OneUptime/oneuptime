@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "Loginindstillingerne for {{count}} person er ryddet.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Deres adgangskoder, adgangsnøgler, sikkerhedsnøgler, godkendelsesapps og backupkoder slettes, og hver person får en e-mail. Det kan ikke fortrydes.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} personer, hvis projekter alle er dine, har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person, hvis projekter alle er dine, har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} person, hvis projekter alle er dine, har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime.",
+  "Esper Connection": "Esper-forbindelse",
+  "Get an alert when one of its devices stops checking in.": "Få en advarsel, når en af dens enheder holder op med at lave check-in.",
+  "Model (hardware model)": "Model",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitorer, som OneUptime anbefaler til de enheder, denne forbindelse importerer, ud fra hvor lang tid der er gået siden hver enheds seneste check-in. Vælg dem, du vil have, og opret dem i ét trin."
 }

@@ -102,12 +102,14 @@ const PINNED_COLLECTOR: Array<AgentKind> = [
 
 /*
  * The customer's own OpenTelemetry SDKs (and an IoT fleet's own gateway
- * collector): OneUptime neither ships nor pins them.
+ * collector), and the agent Esper puts on the devices it manages:
+ * OneUptime neither ships nor pins them.
  */
 const NOT_RELEASED_BY_ONEUPTIME: Array<AgentKind> = [
   AgentKind.IoTExporter,
   AgentKind.ServerlessSdk,
   AgentKind.RumSdk,
+  AgentKind.EsperAgent,
 ];
 
 // The value of a `- key: oneuptime.agent.version` stamp in a collector config.

@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "Le impostazioni di accesso di {{count}} persona sono state cancellate.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "Le loro password, passkey, chiavi di sicurezza, app di autenticazione e codici di backup vengono eliminati, e ogni persona riceve un'email. Non si può annullare.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} persone i cui progetti sono tutti tuoi hanno ancora una password o l'autenticazione a due fattori salvata in OneUptime.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} persona i cui progetti sono tutti tuoi ha ancora una password o l'autenticazione a due fattori salvata in OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} persona i cui progetti sono tutti tuoi ha ancora una password o l'autenticazione a due fattori salvata in OneUptime.",
+  "Esper Connection": "Connessione Esper",
+  "Get an alert when one of its devices stops checking in.": "Ricevi un avviso quando uno dei suoi dispositivi smette di comunicare.",
+  "Model (hardware model)": "Modello",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "Monitor che OneUptime consiglia per i dispositivi che questa connessione importa, secondo il tempo trascorso dall'ultimo contatto di ciascuno. Scegli quelli che vuoi e creali in un solo passaggio."
 }

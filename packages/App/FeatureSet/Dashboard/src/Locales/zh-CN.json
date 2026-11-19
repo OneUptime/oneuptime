@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "已清除 {{count}} 人的登录设置。",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "他们的密码、通行密钥、安全密钥、身份验证器应用和备用代码都将被删除，每人都会收到一封电子邮件。此操作无法撤销。",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "在所有项目都由您拥有的人中，仍有 {{count}} 人在 OneUptime 中保存着密码或双因素身份验证。",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "在所有项目都由您拥有的人中，仍有 {{count}} 人在 OneUptime 中保存着密码或双因素身份验证。"
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "在所有项目都由您拥有的人中，仍有 {{count}} 人在 OneUptime 中保存着密码或双因素身份验证。",
+  "Esper Connection": "Esper 连接",
+  "Get an alert when one of its devices stops checking in.": "其中某台设备停止签入时收到警报。",
+  "Model (hardware model)": "型号",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "OneUptime 根据每台设备距上次签入的时长，为此连接导入的设备推荐的监视器。选择需要的监视器，一步即可创建。"
 }

@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "مُسحت إعدادات تسجيل الدخول لدى {{count}} شخص.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "تُحذف كلمات المرور ومفاتيح المرور ومفاتيح الأمان وتطبيقات المصادقة والرموز الاحتياطية الخاصة بهم، ويُرسل بريد إلكتروني إلى كل منهم. لا يمكن التراجع عن ذلك.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "عدد من تملك كل مشاريعهم ولا يزال لديهم كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime: {{count}}.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} شخص تملك كل مشاريعه ولا يزال لديه كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} شخص تملك كل مشاريعه ولا يزال لديه كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime.",
+  "Esper Connection": "اتصال Esper",
+  "Get an alert when one of its devices stops checking in.": "تلقي تنبيه عندما يتوقف أحد أجهزته عن إرسال إشارة الحضور.",
+  "Model (hardware model)": "الطراز",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "المراقبات التي يوصي بها OneUptime للأجهزة التي يستوردها هذا الاتصال، بناءً على المدة المنقضية منذ آخر إشارة حضور لكل منها. اختر ما تريده منها وأنشئها في خطوة واحدة."
 }

@@ -58062,7 +58062,7 @@
   "How this connection is listed.": "این اتصال با چه نامی فهرست می‌شود.",
   "How to update a custom probe": "نحوه به‌روزرسانی یک پراب سفارشی",
   "IMEI": "IMEI",
-  "Imported by the Esper connection {{name}} ({{tenant}}.esper.cloud).": "با اتصال Esper به نام {{name}} ({{tenant}}.esper.cloud) وارد شده است.",
+  "Imported by the Esper connection {{name}} ({{tenant}}.esper.cloud).": "با اتصال Esper به نام {{name}} (مستأجر {{tenant}}.esper.cloud) وارد شده است.",
   "Installed Apps": "برنامه‌های نصب‌شده",
   "Inventory Attributes Written": "ویژگی‌های نوشته‌شده در موجودی",
   "Inventory Item ID": "شناسه مورد موجودی",
@@ -58974,5 +58974,9 @@
   "Cleared the sign-in settings of {{count}} people._one": "تنظیمات ورود {{count}} نفر پاک شد.",
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted, and each is emailed. This cannot be undone.": "رمزهای عبور، کلیدهای عبور، کلیدهای امنیتی، اپلیکیشن‌های احراز هویت و کدهای پشتیبان آن‌ها حذف می‌شوند و به هر نفر ایمیل زده می‌شود. این کار برگشت‌پذیر نیست.",
   "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime.": "{{count}} نفر که مالک همهٔ پروژه‌هایشان هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارند.",
-  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} نفر که مالک همهٔ پروژه‌هایش هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارد."
+  "{{count}} people whose projects are all yours still have a password or two-factor authentication saved in OneUptime._one": "{{count}} نفر که مالک همهٔ پروژه‌هایش هستید، هنوز رمز عبور یا احراز هویت دو مرحله‌ای ذخیره‌شده در OneUptime دارد.",
+  "Esper Connection": "اتصال Esper",
+  "Get an alert when one of its devices stops checking in.": "دریافت هشدار وقتی یکی از دستگاه‌های آن دیگر اعلام حضور نمی‌کند.",
+  "Model (hardware model)": "مدل",
+  "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.": "مانیتورهایی که OneUptime برای دستگاه‌هایی که این اتصال وارد می‌کند توصیه می‌کند، بر اساس مدتی که از آخرین اعلام حضور هر کدام گذشته است. موارد دلخواه را انتخاب کنید و در یک گام بسازید."
 }
