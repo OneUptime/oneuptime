@@ -345,9 +345,11 @@ function findingsOf(report, target) {
     const fix = vulnerability.fix || {};
     const fixVersions = (fix.versions || []).map(String).filter(Boolean);
     const id = String(vulnerability.id || "");
+    // The day CISA added each entry, when it is one: it is shown as written.
     const exploited = (vulnerability.knownExploited || [])
       .map((entry) => {
-        return String((entry && entry.dateAdded) || "");
+        const added = String((entry && entry.dateAdded) || "");
+        return /^\d{4}-\d{2}-\d{2}$/.test(added) ? added : "";
       })
       .sort(compareText);
 
@@ -830,11 +832,17 @@ function severityPhrase(severityCounts) {
   );
 }
 
+/*
+ * An issue's title is plain text, so a name from an SBOM is cut to the
+ * characters a package or binary name is made of: nothing in it can mention
+ * anyone (@babel/core reads babel/core).
+ */
 function groupTitle(group) {
   if (group.kind === "agent") {
     return "Security: upgrade the infrastructure agent's Go dependencies";
   }
-  return `Security: upgrade ${group.name} in ${listOf(group.images)}`;
+  const name = group.name.replace(/[^A-Za-z0-9._/:+~-]/g, "").slice(0, 80);
+  return `Security: upgrade ${name || "a package"} in ${listOf(group.images)}`;
 }
 
 function groupHeading(group) {
@@ -1147,7 +1155,9 @@ function exceptionSteps(group, options) {
     "<details><summary>Entries that accept these</summary>",
     "",
     "```json",
+    // A backtick in a package name must not end the fence.
     ...JSON.stringify(template, null, 2)
+      .replace(/`/g, "")
       .split("\n")
       .slice(1, -1)
       .map((line) => {
@@ -1179,7 +1189,7 @@ function renderIssue(group, options) {
       : "";
 
   const body = [
-    `<!-- ${MARKER}: ${group.key} -->`,
+    markerFor(group.key),
     `OneUptime ${code(release)} ships ${groupHeading(group)}, with ${plural(group.vulnerabilities, "vulnerability", "vulnerabilities")} (${severityPhrase(group.severityCounts)}) that a newer version fixes.${exploited}`,
     "",
     "| Image | Platforms |",
@@ -1362,9 +1372,32 @@ function gate({
 
 // ─── The issues ────────────────────────────────────────────────────────────
 
+/*
+ * The hidden line an issue is found by, its group's key percent-encoded but
+ * for what reads plainly in one (binary:/otelcol-contrib stays as it is): a
+ * package name from an SBOM cannot end the comment (-->) or mention anyone.
+ */
+function markerFor(key) {
+  const encoded = String(key).replace(/[^A-Za-z0-9._/:+~-]/g, (character) => {
+    return encodeURIComponent(character).replace(/[!'()*]/g, (reserved) => {
+      return `%${reserved.charCodeAt(0).toString(16).toUpperCase()}`;
+    });
+  });
+  return `<!-- ${MARKER}: ${encoded} -->`;
+}
+
 function markerOf(body) {
-  const match = new RegExp(`<!-- ${MARKER}: (\\S[^>]*?) -->`).exec(body || "");
-  return match ? match[1].trim() : null;
+  const match = new RegExp(`<!-- ${MARKER}: ([A-Za-z0-9._/:+~%-]+) -->`).exec(
+    body || "",
+  );
+  if (!match) {
+    return null;
+  }
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
 }
 
 /*
