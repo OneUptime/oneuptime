@@ -56872,7 +56872,7 @@
   "Something is missing": "情報が足りない",
   "Thanks for your answer.": "ご回答ありがとうございます。",
   "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "プローブを更新するか、一度にチェックするモニターを増やしてください。プローブで {{setting}} を引き上げ、再起動します。",
-  "Was this page helpful?": "このページは役に立ちましたか?",
+  "Was this page helpful?": "このページは役に立ちましたか？",
   "What the answers rated down read": "役に立たなかった回答が読んだもの",
   "Whether this probe checks its monitors as often as they are set.": "このプローブが、設定どおりの頻度でモニターをチェックしているかどうか。",
   "Wrong or out of date": "誤り・古い情報がある",
