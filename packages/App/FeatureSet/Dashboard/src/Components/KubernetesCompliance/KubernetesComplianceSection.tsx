@@ -1497,7 +1497,8 @@ const AgentBindingNote: FunctionComponent<{
                 template={words.template}
                 slots={{
                   setting: (
-                    <code className={INLINE_CODE_CLASS_NAME}>
+                    // One long token: it breaks only where a phone's row is too narrow for it.
+                    <code className={`${INLINE_CODE_CLASS_NAME} break-words`}>
                       {words.setting}
                     </code>
                   ),
