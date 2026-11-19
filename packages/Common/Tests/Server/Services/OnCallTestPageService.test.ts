@@ -36,6 +36,9 @@ import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
 import OnCallTestPageEvents from "../../../Server/Utils/OnCall/OnCallTestPageEvents";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -1154,6 +1157,63 @@ describe("who a policy's first level pages right now", () => {
     ]);
   });
 
+  /*
+   * Someone only invited to the project - put on a rule before they
+   * accepted - is named as the project knows them: the name typed for them,
+   * else their address, never their account's own name (#9823).
+   */
+  test("someone only invited is not a member, named by the name typed for them, else their address", async () => {
+    const withheldIn: jest.SpyInstance = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [DAN.toString().toLowerCase(), { inviteeName: "Dan (invited)" }],
+        ]),
+      );
+
+    let level: Awaited<
+      ReturnType<typeof OnCallTestPageService.readFirstLevel>
+    > = await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    expect(level.notPaged).toEqual([
+      "Dan (invited) is not a member of this project.",
+    ]);
+    expect(JSON.stringify(level)).not.toContain("Dan Wu");
+
+    // One read for the level's people, in the policy's project.
+    expect(withheldIn).toHaveBeenCalledTimes(1);
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT);
+
+    withheldIn.mockResolvedValue(
+      new Map<string, WithheldProfile>([
+        [DAN.toString().toLowerCase(), { inviteeName: null }],
+      ]),
+    );
+    (UserService.findOneById as unknown as jest.Mock).mockImplementation(
+      (async (data: { id: ObjectID }) => {
+        const user: User = new User();
+        user.id = data.id;
+        user.name = new Name(NAMES[data.id.toString()] || "Someone");
+        user.email = new Email("dan@example.com");
+        return user;
+      }) as never,
+    );
+
+    level = await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    expect(level.notPaged).toEqual([
+      "dan@example.com is not a member of this project.",
+    ]);
+  });
+
   test("somebody away with a cover is paged through who covers them; away with nobody covering, is said", async () => {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "getAwayOverride")
@@ -1821,6 +1881,55 @@ describe("what became of a test: the chain as it happened", () => {
       code: OnCallTestPageLineCode.MethodNotVerified,
       channel: OnCallPageChannel.Email,
     });
+  });
+
+  test("a line names someone only invited to the project by the name typed for them, a member by their own (#9823)", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+      .mockResolvedValue([
+        line(
+          LINE_ANA,
+          ANA,
+          OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        ),
+        {
+          ...line(LINE_BOB, BOB, OnCallDutyExecutionLogTimelineStatus.Skipped),
+          statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+          overridedByUserId: CARA,
+          overridedByUser: { name: new Name("Cara Diaz") },
+        },
+      ] as never);
+
+    const withheldIn: jest.SpyInstance = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [BOB.toString().toLowerCase(), { inviteeName: "Bob (invited)" }],
+          [CARA.toString().toLowerCase(), { inviteeName: "Cara (invited)" }],
+        ]),
+      );
+
+    const result: OnCallTestPageResult = await OnCallTestPageService.getResult({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      props: { isRoot: true },
+    });
+
+    expect(result.steps[0]!.userName).toBe("Ana Lopez");
+    expect(result.steps[1]!.userName).toBe("Bob (invited)");
+    expect(result.steps[1]!.coveringForName).toBe("Cara (invited)");
+    expect(result.steps[1]!.statusMessageCode).toEqual({
+      code: OnCallTestPageLineCode.NotProjectMember,
+      name: "Bob (invited)",
+    });
+    expect(JSON.stringify(result.steps)).not.toContain("Bob Stone");
+    expect(JSON.stringify(result.steps)).not.toContain("Cara Diaz");
+
+    // One read for the run's people, in its project.
+    expect(withheldIn).toHaveBeenCalledTimes(1);
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT);
   });
 
   test("an acknowledged test's own line has no code: its words name who and how, as written", async () => {

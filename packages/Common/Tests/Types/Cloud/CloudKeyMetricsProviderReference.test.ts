@@ -780,9 +780,22 @@ const AWS_STATISTIC_KEPT: Record<string, Record<string, string>> = {
  * storage by bucket and storage type, an MSK cluster's per-broker metrics,
  * a series per broker, a Cognito user pool's per app client (UserPool,
  * UserPoolClient), and a SageMaker endpoint's per production variant
- * (EndpointName, VariantName) - series that add up to the resource's.
+ * (EndpointName, VariantName) - series that add up to the resource's. A
+ * Glue job's are its series whose JobRunId is ALL (JobName, JobRunId,
+ * Type), and an Athena workgroup's query times one per query state and
+ * type (WorkGroup, QueryState, QueryType).
  */
 const AWS_READ_ON_MORE_DIMENSIONS: Record<string, Array<string>> = {
+  Glue: [
+    "glue.driver.aggregate.numCompletedTasks",
+    "glue.driver.aggregate.numFailedTasks",
+    "glue.driver.aggregate.numKilledTasks",
+    "glue.driver.aggregate.recordsRead",
+    "glue.driver.aggregate.bytesRead",
+    "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+    "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
+  ],
+  "AWS/Athena": ["TotalExecutionTime", "EngineExecutionTime", "QueryQueueTime"],
   "AWS/S3": ["BucketSizeBytes", "NumberOfObjects"],
   "AWS/Kafka": [
     "UnderReplicatedPartitions",
@@ -818,6 +831,37 @@ const AWS_FREE_ONCE_TURNED_ON: Record<string, Array<string>> = {
     "GroupDesiredCapacity",
     "GroupPendingInstances",
     "GroupTerminatingInstances",
+  ],
+  /*
+   * An Athena workgroup's, once its "Publish query metrics to CloudWatch"
+   * is on - the console's default for a new workgroup.
+   */
+  "AWS/Athena": [
+    "ProcessedBytes",
+    "TotalExecutionTime",
+    "EngineExecutionTime",
+    "QueryQueueTime",
+  ],
+};
+
+/*
+ * Metrics a resource's owner publishes for their own use by turning a
+ * setting on, which CloudWatch bills them as custom metrics: a Glue job's
+ * job metrics ("You may incur additional charges when you enable job
+ * metrics and CloudWatch custom metrics are created"). OneUptime asks for
+ * none of them: it reads a job's metrics only where its owner has them on
+ * already, at a GetMetricData read's cost, and a job without them is never
+ * listed, so it costs nothing.
+ */
+const AWS_OWNERS_OWN_ONCE_TURNED_ON: Record<string, Array<string>> = {
+  Glue: [
+    "glue.driver.aggregate.numCompletedTasks",
+    "glue.driver.aggregate.numFailedTasks",
+    "glue.driver.aggregate.numKilledTasks",
+    "glue.driver.aggregate.recordsRead",
+    "glue.driver.aggregate.bytesRead",
+    "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+    "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
   ],
 };
 
@@ -953,11 +997,14 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
     }
   });
 
-  test("none needs a paid feature turned on, and only those listed a free one", () => {
+  test("none needs a paid feature turned on, and only those listed a free one, or their owner's own", () => {
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
         const isFreeOnceTurnedOn: boolean = (
           AWS_FREE_ONCE_TURNED_ON[entry.namespace] || []
+        ).includes(metric.metricName);
+        const isOwnersOwn: boolean = (
+          AWS_OWNERS_OWN_ONCE_TURNED_ON[entry.namespace] || []
         ).includes(metric.metricName);
 
         expect({
@@ -970,9 +1017,11 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
           metric: metric.metricName,
           publishedBy: isFreeOnceTurnedOn
             ? "free-once-turned-on"
-            : expect.stringMatching(
-                /^(default|only-when-nonzero|only-some-resources)$/,
-              ),
+            : isOwnersOwn
+              ? "custom-once-turned-on"
+              : expect.stringMatching(
+                  /^(default|only-when-nonzero|only-some-resources)$/,
+                ),
         });
       }
     }
@@ -995,7 +1044,8 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
         const expected: string =
           publishedBy === "only-when-nonzero"
             ? "non-zero"
-            : publishedBy === "free-once-turned-on"
+            : publishedBy === "free-once-turned-on" ||
+                publishedBy === "custom-once-turned-on"
               ? "setup"
               : publishedBy === "only-some-resources"
                 ? "some-resources"

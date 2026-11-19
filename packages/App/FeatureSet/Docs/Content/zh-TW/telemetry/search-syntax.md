@@ -129,7 +129,7 @@ name:"SELECT wp_options"
 
 ### 追蹤
 
-追蹤欄位接受單一值或「任一」清單，例如 `status:(ok OR unset)`，`duration` 還接受 `>` 與 `<`。萬用字元、`~`、`!` 與前置的 `-` 在這裡只對屬性有效。
+追蹤欄位接受單一值或「任一」清單，例如 `status:(ok OR unset)`，`duration` 還接受 `>`、`>=`、`<` 與 `<=`。萬用字元、`~`、`!` 與前置的 `-` 在這裡只對屬性有效。
 
 | 欄位 | 說明 |
 | --- | --- |
@@ -137,7 +137,7 @@ name:"SELECT wp_options"
 | `name` | Span 名稱。單一值會符合其中任何部分。單獨的字詞也會搜尋這裡 |
 | `status` | `ok`、`error`、`unset` (unset = 未設定錯誤狀態，即 OpenTelemetry 預設值) |
 | `kind` | `server`、`client`、`producer`、`consumer`、`internal` |
-| `duration` | 毫秒：`duration:>500`、`duration:<200` 或精確值 |
+| `duration` | 毫秒：`duration:>500`、`duration:>=500`、`duration:<200`、`duration:<=200` 或精確值 |
 | `statusMessage` | 狀態訊息文字。單一值會符合其中任何部分 |
 | `hasException` | `true` 或 `false` |
 | `trace`、`span` | ID |

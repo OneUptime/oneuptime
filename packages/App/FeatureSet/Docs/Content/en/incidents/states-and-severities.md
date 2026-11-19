@@ -178,9 +178,9 @@ There are five ways an incident changes state:
 
 | Way                 | Where                                                                                       | What it asks                                                                                                                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Header buttons**  | The incident's header: **Acknowledge** and **Resolve**, and **Change state to** in its **⋯** menu | A short confirmation — **Acknowledge Incident** or **Resolve Incident** — with **Notify Status Page Subscribers** and, folded under **Add a public note**, the optional **Public Note** and its **Select Note Template** picker (when the project has note templates). |
+| **Header buttons**  | The incident's header: **Acknowledge** and **Resolve**, and **Change state to** in its **⋯** menu | A short confirmation — **Acknowledge Incident** or **Resolve Incident** — with **Notify Status Page Subscribers** and, folded under **Add a public note**, the optional **Public Note** and its **Select Note Template** picker (when the project has note templates). A resolve also folds an optional root cause under **Add the root cause**. |
 | **State timeline**  | **State Timeline** in the incident side menu                                                | A row added by hand, with **Incident Status**, **Starts At** and **Notify Status Page Subscribers**.                                                                                                        |
-| **List row** | The **⋯** menu on an incident's row in the incidents list: **Acknowledge**, **Resolve** and **Change State** | The header's confirmation, naming the incident. An incident another change moved on meanwhile is left alone, and the dialog says why. |
+| **List row** | The **⋯** menu on an incident's row in the incidents list: **Acknowledge**, **Resolve** and **Change State** | The header's confirmation, naming the incident. An incident another change moved on meanwhile is left alone, and the dialog says why. It does not ask for the root cause. |
 | **Bulk change**     | **Acknowledge**, **Resolve** or **Change State** on a selection in the incidents list                                       | One page with the state, **Notify Status Page Subscribers** and the same folded **Add a public note**.                                                                                                      |
 | **Automatically**   | A monitor criterion, or your own code                                                       | A criterion with **Auto Resolve Incident** enabled resolves its incident when the criterion is no longer met. The API changes the state by creating a row at `/api/incident-state-timeline`.               |
 
@@ -208,6 +208,12 @@ An incident is resolved when it moves from a state above your resolved state int
 - **Marks the SLA resolved** and, when OneUptime AI postmortem drafts are on, drafts a postmortem.
 
 Moving on from **Resolved** to a state after it — **Closed**, say — is not a second resolve: none of this runs again, and no new SLA starts. An incident declared before OneUptime started recording this gives its monitors back on its next resolve, as before.
+
+## Writing the root cause as you resolve
+
+When the incident's header resolves it, with **Resolve** or with **Change state to** a resolved state, the confirmation folds an optional **Root Cause** under **Add the root cause**: why it happened. What you write there becomes the incident's root cause, as if you had written it on its **Root Cause** page, and OneUptime AI's investigation of the incident is graded against it (see [How well OneUptime AI is doing](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing)). Leave it empty and the incident resolves as before, keeping the root cause it has.
+
+Writing it needs permission to edit the incident, apart from the permission to change its state: someone without it is not offered **Add the root cause**, and a state change they send with a root cause is refused whole, so the incident keeps its state. Through the API, send it with the row you create at `/api/incident-state-timeline`, as `writtenRootCause` in `miscDataProps`.
 
 ## The state timeline
 

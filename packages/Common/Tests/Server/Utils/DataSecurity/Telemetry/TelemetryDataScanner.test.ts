@@ -26,17 +26,24 @@ import {
   buildTelemetryMetricsStatement,
   buildTelemetryOwnersStatement,
   buildTelemetrySampleStatement,
+  getMetricRotationPosition,
   getMetricTurn,
+  getNewMetricSlots,
   isLargeMetric,
   isMetricNameAKey,
+  METRIC_ROTATION_CURSOR_STATE_KEY,
+  MetricScanPlan,
   MetricToRead,
   planMetricsToRead,
+  readMetricRotationCursor,
   readMetricsToRead,
   readTelemetryRecordValues,
   TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS,
   TELEMETRY_SCAN_MAX_METRICS_PER_OWNER,
   TELEMETRY_SCAN_MAX_METRICS_PER_READ,
-  TELEMETRY_SCAN_MAX_POINTS_PER_METRIC,
+  TELEMETRY_SCAN_MAX_SERIES_PER_METRIC,
+  TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS,
+  TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS,
   TelemetryRecordValue,
   foldAttributeKey,
   fromRawJsonValue,
@@ -63,6 +70,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import { compileCustomDataType } from "../../../../../Utils/DataSecurity/CustomDataTypeDetector";
 import { FieldClassification } from "../../../../../Utils/DataSecurity/FieldClassifier";
 import { ScanDetector } from "../../../../../Utils/DataSecurity/TextScanner";
+import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 
 /*
  * A sample of a project's telemetry, read without a database: every
@@ -165,7 +173,7 @@ function isOwnersRead(statement: Statement): boolean {
 
 // Which metrics each service wrote: the rollup's list, not a sample.
 function isMetricsList(statement: Statement): boolean {
-  return statement.query.includes(" AS newestMinutePoints FROM ");
+  return statement.query.includes(" AS newestMinutePoints, ");
 }
 
 function statementsOf(
@@ -1341,7 +1349,71 @@ describe("the records a sample's findings were found in", () => {
       expect(query.includes("sessionId AS readSessionId")).toBe(
         source.startsWith("Rum"),
       );
+      // A log line's own id, which opens that very line (#9793): logs only.
+      expect(query.includes("_id AS readLogId")).toBe(
+        source === TelemetrySampleSource.Logs ||
+          source === TelemetrySampleSource.RumLogs,
+      );
     }
+
+    // The metrics' reads take no line's id either.
+    expect(
+      buildTelemetryMetricSampleStatement({
+        projectId: PROJECT_ID,
+        since: new Date("2026-10-27T10:00:00.000Z"),
+        until: new Date("2026-10-27T11:00:00.000Z"),
+        metrics: [
+          {
+            ownerId: CHECKOUT,
+            metricName: "user.logins",
+            points: 10,
+            newestMinute: new Date("2026-10-27T10:59:00.000Z"),
+            newestMinutePoints: 2,
+          },
+        ],
+        perMetric: 10,
+        caps: CAPS,
+      }).query,
+    ).not.toContain("readLogId");
+  });
+
+  test("a log line is kept with its own id; a row whose id is not one is kept without it", async () => {
+    const LOG_ID: string = "0192f1a0-0000-7000-8000-00000009793a";
+
+    sampleRows[TelemetrySampleSource.Logs] = [
+      {
+        ownerId: CHECKOUT,
+        readRecordTime: String(T1),
+        readTraceId: "",
+        readSpanId: "",
+        readLogId: LOG_ID,
+        readBody: "Signed up jane.doe@acmecorp.io from the mobile app",
+        readAttributes: [],
+      },
+      {
+        ownerId: CHECKOUT,
+        readRecordTime: String(T2),
+        readTraceId: "",
+        readSpanId: "",
+        readLogId: "not-an-id",
+        readBody: "Signed up kai.wu@acmecorp.io from the web",
+        readAttributes: [],
+      },
+    ];
+
+    const logs: TelemetryStoreScan = storeOf(
+      await scan(),
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    expect(recordsAt(logs.result, "body", "email-address")).toEqual([
+      { time: new Date(T1).toISOString(), logId: LOG_ID },
+      { time: new Date(T2).toISOString() },
+    ]);
+    expect(
+      readSampleRecord({ readRecordTime: String(T1), readLogId: LOG_ID }),
+    ).toEqual({ time: new Date(T1).toISOString(), logId: LOG_ID });
   });
 
   test("each location's findings keep the records whose value held them, the newest first", async () => {
@@ -1605,7 +1677,7 @@ describe("a service's metrics", () => {
       expect(samples[0]!.query).not.toContain(CHECKOUT);
     });
 
-    test("the rollup's list: the services' metrics, the busiest first, the newest minute and how full it is", () => {
+    test("the rollup's list: a day of each service's metrics, the ones it started writing lately first, then the busiest, the newest minute and how full it is", () => {
       const statement: Statement = buildTelemetryMetricsStatement({
         ...WINDOW,
         ownerIds: [CHECKOUT],
@@ -1614,18 +1686,63 @@ describe("a service's metrics", () => {
         fromRollup: true,
       });
 
-      expect(statement.query).toContain(
-        "argMax(minutePoints, minute) AS newestMinutePoints",
+      const query: string = statement.query;
+
+      expect(query).toContain(
+        "max(lastMinutePoints) AS newestMinutePoints, min(firstWrote) AS firstMinute",
       );
-      expect(statement.query).toContain("toUnixTimestamp(max(minute))");
-      expect(statement.query).toContain("retentionDate >= now()");
-      expect(statement.query).toContain("ORDER BY points DESC");
+      expect(query).toContain(
+        "argMax(minutePoints, minute) AS lastMinutePoints",
+      );
+      expect(query).toContain("toUnixTimestamp(max(minute)) AS lastMinute");
+      expect(query.match(/retentionDate >= now\(\)/g)).toHaveLength(2);
+      // The window's minutes counted one by one, from the minute it starts in...
+      expect(query).toContain(
+        "FROM (SELECT primaryEntityId AS ownerId, name AS metricName, bucketTime AS minute, countMerge(valueCountState) AS minutePoints FROM oneuptime.MetricItemAggMV1m WHERE projectId = ",
+      );
+      const ranges: Array<string> = Array.from(
+        query.matchAll(
+          /bucketTime >= \{(p\d+):DateTime64\(9\)\} AND bucketTime (<=?) \{(p\d+):DateTime64\(9\)\}/g,
+        ),
+      ).map((range: RegExpMatchArray): string => {
+        return `${String(statement.query_params[range[1]!]).slice(0, 19)} ${range[2]} ${String(statement.query_params[range[3]!]).slice(0, 19)}`;
+      });
+
+      expect(ranges).toEqual([
+        "2026-10-27 10:00:00 <= 2026-10-27 11:00:00",
+        // ...and of the day before, only when each first wrote: no count merged.
+        "2026-10-26 11:00:00 < 2026-10-27 10:00:00",
+      ]);
+      expect(query).toContain(
+        " UNION ALL SELECT primaryEntityId AS ownerId, name AS metricName, 0 AS windowPoints, 0 AS lastMinute, 0 AS lastMinutePoints, toUnixTimestamp(min(bucketTime)) AS firstWrote FROM oneuptime.MetricItemAggMV1m WHERE ",
+      );
+      expect(query.match(/countMerge/g)).toHaveLength(1);
+      expect(
+        query.match(/primaryEntityId IN \(\{p\d+:Array\(String\)\}\)/g),
+      ).toHaveLength(2);
+      // Only a metric written in the window; the new ones first, then the busiest.
+      expect(statement.query).toContain(
+        ") GROUP BY ownerId, metricName HAVING points > 0 ORDER BY firstMinute >= {",
+      );
+      expect(statement.query).toContain(
+        "} DESC, points DESC, ownerId ASC, metricName ASC LIMIT {",
+      );
+      expect(
+        parameterAfter(
+          statement,
+          /ORDER BY firstMinute >= \{(p\d+):Int64\} DESC/,
+        ),
+      ).toBe(
+        Math.floor(
+          (WINDOW.until.getTime() -
+            TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS * 3_600_000) /
+            1000,
+        ),
+      );
+      expect(TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS).toBe(2);
+      expect(TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS).toBe(24);
       expect(Number(parameterAfter(statement, METRICS_LIST_LIMIT_BY))).toBe(
         1000,
-      );
-      // From the minute the window starts in: its bucket holds its first points.
-      expect(String(parameterAfter(statement, WINDOW_START))).toMatch(
-        /^2026-10-27 10:00:00/,
       );
       expect(statement.query).toContain("max_execution_time = 30");
     });
@@ -1643,9 +1760,15 @@ describe("a service's metrics", () => {
       expect(statement.query).toContain("toStartOfMinute(time) AS minute");
       expect(statement.query).not.toContain("attributes");
       expect(boundValues(statement)).toContain("OpenTelemetry");
+      // The window's points alone, never a day of them: no first minute is known.
+      expect(statement.query).toContain("0 AS firstWrote FROM (");
+      expect(statement.query).not.toContain("UNION ALL");
+      expect(String(parameterAfter(statement, WINDOW_START))).toMatch(
+        /^2026-10-27 10:00:00/,
+      );
     });
 
-    test("one read of the metrics' newest minutes: each metric's range, at most a few points of each, every value cut short", () => {
+    test("one read of the metrics' newest minutes: each metric's range, at most a few series of each, every value cut short", () => {
       const statement: Statement = buildTelemetryMetricSampleStatement({
         ...WINDOW,
         metrics: [metric("user.logins"), metric("http.requests")],
@@ -1666,6 +1789,106 @@ describe("a service's metrics", () => {
         expect.arrayContaining(["user.logins", "http.requests", CHECKOUT]),
       );
       expect(statement.query).not.toContain("UNION ALL");
+    });
+
+    /*
+     * #9756: the first hundred points of a minute were a hundred series only
+     * where each series wrote one point; a series that wrote more - scraped
+     * every fifteen seconds, or a busy route beside quiet ones - took the
+     * others' places. A point of each series first, then a hundred series.
+     */
+    test("a point of each series first, kept once by a hash of its metric and attributes, then a hundred series of each metric", () => {
+      const statement: Statement = buildTelemetryMetricSampleStatement({
+        ...WINDOW,
+        metrics: [metric("user.logins"), metric("http.requests")],
+        perMetric: 100,
+        caps: CAPS,
+      });
+      const query: string = statement.query;
+      const inner: number = query.indexOf(
+        " FROM (SELECT primaryEntityId, name, time, attributes FROM oneuptime.MetricItemV3 WHERE projectId = ",
+      );
+      const series: number = query.indexOf(
+        ") LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)) LIMIT {",
+      );
+      const ranges: number = query.indexOf("(name = {");
+
+      // The points' columns, of the metrics' ranges, then each series once.
+      expect(inner).toBeGreaterThan(0);
+      expect(ranges).toBeGreaterThan(inner);
+      expect(series).toBeGreaterThan(ranges);
+      // Then a hundred series of each metric, a hundred of each in all.
+      expect(query.slice(series)).toMatch(
+        /^\) LIMIT 1 BY cityHash64\(primaryEntityId, name, attributes\)\) LIMIT \{p\d+:Int32\} BY primaryEntityId, name LIMIT \{p\d+:Int32\} SETTINGS /,
+      );
+      expect(
+        Number(
+          parameterAfter(
+            statement,
+            /\) LIMIT \{(p\d+):Int32\} BY primaryEntityId, name/,
+          ),
+        ),
+      ).toBe(100);
+      expect(
+        Number(
+          parameterAfter(
+            statement,
+            /BY primaryEntityId, name LIMIT \{(p\d+):Int32\} SETTINGS/,
+          ),
+        ),
+      ).toBe(200);
+      // What is read out of each series: cut short outside the subquery, on its rows only.
+      expect(query.indexOf("substringUTF8(name, 1, {")).toBeLessThan(inner);
+      expect(
+        query.indexOf("arraySlice(mapKeys(attributes), 1, {"),
+      ).toBeLessThan(inner);
+      expect(query.indexOf("toUnixTimestamp64Milli")).toBeLessThan(inner);
+      // The project, the window and the type: the subquery's, as every read's.
+      expect(parameterAfter(statement, PROJECT_PARAMETER)).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(query).toContain("retentionDate >= now()");
+      expect(query.match(/\bSETTINGS\b/g)).toHaveLength(1);
+      expect(query).toContain("max_execution_time = 30");
+      expect(query).not.toContain("ORDER BY");
+    });
+
+    test("the busiest metric's series no longer crowd out a quiet one: a point of each series is what a scan classifies", async () => {
+      // What the per-series read answers for a busy route and a quiet one.
+      sampleRows[TelemetrySampleSource.Metrics] = [
+        {
+          ownerId: CHECKOUT,
+          readRecordTime: String(Date.now() - 50_000),
+          readMetricName: "user.logins",
+          readAttributes: [["http.route", "/api/busy"]],
+        },
+        {
+          ownerId: CHECKOUT,
+          readRecordTime: String(Date.now() - 20_000),
+          readMetricName: "user.logins",
+          readAttributes: [
+            ["http.route", "/users/quiet.user@acmecorp.io/orders"],
+          ],
+        },
+      ];
+
+      const metrics: TelemetryStoreScan = storeOf(
+        await scan(),
+        DataStoreKind.TelemetryMetrics,
+        CHECKOUT,
+      );
+
+      expect(typesAt(metrics.result, "attributes.http.route")).toEqual([
+        "email-address",
+      ]);
+      // The ordinary read was the per-series one.
+      expect(
+        statements.some((statement: Statement): boolean => {
+          return statement.query.includes(
+            "LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)",
+          );
+        }),
+      ).toBe(true);
     });
 
     test("a metric of many series: a branch of its own, stopped at its first points", () => {
@@ -1858,7 +2081,7 @@ describe("a service's metrics", () => {
       expect(result.readLog).toHaveLength(1);
       expect(result.readLog[0]).toContain('service "checkout"');
       expect(result.readLog[0]).toContain(
-        "read 4 data points of the newest minute of 2 of its metrics",
+        "read 4 data points, a point of each series, of the newest minute of 2 of its metrics - its busiest, and others in turn -",
       );
       expect(result.readLog[0]).toContain("of the 2400 written between");
     });
@@ -1965,7 +2188,7 @@ describe("a service's metrics", () => {
   });
 
   describe("how much a scan reads", () => {
-    test("at most a hundred metrics, ten of a service, a hundred points of each - never more than the sample size", async () => {
+    test("at most a hundred metrics, ten of a service, a hundred series of each - never more than the sample size", async () => {
       metricListRows = Array.from(
         { length: 60 },
         (_: unknown, index: number) => {
@@ -1995,7 +2218,7 @@ describe("a service's metrics", () => {
 
       expect(TELEMETRY_SCAN_MAX_METRICS_PER_OWNER).toBe(10);
       expect(TELEMETRY_SCAN_MAX_METRICS_PER_READ).toBe(100);
-      expect(TELEMETRY_SCAN_MAX_POINTS_PER_METRIC).toBe(100);
+      expect(TELEMETRY_SCAN_MAX_SERIES_PER_METRIC).toBe(100);
       expect(read).toHaveLength(TELEMETRY_SCAN_MAX_METRICS_PER_OWNER);
       // The busiest five, every scan.
       expect(read).toEqual(
@@ -2007,7 +2230,7 @@ describe("a service's metrics", () => {
           "app.metric.04",
         ]),
       );
-      // A sample size of 30: thirty points of each metric at most.
+      // A sample size of 30: thirty series of each metric at most.
       expect(Number(parameterAfter(sample!, LIMIT_BY))).toBe(30);
     });
   });
@@ -2028,6 +2251,88 @@ describe("a service's metrics", () => {
       });
     }
 
+    const SERVICE_KEY: string = CHECKOUT.toLowerCase();
+    const NOW_HOUR: number = getMetricTurn(
+      new Date("2026-10-27T11:00:00.000Z"),
+    );
+    const NEW_SINCE: Date = new Date("2026-10-27T09:00:00.000Z");
+
+    // One scan's plan, from where the last one stopped.
+    function scanOf(data: {
+      metrics: ReadonlyArray<MetricToRead>;
+      turn: number;
+      cursor?: number | undefined;
+      newSince?: Date | undefined;
+      perOwner?: number | undefined;
+    }): MetricScanPlan {
+      return planMetricsToRead({
+        metrics: data.metrics,
+        perOwner: data.perOwner ?? 10,
+        total: 100,
+        turn: data.turn,
+        newSince: data.newSince,
+        cursors:
+          data.cursor === undefined
+            ? undefined
+            : new Map([[SERVICE_KEY, data.cursor]]),
+      });
+    }
+
+    /*
+     * Hour after hour, each scan going on from where the last one stopped:
+     * the most hours any metric that was there throughout waited between
+     * two reads, and the metrics read in each.
+     */
+    function simulate(data: {
+      hours: number;
+      metricsAt: (hour: number) => Array<MetricToRead>;
+      newSince?: ((hour: number) => Date) | undefined;
+    }): { longestWait: Map<string, number>; reads: Array<Array<string>> } {
+      const lastRead: Map<string, number> = new Map();
+      const longestWait: Map<string, number> = new Map();
+      const reads: Array<Array<string>> = [];
+      let cursor: number | undefined = undefined;
+
+      for (let hour: number = 0; hour < data.hours; hour++) {
+        const plan: MetricScanPlan = scanOf({
+          metrics: data.metricsAt(hour),
+          turn: NOW_HOUR + hour,
+          cursor,
+          newSince: data.newSince?.(hour),
+        });
+        const names: Array<string> = namesOf(plan.metrics);
+
+        cursor = plan.cursors.get(SERVICE_KEY);
+        reads.push(names);
+
+        for (const name of names) {
+          const since: number = lastRead.has(name) ? lastRead.get(name)! : -1;
+
+          if (since >= 0) {
+            longestWait.set(
+              name,
+              Math.max(longestWait.get(name) || 0, hour - since),
+            );
+          }
+
+          lastRead.set(name, hour);
+        }
+      }
+
+      return { longestWait, reads };
+    }
+
+    function service(count: number, prefix: string = "m"): Array<MetricToRead> {
+      return Array.from(
+        { length: count },
+        (_: unknown, index: number): MetricToRead => {
+          return metric(`${prefix}.${String(index).padStart(4, "0")}`, {
+            points: 1000 - index,
+          });
+        },
+      );
+    }
+
     test("a service with few metrics: every one, every scan", () => {
       expect(
         namesOf(
@@ -2036,28 +2341,29 @@ describe("a service's metrics", () => {
             perOwner: 10,
             total: 100,
             turn: 7,
-          }),
+          }).metrics,
         ),
       ).toEqual(["m.00", "m.01", "m.02", "m.03"]);
     });
 
-    test("its busiest half every scan, and the rest in turn, so every metric is read within a few hours", () => {
+    test("its busiest half every scan, and the rest in turn from where the last scan stopped: every metric within a few hours", () => {
       const seen: Set<string> = new Set();
+      let cursor: number | undefined = undefined;
 
       for (let turn: number = 0; turn < 4; turn++) {
-        const planned: Array<string> = namesOf(
-          planMetricsToRead({ metrics: many, perOwner: 10, total: 100, turn }),
-        );
+        const plan: MetricScanPlan = scanOf({ metrics: many, turn, cursor });
+        const planned: Array<string> = namesOf(plan.metrics);
 
         expect(planned).toHaveLength(10);
-        expect(planned.slice(0, 5)).toEqual([
-          "m.00",
-          "m.01",
-          "m.02",
-          "m.03",
-          "m.04",
-        ]);
+        // The busiest five, every scan.
+        expect(planned).toEqual(
+          expect.arrayContaining(["m.00", "m.01", "m.02", "m.03", "m.04"]),
+        );
         expect(new Set(planned).size).toBe(10);
+        // Where the rotation stopped: a number, never a name.
+        expect(typeof plan.cursors.get(SERVICE_KEY)).toBe("number");
+
+        cursor = plan.cursors.get(SERVICE_KEY);
 
         for (const name of planned) {
           seen.add(name);
@@ -2066,6 +2372,302 @@ describe("a service's metrics", () => {
 
       // 20 others, 5 a turn: all of them in 4 hours.
       expect(seen.size).toBe(25);
+    });
+
+    /*
+     * #9755's bound: a service of M metrics, `inTurn` of them read in turn
+     * each scan, has each read at least once every ceil(M / inTurn) hours.
+     */
+    test("a service of 300 metrics: each read at least once every 60 hours, its busiest every hour", () => {
+      const metrics: Array<MetricToRead> = service(300);
+      const { longestWait, reads } = simulate({
+        hours: 240,
+        metricsAt: (): Array<MetricToRead> => {
+          return metrics;
+        },
+      });
+
+      expect(longestWait.size).toBe(300);
+      expect(Math.max(...longestWait.values())).toBeLessThanOrEqual(
+        Math.ceil(300 / 5),
+      );
+      // Its busiest five, every hour.
+      expect(longestWait.get("m.0000")).toBe(1);
+      // Ten a scan, never one twice.
+      for (const read of reads) {
+        expect(new Set(read).size).toBe(10);
+      }
+    });
+
+    test("regression: the rest's order no longer moves with their points, so none misses its turn for good", () => {
+      const random: SeededRandom = seededRandom(9755);
+      const names: Array<string> = namesOf(service(120));
+      const { longestWait } = simulate({
+        hours: 200,
+        // Every hour each metric wrote a different number of points.
+        metricsAt: (): Array<MetricToRead> => {
+          return names.map((name: string): MetricToRead => {
+            return metric(name, { points: Math.floor(random() * 10_000) });
+          });
+        },
+      });
+
+      expect(longestWait.size).toBe(120);
+      expect(Math.max(...longestWait.values())).toBeLessThanOrEqual(
+        Math.ceil(120 / 5),
+      );
+    });
+
+    test("metrics that come and go do not move the others' turns: one that is always there is read within its bound", () => {
+      const random: SeededRandom = seededRandom(97551);
+      const steady: Array<MetricToRead> = service(100, "steady");
+      const sporadic: Array<MetricToRead> = service(60, "sporadic");
+      const { longestWait } = simulate({
+        hours: 200,
+        // Each sporadic metric writes in a third of the hours.
+        metricsAt: (): Array<MetricToRead> => {
+          return [
+            ...steady,
+            ...sporadic.filter((): boolean => {
+              return random() < 1 / 3;
+            }),
+          ];
+        },
+      });
+
+      for (const read of steady) {
+        expect(longestWait.get(read.metricName)).toBeLessThanOrEqual(
+          Math.ceil(160 / 5),
+        );
+      }
+    });
+
+    test("a metric the service started writing lately is read the hour it first writes, ahead of the rest's turns", () => {
+      const metrics: Array<MetricToRead> = service(300);
+      const deployed: MetricToRead = metric("checkout.coupon.redeemed", {
+        points: 3,
+        firstMinute: new Date("2026-10-27T10:41:00.000Z"),
+      });
+      // Where the rotation would be nowhere near it.
+      const plan: MetricScanPlan = scanOf({
+        metrics: [...metrics, deployed],
+        turn: NOW_HOUR,
+        cursor: getMetricRotationPosition("checkout.coupon.redeemed") + 1,
+        newSince: NEW_SINCE,
+      });
+
+      expect(namesOf(plan.metrics)).toContain("checkout.coupon.redeemed");
+      expect(plan.newMetricsRead.get(SERVICE_KEY)).toBe(1);
+      expect(plan.metrics).toHaveLength(10);
+      // Its first minute before the new window: one of the rest, read in turn.
+      expect(
+        namesOf(
+          scanOf({
+            metrics: [
+              ...metrics,
+              {
+                ...deployed,
+                firstMinute: new Date("2026-10-27T08:59:00.000Z"),
+              },
+            ],
+            turn: NOW_HOUR,
+            cursor: getMetricRotationPosition("checkout.coupon.redeemed") + 1,
+            newSince: NEW_SINCE,
+          }).metrics,
+        ),
+      ).not.toContain("checkout.coupon.redeemed");
+    });
+
+    test("new metrics take at most half the in-turn reads: the rotation keeps the rest, and its bound, however many keep coming", () => {
+      const steady: Array<MetricToRead> = service(100, "steady");
+      const { longestWait, reads } = simulate({
+        hours: 120,
+        // Ten new metrics every hour: a name built from what varies.
+        metricsAt: (hour: number): Array<MetricToRead> => {
+          return [
+            ...steady,
+            ...Array.from(
+              { length: 10 },
+              (_: unknown, index: number): MetricToRead => {
+                return metric(`signup.${hour}.${index}.count`, {
+                  points: 1,
+                  firstMinute: new Date(
+                    Date.UTC(2026, 9, 27, 0, 0, 0) + hour * 3_600_000,
+                  ),
+                });
+              },
+            ),
+          ];
+        },
+        newSince: (hour: number): Date => {
+          return new Date(
+            Date.UTC(2026, 9, 27, 0, 0, 0) + (hour - 1) * 3_600_000,
+          );
+        },
+      });
+
+      // Every scan reads ten, the busiest five among them.
+      for (const read of reads) {
+        expect(read).toHaveLength(10);
+      }
+
+      for (let hour: number = 0; hour < 6; hour++) {
+        // Two or three a scan by their own share, of the five in turn.
+        const plan: MetricScanPlan = scanOf({
+          metrics: [
+            ...steady,
+            ...Array.from(
+              { length: 10 },
+              (_: unknown, index: number): MetricToRead => {
+                return metric(`signup.${index}.count`, {
+                  points: 1,
+                  firstMinute: new Date("2026-10-27T10:30:00.000Z"),
+                });
+              },
+            ),
+          ],
+          turn: NOW_HOUR + hour,
+          newSince: NEW_SINCE,
+        });
+
+        expect(plan.newMetricsRead.get(SERVICE_KEY)).toBe(hour % 2 ? 2 : 3);
+      }
+
+      /*
+       * The steady ones: the rotation keeps at least five reads in two
+       * scans, so each is read within twice the quiet bound of the ring -
+       * its 100 metrics and the 20 new ones a two-hour window holds.
+       */
+      for (const read of steady) {
+        expect(longestWait.get(read.metricName)).toBeLessThanOrEqual(
+          2 * Math.ceil(120 / 5),
+        );
+      }
+    });
+
+    test("more new metrics than their share: the next of them the next hour", () => {
+      const metrics: Array<MetricToRead> = service(50);
+      const deploy: Array<MetricToRead> = Array.from(
+        { length: 6 },
+        (_: unknown, index: number): MetricToRead => {
+          return metric(`checkout.new.${index}`, {
+            points: 1,
+            firstMinute: new Date("2026-10-27T10:30:00.000Z"),
+          });
+        },
+      );
+      const first: MetricScanPlan = scanOf({
+        metrics: [...metrics, ...deploy],
+        turn: NOW_HOUR,
+        newSince: NEW_SINCE,
+      });
+      const second: MetricScanPlan = scanOf({
+        metrics: [...metrics, ...deploy],
+        turn: NOW_HOUR + 1,
+        cursor: first.cursors.get(SERVICE_KEY),
+        newSince: NEW_SINCE,
+      });
+      const newOf: (plan: MetricScanPlan) => Array<string> = (
+        plan: MetricScanPlan,
+      ): Array<string> => {
+        return namesOf(plan.metrics).filter((name: string): boolean => {
+          return name.startsWith("checkout.new.");
+        });
+      };
+
+      // Their own share: five in two hours, the next ones the second hour.
+      expect(
+        (first.newMetricsRead.get(SERVICE_KEY) || 0) +
+          (second.newMetricsRead.get(SERVICE_KEY) || 0),
+      ).toBe(5);
+      // So at least five of the six are read within those two hours.
+      expect(
+        new Set([...newOf(first), ...newOf(second)]).size,
+      ).toBeGreaterThanOrEqual(5);
+    });
+
+    test("a new metric among the busiest is read as one of them, its new place left to another", () => {
+      const metrics: Array<MetricToRead> = service(40);
+      const busyAndNew: MetricToRead = metric("checkout.flood", {
+        points: 1_000_000,
+        firstMinute: new Date("2026-10-27T10:30:00.000Z"),
+      });
+      const quietAndNew: MetricToRead = metric("checkout.trickle", {
+        points: 1,
+        firstMinute: new Date("2026-10-27T10:30:00.000Z"),
+      });
+      const plan: MetricScanPlan = scanOf({
+        metrics: [...metrics, busyAndNew, quietAndNew],
+        turn: NOW_HOUR,
+        newSince: NEW_SINCE,
+      });
+
+      expect(namesOf(plan.metrics)).toEqual(
+        expect.arrayContaining(["checkout.flood", "checkout.trickle"]),
+      );
+      expect(plan.newMetricsRead.get(SERVICE_KEY)).toBe(1);
+      expect(plan.metrics).toHaveLength(10);
+    });
+
+    test("half the in-turn reads for new metrics, the odd one every other hour", () => {
+      for (let inTurn: number = 0; inTurn <= 10; inTurn++) {
+        for (let turn: number = NOW_HOUR; turn < NOW_HOUR + 6; turn++) {
+          const two: number =
+            getNewMetricSlots(inTurn, turn) +
+            getNewMetricSlots(inTurn, turn + 1);
+
+          // Over any two hours, exactly the in-turn reads of one.
+          expect(two).toBe(inTurn);
+          expect(getNewMetricSlots(inTurn, turn)).toBeLessThanOrEqual(
+            Math.ceil(inTurn / 2),
+          );
+        }
+      }
+
+      expect(getNewMetricSlots(5, 0)).toBe(2);
+      expect(getNewMetricSlots(5, 1)).toBe(3);
+      expect(getNewMetricSlots(1, 0)).toBe(0);
+      expect(getNewMetricSlots(1, 1)).toBe(1);
+    });
+
+    test("a metric's place on the ring is a number from its name alone: the same on every server, a different one for each name", () => {
+      const position: number = getMetricRotationPosition(
+        "http.server.duration",
+      );
+
+      expect(position).toBe(getMetricRotationPosition("http.server.duration"));
+      expect(Number.isSafeInteger(position)).toBe(true);
+      expect(position).toBeGreaterThanOrEqual(0);
+      expect(position).toBeLessThan(2 ** 48);
+
+      const positions: Set<number> = new Set(
+        namesOf(service(5_000)).map(getMetricRotationPosition),
+      );
+
+      expect(positions.size).toBe(5_000);
+    });
+
+    test("where a store's rotation stopped is read back defensively", () => {
+      expect(
+        readMetricRotationCursor({
+          [METRIC_ROTATION_CURSOR_STATE_KEY]: 123456789,
+          plaintextPasswordFields: [],
+        }),
+      ).toBe(123456789);
+
+      for (const state of [
+        undefined,
+        null,
+        "x",
+        [],
+        {},
+        { [METRIC_ROTATION_CURSOR_STATE_KEY]: -1 },
+        { [METRIC_ROTATION_CURSOR_STATE_KEY]: 1.5 },
+        { [METRIC_ROTATION_CURSOR_STATE_KEY]: 2 ** 48 },
+        { [METRIC_ROTATION_CURSOR_STATE_KEY]: "123" },
+      ] as Array<unknown>) {
+        expect(readMetricRotationCursor(state)).toBeUndefined();
+      }
     });
 
     test("the services share the read: fewer of each when there are many, at least one of each", () => {
@@ -2087,7 +2689,7 @@ describe("a service's metrics", () => {
         perOwner: 10,
         total: 100,
         turn: 0,
-      });
+      }).metrics;
 
       // A hundred metrics for forty services: two of each.
       expect(planned).toHaveLength(80);
@@ -2105,7 +2707,7 @@ describe("a service's metrics", () => {
           perOwner: 10,
           total: 100,
           turn: 0,
-        }),
+        }).metrics,
       ).toHaveLength(200);
     });
 
@@ -2123,11 +2725,12 @@ describe("a service's metrics", () => {
             perOwner: 10,
             total: 100,
             turn: 3,
-          }),
+          }).metrics,
         ),
       ).toEqual(["a", "b", "c"]);
       expect(
-        planMetricsToRead({ metrics: [], perOwner: 10, total: 100, turn: 0 }),
+        planMetricsToRead({ metrics: [], perOwner: 10, total: 100, turn: 0 })
+          .metrics,
       ).toEqual([]);
     });
 
@@ -2190,6 +2793,215 @@ describe("a service's metrics", () => {
           newestMinutePoints: 12,
         },
       ]);
+    });
+  });
+
+  /*
+   * #9755: a service's metrics are read in turn from where the last scan
+   * stopped, which its metrics store keeps - and the ones it started
+   * writing lately come first.
+   */
+  describe("where each service's rotation stopped", () => {
+    const seconds: (iso: string) => string = (iso: string): string => {
+      return String(Math.floor(new Date(iso).getTime() / 1000));
+    };
+
+    function listOf(count: number): Array<JSONObject> {
+      return Array.from({ length: count }, (_: unknown, index: number) => {
+        return {
+          ownerId: CHECKOUT,
+          metricName: `app.metric.${String(index).padStart(2, "0")}`,
+          points: String(1000 - index),
+          newestMinute: newestMinuteNow(),
+          newestMinutePoints: "20",
+          // Written all day: none of them new.
+          firstMinute: String(Math.floor(Date.now() / 1000) - 23 * 3600),
+        };
+      });
+    }
+
+    function readNames(): Array<string> {
+      const [sample] = statements.filter((statement: Statement): boolean => {
+        return (
+          sourceOf(statement) === TelemetrySampleSource.Metrics &&
+          !isOwnersRead(statement) &&
+          !isMetricsList(statement)
+        );
+      });
+
+      return (
+        boundValues(sample!).filter((value: unknown): boolean => {
+          return typeof value === "string" && value.startsWith("app.metric.");
+        }) as Array<string>
+      ).sort();
+    }
+
+    async function scanFrom(
+      cursor: number | undefined,
+    ): Promise<TelemetryStoreScan> {
+      statements = [];
+
+      return storeOf(
+        await scanProjectTelemetry({
+          projectId: PROJECT_ID,
+          sampleSize: 100,
+          since: new Date(Date.now() - 60 * 60 * 1000),
+          options: options(),
+          metricCursors:
+            cursor === undefined
+              ? undefined
+              : new Map([[CHECKOUT.toUpperCase(), cursor]]),
+        }),
+        DataStoreKind.TelemetryMetrics,
+        CHECKOUT,
+      );
+    }
+
+    test("a scan says where it stopped, and the next goes on from there: every metric in turn", async () => {
+      metricListRows = listOf(25);
+
+      const seen: Set<string> = new Set();
+      let cursor: number | undefined = undefined;
+
+      for (let scan: number = 0; scan < 4; scan++) {
+        const metrics: TelemetryStoreScan = await scanFrom(cursor);
+        const state: JSONObject | undefined = metrics.result.nextState;
+
+        cursor = readMetricRotationCursor(state);
+
+        // A number in the store's state, never a metric's name.
+        expect(typeof cursor).toBe("number");
+        expect(Object.keys(state || {})).toEqual([
+          METRIC_ROTATION_CURSOR_STATE_KEY,
+        ]);
+
+        for (const name of readNames()) {
+          seen.add(name);
+        }
+      }
+
+      expect(seen.size).toBe(25);
+    });
+
+    test("a read of its metrics that fails leaves its rotation where it was, so their turn comes again", async () => {
+      metricListRows = listOf(25);
+
+      const first: TelemetryStoreScan = await scanFrom(undefined);
+      const cursor: number = readMetricRotationCursor(first.result.nextState)!;
+      const turnRead: Array<string> = readNames();
+
+      jest
+        .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+        .mockImplementation((async (statement: Statement): Promise<Results> => {
+          statements.push(statement);
+
+          if (isMetricsList(statement)) {
+            return answer(metricListRows);
+          }
+
+          if (
+            sourceOf(statement) === TelemetrySampleSource.Metrics &&
+            !isOwnersRead(statement)
+          ) {
+            throw new Error("Code: 241. Memory limit exceeded.");
+          }
+
+          return answer(
+            (isOwnersRead(statement) ? ownerRows : sampleRows)[
+              sourceOf(statement)
+            ] || [],
+          );
+        }) as never);
+
+      const failed: TelemetryStoreScan = await scanFrom(cursor);
+
+      expect(failed.result.isComplete).toBe(false);
+      expect(readMetricRotationCursor(failed.result.nextState)).toBe(cursor);
+      expect(turnRead.length).toBeGreaterThan(0);
+    });
+
+    test("when no list of its metrics can be read, the rotation is kept as it was", async () => {
+      jest
+        .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+        .mockImplementation((async (statement: Statement): Promise<Results> => {
+          statements.push(statement);
+
+          if (isMetricsList(statement)) {
+            throw new Error("Code: 60. Table does not exist.");
+          }
+
+          return answer(
+            (isOwnersRead(statement) ? ownerRows : sampleRows)[
+              sourceOf(statement)
+            ] || [],
+          );
+        }) as never);
+
+      const metrics: TelemetryStoreScan = await scanFrom(424242);
+
+      expect(readMetricRotationCursor(metrics.result.nextState)).toBe(424242);
+    });
+
+    test("a metric the service started writing lately is read the scan it first writes, and the read log says so", async () => {
+      metricListRows = [
+        ...listOf(25),
+        {
+          ownerId: CHECKOUT,
+          metricName: "app.metric.deployed",
+          points: "3",
+          newestMinute: newestMinuteNow(),
+          newestMinutePoints: "1",
+          firstMinute: seconds(
+            new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+          ),
+        },
+      ];
+
+      const metrics: TelemetryStoreScan = await scanFrom(
+        // Where the rotation would be nowhere near it.
+        getMetricRotationPosition("app.metric.deployed") + 1,
+      );
+
+      expect(readNames()).toContain("app.metric.deployed");
+      expect(metrics.result.readLog[0]).toContain(
+        "its busiest, 1 it started writing in the last 2 hours, and others in turn",
+      );
+    });
+
+    test("the rollup's first minute, read defensively: never after its newest, never none", () => {
+      const rows: Array<JSONObject> = [
+        {
+          ownerId: CHECKOUT,
+          metricName: "a",
+          points: "1",
+          newestMinute: seconds("2026-10-27T10:59:00.000Z"),
+          newestMinutePoints: "1",
+          firstMinute: seconds("2026-10-27T10:41:00.000Z"),
+        },
+        // From the points: no first minute.
+        {
+          ownerId: CHECKOUT,
+          metricName: "b",
+          points: "1",
+          newestMinute: seconds("2026-10-27T10:59:00.000Z"),
+          newestMinutePoints: "1",
+          firstMinute: "0",
+        },
+        // A first minute after its newest is no first minute.
+        {
+          ownerId: CHECKOUT,
+          metricName: "c",
+          points: "1",
+          newestMinute: seconds("2026-10-27T10:59:00.000Z"),
+          newestMinutePoints: "1",
+          firstMinute: seconds("2026-10-27T11:30:00.000Z"),
+        },
+      ];
+      const [a, b, c] = readMetricsToRead(rows, new Set([CHECKOUT]));
+
+      expect(a?.firstMinute).toEqual(new Date("2026-10-27T10:41:00.000Z"));
+      expect(b?.firstMinute).toBeUndefined();
+      expect(c?.firstMinute).toBeUndefined();
     });
   });
 

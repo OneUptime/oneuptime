@@ -143,6 +143,8 @@ Nogle få svar beregnes på forespørgsel i stedet for at blive gemt. Hver af de
 | `/data-store/<id>/scan-now` | **Scan nu**: tager prøver af datalagerets indhold nu |
 | `/data-store/<id>/check-now` | **Kontrollér nu**: læser datalagerets konfiguration igen og kører dets kontroller |
 | `/data-store-finding/<id>/scrub` | **Rens** på et telemetrifund |
+| `/data-store-finding/<id>/drop-metric-impact` | Hvad **Kassér denne metrik** ville kassere for et fund i en metriks navn: hvor mange metrikker, og de monitorer og dashboards, der læser dem |
+| `/data-store-finding/<id>/drop-metric` | **Kassér denne metrik**: en metrik-pipelineregel, der for altid kasserer de nye datapunkter fra tjenestens metrikker med sådan et navn. Den tager `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Forklar med AI** på et problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Ret med AI** på et problem |
 | `/data-store/<id>/response-actions` | Hvilke responshandlinger datalageret kan udføre nu, og hvorfor ikke |

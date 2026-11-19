@@ -48,7 +48,7 @@ Stel in **Te bewaken spans** de velden **Span-status** en **Spannaam bevat** in.
 
 ### Verder verfijnen (optioneel)
 
-Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut, of om alleen de spans te tellen die minstens een bepaalde tijd duurden.
+Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut, om alleen de spans te tellen die minstens een bepaalde tijd duurden, of om met **Groeperen op attributen** één waarschuwing per waarde van een attribuut te geven.
 
 ### Zeggen wanneer er gewaarschuwd wordt
 
@@ -77,8 +77,9 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Spans van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Spans waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
 | **Duurt minstens (ms)** (onder **Meer velden**) | Spans die zo lang of langer duurden, in milliseconden, zoals 5000 voor een koude start van vijf seconden. | Leeg: elke duur |
+| **Groeperen op attributen** (onder **Meer velden**) | Geen filter: één telling, en één waarschuwing of incident, per combinatie van de waarden van deze attributen. Zie [Eén waarschuwing per groep](#eén-waarschuwing-per-groep). | Leeg: alle overeenkomende spans worden samen geteld |
 
-Alle filters die u instelt, moeten overeenkomen voordat een span wordt geteld.
+Alle filters die u instelt, moeten overeenkomen voordat een span wordt geteld. De spans achter een waarschuwing of incident dat de monitor opent, worden met dezelfde filters getoond, **Duurt minstens (ms)** inbegrepen als filter **Duur**, zodat het precies de spans zijn die hij heeft geteld.
 
 ### Span-statuscodes
 
@@ -99,6 +100,14 @@ Als u wilt dat geslaagde verzoeken als OK worden weergegeven, voeg dan onder **T
 - **Criteria van boven naar beneden.** Het eerste criterium dat overeenkomt, beslist, dus zet het ernstigste bovenaan.
 
 Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlijn** van de monitor.
+
+## Eén waarschuwing per groep
+
+Met **Groeperen op attributen** ingesteld telt de monitor de overeenkomende spans per combinatie van de waarden van de attributen, en elke groep geeft haar eigen waarschuwing of incident en lost die zelf op. De aanbeveling **Device Stopped Reporting** van een mobiele app groepeert op `resource.app.installation.id`, één groep per installatie van de app.
+
+Een apparaat dat geen spans meer verstuurt, laat in het venster geen span achter om een groep van te maken. Daarom telt een gegroepeerde monitor waarvan de regel ook bij nul spans kan overeenkomen, zoals **Minder dan** `1`, ook elke groep die in de week voor het venster spans verstuurde en erin geen, als 0. Een groep die langer dan die week stil is, valt weg, en haar waarschuwing wordt opgelost.
+
+Als geen van de groepen een span verstuurt, is de hele app stil geworden, niet één apparaat: geen enkele groep waarschuwt, en de open waarschuwingen blijven open tot er spans binnenkomen. Een niet-gegroepeerde monitor, zoals **App Stopped Reporting**, waarschuwt daarvoor. Per controle worden hoogstens 100 groepen beoordeeld, de stille eerst.
 
 ## Criteria
 

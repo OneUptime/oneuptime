@@ -1002,6 +1002,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                */
               "require sso for login",
               "force sso for login",
+              /*
+               * The verified domains each provider serves, by which Sign in
+               * with SSO finds it (#9824).
+               */
+              "sso domains",
+              "email domains",
             ],
             settings: [
               "SAML",

@@ -41,6 +41,10 @@ import fs from "fs";
 import path from "path";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 import { pathArrowPattern, pathWithArrows } from "./DocsPageShape";
+import {
+  RumAlertTemplate,
+  getAllRumAlertTemplates,
+} from "Common/Types/Monitor/RumAlertTemplates";
 
 /*
  * Docs overhaul task 10: the Logs, Metrics, Traces, Exceptions and Profiles
@@ -207,6 +211,13 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Create Domain",
     "Edit Domain",
   ],
+  /*
+   * A mobile app's recommendations, as their cards name them: a card draws
+   * the template's name as written (RumAlertTemplates), in every language
+   * (#9711, #9713, #9716).
+   */
+  [TRACES_MONITOR]: ["Device Stopped Reporting", "App Stopped Reporting"],
+  [EXCEPTIONS_MONITOR]: ["App Crashes", "App Crash Rate", "App ANR Rate"],
 };
 
 interface FlatLookupLabel {
@@ -864,7 +875,14 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("keep in English on purpose only plans and permissions the English page bolds", () => {
+  it("keep in English on purpose only plans, permissions and recommendation names the English page bolds", () => {
+    // A recommendation's card draws its template's name as written.
+    const recommendationNames: Array<string> = getAllRumAlertTemplates().map(
+      (template: RumAlertTemplate): string => {
+        return template.name;
+      },
+    );
+
     for (const page of Object.keys(KEPT_IN_ENGLISH)) {
       const labels: Array<string> = boldLabels(englishPage(page));
 
@@ -873,7 +891,10 @@ describe("the lists this test keeps", () => {
           page,
           name,
           bold: labels.includes(name),
-          why: PLANS.includes(name) || isPermissionTitleKeptInEnglish(name),
+          why:
+            PLANS.includes(name) ||
+            isPermissionTitleKeptInEnglish(name) ||
+            recommendationNames.includes(name),
         });
       }
     }

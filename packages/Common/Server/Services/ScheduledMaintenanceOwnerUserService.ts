@@ -5,6 +5,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
@@ -68,6 +69,12 @@ export class Service extends ProjectReferencesService<Model> {
           props: {
             isRoot: true,
           },
+        });
+
+        // Someone only invited is named as the project knows them (#9823).
+        await PendingInviteeProfiles.nameInProject({
+          users: [user],
+          projectId: projectId,
         });
 
         if (user && user.name) {

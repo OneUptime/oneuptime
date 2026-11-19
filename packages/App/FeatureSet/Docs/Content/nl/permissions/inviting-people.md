@@ -43,7 +43,7 @@ Klik op **Gebruiker uitnodigen**. Het dialoogvenster **Nieuwe gebruiker uitnodig
 
 ### Het e-mailadres invullen
 
-Vul het adres in bij **E-mail**. Terwijl u typt, stelt **E-mail** personen uit het project voor op naam of adres, en laat het zien wie **Uitgenodigd** is en wie **Al in dit team** zit: klik op een persoon om het adres in te vullen. Op een zelfgehoste server krijgt een hoofdbeheerder ook de andere accounts van de server aangeboden, gemarkeerd met **Nog niet in dit project**, en iedereen die mensen mag uitnodigen ook, zodra een hoofdbeheerder dat toestaat in het Admin Dashboard. Voor een adres dat u zelf typt, vraagt het dialoogvenster ook om een **Naam**, die optioneel is: heeft deze persoon nog geen OneUptime-account, dan wordt het met die naam aangemaakt.
+Vul het adres in bij **E-mail**. Terwijl u typt, stelt **E-mail** personen uit het project voor op naam of adres, en laat het zien wie **Uitgenodigd** is en wie **Al in dit team** zit: klik op een persoon om het adres in te vullen. Op een zelfgehoste server krijgt een hoofdbeheerder ook de andere accounts van de server aangeboden, gemarkeerd met **Nog niet in dit project**, en iedereen die mensen mag uitnodigen ook, zodra een hoofdbeheerder dat toestaat in het Admin Dashboard. Voor een adres dat u zelf typt, vraagt het dialoogvenster ook om een **Naam**, die optioneel is: heeft deze persoon nog geen OneUptime-account, dan wordt het met die naam aangemaakt. Tot de persoon accepteert, toont het project die persoon met die naam, of alleen met het adres, nooit met de naam of foto van het eigen account. De uitnodigingsformulieren in het Admin Dashboard stellen personen op dezelfde manier voor.
 
 ### Het team kiezen
 
@@ -61,9 +61,9 @@ Op een zelfgehoste server die nog geen e-mail kan versturen, gaat er geen e-mail
 
 ## Een uitnodiging accepteren
 
-De uitnodigingsmail noemt het project en wie de persoon heeft uitgenodigd. De knop erin is **Create Your Account** voor wie nog geen OneUptime-account heeft, en **Sign In to OneUptime** voor wie er al een heeft.
+De uitnodigingsmail noemt het project en wie de persoon heeft uitgenodigd. De knop erin is **Create Your Account** voor wie nog geen OneUptime-account heeft, en **Sign In to OneUptime** voor wie er al een heeft. Gaat SSO de aanmelding van de persoon beheren, omdat het project de aanmelding van zijn mensen met SSO beheert en elk ander project waartoe de persoon behoort ook, of omdat de hele server SSO vereist, dan zegt de mail dat in plaats daarvan, en de knop erin is **Sign In with SSO**.
 
-**Create Your Account** opent de registratiepagina met het adres en de naam die u typte al ingevuld, en zegt welk project de persoon uitnodigt en wie. Wie zich daar registreert, komt in het project, zonder nog iets te hoeven accepteren.
+**Create Your Account** opent de registratiepagina met het adres en de naam die u typte al ingevuld, en zegt welk project de persoon uitnodigt en wie. Wie zich daar registreert, komt in het project, zonder nog iets te hoeven accepteren. **Sign In with SSO** opent dezelfde pagina, die single sign-on aanbiedt in plaats van een wachtwoord: wie zich daar aanmeldt met een van de identiteitsproviders van het project, komt in het project.
 
 Op een zelfgehoste server die nog geen e-mail kan versturen, krijgt niemand een e-mail: de uitnodigingslink die de persoon in plaats daarvan krijgt, opent dezelfde registratiepagina, of de inlogpagina voor wie al een account heeft.
 
@@ -82,7 +82,7 @@ Na het accepteren zit de persoon meteen in het project, met de machtigingen van 
 
 | Kolom | Wat die toont |
 | --- | --- |
-| **Gebruiker** | Naam en e-mailadres. |
+| **Gebruiker** | Naam en e-mailadres. Tot de persoon accepteert, de naam die u voor die persoon typte, als die er is. |
 | **Teams** | Elk team van het project waarin die persoon zit of waarvoor die is uitgenodigd. |
 | **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan, of **E-mail niet verzonden** als de maildienst de laatste uitnodigingsmail heeft geweigerd. Op een zelfgehoste server die nog geen e-mail kan versturen, in plaats daarvan **Uitgenodigd**: de uitnodiging wordt aangemaakt, maar er gaat geen e-mail uit. |
 

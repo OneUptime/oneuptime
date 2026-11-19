@@ -190,6 +190,53 @@ describe("the announcement forms in the docs", () => {
     }
   });
 
+  /*
+   * The line says what the status pages picked will do (#9775): it does not
+   * promise that subscribers are notified when none of the pages shows
+   * announcements or the ones that do send nothing, and a ticked notify box
+   * says why nobody would be told. Every guide says so where it quotes the
+   * line, naming both boxes as the reader's dashboard does.
+   */
+  test("says the line follows the status pages picked, and that a ticked box says why nobody would be told, in every language", () => {
+    expect(ENGLISH_GUIDE).toContain(
+      "It follows the status pages picked as well: when none of them shows announcements, or the ones that do send their subscribers no notifications, it says so instead of saying subscribers are notified.",
+    );
+    expect(ENGLISH_GUIDE).toContain(
+      "Under a ticked **Notify Status Page Subscribers**, and under **Notify subscribers about this update** on the announcement's Edit, a note says why nobody would be told.",
+    );
+
+    for (const language of guideLanguages()) {
+      const quoted: string = [
+        ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded,
+        ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
+      ]
+        .map((sentence: string): string => {
+          return labelIn(language, sentence);
+        })
+        .join(" ");
+
+      // The paragraph that quotes the line.
+      const paragraph: string | undefined = readGuide(language)
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes(quoted);
+        });
+
+      expect(`${language}: ${Boolean(paragraph)}`).toBe(`${language}: true`);
+
+      for (const box of [
+        "Notify Status Page Subscribers",
+        "Notify subscribers about this update",
+      ]) {
+        const label: string = `**${labelIn(language, box)}**`;
+
+        expect(`${language} ${label}: ${paragraph!.includes(label)}`).toBe(
+          `${language} ${label}: true`,
+        );
+      }
+    }
+  });
+
   test("says a status page's own Create picks that page and comes back to it", () => {
     expect(ENGLISH_GUIDE).toContain(
       "Created from a status page, that page is already picked",

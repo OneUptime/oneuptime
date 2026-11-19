@@ -200,9 +200,35 @@ export default class ProjectMemberSearch {
       });
     };
 
+    /*
+     * Someone only invited is not found by their account's own name, which
+     * the project does not see until they join (#9823, PendingInviteeProfiles
+     * narrows the reads above), but by the name typed for them.
+     */
+    const readInvitedByTypedName: () => Promise<
+      Array<TeamMember>
+    > = (): Promise<Array<TeamMember>> => {
+      return TeamMemberService.findBy({
+        query: {
+          projectId: data.projectId,
+          hasAcceptedInvitation: false,
+          inviteeName: new Search(pattern),
+        } as unknown as Query<TeamMember>,
+        select: select,
+        sort: {
+          inviteeName: SortOrder.Ascending,
+        } as unknown as Sort<TeamMember>,
+        limit: PROJECT_MEMBER_SEARCH_READ_LIMIT,
+        skip: 0,
+        props: data.props,
+      });
+    };
+
     const memberships: Array<TeamMember> = (
       await Promise.all(
-        searchesEmails ? [read("name"), read("email")] : [read("name")],
+        searchesEmails
+          ? [read("name"), read("email"), readInvitedByTypedName()]
+          : [read("name"), readInvitedByTypedName()],
       )
     ).flat();
 

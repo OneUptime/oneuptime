@@ -155,7 +155,12 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        const displayName: string = SloFeedUtil.getUserDisplayName(user);
+        const displayName: string =
+          await SloFeedUtil.getUserDisplayNameInProject({
+            user: user,
+            userId: userId,
+            projectId: projectId,
+          });
 
         if (!user || !displayName) {
           continue;

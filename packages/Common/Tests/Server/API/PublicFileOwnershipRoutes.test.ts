@@ -46,6 +46,7 @@ import {
 } from "../../../Server/Utils/Express";
 import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
 import StatusPageEmailLogo from "../../../Server/Utils/StatusPage/StatusPageEmailLogo";
+import PendingInviteeProfiles from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import Response from "../../../Server/Utils/Response";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
@@ -708,6 +709,14 @@ describe("public routes serve only a record's own files", () => {
 
   describe("a person's profile picture", () => {
     function withPicture(createdByUserId: ObjectID | null): void {
+      /*
+       * Who may see the picture at all is PendingInviteeProfiles'
+       * (ProfilePictureReaders.test.ts); here, a reader who may.
+       */
+      jest
+        .spyOn(PendingInviteeProfiles, "maySeePicture")
+        .mockResolvedValue(true);
+
       jest.spyOn(UserService, "findOneBy").mockImplementation((async (data: {
         select: Dictionary<unknown>;
       }) => {

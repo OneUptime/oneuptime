@@ -30,6 +30,7 @@ import {
   getPodSecurityControls,
 } from "./PodSecurityStandards";
 import { PodSecurity } from "../KubernetesPodSecurity";
+import { withMeaningKeyAsItsWord } from "../../MeaningKeys";
 
 /*
  * HOW A CLUSTER STANDS AGAINST EACH KUBERNETES FRAMEWORK (#9627).
@@ -425,11 +426,20 @@ export function scoreKubernetesFramework(
         const turnedOffNamespaces: Array<string> = Array.from(
           exclusions.requirementNamespaces.get(requirement) || [],
         ).sort();
+        /*
+         * The title as English writes it - a key that names its meaning reads
+         * as its word, "Capabilities" - for the API and the exports; the page
+         * words the catalog's key in the reader's language.
+         */
         const base: {
           requirement: string;
           title: string;
           turnedOffNamespaces: Array<string>;
-        } = { requirement, title: control.title, turnedOffNamespaces };
+        } = {
+          requirement,
+          title: withMeaningKeyAsItsWord(control.title),
+          turnedOffNamespaces,
+        };
 
         if (exclusions.turnedOffRequirements.has(requirement)) {
           return {

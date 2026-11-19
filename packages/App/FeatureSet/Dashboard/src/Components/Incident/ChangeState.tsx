@@ -15,6 +15,7 @@ import {
   withPrivateRecordGateOptions,
 } from "Common/UI/Utils/PrivateRecordScope";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import React, {
   FunctionComponent,
@@ -39,7 +40,10 @@ import EventStatusPanel, {
   EventStateItem,
   EventStatusFact,
 } from "../EventView/EventStatusPanel";
-import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  getStateChangeFormFields,
+  getStateChangeRootCauseFields,
+} from "../EventView/StateChangeFormFields";
 import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import {
   BulkStateChangeNoteType,
@@ -712,39 +716,57 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
              * page subscriber (Common/Types/StatusPage/PrivateRecordPublicNotes):
              * its dialog folds a private note under "Add a private note", as
              * an alert's does, and asks nothing about subscribers.
+             *
+             * Resolving it asks for its root cause too, folded under "Add the
+             * root cause" (#7765), offered only to someone who may edit the
+             * incident.
              */
-            fields: getStateChangeFormFields<IncidentStateTimeline>({
-              ...(props.isPrivate
-                ? {
-                    noteType: BulkStateChangeNoteType.Private,
-                    noteDescription: translationKey(
-                      "Post a private note about this state change.",
-                    ),
-                    // Offered only to someone who may post a private note.
-                    noteModel: new IncidentInternalNote(),
-                    noteGateOptions: privateRecordOptions,
-                  }
-                : {
-                    noteType: BulkStateChangeNoteType.Public,
-                    noteDescription: translationKey(
-                      "Post a public note about this state change to the status page.",
-                    ),
-                    notifySubscribers: {
-                      byDefault: notifySubscribersByDefault,
-                      quietDescription:
-                        PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
-                    },
-                    // Offered only to someone who may post a public note.
-                    noteModel: new IncidentPublicNote(),
-                    noteGateOptions: privateRecordOptions,
-                  }),
-              noteTemplates: incidentNoteTemplates.map(
-                toBulkStateChangeNoteTemplate,
+            fields: [
+              ...getStateChangeFormFields<IncidentStateTimeline>({
+                ...(props.isPrivate
+                  ? {
+                      noteType: BulkStateChangeNoteType.Private,
+                      noteDescription: translationKey(
+                        "Post a private note about this state change.",
+                      ),
+                      // Offered only to someone who may post a private note.
+                      noteModel: new IncidentInternalNote(),
+                      noteGateOptions: privateRecordOptions,
+                    }
+                  : {
+                      noteType: BulkStateChangeNoteType.Public,
+                      noteDescription: translationKey(
+                        "Post a public note about this state change to the status page.",
+                      ),
+                      notifySubscribers: {
+                        byDefault: notifySubscribersByDefault,
+                        quietDescription:
+                          PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
+                      },
+                      // Offered only to someone who may post a public note.
+                      noteModel: new IncidentPublicNote(),
+                      noteGateOptions: privateRecordOptions,
+                    }),
+                noteTemplates: incidentNoteTemplates.map(
+                  toBulkStateChangeNoteTemplate,
+                ),
+                fillTemplate: (note: string): string => {
+                  return fillNoteTemplate(note, noteTemplateVariables);
+                },
+              }),
+              // Offered only to someone who may edit the incident.
+              ...getStateChangeRootCauseFields<IncidentStateTimeline>(
+                isResolveTarget
+                  ? {
+                      description: translationKey(
+                        "Why did this incident happen? It is saved as the incident's root cause, and OneUptime AI's investigation is graded against it.",
+                      ),
+                      recordModel: new Incident(),
+                      recordGateOptions: privateRecordOptions,
+                    }
+                  : undefined,
               ),
-              fillTemplate: (note: string): string => {
-                return fillNoteTemplate(note, noteTemplateVariables);
-              },
-            }),
+            ],
             formType: FormType.Create,
           }}
         />

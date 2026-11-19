@@ -1,3 +1,7 @@
+import {
+  StreamedReadingMinute,
+  toStreamedReadingMinute,
+} from "Common/Server/Utils/CloudConnection/CloudStreamReadings";
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
 import {
@@ -18,6 +22,7 @@ import {
 } from "./CloudWatchLogs";
 import {
   MetricResourceFacts,
+  StreamedKeyPoint,
   StreamedSeriesMemory,
   decodeJsonMetricRecord,
   decodeOpenTelemetryMetricRecord,
@@ -48,7 +53,9 @@ import {
  * The delivery's metrics are then kept once for each resource - its own
  * aggregate, never its splits too - and its key metrics written as the
  * connection's read writes them, a gauge of the read's statistic, so the
- * two are one series (shapeStreamedMetrics).
+ * two are one series (shapeStreamedMetrics). Each minute of a metric a
+ * resource's readings keep is noted with the minute's summary
+ * (readingMinutes), for its health and headlines (CloudStreamReadings).
  */
 
 export interface DeliveredMetricsSighting {
@@ -57,6 +64,8 @@ export interface DeliveredMetricsSighting {
   namespaces: Set<string>;
   // The stack that delivered them (CloudStreamStack).
   stack: AwsStreamStack;
+  // When the newest minute of its metrics starts, in milliseconds: null for none.
+  newestMs: number | null;
 }
 
 export interface DeliverySightings {
@@ -85,6 +94,12 @@ export interface DecodedDelivery {
   // Records that were none of the formats, or broke off.
   unrecognized: number;
   sightings: DeliverySightings;
+  /*
+   * Each minute it wrote of a metric a resource's readings keep, with the
+   * minute's summary: what its health and headlines are judged from
+   * (CloudStreamReadings), so the read need not read it from CloudWatch.
+   */
+  readingMinutes: Array<StreamedReadingMinute>;
 }
 
 /*
@@ -244,6 +259,7 @@ export async function decodeFirehoseRecords(data: {
     controlMessages: 0,
     unrecognized: 0,
     sightings: { metrics: new Map(), logs: new Map() },
+    readingMinutes: [],
   };
   const messages: Array<CloudWatchLogsMessage> = [];
   const metricResources: Array<JSONObject> = [];
@@ -305,6 +321,14 @@ export async function decodeFirehoseRecords(data: {
     now: data.now,
     memory: data.seriesMemory,
     stack,
+    onKeyPoint: (point: StreamedKeyPoint): void => {
+      const minute: StreamedReadingMinute | null =
+        toStreamedReadingMinute(point);
+
+      if (minute) {
+        delivery.readingMinutes.push(minute);
+      }
+    },
   });
 
   for (const stamped of shapedResources) {
@@ -329,10 +353,18 @@ export async function decodeFirehoseRecords(data: {
         region: facts.region,
         namespaces: new Set<string>(),
         stack,
+        newestMs: null,
       };
 
       for (const namespace of facts.namespaces) {
         sighting.namespaces.add(namespace);
+      }
+
+      if (
+        facts.newestMs !== null &&
+        facts.newestMs > (sighting.newestMs ?? 0)
+      ) {
+        sighting.newestMs = facts.newestMs;
       }
 
       delivery.sightings.metrics.set(key, sighting);

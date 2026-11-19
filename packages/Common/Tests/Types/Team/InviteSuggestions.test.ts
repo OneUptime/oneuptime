@@ -1,14 +1,17 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  INVITE_SUGGESTIONS_IN_PROJECT_ROUTE,
   INVITE_SUGGESTIONS_LIMIT,
   INVITE_SUGGESTIONS_ROUTE,
   InviteSuggestion,
   InviteSuggestionStanding,
   InviteSuggestionsRequest,
   getInviteSuggestionStanding,
+  getInviteSuggestionsInProjectRoute,
   isInviteSuggestionPickable,
   readInviteSuggestionsAnswer,
+  readInviteSuggestionsProjectId,
   readInviteSuggestionsRequest,
   toInviteSuggestionsAnswerJSON,
 } from "../../../Types/Team/InviteSuggestions";
@@ -60,6 +63,56 @@ describe("the route", () => {
       PROJECT_MEMBER_SEARCH_ROUTE.split("/")[1],
     );
   });
+});
+
+/*
+ * The Admin Dashboard's (#9826): it works in no project, so it names the
+ * project in the path, as a project's id.
+ */
+describe("the Admin Dashboard's route", () => {
+  const PROJECT_ID: string = "44444444-4444-4444-8444-444444444444";
+
+  test("names the project in its path, beside the team member routes", () => {
+    expect(INVITE_SUGGESTIONS_IN_PROJECT_ROUTE).toBe(
+      "/team-member/invite-suggestions-in-project",
+    );
+    expect(getInviteSuggestionsInProjectRoute(PROJECT_ID)).toBe(
+      `/team-member/invite-suggestions-in-project/${PROJECT_ID}`,
+    );
+    expect(getInviteSuggestionsInProjectRoute(` ${PROJECT_ID} `)).toBe(
+      `/team-member/invite-suggestions-in-project/${PROJECT_ID}`,
+    );
+    expect(getInviteSuggestionsInProjectRoute(new ObjectID(PROJECT_ID))).toBe(
+      `/team-member/invite-suggestions-in-project/${PROJECT_ID}`,
+    );
+  });
+
+  test("reads the project's id back from the path, trimmed", () => {
+    expect(readInviteSuggestionsProjectId(PROJECT_ID).toString()).toBe(
+      PROJECT_ID,
+    );
+    expect(readInviteSuggestionsProjectId(` ${PROJECT_ID} `).toString()).toBe(
+      PROJECT_ID,
+    );
+  });
+
+  test.each([[undefined], [null], [""], ["Acme"], [42], [[PROJECT_ID]]])(
+    "refuses %p: not a project's id, said with what to do",
+    (value: unknown) => {
+      let message: string = "";
+
+      try {
+        readInviteSuggestionsProjectId(value);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadDataException);
+        message = (error as Error).message;
+      }
+
+      expect(message).toBe(
+        "The project to suggest people for must be a project's ID. Open the project from the Projects list, then try again.",
+      );
+    },
+  );
 });
 
 describe("the request", () => {

@@ -43,7 +43,7 @@ Klikk på **Inviter bruker**. Dialogen **Inviter ny bruker** åpnes.
 
 ### Skriv inn e-postadressen
 
-Skriv adressen i **E-post**. Mens du skriver, foreslår **E-post** personer i prosjektet etter navn eller adresse, og viser hvem som er **Invitert** og hvem som er **Allerede i dette teamet**: klikk på en av dem for å fylle inn adressen. På en selvhostet server får en hovedadministrator også foreslått serverens andre kontoer, merket **Ikke i dette prosjektet ennå**, og det samme gjør alle som kan invitere personer, når en hovedadministrator tillater det i Admin Dashboard. For en adresse du skriver selv, ber dialogen også om et **Navn**, som er valgfritt: har personen ingen OneUptime-konto ennå, opprettes den med det navnet.
+Skriv adressen i **E-post**. Mens du skriver, foreslår **E-post** personer i prosjektet etter navn eller adresse, og viser hvem som er **Invitert** og hvem som er **Allerede i dette teamet**: klikk på en av dem for å fylle inn adressen. På en selvhostet server får en hovedadministrator også foreslått serverens andre kontoer, merket **Ikke i dette prosjektet ennå**, og det samme gjør alle som kan invitere personer, når en hovedadministrator tillater det i Admin Dashboard. For en adresse du skriver selv, ber dialogen også om et **Navn**, som er valgfritt: har personen ingen OneUptime-konto ennå, opprettes den med det navnet. Til personen godtar, viser prosjektet personen med det navnet eller bare med adressen, aldri med navnet eller bildet fra personens egen konto. Invitasjonsskjemaene i Admin Dashboard foreslår personer på samme måte.
 
 ### Velg teamet
 
@@ -61,9 +61,9 @@ På en selvhostet server som ikke kan sende e-post ennå, sendes ingen e-post, o
 
 ## Godta en invitasjon
 
-Invitasjonsmeldingen nevner prosjektet og hvem som inviterte personen. Knappen i den er **Create Your Account** for den som ikke har en OneUptime-konto ennå, og **Sign In to OneUptime** for den som har en.
+Invitasjonsmeldingen nevner prosjektet og hvem som inviterte personen. Knappen i den er **Create Your Account** for den som ikke har en OneUptime-konto ennå, og **Sign In to OneUptime** for den som har en. Når SSO skal styre personens pålogging, fordi prosjektet styrer påloggingen til personene sine med SSO, og det gjør alle de andre prosjektene personen hører til, også, eller fordi hele serveren krever SSO, sier meldingen det i stedet, og knappen i den er **Sign In with SSO**.
 
-**Create Your Account** åpner registreringssiden med adressen og navnet du skrev inn allerede fylt ut, og sier hvilket prosjekt som inviterte personen, og hvem. Den som registrerer seg der, blir med i prosjektet uten mer å godta.
+**Create Your Account** åpner registreringssiden med adressen og navnet du skrev inn allerede fylt ut, og sier hvilket prosjekt som inviterte personen, og hvem. Den som registrerer seg der, blir med i prosjektet uten mer å godta. **Sign In with SSO** åpner den samme siden, som tilbyr single sign-on i stedet for passord: den som logger inn der med en av prosjektets identitetsleverandører, blir med i prosjektet.
 
 På en selvhostet server som ikke kan sende e-post ennå, får ingen e-post: Invitasjonslenken personen får i stedet, åpner den samme registreringssiden, eller innloggingssiden for den som allerede har en konto.
 
@@ -82,7 +82,7 @@ Når personen godtar, er den med i prosjektet med en gang, med teamets tillatels
 
 | Kolonne | Hva den viser |
 | --- | --- |
-| **Bruker** | Navn og e-postadresse. |
+| **Bruker** | Navn og e-postadresse. Til personen godtar, navnet du skrev inn for personen, hvis det finnes. |
 | **Team** | Hvert av prosjektets team personen er med i eller invitert til. |
 | **Status** | **Medlem** når personen har blitt med, med antallet invitasjoner til andre team som ikke er godtatt ennå. **Invitasjon sendt** til da, eller **E-post ikke sendt** når e-posttjenesten avviste den siste invitasjonsmeldingen. På en selvhostet server som ikke kan sende e-post ennå, **Invitert** i stedet: invitasjonen opprettes, men ingen e-post sendes. |
 

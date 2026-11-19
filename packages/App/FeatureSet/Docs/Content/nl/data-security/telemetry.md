@@ -8,6 +8,7 @@ Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand,
 - [Wat wordt gelezen](#wat-wordt-gelezen): De attributen, bodies, berichten en prompts van elk signaal.
 - [Hoe een scan bemonstert](#hoe-een-scan-bemonstert): De nieuwste records van elke service, elk uur.
 - [Opschonen](#opschonen): Maskeer een bevinding bij de inname, met één klik.
+- [Deze metriek verwerpen](#deze-metriek-verwerpen): Sla de metrieken waarvan de naam gevoelige gegevens bevat niet meer op.
 - [Wat telt als opgeschoond](#wat-telt-als-opgeschoond): Wanneer een opschoonregel een bevinding al dekt.
 :::
 
@@ -42,8 +43,9 @@ Genummerde sleutels worden samengevoegd tot één locatie: `gen_ai.prompt.3.cont
 
 De attributen van een metriek zijn de labels van haar reeksen. Ze zijn op elk datapunt van een reeks gelijk, dus een metriek die duizend punten per minuut schrijft, bevat misschien maar drie waarden, en een label dat het e-mailadres van een gebruiker lekt, voegt een reeks toe, geen punt. Daarom wordt een metriek per reeks bemonsterd, niet per punt:
 
-- **De nieuwste minuut.** Elke metriek wordt gelezen in de nieuwste minuut die ze in het laatste uur schreef: tot 100 datapunten van die minuut, wat voor een metriek die eens per minuut wordt verstuurd, zoals OpenTelemetry standaard doet, één punt van elke reeks is. Een waarde wordt één keer geclassificeerd, hoeveel punten haar ook herhalen, dus een bevinding telt de verschillende waarden op haar locatie.
-- **De drukste eerst, de rest om de beurt.** Welke metrieken een service schreef, komt uit het overzicht per minuut dat de metriektabel bijhoudt, nooit uit de punten zelf. Elke scan leest de drukste metrieken van een service, die de meeste kans hebben op veel reeksen, en een paar van de andere, elk uur de volgende, zodat elke metriek aan de beurt komt.
+- **Een punt van elke reeks.** Elke metriek wordt gelezen in de nieuwste minuut die ze in het laatste uur schreef: één datapunt van elk van maximaal 100 reeksen van die minuut, hoe vaak de metriek ook wordt verstuurd, zodat een drukke reeks nooit een rustige verdringt. Een waarde wordt één keer geclassificeerd, hoeveel reeksen haar ook herhalen, dus een bevinding telt de verschillende waarden op haar plek.
+- **Nieuwe metrieken eerst, dan de rest om de beurt.** Welke metrieken een service schreef, en wanneer elke metriek de afgelopen dag voor het eerst schreef, komt uit het overzicht per minuut dat de metriektabel bijhoudt, nooit uit de punten zelf. Elke scan leest de drukste metrieken van een service, die de meeste kans hebben op veel reeksen. Dan komen de metrieken die de service de afgelopen 2 uur is gaan schrijven, omdat een nieuw lek meestal uit nieuwe code komt, en daarna de volgende van haar andere metrieken, in een vaste volgorde, vanaf waar de vorige scan stopte. Nieuwe metrieken nemen hoogstens de helft van die beurten, zodat de andere altijd de hunne houden.
+- **Elke metriek binnen een vaste tijd.** Bij een service met M metrieken, waarvan elke scan er 10 leest, wordt elke metriek minstens eens per M ÷ 5 uur gelezen, naar boven afgerond: 60 uur voor een service met 300 metrieken. Zolang ze elk uur nieuwe metrieken begint, is het hoogstens twee keer zo lang.
 - **Het eigen bereik van elke metriek.** De metrieken worden samen gelezen, elke metriek via haar eigen bereik van de primaire sleutel van de tabel. Een metriek waarvan de nieuwste minuut meer dan 16.384 punten bevat, zoals een metriek met het e-mailadres van elke gebruiker als label, wordt apart gelezen, en de leesbeurt stopt bij haar eerste punten, zodat ze niet meer kost dan elke andere metriek.
 
 Een bevinding noemt het attribuut, zoals `attributes.user.email`, of `name` voor gegevens in de naam van een metriek. Haar records zijn de datapunten waarin ze is gevonden: elk toont zijn metriek en de waarde van het attribuut, gemaskeerd, en opent in **Metrieken** op die metriek, gegroepeerd op dat attribuut. Bevat de naam van een metriek gevoelige gegevens, dan wordt ook de naam gemaskeerd, en opent het record in plaats daarvan de metrieken van de service.
@@ -73,8 +75,9 @@ Elk uur worden van elk signaal de nieuwste records van het laatste uur gelezen, 
 | Attributen van één record | 128; 64 voor een AI-aanroep |
 | Events van één span, en attributen van één event | 16 en 32 |
 | Locaties van één opslag | 500 |
-| Metrieken die in één scan worden gelezen | 100, verdeeld over de services, minstens één van elke service; hoogstens 10 van één service, de helft de drukste en de helft om de beurt de andere |
-| Datapunten van één metriek | Die van de nieuwste minuut, hoogstens 100 |
+| Metrieken die in één scan worden gelezen | 100, verdeeld over de services, minstens één van elke service; hoogstens 10 van één service, de helft de drukste en de helft om de beurt de nieuwe en de andere |
+| Een nieuwe metriek | Een metriek waarvan het eerste punt van de afgelopen 24 uur in de afgelopen 2 uur binnenkwam |
+| Reeksen van één metriek | Eén datapunt van elke reeks, uit de nieuwste minuut, hoogstens 100 |
 
 Elke waarde wordt al in de database ingekort, zodat er geen lange waarde uit vertrekt, en elke leesbeurt stopt na 30 seconden. Een leesbeurt die mislukt, is een waarschuwing op de opslagen waarvoor ze bedoeld was; de scan gaat verder met de volgende.
 
@@ -114,9 +117,20 @@ Sommige bevindingen kan geen regel opschonen, en **Opschonen** zegt waarom. Het 
 - Een documentmarkering: het woord verbergen verbergt het document niet.
 - Een van je eigen gegevenstypen: voeg zelf een aangepaste opschoonregel met zijn patroon toe.
 - De eigen gegevens van een sessie (`sessions.*`): de inname van sessieherhalingen voert geen opschoonregels uit.
-- De naam van een metriek (`name`): de code die de metriek maakt, stelt hem in, en een pipelineregel kan een metriek alleen als geheel hernoemen. Hernoem de metriek, en stuur wat in de naam varieert in plaats daarvan als attribuut.
+- De naam van een metriek (`name`): de code die de metriek maakt, stelt hem in, en een pipelineregel kan een metriek alleen als geheel hernoemen. Hernoem de metriek, en stuur wat in de naam varieert in plaats daarvan als attribuut. Tot dan kan **Deze metriek verwerpen** het opslaan van die metrieken stoppen.
 
 **Opschonen** maakt de regel namens jou, met je eigen machtigingen: Projecteigenaren en Projectbeheerders kunnen erop drukken, en ook een team dat opschoonregels voor logs mag maken, opschoonregels voor traces voor spans, uitzonderingen en AI-aanroepen, en pipelineregels voor metrieken.
+
+## Deze metriek verwerpen
+
+Geen regel haalt de gegevens uit de naam van een metriek, dus tot de code die de metriek een naam geeft is gerepareerd, blijven de gegevens binnenkomen. **Deze metriek verwerpen** op een bevinding in de naam van een metriek stopt het opslaan van de metrieken waarvan de naam ze bevat, ten koste van hun gegevens, en gebeurt dus alleen als je erom vraagt:
+
+- **De metrieken van één service.** Het maakt een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding: elk nieuw datapunt van een metriek waarvan de naam dat gegevenstype bevat, wordt verworpen voordat het wordt opgeslagen. Het filter is het patroon dat **Opschonen** voor het type gebruikt, dus een type dat geen patroon kan vinden, zoals de naam van een persoon, kan niet worden verworpen, en het dialoogvenster zegt waarom.
+- **Gezegd voordat het gebeurt.** Het dialoogvenster zegt dat die datapunten voorgoed verloren gaan, hoeveel van de metrieken van de service die de afgelopen dag zijn geschreven zo'n naam hebben, welke monitoren en dashboards ze lezen en dus geen nieuwe gegevens meer krijgen, dat wat al is opgeslagen blijft tot de bewaartermijn afloopt, en hoe je het ongedaan maakt. Er wordt niets verworpen voordat je aanvinkt dat je het begrijpt.
+- **Namens jou, en vastgelegd.** De regel wordt gemaakt met je eigen machtiging om pipelineregels voor metrieken te maken: Projecteigenaren en Projectbeheerders kunnen hem maken, en ook een team dat pipelineregels voor metrieken mag maken. De auditlogboeken leggen vast wie hem heeft gemaakt.
+- **Ongedaan te maken door de regel te verwijderen.** De regel krijgt de naam van wat hij verwerpt, zoals "Data Security: drop metrics named with Email address", en staat bij je andere pipelineregels voor metrieken onder **Metrieken → Instellingen → Pipelineregels**. Verwijder hem of zet hem uit, en die metrieken worden vanaf dan weer opgeslagen. Wat in de tussentijd is verworpen, komt niet terug.
+
+De bevinding wordt dan gemarkeerd als **Verworpen** en telt als opgeschoond: van die gegevens wordt niets meer opgeslagen.
 
 ## Wat telt als opgeschoond
 
@@ -127,6 +141,7 @@ Een bevinding wordt alleen als opgeschoond gemarkeerd wanneer de inname er een i
 - **Een patroon dat het type vindt.** Een ingebouwd **Patroontype** vindt zijn eigen gegevenstype: **E-mailadres** vindt e-mailadressen, **Creditcardnummer** kaartnummers, **SSN (burgerservicenummer)** Amerikaanse socialezekerheidsnummers, **Telefoonnummer** telefoonnummers en **IP-adres** IP-adressen. **Gevoelige attribuutsleutels** dekt elke waarde onder een sleutel die gevoelig lijkt, wat de waarde ook is.
 - **Je eigen aangepaste patronen tellen nooit.** Een **Aangepaste reguliere expressie** dekt een bevinding alleen als ze precies het patroon is dat **Opschonen** voor haar type maakt. Een bevinding bewaart alleen gemaskeerde voorbeelden, waarop geen patroon kan worden uitgeprobeerd, dus OneUptime kan niet bewijzen dat je patroon de gegevens verbergt, en een bevinding die ten onrechte opgeschoond heet, is een lek waar niemand naar kijkt.
 - **Het attribuut van een metriek.** Een pipelineregel voor metrieken van het type **Kenmerk weglakken** of **Kenmerk verwijderen** op de sleutel van dat attribuut, voor de service van de bevinding of voor het hele project, dekt haar als de regel geen filter heeft, of precies het filter dat **Opschonen** maakt. Een filter dat je zelf schreef, telt nooit, om dezelfde reden.
+- **De naam van een metriek.** Een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding of voor het hele project dekt haar als de regel precies het filter heeft dat **Deze metriek verwerpen** maakt, of helemaal geen filter, waarmee hij geen enkele metriek van de service opslaat. Zo'n regel zonder filter dekt elke bevinding in die metrieken.
 
 Een regel die uit staat, of die niets opschoont, telt nooit. De dekking wordt na elke scan opnieuw bepaald, dus een regel die je met de hand toevoegt of verwijdert, verandert binnen het uur wat als opgeschoond is gemarkeerd.
 

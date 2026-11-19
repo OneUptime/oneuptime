@@ -318,6 +318,9 @@ export type UnrecordedPullRequest = Omit<RecordPullRequestOptions, "taskId">;
  */
 const RECORD_PULL_REQUEST_RETRIES: number = 3;
 
+// The least a context window the server sends may be to be read as one.
+const MIN_REPORTED_CONTEXT_WINDOW_TOKENS: number = 1_024;
+
 /*
  * Server-mediated LLM completion (B4 Tier 0): the in-house code agent's
  * tool loop calls POST /api/ai-agent-data/llm-completion per turn. The
@@ -386,6 +389,12 @@ export interface LlmCompletionResult {
   // The run's limits after this call; null from a server from before #6440.
   limits: CodeAgentRunLimits | null;
   budget: LlmCompletionBudget;
+  /*
+   * How many tokens one request to the model may hold, prompt and answer
+   * together (issue #6530): what the agent sizes its conversation to. Null
+   * when the server cannot tell, or is from before it said.
+   */
+  contextWindowTokens: number | null;
 }
 
 /*
@@ -404,6 +413,7 @@ interface LlmCompletionResponse {
   stopReason?: "stop" | "tool_use";
   limits?: unknown;
   budget?: LlmCompletionBudget;
+  contextWindowTokens?: unknown;
 }
 
 /*
@@ -1036,7 +1046,28 @@ export default class BackendAPI {
         outputTokensUsed: 0,
         maxOutputTokens: Number.MAX_SAFE_INTEGER,
       },
+      contextWindowTokens: BackendAPI.readContextWindowTokens(
+        responseData.contextWindowTokens,
+      ),
     };
+  }
+
+  /*
+   * A model's context window as the server says it: a whole number of
+   * tokens a request may hold, or null - nothing said (a server from before
+   * #6530, or a model it cannot tell), or something that is not one. The
+   * agent keeps its default size for null.
+   */
+  public static readContextWindowTokens(raw: unknown): number | null {
+    if (
+      typeof raw !== "number" ||
+      !Number.isFinite(raw) ||
+      raw < MIN_REPORTED_CONTEXT_WINDOW_TOKENS
+    ) {
+      return null;
+    }
+
+    return Math.floor(raw);
   }
 
   /*

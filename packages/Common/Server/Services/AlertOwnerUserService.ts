@@ -9,6 +9,7 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AlertOwnerUser";
 import UserService from "./UserService";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
@@ -113,6 +114,12 @@ export class Service extends ProjectReferencesService<Model> {
           props: {
             isRoot: true,
           },
+        });
+
+        // Someone only invited is named as the project knows them (#9823).
+        await PendingInviteeProfiles.nameInProject({
+          users: [user],
+          projectId: projectId,
         });
 
         if (user && user.name) {

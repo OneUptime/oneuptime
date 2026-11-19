@@ -16,7 +16,9 @@ import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, {
+  ModelAPIHttpResponse,
+} from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import React, { useEffect, useRef, useState } from "react";
@@ -43,6 +45,9 @@ const VerifyEmail: () => JSX.Element = () => {
    * is the one this token was sent to.
    */
   const [linkToken, setLinkToken] = useState<string>("");
+
+  // The link moved its account to a new address rather than verifying one.
+  const [isEmailChanged, setIsEmailChanged] = useState<boolean>(false);
 
   const successHeadingRef: React.RefObject<HTMLHeadingElement> =
     useRef<HTMLHeadingElement>(null);
@@ -71,15 +76,22 @@ const VerifyEmail: () => JSX.Element = () => {
         new EmailVerificationToken();
       emailverificationToken.token = new ObjectID(token);
 
-      await ModelAPI.createOrUpdate<EmailVerificationToken>({
-        model: emailverificationToken,
-        modelType: EmailVerificationToken,
-        formType: FormType.Create,
-        miscDataProps: {},
-        requestOptions: {
-          overrideRequestUrl: apiUrl,
-        },
-      });
+      const response: ModelAPIHttpResponse<EmailVerificationToken> =
+        await ModelAPI.createOrUpdate<EmailVerificationToken>({
+          model: emailverificationToken,
+          modelType: EmailVerificationToken,
+          formType: FormType.Create,
+          miscDataProps: {},
+          requestOptions: {
+            overrideRequestUrl: apiUrl,
+          },
+        });
+
+      /*
+       * The link confirmed a new address for an account (#9821): the
+       * account now has it, and the page says so.
+       */
+      setIsEmailChanged(response.miscData?.["emailChanged"] === true);
 
       // Verified; the token is spent and must not outlive the page.
       SensitiveUrlToken.clear();
@@ -165,10 +177,14 @@ const VerifyEmail: () => JSX.Element = () => {
                 tabIndex={-1}
                 className="text-xl font-semibold tracking-tight text-gray-900 focus:outline-none sm:text-2xl"
               >
-                {t("verifyEmail.successTitle")}
+                {isEmailChanged
+                  ? t("verifyEmail.emailChangedTitle")
+                  : t("verifyEmail.successTitle")}
               </h1>
               <p className="mt-3 px-2 text-sm leading-relaxed text-gray-600 sm:px-0 sm:text-base">
-                {t("verifyEmail.successDescription")}
+                {isEmailChanged
+                  ? t("verifyEmail.emailChangedDescription")
+                  : t("verifyEmail.successDescription")}
               </p>
               {/*
                * Verifying signs nobody in -- the link is a bearer secret sat

@@ -5,6 +5,7 @@ OpenTelemetry से किसी Android, iOS या React Native ऐप को
 :::cards
 - [OneUptime को क्या चाहिए](#oneuptime-को-क्या-चाहिए): दो रिसोर्स एट्रिब्यूट, सर्वर कुंजी के साथ भेजे गए।
 - [अपना प्लेटफ़ॉर्म सेट करें](#अपना-प्लेटफ़ॉर्म-सेट-करें): Android, iOS, React Native और बाकी।
+- [iOS पर क्रैश और हैंग](#ios-पर-क्रैश-और-हैंग): अपवाद में और अवलोकन पर MetricKit के डायग्नोस्टिक।
 - [जाँचें कि डेटा पहुँचता है](#जाँचें-कि-डेटा-पहुँचता-है): कुंजी जाँचें, फिर ऐप ढूँढें।
 - [मोबाइल पर सेशन रीप्ले](#मोबाइल-पर-सेशन-रीप्ले): React Native ऐप्स की रिकॉर्डिंग।
 :::
@@ -167,6 +168,63 @@ OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acm
 
 SDK एंडपॉइंट में `/v1/traces`, `/v1/metrics` और `/v1/logs` खुद जोड़ता है।
 :::
+
+## iOS पर क्रैश और हैंग
+
+opentelemetry-swift 2.3 और उसके बाद के संस्करण अपने MetricKit इंस्ट्रुमेंटेशन के ज़रिए iOS ऐप के क्रैश और हैंग रिपोर्ट करते हैं, जो Apple के हर डायग्नोस्टिक को OpenTelemetry को एक लॉग रिकॉर्ड के रूप में सौंपता है। OneUptime इन्हें वैसे ही दर्ज करता है जैसे OpenTelemetry Android के क्रैश और ANR, इसलिए ये **अपवाद** में और एप्लिकेशन के **अवलोकन** पर दिखते हैं:
+
+| Apple का डायग्नोस्टिक | इवेंट नाम | अपवाद में |
+| --- | --- | --- |
+| क्रैश | `metrickit.diagnostic.crash` | एक अनहैंडल्ड अपवाद, जिसका प्रकार इससे तय होता है कि ऐप किस वजह से बंद हुआ: iOS 17 और उसके बाद Objective-C अपवाद, वरना Mach अपवाद (`EXC_BAD_ACCESS`), वरना सिग्नल (`SIGSEGV`) |
+| हैंग | `metrickit.diagnostic.hang` | **Hang** प्रकार का एक अनहैंडल्ड अपवाद, जो iOS में ANR का समकक्ष है और जिसमें दर्ज रहता है कि हैंग कितनी देर चला |
+
+अवलोकन की **क्रैश** टाइल क्रैश गिनती है, और उसकी **ANR** टाइल Android के ANR के साथ हैंग भी गिनती है। हर स्टैक ट्रेस किसी क्रैश रिपोर्ट के थ्रेड की तरह दिखाया जाता है, और जो थ्रेड क्रैश हुआ या हैंग हुआ, वह सबसे पहले आता है। फ़्रेम सिंबोलिकेट नहीं किए जाते: हर फ़्रेम अपनी बाइनरी का नाम और उसमें कोड का ऑफ़सेट बताता है, और **Binary Images** हर बाइनरी का UUID सूचीबद्ध करता है, जिससे पता चलता है कि किस बिल्ड का dSYM उसे सिंबोलिकेट करता है।
+
+:::steps
+### स्पैन के साथ लॉग भी एक्सपोर्ट करें
+
+MetricKit डायग्नोस्टिक को लॉग रिकॉर्ड के रूप में रिपोर्ट करता है, इसलिए ट्रेसर प्रोवाइडर के साथ एक लॉगर प्रोवाइडर भी रजिस्टर करें, उसी रिसोर्स, एंडपॉइंट और हेडर के साथ:
+
+```swift
+let logExporter = OtlpHttpLogExporter(
+    endpoint: URL(string: "https://oneuptime.com/otlp/v1/logs")!,
+    config: OtlpConfiguration(
+        headers: [("x-oneuptime-token", oneUptimeToken)]
+    )
+)
+
+OpenTelemetry.registerLoggerProvider(
+    loggerProvider: LoggerProviderBuilder()
+        .with(resource: resource)
+        .with(processors: [
+            BatchLogRecordProcessor(logRecordExporter: logExporter),
+        ])
+        .build()
+)
+```
+
+### MetricKit इंस्ट्रुमेंटेशन रजिस्टर करें
+
+opentelemetry-swift का `MetricKitInstrumentation` प्रोडक्ट जोड़ें, और लॉगर प्रोवाइडर रजिस्टर होने के बाद इसे MetricKit के साथ रजिस्टर करें:
+
+```swift
+import MetricKit
+import MetricKitInstrumentation
+
+// MXMetricManager keeps only a weak reference: hold this for the app's lifetime.
+let metricKitInstrumentation = MetricKitInstrumentation()
+MXMetricManager.shared.add(metricKitInstrumentation)
+```
+
+### सेशन रिकॉर्ड करें
+
+**सेशन** और **क्रैश-मुक्त सेशन** टाइलें आपके स्पैन पर `session.id` गिनती हैं। opentelemetry-swift का `Sessions` प्रोडक्ट इसे सेट करता है: ट्रेसर प्रोवाइडर में `SessionSpanProcessor` जोड़ें, और लॉग प्रोसेसर को `SessionLogRecordProcessor` में लपेटें, ताकि डायग्नोस्टिक के साथ भी सेशन रहे। इसकी रिलीज़ अभी कोई `app.installation.id` सेट नहीं करतीं, इसलिए iOS ऐप की **क्रैश-मुक्त सेशन** टाइल क्रैश-मुक्त इंस्टॉल के बजाय यह बताती है कि कितने सेशन क्रैश हुए।
+:::
+
+> [!NOTE]
+> Apple MetricKit के डायग्नोस्टिक ऐप को किसी बाद के लॉन्च पर सौंपता है, iOS 15 और उसके बाद तुरंत, और उससे पहले दिन में एक बार, इसलिए कोई क्रैश या हैंग होने के कुछ मिनट या एक दिन बाद पहुँच सकता है, और पहुँचने पर ही गिना जाता है। iOS ऐप के अवलोकन पर "पिछले घंटे में 0 क्रैश" अभी अच्छी खबर नहीं है। डायग्नोस्टिक उस सेशन को साथ रखता है जिसने उसे रिपोर्ट किया, न कि उस सेशन को जिसे उसने खत्म किया।
+
+opentelemetry-swift ऐप शुरू होने पर कोई स्पैन रिकॉर्ड नहीं करता, इसलिए **ऐप स्टार्ट** और **कोल्ड स्टार्ट (p95)** टाइलें तब तक खाली रहती हैं जब तक आपका ऐप खुद एक स्पैन रिकॉर्ड न करे: `AppStart` नाम का स्पैन, जिसमें `start.type` को `cold`, `warm` या `hot` पर सेट किया गया हो, प्रोसेस शुरू होने से लेकर पहली स्क्रीन तैयार होने तक।
 
 ## जाँचें कि डेटा पहुँचता है
 

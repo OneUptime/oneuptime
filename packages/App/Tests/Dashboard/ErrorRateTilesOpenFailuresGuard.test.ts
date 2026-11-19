@@ -20,7 +20,9 @@ import ts from "typescript";
  * and an iconColor, as ResourceOverviewTile is written - and holds each
  * error tile ("Error rate", "Errors") to a link. Each tile this change
  * linked is named below, with what it opens, so a page that moves or is
- * renamed does not slip out of the guard.
+ * renamed does not slip out of the guard. LLM Usage's error rate, a hint
+ * under its "AI calls" count rather than a tile, is held to its link
+ * below it (#9750).
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -244,5 +246,54 @@ describe("each opens exactly the spans it counted that failed", () => {
     expect(link).toContain("getFailedSpansRoute(");
     expect(link).toContain("PageMap.DATABASE_SERVER_VIEW_TRACES");
     expect(link).toContain("SpanKind.Client");
+  });
+});
+
+/*
+ * LLM Usage's "AI calls" tile says its error rate under its count, drawn by
+ * LlmTile rather than as an Overview tile, so the scan above does not see
+ * it (#9750). Its rate counts the AI calls of the tab's range that failed
+ * (LlmUsageReader: GenAI spans, status Error), so the rate opens Calls -
+ * every AI call, as the tile counts them - on exactly those: its Status
+ * filter on Error and its Seen At on the range (LlmCallsRoute).
+ */
+describe("LLM Usage's error rate", () => {
+  const read: (file: string) => string = (file: string): string => {
+    return fs
+      .readFileSync(path.join(DASHBOARD_SRC, file), "utf8")
+      .replace(/\s+/g, " ");
+  };
+
+  test("opens the AI calls of its range that failed, while any did", () => {
+    const tile: string = read("Components/AI/LlmUsageTotals.tsx");
+
+    expect(tile).toContain('label="AI calls"');
+    expect(tile).toContain('"{{rate}} error rate"');
+    expect(tile).toContain(
+      "hintRoute={ figures && figures.erroredCalls > 0 ? getFailedLlmCallsRoute({",
+    );
+    expect(tile).toContain("RouteMap[PageMap.LLM_CALLS]");
+    expect(tile).toContain("range: props.range,");
+  });
+
+  test("the link sets Calls' own filters: Error, and the range", () => {
+    const route: string = read("Components/AI/LlmCallsRoute.ts");
+
+    expect(route).toContain('filter["statusCode"] = [SpanStatus.Error];');
+    expect(route).toContain("startTime: new InBetween<Date>(");
+    expect(route).toContain("TableFilterUrlState.getLinkQueryParams(");
+  });
+
+  test("Calls filters by status, in the namespace the link writes", () => {
+    const calls: string = read("Components/AI/LlmCallsTable.tsx");
+
+    expect(calls).toContain("userPreferencesKey={LLM_CALLS_TABLE_ID}");
+    // A filter the table offers, so the link's chip shows and comes off.
+    expect(calls).toContain(
+      "field: { statusCode: true, }, type: FieldType.MultiSelectDropdown,",
+    );
+    expect(calls).toContain(
+      "field: { startTime: true, }, type: FieldType.DateTime,",
+    );
   });
 });

@@ -127,11 +127,11 @@ test.describe("Home: Air-gapped installs", () => {
        * Every connection out, each with what to use inside the gap: the four
        * made unless a setting stops them (the update check, the instance
        * check-in, release emails and the probes' DNS) in a table of their
-       * own, and the five made once someone sets them up. Home's
-       * Utils/AirGapped.ts lists them; Home's AirGappedPage test holds the
-       * page to that list.
+       * own, and the six made once someone sets them up, ClamAV's signature
+       * downloads among them (6f0ad4193f0). Home's Utils/AirGapped.ts lists
+       * them; Home's AirGappedPage test holds the page to that list.
        */
-      await expect(page.getByTestId("air-gapped-connection")).toHaveCount(9);
+      await expect(page.getByTestId("air-gapped-connection")).toHaveCount(10);
       await expect(
         page
           .getByTestId("air-gapped-connections-on-by-default")
@@ -141,7 +141,7 @@ test.describe("Home: Air-gapped installs", () => {
         page
           .getByTestId("air-gapped-connections-once-set-up")
           .getByTestId("air-gapped-connection"),
-      ).toHaveCount(5);
+      ).toHaveCount(6);
 
       // The bar that follows the reader offers the booking from a tablet up.
       const planButton: Locator = page.getByTestId("air-gapped-nav-plan");

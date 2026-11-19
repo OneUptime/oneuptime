@@ -2474,6 +2474,103 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
     });
 
+    /*
+     * #9751: a class's "Failed: N" lists the nodes it counts, on the same rows: a class named,
+     * the nodes with none (null), and a region's own.
+     */
+    test("a class's failed nodes are the nodes its count counts as failed", async () => {
+      const nodes: Array<ParsedOpenStackResource> = [
+        node("gold-deploy-failed", {
+          status: "deploy failed",
+          facts: {
+            resourceClass: "gold",
+            lastError: "IPMI call timed out",
+            lastErrorReadAt: at(-MINUTE_MS).toISOString(),
+          },
+        }),
+        node("gold-error", {
+          status: "error",
+          facts: { resourceClass: "gold" },
+        }),
+        node("gold-fine", { facts: { resourceClass: "gold" } }),
+        node("gold-deploying", {
+          status: "deploying",
+          facts: { resourceClass: "gold" },
+        }),
+        node("silver-clean-failed", {
+          status: "clean failed",
+          facts: { resourceClass: "silver" },
+        }),
+        node("classless-inspect-failed", { status: "inspect failed" }),
+        node("gold-elsewhere-failed", {
+          status: "deploy failed",
+          regionName: "RegionTwo",
+          facts: { resourceClass: "gold" },
+        }),
+      ];
+
+      await write(nodes);
+
+      const failedOf: (
+        resourceClass: string | null,
+        regionName?: string,
+      ) => Promise<Array<string>> = async (
+        resourceClass: string | null,
+        regionName?: string,
+      ): Promise<Array<string>> => {
+        const read: { rows: Array<JSONObject>; isTruncated: boolean } =
+          await OpenStackResourceService.getBareMetalFailedNodes({
+            projectId: PROJECT_ID,
+            openStackCloudId: CLOUD_ID,
+            resourceClass: resourceClass,
+            regionName: regionName,
+          });
+
+        expect(read.isTruncated).toBe(false);
+
+        return read.rows.map((row: JSONObject): string => {
+          return String(row["name"]);
+        });
+      };
+
+      // By name, every region's, and only the failed.
+      expect(await failedOf("gold")).toEqual([
+        "gold-deploy-failed",
+        "gold-elsewhere-failed",
+        "gold-error",
+      ]);
+      expect(await failedOf("gold", "RegionTwo")).toEqual([
+        "gold-elsewhere-failed",
+      ]);
+      expect(await failedOf("silver")).toEqual(["silver-clean-failed"]);
+      expect(await failedOf(null)).toEqual(["classless-inspect-failed"]);
+
+      // What the class count says is failed, read from the same rows.
+      const classes: Array<OpenStackBareMetalClass> =
+        await OpenStackResourceService.getBareMetalClasses({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+        });
+
+      for (const one of classes) {
+        expect((await failedOf(one.resourceClass)).length).toBe(
+          one.failedCount,
+        );
+      }
+
+      // Why it failed travels with the row.
+      const read: { rows: Array<JSONObject>; isTruncated: boolean } =
+        await OpenStackResourceService.getBareMetalFailedNodes({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          resourceClass: "gold",
+        });
+
+      expect(
+        (read.rows[0]?.["facts"] as JSONObject | undefined)?.["lastError"],
+      ).toBe("IPMI call timed out");
+    });
+
     test("a region's classes are that region's", async () => {
       await write([
         node("here", { facts: { resourceClass: "gold" } }),

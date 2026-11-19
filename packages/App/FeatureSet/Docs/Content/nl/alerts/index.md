@@ -126,7 +126,7 @@ Open de waarschuwing. De kop toont haar status, haar ernst, hoe lang ze al duurt
 - **Status wijzigen naar**, in het menu **⋯** ernaast, zet haar in een eigen status, zoals "In onderzoek".
 - **Incident melden** opent een nieuw incident, vooraf ingevuld vanuit de waarschuwing, wanneer blijkt dat het probleem gebruikers treft. Zie [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts).
 
-Een overgang naar een andere status vraagt om bevestiging, met een optionele privénotitie ingeklapt onder **Privénotitie toevoegen**. Wat elke status doet, staat op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities).
+Een overgang naar een andere status vraagt om bevestiging, met een optionele privénotitie ingeklapt onder **Privénotitie toevoegen**. Oplossen vanuit de kop klapt ook **Hoofdoorzaak toevoegen** in: waarom het gebeurde, wat de hoofdoorzaak van de waarschuwing wordt en waaraan het onderzoek van OneUptime AI wordt getoetst. Wat elke status doet, staat op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities).
 
 Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je de pagina's **Hoofdoorzaak** en **Herstel** in en voeg je **Eigenaren** toe. Het menu **Acties** van **Waarschuwingsfeed** voert ook een runbook uit met **Runbook uitvoeren**, of roept meer mensen op met **Bereikbaarheidsdienstbeleid uitvoeren**.
 

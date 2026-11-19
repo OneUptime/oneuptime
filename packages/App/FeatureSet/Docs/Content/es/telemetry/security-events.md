@@ -371,7 +371,7 @@ flowchart TB
 3. El **Nombre** se rellena con el `title` de la regla: escríbelo encima para llamarla de otra forma. Una regla nueva se ejecuta; **Habilitado** está en su formulario de edición.
 4. En **Al coincidir**, deja **Abrir un caso al coincidir** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
 5. En **Alertas e incidentes**, elige qué más genera una coincidencia: **Crear una alerta** (el valor por defecto), **Declarar un incidente**, **Ambos** o **Ninguno**, con una **Gravedad de la alerta** o una **Gravedad del incidente** opcionales.
-6. **Más campos** contiene la **Descripción**, **Escribir un hallazgo de detección al coincidir** (activado), **Ejecutar en tiempo real** (desactivado), cómo se cuentan las coincidencias y los **Pasos de respuesta**: qué hacer cuando la regla abre un caso, cada paso bajo la parte que elijas del Plan de respuesta del caso, 10 como máximo. Consulta [Ajustes de evaluación](#ajustes-de-evaluación).
+6. **Más campos** contiene la **Descripción**, **Escribir un hallazgo de detección al coincidir** (activado), **Ejecutar en tiempo real** (desactivado), cómo se cuentan las coincidencias y los **Pasos de respuesta**: qué hacer cuando la regla abre un caso, cada paso bajo la parte que elijas del Plan de respuesta del caso, 10 como máximo. Arrastra un paso por su asa, o usa **Subir** y **Bajar**: el plan del caso muestra los pasos de cada parte en el orden que les des. Consulta [Ajustes de evaluación](#ajustes-de-evaluación).
 :::
 
 Una primera regla, que coincide con los inicios de sesión fallidos desde fuera de `10.x.x.x`:

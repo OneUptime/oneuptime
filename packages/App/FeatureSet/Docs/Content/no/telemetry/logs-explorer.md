@@ -63,7 +63,7 @@ Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke: 
 Klikk på en rad. Detaljene åpnes ved siden av listen.
 :::
 
-Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme loggene. En lenke til én logglinje, som **Vis logglinje** på en sikkerhetshendelse, åpner den linjen over listen, lest med dine egne tillatelser.
+Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme loggene. En lenke til én logglinje, som **Vis logglinje** på en sikkerhetshendelse, åpner den linjen over listen, lest med dine egne tillatelser. **Kopier lenke** i en linjes detaljer kopierer en slik lenke, med listen du kopierte den fra under linjen, over det samme tidsintervallet.
 
 ## Les en logg
 

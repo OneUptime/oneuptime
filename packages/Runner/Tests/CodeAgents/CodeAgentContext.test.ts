@@ -10,16 +10,26 @@
  */
 
 import CodeAgentContext, {
+  CHARS_PER_TOKEN,
   CodeAgentCompaction,
   CodeAgentContextSize,
   CONTEXT_DIGEST_PREFIX,
+  CONTEXT_WINDOW_SHARE,
+  getAnswerTokensForWindow,
   getContextSize,
+  getContextSizeForWindow,
   KEEP_RECENT_ROUNDS,
+  MAX_ANSWER_TOKENS,
+  MAX_CODE_AGENT_CONTEXT_CHARS,
   MIN_CONTEXT_CHARS,
   MIN_CUT_RESULT_CHARS,
   shrinkContextSize,
 } from "../../CodeAgents/CodeAgentContext";
-import { measureContextChars } from "Common/Server/Utils/AI/Chat/AgentContextCompactor";
+import {
+  DEFAULT_MAX_CONTEXT_CHARS,
+  measureContextChars,
+} from "Common/Server/Utils/AI/Chat/AgentContextCompactor";
+import { MAX_TOKENS_PER_COMPLETION_CALL } from "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion";
 import { LLMMessage, LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
 import { agentLoopResultKey } from "Common/Types/AI/AgentLoopDetector";
 
@@ -761,6 +771,95 @@ describe("the size after the model said the conversation was too long", () => {
     expect(
       shrinkContextSize(getContextSize(MIN_CONTEXT_CHARS), 50_000),
     ).toBeNull();
+  });
+});
+
+/*
+ * Issue #6530: the conversation is sized to the model's context window when
+ * the server says it - about three characters a token, less the room for
+ * the answer and the tool definitions - never under the floor, and never
+ * past a ceiling a long task can afford to send again with every call.
+ */
+describe("the size for a model's context window", () => {
+  const TOOLS: number = 12_000;
+
+  test("the answer's room is the server's most, or a quarter of a small window", () => {
+    expect(MAX_ANSWER_TOKENS).toBe(MAX_TOKENS_PER_COMPLETION_CALL);
+    expect(getAnswerTokensForWindow(1_000_000)).toBe(16_384);
+    expect(getAnswerTokensForWindow(200_000)).toBe(16_384);
+    expect(getAnswerTokensForWindow(65_536)).toBe(16_384);
+    expect(getAnswerTokensForWindow(32_000)).toBe(8_000);
+    expect(getAnswerTokensForWindow(8_000)).toBe(2_000);
+    expect(getAnswerTokensForWindow(2_048)).toBe(1_024);
+  });
+
+  test("a 32,000-token window: the conversation and the tools fit beside the answer, counted at three characters a token", () => {
+    const size: CodeAgentContextSize = getContextSizeForWindow({
+      contextWindowTokens: 32_000,
+      toolDefinitionChars: TOOLS,
+    });
+
+    expect(size.maxChars).toBe(
+      Math.floor((32_000 - 8_000) * CHARS_PER_TOKEN * CONTEXT_WINDOW_SHARE) -
+        TOOLS,
+    );
+    expect(
+      (size.maxChars + TOOLS) / CHARS_PER_TOKEN + 8_000,
+    ).toBeLessThanOrEqual(32_000);
+    expect(size.targetChars).toBe(getContextSize(size.maxChars).targetChars);
+  });
+
+  test("a 128,000-token window keeps less than the default, which could overflow it", () => {
+    const size: CodeAgentContextSize = getContextSizeForWindow({
+      contextWindowTokens: 128_000,
+      toolDefinitionChars: TOOLS,
+    });
+
+    expect(size.maxChars).toBeLessThan(DEFAULT_MAX_CONTEXT_CHARS);
+    expect(
+      (size.maxChars + TOOLS) / CHARS_PER_TOKEN + 16_384,
+    ).toBeLessThanOrEqual(128_000);
+  });
+
+  test("a 200,000-token window keeps more than the default", () => {
+    expect(
+      getContextSizeForWindow({
+        contextWindowTokens: 200_000,
+        toolDefinitionChars: TOOLS,
+      }).maxChars,
+    ).toBeGreaterThan(DEFAULT_MAX_CONTEXT_CHARS);
+  });
+
+  test("a 1,000,000-token window keeps up to the ceiling, twice the default", () => {
+    expect(MAX_CODE_AGENT_CONTEXT_CHARS).toBe(2 * DEFAULT_MAX_CONTEXT_CHARS);
+    expect(
+      getContextSizeForWindow({
+        contextWindowTokens: 1_000_000,
+        toolDefinitionChars: TOOLS,
+      }).maxChars,
+    ).toBe(MAX_CODE_AGENT_CONTEXT_CHARS);
+  });
+
+  test("a window too small for the tools alone is held to the floor", () => {
+    expect(
+      getContextSizeForWindow({
+        contextWindowTokens: 4_096,
+        toolDefinitionChars: TOOLS,
+      }).maxChars,
+    ).toBe(MIN_CONTEXT_CHARS);
+  });
+
+  test("the tool definitions take their room: more of them, a smaller conversation", () => {
+    const few: number = getContextSizeForWindow({
+      contextWindowTokens: 64_000,
+      toolDefinitionChars: 5_000,
+    }).maxChars;
+    const many: number = getContextSizeForWindow({
+      contextWindowTokens: 64_000,
+      toolDefinitionChars: 25_000,
+    }).maxChars;
+
+    expect(few - many).toBe(20_000);
   });
 });
 

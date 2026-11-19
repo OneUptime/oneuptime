@@ -939,7 +939,8 @@ const INVITING_PEOPLE_LINES: ReadonlyArray<{
     {
       name: "the sign-up page an invitation opens, which joins",
       line: at("**Create Your Account** opens the sign-up page"),
-      labels: ["Create Your Account"],
+      // And the same page, offering SSO, for someone SSO will sign in (#9819).
+      labels: ["Create Your Account", "Sign In with SSO"],
     },
     {
       name: "the link handed out where no email went",

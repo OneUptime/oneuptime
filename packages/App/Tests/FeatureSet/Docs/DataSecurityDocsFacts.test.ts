@@ -1518,21 +1518,44 @@ describe("Sensitive Data in Telemetry", () => {
     const metrics: string = section(page, "### Metrics");
 
     expect(value("Metrics read in one scan")).toBe(
-      `${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_READ")} shared between the services, at least one of each; at most ${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER")} of one service, half its busiest and half its others in turn`,
+      `${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_READ")} shared between the services, at least one of each; at most ${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER")} of one service, half its busiest and half its new and other metrics in turn`,
     );
-    expect(value("Data points of one metric")).toBe(
-      `Its newest minute's, at most ${constant(scanner, "TELEMETRY_SCAN_MAX_POINTS_PER_METRIC")}`,
+    // New metrics first, the rest in turn within a stated time (#9755).
+    expect(value("A new metric")).toBe(
+      `One whose first point of the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS")} hours came in the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS")} hours`,
     );
     expect(metrics).toContain(
-      `up to ${constant(scanner, "TELEMETRY_SCAN_MAX_POINTS_PER_METRIC")} of that minute's data points`,
+      `Then come the metrics it started writing in the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS")} hours`,
+    );
+    // The bound, worked out from the share as the planner splits it.
+    const share: number = constant(
+      scanner,
+      "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER",
+    );
+    const inTurn: number = share - Math.floor(share / 2);
+
+    expect(metrics).toContain(
+      `A service of M metrics, read ${share} a scan, has each of them read at least once every M ÷ ${inTurn} hours, rounded up: ${Math.ceil(300 / inTurn)} hours for a service of 300 metrics.`,
+    );
+    expect(metrics).toContain("it is at most twice that.");
+    expect(source(scanner)).toContain(
+      "return Math.floor(((hour + 1) * reads) / 2) - Math.floor((hour * reads) / 2);",
+    );
+    // A point of each series, however often a metric is sent (#9756).
+    expect(value("Series of one metric")).toBe(
+      `A data point of each, of its newest minute, at most ${constant(scanner, "TELEMETRY_SCAN_MAX_SERIES_PER_METRIC")}`,
+    );
+    expect(metrics).toContain(
+      `one data point of each of up to ${constant(scanner, "TELEMETRY_SCAN_MAX_SERIES_PER_METRIC")} of that minute's series, however often the metric is sent`,
+    );
+    expect(source(scanner)).toContain(
+      "LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)",
     );
     expect(metrics).toContain(
       `more than ${constant(scanner, "TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS").toLocaleString("en-US")} points`,
     );
     // The busiest half, and the others in turn, as the planner picks them.
-    expect(source(scanner)).toContain(
-      "const busiest: number = Math.floor(perOwner / 2);",
-    );
+    expect(source(scanner)).toContain(".slice(0, Math.floor(perOwner / 2));");
     expect(source(scanner)).toContain(
       "Math.min(whole(data.perOwner, 1), Math.floor(data.total / byOwner.size)),",
     );
@@ -2407,6 +2430,8 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.scanNow("<id>"),
       DATA_SECURITY_API_ROUTES.checkNow("<id>"),
       DATA_SECURITY_API_ROUTES.scrubFinding("<id>"),
+      DATA_SECURITY_API_ROUTES.dropMetricImpact("<id>"),
+      DATA_SECURITY_API_ROUTES.dropMetric("<id>"),
       DATA_SECURITY_API_ROUTES.explainIssue("<id>"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
       DATA_SECURITY_API_ROUTES.responseActions("<id>"),

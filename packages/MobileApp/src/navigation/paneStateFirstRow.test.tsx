@@ -8,7 +8,7 @@ import {
   usePaneScrollRestoration,
   type PaneScrollRestoration,
 } from "./paneState";
-import { PaneProvider, type PaneLayout } from "../layout/WindowLayout";
+import { PaneProvider, type PaneLayout } from "../layout/WindowLayoutProvider";
 
 /*
  * Below a tabletop fold the list has half a screen, and its own header - the

@@ -4,7 +4,7 @@ import Models from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../Models/DatabaseModels/Host";
 import HostLogSession from "../../../Models/DatabaseModels/HostLogSession";
-import { AddHostLogSessions1809186400000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186400000-AddHostLogSessions";
+import { AddHostLogSessions1809186600000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186600000-AddHostLogSessions";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
@@ -115,7 +115,7 @@ describe("HostLogSession", () => {
   });
 });
 
-describe("AddHostLogSessions1809186400000", () => {
+describe("AddHostLogSessions1809186600000", () => {
   async function statements(direction: "up" | "down"): Promise<Array<string>> {
     const run: Array<string> = [];
     const runner: QueryRunner = {
@@ -125,7 +125,7 @@ describe("AddHostLogSessions1809186400000", () => {
       },
     } as unknown as QueryRunner;
 
-    await new AddHostLogSessions1809186400000()[direction](runner);
+    await new AddHostLogSessions1809186600000()[direction](runner);
     return run;
   }
 
@@ -163,9 +163,9 @@ describe("AddHostLogSessions1809186400000", () => {
       },
     );
 
-    expect(names).toContain("AddHostLogSessions1809186400000");
-    expect(names.indexOf("AddHostLogSessions1809186400000")).toBeGreaterThan(
-      names.indexOf("AddDataAssetEntitySetName1809186396960"),
+    expect(names).toContain("AddHostLogSessions1809186600000");
+    expect(names.indexOf("AddHostLogSessions1809186600000")).toBeGreaterThan(
+      names.indexOf("AddTeamMemberInviteeName1809186500000"),
     );
   });
 });

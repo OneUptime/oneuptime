@@ -42,7 +42,7 @@ Alt andet finder du i dashboardet.
 :::
 
 :::details Kan jeg kvittere for en alarm fra notifikationen?
-Nej. Tryk på notifikationen: appen åbner den hændelse, advarsel, episode eller sikkerhedssag, den handler om, i det rigtige projekt, og du kvitterer dér. Er appen låst, eller er du logget ud, åbner den alarmen, så snart du er inde.
+Ja. Tryk længe på notifikationen på en iPhone, eller fold den ud på Android: en vagtalarm tilbyder **Acknowledge** og **Escalate**, en alarm, der kun holder dig orienteret, tilbyder **I've seen it**, og en testalarm tilbyder **Acknowledge test page**. Hver af dem åbner appen på sagen, så snart telefonen er låst op, og gør det, sagens egen knap gør, men spørger først, før den eskalerer. Trykker du på selve notifikationen, åbner appen den hændelse, advarsel, episode eller sikkerhedssag, den handler om, i det rigtige projekt. Er appen låst, eller er du logget ud, åbner den alarmen, så snart du er inde.
 :::
 
 :::details Er mit login sikkert på telefonen?
@@ -109,7 +109,7 @@ Appen kunne ikke nå `https://<your-oneuptime>/api/status`. Tjek adressen, inklu
 :::
 
 :::details »No SSO configuration found for the email«
-Ingen af de projekter, den e-mail er medlem af, har sat single sign-on op, eller e-mailen har ingen konto på dette OneUptime. Tjek e-mailen, eller log ind med din adgangskode. Udbydere, som din administrator har sat op for hele installationen, står før e-mailfeltet.
+Intet projekt på dette OneUptime tilbyder endnu single sign-on for den e-mails domæne: en projektadministrator tilføjer domænet til projektets SSO-udbyder, uanset hvem e-mailen tilhører. Tjek e-mailen, eller log ind med din adgangskode. Udbydere, som din administrator har sat op for hele installationen, står før e-mailfeltet.
 :::
 
 :::details En sikkerhedsnøgle er din eneste anden faktor

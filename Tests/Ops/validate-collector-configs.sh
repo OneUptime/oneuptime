@@ -88,6 +88,8 @@ STUB_MOUNTS=(
 # nothing connects during `validate` — but they have to resolve.
 ENV_ARGS=(
   -e "ONEUPTIME_URL=https://oneuptime.example.com"
+  # A host collector's key (HostCollector.ts HOST_COLLECTOR_INGESTION_KEY_ENV).
+  -e "ONEUPTIME_INGESTION_KEY=validate-only"
   -e "ONEUPTIME_SERVICE_TOKEN=validate-only"
   -e "ONEUPTIME_API_KEY=validate-only"
   -e "DOCKER_HOST_NAME=validate-only"
@@ -274,6 +276,25 @@ validate "OpenStackAgent / logs from files" "${WORK_DIR}/OpenStackAgent-logs-fil
   -v "${WORK_DIR}/hostfs":/var/lib/otelcol/file_storage:ro
 cp "${REPO_ROOT}/agents/OpenStackAgent/otel-collector-logs-journald.yaml" "${WORK_DIR}/OpenStackAgent-logs-journald.yaml"
 validate "OpenStackAgent / logs from the journal" "${WORK_DIR}/OpenStackAgent-logs-journald.yaml"
+
+# OneUptime's default config for a Linux host (HostCollectorDefaultConfig), as
+# the server sends it to a host with the journal and systemd: its journald
+# operators file each line under its systemd unit (#9748). The file is the
+# default itself - HostCollectorDefaultConfig.test.ts fails while they differ.
+cp "${REPO_ROOT}/Tests/Ops/HostCollectorDefaults/linux.yaml" "${WORK_DIR}/HostCollector-linux.yaml"
+validate "Host collector / OneUptime's default for Linux" "${WORK_DIR}/HostCollector-linux.yaml"
+# And on the release the host installers put on a host, which a host runs
+# the config on (HOST_COLLECTOR_PINNED_VERSION), read from where it is pinned.
+HOST_COLLECTOR_VERSION="$(sed -n 's/^export const HOST_COLLECTOR_PINNED_VERSION: string = "\(.*\)";$/\1/p' \
+  "${REPO_ROOT}/packages/Common/Types/HostCollector/HostCollector.ts")"
+if [ -n "${HOST_COLLECTOR_VERSION}" ]; then
+  VALIDATE_IMAGE="${COLLECTOR_IMAGE%:*}:${HOST_COLLECTOR_VERSION}"
+  validate "Host collector / OneUptime's default for Linux, on ${VALIDATE_IMAGE}" "${WORK_DIR}/HostCollector-linux.yaml"
+  VALIDATE_IMAGE="${COLLECTOR_IMAGE}"
+else
+  echo "    FAILED: HOST_COLLECTOR_PINNED_VERSION not found in HostCollector.ts"
+  failures=$((failures + 1))
+fi
 
 # The Storage Array Agent ships one config per way of reading an array:
 # docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the

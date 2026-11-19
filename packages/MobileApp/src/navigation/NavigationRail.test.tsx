@@ -15,7 +15,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import MainTabNavigator from "./MainTabNavigator";
 import type { MainTabParamList } from "./types";
 import { NAVIGATION_RAIL_WIDTH } from "../layout/windowLayout";
-import { WindowLayoutProvider } from "../layout/WindowLayout";
+import { WindowLayoutProvider } from "../layout/WindowLayoutProvider";
 import type { FoldReport, PostureSource } from "../layout/windowPosture";
 import {
   TEST_WINDOWS,

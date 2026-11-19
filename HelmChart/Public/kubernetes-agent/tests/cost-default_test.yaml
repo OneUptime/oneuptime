@@ -289,6 +289,9 @@ tests:
           pattern: "regex: \"\\^\\(node_total_hourly_cost\\|container_cpu_allocation\\)\\$\""
 
   # --- What the bundled Prometheus keeps ------------------------------------------
+  # The cAdvisor job reads each node's kubelet by default, through the API
+  # server's node proxy where cost.prometheus.nodesProxy says so (#9878):
+  # either way the allowlist is that job's, right after its relabeling.
   - it: keeps only the cAdvisor series OpenCost and the cost agent read
     template: templates/prometheus-cost.yaml
     documentSelector:
@@ -297,7 +300,19 @@ tests:
     asserts:
       - matchRegex:
           path: data["prometheus.yml"]
-          pattern: "replacement: /api/v1/nodes/\\$1/proxy/metrics/cadvisor\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n"
+          pattern: "regex: __meta_kubernetes_node_label_\\(\\.\\+\\)\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n(?:\\s+#[^\\n]*\\n)*\\s+- job_name: opencost\\n"
+
+  - it: keeps only those series through the API server's node proxy too
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    set:
+      cost.prometheus.nodesProxy: true
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "replacement: /api/v1/nodes/\\$1/proxy/metrics/cadvisor\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n(?:\\s+#[^\\n]*\\n)*\\s+- job_name: opencost\\n"
 
   # The cost agent reads memory peaks from this job, by this name.
   - it: keeps the cAdvisor job's name, which the cost agent queries

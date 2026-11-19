@@ -362,7 +362,7 @@ class MonitorOwnerRuleEngineServiceClass
         },
       )}\n\nAssigned the following owner${
         users.length + teams.length === 1 ? "" : "s"
-      } to the monitor:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}`;
+      } to the monitor:\n${await RuleFeedMarkdown.readOwnersList({ users: users, teams: teams, projectId: monitor.projectId })}`;
 
       await MonitorFeedService.createMonitorFeedItem({
         monitorId: monitor.id,

@@ -244,7 +244,8 @@ function hasDockerCompose() {
 /**
  * `docker compose config --format json` of the given compose files, with
  * config.example.env's settings as the environment, the way `npm start`
- * exports config.env.
+ * exports config.env. `extraEnv` goes over them; a name it gives undefined is
+ * unset, as in a config.env from before that setting.
  */
 function renderCompose(files, extraEnv) {
   const env = Object.assign(
@@ -253,6 +254,12 @@ function renderCompose(files, extraEnv) {
     Object.fromEntries(configExampleSettings()),
     extraEnv || {},
   );
+
+  for (const [name, value] of Object.entries(extraEnv || {})) {
+    if (value === undefined) {
+      delete env[name];
+    }
+  }
   const args = ["compose", "--project-directory", REPO_ROOT];
 
   for (const file of files) {

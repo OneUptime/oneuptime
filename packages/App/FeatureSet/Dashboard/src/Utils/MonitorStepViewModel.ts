@@ -1477,6 +1477,16 @@ export default class MonitorStepViewModel {
         value: toAttributeFilters(traceMonitor?.attributes),
         placeholder: "No attributes entered",
       }),
+      // One alert per group, as a Logs monitor's (#9711).
+      optional({
+        key: "traceGroupByAttributes",
+        title: "Group by Attributes",
+        description:
+          "One alert or incident is raised per distinct combination of these attribute values.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepTraceMonitorUtil.getGroupByAttributes(traceMonitor),
+        placeholder: "Not grouped",
+      }),
       optional({
         key: "traceEntityKeys",
         title: "Inventory Items",
@@ -1524,6 +1534,16 @@ export default class MonitorStepViewModel {
         placeholder: "All exception types",
       }),
       optional({
+        key: "excludedExceptionTypes",
+        title: "Leave Out Exception Types",
+        description: "Exception types this monitor does not count.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+          exceptionMonitor?.excludedExceptionTypes,
+        ),
+        placeholder: "No exception type left out",
+      }),
+      optional({
         key: "exceptionEnvironments",
         title: "Environments",
         description: "Deployment environments this monitor watches.",
@@ -1540,6 +1560,17 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.Text,
         value: toDuration(exceptionMonitor?.lastXSecondsOfExceptions),
         placeholder: "1 minute",
+      },
+      {
+        key: "unhandledOnly",
+        title: "Only Unhandled Exceptions",
+        description:
+          "Whether only the exceptions nothing caught count towards criteria.",
+        valueType: MonitorStepViewValueType.Boolean,
+        value: exceptionMonitor
+          ? MonitorStepExceptionMonitorUtil.isUnhandledOnly(exceptionMonitor)
+          : false,
+        placeholder: "No",
       },
       {
         key: "includeResolved",

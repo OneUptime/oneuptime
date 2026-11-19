@@ -114,7 +114,7 @@ Click **Set up email**. It opens **Settings > Notifications > Emails**, where yo
 
 ### Choose who can sign up
 
-Anyone who can open your address can sign up. Once your team has its accounts, turn off **Let people sign up** under **Settings > Authentication**: people you invite to a project can still join. To leave sign-ups open, click **Keep sign-ups open**.
+Anyone who can open your address can sign up. When your server can send email, a new account opens the link OneUptime emails it before it can sign in, and an address that already has an account is told so in an email. Once your team has its accounts, turn off **Let people sign up** under **Settings > Authentication**: people you invite to a project can still join. To leave sign-ups open, click **Keep sign-ups open**.
 
 **It worked when** the checklist marks Sign-ups as done.
 

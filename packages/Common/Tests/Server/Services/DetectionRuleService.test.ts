@@ -569,6 +569,25 @@ describe("DetectionRuleService response steps", () => {
   });
 
   /*
+   * Reordered on the rule's form (#9796): the whole list is written in its
+   * new order, in one write of the rule, each step's id as it was - so the
+   * plan shows the new order and a case's ticks, kept by `rule:<id>`, stay.
+   */
+  test("an update of the steps in a new order saves that order, every id as it was", async () => {
+    const reordered: Array<{ id: string; phase: string; text: string }> = [
+      { id: "rotate-key", phase: "Contain", text: "Rotate the key in Vault." },
+      { ...STEP, text: "Page the payments on-call." },
+      { id: "check-audit-log", phase: "Confirm", text: "Check the audit log." },
+    ];
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ responseSteps: reordered as never }),
+    );
+
+    expect(result.updateBy.data.responseSteps).toEqual(reordered);
+  });
+
+  /*
    * Regression: null - none written - was saved as an empty list, the
    * author's "no steps", so a library rule saved from a form that left the
    * field alone lost its library's steps.

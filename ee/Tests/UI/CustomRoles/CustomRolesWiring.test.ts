@@ -178,6 +178,8 @@ describe("the area's imports", () => {
         "CustomRolePermissionPicker.ts",
         "CustomRolePermissionTable.tsx",
         "CustomRoleTeamsTable.tsx",
+        // The workflows that run as a role, on its page (#9831).
+        "CustomRoleWorkflowsTable.tsx",
         "Plugins.ts",
         "RoleViewPage.tsx",
         "RolesPage.tsx",

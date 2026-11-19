@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * The third-party payment gateway PayGate (paygate.example.com) started
@@ -735,27 +736,20 @@ const scenario: BenchmarkScenario = {
         { name: "Fraud scoring API", status: "Operational", type: "API" },
       ],
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: PAYMENTS_SLO_ID,
-          name: "Payment success rate",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99.5,
-          window: "Rolling 30d",
-          monitors: "Payments API",
-          sloStatus: "At Risk",
-          currentSliPercentage: 99.59,
-          errorBudgetRemainingPercentage: 18,
-          currentBurnRate: 21.4,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-05-21T16:29:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: PAYMENTS_SLO_ID,
+        name: "Payment success rate",
+        monitors: ["Payments API"],
+        targetPercentage: 99.5,
+        windowDays: 30,
+        sloStatus: "At Risk",
+        currentSliPercentage: 99.59,
+        errorBudgetRemainingPercentage: 18,
+        currentBurnRate: 21.4,
+        lastEvaluatedAt: "2026-05-21T16:29:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:

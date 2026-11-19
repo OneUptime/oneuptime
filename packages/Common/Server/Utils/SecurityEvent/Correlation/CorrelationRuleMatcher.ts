@@ -21,6 +21,7 @@ import {
 } from "../../../Services/SecurityEventService";
 import { Statement } from "../../AnalyticsDatabase/Statement";
 import CorrelationQueries, {
+  CORRELATION_GROUP_VALUE_SEPARATOR,
   CORRELATION_TEMPORAL_CANDIDATE_LIMIT,
   CorrelationCountRow,
   CorrelationNewValueRow,
@@ -105,7 +106,61 @@ function groupValueOf(values: Array<string>): string {
     .filter((value: string): boolean => {
       return value.length > 0;
     })
-    .join(" / ");
+    .join(CORRELATION_GROUP_VALUE_SEPARATOR);
+}
+
+/*
+ * Where a sequence's run starts reading: its timespan before the run's
+ * window, and an event_count step's own timespan before that, which it
+ * looks back to count.
+ */
+function getTemporalReadFrom(data: {
+  correlation: SigmaCorrelation;
+  steps: Array<SigmaCorrelationStep>;
+  startTime: Date;
+}): Date {
+  let longestStepSpanInSeconds: number = 0;
+
+  for (const step of data.steps) {
+    if (step.count) {
+      longestStepSpanInSeconds = Math.max(
+        longestStepSpanInSeconds,
+        step.count.correlation.timespanInSeconds,
+      );
+    }
+  }
+
+  return OneUptimeDate.addRemoveSeconds(
+    data.startTime,
+    -(data.correlation.timespanInSeconds + longestStepSpanInSeconds),
+  );
+}
+
+/*
+ * Where the events a correlation's run matched start (#9795), for keeping
+ * them: a count's rolling window, from the step a timespan before the run;
+ * a sequence's, from its timespan (and an event_count step's) before the
+ * run; a new value's, the run's own window - what came before it is the
+ * history its values are new against, not what it matched.
+ */
+export function getCorrelationMatchedEventsStart(data: {
+  correlation: SigmaCorrelation;
+  steps: Array<SigmaCorrelationStep>;
+  startTime: Date;
+}): Date {
+  switch (data.correlation.type) {
+    case SigmaCorrelationType.EventCount:
+    case SigmaCorrelationType.ValueCount:
+      return getCorrelationRollingWindow({
+        timespanInSeconds: data.correlation.timespanInSeconds,
+        startTime: data.startTime,
+      }).readFrom;
+    case SigmaCorrelationType.Temporal:
+    case SigmaCorrelationType.TemporalOrdered:
+      return getTemporalReadFrom(data);
+    default:
+      return data.startTime;
+  }
 }
 
 function groupFieldsOf(
@@ -219,21 +274,7 @@ export default class CorrelationRuleMatcher {
     const timespanMs: number = input.correlation.timespanInSeconds * 1000;
 
     // An event_count step looks back its own timespan before it happens.
-    let longestStepSpanInSeconds: number = 0;
-
-    for (const step of input.steps) {
-      if (step.count) {
-        longestStepSpanInSeconds = Math.max(
-          longestStepSpanInSeconds,
-          step.count.correlation.timespanInSeconds,
-        );
-      }
-    }
-
-    const readFrom: Date = OneUptimeDate.addRemoveSeconds(
-      input.startTime,
-      -(input.correlation.timespanInSeconds + longestStepSpanInSeconds),
-    );
+    const readFrom: Date = getTemporalReadFrom(input);
 
     const stepMinimums: Array<number> = input.steps.map(
       (step: SigmaCorrelationStep): number => {

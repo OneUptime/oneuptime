@@ -14,8 +14,10 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
  * Every tool result stays in the conversation the agent sends with each
  * model call, so a task that reads, edits and tests for a hundred rounds
  * would outgrow any model's window and fail. Instead, once the
- * conversation passes a size (DEFAULT_MAX_CONTEXT_CHARS, the server's
- * agents' own), it is cut back to two thirds of it - in one step, so the
+ * conversation passes a size - what the model's context window holds, when
+ * the server says it (getContextSizeForWindow, issue #6530), and otherwise
+ * DEFAULT_MAX_CONTEXT_CHARS, the server's agents' own - it is cut back to
+ * two thirds of it - in one step, so the
  * provider's prompt cache keeps matching for many calls after - and the
  * oldest parts go first, each in a way the model is told about:
  *
@@ -122,6 +124,82 @@ export function getContextSize(maxChars: number): CodeAgentContextSize {
 
 export const DEFAULT_CODE_AGENT_CONTEXT_SIZE: CodeAgentContextSize =
   getContextSize(DEFAULT_MAX_CONTEXT_CHARS);
+
+/*
+ * ---------------------------------------------------------------------------
+ * Sized to the model (issue #6530). The server says, with every answer, how
+ * many tokens one request to the model may hold, when it can tell
+ * (LLMContextWindow): the conversation is then kept under what that window
+ * holds, rather than the same 300,000 characters for every model. A model
+ * with a large window keeps more of a long task whole, so the task reads
+ * less again; one with a small window - a self-hosted model of 8,000 or
+ * 32,000 tokens - is never sent more than it holds, where it used to be
+ * refused, and refused again, until halving brought the conversation down
+ * to fit. Halving stays, for a window the server got wrong.
+ * ---------------------------------------------------------------------------
+ */
+
+// About how many characters a token holds, counted low: code and JSON hold fewer than prose.
+export const CHARS_PER_TOKEN: number = 3;
+
+/*
+ * The share of what is left of the window, once the answer has its room,
+ * that the conversation and the tool definitions may fill: the rest is room
+ * for a count of characters that was off.
+ */
+export const CONTEXT_WINDOW_SHARE: number = 0.85;
+
+// The most one model call may write: the server's own most (MAX_TOKENS_PER_COMPLETION_CALL).
+export const MAX_ANSWER_TOKENS: number = 16_384;
+
+// The least room a small window keeps for the answer.
+export const MIN_ANSWER_TOKENS: number = 1_024;
+
+/*
+ * The most a conversation is kept under, however large the window: every
+ * call sends all of it again, so past this a long task costs more with
+ * each call than a re-read saves, and models read a very long conversation
+ * less well. Twice the default, about 200,000 tokens.
+ */
+export const MAX_CODE_AGENT_CONTEXT_CHARS: number =
+  2 * DEFAULT_MAX_CONTEXT_CHARS;
+
+/*
+ * The most tokens one call asks the model to write: MAX_ANSWER_TOKENS, or a
+ * quarter of a window too small to keep that much room, so the prompt still
+ * has three quarters of it.
+ */
+export function getAnswerTokensForWindow(contextWindowTokens: number): number {
+  return Math.min(
+    MAX_ANSWER_TOKENS,
+    Math.max(MIN_ANSWER_TOKENS, Math.floor(contextWindowTokens / 4)),
+  );
+}
+
+/*
+ * The size to keep a conversation under for a model whose window holds
+ * `contextWindowTokens`: the window less the room for the answer, in
+ * characters, a share of it, less what the tool definitions take - never
+ * under MIN_CONTEXT_CHARS, never over MAX_CODE_AGENT_CONTEXT_CHARS.
+ */
+export function getContextSizeForWindow(data: {
+  contextWindowTokens: number;
+  toolDefinitionChars: number;
+}): CodeAgentContextSize {
+  const answerTokens: number = getAnswerTokensForWindow(
+    data.contextWindowTokens,
+  );
+  const chars: number =
+    Math.floor(
+      (data.contextWindowTokens - answerTokens) *
+        CHARS_PER_TOKEN *
+        CONTEXT_WINDOW_SHARE,
+    ) - Math.max(0, data.toolDefinitionChars);
+
+  return getContextSize(
+    Math.min(MAX_CODE_AGENT_CONTEXT_CHARS, Math.max(MIN_CONTEXT_CHARS, chars)),
+  );
+}
 
 /*
  * The size to keep a conversation under after the model server said it was

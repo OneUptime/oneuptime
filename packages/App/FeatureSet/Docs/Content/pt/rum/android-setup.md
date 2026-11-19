@@ -107,7 +107,9 @@ O OpenTelemetry Android registra tudo isso por conta própria. Os atributos de d
 
 Crashes e ANRs chegam a **Exceções** como não tratados, agrupados pelos stack traces deles, com a sessão em que aconteceram. O agente salva um crash em disco enquanto o aplicativo morre e o envia de lá, então um crash que acontece offline ainda chega quando o aplicativo volta a rodar com rede.
 
-A **Visão geral** da aplicação resume isso para você: **Sessões**, **Sessões sem falhas**, **Falhas**, **ANRs**, **Inicializações do app**, **Inicialização a frio (p95)** e **Quadros congelados**, e cada um abre as exceções, os spans ou os eventos que conta. Enquanto o aplicativo não envia inicializações ou quadros, os gráficos deles dizem o que os ativa. As **Recomendações** dela oferecem monitores para falhas, ANRs, inicializações a frio lentas, quadros congelados e um aplicativo que para de reportar.
+A **Visão geral** da aplicação resume isso para você: **Sessões**, **Sessões sem falhas**, **Falhas**, **ANRs**, **Inicializações do app**, **Inicialização a frio (p95)** e **Quadros congelados**, e cada um abre as exceções, os spans ou os eventos que conta. Enquanto o aplicativo não envia inicializações ou quadros, os gráficos deles dizem o que os ativa. As **Recomendações** dela oferecem monitores para falhas, ANRs, inicializações a frio lentas, quadros congelados, e um aplicativo ou um dos seus dispositivos que para de reportar.
+
+Sob **Sessões sem falhas**, a linha mostra a mesma parcela das instalações: o `app.installation.id` que o OpenTelemetry Android 1.1 e posteriores definem em cada span e registro, um id mantido enquanto o aplicativo continuar instalado, que por isso representa os usuários do aplicativo. Para um aplicativo com centenas de sessões por hora, em que uma falha por dia é normal, **App Crash Rate** e **App ANR Rate** alertam sobre a parcela das sessões de uma hora que tiveram uma falha ou travaram, acima de 1,09% e 0,47% do Android vitals, em vez de alertar sobre cada uma.
 
 Uma sessão termina depois de 15 minutos em segundo plano, ou depois de 4 horas. Um aplicativo que nunca vai para segundo plano, como um quiosque, mantém uma única sessão por 4 horas, então rastreie a visita de cada cliente como um span próprio, como mostra [Rastrear os seus próprios fluxos de trabalho](#rastrear-os-seus-próprios-fluxos-de-trabalho).
 
@@ -222,6 +224,35 @@ resource {
 ```
 
 A telemetria do aplicativo continua com a aplicação RUM dele, e o dispositivo não vira um host em **Hosts**: um aplicativo não informa métricas de host, então não haveria nada para mostrar ali. A página do dispositivo em **Inventário** mostra os registros, traços e exceções dele, e `@resource.host.name:` os encontra em **Traços** e **Registros**. Um dispositivo que não envia nada por 30 dias sai do **Inventário**. Para ver o próprio dispositivo, a memória, o armazenamento e as reinicializações dele e os crashes de todos os aplicativos instalados nele, adicione o [Agente Android](/docs/telemetry/android-agent) e dê a ele o mesmo nome no `device_name` dele: o dispositivo passa então a ser também um host em **Hosts**, e continua sendo um único item em **Inventário**.
+
+### Saber quando um dispositivo fica em silêncio
+
+As **Recomendações** da aplicação oferecem **Device Stopped Reporting**: um alerta para cada dispositivo que não envia nenhum span por uma hora depois de ter enviado algum na última semana, distinguidos pelo `app.installation.id` que o agente define. O alerta de cada dispositivo nomeia a instalação dele e se resolve assim que o dispositivo volta a reportar. Quando todos os dispositivos ficam em silêncio ao mesmo tempo, como quando a rede de uma loja cai, nenhum dispositivo alerta: **App Stopped Reporting** informa isso uma única vez para o aplicativo inteiro.
+
+Um quiosque deixado em uma tela não envia nada até alguém usá-lo. Envie um span a cada poucos minutos enquanto o aplicativo roda, para que um quiosque ocioso não seja confundido com um em silêncio:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Inicie-o depois que o agente tiver iniciado, com `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Um span a cada cinco minutos mantém um quiosque em funcionamento bem dentro da hora.
 
 ### Configurar a frota a partir do seu MDM
 

@@ -30,9 +30,11 @@ import { buildExceptionsGroupRoute } from "../../Utils/TraceCorrelatedSignals";
  * A finding's records (Server/Utils/DataSecurity/Telemetry/
  * TelemetryFindingOccurrences) lead to the explorers that already show
  * them (issue #5594: "if I see a trace, I can go to trace detail"): the
- * trace view focused on the span; the logs explorer filtered to the line's
- * span in the minutes around it - or, for a line written outside any
- * request, to its service in the second around it; the exceptions list
+ * trace view focused on the span; the logs explorer open on the very line,
+ * by its id (#9793), over its span's lines in the minutes around it - or,
+ * for a line written outside any request, over its service's lines in the
+ * second around it (a server of the release before sends no id: the list
+ * alone, as it always opened); the exceptions list
  * filtered to the exception's group; the session's replay; the metrics
  * explorer on a metric's point - its metric, of its service, split by the
  * attribute the data is under. The store's own service or RUM application
@@ -90,9 +92,27 @@ function trimmed(value: string | undefined): string {
 }
 
 /*
- * The logs explorer at a line: its span's lines in the minutes around it,
- * or - written outside any request - its service's lines in the second
- * around it. Null without a time, or anything to filter by.
+ * The line itself, when the record names it by its id (#9793): the logs
+ * explorer opens that very line above its list, read by its id with the
+ * reader's own permissions (#9620's `log` and `logTime`). Nothing when it
+ * names none - a record from a server of the release before - or its id
+ * is not one.
+ */
+function openedLine(
+  occurrence: DataSecurityFindingOccurrence,
+  time: Date,
+): { logId?: string; logTime?: Date } {
+  const logId: string = trimmed(occurrence.logId);
+
+  return ObjectID.isValidUUID(logId) ? { logId, logTime: time } : {};
+}
+
+/*
+ * The logs explorer at a line: the line itself opened above the list when
+ * the record names it by its id, and under it its span's lines in the
+ * minutes around it, or - written outside any request - its service's
+ * lines in the second around it. Null without a time, or anything to
+ * filter by.
  */
 export function getOccurrenceLogsRoute(
   occurrence: DataSecurityFindingOccurrence,
@@ -122,6 +142,7 @@ export function getOccurrenceLogsRoute(
       endTime: new Date(
         time.getTime() + REQUEST_LOGS_WINDOW_IN_MINUTES * 60 * 1000,
       ),
+      ...openedLine(occurrence, time),
     });
 
     return withQuery(logsRoute, query.params);
@@ -137,6 +158,7 @@ export function getOccurrenceLogsRoute(
       time.getTime() - NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000,
     ),
     endTime: new Date(time.getTime() + NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000),
+    ...openedLine(occurrence, time),
   });
 
   return withQuery(logsRoute, query.params);

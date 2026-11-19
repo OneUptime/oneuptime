@@ -1,4 +1,5 @@
 import BadDataException from "../Exception/BadDataException";
+import { NO_BREAK_SPACE } from "../NoBreakSpaces";
 import ObjectID from "../ObjectID";
 import { DataAssetFreshness } from "./DataAssetFreshness";
 
@@ -206,7 +207,9 @@ export function readDataCircuitBreakerRequest(
     stopsOnLateTables !== null &&
     typeof stopsOnLateTables !== "boolean"
   ) {
-    throw new BadDataException("stopsOnLateTables is true or false.");
+    throw new BadDataException(
+      "Send stopsOnLateTables as true or false, or leave it out to use the pipeline's setting.",
+    );
   }
 
   return {
@@ -284,21 +287,29 @@ export function decideDataCircuitBreaker(data: {
   };
 }
 
-// "12 minutes", "6 hours", "3 days": how late, as a sentence says it.
+/*
+ * "12 minutes", "6 hours", "3 days": how late, as a sentence says it. The
+ * figure is held to its word with a no-break space, so the stop's line in
+ * Needs Attention never ends with "12" and starts the next with "minutes".
+ */
 export function describeLateness(seconds: number): string {
   const minutes: number = Math.max(1, Math.round(seconds / 60));
 
   if (minutes < 60) {
-    return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+    return minutes === 1
+      ? `1${NO_BREAK_SPACE}minute`
+      : `${minutes}${NO_BREAK_SPACE}minutes`;
   }
 
   const hours: number = Math.round(minutes / 60);
 
   if (hours < 48) {
-    return hours === 1 ? "1 hour" : `${hours} hours`;
+    return hours === 1
+      ? `1${NO_BREAK_SPACE}hour`
+      : `${hours}${NO_BREAK_SPACE}hours`;
   }
 
-  return `${Math.round(hours / 24)} days`;
+  return `${Math.round(hours / 24)}${NO_BREAK_SPACE}days`;
 }
 
 // One reason as a sentence: "The check orders_not_null is failing on public.orders."

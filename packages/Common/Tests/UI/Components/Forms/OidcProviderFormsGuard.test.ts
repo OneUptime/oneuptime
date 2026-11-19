@@ -24,17 +24,20 @@ import {
  * (Common/UI/Components/Sso/OidcProviderFormFields), in two steps:
  *
  *   Provider   Name, Issuer URL, Client ID, Client Secret;
- *   Sign-in    the teams newcomers join (a project's provider), Enabled,
- *              and one folded Advanced section with everything that has an
- *              answer - the discovery URL (from the issuer), the scopes, the
- *              claim names, the description (from the name) and the Global
+ *   Sign-in    the teams newcomers join (a project's provider), the verified
+ *              domains it serves at Sign in with SSO (a project's provider:
+ *              discovery reads an address's domain alone, so a provider with
+ *              none is offered to nobody by email, #9824), Enabled, and one
+ *              folded Advanced section with everything that has an answer -
+ *              the discovery URL (from the issuer), the scopes, the claim
+ *              names, the description (from the name) and the Global
  *              provider's sign-up and access switches.
  *
  * This guard reads the four forms the way the form guards read every form
  * (Tests/Helpers/FormStepsScan) and pins that shape, so a field that drifts
  * back open, or a page that writes its own fields again, is caught here.
- * The scan reads the builder's conditional parts (teams, the Global
- * switches) as always present; which form gets which is pinned on the call
+ * The scan reads the builder's conditional parts (teams, domains, the
+ * Global switches) as always present; which form gets which is pinned on the call
  * each page makes, and the builder's own tests pin what each call returns
  * (Tests/UI/Components/Sso/OidcProviderFormFields.test.ts).
  */
@@ -68,7 +71,7 @@ const OIDC_FORMS: Array<OidcForm> = [
     label: "ModelTable: Settings > Project OIDC",
     host: "ModelTable",
     builderCall:
-      "formFields={getOidcProviderFormFields<ProjectOIDC>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, withIdentityProviderSignOut: true, })}",
+      "formFields={getOidcProviderFormFields<ProjectOIDC>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, withDomains: true, withIdentityProviderSignOut: true, })}",
   },
   {
     file: `${DASHBOARD}/Pages/StatusPages/View/OIDC.tsx`,
@@ -115,10 +118,12 @@ const PROVIDER_STEP_OPEN: Array<string> = [
 ];
 
 /*
- * What the Sign-in step shows open, as the scan reads the builder (teams
- * only on a project's form, see builderCall).
+ * What the Sign-in step shows open, as the scan reads the builder (teams and
+ * domains only on a project's form, see builderCall). Domains is open, by
+ * the teams: an existing provider lists none until an admin adds one, and
+ * until then Sign in with SSO offers it to nobody by email (#9824).
  */
-const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "isEnabled"];
+const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "domains", "isEnabled"];
 
 /*
  * Everything with an answer, folded. The Global form's two questions, People
@@ -309,6 +314,20 @@ describe("the OIDC provider forms ask for the issuer, client ID and secret; the 
         return call.includes("withGlobalAccessSwitches: true");
       }),
     ).toEqual([OIDC_FORMS[2]!.builderCall, OIDC_FORMS[3]!.builderCall]);
+  });
+
+  /*
+   * Sign in with SSO finds a project's provider by an address's domain
+   * (#9824). A status page's provider and the instance-wide one are found
+   * otherwise (their own sign-in pages list them), so only a project's form
+   * asks which of its verified domains the provider serves.
+   */
+  test("only a project's provider asks which verified domains it serves", () => {
+    expect(
+      OIDC_FORMS.filter((oidcForm: OidcForm): boolean => {
+        return oidcForm.builderCall.includes("withDomains: true");
+      }),
+    ).toEqual([OIDC_FORMS[0]]);
   });
 
   /*

@@ -45,7 +45,8 @@ jest.mock("../../../UI/Config", () => {
  *   - A verification link that failed ended "Return to sign in? Sign in.".
  *     It now asks "Already verified your email?" - an earlier click on the
  *     same link may well have verified it - in each language's own words,
- *     the ones the "check your email" screen already used.
+ *     the ones the "check your email" screen used then (it asks "Ready to
+ *     sign in?" since #9816, for every address that signs up).
  *
  * And every "question? Link." line, in all 17 languages, says something in
  * its question that its link does not.
@@ -144,17 +145,35 @@ describe("every 'question? Link.' line says something in its question that its l
     expect(words("Return to sign in?").includes(words("Sign in."))).toBe(true);
   });
 
-  test("a failed verification link asks the 'check your email' screen's question, in every language", () => {
+  /*
+   * The two screens asked one question until #9816. Since then every
+   * sign-up sees the "check your email" screen - whether its address was
+   * new, already had an account, or had an invitation waiting - so that
+   * screen asks a question true for all of them, "Ready to sign in?", and
+   * its link says "Go to sign in". A failed verification link still asks
+   * whether an earlier click verified the address.
+   */
+  test("a failed verification link asks whether an earlier click verified the address", () => {
+    expect(text(en as Json, "verifyEmail.alreadyVerifiedPrompt")).toBe(
+      "Already verified your email?",
+    );
+  });
+
+  test("the 'check your email' screen asks a question true for every address that signed up (#9816)", () => {
+    expect(text(en as Json, "register.verifyEmailAlreadyVerifiedPrompt")).toBe(
+      "Ready to sign in?",
+    );
+
     for (const language of LANGUAGES) {
       const data: Json = locale(language);
 
+      // Its own words in every language, never the failed link's.
       expect({
         language,
-        prompt: text(data, "verifyEmail.alreadyVerifiedPrompt"),
-      }).toEqual({
-        language,
-        prompt: text(data, "register.verifyEmailAlreadyVerifiedPrompt"),
-      });
+        differs:
+          text(data, "register.verifyEmailAlreadyVerifiedPrompt") !==
+          text(data, "verifyEmail.alreadyVerifiedPrompt"),
+      }).toEqual({ language, differs: true });
     }
   });
 

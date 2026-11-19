@@ -1,7 +1,9 @@
 import ProjectSsoSignInConfirmation, {
+  PROJECT_SSO_NEW_ACCOUNT_PARAMETER,
   ProjectSsoConfirmationOutcome,
   ProjectSsoConfirmationResult,
   ProjectSsoKind,
+  ProjectSsoNewAccountClaims,
 } from "../Utils/ProjectSsoSignInConfirmation";
 import {
   SSO_NO_ROOM_MESSAGE,
@@ -84,6 +86,12 @@ const INVALID_LINK_PAGE: JSONObject = {
     "It may already have been used, or the email address on the account may have changed. Sign in with single sign-on again and we will email you a new link.",
 };
 
+const EXPIRED_LINK_PAGE: JSONObject = {
+  title: "This link has expired.",
+  message:
+    "Sign in with single sign-on again and we will email you a new link.",
+};
+
 router.get(
   CONFIRMATION_PATH,
   async (
@@ -97,6 +105,48 @@ router.get(
       const providerId: string = readString(req.params, "providerId");
       const token: string = readString(req.query, "token");
       const signature: string = readString(req.query, "signature");
+      const account: string = readString(
+        req.query,
+        PROJECT_SSO_NEW_ACCOUNT_PARAMETER,
+      );
+
+      /*
+       * A link for an address no account uses yet (#9824): the sign-in it
+       * carries, signed by this server. Read, never spent, here.
+       */
+      if (account) {
+        const claims:
+          | (ProjectSsoNewAccountClaims & { isExpired: boolean })
+          | null = ProjectSsoSignInConfirmation.readNewAccountToken({
+          account,
+          kind,
+          projectId,
+          providerId,
+        });
+
+        if (!claims) {
+          return renderPage(req, res, INVALID_LINK_PAGE);
+        }
+
+        if (claims.isExpired) {
+          return renderPage(req, res, EXPIRED_LINK_PAGE);
+        }
+
+        const newAccountProjectName: string =
+          await ProjectSsoSignInConfirmation.getProjectName(claims.projectId);
+
+        return renderPage(req, res, {
+          title: "Confirm single sign-on.",
+          message: `Allow the single sign-on of the OneUptime project "${newAccountProjectName}" to set up your OneUptime account and sign you in? If you did not just try to sign in through it, close this page.`,
+          formAction: ProjectSsoSignInConfirmation.getConfirmationRoute({
+            kind: claims.kind,
+            projectId,
+            providerId,
+          }).toString(),
+          account,
+          buttonText: "Confirm Sign-In",
+        });
+      }
 
       /*
        * Checked up front so that a mangled link says so here, rather than
@@ -153,14 +203,25 @@ router.post(
       const projectId: string = readString(req.params, "projectId");
       const providerId: string = readString(req.params, "providerId");
 
-      const result: ProjectSsoConfirmationResult =
-        await ProjectSsoSignInConfirmation.confirm({
-          token: readString(req.body, "token"),
-          signature: readString(req.body, "signature"),
-          kind,
-          projectId,
-          providerId,
-        });
+      const account: string = readString(
+        req.body,
+        PROJECT_SSO_NEW_ACCOUNT_PARAMETER,
+      );
+
+      const result: ProjectSsoConfirmationResult = account
+        ? await ProjectSsoSignInConfirmation.confirmNewAccount({
+            account,
+            kind,
+            projectId,
+            providerId,
+          })
+        : await ProjectSsoSignInConfirmation.confirm({
+            token: readString(req.body, "token"),
+            signature: readString(req.body, "signature"),
+            kind,
+            projectId,
+            providerId,
+          });
 
       switch (result.outcome) {
         case ProjectSsoConfirmationOutcome.Confirmed:
@@ -176,11 +237,7 @@ router.post(
             linkText: "Continue to sign in",
           });
         case ProjectSsoConfirmationOutcome.ExpiredLink:
-          return renderPage(req, res, {
-            title: "This link has expired.",
-            message:
-              "Sign in with single sign-on again and we will email you a new link.",
-          });
+          return renderPage(req, res, EXPIRED_LINK_PAGE);
         case ProjectSsoConfirmationOutcome.AccountBlocked:
           return renderPage(req, res, {
             title: "Account blocked.",
