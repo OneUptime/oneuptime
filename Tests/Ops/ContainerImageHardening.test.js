@@ -850,18 +850,22 @@ describe("Kubernetes AI agent", () => {
  * Swarm, Proxmox, VMware, Ceph, database and host agent, and for the socket
  * and host kinds as root, with the engine socket or the host's namespaces.
  * So it ships only node, tini, the CA store and the programs its executors
- * spawn, each from Alpine's own signed packages: the docker CLI, govc, the
- * ceph CLI and nsenter. No download stage and no download tool; Proxmox and
- * the databases are reached from Node itself.
+ * spawn: the docker CLI, the ceph CLI and nsenter from Alpine's own signed
+ * packages, and govc from VMware's release, checked against a digest pinned
+ * per architecture in a stage that does not ship (Alpine's govc was built
+ * with an x/text that has two high vulnerabilities, #9830). No download tool
+ * ships; Proxmox and the databases are reached from Node itself.
  */
 describe("Resource AI agent", () => {
   const template = "agents/ResourceAIAgent/Dockerfile.tpl";
+  const GOVC_COPY = /^COPY --from=(\S+) \/usr\/bin\/govc \/usr\/bin\/govc$/;
 
   function shippedLines(environment) {
     const stages = stagesOf(template, environment);
     const [chain] = shippedStages(stages);
     return {
       stages,
+      chain,
       lines: [...chain].reverse().flatMap((stage) => {
         return stage.instructions;
       }),
@@ -873,14 +877,13 @@ describe("Resource AI agent", () => {
   });
 
   test.each(ENVIRONMENTS)(
-    "%s: installs nothing from the OS beyond the CA store, tini and the four programs its executors run",
+    "%s: installs nothing from the OS beyond the CA store, tini and the three programs its executors run from Alpine",
     (environment) => {
       const { lines } = shippedLines(environment);
       expect(lines.flatMap(installedPackagesIn).sort()).toEqual([
         "ca-certificates",
         "ceph19-common",
         "docker-cli",
-        "govc",
         "tini",
         "util-linux-misc",
       ]);
@@ -888,17 +891,64 @@ describe("Resource AI agent", () => {
   );
 
   test.each(ENVIRONMENTS)(
-    "%s: is one stage, and copies nothing in from another image",
+    "%s: copies in govc alone, from a stage that does not ship",
     (environment) => {
-      const { stages, lines } = shippedLines(environment);
-      expect(stages).toHaveLength(1);
+      const { stages, chain, lines } = shippedLines(environment);
+      const copies = lines.filter((line) => {
+        return /^COPY --from=/.test(line);
+      });
+      expect(copies).toHaveLength(1);
+      expect(copies[0]).toMatch(GOVC_COPY);
+
+      const donorName = GOVC_COPY.exec(copies[0])[1].toLowerCase();
       expect(
-        lines.filter((line) => {
-          return /^COPY --from=/.test(line);
+        stages.map((stage) => {
+          return stage.name;
         }),
-      ).toEqual([]);
+      ).toContain(donorName);
+      expect(
+        chain.map((stage) => {
+          return stage.name;
+        }),
+      ).not.toContain(donorName);
     },
   );
+
+  test("the govc stage checks VMware's release against its pinned sha256 before installing it", () => {
+    const { stages, lines } = shippedLines("production");
+    const donorName = GOVC_COPY.exec(
+      lines.find((line) => {
+        return GOVC_COPY.test(line);
+      }),
+    )[1].toLowerCase();
+    const donor = stages.find((stage) => {
+      return stage.name === donorName;
+    });
+
+    // One instruction downloads, verifies and installs, so a failed check
+    // fails the build before anything reaches /usr/bin.
+    const download = donor.instructions.filter((line) => {
+      return /https:\/\/github\.com\/vmware\/govmomi\/releases\/download\//.test(
+        line,
+      );
+    });
+    expect(download).toHaveLength(1);
+    const verify = download[0].search(/\bsha256sum -c\b/);
+    const install = download[0].search(
+      /\binstall\b[^&|;]*\s\/usr\/bin\/govc\b/,
+    );
+    expect(verify).toBeGreaterThan(-1);
+    expect(install).toBeGreaterThan(verify);
+
+    // A release, and both architectures pinned to a full digest.
+    expect(donor.instructions).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^ARG GOVC_VERSION=v\d+\.\d+\.\d+$/),
+        expect.stringMatching(/^ARG GOVC_SHA256_AMD64=[0-9a-f]{64}$/),
+        expect.stringMatching(/^ARG GOVC_SHA256_ARM64=[0-9a-f]{64}$/),
+      ]),
+    );
+  });
 
   test.each(ENVIRONMENTS)(
     "%s: runs as the image's non-root node user by default (UID 1000; the compose files run the socket and host kinds as root)",
