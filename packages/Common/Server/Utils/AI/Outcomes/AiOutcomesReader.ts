@@ -27,6 +27,7 @@ import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCa
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import {
+  AI_OUTCOMES_PART_OUTCOMES,
   AI_OUTCOMES_PARTS,
   AI_OUTCOMES_RECORDS_PAGE_SIZE,
   AI_OUTCOMES_RECORDS_TEXT_MAX_LENGTH,
@@ -288,13 +289,13 @@ export default class AiOutcomesReader {
 
     if (!AI_OUTCOMES_PARTS.includes(part)) {
       throw new BadDataException(
-        `part must be one of: ${AI_OUTCOMES_PARTS.join(", ")}.`,
+        `The part must be one of: ${AI_OUTCOMES_PARTS.join(", ")}.`,
       );
     }
 
     if (!isAiOutcomesPartOutcome(part, outcome)) {
       throw new BadDataException(
-        `${outcome} is not an outcome of ${part}. Ask for one the page counts.`,
+        `That outcome is not one the page counts for ${part}. Ask for one of: ${AI_OUTCOMES_PART_OUTCOMES[part].join(", ")}.`,
       );
     }
 

@@ -169,7 +169,7 @@ export function parseRecordsRequest(body: unknown): ParsedRecordsRequest {
     !AI_OUTCOMES_PARTS.includes(part as AiOutcomesPart)
   ) {
     throw new BadDataException(
-      `part must be one of: ${AI_OUTCOMES_PARTS.join(", ")}.`,
+      `The part must be one of: ${AI_OUTCOMES_PARTS.join(", ")}.`,
     );
   }
 
@@ -180,7 +180,7 @@ export function parseRecordsRequest(body: unknown): ParsedRecordsRequest {
     !isAiOutcomesPartOutcome(part as AiOutcomesPart, outcome)
   ) {
     throw new BadDataException(
-      `outcome must be one of the outcomes of ${part}, as the page counts them.`,
+      `The outcome must be one of the outcomes of ${part}, as the page counts them.`,
     );
   }
 
@@ -196,7 +196,7 @@ export function parseRecordsRequest(body: unknown): ParsedRecordsRequest {
       typeof windowEnd === "string" ? new Date(windowEnd) : new Date(NaN);
 
     if (Number.isNaN(date.getTime())) {
-      throw new BadDataException("windowEnd must be an ISO date.");
+      throw new BadDataException("The windowEnd field must be an ISO date.");
     }
 
     parsed.windowEnd = date;
@@ -212,7 +212,7 @@ export function parseRecordsRequest(body: unknown): ParsedRecordsRequest {
       skip > AI_OUTCOMES_SCAN_LIMIT
     ) {
       throw new BadDataException(
-        `skip must be a whole number from 0 to ${AI_OUTCOMES_SCAN_LIMIT}.`,
+        `The skip field must be a whole number from 0 to ${AI_OUTCOMES_SCAN_LIMIT}.`,
       );
     }
 

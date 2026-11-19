@@ -399,7 +399,7 @@ describe("parseRecordsRequest", () => {
     for (const windowEnd of ["yesterday", 12, { at: "now" }]) {
       expect(() => {
         return parse({ part: "pages", outcome: "handedOff", windowEnd });
-      }).toThrow("windowEnd must be an ISO date.");
+      }).toThrow("The windowEnd field must be an ISO date.");
     }
   });
 
