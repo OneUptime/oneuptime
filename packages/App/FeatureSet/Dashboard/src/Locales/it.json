@@ -59127,9 +59127,11 @@
   "Left axis": "Asse sinistro",
   "Left axis: {{unit}}": "Asse sinistro: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Altre query di metriche, ciascuna su un grafico proprio, a meno che non sia sovrapposta al grafico della query precedente",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Le query in {{units}} non rientrano in nessun asse di questo grafico ({{axisUnits}}), quindi sono tracciate sull'asse sinistro e potrebbero non essere direttamente confrontabili.",
   "Right axis": "Asse destro",
   "Right axis: {{unit}}": "Asse destro: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Questa query è in {{unit}} e il grafico della query precedente in {{chartUnit}}, quindi è tracciata sull'asse destro del grafico.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Questa query è in {{unit}}, e il grafico della query precedente ha gli assi in {{chartUnit}} e {{secondUnit}}, quindi i suoi valori non si leggeranno correttamente su nessuno dei due assi."
+  "Own scale": "Scala propria",
+  "Own scale: {{unit}}": "Scala propria: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "Le query in {{units}} non rientrano in nessun asse di questo grafico ({{axisUnits}}), quindi ogni tipo di unità è tracciato su una scala propria, senza asse. Leggi i loro valori nella legenda e nel tooltip.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Questa query è in {{unit}}, e il grafico della query precedente ha gli assi in {{chartUnit}} e {{secondUnit}}, quindi è tracciata su una scala propria, senza asse. Leggi i suoi valori nella legenda e nel tooltip del grafico."
 }

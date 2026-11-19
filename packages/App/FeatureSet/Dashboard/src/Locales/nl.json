@@ -59127,9 +59127,11 @@
   "Left axis": "Linkeras",
   "Left axis: {{unit}}": "Linkeras: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Meer metriekquery's, elk in een eigen grafiek, tenzij die over de grafiek van de vorige query is gelegd",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Query's in {{units}} passen op geen van de assen van deze grafiek ({{axisUnits}}), dus ze worden tegen de linkeras getekend en zijn mogelijk niet direct vergelijkbaar.",
   "Right axis": "Rechteras",
   "Right axis: {{unit}}": "Rechteras: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Deze query is in {{unit}} en de grafiek van de vorige query in {{chartUnit}}, dus hij wordt tegen de rechteras van de grafiek getekend.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Deze query is in {{unit}}, en de grafiek van de vorige query heeft assen in {{chartUnit}} en {{secondUnit}}, dus de waarden ervan zijn op geen van beide assen goed af te lezen."
+  "Own scale": "Eigen schaal",
+  "Own scale: {{unit}}": "Eigen schaal: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "Query's in {{units}} passen op geen van de assen van deze grafiek ({{axisUnits}}), dus elk soort eenheid wordt op een eigen schaal getekend, zonder as. Lees hun waarden af in de legenda en de tooltip.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Deze query is in {{unit}}, en de grafiek van de vorige query heeft assen in {{chartUnit}} en {{secondUnit}}, dus hij wordt op een eigen schaal getekend, zonder as. Lees de waarden af in de legenda en de tooltip van de grafiek."
 }

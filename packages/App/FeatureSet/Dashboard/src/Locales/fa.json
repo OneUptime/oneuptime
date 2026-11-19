@@ -59127,9 +59127,11 @@
   "Left axis": "محور چپ",
   "Left axis: {{unit}}": "محور چپ: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "کوئری‌های متریک بیشتر، هر کدام روی نمودار خودش، مگر آنکه روی نمودار کوئری قبلی قرار گیرد",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "کوئری‌های بر حسب {{units}} با هیچ‌یک از محورهای این نمودار ({{axisUnits}}) جور نیستند، پس نسبت به محور چپ کشیده می‌شوند و شاید مستقیماً قابل مقایسه نباشند.",
   "Right axis": "محور راست",
   "Right axis: {{unit}}": "محور راست: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "این کوئری بر حسب {{unit}} است و نمودار کوئری قبلی بر حسب {{chartUnit}}، پس نسبت به محور راست نمودار کشیده می‌شود.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "این کوئری بر حسب {{unit}} است و محورهای نمودار کوئری قبلی بر حسب {{chartUnit}} و {{secondUnit}}، پس مقدارهای آن روی هیچ‌یک از دو محور درست خوانده نمی‌شوند."
+  "Own scale": "مقیاس جداگانه",
+  "Own scale: {{unit}}": "مقیاس جداگانه: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "کوئری‌های بر حسب {{units}} با هیچ‌یک از محورهای این نمودار ({{axisUnits}}) جور نیستند، پس هر نوع واحد با مقیاسی جداگانه و بدون محور کشیده می‌شود. مقدارهای آن‌ها را در راهنما و راهنمای شناور بخوانید.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "این کوئری بر حسب {{unit}} است و محورهای نمودار کوئری قبلی بر حسب {{chartUnit}} و {{secondUnit}}، پس با مقیاسی جداگانه و بدون محور کشیده می‌شود. مقدارهای آن را در راهنما و راهنمای شناور نمودار بخوانید."
 }

@@ -59127,9 +59127,11 @@
   "Left axis": "左軸",
   "Left axis: {{unit}}": "左軸: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "追加のメトリクスクエリ。前のクエリのチャートに重ねない限り、それぞれ独自のチャートに描かれます",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "{{units}} のクエリはこのチャートのどの軸（{{axisUnits}}）にも合わないため、左軸に対して描かれ、値を直接比較できない場合があります。",
   "Right axis": "右軸",
   "Right axis: {{unit}}": "右軸: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "このクエリの単位は {{unit}}、前のクエリのチャートの単位は {{chartUnit}} のため、このクエリはチャートの右軸に対して描かれます。",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "このクエリの単位は {{unit}} で、前のクエリのチャートの軸の単位は {{chartUnit}} と {{secondUnit}} のため、このクエリの値はどちらの軸でも正しく読み取れません。"
+  "Own scale": "独自のスケール",
+  "Own scale: {{unit}}": "独自のスケール: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "{{units}} のクエリはこのチャートのどの軸（{{axisUnits}}）にも合わないため、単位の種類ごとに軸のない独自のスケールで描かれます。値は凡例とツールチップで確認してください。",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "このクエリの単位は {{unit}} で、前のクエリのチャートの軸の単位は {{chartUnit}} と {{secondUnit}} のため、このクエリは軸のない独自のスケールで描かれます。値はチャートの凡例とツールチップで確認してください。"
 }

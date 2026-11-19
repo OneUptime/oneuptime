@@ -59127,9 +59127,11 @@
   "Left axis": "왼쪽 축",
   "Left axis: {{unit}}": "왼쪽 축: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "추가 메트릭 쿼리로, 이전 쿼리의 차트에 겹치지 않으면 각각 자체 차트에 그려집니다",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "{{units}} 단위의 쿼리는 이 차트의 어느 축({{axisUnits}})에도 맞지 않아 왼쪽 축 기준으로 그려지며, 값을 직접 비교하기 어려울 수 있습니다.",
   "Right axis": "오른쪽 축",
   "Right axis: {{unit}}": "오른쪽 축: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "이 쿼리의 단위({{unit}})가 이전 쿼리 차트의 단위({{chartUnit}})와 달라, 이 쿼리는 차트의 오른쪽 축 기준으로 그려집니다.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "이 쿼리의 단위({{unit}})는 이전 쿼리 차트의 두 축 단위({{chartUnit}}, {{secondUnit}}) 중 어디에도 맞지 않아, 어느 축에서도 이 쿼리의 값을 제대로 읽을 수 없습니다."
+  "Own scale": "자체 스케일",
+  "Own scale: {{unit}}": "자체 스케일: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "{{units}} 단위의 쿼리는 이 차트의 어느 축({{axisUnits}})에도 맞지 않아, 단위 종류마다 축 없이 자체 스케일로 그려집니다. 값은 범례와 툴팁에서 확인하세요.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "이 쿼리의 단위({{unit}})는 이전 쿼리 차트의 두 축 단위({{chartUnit}}, {{secondUnit}}) 중 어디에도 맞지 않아, 축 없이 자체 스케일로 그려집니다. 값은 차트의 범례와 툴팁에서 확인하세요."
 }

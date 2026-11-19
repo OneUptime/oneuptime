@@ -59127,9 +59127,11 @@
   "Left axis": "المحور الأيسر",
   "Left axis: {{unit}}": "المحور الأيسر: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "مزيد من استعلامات المقاييس، كلٌّ منها على مخطط خاص به ما لم يُراكَب على مخطط الاستعلام السابق",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "لا تناسب الاستعلامات بوحدة {{units}} أيًّا من محوري هذا المخطط ({{axisUnits}})، لذا تُرسم مقابل المحور الأيسر وقد لا تكون قابلة للمقارنة مباشرة.",
   "Right axis": "المحور الأيمن",
   "Right axis: {{unit}}": "المحور الأيمن: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "هذا الاستعلام بوحدة {{unit}} ومخطط الاستعلام السابق بوحدة {{chartUnit}}، لذا يُرسم مقابل المحور الأيمن للمخطط.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "هذا الاستعلام بوحدة {{unit}}، ومحورا مخطط الاستعلام السابق بوحدتي {{chartUnit}} و{{secondUnit}}، لذا لن تُقرأ قيمه بشكل صحيح على أيٍّ من المحورين."
+  "Own scale": "مقياس خاص",
+  "Own scale: {{unit}}": "مقياس خاص: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "لا تناسب الاستعلامات بوحدة {{units}} أيًّا من محوري هذا المخطط ({{axisUnits}})، لذا يُرسم كل نوع من الوحدات بمقياس خاص به، بلا محور. اقرأ قيمها في وسيلة الإيضاح والتلميح.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "هذا الاستعلام بوحدة {{unit}}، ومحورا مخطط الاستعلام السابق بوحدتي {{chartUnit}} و{{secondUnit}}، لذا يُرسم بمقياس خاص به، بلا محور. اقرأ قيمه في وسيلة الإيضاح والتلميح في المخطط."
 }

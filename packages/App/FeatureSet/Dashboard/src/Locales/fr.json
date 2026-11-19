@@ -59127,9 +59127,11 @@
   "Left axis": "Axe de gauche",
   "Left axis: {{unit}}": "Axe de gauche : {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Autres requêtes de métriques, chacune tracée sur son propre graphique, sauf si elle est superposée au graphique de la requête précédente",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Les requêtes en {{units}} ne correspondent à aucun axe de ce graphique ({{axisUnits}}), elles sont donc tracées sur l'axe de gauche et ne sont pas forcément comparables directement.",
   "Right axis": "Axe de droite",
   "Right axis: {{unit}}": "Axe de droite : {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Cette requête est en {{unit}} et le graphique de la requête précédente en {{chartUnit}}, elle est donc tracée sur l'axe de droite du graphique.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Cette requête est en {{unit}}, et le graphique de la requête précédente a des axes en {{chartUnit}} et en {{secondUnit}}, ses valeurs ne se liront donc correctement sur aucun des deux axes."
+  "Own scale": "Échelle propre",
+  "Own scale: {{unit}}": "Échelle propre : {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "Les requêtes en {{units}} ne correspondent à aucun axe de ce graphique ({{axisUnits}}), chaque type d'unité est donc tracé sur une échelle propre, sans axe. Lisez leurs valeurs dans la légende et l'info-bulle.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Cette requête est en {{unit}}, et le graphique de la requête précédente a des axes en {{chartUnit}} et en {{secondUnit}}, elle est donc tracée sur une échelle propre, sans axe. Lisez ses valeurs dans la légende et l'info-bulle du graphique."
 }

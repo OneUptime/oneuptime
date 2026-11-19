@@ -59127,9 +59127,11 @@
   "Left axis": "Venstre akse",
   "Left axis: {{unit}}": "Venstre akse: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Flere spørringer etter målinger, hver tegnet i sitt eget diagram, med mindre den legges over diagrammet til forrige spørring",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Spørringer i {{units}} passer ikke på noen av aksene i dette diagrammet ({{axisUnits}}), så de tegnes mot venstre akse og er kanskje ikke direkte sammenlignbare.",
   "Right axis": "Høyre akse",
   "Right axis: {{unit}}": "Høyre akse: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Denne spørringen er i {{unit}} og diagrammet til forrige spørring i {{chartUnit}}, så den tegnes mot diagrammets høyre akse.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Denne spørringen er i {{unit}}, og diagrammet til forrige spørring har akser i {{chartUnit}} og {{secondUnit}}, så verdiene kan ikke leses riktig på noen av aksene."
+  "Own scale": "Egen skala",
+  "Own scale: {{unit}}": "Egen skala: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "Spørringer i {{units}} passer ikke på noen av aksene i dette diagrammet ({{axisUnits}}), så hver type enhet tegnes på sin egen skala, uten akse. Les verdiene deres i tegnforklaringen og verktøytipset.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Denne spørringen er i {{unit}}, og diagrammet til forrige spørring har akser i {{chartUnit}} og {{secondUnit}}, så den tegnes på sin egen skala, uten akse. Les verdiene i diagrammets tegnforklaring og verktøytips."
 }

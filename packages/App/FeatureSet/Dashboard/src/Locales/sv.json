@@ -59127,9 +59127,11 @@
   "Left axis": "Vänster axel",
   "Left axis: {{unit}}": "Vänster axel: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Fler mätvärdesfrågor, var och en i ett eget diagram, om den inte läggs över föregående frågas diagram",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Frågor i {{units}} passar inte på någon av diagrammets axlar ({{axisUnits}}), så de ritas mot vänster axel och är kanske inte direkt jämförbara.",
   "Right axis": "Höger axel",
   "Right axis: {{unit}}": "Höger axel: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Den här frågan är i {{unit}} och föregående frågas diagram i {{chartUnit}}, så den ritas mot diagrammets högra axel.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Den här frågan är i {{unit}}, och föregående frågas diagram har axlar i {{chartUnit}} och {{secondUnit}}, så dess värden går inte att läsa av korrekt på någon av axlarna."
+  "Own scale": "Egen skala",
+  "Own scale: {{unit}}": "Egen skala: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "Frågor i {{units}} passar inte på någon av diagrammets axlar ({{axisUnits}}), så varje slags enhet ritas på en egen skala, utan axel. Läs av deras värden i teckenförklaringen och verktygstipset.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Den här frågan är i {{unit}}, och föregående frågas diagram har axlar i {{chartUnit}} och {{secondUnit}}, så den ritas på en egen skala, utan axel. Läs av dess värden i diagrammets teckenförklaring och verktygstips."
 }

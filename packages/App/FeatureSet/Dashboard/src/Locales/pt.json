@@ -59127,9 +59127,11 @@
   "Left axis": "Eixo esquerdo",
   "Left axis: {{unit}}": "Eixo esquerdo: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Mais consultas de métricas, cada uma em um gráfico próprio, a menos que seja sobreposta ao gráfico da consulta anterior",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "As consultas em {{units}} não se encaixam em nenhum eixo deste gráfico ({{axisUnits}}), então são desenhadas no eixo esquerdo e podem não ser diretamente comparáveis.",
   "Right axis": "Eixo direito",
   "Right axis: {{unit}}": "Eixo direito: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Esta consulta está em {{unit}} e o gráfico da consulta anterior em {{chartUnit}}, então ela é desenhada no eixo direito do gráfico.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Esta consulta está em {{unit}}, e o gráfico da consulta anterior tem eixos em {{chartUnit}} e {{secondUnit}}, então os valores dela não serão lidos corretamente em nenhum dos dois eixos."
+  "Own scale": "Escala própria",
+  "Own scale: {{unit}}": "Escala própria: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "As consultas em {{units}} não se encaixam em nenhum eixo deste gráfico ({{axisUnits}}), então cada tipo de unidade é desenhado em uma escala própria, sem eixo. Leia os valores delas na legenda e na dica.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Esta consulta está em {{unit}}, e o gráfico da consulta anterior tem eixos em {{chartUnit}} e {{secondUnit}}, então ela é desenhada em uma escala própria, sem eixo. Leia os valores dela na legenda e na dica do gráfico."
 }

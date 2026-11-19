@@ -59127,9 +59127,11 @@
   "Left axis": "Левая ось",
   "Left axis: {{unit}}": "Левая ось: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Дополнительные запросы метрик, каждый на своей диаграмме, если он не наложен на диаграмму предыдущего запроса",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Запросы в единицах {{units}} не подходят ни к одной оси этой диаграммы ({{axisUnits}}), поэтому они построены по левой оси, и их значения могут быть несопоставимы напрямую.",
   "Right axis": "Правая ось",
   "Right axis: {{unit}}": "Правая ось: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Этот запрос в единицах «{{unit}}», а диаграмма предыдущего запроса — в «{{chartUnit}}», поэтому он построен по правой оси диаграммы.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Этот запрос в единицах «{{unit}}», а у диаграммы предыдущего запроса оси в «{{chartUnit}}» и «{{secondUnit}}», поэтому его значения нельзя правильно прочитать ни по одной из осей."
+  "Own scale": "Своя шкала",
+  "Own scale: {{unit}}": "Своя шкала: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "Запросы в единицах {{units}} не подходят ни к одной оси этой диаграммы ({{axisUnits}}), поэтому каждый вид единиц построен по своей шкале, без оси. Смотрите их значения в легенде и во всплывающей подсказке.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Этот запрос в единицах «{{unit}}», а у диаграммы предыдущего запроса оси в «{{chartUnit}}» и «{{secondUnit}}», поэтому он построен по своей шкале, без оси. Смотрите его значения в легенде и во всплывающей подсказке диаграммы."
 }

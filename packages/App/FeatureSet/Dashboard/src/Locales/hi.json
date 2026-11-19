@@ -59127,9 +59127,11 @@
   "Left axis": "बायाँ अक्ष",
   "Left axis: {{unit}}": "बायाँ अक्ष: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "और मेट्रिक क्वेरी, हर एक अपने चार्ट पर, जब तक कि उसे पिछली क्वेरी के चार्ट पर न चढ़ाया गया हो",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "{{units}} वाली क्वेरी इस चार्ट के किसी भी अक्ष ({{axisUnits}}) पर ठीक नहीं बैठतीं, इसलिए वे बाएँ अक्ष के हिसाब से बनाई जाती हैं और उनके मानों की सीधी तुलना शायद न हो सके।",
   "Right axis": "दायाँ अक्ष",
   "Right axis: {{unit}}": "दायाँ अक्ष: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "यह क्वेरी {{unit}} में है और पिछली क्वेरी का चार्ट {{chartUnit}} में, इसलिए इसे चार्ट के दाएँ अक्ष के हिसाब से बनाया जाता है।",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "यह क्वेरी {{unit}} में है, और पिछली क्वेरी के चार्ट के अक्ष {{chartUnit}} और {{secondUnit}} में हैं, इसलिए इसके मान किसी भी अक्ष पर सही ढंग से नहीं पढ़े जा सकेंगे।"
+  "Own scale": "अपना स्केल",
+  "Own scale: {{unit}}": "अपना स्केल: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "{{units}} वाली क्वेरी इस चार्ट के किसी भी अक्ष ({{axisUnits}}) पर ठीक नहीं बैठतीं, इसलिए हर तरह की इकाई अपने स्केल पर, बिना अक्ष के, बनाई जाती है। उनके मान लेजेंड और टूलटिप में देखें।",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "यह क्वेरी {{unit}} में है, और पिछली क्वेरी के चार्ट के अक्ष {{chartUnit}} और {{secondUnit}} में हैं, इसलिए इसे अपने स्केल पर, बिना अक्ष के, बनाया जाता है। इसके मान चार्ट के लेजेंड और टूलटिप में देखें।"
 }

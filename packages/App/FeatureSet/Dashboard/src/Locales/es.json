@@ -59127,9 +59127,11 @@
   "Left axis": "Eje izquierdo",
   "Left axis: {{unit}}": "Eje izquierdo: {{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "Más consultas de métricas, cada una en un gráfico propio salvo que se superponga al gráfico de la consulta anterior",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "Las consultas en {{units}} no encajan en ningún eje de este gráfico ({{axisUnits}}), así que se dibujan sobre el eje izquierdo y pueden no ser comparables directamente.",
   "Right axis": "Eje derecho",
   "Right axis: {{unit}}": "Eje derecho: {{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "Esta consulta está en {{unit}} y el gráfico de la consulta anterior en {{chartUnit}}, así que se dibuja sobre el eje derecho del gráfico.",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "Esta consulta está en {{unit}}, y el gráfico de la consulta anterior tiene ejes en {{chartUnit}} y {{secondUnit}}, así que sus valores no se leerán bien en ninguno de los dos ejes."
+  "Own scale": "Escala propia",
+  "Own scale: {{unit}}": "Escala propia: {{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "Las consultas en {{units}} no encajan en ningún eje de este gráfico ({{axisUnits}}), así que cada tipo de unidad se dibuja con una escala propia, sin eje. Lee sus valores en la leyenda y en la información emergente.",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "Esta consulta está en {{unit}}, y el gráfico de la consulta anterior tiene ejes en {{chartUnit}} y {{secondUnit}}, así que se dibuja con una escala propia, sin eje. Lee sus valores en la leyenda y en la información emergente del gráfico."
 }

@@ -59127,9 +59127,11 @@
   "Left axis": "左軸",
   "Left axis: {{unit}}": "左軸：{{unit}}",
   "More metric queries, each drawn on a chart of its own unless overlaid on the previous query's chart": "更多指標查詢，每個查詢繪製在各自的圖表上，除非疊加到上一個查詢的圖表",
-  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.": "單位為 {{units}} 的查詢不適用於此圖表的任何座標軸（{{axisUnits}}），因此依左軸繪製，數值可能無法直接比較。",
   "Right axis": "右軸",
   "Right axis: {{unit}}": "右軸：{{unit}}",
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表單位為 {{chartUnit}}，因此此查詢依圖表的右軸繪製。",
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.": "此查詢的單位為 {{unit}}，上一個查詢的圖表座標軸單位為 {{chartUnit}} 和 {{secondUnit}}，因此無法在任一座標軸上正確讀出此查詢的數值。"
+  "Own scale": "獨立刻度",
+  "Own scale: {{unit}}": "獨立刻度：{{unit}}",
+  "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.": "單位為 {{units}} 的查詢不適用於此圖表的任何座標軸（{{axisUnits}}），因此每種單位都依獨立刻度繪製，不顯示座標軸。請在圖例和工具提示中查看其數值。",
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.": "此查詢的單位為 {{unit}}，上一個查詢的圖表座標軸單位為 {{chartUnit}} 和 {{secondUnit}}，因此此查詢依獨立刻度繪製，不顯示座標軸。請在圖表的圖例和工具提示中查看其數值。"
 }

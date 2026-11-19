@@ -38,6 +38,7 @@ import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigDat
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import {
+  OwnScaleYAxis,
   SecondYAxis,
   ValueAxisFormatter,
   ValueAxisPrecision,
@@ -1041,6 +1042,11 @@ interface PanelAxes {
   readingByMember: Map<PanelMember, OverlayAxisReading>;
   // The member whose unit the second axis is in; undefined for none.
   secondAxisLead: PanelMember | undefined;
+  /*
+   * The members whose unit each of the panel's own scales is in, in order
+   * (issue #10080): empty while every member fits one of its axes.
+   */
+  ownScaleLeads: Array<PanelMember>;
 }
 
 function getPanelAxes(members: Array<PanelMember>): PanelAxes {
@@ -1064,7 +1070,20 @@ function getPanelAxes(members: Array<PanelMember>): PanelAxes {
       axes.secondAxisLeadIndex === null
         ? undefined
         : members[axes.secondAxisLeadIndex],
+    ownScaleLeads: axes.ownScaleLeadIndexes.map(
+      (leadIndex: number): PanelMember => {
+        return members[leadIndex] as PanelMember;
+      },
+    ),
   };
+}
+
+/*
+ * The id of a panel's own scale (issue #10080): its lines and exemplars name
+ * it, and the chart library draws each to it.
+ */
+function getOwnScaleId(ownScale: number): string {
+  return String(ownScale);
 }
 
 /*
@@ -1220,6 +1239,12 @@ function renderSeriesControls(input: {
    * axis its series is drawn against (axisOfSeries).
    */
   secondAxisUnitLabel?: string | undefined;
+  /*
+   * The unit of each of the chart's scales of their own (issue #10080), for
+   * series in a third kind of unit: each gets a badge, "Own scale:
+   * Milliseconds", and each of their chips says "Own scale".
+   */
+  ownScaleUnitLabels?: Array<string> | undefined;
   axisOfSeries?: ((seriesName: string) => OverlayAxis) | undefined;
   /*
    * Formats a series value (peak/avg/latest) for display next to its name,
@@ -1265,6 +1290,7 @@ function renderSeriesControls(input: {
     warningElement,
     unitLabel,
     secondAxisUnitLabel,
+    ownScaleUnitLabels,
     axisOfSeries,
     valueFormatter,
     onInvestigateSeries,
@@ -1273,7 +1299,9 @@ function renderSeriesControls(input: {
 
   /*
    * On a chart with two value axes, each badge says which axis its unit is
-   * on: "Left axis: Percent", "Right axis: Bytes".
+   * on: "Left axis: Percent", "Right axis: Bytes", and a unit neither axis
+   * can say, which has a scale of its own, says so: "Own scale:
+   * Milliseconds" (issue #10080).
    */
   const axisUnitBadges: Array<string> = secondAxisUnitLabel
     ? [
@@ -1286,6 +1314,11 @@ function renderSeriesControls(input: {
           : []),
         translator.translateTemplate("Right axis: {{unit}}", {
           unit: secondAxisUnitLabel,
+        }),
+        ...(ownScaleUnitLabels || []).map((ownScaleUnit: string): string => {
+          return translator.translateTemplate("Own scale: {{unit}}", {
+            unit: ownScaleUnit,
+          });
         }),
       ]
     : unitLabel
@@ -1443,24 +1476,26 @@ function renderSeriesControls(input: {
        * the same place instead of floating between controls.
        */}
       <div className="flex flex-wrap items-center gap-2">
-        {axisUnitBadges.map((badge: string): ReactElement => {
-          return (
-            <span
-              key={badge}
-              data-testid={
-                secondAxisUnitLabel ? CHART_AXIS_UNIT_TEST_ID : undefined
-              }
-              className="inline-flex"
-            >
-              <Pill
-                text={badge}
-                isUserContent={true}
-                tone={PillTone.Neutral}
-                isDotHidden={true}
-              />
-            </span>
-          );
-        })}
+        {axisUnitBadges.map(
+          (badge: string, badgeIndex: number): ReactElement => {
+            return (
+              <span
+                key={`${badgeIndex}-${badge}`}
+                data-testid={
+                  secondAxisUnitLabel ? CHART_AXIS_UNIT_TEST_ID : undefined
+                }
+                className="inline-flex"
+              >
+                <Pill
+                  text={badge}
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  isDotHidden={true}
+                />
+              </span>
+            );
+          },
+        )}
         <span className="text-xs text-gray-500">
           {translator.translatePlural(SERIES_COUNT_TEMPLATE, totalSeries)}
         </span>
@@ -1713,12 +1748,21 @@ function renderSeriesControls(input: {
               statValue === null
                 ? null
                 : valueFormatter(statValue, series.seriesName);
-            // The axis it is drawn against, on a chart with two.
-            const axisLabel: string | null = axisOfSeries
-              ? (axisOfSeries(series.seriesName) === OverlayAxis.Second
-                  ? translator.translateText("Right axis")
-                  : translator.translateText("Left axis")) || null
-              : null;
+            /*
+             * The axis it is drawn against, on a chart with two, or that it
+             * has a scale of its own, with no axis (issue #10080).
+             */
+            const seriesAxis: OverlayAxis | undefined = axisOfSeries
+              ? axisOfSeries(series.seriesName)
+              : undefined;
+            const axisLabel: string | null =
+              seriesAxis === undefined
+                ? null
+                : (seriesAxis === OverlayAxis.OwnScale
+                    ? translator.translateText("Own scale")
+                    : seriesAxis === OverlayAxis.Second
+                      ? translator.translateText("Right axis")
+                      : translator.translateText("Left axis")) || null;
             // Its name as the reader reads it: "(unset)" in their words.
             const readerName: string = getSeriesNameForReader(
               series.seriesName,
@@ -2764,6 +2808,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     hasColorCustomization: boolean;
     unitLabel: string;
     secondAxisUnitLabel?: string | undefined;
+    ownScaleUnitLabels?: Array<string> | undefined;
     axisOfSeries?: ((seriesName: string) => OverlayAxis) | undefined;
     valueFormatter: (value: number, seriesName: string) => string;
     onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
@@ -2793,6 +2838,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     hasColorCustomization: boolean;
     unitLabel: string;
     secondAxisUnitLabel?: string | undefined;
+    ownScaleUnitLabels?: Array<string> | undefined;
     axisOfSeries?: ((seriesName: string) => OverlayAxis) | undefined;
     valueFormatter: (value: number, seriesName: string) => string;
     onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
@@ -2906,6 +2952,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           warningElement: input.warningElement,
           unitLabel: input.unitLabel,
           secondAxisUnitLabel: input.secondAxisUnitLabel,
+          ownScaleUnitLabels: input.ownScaleUnitLabels,
           axisOfSeries: input.axisOfSeries,
           valueFormatter: input.valueFormatter,
           onInvestigateSeries: input.onInvestigateSeries,
@@ -2995,15 +3042,26 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
        * query (issue #10042). One in another unit of its axis's kind -
        * megabytes on an axis in gigabytes - is converted into the axis's
        * unit, so its line, its values and its warning and critical lines
-       * read right there. Only a third kind of unit fits neither axis: it
-       * keeps its values, on the first, and the chart says so
-       * (unitMismatchWarning).
+       * read right there. Only a third kind of unit fits neither axis: it is
+       * drawn to a scale of its own, with no axis, one per kind of unit, in
+       * the unit of its kind's first query (issue #10080), and the chart says
+       * so (unitMismatchWarning, the legend's "Own scale").
        */
       const panelAxes: PanelAxes = getPanelAxes(members);
       const readingOf: (member: PanelMember) => OverlayAxisReading = (
         member: PanelMember,
       ): OverlayAxisReading => {
         return panelAxes.readingByMember.get(member)!;
+      };
+      // The own scale a member is drawn to, when it fits neither axis.
+      const ownScaleOf: (member: PanelMember) => number | undefined = (
+        member: PanelMember,
+      ): number | undefined => {
+        const reading: OverlayAxisReading = readingOf(member);
+
+        return reading.axis === OverlayAxis.OwnScale
+          ? reading.ownScale
+          : undefined;
       };
 
       for (const member of members) {
@@ -3109,19 +3167,31 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         secondAxisLead
           ? getMemberValueFormatter(secondAxisLead, translator.language)
           : undefined;
+      // And each own scale, in its lead's unit (issue #10080).
+      const ownScaleValueFormatters: Array<ValueAxisFormatter> =
+        panelAxes.ownScaleLeads.map(
+          (ownScaleLead: PanelMember): ValueAxisFormatter => {
+            return getMemberValueFormatter(ownScaleLead, translator.language);
+          },
+        );
 
       /*
        * How a member's values are written - its line's ticks, its chips, its
        * tooltip and its moment's values - and the axis it is drawn against:
-       * its axis's way, or its own for a member that fits neither axis.
+       * its axis's way, or its own scale's for a member that fits neither
+       * axis.
        */
       const getMemberAxisValueFormatter: (
         member: PanelMember,
       ) => ValueAxisFormatter = (member: PanelMember): ValueAxisFormatter => {
         const reading: OverlayAxisReading = readingOf(member);
+        const ownScale: number | undefined = ownScaleOf(member);
 
-        if (reading.fit === OverlayUnitFit.Different) {
-          return getMemberValueFormatter(member, translator.language);
+        if (ownScale !== undefined) {
+          return (
+            ownScaleValueFormatters[ownScale] ||
+            getMemberValueFormatter(member, translator.language)
+          );
         }
 
         return reading.axis === OverlayAxis.Second && secondAxisValueFormatter
@@ -3133,15 +3203,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
        * Thresholds concatenate across the panel: every overlaid query's
        * warning/critical lines render, each formatted in the unit its
        * values are drawn in - its axis's, for a query converted into it -
-       * and drawn against its query's axis.
+       * and drawn against its query's axis, or to its own scale.
        */
       const referenceLines: Array<ChartReferenceLineProps> = [];
       for (const member of members) {
         const reading: OverlayAxisReading = readingOf(member);
+        const ownScale: number | undefined = ownScaleOf(member);
         const isOnSecondAxis: boolean =
           reading.axis === OverlayAxis.Second && Boolean(secondAxisLead);
         const axisLead: PanelMember =
-          isOnSecondAxis && secondAxisLead ? secondAxisLead : firstMember;
+          ownScale !== undefined
+            ? panelAxes.ownScaleLeads[ownScale] || member
+            : isOnSecondAxis && secondAxisLead
+              ? secondAxisLead
+              : firstMember;
         const isConverted: boolean = reading.fit === OverlayUnitFit.Converted;
         const drawnUnit: string = isConverted ? axisLead.unit : member.unit;
         const drawnFormatterOptions: ValueFormatterOptions = {
@@ -3160,6 +3235,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         ) => Array<ChartReferenceLineProps> = (
           lines: Array<ChartReferenceLineProps>,
         ): Array<ChartReferenceLineProps> => {
+          if (ownScale !== undefined) {
+            return lines.map(
+              (line: ChartReferenceLineProps): ChartReferenceLineProps => {
+                return { ...line, ownScaleId: getOwnScaleId(ownScale) };
+              },
+            );
+          }
+
           return isOnSecondAxis
             ? lines.map(
                 (line: ChartReferenceLineProps): ChartReferenceLineProps => {
@@ -3215,14 +3298,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       /*
        * Unit safety for overlay panels: a query in a unit of another kind
        * gets the second axis, and a later one of that kind is read on it, so
-       * only a third kind fits neither axis. It is drawn against the left
-       * axis, where its switch put it, and its chips and tooltip write its
-       * values in its own unit; the chart says its line is not to the
-       * axis's scale. Warn (don't block).
+       * only a third kind fits neither axis. Drawn against the left axis, it
+       * stretched it (70 processes pulled a 0-1 fraction's axis up to
+       * 7,000%); it is drawn to a scale of its own now, with no axis (issue
+       * #10080). Its chips, its tooltip and its moment's values write its
+       * values in its own unit, its chip says "Own scale", and the chart
+       * says there is no axis to read its line on. Said, never blocked.
        */
       const membersOnNeitherAxis: Array<PanelMember> = members.filter(
         (member: PanelMember): boolean => {
-          return readingOf(member).fit === OverlayUnitFit.Different;
+          return ownScaleOf(member) !== undefined;
         },
       );
       /*
@@ -3256,7 +3341,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           <HintChip variant="amber">
             <span data-testid={OVERLAY_UNIT_MISMATCH_TEST_ID}>
               {translator.translateTemplate(
-                "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so they are drawn against the left axis and may not be directly comparable.",
+                "Queries in {{units}} fit neither axis of this chart ({{axisUnits}}), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.",
                 {
                   units: composedValue((sentence: Translator): string => {
                     return formatList(
@@ -3335,6 +3420,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           exemplarsByQueryKey[getExemplarStateKey(member.queryConfig)] || [];
         // Each dot where its query's line is: on its axis, in its unit.
         const reading: OverlayAxisReading = readingOf(member);
+        const ownScale: number | undefined = ownScaleOf(member);
         for (const exemplar of memberExemplars) {
           const exemplarKey: string = `${exemplar.traceId}-${exemplar.x.getTime()}-${exemplar.y}`;
           if (seenExemplarKeys.has(exemplarKey)) {
@@ -3343,13 +3429,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           seenExemplarKeys.add(exemplarKey);
           chartExemplars.push(
             reading.fit === OverlayUnitFit.Converted ||
+              ownScale !== undefined ||
               (reading.axis === OverlayAxis.Second && secondAxisLead)
               ? {
                   ...exemplar,
                   y: MetricQueryOverlay.toChartUnit(exemplar.y, reading),
-                  ...(reading.axis === OverlayAxis.Second && secondAxisLead
-                    ? { isOnSecondYAxis: true }
-                    : {}),
+                  ...(ownScale !== undefined
+                    ? { ownScaleId: getOwnScaleId(ownScale) }
+                    : reading.axis === OverlayAxis.Second && secondAxisLead
+                      ? { isOnSecondYAxis: true }
+                      : {}),
                 }
               : exemplar,
           );
@@ -3527,6 +3616,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               metricName: secondAxisLead.metricName,
             }) || secondAxisUnit
           : undefined,
+        // Each scale of its own, by its unit's name (issue #10080).
+        ownScaleUnitLabels: secondAxisLead
+          ? panelAxes.ownScaleLeads.map((ownScaleLead: PanelMember): string => {
+              return (
+                getUnitNameInLanguage(ownScaleLead.unit, translator, {
+                  metricName: ownScaleLead.metricName,
+                }) || ownScaleLead.unit
+              );
+            })
+          : [],
         axisOfSeries: secondAxisLead ? getSeriesAxis : undefined,
         valueFormatter: seriesValueFormatter,
         onShowAllToggled: (nextShowAll: boolean): void => {
@@ -3677,12 +3776,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ): boolean => {
         return getSeriesAxis(series.seriesName) === OverlayAxis.Second;
       };
+      // Not on the second axis, nor on a scale of its own.
+      const isOnFirstAxis: (series: SeriesPoint) => boolean = (
+        series: SeriesPoint,
+      ): boolean => {
+        return getSeriesAxis(series.seriesName) === OverlayAxis.First;
+      };
 
       if (isPercentChart) {
         const range: { min: number; max: number } = getPercentAxisRange(
-          renderSeries.filter((series: SeriesPoint): boolean => {
-            return !isOnSecondAxis(series);
-          }),
+          renderSeries.filter(isOnFirstAxis),
           isFractionScale,
         );
         yAxisMin = range.min;
@@ -3726,8 +3829,65 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           : undefined;
 
       /*
-       * A series that fits neither axis writes its values in its own unit
-       * in the tooltip; every other series, as its axis writes its ticks.
+       * A scale of its own for each kind of unit neither axis can say
+       * (issue #10080), named in its lead's unit, over the domain an axis
+       * of it would take: a percent's soft 0-100% range, else its values.
+       * Like the second axis, it names every series of its queries, shown or
+       * not, and each previous period's line beside its live one.
+       */
+      const ownScaleYAxes: Array<OwnScaleYAxis> = panelAxes.ownScaleLeads.map(
+        (ownScaleLead: PanelMember, ownScale: number): OwnScaleYAxis => {
+          const isOnThisScale: (series: SeriesPoint) => boolean = (
+            series: SeriesPoint,
+          ): boolean => {
+            const owner: PanelMember | undefined = getSeriesOwner(
+              series.seriesName,
+            );
+
+            return Boolean(owner && ownScaleOf(owner) === ownScale);
+          };
+          const isOwnScaleFraction: boolean =
+            ownScaleLead.unit === "1" &&
+            ValueFormatter.isFractionMetric(ownScaleLead.metricName);
+          const isOwnScalePercent: boolean =
+            isOwnScaleFraction ||
+            ValueFormatter.isPercentUnit(ownScaleLead.unit);
+          const range: { min: number; max: number } | undefined =
+            isOwnScalePercent
+              ? getPercentAxisRange(
+                  renderSeries.filter(isOnThisScale),
+                  isOwnScaleFraction,
+                )
+              : undefined;
+
+          return {
+            id: getOwnScaleId(ownScale),
+            legend: isOwnScalePercent ? "%" : ownScaleLead.unit,
+            options: {
+              type: YAxisType.Number,
+              formatter:
+                ownScaleValueFormatters[ownScale] ||
+                getMemberValueFormatter(ownScaleLead, translator.language),
+              precision: YAxisPrecision.NoDecimals,
+              min: range ? range.min : "auto",
+              max: range ? range.max : "auto",
+            },
+            seriesNames: [...panelSeries, ...renderSeries]
+              .filter(isOnThisScale)
+              .map((series: SeriesPoint): string => {
+                return series.seriesName;
+              })
+              .filter((name: string, index: number, names: Array<string>) => {
+                return names.indexOf(name) === index;
+              }),
+          };
+        },
+      );
+
+      /*
+       * A series drawn to a scale of its own writes its values as its scale
+       * does, in its unit, in the tooltip; every other series, as its axis
+       * writes its ticks.
        */
       const seriesValueFormatters: Dictionary<(value: number) => string> = {};
       for (const series of renderSeries) {
@@ -3735,9 +3895,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           series.seriesName,
         );
 
-        if (owner && readingOf(owner).fit === OverlayUnitFit.Different) {
-          seriesValueFormatters[series.seriesName] =
+        if (owner && ownScaleOf(owner) !== undefined) {
+          const ownScaleFormatter: ValueAxisFormatter =
             getMemberAxisValueFormatter(owner);
+
+          seriesValueFormatters[series.seriesName] = (
+            value: number,
+          ): string => {
+            return ownScaleFormatter(value);
+          };
         }
       }
 
@@ -3792,6 +3958,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             },
           },
           secondYAxis: secondYAxis,
+          ownScaleYAxes: ownScaleYAxes.length > 0 ? ownScaleYAxes : undefined,
           seriesValueFormatters:
             Object.keys(seriesValueFormatters).length > 0
               ? seriesValueFormatters
@@ -4193,6 +4360,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const secondYAxis: SecondYAxis | undefined = (
         chart.props as { secondYAxis?: SecondYAxis | undefined }
       ).secondYAxis;
+      const ownScaleYAxes: Array<OwnScaleYAxis> | undefined = (
+        chart.props as { ownScaleYAxes?: Array<OwnScaleYAxis> | undefined }
+      ).ownScaleYAxes;
       const seriesValueFormatters:
         | Dictionary<(value: number) => string>
         | undefined = (
@@ -4222,6 +4392,18 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   ...secondYAxis,
                   seriesNames: secondYAxis.seriesNames.map(forReader),
                 },
+              }
+            : {}),
+          ...(ownScaleYAxes
+            ? {
+                ownScaleYAxes: ownScaleYAxes.map(
+                  (ownScaleYAxis: OwnScaleYAxis): OwnScaleYAxis => {
+                    return {
+                      ...ownScaleYAxis,
+                      seriesNames: ownScaleYAxis.seriesNames.map(forReader),
+                    };
+                  },
+                ),
               }
             : {}),
           ...(seriesValueFormatters
