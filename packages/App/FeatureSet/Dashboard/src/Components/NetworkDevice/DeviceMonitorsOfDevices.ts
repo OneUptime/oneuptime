@@ -18,9 +18,10 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
  *
  * "Its monitors" are the ones the server's duplicate check counts
  * (DeviceMonitorDuplicateCheck): the ones made for the device (an import's,
- * an auto import rule's, an alert policy's) and the one bound to it. Read
- * for a page of rows at a time, as the reader: two list reads, whatever the
- * page holds. Best effort - a read that fails leaves every row as it was,
+ * an auto import rule's, an alert policy's), the ones a person tied to it
+ * (Monitor.networkDeviceId, issue #9545) and the one bound to it. Read for a
+ * page of rows at a time, as the reader: three list reads, whatever the page
+ * holds. Best effort - a read that fails leaves every row as it was,
  * "Already added", which is still true.
  */
 
@@ -98,13 +99,15 @@ function addLink(
 }
 
 /*
- * The summaries, worked out from what the two reads answered: each device's
- * bound monitor, then the monitors made for it, each once. React-free and
- * request-free, so the rule is tested on its own.
+ * The summaries, worked out from what the reads answered: each device's
+ * bound monitor, then the monitors made for it or tied to it, each once, by
+ * name. React-free and request-free, so the rule is tested on its own.
  */
 export function summarizeDeviceMonitors(data: {
   devices: ReadonlyArray<NetworkDevice>;
   monitorsMadeForDevices: ReadonlyArray<Monitor>;
+  // Monitors a person tied to the devices (issue #9545); none when not read.
+  monitorsTiedToDevices?: ReadonlyArray<Monitor> | undefined;
 }): DeviceMonitorsByKey {
   const result: DeviceMonitorsByKey = emptyDeviceMonitorsByKey();
 
@@ -121,16 +124,24 @@ export function summarizeDeviceMonitors(data: {
       addLink(monitors, toLink(device.monitor));
     }
 
-    const madeFor: Array<Monitor> = data.monitorsMadeForDevices
-      .filter((monitor: Monitor): boolean => {
-        return (
-          monitor.autoProvisionedNetworkDeviceId?.toString().toLowerCase() ===
-          deviceId.toLowerCase()
-        );
-      })
-      .sort((first: Monitor, second: Monitor): number => {
-        return (first.name || "").localeCompare(second.name || "");
-      });
+    const isTheDevice: (
+      id: { toString(): string } | null | undefined,
+    ) => boolean = (id: { toString(): string } | null | undefined): boolean => {
+      return id?.toString().toLowerCase() === deviceId.toLowerCase();
+    };
+
+    const madeFor: Array<Monitor> = [
+      ...data.monitorsMadeForDevices.filter((monitor: Monitor): boolean => {
+        return isTheDevice(monitor.autoProvisionedNetworkDeviceId);
+      }),
+      ...(data.monitorsTiedToDevices || []).filter(
+        (monitor: Monitor): boolean => {
+          return isTheDevice(monitor.networkDeviceId);
+        },
+      ),
+    ].sort((first: Monitor, second: Monitor): number => {
+      return (first.name || "").localeCompare(second.name || "");
+    });
 
     for (const monitor of madeFor) {
       addLink(monitors, toLink(monitor));
@@ -233,24 +244,44 @@ export async function loadDeviceMonitors(data: {
     return emptyDeviceMonitorsByKey();
   }
 
-  const monitors: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
-    modelType: Monitor,
-    query: {
-      autoProvisionedNetworkDeviceId: new Includes(foundDeviceIds),
-    },
-    select: {
-      _id: true,
-      name: true,
-      monitorType: true,
-      autoProvisionedNetworkDeviceId: true,
-    },
-    sort: { name: SortOrder.Ascending },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-  });
+  const [madeFor, tiedTo]: [ListResult<Monitor>, ListResult<Monitor>] =
+    await Promise.all([
+      ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          autoProvisionedNetworkDeviceId: new Includes(foundDeviceIds),
+        },
+        select: {
+          _id: true,
+          name: true,
+          monitorType: true,
+          autoProvisionedNetworkDeviceId: true,
+        },
+        sort: { name: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      }),
+      // The ones a person tied to the devices (issue #9545).
+      ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          networkDeviceId: new Includes(foundDeviceIds),
+        },
+        select: {
+          _id: true,
+          name: true,
+          monitorType: true,
+          networkDeviceId: true,
+        },
+        sort: { name: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      }),
+    ]);
 
   return summarizeDeviceMonitors({
     devices: devices.data,
-    monitorsMadeForDevices: monitors.data,
+    monitorsMadeForDevices: madeFor.data,
+    monitorsTiedToDevices: tiedTo.data,
   });
 }
