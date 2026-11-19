@@ -15,6 +15,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import React from "react";
+import { SpyInstance } from "jest-mock";
 import { JSONObject } from "../../../Types/JSON";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -166,12 +167,8 @@ describe("what the page hands back", () => {
 });
 
 describe("the page", () => {
-  let returnToApp: jest.SpiedFunction<
-    typeof MobilePasskeyEnrolment.returnToApp
-  >;
-  let forgetFragment: jest.SpiedFunction<
-    typeof MobilePasskeyEnrolment.forgetFragment
-  >;
+  let returnToApp: SpyInstance<typeof MobilePasskeyEnrolment.returnToApp>;
+  let forgetFragment: SpyInstance<typeof MobilePasskeyEnrolment.forgetFragment>;
 
   beforeEach(() => {
     configureLocation();
@@ -206,8 +203,10 @@ describe("the page", () => {
   });
 
   test("reads the options with the hand-off, makes the passkey, and hands its answer back to the app", async () => {
-    const create: jest.SpiedFunction<typeof navigator.credentials.create> =
-      jest.spyOn(navigator.credentials, "create");
+    const create: SpyInstance<typeof navigator.credentials.create> = jest.spyOn(
+      navigator.credentials,
+      "create",
+    );
 
     render(<MobilePasskeyEnrolmentPage />);
     fireEvent.click(screen.getByTestId("mobile-passkey-enrolment-create"));
@@ -288,8 +287,10 @@ describe("the page", () => {
   });
 
   test("a hand-off that expired or was already used says to start again in the app, and runs no prompt", async () => {
-    const create: jest.SpiedFunction<typeof navigator.credentials.create> =
-      jest.spyOn(navigator.credentials, "create");
+    const create: SpyInstance<typeof navigator.credentials.create> = jest.spyOn(
+      navigator.credentials,
+      "create",
+    );
     optionsAnswer = new HTTPErrorResponse(
       400,
       {
