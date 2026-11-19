@@ -9,6 +9,7 @@ import {
   SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
   SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
   SECURITY_LOG_FUNCTION_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH,
   SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
@@ -350,7 +351,8 @@ export function readLogContainerHost(
 }
 
 // The longest function name a line's faas.name is read as.
-export const MAX_LOG_FUNCTION_NAME_LENGTH: number = 255;
+export const MAX_LOG_FUNCTION_NAME_LENGTH: number =
+  SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH;
 
 // A row's text attribute, trimmed: "" when it is none, or longer than `limit` - never cut.
 function readExactAttribute(
@@ -440,6 +442,8 @@ export interface LogSecurityEventInput {
   ruleName?: string | undefined;
   // The source's own id for the record (an audit ID, a CloudTrail event ID).
   eventUid?: string | undefined;
+  // Ids it may have been stored under before (NormalizedSecurityEvent.eventUidAliases).
+  eventUidAliases?: Array<string> | undefined;
   // Distinguishes the events of one line that holds several records.
   recordIndex?: number | undefined;
   principalUser?: string | undefined;
@@ -527,6 +531,11 @@ export function buildLogSecurityEvent(
     input.recordIndex !== undefined ? `:${input.recordIndex}` : "";
   const eventUid: string =
     input.eventUid || (logId ? `log:${logId}${recordSuffix}` : "");
+  const eventUidAliases: Array<string> = (input.eventUidAliases || []).filter(
+    (alias: string): boolean => {
+      return Boolean(alias) && alias !== eventUid;
+    },
+  );
 
   return {
     time: input.time || input.line.time,
@@ -578,6 +587,9 @@ export function buildLogSecurityEvent(
     traceId: readTelemetryId(input.line.traceId),
     spanId: readTelemetryId(input.line.spanId),
     sessionId: readTelemetryId(input.line.sessionId),
+    ...(input.eventUid && eventUidAliases.length > 0
+      ? { eventUidAliases }
+      : {}),
   };
 }
 
