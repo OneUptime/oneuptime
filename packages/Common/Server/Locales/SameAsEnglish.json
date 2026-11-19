@@ -12,7 +12,7 @@
     "{{count}} minutes_one"
   ],
   "es": ["Monitor: {{monitorName}}", "No"],
-  "it": ["Monitor: {{monitorName}}", "No", "Offline"],
+  "it": ["Monitor: {{monitorName}}", "No", "Offline", "Single sign-on:"],
   "pt": ["Monitor: {{monitorName}}", "Offline", "Status", "Status:"],
   "nl": [
     "Details",
@@ -23,6 +23,7 @@
     "Incident: {{title}}",
     "Monitor: {{monitorName}}",
     "Offline",
+    "Single sign-on:",
     "Status",
     "Status:",
     "[Incident] {{title}}"
@@ -32,6 +33,7 @@
     "Note",
     "Note:",
     "Offline",
+    "Single sign-on:",
     "Status",
     "Status:"
   ],

@@ -27,8 +27,12 @@
 {{> InfoBlock info=(ttHtml "A server admin cleared the sign-in settings saved on your {{product}} account." product=productName)}}
 {{/if}}
 
+{{!-- One card, as in every email: when, and the providers they sign in with now. --}}
 {{> DetailBoxStart this }}
 {{> DetailBoxField title=(t "Cleared at:") plainText=clearedAt }}
+{{#if signsInWithSso}}{{#if ssoProviderNames}}
+{{> DetailBoxField title=(t "Single sign-on:") plainText=ssoProviderNames }}
+{{/if}}{{/if}}
 {{> DetailBoxEnd this }}
 
 {{> TitleBlock title=(tHtml "What was removed") }}
@@ -49,12 +53,6 @@
 
 {{#if signsInWithSso}}
 {{> InfoBlock info=(tHtml "Sign in with single sign-on (SSO). Your organization's identity provider now manages your password and two-factor authentication.")}}
-
-{{#if ssoProviderNames}}
-{{> DetailBoxStart this }}
-{{> DetailBoxField title=(t "Single sign-on:") plainText=ssoProviderNames }}
-{{> DetailBoxEnd this }}
-{{/if}}
 
 {{> ButtonBlock buttonUrl=ssoSignInUrl buttonText=(t "Sign In with SSO") }}
 {{/if}}
