@@ -4297,7 +4297,9 @@ jobs:
       # and RestoreCutMicrosoftTeamsChatIds puts each project's chats back
       # whole, touching no Slack row, no other project's row and no name; a
       # second run changes nothing, two at once come to the same, and down()
-      # narrows back without cutting an id. Clones the migrated
+      # narrows back without cutting an id. A chat a connection lists only
+      # after the upgrade (#9330) gets its project's kept messages back when
+      # the bot saves it, and only then. Clones the migrated
       # WorkspaceProjectAuthToken, WorkspaceLiveMessage and
       # WorkspaceNotificationLog tables into an isolated schema.
       - name: Test Microsoft Teams chat ids' upgrade to whole on migrated Postgres
