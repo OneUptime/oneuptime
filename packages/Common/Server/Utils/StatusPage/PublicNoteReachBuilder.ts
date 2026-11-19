@@ -125,7 +125,9 @@ export default class PublicNoteReachBuilder {
     }
 
     if (!id || !ObjectID.isValidUUID(id)) {
-      throw new BadDataException("eventId must be a valid ID.");
+      throw new BadDataException(
+        "This request names no event. Send the ID of the incident, episode or maintenance event as eventId.",
+      );
     }
 
     return new ObjectID(id.toLowerCase());
