@@ -86,6 +86,18 @@ export const HOST_LOG_SESSION_NOTE_MAX_LENGTH: number = 200;
 export const HOST_LOG_SESSION_ATTRIBUTE: string =
   "oneuptime.agent.log_session.id";
 
+/*
+ * Where a session's lines are read as a file (#9966), beside the session's
+ * own API (Server/API/HostLogSessionAPI): the Dashboard's Download Lines.
+ */
+export const HOST_LOG_SESSION_LINES_PATH: string = "lines";
+
+export const getHostLogSessionLinesRoute: (sessionId: string) => string = (
+  sessionId: string,
+): string => {
+  return `/host-log-session/${encodeURIComponent(sessionId)}/${HOST_LOG_SESSION_LINES_PATH}`;
+};
+
 // The route the agent asks, with its Server ingestion key.
 export const ANDROID_AGENT_LOG_SESSIONS_ROUTE: string =
   "/android-agent/v1/log-sessions";
