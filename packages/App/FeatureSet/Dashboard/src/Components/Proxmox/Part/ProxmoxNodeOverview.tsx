@@ -6,7 +6,7 @@ import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommen
 import Link from "Common/UI/Components/Link/Link";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -16,11 +16,8 @@ import ResourcePartDetailsCard, {
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
-import {
-  getProxmoxAttentionItems,
-  isProxmoxIssueAbout,
-} from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
+import { isProxmoxIssueAbout } from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
 import {
   PROXMOX_NODE_ALERT_TEMPLATE_IDS,
   ProxmoxBusyGuest,
@@ -56,9 +53,6 @@ import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
  * a part's own page says when it last reported, in its hero).
  */
 
-// How the node's own row reads in its Needs attention card.
-const THIS_NODE: string = translationKey("This node");
-
 export interface ComponentProps {
   clusterId: ObjectID;
   clusterName: string;
@@ -66,6 +60,12 @@ export interface ComponentProps {
   row: ProxmoxResource | null;
   // The guests and storage the node reports.
   nodeRows: Array<ProxmoxResource>;
+  /*
+   * What needs attention on the node, its guests and its storage: the
+   * page reads it once (getProxmoxPartAttention) for this card and for the
+   * hero's status, which opens it.
+   */
+  attention: ResourcePartAttention;
   routes: ProxmoxPartRoutes;
   onShowGuests: () => void;
   refreshToken?: number | undefined;
@@ -90,13 +90,6 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
     },
   );
   const guestSummary: ProxmoxGuestSummary = summarizeProxmoxGuests(guests);
-
-  const attentionItems: Array<ResourceAttentionItem> = getProxmoxAttentionItems(
-    {
-      rows: [...(row ? [row] : []), ...props.nodeRows],
-      routeFor: props.routes.getPartRoute,
-    },
-  );
 
   const busiest: Array<ProxmoxBusyGuest> = getProxmoxBusiestGuests({
     rows: guests,
@@ -216,9 +209,9 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="proxmox-node-overview">
       <NeedsAttentionCard
         testId="proxmox-node-attention"
-        items={attentionItems}
-        current={{ key: `Node:${props.externalId}`, label: THIS_NODE }}
-        description="What on this node, its guests and its storage is broken or needs a look, the most urgent first."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
