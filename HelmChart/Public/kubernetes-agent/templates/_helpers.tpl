@@ -1724,6 +1724,46 @@ false
 {{- end -}}
 
 {{/*
+Whether the collector's cost-engine job asks the cost agent where to scrape
+(#9776): cost.engine.url is auto or a URL, the agent runs, and
+cost.metrics.endpoint names no endpoint of its own.
+
+Where an engine serves its price metrics depends on which engine it is and
+which of its Services the URL names (checked against Kubecost 2.8.7, Kubecost
+3.3.2 and OpenCost 1.121.4): OpenCost's API and Kubecost 2's cost model at
+/metrics; Kubecost 2's frontend and OpenCost's UI answer /metrics with their
+web page and proxy the engine's metrics at /model/metrics; Kubecost 3's
+frontend has them at no path at all, its finops agent's Service does. The
+chart cannot see which while it renders (it reads no cluster objects: under
+helm template, Argo CD or a dry run there are none to read), and relabeling
+cannot weigh one Service against another. The agent reads the engine, so it
+finds the endpoint (agents/KubernetesCostAgent/EngineMetrics.ts) and serves
+it at /scrape-targets, which the job reads through http_sd.
+
+The bundled OpenCost is scraped where the chart put it, an explicit
+cost.metrics.endpoint as written, and with the agent off the engine URL's
+/metrics as before (the auto job then finds engines itself).
+Usage: {{- if eq (include "kubernetes-agent.costMetricsFromAgent" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costMetricsFromAgent" -}}
+{{- if and (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") .Values.cost.agent.enabled (ne (include "kubernetes-agent.costEngineBundled" .) "true") (not (.Values.cost.metrics.endpoint | default "" | toString | trim)) -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Where the collector asks the cost agent for the engine's price metrics: its
+health port, through the Service service-cost-agent.yaml renders while
+kubernetes-agent.costMetricsFromAgent is true. The answer is Prometheus http_sd
+JSON: a target, its scheme and path, or an empty list.
+*/}}
+{{- define "kubernetes-agent.costScrapeTargetsUrl" -}}
+http://{{ include "kubernetes-agent.fullname" . }}-cost.{{ .Release.Namespace }}.svc.cluster.local:13134/scrape-targets
+{{- end -}}
+
+{{/*
 Whether the cost agent reads the cluster's own engine instead of the bundled
 one when it finds one (#9633): with the bundled engine, unless
 cost.engine.preferExisting is false or the bundled engine has a rate card

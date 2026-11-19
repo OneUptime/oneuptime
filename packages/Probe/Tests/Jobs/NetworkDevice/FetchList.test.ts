@@ -649,6 +649,7 @@ describe("pollDevice — a successful poll's report", () => {
       "probeCapabilities",
       "probeId",
       "probeKey",
+      "probeVersion",
       "snmpResponse",
     ]);
   });
@@ -665,6 +666,7 @@ describe("pollDevice — a successful poll's report", () => {
       "probeCapabilities",
       "probeId",
       "probeKey",
+      "probeVersion",
     ]);
   });
 

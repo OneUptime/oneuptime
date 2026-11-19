@@ -70,10 +70,31 @@ enum ProbeCapability {
    * tick.
    */
   RetryAllWorkWhenBusy = "retryAllWorkWhenBusy",
+  /*
+   * The probe makes the one-time codes of TOTP monitor secrets (issue
+   * #9703): it reads the codes' parameters a step carries
+   * (MonitorStep.totpSecrets) and makes each code when the check uses it
+   * (Common/Utils/Monitor/MonitorSecretTotp). A probe from before
+   * FIRST_PROBE_VERSION_WITH_TOTP_CODES drops them and sends
+   * {{monitorSecrets.NAME}} as written, so the site refuses the sign-in
+   * with nothing to say why. The server hands a step that needs a code
+   * only to a probe that declares this, and fails it, with a sentence
+   * saying to update the probe, on any other custom probe (issue #9759).
+   */
+  TotpCodes = "totpCodes",
 }
 
 // The first probe release that walks SNMP tables.
 export const FIRST_PROBE_VERSION_WITH_SNMP_TABLES: string = "14.0.18";
+
+/*
+ * The first probe release that makes one-time codes (ProbeCapability.TotpCodes)
+ * and reports its own version on every request (probeVersion in the body). The
+ * codes arrived after 17.0.0 was cut from main, so they ship in the release
+ * after it: 17.0.1, or whatever later number it is given, which compares as
+ * at least this.
+ */
+export const FIRST_PROBE_VERSION_WITH_TOTP_CODES: string = "17.0.1";
 
 // How many capabilities, of how many characters, a request is read for.
 export const MAX_PROBE_CAPABILITIES: number = 32;

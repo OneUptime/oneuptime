@@ -10,6 +10,9 @@ import {
 } from "../../../Components/Inventory/InventoryBadges";
 import InventoryAttributes from "../../../Components/Inventory/InventoryAttributes";
 import InventoryAssetDetailsCard from "../../../Components/Inventory/InventoryAssetDetailsCard";
+import ManagedDeviceCard from "../../../Components/DeviceManagement/ManagedDeviceCard";
+import ManagedDeviceAppsTable from "../../../Components/DeviceManagement/ManagedDeviceAppsTable";
+import { MANAGED_DEVICE_RESOURCE_TYPE } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import {
@@ -132,6 +135,7 @@ const InventoryItemOverview: FunctionComponent<
             <InventorySourceBadge source={entity.source} />
             <InventoryLivenessBadge
               source={entity.source}
+              resourceType={entity.resourceType}
               lastSeenAt={entity.lastSeenAt}
               showAge={true}
             />
@@ -220,6 +224,21 @@ const InventoryItemOverview: FunctionComponent<
        * onto it - so the attributes below say the same.
        */}
       <InventoryAssetDetailsCard item={entity} onRefreshed={reload} />
+
+      {/*
+       * A device a device management service enrolls (Esper, issue #9586):
+       * what the service knows about it, and its installed apps. The item
+       * points at the device it is the host of.
+       */}
+      {entity.resourceType === MANAGED_DEVICE_RESOURCE_TYPE &&
+      entity.resourceId ? (
+        <Fragment>
+          <ManagedDeviceCard managedDeviceId={entity.resourceId} />
+          <ManagedDeviceAppsTable managedDeviceId={entity.resourceId} />
+        </Fragment>
+      ) : (
+        <></>
+      )}
 
       {/*
        * What Security Events found about the machine this week - by its

@@ -83,9 +83,10 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | Движок | Обычный URL сервиса |
 | --- | --- |
 | OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 2 | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
+| Kubecost 3 | `http://kubecost-frontend.kubecost.svc.cluster.local:9090` |
 
-Путь Allocation API определяется автоматически (`/model/allocation` для Kubecost, `/allocation/compute` или `/allocation` для OpenCost). Задавайте `cost.engine.allocationPath` только для нестандартной установки. С `auto` или URL ничего встроенного не будет, поэтому для рекомендаций по памяти задайте также `cost.engine.prometheusUrl` (см. [Данные, на которых это строится](#данные-на-которых-это-строится)).
+Путь Allocation API определяется автоматически (`/model/allocation` для Kubecost, `/allocation/compute` или `/allocation` для OpenCost). Задавайте `cost.engine.allocationPath` только для нестандартной установки. С `auto` или URL ничего встроенного не будет, поэтому для рекомендаций по памяти задайте также `cost.engine.prometheusUrl` (см. [Данные, на которых это строится](#данные-на-которых-это-строится)). Ценовые метрики находятся так же, какой бы сервис движка вы ни указали: агент пробует его `/metrics`, затем `/model/metrics`, который фронтенд Kubecost 2 или интерфейс OpenCost передаёт движку, затем FinOps-агент Kubecost 3, и коллектор опрашивает первый адрес, где есть ценовые ряды. Чтобы указать их самостоятельно, задайте `cost.metrics.endpoint`.
 
 ## Цены для локальных кластеров и bare metal
 
@@ -202,7 +203,7 @@ cost:
 :::
 
 :::details Kubernetes Cost Dashboard не показывает данных
-Шаблон читает опрошенные метрики затрат: проверьте, что `cost.metrics.enabled` равно `true`.
+Шаблон читает опрошенные метрики затрат: проверьте, что `cost.metrics.enabled` равно `true`. Если задан `cost.engine.url`, агент затрат сам находит, где ваш движок их отдаёт, и в его логе сказано, где именно или какие адреса он пробовал: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`. Чтобы указать их самостоятельно, задайте `cost.metrics.endpoint`.
 :::
 
 :::details Карточка Right-Sizing пуста

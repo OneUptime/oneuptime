@@ -422,6 +422,7 @@ export const friendlyToolNames: { [key: string]: string } = {
    * this one, what changed just before it, and its own timeline.
    */
   search_incidents: translationKey("Searching past incidents"),
+  search_alerts: translationKey("Searching past alerts"),
   recent_changes: translationKey("Checking recent changes"),
   get_incident_timeline: translationKey("Reading the incident timeline"),
   get_alert_timeline: translationKey("Reading the alert timeline"),

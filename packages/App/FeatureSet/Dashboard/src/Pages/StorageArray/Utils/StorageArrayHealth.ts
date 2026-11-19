@@ -4,6 +4,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  StorageUsage,
+  StorageUsageLevel,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
   ResourceAttentionText,
@@ -61,8 +67,10 @@ import { ResourceTopologyHealth } from "../../../Components/ResourceTopology/Res
  * know (a new word in a new Purity release) is shown as the array writes
  * it, in grey: never a problem by itself.
  *
- * A volume, a bucket and a directory have no rule of their own: no template
- * watches one. Whether the array as a whole is slow or full says it.
+ * A volume and a directory have no rule of their own: no template watches
+ * one. Whether the array as a whole is slow or full says it. A bucket with
+ * a quota is nearly full at the array's own 80% and 90% (#9647): past its
+ * quota, a hard limit refuses writes and a soft one alerts.
  *
  * The words are English, marked as keys of the Dashboard's locales and
  * looked up where they are drawn. The array's own words - an alert's
@@ -76,6 +84,16 @@ import { ResourceTopologyHealth } from "../../../Components/ResourceTopology/Res
 // The Capacity Above 80% and Capacity Above 90% alerts' lines.
 export const STORAGE_ARRAY_CAPACITY_WARNING_PERCENT: number = 80;
 export const STORAGE_ARRAY_CAPACITY_CRITICAL_PERCENT: number = 90;
+
+/*
+ * Where the shared storage bar turns amber and red for the array and for a
+ * bucket against its quota: at the capacity alerts' lines above, the levels
+ * Pure raises them at and the arrays list's text names.
+ */
+export const STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: STORAGE_ARRAY_CAPACITY_WARNING_PERCENT,
+  criticalPercent: STORAGE_ARRAY_CAPACITY_CRITICAL_PERCENT,
+};
 
 // The FlashArray's High Read and High Write Latency alerts' line (5 ms).
 export const FLASHARRAY_LATENCY_WARNING_USEC: number = 5000;
@@ -91,6 +109,18 @@ export const STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS: number = 60 * 1000;
  * system's provisioned size still available.
  */
 export const FILE_SYSTEM_NEAR_FULL_AVAILABLE_RATIO: number = 0.1;
+
+/*
+ * A file system's bar turns amber past the File System Near Full alert's
+ * line, as its "Near full" status does. No rule calls a file system
+ * critical, so its bar never turns red.
+ */
+export const STORAGE_ARRAY_FILE_SYSTEM_USAGE_THRESHOLDS: StorageUsageThresholds =
+  {
+    warningPercent: (1 - FILE_SYSTEM_NEAR_FULL_AVAILABLE_RATIO) * 100,
+    criticalPercent: Number.POSITIVE_INFINITY,
+    isPastLineOnly: true,
+  };
 
 /*
  * The statuses the array writes, by what they mean - the same lists the
@@ -248,6 +278,9 @@ const REASON_LAG: string = translationKey("Replication {{lag}} behind");
 const REASON_FILE_SYSTEM_FULL: string = translationKey(
   "{{percent}} of its provisioned size used",
 );
+const REASON_BUCKET_QUOTA: string = translationKey(
+  "{{percent}} of its quota used",
+);
 const REASON_CRITICAL_ALERTS: { one: string; other: string } = {
   one: translationKey("{{count}} critical alert open"),
   other: translationKey("{{count}} critical alerts open"),
@@ -285,7 +318,9 @@ export type StorageArrayPartRow = Pick<
   | "statusDetail"
   | "replicationLagMs"
   | "metricsUpdatedAt"
->;
+> &
+  // A bucket's quota and what it holds, where the read selected them.
+  Partial<Pick<StorageArrayResource, "capacityBytes" | "details">>;
 
 /*
  * What the rules read beside the inventory: a FlashBlade file system's
@@ -294,6 +329,103 @@ export type StorageArrayPartRow = Pick<
  */
 export interface StorageArrayPartReadings {
   availableRatio?: number | null | undefined;
+}
+
+/*
+ * A FlashBlade bucket against its quota, as the shared storage bar reads it
+ * (#9647): what clients stored in it (its virtual space, before data
+ * reduction) of its quota. FlashBlade's API says only that the quota is
+ * "applied against the size of the bucket"; the logical size is the one
+ * that never reads less full than the bucket is - data reduction only
+ * shrinks the physical. Null when the bucket has no quota (unlimited) or
+ * reported no size.
+ */
+export function getStorageArrayBucketUsage(
+  row: Partial<Pick<StorageArrayResource, "capacityBytes" | "details">>,
+): StorageUsage | null {
+  const quota: number | null = toStorageArrayNumber(row.capacityBytes);
+  const stored: number | null = toStorageArrayNumber(
+    (row.details || {})["virtualBytes"],
+  );
+  if (quota === null || quota <= 0 || stored === null) {
+    return null;
+  }
+  return getStorageUsage(
+    { capacity: quota, used: stored },
+    STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS,
+  );
+}
+
+const BUCKET_NO_QUOTA: string = translationKey("No quota");
+const USAGE_NOT_REPORTED: string = translationKey("Not reported");
+
+/*
+ * What a bucket's bar says when it has none, in words: a bucket with no
+ * quota can grow until the array is full, and one with a quota that has not
+ * reported its size yet is not reported.
+ */
+export function getStorageArrayBucketNoUsageText(
+  row: Partial<Pick<StorageArrayResource, "capacityBytes">>,
+): string {
+  const quota: number | null = toStorageArrayNumber(row.capacityBytes);
+  return quota !== null && quota > 0 ? USAGE_NOT_REPORTED : BUCKET_NO_QUOTA;
+}
+
+/*
+ * A FlashBlade file system, as the shared storage bar reads it: its
+ * provisioned size, and the share of it still available that the File
+ * System Near Full alert reads (purefb_file_systems_space_bytes,
+ * available_ratio). Null without either.
+ */
+export function getStorageArrayFileSystemUsage(data: {
+  provisionedBytes: number | null | undefined;
+  availableRatio: number | null | undefined;
+}): StorageUsage | null {
+  const provisioned: number | null = toStorageArrayNumber(
+    data.provisionedBytes,
+  );
+  const ratio: number | null = toStorageArrayNumber(data.availableRatio);
+  if (provisioned === null || provisioned <= 0 || ratio === null) {
+    return null;
+  }
+  return getStorageUsage(
+    {
+      capacity: provisioned,
+      available: provisioned * Math.min(1, Math.max(0, ratio)),
+    },
+    STORAGE_ARRAY_FILE_SYSTEM_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * The array as a whole: its usable capacity and how much of it is used.
+ * The percent is the one the array reports (its utilization), which its
+ * rules read, and the amounts are of its capacity; with no capacity, the
+ * share alone (a bar with no amounts under it).
+ */
+export function getStorageArrayCapacityUsage(data: {
+  capacityBytes: number | null | undefined;
+  usedBytes: number | null | undefined;
+  capacityUsedPercent: number | null | undefined;
+}): StorageUsage | null {
+  const capacity: number | null = toStorageArrayNumber(data.capacityBytes);
+  const percent: number | null = toStorageArrayNumber(data.capacityUsedPercent);
+  if (capacity !== null && capacity > 0) {
+    return getStorageUsage(
+      {
+        capacity: capacity,
+        used:
+          percent !== null
+            ? (capacity * Math.min(100, Math.max(0, percent))) / 100
+            : data.usedBytes,
+      },
+      STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS,
+    );
+  }
+  return getStorageUsage(
+    { capacity: 100, used: percent },
+    STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS,
+  );
 }
 
 export function toStorageArrayNumber(value: unknown): number | null {
@@ -553,6 +685,26 @@ export function assessStorageArrayPart(
       }
     }
     return assessment;
+  }
+
+  if (kind === "Bucket") {
+    const usage: StorageUsage | null = getStorageArrayBucketUsage(row);
+    if (usage && usage.level !== StorageUsageLevel.Normal) {
+      const severity: ResourceAttentionSeverity =
+        usage.level === StorageUsageLevel.Critical
+          ? ResourceAttentionSeverity.Critical
+          : ResourceAttentionSeverity.Warning;
+      return {
+        severity: severity,
+        status: { label: STATUS_NEAR_FULL, tone: toneOf(severity) },
+        reasons: [
+          {
+            text: REASON_BUCKET_QUOTA,
+            values: { percent: formatStorageArrayPercent(usage.usedPercent) },
+          },
+        ],
+      };
+    }
   }
 
   if (kind === "FileSystem") {

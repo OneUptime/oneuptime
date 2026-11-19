@@ -220,6 +220,23 @@ export interface CostEngineSource {
   engineUrl?(): string | undefined;
 }
 
+// One http_sd target group, as Prometheus reads it.
+export interface ScrapeTargetGroup {
+  targets: Array<string>;
+  labels: Record<string, string>;
+}
+
+/*
+ * Where the engine in use serves its price metrics (EngineMetrics): what the
+ * collector's http_sd asks for, and what /healthz says.
+ */
+export interface EngineMetricsSource {
+  url(): string | null;
+  // Why no address is known, once a look has failed.
+  reason(): string;
+  targetGroups(): Array<ScrapeTargetGroup>;
+}
+
 /*
  * Allocation API response envelope. `data` is one allocation-set per step;
  * with accumulate=true there is exactly one set for the whole window.

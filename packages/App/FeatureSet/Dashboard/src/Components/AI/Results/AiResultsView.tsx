@@ -1,13 +1,22 @@
 import {
   AiResultsBreakdown,
+  AiResultsByModel,
   AiResultsCard,
   AiResultsFact,
+  AiResultsModelRow,
+  AiResultsRecordsTarget,
   AiResultsSegment,
   AiResultsWeekBar,
+  BY_MODEL_TITLE,
+  MODEL_CHANGE_LEGEND,
+  UNKNOWN_MODEL_LABEL,
   describeAiResultsPartial,
   describeAiResultsWindow,
+  describeModelResult,
   getAiResultsCards,
 } from "./AiResultsData";
+import AiResultsRecordsDialog from "./AiResultsRecordsDialog";
+import { AI_RESULTS_RECORDS_CLICK_HINTS } from "./AiResultsRecordsData";
 import { describeTrendDate } from "../ActivityInsights/AiActivityInsightsData";
 import { AiOutcomes } from "Common/Types/AI/AiOutcomes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -17,7 +26,12 @@ import StackedProgressBar from "Common/UI/Components/StackedProgressBar/StackedP
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 /*
  * The AI Results page's body (AiResultsPage loads it): one card per
@@ -29,7 +43,20 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * Inside a card nothing is a box of its own: the number and its breakdown
  * on one side, the weeks on the other, side by side where there is room
  * and one under the other on a phone.
+ *
+ * Each part of a breakdown opens what it counts (#7768): its legend entry
+ * is a button, and the dialog lists the incidents and alerts, fixes, pull
+ * requests or investigations behind the number (AiResultsRecordsDialog).
+ * Under the breakdown, By model says how each model OneUptime AI ran on
+ * did, once more than one did, and a week whose investigations moved to
+ * another model is marked over its bar (#7762).
  */
+
+// The part of a breakdown whose records are open, and its label.
+interface OpenRecords {
+  target: AiResultsRecordsTarget;
+  label: string;
+}
 
 export interface ComponentProps {
   outcomes: AiOutcomes;
@@ -38,6 +65,11 @@ export interface ComponentProps {
 function WeekBars(props: { card: AiResultsCard }): ReactElement {
   const translator: Translator = useTranslator();
   const weeks: Array<AiResultsWeekBar> = props.card.weeks;
+  const hasModelChange: boolean = weeks.some(
+    (week: AiResultsWeekBar): boolean => {
+      return Boolean(week.modelChange);
+    },
+  );
   const peak: number = Math.max(
     1,
     ...weeks.map((week: AiResultsWeekBar): number => {
@@ -61,7 +93,9 @@ function WeekBars(props: { card: AiResultsCard }): ReactElement {
       <div
         className="mt-2 flex h-24 items-end gap-1"
         role="img"
-        aria-label={props.card.recentWeeks}
+        aria-label={[props.card.recentWeeks, ...props.card.modelChanges].join(
+          " ",
+        )}
       >
         {weeks.map((week: AiResultsWeekBar): ReactElement => {
           const height: number = (week.total / peak) * 100;
@@ -71,12 +105,17 @@ function WeekBars(props: { card: AiResultsCard }): ReactElement {
           return (
             <div
               key={week.weekStart}
-              className="flex h-full min-w-0 flex-1 flex-col justify-end"
-              title={week.description}
+              className="relative flex h-full min-w-0 flex-1 flex-col justify-end"
+              title={
+                week.modelChange
+                  ? `${week.description}\n${week.modelChange}`
+                  : week.description
+              }
               data-testid="ai-results-week"
               data-week-start={week.weekStart}
               data-value={week.value}
               data-total={week.total}
+              data-model-change={week.modelChange ? "true" : undefined}
             >
               {week.total > 0 ? (
                 <div
@@ -90,6 +129,20 @@ function WeekBars(props: { card: AiResultsCard }): ReactElement {
                 </div>
               ) : (
                 <div className="h-px w-full bg-gray-200" />
+              )}
+              {/*
+                The week most investigations moved to another model: a
+                line the whole height, before the week's bar where the
+                weeks are read from, so it reads as "from here on".
+              */}
+              {week.modelChange ? (
+                <span
+                  className="pointer-events-none absolute inset-y-0 -start-0.5 w-0.5 rounded-full bg-violet-500"
+                  aria-hidden="true"
+                  data-testid="ai-results-week-model-change"
+                />
+              ) : (
+                <></>
               )}
             </div>
           );
@@ -127,6 +180,20 @@ function WeekBars(props: { card: AiResultsCard }): ReactElement {
           />
           {translator.translateText(props.card.weekLegend.total)}
         </li>
+        {hasModelChange ? (
+          <li
+            className="flex items-center gap-1.5"
+            data-testid="ai-results-weeks-legend-model-change"
+          >
+            <span
+              className="inline-block h-2.5 w-0.5 flex-none rounded-full bg-violet-500"
+              aria-hidden="true"
+            />
+            {translator.translateText(MODEL_CHANGE_LEGEND)}
+          </li>
+        ) : (
+          <></>
+        )}
       </ul>
       <p
         className="mt-2 text-sm text-gray-600"
@@ -134,11 +201,27 @@ function WeekBars(props: { card: AiResultsCard }): ReactElement {
       >
         {props.card.recentWeeks}
       </p>
+      {props.card.modelChanges.map(
+        (change: string, index: number): ReactElement => {
+          return (
+            <p
+              key={index}
+              className="mt-1 text-xs text-gray-500"
+              data-testid="ai-results-model-change"
+            >
+              {change}
+            </p>
+          );
+        },
+      )}
     </div>
   );
 }
 
-function Breakdown(props: { breakdown: AiResultsBreakdown }): ReactElement {
+function Breakdown(props: {
+  breakdown: AiResultsBreakdown;
+  onOpenRecords: (records: OpenRecords) => void;
+}): ReactElement {
   const translator: Translator = useTranslator();
   const total: number = props.breakdown.segments.reduce(
     (sum: number, segment: AiResultsSegment): number => {
@@ -160,10 +243,21 @@ function Breakdown(props: { breakdown: AiResultsBreakdown }): ReactElement {
         heightClassName="h-2.5"
         totalValue={total}
         segments={props.breakdown.segments.map((segment: AiResultsSegment) => {
+          const hint: string =
+            AI_RESULTS_RECORDS_CLICK_HINTS[segment.records.part];
+
           return {
             value: segment.value,
             color: segment.color,
             label: translator.translateText(segment.label) || segment.label,
+            // Each part opens exactly what it counts (#7768).
+            onClick: (): void => {
+              props.onOpenRecords({
+                target: segment.records,
+                label: segment.label,
+              });
+            },
+            clickHint: translator.translateText(hint) || hint,
           };
         })}
       />
@@ -200,7 +294,87 @@ function Facts(props: { facts: Array<AiResultsFact> }): ReactElement {
   );
 }
 
-function ResultCard(props: { card: AiResultsCard }): ReactElement {
+/*
+ * How each model did (#7762): a line a model - its name as the provider
+ * names it, a bar of what went well, and "23 of 27" - the most counted
+ * first.
+ */
+function ByModel(props: { byModel: AiResultsByModel }): ReactElement {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div data-testid="ai-results-by-model">
+      <p className="text-xs font-medium text-gray-500">
+        {translator.translateText(BY_MODEL_TITLE)}
+      </p>
+      {props.byModel.note ? (
+        <p
+          className="mt-0.5 text-xs text-gray-500"
+          data-testid="ai-results-by-model-note"
+        >
+          {translator.translateText(props.byModel.note)}
+        </p>
+      ) : (
+        <></>
+      )}
+      <ul className="mt-2 space-y-2">
+        {props.byModel.rows.map((row: AiResultsModelRow): ReactElement => {
+          const share: number =
+            row.total > 0 ? (row.value / row.total) * 100 : 0;
+          const name: string =
+            row.modelName === null
+              ? translator.translateText(UNKNOWN_MODEL_LABEL) ||
+                UNKNOWN_MODEL_LABEL
+              : row.modelName;
+
+          return (
+            <li
+              key={row.modelName === null ? "" : row.modelName}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto]"
+              data-testid="ai-results-by-model-row"
+              data-model={row.modelName === null ? "" : row.modelName}
+            >
+              {/*
+                Whole, never cut off: a long model id breaks across lines
+                rather than ending in "..." that a phone cannot hover.
+              */}
+              <span
+                className={`min-w-0 break-all ${
+                  row.modelName === null
+                    ? "text-gray-500"
+                    : "font-medium text-gray-800"
+                }`}
+                dir={row.modelName === null ? undefined : "ltr"}
+              >
+                {name}
+              </span>
+              <span
+                className="col-span-2 order-last h-1.5 overflow-hidden rounded-full bg-gray-200 sm:order-none sm:col-span-1"
+                aria-hidden="true"
+              >
+                <span
+                  className="block h-full rounded-full bg-emerald-500"
+                  style={{ width: `${share}%` }}
+                />
+              </span>
+              <span
+                className="whitespace-nowrap text-gray-600"
+                data-testid="ai-results-by-model-count"
+              >
+                {describeModelResult(row, translator)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function ResultCard(props: {
+  card: AiResultsCard;
+  onOpenRecords: (records: OpenRecords) => void;
+}): ReactElement {
   const translator: Translator = useTranslator();
   const card: AiResultsCard = props.card;
   const hasResults: boolean = card.total > 0;
@@ -258,10 +432,17 @@ function ResultCard(props: { card: AiResultsCard }): ReactElement {
           )}
           {card.breakdowns.map(
             (breakdown: AiResultsBreakdown, index: number): ReactElement => {
-              return <Breakdown key={index} breakdown={breakdown} />;
+              return (
+                <Breakdown
+                  key={index}
+                  breakdown={breakdown}
+                  onOpenRecords={props.onOpenRecords}
+                />
+              );
             },
           )}
           <Facts facts={card.facts} />
+          {card.byModel ? <ByModel byModel={card.byModel} /> : <></>}
         </div>
         {hasResults ? <WeekBars card={card} /> : <></>}
       </div>
@@ -273,6 +454,7 @@ const AiResultsView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const cards: Array<AiResultsCard> = getAiResultsCards(props.outcomes);
+  const [openRecords, setOpenRecords] = useState<OpenRecords | null>(null);
 
   return (
     <Fragment>
@@ -291,11 +473,30 @@ const AiResultsView: FunctionComponent<ComponentProps> = (
         <></>
       )}
       {cards.map((card: AiResultsCard): ReactElement => {
-        return <ResultCard key={card.kind} card={card} />;
+        return (
+          <ResultCard
+            key={card.kind}
+            card={card}
+            onOpenRecords={setOpenRecords}
+          />
+        );
       })}
       <p className="text-xs text-gray-500" data-testid="ai-results-window">
         {describeAiResultsWindow(props.outcomes)}
       </p>
+      {openRecords ? (
+        <AiResultsRecordsDialog
+          key={`${openRecords.target.part}-${openRecords.target.outcome}`}
+          target={openRecords.target}
+          label={openRecords.label}
+          windowEnd={props.outcomes.windowEnd}
+          onClose={() => {
+            setOpenRecords(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

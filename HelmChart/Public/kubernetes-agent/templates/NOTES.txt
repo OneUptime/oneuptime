@@ -33,7 +33,7 @@ The agent is now collecting:
   - Container & pod CPU/memory saturation (% of request/limit)
 {{- end }}
 {{- if .Values.kubeletstats.volumeMetrics.enabled }}
-  - Per-PVC disk usage (k8s.volume.available / capacity)
+  - Per-PVC disk usage (k8s.volume.available / capacity; configMap, secret and token volumes dropped)
 {{- end }}
 {{- if .Values.cadvisor.enabled }}
   - cAdvisor: CFS throttling and OOM kill counters (kubelet /metrics/cadvisor)

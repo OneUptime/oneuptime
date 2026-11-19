@@ -18,6 +18,7 @@ import MonitorStepKubernetesMonitor, {
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import { KubernetesCostMetric } from "../Kubernetes/KubernetesCostMetrics";
+import { KUBERNETES_STORAGE_USAGE_THRESHOLDS } from "../Kubernetes/KubernetesStorageHealth";
 
 export type KubernetesAlertTemplateCategory =
   | "Availability"
@@ -1656,12 +1657,21 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * The line a Kubernetes disk is almost out of space at, where both storage
+ * templates fire: the critical line the claims list and the Nodes list draw
+ * their bars red at, and the cluster's Needs attention lists a claim or a
+ * node as critical at (KubernetesStorageHealth), so the alert and the pages
+ * never disagree.
+ */
+const DISK_ALMOST_FULL_PERCENT: number =
+  KUBERNETES_STORAGE_USAGE_THRESHOLDS.criticalPercent;
+
 const highDiskUsageTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-disk-usage",
   name: "High Node Disk Usage",
-  summary: "A node's filesystem is more than 90% full.",
-  description:
-    "Alert when a node's filesystem is more than 90% full. Computed per node as k8s.node.filesystem.usage / (k8s.node.filesystem.usage + k8s.node.filesystem.available) x 100 — both are bytes from the same kubeletstats node scrape, so this is a true percentage and matches what df reports as Use%.",
+  summary: `A node's filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full.`,
+  description: `Alert when a node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full. Computed per node as (k8s.node.filesystem.capacity - k8s.node.filesystem.available) / k8s.node.filesystem.capacity x 100 — all bytes from the same kubeletstats node scrape. That is the kubelet's own reading: it starts evicting pods at nodefs.available<10% by default, which is this monitor's line, and the Nodes list and the cluster's Needs attention read a node's disk the same way.`,
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -1671,30 +1681,33 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
       kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
         /*
-         * `k8s.node.filesystem.usage` is BYTES (KubernetesMetricCatalog
-         * declares `unit: "bytes"`, and nothing converts it — the query
+         * `k8s.node.filesystem.*` are BYTES (KubernetesMetricCatalog
+         * declares `unit: "bytes"`, and nothing converts them — the query
          * configs carry no `legendUnit`, so MetricResultUnitConverter
-         * passes the raw value through). This template used to hand that
-         * gauge straight to a `> 90` comparison, so every node in every
-         * cluster breached on its first evaluation and the healthy
-         * criterion — "90 bytes or less used" — was unreachable: a
-         * permanently red monitor with an unresolvable incident.
+         * passes the raw value through). This template once handed
+         * `k8s.node.filesystem.usage` straight to a `> 90` comparison, so
+         * every node in every cluster breached on its first evaluation and
+         * the healthy criterion — "90 bytes or less used" — was
+         * unreachable: a permanently red monitor with an unresolvable
+         * incident.
          *
-         * The denominator is built from the one companion series this
-         * repo has actually ingested, `k8s.node.filesystem.available`
-         * (KubernetesMetricCatalog, and the cluster dashboard's node
-         * fill tile in App/FeatureSet/Dashboard/src/Pages/Kubernetes/
-         * View/Index.tsx). usage / (usage + available) is what `df`
-         * reports as Use%.
+         * Used is everything that is not available, as the kubelet reads
+         * nodefs.available against the filesystem's capacity for its
+         * evictions, and as the claims list and PVC Almost Full read a
+         * claim: a filesystem's reserved blocks count as used, since
+         * nothing can write to them. It used to read
+         * usage / (usage + available), df's Use%, which leaves them out
+         * and read 89.5% on an ext4 node the kubelet was already
+         * evicting from.
          */
-        numeratorMetricName: "k8s.node.filesystem.usage",
-        denominatorMetricName: "k8s.node.filesystem.available",
+        numeratorMetricName: "k8s.node.filesystem.available",
+        denominatorMetricName: "k8s.node.filesystem.capacity",
         groupByAttributeKeys: ["resource.k8s.node.name"],
-        numeratorAlias: "used_disk",
-        denominatorAlias: "avail_disk",
+        numeratorAlias: "free_disk",
+        denominatorAlias: "capacity_disk",
         resultAlias: metricAlias,
         resultLegend: "Node Disk Usage (%)",
-        formula: `(used_disk / (used_disk + avail_disk)) * 100`,
+        formula: `((capacity_disk - free_disk) / capacity_disk) * 100`,
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
         /*
@@ -1712,18 +1725,17 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        value: 90,
-        incidentTitle: `[K8s] High Disk Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `A node's filesystem is more than 90% full, sustained across the whole monitoring window. High disk usage leads to DiskPressure evictions, failure to pull new container images, and eventually a NotReady node. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
-        criteriaName: "High Disk - Usage > 90%",
-        criteriaDescription:
-          "Triggers when a node's used bytes exceed 90% of used + available for every sample in the monitoring window.",
+        value: DISK_ALMOST_FULL_PERCENT,
+        incidentTitle: `[K8s] High Disk Usage (>${DISK_ALMOST_FULL_PERCENT}%) - ${args.monitorName}`,
+        incidentDescription: `A node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full, sustained across the whole monitoring window. The kubelet evicts pods once less than 10% is free (DiskPressure), new container images stop pulling, and the node can go NotReady. Free space on it (unused images, old logs, pods' emptyDir volumes) or give it a bigger disk. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
+        criteriaName: `High Disk - Usage > ${DISK_ALMOST_FULL_PERCENT}%`,
+        criteriaDescription: `Triggers when a node's used bytes exceed ${DISK_ALMOST_FULL_PERCENT}% of its root filesystem's capacity for every sample in the monitoring window.`,
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 90,
+        value: DISK_ALMOST_FULL_PERCENT,
       }),
     });
   },
@@ -1738,9 +1750,8 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
 const pvcAlmostFullTemplate: KubernetesAlertTemplate = {
   id: "k8s-pvc-almost-full",
   name: "PVC Almost Full",
-  summary: "A persistent volume claim is more than 90% full.",
-  description:
-    "Alert when a persistent volume claim's filesystem is more than 90% full for five minutes, one alert per claim. Computed per claim as (k8s.volume.capacity - k8s.volume.available) / k8s.volume.capacity x 100, from the volume stats the kubelet reports and the agent names by claim (k8s.persistentvolumeclaim.name). The kubelet measures a claim only while a running pod mounts it, a raw block device reports nothing, and an agent older than the one that names each volume's claim, or one with kubeletstats.volumeMetrics.enabled set to false, sends nothing for this monitor to read.",
+  summary: `A persistent volume claim is more than ${DISK_ALMOST_FULL_PERCENT}% full.`,
+  description: `Alert when a persistent volume claim's filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full for five minutes, one alert per claim. Computed per claim as (k8s.volume.capacity - k8s.volume.available) / k8s.volume.capacity x 100, from the volume stats the kubelet reports and the agent names by claim (k8s.persistentvolumeclaim.name; a generic ephemeral volume's claim is named at ingest). The kubelet measures a claim only while a running pod mounts it, a raw block device reports nothing, and an agent older than the one that names each volume's claim, or one with kubeletstats.volumeMetrics.enabled set to false, sends nothing for this monitor to read.`,
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -1790,18 +1801,17 @@ const pvcAlmostFullTemplate: KubernetesAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        value: 90,
-        incidentTitle: `[K8s] PVC Almost Full (>90%) - ${args.monitorName}`,
-        incidentDescription: `A persistent volume claim's filesystem is more than 90% full. When it fills, the workload writing to it fails: a database stops taking writes, a queue stops accepting messages. Free space on it (delete old data, logs or snapshots), or expand the claim if its storage class allows volume expansion. The claim and its namespace are named under "Affected resource" below.`,
-        criteriaName: "PVC Almost Full - Usage > 90%",
-        criteriaDescription:
-          "Triggers when a claim's used bytes exceed 90% of its capacity for every sample in the monitoring window.",
+        value: DISK_ALMOST_FULL_PERCENT,
+        incidentTitle: `[K8s] PVC Almost Full (>${DISK_ALMOST_FULL_PERCENT}%) - ${args.monitorName}`,
+        incidentDescription: `A persistent volume claim's filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full. When it fills, the workload writing to it fails: a database stops taking writes, a queue stops accepting messages. Free space on it (delete old data, logs or snapshots), or expand the claim if its storage class allows volume expansion. The claim and its namespace are named under "Affected resource" below.`,
+        criteriaName: `PVC Almost Full - Usage > ${DISK_ALMOST_FULL_PERCENT}%`,
+        criteriaDescription: `Triggers when a claim's used bytes exceed ${DISK_ALMOST_FULL_PERCENT}% of its capacity for every sample in the monitoring window.`,
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 90,
+        value: DISK_ALMOST_FULL_PERCENT,
       }),
     });
   },

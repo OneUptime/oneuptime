@@ -24,7 +24,8 @@
  *  - pull requests build it in build.yml (amd64), and every push to main
  *    builds both architectures in test-release.yaml with the `test` tags, so
  *    an Alpine package that goes missing for one architecture (docker-cli,
- *    govc, ceph19-common, util-linux-misc) fails before a release does;
+ *    ceph19-common, util-linux-misc), or a govc release whose digest no
+ *    longer matches, fails before a release does;
  *  - pull requests run the agent's own tests (test.resource-ai-agent.yaml),
  *    including the check that its Common copies have not drifted;
  *  - everything in the repository that tells someone to run the image names a

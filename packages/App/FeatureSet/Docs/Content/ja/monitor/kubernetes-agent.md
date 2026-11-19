@@ -358,7 +358,7 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | --- | --- | --- |
 | `hostMetrics.enabled` | オン | `/proc` と `/sys` からの各ノードの OS メトリクス: ディスク I/O キュー、ファイルシステムの inode、ネットワークインターフェイスのエラー、ページング、ロードアベレージ。ノードコレクターの中で動作し、追加の Pod は不要です。 |
 | `kubeletstats.utilizationMetrics.enabled` | オン | コンテナーと Pod の CPU とメモリを、request と limit に対する割合で。Pod CPU Saturating Container Limit と Pod Memory Saturating Container Limit のテンプレートがこれを読み取ります。limit (または request) のないコンテナーにはこれらのシリーズがなく、Pod にはそのすべてのコンテナーにある場合にだけあります。 |
-| `kubeletstats.volumeMetrics.enabled` | オン | 各 PVC の空き容量と合計容量 (`k8s.volume.available`、`k8s.volume.capacity`) を、そのクレーム名付きで送ります。永続ボリュームクレームのページの使用量・空き容量・容量と、PVC Almost Full テンプレートが読む値です。ボリュームと Pod ごとに数個のシリーズです。 |
+| `kubeletstats.volumeMetrics.enabled` | オン | 各 PVC の空き容量と合計容量 (`k8s.volume.available`、`k8s.volume.capacity`) を、そのクレーム名付きで送ります。永続ボリュームクレームのページの使用量・空き容量・容量と、PVC Almost Full テンプレートが読む値です。使用率が 80% 以上のクレームは、クラスターの「対応が必要」に表示されます。データを保持するボリューム (クレーム、emptyDir、hostPath) について、ボリュームと Pod ごとに数個のシリーズです。Pod の configMap、secret、downwardAPI、サービスアカウントトークンのボリュームはノード上で破棄されます。 |
 | `cadvisor.enabled` | オン | 各 kubelet の `/metrics/cadvisor` からの CPU スロットリングと OOM kill: `container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`、`container_oom_events_total` だけです。 |
 | `kubeStateMetrics.enabled` | オフ | kube-state-metrics からの Pod のフェーズ (Pending、Terminating)、スケジュールできない Pod、コンテナーの待機理由 (CrashLoopBackOff、ImagePullBackOff)、リソースクォータの使用量。`kubeStateMetrics.mode: bundled` (デフォルト) は小さな kube-state-metrics を実行し、`external` はすでに実行しているものを `kubeStateMetrics.endpoint` で読み取ります。 |
 | `auditLogs.enabled` | オフ | Kubernetes の監査ログ `/var/log/kubernetes/audit.log`: API へのすべてのリクエストと、誰が何に対して行ったか。セルフマネージドのクラスターのみ: マネージドのクラスター (EKS、GKE、AKS、DOKS) はこれをクラウドプロバイダーに送ります。 |

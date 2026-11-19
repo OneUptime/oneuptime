@@ -1,4 +1,9 @@
-import { AiOutcomes, AiOutcomesWeek } from "../../../Types/AI/AiOutcomes";
+import {
+  AI_OUTCOMES_UNKNOWN_MODEL,
+  AiOutcomes,
+  AiOutcomesModels,
+  AiOutcomesWeek,
+} from "../../../Types/AI/AiOutcomes";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -117,8 +122,34 @@ export function makeOutcomes(overrides: Partial<AiOutcomes> = {}): AiOutcomes {
       judgedByPeople: 6,
       completed: 20,
     },
+    models: null,
     weeks: makeWeeks(),
     isPartial: false,
+    ...overrides,
+  };
+}
+
+/*
+ * The outcomes by model (#7762), for a reader of the project's AI Logs: two
+ * models and the investigations from before models were recorded, adding up
+ * to the cards' 11 of 16 judged, and 6 of 9 of the fixes that came from an
+ * investigation. The investigations moved to chat-medium in the week of
+ * 17 Oct.
+ */
+export function makeModels(
+  overrides: Partial<AiOutcomesModels> = {},
+): AiOutcomesModels {
+  return {
+    rootCauses: [
+      { modelName: "chat-large", value: 6, total: 8 },
+      { modelName: "chat-medium", value: 4, total: 5 },
+      { modelName: AI_OUTCOMES_UNKNOWN_MODEL, value: 1, total: 3 },
+    ],
+    fixes: [
+      { modelName: "chat-large", value: 4, total: 5 },
+      { modelName: "chat-medium", value: 2, total: 4 },
+    ],
+    changes: [{ weekStart: "2026-10-17", modelName: "chat-medium" }],
     ...overrides,
   };
 }

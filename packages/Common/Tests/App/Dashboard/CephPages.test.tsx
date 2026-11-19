@@ -649,16 +649,24 @@ describe("the OSDs list", () => {
     ).toHaveTextContent("Apply latency 150 ms");
   });
 
-  test("Used and latency are coloured at their alerts' lines", async () => {
+  test("Used is the shared storage bar, coloured at Ceph's ratios, and latency at its alert's line", async () => {
     await openList();
 
-    expect(within(rowOf("osd.5")).getByText(/\(96\.0%\)$/)).toHaveAttribute(
-      "data-tone",
-      "danger",
+    // 96% is past the full ratio (95%): red; 40% is calm (#9646).
+    expect(
+      within(rowOf("osd.5")).getByTestId("storage-usage-fill"),
+    ).toHaveAttribute("data-level", "critical");
+    expect(within(rowOf("osd.5")).getByTestId("storage-usage")).toHaveTextContent(
+      "96%",
     );
-    expect(within(rowOf("osd.0")).getByText(/\(40\.0%\)$/)).not.toHaveAttribute(
-      "data-tone",
+    expect(
+      within(rowOf("osd.0")).getByTestId("storage-usage-fill"),
+    ).toHaveAttribute("data-level", "normal");
+    expect(within(rowOf("osd.0")).getByTestId("storage-usage")).toHaveTextContent(
+      "40%",
     );
+    // No English-digit "used / total (x%)" text is left.
+    expect(within(rowOf("osd.5")).queryByText(/\(96\.0%\)$/)).toBeNull();
     expect(within(rowOf("osd.4")).getByText("150 ms / 160 ms")).toHaveAttribute(
       "data-tone",
       "warning",
@@ -688,10 +696,12 @@ describe("the Pools list", () => {
     expect(
       within(cold).getByTestId("resource-status-reason"),
     ).toHaveTextContent("97% of its writable space used");
-    expect(within(cold).getByText("97.0%")).toHaveAttribute(
-      "data-tone",
-      "danger",
+    // STORED of STORED + MAX AVAIL, as the shared bar: red past 95%.
+    expect(within(cold).getByTestId("storage-usage-fill")).toHaveAttribute(
+      "data-level",
+      "critical",
     );
+    expect(within(cold).getByTestId("storage-usage")).toHaveTextContent("97%");
 
     const rbd: HTMLElement = rowOf("rbd");
     expect(within(rbd).getByText("Available")).toHaveAttribute(
@@ -702,7 +712,11 @@ describe("the Pools list", () => {
       "12 placement groups degraded",
     );
     expect(within(rbd).getByText("116 of 128 clean")).toBeInTheDocument();
-    expect(within(rbd).getByText("30.0%")).not.toHaveAttribute("data-tone");
+    expect(within(rbd).getByTestId("storage-usage-fill")).toHaveAttribute(
+      "data-level",
+      "normal",
+    );
+    expect(within(rbd).getByTestId("storage-usage")).toHaveTextContent("30%");
 
     expect(within(rowOf("cephfs_data")).getByText("Available")).toHaveAttribute(
       "data-tone",

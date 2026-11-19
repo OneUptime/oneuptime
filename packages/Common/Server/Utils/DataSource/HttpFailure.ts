@@ -1,4 +1,5 @@
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import {
   ProbeFailureCause,
   writeProbeFailureCause,
@@ -268,6 +269,30 @@ export function describeFailedAnswer(answer: FailedAnswer): {
   }
 
   return { message: parts.join(" "), reason: `${head}${tail}` };
+}
+
+/*
+ * An answer outside 2xx, thrown by the transport DataSourceHttpRetry hands a
+ * caller that reads no answer itself (asTransport): a BadDataException, as
+ * DataSourceHttpFetch throws one, whose message says who answered which
+ * request with what status, then the provider's own words. The status and
+ * those words are kept as they came, so a caller that tells failures apart
+ * by their status (LlmProviderError: a refused key from a service that is
+ * down) reads them here, never out of the sentence.
+ */
+export class DataSourceStatusException extends BadDataException {
+  public readonly statusCode: number;
+  // The provider's own words: the start of the answer's body, trimmed.
+  public readonly bodyText: string;
+
+  public constructor(
+    message: string,
+    answer: { statusCode: number; bodyText: string },
+  ) {
+    super(message);
+    this.statusCode = answer.statusCode;
+    this.bodyText = answer.bodyText;
+  }
 }
 
 /*

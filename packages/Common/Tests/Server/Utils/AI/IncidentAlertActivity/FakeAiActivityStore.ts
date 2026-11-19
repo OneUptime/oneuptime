@@ -29,7 +29,7 @@ import { jest } from "@jest/globals";
  *
  * It answers the query shapes the readers build: plain equality, and the
  * QueryHelper operators they use (notNull, isNull, lessThan,
- * greaterThanEqualTo, any), read off each operator's own SQL. Sorting is by
+ * greaterThanEqualTo, inBetween, any), read off each operator's own SQL. Sorting is by
  * createdAt, newest first, and limit is honoured.
  *
  * Who may read what is the access below: root reads everything; a caller's
@@ -168,6 +168,17 @@ export function matchesFilter(value: unknown, filter: unknown): boolean {
 
   if (typeof comparable !== "number" || typeof bound !== "number") {
     return false;
+  }
+
+  // QueryHelper.inBetween: both bounds, in its parameters' order.
+  if (sql.includes(" >= ") && sql.includes(" <= ")) {
+    const upper: unknown = toComparable(
+      Object.values(filter.objectLiteralParameters || {})[1],
+    );
+
+    return (
+      typeof upper === "number" && comparable >= bound && comparable <= upper
+    );
   }
 
   if (sql.includes(" >= ")) {

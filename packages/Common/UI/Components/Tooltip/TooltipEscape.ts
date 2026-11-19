@@ -50,7 +50,7 @@ export const ESCAPE_LAYER_SELECTOR: string = [
 ].join(", ");
 
 // Drawn, as far as the browser can tell; jsdom draws nothing, so all of it.
-const isRendered: (element: Element) => boolean = (
+export const isRendered: (element: Element) => boolean = (
   element: Element,
 ): boolean => {
   const withVisibility: Element & { checkVisibility?: () => boolean } =

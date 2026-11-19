@@ -35,6 +35,12 @@ interface WorkflowToolDefinition {
   description: string;
   inputSchema: JSONSchema;
   readOnly: boolean;
+  /*
+   * What it writes is published, as a write to one of
+   * ToolAnnotations' PUBLISHED_TABLE_NAMES is: an incident's new state, or
+   * a public note, shown on the status page and sent to its subscribers.
+   */
+  published?: boolean;
 }
 
 const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
@@ -56,6 +62,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
       additionalProperties: false,
     },
     readOnly: false,
+    published: true,
   },
   {
     name: "resolve_incident",
@@ -75,6 +82,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
       additionalProperties: false,
     },
     readOnly: false,
+    published: true,
   },
   {
     name: "acknowledge_alert",
@@ -142,6 +150,8 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
       additionalProperties: false,
     },
     readOnly: false,
+    // A public note is; an internal one is not, but the tool can post either.
+    published: true,
   },
   {
     name: "add_alert_note",
@@ -235,7 +245,7 @@ export function generateWorkflowTools(): McpToolInfo[] {
         inputSchema: definition.inputSchema,
         annotations: definition.readOnly
           ? readOnlyToolAnnotations()
-          : writeToolAnnotations(),
+          : writeToolAnnotations({ openWorld: definition.published === true }),
         modelName: "Workflow",
         operation: definition.readOnly
           ? OneUptimeOperation.Read
