@@ -892,6 +892,84 @@ describe("IoT fleet overview: the devices-online chip", () => {
   });
 });
 
+/*
+ * While the fleet itself is disconnected its devices' last states are not
+ * the truth, and when the collector is what went away every device can read
+ * offline (#9730). Its counts say the fleet is disconnected and blame no
+ * device: the hero's connection pill and the card under it say why.
+ */
+describe("IoT fleet overview: while the fleet itself is disconnected", () => {
+  function disconnectedFleet(): void {
+    modelGetItemMock.mockImplementation(async () => {
+      return {
+        ...FLEET,
+        otelCollectorStatus: "disconnected",
+        lastSeenAt: minutesAgo(180),
+      };
+    });
+  }
+
+  function infoButtonsNamed(title: string): Array<HTMLElement> {
+    return screen.queryAllByRole("button", { name: `About ${title}` });
+  }
+
+  test("the devices chip says how many devices the fleet has, never how many are online", async () => {
+    disconnectedFleet();
+    await renderOverview();
+
+    expect(screen.getByText("Disconnected")).toBeVisible();
+    expect(screen.getByText("3 devices")).toBeVisible();
+    expect(screen.queryByText(/devices? online$/)).not.toBeInTheDocument();
+    // No device is blamed for what the fleet's collector did.
+    expect(screen.queryByTestId("iot-hero-devices-offline")).toBeNull();
+    // Its (i) says what it counts now: the devices, as Total Devices does.
+    expectNoInfo("Devices online");
+    const totals: Array<HTMLElement> = infoButtonsNamed("Total Devices");
+    expect(totals).toHaveLength(2);
+    expect(await tooltipTextOf(totals[0]!)).toBe(
+      withDurationWordsHeld(IOT_METRIC_DESCRIPTIONS.totalDevices),
+    );
+  });
+
+  test("the Online Devices tile says the fleet is disconnected: no figure, no bar, nothing to open", async () => {
+    disconnectedFleet();
+    await renderOverview();
+
+    const online: HTMLElement = tile("Online Devices");
+    expect(within(online).getByText("fleet disconnected")).toBeVisible();
+    expect(within(online).queryByText("2/3")).not.toBeInTheDocument();
+    expect(tileBar("Online Devices")).toBeNull();
+    expect(within(online).queryByTestId("iot-tile-devices-offline")).toBeNull();
+    // The Total Devices tile, after the hero's chip, keeps its own count.
+    const totals: Array<HTMLElement> = infoButtonsNamed("Total Devices");
+    const totalTile: HTMLElement = totals[totals.length - 1]!.closest(
+      "div.rounded-xl",
+    ) as HTMLElement;
+    expect(within(totalTile).getByText("3")).toBeVisible();
+  });
+
+  test("the devices needing attention fold away: their last states blame them", async () => {
+    disconnectedFleet();
+    await renderOverview();
+
+    expectNoInfo("Devices needing attention");
+    expect(screen.queryByText("Pump A")).not.toBeInTheDocument();
+    expect(screen.queryByText("Offline")).not.toBeInTheDocument();
+  });
+
+  test("once the fleet reports again, its offline devices are listed and open from the chip and the tile", async () => {
+    await renderOverview();
+
+    expect(screen.getByTestId("iot-hero-devices-offline")).toHaveTextContent(
+      "1 offline",
+    );
+    expect(
+      within(tile("Online Devices")).getByTestId("iot-tile-devices-offline"),
+    ).toBeVisible();
+    expect(screen.getByText("Pump A")).toBeVisible();
+  });
+});
+
 // ----------------------------------------------------------- device detail
 
 async function renderDetail(): Promise<void> {

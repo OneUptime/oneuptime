@@ -100,6 +100,8 @@ export type KubernetesPartRouteFor = (part: {
   kind: string;
   name: string;
   namespace: string;
+  // A container's pod: its page is named by it (#9732).
+  pod?: string | undefined;
 }) => Route | undefined;
 
 function toAttentionText(text: KubernetesHealthText): ResourceAttentionText {

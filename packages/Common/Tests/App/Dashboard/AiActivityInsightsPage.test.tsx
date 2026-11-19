@@ -957,6 +957,32 @@ describe("the cluster's AI Insights page", () => {
       ).not.toBeInTheDocument();
     });
 
+    /*
+     * A container is named within its pod: a problem that names both opens
+     * that pod's container, where its metrics and logs are its own (#9732).
+     */
+    test("a problem that names a container with its pod links the container to that pod's", async () => {
+      const insights: AiActivityInsights = makeInsights({ insights: [] });
+      insights.problems[0]!.objects.push({
+        name: "Container",
+        value: "app",
+        key: "k8s.container.name",
+        count: 3,
+      });
+      serve(ok(toBody(insights)));
+      openClusterInsightsPage();
+
+      expect(await findText("Problems")).toBeInTheDocument();
+      const recurring: HTMLElement = screen.getAllByTestId(
+        "ai-insights-problem",
+      )[0]!;
+      expect(
+        linksIn(within(recurring).getByTestId("ai-insights-problem-objects")),
+      ).toContain(
+        `Container: app ×3 → /dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/containers/app?pod=web-7d9f-2xk&namespace=checkout`,
+      );
+    });
+
     test("a problem listed with its badge, time of day, next step, fixes and verdicts, when nothing above tells it", async () => {
       serve(ok(toBody(makeInsights({ insights: [] }))));
       openClusterInsightsPage();
@@ -1866,6 +1892,93 @@ describe("a part of the cluster, on its own page", () => {
         key: "k8s.node.name",
       }),
     ).toBeNull();
+    expect(
+      getKubernetesObjectRoute(
+        "<cluster>",
+        { name: "Container", value: "app", key: "k8s.container.name" },
+        [{ name: "Pod", value: "web-1", key: "k8s.pod.name" }],
+      ),
+    ).toBeNull();
+  });
+
+  /*
+   * A container is named within its pod - every pod of a Deployment runs an
+   * `app` - so a link by its name alone opened the list of every pod that
+   * runs one, even when the insight named the pod too (#9732).
+   */
+  test("a container named with its pod opens that pod's container, its namespace too", () => {
+    const route: string = getKubernetesObjectRoute(
+      CLUSTER_ID,
+      { name: "Container", value: "app", key: "k8s.container.name" },
+      [
+        { name: "Container", value: "app", key: "k8s.container.name" },
+        { name: "Pod", value: "checkout-7d9f8b6c5-x2k4q", key: "k8s.pod.name" },
+        { name: "Namespace", value: "shop", key: "k8s.namespace.name" },
+        { name: "Node", value: "node-3", key: "k8s.node.name" },
+      ],
+    )!.toString();
+    expect(route).toBe(
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/containers/app?pod=checkout-7d9f8b6c5-x2k4q&namespace=shop`,
+    );
+  });
+
+  test("a container named with its pod in no namespace opens that pod's container all the same", () => {
+    expect(
+      getKubernetesObjectRoute(
+        CLUSTER_ID,
+        { name: "Container", value: "app", key: "k8s.container.name" },
+        [{ name: "Pod", value: "web-1", key: "k8s.pod.name" }],
+      )!.toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/containers/app?pod=web-1`,
+    );
+  });
+
+  test("named with several pods, or a pod no object can be named, a container opens the pods that run it, to pick from", () => {
+    for (const namedWith of [
+      [
+        { name: "Pod", value: "web-1", key: "k8s.pod.name" },
+        { name: "Pod", value: "web-2", key: "k8s.pod.name" },
+      ],
+      [{ name: "Pod", value: "<web-1>", key: "k8s.pod.name" }],
+      [],
+    ]) {
+      expect(
+        getKubernetesObjectRoute(
+          CLUSTER_ID,
+          { name: "Container", value: "app", key: "k8s.container.name" },
+          namedWith,
+        )!.toString(),
+      ).toBe(
+        `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/containers/app`,
+      );
+    }
+  });
+
+  test("two namespaces named with one pod: the pod's container, its namespace left to the page", () => {
+    expect(
+      getKubernetesObjectRoute(
+        CLUSTER_ID,
+        { name: "Container", value: "app", key: "k8s.container.name" },
+        [
+          { name: "Pod", value: "web-1", key: "k8s.pod.name" },
+          { name: "Namespace", value: "shop", key: "k8s.namespace.name" },
+          { name: "Namespace", value: "payments", key: "k8s.namespace.name" },
+        ],
+      )!.toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/containers/app?pod=web-1`,
+    );
+  });
+
+  test("a pod or a node opens its page as before, whatever else is named", () => {
+    expect(
+      getKubernetesObjectRoute(
+        CLUSTER_ID,
+        { name: "Pod", value: "web-1", key: "k8s.pod.name" },
+        [{ name: "Namespace", value: "shop", key: "k8s.namespace.name" }],
+      )!.toString(),
+    ).toBe(`/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/pods/web-1`);
   });
 
   test.each(["constructor", "__proto__", "toString", "hasOwnProperty"])(

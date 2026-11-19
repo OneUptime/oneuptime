@@ -984,9 +984,11 @@ const OpenStackCloudOverview: FunctionComponent<
         })
       : read;
   };
-  const rows: Array<OpenStackResource> = asCredentialReadsThem(
+  // Every row the read brought, as this credential reads them: each region reads its own.
+  const rowsAsRead: Array<OpenStackResource> = asCredentialReadsThem(
     attention?.rows || [],
-  ).filter(inScope);
+  );
+  const rows: Array<OpenStackResource> = rowsAsRead.filter(inScope);
   const apisInScope: Array<OpenStackResource> =
     asCredentialReadsThem(apis).filter(inScope);
   const hypervisors: Array<OpenStackResource> = rows.filter(
@@ -1006,17 +1008,29 @@ const OpenStackCloudOverview: FunctionComponent<
     return !region || !group.regionName || group.regionName === region;
   });
 
-  const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-    rows: rows,
-    now: now,
-    routeFor: routes.routeFor,
-    nameFor: getOpenStackAttentionName,
-    blastRadiusFor: (
-      row: OpenStackResource,
-    ): { instanceCount: number; projectCount: number } | undefined => {
-      return radii[row.externalId || ""];
-    },
-  });
+  /*
+   * What needs attention among some rows, as the Overview lists it: by name, each a step
+   * from its page, a lost host with what it takes with it.
+   */
+  const attentionItemsOf: (
+    scopeRows: Array<OpenStackResource>,
+  ) => Array<ResourceAttentionItem> = (
+    scopeRows: Array<OpenStackResource>,
+  ): Array<ResourceAttentionItem> => {
+    return getOpenStackAttentionItems({
+      rows: scopeRows,
+      now: now,
+      routeFor: routes.routeFor,
+      nameFor: getOpenStackAttentionName,
+      blastRadiusFor: (
+        row: OpenStackResource,
+      ): { instanceCount: number; projectCount: number } | undefined => {
+        return radii[row.externalId || ""];
+      },
+    });
+  };
+
+  const items: Array<ResourceAttentionItem> = attentionItemsOf(rows);
 
   const accessGaps: Array<OpenStackAccessGap> =
     isConnected && attention
@@ -1047,22 +1061,27 @@ const OpenStackCloudOverview: FunctionComponent<
     now: now,
   });
 
+  /*
+   * Each region's health, and what makes it so: the Regions card's pill opens that list
+   * (#9728). The same rows as reading the region, as this credential reads them, so its
+   * pill says what that page would: a service closed to the credential is not a region
+   * down, there or here.
+   */
   const healthByRegion: Record<string, ResourceHealth> = {};
+  const attentionByRegion: Record<string, Array<ResourceAttentionItem>> = {};
   if (isConnected && attention) {
     for (const one of regionSummaries) {
-      // The same rows as reading this region, so its pill says what that page would.
-      const regionRows: Array<OpenStackResource> = attention.rows.filter(
-        (row: OpenStackResource): boolean => {
+      const regionItems: Array<ResourceAttentionItem> = attentionItemsOf(
+        rowsAsRead.filter((row: OpenStackResource): boolean => {
           return isOpenStackRowInRegion({
             row: row,
             regionName: one.regionName,
             now: now,
           });
-        },
+        }),
       );
-      healthByRegion[one.regionName] = getOpenStackHealth(
-        getOpenStackAttentionItems({ rows: regionRows, now: now }),
-      );
+      attentionByRegion[one.regionName] = regionItems;
+      healthByRegion[one.regionName] = getOpenStackHealth(regionItems);
     }
   }
 
@@ -1644,6 +1663,7 @@ const OpenStackCloudOverview: FunctionComponent<
         <OpenStackRegionsCard
           regions={regionSummaries}
           healthByRegion={healthByRegion}
+          attentionByRegion={attentionByRegion}
           selectedRegion={region}
           getRegionRoute={(regionName: string): Route => {
             return getOpenStackRegionRoute(cloudRoute, regionName);

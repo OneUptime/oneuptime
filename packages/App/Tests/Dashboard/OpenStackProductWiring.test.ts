@@ -975,6 +975,81 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
   });
 });
 
+/*
+ * A region's Degraded or Unhealthy on the Regions card opens why (#9728). It sat inside the
+ * row's link, with its (i), and a control inside a link is lost to a screen reader: the row
+ * is now a box whose name is the link, and the pill sits beside the name.
+ */
+describe("the Regions card", () => {
+  const card: string = squash(
+    stripComments(
+      readSource("Components", "OpenStack", "OpenStackRegionsCard.tsx"),
+    ),
+  );
+  const overview: string = squash(
+    stripComments(readSource("Pages", "OpenStack", "View", "Index.tsx")),
+  );
+
+  test("a region's row is a box whose name is its link, with its health and (i) beside it", () => {
+    expect(card).toContain(
+      '<ResourcePartRow to={props.route} hasControls={true} className="flex items-start gap-3" >',
+    );
+    expect(card).toContain(
+      '<ResourcePartRowName dataTestId="openstack-regions-card-name"',
+    );
+    expect(card).toContain("describedBy={factsId}");
+    expect(card).toContain(
+      'ariaCurrent={props.isSelected ? "true" : undefined}',
+    );
+    // The pill and the (i) are the row's controls, never inside its name.
+    const controls: string = card.slice(
+      card.indexOf("<ResourcePartRowControls"),
+      card.indexOf("</ResourcePartRowControls>"),
+    );
+    expect(controls).toContain("<ResourceHealthPill");
+    expect(controls).toContain('<InfoTooltip label="Region health"');
+    const name: string = card.slice(
+      card.indexOf("<ResourcePartRowName"),
+      card.indexOf("</ResourcePartRowName>"),
+    );
+    expect(name).not.toContain("<ResourceHealthPill");
+    expect(name).not.toContain("<InfoTooltip");
+    // The name comes first: the controls are painted over its stretch.
+    expect(card.indexOf("<ResourcePartRowName")).toBeLessThan(
+      card.indexOf("<ResourcePartRowControls"),
+    );
+  });
+
+  test("its pill is the shared health pill, opening that region's parts under the region's name", () => {
+    expect(card).toContain(
+      'items={props.items} testId="openstack-regions-card-health" words={{ ...OPENSTACK_REGION_HEALTH_WORDS, titleValues: { name: region.regionName }, }}',
+    );
+    expect(card).toContain(
+      "items={props.attentionByRegion[region.regionName] || []}",
+    );
+  });
+
+  test("each region's list is the Overview's, from the rows as this credential reads them", () => {
+    expect(overview).toContain(
+      "const rowsAsRead: Array<OpenStackResource> = asCredentialReadsThem( attention?.rows || [], );",
+    );
+    expect(overview).toContain(
+      "const rows: Array<OpenStackResource> = rowsAsRead.filter(inScope);",
+    );
+    expect(overview).toContain(
+      "const regionItems: Array<ResourceAttentionItem> = attentionItemsOf( rowsAsRead.filter((row: OpenStackResource): boolean => {",
+    );
+    expect(overview).toContain(
+      "attentionByRegion[one.regionName] = regionItems; healthByRegion[one.regionName] = getOpenStackHealth(regionItems);",
+    );
+    expect(overview).toContain("attentionByRegion={attentionByRegion}");
+    // One way to list what needs attention, for the cloud and for each region.
+    expect(overview).toContain(
+      "const items: Array<ResourceAttentionItem> = attentionItemsOf(rows);",
+    );
+  });
+});
+
 describe("the All Clouds list", () => {
   const clouds: string = squash(readSource("Pages", "OpenStack", "Clouds.tsx"));
 

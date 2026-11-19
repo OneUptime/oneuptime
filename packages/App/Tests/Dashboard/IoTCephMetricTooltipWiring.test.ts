@@ -258,7 +258,7 @@ describe("IoT fleet overview", () => {
       "setAtRiskDevices(getIoTAtRiskDevices({ rows: rows, now: Date.now() }));",
     );
     expect(code).toContain(
-      "const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading ? [] : getIoTOfflineDeviceItems({ devices: atRiskDevices, routeFor: getDeviceRoute, });",
+      "const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading || !isFleetConnected ? [] : getIoTOfflineDeviceItems({ devices: atRiskDevices, routeFor: getDeviceRoute, });",
     );
     expect(code).toContain('testId: "iot-hero-devices-offline",');
     expect(code).toContain(
@@ -291,16 +291,20 @@ describe("IoT fleet overview", () => {
     );
 
     expect(chips).toContain(
-      '{hasCountChips && ( <InfoTooltip label="Devices online" text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline} /> )}',
+      '{hasCountChips && isConnected && ( <InfoTooltip label="Devices online" text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline} /> )}',
+    );
+    // While the fleet is disconnected the chip counts its devices, as Total Devices does.
+    expect(chips).toContain(
+      '{hasCountChips && !isConnected && ( <InfoTooltip label="Total Devices" text={IOT_METRIC_DESCRIPTIONS.totalDevices} /> )}',
     );
     // The agent version chip sits in the row, after the count chip, before the (i).
     const agentChip: number = chips.indexOf(
       '<AgentVersion kind={AgentKind.IoTExporter} version={fleet.agentVersion} variant="chip" />',
     );
     expect(agentChip).toBeGreaterThan(chips.indexOf("{specChips.map("));
-    expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && ("));
-    // The attention card title and this chip row are the only (i)s here.
-    expect(count(code, INFO_TOOLTIP)).toBe(2);
+    expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && "));
+    // The attention card title and this chip row's one (i) of two are the only (i)s here.
+    expect(count(code, INFO_TOOLTIP)).toBe(3);
   });
 
   /*
@@ -312,7 +316,7 @@ describe("IoT fleet overview", () => {
     const hero: string = segment(code, "const specChips: Array<{", "return (");
 
     expect(hero).toMatch(
-      /if \(totalDevices > 0\) \{ specChips\.push\(\{ icon: IconProp\.Cube, label: translator\.translatePlural\( \{ one: "\{\{online\}\}\/\{\{count\}\} device online"/,
+      /if \(totalDevices > 0\) \{ specChips\.push\(\{ icon: IconProp\.Cube, label: isConnected \? translator\.translatePlural\( \{ one: "\{\{online\}\}\/\{\{count\}\} device online"/,
     );
     expect(
       hero.indexOf("const hasCountChips: boolean = specChips.length > 0;"),
@@ -331,13 +335,62 @@ describe("IoT fleet overview", () => {
     );
     // No reading is no value: the tile draws its figure's quiet dash (#8264).
     expect(code).toContain(
-      "value={ onlinePct === null ? undefined : `${onlineDevices}/${totalDevices}` }",
+      "value={ !isFleetConnected || onlinePct === null ? undefined : `${onlineDevices}/${totalDevices}` }",
     );
     expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toContain(
       "counted like the Online Devices tile",
     );
     expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toContain(
       "the fleet's most recent data",
+    );
+  });
+
+  /*
+   * While the fleet itself is disconnected its devices' last states are not the truth, and
+   * when the collector is what went away every device can read offline (#9730). The choice:
+   * its counts say the fleet is disconnected and blame no device - as every other product's
+   * counts of what is wrong wait for its agent - and the connection pill and card say why.
+   */
+  test("while the fleet is disconnected, its counts say so and blame no device", () => {
+    expect(code).toContain(
+      "const isFleetConnected: boolean = isIoTFleetConnected( fleet.otelCollectorStatus as string | undefined, );",
+    );
+    // The hero's connection pill reads the same rule.
+    expect(code).toContain("const isConnected: boolean = isFleetConnected;");
+
+    // No device is listed as offline: the chip's and the tile's pills read nothing.
+    expect(code).toContain(
+      "const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading || !isFleetConnected ? [] :",
+    );
+
+    // The chip says how many devices the fleet has, not how many are online.
+    const hero: string = segment(code, "const specChips: Array<{", "return (");
+    expect(hero).toContain(
+      ': translator.translatePlural( { one: "{{count}} device", other: "{{count}} devices" }, totalDevices, ),',
+    );
+
+    // The tile says the fleet is disconnected, with no figure and no bar.
+    const tile: string = segment(
+      code,
+      '<GoldenMetricTile title="Online Devices"',
+      "/>",
+    );
+    expect(tile).toContain(
+      'sublabel={ isFleetConnected ? "devices reporting up" : IOT_FLEET_DISCONNECTED }',
+    );
+    expect(tile).toContain("percent={isFleetConnected ? onlinePct : null}");
+    expect(code).toContain(
+      'export const IOT_FLEET_DISCONNECTED: string = translationKey("fleet disconnected");',
+    );
+
+    // The card of devices needing attention folds away.
+    const card: string = segment(
+      code,
+      "const renderAtRiskDevices: () => ReactElement",
+      "return (",
+    );
+    expect(card).toContain(
+      "if (isInventoryLoading || !isFleetConnected || atRiskDevices.length === 0) { return <Fragment />; }",
     );
   });
 });
@@ -666,6 +719,52 @@ describe("Ceph cluster overview", () => {
     );
     // The card's counts and the OSDs its states open follow one rule.
     expect(code).toContain("matrix[getCephOsdQuadrant(row)]++;");
+  });
+
+  /*
+   * The Placement Group States bar's Degraded and Undersized said how many
+   * and nothing of where (#9727): each is a legend button that opens the
+   * pools that hold them, read when pressed, while the agent reports and
+   * only on a Ceph that counts placement groups per pool.
+   */
+  test("the bar's Degraded and Undersized open the pools that hold them, and Ceph's reason", () => {
+    expect(code).toContain(
+      "const canOpenPgPools: boolean = isAttentionCurrent && Boolean(pgStatesByPool && pgStatesByPool.size > 0);",
+    );
+    const bar: string = segment(
+      code,
+      "const renderPgDistribution: () => ReactElement",
+      "const renderGoldenCharts",
+    );
+    expect(bar).toContain("if (!canOpenPgPools) { return {}; }");
+    expect(bar).toContain(
+      'label: tx("Degraded PGs"), ...pressToOpenPools("degraded"),',
+    );
+    expect(bar).toContain(
+      'label: tx("Undersized PGs"), ...pressToOpenPools("undersized"),',
+    );
+    expect(bar).toContain("clickHint: tx(CEPH_POOL_HINT),");
+    // The rest of the bar stays words.
+    expect(bar).toContain('label: tx("Active + Clean"), },');
+
+    // Read when it opens: Ceph's states for them, then the pools by the rules.
+    const read: string = segment(
+      code,
+      "const loadPgStatePools:",
+      "const renderHero",
+    );
+    expect(read).toContain(
+      "reasonsByPool = await loadCephPgReasonStates(clusterName);",
+    );
+    expect(read).toContain(
+      "items: getCephPgStatePoolItems({ items: attentionItems, rows: inventoryRows, pgStatesByPool: pgStatesByPool, state: state, reasonsByPool: reasonsByPool, translator: translator, }),",
+    );
+    expect(code).toContain(
+      "<ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
+    );
+    expect(code).toContain(
+      "load={(): Promise<ResourceAttentionDialogRead> => { return loadPgStatePools(openPgState); }}",
+    );
   });
 
   test("each rate chart has a header with its (i)", () => {
