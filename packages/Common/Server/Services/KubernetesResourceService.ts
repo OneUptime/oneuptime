@@ -12,8 +12,14 @@ import {
   KubernetesHealthSeverity,
   KubernetesObjectRef,
   getKubernetesAttentionFindings,
+  getKubernetesHealthSeverity,
+  getKubernetesOwners,
   getKubernetesPodWorkload,
 } from "../../Types/Kubernetes/KubernetesHealth";
+import {
+  KUBERNETES_VOLUME_FILL_MAX_WINDOW_MS,
+  KubernetesStorageRow,
+} from "../../Types/Kubernetes/KubernetesStorageHealth";
 import {
   truncateLongText,
   truncateShortText,
@@ -71,6 +77,32 @@ export interface ResourceLatestVolumeStats {
   inodesFree: number | null;
   observedAt: Date;
 }
+
+/*
+ * A node's latest disk reading: its root filesystem (k8s.node.filesystem.*,
+ * the disk the kubelet evicts pods by) and the filesystem that holds its
+ * container images (each container's root filesystem, container.filesystem.*).
+ * A null reading keeps the stored one.
+ */
+export interface ResourceLatestNodeFilesystem {
+  // The node's name.
+  name: string;
+  capacityBytes: number | null;
+  availableBytes: number | null;
+  imageFs: KubernetesImageFsReading;
+  observedAt: Date;
+}
+
+/*
+ * The image filesystem, as one scrape showed it beside the root filesystem
+ * (KubernetesStorageHealth.isSeparateKubernetesImageFs): a disk of its own,
+ * whose reading is stored; the root filesystem itself, which clears what is
+ * stored; or a batch that could not tell, which keeps it.
+ */
+export type KubernetesImageFsReading =
+  | { state: "separate"; capacityBytes: number; availableBytes: number }
+  | { state: "same" }
+  | { state: "unknown" };
 
 export interface InventorySummary {
   countsByKind: Record<string, number>;
@@ -181,6 +213,91 @@ export interface KubernetesNeedsAttention {
 export const PART_POD_LIMIT: number = 1000;
 export const PART_CANDIDATE_LIMIT: number = 5000;
 
+/*
+ * The disk columns of a row (KubernetesStorageRow): a claim's filesystem, a
+ * node's root and image filesystems, when each was measured and a claim's
+ * fill baseline. The rules read them, so every read that hands rows to the
+ * rules selects them.
+ */
+export const KUBERNETES_DISK_COLUMNS: Array<keyof KubernetesStorageRow> = [
+  "latestVolumeCapacityBytes",
+  "latestVolumeAvailableBytes",
+  "latestVolumeInodes",
+  "latestVolumeInodesFree",
+  "latestVolumeMeasuredAt",
+  "latestVolumeUsedBaselineBytes",
+  "latestVolumeUsedBaselineAt",
+  "latestImageFsCapacityBytes",
+  "latestImageFsAvailableBytes",
+];
+
+function quotedColumns(
+  columns: Array<string>,
+  table?: string | undefined,
+): string {
+  return columns
+    .map((column: string): string => {
+      return table ? `${table}."${column}"` : `"${column}"`;
+    })
+    .join(", ");
+}
+
+// What the rules read of a row, with its id and the verdict stored for it.
+const HEALTH_COLUMNS: Array<string> = [
+  "_id",
+  "kind",
+  "namespaceKey",
+  "name",
+  "phase",
+  "isReady",
+  "hasMemoryPressure",
+  "hasDiskPressure",
+  "hasPidPressure",
+  "labels",
+  "ownerReferences",
+  "spec",
+  "status",
+  "lastSeenAt",
+  "resourceCreationTimestamp",
+  "healthSeverity",
+  ...KUBERNETES_DISK_COLUMNS,
+  "metricsUpdatedAt",
+];
+
+// A row an UPDATE returned, for its verdict to be worked out again.
+type HealthRefreshRow = KubernetesHealthRow & {
+  _id: string;
+  healthSeverity: string | null;
+};
+
+/*
+ * A new object under a name an old one had - a claim deleted and created
+ * again, a node replaced - starts with no disk reading: the old one's would
+ * read as the new one's until a pod mounts it.
+ */
+const UID_CHANGED_SQL: string = `"KubernetesResource"."uid" IS NOT NULL AND EXCLUDED."uid" IS NOT NULL AND "KubernetesResource"."uid" <> EXCLUDED."uid"`;
+
+// A claim's used bytes in a reading, when its capacity and free space are known.
+const VOLUME_USED_SQL: string = `(CASE
+  WHEN COALESCE(v."capacity", k."latestVolumeCapacityBytes") IS NULL
+    OR COALESCE(v."available", k."latestVolumeAvailableBytes") IS NULL
+  THEN NULL
+  ELSE GREATEST(COALESCE(v."capacity", k."latestVolumeCapacityBytes") - COALESCE(v."available", k."latestVolumeAvailableBytes"), 0)
+END)`;
+
+const FILL_MAX_WINDOW_SQL: string = `interval '${Math.round(
+  KUBERNETES_VOLUME_FILL_MAX_WINDOW_MS / 1000,
+)} seconds'`;
+
+// No baseline yet, or one from a later clock: this reading starts one.
+const BASELINE_RESTARTS_SQL: string = `k."latestVolumeUsedBaselineAt" IS NULL OR k."latestVolumeUsedBaselineBytes" IS NULL OR v."observedAt" < k."latestVolumeUsedBaselineAt"`;
+
+/*
+ * A baseline older than the window moves halfway to this reading, a point
+ * on the same line: the rate stays, and the window is half as long again.
+ */
+const BASELINE_TOO_OLD_SQL: string = `v."observedAt" - k."latestVolumeUsedBaselineAt" > ${FILL_MAX_WINDOW_SQL}`;
+
 // A row as getPart and the pages read it: what the rules and the lists use.
 export interface KubernetesPartRow extends KubernetesHealthRow {
   _id: string;
@@ -222,6 +339,10 @@ export const KINDS_WITH_PODS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const UPSERT_BATCH_SIZE: number = 500;
+// How many pod-owned claims one cluster's read takes.
+export const POD_OWNED_CLAIMS_LIMIT: number = 20000;
+// How many pods one read for the claims Needs attention lists takes.
+export const NEEDS_ATTENTION_CLAIM_POD_LIMIT: number = 2000;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
 /*
@@ -310,6 +431,12 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
+    await this.withStoredDiskVerdicts({
+      projectId: data.projectId,
+      kubernetesClusterId: data.kubernetesClusterId,
+      resources: resources,
+    });
+
     // Chunk to keep individual statement parameter counts reasonable.
     for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
       const chunk: Array<ParsedKubernetesResource> = resources.slice(
@@ -379,12 +506,176 @@ export class Service extends DatabaseService<Model> {
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "resourceCreationTimestamp" = EXCLUDED."resourceCreationTimestamp",
           "healthSeverity" = EXCLUDED."healthSeverity",
+          ${KUBERNETES_DISK_COLUMNS.map((column: string): string => {
+            return `"${column}" = CASE WHEN ${UID_CHANGED_SQL} THEN NULL ELSE "KubernetesResource"."${column}" END`;
+          }).join(",\n          ")},
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "KubernetesResource"."lastSeenAt"
       `;
 
       await this.getRepository().manager.query(sql, params);
     }
+  }
+
+  /*
+   * A claim's or a node's verdict needs its disk as well as its snapshot,
+   * and the snapshot carries no disk: the metrics path writes that. So the
+   * verdict of each claim and node of a snapshot is worked out with the
+   * disk reading its row holds - unless the object is a new one under the
+   * same name, whose old reading the upsert clears. Without this, every
+   * snapshot would clear a nearly full claim's verdict until its next
+   * reading flagged it again.
+   */
+  private async withStoredDiskVerdicts(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    resources: Array<ParsedKubernetesResource>;
+  }): Promise<void> {
+    const withDisks: Array<ParsedKubernetesResource> = data.resources.filter(
+      (resource: ParsedKubernetesResource): boolean => {
+        return (
+          resource.kind === "PersistentVolumeClaim" || resource.kind === "Node"
+        );
+      },
+    );
+    if (withDisks.length === 0) {
+      return;
+    }
+
+    const stored: Array<
+      KubernetesStorageRow & {
+        kind: string;
+        namespaceKey: string;
+        name: string;
+        uid: string | null;
+      }
+    > = await this.getRepository().manager.query(
+      `SELECT "kind", "namespaceKey", "name", "uid",
+         ${quotedColumns([...KUBERNETES_DISK_COLUMNS, "metricsUpdatedAt"])}
+       FROM "KubernetesResource"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND "deletedAt" IS NULL
+         AND "kind" = ANY($3)
+         AND "name" = ANY($4)
+         AND (
+           "latestVolumeCapacityBytes" IS NOT NULL
+           OR "latestVolumeInodes" IS NOT NULL
+           OR "latestImageFsCapacityBytes" IS NOT NULL
+         )`,
+      [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+        Array.from(
+          new Set(
+            withDisks.map((resource: ParsedKubernetesResource): string => {
+              return resource.kind;
+            }),
+          ),
+        ),
+        Array.from(
+          new Set(
+            withDisks.map((resource: ParsedKubernetesResource): string => {
+              return resource.name;
+            }),
+          ),
+        ),
+      ],
+    );
+
+    const byKey: Map<string, (typeof stored)[number]> = new Map();
+    for (const row of stored) {
+      byKey.set(`${row.kind}|${row.namespaceKey || ""}|${row.name}`, row);
+    }
+
+    for (const resource of withDisks) {
+      const row: (typeof stored)[number] | undefined = byKey.get(
+        `${resource.kind}|${resource.namespaceKey || ""}|${resource.name}`,
+      );
+      if (!row || (row.uid && resource.uid && row.uid !== resource.uid)) {
+        continue;
+      }
+      const disk: KubernetesStorageRow = {};
+      for (const column of [
+        ...KUBERNETES_DISK_COLUMNS,
+        "metricsUpdatedAt" as const,
+      ]) {
+        (disk as Record<string, unknown>)[column] = row[column];
+      }
+      resource.healthSeverity = getKubernetesHealthSeverity({
+        ...resource,
+        ...disk,
+      });
+    }
+  }
+
+  /*
+   * A claim's or a node's verdict worked out again with the disk reading
+   * an UPDATE just wrote, for the rows it returned. Written only where it
+   * changed, and only while the stored verdict is still the one read, so a
+   * snapshot written in between - which works its own out with the disk
+   * (withStoredDiskVerdicts) - is never overwritten by an older one.
+   */
+  private async refreshHealthSeverity(
+    rows: Array<HealthRefreshRow>,
+  ): Promise<void> {
+    const changed: Array<{
+      id: string;
+      severity: string | null;
+      previous: string | null;
+    }> = [];
+
+    for (const row of rows) {
+      if (!row || !row._id) {
+        continue;
+      }
+      const severity: string | null = getKubernetesHealthSeverity(row) || null;
+      const previous: string | null = row.healthSeverity || null;
+      if (severity !== previous) {
+        changed.push({ id: row._id, severity: severity, previous: previous });
+      }
+    }
+
+    for (let i: number = 0; i < changed.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<{
+        id: string;
+        severity: string | null;
+        previous: string | null;
+      }> = changed.slice(i, i + UPSERT_BATCH_SIZE);
+      const valueFragments: Array<string> = [];
+      const params: Array<unknown> = [];
+      let paramIndex: number = 1;
+      for (const entry of chunk) {
+        valueFragments.push(
+          `($${paramIndex++}::uuid, $${paramIndex++}::text, $${paramIndex++}::text)`,
+        );
+        params.push(entry.id, entry.severity, entry.previous);
+      }
+      await this.getRepository().manager.query(
+        `UPDATE "KubernetesResource" AS k
+         SET "healthSeverity" = v."severity", "updatedAt" = now()
+         FROM (VALUES ${valueFragments.join(", ")}) AS v("id", "severity", "previous")
+         WHERE k."_id" = v."id"
+           AND k."healthSeverity" IS NOT DISTINCT FROM v."previous"`,
+        params,
+      );
+    }
+  }
+
+  // The rows an UPDATE ... RETURNING handed back, whatever the driver's shape.
+  private static returnedRows(result: unknown): Array<HealthRefreshRow> {
+    if (!Array.isArray(result)) {
+      return [];
+    }
+    // The pg driver hands an UPDATE's RETURNING rows as [rows, count].
+    if (
+      result.length === 2 &&
+      Array.isArray(result[0]) &&
+      typeof result[1] === "number"
+    ) {
+      return result[0] as Array<HealthRefreshRow>;
+    }
+    return result as Array<HealthRefreshRow>;
   }
 
   /**
@@ -483,6 +774,11 @@ export class Service extends DatabaseService<Model> {
    * snapshot has yet to write is skipped and caught up on the next flush; a
    * null reading keeps the stored one; and metricsUpdatedAt guards it, so an
    * older point never overwrites a newer one.
+   *
+   * It also moves the claim's fill baseline (how fast it is filling,
+   * KubernetesStorageHealth), and works out again the verdict of each claim
+   * it touched: a claim that reached 80% is listed under Needs attention
+   * from this reading on, not from the next snapshot.
    */
   @CaptureSpan()
   public async bulkUpdateLatestVolumeStats(data: {
@@ -539,6 +835,21 @@ export class Service extends DatabaseService<Model> {
           "latestVolumeAvailableBytes" = COALESCE(v."available", k."latestVolumeAvailableBytes"),
           "latestVolumeInodes" = COALESCE(v."inodes", k."latestVolumeInodes"),
           "latestVolumeInodesFree" = COALESCE(v."inodesFree", k."latestVolumeInodesFree"),
+          "latestVolumeMeasuredAt" = v."observedAt",
+          "latestVolumeUsedBaselineBytes" = CASE
+            WHEN ${VOLUME_USED_SQL} IS NULL THEN k."latestVolumeUsedBaselineBytes"
+            WHEN ${BASELINE_RESTARTS_SQL} THEN ${VOLUME_USED_SQL}
+            WHEN ${BASELINE_TOO_OLD_SQL}
+              THEN k."latestVolumeUsedBaselineBytes" + (${VOLUME_USED_SQL} - k."latestVolumeUsedBaselineBytes") / 2
+            ELSE k."latestVolumeUsedBaselineBytes"
+          END,
+          "latestVolumeUsedBaselineAt" = CASE
+            WHEN ${VOLUME_USED_SQL} IS NULL THEN k."latestVolumeUsedBaselineAt"
+            WHEN ${BASELINE_RESTARTS_SQL} THEN v."observedAt"
+            WHEN ${BASELINE_TOO_OLD_SQL}
+              THEN k."latestVolumeUsedBaselineAt" + (v."observedAt" - k."latestVolumeUsedBaselineAt") / 2
+            ELSE k."latestVolumeUsedBaselineAt"
+          END,
           "metricsUpdatedAt" = v."observedAt",
           "updatedAt" = now()
         FROM (VALUES ${valueFragments.join(", ")})
@@ -550,10 +861,173 @@ export class Service extends DatabaseService<Model> {
           AND k."namespaceKey" = v."ns"
           AND k."name" = v."name"
           AND (k."metricsUpdatedAt" IS NULL OR v."observedAt" >= k."metricsUpdatedAt")
+        RETURNING ${quotedColumns(HEALTH_COLUMNS, "k")}
       `;
 
-      await this.getRepository().manager.query(sql, params);
+      const updated: unknown = await this.getRepository().manager.query(
+        sql,
+        params,
+      );
+      await this.refreshHealthSeverity(Service.returnedRows(updated));
     }
+  }
+
+  /**
+   * Mirror each node's latest disk reading onto its row: its root
+   * filesystem (latestVolume*, as a claim's) and, when it is a disk of its
+   * own, its image filesystem (latestImageFs*), dated by
+   * latestVolumeMeasuredAt, which also guards it - a node's
+   * metricsUpdatedAt moves with its CPU and memory, which this leaves
+   * alone. A plain UPDATE, like the others: a node the next snapshot has
+   * yet to write is caught up on the next flush. Then each node's verdict
+   * is worked out again with its disks (Needs attention lists a node
+   * nearly out of disk).
+   */
+  @CaptureSpan()
+  public async bulkUpdateLatestNodeFilesystems(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    nodes: Array<ResourceLatestNodeFilesystem>;
+  }): Promise<void> {
+    if (data.nodes.length === 0) {
+      return;
+    }
+
+    const toBigint: (value: number | null) => string | null = (
+      value: number | null,
+    ): string | null => {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return null;
+      }
+      return Math.max(0, Math.trunc(value)).toString();
+    };
+
+    for (let i: number = 0; i < data.nodes.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ResourceLatestNodeFilesystem> = data.nodes.slice(
+        i,
+        i + UPSERT_BATCH_SIZE,
+      );
+
+      const valueFragments: Array<string> = [];
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+      ];
+      let paramIndex: number = 3;
+
+      for (const node of chunk) {
+        valueFragments.push(
+          `($${paramIndex++}, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::text, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::timestamptz)`,
+        );
+        // The identity clamp MUST match bulkUpsert's, or the node is missed.
+        params.push(
+          truncateLongText(node.name),
+          toBigint(node.capacityBytes),
+          toBigint(node.availableBytes),
+          node.imageFs.state,
+          node.imageFs.state === "separate"
+            ? toBigint(node.imageFs.capacityBytes)
+            : null,
+          node.imageFs.state === "separate"
+            ? toBigint(node.imageFs.availableBytes)
+            : null,
+          node.observedAt,
+        );
+      }
+
+      const imageFsColumn: (column: string, value: string) => string = (
+        column: string,
+        value: string,
+      ): string => {
+        return `CASE v."imageFsState"
+            WHEN 'separate' THEN v."${value}"
+            WHEN 'same' THEN NULL
+            ELSE k."${column}"
+          END`;
+      };
+
+      const sql: string = `
+        UPDATE "KubernetesResource" AS k
+        SET
+          "latestVolumeCapacityBytes" = COALESCE(v."capacity", k."latestVolumeCapacityBytes"),
+          "latestVolumeAvailableBytes" = COALESCE(v."available", k."latestVolumeAvailableBytes"),
+          "latestImageFsCapacityBytes" = ${imageFsColumn("latestImageFsCapacityBytes", "imageCapacity")},
+          "latestImageFsAvailableBytes" = ${imageFsColumn("latestImageFsAvailableBytes", "imageAvailable")},
+          "latestVolumeMeasuredAt" = v."observedAt",
+          "updatedAt" = now()
+        FROM (VALUES ${valueFragments.join(", ")})
+          AS v("name", "capacity", "available", "imageFsState", "imageCapacity", "imageAvailable", "observedAt")
+        WHERE
+          k."projectId" = $1
+          AND k."kubernetesClusterId" = $2
+          AND k."kind" = 'Node'
+          AND k."namespaceKey" = ''
+          AND k."name" = v."name"
+          AND (k."latestVolumeMeasuredAt" IS NULL OR v."observedAt" >= k."latestVolumeMeasuredAt")
+        RETURNING ${quotedColumns(HEALTH_COLUMNS, "k")}
+      `;
+
+      const updated: unknown = await this.getRepository().manager.query(
+        sql,
+        params,
+      );
+      await this.refreshHealthSeverity(Service.returnedRows(updated));
+    }
+  }
+
+  /**
+   * The claims a pod owns, by the pod's name: the ones Kubernetes makes
+   * from a pod's generic ephemeral volume (`ephemeral:`), named
+   * `<pod>-<volume>`. The kubelet stats receiver labels no such volume, so
+   * ingest files its usage under its claim by these
+   * (KubernetesEphemeralVolumeClaims). Bounded: a cluster holds at most a
+   * few thousand.
+   */
+  @CaptureSpan()
+  public async getPodOwnedVolumeClaims(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+  }): Promise<Array<{ namespace: string; name: string; podName: string }>> {
+    const rows: Array<{
+      namespaceKey: string | null;
+      name: string | null;
+      podName: string | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT "namespaceKey", "name",
+         jsonb_path_query_first("ownerReferences", '$.items[*] ? (@.kind == "Pod").name') #>> '{}' AS "podName"
+       FROM "KubernetesResource"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND "kind" = 'PersistentVolumeClaim'
+         AND "deletedAt" IS NULL
+         AND jsonb_path_exists("ownerReferences", '$.items[*] ? (@.kind == "Pod")')
+       LIMIT ${POD_OWNED_CLAIMS_LIMIT}`,
+      [data.projectId.toString(), data.kubernetesClusterId.toString()],
+    );
+
+    return rows
+      .filter(
+        (row: {
+          namespaceKey: string | null;
+          name: string | null;
+          podName: string | null;
+        }): boolean => {
+          return Boolean(row.name && row.podName);
+        },
+      )
+      .map(
+        (row: {
+          namespaceKey: string | null;
+          name: string | null;
+          podName: string | null;
+        }): { namespace: string; name: string; podName: string } => {
+          return {
+            namespace: row.namespaceKey || "",
+            name: row.name as string,
+            podName: row.podName as string,
+          };
+        },
+      );
   }
 
   /**
@@ -888,7 +1362,8 @@ export class Service extends DatabaseService<Model> {
 
     const columns: string = `"kind", "namespaceKey", "name", "phase", "isReady",
       "hasMemoryPressure", "hasDiskPressure", "hasPidPressure", "labels",
-      "ownerReferences", "spec", "status", "lastSeenAt", "resourceCreationTimestamp"`;
+      "ownerReferences", "spec", "status", "lastSeenAt", "resourceCreationTimestamp",
+      ${quotedColumns([...KUBERNETES_DISK_COLUMNS, "metricsUpdatedAt"])}`;
 
     const flagged: Array<KubernetesHealthRow> = await manager.query(
       `SELECT ${columns}
@@ -945,12 +1420,167 @@ export class Service extends DatabaseService<Model> {
 
     const findings: Array<KubernetesAttentionFinding> =
       getKubernetesAttentionFindings([...workloads, ...rows]);
+    const shown: Array<KubernetesAttentionFinding> = findings.slice(
+      0,
+      NEEDS_ATTENTION_FINDING_LIMIT,
+    );
+
+    await this.addClaimPods({
+      projectId: data.projectId,
+      kubernetesClusterId: data.kubernetesClusterId,
+      findings: shown,
+      rows: rows,
+    });
 
     return {
-      findings: findings.slice(0, NEEDS_ATTENTION_FINDING_LIMIT),
+      findings: shown,
       isTruncated:
         isRowLimitHit || findings.length > NEEDS_ATTENTION_FINDING_LIMIT,
     };
+  }
+
+  /*
+   * A claim listed under Needs attention names a pod that mounts it, as a
+   * step to the workload that writes to it: its owner for a generic
+   * ephemeral volume's claim, else a pod in its namespace whose spec mounts
+   * it - one read for every claim listed, a running pod first.
+   */
+  private async addClaimPods(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    findings: Array<KubernetesAttentionFinding>;
+    rows: Array<KubernetesHealthRow>;
+  }): Promise<void> {
+    const claims: Array<KubernetesAttentionFinding> = data.findings.filter(
+      (finding: KubernetesAttentionFinding): boolean => {
+        return finding.kind === "PersistentVolumeClaim";
+      },
+    );
+    if (claims.length === 0) {
+      return;
+    }
+
+    const claimKey: (namespace: string, name: string) => string = (
+      namespace: string,
+      name: string,
+    ): string => {
+      return `${namespace}/${name}`;
+    };
+
+    const ownerPods: Map<string, string> = new Map();
+    for (const row of data.rows) {
+      if (row.kind !== "PersistentVolumeClaim") {
+        continue;
+      }
+      const owner: { kind: string; name: string } | undefined =
+        getKubernetesOwners(row).find(
+          (ref: { kind: string; name: string }): boolean => {
+            return ref.kind === "Pod";
+          },
+        );
+      if (owner) {
+        ownerPods.set(
+          claimKey(row.namespaceKey || "", row.name || ""),
+          owner.name,
+        );
+      }
+    }
+
+    const toFind: Array<KubernetesAttentionFinding> = [];
+    for (const claim of claims) {
+      const owner: string | undefined = ownerPods.get(
+        claimKey(claim.namespace, claim.name),
+      );
+      if (owner) {
+        claim.pod = owner;
+      } else {
+        toFind.push(claim);
+      }
+    }
+    if (toFind.length === 0) {
+      return;
+    }
+
+    const pods: Array<{
+      namespaceKey: string | null;
+      name: string | null;
+      phase: string | null;
+      spec: { volumes?: unknown } | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT "namespaceKey", "name", "phase", "spec"
+       FROM "KubernetesResource"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND "deletedAt" IS NULL
+         AND "kind" = 'Pod'
+         AND "namespaceKey" = ANY($3)
+         AND jsonb_path_exists(
+           "spec",
+           '$.volumes[*] ? (@.type == "persistentVolumeClaim" && @.source == $claims[*])',
+           jsonb_build_object('claims', $4::jsonb)
+         )
+       ORDER BY "name" ASC
+       LIMIT ${NEEDS_ATTENTION_CLAIM_POD_LIMIT}`,
+      [
+        data.projectId.toString(),
+        data.kubernetesClusterId.toString(),
+        Array.from(
+          new Set(
+            toFind.map((claim: KubernetesAttentionFinding): string => {
+              return claim.namespace;
+            }),
+          ),
+        ),
+        JSON.stringify(
+          Array.from(
+            new Set(
+              toFind.map((claim: KubernetesAttentionFinding): string => {
+                return claim.name;
+              }),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // A running pod first, then by name: the one that writes to it now.
+    const mountedBy: Map<string, { name: string; isRunning: boolean }> =
+      new Map();
+    for (const pod of pods) {
+      const volumes: unknown = pod.spec?.volumes;
+      if (!pod.name || !Array.isArray(volumes)) {
+        continue;
+      }
+      const isRunning: boolean = pod.phase === "Running";
+      for (const volume of volumes) {
+        if (
+          !volume ||
+          typeof volume !== "object" ||
+          (volume as { type?: unknown }).type !== "persistentVolumeClaim"
+        ) {
+          continue;
+        }
+        const source: unknown = (volume as { source?: unknown }).source;
+        if (typeof source !== "string" || !source) {
+          continue;
+        }
+        const key: string = claimKey(pod.namespaceKey || "", source);
+        const current: { name: string; isRunning: boolean } | undefined =
+          mountedBy.get(key);
+        if (!current || (isRunning && !current.isRunning)) {
+          mountedBy.set(key, { name: pod.name, isRunning: isRunning });
+        }
+      }
+    }
+
+    for (const claim of toFind) {
+      const pod: { name: string } | undefined = mountedBy.get(
+        claimKey(claim.namespace, claim.name),
+      );
+      if (pod) {
+        claim.pod = pod.name;
+      }
+    }
   }
 
   /**
@@ -979,7 +1609,8 @@ export class Service extends DatabaseService<Model> {
     const columns: string = `"_id", "kind", "namespaceKey", "name", "phase", "isReady",
       "hasMemoryPressure", "hasDiskPressure", "hasPidPressure", "labels",
       "ownerReferences", "spec", "status", "lastSeenAt", "resourceCreationTimestamp",
-      "latestCpuPercent", "latestMemoryBytes", "latestMemoryPercent", "metricsUpdatedAt"`;
+      "latestCpuPercent", "latestMemoryBytes", "latestMemoryPercent", "metricsUpdatedAt",
+      ${quotedColumns(KUBERNETES_DISK_COLUMNS)}`;
 
     const scope: Array<unknown> = [
       data.projectId.toString(),

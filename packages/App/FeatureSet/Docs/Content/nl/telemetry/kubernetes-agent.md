@@ -410,7 +410,7 @@ Gebeurtenissen over meerdere regels worden in beide modi vóór het filteren wee
 Laat een paar luidruchtige metrics vallen (een denylist, meestal wat je wilt):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Stuur alleen een vaste set (een allowlist: al het andere wordt weggelaten):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinaliteit, het aantal verschillende series, telt even zwaar als frequentie, omdat elke serie afzonderlijk wordt opgeslagen en gefactureerd.
 
 - cAdvisor heeft bewust een allowlist. De cAdvisor-receiver (standaard aan) kan honderden metrics uitgeven; de chart stuurt alleen de tellers voor CPU-throttling en OOM-kills in `cadvisor.metricsAllowlist` door, voor je eigen grafieken en metric-monitors: geen ingebouwd sjabloon leest ze. Houd de lijst kort: elke vermelding wordt per container behouden, dus één metric meer vermenigvuldigt zich met het aantal containers in het cluster. kube-state-metrics staat standaard uit; zet je het aan (`kubeStateMetrics.enabled=true`), dan werkt zijn `kubeStateMetrics.metricsAllowlist` op dezelfde manier, en moet elke vermelding de hele naam van een metric dekken.
-- Volumemetrics (`kubeletstats.volumeMetrics.enabled`, standaard aan) geven een paar series per volume per pod, en vullen het gebruik, de vrije ruimte en de capaciteit op de pagina's van de Persistent Volume Claims en de sjabloon PVC Almost Full: prima voor de meeste clusters, veel op stateful workloads (Kafka, databases) met duizenden PVC's. Zet ze daar uit als je de schijfruimte van PVC's niet bewaakt, met `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volumemetrics (`kubeletstats.volumeMetrics.enabled`, standaard aan) geven vijf series voor elk volume met gegevens in elke pod (een claim, een emptyDir, een hostPath), vullen het gebruik, de vrije ruimte en de capaciteit op de pagina's van de Persistent Volume Claims en de sjabloon PVC Almost Full, en zetten een bijna volle claim onder Vraagt aandacht van het cluster. De configMap-, secret-, downwardAPI- en serviceaccounttokenvolumes van een pod, die het grootste deel van deze series waren, worden op de node weggelaten. Nog steeds veel op stateful workloads (Kafka, databases) met duizenden PVC's: zet ze daar uit als je de schijfruimte van PVC's niet bewaakt, met `--set kubeletstats.volumeMetrics.enabled=false`.
 - Verzadigingsmetrics (`kubeletstats.utilizationMetrics.enabled`, standaard aan) voegen 8 afgeleide families "% van request of limit" toe. Ze kosten geen extra scrape, maar gebruik je de monitors voor CPU en geheugen ten opzichte van de limit niet, laat ze dan vallen met `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Laat metrics op naam vallen met `filters.metrics.exclude`, dat over alle receivers heen werkt, voor alles wat de allowlists van de receivers niet kunnen uitdrukken (zie [Metrics op naam opnemen of uitsluiten](#metrics-op-naam-opnemen-of-uitsluiten)):
 

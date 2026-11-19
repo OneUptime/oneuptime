@@ -410,7 +410,7 @@ Kubernetes イベントは、エージェントで namespace によってフィ�
 いくつかの騒がしいメトリクスを破棄する (拒否リスト。通常はこちらが目的に合います):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 固定の集合だけを送信する (許可リスト。それ以外はすべて破棄されます):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 異なる系列の数であるカーディナリティは、頻度と同じくらい重要です。系列はそれぞれ個別に保存され、課金されるためです。
 
 - cAdvisor は意図的に許可リスト方式にしています。cAdvisor レシーバー (既定で有効) は数百のメトリクスを出力できますが、チャートは `cadvisor.metricsAllowlist` にある CPU スロットリングと OOM kill のカウンターだけを、独自のグラフやメトリクスモニターのために転送します。組み込みのテンプレートはこれらを読み取りません。リストは短く保ってください。各エントリはコンテナごとに保持されるため、メトリクスを 1 つ増やすと、クラスターのコンテナ数だけ倍になります。kube-state-metrics は既定でオフです。有効にした場合 (`kubeStateMetrics.enabled=true`)、その `kubeStateMetrics.metricsAllowlist` も同じように機能し、各エントリはメトリクス名全体に一致する必要があります。
-- ボリュームメトリクス (`kubeletstats.volumeMetrics.enabled`、既定で有効) は、Pod ごと・ボリュームごとに数個の系列を出力し、永続ボリュームクレームのページの使用量・空き容量・容量と PVC Almost Full テンプレートを支えます。ほとんどのクラスターでは問題ありませんが、数千の PVC を持つステートフルなワークロード (Kafka、データベース) では大量になります。PVC のディスク容量を監視していない場合は、そこで `--set kubeletstats.volumeMetrics.enabled=false` によりオフにしてください。
+- ボリュームメトリクス (`kubeletstats.volumeMetrics.enabled`、既定で有効) は、各 Pod のデータを保持するボリューム (クレーム、emptyDir、hostPath) ごとに 5 つの系列を出力し、永続ボリュームクレームのページの使用量・空き容量・容量、クラスターの「対応が必要」に表示されるほぼ満杯のクレーム、PVC Almost Full テンプレートを支えます。これらの系列の大半を占めていた Pod の configMap、secret、downwardAPI、サービスアカウントトークンのボリュームは、ノード上で破棄されます。それでも数千の PVC を持つステートフルなワークロード (Kafka、データベース) では大量になります。PVC のディスク容量を監視していない場合は、そこで `--set kubeletstats.volumeMetrics.enabled=false` によりオフにしてください。
 - 飽和度のメトリクス (`kubeletstats.utilizationMetrics.enabled`、既定で有効) は、「request または limit に対する %」の派生ファミリーを 8 つ追加します。追加のスクレイプは不要ですが、limit に対する CPU とメモリのモニターを使わない場合は、`--set kubeletstats.utilizationMetrics.enabled=false` で破棄してください。
 - レシーバーの許可リストでは表現できないものは、すべてのレシーバーに適用される `filters.metrics.exclude` で、名前によってメトリクスを破棄します ([名前によるメトリクスの包含と除外](#名前によるメトリクスの包含と除外) を参照):
 

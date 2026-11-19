@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration. One nullable column
  * with no default: adding it rewrites nothing and reads no row.
  */
-export class AddComplianceSettingNamespace1809186000000
+export class AddComplianceSettingNamespace1809186100000
   implements MigrationInterface
 {
-  public name: string = "AddComplianceSettingNamespace1809186000000";
+  public name: string = "AddComplianceSettingNamespace1809186100000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

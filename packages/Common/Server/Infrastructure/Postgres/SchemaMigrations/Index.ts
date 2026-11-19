@@ -1104,7 +1104,8 @@ import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddP
 import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelName";
 import { AddDeviceManagementConnection1809185900000 } from "./1809185900000-AddDeviceManagementConnection";
 import { AddServiceAINote1809185918000 } from "./1809185918000-AddServiceAINote";
-import { AddComplianceSettingNamespace1809186000000 } from "./1809186000000-AddComplianceSettingNamespace";
+import { AddKubernetesDiskReadings1809186000000 } from "./1809186000000-AddKubernetesDiskReadings";
+import { AddComplianceSettingNamespace1809186100000 } from "./1809186100000-AddComplianceSettingNamespace";
 
 export default [
   InitialMigration,
@@ -2213,5 +2214,6 @@ export default [
   AddAIRunModelName1809185800000,
   AddDeviceManagementConnection1809185900000,
   AddServiceAINote1809185918000,
-  AddComplianceSettingNamespace1809186000000,
+  AddKubernetesDiskReadings1809186000000,
+  AddComplianceSettingNamespace1809186100000,
 ];

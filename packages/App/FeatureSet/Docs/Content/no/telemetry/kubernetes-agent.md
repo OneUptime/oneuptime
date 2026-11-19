@@ -410,7 +410,7 @@ Hendelser over flere linjer settes sammen igjen før filtreringen i begge moduse
 Dropp noen få støyende målinger (en blokkeringsliste, vanligvis det du vil ha):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["container.filesystem.available","container.filesystem.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Send bare et fast sett (en tillatelsesliste: alt annet droppes):
@@ -960,7 +960,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinalitet, antall distinkte serier, betyr like mye som frekvens, fordi hver serie lagres og faktureres for seg.
 
 - cAdvisor er tillatelseslistet med vilje. cAdvisor-receiveren (på som standard) kan sende hundrevis av målinger; chartet videresender bare tellerne for CPU-struping og OOM-kills i `cadvisor.metricsAllowlist`, til dine egne grafer og målingsmonitorer: ingen innebygd mal leser dem. Hold listen kort: hver oppføring beholdes per container, så én måling til multipliseres med klyngens antall containere. kube-state-metrics er av som standard; hvis du slår den på (`kubeStateMetrics.enabled=true`), fungerer `kubeStateMetrics.metricsAllowlist` på samme måte, og hver oppføring må treffe hele navnet på en måling.
-- Volummålinger (`kubeletstats.volumeMetrics.enabled`, på som standard) sender noen få serier per volum per pod og fyller brukt, ledig og kapasitet på sidene for Persistent Volume Claims og malen PVC Almost Full: greit for de fleste klynger, mye på tilstandsfulle arbeidsbelastninger (Kafka, databaser) med tusenvis av PVC-er. Slå dem av der hvis du ikke overvåker PVC-diskplass, med `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volummålinger (`kubeletstats.volumeMetrics.enabled`, på som standard) sender fem serier for hvert volum med data i hver pod (et claim, en emptyDir, en hostPath), fyller brukt, ledig og kapasitet på sidene for Persistent Volume Claims og malen PVC Almost Full, og viser et nesten fullt claim under klyngens Krever oppmerksomhet. En pods configMap-, secret-, downwardAPI- og serviceaccount-token-volumer, som sto for de fleste av disse seriene, droppes på noden. Fortsatt mye på tilstandsfulle arbeidsbelastninger (Kafka, databaser) med tusenvis av PVC-er: slå dem av der hvis du ikke overvåker PVC-diskplass, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Metningsmålinger (`kubeletstats.utilizationMetrics.enabled`, på som standard) legger til 8 avledede familier av typen «% av request eller limit». De koster ingen ekstra scrape, men hvis du ikke bruker monitorene for CPU og minne mot limit, dropp dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Dropp målinger etter navn med `filters.metrics.exclude`, som spenner over alle receivere, for alt receivernes tillatelseslister ikke kan uttrykke (se [Inkludere eller utelukke målinger etter navn](#inkludere-eller-utelukke-målinger-etter-navn)):
 

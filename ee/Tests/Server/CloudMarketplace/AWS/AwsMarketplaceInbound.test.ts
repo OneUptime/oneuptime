@@ -253,7 +253,46 @@ describe("AwsMarketplaceInbound", () => {
         externalSubscriptionId: LICENSE_ARN,
         externalCustomerId: "123456789012",
         externalEntitlementId: "agmt-1",
-        externalOfferId: "prod-oneuptime",
+      });
+    });
+
+    /*
+     * The License Updated event records the offer the buyer accepted, and
+     * often arrives before the buyer's browser does. Registering must not
+     * write the product code (the same for every purchase) over it: the
+     * offer is what says whether a purchase came from a private offer.
+     */
+    it("leaves the offer the License Updated event recorded alone", async () => {
+      api.resolveCustomer.mockResolvedValue({
+        customerAwsAccountId: "123456789012",
+        licenseArn: LICENSE_ARN,
+        productCode: "prod-oneuptime",
+        agreementId: "agmt-1",
+      });
+
+      await inbound.registerBuyer("registration-token");
+
+      const recorded: Record<string, unknown> = recordPurchase.mock
+        .calls[0]![0] as Record<string, unknown>;
+
+      expect(recorded).not.toHaveProperty("externalOfferId");
+      expect(Object.values(recorded)).not.toContain("prod-oneuptime");
+    });
+
+    it("records a token with no agreement in its metadata without one", async () => {
+      api.resolveCustomer.mockResolvedValue({
+        customerAwsAccountId: "123456789012",
+        licenseArn: LICENSE_ARN,
+        productCode: "prod-oneuptime",
+        agreementId: null,
+      });
+
+      await inbound.registerBuyer("registration-token");
+
+      expect(recordPurchase).toHaveBeenCalledWith({
+        marketplace: CloudMarketplace.AWS,
+        externalSubscriptionId: LICENSE_ARN,
+        externalCustomerId: "123456789012",
       });
     });
 
