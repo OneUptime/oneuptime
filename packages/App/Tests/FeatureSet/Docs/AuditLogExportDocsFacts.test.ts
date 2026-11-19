@@ -43,6 +43,8 @@ import {
   AUDIT_LOG_EXPORT_SCHEMA_VERSIONS,
   AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION,
   AUDIT_LOG_EXPORT_TEST_ACTION,
+  AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS,
+  AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import Permission from "Common/Types/Permission";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
@@ -570,16 +572,22 @@ describe("the Audit Log Export page's entries", () => {
         return codeSpans(row[0] as string)[0] as string;
       }),
     ).toEqual([...AUDIT_LOG_EXPORT_SCHEMA_VERSIONS].reverse().map(String));
-    expect(rows[0]?.[1]).toContain("Each change also carries `summary`");
-    expect(rows[0]?.[1]).toContain("never values.");
-    expect(rows[1]?.[1]).toContain("without `summary`");
+    // Version 3 adds what a workflow's step ran as (#9766).
+    expect(rows[0]?.[1]).toContain(
+      "what the workflow's step that made the change ran as, and with whose permissions",
+    );
+    expect(AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS).toHaveLength(5);
+    expect(rows[0]?.[1]).toContain("in five keys after `workflowName`.");
+    expect(rows[1]?.[1]).toContain("Each change also carries `summary`");
+    expect(rows[1]?.[1]).toContain("never values.");
+    expect(rows[2]?.[1]).toContain("without `summary`");
 
     expect(versions).toContain(
       `A new export sends version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION}.`,
     );
     expect(service).toContain("? AUDIT_LOG_EXPORT_SCHEMA_VERSION");
     expect(versions).toContain(
-      `An export saved before version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION} keeps sending version ${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}, so whatever reads it needs no change`,
+      `An export saved before version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION} keeps sending version ${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}, and one saved before version ${AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION} keeps sending version ${AUDIT_LOG_EXPORT_SUMMARY_SCHEMA_VERSION}, so whatever reads it needs no change`,
     );
     expect(migration).toContain(
       `ALTER TABLE "AuditLogExport" ADD "schemaVersion" integer NOT NULL DEFAULT '${AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION}'`,
@@ -615,8 +623,13 @@ describe("the Audit Log Export page's entries", () => {
       readAuditLogValue({ _type: "URL", value: "https://a.example" }),
     ).toBe("https://a.example");
     expect(readAuditLogValue({ _type: "Port", value: 587 })).toBe(587);
-    // No version was added for it: a version only ever adds keys.
-    expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(2);
+    /*
+     * No version was added for it: a version only ever adds keys. The
+     * newest is the one that added what a workflow's step ran as (#9766).
+     */
+    expect(AUDIT_LOG_EXPORT_SCHEMA_VERSION).toBe(
+      AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION,
+    );
   });
 
   it("names the test entry's action and the mark a secret is recorded as", () => {

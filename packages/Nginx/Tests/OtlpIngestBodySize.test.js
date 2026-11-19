@@ -450,7 +450,8 @@ const hasOpenssl = isOnPath("openssl", ["version"]);
 /*
  * The config uses `http2 on;`, which nginx added in 1.25.1 and older builds
  * reject outright (Ubuntu runners carry 1.24), so a live run needs at least
- * this. The shipped image is nginx 1.30.5 (Nginx/Dockerfile.tpl).
+ * this. The shipped image runs the nginx Nginx/Dockerfile.tpl's base stage
+ * names, which Tests/Ops/NginxVersion.test.js holds to a fixed release.
  */
 const MINIMUM_NGINX_VERSION = [1, 25, 1];
 

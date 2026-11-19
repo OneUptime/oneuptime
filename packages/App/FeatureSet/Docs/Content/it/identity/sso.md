@@ -294,6 +294,21 @@ Disattivare **Richiedi l'SSO per l'accesso** salva non appena sposti l'interrutt
 > [!NOTE]
 > Su OneUptime Cloud, richiedere l'SSO richiede il piano **Scale**, mentre disattivarlo funziona con ogni piano. Sotto Scale, **Impostazioni del progetto** > **Sicurezza** > **SSO** mostra l'offerta del piano; un progetto che una prova di Scale ha lasciato con l'SSO richiesto trova lì anche **Richiedi l'SSO per l'accesso**, sotto l'offerta, per poterlo disattivare. Riattivarlo richiede **Scale**.
 
+### Gestire l'accesso dei tuoi membri con l'SSO
+
+Richiedere l'SSO tiene i dati del progetto dietro il tuo provider di identità, ma i tuoi membri possono ancora impostare in OneUptime una password, passkey e l'autenticazione a due fattori, che il tuo progetto non chiede mai. Finché **Richiedi l'SSO per l'accesso** è attivo, un secondo interruttore sotto di esso, **Gestisci l'accesso con l'SSO**, lo impedisce.
+
+L'accesso di una persona è gestito dall'SSO quando ogni progetto a cui appartiene, compreso qualsiasi progetto a cui è invitata, richiede l'SSO e ha attivo **Gestisci l'accesso con l'SSO**. Non può allora impostare password, passkey, chiavi di sicurezza, app di autenticazione, codici di backup né l'autenticazione a due fattori, **Password dimenticata?** non le invia alcun link, e il suo **Profilo utente** indica il suo provider di identità invece di offrire quelle impostazioni. Nell'accesso non cambia nulla: la sua password la fa ancora accedere a OneUptime, e il tuo progetto chiede l'SSO come prima.
+
+La regola viene verificata ogni volta, quindi:
+
+- **Qualcuno in un progetto che non gestisce l'accesso**: appena è membro di un progetto, o viene invitato in uno, che non richiede l'SSO o non ha attivo **Gestisci l'accesso con l'SSO**, riottiene le sue impostazioni, e il suo **Profilo utente** indica quel progetto come motivo. Se lo lascia, il suo accesso torna gestito. Un account può appartenere a molte organizzazioni, quindi un'organizzazione non decide mai per i progetti di un'altra.
+- **Progetti con provider diversi**: chi è in due progetti che gestiscono entrambi l'accesso, ciascuno con il proprio provider di identità, è gestito, e il suo profilo indica entrambi i provider.
+- **Gli amministratori principali** mantengono sempre le proprie impostazioni.
+- **Quello che le persone avevano configurato prima** viene conservato, senza che il tuo progetto lo usi. Un amministratore del server può cancellarlo nella pagina **Autenticazione** della persona nell'Admin Dashboard, con **Cancella impostazioni di accesso**.
+
+**Gestisci l'accesso con l'SSO** salva non appena sposti l'interruttore, non elimina nulla, e disattivarlo restituisce subito a tutti le loro impostazioni. Chi può modificare **Richiedi l'SSO per l'accesso** può modificarlo, con gli stessi piani. Con **Richiedi l'SSO per l'accesso** disattivato, è nascosto e non cambia nulla.
+
 ## Disattivare o eliminare un provider
 
 | Che cosa modifichi | Le persone che hanno eseguito l'accesso con il provider |

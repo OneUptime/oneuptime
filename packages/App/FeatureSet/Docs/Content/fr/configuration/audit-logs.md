@@ -67,10 +67,10 @@ Une modification de ces paramètres s'applique en moins d'une minute.
 | **Quand** | Il y a combien de temps, avec la date et l'heure. |
 | **Action** | `Create`, `Update` ou `Delete`, `Download` pour un fichier de capture de paquets que quelqu'un a téléchargé, ou `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` ou `Session Revoked` pour une connexion ou une session. |
 | **Ressource** | Le nom de la ressource, qui l'ouvre tant qu'elle existe, et son type. |
-| **Acteur** | Qui a fait la modification : une personne, une clé API, un flux de travail, ou `System` pour une modification que OneUptime a faite de lui-même. La modification d'une personne faite via un client MCP indique lequel. |
+| **Acteur** | Qui a fait la modification : une personne, une clé API, un flux de travail, ou `System` pour une modification que OneUptime a faite de lui-même. La modification d'une personne faite via un client MCP indique lequel. La modification d'un flux de travail dit en tant que quoi il s'est exécuté et avec les autorisations de qui. |
 | **Modifications** | Combien de champs ont changé, ou ont été capturés pour une création ou une suppression. Pour une connexion ou une session, comment la personne s'est connectée, pourquoi la connexion a échoué ou pourquoi la session s'est terminée. Cliquez dessus pour voir chaque champ. |
 
-Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
+Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur**, **Flux de travail exécuté en tant que**, **Autorisations du flux de travail données par** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
 
 Une ressource sans nom propre est nommée par ce qui la nomme dans OneUptime : une exception par son type et le début de son message, les identifiants, les adresses et tout ce qui ressemble à un secret étant masqués, une exécution de runbook par son runbook, le numéro de téléphone d'une politique d'appels entrants par le numéro, et un modèle ou un domaine par son propre nom.
 

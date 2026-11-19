@@ -23,6 +23,7 @@ import WorkflowSettings, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/View/Settings";
 import { WORKFLOW_RUN_AS_PLACE } from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowRunAsCard";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
@@ -92,7 +93,13 @@ interface Stored {
   runAs?: WorkflowRunAs;
   roleId?: string;
   givenBy?: string;
+  // A project API key gave them (#9765): its name, as the viewer reads it.
+  givenByKey?: string;
+  // The viewer may not read the project's API keys.
+  keyRefused?: boolean;
 }
+
+const KEY_ID: string = "c1c1c1c1-0000-4000-8000-0000000000a1";
 
 let stored: Stored = {};
 
@@ -171,11 +178,24 @@ beforeEach(() => {
 
       item._id = options.id ? options.id.toString() : WORKFLOW_ID;
 
+      if (item instanceof ApiKey) {
+        if (stored.keyRefused) {
+          throw new Error("You do not have permissions to read API Key.");
+        }
+
+        item.name = stored.givenByKey || "";
+      }
+
       if (item instanceof Workflow) {
         item.runAs = stored.runAs || WorkflowRunAs.Default;
 
         if (stored.roleId) {
           item.runAsCustomRoleId = new ObjectID(stored.roleId);
+        }
+
+        if (stored.givenByKey !== undefined) {
+          item.runAsGivenByApiKeyId = new ObjectID(KEY_ID);
+          item.runAsGivenAt = new Date("2026-11-19T10:00:00.000Z");
         }
 
         if (stored.givenBy) {
@@ -483,5 +503,72 @@ describe("Change Run As", () => {
 
     expect(picker).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent("Almost Admin");
+  });
+});
+
+/*
+ * A WORKFLOW AN API KEY GAVE ITS RUN AS (#9765): the card names the key,
+ * where the viewer may read it, and says the workflow stops if the key is
+ * deleted, expires or loses the permissions.
+ */
+describe("the card, of a workflow an API key gave its Run As", () => {
+  test("names the key, and says what would stop it", async () => {
+    stored = { runAs: WorkflowRunAs.ProjectOwner, givenByKey: "Terraform" };
+    grant([Permission.ProjectOwner]);
+
+    await openPage(`#${WORKFLOW_RUN_AS_PLACE}`);
+
+    const card: HTMLElement = await screen.findByTestId("workflow-run-as-card");
+
+    await waitFor(() => {
+      expect(card).toHaveTextContent(
+        'It runs with the permissions of the API key "Terraform", which gave them',
+      );
+    });
+    expect(card).toHaveTextContent(
+      "If the key is deleted, expires or loses them, it stops running until someone who has them chooses Run As again.",
+    );
+    expect(card).not.toHaveTextContent(
+      "Nobody who still has these permissions",
+    );
+  });
+
+  test("says one of the project's API keys to a viewer who may not read the keys", async () => {
+    stored = {
+      runAs: WorkflowRunAs.ProjectOwner,
+      givenByKey: "Terraform",
+      keyRefused: true,
+    };
+    grant([Permission.ProjectOwner]);
+
+    await openPage(`#${WORKFLOW_RUN_AS_PLACE}`);
+
+    const card: HTMLElement = await screen.findByTestId("workflow-run-as-card");
+
+    await waitFor(() => {
+      expect(card).toHaveTextContent(
+        "It runs with the permissions of one of the project's API keys, which gave them",
+      );
+    });
+    expect(card).not.toHaveTextContent("Terraform");
+  });
+
+  test("of a role a key gave, still says the role and the key", async () => {
+    stored = {
+      runAs: WorkflowRunAs.CustomRole,
+      roleId: ROLE_ID,
+      givenByKey: "Deploy Bot",
+    };
+
+    await openPage(`#${WORKFLOW_RUN_AS_PLACE}`);
+
+    const card: HTMLElement = await screen.findByTestId("workflow-run-as-card");
+
+    await waitFor(() => {
+      expect(card).toHaveTextContent(
+        'It runs with the permissions of the API key "Deploy Bot", which gave them',
+      );
+    });
+    expect(card).toHaveTextContent("Incident Responder");
   });
 });

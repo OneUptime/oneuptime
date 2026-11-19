@@ -108,6 +108,42 @@ export const SESSIONS_WITHOUT_SSO_TEST_ID: string =
   "admin-sessions-without-sso";
 
 /*
+ * Under the switch while SSO is required, after the sessions
+ * (SavedSignInSettings.tsx, #9762): how many people the requirement covers
+ * still have a password or a second step saved in OneUptime - kept, unused,
+ * and working again the moment SSO stops being required - and a button that
+ * clears them all, after a dialog that says it cannot be undone (its
+ * sentence fits a dialog's description: 150 characters,
+ * ShortDescriptionsGuard). Master admins are never counted or cleared.
+ * Nothing shows while nobody has any. Every string is a key of the Admin
+ * Dashboard's locales, in all 17 languages.
+ */
+export const SAVED_SIGN_IN_SETTINGS_COPY: {
+  stillSaved: PluralTemplate;
+  clearButton: string;
+  confirmTitle: string;
+  confirmDescription: string;
+  cleared: PluralTemplate;
+} = {
+  stillSaved: {
+    one: "{{count}} person still has a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.",
+    other:
+      "{{count}} people still have a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.",
+  },
+  clearButton: "Clear Sign-In Settings",
+  confirmTitle: "Clear everyone's saved sign-in settings?",
+  confirmDescription:
+    "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.",
+  cleared: {
+    one: "Cleared the sign-in settings of {{count}} person.",
+    other: "Cleared the sign-in settings of {{count}} people.",
+  },
+};
+
+export const SAVED_SIGN_IN_SETTINGS_TEST_ID: string =
+  "admin-saved-sign-in-settings";
+
+/*
  * The Sign Up card on Settings > Authentication, while the server requires
  * SSO: nobody signs up then, whatever its switch says (SsoRequiredSignIn).
  */

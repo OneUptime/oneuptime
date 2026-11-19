@@ -83,6 +83,17 @@ export interface CodeTaskNumberedTurn {
   number: number;
 }
 
+/*
+ * A page of the turns a long task's conversation does not show
+ * (getRepliesBefore): oldest first, the first of them at `firstNumber`.
+ */
+export interface CodeTaskEarlierTurnsRead {
+  turns: Array<AIRun>;
+  firstNumber: number;
+}
+
+type QueryRows = Array<Record<string, unknown>>;
+
 // What a task's pull request is shown with, wherever Code shows one.
 export const CODE_TASK_PULL_REQUEST_SELECT: Select<AIAgentTaskPullRequest> = {
   _id: true,
@@ -538,6 +549,156 @@ export default class CodeTaskThread {
       turn,
       number: 2 + CodeTaskThread.toCount(rows[0]?.["before"]),
     };
+  }
+
+  /*
+   * The task's turns just before one of its replies, a page at a time - the
+   * turns a long task's page does not show, read as the reader asks for
+   * them (Show earlier turns, #7128): the `limit` replies asked right before
+   * `beforeRunId`, oldest first, in the order its conversation reads them
+   * (getTurns), and the place of the first of them in the task (the first
+   * turn is 1). Read back to the first turn and never past it: the first
+   * turn is the task, which every read of it has already. Null when the run
+   * is not one of the task's replies - another task's, another project's, a
+   * chat's, or deleted.
+   */
+  @CaptureSpan()
+  public static async getRepliesBefore(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    beforeRunId: ObjectID;
+    limit: number;
+    select?: Select<AIRun> | undefined;
+  }): Promise<CodeTaskEarlierTurnsRead | null> {
+    const boundary: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        _id: data.beforeRunId.toString(),
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        codeTaskId: data.task.id!,
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    if (!boundary?.id) {
+      return null;
+    }
+
+    const limit: number = Math.max(1, Math.floor(data.limit));
+
+    const [pageRows, beforeRows]: [QueryRows, QueryRows] = await Promise.all([
+      CodeTaskThread.query(
+        CodeTaskThread.getRepliesBeforePageStatement({
+          projectId: data.projectId,
+          taskId: data.task.id!,
+          replyId: boundary.id,
+          limit,
+        }),
+      ),
+      CodeTaskThread.query(
+        CodeTaskThread.getRepliesBeforeStatement({
+          projectId: data.projectId,
+          taskId: data.task.id!,
+          replyId: boundary.id,
+        }),
+      ),
+    ]);
+
+    // Newest first, as the page's query reads them.
+    const ids: Array<string> = pageRows
+      .map((row: Record<string, unknown>): string => {
+        return String(row["id"] || "").toLowerCase();
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      });
+
+    const rows: Array<AIRun> =
+      ids.length > 0
+        ? await AIRunService.findBy({
+            query: {
+              _id: QueryHelper.any(ids),
+              projectId: data.projectId,
+              runType: AIRunType.CodeFix,
+              codeTaskId: data.task.id!,
+            },
+            select: data.select || CODE_TASK_TURN_SELECT,
+            limit: ids.length,
+            skip: 0,
+            props: { isRoot: true },
+          })
+        : [];
+
+    const byId: Map<string, AIRun> = new Map<string, AIRun>();
+
+    for (const row of rows) {
+      byId.set(row.id!.toString().toLowerCase(), row);
+    }
+
+    // Oldest first, as the conversation draws them.
+    const turns: Array<AIRun> = ids
+      .map((id: string): AIRun | undefined => {
+        return byId.get(id);
+      })
+      .filter((turn: AIRun | undefined): turn is AIRun => {
+        return Boolean(turn);
+      })
+      .reverse();
+
+    /*
+     * The replies before the one named are the ones read and every one
+     * older: the first read is right after those older ones, which come
+     * right after the first turn.
+     */
+    const before: number = CodeTaskThread.toCount(beforeRows[0]?.["before"]);
+
+    return {
+      turns,
+      firstNumber: 2 + Math.max(0, before - turns.length),
+    };
+  }
+
+  /*
+   * The ids of the `limit` replies of the task asked right before one of
+   * them, newest first: the order getTurns reads the task's replies in (by
+   * when they were asked, a tie by the greater id first, as
+   * getRepliesBeforeStatement counts them), compared with the named
+   * reply's own row in Postgres. One row per reply, "id".
+   */
+  public static getRepliesBeforePageStatement(data: {
+    projectId: ObjectID;
+    taskId: ObjectID;
+    replyId: ObjectID;
+    limit: number;
+  }): CodeTaskListStatement {
+    return {
+      sql: `SELECT "reply"."_id" AS "id"
+FROM "AIRun" AS "reply"
+JOIN "AIRun" AS "turn" ON "turn"."_id" = $4::uuid
+WHERE "reply"."projectId" = $1 AND "reply"."runType" = $2 AND "reply"."deletedAt" IS NULL
+  AND "reply"."codeTaskId" = $3::uuid
+  AND ("reply"."createdAt" < "turn"."createdAt"
+    OR ("reply"."createdAt" = "turn"."createdAt" AND "reply"."_id" > "turn"."_id"))
+ORDER BY "reply"."createdAt" DESC, "reply"."_id" ASC
+LIMIT $5`,
+      parameters: [
+        data.projectId.toString(),
+        AIRunType.CodeFix,
+        data.taskId.toString(),
+        data.replyId.toString(),
+        Math.max(1, Math.floor(data.limit)),
+      ],
+    };
+  }
+
+  private static async query(
+    statement: CodeTaskListStatement,
+  ): Promise<QueryRows> {
+    return (await AIRunService.getRepository().manager.query(
+      statement.sql,
+      statement.parameters,
+    )) as QueryRows;
   }
 
   /*

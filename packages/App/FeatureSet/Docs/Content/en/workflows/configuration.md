@@ -217,15 +217,19 @@ By default a workflow runs with the permissions above, and most workflows never 
 
 Whatever it runs as, a step never reads settings that hold credentials, never sees private incidents, alerts or episodes, and never changes API keys, single sign-on or SCIM settings. When it gives a team a permission or a role, it can give only what it has itself, and if it lacks something, the run log names the permission.
 
-A workflow that runs as more than the default runs with the permissions of the person who gave them: whoever last chose its **Run As**, or saved its steps or its variables. So that nobody gets more through it than they have themselves:
+A workflow that runs as more than the default runs with the permissions of whoever gave them: the person or the project API key that last chose its **Run As**, or saved its steps or its variables. So that nobody gets more through it than they have themselves:
 
 - Only people who have those permissions can change it or its variables, archive or delete it, run it or one of its steps by hand, or see its webhook URL and incoming email address. Anyone who can edit it can still turn it off. When it's set to run as more than the default, or what it runs as changes, it gets a new webhook URL and incoming email address, so copies of the old ones no longer start it.
-- Only a person can give them, never an API key.
-- Each run first checks that the person who gave them still has them. If not, the run stops before its first step, and its log says why and who can give them again.
+- A person or one of the project's API keys can give them, and only what they have themselves: a key's permissions, its custom roles included, are weighed as a person's are. A workflow's steps and the master API key can't give them, and resetting a key needs every permission the key has.
+- Each run first checks that whoever gave them still has them: a person still in the project, or a key that still exists, hasn't expired and hasn't lost them. If not, the run stops before its first step, and its log says why and who can give them again.
 - It doesn't read the project's global variables, which anyone who can edit workflow variables may change.
 - Another workflow's **Execute Workflow** step can start it only if that workflow runs with the same permissions or more.
 
-Each run records what it ran as and with whose permissions, shown in the run's window and in a downloaded log, and the [audit log](/docs/configuration/audit-logs) records who changed a workflow's **Run As**.
+An exported, imported or duplicated workflow runs with the default permissions, whatever the original ran as: someone who has more chooses its **Run As** again.
+
+Each run records what it ran as and with whose permissions, shown in the run's window and in a downloaded log. The [audit log](/docs/configuration/audit-logs) records who changed a workflow's **Run As**, a person or an API key by name, and every change a workflow's step makes says what the step ran as and with whose permissions. The audit log's **Workflow Ran As** and **Workflow Permissions Given By** filters find those changes.
+
+Deleting a custom role that workflows run as would stop them, so the delete lists them and asks what they run as from now on: **Default permissions**, or another custom role you could give a team. Someone who can't edit workflows can't delete the role until their Run As is changed. Through the API, deleting such a role is refused unless the request says what they run as instead: `miscDataProps` with `workflowsRunAs` set to `Default`, or to `CustomRole` with the role's id in `workflowsRunAsCustomRoleId`.
 
 ## Plan limits
 

@@ -6,10 +6,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * and the apps installed on them. All three tables are new, so they are
  * empty while their indexes and keys are made, and need no online DDL.
  */
-export class AddDeviceManagementConnection1809185400000
+export class AddDeviceManagementConnection1809185900000
   implements MigrationInterface
 {
-  public name: string = "AddDeviceManagementConnection1809185400000";
+  public name: string = "AddDeviceManagementConnection1809185900000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

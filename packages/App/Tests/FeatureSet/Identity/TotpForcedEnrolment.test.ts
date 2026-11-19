@@ -17,7 +17,9 @@ import User from "Common/Models/DatabaseModels/User";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import Email from "Common/Types/Email";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
 import HashedString from "Common/Types/HashedString";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
@@ -80,6 +82,28 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
       "./SsoNotRequiredStandIn",
     ) as typeof import("./SsoNotRequiredStandIn")
   ).ssoNotRequired();
+});
+
+/*
+ * Whether single sign-on manages the person's sign-in (#9763,
+ * SsoManagedSignIn), which every enrolment asks before it creates or checks
+ * anything: not, unless a test says so. Its own rule - the server, the
+ * person's projects, master admins - is SignInMatrixSsoAndTwoFactor.test.ts.
+ */
+const assertMayChangeLocalSignInFor: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return {
+    __esModule: true,
+    default: {
+      assertMayChangeLocalSignInFor: (...args: Array<unknown>): unknown => {
+        return assertMayChangeLocalSignInFor(...args);
+      },
+      isManagedBySsoFor: (): Promise<boolean> => {
+        return Promise.resolve(false);
+      },
+    },
+  };
 });
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -642,6 +666,7 @@ beforeEach(() => {
   totpUpdateOneById.mockResolvedValue(1 as never);
   totpDeleteBy.mockResolvedValue(1 as never);
   refreshUserAllPermissions.mockResolvedValue(undefined as never);
+  assertMayChangeLocalSignInFor.mockResolvedValue(undefined as never);
 
   jest.spyOn(UserService, "updateOneById").mockResolvedValue(1 as never);
 });
@@ -1785,5 +1810,137 @@ describe("POST /verify-totp-enrolment", () => {
 
     expect(responded).not.toContain(enrolment.secret);
     expect(responded).not.toContain("otpauth://");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * NOT WHILE SINGLE SIGN-ON MANAGES THE PERSON'S SIGN-IN (#9763).
+ *
+ * Somebody whose every project requires SSO and manages sign-in with it sets
+ * no second step in OneUptime - the profile refuses them, and so must the
+ * enrolment at sign-in, which would otherwise hand them an authenticator app
+ * and ten backup codes on the strength of a password their projects never
+ * ask for. They are told to sign in with SSO, before anything is created or
+ * checked. Nobody else notices: an account with a second step is challenged
+ * as before, and one with no mandate signs in as before, without the rule
+ * being asked at all.
+ * ---------------------------------------------------------------------------
+ */
+describe("the enrolment while single sign-on manages the person's sign-in (#9763)", () => {
+  beforeEach(() => {
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE) as never,
+    );
+  });
+
+  it("POST /login says to sign in with SSO, and creates no pending enrolment", async () => {
+    const user: User = await storedUser();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+
+    const result: InvokeResult = await postLogin();
+
+    expect(refusalMessage(result)).toBe(SSO_MANAGED_SIGN_IN_MESSAGE);
+    expect(totpFindOneBy).not.toHaveBeenCalled();
+    expect(totpCreate).not.toHaveBeenCalled();
+    expect(sendEntityResponse).not.toHaveBeenCalled();
+    expect(sessionViolations()).toEqual([]);
+  });
+
+  it("asks with the account the password proved, and its master-admin standing", async () => {
+    const user: User = await storedUser();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+
+    await postLogin();
+
+    expect(assertMayChangeLocalSignInFor).toHaveBeenCalledTimes(1);
+
+    const asked: { userId: ObjectID; isMasterAdmin: boolean } =
+      assertMayChangeLocalSignInFor.mock.calls[0]![0] as {
+        userId: ObjectID;
+        isMasterAdmin: boolean;
+      };
+
+    expect(asked.userId.toString()).toBe(user.id!.toString());
+    expect(asked.isMasterAdmin).toBe(false);
+  });
+
+  it("POST /verify-totp-enrolment refuses an enrolment begun before, before its code is checked", async () => {
+    const user: User = await storedUser();
+    const enrolment: PendingEnrolment = pendingEnrolment();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+    totpFindOneBy.mockResolvedValue(enrolment.row as never);
+
+    const result: InvokeResult = await postEnrolment({
+      code: enrolment.codeFromTheAuthenticatorApp(),
+    });
+
+    expect(refusalMessage(result)).toBe(SSO_MANAGED_SIGN_IN_MESSAGE);
+    // The pending app is not even looked up, let alone verified.
+    expect(totpFindOneBy).not.toHaveBeenCalled();
+    expect(totpUpdateOneById).not.toHaveBeenCalled();
+    expect(totpDeleteBy).not.toHaveBeenCalled();
+    expect(sessionViolations()).toEqual([]);
+  });
+
+  it("a rule that cannot be read refuses the enrolment as well, creating nothing", async () => {
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new Error("connection refused") as never,
+    );
+
+    const user: User = await storedUser();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+
+    const result: InvokeResult = await postLogin();
+
+    expect(refusalMessage(result)).toBe("connection refused");
+    expect(totpCreate).not.toHaveBeenCalled();
+    expect(sessionViolations()).toEqual([]);
+  });
+
+  it("an account with a second step set up is challenged as before, without the rule being asked", async () => {
+    const user: User = await storedUser();
+    const existing: PendingEnrolment = pendingEnrolment({ isVerified: true });
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+    totpFindBy.mockResolvedValue([existing.row] as never);
+
+    await postLogin();
+
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expect(Array.isArray(responseMiscData()["totpAuthList"])).toBe(true);
+    expect(totpCreate).not.toHaveBeenCalled();
+  });
+
+  it("an account with no mandate signs in as before, without the rule being asked", async () => {
+    const user: User = await storedUser({ enableTwoFactorAuth: false });
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+
+    await postLogin();
+
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expect(loginSucceeded()).toBe(true);
+  });
+
+  it("an enrolment the account is not required to make is refused as before, without the rule being asked", async () => {
+    const user: User = await storedUser({ enableTwoFactorAuth: false });
+    const enrolment: PendingEnrolment = pendingEnrolment();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+    totpFindOneBy.mockResolvedValue(enrolment.row as never);
+
+    const result: InvokeResult = await postEnrolment({
+      code: enrolment.codeFromTheAuthenticatorApp(),
+    });
+
+    expect(refusalMessage(result)).toBe(
+      "Two factor authentication is not required for this account.",
+    );
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
   });
 });

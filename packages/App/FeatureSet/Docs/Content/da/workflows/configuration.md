@@ -217,15 +217,19 @@ Som standard kører en arbejdsgang med tilladelserne ovenfor, og de fleste arbej
 
 Uanset hvad arbejdsgangen kører som, læser et trin aldrig indstillinger, der indeholder loginoplysninger, ser aldrig private hændelser, advarsler eller episoder og ændrer aldrig API-nøgler, single sign-on eller SCIM-indstillinger. Når det giver et team en tilladelse eller en rolle, kan det kun give det, det selv har, og mangler det noget, nævner kørslens log tilladelsen.
 
-En arbejdsgang, der kører med mere end standardtilladelserne, kører med tilladelserne fra den person, der gav den dem: den, der sidst valgte dens **Run As** eller gemte dens trin eller variabler. Så ingen får mere gennem den, end de selv har:
+En arbejdsgang, der kører med mere end standardtilladelserne, kører med tilladelserne fra den, der gav den dem: den person eller den API-nøgle i projektet, der sidst valgte dens **Run As** eller gemte dens trin eller variabler. Så ingen får mere gennem den, end de selv har:
 
 - Kun personer, der har de tilladelser, kan ændre den eller dens variabler, arkivere eller slette den, køre den eller et af dens trin manuelt eller se dens webhook-URL og indgående e-mailadresse. Alle, der må redigere den, kan stadig slå den fra. Når den kommer til at køre med mere end standardtilladelserne, eller det ændres, hvad den kører som, får den en ny webhook-URL og en ny indgående e-mailadresse, så kopier af de gamle ikke længere starter den.
-- Kun en person kan give dem, aldrig en API-nøgle.
-- Hver kørsel tjekker først, at den person, der gav dem, stadig har dem. Hvis ikke, stopper kørslen før sit første trin, og dens log siger hvorfor, og hvem der kan give dem igen.
+- En person eller en af projektets API-nøgler kan give dem, og kun det, de selv har: en nøgles tilladelser, dens brugerdefinerede roller medregnet, vejes som en persons. En arbejdsgangs trin og master-API-nøglen kan ikke give dem, og at nulstille en nøgle kræver alle de tilladelser, nøglen har.
+- Hver kørsel tjekker først, at den, der gav dem, stadig har dem: en person, der stadig er i projektet, eller en nøgle, der stadig findes, ikke er udløbet og ikke har mistet dem. Hvis ikke, stopper kørslen før sit første trin, og dens log siger hvorfor, og hvem der kan give dem igen.
 - Den læser ikke projektets globale variabler, som alle, der må redigere arbejdsgangsvariabler, kan ændre.
 - En anden arbejdsgangs **Kør en anden arbejdsgang**-trin kan kun starte den, hvis den arbejdsgang kører med de samme tilladelser eller flere.
 
-Hver kørsel registrerer, hvad den kørte som, og med hvis tilladelser, vist i kørslens vindue og i en downloadet log, og [revisionsloggen](/docs/configuration/audit-logs) registrerer, hvem der ændrede en arbejdsgangs **Run As**.
+En eksporteret, importeret eller duplikeret arbejdsgang kører med standardtilladelserne, uanset hvad originalen kørte som: en, der har flere, vælger dens **Run As** igen.
+
+Hver kørsel registrerer, hvad den kørte som, og med hvis tilladelser, vist i kørslens vindue og i en downloadet log. [Revisionsloggen](/docs/configuration/audit-logs) registrerer, hvem der ændrede en arbejdsgangs **Run As**, en person eller en API-nøgle ved navn, og hver ændring, et trin i en arbejdsgang foretager, siger, hvad trinnet kørte som, og med hvis tilladelser. Revisionsloggens filtre **Arbejdsgang kørt som** og **Arbejdsgangens tilladelser givet af** finder de ændringer.
+
+At slette en brugerdefineret rolle, som arbejdsgange kører som, ville stoppe dem, så sletningen viser dem og spørger, hvad de skal køre som fremover: **Standardtilladelser** eller en anden brugerdefineret rolle, du kunne give et team. Den, der ikke kan redigere arbejdsgange, kan ikke slette rollen, før deres Run As er ændret. Via API'en afvises sletning af sådan en rolle, medmindre anmodningen siger, hvad de skal køre som i stedet: `miscDataProps` med `workflowsRunAs` sat til `Default` eller til `CustomRole` med rollens id i `workflowsRunAsCustomRoleId`.
 
 ## Plangrænser
 

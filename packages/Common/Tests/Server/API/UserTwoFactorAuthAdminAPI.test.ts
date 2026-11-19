@@ -15,6 +15,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
 import UserAuthenticationStatus from "../../../Types/UserAuthenticationStatus";
+import { SsoManagedBy } from "../../../Types/SSO/SsoManagedSignIn";
 import {
   afterEach,
   beforeAll,
@@ -794,6 +795,8 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
     verifiedTwoFactorAuthMethodCount: 0,
     unusedTwoFactorBackupCodeCount: 0,
     hasPendingPasswordResetLink: false,
+    isMasterAdmin: false,
+    signInManagedBy: SsoManagedBy.Server,
   };
 
   beforeAll(() => {
@@ -829,6 +832,9 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
       verifiedTwoFactorAuthMethodCount: 0,
       unusedTwoFactorBackupCodeCount: 0,
       hasPendingPasswordResetLink: false,
+      // What the page warns with (#9762, #9763).
+      isMasterAdmin: false,
+      signInManagedBy: SsoManagedBy.Server,
     });
   });
 
@@ -884,6 +890,8 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
       verifiedTwoFactorAuthMethodCount: 2,
       unusedTwoFactorBackupCodeCount: 5,
       hasPendingPasswordResetLink: false,
+      isMasterAdmin: true,
+      signInManagedBy: null,
     };
 
     statusSpy.mockResolvedValue(configuredStatus);

@@ -141,9 +141,18 @@ export class Service extends DatabaseService<Model> {
         : value;
 
     if (!isAuditLogExportSchemaVersion(version)) {
-      throw new BadDataException(
-        `Record Version must be ${AUDIT_LOG_EXPORT_SCHEMA_VERSIONS.join(" or ")}.`,
+      // "1, 2 or 3": every version but the last, then the last.
+      const versions: Array<string> = AUDIT_LOG_EXPORT_SCHEMA_VERSIONS.map(
+        (known: AuditLogExportSchemaVersion): string => {
+          return String(known);
+        },
       );
+      const list: string =
+        versions.length > 1
+          ? `${versions.slice(0, -1).join(", ")} or ${versions[versions.length - 1]}`
+          : versions.join("");
+
+      throw new BadDataException(`Record Version must be ${list}.`);
     }
 
     return version;

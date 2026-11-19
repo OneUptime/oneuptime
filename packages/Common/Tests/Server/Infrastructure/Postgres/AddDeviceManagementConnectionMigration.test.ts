@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDeviceManagementConnection1809185400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185400000-AddDeviceManagementConnection";
+import { AddDeviceManagementConnection1809185900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185900000-AddDeviceManagementConnection";
 
 /*
  * The migration that creates the device management tables (issue #9586):
@@ -32,7 +32,7 @@ import { AddDeviceManagementConnection1809185400000 } from "../../../../Server/I
 
 const MIGRATION_FILE: string = path.join(
   __dirname,
-  "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185400000-AddDeviceManagementConnection.ts",
+  "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185900000-AddDeviceManagementConnection.ts",
 );
 
 const SOURCE: string = fs.readFileSync(MIGRATION_FILE, "utf8");
@@ -68,7 +68,7 @@ function statement(predicate: (text: string) => boolean): string {
   return found as string;
 }
 
-describe("AddDeviceManagementConnection1809185400000", () => {
+describe("AddDeviceManagementConnection1809185900000", () => {
   test("is registered, after every migration before it", () => {
     const names: Array<string> = SchemaMigrations.map(
       (migration: { new (): MigrationInterface }): string => {
@@ -76,17 +76,17 @@ describe("AddDeviceManagementConnection1809185400000", () => {
       },
     );
     const index: number = names.indexOf(
-      "AddDeviceManagementConnection1809185400000",
+      "AddDeviceManagementConnection1809185900000",
     );
 
     expect(index).toBeGreaterThan(-1);
-    expect(new AddDeviceManagementConnection1809185400000().name).toBe(
-      "AddDeviceManagementConnection1809185400000",
+    expect(new AddDeviceManagementConnection1809185900000().name).toBe(
+      "AddDeviceManagementConnection1809185900000",
     );
 
     for (const earlier of names.slice(0, index)) {
       const timestamp: number = Number(TIMESTAMP.exec(earlier)?.[1] || 0);
-      expect(timestamp).toBeLessThan(1809185400000);
+      expect(timestamp).toBeLessThan(1809185900000);
     }
   });
 

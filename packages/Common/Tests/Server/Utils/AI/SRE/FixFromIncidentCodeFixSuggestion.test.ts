@@ -296,20 +296,27 @@ describe("a fix pull request that exists", () => {
     expect((await suggestionFor()).isAutomatic).toBe(false);
   });
 
-  test("the fix's own reads: its first turn, of this record, inside the project", async () => {
+  /*
+   * Any turn of a fix task of this record: its first, or the fix asked
+   * again from Code (#6509) - a later turn of the same task, with the same
+   * recipe and record - each with the task it is of.
+   */
+  test("the fix's own reads: a turn of a fix task of this record, with its task, inside the project", async () => {
     const spies: Spies = install({ activeFix: fixRun() });
 
     await suggestionFor();
 
-    const fixRead: JSONObject = (
-      spies.runs.mock.calls[1]![0] as { query: JSONObject }
-    ).query;
-    expect(fixRead["projectId"]).toBe(PROJECT_ID);
-    expect(fixRead["runType"]).toBe(AIRunType.CodeFix);
-    expect(fixRead["codeFixTaskType"]).toBe(CodeFixTaskType.FixFromIncident);
-    expect(fixRead["triggeredByIncidentId"]).toBe(INCIDENT_ID);
-    expect(fixRead["triggeredByAlertId"]).toBeUndefined();
-    expect(sqlOf(fixRead["codeTaskId"])).toBe("(codeTaskId IS NULL)");
+    const fixRead: { query: JSONObject; select: JSONObject } = spies.runs.mock
+      .calls[1]![0] as { query: JSONObject; select: JSONObject };
+    expect(fixRead.query["projectId"]).toBe(PROJECT_ID);
+    expect(fixRead.query["runType"]).toBe(AIRunType.CodeFix);
+    expect(fixRead.query["codeFixTaskType"]).toBe(
+      CodeFixTaskType.FixFromIncident,
+    );
+    expect(fixRead.query["triggeredByIncidentId"]).toBe(INCIDENT_ID);
+    expect(fixRead.query["triggeredByAlertId"]).toBeUndefined();
+    expect(fixRead.query["codeTaskId"]).toBeUndefined();
+    expect(fixRead.select["codeTaskId"]).toBe(true);
   });
 
   test.each([
@@ -360,6 +367,86 @@ describe("a fix pull request that exists", () => {
     const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
     expect(suggestion.offer).toBe(SuggestionOffer.InProgress);
     expect(suggestion.aiRunId).toBe(FIX_ID.toString());
+  });
+});
+
+/*
+ * #6509: a fix whose first turn failed is asked again from Code (Try
+ * again) - a later turn of the same task, with its recipe and its record.
+ * The step reads it as the fix: on its way, or done once it did its work,
+ * linked to its task - never offering a second fix beside it, which could
+ * open a second pull request.
+ */
+describe("a fix asked again from Code", () => {
+  const RETRY_ID: ObjectID = new ObjectID(
+    "13131313-1313-4313-8313-131313131313",
+  );
+
+  test("on its way: the fix being written, by whoever asked it again, linked to its task", async () => {
+    const spies: Spies = install({
+      activeFix: fixRun({
+        id: RETRY_ID,
+        codeTaskId: FIX_ID,
+        status: AIRunStatus.Queued,
+        userId: USER_ID,
+      }),
+    });
+
+    const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
+
+    expect(suggestion.offer).toBe(SuggestionOffer.InProgress);
+    expect(suggestion.aiRunId).toBe(FIX_ID.toString());
+    expect(suggestion.isAutomatic).toBe(false);
+    // The task is the one asked whether the reader may see it.
+    expect(spies.hiddenFrom).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      taskIds: [FIX_ID],
+      reader: READER,
+    });
+    expect(spies.gate).not.toHaveBeenCalled();
+  });
+
+  test("done: its pull request, read through its task's latest turn, linked to its task", async () => {
+    const spies: Spies = install({
+      finishedFix: fixRun({
+        id: RETRY_ID,
+        codeTaskId: FIX_ID,
+        status: AIRunStatus.Completed,
+        userId: USER_ID,
+      }),
+      latestTurn: fixRun({ id: RETRY_ID, status: AIRunStatus.Completed }),
+    });
+
+    expect(await suggestionFor()).toEqual({
+      offer: SuggestionOffer.Done,
+      fixOutcome: FinishedFixOutcome.Fixed,
+      blocker: null,
+      aiRunId: FIX_ID.toString(),
+      isAutomatic: false,
+      automaticBlocker: null,
+    });
+
+    // The task's latest turn is read by the task, not by the turn.
+    const read: { task: AIRun } = spies.latestTurn.mock.calls[0]![0] as {
+      task: AIRun;
+    };
+    expect(read.task.id?.toString()).toBe(FIX_ID.toString());
+    expect(spies.hiddenFrom).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      taskIds: [FIX_ID],
+      reader: READER,
+    });
+  });
+
+  test("hidden from the reader: there, and nothing of it", async () => {
+    install({
+      activeFix: fixRun({ id: RETRY_ID, codeTaskId: FIX_ID }),
+      isFixHidden: true,
+    });
+
+    expect(await suggestionFor()).toEqual(
+      HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION,
+    );
   });
 });
 

@@ -142,14 +142,16 @@ function readStartsAt(value: JSONValue | undefined): Date | null {
 
 /*
  * The record versions the form offers, newest first, each by its name:
- * the newest, which a new export starts on, and the original. A version
- * with neither name has none to show, and is not offered.
+ * the newest, which a new export starts on, the original, and each one
+ * between, so an export saved on any of them shows what it sends. A
+ * version with no name has none to show, and is not offered.
  */
 export function getAuditLogExportSchemaVersionOptions(): Array<{
   label: string;
   value: string;
 }> {
   const labels: Partial<Record<AuditLogExportSchemaVersion, string>> = {
+    2: AuditLogExportCopy.schemaVersionSecondOption,
     [AUDIT_LOG_EXPORT_SCHEMA_VERSION]:
       AuditLogExportCopy.schemaVersionNewestOption,
     [AUDIT_LOG_EXPORT_FIRST_SCHEMA_VERSION]:

@@ -1,4 +1,5 @@
 import TwoFactorAuthStatus from "./TwoFactorAuthStatus";
+import { SsoManagedBy } from "./SSO/SsoManagedSignIn";
 
 /**
  * What an operator needs to know about how one user can sign in, with nothing
@@ -65,4 +66,21 @@ export default interface UserAuthenticationStatus {
 
   // Is there an unexpired password-reset link outstanding for this user?
   hasPendingPasswordResetLink: boolean;
+
+  /*
+   * Whether the account is a master admin's: the server never requires SSO
+   * of one, and clearing a master admin's sign-in settings is asked for
+   * that person by name (Types/SSO/LocalSignInClearing).
+   */
+  isMasterAdmin: boolean;
+
+  /*
+   * Why the person's sign-in is managed by single sign-on now - the whole
+   * server requires SSO, or every project they are in manages sign-in with
+   * it (Types/SSO/SsoManagedSignIn) - or null when it is not. A password,
+   * a password link or a second step given to them then signs them in to
+   * none of their projects, and the Authentication page says so. Null too
+   * when the rule cannot be read: the server still refuses what it must.
+   */
+  signInManagedBy: SsoManagedBy | null;
 }
