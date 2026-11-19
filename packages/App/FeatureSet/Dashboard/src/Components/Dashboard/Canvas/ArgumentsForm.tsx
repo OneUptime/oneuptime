@@ -865,10 +865,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             buttonStyle={ButtonStyleType.OUTLINE}
             icon={IconProp.Add}
             onClick={() => {
-              const variableIndex: number = multiQueryConfigs.length + 1; // +1 because primary query is "a"
-              const variableLetter: string = String.fromCharCode(
-                97 + variableIndex,
-              ); // b, c, d, ...
+              /*
+               * The first letter no query or formula has. Counting the
+               * added queries gave a letter already taken once a query had
+               * been removed (a, c, then c again) or a formula added first
+               * (formula b, then query b), and a formula reads a letter
+               * two of them share as only the last of the two.
+               */
+              const variableLetter: string = getNextUnusedVariableLetter();
               const newQuery: MetricQueryConfigData = {
                 metricAliasData: {
                   metricVariable: variableLetter,
