@@ -142,7 +142,8 @@ export default class CustomCodeMonitor {
         const message: string = totpCodes.redact(
           (err as Error)?.message || (err as Error).toString(),
         );
-        logger.error(message);
+        // The error itself, stack and all, unless a code must come out of it.
+        logger.error(totpCodes.getIssuedCodes().length > 0 ? message : err);
         scriptResult.scriptError = message;
       }
 
@@ -151,7 +152,7 @@ export default class CustomCodeMonitor {
       const message: string = totpCodes.redact(
         (err as Error)?.message || (err as Error).toString(),
       );
-      logger.error(message);
+      logger.error(totpCodes.getIssuedCodes().length > 0 ? message : err);
       scriptResult.scriptError = message;
     }
 
