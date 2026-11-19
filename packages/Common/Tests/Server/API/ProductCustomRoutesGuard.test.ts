@@ -1177,6 +1177,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Telemetry arriving, by its ingestion key: it keeps arriving while its product is switched off, unless the server stops ingestion (DISABLE_TELEMETRY_INGESTION), as switching a product off promises.",
       {
+        "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,

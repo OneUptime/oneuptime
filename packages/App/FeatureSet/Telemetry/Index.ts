@@ -24,6 +24,7 @@ import DatadogAPI from "./API/Datadog";
 import SentryAPI from "./API/Sentry";
 // OpAMP: the hosts OneUptime installs and configures (HostCollectorAgent)
 import HostCollectorOpAmpAPI from "./API/HostCollectorOpAmp";
+import AndroidAgentLogSessionsAPI from "./API/AndroidAgentLogSessions";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
@@ -138,6 +139,12 @@ const TelemetryFeatureSet: FeatureSet = {
        * ingress has a location of its own for (Nginx/default.conf.template).
        */
       app.use(TELEMETRY_PREFIXES, HostCollectorOpAmpAPI);
+      /*
+       * The OneUptime Android agent asks for the log sessions open for its
+       * device here, every minute, beside OTLP (#9806):
+       * /telemetry/android-agent/v1/log-sessions.
+       */
+      app.use(TELEMETRY_PREFIXES, AndroidAgentLogSessionsAPI);
       /*
        * Session replay ingest. Mounted on both prefixes like the rest, which
        * is why StartServer's body-parser bypass predicates must match with
