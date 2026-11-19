@@ -57314,5 +57314,9 @@
   "{{values}} in {{field}}": "{{field}}의 {{values}}",
   "Call Summary Posts": "Call Summary Posts",
   "Transcript Sign-In Account ID": "Transcript Sign-In Account ID",
-  "Transcript Sign-In Removed At": "Transcript Sign-In Removed At"
+  "Transcript Sign-In Removed At": "Transcript Sign-In Removed At",
+  "Asked again at the next collection": "Asked again at the next collection",
+  "Asked again {{time}}": "Asked again {{time}}",
+  "Skipped Tables": "Skipped Tables",
+  "The database refused these tables, so collections skip each one until its next try instead of asking every five minutes. Collect Now asks them all again at once.": "The database refused these tables, so collections skip each one until its next try instead of asking every five minutes. Collect Now asks them all again at once."
 }
