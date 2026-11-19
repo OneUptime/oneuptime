@@ -14,8 +14,9 @@
  * in the tenant they asked in, then its run and events as root, and only
  * what the step shows leaves: the run's status and times, the events that
  * say how its attempts ended, each check's command (from the round's own
- * read tools) and the explanation the AI gave (Types/AutoRemediation
- * /RemediationRound). Raw tool arguments never do.
+ * read tools) or, for a read through the project's MCP servers, its
+ * server's and tool's names (#6526), and the explanation the AI gave
+ * (Types/AutoRemediation/RemediationRound). Raw tool arguments never do.
  *
  * Trying again (tryAgain): a round that did not finish - its run failed,
  * stopped answering, expired in the queue or is gone - and that changed
@@ -48,6 +49,7 @@ import {
   AiRemediationCommandPlanUtil,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
+  ExternalMcpToolCall,
   ExternalMcpToolCallPlan,
   ExternalMcpToolCallPlanUtil,
 } from "../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
@@ -61,13 +63,16 @@ import {
   MAX_ROUND_CHECKS,
   MAX_ROUND_COMMAND_LENGTH,
   parseRemediationRoundExplanation,
+  parseRemediationRoundMcpToolCall,
   RemediationRoundAppliedSteps,
   RemediationRoundCheck,
   RemediationRoundCheckStatus,
   RemediationRoundExplanation,
+  RemediationRoundMcpToolCall,
   REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED,
   RemediationRoundTryAgainRefusal,
 } from "../../../Types/AutoRemediation/RemediationRound";
+import { AI_TOOLKIT_CITATIONS } from "../../../Types/AI/AIReadTableWords";
 import {
   KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
@@ -82,6 +87,7 @@ import { READ_TOOL_OUTPUT_TOOL_NAME } from "../AI/Chat/ToolOutputPager";
 import {
   CALL_MCP_TOOL_TOOL_NAME,
   LIST_MCP_TOOLS_TOOL_NAME,
+  readMcpToolCallFailure,
 } from "../../../Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { Indigo500 } from "../../../Types/BrandColors";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
@@ -136,6 +142,75 @@ const COMMAND_CHECK_TOOL_NAMES: ReadonlyArray<string> = [
   RUN_KUBECTL_TOOL_NAME,
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
 ];
+
+/*
+ * The tools a round's checks are read from: the commands above, and the
+ * calls of the project's MCP servers' tools that only read (#6526).
+ */
+const CHECK_TOOL_NAMES: ReadonlyArray<string> = [
+  ...COMMAND_CHECK_TOOL_NAMES,
+  CALL_MCP_TOOL_TOOL_NAME,
+];
+
+/*
+ * How the citation of a call_mcp_tool call the fix did not make ends - one
+ * of a tool that may change something, recorded for approval or refused
+ * (McpRunToolkit): "{{server}} · {{tool}} (not run)", in English.
+ */
+const MCP_CALL_NOT_RUN_ENDING: string =
+  AI_TOOLKIT_CITATIONS.mcpToolNotRun.slice(
+    AI_TOOLKIT_CITATIONS.mcpToolNotRun.lastIndexOf("}}") + 2,
+  );
+
+/*
+ * A change a fix through MCP servers recorded (its plan), by the server it
+ * was called on and the tool: proposed, made or skipped. A server's tool
+ * either only reads or may change something, so a call of the same tool of
+ * the same server in the round is one of its changes, never a check.
+ */
+export interface RoundMcpChange {
+  serverName: string;
+  serverId: string;
+  tool: string;
+}
+
+export function getRoundMcpChanges(
+  mcpToolCallPlan: JSONObject | null | undefined,
+): Array<RoundMcpChange> {
+  const plan: ExternalMcpToolCallPlan | null =
+    ExternalMcpToolCallPlanUtil.parse(mcpToolCallPlan || null);
+
+  return (plan?.calls || []).map(
+    (call: ExternalMcpToolCall): RoundMcpChange => {
+      return {
+        serverName: call.serverNameSnapshot || "",
+        serverId: call.serverId || "",
+        tool: call.toolName || "",
+      };
+    },
+  );
+}
+
+/*
+ * Whether a call names one of the fix's changes: the same tool, on a server
+ * named as the run labelled it or by its id, whatever the case (as
+ * McpRunToolkit finds a server).
+ */
+function isRoundMcpChange(
+  call: { server: string; tool: string },
+  changes: ReadonlyArray<RoundMcpChange>,
+): boolean {
+  const server: string = call.server.trim().toLowerCase();
+
+  return changes.some((change: RoundMcpChange): boolean => {
+    return (
+      change.tool === call.tool &&
+      Boolean(server) &&
+      (change.serverName.trim().toLowerCase() === server ||
+        change.serverId.trim().toLowerCase() === server)
+    );
+  });
+}
 
 /*
  * The tools that are not a query of the project's telemetry: a round's
@@ -247,18 +322,72 @@ export function getRoundTryAgainRefusal(data: {
 }
 
 /*
+ * A check started by a call of a tool of the project's MCP servers, or
+ * null when the call is no check: one that names no server or tool, or one
+ * of the fix's changes. Its server and tool, and the AI's reason, are all
+ * that is read of it: never what it was called with.
+ */
+function startMcpCheck(
+  event: AIRunEvent,
+  changes: ReadonlyArray<RoundMcpChange>,
+): { check: RemediationRoundCheck; call: RemediationRoundMcpToolCall } | null {
+  const server: unknown = event.toolArguments?.["server"];
+  const tool: unknown = event.toolArguments?.["tool"];
+
+  if (typeof server !== "string" || typeof tool !== "string") {
+    return null;
+  }
+
+  const mcpTool: RemediationRoundMcpToolCall | null =
+    parseRemediationRoundMcpToolCall({ server, tool });
+
+  if (!mcpTool || isRoundMcpChange({ server, tool }, changes)) {
+    return null;
+  }
+
+  return {
+    check: {
+      command: "",
+      mcpTool,
+      why: clipRoundText(
+        event.toolArguments?.["rationale"],
+        MAX_ROUND_CHECK_WHY_LENGTH,
+      ),
+      status: "running",
+      at: event.createdAt ? new Date(event.createdAt).toISOString() : "",
+      error: "",
+    },
+    // As the model named them, for reading the server's words back.
+    call: { server, tool },
+  };
+}
+
+/*
  * The checks a round ran, in order: each command it ran with its read
- * tools, paired with how it ended. A call ends with the next completion or
- * failure of its tool (a run calls its tools one at a time); one with
- * neither is running - or, once its attempt or its run ended, stopped.
+ * tools, and each call of a tool of the project's MCP servers that only
+ * reads (#6526), paired with how it ended. A call ends with the next
+ * completion or failure of its tool (a run calls its tools one at a time);
+ * one with neither is running - or, once its attempt or its run ended,
+ * stopped.
+ *
+ * Of a fix through MCP servers, the calls of a tool that may change
+ * something are left out: they are the fix's changes, which its plan and
+ * its run show - the ones it recorded (mcpChanges) from their start, and
+ * one it refused when it ends ("not run"). So is a call refused before it
+ * reached any server, which read nothing.
  */
 export function getRoundChecks(data: {
   events: Array<AIRunEvent>;
   isRunOver: boolean;
+  // The changes the fix's plan recorded (getRoundMcpChanges).
+  mcpChanges?: ReadonlyArray<RoundMcpChange> | undefined;
 }): Array<RemediationRoundCheck> {
   const checks: Array<RemediationRoundCheck> = [];
+  const mcpChanges: ReadonlyArray<RoundMcpChange> = data.mcpChanges || [];
   let openCheck: RemediationRoundCheck | null = null;
   let openToolName: string = "";
+  // The open MCP call's server and tool, as the model named them.
+  let openMcpCall: RemediationRoundMcpToolCall | null = null;
 
   const endOpenCheck: (
     status: RemediationRoundCheckStatus,
@@ -271,6 +400,18 @@ export function getRoundChecks(data: {
 
     openCheck = null;
     openToolName = "";
+    openMcpCall = null;
+  };
+
+  // The open check was no check after all: it is taken off the list.
+  const dropOpenCheck: () => void = (): void => {
+    if (openCheck && checks[checks.length - 1] === openCheck) {
+      checks.pop();
+    }
+
+    openCheck = null;
+    openToolName = "";
+    openMcpCall = null;
   };
 
   for (const event of data.events) {
@@ -288,13 +429,28 @@ export function getRoundChecks(data: {
 
     const toolName: string = event.toolName || "";
 
-    if (!COMMAND_CHECK_TOOL_NAMES.includes(toolName)) {
+    if (!CHECK_TOOL_NAMES.includes(toolName)) {
       continue;
     }
 
     if (event.eventType === AIRunEventType.ToolCallStarted) {
       if (openCheck) {
         endOpenCheck("stopped", "");
+      }
+
+      if (toolName === CALL_MCP_TOOL_TOOL_NAME) {
+        const started: {
+          check: RemediationRoundCheck;
+          call: RemediationRoundMcpToolCall;
+        } | null = startMcpCheck(event, mcpChanges);
+
+        if (started) {
+          checks.push(started.check);
+          openCheck = started.check;
+          openToolName = toolName;
+          openMcpCall = started.call;
+        }
+        continue;
       }
 
       const command: string = clipRoundText(
@@ -329,6 +485,43 @@ export function getRoundChecks(data: {
 
     const summary: AIRunEventResultSummary = event.resultSummary || {};
     const errorMessage: string = summary.errorMessage || "";
+
+    if (toolName === CALL_MCP_TOOL_TOOL_NAME) {
+      const mcpCall: RemediationRoundMcpToolCall | null = openMcpCall;
+
+      if (event.eventType === AIRunEventType.ToolCallCompleted) {
+        /*
+         * A change the fix did not make (recorded for approval, or
+         * refused) completes as "not run": it was never a read.
+         */
+        if ((summary.citationLabel || "").endsWith(MCP_CALL_NOT_RUN_ENDING)) {
+          dropOpenCheck();
+          continue;
+        }
+
+        // The server answered: an answer that is an error has no rows.
+        endOpenCheck(summary.rowCount === 0 ? "failed" : "ran", "");
+        continue;
+      }
+
+      // ToolCallFailed: the server's own words, when it was called at all.
+      const serverError: string | null = readMcpToolCallFailure({
+        errorMessage,
+        tool: mcpCall?.tool || "",
+        server: mcpCall?.server || "",
+      });
+
+      if (serverError === null) {
+        dropOpenCheck();
+        continue;
+      }
+
+      endOpenCheck(
+        "failed",
+        clipRoundText(serverError, MAX_ROUND_CHECK_ERROR_LENGTH),
+      );
+      continue;
+    }
 
     if (event.eventType === AIRunEventType.ToolCallCompleted) {
       /*
@@ -697,6 +890,8 @@ export default class RemediationRound {
       checks: getRoundChecks({
         events: roundEvents,
         isRunOver: !run || AIRunStatusHelper.isTerminalStatus(run.status!),
+        // A fix through MCP servers: its changes are not checks (#6526).
+        mcpChanges: getRoundMcpChanges(suggestion.mcpToolCallPlan),
       }) as unknown as JSONArray,
       otherCheckCount: countRoundOtherChecks(roundEvents),
       explanation: getRoundExplanation(roundEvents) as unknown as JSONObject,

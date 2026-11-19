@@ -57715,6 +57715,7 @@
   "{{measure}} (budget {{duration}})": "{{measure}} (soglia {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} annullata {{path}}",
   "{{method}} failed {{path}}": "{{method}} non riuscita {{path}}",
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "Hai chiesto a OneUptime AI di riprovare troppe volte negli ultimi minuti. Attendi qualche minuto, poi riprova.",
   "Added as dashboard owner": "Aggiunto come proprietario della dashboard",
   "Added as incoming call policy owner": "Aggiunto come proprietario della policy chiamate in entrata",
   "Added as on-call policy owner": "Aggiunto come proprietario della policy di reperibilità",

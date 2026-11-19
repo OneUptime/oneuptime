@@ -57715,6 +57715,7 @@
   "{{measure}} (budget {{duration}})": "{{measure}}（予算 {{duration}}）",
   "{{method}} cancelled {{path}}": "{{method}} キャンセル {{path}}",
   "{{method}} failed {{path}}": "{{method}} 失敗 {{path}}",
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "この数分間に OneUptime AI へ再試行を依頼した回数が多すぎます。数分待ってから、もう一度お試しください。",
   "Added as dashboard owner": "ダッシュボードの所有者として追加されました",
   "Added as incoming call policy owner": "着信ポリシーの所有者として追加されました",
   "Added as on-call policy owner": "オンコールポリシーの所有者として追加されました",

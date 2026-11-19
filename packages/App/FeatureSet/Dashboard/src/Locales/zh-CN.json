@@ -57715,6 +57715,7 @@
   "{{measure}} (budget {{duration}})": "{{measure}}（预算 {{duration}}）",
   "{{method}} cancelled {{path}}": "{{method}} 已取消 {{path}}",
   "{{method}} failed {{path}}": "{{method}} 失败 {{path}}",
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "过去几分钟内，您让 OneUptime AI 重试的次数过多。请等待几分钟，然后再重试。",
   "Added as dashboard owner": "已添加为仪表板所有者",
   "Added as incoming call policy owner": "已添加为来电策略所有者",
   "Added as on-call policy owner": "已添加为值班策略所有者",

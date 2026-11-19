@@ -57715,6 +57715,7 @@
   "{{measure}} (budget {{duration}})": "{{measure}} (budsjett {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} avbrutt {{path}}",
   "{{method}} failed {{path}}": "{{method}} mislyktes {{path}}",
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "Du har bedt OneUptime AI om å prøve igjen for mange ganger de siste minuttene. Vent noen minutter, og prøv så igjen.",
   "Added as dashboard owner": "Lagt til som dashbord-eier",
   "Added as incoming call policy owner": "Lagt til som eier av policy for innkommende anrop",
   "Added as on-call policy owner": "Lagt til som vaktpolicy-eier",

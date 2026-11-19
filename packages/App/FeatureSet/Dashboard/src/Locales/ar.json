@@ -57715,6 +57715,7 @@
   "{{measure}} (budget {{duration}})": "{{measure}} (الميزانية {{duration}})",
   "{{method}} cancelled {{path}}": "{{method}} أُلغي {{path}}",
   "{{method}} failed {{path}}": "{{method}} فشل {{path}}",
+  "You have asked OneUptime AI to try again too many times in the last few minutes. Wait a few minutes, then try again.": "طلبت من OneUptime AI المحاولة من جديد مرات كثيرة جدًا خلال الدقائق القليلة الماضية. انتظر بضع دقائق، ثم حاول مرة أخرى.",
   "Added as dashboard owner": "أُضفت كمالك للوحة المعلومات",
   "Added as incoming call policy owner": "أُضفت كمالك لسياسة المكالمات الواردة",
   "Added as on-call policy owner": "أُضفت كمالك لسياسة المناوبة",
