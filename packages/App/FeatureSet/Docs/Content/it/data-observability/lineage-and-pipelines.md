@@ -32,7 +32,7 @@ Ogni vista della derivazione - la scheda **Derivazione** di una tabella, quella 
 - **Servizi** che scrivono e leggono tabelle, dagli span di database nelle tue tracce: uno span che indica la sua tabella (`db.collection.name`, o il più vecchio `db.sql.table`) e la sua istruzione (`db.operation.name`), come un `INSERT` o un `SELECT`.
 - **Tabelle** costruite a partire da altre tabelle, da tutte le fonti sopra.
 - **Pipeline** che caricano una tabella da dati che OneUptime non monitora, come una sincronizzazione di Fivetran. Una pipeline che sposta dati tra due tabelle monitorate è indicata sulla freccia tra loro.
-- **Dashboard** e sincronizzazioni di reverse ETL nei tuoi strumenti di BI, che leggono le tabelle su cui sono costruiti.
+- **Dashboard** e sincronizzazioni di reverse ETL nei tuoi strumenti di BI, che leggono le tabelle su cui sono costruiti, anche quando nient'altro tocca quelle tabelle. Un report di Power BI che non poggia su nessuna tabella monitorata da OneUptime viene disegnato con i set di dati che rappresenta e le origini dati da cui si caricano; quando nessuna delle dashboard di uno strumento BI poggia su una tabella monitorata, la mappa dice perché ([Lineage di Power BI](#lineage-di-power-bi)).
 
 Ogni freccia è qualcosa che OneUptime ha registrato, mai una supposizione. I riquadri sono disposti da sinistra a destra secondo il flusso dei dati e mostrano il loro stato come nel diagramma di una tabella: rosso per una tabella in ritardo, un avviso aperto o un'esecuzione non riuscita. Una freccia è turchese dove le tracce di un servizio l'hanno vista.
 
@@ -99,7 +99,7 @@ Il vero impatto dei dati sbagliati è la dashboard che qualcuno apre. In **Dashb
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un service principal autorizzato a usare le API di amministrazione di sola lettura di Power BI. Vengono letti sia i report sia le dashboard, con le loro visualizzazioni e i loro aggiornamenti (sotto) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un service principal autorizzato a usare le API di amministrazione di sola lettura di Power BI, con le due impostazioni del tenant sui metadati di [Lineage di Power BI](#lineage-di-power-bi) attivate per le tabelle dietro ogni report. Vengono letti sia i report sia le dashboard, con le loro visualizzazioni e i loro aggiornamenti (sotto) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (oppure `eu`) |
 
@@ -154,6 +154,30 @@ Il riquadro **Dati** della causa elenca il suo **Impatto a valle**: ogni avviso 
 Sotto il riquadro **Dati**, la pagina di un avviso disegna la sua **Derivazione**: attorno alla sua tabella, come la disegna la scheda **Derivazione** della tabella, o attorno alla sua pipeline. Il percorso che sale fino all'avviso che lo ha causato e scende fino a ogni avviso che ha causato è evidenziato - la tabella o la pipeline della causa segnata come **Causa**, quelle di ogni avviso causato come **Conseguenza** - e il resto si attenua, così chi lo apre vede in quale punto della catena è iniziato il problema. Quando la causa è su una pipeline disegnata su una freccia, la freccia indica **Causa** sotto il nome della pipeline. Quando la causa riguarda un intero database, o si trova più in alto di dove arriva il diagramma, il riquadro lo dice a parole. Un avviso da un controllo su una sola colonna, come un controllo Percentuale di NULL su `customer_id`, si apre con quella colonna seguita accanto a questi percorsi, come nella scheda **Derivazione** della tabella: da dove viene e dove va, indicata su ciascuna tabella. Scegli lì un'altra colonna della tabella, oppure cancellala per vedere solo i percorsi. **Esplora la derivazione** apre la scheda **Derivazione** della tabella, o la pagina della pipeline. Un avviso causato su una pipeline disegnata su una freccia vi dice **Conseguenza** allo stesso modo, e il selettore delle colonne offre prima la colonna del controllo, poi le altre colonne della tabella nel suo ordine.
 
 Chi non può vedere l'avviso che lo ha causato non riceve né il riquadro **Dati** né la derivazione, e un avviso causato che non può vedere non viene né evidenziato né contato.
+
+## Lineage di Power BI
+
+**Tabelle abbinate**, su ogni strumento BI, dice su quante tabelle monitorate sono costruite le sue dashboard e, sotto, la prima cosa che impedisce alle altre di essere abbinate. **See Why** elenca cosa ha trovato l'ultima lettura e cosa fare: i database che le tue dashboard leggono e che non sono collegati a OneUptime, ciascuno a un **Connect Database** di distanza, con il tipo e l'indirizzo già compilati; le tabelle che un database collegato non monitora, che possono essere escluse dalla sua scansione o non ancora raccolte; e le origini che non sono un database, come file e pagine web. Per Power BI indica anche un'impostazione del tenant disattivata, i set di dati che leggono da flussi di dati e i set di dati che Power BI non riesce a descrivere. **Basato su**, per ogni dashboard, dice i set di dati che rappresenta e da dove vengono i loro dati, come li indica Power BI.
+
+OneUptime legge ogni set di dati di Power BI dalla scansione dei metadati di Power BI, con la query di Power Query dietro ciascuna delle sue tabelle:
+
+- **Il database che nomina un connettore**: SQL Server e Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena e Microsoft Dataverse, e lo schema e la tabella che sceglie la sua navigazione.
+- **L'SQL che esegue una query**: l'opzione **SQL statement** di un connettore, `Value.NativeQuery` e `Odbc.Query`, e le tabelle dopo ogni `FROM` e `JOIN`.
+- **Parametri e query condivise**: un parametro vale ovunque sia nominato, e una tabella che legge una query di staging legge ciò che legge quella query.
+- **I modelli compositi** rappresentano le tabelle dei set di dati su cui sono costruiti.
+
+Un report rappresenta le tabelle del suo set di dati, e una dashboard quelle dei set di dati dei suoi riquadri. Da dove vengono i dati - il server e il nome di un database, il percorso di un file, un indirizzo web - viene dalle origini dati della scansione, che non richiedono altro che l'accesso alle API di amministrazione indicato sopra.
+
+Power BI restituisce le tabelle di un set di dati solo dopo che un amministratore di Fabric ha attivato due impostazioni del tenant nel portale di amministrazione, in **Tenant settings > Admin API settings**, per il gruppo di sicurezza che contiene il service principal:
+
+- **Enhance admin APIs responses with detailed metadata**: le tabelle di ogni set di dati.
+- **Enhance admin APIs responses with DAX and mashup expressions**: le query che le caricano, che dicono quali tabelle di database leggono.
+
+Power BI descrive poi un set di dati quando è stato aggiornato o ripubblicato; uno che usa solo DirectQuery, quando qualcuno ha aperto un report su di esso. Non descrive mai i set di dati in tempo reale, i set di dati con una connessione dinamica ad Analysis Services, le cartelle di lavoro Excel né i set di dati oltre 1 GB su capacità condivisa. Un set di dati che legge da un flusso di dati viene letto fino al flusso di dati: OneUptime non legge ancora quali tabelle carica un flusso di dati.
+
+Ogni tabella viene abbinata a una tabella monitorata per nome, schema e database, e un server per il suo nome breve o per quello completo. Una tabella di un altro motore non viene mai abbinata, e nemmeno una in un altro database: un report su `Sales.dbo.Orders` non viene collegato ad `Archive.dbo.Orders` perché è monitorato solo `Archive`.
+
+Gli [aggiornamenti](#visualizzazioni-e-aggiornamenti-in-power-bi) vengono letti a parte rispetto alle tabelle: un messaggio secondo cui gli aggiornamenti di alcuni set di dati non sono stati letti non dice nulla delle loro tabelle.
 
 ## Prima che una modifica venga unita
 
