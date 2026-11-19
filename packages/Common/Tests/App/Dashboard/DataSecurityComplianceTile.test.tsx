@@ -45,6 +45,7 @@ function framework(
     scope: "Personal data of people in the EU.",
     score: 57,
     storesInScope: 3,
+    storesTurnedOff: 0,
     requirements: [],
     ...data,
   };
