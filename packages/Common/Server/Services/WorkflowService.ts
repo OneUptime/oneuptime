@@ -1,10 +1,16 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
+import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import StandardWebhookSignature from "../Utils/Webhook/StandardWebhookSignature";
+import WorkflowRunAsAuthority, {
+  WorkflowRunAsAction,
+  WorkflowRunAsRole,
+} from "../Utils/Workflow/WorkflowRunAsAuthority";
 import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
@@ -34,6 +40,16 @@ import {
   WORKFLOW_GRAPH_REVISION_KEY,
   readWorkflowGraphRevision,
 } from "../../Types/Workflow/WorkflowGraphRevision";
+import {
+  WORKFLOW_RUN_AS_UNKNOWN_MESSAGE,
+  WorkflowRunAs,
+  WorkflowRunAsChoice,
+  findGlobalVariableReferences,
+  getWorkflowRunAsGlobalVariablesRefusedMessage,
+  readWorkflowRunAs,
+} from "../../Types/Workflow/WorkflowRunAs";
+import OneUptimeDate from "../../Types/Date";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import API from "../../Utils/API";
 import Model from "../../Models/DatabaseModels/Workflow";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -112,6 +128,382 @@ export class Service extends ProjectReferencesService<Model> {
 
   public static readonly GRAPH_CHANGED_WHILE_SAVING_PROBLEM: string =
     "The workflow changed while its graph was being saved, so this save was not made. Save it again.";
+
+  public static readonly RUN_AS_ONE_WORKFLOW_PROBLEM: string =
+    "Choose what one workflow runs as at a time.";
+
+  /*
+   * The trigger keys of a workflow, each the secret part of an address that
+   * starts it: whoever has one decides when it runs and with what. A
+   * workflow that runs as more than Default shows them only to who may
+   * change it (hideTriggerKeysOfRaisedWorkflows).
+   */
+  public static readonly TRIGGER_KEY_COLUMNS: ReadonlyArray<string> = [
+    "webhookSecretKey",
+    "incomingEmailSecretKey",
+  ];
+
+  /*
+   * A Run As as a write sends it, checked and tidied before anything else
+   * reads it (#9695): one of WorkflowRunAs - an empty one is Default - or
+   * refused in words that list them; the custom role kept only beside
+   * CustomRole, and named by its id alone. When the person and the time it
+   * was given are written is OneUptime's to say (giveRunAs): a value sent
+   * for either is dropped.
+   */
+  public static normalizeRunAsWrite(data: Record<string, unknown>): void {
+    delete data["runAsGivenAt"];
+    delete data["runAsCustomRole"];
+
+    if (data["runAs"] === undefined) {
+      return;
+    }
+
+    const runAs: WorkflowRunAs | null = readWorkflowRunAs(data["runAs"]);
+
+    if (runAs === null) {
+      throw new BadDataException(WORKFLOW_RUN_AS_UNKNOWN_MESSAGE);
+    }
+
+    data["runAs"] = runAs;
+
+    if (runAs !== WorkflowRunAs.CustomRole) {
+      data["runAsCustomRoleId"] = null;
+    }
+  }
+
+  /*
+   * Refuses a graph of a workflow that runs as `choice` - more than Default
+   * - that names the project's global variables: anyone who may edit
+   * workflow variables may change those, and with them what the workflow
+   * does. Its runs never read them (RunWorkflow), and this says so as the
+   * graph is saved, rather than as a run that went wrong.
+   */
+  public static assertNoGlobalVariables(data: {
+    choice: WorkflowRunAsChoice;
+    graph: unknown;
+  }): void {
+    if (data.choice.runAs === WorkflowRunAs.Default) {
+      return;
+    }
+
+    const names: Array<string> = findGlobalVariableReferences(
+      data.graph && typeof data.graph === "object"
+        ? (data.graph as JSONObject)
+        : null,
+    );
+
+    if (names.length > 0) {
+      throw new BadDataException(
+        getWorkflowRunAsGlobalVariablesRefusedMessage({
+          choice: data.choice,
+          variableNames: names,
+        }),
+      );
+    }
+  }
+
+  /*
+   * Records that the person making a write gives the workflows it writes
+   * their permissions (#9695): who, and when. A run of a raised workflow
+   * runs with that person's permissions, checked again as it starts
+   * (WorkflowRunAsAuthority.resolveForRun). Written as OneUptime, without
+   * hooks: nobody may write these columns, and the write that made the
+   * person the giver has passed every check already. A variable of a raised
+   * workflow saved by someone who holds its permissions makes them the
+   * giver the same way (WorkflowVariableService).
+   */
+  public async recordRunAsGiven(data: {
+    workflowIds: Array<ObjectID>;
+    userId: ObjectID;
+  }): Promise<void> {
+    for (const workflowId of data.workflowIds) {
+      await this.updateColumnsByIdWithoutHooks({
+        id: workflowId,
+        data: {
+          runAsGivenByUserId: data.userId,
+          runAsGivenAt: OneUptimeDate.getCurrentDate(),
+        } as any,
+        skipUpdateDateColumn: true,
+      });
+    }
+  }
+
+  // Of a write's columns, the ones its caller wrote: those anyone may update.
+  private getColumnsWrittenByCaller(
+    data: Record<string, unknown>,
+  ): Array<string> {
+    return Object.keys(data).filter((column: string): boolean => {
+      return Boolean(
+        this.getModel().getColumnAccessControlFor(column)?.update?.length,
+      );
+    });
+  }
+
+  /*
+   * WHO MAY CHANGE A WORKFLOW THAT RUNS AS MORE THAN DEFAULT, AND WHO MAY
+   * GIVE ONE ITS PERMISSIONS (#9695, Types/Workflow/WorkflowRunAs). Asked
+   * once the update has passed its permission checks, of the rows it writes
+   * (findRowsAndHoldUpdateToThem), so it is never asked about a row the
+   * caller cannot reach:
+   *
+   *   - A row that runs as more than Default is changed - its steps, its
+   *     Run As, its name, its labels, archived, turned on - only by a person
+   *     who could give it what it runs as now (WorkflowRunAsAuthority
+   *     .assertMayAct): anyone else who may edit it may only turn it off.
+   *   - A Run As written is given only by a person who could give it to a
+   *     team themselves (assertMayGive), one workflow at a time.
+   *   - A row that runs as more than Default once written names none of the
+   *     project's global variables (assertNoGlobalVariables).
+   *   - Whoever writes its Run As or its steps while it runs as more than
+   *     Default gives it their permissions: it runs with theirs from now on,
+   *     as long as they hold them. Setting it back to Default forgets who.
+   *
+   * OneUptime's own writes are its business.
+   */
+  private async holdRunAsToItsHolders(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps = updateBy.props;
+
+    if (props.isRoot) {
+      return;
+    }
+
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+    const written: Array<string> = this.getColumnsWrittenByCaller(data);
+
+    if (written.length === 0) {
+      return;
+    }
+
+    const sendsRunAs: boolean =
+      written.includes("runAs") || written.includes("runAsCustomRoleId");
+    const sendsGraph: boolean = written.includes("graph");
+    // Turning a workflow off stops what it does: anyone who may edit it may.
+    const turnsOffOnly: boolean =
+      written.every((column: string): boolean => {
+        return column === "isEnabled";
+      }) && data["isEnabled"] === false;
+
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+        ...(sendsRunAs ? { graph: true } : {}),
+      },
+    );
+
+    if (sendsRunAs && rows.length > 1) {
+      throw new BadDataException(Service.RUN_AS_ONE_WORKFLOW_PROBLEM);
+    }
+
+    let givesRunAs: boolean = false;
+
+    for (const row of rows) {
+      if (!row.projectId) {
+        continue;
+      }
+
+      if (!turnsOffOnly) {
+        await WorkflowRunAsAuthority.assertMayAct({
+          setting: { runAs: row.runAs, customRoleId: row.runAsCustomRoleId },
+          projectId: row.projectId,
+          props: props,
+          action: WorkflowRunAsAction.Change,
+        });
+      }
+
+      const next: { runAs: unknown; customRoleId: ObjectID | null } = {
+        runAs: data["runAs"] !== undefined ? data["runAs"] : row.runAs,
+        customRoleId:
+          data["runAsCustomRoleId"] !== undefined
+            ? (data["runAsCustomRoleId"] as ObjectID | null)
+            : row.runAsCustomRoleId || null,
+      };
+      const nextRunAs: WorkflowRunAs =
+        readWorkflowRunAs(next.runAs) || WorkflowRunAs.ProjectOwner;
+
+      if (nextRunAs !== WorkflowRunAs.CustomRole && sendsRunAs) {
+        data["runAsCustomRoleId"] = null;
+      }
+
+      let role: WorkflowRunAsRole | null = null;
+
+      if (sendsRunAs) {
+        role = await WorkflowRunAsAuthority.assertMayGive({
+          setting: next,
+          projectId: row.projectId,
+          props: props,
+        });
+      }
+
+      if (nextRunAs === WorkflowRunAs.Default || (!sendsRunAs && !sendsGraph)) {
+        continue;
+      }
+
+      Service.assertNoGlobalVariables({
+        choice: { runAs: nextRunAs, customRoleName: role?.name },
+        graph: sendsGraph ? data["graph"] : row.graph,
+      });
+
+      givesRunAs = true;
+    }
+
+    if (givesRunAs && props.userId) {
+      data["runAsGivenByUserId"] = props.userId;
+      data["runAsGivenAt"] = OneUptimeDate.getCurrentDate();
+      return;
+    }
+
+    if (
+      sendsRunAs &&
+      readWorkflowRunAs(data["runAs"] ?? rows[0]?.runAs) ===
+        WorkflowRunAs.Default
+    ) {
+      data["runAsGivenByUserId"] = null;
+      data["runAsGivenAt"] = null;
+    }
+  }
+
+  /*
+   * A workflow created to run as more than Default (#9695) - from the API,
+   * an import or a copy - is given its permissions by the person creating
+   * it, held to what they could give a team themselves, and names none of
+   * the project's global variables. OneUptime's own creates are its
+   * business.
+   */
+  private async giveRunAsOnCreate(createBy: CreateBy<Model>): Promise<void> {
+    if (createBy.props.isRoot) {
+      return;
+    }
+
+    const data: Model = createBy.data;
+    const runAs: WorkflowRunAs =
+      readWorkflowRunAs(data.runAs) || WorkflowRunAs.ProjectOwner;
+
+    if (runAs === WorkflowRunAs.Default) {
+      return;
+    }
+
+    const projectId: ObjectID | undefined =
+      data.projectId || createBy.props.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException(
+        "This workflow does not belong to a project, so it can't run with a project's permissions.",
+      );
+    }
+
+    const role: WorkflowRunAsRole | null =
+      await WorkflowRunAsAuthority.assertMayGive({
+        setting: { runAs: runAs, customRoleId: data.runAsCustomRoleId },
+        projectId: projectId,
+        props: createBy.props,
+      });
+
+    Service.assertNoGlobalVariables({
+      choice: { runAs: runAs, customRoleName: role?.name },
+      graph: data.graph,
+    });
+
+    data.runAsGivenByUserId = createBy.props.userId!;
+    data.runAsGivenAt = OneUptimeDate.getCurrentDate();
+  }
+
+  /*
+   * The trigger keys of the workflows a read found are shown, for a
+   * workflow that runs as more than Default, only to who may change it
+   * (#9695): with a key, anyone can start the workflow, with a payload of
+   * their own, and its steps act with its permissions. Anyone else who may
+   * read the columns - its editors, in a project where they hold less - gets
+   * the workflow without them. OneUptime's own reads see everything.
+   */
+  private async hideTriggerKeysOfRaisedWorkflows(data: {
+    items: Array<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.props.isRoot) {
+      return;
+    }
+
+    const withKeys: Array<Model> = data.items.filter((item: Model): boolean => {
+      return Service.TRIGGER_KEY_COLUMNS.some((column: string): boolean => {
+        return (
+          (item as unknown as Record<string, unknown>)[column] !== undefined
+        );
+      });
+    });
+
+    if (withKeys.length === 0) {
+      return;
+    }
+
+    // What each one runs as, read as OneUptime: the read may not have asked.
+    const settings: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(
+          withKeys
+            .map((item: Model): ObjectID | null => {
+              return item.id;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return Boolean(id);
+            }),
+        ),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const item of withKeys) {
+      const setting: Model | undefined = settings.find(
+        (candidate: Model): boolean => {
+          return candidate.id?.toString() === item.id?.toString();
+        },
+      );
+
+      if (
+        !setting?.projectId ||
+        readWorkflowRunAs(setting.runAs) === WorkflowRunAs.Default
+      ) {
+        continue;
+      }
+
+      const mayChange: boolean = await WorkflowRunAsAuthority.mayAct({
+        setting: {
+          runAs: setting.runAs,
+          customRoleId: setting.runAsCustomRoleId,
+        },
+        projectId: setting.projectId,
+        props: data.props,
+        action: WorkflowRunAsAction.Change,
+      });
+
+      if (mayChange) {
+        continue;
+      }
+
+      for (const column of Service.TRIGGER_KEY_COLUMNS) {
+        delete (item as unknown as Record<string, unknown>)[column];
+      }
+    }
+  }
 
   /*
    * Why a save made to an older graph was refused, for whoever sent it: the
@@ -218,6 +610,9 @@ export class Service extends ProjectReferencesService<Model> {
     // Counted by the server as the graph is saved, never sent.
     delete data.graphRevision;
 
+    // One of WorkflowRunAs, the role only beside CustomRole (#9695).
+    Service.normalizeRunAsWrite(data as unknown as Record<string, unknown>);
+
     return { createBy: createBy, carryForward: null };
   }
 
@@ -236,6 +631,13 @@ export class Service extends ProjectReferencesService<Model> {
     const data: Model = onCreate.createBy.data;
 
     data.isWebhookSigningSecretSet = Boolean(data.webhookSigningSecret);
+
+    /*
+     * Run As more than Default: given by a person who holds it, and they
+     * are recorded as having given it - after the caller's column checks,
+     * as nobody may write who gave it (#9695).
+     */
+    await this.giveRunAsOnCreate(onCreate.createBy);
   }
 
   /*
@@ -277,6 +679,9 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     delete data["graphRevision"];
+
+    // One of WorkflowRunAs, the role only beside CustomRole (#9695).
+    Service.normalizeRunAsWrite(data);
 
     let signingSecretSaved: boolean = false;
 
@@ -340,6 +745,13 @@ export class Service extends ProjectReferencesService<Model> {
       string,
       unknown
     >;
+
+    /*
+     * A workflow that runs as more than Default is changed only by who holds
+     * what it runs as, and given it only by them (#9695). Asked first: a
+     * refused change records nothing, not even a version.
+     */
+    await this.holdRunAsToItsHolders(updateBy);
 
     if (data["webhookSigningSecret"]) {
       data["isWebhookSigningSecretSet"] = true;
@@ -786,6 +1198,63 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /*
+   * A workflow that runs as more than Default is deleted only by who holds
+   * what it runs as (#9695), as it is changed only by them: the rows the
+   * delete removes are read as findRowsAndHoldDeleteToThem reads them, so
+   * it never removes one this did not see. OneUptime's own deletes are its
+   * business.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const onDelete: OnDelete<Model> = await super.onBeforeDelete(deleteBy);
+
+    if (deleteBy.props.isRoot) {
+      return onDelete;
+    }
+
+    const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+      },
+    );
+
+    for (const row of rows) {
+      if (!row.projectId) {
+        continue;
+      }
+
+      await WorkflowRunAsAuthority.assertMayAct({
+        setting: { runAs: row.runAs, customRoleId: row.runAsCustomRoleId },
+        projectId: row.projectId,
+        props: deleteBy.props,
+        action: WorkflowRunAsAction.Change,
+      });
+    }
+
+    return onDelete;
+  }
+
+  // A raised workflow's trigger keys, only to who may change it (#9695).
+  @CaptureSpan()
+  protected override async onFindSuccess(
+    onFind: OnFind<Model>,
+    items: Array<Model>,
+  ): Promise<OnFind<Model>> {
+    await this.hideTriggerKeysOfRaisedWorkflows({
+      items: items,
+      props: onFind.findBy.props,
+    });
+
+    return { ...onFind, carryForward: items };
   }
 
   /*

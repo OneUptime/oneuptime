@@ -241,6 +241,7 @@ export default class OnTriggerBaseModel<
         error: err,
         message: (err as Error)?.message || String(err),
         stepTitle: this.getMetadata().title,
+        runAs: options.runAs,
       });
 
       // The run logs what the trigger throws, so the refusal is said once.

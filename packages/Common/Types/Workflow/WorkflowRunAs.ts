@@ -231,11 +231,26 @@ export const getWorkflowRunAsGiverGoneMessage: (
   return `This workflow didn't run: it runs as ${describeWorkflowRunAs(choice)}, and the person who gave it those permissions is no longer in this project. ${giveAgain(choice)}`;
 };
 
-// The person who gave them no longer holds them, or left the project.
+// The person who gave them is no longer a member of the project.
+export const getWorkflowRunAsGiverLeftMessage: (data: {
+  choice: WorkflowRunAsChoice;
+  giverName: string;
+}) => string = (data: {
+  choice: WorkflowRunAsChoice;
+  giverName: string;
+}): string => {
+  return `This workflow didn't run: it runs as ${describeWorkflowRunAs(data.choice)}, which ${data.giverName} gave it, and ${data.giverName} is no longer in this project. ${giveAgain(data.choice)}`;
+};
+
+/*
+ * The person who gave them could not give them now: they lost the
+ * permission, the custom role holds one they don't, or their account is
+ * turned off.
+ */
 export const getWorkflowRunAsGiverLostMessage: (data: {
   choice: WorkflowRunAsChoice;
   giverName: string;
-  // Why, when it is known: the permission they no longer hold, by its title.
+  // The permission their own access lacks, by its title; none for a turned-off account.
   missingPermissionTitle?: string | undefined;
 }) => string = (data: {
   choice: WorkflowRunAsChoice;
@@ -243,11 +258,18 @@ export const getWorkflowRunAsGiverLostMessage: (data: {
   missingPermissionTitle?: string | undefined;
 }): string => {
   const what: string = describeWorkflowRunAs(data.choice);
-  const lost: string = data.missingPermissionTitle
-    ? `${data.giverName} no longer has ${data.missingPermissionTitle} in this project`
-    : `${data.giverName} no longer has these permissions in this project`;
+  const name: string = data.giverName;
 
-  return `This workflow didn't run: it runs as ${what}, which ${data.giverName} gave it, and ${lost}. ${giveAgain(data.choice)}`;
+  let why: string = `${name}'s account is turned off`;
+
+  if (data.missingPermissionTitle) {
+    why =
+      data.choice.runAs === WorkflowRunAs.CustomRole
+        ? `${name} can't give that role any more: it has ${data.missingPermissionTitle}, which ${name}'s own access doesn't include`
+        : `${name} is no longer a Project Owner of this project`;
+  }
+
+  return `This workflow didn't run: it runs as ${what}, which ${name} gave it, and ${why}. ${giveAgain(data.choice)}`;
 };
 
 // The custom role it runs as was deleted.

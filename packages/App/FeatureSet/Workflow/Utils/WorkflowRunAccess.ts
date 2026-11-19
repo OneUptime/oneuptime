@@ -1,6 +1,9 @@
 import CommonAPI from "Common/Server/API/CommonAPI";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
+import WorkflowRunAsAuthority, {
+  WorkflowRunAsAction,
+} from "Common/Server/Utils/Workflow/WorkflowRunAsAuthority";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PropsHoldingOnly from "Common/Server/Utils/Permission/PropsHoldingOnly";
@@ -64,6 +67,8 @@ export default class WorkflowRunAccess {
 
     await WorkflowRunAccess.assertInProject(data);
 
+    await WorkflowRunAccess.assertHoldsWhatItRunsAs(data);
+
     if (data.databaseProps.isMasterAdmin) {
       return;
     }
@@ -99,6 +104,8 @@ export default class WorkflowRunAccess {
 
     await WorkflowRunAccess.assertInProject(data);
 
+    await WorkflowRunAccess.assertHoldsWhatItRunsAs(data);
+
     if (data.databaseProps.isMasterAdmin) {
       return;
     }
@@ -106,6 +113,44 @@ export default class WorkflowRunAccess {
     if (!(await WorkflowRunAccess.mayChange(data))) {
       throw new NotAuthorizedException(WORKFLOW_STEP_RUN_REFUSED_MESSAGE);
     }
+  }
+
+  /*
+   * A WORKFLOW THAT RUNS AS MORE THAN DEFAULT (#9695) is run by hand - the
+   * whole of it, one step of it, or again - only by a person who holds what
+   * it runs as (WorkflowRunAsAuthority.assertMayAct): a run by hand decides
+   * what the workflow starts with, and its steps act with the workflow's
+   * permissions, so a Workflow Member, an editor, or a master admin who
+   * holds less in the project may not. Asked once the workflow is known to
+   * be the project's, so nothing is said of another project's.
+   */
+  private static async assertHoldsWhatItRunsAs(
+    data: WorkflowRunRequest,
+  ): Promise<void> {
+    const workflow: Workflow | null = await WorkflowService.findOneById({
+      id: data.workflowId,
+      select: {
+        runAs: true,
+        runAsCustomRoleId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!workflow) {
+      return;
+    }
+
+    await WorkflowRunAsAuthority.assertMayAct({
+      setting: {
+        runAs: workflow.runAs,
+        customRoleId: workflow.runAsCustomRoleId,
+      },
+      projectId: data.projectId,
+      props: data.databaseProps,
+      action: WorkflowRunAsAction.Run,
+    });
   }
 
   /*
