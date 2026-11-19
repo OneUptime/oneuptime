@@ -2536,11 +2536,21 @@ describe("Architecture, against the compose file and the chart", () => {
     ).toContain("defaultValue: true");
     expect(items[2]).toContain(`“${label}” ticked, as it is at first`);
 
-    // With the daily check-in off, the form offers no box and nothing is sent.
+    /*
+     * With the daily check-in off, the form offers no box and nothing is
+     * sent. Sign-up makes the call in one place for every account it makes
+     * or claims (registerSelfHostedDeploymentIfAsked, #9816).
+     */
+    const registration: string = textBetween(
+      readSource("signUpApi"),
+      "const registerSelfHostedDeploymentIfAsked",
+      "POST /forgot-password",
+    );
+
     expect(
       textBetween(
-        readSource("signUpApi"),
-        "if (\n          !IsBillingEnabled &&",
+        registration,
+        "if (\n      !IsBillingEnabled &&",
         'miscDataProps["notifySelfHosted"] === true',
       ),
     ).toContain("!DisableInstanceCheckIn &&");
@@ -2549,8 +2559,8 @@ describe("Architecture, against the compose file and the chart", () => {
     );
 
     const call: string = textBetween(
-      readSource("signUpApi"),
-      'miscDataProps["notifySelfHosted"] === true\n        ) {',
+      registration,
+      'miscDataProps["notifySelfHosted"] === true\n    ) {',
       "});",
     );
 

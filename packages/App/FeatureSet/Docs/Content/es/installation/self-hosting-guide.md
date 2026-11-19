@@ -114,7 +114,7 @@ Haz clic en **Configurar el correo electrónico**. Abre **Ajustes > Notificacion
 
 ### Elegir quién puede registrarse
 
-Cualquiera que pueda abrir tu dirección puede registrarse. Cuando tu equipo tenga sus cuentas, desactiva **Permitir el registro** en **Ajustes > Autenticación**: quien invites a un proyecto podrá unirse igualmente. Para dejar los registros abiertos, haz clic en **Mantener abiertos los registros**.
+Cualquiera que pueda abrir tu dirección puede registrarse. Cuando tu servidor pueda enviar correo, una cuenta nueva abre el enlace que OneUptime le envía antes de poder iniciar sesión, y a una dirección que ya tiene una cuenta se le dice por correo. Cuando tu equipo tenga sus cuentas, desactiva **Permitir el registro** en **Ajustes > Autenticación**: quien invites a un proyecto podrá unirse igualmente. Para dejar los registros abiertos, haz clic en **Mantener abiertos los registros**.
 
 **Ha funcionado cuando** la lista marca los registros como hechos.
 

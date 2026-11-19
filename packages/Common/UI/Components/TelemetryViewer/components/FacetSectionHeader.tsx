@@ -7,7 +7,6 @@ import { FacetHelp } from "../FacetHelp";
 import FacetHelpButton from "./FacetHelpButton";
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import DefinedTerm from "../../Glossary/LazyDefinedTerm";
-import DefinitionsDrawnAfter from "../../Glossary/DefinitionsDrawnAfter";
 
 export interface FacetSectionHeaderProps {
   /*
@@ -98,19 +97,19 @@ const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
    * A defined title is a button of its own (DefinedTerm), and a button
    * cannot hold another: the title then sits beside the fold button, above
    * its cover, as the (i) does, and names the fold button. Its definition
-   * is drawn after the title (DefinitionsDrawnAfter), not inside it, where
-   * the small capitals and the cut-off line would take it too. A button
-   * resets the case it is given, so the word is put in capitals itself.
+   * is drawn on the page's body (DefinedTerm), not inside the title, where
+   * the small capitals and the cut-off line would take it too - nor inside
+   * the facets' narrow scrolling list, which cut off its end (#9863). A
+   * button resets the case it is given, so the word is put in capitals
+   * itself.
    */
   const definedTitle: ReactElement | null = props.titleGlossaryTerm ? (
-    <DefinitionsDrawnAfter>
-      <span
-        className="relative z-10 min-w-0 truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500 [&_button]:uppercase"
-        data-testid="facet-section-defined-title"
-      >
-        <DefinedTerm term={props.titleGlossaryTerm}>{title}</DefinedTerm>
-      </span>
-    </DefinitionsDrawnAfter>
+    <span
+      className="relative z-10 min-w-0 truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500 [&_button]:uppercase"
+      data-testid="facet-section-defined-title"
+    >
+      <DefinedTerm term={props.titleGlossaryTerm}>{title}</DefinedTerm>
+    </span>
   ) : null;
 
   if (props.help || definedTitle) {

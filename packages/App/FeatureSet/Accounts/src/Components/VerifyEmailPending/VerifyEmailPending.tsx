@@ -13,16 +13,21 @@ import React, { ReactElement, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
- * The screen a hosted signup lands on: the account exists, no session was
- * started, and nothing more happens until the link in the welcome email is
- * opened.
+ * "Check your email to finish signing up": the screen every sign-up lands on
+ * wherever the server proves addresses by email (OneUptime Cloud, and a
+ * self-hosted server that can send email). No session was started, and the
+ * screen is the same whatever the address: the server answered every one
+ * alike, and says in the email what happened (#9816) - a new account's
+ * welcome, an account holder's "you already have an account", or an
+ * invitation's link. So nothing here claims which: it says an email went,
+ * and how to get it opened.
  *
  * Everything here is about getting that one email opened -- the address it
  * went to (so a typo is noticed now, not after a day of waiting), a shortcut
- * to the inbox for the big webmail services, and a way to get another link
+ * to the inbox for the big webmail services, and a way to get it again
  * that does not involve signing in. The resend button is only offered when
- * /signup handed back a resend token; without one, the old advice stands:
- * signing in with the email and password sends a new link.
+ * /signup handed back a resend token; without one, signing up again sends
+ * it again.
  */
 
 export interface ComponentProps {

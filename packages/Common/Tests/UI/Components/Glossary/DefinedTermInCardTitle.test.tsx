@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -26,7 +27,6 @@ import DefinedTerm, {
   DEFINED_TERM_READ_MORE_TEST_ID,
   DEFINED_TERM_TEST_ID,
 } from "../../../../UI/Components/Glossary/DefinedTerm";
-import DefinitionsDrawnAfter from "../../../../UI/Components/Glossary/DefinitionsDrawnAfter";
 import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
 import { PRODUCT_TEXT_CLASS_NAME } from "../../../../UI/Utils/ProductText";
 
@@ -38,9 +38,11 @@ import { PRODUCT_TEXT_CLASS_NAME } from "../../../../UI/Utils/ProductText";
  * drew its definition beside its word, inside the heading, and the
  * definition is a dialog named by its word: while it showed, Chromium named
  * the Criteria card's heading "Criteria Criteria", and a screen reader's
- * list of headings read it so. The definition is drawn right after the
- * heading now (Glossary/DefinitionsDrawnAfter), and Tab still goes from the
- * word to Read more, then on to what follows the heading.
+ * list of headings read it so. The definition is drawn on the page's body
+ * now, as every tooltip is (TooltipLayer), never inside the heading - nor
+ * inside a box that clips around it (#9863) - and Tab still goes from the
+ * word to Read more, then on from the word to what follows the heading
+ * (keepTabOrder).
  *
  * jsdom's names (testing-library's) never doubled, so these read what the
  * heading holds: with the definition open, its words are its title's, and
@@ -115,6 +117,16 @@ const cardHeading: () => HTMLElement = (): HTMLElement => {
   return screen.getByTestId("card-details-heading");
 };
 
+// Whether an open definition is drawn on the page's body (Tippy's root).
+const isOnTheBody: (open: HTMLElement) => boolean = (
+  open: HTMLElement,
+): boolean => {
+  return (
+    open.closest<HTMLElement>("[data-tippy-root]")?.parentElement ===
+    document.body
+  );
+};
+
 // The words inside a heading - what names it - as one line.
 const wordsIn: (element: HTMLElement) => string = (
   element: HTMLElement,
@@ -147,8 +159,8 @@ describe("with its definition open, a card's heading holds its title alone", () 
 
     expect(wordsIn(cardHeading())).toBe("Criteria");
     expect(cardHeading()).not.toContainElement(open);
-    // Right after the heading, before what follows it.
-    expect(cardHeading().nextElementSibling).toContainElement(open);
+    // On the page's body, where nothing the card is in can cut it off.
+    expect(isOnTheBody(open)).toBe(true);
     expect(screen.getByRole("heading", { name: "Criteria" })).toBe(
       cardHeading(),
     );
@@ -175,20 +187,18 @@ describe("with its definition open, a card's heading holds its title alone", () 
     expect(closed).toBe("Owners 2");
     expect(wordsIn(cardHeading())).toBe(closed);
     expect(cardHeading()).not.toContainElement(open);
-    expect(cardHeading().nextElementSibling).toContainElement(open);
+    expect(isOnTheBody(open)).toBe(true);
   });
 
-  test("a heading a page draws itself, through DefinitionsDrawnAfter", async () => {
+  test("a heading a page draws itself (Escalation Rules, Rotation layers)", async () => {
     answerGlossaryReads();
     render(
-      <div>
-        <DefinitionsDrawnAfter>
-          <h2>
-            <DefinedTerm term={GlossaryTerm.EscalationRule}>
-              Escalation Rules
-            </DefinedTerm>
-          </h2>
-        </DefinitionsDrawnAfter>
+      <div data-testid="section" style={{ overflow: "hidden" }}>
+        <h2>
+          <DefinedTerm term={GlossaryTerm.EscalationRule}>
+            Escalation Rules
+          </DefinedTerm>
+        </h2>
         <p>Who gets notified when an incident is triggered.</p>
       </div>,
     );
@@ -198,19 +208,38 @@ describe("with its definition open, a card's heading holds its title alone", () 
 
     expect(wordsIn(heading)).toBe("Escalation Rules");
     expect(heading).not.toContainElement(open);
-    expect(heading.nextElementSibling).toContainElement(open);
+    // Not cut off by the box that holds the heading either.
+    expect(screen.getByTestId("section")).not.toContainElement(open);
+    expect(isOnTheBody(open)).toBe(true);
   });
 
-  test("a heading with no defined term in it is drawn as it was: nothing comes between it and its description", () => {
+  test("nothing comes between a heading and its description, with or without a defined term open", async () => {
+    answerGlossaryReads();
     render(
-      <Card title="Monitor Target" description="What to check.">
-        <div>The target.</div>
-      </Card>,
+      <div>
+        <Card title="Monitor Target" description="What to check.">
+          <div>The target.</div>
+        </Card>
+        <Card
+          title="Criteria"
+          titleGlossaryTerm={GlossaryTerm.Criteria}
+          description="When this monitor changes status."
+        >
+          <div>The criteria.</div>
+        </Card>
+      </div>,
     );
 
-    expect(cardHeading().nextElementSibling).toBe(
-      screen.getByTestId("card-description"),
-    );
+    const [plain, defined] = screen.getAllByTestId("card-details-heading");
+    const [plainDescription, definedDescription] =
+      screen.getAllByTestId("card-description");
+
+    expect(plain!.nextElementSibling).toBe(plainDescription);
+    expect(defined!.nextElementSibling).toBe(definedDescription);
+
+    await openDefinition("Criteria");
+
+    expect(defined!.nextElementSibling).toBe(definedDescription);
   });
 });
 
@@ -225,20 +254,63 @@ const tabStops: () => Array<HTMLElement> = (): Array<HTMLElement> => {
   });
 };
 
+// Tab, as the keyboard sends it; true when the browser's own move is left to it.
+const pressTab: () => boolean = (): boolean => {
+  return fireEvent.keyDown(document.activeElement || document.body, {
+    key: "Tab",
+    code: "Tab",
+  });
+};
+
 describe("with its definition open, Tab goes from the word to Read more", () => {
-  test("then on to what follows the heading: the card's Learn more", async () => {
+  test("then on from the word to what follows the heading: the card's Learn more", async () => {
     answerGlossaryReads();
     renderCriteriaCard();
 
-    const open: HTMLElement = await openDefinition("Criteria");
-    const stops: Array<HTMLElement> = tabStops();
-    const at: number = stops.indexOf(screen.getByTestId(DEFINED_TERM_TEST_ID));
+    const word: HTMLElement = screen.getByTestId(DEFINED_TERM_TEST_ID);
+
+    // The keyboard's focus shows the definition.
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    act(() => {
+      word.focus();
+    });
+
+    const open: HTMLElement = await waitFor((): HTMLElement => {
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Criteria",
+      });
+      expect(dialog).toHaveAttribute("data-state", "visible");
+      return dialog;
+    });
+
+    // Tab on the word: Read more, on the body, as if it sat after the word.
+    expect(pressTab()).toBe(false);
+    expect(
+      within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
+    ).toHaveFocus();
+
+    // Past the definition's last: back to the word, the browser's move left to it...
+    let isLeftToTheBrowser: boolean = false;
+
+    for (let press: number = 0; press < 5 && !isLeftToTheBrowser; press++) {
+      isLeftToTheBrowser = pressTab();
+    }
+
+    expect(isLeftToTheBrowser).toBe(true);
+    expect(word).toHaveFocus();
+
+    // ...and the next stop after the word is the card's Learn more.
+    const stops: Array<HTMLElement> = tabStops().filter(
+      (stop: HTMLElement): boolean => {
+        return !stop.closest("[data-tippy-root]");
+      },
+    );
+    const at: number = stops.indexOf(word);
 
     expect(at).toBeGreaterThanOrEqual(0);
-    expect(stops.slice(at + 1, at + 3)).toEqual([
-      within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
+    expect(stops[at + 1]).toBe(
       screen.getByRole("link", { name: "Learn more" }),
-    ]);
+    );
   });
 });
 
@@ -246,11 +318,11 @@ describe("with its definition open, Tab goes from the word to Read more", () => 
  * A recording of the first-run pages records the product's own words as
  * written (Utils/ProductText), Create Monitor's among them. A title in words
  * is marked, and its definition was recorded with it while drawn inside the
- * heading. Drawn after the heading, it still is: the popover carries the
+ * heading. Drawn on the page's body, it still is: the popover carries the
  * mark itself (DefinedTerm.test.tsx).
  */
 describe("in a recording of the page", () => {
-  test("the definition, drawn after the heading, is recorded as written, as the heading is", async () => {
+  test("the definition, drawn on the body, is recorded as written, as the heading is", async () => {
     answerGlossaryReads();
     renderCriteriaCard();
 

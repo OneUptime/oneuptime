@@ -229,9 +229,21 @@ async function renderDetail(detail: DetailCase): Promise<void> {
   await screen.findByText(TITLE);
 }
 
+/*
+ * Reads of the record itself. Its labels are read from the same endpoint in
+ * a request of their own (components/RecordOwnersAndLabels), which is not a
+ * read of the record's detail and is not counted.
+ */
 function requestCount(endpoint: string): number {
   return postMock.mock.calls.filter((args: unknown[]) => {
-    return String(args[0]).split("/")[2] === endpoint;
+    const select: unknown = (args[1] as { select?: unknown } | undefined)
+      ?.select;
+    const readsOnlyLabels: boolean =
+      Boolean(select) &&
+      typeof select === "object" &&
+      "labels" in (select as Record<string, unknown>) &&
+      !("title" in (select as Record<string, unknown>));
+    return String(args[0]).split("/")[2] === endpoint && !readsOnlyLabels;
   }).length;
 }
 

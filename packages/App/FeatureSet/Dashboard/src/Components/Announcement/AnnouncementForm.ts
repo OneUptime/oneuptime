@@ -5,6 +5,11 @@ import {
   isMaintenanceWindowInOrder,
   toMaintenanceDate,
 } from "Common/Types/ScheduledMaintenance/MaintenanceWindow";
+import AnnouncementReach, {
+  AnnouncementNothingSentReason,
+  AnnouncementReachResult,
+} from "Common/Types/StatusPage/AnnouncementReach";
+import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
@@ -18,6 +23,7 @@ import {
   getCreateFromRecordDefinition,
   getCreateFromRecordQuery,
   readCreateFromRecordId,
+  readRecordIds,
 } from "../CreateFromRecord/CreateFromRecord";
 
 export { readRecordIds } from "../CreateFromRecord/CreateFromRecord";
@@ -45,7 +51,8 @@ export { readRecordIds } from "../CreateFromRecord/CreateFromRecord";
  *   2. Status Pages - where it shows: the status pages, the monitors it is
  *      about (optional), and Schedule & Notifications folded to the one
  *      line that says what happens ("Shows now and stays until you end it.
- *      Subscribers are notified when it starts showing.").
+ *      Subscribers are notified when it starts showing.") - what is true
+ *      for the status pages picked (see THE STATUS PAGES PICKED below).
  *
  * and the review step after them. From a status page that page is already
  * picked (?statusPageId=, ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM), so a title
@@ -214,6 +221,82 @@ export const ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY: string = translationKey(
 export const ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY: string =
   translationKey("Subscribers are not notified.");
 
+/*
+ * THE STATUS PAGES PICKED (#9775).
+ *
+ * Whether the announcement shows, and whether anyone is told, is not the
+ * schedule's or the switch's alone: a status page shows announcements only
+ * while Show Announcements is on, and the announcement job tells a page's
+ * subscribers only while Send Notifications to Subscribers is on
+ * (Common/Types/StatusPage/AnnouncementReach, worked out by the server from
+ * the pages picked). The line said "Shows now and stays until you end it.
+ * Subscribers are notified when it starts showing." whatever pages were
+ * picked. Now, once the server has said what is true for them:
+ *
+ *   - a page picked shows announcements and sends notifications: the
+ *     schedule, then "Subscribers are notified when it starts showing.";
+ *   - the pages that show announcements send nothing: the schedule, then
+ *     why nobody is told (ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY);
+ *   - none of them shows announcements: why it shows nowhere
+ *     (ANNOUNCEMENT_NOT_SHOWN), in place of a schedule that would never
+ *     show it, then that nobody is told;
+ *   - no page picked yet, or not known yet, or not answered: the schedule,
+ *     and no promise that anyone is told.
+ *
+ * Switched off, "Subscribers are not notified." is true whatever the pages,
+ * and is said. The sentences say what a public note's composer says of an
+ * event's pages (#9735), of the pages picked here: "picked", since these
+ * are pages someone chose on the form.
+ */
+export const ANNOUNCEMENT_NOT_SHOWN: string = translationKey(
+  "None of the status pages picked shows announcements.",
+);
+
+export const ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY: string = translationKey(
+  "The status pages picked do not send notifications to their subscribers.",
+);
+
+// Why nobody is told about the announcement, for the server's reason.
+export const ANNOUNCEMENT_NOTHING_SENT: Record<
+  AnnouncementNothingSentReason,
+  string
+> = {
+  [PublicNoteNothingSentReason.NoStatusPages]: ANNOUNCEMENT_NOT_SHOWN,
+  [PublicNoteNothingSentReason.NotificationsOff]:
+    ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+};
+
+/*
+ * What the server is asked about the pages picked on the form: their ids,
+ * and on the announcement's Edit its own id - or null while none is picked,
+ * when there is nothing to ask (the picker itself asks for one).
+ */
+export interface AnnouncementReachQuestion {
+  statusPageIds: Array<string>;
+  announcementId: string | null;
+}
+
+export const getAnnouncementReachQuestion: (data: {
+  values: unknown;
+  announcementId?: ObjectID | string | null | undefined;
+}) => AnnouncementReachQuestion | null = (data: {
+  values: unknown;
+  announcementId?: ObjectID | string | null | undefined;
+}): AnnouncementReachQuestion | null => {
+  const statusPageIds: Array<string> = readRecordIds(
+    readRecord(data.values)["statusPages"],
+  );
+
+  if (statusPageIds.length === 0) {
+    return null;
+  }
+
+  return {
+    statusPageIds: statusPageIds,
+    announcementId: data.announcementId ? data.announcementId.toString() : null,
+  };
+};
+
 const readRecord: (values: unknown) => Record<string, unknown> = (
   values: unknown,
 ): Record<string, unknown> => {
@@ -278,42 +361,174 @@ export const getAnnouncementScheduleSummary: (
 };
 
 /*
- * The sentence about who is told, on Create. A switch nobody has set is
- * on: that is the column's default, and what the server stores for it.
+ * Whether the server has said that none of the status pages picked shows
+ * announcements - so the announcement shows nowhere. Not while none is
+ * picked: the picker asks for one, and nothing has been asked.
  */
-export const getAnnouncementNotificationSummary: (values: unknown) => string = (
+const isShownNowhere: (
   values: unknown,
-): string => {
-  return readRecord(values)[ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY] === false
-    ? ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY
-    : ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY;
+  reach: AnnouncementReachResult | null | undefined,
+) => boolean = (
+  values: unknown,
+  reach: AnnouncementReachResult | null | undefined,
+): boolean => {
+  return Boolean(
+    reach &&
+      getAnnouncementReachQuestion({ values: values }) &&
+      !AnnouncementReach.isShownOnAStatusPage(reach),
+  );
+};
+
+/*
+ * The sentence about who is told, on Create, or null for none. A switch
+ * nobody has set is on: that is the column's default, and what the server
+ * stores for it. Switched on, it promises only what the server has said of
+ * the pages picked (`reach`, the answer for them; null while it is not
+ * known): told, or why not - and nothing while no page is picked or
+ * nothing is known.
+ */
+export const getAnnouncementNotificationSummary: (
+  values: unknown,
+  reach?: AnnouncementReachResult | null | undefined,
+) => string | null = (
+  values: unknown,
+  reach?: AnnouncementReachResult | null | undefined,
+): string | null => {
+  if (readRecord(values)[ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY] === false) {
+    return ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY;
+  }
+
+  if (!reach || !getAnnouncementReachQuestion({ values: values })) {
+    return null;
+  }
+
+  if (!reach.nothingSentReason) {
+    return ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY;
+  }
+
+  // Shown nowhere, the line says why first: nobody is told.
+  if (!AnnouncementReach.isShownOnAStatusPage(reach)) {
+    return ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY;
+  }
+
+  return ANNOUNCEMENT_NOTHING_SENT[reach.nothingSentReason];
 };
 
 /*
  * The line the folded section shows, and the review step reviews it by:
- * when it shows, then (on Create) who is told. Sentences without a value
- * are English translation keys, looked up where they are drawn; those with
- * a time are filled in already, in the reader's language.
+ * when it shows, then (on Create) who is told - or, when the server has
+ * said that none of the pages picked shows announcements, that in place of
+ * when (see THE STATUS PAGES PICKED). Sentences without a value are English
+ * translation keys, looked up where they are drawn; those with a time are
+ * filled in already, in the reader's language.
  */
 export const getAnnouncementScheduleSectionSummary: (
   values: unknown,
   kind: AnnouncementFormKind,
+  reach?: AnnouncementReachResult | null | undefined,
 ) => Array<string> = (
   values: unknown,
   kind: AnnouncementFormKind,
+  reach?: AnnouncementReachResult | null | undefined,
 ): Array<string> => {
   const sentences: Array<string> = [];
-  const schedule: string | null = getAnnouncementScheduleSummary(values);
 
-  if (schedule) {
-    sentences.push(schedule);
+  if (isShownNowhere(values, reach)) {
+    sentences.push(ANNOUNCEMENT_NOT_SHOWN);
+  } else {
+    const schedule: string | null = getAnnouncementScheduleSummary(values);
+
+    if (schedule) {
+      sentences.push(schedule);
+    }
   }
 
   if (kind === AnnouncementFormKind.Create) {
-    sentences.push(getAnnouncementNotificationSummary(values));
+    const notification: string | null = getAnnouncementNotificationSummary(
+      values,
+      reach,
+    );
+
+    if (notification) {
+      sentences.push(notification);
+    }
   }
 
   return sentences;
+};
+
+/*
+ * What a notify box says under it, beside its own description, while it
+ * is ticked and the server has said nobody would be told: why - the pages
+ * picked show no announcements, or send nothing. Null otherwise: ticked
+ * with a page that tells its subscribers, unticked, or not known. Create's
+ * Notify Status Page Subscribers and the Edit's Notify subscribers about
+ * this update say it alike: the job sends both to the same pages.
+ */
+export const getAnnouncementNotifyBoxReason: (data: {
+  values: unknown;
+  // The box's own value in the form: its column, or the Edit's misc key.
+  fieldKey: string;
+  // A box nobody has set: on (Create's column) or off (an Edit's box).
+  isTickedByDefault: boolean;
+  reach: AnnouncementReachResult | null | undefined;
+}) => string | null = (data: {
+  values: unknown;
+  fieldKey: string;
+  isTickedByDefault: boolean;
+  reach: AnnouncementReachResult | null | undefined;
+}): string | null => {
+  const value: unknown = readRecord(data.values)[data.fieldKey];
+  const isTicked: boolean =
+    value === true || (value !== false && data.isTickedByDefault);
+
+  if (
+    !isTicked ||
+    !data.reach?.nothingSentReason ||
+    !getAnnouncementReachQuestion({ values: data.values })
+  ) {
+    return null;
+  }
+
+  return ANNOUNCEMENT_NOTHING_SENT[data.reach.nothingSentReason];
+};
+
+/*
+ * MONITORS AFFECTED, WITH NONE PICKED.
+ *
+ * The review step said "No monitors selected. All subscribers will be
+ * notified." of every announcement without monitors - beside a line that
+ * says nobody is told, when the switch is off or the pages picked send
+ * nothing. Monitors only decide which subscribers hear about it; whether
+ * anyone does is the line's to say. So "All subscribers will be notified."
+ * is said only while the line says subscribers are notified, and otherwise
+ * only that no monitor is picked.
+ */
+export const ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED: string = translationKey(
+  "No monitors selected. All subscribers will be notified.",
+);
+
+export const ANNOUNCEMENT_NO_MONITORS: string = translationKey(
+  "No monitors selected.",
+);
+
+export const getAnnouncementNoMonitorsSummary: (
+  values: unknown,
+  kind: AnnouncementFormKind,
+  reach?: AnnouncementReachResult | null | undefined,
+) => string = (
+  values: unknown,
+  kind: AnnouncementFormKind,
+  reach?: AnnouncementReachResult | null | undefined,
+): string => {
+  const isNotifying: boolean =
+    kind === AnnouncementFormKind.Create &&
+    getAnnouncementNotificationSummary(values, reach) ===
+      ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY;
+
+  return isNotifying
+    ? ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED
+    : ANNOUNCEMENT_NO_MONITORS;
 };
 
 /*

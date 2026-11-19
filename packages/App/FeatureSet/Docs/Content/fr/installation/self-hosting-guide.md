@@ -114,7 +114,7 @@ Cliquez sur **Configurer l'e-mail**. Il ouvre **Paramètres > Notifications > E-
 
 ### Choisir qui peut s'inscrire
 
-Quiconque peut ouvrir votre adresse peut s'inscrire. Une fois que votre équipe a ses comptes, désactivez **Autoriser les inscriptions** sous **Paramètres > Authentification** : les personnes que vous invitez à un projet peuvent quand même le rejoindre. Pour laisser les inscriptions ouvertes, cliquez sur **Laisser les inscriptions ouvertes**.
+Quiconque peut ouvrir votre adresse peut s'inscrire. Dès que votre serveur peut envoyer des e-mails, un nouveau compte ouvre le lien que OneUptime lui envoie avant de pouvoir se connecter, et une adresse qui a déjà un compte l'apprend par e-mail. Une fois que votre équipe a ses comptes, désactivez **Autoriser les inscriptions** sous **Paramètres > Authentification** : les personnes que vous invitez à un projet peuvent quand même le rejoindre. Pour laisser les inscriptions ouvertes, cliquez sur **Laisser les inscriptions ouvertes**.
 
 **Cela a fonctionné quand** la liste marque les inscriptions comme faites.
 

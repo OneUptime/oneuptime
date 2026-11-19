@@ -551,6 +551,8 @@ CloudWatch 指标通过一个取决于命名空间的维度指明其资源。带
 | `AWS/AmazonMQ` | `Broker` | Amazon MQ Broker | `AWS::AmazonMQ::Broker` | PaaS |
 | `AWS/Kafka` | `Cluster Name` | MSK Cluster | `AWS::MSK::Cluster` | PaaS |
 | `AWS/Events` | `RuleName` | EventBridge Rule | `AWS::Events::Rule` | PaaS |
+| `Glue` | `JobName` with `JobRunId` `ALL` | Glue Job | `AWS::Glue::Job` | PaaS |
+| `AWS/Athena` | `WorkGroup` | Athena Workgroup | `AWS::Athena::WorkGroup` | PaaS |
 | `AWS/ApiGateway` | `ApiName` | API Gateway REST API | `AWS::ApiGateway::RestApi` | PaaS |
 | `AWS/ApiGateway` | `ApiId` (without `ApiName`) | API Gateway HTTP or WebSocket API | `AWS::ApiGatewayV2::Api` | PaaS |
 | `AWS/AppSync` | `GraphQLAPIId` | AppSync GraphQL API | `AWS::AppSync::GraphQLApi` | PaaS |

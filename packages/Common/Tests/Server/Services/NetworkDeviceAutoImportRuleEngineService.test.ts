@@ -166,6 +166,7 @@ import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import OnBehalfOfProps from "../../../Server/Utils/AuditLog/OnBehalfOfProps";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { WhenReachUnknown } from "../../../Utils/NetworkDevice/DeviceAddressScope";
 import { afterEach, describe, expect, it, beforeEach } from "@jest/globals";
 
 /*
@@ -1892,14 +1893,116 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         new BadDataException("Network Device with this name already exists."),
       );
       // The address re-check finds a device: someone imported it meanwhile.
-      deviceFindOneByMock.mockResolvedValue({
-        id: new ObjectID("44444444-4444-4444-8444-444444444444"),
-      } as unknown as NetworkDevice);
+      devicesByHostnamesMock
+        .mockResolvedValueOnce(new Map<string, NetworkDevice>())
+        .mockResolvedValueOnce(
+          new Map<string, NetworkDevice>([
+            [
+              "10.0.0.5",
+              {
+                id: new ObjectID("44444444-4444-4444-8444-444444444444"),
+                hostname: "10.0.0.5",
+              } as unknown as NetworkDevice,
+            ],
+          ]),
+        );
 
       const result: AutoImportRuleRunResult | null = await processScan();
 
       expect(createMock).toHaveBeenCalledTimes(1);
-      expect(deviceFindOneByMock.mock.calls[0]![0].select.projectId).toBe(true);
+
+      // Asked as the scan's probe sees the address (issue #9677).
+      const recheck: {
+        hostnames: Array<string>;
+        select: Record<string, unknown>;
+        seenFrom: { probeIds: Array<unknown>; whenReachUnknown: string };
+      } = devicesByHostnamesMock.mock.calls[1]![0];
+      expect(recheck.hostnames).toEqual(["10.0.0.5"]);
+      expect(recheck.select["projectId"]).toBe(true);
+      expect(recheck.seenFrom).toEqual({
+        probeIds: [PROBE_ID],
+        whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
+      });
+      expect(result).toMatchObject({
+        hostsMatched: 1,
+        hostsSkippedAlreadyRegistered: 1,
+        devicesCreated: 0,
+        devicesFailed: 0,
+      });
+    });
+
+    /*
+     * Two branches can each have a router called "core-switch-01" at
+     * 10.0.0.5 (issue #9677). Branch C's create collides with branch A's
+     * name - but branch A's router is not at the address branch C's probe
+     * sees, so the name was the problem: the fallback name settles it, and
+     * branch C's router is not left out as "already registered".
+     */
+    it("retries a name another branch's device at the same address holds, never reading it as a lost race", async () => {
+      const BRANCH_A_PROBE: ObjectID = new ObjectID(
+        "a2000000-0000-4000-8000-000000000001",
+      );
+      const branchARouter: NetworkDevice = {
+        id: new ObjectID("a3000000-0000-4000-8000-000000000001"),
+        hostname: "10.0.0.5",
+        name: "core-switch-01",
+        probeId: BRANCH_A_PROBE,
+      } as unknown as NetworkDevice;
+
+      // The lookup answers the devices the scan's probe polls.
+      devicesByHostnamesMock.mockImplementation(
+        async (data: {
+          hostnames: Array<string>;
+          seenFrom?: { probeIds: Array<{ toString(): string }> };
+        }): Promise<Map<string, NetworkDevice>> => {
+          const probeIds: Array<string> = (data.seenFrom?.probeIds || []).map(
+            (probeId: { toString(): string }): string => {
+              return probeId.toString();
+            },
+          );
+
+          return probeIds.includes(BRANCH_A_PROBE.toString()) &&
+            data.hostnames.includes("10.0.0.5")
+            ? new Map<string, NetworkDevice>([["10.0.0.5", branchARouter]])
+            : new Map<string, NetworkDevice>();
+        },
+      );
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      createMock
+        .mockRejectedValueOnce(
+          new BadDataException("Network Device with this name already exists."),
+        )
+        .mockResolvedValueOnce({});
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(createMock).toHaveBeenCalledTimes(2);
+      expect(createdDevice(1).name).toBe("core-switch-01 (10.0.0.5)");
+      expect(result).toMatchObject({
+        devicesCreated: 1,
+        hostsSkippedAlreadyRegistered: 0,
+      });
+    });
+
+    it("leaves out a host whose address holds devices its probe cannot tell apart, giving none a monitor", async () => {
+      devicesByHostnamesMock.mockImplementation(
+        async (data: {
+          ambiguousHostnames?: Set<string>;
+        }): Promise<Map<string, NetworkDevice>> => {
+          data.ambiguousHostnames?.add("10.0.0.5");
+          return new Map<string, NetworkDevice>();
+        },
+      );
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(createMock).not.toHaveBeenCalled();
+      expect(monitorCreateMock).not.toHaveBeenCalled();
       expect(result).toMatchObject({
         hostsMatched: 1,
         hostsSkippedAlreadyRegistered: 1,

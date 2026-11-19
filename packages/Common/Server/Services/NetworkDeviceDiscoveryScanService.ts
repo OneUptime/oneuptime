@@ -22,6 +22,26 @@ import SnmpScanConfigUtil, {
 import { getNextScanAt } from "../../Utils/NetworkDiscovery/RescanIntervalUtil";
 import ScanModeUtil from "../../Utils/NetworkDiscovery/ScanModeUtil";
 import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
+import QueryHelper from "../Types/Database/QueryHelper";
+import { WhenReachUnknown } from "../../Utils/NetworkDevice/DeviceAddressScope";
+
+// A project and a probe that scans' hosts are seen from, with their addresses.
+interface ScanHostViewpoint {
+  projectId: ObjectID;
+  probeId: string;
+  hostnames: Set<string>;
+}
+
+// The devices those hosts are, and the addresses whose devices are a tie.
+interface RegisteredScanHosts {
+  devices: Map<string, NetworkDevice>;
+  ambiguous: Set<string>;
+}
+
+function getViewpointKey(projectId: ObjectID, probeId: string): string {
+  return `${projectId.toString()}|${probeId.toLowerCase()}`;
+}
 
 /*
  * The two spellings a many-to-one reference reaches a hook under: the
@@ -201,8 +221,24 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * Registration is current inventory state, not a fact about the scan.
      * Refresh both directions so old results can be used after a deletion.
+     *
+     * And by site (issue #9677): two sites can each have a 10.0.0.5, so a
+     * host is the device the scan's probe sees at its address - the device
+     * it polls there, else the one in a site it looks into - never any
+     * device at that address (Utils/NetworkDevice/DeviceAddressScope). The
+     * host's device is named (registeredDeviceId), so Review Results reads
+     * that device's monitors alone. Devices at the address the probe cannot
+     * tell apart still make the host a device - it is never offered as new -
+     * with none of them named. Where the probe's site cannot be known, the
+     * one device at the address is the host's, as before, so an import never
+     * adds a box twice.
      */
-    const hostnamesByProject: Map<string, Set<string>> = new Map();
+    // The scans with an address to look up, each with its project.
+    const scansWithHosts: Array<{
+      scan: Model;
+      projectId: ObjectID;
+      hostnames: Array<string>;
+    }> = [];
 
     for (const scan of items) {
       const projectId: ObjectID | undefined =
@@ -212,34 +248,82 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      for (const host of scan.discoveredDevices) {
-        const hostname: string = this.getDiscoveredHostname(host);
-        if (!hostname) {
-          continue;
-        }
+      const hostnames: Array<string> = scan.discoveredDevices
+        .map((host: DiscoveredNetworkDevice): string => {
+          return this.getDiscoveredHostname(host);
+        })
+        .filter((hostname: string): boolean => {
+          return Boolean(hostname);
+        });
 
-        const projectKey: string = projectId.toString();
-        if (!hostnamesByProject.has(projectKey)) {
-          hostnamesByProject.set(projectKey, new Set());
-        }
-        hostnamesByProject.get(projectKey)!.add(hostname);
+      if (hostnames.length > 0) {
+        scansWithHosts.push({
+          scan: scan,
+          projectId: projectId,
+          hostnames: hostnames,
+        });
       }
     }
 
-    const registeredByProject: Map<string, Set<string>> = new Map();
-    for (const [projectId, hostnames] of hostnamesByProject) {
-      registeredByProject.set(
-        projectId,
-        await NetworkDeviceService.getRegisteredHostnames({
-          projectId: new ObjectID(projectId),
-          hostnames: Array.from(hostnames),
+    const probeIdOfScan: Map<Model, string> = await this.readProbeIdsOfScans(
+      scansWithHosts.map(
+        (entry: {
+          scan: Model;
+          projectId: ObjectID;
+          hostnames: Array<string>;
+        }): Model => {
+          return entry.scan;
+        },
+      ),
+    );
+
+    // Each project and probe the hosts are seen from, with their addresses.
+    const viewpoints: Map<string, ScanHostViewpoint> = new Map();
+
+    for (const entry of scansWithHosts) {
+      const probeId: string = probeIdOfScan.get(entry.scan) || "";
+      const key: string = getViewpointKey(entry.projectId, probeId);
+
+      const viewpoint: ScanHostViewpoint = viewpoints.get(key) || {
+        projectId: entry.projectId,
+        probeId: probeId,
+        hostnames: new Set<string>(),
+      };
+
+      for (const hostname of entry.hostnames) {
+        viewpoint.hostnames.add(hostname);
+      }
+
+      viewpoints.set(key, viewpoint);
+    }
+
+    const registeredByViewpoint: Map<string, RegisteredScanHosts> = new Map();
+
+    for (const [key, viewpoint] of viewpoints) {
+      const ambiguous: Set<string> = new Set<string>();
+
+      const devices: Map<string, NetworkDevice> =
+        await NetworkDeviceService.getDevicesByHostnames({
+          projectId: viewpoint.projectId,
+          hostnames: Array.from(viewpoint.hostnames),
+          select: { _id: true, hostname: true },
           /*
            * The scan read has already passed its access checks. Return only
-           * the same existence flag as probe ingest, scoped to this project.
+           * the same existence flag as probe ingest, scoped to this project,
+           * and the id of the device the host is.
            */
           props: { isRoot: true },
-        }),
-      );
+          seenFrom: {
+            probeIds: viewpoint.probeId ? [viewpoint.probeId] : [],
+            whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
+          },
+          ambiguousHostnames: ambiguous,
+        });
+
+      registeredByViewpoint.set(key, {
+        devices: devices,
+        ambiguous: ambiguous,
+      });
     }
 
     return {
@@ -247,8 +331,10 @@ export class Service extends ProjectReferencesService<Model> {
       carryForward: items.map((scan: Model): Model => {
         const projectId: ObjectID | undefined =
           scan.projectId || onFind.findBy.props.tenantId;
-        const registered: Set<string> | undefined = projectId
-          ? registeredByProject.get(projectId.toString())
+        const registered: RegisteredScanHosts | undefined = projectId
+          ? registeredByViewpoint.get(
+              getViewpointKey(projectId, probeIdOfScan.get(scan) || ""),
+            )
           : undefined;
 
         if (!registered || !Array.isArray(scan.discoveredDevices)) {
@@ -259,14 +345,91 @@ export class Service extends ProjectReferencesService<Model> {
           discoveredDevices: scan.discoveredDevices.map(
             (host: DiscoveredNetworkDevice): DiscoveredNetworkDevice => {
               const hostname: string = this.getDiscoveredHostname(host);
-              return hostname
-                ? { ...host, isAlreadyRegistered: registered.has(hostname) }
-                : host;
+
+              if (!hostname) {
+                return host;
+              }
+
+              const device: NetworkDevice | undefined =
+                registered.devices.get(hostname);
+              const refreshed: DiscoveredNetworkDevice = {
+                ...host,
+                isAlreadyRegistered:
+                  Boolean(device) || registered.ambiguous.has(hostname),
+              };
+
+              // Only this read names the device, never a stored row.
+              delete refreshed.registeredDeviceId;
+
+              if (device?.id) {
+                refreshed.registeredDeviceId = device.id.toString();
+              }
+
+              return refreshed;
             },
           ),
         });
       }),
     };
+  }
+
+  /*
+   * The probe each scan looked from (issue #9677): from the row when the
+   * read selected it, else read once for every scan that left it out. A
+   * scan whose probe is gone looks from nowhere OneUptime can know.
+   */
+  private async readProbeIdsOfScans(
+    scans: Array<Model>,
+  ): Promise<Map<Model, string>> {
+    const probeIdOfScan: Map<Model, string> = new Map<Model, string>();
+    const unread: Array<Model> = [];
+
+    for (const scan of scans) {
+      if (scan.probeId !== undefined) {
+        probeIdOfScan.set(scan, scan.probeId?.toString() || "");
+      } else if (scan.id) {
+        unread.push(scan);
+      }
+    }
+
+    if (unread.length === 0) {
+      return probeIdOfScan;
+    }
+
+    // Read with no hosts, so this hook has nothing to refresh on it.
+    const rows: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(
+          unread.map((scan: Model): ObjectID => {
+            return scan.id!;
+          }),
+        ),
+      },
+      select: { _id: true, probeId: true },
+      limit: unread.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const probeIdById: Map<string, string> = new Map<string, string>();
+
+    for (const row of rows) {
+      if (row.id) {
+        probeIdById.set(
+          row.id.toString().toLowerCase(),
+          row.probeId?.toString() || "",
+        );
+      }
+    }
+
+    for (const scan of unread) {
+      probeIdOfScan.set(
+        scan,
+        probeIdById.get(scan.id!.toString().toLowerCase()) || "",
+      );
+    }
+
+    return probeIdOfScan;
   }
 
   private getDiscoveredHostname(host: DiscoveredNetworkDevice): string {

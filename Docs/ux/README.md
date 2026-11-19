@@ -1399,7 +1399,9 @@ then `npm run i18n:validate` from the root.
   only when it was sent. Nor that it will happen when it will not: a public note's composer said
   "Visible on your status page" and "Subscribers will be notified" of an incident no status page
   showed (#9735). It now asks the server what is true for the event, says why not when nothing
-  will be, and promises nothing while it does not know (`PublicNoteReachCopy`). Enforced by
+  will be, and promises nothing while it does not know (`PublicNoteReachCopy`). Create Announcement
+  said "Subscribers are notified when it starts showing." whatever status pages were picked, and
+  asks the same of the pages picked now (`useAnnouncementReach`, #9775). Enforced by
   [ClipboardWritesGuard](../../packages/Common/Tests/UI/ClipboardWritesGuard.test.ts) for copy buttons;
   for everything else, not enforced: use judgement.
 - **Never ask for a click that does nothing where it is drawn.** A dashboard widget is drawn on the

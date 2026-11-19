@@ -49,6 +49,7 @@ import {
   readRegionFromSourceArn,
 } from "../../FeatureSet/Telemetry/Utils/AwsFirehose/FirehoseRecords";
 import AwsFirehoseIngestService from "../../FeatureSet/Telemetry/Services/AwsFirehoseIngestService";
+import { StreamedReadingMinute } from "Common/Server/Utils/CloudConnection/CloudStreamReadings";
 import {
   CONTROL_MESSAGE_DOCUMENT,
   cloudWatchLogsDocument,
@@ -904,6 +905,95 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     expect(readStatisticValue(point, "Sum")).toBe(50);
     expect(readStatisticValue(point, "Maximum")).toBe(30);
     expect(readStatisticValue(point, "Minimum")).toBe(2);
+    // CloudWatch's SampleCount is the summary's count (#9691).
+    expect(readStatisticValue(point, "SampleCount")).toBe(4);
+  });
+
+  /*
+   * #9691: Athena publishes a query's times once, as it ends, so a
+   * minute's count of TotalExecutionTime is how many queries ended: the
+   * read reads its SampleCount, and a stack of template 3 writes it so.
+   */
+  test("an Athena workgroup's queries are written as each minute's count, of each query state, from template 3", async () => {
+    const queries: (state: string, count: number) => JSONObject = (
+      state: string,
+      count: number,
+    ): JSONObject => {
+      return summaryPoint({
+        namespace: "AWS/Athena",
+        metricName: "TotalExecutionTime",
+        dimensions: {
+          WorkGroup: "analytics",
+          QueryState: state,
+          QueryType: "DML",
+        },
+        count,
+        sum: count * 1500,
+      });
+    };
+    const delivery: () => Array<JSONObject> = (): Array<JSONObject> => {
+      return [
+        resourceOf([
+          summaryMetric("amazonaws.com/AWS/Athena/TotalExecutionTime", [
+            queries("SUCCEEDED", 12),
+            queries("FAILED", 3),
+          ]),
+        ]),
+      ];
+    };
+
+    const shaped: Array<JSONObject> = await shape(
+      delivery(),
+      new StreamedSeriesMemory(),
+      { stack: { templateVersion: 3, everyMetric: false } },
+    );
+
+    expect(
+      metricsOf(shaped).map((metric: JSONObject) => {
+        return metric["unit"];
+      }),
+    ).toEqual(["Count"]);
+    expect(gaugeValues(shaped)).toEqual([12, 3]);
+
+    // A stack of template 2 does not carry it: the read writes it.
+    expect(
+      metricsOf(
+        await shape(delivery(), new StreamedSeriesMemory(), {
+          stack: { templateVersion: 2, everyMetric: false },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  // #9691: a Glue job's own series is its JobRunId ALL one; a run's is no resource's.
+  test("a Glue job's metrics are written from its JobRunId ALL series alone", async () => {
+    const tasks: (run: string, sum: number) => JSONObject = (
+      run: string,
+      sum: number,
+    ): JSONObject => {
+      return summaryPoint({
+        namespace: "Glue",
+        metricName: "glue.driver.aggregate.numFailedTasks",
+        dimensions: { JobName: "nightly-orders", JobRunId: run, Type: "count" },
+        count: 2,
+        sum,
+      });
+    };
+
+    const shaped: Array<JSONObject> = await shape(
+      [
+        resourceOf([
+          summaryMetric(
+            "amazonaws.com/Glue/glue.driver.aggregate.numFailedTasks",
+            [tasks("ALL", 4), tasks("jr_4f7c0d0a7b8e", 4)],
+          ),
+        ]),
+      ],
+      new StreamedSeriesMemory(),
+      { stack: { templateVersion: 3, everyMetric: false } },
+    );
+
+    expect(gaugeValues(shaped)).toEqual([4]);
   });
 
   test("protobuf's left-out zeros are read as zeros: a quantile 0, a value 0", () => {
@@ -1764,5 +1854,182 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     const shaped: Array<JSONObject> = await shape([resource]);
 
     expect(shaped[0]).toBe(resource);
+  });
+});
+
+/*
+ * #9690: a delivery notes each minute of a metric its resources' readings
+ * keep, with the minute's own summary, so a streaming account's health and
+ * headlines are judged from its stream (CloudStreamReadings) - and the
+ * read need not read those metrics from CloudWatch.
+ */
+describe("what a delivery says of its resources' readings", () => {
+  const MINUTE_MS: number = Date.UTC(2026, 10, 4, 9, 59);
+
+  function record(lines: Array<JSONObject>): string {
+    return Buffer.from(
+      lines
+        .map((line: JSONObject): string => {
+          return JSON.stringify({
+            metric_stream_name: "OneUptime-6f1c3a2e",
+            account_id: "123456789012",
+            region: "us-east-1",
+            timestamp: MINUTE_MS,
+            unit: "Count",
+            ...line,
+          });
+        })
+        .join("\n"),
+      "utf8",
+    ).toString("base64");
+  }
+
+  async function decode(
+    lines: Array<JSONObject>,
+    stack: { templateVersion: number; everyMetric: boolean } = {
+      templateVersion: 3,
+      everyMetric: false,
+    },
+  ): Promise<DecodedDelivery> {
+    return await decodeFirehoseRecords({
+      records: [record(lines)],
+      serviceName: "aws-production",
+      connectionId: "33333333-3333-4333-8333-333333333333",
+      region: "us-east-1",
+      now: new Date(MINUTE_MS + 3 * 60_000),
+      budget: budget(),
+      seriesMemory: new StreamedSeriesMemory(),
+      stack,
+    });
+  }
+
+  test("each minute of a metric an instance's readings keep, with its summary", async () => {
+    const delivery: DecodedDelivery = await decode([
+      {
+        namespace: "AWS/EC2",
+        metric_name: "StatusCheckFailed",
+        dimensions: { InstanceId: "i-0abc" },
+        value: { max: 1, min: 0, sum: 1, count: 2 },
+      },
+      {
+        namespace: "AWS/EC2",
+        metric_name: "CPUUtilization",
+        dimensions: { InstanceId: "i-0abc" },
+        unit: "Percent",
+        value: { max: 60, min: 20, sum: 80, count: 2 },
+      },
+    ]);
+
+    expect(
+      delivery.readingMinutes
+        .map((minute: StreamedReadingMinute) => {
+          return {
+            key: minute.key,
+            minuteMs: minute.minuteMs,
+            count: minute.count,
+            sum: minute.sum,
+            min: minute.min,
+            max: minute.max,
+            type: minute.resourceType,
+            source: `${minute.accountId}|${minute.region}`,
+          };
+        })
+        .sort((a: { key: string }, b: { key: string }): number => {
+          return a.key.localeCompare(b.key);
+        }),
+    ).toEqual([
+      {
+        key: "aws/ec2/cpuutilization",
+        minuteMs: MINUTE_MS,
+        count: 2,
+        sum: 80,
+        min: 20,
+        max: 60,
+        type: "AWS::EC2::Instance",
+        source: "123456789012|us-east-1",
+      },
+      {
+        key: "aws/ec2/statuscheckfailed",
+        minuteMs: MINUTE_MS,
+        count: 2,
+        sum: 1,
+        min: 0,
+        max: 1,
+        type: "AWS::EC2::Instance",
+        source: "123456789012|us-east-1",
+      },
+    ]);
+  });
+
+  // What says the account and Region's stream is not quiet, nor behind: any metric of theirs.
+  test("the newest minute of each account and Region's metrics, health or not", async () => {
+    const delivery: DecodedDelivery = await decode([
+      {
+        namespace: "AWS/Kinesis",
+        metric_name: "IncomingRecords",
+        dimensions: { StreamName: "orders" },
+        value: { max: 3, min: 3, sum: 3, count: 1 },
+      },
+      {
+        namespace: "AWS/Kinesis",
+        metric_name: "IncomingRecords",
+        dimensions: { StreamName: "orders" },
+        timestamp: MINUTE_MS - 60_000,
+        value: { max: 2, min: 2, sum: 2, count: 1 },
+      },
+    ]);
+
+    expect(delivery.readingMinutes).toEqual([]);
+    expect(
+      delivery.sightings.metrics.get("123456789012|us-east-1")!.newestMs,
+    ).toBe(MINUTE_MS);
+  });
+
+  test("never a key metric no reading keeps, a split of a resource, nor one the stack does not carry", async () => {
+    const delivery: DecodedDelivery = await decode([
+      // A key metric no rule, headline or recommended monitor of a stream reads.
+      {
+        namespace: "AWS/Kinesis",
+        metric_name: "IncomingRecords",
+        dimensions: { StreamName: "orders" },
+        value: { max: 3, min: 3, sum: 3, count: 1 },
+      },
+      // A function's alias: a split of the function, whose own series streams too.
+      {
+        namespace: "AWS/Lambda",
+        metric_name: "Errors",
+        dimensions: { FunctionName: "checkout" },
+        value: { max: 1, min: 1, sum: 1, count: 1 },
+      },
+      {
+        namespace: "AWS/Lambda",
+        metric_name: "Errors",
+        dimensions: { FunctionName: "checkout", Resource: "checkout:live" },
+        value: { max: 1, min: 1, sum: 1, count: 1 },
+      },
+    ]);
+
+    expect(
+      delivery.readingMinutes.map((minute: StreamedReadingMinute) => {
+        return [minute.key, minute.series];
+      }),
+    ).toEqual([["aws/lambda/errors", "functionname=checkout"]]);
+
+    // A stack of template 1 carries no Auto Scaling group metric: the read's.
+    expect(
+      (
+        await decode(
+          [
+            {
+              namespace: "AWS/AutoScaling",
+              metric_name: "GroupDesiredCapacity",
+              dimensions: { AutoScalingGroupName: "web" },
+              value: { max: 3, min: 3, sum: 3, count: 1 },
+            },
+          ],
+          { templateVersion: 1, everyMetric: false },
+        )
+      ).readingMinutes,
+    ).toEqual([]);
   });
 });

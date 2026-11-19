@@ -44,6 +44,7 @@ import {
   DiscoveryImportOutcome,
   DiscoveryImportTemplateChoice,
   EXISTING_DEVICES_NEED_A_TEMPLATE,
+  EXISTING_DISCOVERED_DEVICES_NEED_A_TEMPLATE,
   checksDeviceAddress,
   checksDeviceUrl,
   checksFromProbe,
@@ -1026,12 +1027,15 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
 
 /*
  * What the summary says about the devices already added that were picked to
- * get a monitor (issue #9544): that each gets the template's monitor - or,
- * with no monitor asked for, that there is nothing to give them.
+ * get a monitor (issues #9544, #9675): that each gets the template's monitor
+ * - or, with no monitor asked for, that there is nothing to give them. The
+ * Discovered Devices list has no step to go back to for new hosts, so it is
+ * told only to pick a template.
  */
 export function getExistingDeviceOutcomeLine(
   translator: Translator,
   outcome: DiscoveryImportOutcome,
+  source?: DiscoveryImportSource | undefined,
 ): { key: string; text: string; tone?: "warning" } | null {
   if (outcome.existingDeviceCount === 0) {
     return null;
@@ -1060,7 +1064,11 @@ export function getExistingDeviceOutcomeLine(
     tone: "warning",
     text:
       outcome.hostCount === 0
-        ? (translator.translateText(EXISTING_DEVICES_NEED_A_TEMPLATE) as string)
+        ? (translator.translateText(
+            source === DiscoveryImportSource.DiscoveredDevices
+              ? EXISTING_DISCOVERED_DEVICES_NEED_A_TEMPLATE
+              : EXISTING_DEVICES_NEED_A_TEMPLATE,
+          ) as string)
         : translator.translatePlural(
             {
               one: "{{count}} device you picked is already added, and gets nothing without a monitor template.",
@@ -1242,7 +1250,7 @@ export const OutcomeSummary: FunctionComponent<{
 
   // The devices already added that were picked to get a monitor (#9544).
   const existingLine: { key: string; text: string; tone?: "warning" } | null =
-    getExistingDeviceOutcomeLine(translator, outcome);
+    getExistingDeviceOutcomeLine(translator, outcome, props.source);
 
   if (existingLine) {
     lines.push(existingLine);

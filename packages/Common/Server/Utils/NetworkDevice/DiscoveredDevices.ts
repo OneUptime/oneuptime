@@ -356,7 +356,13 @@ export default class DiscoveredDevices {
         id: row.id,
         name: row.name,
         ...(row.ipAddress ? { ipAddress: row.ipAddress } : {}),
-        ...(row.monitoredDevice ? { isMonitored: true } : {}),
+        /*
+         * The device it is, as a row on a page names it: Add to monitoring
+         * gives one with no monitor its monitor (issue #9675).
+         */
+        ...(row.monitoredDevice
+          ? { isMonitored: true, monitoredDeviceId: row.monitoredDevice.id }
+          : {}),
       });
     }
 

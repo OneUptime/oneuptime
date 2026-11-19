@@ -10,9 +10,12 @@ import {
  * A read keeps, on each resource, the newest value of the metrics its type
  * is judged by (its health rules), leads its page with (its headlines), or
  * a recommended monitor of its type reads under the name its reading
- * keeps (CloudResourceReadings). The AWS read reads those from CloudWatch
- * even when a stream writes them (AwsCloudConnector), so a resource's
- * health reads the same whether its account streams or not.
+ * keeps (CloudResourceReadings). Where an AWS account's stream carries
+ * them, its readings are made from the stream's minutes, as the read's
+ * statistic over its five minutes (CloudStreamReadings), and the read
+ * reads them from CloudWatch only while those are not fresh
+ * (AwsCloudConnector): a resource's health reads the same whether its
+ * account streams or not.
  */
 
 // By the reading's key (getCloudReadingKey): "aws/ec2/statuscheckfailed".

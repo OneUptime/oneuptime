@@ -552,6 +552,8 @@ export const AWS_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> = [
   aws("AWS::MemoryDB::Cluster", "MemoryDB Cluster", PAAS, C.Database),
   aws("AWS::Redshift::Cluster", "Redshift Cluster", PAAS, C.Analytics),
   aws("AWS::OpenSearchService::Domain", "OpenSearch Domain", PAAS, C.Analytics),
+  aws("AWS::Glue::Job", "Glue Job", PAAS, C.Analytics),
+  aws("AWS::Athena::WorkGroup", "Athena Workgroup", PAAS, C.Analytics),
   // Messaging and streaming
   aws("AWS::SQS::Queue", "SQS Queue", PAAS, C.Messaging),
   aws("AWS::SNS::Topic", "SNS Topic", PAAS, C.Messaging),
@@ -1203,6 +1205,37 @@ export const AWS_CLOUDWATCH_RESOURCE_RULES: ReadonlyArray<AwsCloudWatchResourceR
           context,
           "events",
           bus && bus !== "default" ? `rule/${bus}/${rule}` : `rule/${rule}`,
+        );
+      },
+    },
+    {
+      /*
+       * A Glue job's own metrics are its series whose JobRunId is ALL; each
+       * run's series, with its run id there instead, is no job's: summed
+       * with the job's, a run would count twice.
+       */
+      namespace: "Glue",
+      type: "AWS::Glue::Job",
+      identityDimensions: ["JobName"],
+      requiredDimensionValues: { JobRunId: "ALL" },
+      getArn: (context: AwsArnContext): string => {
+        return arn(
+          context,
+          "glue",
+          `job/${dimension(context.dimensions, "JobName")}`,
+        );
+      },
+    },
+    {
+      // A workgroup's queries, of each state and type, and its own bytes scanned.
+      namespace: "AWS/Athena",
+      type: "AWS::Athena::WorkGroup",
+      identityDimensions: ["WorkGroup"],
+      getArn: (context: AwsArnContext): string => {
+        return arn(
+          context,
+          "athena",
+          `workgroup/${dimension(context.dimensions, "WorkGroup")}`,
         );
       },
     },

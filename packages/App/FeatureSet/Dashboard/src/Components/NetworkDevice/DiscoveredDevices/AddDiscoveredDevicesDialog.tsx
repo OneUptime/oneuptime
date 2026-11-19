@@ -7,12 +7,14 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+  DiscoveryImportAlerting,
   DiscoveryImportHostResult,
   DiscoveryImportSettings,
   DiscoveryImportSource,
   DiscoveryImportView,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
+import ActiveMonitorLimitUtil from "Common/Types/Monitor/ActiveMonitorLimit";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dropdown, {
@@ -82,8 +84,15 @@ import {
   AddToMonitoringPlan,
   DiscoveredDeviceItem,
   getAddToMonitoringPlan,
+  getAlreadyAddedDeviceIdsOf,
   getDiscoveredDeviceLabel,
 } from "./DiscoveredDeviceItems";
+import {
+  DeviceMonitorsByKey,
+  getMonitoredDeviceIds,
+  loadDeviceMonitorsForDeviceIds,
+} from "../DeviceMonitorsOfDevices";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import useNamingPreview, {
   NamingPreviewState,
 } from "../Naming/useNamingPreview";
@@ -106,10 +115,13 @@ import ErrorSentence, {
  * or walked with its site's credentials); and the same progress, run on the
  * server, so the dialog can be closed and the import carries on.
  *
- * Only devices with an address the probe can check and not monitored
- * already are sent; the rest are named, and the server refuses a duplicate
- * (same MAC anywhere in the project, or same address in the same site) with
- * its reason, row by row.
+ * Only devices with an address the probe can check are sent. A device that
+ * is added already is sent only to get the template's monitor, when it has
+ * none (issue #9675, as Review Results does, #9544): the import finds it -
+ * same MAC anywhere in the project, or same address in the same site - and
+ * gives it the monitor under the same duplicate rule and per-device lock as
+ * every other path. One that has a monitor is left out, and the rest are
+ * named, with why.
  */
 
 export interface AddDiscoveredDevicesDialogProps {
@@ -238,9 +250,52 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
 
   const isOnProgress: boolean = Boolean(importId);
 
-  const plan: AddToMonitoringPlan = useMemo(() => {
-    return getAddToMonitoringPlan(props.devices);
+  /*
+   * The monitors of the selected devices that are already added (issue
+   * #9675), read on opening, as Review Results reads its hosts' (#9544):
+   * one with no monitor is given the template's monitor, one with a monitor
+   * is left out. A read that fails offers every one of them - the server's
+   * duplicate rule and per-device lock still keep each to one monitor of a
+   * kind.
+   */
+  const alreadyAddedDeviceIds: string = useMemo(() => {
+    return getAlreadyAddedDeviceIdsOf(props.devices).join(",");
   }, [props.devices]);
+  const [monitoredDeviceIds, setMonitoredDeviceIds] = useState<
+    ReadonlySet<string> | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (props.importId || !alreadyAddedDeviceIds) {
+      setMonitoredDeviceIds(new Set<string>());
+      return;
+    }
+
+    let isCurrent: boolean = true;
+    setMonitoredDeviceIds(undefined);
+
+    loadDeviceMonitorsForDeviceIds(alreadyAddedDeviceIds.split(","))
+      .then((loaded: DeviceMonitorsByKey) => {
+        if (isCurrent) {
+          setMonitoredDeviceIds(getMonitoredDeviceIds(loaded));
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setMonitoredDeviceIds(new Set<string>());
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [alreadyAddedDeviceIds]);
+
+  const plan: AddToMonitoringPlan = useMemo(() => {
+    return getAddToMonitoringPlan(props.devices, monitoredDeviceIds);
+  }, [props.devices, monitoredDeviceIds]);
+
+  const isCheckingMonitors: boolean = plan.checking.length > 0;
 
   /*
    * The devices as the monitoring step counts them: walked over SNMP when
@@ -254,6 +309,74 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
       } as DiscoveredNetworkDevice;
     });
   }, [plan, settings.snmpCredentialProfileId]);
+
+  /*
+   * The devices already added that are given a monitor (issue #9675): each
+   * is walked or pinged as it already is, so nothing here says it answers
+   * ping only.
+   */
+  const existingHosts: Array<DiscoveredNetworkDevice> = useMemo(() => {
+    return plan.toGiveMonitor.map((item: DiscoveredDeviceItem) => {
+      return { ipAddress: item.ipAddress || "" } as DiscoveredNetworkDevice;
+    });
+  }, [plan]);
+
+  // Picked with a template, devices already added get a monitor; else nothing.
+  const wantsMonitors: boolean =
+    settings.alerting === DiscoveryImportAlerting.MonitorTemplate;
+
+  /*
+   * A selection of devices that are all added already is opened to give
+   * them monitors (issue #9675): "A monitor for each device" is picked for
+   * the reader, once the step's facts and the devices' monitors are known,
+   * when the reader may pick it. Once only, so a choice the reader makes
+   * stays theirs.
+   */
+  const hasDefaultedAlertingRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    if (
+      hasDefaultedAlertingRef.current ||
+      props.importId ||
+      isLoadingFacts ||
+      !facts ||
+      isCheckingMonitors
+    ) {
+      return;
+    }
+
+    hasDefaultedAlertingRef.current = true;
+
+    const canPickMonitors: boolean =
+      facts.canCreateMonitors.isAllowed &&
+      facts.templates.length > 0 &&
+      !(
+        facts.monitorLimitStatus &&
+        ActiveMonitorLimitUtil.isAtOrOverLimit(facts.monitorLimitStatus)
+      );
+
+    if (
+      !canPickMonitors ||
+      plan.toAdd.length > 0 ||
+      plan.toGiveMonitor.length === 0
+    ) {
+      return;
+    }
+
+    setSettings((current: DiscoveryImportSettings) => {
+      return keepPickedTemplate({
+        settings: {
+          ...current,
+          alerting: DiscoveryImportAlerting.MonitorTemplate,
+        },
+        templates: facts.templates,
+      });
+    });
+  }, [facts, isLoadingFacts, isCheckingMonitors, plan]);
+  const sentItems: Array<DiscoveredDeviceItem> = wantsMonitors
+    ? [...plan.toAdd, ...plan.toGiveMonitor]
+    : plan.toAdd;
 
   // What the step needs to know about the project, read once on opening.
   useEffect(() => {
@@ -406,7 +529,14 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
       templates: facts?.templates || [],
     });
 
-  const tooMany: boolean = plan.toAdd.length > MAX_HOSTS_PER_DISCOVERY_IMPORT;
+  const tooMany: boolean =
+    plan.toAdd.length + plan.toGiveMonitor.length >
+    MAX_HOSTS_PER_DISCOVERY_IMPORT;
+  // Nothing at all to do with the selection, once its monitors are known.
+  const hasNothingToAdd: boolean =
+    !isCheckingMonitors &&
+    plan.toAdd.length === 0 &&
+    plan.toGiveMonitor.length === 0;
 
   /*
    * What the project's naming rules call each device this adds (issue
@@ -420,16 +550,17 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
   });
 
   const blocker: string | null =
-    plan.toAdd.length === 0
+    plan.toAdd.length === 0 && plan.toGiveMonitor.length === 0
       ? translationKey("None of the selected devices can be added.")
       : getDiscoveryImportBlocker({
           hostCount: plan.toAdd.length,
+          existingDeviceCount: plan.toGiveMonitor.length,
           settings: settings,
           template: pickedTemplate,
         });
 
   const startImport: () => Promise<void> = async (): Promise<void> => {
-    if (blocker || tooMany || isActing) {
+    if (blocker || tooMany || isActing || isCheckingMonitors) {
       return;
     }
 
@@ -444,8 +575,12 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
           seedIds: facts?.seedIds,
         });
 
+      /*
+       * A device already added is in the import only to be given a monitor
+       * (issue #9675): with none asked for, there is nothing to do for it.
+       */
       const started: DiscoveryImportView = await startDiscoveredDeviceImport({
-        endpointIds: plan.toAdd.map((item: DiscoveredDeviceItem): string => {
+        endpointIds: sentItems.map((item: DiscoveredDeviceItem): string => {
           return item.id;
         }),
         settings: {
@@ -551,18 +686,34 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
   let isSubmitDisabled: boolean = false;
 
   if (!isOnProgress) {
-    submitButtonText = translator.translatePlural(
-      {
-        one: "Add {{count}} device",
-        other: "Add {{count}} devices",
-      },
-      plan.toAdd.length,
-      { count: translator.formatNumber(plan.toAdd.length) },
-    );
+    /*
+     * What the press does: adds the new devices - or, when every device
+     * picked is added already, gives those devices their monitors (issue
+     * #9675), in Review Results' words.
+     */
+    submitButtonText =
+      plan.toAdd.length > 0 || plan.toGiveMonitor.length === 0
+        ? translator.translatePlural(
+            {
+              one: "Add {{count}} device",
+              other: "Add {{count}} devices",
+            },
+            plan.toAdd.length,
+            { count: translator.formatNumber(plan.toAdd.length) },
+          )
+        : translator.translatePlural(
+            {
+              one: "Add {{count}} monitor",
+              other: "Add {{count}} monitors",
+            },
+            plan.toGiveMonitor.length,
+            { count: translator.formatNumber(plan.toGiveMonitor.length) },
+          );
     onSubmit = () => {
       void startImport();
     };
-    isSubmitDisabled = Boolean(blocker) || tooMany || isLoadingFacts;
+    isSubmitDisabled =
+      Boolean(blocker) || tooMany || isLoadingFacts || isCheckingMonitors;
   } else if (progressModel) {
     closeButtonText = translationKey("Close");
 
@@ -644,6 +795,14 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
     );
   };
 
+  /*
+   * Devices added already are named apart from the new ones (issue #9675),
+   * so the reader sees which are added and which only get a monitor - or,
+   * with no monitor asked for, get nothing, as the summary beside says.
+   */
+  const hasExistingDevices: boolean =
+    plan.toGiveMonitor.length > 0 || isCheckingMonitors;
+
   // What is added, and what is left out and why.
   const leadSection: ReactElement = (
     <section
@@ -654,13 +813,66 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
         <h4 className="text-sm font-semibold text-gray-900">
           {translator.translateText("The devices")}
         </h4>
-        {plan.toAdd.length > 0 && (
+        {plan.toAdd.length > 0 && !hasExistingDevices && (
           <p
             className="mt-0.5 break-words text-sm text-gray-700"
             data-testid="discovered-device-import-names"
           >
             {namesOf(translator, plan.toAdd)}
           </p>
+        )}
+        {plan.toAdd.length > 0 && hasExistingDevices && (
+          <p
+            className="mt-0.5 break-words text-sm text-gray-700"
+            data-testid="discovered-device-import-names"
+          >
+            {translator.translatePlural(
+              {
+                one: "{{count}} new device: {{names}}",
+                other: "{{count}} new devices: {{names}}",
+              },
+              plan.toAdd.length,
+              {
+                count: translator.formatNumber(plan.toAdd.length),
+                names: namesOf(translator, plan.toAdd),
+              },
+            )}
+          </p>
+        )}
+        {plan.toGiveMonitor.length > 0 && (
+          <p
+            className="mt-0.5 break-words text-sm text-gray-700"
+            data-testid="discovered-device-import-existing"
+          >
+            {wantsMonitors
+              ? translator.translatePlural(
+                  {
+                    one: "{{count}} device already added gets a monitor: {{names}}",
+                    other:
+                      "{{count}} devices already added get a monitor: {{names}}",
+                  },
+                  plan.toGiveMonitor.length,
+                  {
+                    count: translator.formatNumber(plan.toGiveMonitor.length),
+                    names: namesOf(translator, plan.toGiveMonitor),
+                  },
+                )
+              : translator.translatePlural(
+                  {
+                    one: "{{count}} device already added: {{names}}",
+                    other: "{{count}} devices already added: {{names}}",
+                  },
+                  plan.toGiveMonitor.length,
+                  {
+                    count: translator.formatNumber(plan.toGiveMonitor.length),
+                    names: namesOf(translator, plan.toGiveMonitor),
+                  },
+                )}
+          </p>
+        )}
+        {isCheckingMonitors && (
+          // Which of the devices added already have a monitor, being read.
+          <InlineValueSkeleton className="mt-1" widthClassName="w-64" />
         )}
         {plan.toAdd.length > 0 && (
           <div className="mt-3 space-y-2">
@@ -689,9 +901,9 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
           >
             {translator.translatePlural(
               {
-                one: "{{count}} selected device is monitored already, so it is left out.",
+                one: "{{count}} selected device already has a monitor, so it is left out.",
                 other:
-                  "{{count}} selected devices are monitored already, so they are left out.",
+                  "{{count}} selected devices already have a monitor, so they are left out.",
               },
               plan.monitored.length,
               { count: translator.formatNumber(plan.monitored.length) },
@@ -901,16 +1113,17 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
         ref={contentRef}
         tabIndex={-1}
       >
-        {!isOnProgress && plan.toAdd.length === 0 && (
+        {!isOnProgress && hasNothingToAdd && (
           <Alert
             type={AlertType.INFO}
-            title="None of the selected devices can be added: each one is monitored already or has no IP address yet."
+            title="None of the selected devices can be added: each one already has a monitor or has no IP address yet."
             dataTestId="discovered-device-import-nothing"
           />
         )}
         {!isOnProgress && (
           <DiscoveryImportMonitoringStep
             hosts={hosts}
+            existingHosts={existingHosts}
             source={DiscoveryImportSource.DiscoveredDevices}
             leadSection={leadSection}
             trailingSection={trailingSection}
