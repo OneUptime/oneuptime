@@ -164,8 +164,9 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
         aria-expanded={isComponentVisible}
       >
         <span>{translator.translateText("Columns")}</span>
+        {/* How many are shown, in the reader's digits ("۳" on a Persian page). */}
         <span className="text-xs text-gray-500">
-          {selectedColumnIds.length}
+          {translator.formatNumber(selectedColumnIds.length)}
         </span>
       </button>
 
