@@ -590,7 +590,8 @@ describe("the escalation summary on its own", () => {
  * here too. "Escalation Rules" is a defined term, and its definition - a
  * dialog named by its word - was drawn inside the heading: while it showed,
  * the heading was named "Escalation Rules Escalation Rules". It is drawn
- * right after the heading now (Glossary/DefinitionsDrawnAfter).
+ * on the page's body now, as every tooltip is (TooltipLayer), never inside
+ * the heading.
  */
 describe("the Escalation Rules heading, with its word's definition open", () => {
   const originalFetch: unknown = (globalThis as Record<string, unknown>)[
@@ -602,7 +603,7 @@ describe("the Escalation Rules heading, with its word's definition open", () => 
     clearGlossaryReads();
   });
 
-  test("holds its words alone: the definition is drawn right after it", async () => {
+  test("holds its words alone: the definition is drawn on the page's body", async () => {
     // The glossary answers its read; the rest of the network is stubbed above.
     (globalThis as Record<string, unknown>)["fetch"] = (
       url: unknown,
@@ -654,6 +655,9 @@ describe("the Escalation Rules heading, with its word's definition open", () => 
       "Escalation Rules",
     );
     expect(heading).not.toContainElement(open);
-    expect(heading.nextElementSibling).toContainElement(open);
+    // On the page's body (TooltipLayer), outside whatever holds the heading.
+    expect(open.closest<HTMLElement>("[data-tippy-root]")?.parentElement).toBe(
+      document.body,
+    );
   });
 });

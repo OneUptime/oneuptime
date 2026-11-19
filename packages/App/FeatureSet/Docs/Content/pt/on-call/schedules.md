@@ -18,7 +18,7 @@ Ao criar um agendamento na página **Agendamentos de plantão**, o formulário p
 
 :::steps
 1. Vá em **Plantão** > **Agendamentos de plantão** e clique em **Criar agendamento de plantão**.
-2. Digite um **Nome**.
+2. Digite um **Nome**. Um nome que outro agendamento do projeto já tem é recusado, sem diferenciar maiúsculas de minúsculas nem espaços, para que todo seletor distinga os agendamentos.
 3. Em **Quem se reveza?**, clique em **Adicionar usuário** e escolha as pessoas, na ordem em que se revezam.
 4. Se quiser, abra **Mais campos** para mudar quanto dura cada turno, o fuso horário, a descrição ou os rótulos.
 5. Clique em **Criar agendamento de plantão**. O novo agendamento abre depois na página **Camadas** dele, onde você pode mudar a rotação ou adicionar mais camadas.
@@ -101,7 +101,7 @@ Uma ausência adicionada assim vale para todas as políticas de plantão, então
 
 Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 
-A **Visão geral** de um agendamento tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam quem está de plantão, com as regras que fazem isso. Quando nenhuma faz, ele diz isso e leva às políticas de plantão. Excluir o agendamento, em sua página ou pela lista, diz primeiro quais políticas acionam por ele. As políticas que você não pode abrir são contadas, não nomeadas.
+A **Visão geral** de um agendamento tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam quem está de plantão, com as regras que fazem isso. Quando nenhuma faz, ele diz isso e leva às políticas de plantão. Excluir o agendamento, em sua página ou pela lista, diz primeiro quais políticas acionam por ele. As políticas que você não pode abrir são contadas, não nomeadas. Um agendamento que tem o mesmo nome que outro agendamento, de antes de os nomes precisarem ser diferentes, é marcado com **Mesmo nome que outro agendamento** na lista **Agendamentos de plantão**, que diz quantos são: compare as camadas deles e depois renomeie um com **Renomear** na linha dele.
 
 ## Criar agendamentos com a API ou o Terraform
 

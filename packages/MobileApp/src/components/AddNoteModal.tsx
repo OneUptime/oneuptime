@@ -15,7 +15,7 @@ import { useTheme } from "../theme";
 import { elevation, radius, spacing, typography } from "../theme/tokens";
 import GradientButton from "./GradientButton";
 import IconBadge from "./IconBadge";
-import { useWindowLayout } from "../layout/WindowLayout";
+import { useWindowLayout } from "../layout/WindowLayoutProvider";
 import {
   MEDIUM_HEIGHT,
   SHEET_MAX_WIDTH,

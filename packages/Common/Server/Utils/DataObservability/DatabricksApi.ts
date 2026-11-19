@@ -5,6 +5,7 @@ import DataSourceHttpFetch, {
   DataSourceHttpResponse,
 } from "../DataSource/HttpFetch";
 import {
+  DataSourceBusyError,
   DataSourceUnreachedError,
   failedAnswerError,
   isRequestId,
@@ -13,6 +14,7 @@ import {
   unreachedError,
 } from "../DataSource/HttpFailure";
 import DataSourceHttpRetry, {
+  busyOfExchange,
   HttpRetryExchange,
   HttpRetryReason,
   HttpRetryVerdict,
@@ -83,6 +85,26 @@ const FINISHED_STATES: ReadonlyArray<string> = [
   "FAILED",
   "CANCELED",
   "CLOSED",
+];
+
+/*
+ * A statement Databricks took and then failed for a moment (#9679): its
+ * status FAILED with one of these status.error.error_code values, which
+ * may pass. The REST API error reference calls TEMPORARILY_UNAVAILABLE "a
+ * transient condition that usually clears on its own", and says to retry
+ * an ABORTED operation - a concurrency conflict - as a whole; the
+ * Statement Execution API names a workspace that is so too
+ * (WORKSPACE_TEMPORARILY_UNAVAILABLE) or under maintenance
+ * (SERVICE_UNDER_MAINTENANCE). Never INTERNAL_ERROR (support's, the
+ * reference says), DEADLINE_EXCEEDED (it may have completed, and would
+ * time out again), RESOURCE_EXHAUSTED (a quota spent for hours) or a
+ * request's own fault (BAD_REQUEST, NOT_FOUND...).
+ */
+export const DATABRICKS_BUSY_STATEMENT_CODES: ReadonlyArray<string> = [
+  "TEMPORARILY_UNAVAILABLE",
+  "WORKSPACE_TEMPORARILY_UNAVAILABLE",
+  "SERVICE_UNDER_MAINTENANCE",
+  "ABORTED",
 ];
 
 function readText(value: unknown): string {
@@ -395,10 +417,14 @@ export default class DatabricksApi {
     const body: JSONObject = readObject(exchange.response.bodyJson);
     const requestId: unknown = errorDetail(body, "RequestInfo")["request_id"];
 
+    const errorCode: string | null = readErrorCode(
+      body["error_code"] ?? body["error"],
+    );
+
     return failedAnswerError({
       provider: "Databricks",
       statusCode: exchange.response.statusCode,
-      errorCode: readErrorCode(body["error_code"] ?? body["error"]),
+      errorCode,
       operation,
       message: errorOf(
         body,
@@ -410,6 +436,7 @@ export default class DatabricksApi {
       requestId: isRequestId(requestId) ? requestId.trim() : null,
       refused: { who: this.refusedWho },
       secrets: this.secrets(),
+      busy: busyOfExchange(exchange, { code: errorCode, nowMs: this.now() }),
     });
   }
 
@@ -674,9 +701,20 @@ export default class DatabricksApi {
     ).toUpperCase();
 
     if (state !== "SUCCEEDED") {
-      throw new Error(
-        `The Databricks statement ${state.toLowerCase()}: ${errorOf(answer, "no reason given")}`,
-      );
+      const message: string = `The Databricks statement ${state.toLowerCase()}: ${errorOf(answer, "no reason given")}`;
+      const errorCode: string = readText(
+        readObject(readObject(answer["status"])["error"])["error_code"],
+      ).toUpperCase();
+
+      // The warehouse took it and failed it for a moment: a check starts it again (#9679).
+      if (
+        state === "FAILED" &&
+        DATABRICKS_BUSY_STATEMENT_CODES.includes(errorCode)
+      ) {
+        throw new DataSourceBusyError(message, { code: errorCode });
+      }
+
+      throw new Error(message);
     }
 
     const manifest: JSONObject = readObject(answer["manifest"]);

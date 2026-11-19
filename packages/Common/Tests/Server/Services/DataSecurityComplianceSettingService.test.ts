@@ -13,8 +13,17 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import ColumnLength from "../../../Types/Database/ColumnLength";
+import {
+  getTableColumns,
+  TableColumnMetadata,
+} from "../../../Types/Database/TableColumn";
+import Dictionary from "../../../Types/Dictionary";
 import ComplianceFramework from "../../../Types/DataSecurity/ComplianceFramework";
-import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
+import {
+  ALL_DATA_STORE_RESOURCE_KINDS,
+  DataStoreResourceKind,
+} from "../../../Types/DataSecurity/DataStoreResource";
+import { KubernetesComplianceFramework } from "../../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -163,6 +172,31 @@ describe("turning a framework off for a resource", () => {
     expect(findBySpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * The API, MCP and the Terraform provider read a column's values from the
+   * column (ColumnAllowedValues): it says them as Object.values of its own
+   * enum, and they are the six kinds it has always stored, so no stored
+   * setting reads differently and none needs a migration.
+   */
+  test("its kind of resource is one of the six it has always stored, as the column says them", () => {
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(
+      new DataSecurityComplianceSetting(),
+    );
+
+    expect(columns["resourceType"]?.allowedValues).toEqual([
+      "KubernetesCluster",
+      "DockerHost",
+      "PodmanHost",
+      "DatabaseServer",
+      "CloudResource",
+      "Service",
+    ]);
+    // The kinds Data Security finds stores on, in the same order.
+    expect(columns["resourceType"]?.allowedValues).toEqual([
+      ...ALL_DATA_STORE_RESOURCE_KINDS,
+    ]);
+  });
+
   test("a kind of resource that holds no stores is refused", async () => {
     const result: { thrown: unknown; data: DataSecurityComplianceSetting } =
       await create({ resourceType: "Host" as DataStoreResourceKind });
@@ -243,6 +277,150 @@ describe("turning a framework off for a resource", () => {
       "",
     );
     expect(DataSecurityComplianceSettingServiceType.readRequirement(7)).toBe(
+      "",
+    );
+  });
+
+  test("a data framework is never turned off for one namespace", async () => {
+    const result: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({ namespace: "payments" });
+
+    expect(result.thrown).toBeInstanceOf(BadDataException);
+    expect((result.thrown as Error).message).toBe(
+      "Only a Kubernetes cluster's own frameworks can be turned off for one namespace. Leave the namespace empty.",
+    );
+  });
+});
+
+/*
+ * A Kubernetes cluster's own frameworks (#9627): the Pod Security
+ * Standards and the CIS Kubernetes Benchmark, on a cluster only, for a
+ * control each is scored on, and for the whole cluster or one namespace -
+ * one setting per framework, control and namespace.
+ */
+describe("turning a Kubernetes framework off for a cluster or a namespace", () => {
+  test("a framework is accepted for the whole cluster, with no requirement or namespace", async () => {
+    const result: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({
+        framework: KubernetesComplianceFramework.PssRestricted,
+      });
+
+    expect(result.thrown).toBeUndefined();
+    expect(result.data.requirement).toBeNull();
+    expect(result.data.namespace).toBeNull();
+  });
+
+  test("a control it is scored on is accepted, and so is a namespace, trimmed", async () => {
+    const result: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({
+        framework: KubernetesComplianceFramework.PssBaseline,
+        requirement: " Privileged Containers ",
+        namespace: " kube-system ",
+      });
+
+    expect(result.thrown).toBeUndefined();
+    expect(result.data.requirement).toBe("Privileged Containers");
+    expect(result.data.namespace).toBe("kube-system");
+    expect(
+      (
+        await create({
+          framework: KubernetesComplianceFramework.CisKubernetes,
+          requirement: "5.1.3",
+        })
+      ).thrown,
+    ).toBeUndefined();
+  });
+
+  test("a control the framework is not scored on is refused, saying what to choose", async () => {
+    const baseline: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({
+        framework: KubernetesComplianceFramework.PssBaseline,
+        requirement: "Volume Types",
+      });
+
+    expect(baseline.thrown).toBeInstanceOf(BadDataException);
+    expect((baseline.thrown as Error).message).toBe(
+      "Volume Types is not a control PSS Baseline is scored on. Choose one of its controls, or none for the whole framework.",
+    );
+    // Not scored here: nothing to turn off.
+    expect(
+      (
+        await create({
+          framework: KubernetesComplianceFramework.CisKubernetes,
+          requirement: "5.1.7",
+        })
+      ).thrown,
+    ).toBeInstanceOf(BadDataException);
+  });
+
+  test("a namespace's name Kubernetes would not allow is refused", async () => {
+    for (const namespace of ["Kube_System", "-web", "a".repeat(64)]) {
+      const result: { thrown: unknown; data: DataSecurityComplianceSetting } =
+        await create({
+          framework: KubernetesComplianceFramework.PssBaseline,
+          namespace,
+        });
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect((result.thrown as Error).message).toBe(
+        `${namespace} is not a namespace's name. Write it as Kubernetes does: lowercase letters, digits and hyphens, at most 63 characters.`,
+      );
+    }
+  });
+
+  test("on anything but a Kubernetes cluster it is refused", async () => {
+    const result: { thrown: unknown; data: DataSecurityComplianceSetting } =
+      await create({
+        resourceType: DataStoreResourceKind.DatabaseServer,
+        framework: KubernetesComplianceFramework.CisKubernetes,
+      });
+
+    expect(result.thrown).toBeInstanceOf(BadDataException);
+    expect((result.thrown as Error).message).toBe(
+      "CIS Kubernetes scores a Kubernetes cluster. Choose a Kubernetes cluster for this setting.",
+    );
+    expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  test("one setting per framework, control and namespace: a second is refused, another namespace is not", async () => {
+    existing = [
+      settingOf({
+        framework: KubernetesComplianceFramework.PssBaseline,
+        namespace: "kube-system",
+      }),
+    ];
+
+    expect(
+      (
+        await create({
+          framework: KubernetesComplianceFramework.PssBaseline,
+          namespace: "kube-system",
+        })
+      ).thrown,
+    ).toBeInstanceOf(BadDataException);
+    expect(
+      (
+        await create({
+          framework: KubernetesComplianceFramework.PssBaseline,
+          namespace: "monitoring",
+        })
+      ).thrown,
+    ).toBeUndefined();
+    // The whole cluster is a setting of its own beside a namespace's.
+    expect(
+      (
+        await create({
+          framework: KubernetesComplianceFramework.PssBaseline,
+        })
+      ).thrown,
+    ).toBeUndefined();
+  });
+
+  test("a namespace is read trimmed, or as the whole resource", () => {
+    expect(
+      DataSecurityComplianceSettingServiceType.readNamespace(" payments "),
+    ).toBe("payments");
+    expect(DataSecurityComplianceSettingServiceType.readNamespace(null)).toBe(
       "",
     );
   });

@@ -3,7 +3,7 @@ import { Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useScreenPadding } from "./useScreenPadding";
-import { PaneProvider } from "../layout/WindowLayout";
+import { PaneProvider } from "../layout/WindowLayoutProvider";
 import { getScreenBottomPadding } from "../theme/layout";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import {

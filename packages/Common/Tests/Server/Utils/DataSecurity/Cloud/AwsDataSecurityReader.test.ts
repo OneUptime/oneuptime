@@ -1,5 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { gunzipSync, gzipSync } from "zlib";
+import AwsRetry from "../../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import {
   AwsRestResponse,
   readXmlChildren,
@@ -208,6 +216,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  jest.restoreAllMocks();
 });
 
 describe("S3 buckets", () => {
@@ -2172,6 +2181,8 @@ describe("REST requests and the XML they answer with", () => {
   });
 
   test("signs a GET for the Region it is sent to, with S3's payload hash, and asks again when S3 says SlowDown", async () => {
+    // The jitter at its most: the wait is its whole backoff (AwsRetry).
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
     const api: FakeProviderApi = createFakeProviderApi([
       {
         path: "/my-bucket",

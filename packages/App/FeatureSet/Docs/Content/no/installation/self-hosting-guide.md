@@ -114,7 +114,7 @@ Klikk på **Sett opp e-post**. Den åpner **Innstillinger > Varslinger > E-poste
 
 ### Velg hvem som kan registrere seg
 
-Alle som kan åpne adressen din, kan registrere seg. Når teamet ditt har kontoene sine, slår du av **Tillat registrering** under **Innstillinger > Autentisering**: folk du inviterer til et prosjekt, kan fortsatt bli med. For å la registreringen være åpen klikker du på **La registrering være åpen**.
+Alle som kan åpne adressen din, kan registrere seg. Når serveren din kan sende e-post, åpner en ny konto lenken OneUptime sender den før den kan logge inn, og en adresse som allerede har en konto, får beskjed om det på e-post. Når teamet ditt har kontoene sine, slår du av **Tillat registrering** under **Innstillinger > Autentisering**: folk du inviterer til et prosjekt, kan fortsatt bli med. For å la registreringen være åpen klikker du på **La registrering være åpen**.
 
 **Det virket når** sjekklisten merker Registrering som ferdig.
 

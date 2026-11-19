@@ -22,6 +22,7 @@
 | `This project has been blocked` | 請主管理員解除專案的封鎖：請參閱[被封鎖的專案](#被封鎖的專案) |
 | `references records that are not in this project` | 使用你自己專案中記錄的 ID：請參閱[來自其他專案的 ID](#來自其他專案的-id) |
 | 資料來源傳回的 `Not Found` 或 `Ambiguous Match` | 修正查詢的引數：請參閱[找不到或找到多筆結果的查詢](#找不到或找到多筆結果的查詢) |
+| `There is already a team called`（標籤、待命策略、待命排程） | 改用同類其他記錄都沒有的名稱，或先為另一個重新命名：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
 | `Cannot import non-existent remote object` | 檢查 ID 和金鑰的權限：請參閱[匯入資源](/docs/terraform/importing-resources#疑難排解) |
 | `Provider produced inconsistent result after apply` | 升級提供者：請參閱[apply 之後結果不一致](#apply-之後結果不一致) |
 | 計畫建立了一個你沒有新增的資源 | 金鑰已無法讀取它，OneUptime 回應了 `404`：先恢復金鑰的讀取權限，再用 `terraform import` 匯入該資源：請參閱[資源離開 state，下一次 apply 又建立了它](#資源離開-state下一次-apply-又建立了它) |
@@ -102,6 +103,12 @@ This network device references records that are not in this project: Network Sit
 ### 找不到或找到多筆結果的查詢
 
 資料來源要嘛剛好找到一筆記錄，要嘛讓計畫停止。`Not Found` 表示沒有記錄具有該 `id`，或者沒有記錄與你設定的引數相符；`Ambiguous Match` 表示有多筆記錄相符。請修正引數，設定更多引數把查詢範圍縮小到一筆，或依 `id` 查詢記錄。[讀取已有的內容](/docs/terraform/complete-guide#讀取已有的內容)中列出了規則。
+
+### 其他記錄已在使用的名稱
+
+團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已封存的待命策略會保留其名稱：請取消封存，或另選一個名稱。先前就同名的記錄會保留名稱，儀表板中團隊、待命策略和待命排程的清單會標示它們。
+
+Terraform 會平行執行同一次 apply 中的變更，因此如果重新命名為另一個資源在同一次 apply 中讓出的名稱，在那個資源仍占用該名稱時可能會被拒絕：請再次套用，或在接收名稱的資源上新增一個指向讓出名稱之資源的 `depends_on`。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，都無法在一次 apply 中完成：先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
 
 ## 無法穩定的計畫
 

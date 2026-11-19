@@ -22,6 +22,7 @@ import { readPowerQueryTables } from "../../../../Server/Utils/DataObservability
 import OpenLineageIngest, {
   ProjectCatalog,
 } from "../../../../Server/Utils/DataObservability/OpenLineageIngest";
+import { UsageAsset } from "../../../../Server/Utils/DataObservability/TableUsageMatching";
 import DataBiConnectionService from "../../../../Server/Services/DataBiConnectionService";
 import DataDashboardService from "../../../../Server/Services/DataDashboardService";
 import DataBiConnection from "../../../../Models/DatabaseModels/DataBiConnection";
@@ -496,6 +497,7 @@ describe("a tool's summary", () => {
       ],
       moreSourceCount: 0,
       unwatchedTables: ["Sales.dbo.Customers"],
+      unknownEntitySets: [],
       problems: [
         DataBiLineageProblem.TablesNotWatched,
         DataBiLineageProblem.NotDatabases,
@@ -507,6 +509,110 @@ describe("a tool's summary", () => {
     expect(
       readDataBiLineageSummary(JSON.parse(JSON.stringify(summary))),
     ).toEqual(summary);
+  });
+
+  /*
+   * A report on Dataverse's OData connectors names its tables by entity set
+   * (#9696). In an environment whose tables keep no entity set name yet -
+   * an older probe collects it, or it has not been collected since the
+   * names were kept - they are told apart from tables the environment does
+   * not watch, so See Why says to update the probe, not to watch them.
+   */
+  test("Dataverse tables named by an entity set no collection kept yet: their own reason, not tables not watched", () => {
+    const tables: Array<BiTableRef> = readPowerQueryTables(
+      'let Source = Cds.Entities("https://contoso.crm.dynamics.com/", [ReorderColumns=null, UseFormattedValue=null]), entities = Source{[Group="entities"]}[Data], accounts = entities{[EntitySetName="accounts"]}[Data], contacts = entities{[EntitySetName="contacts"]}[Data] in Table.Combine({accounts, contacts})',
+    );
+    const contoso: ProjectCatalog = catalog({
+      stores: [
+        {
+          dataStoreId: "store-contoso",
+          kind: DataStoreKind.Dataverse,
+          databaseName: "contoso",
+          serverAddress: "contoso.crm.dynamics.com",
+        },
+      ],
+      assets: [
+        {
+          dataAssetId: "contoso-account",
+          dataStoreId: "store-contoso",
+          schemaName: "dbo",
+          name: "account",
+        },
+        {
+          dataAssetId: "contoso-contact",
+          dataStoreId: "store-contoso",
+          schemaName: "dbo",
+          name: "contact",
+        },
+      ],
+    });
+    const waiting: DataBiLineageSummary = summarizeBiLineage({
+      dashboards: [{ tables }],
+      catalog: contoso,
+    });
+
+    expect(waiting).toMatchObject({
+      tableCount: 2,
+      matchedTableCount: 0,
+      unwatchedTables: [],
+      unknownEntitySets: ["accounts", "contacts"],
+      problems: [DataBiLineageProblem.EntitySetsUnknown],
+    });
+
+    // Once a collection keeps the names: matched, and nothing to say.
+    const named: DataBiLineageSummary = summarizeBiLineage({
+      dashboards: [{ tables }],
+      catalog: catalog({
+        ...contoso,
+        assets: contoso.assets.map((asset: UsageAsset): UsageAsset => {
+          return { ...asset, entitySetName: `${asset.name}s` };
+        }),
+      }),
+    });
+
+    expect(named).toMatchObject({
+      matchedTableCount: 2,
+      unknownEntitySets: [],
+      problems: [],
+    });
+
+    // An environment that keeps them, but not this one's: a table it does not watch.
+    const unwatched: DataBiLineageSummary = summarizeBiLineage({
+      dashboards: [{ tables }],
+      catalog: catalog({
+        ...contoso,
+        assets: [{ ...contoso.assets[0]!, entitySetName: "accounts" }],
+      }),
+    });
+
+    expect(unwatched).toMatchObject({
+      matchedTableCount: 1,
+      unwatchedTables: ["contacts"],
+      unknownEntitySets: [],
+      problems: [DataBiLineageProblem.TablesNotWatched],
+    });
+  });
+
+  test("a summary kept before entity sets were told apart reads without them, and one with them reads them back", () => {
+    const before: JSONObject = {
+      dashboardCount: 1,
+      unwatchedTables: ["accounts"],
+      problems: [DataBiLineageProblem.TablesNotWatched],
+    };
+
+    expect(readDataBiLineageSummary(before)).not.toHaveProperty(
+      "unknownEntitySets",
+    );
+    expect(
+      readDataBiLineageSummary({
+        ...before,
+        unknownEntitySets: ["accounts", 7, ""],
+        problems: [DataBiLineageProblem.EntitySetsUnknown],
+      }),
+    ).toMatchObject({
+      unknownEntitySets: ["accounts"],
+      problems: [DataBiLineageProblem.EntitySetsUnknown],
+    });
   });
 
   test("the issue's case: hundreds of reports on datasets Power BI described without tables", () => {

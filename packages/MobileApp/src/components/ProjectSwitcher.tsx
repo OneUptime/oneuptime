@@ -21,7 +21,7 @@ import { useProject } from "../hooks/useProject";
 import { useTheme } from "../theme";
 import type { ProjectItem } from "../api/types";
 import { elevation, radius, spacing } from "../theme/tokens";
-import { useWindowLayout } from "../layout/WindowLayout";
+import { useWindowLayout } from "../layout/WindowLayoutProvider";
 import { SHEET_MAX_WIDTH, type WindowLayout } from "../layout/windowLayout";
 import {
   getSheetBackdropLayout,

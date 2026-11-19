@@ -13,7 +13,10 @@ import type {
   NativeSyntheticEvent,
 } from "react-native";
 import { paramsInclude } from "./routeParams";
-import { usePane, type ResolvedPaneLayout } from "../layout/WindowLayout";
+import {
+  usePane,
+  type ResolvedPaneLayout,
+} from "../layout/WindowLayoutProvider";
 
 /*
  * What a list keeps when it moves between layouts.

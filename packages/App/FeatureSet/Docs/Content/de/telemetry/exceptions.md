@@ -202,7 +202,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 ### Sehen, was es getan hat
 
 - **Ausnahmen → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen, darunter die Frames Ihres Codes in seinem Stack-Trace. **Ausnahmegruppe anzeigen** öffnet die Ausnahme, und bei fehlenden Stack-Traces eines Dienstes öffnet **In Ausnahmen öffnen** seine nicht behobenen Ausnahmen vom letzten Tag.
-- **Ausnahmen → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
+- **Ausnahmen → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat. Ein Pull Request sagt, wie seine Aufgabe in Code jetzt steht: Eine Korrektur, die nach einem Fehlschlag mit Erneut versuchen noch einmal angefragt wurde, gilt nicht mehr als fehlgeschlagen und nennt den Pull Request, den sie geöffnet hat.
 - Der Pull Request sagt, warum er geöffnet wurde, mit einem Link zu seinem Befund. Der einer neuen oder zunehmenden Ausnahme verlinkt auch die Ausnahme und erscheint auf ihrer Seite **Mit KI beheben**. In Code nennt seine Aufgabe die Ausnahme, die sie behebt, oder den Befund, aus dem sie kam.
 
 ## Ausnahmen-Einblicke

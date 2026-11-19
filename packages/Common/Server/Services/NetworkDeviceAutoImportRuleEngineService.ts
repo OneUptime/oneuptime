@@ -88,6 +88,32 @@ import NetworkDeviceNamingRuleEngineService, {
 } from "./NetworkDeviceNamingRuleEngineService";
 import Label from "../../Models/DatabaseModels/Label";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import {
+  WhenReachUnknown,
+  toIdKey,
+} from "../../Utils/NetworkDevice/DeviceAddressScope";
+
+/*
+ * Where the running map of devices files a scan's host: by the probe the
+ * scan looked from, then the address. Two sites can each have a 10.0.0.5
+ * (issue #9677), so a device one probe's scan met at an address says nothing
+ * of the host another probe's scan finds there in the same sweep; two scans
+ * of one probe share what they meet, which keeps overlapping scans and
+ * duplicate rows idempotent.
+ */
+export function getExistingDeviceKey(
+  scan: Pick<NetworkDeviceDiscoveryScan, "probeId">,
+  ipAddress: string,
+): string {
+  return `${toIdKey(scan.probeId)}|${ipAddress}`;
+}
+
+// What a re-check after a failed create finds at the host's address.
+interface RegisteredMeanwhile {
+  device: NetworkDevice | null;
+  // Devices there that the scan's probe cannot tell apart.
+  isAmbiguous: boolean;
+}
 
 /*
  * The engine behind network device auto-import rules (issue #3378): reads a
@@ -1822,20 +1848,33 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * registered is looked up again if a later scan in the same sweep carries it
    * — one indexed lookup, and recording absence would go stale the moment this
    * run creates the device.
+   *
+   * Found as the scan's probe sees each address, and filed under that probe
+   * (getExistingDeviceKey): two sites can each have a 10.0.0.5 (issue
+   * #9677), and another site's device there is not this scan's host. Returns
+   * the addresses whose devices the probe cannot tell apart: a device is
+   * there, so none is created, but none is this host's either.
    */
   private async primeExistingDevices(data: {
     projectId: ObjectID;
+    scan: Pick<NetworkDeviceDiscoveryScan, "probeId">;
     hostnames: Array<string>;
     into: Map<string, NetworkDevice>;
-  }): Promise<void> {
-    const found: Map<string, NetworkDevice> = await this.loadExistingDevices(
-      data.projectId,
-      data.hostnames,
-    );
+  }): Promise<Set<string>> {
+    const ambiguous: Set<string> = new Set<string>();
+
+    const found: Map<string, NetworkDevice> = await this.loadExistingDevices({
+      projectId: data.projectId,
+      scan: data.scan,
+      hostnames: data.hostnames,
+      ambiguousInto: ambiguous,
+    });
 
     for (const [hostname, device] of found) {
-      data.into.set(hostname, device);
+      data.into.set(getExistingDeviceKey(data.scan, hostname), device);
     }
+
+    return ambiguous;
   }
 
   /*
@@ -1858,14 +1897,27 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    *
    * Asking about the addresses the scans actually carry is both correct and
    * an indexed lookup. See NetworkDeviceService.getDevicesByHostnames.
+   *
+   * Each address is the device the scan's probe sees there (issue #9677):
+   * the device it polls, else the one in a site it looks into, never another
+   * site's at the same address. Where the probe's site cannot be known, the
+   * one device at the address is the host's, as before, so a rule never
+   * adds a box twice; devices it cannot tell apart go to `ambiguousInto`.
    */
-  private async loadExistingDevices(
-    projectId: ObjectID,
-    hostnames: Array<string>,
-  ): Promise<Map<string, NetworkDevice>> {
+  private async loadExistingDevices(data: {
+    projectId: ObjectID;
+    scan: Pick<NetworkDeviceDiscoveryScan, "probeId">;
+    hostnames: Array<string>;
+    ambiguousInto: Set<string>;
+  }): Promise<Map<string, NetworkDevice>> {
     return NetworkDeviceService.getDevicesByHostnames({
-      projectId: projectId,
-      hostnames: hostnames,
+      projectId: data.projectId,
+      hostnames: data.hostnames,
+      seenFrom: {
+        probeIds: data.scan.probeId ? [data.scan.probeId] : [],
+        whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
+      },
+      ambiguousHostnames: data.ambiguousInto,
       select: {
         _id: true,
         projectId: true,
@@ -2167,8 +2219,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
      * Ask the database about THESE addresses, once, before the loop — rather
      * than having loaded every device in the project up front.
      */
-    await this.primeExistingDevices({
+    const ambiguousAddresses: Set<string> = await this.primeExistingDevices({
       projectId: scan.projectId,
+      scan: scan,
       hostnames: hosts.map((host: DiscoveredNetworkDevice): string => {
         return host.ipAddress || "";
       }),
@@ -2307,9 +2360,17 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       })();
 
       let networkDevice: NetworkDevice | undefined = data.existingDevices.get(
-        host.ipAddress,
+        getExistingDeviceKey(scan, host.ipAddress),
       );
       let deviceWasCreated: boolean = false;
+
+      /*
+       * Devices at the address that the scan's probe cannot tell apart
+       * (issue #9677): the host is a device, so none is created - but which
+       * one it is cannot be known, so none is given the rule's monitors.
+       */
+      const isAmbiguous: boolean =
+        !networkDevice && ambiguousAddresses.has(host.ipAddress);
 
       /*
        * Current inventory is authoritative. The stored isAlreadyRegistered
@@ -2317,7 +2378,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
        * The map also includes devices created during this run, keeping
        * duplicate rows and overlapping scans idempotent.
        */
-      if (networkDevice) {
+      if (networkDevice || isAmbiguous) {
         result.hostsSkippedAlreadyRegistered++;
       }
 
@@ -2325,6 +2386,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         if (!result.matchedIpAddressSample.includes(host.ipAddress)) {
           result.matchedIpAddressSample.push(host.ipAddress);
         }
+      }
+
+      if (isAmbiguous) {
+        continue;
       }
 
       if (!networkDevice) {
@@ -2371,7 +2436,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
               : {}),
           });
           networkDevice.id = ObjectID.generate();
-          data.existingDevices.set(host.ipAddress, networkDevice);
+          data.existingDevices.set(
+            getExistingDeviceKey(scan, host.ipAddress),
+            networkDevice,
+          );
         } else {
           const createResult: {
             device: NetworkDevice | null;
@@ -3269,30 +3337,28 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       try {
         createdDevice = await attemptCreate(ruleNaming.name, ruleNaming);
         data.result.devicesCreated++;
-        data.existingDevices.set(data.host.ipAddress, createdDevice);
+        data.existingDevices.set(
+          getExistingDeviceKey(data.scan, data.host.ipAddress),
+          createdDevice,
+        );
 
         return { device: createdDevice, wasCreated: true };
       } catch (ruleNameError) {
-        const registered: NetworkDevice | null =
-          await NetworkDeviceService.findOneBy({
-            query: {
-              projectId: data.projectId,
-              hostname: data.host.ipAddress,
-            },
-            select: {
-              _id: true,
-              projectId: true,
-              name: true,
-              hostname: true,
-              monitoringMethod: true,
-            },
-            props: { isRoot: true },
-          });
+        const registered: RegisteredMeanwhile =
+          await this.findRegisteredMeanwhile(data);
 
-        if (registered) {
+        if (registered.device) {
           data.result.hostsSkippedAlreadyRegistered++;
-          data.existingDevices.set(data.host.ipAddress, registered);
-          return { device: registered, wasCreated: false };
+          data.existingDevices.set(
+            getExistingDeviceKey(data.scan, data.host.ipAddress),
+            registered.device,
+          );
+          return { device: registered.device, wasCreated: false };
+        }
+
+        if (registered.isAmbiguous) {
+          data.result.hostsSkippedAlreadyRegistered++;
+          return { device: null, wasCreated: false };
         }
 
         logger.debug(
@@ -3304,27 +3370,22 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     try {
       createdDevice = await attemptCreate();
     } catch (firstError) {
-      const registeredMeanwhile: NetworkDevice | null =
-        await NetworkDeviceService.findOneBy({
-          query: {
-            projectId: data.projectId,
-            hostname: data.host.ipAddress,
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            name: true,
-            hostname: true,
-            monitoringMethod: true,
-          },
-          props: { isRoot: true },
-        });
+      const registeredMeanwhile: RegisteredMeanwhile =
+        await this.findRegisteredMeanwhile(data);
 
-      if (registeredMeanwhile) {
+      if (registeredMeanwhile.device) {
         // Skipped is a sub-bucket of matched, same as the other run results.
         data.result.hostsSkippedAlreadyRegistered++;
-        data.existingDevices.set(data.host.ipAddress, registeredMeanwhile);
-        return { device: registeredMeanwhile, wasCreated: false };
+        data.existingDevices.set(
+          getExistingDeviceKey(data.scan, data.host.ipAddress),
+          registeredMeanwhile.device,
+        );
+        return { device: registeredMeanwhile.device, wasCreated: false };
+      }
+
+      if (registeredMeanwhile.isAmbiguous) {
+        data.result.hostsSkippedAlreadyRegistered++;
+        return { device: null, wasCreated: false };
       }
 
       try {
@@ -3351,9 +3412,39 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     data.result.devicesCreated++;
-    data.existingDevices.set(data.host.ipAddress, createdDevice);
+    data.existingDevices.set(
+      getExistingDeviceKey(data.scan, data.host.ipAddress),
+      createdDevice,
+    );
 
     return { device: createdDevice, wasCreated: true };
+  }
+
+  /*
+   * After a create failed: whether the host's address was registered
+   * meanwhile - another import, a rule or a person got there first - or the
+   * name was the problem. Asked as the scan's probe sees the address (issue
+   * #9677): two branches' routers can share a name and a 10.0.0.5, and the
+   * other branch's is no reason to leave this one out.
+   */
+  private async findRegisteredMeanwhile(data: {
+    projectId: ObjectID;
+    scan: NetworkDeviceDiscoveryScan;
+    host: DiscoveredNetworkDevice;
+  }): Promise<RegisteredMeanwhile> {
+    const ambiguous: Set<string> = new Set<string>();
+
+    const found: Map<string, NetworkDevice> = await this.loadExistingDevices({
+      projectId: data.projectId,
+      scan: data.scan,
+      hostnames: [data.host.ipAddress],
+      ambiguousInto: ambiguous,
+    });
+
+    return {
+      device: found.get(data.host.ipAddress) || null,
+      isAmbiguous: ambiguous.has(data.host.ipAddress),
+    };
   }
 
   /*

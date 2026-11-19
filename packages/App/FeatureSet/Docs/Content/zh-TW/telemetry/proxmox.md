@@ -254,7 +254,7 @@ journal 是依主機區分的，因此遠端代理程式無法讀取它。這是
 標準的 `otel/opentelemetry-collector-contrib` 映像檔是以 `FROM scratch` 建置的：它沒有 journald 接收器所執行的 `journalctl`，而且會以一個無法讀取 journal 的使用者執行。請建置下面這個包裝映像檔，並將 `docker-compose.yml` 中的 `image:` 指向它：
 
 ```dockerfile title="Dockerfile"
-FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends systemd \

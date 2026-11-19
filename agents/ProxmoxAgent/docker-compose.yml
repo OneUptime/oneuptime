@@ -13,7 +13,7 @@ services:
     # runs as a non-root user that cannot read the journal. Replace it
     # with the one-line custom image from README.md ("Shipping Proxmox
     # service logs") when you enable that pipeline.
-    image: otel/opentelemetry-collector-contrib:0.161.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     container_name: oneuptime-proxmox-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro

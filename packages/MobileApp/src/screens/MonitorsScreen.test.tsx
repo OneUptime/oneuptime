@@ -94,6 +94,29 @@ jest.mock("../hooks/useAllProjectMonitors", () => {
   };
 });
 
+/*
+ * The filter sheet's values are read through React Query, which these
+ * suites do not provide: the list is under test here, and the filters have
+ * a suite of their own (MonitorsScreenFilters.test.tsx).
+ */
+jest.mock("../hooks/useFilterOptions", () => {
+  const empty: { options: Array<never>; isLoading: boolean; isError: boolean } =
+    { options: [], isLoading: false, isError: false };
+  return {
+    useFilterOptions: () => {
+      return {
+        people: empty,
+        teams: empty,
+        states: empty,
+        severities: empty,
+        labels: empty,
+        monitors: empty,
+        monitorTypes: empty,
+      };
+    },
+  };
+});
+
 jest.mock("../hooks/useHaptics", () => {
   return {
     useHaptics: () => {

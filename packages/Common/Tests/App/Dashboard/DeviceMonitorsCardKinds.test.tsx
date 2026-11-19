@@ -538,3 +538,218 @@ describe("Add Existing Monitor", () => {
     expect(onMonitorAdded).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * ISSUE #9676: a monitor a person tied to the device - and nothing else puts
+ * on the card - can be taken off it from the card, after a confirmation that
+ * says what that changes. One made for the device, bound to it or watching
+ * it is the device's for that reason, and is never offered.
+ */
+describe("Remove a monitor someone tied to the device", () => {
+  const TIED_PING: Monitor = monitor({
+    id: "90000000-0000-4000-8000-000000000041",
+    name: "Kiosk ping (made by hand)",
+    monitorType: MonitorType.Ping,
+  });
+  const TIED_ID: string = TIED_PING._id!.toString();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function grant(permissions: Array<Permission>): void {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue(permissions);
+  }
+
+  function renderRemovable(data: {
+    removableMonitorIds?: Array<string>;
+    onMonitorRemoved?: (() => void) | undefined;
+  }): void {
+    render(
+      <MemoryRouter>
+        <DeviceMonitorsCard
+          monitors={[
+            NETWORK_DEVICE_MONITOR,
+            PING_MONITOR_FROM_IMPORT,
+            TIED_PING,
+          ]}
+          isLoading={false}
+          error=""
+          networkDeviceId={DEVICE_ID}
+          isMonitorBacked={false}
+          canCreateMonitor={true}
+          removableMonitorIds={new Set<string>(data.removableMonitorIds || [])}
+          onMonitorRemoved={data.onMonitorRemoved}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  function removeButtons(): Array<HTMLElement> {
+    return screen.queryAllByRole("button", {
+      name: /^Remove .+ from this device$/,
+    });
+  }
+
+  test("is offered on the tied monitor's row alone, named for a screen reader", () => {
+    grant([Permission.ProjectOwner]);
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: jest.fn(),
+    });
+
+    expect(removeButtons()).toHaveLength(1);
+    expect(
+      screen.getByRole("button", {
+        name: "Remove Kiosk ping (made by hand) from this device",
+      }),
+    ).toHaveTextContent("Remove");
+    expect(
+      screen.getByTestId(`device-monitors-remove-${TIED_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("is never offered for a monitor made for the device, or one watching it", () => {
+    grant([Permission.ProjectOwner]);
+    renderRemovable({ removableMonitorIds: [], onMonitorRemoved: jest.fn() });
+
+    expect(removeButtons()).toHaveLength(0);
+  });
+
+  test("is offered to nobody who may not tie monitors to devices, nor on a page that reads nothing again", () => {
+    grant([Permission.Viewer]);
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: jest.fn(),
+    });
+
+    expect(removeButtons()).toHaveLength(0);
+
+    cleanup();
+    grant([Permission.ProjectOwner]);
+    renderRemovable({ removableMonitorIds: [TIED_ID] });
+
+    expect(removeButtons()).toHaveLength(0);
+  });
+
+  test("asks first, naming the monitor and what changes, then unties it alone and reads the device's monitors again", async () => {
+    grant([Permission.ProjectOwner]);
+    const updateById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never);
+    const onMonitorRemoved: Mock<() => void> = jest.fn<() => void>();
+
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: onMonitorRemoved,
+    });
+
+    await act(async () => {
+      fireEvent.click(removeButtons()[0]!);
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Remove from Device");
+    expect(dialog).toHaveTextContent(
+      "Kiosk ping (made by hand) stops being listed on this device, and what it raises from now on is not linked to the device. Imports and auto import rules stop counting it, so they can give the device a monitor like it. The monitor itself keeps checking, unchanged.",
+    );
+    // Nothing is written until the reader says so.
+    expect(updateById).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(updateById).toHaveBeenCalledTimes(1);
+    const update: {
+      modelType: unknown;
+      id: ObjectID;
+      data: Record<string, unknown>;
+    } = updateById.mock.calls[0]![0] as {
+      modelType: unknown;
+      id: ObjectID;
+      data: Record<string, unknown>;
+    };
+    expect(update.modelType).toBe(Monitor);
+    expect(update.id.toString()).toBe(TIED_ID);
+    expect(update.data).toEqual({ networkDeviceId: null });
+    expect(onMonitorRemoved).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("Cancel writes nothing", async () => {
+    grant([Permission.ProjectOwner]);
+    const updateById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never);
+
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: jest.fn(),
+    });
+
+    await act(async () => {
+      fireEvent.click(removeButtons()[0]!);
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    });
+
+    expect(updateById).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("a removal the server refuses is said in the dialog, which stays open, and nothing is read again", async () => {
+    grant([Permission.ProjectOwner]);
+    jest
+      .spyOn(ModelAPI, "updateById")
+      .mockRejectedValue(new Error("You may not edit this monitor."));
+    const onMonitorRemoved: Mock<() => void> = jest.fn<() => void>();
+
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: onMonitorRemoved,
+    });
+
+    await act(async () => {
+      fireEvent.click(removeButtons()[0]!);
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "You may not edit this monitor.",
+    );
+    expect(onMonitorRemoved).not.toHaveBeenCalled();
+  });
+
+  test("both device pages pass the card what it may remove, and read the monitors again after", () => {
+    for (const page of ["Index.tsx", "Monitors.tsx"]) {
+      const source: string = fs
+        .readFileSync(
+          path.join(
+            __dirname,
+            "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View",
+            page,
+          ),
+          "utf-8",
+        )
+        .replace(WHITESPACE_RUNS, " ");
+
+      expect(source).toContain("removableMonitorIds={removableMonitorIds}");
+      expect(source).toContain("onMonitorRemoved={readMonitorsAgain}");
+      expect(source).toContain(
+        "setRemovableMonitorIds(context.removableMonitorIds);",
+      );
+    }
+  });
+});

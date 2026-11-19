@@ -106,7 +106,8 @@ interface FakeConfig {
   id: string;
   projectId: string;
   osType: HostCollectorOsType;
-  order: number;
+  // Null: a config without a place, which the column allows.
+  order: number | null;
   configYaml: string;
   labelIds: Array<string>;
 }
@@ -133,6 +134,7 @@ let labelIdsByName: Map<string, string>;
 let cache: Map<string, string>;
 let writes: Array<Write>;
 let versionQueries: Array<Record<string, unknown>>;
+let configSorts: Array<Record<string, unknown>>;
 let now: number;
 let failNextWrite: boolean;
 let nextId: number;
@@ -317,29 +319,43 @@ function installFakes(): void {
 
   jest
     .spyOn(HostCollectorConfigService, "findBy")
-    .mockImplementation(async (data: { query: Record<string, unknown> }) => {
-      return configs
-        .filter((config: FakeConfig): boolean => {
-          return config.projectId === String(data.query["projectId"]);
-        })
-        .sort((a: FakeConfig, b: FakeConfig): number => {
-          return a.order - b.order;
-        })
-        .map((config: FakeConfig): HostCollectorConfig => {
-          const model: HostCollectorConfig = new HostCollectorConfig();
-          model._id = config.id;
-          model.osType = config.osType;
-          model.order = config.order;
-          model.configYaml = config.configYaml;
-          model.configHash = getHostCollectorConfigHash(config.configYaml);
-          model.labels = config.labelIds.map((labelId: string): Label => {
-            const label: Label = new Label();
-            label._id = labelId;
-            return label;
-          });
-          return model;
+    .mockImplementation(
+      async (data: { query: Record<string, unknown>; sort?: unknown }) => {
+        configSorts.push({
+          ...((data.sort as Record<string, unknown> | undefined) || {}),
         });
-    });
+        return (
+          configs
+            .filter((config: FakeConfig): boolean => {
+              return config.projectId === String(data.query["projectId"]);
+            })
+            // As Postgres reads ORDER BY "order" ASC: no place last.
+            .sort((a: FakeConfig, b: FakeConfig): number => {
+              if (a.order === null || b.order === null) {
+                return (a.order === null ? 1 : 0) - (b.order === null ? 1 : 0);
+              }
+
+              return a.order - b.order;
+            })
+            .map((config: FakeConfig): HostCollectorConfig => {
+              const model: HostCollectorConfig = new HostCollectorConfig();
+              model._id = config.id;
+              model.osType = config.osType;
+              if (config.order !== null) {
+                model.order = config.order;
+              }
+              model.configYaml = config.configYaml;
+              model.configHash = getHostCollectorConfigHash(config.configYaml);
+              model.labels = config.labelIds.map((labelId: string): Label => {
+                const label: Label = new Label();
+                label._id = labelId;
+                return label;
+              });
+              return model;
+            })
+        );
+      },
+    );
 
   jest
     .spyOn(HostCollectorConfigVersionService, "findBy")
@@ -488,6 +504,7 @@ beforeEach(() => {
   cache = new Map<string, string>();
   writes = [];
   versionQueries = [];
+  configSorts = [];
   now = Date.UTC(2026, 9, 21, 8, 0, 0);
   failNextWrite = false;
   nextId = 0;
@@ -840,6 +857,57 @@ describe("the config a host runs", () => {
       "SECRET-PASSWORD-456",
     );
     expect(JSON.stringify(logged)).not.toContain("SECRET-PASSWORD-456");
+  });
+
+  /*
+   * Issue #9655: a config without a place was given its place in the read
+   * as its number. Read after a config numbered 30, it was put at 1, above
+   * it, and every host it applies to ran it.
+   */
+  test("a config without a place comes after every config that has one, wherever the read put it", async () => {
+    await installAndApply();
+    const numbered: FakeConfig = addConfig({
+      configYaml: `${getHostCollectorDefaultConfig(HostCollectorOsType.Linux)}# thirty\n`,
+      order: 30,
+    });
+    const unplaced: FakeConfig = addConfig({
+      configYaml: `${getHostCollectorDefaultConfig(HostCollectorOsType.Any)}# unplaced\n`,
+      osType: HostCollectorOsType.Any,
+      order: null,
+    });
+
+    const response: OpAmpServerToAgent = await post({
+      status: OpAmpRemoteConfigStatus.Applied,
+      hash: hostsHash(),
+    });
+
+    expect(sentYaml(response)).toBe(numbered.configYaml);
+    expect(sentYaml(response)).not.toBe(unplaced.configYaml);
+    // Read in the list's order: two configs at one place the older first.
+    expect(configSorts[configSorts.length - 1]).toEqual({
+      order: "ASC",
+      createdAt: "ASC",
+    });
+  });
+
+  test("a config without a place is still run by a host no other config applies to", async () => {
+    await installAndApply();
+    addConfig({
+      configYaml: `${getHostCollectorDefaultConfig(HostCollectorOsType.Windows)}# windows\n`,
+      osType: HostCollectorOsType.Windows,
+      order: 1,
+    });
+    const unplaced: FakeConfig = addConfig({
+      configYaml: `${getHostCollectorDefaultConfig(HostCollectorOsType.Linux)}# unplaced\n`,
+      order: null,
+    });
+
+    const response: OpAmpServerToAgent = await post({
+      status: OpAmpRemoteConfigStatus.Applied,
+      hash: hostsHash(),
+    });
+
+    expect(sentYaml(response)).toBe(unplaced.configYaml);
   });
 
   test("a config picked for the host wins over the list", async () => {

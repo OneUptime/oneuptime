@@ -42,7 +42,7 @@ Tout le reste se trouve dans le tableau de bord.
 :::
 
 :::details Puis-je accuser réception d'une alerte depuis la notification ?
-Non. Touchez la notification : l'application ouvre l'incident, l'alerte, l'épisode ou le dossier de sécurité concerné, dans le bon projet, et vous en accusez réception là. Si l'application est verrouillée ou si vous êtes déconnecté, elle ouvre l'alerte dès que vous êtes connecté.
+Oui. Appuyez longuement sur la notification sur un iPhone, ou développez-la sur Android : une alerte d'astreinte propose **Acknowledge** et **Escalate**, une alerte qui vous tient seulement informé propose **I've seen it**, et une alerte de test propose **Acknowledge test page**. Chaque action ouvre l'application sur l'élément dès que le téléphone est déverrouillé et fait ce que fait le bouton de l'élément lui-même ; avant d'escalader, elle demande confirmation. Si vous touchez la notification elle-même, l'application ouvre l'incident, l'alerte, l'épisode ou le dossier de sécurité concerné, dans le bon projet. Si l'application est verrouillée ou si vous êtes déconnecté, elle ouvre l'alerte dès que vous êtes connecté.
 :::
 
 :::details Ma connexion est-elle sûre sur le téléphone ?

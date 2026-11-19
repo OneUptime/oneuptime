@@ -341,6 +341,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`get_data_table_lineage`** 工具在代理變更某張表或信任其資料之前，告訴它 Data Observability 監視的這張表由什麼建置、由它建置了什麼：延遲、被刪除、有未關閉的警示或其管線上次執行失敗的上游和下游表，由近而遠，每張表都附上相隔幾步，接著是其餘的表、從外部載入其來源的管線，以及以它為基礎建置的 BI 儀表板。它每個方向走三步，用 `depth` 最多五步。`table` 的傳法與 `get_data_table_freshness` 相同。它不做任何變更。
 
+**`oneuptime_move_in_list`** 工具把有序清單中的一列（例如事件嚴重性、事件狀態或監測器狀態）移到另一列的位置，與在儀表板中拖曳它的效果相同：兩者之間的列各移動一位，它傳回編號有變動的每一列。傳入 `resource`（例如 `Incident Severity`）、該列的 `id`，以及 `placeOfId`，即它要占據其位置的那一列的 ID。用其 `update_` 工具寫入某列的編號只會放置該列，排在已有該編號的任何列旁邊。
+
 ## 查詢遙測
 
 日誌、指標、追蹤（span）、例外、監測器日誌和其他種類的遙測以唯讀的 `list_` 和 `count_` 工具提供（`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` 及其對應的 `count_` 工具）。遙測透過 OpenTelemetry 傳入，因此沒有建立工具。

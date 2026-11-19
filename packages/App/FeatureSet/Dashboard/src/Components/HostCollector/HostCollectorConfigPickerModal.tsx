@@ -27,6 +27,7 @@ import {
   getCurrentHostCollectorConfigChoice,
   getHostCollectorConfigChoiceUpdate,
   getPickableHostCollectorConfigs,
+  toHostCollectorConfigChoiceOption,
 } from "./HostCollectorConfigChoice";
 import { getHostCollectorConfigLabel } from "./HostCollectorStatus";
 
@@ -45,26 +46,6 @@ export interface ComponentProps {
 interface ChoiceFormValues {
   config: string;
 }
-
-const toOption: (
-  config: HostCollectorConfig,
-) => HostCollectorConfigChoiceOption = (
-  config: HostCollectorConfig,
-): HostCollectorConfigChoiceOption => {
-  return {
-    id: config._id?.toString() || "",
-    name: config.name || "",
-    osType: config.osType,
-    labelIds: (config.labels || [])
-      .map((label: Label): string => {
-        return label._id?.toString() || "";
-      })
-      .filter((id: string): boolean => {
-        return Boolean(id);
-      }),
-    order: config.order || 0,
-  };
-};
 
 const HostCollectorConfigPickerModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -108,13 +89,15 @@ const HostCollectorConfigPickerModal: FunctionComponent<ComponentProps> = (
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
+      // The list's order, as the server reads it: twins the older first.
       sort: {
         order: SortOrder.Ascending,
+        createdAt: SortOrder.Ascending,
       },
     })
       .then((result: ListResult<HostCollectorConfig>) => {
         if (isCurrent) {
-          setConfigs(result.data.map(toOption));
+          setConfigs(result.data.map(toHostCollectorConfigChoiceOption));
           setIsLoading(false);
         }
       })

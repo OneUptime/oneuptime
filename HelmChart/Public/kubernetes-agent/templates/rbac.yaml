@@ -35,14 +35,18 @@ metadata:
   name: {{ include "kubernetes-agent.fullname" . }}
   labels:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    {{- with include "kubernetes-agent.nodesProxyReasons" . }}
+    # Why the rule at the end grants nodes/proxy: the cluster's Compliance
+    # page reads it to say why this role fails CIS Kubernetes Benchmark
+    # 5.1.10, and how to drop it.
+    oneuptime.com/nodes-proxy: {{ . | quote }}
+    {{- end }}
 rules:
   # For k8s_cluster receiver and k8sattributes processor
   - apiGroups: [""]
     resources:
       - pods
       - nodes
-      - nodes/proxy
-      - nodes/stats
       - services
       - endpoints
       - namespaces
@@ -123,20 +127,28 @@ rules:
       - poddisruptionbudgets
     verbs: ["get", "list", "watch"]
 {{- end }}
-  # For the cAdvisor scrape in the DaemonSet collector: it reads
-  # /metrics/cadvisor off the local kubelet on NODE_IP:10250, and the
-  # kubelet authorizes that path as the nodes/metrics subresource.
+  # For the kubelet's own API (port 10250), which authorizes each path as a
+  # subresource of nodes, never by these rules' verbs but a GET's:
+  #   - nodes/stats: /stats/summary, the node collector's kubeletstats;
+  #   - nodes/metrics: /metrics/cadvisor, the node collector's cAdvisor
+  #     scrape of its own node, and the bundled cost Prometheus's of every
+  #     node (templates/prometheus-cost.yaml);
+  #   - nodes/pods: /pods, the node's pod list kubeletstats reads each
+  #     container's ID, each volume's claim and its utilization metrics'
+  #     requests and limits from - on a kubelet from Kubernetes 1.33 on
+  #     (KubeletFineGrainedAuthz). An older kubelet asks for nodes/proxy,
+  #     granted at the end of this role only where it is needed.
   - apiGroups: [""]
     resources:
+      - nodes/stats
       - nodes/metrics
+      - nodes/pods
     verbs: ["get"]
-  # For endpoints the API server itself serves. The bundled cost
-  # Prometheus reaches cAdvisor through the API-server node proxy, which
-  # the nodes/proxy grant above covers; nonResourceURLs never apply to
-  # the kubelet, which authorizes by resource + subresource instead.
+  # For the API server's own metrics, which the control plane scrape reads
+  # (configmap-deployment.yaml). A non-resource URL is the API server's
+  # alone: the kubelet authorizes by the subresources above.
   - nonResourceURLs:
       - /metrics
-      - /metrics/cadvisor
     verbs: ["get"]
 {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
   # For the collector's openshift resource detector
@@ -167,6 +179,27 @@ rules:
       - deploymentconfigs
     verbs: ["get", "list", "watch"]
 {{- end }}
+{{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
+  # For the k8sobjects/compliance receiver (configmap-deployment.yaml): what
+  # the CIS Kubernetes Benchmark's policy controls read, for the cluster's
+  # Compliance page, read only. No Secret is read: a ServiceAccount only
+  # names its token Secrets, and OneUptime drops even the names.
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - serviceaccounts
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+    verbs: ["get", "list", "watch"]
+{{- end }}
 {{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
   # For the control-plane scrapes on OpenShift (configmap-deployment.yaml):
   # service discovery finds each replica in its Service's EndpointSlices. It
@@ -175,6 +208,21 @@ rules:
     resources:
       - endpointslices
     verbs: ["get", "list", "watch"]
+{{- end }}
+{{- with include "kubernetes-agent.nodesProxyReasons" . }}
+  # nodes/proxy reaches the whole kubelet API - a GET on it can run commands
+  # in any container of the node - and CIS Kubernetes Benchmark 5.1.10 fails
+  # every binding that grants it. Granted only where nothing narrower works,
+  # as the oneuptime.com/nodes-proxy label above says:
+  #   - kubelet-pods: a kubelet older than Kubernetes 1.33 lets the node
+  #     collector read its pod list only with it (kubeletstats.nodesProxy);
+  #   - cost-prometheus: the bundled cost Prometheus reads cAdvisor through
+  #     the API server's node proxy, as EKS Fargate needs
+  #     (cost.prometheus.nodesProxy).
+  - apiGroups: [""]
+    resources:
+      - nodes/proxy
+    verbs: ["get"]
 {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

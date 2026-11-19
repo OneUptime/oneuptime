@@ -223,8 +223,8 @@ describe("a table's card title", () => {
  * With its word's definition open, a table's heading holds its title alone
  * (#7594). The definition - a dialog named by its word - was drawn inside
  * the heading, beside the word, and named the heading a second time while
- * it showed ("Monitor Groups Monitor Groups"). It is drawn right after the
- * heading now (Glossary/DefinitionsDrawnAfter, through Card).
+ * it showed ("Monitor Groups Monitor Groups"). It is drawn on the page's
+ * body now, as every tooltip is (TooltipLayer), never inside the heading.
  */
 describe("a table's card title, with its definition open", () => {
   const originalFetch: unknown = (globalThis as Record<string, unknown>)[
@@ -236,7 +236,7 @@ describe("a table's card title, with its definition open", () => {
     clearGlossaryReads();
   });
 
-  test("its heading holds its title alone, and the definition is drawn right after it", async () => {
+  test("its heading holds its title alone, and the definition is drawn on the page's body", async () => {
     // The glossary answers its read; nothing else here reads the network.
     (globalThis as Record<string, unknown>)["fetch"] = (
       url: unknown,
@@ -301,6 +301,9 @@ describe("a table's card title, with its definition open", () => {
       "Monitor Groups",
     );
     expect(title).not.toContainElement(open);
-    expect(title.nextElementSibling).toContainElement(open);
+    // On the page's body (TooltipLayer), outside whatever holds the heading.
+    expect(open.closest<HTMLElement>("[data-tippy-root]")?.parentElement).toBe(
+      document.body,
+    );
   });
 });

@@ -13,7 +13,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
 import { radius, spacing, touchTarget } from "../../theme/tokens";
 import { useScreenPadding } from "../../hooks/useScreenPadding";
-import { useContentGutters } from "../../layout/WindowLayout";
+import { useContentGutters } from "../../layout/WindowLayoutProvider";
 import type { ContentGutters } from "../../layout/windowLayout";
 import AppText from "../../components/AppText";
 import Banner from "../../components/Banner";

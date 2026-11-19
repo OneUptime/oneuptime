@@ -64,6 +64,7 @@ import {
   getFirstOnCallPolicyName,
   getWhoIsToldMode,
 } from "../../../../Utils/GuidedSetup/OnCallPolicyRecords";
+import { createWithFreeName } from "../../../../Types/Database/UniqueName";
 import {
   STATUS_PAGE_NAME_MIN_LENGTH,
   buildGuidedStatusPage,
@@ -1810,18 +1811,31 @@ export const SetUpPagingTool: ObservabilityTool = {
       language: language,
     });
     create.policy.projectId = ctx.projectId;
-    const policyName: string = create.policy.name || GUIDED_SETUP_POLICY_NAME;
 
     /*
      * As the person: OnCallDutyPolicyService.create checks that they may
      * add the escalation rule and both on-call rules, and that everyone it
-     * pages is the project's, before anything is saved.
+     * pages is the project's, before anything is saved. A policy's name is
+     * one policy's (#9742): while another has it - an archived one, or one
+     * the person may not see - the policy is made numbered, as Duplicate
+     * numbers a copy ("Default on-call policy 2"), and said by that name.
      */
-    const created: OnCallDutyPolicy = await OnCallDutyPolicyService.create({
-      data: create.policy,
-      miscDataProps: create.miscDataProps,
-      props: ctx.props,
-    });
+    const { created, name: policyName } =
+      await createWithFreeName<OnCallDutyPolicy>({
+        name: create.policy.name || GUIDED_SETUP_POLICY_NAME,
+        create: async (name: string): Promise<OnCallDutyPolicy> => {
+          create.policy.name = name;
+
+          return await OnCallDutyPolicyService.create({
+            data: create.policy,
+            miscDataProps: create.miscDataProps,
+            props: ctx.props,
+          });
+        },
+        readRefusal: (error: unknown): string => {
+          return error instanceof Error ? error.message : "";
+        },
+      });
 
     const policyId: string = created.id!.toString();
     const myId: string | undefined = ctx.props.userId?.toString();

@@ -458,6 +458,67 @@ describe("AI insight detail — human actions", () => {
     expect(screen.getByText("View the task")).toBeInTheDocument();
   });
 
+  /*
+   * #9812: a fix asked again from Code (Try again) opens its pull request on
+   * a later turn of the task. The verdict was read by the task's own id
+   * only, so a fix asked again that merged and held said nothing of it. The
+   * task's summary carries the pull request any of its turns opened.
+   */
+  test("a fix asked again says what production showed of the pull request a later turn opened", async () => {
+    row.fixAiRunId = new ObjectID("33333333-3333-4333-8333-333333333333");
+    // Nothing recorded for the task's first turn: it failed.
+    getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 5 });
+    postMock.mockImplementation((args: any) => {
+      if (String(args.url).includes("/code-task/summaries")) {
+        return Promise.resolve(
+          new HTTPResponse<JSONObject>(
+            200,
+            {
+              tasks: [
+                {
+                  id: "33333333-3333-4333-8333-333333333333",
+                  title: "Fix the 401 in api",
+                  recipe: "FixException",
+                  latestRecipe: "FixException",
+                  state: "Done",
+                  isQueued: false,
+                  createdAt: "2026-11-18T09:00:00.000Z",
+                  lastActivityAt: "2026-11-19T09:00:00.000Z",
+                  origin: { type: "Exception", label: "401 in api" },
+                  turnCount: 2,
+                  pullRequest: {
+                    state: "merged",
+                    number: 812,
+                    url: "https://github.com/acme/api/pull/812",
+                    production: {
+                      status: "Verified",
+                      check: "Exception",
+                      summary:
+                        "The exception has not been seen in the 26 hours since version 2.3.2 shipped the fix.",
+                      statusAt: "2026-11-19T09:00:00.000Z",
+                    },
+                  },
+                },
+              ],
+            } as unknown as JSONObject,
+            {},
+          ),
+        );
+      }
+
+      return handlePost(args);
+    });
+
+    await renderPage();
+
+    const verdict: HTMLElement = await screen.findByTestId(
+      "ai-insight-fix-production",
+    );
+    expect(verdict).toHaveTextContent(
+      "The exception has not been seen in the 26 hours since version 2.3.2 shipped the fix.",
+    );
+  });
+
   test("its Fix Task card comes first in the side column, over Details, and says what AI does with a fix", async () => {
     row.fixAiRunId = new ObjectID("33333333-3333-4333-8333-333333333333");
 

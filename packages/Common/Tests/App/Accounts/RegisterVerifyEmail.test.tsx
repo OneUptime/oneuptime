@@ -94,16 +94,15 @@ const PASSWORD: string = "lantern river meadow";
 const RESEND_TOKEN: string =
   "v1.eyJ2IjoxLCJ1IjoiMzMzMyJ9.c2lnbmF0dXJlLXNpZ25hdHVyZS1zaWduYXR1cmUtc2ln";
 
-// Straight out of en.json.
-const TITLE: string = "Verify your email to finish signing up";
-const SPAM_HINT: string =
-  "Can't find it? Check your spam or junk folder. The link expires in 24 hours.";
+// Straight out of en.json: the same screen for every address (#9816).
+const TITLE: string = "Check your email to finish signing up";
+const SPAM_HINT: string = "Can't find it? Check your spam or junk folder.";
 const SIGN_IN_FALLBACK_HINT: string =
-  "Can't find it? Check your spam folder. The link expires in 24 hours, and signing in with your email and password sends you a new one.";
+  "Can't find it? Check your spam or junk folder, or sign up again and we'll send it again.";
 const SENT: string =
-  "We've sent a new verification link. It can take a minute or two to arrive.";
+  "We've sent the email again. It can take a minute or two to arrive.";
 const SENT_TO: (email: string) => string = (email: string): string => {
-  return `We've sent a verification link to ${email}.`;
+  return `We've sent an email to ${email}.`;
 };
 
 type CountdownFunction = (time: string) => string;
@@ -398,7 +397,7 @@ describe("Hosted signup that needs email verification", () => {
         "resend-verification-email",
       );
       expect(resend).toBeDisabled();
-      expect(resend).toHaveAccessibleName("Resend verification email");
+      expect(resend).toHaveAccessibleName("Send Email Again");
       expect(
         screen.getByTestId("resend-verification-email-countdown"),
       ).toHaveTextContent(countdown("1:00"));

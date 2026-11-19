@@ -93,9 +93,16 @@ Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogn
 
 ## Uscire anche dal provider di identità
 
-Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso la persona successiva che accede con quel provider entra al posto di chi se n'è andato. Su un provider OpenID Connect, fai clic su **Modifica configurazione** e attiva **Esci anche dal provider di identità** in **Altri campi**: l'uscita da OneUptime chiude allora anche la sessione presso il provider, e il provider rimanda il browser alla pagina di accesso di OneUptime. È disattivato per impostazione predefinita, perché su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
+Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso la persona successiva che accede con quel provider entra al posto di chi se n'è andato. Su un provider SAML o OpenID Connect, fai clic su **Modifica configurazione** e attiva **Esci anche dal provider di identità** in **Altri campi**: l'uscita da OneUptime chiude allora anche la sessione presso il provider, e il provider rimanda il browser a OneUptime. È disattivato per impostazione predefinita, perché su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
 
-Registra presso il tuo provider l'URI di reindirizzamento dopo l'uscita che mostra la scheda **URL del provider di identità**, come post-logout redirect URI consentito. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla.
+:::tabs
+@tab SAML
+Inserisci l'URL di uscita del tuo provider di identità come **URL di uscita**, in **Altri campi**: senza di esso l'opzione non si può attivare. Poi fornisci al tuo provider di identità la **Single Logout URL** mostrata dalla scheda **URL del provider di identità (SAML)** e il certificato con cui OneUptime firma le sue richieste di uscita, da **Scarica il certificato di firma** nella stessa scheda. Quando la persona esce dal provider di identità, o da un'altra app che lo usa, un provider di identità che invia richieste di uscita alle sue app la fa uscire anche da OneUptime.
+@tab OpenID Connect
+Registra presso il tuo provider l'URI di reindirizzamento dopo l'uscita mostrato dalla scheda **URL del provider di identità**, come post-logout redirect URI consentito. Un provider il cui documento di discovery non nomina alcun `end_session_endpoint`, come Google, non può attivarla.
+:::
+
+Dove Okta, Microsoft Entra ID, Auth0 e Keycloak tengono queste impostazioni è spiegato nella pagina [SSO](/docs/identity/sso).
 
 ## Imporre l'SSO
 

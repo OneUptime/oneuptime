@@ -50,6 +50,7 @@ import { CloudConnectionAuthMethod } from "../../../Types/CloudConnection/CloudC
 import {
   CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL,
   CLOUD_STREAM_ORGANIZATION_WHAT_IT_MAKES,
+  getAwsCloudStreamOrganizationUpdateCommand,
 } from "../../../Types/CloudConnection/CloudStreamOrganization";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -292,4 +293,50 @@ describe("streaming every account of an organization", () => {
       expect(command()).not.toContain("create-stack-set");
     },
   );
+});
+
+/*
+ * #9693: an organization's older stacks are updated in place from its
+ * management account - the StackSet's template, which updates every member
+ * account's stacks, then the management account's own - as Stop streaming
+ * deletes them from there.
+ */
+describe("an organization's older stacks", () => {
+  test("are updated in place from the management account, the member accounts' too", () => {
+    const item: CloudConnection = connection(ORGANIZATION_CONFIG);
+    item.streamKeyCreatedAt = new Date();
+    item.streamSummary = {
+      lastDeliveryAt: new Date().toISOString(),
+      metricSources: [
+        {
+          accountId: "222222222222",
+          region: "eu-west-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: new Date().toISOString(),
+        },
+      ],
+      logSources: [],
+    } as unknown as JSONObject;
+
+    render(
+      <CloudStreamDialog
+        connection={item}
+        onClose={getJestMockFunction()}
+        onChanged={getJestMockFunction()}
+      />,
+    );
+
+    expect(part("update-how")).toHaveTextContent(
+      `Run this in AWS CloudShell in the management account ${MANAGEMENT}: it updates each stack in place, the member accounts' too, so each keeps its log groups and its key.`,
+    );
+    expect(
+      part("update-command").querySelector("pre code")?.textContent || "",
+    ).toBe(
+      getAwsCloudStreamOrganizationUpdateCommand({
+        connectionId: CONNECTION_ID,
+        regions: ["eu-west-1"],
+        managementAccountId: MANAGEMENT,
+      }),
+    );
+  });
 });

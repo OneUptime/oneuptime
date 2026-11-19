@@ -22,13 +22,34 @@ import { isRendered } from "./TooltipEscape";
  * in it (a day's incidents on an uptime bar) as if it sat right after its
  * trigger (keepTabOrder, below).
  *
+ * A menu or a panel that opens from a control - a toolbar's Columns, the
+ * Copy attributes menu - is drawn on the same layer, the same way
+ * (LayeredPopover), and the glossary's definitions too (DefinedTerm).
+ *
  * Kept apart from Tooltip.tsx so the rules are unit-testable on their own.
  */
 
-// Tippy's appendTo: the body of the trigger's own document.
+/*
+ * Tippy's appendTo: the body of the trigger's own document - or, while the
+ * part of the page the trigger is in is shown full screen (a dashboard's
+ * canvas, a session replay), that part. Full screen shows only the element
+ * it was asked for, so a tooltip drawn on the body would not be seen at all
+ * there (MoreMenu and SideOver portal into it for the same reason).
+ */
 export const getTooltipLayer: (reference: Element) => Element = (
   reference: Element,
 ): Element => {
+  const fullscreenElement: Element | null =
+    reference.ownerDocument.fullscreenElement || null;
+
+  if (
+    fullscreenElement &&
+    fullscreenElement !== reference &&
+    fullscreenElement.contains(reference)
+  ) {
+    return fullscreenElement;
+  }
+
   return reference.ownerDocument.body;
 };
 
@@ -98,25 +119,38 @@ const isTabPress: (event: KeyboardEvent) => boolean = (
  *
  * A tooltip with nothing to press in it, or one that is not interactive,
  * is not in the Tab order at all, and Tab goes on as if it were not there.
+ * What the focus is on inside one that Tab never stops at - a menu's item,
+ * reached with the arrow keys (LayeredPopover) - is past its last: Tab goes
+ * on from the trigger, Shift+Tab back to it. Without that, Tab from a menu
+ * drawn at the end of the page went on from the end of the page.
+ *
+ * Tab is answered before anything inside hears it (a capturing listener), so
+ * a menu that closes itself on Tab, as the Copy attributes menu does, has
+ * already handed the focus back to its trigger when it goes.
  */
 export const keepTabOrder: Plugin = {
   name: "keepTabOrder",
   defaultValue: true,
   fn: (instance: Instance): Partial<LifecycleHooks> => {
     /*
-     * What Tab goes through in the tooltip while it shows - drawn away from
-     * its trigger. One drawn right after its trigger (appendTo "parent") is
-     * in the Tab order where it is.
+     * Whether the keyboard goes through the tooltip from here: it shows, it
+     * can be used, and it is drawn away from its trigger. One drawn right
+     * after its trigger (appendTo "parent") is in the Tab order where it is.
      */
-    const getTabbables: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+    const isDrawnAwayFromTrigger: () => boolean = (): boolean => {
       const triggerParent: Node | null = instance.reference.parentNode;
 
-      if (
-        !instance.props.interactive ||
-        !instance.state.isVisible ||
-        instance.state.isDestroyed ||
-        (triggerParent && triggerParent.contains(instance.popper))
-      ) {
+      return Boolean(
+        instance.props.interactive &&
+          instance.state.isVisible &&
+          !instance.state.isDestroyed &&
+          !(triggerParent && triggerParent.contains(instance.popper)),
+      );
+    };
+
+    // What Tab goes through in the tooltip while it shows.
+    const getTabbables: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+      if (!isDrawnAwayFromTrigger()) {
         return [];
       }
 
@@ -155,16 +189,15 @@ export const keepTabOrder: Plugin = {
     const onTooltipKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
-      if (!isTabPress(event)) {
+      if (!isTabPress(event) || !isDrawnAwayFromTrigger()) {
         return;
       }
 
+      /*
+       * None at all, and the focus is still in here: on something Tab never
+       * stops at, a menu's item. It goes on as from past the last.
+       */
       const tabbables: Array<HTMLElement> = getTabbables();
-
-      if (tabbables.length === 0) {
-        return;
-      }
-
       const from: Node = event.target as Node;
 
       /*
@@ -238,7 +271,7 @@ export const keepTabOrder: Plugin = {
         "keydown",
         onTriggerKeyDown as EventListener,
       );
-      instance.popper.removeEventListener("keydown", onTooltipKeyDown);
+      instance.popper.removeEventListener("keydown", onTooltipKeyDown, true);
       instance.popper.removeEventListener("focusout", onTooltipFocusOut);
     };
 
@@ -248,7 +281,8 @@ export const keepTabOrder: Plugin = {
           "keydown",
           onTriggerKeyDown as EventListener,
         );
-        instance.popper.addEventListener("keydown", onTooltipKeyDown);
+        // Before what is inside hears it.
+        instance.popper.addEventListener("keydown", onTooltipKeyDown, true);
         instance.popper.addEventListener("focusout", onTooltipFocusOut);
       },
       onDestroy: stopListening,

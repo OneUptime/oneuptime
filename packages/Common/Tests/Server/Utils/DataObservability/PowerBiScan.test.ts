@@ -4,6 +4,7 @@ import {
   BiToolRead,
   PowerBiConnector,
 } from "../../../../Server/Utils/DataObservability/Bi/BiConnectors";
+import { BiReadKeptStateError } from "../../../../Server/Utils/DataObservability/Bi/BiReadState";
 import {
   BiTableRef,
   getBiTableName,
@@ -873,6 +874,10 @@ describe("Power BI's reader, scanning only what changed", () => {
     changed: Array<string>;
     // Workspaces whose scan Power BI fails.
     failing: Set<string>;
+    // Workspaces whose scan Power BI is still running (#9697).
+    slow: Set<string>;
+    // Every scan started, by its id, across reads: Power BI keeps them.
+    scans: Map<string, Array<string>>;
     requests: Array<string>;
     scanned: Array<Array<string>>;
   }
@@ -886,6 +891,8 @@ describe("Power BI's reader, scanning only what changed", () => {
       ),
       changed: [],
       failing: new Set(),
+      slow: new Set(),
+      scans: new Map(),
       requests: [],
       scanned: [],
     };
@@ -894,7 +901,7 @@ describe("Power BI's reader, scanning only what changed", () => {
   function transportOf(
     fake: Tenant,
   ): (request: DataSourceHttpRequest) => Promise<DataSourceHttpResponse> {
-    const scans: Map<string, Array<string>> = new Map();
+    const scans: Map<string, Array<string>> = fake.scans;
 
     return async (
       request: DataSourceHttpRequest,
@@ -950,7 +957,11 @@ describe("Power BI's reader, scanning only what changed", () => {
                 status: "Failed",
                 error: { message: "The workspace scan could not complete." },
               }
-            : { status: "Succeeded" },
+            : ids.some((id: string): boolean => {
+                  return fake.slow.has(id);
+                })
+              ? { status: "Running" }
+              : { status: "Succeeded" },
         );
       }
 
@@ -983,13 +994,21 @@ describe("Power BI's reader, scanning only what changed", () => {
     fake.requests.length = 0;
     fake.scanned.length = 0;
 
+    // Time passes only while the read waits, from the read's start.
+    let clock: number = at.getTime();
+
     return await PowerBiConnector.read({
       baseUrl: "",
       credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
       readState,
       isScheduled,
       now: at,
-      wait: async (): Promise<void> => {},
+      wait: async (ms: number): Promise<void> => {
+        clock += ms;
+      },
+      clock: (): number => {
+        return clock;
+      },
       transport: transportOf(fake),
     });
   }
@@ -1176,6 +1195,148 @@ describe("Power BI's reader, scanning only what changed", () => {
     expect(fake.scanned).toEqual([["finance"]]);
     expect(reportNames(recovered)).toEqual(["Pipeline", "Budget", "Forecast"]);
     expect(recovered.readState).toMatchObject({ pendingWorkspaceIds: [] });
+  });
+
+  function asked(fake: Tenant, path: string): Array<string> {
+    return fake.requests
+      .filter((url: string): boolean => {
+        return url.includes(path);
+      })
+      .map((url: string): string => {
+        return url.split("/").pop()!;
+      });
+  }
+
+  test("a scan that outlasts the read's wait is picked up by the next read: its result is read, and no scan starts for its workspaces (#9697)", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.workspaces.set(
+      "finance",
+      workspaceOf("finance", ["Budget", "Forecast"]),
+    );
+    fake.changed = ["finance"];
+    fake.slow.add("finance");
+
+    const waited: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+      true,
+    );
+
+    // The read waited its 20 minutes; the workspace shows what was read of it before.
+    expect(reportNames(waited)).toEqual(["Pipeline", "Budget"]);
+    expect(waited.warnings).toContain(
+      "Power BI was still scanning 1 workspace when the read stopped waiting after 20 minutes. The next read reads that scan once Power BI has finished it, and until then the workspace shows what was read before.",
+    );
+    expect(waited.readState).toMatchObject({
+      pendingWorkspaceIds: [],
+      pendingScans: [
+        {
+          scanId: "scan-2",
+          workspaceIds: ["finance"],
+          startedAt: new Date(START.getTime() + HOUR).toISOString(),
+        },
+      ],
+    });
+
+    // Power BI finishes it after the read stopped waiting; nothing changed since.
+    fake.slow.clear();
+    fake.changed = [];
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + 2 * HOUR),
+      waited.readState,
+      true,
+    );
+
+    expect(fake.scanned).toEqual([]);
+    expect(asked(fake, "/admin/workspaces/getInfo")).toEqual([]);
+    expect(asked(fake, "/scanStatus/")).toEqual(["scan-2"]);
+    expect(asked(fake, "/scanResult/")).toEqual(["scan-2"]);
+    expect(reportNames(next)).toEqual(["Pipeline", "Budget", "Forecast"]);
+    expect(next.warnings).toEqual([]);
+    expect(next.readState).toMatchObject({
+      pendingWorkspaceIds: [],
+      pendingScans: [],
+    });
+  });
+
+  test("a first read whose scans all outlast its wait fails, but keeps them: the next read reads them rather than scanning again", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+
+    fake.slow.add("sales");
+
+    let kept: BiReadKeptStateError | null = null;
+
+    try {
+      await readAt(fake, START, undefined, true);
+    } catch (error) {
+      kept = error as BiReadKeptStateError;
+    }
+
+    expect(kept).toBeInstanceOf(BiReadKeptStateError);
+    expect(kept!.message).toBe(
+      "Power BI was still scanning 2 workspaces when the read stopped waiting after 20 minutes. The next read reads those scans once Power BI has finished them, rather than scanning again.",
+    );
+    expect(kept!.readState).toMatchObject({
+      fullScanAt: START.toISOString(),
+      workspaces: [],
+      pendingWorkspaceIds: [],
+      pendingScans: [{ scanId: "scan-1", workspaceIds: ["sales", "finance"] }],
+    });
+
+    fake.slow.clear();
+
+    const next: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      kept!.readState,
+      true,
+    );
+
+    expect(fake.scanned).toEqual([]);
+    expect(reportNames(next)).toEqual(["Pipeline", "Budget"]);
+  });
+
+  test("a scan Power BI no longer keeps the result of is not asked about: its workspaces are scanned anew", async () => {
+    const fake: Tenant = tenant([
+      workspaceOf("sales", ["Pipeline"]),
+      workspaceOf("finance", ["Budget"]),
+    ]);
+    const first: BiToolRead = await readAt(fake, START, undefined);
+
+    fake.changed = ["finance"];
+    fake.slow.add("finance");
+
+    const waited: BiToolRead = await readAt(
+      fake,
+      new Date(START.getTime() + HOUR),
+      first.readState,
+      true,
+    );
+
+    fake.slow.clear();
+    fake.changed = [];
+
+    // A day after it started: past the 23 hours it is asked about for.
+    await readAt(
+      fake,
+      new Date(START.getTime() + 25 * HOUR),
+      waited.readState,
+      false,
+    );
+
+    expect(asked(fake, "/scanStatus/")).not.toContain("scan-2");
+    expect(fake.scanned).toEqual([["finance"]]);
   });
 
   test("a state that cannot be read is no state: the read scans the whole tenant", async () => {

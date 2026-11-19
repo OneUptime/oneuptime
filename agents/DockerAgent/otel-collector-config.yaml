@@ -5,7 +5,7 @@ receivers:
     # Empty by default (the image's ENV and docker-compose.yml), and empty
     # means NEGOTIATE.
     #
-    # Verified against otel/opentelemetry-collector-contrib:0.161.0:
+    # Verified against otel/opentelemetry-collector-contrib:0.165.0:
     #   * empty makes the receiver let the Docker SDK negotiate (one HEAD
     #     /_ping, then the daemon's own maximum, down to API 1.40), which
     #     works against any daemon this agent supports: Docker Engine 20.10

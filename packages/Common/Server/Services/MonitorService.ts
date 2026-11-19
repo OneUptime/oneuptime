@@ -1060,12 +1060,12 @@ export class Service extends ProjectReferencesService<Model> {
 
       /*
        * A monitor tied to the device at the address it checked follows the
-       * address when its steps move to another (issue #9545): to the one
-       * device at the new address, or to none. A tie the write names
-       * itself, or one a person made to a device at another address, stays
-       * as it is (MonitorDeviceLink.followAddressChange). One monitor's
-       * edit only - a form's - since each monitor would follow to its own
-       * device.
+       * address when its steps move to another (issue #9545): to the device
+       * its probes see at the new address (issue #9677), or to none. A tie
+       * the write names itself, or one a person made to a device at another
+       * address, stays as it is (MonitorDeviceLink.followAddressChange).
+       * One monitor's edit only - a form's - since each monitor would follow
+       * to its own device.
        */
       const onlyMonitor: Model | undefined =
         monitors.length === 1 ? monitors[0] : undefined;
@@ -1091,6 +1091,12 @@ export class Service extends ProjectReferencesService<Model> {
               | null
               | undefined,
             linkedDeviceId: onlyMonitor.networkDeviceId,
+            getProbeIds: async (): Promise<Array<ObjectID>> => {
+              return await this.getProbeIdsOfMonitor({
+                projectId: onlyMonitor.projectId!,
+                monitorId: onlyMonitor.id,
+              });
+            },
           });
 
         if (followed !== undefined) {
@@ -2534,11 +2540,12 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * The network device a person's monitor is of (issue #9545): the one
      * the write names, which the person must be able to see - or, for a
-     * Ping, IP, Port, NTP, Website, API or SSL Certificate monitor, the one
-     * device in the project at the address it checks, when exactly one is
-     * there. A monitor made for a device carries provenance instead, and
-     * is that device's already. The project check above has already held a
-     * named device to this project (ProjectReferencesService).
+     * Ping, IP, Port, NTP, Website, API or SSL Certificate monitor, the
+     * device at the address it checks that its probes see: two sites can
+     * each have a 10.0.0.5 (issue #9677, MonitorDeviceLink). A monitor made
+     * for a device carries provenance instead, and is that device's
+     * already. The project check above has already held a named device to
+     * this project (ProjectReferencesService).
      */
     const networkDeviceId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
       createBy.data as unknown as Record<string, unknown>,
@@ -2557,11 +2564,19 @@ export class Service extends ProjectReferencesService<Model> {
         props: createBy.props,
       });
     } else if (!autoProvisionedNetworkDeviceId) {
+      const projectId: ObjectID = createBy.props.tenantId;
       const deviceAtAddress: ObjectID | null =
         await MonitorDeviceLink.findDeviceOfNewMonitor({
-          projectId: createBy.props.tenantId,
+          projectId: projectId,
           monitorType: createBy.data.monitorType,
           monitorSteps: createBy.data.monitorSteps,
+          // The probes onCreateSuccess attaches, read only when it matters.
+          getProbeIds: async (): Promise<Array<ObjectID>> => {
+            return await this.getProbeIdsOfNewMonitor({
+              projectId: projectId,
+              miscDataProps: createBy.miscDataProps,
+            });
+          },
         });
 
       if (deviceAtAddress) {
@@ -3423,11 +3438,79 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     });
   }
 
+  /*
+   * The probes a monitor being created will run on, as onCreateSuccess
+   * attaches them (addProbesToMonitor): the ones the person picked that the
+   * project may use, else the project's defaults. Read before the monitor
+   * exists, for the device it checks (issue #9677: which of two sites'
+   * 10.0.0.5 a monitor checks depends on where its probes are).
+   */
   @CaptureSpan()
-  public async addDefaultProbesToMonitor(
+  public async getProbeIdsOfNewMonitor(data: {
+    projectId: ObjectID;
+    miscDataProps: JSONObject | undefined;
+  }): Promise<Array<ObjectID>> {
+    const selectedProbeIds: Array<ObjectID> | undefined =
+      this.getSelectedProbeIdsFromMiscDataProps(data.miscDataProps);
+
+    const probes: Array<Probe> =
+      selectedProbeIds === undefined
+        ? await this.getDefaultProbesForNewMonitor(data.projectId)
+        : await ProbeService.getProbesAttachableToProject({
+            probeIds: selectedProbeIds,
+            projectId: data.projectId,
+          });
+
+    return probes
+      .map((probe: Probe): ObjectID | null => {
+        return probe.id;
+      })
+      .filter((probeId: ObjectID | null): probeId is ObjectID => {
+        return Boolean(probeId);
+      });
+  }
+
+  // The probes a monitor runs on now, enabled or not: where its checks look.
+  @CaptureSpan()
+  public async getProbeIdsOfMonitor(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID | null | undefined;
+  }): Promise<Array<ObjectID>> {
+    if (!data.monitorId) {
+      return [];
+    }
+
+    const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy(
+      {
+        query: {
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+        },
+        select: { probeId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      },
+    );
+
+    return monitorProbes
+      .map((monitorProbe: MonitorProbe): ObjectID | undefined => {
+        return monitorProbe.probeId;
+      })
+      .filter((probeId: ObjectID | undefined): probeId is ObjectID => {
+        return Boolean(probeId);
+      });
+  }
+
+  /*
+   * The probes a new monitor gets when nobody picked any: the global probes
+   * that switch themselves on for new monitors (unless the project opted
+   * out of them), and the project's own that do.
+   */
+  @CaptureSpan()
+  public async getDefaultProbesForNewMonitor(
     projectId: ObjectID,
-    monitorId: ObjectID,
-  ): Promise<void> {
+  ): Promise<Array<Probe>> {
     // Fetch project to see if global probes should be added automatically.
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -3478,10 +3561,18 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       },
     });
 
+    return [...globalProbes, ...projectProbes];
+  }
+
+  @CaptureSpan()
+  public async addDefaultProbesToMonitor(
+    projectId: ObjectID,
+    monitorId: ObjectID,
+  ): Promise<void> {
     await this.createMonitorProbes({
       projectId: projectId,
       monitorId: monitorId,
-      probes: [...globalProbes, ...projectProbes],
+      probes: await this.getDefaultProbesForNewMonitor(projectId),
     });
   }
 

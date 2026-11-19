@@ -14,6 +14,14 @@ import UserOverrideOverlapsMark, {
 } from "./UserOverrideOverlapsMark";
 import { getGlobalUserOverrideLock } from "./GlobalUserOverrideLock";
 import {
+  UserOverrideTeamLimit,
+  getUserOverrideTeamLimit,
+  getUserOverrideTeamLock,
+} from "./UserOverrideTeamLimit";
+import useUserOverrideTeamPeople, {
+  UserOverrideTeamPeople,
+} from "./UseUserOverrideTeamPeople";
+import {
   USER_OVERRIDE_END_NOW_ACTION,
   UserOverrideEndNowTarget,
   canEndUserOverrideNow,
@@ -361,6 +369,62 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
     ? getGlobalUserOverrideLock(ModelAction.Delete)
     : null;
 
+  /*
+   * For a reader who manages the user overrides of their own team's people
+   * only (issue #9733): each row naming somebody outside those teams locks
+   * its Edit, End Now and Delete, saying why (UserOverrideTeamLimit). Until
+   * the teams' members are read, nothing is locked for it: the server
+   * decides.
+   */
+  const updateTeamLimit: UserOverrideTeamLimit | null =
+    getUserOverrideTeamLimit({
+      action: ModelAction.Update,
+      isGlobal: isGlobal,
+    });
+  const deleteTeamLimit: UserOverrideTeamLimit | null =
+    getUserOverrideTeamLimit({
+      action: ModelAction.Delete,
+      isGlobal: isGlobal,
+    });
+
+  const teamPeople: UserOverrideTeamPeople = useUserOverrideTeamPeople({
+    teamIds:
+      updateTeamLimit || deleteTeamLimit
+        ? Array.from(
+            new Set<string>([
+              ...(updateTeamLimit?.teamIds || []),
+              ...(deleteTeamLimit?.teamIds || []),
+            ]),
+          ).sort()
+        : null,
+    withMembers: true,
+  });
+
+  // Why a row's Edit and End Now (update) or Delete is locked by the team rule, or null.
+  const getTeamLock: (
+    item: OnCallDutyPolicyUserOverride,
+    action: ModelAction.Update | ModelAction.Delete,
+  ) => string | null = (
+    item: OnCallDutyPolicyUserOverride,
+    action: ModelAction.Update | ModelAction.Delete,
+  ): string | null => {
+    return getUserOverrideTeamLock({
+      action: action,
+      limit: action === ModelAction.Update ? updateTeamLimit : deleteTeamLimit,
+      memberIds: teamPeople.memberIds,
+      people: {
+        awayUserId:
+          item.overrideUser?._id?.toString() ||
+          item.overrideUserId?.toString() ||
+          null,
+        coverUserId:
+          item.routeAlertsToUser?._id?.toString() ||
+          item.routeAlertsToUserId?.toString() ||
+          null,
+      },
+    });
+  };
+
   useEffect(() => {
     if (coverRequest && !addLock) {
       setDialog({
@@ -425,6 +489,12 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
           return editLock;
         }
 
+        const teamLock: string | null = getTeamLock(item, ModelAction.Update);
+
+        if (teamLock) {
+          return teamLock;
+        }
+
         if (
           item.startsAt &&
           item.endsAt &&
@@ -478,8 +548,10 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
 
         return Boolean(target && canEndUserOverrideNow(target));
       },
-      getDisabledReason: (): string | undefined => {
-        return editLock || undefined;
+      getDisabledReason: (
+        item: OnCallDutyPolicyUserOverride,
+      ): string | undefined => {
+        return editLock || getTeamLock(item, ModelAction.Update) || undefined;
       },
       getConfirmation: (
         item: OnCallDutyPolicyUserOverride,
@@ -548,9 +620,13 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         userPreferencesKey="on-call-user-override-table"
         isDeleteable={true}
         getDeleteDisabledReason={
-          deleteLock
-            ? (): string => {
-                return deleteLock;
+          deleteLock || deleteTeamLimit
+            ? (item: OnCallDutyPolicyUserOverride): string | undefined => {
+                return (
+                  deleteLock ||
+                  getTeamLock(item, ModelAction.Delete) ||
+                  undefined
+                );
               }
             : undefined
         }

@@ -42,7 +42,7 @@ Todo o resto está no painel.
 :::
 
 :::details Posso confirmar um acionamento pela notificação?
-Não. Toque na notificação: o aplicativo abre o incidente, o alerta, o episódio ou o caso de segurança de que ela trata, no projeto certo, e você o confirma ali. Se o aplicativo está bloqueado ou você não entrou, ele abre o acionamento assim que você entra.
+Sim. Toque e segure a notificação no iPhone, ou expanda-a no Android: um acionamento de plantão oferece **Acknowledge** e **Escalate**, um acionamento que só mantém você informado oferece **I've seen it**, e um acionamento de teste oferece **Acknowledge test page**. Cada ação abre o aplicativo no registro assim que o celular é desbloqueado e faz o que o próprio botão do registro faz; antes de escalar, pergunta. Ao tocar na própria notificação, o aplicativo abre o incidente, o alerta, o episódio ou o caso de segurança de que ela trata, no projeto certo. Se o aplicativo está bloqueado ou você não entrou, ele abre o acionamento assim que você entra.
 :::
 
 :::details O meu login está seguro no celular?

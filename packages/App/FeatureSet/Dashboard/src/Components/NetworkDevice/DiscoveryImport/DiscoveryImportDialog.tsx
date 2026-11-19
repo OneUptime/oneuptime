@@ -42,7 +42,7 @@ import React, {
 import {
   DiscoveredHostQuery,
   DiscoveredHostSelectability,
-  getAlreadyAddedAddresses,
+  getAlreadyAddedDeviceIds,
   getDiscoveredHostsToImport,
   getInitialSelection,
   isAddingMonitorToExistingHost,
@@ -50,8 +50,9 @@ import {
 } from "../DiscoveredHostFilter";
 import {
   DeviceMonitorsByKey,
-  getMonitoredAddresses,
-  loadDeviceMonitorsForHostnames,
+  emptyDeviceMonitorsByKey,
+  getMonitoredDeviceIds,
+  loadDeviceMonitorsForDeviceIds,
 } from "../DeviceMonitorsOfDevices";
 import DiscoveryScanStatusMessage from "../DiscoveryScanStatusMessage";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
@@ -73,6 +74,7 @@ import {
   DEFAULT_DISCOVERY_REVIEW_QUERY,
   DISCOVERY_REVIEW_SCAN_SELECT,
   getImportedAddresses,
+  getImportedDeviceIds,
   getPickedTemplate,
   getReviewHosts,
   keepPickedTemplate,
@@ -271,6 +273,10 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   const [importedAddresses, setImportedAddresses] = useState<Set<string>>(
     new Set<string>(),
   );
+  // The device an import of this sitting created or found for each host.
+  const [importedDeviceIds, setImportedDeviceIds] = useState<
+    Map<string, string>
+  >(new Map<string, string>());
   const [allResults, setAllResults] =
     useState<Array<DiscoveryImportHostResult> | null>(null);
   const [isLoadingAllResults, setIsLoadingAllResults] =
@@ -438,6 +444,15 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
         setImportedAddresses((current: Set<string>) => {
           return new Set<string>([...current, ...addresses]);
         });
+
+        // The device each one is (issue #9677): its monitors are read by it.
+        const deviceIds: Map<string, string> = getImportedDeviceIds(results);
+
+        if (deviceIds.size > 0) {
+          setImportedDeviceIds((current: Map<string, string>) => {
+            return new Map<string, string>([...current, ...deviceIds]);
+          });
+        }
       };
 
       markImported(view.results);
@@ -472,8 +487,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     return getReviewHosts({
       scan: scan,
       importedAddresses: importedAddresses,
+      importedDeviceIds: importedDeviceIds,
     });
-  }, [scan, importedAddresses]);
+  }, [scan, importedAddresses, importedDeviceIds]);
 
   const naming: { useShortDeviceNames?: boolean | null | undefined } = {
     useShortDeviceNames: scan?.useShortDeviceNames,
@@ -486,12 +502,14 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   /*
    * The monitors of every host that is a device already (issue #9544), read
    * when the scan is, and again after an import: which of them can be picked
-   * to get a monitor, and which say Already monitored. A read that fails
-   * offers every one of them - the server's duplicate rule still keeps each
-   * device to one monitor of a kind.
+   * to get a monitor, and which say Already monitored. By the device each
+   * host is, which the server names from the scan's probe (issue #9677):
+   * another site's device at the same address, and its monitors, are not
+   * this host's. A read that fails offers every one of them - the server's
+   * duplicate rule still keeps each device to one monitor of a kind.
    */
-  const alreadyAddedAddresses: string = useMemo(() => {
-    return getAlreadyAddedAddresses(hosts).join(",");
+  const alreadyAddedDeviceIds: string = useMemo(() => {
+    return getAlreadyAddedDeviceIds(hosts).join(",");
   }, [hosts]);
 
   const monitorsRequestRef: React.MutableRefObject<number> = useRef<number>(0);
@@ -500,12 +518,12 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     monitorsRequestRef.current += 1;
     const request: number = monitorsRequestRef.current;
 
-    if (!alreadyAddedAddresses) {
-      setDeviceMonitors({ byDeviceId: new Map(), byHostname: new Map() });
+    if (!alreadyAddedDeviceIds) {
+      setDeviceMonitors(emptyDeviceMonitorsByKey());
       return;
     }
 
-    loadDeviceMonitorsForHostnames(alreadyAddedAddresses.split(","))
+    loadDeviceMonitorsForDeviceIds(alreadyAddedDeviceIds.split(","))
       .then((loaded: DeviceMonitorsByKey) => {
         if (request === monitorsRequestRef.current) {
           setDeviceMonitors(loaded);
@@ -513,14 +531,14 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
       })
       .catch(() => {
         if (request === monitorsRequestRef.current) {
-          setDeviceMonitors({ byDeviceId: new Map(), byHostname: new Map() });
+          setDeviceMonitors(emptyDeviceMonitorsByKey());
         }
       });
-  }, [alreadyAddedAddresses, monitorsReadAttempt]);
+  }, [alreadyAddedDeviceIds, monitorsReadAttempt]);
 
   const selectability: DiscoveredHostSelectability = useMemo(() => {
     return deviceMonitors
-      ? { monitoredAddresses: getMonitoredAddresses(deviceMonitors) }
+      ? { monitoredDeviceIds: getMonitoredDeviceIds(deviceMonitors) }
       : {};
   }, [deviceMonitors]);
 

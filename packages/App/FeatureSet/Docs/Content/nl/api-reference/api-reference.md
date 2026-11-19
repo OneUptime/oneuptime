@@ -246,6 +246,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Beide namen worden op dezelfde manier gecontroleerd. De regels voor het record dat je noemt, gelden onder welke naam je het ook stuurt: de bovenliggende groep van een statuspaginagroep moet op dezelfde statuspagina staan, een statuspagina accepteert hoogstens drie headerlinks, en de naam van een groep moet uniek zijn op haar statuspagina.
 
+#### Namen die een ander record al heeft
+
+Teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's hebben in een project elk een eigen naam, ongeacht hoofdletters en spaties: `Primary`, ` primary` en `PRIMARY` zijn één naam. Een aanmaak, of een update die er een hernoemt, naar een naam die een ander record van dezelfde soort al heeft, wordt geweigerd met een `400` die dat zegt:
+
+```text
+There is already an on-call policy called Primary in this project. Pick another name.
+```
+
+Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen. Voor teams, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden.
+
 ### Schakelaars
 
 Een veld dat aan of uit staat - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` en elk ander `true`- of `false`-veld - neemt `true` of `false`. Tekst en getallen die de database als een van beide leest, worden als die waarde opgevat, op dezelfde manier voor de API, Terraform en workflows: `"true"`, `"yes"`, `"on"`, `"1"` en `1` zijn `true`, en `"false"`, `"no"`, `"off"`, `"0"` en `0` zijn `false`, ongeacht hoofdletters. Alles wat OneUptime met het record doet, behandelt het ook als die waarde: een onderhoudsgebeurtenis die met `"isVisibleOnStatusPage": "true"` wordt gestuurd, toont haar afbeeldingen op de statuspagina, en `"isEnabled": "false"` schakelt een resource onder haar abonnement uit zoals `false` dat doet. Elke andere waarde, zoals `"maybe"`, `""` of `2`, wordt geweigerd met een `400` die het veld noemt:

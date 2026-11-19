@@ -173,6 +173,10 @@ export class Service extends DatabaseService<Model> {
         clashSelect: {
           isArchived: true,
         },
+        // A label in use is named before an archived one.
+        clashSort: {
+          isArchived: SortOrder.Ascending,
+        },
         describeClash: (data: {
           clash: Model;
           name: string;

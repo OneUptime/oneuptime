@@ -13,7 +13,8 @@ import { translationKey } from "../Translator";
  * called "Tenants" could not be told apart anywhere they were picked, and
  * nothing stopped a second one being made, or a team being renamed to
  * another's name. A label's name had the same gap on a rename: a new label
- * was refused a name another label had, a renamed one was not.
+ * was refused a name another label had, a renamed one was not. On-call
+ * policies and on-call schedules are held to the same rule since #9742.
  *
  * Two names are one name when they read alike: whatever their case, the
  * spaces around them, and how many spaces - or which kind of space - stand
@@ -148,10 +149,64 @@ export const LABELS_RENAMED_TOGETHER_REFUSAL: string = translationKey(
   "Several labels cannot be given one name. Rename one label at a time.",
 );
 
+/*
+ * The same for an on-call policy and an on-call schedule (#9742): each is
+ * picked by its name alone - an escalation rule's schedules, an incident or
+ * alert on-call rule's policies, a monitor criteria's policies, a workflow
+ * that pages a policy, Readiness and the Schedule Timeline, the Slack and
+ * Microsoft Teams commands - so two schedules called "Primary" could not be
+ * told apart in any of them.
+ */
+export const ON_CALL_POLICY_NAME_TAKEN_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    "There is already an on-call policy called {{name}} in this project. Pick another name.",
+  ),
+  terms: [],
+};
+
+/*
+ * An archived policy keeps its name: unarchived, it would be a twin of the
+ * new one, and unarchiving is never refused. So a new policy, or a rename,
+ * that takes an archived policy's name is told where to bring that one back.
+ */
+export const ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    "There is already an archived on-call policy called {{name}} in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.",
+  ),
+  terms: [],
+};
+
+export const ON_CALL_POLICIES_RENAMED_TOGETHER_REFUSAL: string = translationKey(
+  "Several on-call policies cannot be given one name. Rename one policy at a time.",
+);
+
+export const ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    "There is already an on-call schedule called {{name}} in this project. Pick another name.",
+  ),
+  terms: [],
+};
+
+export const ON_CALL_SCHEDULES_RENAMED_TOGETHER_REFUSAL: string =
+  translationKey(
+    "Several on-call schedules cannot be given one name. Rename one schedule at a time.",
+  );
+
 // Every refusal of a name another record of the project has.
 export const NAME_TAKEN_REFUSALS: ReadonlyArray<RefusalWithValues> = [
   TEAM_NAME_TAKEN_REFUSAL,
   LABEL_NAME_TAKEN_REFUSAL,
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL,
+];
+
+// Every refusal of one update that would give several records one name.
+export const RENAMED_TOGETHER_REFUSALS: ReadonlyArray<string> = [
+  TEAMS_RENAMED_TOGETHER_REFUSAL,
+  LABELS_RENAMED_TOGETHER_REFUSAL,
+  ON_CALL_POLICIES_RENAMED_TOGETHER_REFUSAL,
+  ON_CALL_SCHEDULES_RENAMED_TOGETHER_REFUSAL,
 ];
 
 // A refusal as the server answers it: the name as it reads, never blank.
@@ -184,14 +239,95 @@ export const isNameTakenRefusal: (message: string) => boolean = (
 ): boolean => {
   const text: string = (message || "").trim();
 
-  if (
-    text === TEAMS_RENAMED_TOGETHER_REFUSAL ||
-    text === LABELS_RENAMED_TOGETHER_REFUSAL
-  ) {
+  if (RENAMED_TOGETHER_REFUSALS.includes(text)) {
     return true;
   }
 
   return NAME_TAKEN_REFUSALS.some((refusal: RefusalWithValues): boolean => {
     return readRefusalValues(refusal, text) !== null;
   });
+};
+
+/*
+ * THE NAME A RECORD TAKES WHEN ITS OWN IS TAKEN: "Primary", then
+ * "Primary 2", "Primary 3" and on - the numbering Duplicate gives a copy
+ * (UI/Components/Forms/Utils/UniqueName, "API Monitor 2").
+ *
+ * For a name OneUptime picks on a person's behalf, where nobody is there to
+ * pick another: the first policy a guided setup makes ("Default on-call
+ * policy", while an archived one, or one the person may not see, has the
+ * name), or two schedules another tool called alike, brought over by one
+ * import. Refused, the name would stop the setup or the import part way.
+ *
+ * The number is the name's, not a word of the page's: it is stored with
+ * the name and drawn as written. A name kept to `maxLength` gives up the
+ * end of its words, never its number.
+ */
+export const getNumberedName: (data: {
+  name: string;
+  number: number;
+  maxLength?: number | undefined;
+}) => string = (data: {
+  name: string;
+  number: number;
+  maxLength?: number | undefined;
+}): string => {
+  if (data.number <= 1) {
+    return data.name;
+  }
+
+  const suffix: string = ` ${data.number}`;
+  const base: string = normalizeName(data.name);
+
+  if (!data.maxLength || base.length + suffix.length <= data.maxLength) {
+    return `${base}${suffix}`;
+  }
+
+  return `${base.slice(0, Math.max(1, data.maxLength - suffix.length)).trim()}${suffix}`;
+};
+
+// How many names a create tries, its own included, before it gives up.
+export const FREE_NAME_ATTEMPTS: number = 10;
+
+/*
+ * Makes a record with the first of its numbered names that is free: the
+ * create is tried with the name, and again with the next number for as
+ * long as the server refuses it because another record has the name
+ * (isNameTakenRefusal). Any other refusal is the create's own, and is
+ * thrown as it came. Each try asks the server, so a name taken by a record
+ * the person may not read, or by an archived one, is passed over all the
+ * same. Nothing is written by a refused try: the name is checked before
+ * the record is saved (UniqueNameInProject).
+ */
+export const createWithFreeName: <T>(data: {
+  name: string;
+  create: (name: string) => Promise<T>;
+  // The words a failed try was refused with: a server's message, or the Dashboard's.
+  readRefusal: (error: unknown) => string;
+  maxLength?: number | undefined;
+  attempts?: number | undefined;
+}) => Promise<{ created: T; name: string }> = async <T>(data: {
+  name: string;
+  create: (name: string) => Promise<T>;
+  readRefusal: (error: unknown) => string;
+  maxLength?: number | undefined;
+  attempts?: number | undefined;
+}): Promise<{ created: T; name: string }> => {
+  const attempts: number = Math.max(1, data.attempts || FREE_NAME_ATTEMPTS);
+
+  for (let number: number = 1; ; number++) {
+    const name: string = getNumberedName({
+      name: data.name,
+      number: number,
+      maxLength: data.maxLength,
+    });
+
+    try {
+      return { created: await data.create(name), name: name };
+    } catch (error) {
+      if (number >= attempts || !isNameTakenRefusal(data.readRefusal(error))) {
+        throw error;
+      }
+    }
+  }
 };

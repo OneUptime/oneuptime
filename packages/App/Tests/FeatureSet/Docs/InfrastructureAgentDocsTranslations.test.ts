@@ -455,6 +455,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A refusal that clears on its own",
     "A refusal that needs you",
     "eBPF span metrics have new names.",
+    // The upgrade note on the Compliance page's RBAC controls (#9879).
+    "The CIS Benchmark's RBAC controls need an upgraded agent.",
     "Self-hosted OneUptime: upgrade the OneUptime server first.",
     "The upgrade adds a pod that pulls `docker.io/oneuptime/kubernetes-ai-agent`.",
     "At the receiver",

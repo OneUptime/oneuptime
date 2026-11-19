@@ -15,6 +15,7 @@ import useTranslateValue from "../../Utils/Translation";
 import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 import { TOOLTIP_PLUGINS } from "./TooltipEscape";
 import { getTooltipLayer, keepTabOrder } from "./TooltipLayer";
+import { showOnFirstTap } from "./TooltipTap";
 
 export interface ComponentProps {
   // In English, looked up here - unless one of the two flags below is set.
@@ -85,6 +86,16 @@ export interface ComponentProps {
    * reason again before it could be read.
    */
   isShownOnPress?: boolean | undefined;
+  /*
+   * For a trigger inside something that opens on a tap - an owner's avatar
+   * in a list's card, which opens the record. On a touch screen the first
+   * tap on the trigger shows the tooltip and is its alone: the card does
+   * not open. It stays once the finger lifts; a second tap on the trigger,
+   * or a tap anywhere else on the card, goes on to the card as before, and
+   * puts the tooltip away (TooltipTap, #9866). A mouse hovers first, and
+   * its click goes on to the card as it always did.
+   */
+  isShownOnFirstTap?: boolean | undefined;
 }
 
 interface PopupProps extends ComponentProps {
@@ -101,6 +112,12 @@ const FOCUS_TRIGGERS: Array<string> = ["focus", "focusin"];
 const SHARED_TOOLTIP_PLUGINS: Array<Plugin> = [
   ...TOOLTIP_PLUGINS,
   keepTabOrder,
+];
+
+// And a tap that is the tooltip's own (isShownOnFirstTap).
+const FIRST_TAP_TOOLTIP_PLUGINS: Array<Plugin> = [
+  ...SHARED_TOOLTIP_PLUGINS,
+  showOnFirstTap,
 ];
 
 const TooltipPopup: FunctionComponent<PopupProps> = (
@@ -179,7 +196,11 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
        * through what it holds as if it sat right after its trigger
        * (TooltipLayer).
        */
-      plugins={SHARED_TOOLTIP_PLUGINS}
+      plugins={
+        props.isShownOnFirstTap
+          ? FIRST_TAP_TOOLTIP_PLUGINS
+          : SHARED_TOOLTIP_PLUGINS
+      }
       /*
        * Drawn on the page's body, interactive or not - never inside its
        * trigger's parent, Tippy's own place for an interactive one, where a
@@ -194,12 +215,17 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
       interactive={props.interactive ?? isRich}
       /*
        * A press shows it and keeps it until the next press (see
-       * isShownOnPress); everything else shows on hover and focus.
+       * isShownOnPress), or until a press on it or anywhere else (see
+       * isShownOnFirstTap); everything else shows on hover and focus.
        */
       trigger={
-        props.isShownOnPress ? "mouseenter focus click" : "mouseenter focus"
+        props.isShownOnPress || props.isShownOnFirstTap
+          ? "mouseenter focus click"
+          : "mouseenter focus"
       }
-      hideOnClick={props.isShownOnPress ? "toggle" : false}
+      hideOnClick={
+        props.isShownOnPress ? "toggle" : Boolean(props.isShownOnFirstTap)
+      }
       maxWidth={isRich ? 380 : 350}
       delay={isRich ? [120, 80] : [0, 0]}
       duration={[200, 150]}

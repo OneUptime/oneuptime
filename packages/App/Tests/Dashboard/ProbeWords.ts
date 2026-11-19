@@ -60,6 +60,9 @@ const EBPF_PROBE: string =
 const HEALTH_PROBES: string =
   "an Azure load balancer's health probes, which a cloud resource's health reason names: the cloud's checks, not OneUptime probes";
 
+const POD_PROBES: string =
+  "a pod's own liveness, readiness and startup probes and lifecycle hooks, which the Pod Security Standards' Host Probes / Lifecycle Hooks control reads on a cluster's Compliance page (#9877): Kubernetes' checks of a container, not OneUptime probes";
+
 // The five languages PR #8305 held to their Dashboard's word first.
 const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
   fa: {
@@ -78,6 +81,10 @@ const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
     keptPhrases: [
       { phrase: /启动探针/u, why: STARTUP_PROBE },
       { phrase: /系统调用上挂载一个探针/u, why: EBPF_PROBE },
+      {
+        phrase: /主机探针|探针和生命周期钩子|tcpSocket 探针及钩子/u,
+        why: POD_PROBES,
+      },
     ],
   },
   "zh-TW": {
@@ -92,6 +99,11 @@ const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       { phrase: /opstartsprobe\p{L}*/iu, why: STARTUP_PROBE },
       { phrase: /sætter OBI en probe/u, why: EBPF_PROBE },
       { phrase: /sundhedsprober/iu, why: HEALTH_PROBES },
+      {
+        phrase:
+          /værtsprober|prober og livscyklus-hooks|prober og hooks af typen httpGet/iu,
+        why: POD_PROBES,
+      },
     ],
   },
   nl: {
@@ -104,6 +116,10 @@ const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       {
         phrase: /datastore-probes/iu,
         why: "the master admin API's checks of each datastore, which its example response names: not OneUptime probes",
+      },
+      {
+        phrase: /hostprobes|probes en lifecycle-hooks|tcpSocket-probes/iu,
+        why: POD_PROBES,
       },
     ],
   },
@@ -129,6 +145,10 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
     keptPhrases: [
       { phrase: /Startup-Probe\p{L}*/u, why: STARTUP_PROBE },
       { phrase: /hängt OBI eine Probe/u, why: EBPF_PROBE },
+      {
+        phrase: /Host-Probes|Probes und Lifecycle-Hooks|tcpSocket-Probes/u,
+        why: POD_PROBES,
+      },
     ],
   },
   no: {
@@ -137,6 +157,11 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       { phrase: /oppstartsprobe\p{L}*/iu, why: STARTUP_PROBE },
       { phrase: /fester OBI en probe/u, why: EBPF_PROBE },
       { phrase: /helseprober/iu, why: HEALTH_PROBES },
+      {
+        phrase:
+          /vertsprober|prober og livssyklus-hooks|prober og hooks av typen httpGet/iu,
+        why: POD_PROBES,
+      },
     ],
   },
   sv: {
@@ -145,11 +170,23 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
     keptPhrases: [
       { phrase: /startprob\p{L}*/iu, why: STARTUP_PROBE },
       { phrase: /fäster OBI en probe/u, why: EBPF_PROBE },
+      {
+        phrase:
+          /värdprober|prober och livscykel-hooks|prober och hooks av typen httpGet/iu,
+        why: POD_PROBES,
+      },
     ],
   },
   it: {
     others: /probe/iu,
-    keptPhrases: [{ phrase: /probe di avvio/iu, why: STARTUP_PROBE }],
+    keptPhrases: [
+      { phrase: /probe di avvio/iu, why: STARTUP_PROBE },
+      {
+        phrase:
+          /probe dell'host|probe e hook del ciclo di vita|dalle probe e dagli hook/iu,
+        why: POD_PROBES,
+      },
+    ],
   },
   pt: {
     others: /probe/iu,
@@ -168,6 +205,10 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       {
         phrase: /Если это была проба/u,
         why: "a trial run of a Terraform configuration: проба is Russian for a trial, not a OneUptime probe",
+      },
+      {
+        phrase: /пробах и хуках|пробы и хуки|проб и хуков/iu,
+        why: POD_PROBES,
       },
     ],
   },

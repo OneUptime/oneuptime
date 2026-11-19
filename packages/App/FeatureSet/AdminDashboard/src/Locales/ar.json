@@ -4314,5 +4314,10 @@
   "If they have no OneUptime account yet, it is set up with this name.": "إن لم يكن لديهم حساب OneUptime بعد، فسيُعدّ بهذا الاسم.",
   "Suggest every account on this server?": "هل تريد اقتراح كل الحسابات على هذا الخادم؟",
   "Anyone who may invite people sees every account's name and email as they type. Turn this on only if every account here belongs to one organization.": "سيرى كل من يمكنه دعوة أشخاص اسم كل حساب وبريده الإلكتروني أثناء الكتابة. لا تفعّل هذا إلا إذا كان كل حساب هنا ينتمي إلى مؤسسة واحدة.",
-  "Suggest Every Account": "اقتراح كل الحسابات"
+  "Suggest Every Account": "اقتراح كل الحسابات",
+  "Sign Out URL": "عنوان URL لتسجيل الخروج",
+  "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "عنوان URL لتسجيل الخروج الموحّد لدى موفّر الهوية. يلزم لتسجيل خروج الأشخاص منه أيضًا.",
+  "Single Logout URL:": "عنوان URL لتسجيل الخروج الموحّد (Single Logout):",
+  "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "لتسجيل خروج الأشخاص من موفّر الهوية أيضًا، أعطه أيضًا عنوان URL لتسجيل الخروج الموحّد وشهادة التوقيع الخاصة بـ OneUptime.",
+  "Download Signing Certificate": "تنزيل شهادة التوقيع"
 }

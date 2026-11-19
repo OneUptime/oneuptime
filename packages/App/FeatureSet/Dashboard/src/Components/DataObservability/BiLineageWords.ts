@@ -50,6 +50,10 @@ const TABLES_NOT_WATCHED: PluralTemplate = {
   one: "{{count}} table not watched",
   other: "{{count}} tables not watched",
 };
+const ENTITY_SETS_UNKNOWN: PluralTemplate = {
+  one: "{{count}} Dataverse table not matched yet",
+  other: "{{count}} Dataverse tables not matched yet",
+};
 const DATAFLOWS_UNREAD: PluralTemplate = {
   one: "{{count}} dataset on an unread dataflow",
   other: "{{count}} datasets on unread dataflows",
@@ -74,6 +78,14 @@ function databasesNotConnected(summary: DataBiLineageSummary): number {
   return summary.sources.filter((source: DataBiLineageSource): boolean => {
     return Boolean(source.engine) && !source.dataStoreId;
   }).length;
+}
+
+/*
+ * Tables named by a Dataverse entity set their environment keeps no name
+ * of yet (#9696): a summary kept before they were told apart has none.
+ */
+function unknownEntitySets(summary: DataBiLineageSummary): Array<string> {
+  return summary.unknownEntitySets || [];
 }
 
 // Datasets on a dataflow whose tables could not be read (#9551).
@@ -118,6 +130,11 @@ export function getBiLineageReason(
         TABLES_NOT_WATCHED,
         summary.unwatchedTables.length,
       );
+    case DataBiLineageProblem.EntitySetsUnknown:
+      return translator.translatePlural(
+        ENTITY_SETS_UNKNOWN,
+        unknownEntitySets(summary).length,
+      );
     case DataBiLineageProblem.Dataflows:
       return datasetsOnUnreadDataflows(summary) > 0
         ? translator.translatePlural(
@@ -151,6 +168,9 @@ const STEP_TITLES: Readonly<Record<DataBiLineageProblem, string>> = {
   [DataBiLineageProblem.TablesNotWatched]: translationKey(
     "Watch the Tables Your Dashboards Read",
   ),
+  [DataBiLineageProblem.EntitySetsUnknown]: translationKey(
+    "Dataverse Tables Named by Entity Set",
+  ),
   [DataBiLineageProblem.Dataflows]: translationKey("Data From Dataflows"),
   [DataBiLineageProblem.SchemaErrors]: translationKey(
     "Datasets Power BI Cannot Describe",
@@ -179,6 +199,11 @@ const DATABASES_NOT_CONNECTED_TEXT: PluralTemplate = {
 const TABLES_NOT_WATCHED_TEXT: string = translationKey(
   "These tables are in databases OneUptime watches, but are not watched: {{tables}}. They may be left out of the database's scan, or not collected yet.",
 );
+const ENTITY_SETS_UNKNOWN_TEXT: PluralTemplate = {
+  one: "Power BI names {{count}} Dataverse table by its entity set ({{tables}}), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
+  other:
+    "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+};
 const DATAFLOWS_UNREAD_TEXT: PluralTemplate = {
   one: "{{count}} dataset reads a Power BI dataflow whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}.",
   other:
@@ -242,6 +267,15 @@ export function getBiLineageStep(
         text: translator.translateTemplate(TABLES_NOT_WATCHED_TEXT, {
           tables: summary.unwatchedTables.join(", "),
         }),
+      };
+    case DataBiLineageProblem.EntitySetsUnknown:
+      return {
+        title,
+        text: translator.translatePlural(
+          ENTITY_SETS_UNKNOWN_TEXT,
+          unknownEntitySets(summary).length,
+          { tables: unknownEntitySets(summary).join(", ") },
+        ),
       };
     case DataBiLineageProblem.Dataflows:
       return datasetsOnUnreadDataflows(summary) > 0

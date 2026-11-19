@@ -60,6 +60,11 @@ import DataverseApi, {
   selectDataverseTables,
 } from "./DataverseApi";
 import SkippedTableMemory, { fingerprintOf } from "./SkippedTableMemory";
+import DataCheckRestarts, {
+  DataCheckRun,
+  describeCheckFailure,
+  MAX_RESTARTED_AFTER_LENGTH,
+} from "./DataCheckRestart";
 import {
   SkippedTable,
   SkippedTableRead,
@@ -272,6 +277,14 @@ export interface CollectedTable {
    * last read stand, compared again at the next read.
    */
   columnsNotRead?: boolean | undefined;
+  /*
+   * A Dataverse table's entity set: the name its Web API, and Power BI's
+   * OData connectors, call it by (accounts for account), kept with the
+   * table so a report that names it is matched to it (#9696). Unset for
+   * every other engine, and from a probe older than it, which keeps the
+   * name the table had.
+   */
+  entitySetName?: string | undefined;
 }
 
 // Where the database itself shows one table feeding another.
@@ -379,6 +392,8 @@ interface RawTable {
   // The engine's change time is its data's (Dataverse's modifiedon): see CollectedTable.
   isChangeTimeFromData?: boolean | undefined;
   columnsNotRead?: boolean | undefined;
+  // A Dataverse table's entity set name: see CollectedTable.
+  entitySetName?: string | undefined;
 }
 
 interface RawColumn {
@@ -5687,6 +5702,8 @@ class DataverseCatalog implements CatalogSession {
           secondsSinceRead: null,
           isChangeTimeFromData: true,
           ...(isColumnsRead ? {} : { columnsNotRead: true }),
+          // What Power BI's OData connectors name it by (#9696): the definition every collection reads says it.
+          entitySetName: table.entitySetName,
         };
       },
     );
@@ -6096,31 +6113,38 @@ export async function readCheckValues(
   );
   const catalog: CatalogSession = await openCatalog(connection);
   const results: Array<DataCheckRunResult> = [];
+  // A check the warehouse failed for a moment is started again once (#9679).
+  const restarts: DataCheckRestarts = new DataCheckRestarts();
 
   try {
     for (const check of checks) {
       try {
+        const run: DataCheckRun<Array<Record<string, unknown>>> =
+          await restarts.run((): Promise<Array<Record<string, unknown>>> => {
+            return catalog.readAggregate(check.sql, check.params, check.limits);
+          });
+
         results.push({
           checkId: check.checkId,
           values: readCheckRows({
             type: check.type,
             isSegmented: check.isSegmented,
-            rows: await catalog.readAggregate(
-              check.sql,
-              check.params,
-              check.limits,
-            ),
+            rows: run.value,
           }),
           error: null,
+          ...restartedAfterOf(run, secrets),
         });
       } catch (error) {
         results.push({
           checkId: check.checkId,
           values: [],
-          error: sanitizeErrorMessage(error, secrets).slice(
-            0,
-            MAX_CHECK_ERROR_LENGTH,
-          ),
+          error: describeCheckFailure({
+            error,
+            sanitize: (failure: unknown): string => {
+              return sanitizeErrorMessage(failure, secrets);
+            },
+            maxLength: MAX_CHECK_ERROR_LENGTH,
+          }),
         });
       }
     }
@@ -6129,6 +6153,21 @@ export async function readCheckValues(
   }
 
   return results;
+}
+
+// Why a check that ran at its second try failed its first (#9679), never holding a secret.
+function restartedAfterOf(
+  run: DataCheckRun<unknown>,
+  secrets: Array<string>,
+): Pick<DataCheckRunResult, "restartedAfter"> {
+  return run.restartedAfter
+    ? {
+        restartedAfter: sanitizeErrorMessage(
+          new Error(run.restartedAfter),
+          secrets,
+        ).slice(0, MAX_RESTARTED_AFTER_LENGTH),
+      }
+    : {};
 }
 
 export async function collectTableHealth(
@@ -6185,33 +6224,44 @@ export async function collectTableHealth(
       (await isCatalogBusy(catalog));
     const waitWarnings: Array<string> = waits ? [BUSY_DATABASE_WARNING] : [];
 
+    // A check the warehouse failed for a moment is started again once (#9679).
+    const restarts: DataCheckRestarts = new DataCheckRestarts();
+
     // Each check on its own: one that cannot run never stops the others.
     for (const check of waits ? [] : options.checks || []) {
       try {
+        const run: DataCheckRun<Array<Record<string, unknown>>> =
+          await restarts.run((): Promise<Array<Record<string, unknown>>> => {
+            return catalog!.readAggregate(
+              check.sql,
+              check.params,
+              check.limits,
+            );
+          });
         const values: Array<DataCheckSegmentValue> = readCheckRows({
           type: check.type,
           isSegmented: check.isSegmented,
-          rows: await catalog.readAggregate(
-            check.sql,
-            check.params,
-            check.limits,
-          ),
+          rows: run.value,
         });
 
         checkResults.push({
           checkId: check.checkId,
           values,
           error: null,
+          ...restartedAfterOf(run, secrets),
           ...(await readFailingRowsOf(catalog, check, values)),
         });
       } catch (error) {
         checkResults.push({
           checkId: check.checkId,
           values: [],
-          error: sanitizeErrorMessage(error, secrets).slice(
-            0,
-            MAX_CHECK_ERROR_LENGTH,
-          ),
+          error: describeCheckFailure({
+            error,
+            sanitize: (failure: unknown): string => {
+              return sanitizeErrorMessage(failure, secrets);
+            },
+            maxLength: MAX_CHECK_ERROR_LENGTH,
+          }),
         });
       }
     }

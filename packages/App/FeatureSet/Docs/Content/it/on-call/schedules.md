@@ -18,7 +18,7 @@ Quando crei una pianificazione nella pagina **Pianificazioni di reperibilità**,
 
 :::steps
 1. Vai in **Reperibilità** > **Pianificazioni di reperibilità** e fai clic su **Crea pianificazione di reperibilità**.
-2. Inserisci un **Nome**.
+2. Inserisci un **Nome**. Un nome già usato da un'altra pianificazione del progetto viene rifiutato, comunque siano scritte maiuscole, minuscole e spazi, così ogni selettore distingue le pianificazioni tra loro.
 3. In **Chi si alterna?**, fai clic su **Aggiungi utente** e scegli le persone, nell'ordine in cui si alternano.
 4. Se vuoi, apri **Altri campi** per cambiare quanto dura ogni turno, il fuso orario, la descrizione o le etichette.
 5. Fai clic su **Crea pianificazione di reperibilità**. La nuova pianificazione si apre poi nella sua pagina **Livelli**, dove puoi cambiare la rotazione o aggiungere altri livelli.
@@ -101,7 +101,7 @@ Un'assenza aggiunta così vale per tutte le policy di reperibilità, quindi rich
 
 Con l'API, una sostituzione utente (`/api/on-call-duty-policy-user-override`) creata senza `routeAlertsToUserId` salta la persona in `overrideUserId` da `startsAt` a `endsAt`.
 
-La **Panoramica** di una pianificazione ha una scheda **Usato da**: le policy di reperibilità le cui regole di escalation chiamano chi è reperibile, con le regole che lo fanno. Se nessuna lo fa, lo dice e rimanda alle policy di reperibilità. Eliminare la pianificazione, dalla sua pagina o dall'elenco, dice prima quali policy chiamano tramite essa. Le policy che non puoi aprire vengono contate, non nominate.
+La **Panoramica** di una pianificazione ha una scheda **Usato da**: le policy di reperibilità le cui regole di escalation chiamano chi è reperibile, con le regole che lo fanno. Se nessuna lo fa, lo dice e rimanda alle policy di reperibilità. Eliminare la pianificazione, dalla sua pagina o dall'elenco, dice prima quali policy chiamano tramite essa. Le policy che non puoi aprire vengono contate, non nominate. Una pianificazione che ha lo stesso nome di un'altra pianificazione, da prima che i nomi dovessero essere diversi, è contrassegnata con **Stesso nome di un'altra pianificazione** nell'elenco **Pianificazioni di reperibilità**, che indica quante sono: confronta i loro livelli, poi rinominane una con **Rinomina** nella sua riga.
 
 ## Creare pianificazioni con l'API o Terraform
 

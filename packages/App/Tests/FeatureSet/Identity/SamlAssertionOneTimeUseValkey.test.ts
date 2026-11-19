@@ -91,6 +91,13 @@ function assertion(
     objectId: null,
     assertionId,
     acceptableUntil: new Date(Date.now() + secondsLeft * 1000),
+    nameId: {
+      value: "monica.reyes@example.com",
+      format: null,
+      nameQualifier: null,
+      spNameQualifier: null,
+    },
+    sessionIndex: null,
   };
 }
 

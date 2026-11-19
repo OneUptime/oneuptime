@@ -16,7 +16,7 @@
 
 ```mermaid title="成本數字從何而來"
 flowchart TB
-    cadvisor["cAdvisor，經由<br/>API 伺服器節點代理"] --> prometheus["內建的 Prometheus"]
+    cadvisor["cAdvisor，來自<br/>各節點的 kubelet"] --> prometheus["內建的 Prometheus"]
     prometheus --> opencost["OpenCost"]
     pricing["雲端供應商公開價格，<br/>或你的費率表"] --> opencost
     opencost -->|"每次一個<br/>已結束的小時"| poller["成本輪詢器"]
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **OpenCost**：開放原始碼的成本引擎（Apache-2.0，CNCF；也是 Kubecost 所依據的 [cost-model](https://github.com/kubecost/cost-model)）。它會監看叢集，為你的節點、磁碟區和負載平衡器定價，並算出每個工作負載的成本。
-2. **一個小型 Prometheus**：OpenCost 需要它來保存用量和價格歷程。它執行一個複本，保留 7 天的歷程，而且只抓取兩個目標：透過 API 伺服器節點代理存取的 cAdvisor（只保留 OpenCost 讀取的序列），以及 OpenCost 本身（它會發出自己的資源 request 指標，因此不涉及 kube-state-metrics）。它從不公開到叢集之外，其資料也從不離開叢集。
+2. **一個小型 Prometheus**：OpenCost 需要它來保存用量和價格歷程。它執行一個複本，保留 7 天的歷程，而且只抓取兩個目標：每個節點 kubelet 上的 cAdvisor（在 `eks-fargate` 預設集上，由於沒有 Pod 能存取 kubelet，改為透過 API 伺服器節點代理存取；只保留 OpenCost 讀取的序列），以及 OpenCost 本身（它會發出自己的資源 request 指標，因此不涉及 kube-state-metrics）。它從不公開到叢集之外，其資料也從不離開叢集。
 3. **成本輪詢器**（`cost.agent`）。每個小時結束後，它會讀取一次 OpenCost 的 Allocation API，並為每個工作負載向 OneUptime 傳送一列成本：CPU、記憶體、GPU、磁碟區、網路、負載平衡器和閒置，以及效率。每個小時只會傳送一次；伺服器會略過它已經有的小時，因此重新啟動不會把支出計算兩次。OneUptime 也會根據這些列寫入 [成本指標](#針對成本發出警示)。
 4. **一項成本指標抓取**（`cost.metrics`）。代理程式的 Collector 會抓取 OpenCost 的價格指標，也就是每個節點、磁碟區和負載平衡器每小時的成本，並與叢集的其餘指標一起傳送。
 

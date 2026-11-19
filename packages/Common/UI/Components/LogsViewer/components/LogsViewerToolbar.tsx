@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useRef } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import LiveLogsToggle from "./LiveLogsToggle";
@@ -20,6 +20,7 @@ import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDat
 import { ResultTotal } from "../../../Utils/Telemetry/ResultTotal";
 import TelemetryResultTotal from "../../TelemetryViewer/components/TelemetryResultTotal";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
+import LayeredPopover from "../../Tooltip/LayeredPopover";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
@@ -129,15 +130,23 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
     setIsComponentVisible: setIsExportOpen,
   } = useComponentOutsideClick(false);
 
+  // What the Export menu and the keyboard shortcuts open from.
+  const exportButtonRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+  const shortcutsButtonRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+
   const showExport: boolean = Boolean(props.onExportCSV || props.onExportJSON);
 
   return (
     /*
      * Below md the two groups wrap onto their own rows instead of sharing
-     * one: side by side they squeezed each other on a phone. Wrapping moves
-     * the triggers, so there every popover in the row spans the row (its
-     * positioning context) rather than hanging off its trigger. From md up a
-     * popover hangs off its trigger, on whichever row the trigger is.
+     * one: side by side they squeezed each other on a phone. Every popover
+     * of the row - Columns, Export, the shortcuts, the time range, saved
+     * views - is drawn over the page from its trigger (LayeredPopover), not
+     * inside the row: under a list with no filter bar the row is inside the
+     * list's card, which cut off whatever ran past its foot (#9859). It
+     * stays inside the window's sides on a phone.
      */
     <div
       className={`${LOGS_VIEWER_TOOLBAR_CLASS_NAME} ${props.className || ""}`}
@@ -363,8 +372,9 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
 
         {props.onToggleKeyboardShortcuts && (
-          <div className="md:relative">
+          <div>
             <button
+              ref={shortcutsButtonRef}
               type="button"
               className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
                 props.showKeyboardShortcuts
@@ -373,6 +383,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               }`}
               onClick={props.onToggleKeyboardShortcuts}
               title={translator.translateText("Keyboard shortcuts (?)")}
+              aria-expanded={Boolean(props.showKeyboardShortcuts)}
             >
               <kbd className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded border border-current px-0.5 font-mono text-xs font-semibold leading-none">
                 ?
@@ -380,6 +391,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
             </button>
             {props.showKeyboardShortcuts && (
               <KeyboardShortcutsHelp
+                anchorRef={shortcutsButtonRef}
                 onClose={props.onToggleKeyboardShortcuts}
               />
             )}
@@ -387,10 +399,12 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
 
         {showExport && (
-          <div className="md:relative" ref={exportDropdownRef}>
+          <div ref={exportDropdownRef}>
             <button
+              ref={exportButtonRef}
               type="button"
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+              aria-expanded={isExportOpen}
               onClick={() => {
                 setIsExportOpen(!isExportOpen);
               }}
@@ -424,35 +438,44 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               </svg>
             </button>
             {isExportOpen && (
-              <div
-                className="absolute left-0 right-0 z-20 mt-1 rounded-md border border-gray-200 bg-white py-1 shadow-lg md:left-auto md:w-40"
-                data-testid={LOGS_VIEWER_EXPORT_MENU_TEST_ID}
+              <LayeredPopover
+                anchorRef={exportButtonRef}
+                ownerRef={exportDropdownRef}
+                align="end"
+                onClose={() => {
+                  setIsExportOpen(false);
+                }}
               >
-                {props.onExportCSV && (
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
-                    onClick={() => {
-                      setIsExportOpen(false);
-                      props.onExportCSV!();
-                    }}
-                  >
-                    {translator.translateText("Export as CSV")}
-                  </button>
-                )}
-                {props.onExportJSON && (
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
-                    onClick={() => {
-                      setIsExportOpen(false);
-                      props.onExportJSON!();
-                    }}
-                  >
-                    {translator.translateText("Export as JSON")}
-                  </button>
-                )}
-              </div>
+                <div
+                  className="w-40 max-w-[calc(100vw-1rem)] rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+                  data-testid={LOGS_VIEWER_EXPORT_MENU_TEST_ID}
+                >
+                  {props.onExportCSV && (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-start text-xs text-gray-700 hover:bg-gray-50"
+                      onClick={() => {
+                        setIsExportOpen(false);
+                        props.onExportCSV!();
+                      }}
+                    >
+                      {translator.translateText("Export as CSV")}
+                    </button>
+                  )}
+                  {props.onExportJSON && (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-start text-xs text-gray-700 hover:bg-gray-50"
+                      onClick={() => {
+                        setIsExportOpen(false);
+                        props.onExportJSON!();
+                      }}
+                    >
+                      {translator.translateText("Export as JSON")}
+                    </button>
+                  )}
+                </div>
+              </LayeredPopover>
             )}
           </div>
         )}

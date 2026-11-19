@@ -46,7 +46,7 @@ flowchart TB
 - یک کلید دریافت داده. آن را زیر **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده** بسازید و مقدارش را کپی کنید. کالکتور آن را در سرآیند `x-oneuptime-token` می‌فرستد.
 - دسترسی مدیر روی ماشین: `sudo` روی Linux و macOS، و یک PowerShell با دسترسی بالا روی Windows.
 - HTTPS خروجی از ماشین به نشانی OneUptime شما.
-- توزیع contrib کالکتور، یعنی `otelcol-contrib`. ساخت پایه `otelcol` گیرنده‌ها و پردازنده‌هایی را که این پیکربندی‌ها به کار می‌برند ندارد. گیرنده `systemd` (Linux) از v0.143.0 و گیرنده `windows_service` (Windows) از v0.155.0 کار می‌کند؛ فرمان‌های زیر v0.161.0 را نصب می‌کنند، انتشاری که OneUptime روی آن ثابت شده است.
+- توزیع contrib کالکتور، یعنی `otelcol-contrib`. ساخت پایه `otelcol` گیرنده‌ها و پردازنده‌هایی را که این پیکربندی‌ها به کار می‌برند ندارد. گیرنده `systemd` (Linux) از v0.143.0 و گیرنده `windows_service` (Windows) از v0.155.0 کار می‌کند؛ فرمان‌های زیر v0.165.0 را نصب می‌کنند، انتشاری که OneUptime روی آن ثابت شده است.
 
 ## نصب کالکتور
 
@@ -140,7 +140,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -238,7 +238,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -346,7 +346,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 
@@ -381,7 +381,7 @@ service:
 روی Debian یا Ubuntu:
 
 ```bash
-VERSION=0.161.0                      # the release OneUptime pins
+VERSION=0.165.0                      # the release OneUptime pins
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \
@@ -392,7 +392,7 @@ sudo dpkg -i /tmp/otelcol-contrib.deb
 روی RHEL، CentOS، Fedora یا Amazon Linux:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \
@@ -413,7 +413,7 @@ sudo systemctl status otelcol-contrib
 واحد بسته کالکتور را با کاربر بی‌امتیاز `otelcol-contrib` اجرا می‌کند. گروه `systemd-journal` به آن اجازه خواندن ژورنال می‌دهد؛ برای دنبال کردن فایل‌های `/var/log` (که روی Debian و Ubuntu گروه `adm` می‌تواند بخواند)، آن گروه را هم بیفزایید. برای اینکه خراشگر `process` فرایندهای کاربران دیگر را ببیند، قابلیت `CAP_SYS_PTRACE` را به آن بدهید.
 @tab macOS
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
 
 curl -fL -o /tmp/otelcol-contrib.tar.gz \
@@ -458,7 +458,7 @@ sudo launchctl list | grep otelcol-contrib
 در یک PowerShell با دسترسی بالا، در پوشه‌ای که `config.yaml` در آن است، این بلوک را یکجا اجرا کنید: هر خط به متغیرهای بالای خودش وابسته است.
 
 ```powershell
-$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
+$VERSION = "0.165.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -852,7 +852,7 @@ docker run -d \
   -e HOST_VAR=/hostfs/var \
   -e HOST_RUN=/hostfs/run \
   -e HOST_DEV=/hostfs/dev \
-  otel/opentelemetry-collector-contrib:0.161.0 \
+  otel/opentelemetry-collector-contrib:0.165.0 \
   --config /etc/otelcol-contrib/config.yaml
 ```
 
@@ -863,7 +863,7 @@ docker run -d \
 جایی که بسته‌ها گزینه نیستند، فایل دودویی ایستا را باز کنید و یک واحد systemd جداگانه برایش بسازید:
 
 ```bash
-VERSION=0.161.0
+VERSION=0.165.0
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \
@@ -1157,7 +1157,7 @@ processors:
   resource:
     attributes:
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
   batch:
 

@@ -19,13 +19,11 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import ComplianceFramework, {
-  ALL_COMPLIANCE_FRAMEWORKS,
-} from "../../Types/DataSecurity/ComplianceFramework";
 import {
-  ALL_DATA_STORE_RESOURCE_KINDS,
-  DataStoreResourceKind,
-} from "../../Types/DataSecurity/DataStoreResource";
+  ALL_COMPLIANCE_SETTING_FRAMEWORKS,
+  ComplianceSettingFramework,
+} from "../../Types/DataSecurity/ComplianceSettingFramework";
+import { DataStoreResourceKind } from "../../Types/DataSecurity/DataStoreResource";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -40,6 +38,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * Turning one off makes a row; turning it on again sets the row's isEnabled,
  * so whoever may turn a framework off for a resource may turn it back on.
+ *
+ * A Kubernetes cluster is also scored itself, against the Pod Security
+ * Standards and the CIS Kubernetes Benchmark (#9627,
+ * Types/Kubernetes/Compliance): a row can turn one of those, or one of their
+ * controls, off for the cluster - or, naming a namespace, for that namespace
+ * alone, as Pod Security Admission exempts a namespace.
  *
  * It tunes how Data Security scores what its checks found, as a check
  * setting tunes the checks themselves, so the same permissions read and
@@ -120,7 +124,7 @@ const createOnlyColumnAccess: {
   create: true,
   update: true,
   delete: true,
-  resourceNameColumns: ["framework", "requirement"],
+  resourceNameColumns: ["framework", "requirement", "namespace"],
 })
 @TableBillingAccessControl({
   create: PlanType.Free,
@@ -191,7 +195,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
-    allowedValues: [...ALL_DATA_STORE_RESOURCE_KINDS],
+    allowedValues: Object.values(DataStoreResourceKind),
     required: true,
     canReadOnRelationQuery: true,
     title: "Resource Type",
@@ -223,19 +227,19 @@ export default class DataSecurityComplianceSetting extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
-    allowedValues: [...ALL_COMPLIANCE_FRAMEWORKS],
+    allowedValues: [...ALL_COMPLIANCE_SETTING_FRAMEWORKS],
     required: true,
     canReadOnRelationQuery: true,
     title: "Framework",
     description:
-      "The compliance framework this setting changes for the resource: GDPR, CCPA, HIPAA, PCI DSS, SOC 2, ISO 27001, NIST CSF, LGPD or DPDP.",
+      "The compliance framework this setting changes for the resource: GDPR, CCPA, HIPAA, PCI DSS, SOC 2, ISO 27001, NIST CSF, LGPD or DPDP, or for a Kubernetes cluster PSS Baseline, PSS Restricted or CIS Kubernetes.",
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: false,
   })
-  public framework?: ComplianceFramework = undefined;
+  public framework?: ComplianceSettingFramework = undefined;
 
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
@@ -252,6 +256,28 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     nullable: true,
   })
   public requirement?: string = undefined;
+
+  /*
+   * A namespace of the Kubernetes cluster the setting names (#9627): the
+   * cluster's own frameworks, or one of their controls, turned off for that
+   * namespace alone. Empty for the whole resource; only a Kubernetes
+   * framework's setting names one.
+   */
+  @ColumnAccessControl(createOnlyColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Namespace",
+    description:
+      "For a Kubernetes cluster's PSS Baseline, PSS Restricted or CIS Kubernetes setting, the one namespace it is for. Empty for the whole resource.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public namespace?: string = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({

@@ -12,6 +12,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -26,6 +27,7 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import ConnectorTestReportView from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorTestReportView";
 import SecurityEventAttributeColumnPicker from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventAttributeColumnPicker";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import SecurityEventConnectionDiagnostics from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnostics";
 import SecurityEventConnectionRunDetails, {
   ConnectionWindowProgress,
@@ -1408,26 +1410,46 @@ describe("a connection's run history and import confirmation", () => {
 });
 
 describe("the attribute column picker on a right-to-left page", () => {
-  test("its panel is held by the page's start and end, never by left and right", async () => {
+  test("its panel hangs from the button's end, the left of a line read from the right, never by left and right classes", async () => {
     await i18next.changeLanguage("ar");
-    render(
-      <SecurityEventAttributeColumnPicker
-        attributeKeys={["target.user.firstName"]}
-        selectedKeys={[]}
-        onChange={(): void => {}}
-      />,
-    );
+    document.documentElement.setAttribute("dir", "rtl");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: new RegExp(worded(AR, "Columns")) }),
-    );
+    try {
+      render(
+        <SecurityEventAttributeColumnPicker
+          attributeKeys={["target.user.firstName"]}
+          selectedKeys={[]}
+          onChange={(): void => {}}
+        />,
+      );
 
-    const panel: HTMLElement = screen
-      .getByRole("textbox", { name: worded(AR, "Search attributes") })
-      .closest(".absolute") as HTMLElement;
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: new RegExp(worded(AR, "Columns")),
+        }),
+      );
 
-    expect(panel).toHaveClass("start-0", "end-0", "md:start-auto");
-    expect(panel.className).not.toMatch(/\b(md:)?(left|right)-/);
+      const panel: HTMLElement = screen
+        .getByRole("textbox", { name: worded(AR, "Search attributes") })
+        .closest('[role="dialog"]') as HTMLElement;
+      const layer: HTMLElement = panel.closest<HTMLElement>(
+        `.${LAYERED_POPOVER_CLASS_NAME}`,
+      ) as HTMLElement;
+
+      // Drawn over the page (LayeredPopover), where no card can cut it off.
+      expect(layer.parentElement).toBe(document.body);
+      expect(panel.className).not.toMatch(/\b(md:)?(left|right)-/);
+
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // Its end on the button's end: the left, on a line read from the right.
+      expect(layer).toHaveAttribute("data-popper-placement", "bottom-start");
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
   });
 });
 

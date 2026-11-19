@@ -543,6 +543,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why an override that names somebody outside the reader's teams is
+   * refused, and why a picker offers only their teams' people (issue
+   * #9733): the server says them in English, the dashboard in the
+   * reader's language. Only the sentences the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/UserOverrideTeamAccess.ts",
+    kind: "keys",
+  },
+  /*
    * What a dashboard template's chart says while it draws its fallback
    * query - why, and where the fix is. Stored in the dashboard as written
    * and looked up where the chart draws it; only the hints the file marks
@@ -589,6 +600,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Kubernetes/KubernetesStorageHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * The Pod Security Standards' and the CIS Kubernetes Benchmark's controls
+   * a cluster's Compliance page scores (#9627): each one's title, what it
+   * finds wrong and how to fix it, and why the benchmark's other controls
+   * are not scored. Only the words the file marks are read: field names and
+   * values are Kubernetes', drawn as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog.ts",
     kind: "keys",
   },
   /*
