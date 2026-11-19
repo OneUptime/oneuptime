@@ -396,6 +396,7 @@ describe("Cloud:MoveOffRetiredCloudMetrics", () => {
     expect(REGISTERED[1]).toEqual({
       schedule: EVERY_HOUR,
       runOnStartup: false,
+      timeoutInMS: 30 * 60 * 1000,
     });
     expect(runJob).toBe(moveOffRetiredCloudMetrics);
 

@@ -24,6 +24,13 @@ import MoveMonitorsOffRetiredCloudMetrics from "../../DataMigrations/MoveMonitor
 export const MOVE_OFF_RETIRED_CLOUD_METRICS_JOB_NAME: string =
   "Cloud:MoveOffRetiredCloudMetrics";
 
+/*
+ * A run reads every row that still names a deprecated metric and, for a
+ * Cosmos DB one, what its account reported lately: more than the default
+ * five minutes on an install with many of them.
+ */
+export const MOVE_OFF_RETIRED_CLOUD_METRICS_TIMEOUT_MS: number = 30 * 60 * 1000;
+
 export async function moveOffRetiredCloudMetrics(): Promise<void> {
   try {
     await MoveMonitorsOffRetiredCloudMetrics.moveAll({ tellKept: false });
@@ -44,6 +51,10 @@ export async function moveOffRetiredCloudMetrics(): Promise<void> {
 
 RunCron(
   MOVE_OFF_RETIRED_CLOUD_METRICS_JOB_NAME,
-  { schedule: EVERY_HOUR, runOnStartup: false },
+  {
+    schedule: EVERY_HOUR,
+    runOnStartup: false,
+    timeoutInMS: MOVE_OFF_RETIRED_CLOUD_METRICS_TIMEOUT_MS,
+  },
   moveOffRetiredCloudMetrics,
 );
