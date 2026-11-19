@@ -244,6 +244,20 @@ METRICS_DEPLOY=$(kubectl get deploy -n "$NS" -l "$SEL,component=metrics-collecto
   -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null \
   | grep -iE 'agent|collector|otel' | grep -viE 'state-metrics|ebpf|profil|log' | head -1)
 
+# The agent's pods carry the chart's selector labels - its name and release -
+# and their component, never part-of, which only the workloads carry: so a pod
+# is found by the name and release its metrics-collector Deployment has.
+POD_SEL="$SEL"
+if [ -n "$METRICS_DEPLOY" ]; then
+  POD_NAME_LABEL=$(kubectl get deploy "$METRICS_DEPLOY" -n "$NS" \
+    -o jsonpath='{.metadata.labels.app\.kubernetes\.io/name}' 2>/dev/null)
+  POD_RELEASE_LABEL=$(kubectl get deploy "$METRICS_DEPLOY" -n "$NS" \
+    -o jsonpath='{.metadata.labels.app\.kubernetes\.io/instance}' 2>/dev/null)
+  if [ -n "$POD_NAME_LABEL" ] && [ -n "$POD_RELEASE_LABEL" ]; then
+    POD_SEL="app.kubernetes.io/name=$POD_NAME_LABEL,app.kubernetes.io/instance=$POD_RELEASE_LABEL"
+  fi
+fi
+
 # ----------------------------------------------------------------------------
 section "3. Pod health"
 # ----------------------------------------------------------------------------
@@ -264,7 +278,7 @@ else
 fi
 
 # Per-pod state for every agent pod; surface crashloops / config errors / pending.
-PODS=$(kubectl get pods -n "$NS" -l "$SEL" \
+PODS=$(kubectl get pods -n "$NS" -l "$POD_SEL" \
   -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null)
 [ -z "$PODS" ] && PODS=$(kubectl get pods -n "$NS" -o name 2>/dev/null | sed 's#pod/##' | grep -iE 'agent|collector|otel')
 
@@ -324,7 +338,7 @@ fi
 [ -n "$SIDECAR_POD" ] && info "debug sidecar detected in $SIDECAR_POD — egress test will use the collector's exact network path."
 
 # Pick one metrics-collector pod for port-forward checks.
-PRIMARY_POD=$(kubectl get pods -n "$NS" -l "$SEL,component=metrics-collector" \
+PRIMARY_POD=$(kubectl get pods -n "$NS" -l "$POD_SEL,component=metrics-collector" \
   -o jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' 2>/dev/null | awk '{print $1}')
 [ -z "$PRIMARY_POD" ] && PRIMARY_POD=$(printf '%s\n' "$PODS" | head -1)
 
@@ -622,12 +636,16 @@ fi
 PODS_REFUSED_NODES=""
 while read -r npod nnode; do
   [ -z "$npod" ] && continue
-  if kubectl logs -n "$NS" "$npod" -c otel-collector --tail=300 2>/dev/null \
-    | grep -q 'call to /pods endpoint failed'; then
-    PODS_REFUSED_NODES="$PODS_REFUSED_NODES ${nnode:-$npod}"
-  fi
+  # Read whole, then matched: under pipefail, grep -q would stop reading at
+  # the first match and fail the pipe with the logs' SIGPIPE.
+  NODE_LOG=$(kubectl logs -n "$NS" "$npod" -c otel-collector --tail=300 2>/dev/null)
+  case "$NODE_LOG" in
+    *'call to /pods endpoint failed'*)
+      PODS_REFUSED_NODES="$PODS_REFUSED_NODES ${nnode:-$npod}"
+      ;;
+  esac
 done <<EOF
-$(kubectl get pods -n "$NS" -l "$SEL,component=log-collector" \
+$(kubectl get pods -n "$NS" -l "$POD_SEL,component=log-collector" \
   -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.nodeName}{"\n"}{end}' 2>/dev/null)
 EOF
 if [ -n "$PODS_REFUSED_NODES" ]; then
@@ -688,7 +706,7 @@ cost_deploy_check() {
   # The waiting reason decides which failure this is — ImagePullBackOff gets
   # named on the failing line itself rather than left as a generic "not ready",
   # because among a dozen healthy pods it is the one nobody goes looking for.
-  reasons=$(kubectl get pods -n "$NS" -l "$SEL,component=$comp" \
+  reasons=$(kubectl get pods -n "$NS" -l "$POD_SEL,component=$comp" \
     -o jsonpath='{range .items[*]}{.status.containerStatuses[*].state.waiting.reason}{" "}{end}' 2>/dev/null | tr -s ' ')
   reasons=$(printf '%s' "$reasons" | xargs)
   case "$reasons" in
@@ -828,7 +846,7 @@ else
 
   # 9a. The poller's own /healthz. This is the only place the poll loop's error
   # surfaces: it does not crash, does not fail its probes, and logs at info.
-  COST_POD_IP=$(kubectl get pods -n "$NS" -l "$SEL,component=cost-agent" \
+  COST_POD_IP=$(kubectl get pods -n "$NS" -l "$POD_SEL,component=cost-agent" \
     -o jsonpath='{.items[?(@.status.phase=="Running")].status.podIP}' 2>/dev/null | awk '{print $1}')
   if [ "$COST_PROBE_OK" = 1 ] && [ -z "$COST_POD_IP" ]; then
     warn "No Running cost-agent pod — skipping the /healthz check."
