@@ -38,6 +38,7 @@ import {
   isScreenshotDescriptor,
   validateRpcRequest,
 } from "./RpcProtocol";
+import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
 
 type HostObject = Record<string, unknown>;
 
@@ -67,6 +68,12 @@ interface BrokerOptions {
   internalPages?: ReadonlySet<Page> | undefined;
   signal: AbortSignal;
   onRuntimeReady: () => void;
+  /*
+   * Where oneuptime.getTotpCode's codes come from (issue #9703): the run's
+   * one-time code secrets, held on this side. The sandbox only ever gets a
+   * code. Absent, the run has none, and asking for one says so.
+   */
+  totpCodes?: TotpCodeIssuer | undefined;
 }
 
 const MAX_BROWSER_CONTEXT_PAGES: number = 8;
@@ -361,6 +368,7 @@ const RUNTIME_METHODS: ReadonlySet<string> = new Set([
   "axiosRequest",
   "captureMetric",
   "cryptoOperation",
+  "getTotpCode",
   "log",
   "ready",
 ]);
@@ -408,6 +416,7 @@ export default class PlaywrightCapabilityBroker {
   private totalLogBytes: number = 0;
   private totalScreenshotBytes: number = 0;
   private hasReportedRuntimeReady: boolean = false;
+  private readonly totpCodes: TotpCodeIssuer;
 
   public constructor(options: BrokerOptions) {
     this.executionId = options.executionId;
@@ -416,6 +425,7 @@ export default class PlaywrightCapabilityBroker {
     this.internalPages = options.internalPages ?? new Set<Page>();
     this.signal = options.signal;
     this.onRuntimeReady = options.onRuntimeReady;
+    this.totpCodes = options.totpCodes ?? new TotpCodeIssuer({ secrets: {} });
 
     this.runtimeCapability = this.registerCapability(
       Object.create(null) as HostObject,
@@ -1047,6 +1057,9 @@ export default class PlaywrightCapabilityBroker {
         return this.executeAxiosRequest(args[0]);
       case "cryptoOperation":
         return this.executeCryptoOperation(args[0], args.slice(1));
+      case "getTotpCode":
+        // A fresh code, never one about to expire; the seed stays here.
+        return await this.totpCodes.getCode(args[0]);
     }
 
     throw new Error(`Runtime method '${method}' is not available.`);

@@ -23,6 +23,31 @@ import VMHttpBridge, {
  */
 const HOST_BRIDGE_TICK_MS: number = 5;
 
+// What the host answers a script's oneuptime.getTotpCode with.
+export interface VMTotpCodeAnswer {
+  code?: string | undefined;
+  // The current code is about to expire: ask again after this long.
+  waitInMs?: number | undefined;
+  error?: string | undefined;
+}
+
+// Where a script's one-time codes come from (TotpCodeIssuer is one).
+export interface VMTotpCodes {
+  tryGetCode(name: unknown): VMTotpCodeAnswer;
+}
+
+const NO_TOTP_CODES_MESSAGE: string =
+  "oneuptime.getTotpCode works only in a monitor's script, where the monitor's one-time code (TOTP) secrets are.";
+
+/*
+ * How many times a script asks before giving up: a code about to expire is
+ * waited for once, and secrets of different periods may need a second wait.
+ */
+const MAX_TOTP_CODE_ASKS: number = 4;
+
+const TOTP_CODE_NOT_MADE_MESSAGE: string =
+  "A one-time code could not be made in time. Run the check again.";
+
 export default class VMRunner {
   @CaptureSpan()
   public static async runCodeInSandbox(data: {
@@ -74,6 +99,13 @@ export default class VMRunner {
        * run's limits here.
        */
       httpRequester?: VMHttpRequester | undefined;
+      /*
+       * The one-time codes oneuptime.getTotpCode hands the script: a probe's
+       * Custom JavaScript Code monitor passes its check's TotpCodeIssuer
+       * (Utils/Monitor/MonitorSecretTotp). Absent, as for a workflow's
+       * script, the function says it is a monitor script's.
+       */
+      totpCodes?: VMTotpCodes | undefined;
     };
   }): Promise<ReturnResult> {
     const { code, options } = data;
@@ -279,10 +311,34 @@ export default class VMRunner {
         ),
       );
 
+      /*
+       * oneuptime.getTotpCode("NAME") (issue #9703): a fresh one-time code
+       * from a TOTP monitor secret the script's monitor carries. The host
+       * answers at once - the code, or how long to wait while the current
+       * one is about to expire - and the script waits on the sandbox's own
+       * sleep, so nothing blocks the host. A runner handed no codes (a
+       * workflow's script) says the function is a monitor script's.
+       */
+      await jail.set(
+        "__oneuptimeHostTotpCallback",
+        new ivm.Callback(
+          (name: string): string => {
+            const answer: VMTotpCodeAnswer = options.totpCodes
+              ? options.totpCodes.tryGetCode(name)
+              : { error: NO_TOTP_CODES_MESSAGE };
+
+            return JSON.stringify(answer);
+          },
+          { sync: true },
+        ),
+      );
+
       await context.eval(`
         (() => {
           const hostCaptureMetric = globalThis.__oneuptimeHostMetricCallback;
           delete globalThis.__oneuptimeHostMetricCallback;
+          const hostTotpCode = globalThis.__oneuptimeHostTotpCallback;
+          delete globalThis.__oneuptimeHostTotpCallback;
 
           const sandboxOneUptime = Object.freeze({
             captureMetric: (name, value, attributes) => {
@@ -290,6 +346,16 @@ export default class VMRunner {
               if (typeof value !== 'number' || isNaN(value)) return;
               const attrJson = attributes ? JSON.stringify(attributes) : undefined;
               hostCaptureMetric(String(name), String(value), attrJson);
+            },
+            getTotpCode: async (name) => {
+              for (let attempt = 0; attempt < ${MAX_TOTP_CODE_ASKS}; attempt += 1) {
+                const answer = JSON.parse(hostTotpCode(typeof name === 'string' ? name : ''));
+                if (answer.error) throw new Error(answer.error);
+                if (answer.code) return answer.code;
+                // The bridge's own sleep, defined on the global below.
+                await globalThis.sleep(answer.waitInMs);
+              }
+              throw new Error(${JSON.stringify(TOTP_CODE_NOT_MADE_MESSAGE)});
             }
           });
 

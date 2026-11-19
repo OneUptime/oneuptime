@@ -2,7 +2,7 @@ import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IP from "Common/Types/IP/IP";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
@@ -11,7 +11,27 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import ObjectID from "Common/Types/ObjectID";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import { MonitorSecretTypeUtil } from "Common/Types/Monitor/MonitorSecretType";
+import {
+  callsTotpCodeFunction,
+  getQuotedNames,
+  getReferencedSecretNames,
+} from "Common/Utils/Monitor/MonitorSecretTotp";
+import { TotpParameters, TotpSecrets } from "Common/Utils/Totp/TotpParameters";
+import {
+  TotpSecretReading,
+  readTotpSecret,
+} from "Common/Utils/Totp/TotpSecret";
+
+// What a step references of the monitor's one-time code secrets.
+interface TotpReferences {
+  // The names its {{monitorSecrets.NAME}} references give.
+  names: Array<string>;
+  // A script that asks with oneuptime.getTotpCode, for the names it quotes.
+  script: string | undefined;
+}
 
 export default class MonitorUtil {
   /*
@@ -73,11 +93,17 @@ export default class MonitorUtil {
     return secretsByMonitorId.get(data.monitorId.toString()) || [];
   }
 
-  // True when any part of the monitor steps references a {{monitorSecrets.*}} value.
+  /*
+   * True when any part of the monitor steps references a
+   * {{monitorSecrets.*}} value, or a script asks for a one-time code with
+   * oneuptime.getTotpCode - either needs the monitor's secrets.
+   */
   public static monitorStepsReferenceSecrets(
     monitorSteps: MonitorSteps,
   ): boolean {
-    return this.hasSecrets(JSONFunctions.toString(monitorSteps.toJSON()));
+    const steps: string = JSONFunctions.toString(monitorSteps.toJSON());
+
+    return this.hasSecrets(steps) || callsTotpCodeFunction(steps);
   }
 
   public static async populateSecretsInMonitorSteps(data: {
@@ -111,6 +137,14 @@ export default class MonitorUtil {
 
     const monitorSteps: MonitorSteps = data.monitorSteps;
     const monitorType: MonitorType = data.monitorType;
+
+    /*
+     * Which one-time code (TOTP) secrets each step may need, read from the
+     * step as written - before any secret is filled in, so text a secret's
+     * value carries is never taken for a reference (issue #9703).
+     */
+    const totpReferences: Map<MonitorStep, TotpReferences> =
+      MonitorUtil.getTotpReferences(monitorSteps, monitorType);
 
     if (monitorType === MonitorType.API) {
       for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
@@ -171,10 +205,13 @@ export default class MonitorUtil {
           const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.monitorDestination =
-            (await MonitorUtil.fillSecretsInStringOrJSON({
-              secrets: monitorSecrets,
-              populateSecretsIn: monitorStep.data.monitorDestination,
-            })) as URL | Hostname | IP;
+            MonitorUtil.readFilledDestination({
+              filled: await MonitorUtil.fillSecretsInStringOrJSON({
+                secrets: monitorSecrets,
+                populateSecretsIn: monitorStep.data.monitorDestination,
+              }),
+              configured: monitorStep.data.monitorDestination,
+            });
         }
       }
     }
@@ -458,6 +495,11 @@ export default class MonitorUtil {
       }
     }
 
+    await MonitorUtil.attachTotpSecrets({
+      references: totpReferences,
+      getSecrets: getSecrets,
+    });
+
     return monitorSteps;
   }
 
@@ -533,6 +575,195 @@ export default class MonitorUtil {
     return prepopulatedString.includes("monitorSecrets.");
   }
 
+  /*
+   * A destination with its secrets filled in, as the URL, Hostname or IP
+   * it was. Filling works on the destination's JSON and hands back that
+   * JSON, {_type, value}, which is no URL: left so, the step could not be
+   * written for the probe - MonitorStep.toJSON asks the destination for
+   * its JSON - and every monitor in the probe's batch went unchecked with
+   * it. A filled value its type cannot hold (a host a secret made invalid)
+   * keeps the destination as configured, so that one check fails on its
+   * own rather than the batch.
+   */
+  private static readFilledDestination(data: {
+    filled: unknown;
+    configured: URL | Hostname | IP;
+  }): URL | Hostname | IP {
+    const filled: unknown = data.filled;
+
+    if (
+      filled instanceof URL ||
+      filled instanceof Hostname ||
+      filled instanceof IP
+    ) {
+      return filled;
+    }
+
+    if (typeof filled === "string") {
+      return URL.fromStringLenient(filled);
+    }
+
+    const json: JSONObject | null =
+      filled && typeof filled === "object" ? (filled as JSONObject) : null;
+
+    if (!json || typeof json["value"] !== "string") {
+      return data.configured;
+    }
+
+    try {
+      switch (json["_type"]) {
+        case ObjectType.URL:
+          return URL.fromJSON(json);
+        case ObjectType.Hostname:
+          return Hostname.fromJSON(json);
+        case ObjectType.IP:
+          return IP.fromJSON(json);
+      }
+    } catch {
+      // Never logged: the value holds the secret that was filled in.
+    }
+
+    return data.configured;
+  }
+
+  /*
+   * The one-time code secrets a step's probe makes codes for, where it
+   * makes them (MonitorSecretTotp): the {{monitorSecrets.NAME}} references
+   * of an API step's URL, headers and body, and of a Synthetic or Custom
+   * JavaScript Code step's script - and, for a script that asks with
+   * oneuptime.getTotpCode, the script itself, whose quoted names say which
+   * secrets it asks for. Every other field fills in Text secrets only, and
+   * leaves a reference to a one-time code secret as written.
+   *
+   * Every step's carried parameters are cleared here first, so a step only
+   * ever carries what the monitor's own secrets give it.
+   */
+  private static getTotpReferences(
+    monitorSteps: MonitorSteps,
+    monitorType: MonitorType,
+  ): Map<MonitorStep, TotpReferences> {
+    const references: Map<MonitorStep, TotpReferences> = new Map();
+
+    for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+      []) {
+      if (!monitorStep.data) {
+        continue;
+      }
+
+      monitorStep.data.totpSecrets = undefined;
+
+      const texts: Array<string> = [];
+      let script: string | undefined = undefined;
+
+      if (monitorType === MonitorType.API) {
+        texts.push(
+          JSONFunctions.toString(monitorStep.data.monitorDestination || ""),
+          JSONFunctions.toString(monitorStep.data.requestHeaders || {}),
+          monitorStep.data.requestBody || "",
+        );
+      }
+
+      if (
+        monitorType === MonitorType.SyntheticMonitor ||
+        monitorType === MonitorType.CustomJavaScriptCode
+      ) {
+        const customCode: string = monitorStep.data.customCode || "";
+
+        texts.push(customCode);
+
+        if (callsTotpCodeFunction(customCode)) {
+          script = customCode;
+        }
+      }
+
+      const names: Array<string> = [];
+
+      for (const text of texts) {
+        for (const name of getReferencedSecretNames(text)) {
+          if (!names.includes(name)) {
+            names.push(name);
+          }
+        }
+      }
+
+      if (names.length > 0 || script !== undefined) {
+        references.set(monitorStep, { names, script });
+      }
+    }
+
+    return references;
+  }
+
+  /*
+   * Hands each step the parameters of the one-time code secrets it names
+   * and its monitor may use. The seed travels to the probe beside the step,
+   * never inside a field: a field that takes no code keeps its reference
+   * as written, as it does for a secret the monitor may not use.
+   */
+  private static async attachTotpSecrets(data: {
+    references: Map<MonitorStep, TotpReferences>;
+    getSecrets: () => Promise<Array<MonitorSecret>>;
+  }): Promise<void> {
+    if (data.references.size === 0) {
+      return;
+    }
+
+    const parametersByName: Map<string, TotpParameters> = new Map();
+
+    for (const secret of await data.getSecrets()) {
+      if (
+        !secret.name ||
+        !MonitorSecretTypeUtil.isTotp(secret.secretType) ||
+        !secret.secretValue
+      ) {
+        continue;
+      }
+
+      const reading: TotpSecretReading = readTotpSecret(secret.secretValue);
+
+      // Refused when it was saved; a stored value that cannot be read gives no code.
+      if (reading.parameters) {
+        parametersByName.set(secret.name, reading.parameters);
+      }
+    }
+
+    if (parametersByName.size === 0) {
+      return;
+    }
+
+    for (const [monitorStep, references] of Array.from(
+      data.references.entries(),
+    )) {
+      const names: Array<string> = [...references.names];
+
+      if (references.script !== undefined) {
+        for (const name of getQuotedNames(
+          references.script,
+          parametersByName.keys(),
+        )) {
+          if (!names.includes(name)) {
+            names.push(name);
+          }
+        }
+      }
+
+      const totpSecrets: TotpSecrets = {};
+
+      for (const name of names) {
+        const parameters: TotpParameters | undefined =
+          parametersByName.get(name);
+
+        if (parameters) {
+          totpSecrets[name] = parameters;
+        }
+      }
+
+      if (monitorStep.data && Object.keys(totpSecrets).length > 0) {
+        monitorStep.data.totpSecrets = totpSecrets;
+      }
+    }
+  }
+
   private static async fillSecretsInStringOrJSON(data: {
     secrets: MonitorSecret[];
     populateSecretsIn: string | JSONObject | URL | Hostname | IP;
@@ -557,6 +788,15 @@ export default class MonitorUtil {
       }
 
       if (!monitorSecret.secretValue) {
+        continue;
+      }
+
+      /*
+       * A one-time code secret's value is a seed, and a seed is never
+       * written into a monitor: its reference is left for the probe, which
+       * makes the code when the check uses it (attachTotpSecrets).
+       */
+      if (MonitorSecretTypeUtil.isTotp(monitorSecret.secretType)) {
         continue;
       }
 
