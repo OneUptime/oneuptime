@@ -28,6 +28,8 @@ export const ROUTINE_EMAIL_EVENT_TYPES: ReadonlyArray<NotificationSettingEventTy
     NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
