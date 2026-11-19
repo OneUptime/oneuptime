@@ -1201,6 +1201,90 @@ describe("read", () => {
       ).toEqual(["AWS::EC2::Instance"]);
     });
 
+    /*
+     * #9690: where the stream's readings of an account and Region are
+     * fresh (CloudStreamReadings), the instance's health and headlines are
+     * judged from them: nothing its stack carries is read at all.
+     */
+    test("of template 2 whose streamed readings are fresh reads nothing it carries, health and headlines included", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          awsStreamCoverage: streaming([
+            { templateVersion: 2, everyMetric: false },
+          ]),
+          awsStreamedReadingSources: new Set<string>([
+            `${FAKE_ACCOUNT_ID}|us-east-1`,
+          ]),
+        },
+      );
+
+      expect(metricsQueried(fake)).toEqual([]);
+      expect(result.warnings).toEqual([]);
+      // Still found from its listed series, and its window done.
+      expect(result.resources).toHaveLength(1);
+      expect(result.nextState.cursors?.["300"]).toBe(
+        new Date(WINDOW_END_S * 1000).toISOString(),
+      );
+    });
+
+    test("of template 2 whose streamed readings are not fresh reads health and headlines from CloudWatch, and says so", async () => {
+      for (const fresh of [
+        new Set<string>(),
+        // Another Region's readings are fresh, not this one's.
+        new Set<string>([`${FAKE_ACCOUNT_ID}|eu-west-1`]),
+      ]) {
+        const fake: FakeAws = createFakeAws({
+          regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+        });
+
+        const result: CloudReadResult = await connector.read(
+          keySettings({ regions: "us-east-1" }),
+          {
+            ...readOptions(fake),
+            awsStreamCoverage: streaming([
+              { templateVersion: 2, everyMetric: false },
+            ]),
+            awsStreamedReadingSources: fresh,
+          },
+        );
+
+        expect(metricsQueried(fake)).toEqual([
+          "AWS/EC2/CPUUtilization",
+          "AWS/EC2/NetworkIn",
+        ]);
+        expect(result.warnings).toEqual([
+          "The streams sent no resource health from us-east-1 lately, so it was read from CloudWatch.",
+        ]);
+      }
+    });
+
+    test("of a stack that carries none of the health metrics, fresh readings or not, reads them as before", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          // Delivering another namespace: the instance's metrics are not its.
+          awsStreamCoverage: streaming([
+            { namespaces: ["AWS/RDS"], templateVersion: 2 },
+          ]),
+          awsStreamedReadingSources: new Set<string>(),
+        },
+      );
+
+      expect(metricsQueried(fake)).toHaveLength(4);
+      expect(result.warnings).toEqual([]);
+    });
+
     test("of a stack that says no template reads what it does not carry, as if the account did not stream", async () => {
       const fake: FakeAws = createFakeAws({
         regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },

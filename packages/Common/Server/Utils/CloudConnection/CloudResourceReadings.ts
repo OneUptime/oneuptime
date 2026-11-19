@@ -26,6 +26,7 @@ import ObjectID from "../../../Types/ObjectID";
 import CloudResourceService from "../../Services/CloudResourceService";
 import logger from "../Logger";
 import { OtlpAttribute, resolveCloudResourceOf } from "./CloudMetricPayload";
+import { mergeCollectedReadings } from "./CloudStreamReadings";
 
 /*
  * A RESOURCE'S READINGS, FROM WHAT A CLOUD CONNECTION'S READ BROUGHT IN.
@@ -444,11 +445,20 @@ export default class CloudResourceReadingsWriter {
     connectionId: ObjectID;
     payloads: Array<JSONObject>;
     writtenAt: Date;
+    /*
+     * What the connection's streams said of its resources' readings
+     * (CloudStreamReadings): beside the read's, the newer of each.
+     */
+    streamedReadings?: ReadonlyMap<string, CollectedCloudReadings> | undefined;
   }): Promise<CloudReadingsWriteResult> {
     let collected: Map<string, CollectedCloudReadings>;
 
     try {
       collected = collectCloudResourceReadings(data.payloads);
+
+      if (data.streamedReadings && data.streamedReadings.size > 0) {
+        collected = mergeCollectedReadings(collected, data.streamedReadings);
+      }
     } catch (error) {
       logger.error(
         `Cloud connection ${data.connectionId.toString()}: its resources' readings could not be read: ${

@@ -17,7 +17,14 @@ import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import CloudConnection from "../../../../Models/DatabaseModels/CloudConnection";
 import CloudConnectionService from "../../../../Server/Services/CloudConnectionService";
 import CloudConnectionResourceSync, {
@@ -25,7 +32,10 @@ import CloudConnectionResourceSync, {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionResourceSync";
 import CloudConnectionLanes from "../../../../Server/Utils/CloudConnection/CloudConnectionLanes";
 import CloudConnectorRegistry from "../../../../Server/Utils/CloudConnection/CloudConnectorRegistry";
-import CloudResourceReadingsWriter from "../../../../Server/Utils/CloudConnection/CloudResourceReadings";
+import CloudResourceReadingsWriter, {
+  CollectedCloudReadings,
+} from "../../../../Server/Utils/CloudConnection/CloudResourceReadings";
+import CloudStreamReadings from "../../../../Server/Utils/CloudConnection/CloudStreamReadings";
 import {
   CloudConnectionSettings,
   CloudConnector,
@@ -1575,5 +1585,116 @@ describe("an Azure read while its event hubs deliver", () => {
     expect(
       (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
     ).toBe(3);
+  });
+});
+
+/*
+ * #9690: a streaming AWS account's resources are judged from its streams.
+ * Before it reads, a read asks what the streams said of the resources'
+ * readings (CloudStreamReadings): the accounts and Regions whose readings
+ * are fresh are handed to the connector, which then reads nothing their
+ * stack carries, and the readings are written beside the read's own.
+ */
+describe("a streaming account's readings, from its streams", () => {
+  const STREAMED: Map<string, CollectedCloudReadings> = new Map([
+    [
+      "aws:streamed",
+      {
+        provider: "aws",
+        resourceType: "AWS::EC2::Instance",
+        readings: {
+          "aws/ec2/statuscheckfailed": {
+            value: 1,
+            time: "2026-10-21T11:55:00.000Z",
+          },
+        },
+      },
+    ],
+  ]);
+
+  function streams(): void {
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+    connection.streamSummary = {
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+          templateVersion: 2,
+          everyMetric: false,
+        },
+      ],
+      logSources: [],
+    };
+  }
+
+  test("are asked of a connection that streams: its fresh sources handed to the connector, its readings written with the read's", async () => {
+    streams();
+    const loads: Array<{ connectionId: string; now: Date }> = [];
+    jest
+      .spyOn(CloudStreamReadings, "load")
+      .mockImplementation(async (data: { connectionId: string; now: Date }) => {
+        loads.push(data);
+        return {
+          readings: STREAMED,
+          freshSources: new Set<string>(["123456789012|us-east-1"]),
+        };
+      });
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    await run();
+
+    expect(loads).toEqual([{ connectionId: CONNECTION.toString(), now: NOW }]);
+    expect(Array.from(readCalls[0]!.awsStreamedReadingSources || [])).toEqual([
+      "123456789012|us-east-1",
+    ]);
+    expect(written).toHaveLength(1);
+    expect(written[0]!["streamedReadings"]).toBe(STREAMED);
+  });
+
+  test("are not asked of a connection that does not stream: it reads as it always has", async () => {
+    const load: jest.SpiedFunction<typeof CloudStreamReadings.load> =
+      jest.spyOn(CloudStreamReadings, "load");
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    await run();
+
+    expect(load).not.toHaveBeenCalled();
+    expect(readCalls[0]!.awsStreamedReadingSources).toBeUndefined();
+    expect(written[0]!["streamedReadings"]).toBeUndefined();
+  });
+
+  test("a stream whose readings could not be had leaves every reading to the read", async () => {
+    streams();
+    jest.spyOn(CloudStreamReadings, "load").mockResolvedValue({
+      readings: new Map(),
+      freshSources: new Set<string>(),
+    });
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    await run();
+
+    // Told none is fresh: the connector reads health from CloudWatch, and says so.
+    expect(readCalls[0]!.awsStreamedReadingSources?.size).toBe(0);
+    expect(written[0]!["streamedReadings"]).toBeUndefined();
   });
 });
