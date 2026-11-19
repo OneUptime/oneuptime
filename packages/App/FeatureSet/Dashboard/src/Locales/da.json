@@ -59045,5 +59045,11 @@
   "Out of Date": "Forældet",
   "Search security patch levels...": "Søg i sikkerhedspatchniveauer...",
   "Security Patch Status": "Sikkerhedspatchstatus",
-  "Up to Date": "Opdateret"
+  "Up to Date": "Opdateret",
+  "Agent Permissions": "Agenttilladelser",
+  "Agent Permissions Status": "Status for agenttilladelser",
+  "All Granted": "Alle givet",
+  "Search agent permissions...": "Søg i agenttilladelser...",
+  "The Android agent reads every app's logs and crash stacks.": "Android-agenten læser alle apps' protokoller og nedbrudsstakke.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android-agenten mangler stadig READ_LOGS, READ_DROPBOX_DATA eller adgang til brugsdata."
 }

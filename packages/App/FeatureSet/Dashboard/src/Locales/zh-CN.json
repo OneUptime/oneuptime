@@ -59045,5 +59045,11 @@
   "Out of Date": "已过时",
   "Search security patch levels...": "搜索安全补丁级别...",
   "Security Patch Status": "安全补丁状态",
-  "Up to Date": "已是最新"
+  "Up to Date": "已是最新",
+  "Agent Permissions": "代理权限",
+  "Agent Permissions Status": "代理权限状态",
+  "All Granted": "已全部授予",
+  "Search agent permissions...": "搜索代理权限...",
+  "The Android agent reads every app's logs and crash stacks.": "Android 代理读取所有应用的日志和崩溃堆栈。",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android 代理仍需要 READ_LOGS、READ_DROPBOX_DATA 或使用情况访问权限。"
 }

@@ -59045,5 +59045,11 @@
   "Out of Date": "Verouderd",
   "Search security patch levels...": "Beveiligingspatchniveaus zoeken...",
   "Security Patch Status": "Status van beveiligingspatch",
-  "Up to Date": "Actueel"
+  "Up to Date": "Actueel",
+  "Agent Permissions": "Agentmachtigingen",
+  "Agent Permissions Status": "Status van agentmachtigingen",
+  "All Granted": "Alle verleend",
+  "Search agent permissions...": "Agentmachtigingen zoeken...",
+  "The Android agent reads every app's logs and crash stacks.": "De Android-agent leest de logboeken en crashstacks van elke app.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "De Android-agent heeft nog READ_LOGS, READ_DROPBOX_DATA of gebruikstoegang nodig."
 }

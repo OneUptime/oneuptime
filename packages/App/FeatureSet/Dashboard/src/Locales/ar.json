@@ -59045,5 +59045,11 @@
   "Out of Date": "قديم",
   "Search security patch levels...": "البحث في مستويات تصحيح الأمان...",
   "Security Patch Status": "حالة تصحيح الأمان",
-  "Up to Date": "محدّث"
+  "Up to Date": "محدّث",
+  "Agent Permissions": "أذونات الوكيل",
+  "Agent Permissions Status": "حالة أذونات الوكيل",
+  "All Granted": "مُنحت كلها",
+  "Search agent permissions...": "البحث في أذونات الوكيل...",
+  "The Android agent reads every app's logs and crash stacks.": "يقرأ وكيل Android سجلات كل التطبيقات وتتبعات أعطالها.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "لا يزال وكيل Android يحتاج إلى READ_LOGS أو READ_DROPBOX_DATA أو الوصول إلى بيانات الاستخدام."
 }

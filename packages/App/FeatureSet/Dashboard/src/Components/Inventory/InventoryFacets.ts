@@ -2,6 +2,7 @@ import EntitySource from "Common/Types/Telemetry/EntitySource";
 import IconProp from "Common/Types/Icon/IconProp";
 import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
 import { AndroidSecurityPatchStatus } from "Common/Types/Host/AndroidSecurityPatch";
+import { AndroidAgentPermissionsStatus } from "Common/Types/Host/AndroidAgentPermissions";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import {
   DATE_FACET_OPERATORS,
@@ -44,6 +45,8 @@ export const INVENTORY_STATUS_FACET_KEY: string = "inventoryStatus";
 export const INVENTORY_LAST_SEEN_FACET_KEY: string = "inventoryLastSeen";
 export const INVENTORY_SECURITY_PATCH_FACET_KEY: string =
   "inventorySecurityPatch";
+export const INVENTORY_AGENT_PERMISSIONS_FACET_KEY: string =
+  "inventoryAgentPermissions";
 
 export const INVENTORY_FACET_QUERY_FIELDS: {
   type: "entityType";
@@ -51,12 +54,14 @@ export const INVENTORY_FACET_QUERY_FIELDS: {
   status: "inventoryStatus";
   lastSeen: "lastSeenAt";
   securityPatch: "securityPatchStatus";
+  agentPermissions: "agentPermissionsStatus";
 } = {
   type: "entityType",
   source: "source",
   status: "inventoryStatus",
   lastSeen: "lastSeenAt",
   securityPatch: "securityPatchStatus",
+  agentPermissions: "agentPermissionsStatus",
 };
 
 const OPTION_OPERATORS: Array<FilterOperator> = ["is", "is_not"];
@@ -138,6 +143,28 @@ export const INVENTORY_SECURITY_PATCH_FACET_OPTIONS: Array<FilterChipDropdownOpt
     },
   ];
 
+/*
+ * Which Android devices the OneUptime Android agent still lacks a grant on
+ * (#9967): READ_LOGS, READ_DROPBOX_DATA or usage access, which only adb
+ * grants, so a fleet's are run device by device. Read from the item's
+ * virtual agentPermissionsStatus; anything the agent does not run on is in
+ * neither.
+ */
+export const INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS: Array<FilterChipDropdownOption> =
+  [
+    {
+      value: AndroidAgentPermissionsStatus.Missing,
+      label: "Missing",
+      sublabel:
+        "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.",
+    },
+    {
+      value: AndroidAgentPermissionsStatus.Granted,
+      label: "All Granted",
+      sublabel: "The Android agent reads every app's logs and crash stacks.",
+    },
+  ];
+
 const buildMultiOptionQuery: (
   values: Array<string>,
   operator: FilterOperator,
@@ -199,6 +226,17 @@ export const INVENTORY_BASE_FACETS: Array<ResourceFacet> = [
     supportedOperators: OPTION_OPERATORS,
     toQueryValue: buildMultiOptionQuery,
   },
+  {
+    key: INVENTORY_AGENT_PERMISSIONS_FACET_KEY,
+    queryField: INVENTORY_FACET_QUERY_FIELDS.agentPermissions,
+    label: "Agent Permissions",
+    icon: IconProp.Lock,
+    isMultiSelect: true,
+    searchPlaceholder: "Search agent permissions...",
+    options: INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS,
+    supportedOperators: OPTION_OPERATORS,
+    toQueryValue: buildMultiOptionQuery,
+  },
 ];
 
 export interface InventoryFacetLockedQuery {
@@ -207,6 +245,7 @@ export interface InventoryFacetLockedQuery {
   lastSeenAt?: unknown;
   inventoryStatus?: unknown;
   securityPatchStatus?: unknown;
+  agentPermissionsStatus?: unknown;
   [key: string]: unknown;
 }
 

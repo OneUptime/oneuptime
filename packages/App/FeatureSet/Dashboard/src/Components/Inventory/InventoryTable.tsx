@@ -68,6 +68,10 @@ import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import AndroidSecurityPatch, {
   AndroidSecurityPatchStatus,
 } from "Common/Types/Host/AndroidSecurityPatch";
+import AndroidAgentPermissions, {
+  ANDROID_AGENT_PERMISSIONS_ATTRIBUTE,
+  AndroidAgentPermission,
+} from "Common/Types/Host/AndroidAgentPermissions";
 
 /*
  * The inventory list — the one place the whole estate is listed, whatever
@@ -225,6 +229,82 @@ export function getInventorySecurityPatchColumn(
     },
   };
 }
+
+/*
+ * Agent Permissions (#9967): on an Android device the OneUptime Android
+ * agent runs on, whether it still lacks READ_LOGS, READ_DROPBOX_DATA or
+ * usage access, which only adb grants - so a fleet owner finds the devices
+ * to run the grants on, and exports them, with their names, serial numbers
+ * and an Esper import's device IDs, from one list. Hidden until turned on.
+ * The CSV export writes what the agent sends: the missing grants' names,
+ * or "none".
+ */
+export const INVENTORY_AGENT_PERMISSIONS_COLUMN_ID: string =
+  "inventory-agent-permissions";
+
+export function getInventoryAgentPermissionsColumn(): Columns<InventoryItem>[number] {
+  return {
+    field: {
+      entityType: true,
+      descriptiveAttributes: true,
+    },
+    id: INVENTORY_AGENT_PERMISSIONS_COLUMN_ID,
+    title: "Agent Permissions",
+    type: FieldType.Element,
+    isHiddenByDefault: true,
+    disableSort: true,
+    hideOnMobile: true,
+    getElement: (item: InventoryItem): ReactElement => {
+      const missing: Array<AndroidAgentPermission> | undefined =
+        AndroidAgentPermissions.readMissing(
+          (item.descriptiveAttributes as Record<string, unknown> | undefined)?.[
+            ANDROID_AGENT_PERMISSIONS_ATTRIBUTE
+          ],
+        );
+
+      if (!missing) {
+        return <TableEmptyValue />;
+      }
+
+      if (missing.length === 0) {
+        return (
+          <Pill text={AGENT_PERMISSIONS_GRANTED} tone={PillTone.Success} />
+        );
+      }
+
+      return (
+        <div className="flex flex-col items-start gap-1">
+          <Pill text={AGENT_PERMISSIONS_MISSING} tone={PillTone.Warning} />
+          <div className="flex flex-wrap gap-1">
+            {missing.map((permission: AndroidAgentPermission): ReactElement => {
+              return (
+                <code
+                  key={permission}
+                  className="rounded bg-gray-100 px-1 text-xs text-gray-700"
+                >
+                  {permission}
+                </code>
+              );
+            })}
+          </div>
+        </div>
+      );
+    },
+    getExportValue: (item: InventoryItem): string => {
+      const value: unknown = (
+        item.descriptiveAttributes as Record<string, unknown> | undefined
+      )?.[ANDROID_AGENT_PERMISSIONS_ATTRIBUTE];
+
+      return AndroidAgentPermissions.readMissing(value) &&
+        typeof value === "string"
+        ? value.trim()
+        : "";
+    },
+  };
+}
+
+const AGENT_PERMISSIONS_GRANTED: string = translationKey("All Granted");
+const AGENT_PERMISSIONS_MISSING: string = translationKey("Missing");
 
 export interface ComponentProps {
   /**
@@ -612,6 +692,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
           },
           ...assetColumns,
           getInventorySecurityPatchColumn(now),
+          getInventoryAgentPermissionsColumn(),
         ]}
       />
     </Fragment>

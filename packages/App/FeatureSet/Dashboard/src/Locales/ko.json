@@ -59045,5 +59045,11 @@
   "Out of Date": "오래됨",
   "Search security patch levels...": "보안 패치 수준 검색...",
   "Security Patch Status": "보안 패치 상태",
-  "Up to Date": "최신"
+  "Up to Date": "최신",
+  "Agent Permissions": "에이전트 권한",
+  "Agent Permissions Status": "에이전트 권한 상태",
+  "All Granted": "모두 부여됨",
+  "Search agent permissions...": "에이전트 권한 검색...",
+  "The Android agent reads every app's logs and crash stacks.": "Android 에이전트가 모든 앱의 로그와 비정상 종료 스택을 읽습니다.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android 에이전트에 아직 READ_LOGS, READ_DROPBOX_DATA 또는 사용 정보 접근 권한이 필요합니다."
 }

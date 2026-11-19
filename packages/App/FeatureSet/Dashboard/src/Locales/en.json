@@ -59045,5 +59045,11 @@
   "Out of Date": "Out of Date",
   "Search security patch levels...": "Search security patch levels...",
   "Security Patch Status": "Security Patch Status",
-  "Up to Date": "Up to Date"
+  "Up to Date": "Up to Date",
+  "Agent Permissions": "Agent Permissions",
+  "Agent Permissions Status": "Agent Permissions Status",
+  "All Granted": "All Granted",
+  "Search agent permissions...": "Search agent permissions...",
+  "The Android agent reads every app's logs and crash stacks.": "The Android agent reads every app's logs and crash stacks.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access."
 }

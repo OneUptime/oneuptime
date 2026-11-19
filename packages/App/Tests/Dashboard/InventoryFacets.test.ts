@@ -5,7 +5,10 @@ import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
 import { AndroidSecurityPatchStatus } from "Common/Types/Host/AndroidSecurityPatch";
+import { AndroidAgentPermissionsStatus } from "Common/Types/Host/AndroidAgentPermissions";
 import {
+  INVENTORY_AGENT_PERMISSIONS_FACET_KEY,
+  INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS,
   INVENTORY_ARCHIVED_TABLE_ID,
   INVENTORY_BASE_FACETS,
   INVENTORY_FACET_QUERY_FIELDS,
@@ -72,6 +75,9 @@ describe("Inventory facet identity", () => {
     expect(INVENTORY_STATUS_FACET_KEY).toBe("inventoryStatus");
     expect(INVENTORY_LAST_SEEN_FACET_KEY).toBe("inventoryLastSeen");
     expect(INVENTORY_SECURITY_PATCH_FACET_KEY).toBe("inventorySecurityPatch");
+    expect(INVENTORY_AGENT_PERMISSIONS_FACET_KEY).toBe(
+      "inventoryAgentPermissions",
+    );
   });
 
   test("keys and query fields are non-empty and distinct", () => {
@@ -106,6 +112,9 @@ describe("Inventory facet identity", () => {
     );
     expect(facet(INVENTORY_SECURITY_PATCH_FACET_KEY).queryField).toBe(
       INVENTORY_FACET_QUERY_FIELDS.securityPatch,
+    );
+    expect(facet(INVENTORY_AGENT_PERMISSIONS_FACET_KEY).queryField).toBe(
+      INVENTORY_FACET_QUERY_FIELDS.agentPermissions,
     );
   });
 });
@@ -397,6 +406,48 @@ describe("Security Patch Level facet", () => {
   });
 });
 
+/*
+ * #9967: the devices the OneUptime Android agent still lacks a grant on,
+ * which only adb gives, so a fleet's are found in one list and run device
+ * by device (InventoryAgentPermissionsPostgres holds the server's status).
+ */
+describe("Agent Permissions facet", () => {
+  const permissionsFacet: ResourceFacet = facet(
+    INVENTORY_AGENT_PERMISSIONS_FACET_KEY,
+  );
+
+  test("offers the devices still missing a grant first, then those with all", () => {
+    expect(permissionsFacet.label).toBe("Agent Permissions");
+    expect(
+      INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): Array<string> => {
+          return [option.value, option.label];
+        },
+      ),
+    ).toEqual([
+      [AndroidAgentPermissionsStatus.Missing, "Missing"],
+      [AndroidAgentPermissionsStatus.Granted, "All Granted"],
+    ]);
+    for (const option of INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS) {
+      expect(option.sublabel).toMatch(/^The Android agent .+\.$/);
+    }
+  });
+
+  test("reads the server's computed status, as an option list", () => {
+    expect(permissionsFacet.queryField).toBe("agentPermissionsStatus");
+    expect(permissionsFacet.isMultiSelect).toBe(true);
+    expect(permissionsFacet.supportedOperators).toEqual(["is", "is_not"]);
+    const missing: unknown = permissionsFacet.toQueryValue!(
+      [AndroidAgentPermissionsStatus.Missing],
+      "is",
+    );
+    expect(missing).toBeInstanceOf(Includes);
+    expect((missing as Includes).values).toEqual([
+      AndroidAgentPermissionsStatus.Missing,
+    ]);
+  });
+});
+
 describe("scoped list protection", () => {
   test("an unscoped list gets every built-in facet", () => {
     expect(facetKeys(buildInventoryFacets())).toEqual(
@@ -410,6 +461,7 @@ describe("scoped list protection", () => {
     ["lastSeenAt", INVENTORY_LAST_SEEN_FACET_KEY],
     ["inventoryStatus", INVENTORY_STATUS_FACET_KEY],
     ["securityPatchStatus", INVENTORY_SECURITY_PATCH_FACET_KEY],
+    ["agentPermissionsStatus", INVENTORY_AGENT_PERMISSIONS_FACET_KEY],
   ])(
     "a page-owned %s constraint removes only the colliding facet",
     (queryField: string, removedFacetKey: string) => {
@@ -430,6 +482,7 @@ describe("scoped list protection", () => {
       lastSeenAt: "cutoff",
       inventoryStatus: InventoryLiveness.Stale,
       securityPatchStatus: AndroidSecurityPatchStatus.OutOfDate,
+      agentPermissionsStatus: AndroidAgentPermissionsStatus.Missing,
     };
 
     expect(buildInventoryFacets(query)).toEqual([]);

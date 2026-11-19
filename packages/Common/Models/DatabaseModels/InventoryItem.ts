@@ -26,6 +26,9 @@ import {
 import AndroidSecurityPatch, {
   AndroidSecurityPatchStatus,
 } from "../../Types/Host/AndroidSecurityPatch";
+import AndroidAgentPermissions, {
+  AndroidAgentPermissionsStatus,
+} from "../../Types/Host/AndroidAgentPermissions";
 import {
   Column,
   Entity,
@@ -462,6 +465,30 @@ export default class InventoryItem extends DatabaseBaseModel {
     },
   })
   public securityPatchStatus?: AndroidSecurityPatchStatus = undefined;
+
+  /*
+   * Whether the OneUptime Android agent still lacks a grant on the device
+   * (#9967): READ_LOGS, READ_DROPBOX_DATA or usage access, as its reports
+   * say (oneuptime.agent.permissions.missing, in descriptiveAttributes).
+   * Computed at read time, as the status above; empty for anything the
+   * agent does not run on. The rule is Types/Host/AndroidAgentPermissions'.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AndroidAgentPermissionsStatus),
+    required: false,
+    title: "Agent Permissions Status",
+    description:
+      "Whether the OneUptime Android agent still lacks a grant on the device - READ_LOGS, READ_DROPBOX_DATA or usage access - or has them all.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return AndroidAgentPermissions.getStatusSql(alias);
+    },
+  })
+  public agentPermissionsStatus?: AndroidAgentPermissionsStatus = undefined;
 
   /*
    * Archiving is the disposal route that actually works for this table.

@@ -59045,5 +59045,11 @@
   "Out of Date": "Устарело",
   "Search security patch levels...": "Поиск уровней патча безопасности...",
   "Security Patch Status": "Состояние патча безопасности",
-  "Up to Date": "Актуально"
+  "Up to Date": "Актуально",
+  "Agent Permissions": "Права доступа агента",
+  "Agent Permissions Status": "Состояние прав доступа агента",
+  "All Granted": "Все выданы",
+  "Search agent permissions...": "Поиск прав доступа агента...",
+  "The Android agent reads every app's logs and crash stacks.": "Агент Android читает журналы и стеки сбоев всех приложений.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Агенту Android ещё нужны READ_LOGS, READ_DROPBOX_DATA или доступ к истории использования."
 }
