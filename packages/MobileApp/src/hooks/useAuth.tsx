@@ -7,7 +7,7 @@ import React, {
   ReactNode,
 } from "react";
 import { getTokens } from "../storage/keychain";
-import { hasServerUrl } from "../storage/serverUrl";
+import { getServerUrl, hasServerUrl } from "../storage/serverUrl";
 import {
   login as apiLogin,
   logout as apiLogout,
@@ -42,6 +42,13 @@ import {
   discardPasskeySession,
   PasskeySignInOptions,
 } from "../passkeys/signIn";
+import {
+  enrolPasskey as runPasskeyEnrolment,
+  PasskeyEnrolmentOptions,
+  PasskeyEnrolmentOutcome,
+} from "../passkeys/enrol";
+import { isPasskeyEnrolmentAvailable } from "../passkeys/enrolment";
+import { Platform } from "react-native";
 
 /**
  * A password step that succeeded and is waiting on a second factor.
@@ -72,6 +79,13 @@ export interface PendingTwoFactor {
   enrolment?: {
     twoFactorAuthId: string;
     twoFactorOtpUrl: string;
+    /*
+     * Whether a passkey is offered beside the authenticator app (#9817):
+     * the server offers one, it is reached over HTTPS, and this phone's
+     * browser makes passkeys (passkeys/enrolment). Decided once, at the
+     * password step, where the server's address is at hand.
+     */
+    canEnrolPasskey: boolean;
   };
 }
 
@@ -81,8 +95,14 @@ interface AuthContextValue {
   needsServerUrl: boolean;
   user: LoginResponse["user"] | null;
   login: (email: string, password: string) => Promise<LoginResponse>;
+  /*
+   * Sign in with a passkey, in the phone's browser. `keepsPendingSignIn`:
+   * started from a password's second step (#9817), whose challenge stays
+   * until the passkey has signed the person in - so a canceled passkey
+   * leaves them on the challenge they were on.
+   */
   loginWithPasskey: (
-    options: PasskeySignInOptions,
+    options: PasskeySignInOptions & { keepsPendingSignIn?: boolean },
   ) => Promise<LoginResponse | null>;
   logout: () => Promise<void>;
   setNeedsServerUrl: (value: boolean) => void;
@@ -130,6 +150,17 @@ interface AuthContextValue {
   verifyTotpEnrolment: (data: { code: string }) => Promise<LoginResponse>;
 
   /*
+   * Finish that setup with a passkey instead (#9817, passkeys/enrol): in the
+   * phone's browser, then saved with the password the challenge holds. On
+   * "enrolled" the session is stored and the second step settled as the
+   * authenticator app's is; "unsupported" means this browser cannot make
+   * one, and the authenticator app is the way.
+   */
+  enrolPasskey: (
+    options: PasskeyEnrolmentOptions,
+  ) => Promise<PasskeyEnrolmentOutcome>;
+
+  /*
    * Finish a login that was held back for one more screen -- the codes the
    * enrolment minted, or the offer to mint some. Kept separate from the verify
    * calls because the SESSION already exists by then: the tokens are stored
@@ -143,6 +174,31 @@ interface AuthContextValue {
 const AuthContext: React.Context<AuthContextValue | undefined> = createContext<
   AuthContextValue | undefined
 >(undefined);
+
+/*
+ * Whether a required setup may offer a passkey beside the authenticator app
+ * (#9817): the server offers one, it is reached over HTTPS, and this phone's
+ * browser makes passkeys. A nicety, never a reason a sign-in fails: anything
+ * that cannot be read is no offer, and the authenticator app is there.
+ */
+async function readCanEnrolPasskey(response: LoginResponse): Promise<boolean> {
+  if (
+    !response.twoFactorEnrolmentRequired ||
+    response.passkeyEnrolmentOffered !== true
+  ) {
+    return false;
+  }
+
+  try {
+    return isPasskeyEnrolmentAvailable({
+      isOfferedByServer: true,
+      serverUrl: await getServerUrl(),
+      platform: { os: Platform.OS, version: Platform.Version },
+    });
+  } catch {
+    return false;
+  }
+}
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -311,6 +367,8 @@ export function AuthProvider({
         const response: LoginResponse = await apiLogin(email, password);
 
         if (response.twoFactorRequired) {
+          const canEnrolPasskey: boolean = await readCanEnrolPasskey(response);
+
           /*
            * The credentials are carried forward because every verify route
            * re-submits them. They live here and nowhere else -- see
@@ -330,6 +388,7 @@ export function AuthProvider({
                   enrolment: {
                     twoFactorAuthId: response.twoFactorAuthId || "",
                     twoFactorOtpUrl: response.twoFactorOtpUrl || "",
+                    canEnrolPasskey: canEnrolPasskey,
                   },
                 }
               : {}),
@@ -349,18 +408,28 @@ export function AuthProvider({
     );
 
   const loginWithPasskey: (
-    options: PasskeySignInOptions,
+    options: PasskeySignInOptions & { keepsPendingSignIn?: boolean },
   ) => Promise<LoginResponse | null> = useCallback(
-    async (options: PasskeySignInOptions): Promise<LoginResponse | null> => {
-      setPendingTwoFactor(null);
-      setHeldUser(null);
-      setPendingBackupCodes(null);
+    async (
+      options: PasskeySignInOptions & { keepsPendingSignIn?: boolean },
+    ): Promise<LoginResponse | null> => {
+      const forgetPendingSignIn: () => void = (): void => {
+        setPendingTwoFactor(null);
+        setHeldUser(null);
+        setPendingBackupCodes(null);
+      };
+
+      if (!options.keepsPendingSignIn) {
+        forgetPendingSignIn();
+      }
       const response: LoginResponse | null = await signInWithPasskey(options);
       if (response && options.signal.aborted) {
         await discardPasskeySession(response.accessToken);
         return null;
       }
       if (response) {
+        // The passkey signed them in: the password's challenge is done with.
+        forgetPendingSignIn();
         setUser(response.user);
         setIsAuthenticated(true);
       }
@@ -504,6 +573,36 @@ export function AuthProvider({
     [pendingTwoFactor, settleSecondStep],
   );
 
+  const enrolPasskey: (
+    options: PasskeyEnrolmentOptions,
+  ) => Promise<PasskeyEnrolmentOutcome> = useCallback(
+    async (
+      options: PasskeyEnrolmentOptions,
+    ): Promise<PasskeyEnrolmentOutcome> => {
+      if (!pendingTwoFactor?.enrolment) {
+        throw new Error("There is no two factor setup waiting to finish.");
+      }
+
+      const outcome: PasskeyEnrolmentOutcome = await runPasskeyEnrolment({
+        ...options,
+        email: pendingTwoFactor.email,
+        password: pendingTwoFactor.password,
+      });
+
+      /*
+       * Settled exactly as the authenticator app's is: the session is
+       * stored already, and the codes the setup minted are held for the
+       * one screen that shows them.
+       */
+      if (outcome.status === "enrolled") {
+        settleSecondStep(outcome.response);
+      }
+
+      return outcome;
+    },
+    [pendingTwoFactor, settleSecondStep],
+  );
+
   const logout: () => Promise<void> = useCallback(async (): Promise<void> => {
     await unregisterPushToken();
     await apiLogout();
@@ -585,6 +684,7 @@ export function AuthProvider({
         verifyTotpAuth,
         verifyBackupCode,
         verifyTotpEnrolment,
+        enrolPasskey,
         completePendingLogin,
       }}
     >

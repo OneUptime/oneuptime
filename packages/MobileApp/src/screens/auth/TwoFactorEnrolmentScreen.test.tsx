@@ -175,6 +175,12 @@ function pendingEnrolment(
     enrolment: {
       twoFactorAuthId: "pending-enrolment-1",
       twoFactorOtpUrl: OTP_URL,
+      /*
+       * No passkey here: these cases are the authenticator app's, as on a
+       * server or phone that cannot make one (TwoFactorEnrolmentPasskey
+       * covers the passkey).
+       */
+      canEnrolPasskey: false,
     },
     ...overrides,
   };
@@ -409,6 +415,7 @@ describe("The setup key printed for manual entry", () => {
       enrolment: {
         twoFactorAuthId: "pending-enrolment-1",
         twoFactorOtpUrl: "otpauth://totp/OneUptime:responder@example.com",
+        canEnrolPasskey: false,
       },
     });
 
