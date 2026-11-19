@@ -15,7 +15,7 @@ import {
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
+import { withoutRegistration } from "Common/Utils/NetworkDiscovery/DiscoveredHostRegistration";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
@@ -463,40 +463,27 @@ router.post(
       const hasHostReport: boolean =
         (!isPartial && success) || Array.isArray(req.body["discoveredDevices"]);
 
-      const discoveredDevices: Array<JSONObject> =
-        (req.body["discoveredDevices"] as Array<JSONObject>) || [];
-
       /*
-       * Which of the addresses THIS SCAN found already have a device — asked
-       * of the database directly, not worked out from a copy of every
-       * hostname in the project.
+       * The hosts as the probe found them, and nothing about the project's
+       * devices (OneUptime issue #9906).
        *
-       * The walk this replaces paged `ORDER BY createdAt`, and a bulk
-       * discovery import stamps every device it creates with the same
-       * `createdAt`. On a large fleet every row shares one value, so
-       * `LIMIT/OFFSET` over that sort key returned an arbitrary slice per
-       * call: pages overlapped and skipped, a skipped hostname read as NOT
-       * registered, and the reviewer's "import" re-created a device that
-       * already existed — the exact duplicate the paging was added to
-       * prevent. It also cost eight sequential full-table scans inside the
-       * request the probe is synchronously waiting on.
+       * This used to stamp each host's isAlreadyRegistered from the devices
+       * at its address anywhere in the project. Two sites can each have a
+       * 10.0.0.5 (issue #9677), so that stored a branch B host as a device
+       * because branch A has one there, and every read through
+       * NetworkDeviceDiscoveryScanService works it out again, per site, from
+       * the scan's probe - nothing read the stored copy, but anything reading
+       * the column directly would have read the old rule. Whether a host is
+       * a device is the inventory's answer at the moment it is asked, not a
+       * fact about this sweep, so it is never stored: a field of it a report
+       * carries is dropped (DiscoveredHostRegistration), and the request the
+       * probe waits on asks the database nothing about devices.
        */
-      const existingHostnames: Set<string> =
-        await NetworkDeviceService.getRegisteredHostnames({
-          projectId: scan.projectId!,
-          hostnames: discoveredDevices.map((device: JSONObject): string => {
-            return String(device["ipAddress"] || "");
-          }),
-          props: {
-            isRoot: true,
-          },
-        });
-
-      for (const device of discoveredDevices) {
-        device["isAlreadyRegistered"] = existingHostnames.has(
-          String(device["ipAddress"] || ""),
-        );
-      }
+      const discoveredDevices: Array<JSONObject> = (
+        (req.body["discoveredDevices"] as Array<JSONObject>) || []
+      ).map((device: JSONObject): JSONObject => {
+        return withoutRegistration(device);
+      });
 
       /*
        * The probe now reports ping-only hosts too, tagged `snmpReachable:
