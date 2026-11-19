@@ -2687,8 +2687,22 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "ировать",
       "ениями",
       "аниями",
+      /*
+       * The plural cases of a noun in "-ние" the singular ones meet: of
+       * them ("Настройки уведомлений", Notification Settings), to them, in
+       * them. Without them "уведомлений" was "уведомлен" and "уведомления"
+       * (notifications) "уведомл", so "Как настроить уведомления?" did not
+       * read the page named for it as named for it, and found it 9th to
+       * 11th, behind sections that only say whom they notify.
+       */
+      "ениям",
+      "аниям",
+      "ениях",
+      "аниях",
       "ением",
       "анием",
+      "ений",
+      "аний",
       "ения",
       "ание",
       "ение",
