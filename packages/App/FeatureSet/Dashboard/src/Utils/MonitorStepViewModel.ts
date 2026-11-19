@@ -11,6 +11,7 @@ import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorSte
 import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepProbeStatusMonitorUtil } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
+import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MonitorStepLlmMonitor, {
   LlmBadAnswerRule,
   MonitorStepLlmMonitorUtil,
@@ -1453,6 +1454,20 @@ export default class MonitorStepViewModel {
           return toSpanStatusText(status);
         }),
         placeholder: "No span status entered. All statuses will be monitored.",
+      }),
+      optional({
+        key: "minimumDurationInMs",
+        title: "Takes at least (ms)",
+        description: "Only spans that took this long or longer.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(
+          traceMonitor
+            ? MonitorStepTraceMonitorUtil.getMinimumDurationInMs(
+                traceMonitor,
+              ) ?? undefined
+            : undefined,
+        ),
+        placeholder: "Any duration",
       }),
       optional({
         key: "spanAttributes",
