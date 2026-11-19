@@ -81,6 +81,11 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all { test ->
+                // GoldenPayloadTest: the OTLP requests OneUptime's ingest tests read too.
+                test.systemProperty("goldenDir", file("src/test/resources/otlp").absolutePath)
+                test.systemProperty("updateGoldens", (findProperty("updateGoldens") as String?) ?: "false")
+            }
         }
     }
 

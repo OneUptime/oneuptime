@@ -231,8 +231,41 @@ class SnapshotCollector(
             addresses
                 .filter { !it.isLoopbackAddress && !it.isLinkLocalAddress && !it.isAnyLocalAddress }
                 .sortedBy { if (it is Inet6Address) 1 else 0 }
-                .mapNotNull { it.hostAddress?.substringBefore('%') }
+                .mapNotNull { address -> if (address is Inet6Address) compressIpv6(address.address) else address.hostAddress }
                 .distinct()
+
+        /** An IPv6 address as RFC 5952 writes it, "2001:db8::40", whichever form the platform would print. */
+        fun compressIpv6(bytes: ByteArray): String {
+            if (bytes.size != 16) {
+                return bytes.joinToString(":") { (it.toInt() and 0xff).toString(16) }
+            }
+            val groups: List<Int> = (0 until 8).map { ((bytes[it * 2].toInt() and 0xff) shl 8) or (bytes[it * 2 + 1].toInt() and 0xff) }
+            // The longest run of two or more zero groups, the first when two are as long.
+            var bestStart = -1
+            var bestLength = 0
+            var index = 0
+            while (index < 8) {
+                if (groups[index] == 0) {
+                    var end: Int = index
+                    while (end < 8 && groups[end] == 0) {
+                        end += 1
+                    }
+                    if (end - index > bestLength && end - index >= 2) {
+                        bestStart = index
+                        bestLength = end - index
+                    }
+                    index = end
+                } else {
+                    index += 1
+                }
+            }
+            if (bestStart < 0) {
+                return groups.joinToString(":") { it.toString(16) }
+            }
+            val head: String = groups.subList(0, bestStart).joinToString(":") { it.toString(16) }
+            val tail: String = groups.subList(bestStart + bestLength, 8).joinToString(":") { it.toString(16) }
+            return "$head::$tail"
+        }
     }
 }
 

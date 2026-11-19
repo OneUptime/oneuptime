@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.VisibleForTesting
 import com.oneuptime.androidagent.BuildConfig
 import com.oneuptime.androidagent.Clock
 import com.oneuptime.androidagent.SystemClocks
@@ -20,6 +21,7 @@ import com.oneuptime.androidagent.config.ConfigRepository
 import com.oneuptime.androidagent.config.KeyValueStore
 import com.oneuptime.androidagent.config.KeystoreSecretCipher
 import com.oneuptime.androidagent.config.LocalSettingsStore
+import com.oneuptime.androidagent.config.SecretCipher
 import com.oneuptime.androidagent.config.SharedPreferencesStore
 import com.oneuptime.androidagent.config.TokenVault
 import com.oneuptime.androidagent.device.AndroidDeviceFacts
@@ -49,7 +51,7 @@ class AgentRuntime private constructor(context: Context) {
     private val settingsStore: KeyValueStore =
         SharedPreferencesStore(appContext.getSharedPreferences(LocalSettingsStore.PREFERENCES, Context.MODE_PRIVATE))
 
-    val localSettings = LocalSettingsStore(settingsStore, TokenVault(settingsStore, KeystoreSecretCipher()))
+    val localSettings = LocalSettingsStore(settingsStore, TokenVault(settingsStore, secretCipher()))
     val configRepository = ConfigRepository(appContext, localSettings, facts)
 
     // noBackupFilesDir: the outbox is the device's own telemetry, never copied to another device by a backup.
@@ -133,10 +135,24 @@ class AgentRuntime private constructor(context: Context) {
         @Volatile
         private var instance: AgentRuntime? = null
 
+        // The Android Keystore on a device; Robolectric has none, so its tests set a software key.
+        @VisibleForTesting
+        @Volatile
+        var secretCipher: () -> SecretCipher = { KeystoreSecretCipher() }
+
         fun get(context: Context): AgentRuntime =
             instance ?: synchronized(this) {
                 instance ?: AgentRuntime(context).also { instance = it }
             }
+
+        @VisibleForTesting
+        fun resetForTests() {
+            synchronized(this) {
+                instance?.logcat?.stopAll()
+                instance = null
+                secretCipher = { KeystoreSecretCipher() }
+            }
+        }
     }
 }
 
