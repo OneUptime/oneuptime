@@ -21,6 +21,7 @@ import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTempla
 import { DATA_CHECK_REFUSALS_WITH_VALUES } from "../../Types/DataObservability/DataCheckRefusals";
 import { NAME_TAKEN_REFUSALS } from "../../Types/Database/UniqueName";
 import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../Types/CloudConnection/AwsRoleExternalIdRefusal";
+import { RESPONDER_ON_RULE_ALREADY_REFUSALS } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -126,6 +127,12 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
    * last read say it.
    */
   AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL,
+  /*
+   * A person, a team or a schedule an escalation rule pages already, with
+   * the rule, its policy and who it pages (#10465): a page left open while
+   * a teammate adds the same one, or the guided on-call setup, meets it.
+   */
+  ...RESPONDER_ON_RULE_ALREADY_REFUSALS,
 ];
 
 /*

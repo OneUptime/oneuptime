@@ -18,8 +18,15 @@ import {
   DETECTION_RETROHUNT_MAX_GROUPS,
   DetectionRetrohuntGroup,
   DetectionRetrohuntResult,
+  DetectionRetrohuntUncounted,
   isDetectionRetrohuntPeriod,
 } from "../../../Types/SecurityEvent/DetectionRetrohunt";
+import { doesDetectionRuleLeaveOutEventsWithNoValue } from "../../../Types/SecurityEvent/DetectionUncountedEvents";
+import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+  ScrubbedAddressPlace,
+} from "../../../Utils/SecurityEvent/ScrubbedAddress";
 import { DetectionRuleExceptionShape } from "../../../Types/SecurityEvent/DetectionRuleException";
 import { DetectionRuleDefinition } from "../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../Types/SecurityEvent/SigmaRule";
@@ -57,6 +64,7 @@ import DetectionRuleExceptions, {
 import SigmaClickhouseCompiler, {
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
+  buildSigmaFieldHasValue,
 } from "./Sigma/SigmaClickhouseCompiler";
 
 /*
@@ -182,6 +190,20 @@ function readWholeNumber(data: {
   return data.value;
 }
 
+/*
+ * Whether the rule counts per value, as its runs decide it (#10415): the
+ * counting names its threshold `threshold`, a rule `matchCountThreshold`.
+ */
+export function leavesOutEventsWithNoValue(
+  counting: DetectionRetrohuntCounting,
+): boolean {
+  return doesDetectionRuleLeaveOutEventsWithNoValue({
+    groupByField: counting.groupByField,
+    distinctCountField: counting.distinctCountField,
+    matchCountThreshold: counting.threshold,
+  });
+}
+
 export function readDetectionRetrohuntCounting(
   rule: DetectionRetrohuntRule,
 ): DetectionRetrohuntCounting {
@@ -293,6 +315,14 @@ export function buildSingleRuleRetrohuntStatement(data: {
   );
   windows.append(data.ruleWhere);
   windows.append(")");
+
+  // A rule that counts per value leaves out the events that have none, as its runs do (#10415).
+  if (leavesOutEventsWithNoValue(counting)) {
+    windows.append(" AND (");
+    windows.append(buildSigmaFieldHasValue(counting.groupByField));
+    windows.append(")");
+  }
+
   TelemetryReadScopeUtil.appendServiceFilter(windows, data.serviceFilter);
   windows.append(" GROUP BY __window, __group");
 
@@ -317,6 +347,93 @@ export function buildSingleRuleRetrohuntStatement(data: {
   statement.append(getQuerySettings(INTERACTIVE_READ_TIME_LIMIT));
 
   return statement;
+}
+
+/*
+ * What a single rule that counts per value left out (#10415): the events it
+ * matched, and its exceptions kept, that had no value for its group field,
+ * and how many of them had their client address hidden by a scrub rule
+ * (#10397), in a log line or a span. Null for a rule that leaves none out.
+ */
+export function buildUncountedRetrohuntStatement(data: {
+  projectId: ObjectID;
+  tableName: string;
+  ruleWhere: Statement;
+  counting: DetectionRetrohuntCounting;
+  skipped: Statement | null;
+  serviceFilter: TelemetryServiceFilter;
+  startTime: Date;
+  endTime: Date;
+}): Statement | null {
+  if (!leavesOutEventsWithNoValue(data.counting)) {
+    return null;
+  }
+
+  const statement: Statement = SQL`WITH `;
+
+  if (data.skipped) {
+    statement.append(SQL`(`);
+    statement.append(data.skipped);
+    statement.append(")");
+  } else {
+    statement.append("false");
+  }
+
+  statement.append(
+    SQL` AS __skipped, attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+    }}] = ${{
+      type: TableColumnType.Text,
+      value: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+    }} AS __hidden, attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+    }}] = ${{
+      type: TableColumnType.Text,
+      value: ScrubbedAddressPlace.SpanAttributes,
+    }} AS __inTraces SELECT countIf(NOT __skipped) AS eventCount, countIf(NOT __skipped AND __hidden AND NOT __inTraces) AS hiddenInLogsCount, countIf(NOT __skipped AND __hidden AND __inTraces) AS hiddenInTracesCount FROM `,
+  );
+  statement.append(data.tableName);
+  statement.append(
+    SQL` WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND time >= ${{
+      type: TableColumnType.DateTime64,
+      value: data.startTime,
+    }} AND time < ${{
+      type: TableColumnType.DateTime64,
+      value: data.endTime,
+    }} AND (`,
+  );
+  statement.append(data.ruleWhere);
+  statement.append(") AND NOT (");
+  statement.append(buildSigmaFieldHasValue(data.counting.groupByField));
+  statement.append(")");
+  TelemetryReadScopeUtil.appendServiceFilter(statement, data.serviceFilter);
+  statement.append(getQuerySettings(INTERACTIVE_READ_TIME_LIMIT));
+
+  return statement;
+}
+
+// What the uncounted statement's one row says, or null when it left nothing out.
+export function readUncountedRetrohuntRow(data: {
+  row: JSONObject | undefined;
+  counting: DetectionRetrohuntCounting;
+}): DetectionRetrohuntUncounted | null {
+  const eventCount: number = readCount(data.row?.["eventCount"]);
+
+  if (eventCount <= 0) {
+    return null;
+  }
+
+  return {
+    field: data.counting.groupByField,
+    eventCount,
+    hiddenInLogsCount: readCount(data.row?.["hiddenInLogsCount"]),
+    hiddenInTracesCount: readCount(data.row?.["hiddenInTracesCount"]),
+  };
 }
 
 // The rows of the single rule's statement, read.
@@ -377,6 +494,8 @@ export function summarizeSingleRuleRetrohunt(data: {
   endTime: Date;
   periodInHours: number;
   maxGroups: number;
+  // What a rule that counts per value left out (buildUncountedRetrohuntStatement).
+  uncounted?: DetectionRetrohuntUncounted | null | undefined;
 }): DetectionRetrohuntResult {
   const first: SingleRuleRow | undefined = data.rows[0];
 
@@ -421,6 +540,7 @@ export function summarizeSingleRuleRetrohunt(data: {
       }),
     hasMoreGroups: totalGroups > Math.min(fired.length, data.maxGroups),
     candidateLimit: null,
+    uncounted: data.uncounted || null,
   };
 }
 
@@ -486,6 +606,8 @@ export function summarizeCorrelationRetrohunt(data: {
     candidateLimit: data.match.candidatesCapped
       ? CORRELATION_TEMPORAL_CANDIDATE_LIMIT
       : null,
+    // A correlation leaves out groups with no value, as it always did.
+    uncounted: null,
   };
 }
 
@@ -646,6 +768,39 @@ export default class DetectionRuleRetrohunt {
       data?: Array<JSONObject>;
     }>();
 
+    /*
+     * What a rule that counts per value could not count, so a rule that
+     * cannot count is never quiet about it (#10415).
+     */
+    const uncountedStatement: Statement | null =
+      buildUncountedRetrohuntStatement({
+        projectId: request.projectId,
+        tableName: `${databaseName}.${SecurityEventService.model.tableName}`,
+        ruleWhere: SigmaClickhouseCompiler.compile(parsedRule),
+        counting,
+        skipped,
+        serviceFilter: request.serviceFilter,
+        startTime,
+        endTime,
+      });
+
+    let uncounted: DetectionRetrohuntUncounted | null = null;
+
+    if (uncountedStatement) {
+      assertDetectionReadFits(uncountedStatement);
+
+      const uncountedResult: Results =
+        await SecurityEventService.executeQuery(uncountedStatement);
+      const uncountedResponse: DbJSONResponse = await uncountedResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+
+      uncounted = readUncountedRetrohuntRow({
+        row: (uncountedResponse.data || [])[0],
+        counting,
+      });
+    }
+
     return summarizeSingleRuleRetrohunt({
       rows: readSingleRuleRetrohuntRows(response.data || []),
       counting,
@@ -654,6 +809,7 @@ export default class DetectionRuleRetrohunt {
       endTime,
       periodInHours: request.periodInHours,
       maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
+      uncounted,
     });
   }
 }

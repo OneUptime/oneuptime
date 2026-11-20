@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 8136
+    "keys": 60451,
+    "untranslated": 8290
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -95,6 +95,7 @@
     "Controller",
     "Controller manager",
     "Core",
+    "Core Web Vitals",
     "CrowdStrike",
     "DE",
     "DES",
@@ -525,6 +526,7 @@
     "stack",
     "storage",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "subnet",
     "sum by (job) (rate(http_requests_total[5m]))",

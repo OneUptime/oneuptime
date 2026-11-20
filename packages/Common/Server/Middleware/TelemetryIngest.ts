@@ -10,11 +10,13 @@ import {
 } from "../../Types/Rum/SessionReplay";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
+  DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
 } from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   IDENTITY_REGISTRATION_SURFACES,
+  MOBILE_ALLOWED_INGEST_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../Types/Telemetry/TelemetryIngestSurface";
 import OriginAllowList from "../../Utils/Telemetry/OriginAllowList";
@@ -53,6 +55,7 @@ import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import TelemetryIngestionKeyLastUsed from "../Utils/Telemetry/TelemetryIngestionKeyLastUsed";
+import { getMobileKeySurfaceRefusalMessage } from "../Utils/Telemetry/TelemetryIngestionKeyGuard";
 import type TelemetryIngestAttribution from "../Utils/Telemetry/TelemetryIngestAttribution";
 
 export interface TelemetryRequest extends ExpressRequest {
@@ -218,6 +221,11 @@ export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLi
       return DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE;
     }
 
+    // Published in every copy of an app: never unlimited (issue #6457).
+    if (policy.keyType === TelemetryIngestionKeyType.Mobile) {
+      return DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE;
+    }
+
     if (surface && IDENTITY_REGISTRATION_SURFACES.has(surface)) {
       return DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE;
     }
@@ -304,6 +312,47 @@ export function resolveTelemetryClientOrigin(
   }
 
   return OriginAllowList.getMobileAppOrigin(mobileAppIdentifier);
+}
+
+/*
+ * Why a Mobile key (issue #6457) may not send this request, or null when it
+ * may. Exported so every branch is pinned in a test without a request
+ * pipeline around it.
+ *
+ *   - Not a surface a mobile app's SDK sends to (MOBILE_ALLOWED_INGEST_SURFACES):
+ *     a key copied out of an app is refused on every server pipe - profiles,
+ *     source maps, dSYMs, syslog, security events, agent registration - and
+ *     the unnamed legacy guard, which is server-only.
+ *   - Sent with an Origin header: only a browser sends one, and a mobile
+ *     SDK never does, so the request came from a web page. A page sends
+ *     with a Browser key, whose origins are checked; a Mobile key, which has
+ *     none to check, would otherwise be a Browser key without them.
+ *
+ * Neither is a wall against someone who has the app: any client can leave
+ * the Origin header out. What bounds that is the rest of the key: its
+ * pinned app, its rate limit, its expiry and its kill switch.
+ */
+export function getMobileKeyRefusalMessage(data: {
+  req: ExpressRequest;
+  surface: TelemetryIngestSurface | null;
+}): string | null {
+  if (
+    data.surface === null ||
+    !MOBILE_ALLOWED_INGEST_SURFACES.has(data.surface)
+  ) {
+    // The sentence gRPC, MQTT and the probes send too (TelemetryIngestionKeyGuard).
+    return getMobileKeySurfaceRefusalMessage(data.surface);
+  }
+
+  const origin: string = (
+    headerValueToString(data.req.headers["origin"]) || ""
+  ).trim();
+
+  if (origin) {
+    return "A mobile ingestion key cannot be used from a web page: this request sent an Origin header, which only a browser sends. Use a browser ingestion key in a web page.";
+  }
+
+  return null;
 }
 
 export default class TelemetryIngest {
@@ -568,6 +617,34 @@ export default class TelemetryIngest {
             req,
             res,
             new NotAuthorizedException(originRefusalMessage),
+          );
+        }
+      }
+
+      /*
+       * A Mobile key (issue #6457): a mobile app's OTLP traces, logs and
+       * metrics over HTTP, and nothing else - never another surface, never
+       * from a web page. Checked before the rate limit, as the browser
+       * rules are, so a key copied out of an app and pointed somewhere else
+       * is refused without spending its fleet's requests.
+       */
+      if (policy.keyType === TelemetryIngestionKeyType.Mobile) {
+        const mobileRefusalMessage: string | null = getMobileKeyRefusalMessage({
+          req: req,
+          surface: surface,
+        });
+
+        if (mobileRefusalMessage) {
+          TelemetryIngest.recordRefusal(
+            policy,
+            TelemetryIngestRefusalReason.MobileKeyNotAllowedHere,
+            surface,
+          );
+
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotAuthorizedException(mobileRefusalMessage),
           );
         }
       }
@@ -857,7 +934,7 @@ export default class TelemetryIngest {
        * the message - "Origin  is not allowed" reads like a bug and tells the
        * customer nothing about what to fix.
        */
-      return "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.";
+      return "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.";
     }
 
     if (

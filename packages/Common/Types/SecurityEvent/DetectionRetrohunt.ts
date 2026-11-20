@@ -64,6 +64,21 @@ export interface DetectionRetrohuntGroup {
   summary: string;
 }
 
+/*
+ * What a single rule that counts per value could not count over the period
+ * (#10415): the events it matched that had no value for its group field -
+ * left out, so they never add up as one value - and how many of them had
+ * their client address hidden by a scrub rule, by the kind of record the
+ * rule's logs' or traces' Scrub Rules hold.
+ */
+export interface DetectionRetrohuntUncounted {
+  // The rule's Group By Field, as the rule names it: principalIp.
+  field: string;
+  eventCount: number;
+  hiddenInLogsCount: number;
+  hiddenInTracesCount: number;
+}
+
 export interface DetectionRetrohuntResult {
   startTime: Date;
   endTime: Date;
@@ -109,6 +124,13 @@ export interface DetectionRetrohuntResult {
    * Null when it checked every group, and for a single rule.
    */
   candidateLimit: number | null;
+  /*
+   * The events a single rule that counts per value left out, having no
+   * value for its group field. Null for a rule that leaves none out - no
+   * group field, or one that fires on each event - and for a correlation,
+   * which leaves out groups with no value as it always did.
+   */
+  uncounted: DetectionRetrohuntUncounted | null;
 }
 
 // Firings per day over the period, rounded to one decimal place.
@@ -159,6 +181,29 @@ function readText(value: JSONValue | undefined): string {
   return typeof value === "string" ? value : "";
 }
 
+// What a rule left out, as the API sends it: null for none, or a count of none.
+function readUncounted(
+  value: JSONValue | undefined,
+): DetectionRetrohuntUncounted | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const uncounted: JSONObject = value as JSONObject;
+  const eventCount: number = readNumber(uncounted["eventCount"]);
+
+  if (eventCount <= 0) {
+    return null;
+  }
+
+  return {
+    field: readText(uncounted["field"]),
+    eventCount,
+    hiddenInLogsCount: readNumber(uncounted["hiddenInLogsCount"]),
+    hiddenInTracesCount: readNumber(uncounted["hiddenInTracesCount"]),
+  };
+}
+
 export function detectionRetrohuntResultToJSON(
   result: DetectionRetrohuntResult,
 ): JSONObject {
@@ -178,6 +223,14 @@ export function detectionRetrohuntResultToJSON(
     preventedFiredCount: result.preventedFiredCount,
     hasMoreGroups: result.hasMoreGroups,
     candidateLimit: result.candidateLimit,
+    uncounted: result.uncounted
+      ? {
+          field: result.uncounted.field,
+          eventCount: result.uncounted.eventCount,
+          hiddenInLogsCount: result.uncounted.hiddenInLogsCount,
+          hiddenInTracesCount: result.uncounted.hiddenInTracesCount,
+        }
+      : null,
     groups: result.groups.map((group: DetectionRetrohuntGroup): JSONObject => {
       return {
         value: group.value,
@@ -217,6 +270,7 @@ export function parseDetectionRetrohuntResult(
     preventedFiredCount: readNullableNumber(json["preventedFiredCount"]),
     hasMoreGroups: json["hasMoreGroups"] === true,
     candidateLimit: readNullableNumber(json["candidateLimit"]),
+    uncounted: readUncounted(json["uncounted"]),
     groups: groups
       .filter((item: JSONValue): boolean => {
         return (

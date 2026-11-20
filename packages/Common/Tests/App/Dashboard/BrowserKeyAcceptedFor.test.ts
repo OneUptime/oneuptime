@@ -5,6 +5,7 @@ import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryInges
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
 } from "../../../Types/Telemetry/TelemetryIngestSurface";
+import { BROWSER_KEY_CAUTION } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector";
 
 /*
  * WHAT A BROWSER KEY IS ACCEPTED FOR, WHEREVER ONEUPTIME SAYS IT (#7872).
@@ -61,17 +62,21 @@ const KEY_PAGE: string =
   "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.";
 
 /*
- * #6458 rewrites this caution in plain words. Its new words still name
- * Sentry events, in English and in each language's docs words.
+ * In plain words since #6458, which still name Sentry events, in English
+ * and in each language's docs words.
  */
 const PICKER_CAUTION: string =
-  "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.";
+  "Browser key: safe to put in a web page. It can send traces, logs, metrics, session replays and Sentry events, and only from: {{identities}}. An app:// entry lets a React Native app send session replays only, and anyone who has the app can send as it.";
 
 const TOKEN_CHECK: string =
   "Ingestion token is valid, but it is a BROWSER ingestion key. It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics, session replays, and events from a Sentry browser SDK. Use a server ingestion key in a collector, an agent, or any backend service.";
 
+// The Mobile key's sentence is the issue #6457's: what one mobile app ships.
 const KEY_TYPE_DESCRIPTION: string =
-  "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. This cannot be changed after the key is created - create a new key instead.";
+  "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. Mobile keys are write-only keys for one mobile app: pinned to its service name, they send only that app's OTLP traces, logs and metrics over HTTP, never from a web page. This cannot be changed after the key is created - create a new key instead.";
+
+const MOBILE_TOKEN_CHECK: string =
+  "Ingestion token is valid. It is a MOBILE ingestion key: it is accepted only from a mobile app, without an Origin header, and only for OTLP traces, logs and metrics over HTTP, all filed under the app it is pinned to. Use a server ingestion key in a collector, an agent, or any backend service, and a browser ingestion key in a web page.";
 
 type LocaleFile = Record<string, unknown>;
 
@@ -190,10 +195,11 @@ describe("what a Browser key is accepted for", () => {
         "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector.tsx",
       ),
       "if (key.keyType === TelemetryIngestionKeyType.Browser) {",
-      "Server key — treat it as a secret.",
+      "if (key.keyType === TelemetryIngestionKeyType.Mobile) {",
     );
 
-    expect(browser).toContain(JSON.stringify(PICKER_CAUTION));
+    expect(browser).toContain("BROWSER_KEY_CAUTION");
+    expect(BROWSER_KEY_CAUTION).toBe(PICKER_CAUTION);
   });
 
   test("the token check says it to whoever checks a Browser key, Sentry's browser SDKs included", () => {
@@ -204,6 +210,17 @@ describe("what a Browser key is accepted for", () => {
     );
 
     expect(answer).toContain(JSON.stringify(TOKEN_CHECK));
+  });
+
+  // A Mobile key's answer says where it works, and where it does not (#6457).
+  test("the token check tells a Mobile key's holder it works only from a mobile app", () => {
+    const answer: string = between(
+      read("packages/App/FeatureSet/Telemetry/API/OTelIngest.ts"),
+      ": isMobileKey",
+      '"Ingestion token is valid."',
+    );
+
+    expect(answer).toContain(JSON.stringify(MOBILE_TOKEN_CHECK));
   });
 
   test("the Key Type column's description, which the API reference and the OpenAPI spec show, says it with Sentry events", () => {

@@ -165,7 +165,7 @@ Alles in het snippet gaat naar je bezoekers, dus iedereen kan het token van je p
 | Instelling | Wat het doet |
 | --- | --- |
 | **Toegestane origins** | Verzoeken worden alleen vanaf deze origins geaccepteerd, elk met schema en eventuele poort. Een host mag beginnen met één jokerteken `*.`: `https://*.example.com` dekt elk subdomein van `example.com`, maar niet `example.com` zelf. |
-| **Requests Per Minute Limit** | Eén plafond voor alle bezoekers die de sleutel gebruiken: 6000 verzoeken per minuut, tenzij je een eigen limiet instelt. |
+| **Limiet voor verzoeken per minuut** | Eén plafond voor alle bezoekers die de sleutel gebruiken: 6000 verzoeken per minuut, tenzij je een eigen limiet instelt. |
 | **Vastgezette servicenaam** | Dwingt `service.name` af op alles wat de sleutel schrijft, zodat een kopie haar telemetrie niet kan laten doorgaan voor een van je backend-services. |
 | **Verloopt om** | Na deze datum wordt de sleutel niet meer geaccepteerd. |
 | **Ingeschakeld** | Zet dit uit om een uitgelekte sleutel meteen te stoppen. |

@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` med `"valid": true` | OneUptime godtar nøkkelen. Svaret oppgir også dens `keyType` og dens `projectId`. Gå videre til neste sjekk. |
 | `401` med `"valid": false` | Nøkkelen mangler, er ukjent, tilbakekalt, deaktivert eller utløpt, og `message` sier hvilken. Opprett en aktiv nøkkel under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. |
 
-En webapp trenger en **Nettleser**-nøkkel, og en mobilapp en **Server**-nøkkel: se [Nettleseroppsett](/docs/rum/browser-setup) og [Mobiloppsett](/docs/rum/mobile-setup). Eksportendepunktene avviser også en feil nøkkel med `401`, slik OTLP-spesifikasjonen krever, så et veloppdragent SDK logger avvisningen i stedet for å prøve på nytt. Den linjen er lett å overse i nettleserkonsollen, og denne sjekken svarer direkte.
+En webapp trenger en **Nettleser**-nøkkel, og en mobilapp en **Mobil**-nøkkel: se [Nettleseroppsett](/docs/rum/browser-setup) og [Mobiloppsett](/docs/rum/mobile-setup). Eksportendepunktene avviser også en feil nøkkel med `401`, slik OTLP-spesifikasjonen krever, så et veloppdragent SDK logger avvisningen i stedet for å prøve på nytt. Den linjen er lett å overse i nettleserkonsollen, og denne sjekken svarer direkte.
 
 OneUptime teller også hva den avviser fra en nøkkel den kjenner. Nøkkelens side under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** viser under **Avvist telemetri** hva som er avvist de siste 30 dagene, og **Oppsettsjekk** på applikasjonens side **Dokumentasjon** sier hvilken type telemetri som avvises, hvorfor og hvordan du retter det. En manglende eller ukjent nøkkel peker ikke på noe prosjekt, så ingenting teller den: denne sjekken og `401` er alt som finnes.
 
@@ -81,7 +81,7 @@ En nettleser sender sjelden så store batcher, med mindre spennene bærer store 
 
 **`422`.** OneUptime avviste nøkkelen her, og meldingen sier hvorfor. `Origin https://app.example.com is not allowed for this browser ingestion key.` betyr at sidens nøyaktige opprinnelse, med skjema og eventuell port, mangler i nøkkelens **Tillatte opprinnelser**. `This telemetry ingestion key has been disabled.` betyr at noen har deaktivert nøkkelen.
 
-**`429`.** Nøkkelens **Requests Per Minute Limit** er brukt opp: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nøkkel tillater 6000 forespørsler i minuttet for alle de besøkende samlet, med mindre du setter din egen grense på nøkkelen.
+**`429`.** Nøkkelens **Grense for forespørsler per minutt** er brukt opp: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nøkkel tillater 6000 forespørsler i minuttet for alle de besøkende samlet, med mindre du setter din egen grense på nøkkelen.
 
 **`403` med en HTML-side, eller en tom body.** OneUptime besvarer hver avvisning i JSON, så denne kom fra noe foran, vanligvis en brannmur for webapplikasjoner på ditt eget domene, hvis du sender OneUptime gjennom den. Brannmuren tolker OTLP/JSON og sammenligner hvert spennattributt med injeksjonsreglene sine, så en URL med en spørrestreng på et spenn er nok til at den blokkerer, og brannmurens logg nevner regelen. Unnta OTLP-nyttelasten fra inspeksjon bare på OTLP-banene: [OpenTelemetry-forespørslene dine blir også blokkert](/docs/rum/session-replay-troubleshooting#opentelemetry-forespørslene-dine-blir-også-blokkert) viser hvordan, og dekker avspillingsopptakeren bak den samme brannmuren.
 

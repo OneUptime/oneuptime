@@ -1135,7 +1135,12 @@ import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000
 import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
 import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProjectAmazonSesIamRole";
 import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
-import { AddRecordCreatedByAndLastModifiedColumns1809187200000 } from "./1809187200000-AddRecordCreatedByAndLastModifiedColumns";
+import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
+import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
+import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
+import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-AddCloudAppPlatformCloudResource";
+import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
+import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
 
 export default [
   InitialMigration,
@@ -2275,5 +2280,10 @@ export default [
   AddFormPrivateUsersAndSingleSignOn1809187140120,
   AddProjectAmazonSesIamRole1809187142000,
   AddSecurityBlocklist1809187150000,
-  AddRecordCreatedByAndLastModifiedColumns1809187200000,
+  AddDataSecurityAiRules1809187364000,
+  AddAIRunDataSecurityIssueIndex1809187364100,
+  AddProjectSecurityTrustedProxies1809187364416,
+  AddCloudAppPlatformCloudResource1809187383700,
+  AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
+  AddRecordCreatedByAndLastModifiedColumns1809187400000,
 ];

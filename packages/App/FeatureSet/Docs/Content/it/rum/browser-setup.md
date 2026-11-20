@@ -165,7 +165,7 @@ Tutto ciò che è nello snippet arriva ai tuoi visitatori, quindi chiunque può 
 | Impostazione | Cosa fa |
 | --- | --- |
 | **Origini consentite** | Le richieste sono accettate solo da queste origini, ciascuna con il suo schema e l'eventuale porta. Un host può iniziare con un solo carattere jolly `*.`: `https://*.example.com` copre ogni sottodominio di `example.com`, ma non `example.com` stesso. |
-| **Requests Per Minute Limit** | Un unico tetto per tutti i visitatori che usano la chiave: 6000 richieste al minuto, a meno che tu non ne imposti uno tuo. |
+| **Limite di richieste al minuto** | Un unico tetto per tutti i visitatori che usano la chiave: 6000 richieste al minuto, a meno che tu non ne imposti uno tuo. |
 | **Nome del servizio fissato** | Impone `service.name` su tutto ciò che la chiave scrive, così una copia non può far passare la sua telemetria per uno dei tuoi servizi backend. |
 | **Scade il** | Dopo questa data la chiave non viene più accettata. |
 | **Abilitato** | Disattivalo per fermare subito una chiave trapelata. |

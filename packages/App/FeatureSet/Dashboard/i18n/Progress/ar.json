@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 60061,
+    "keys": 60451,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -400,6 +400,7 @@
     "sk-...",
     "statefulsets",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "support@example.com",

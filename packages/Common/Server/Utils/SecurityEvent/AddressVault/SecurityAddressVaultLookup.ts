@@ -2,6 +2,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
+  TrustedProxies,
+  canNameResolvedClientAddress,
+} from "../../../../Utils/SecurityEvent/ClientAddressTrust";
+import {
   HiddenClientAddress,
   clearClientAddressScrubbed,
   isAddressVaultToken,
@@ -10,6 +14,7 @@ import {
 import SecurityAddressVaultService from "../../../Services/SecurityAddressVaultService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import SecurityTrustedProxies from "../SecurityTrustedProxies";
 
 /*
  * SECURITY EVENTS' HALF OF THE ADDRESS VAULT (#10395): the scans name the
@@ -135,12 +140,30 @@ export default class SecurityAddressVaultLookup {
       return 0;
     }
 
+    /*
+     * Only an address its sender could not have written is named (#10416):
+     * a token is only ever the verified address's (readHiddenClientAddress
+     * reads no claim), and one that turns out to be a proxy the project
+     * trusts - a Hash rule hid a CDN's edge the request came through - is no
+     * client. Such an event stays as marked: a scrub rule hid its address.
+     */
+    const proxies: TrustedProxies = await SecurityTrustedProxies.getForProject(
+      data.projectId,
+    );
+
     let named: number = 0;
 
     for (const item of pending) {
       const address: string | undefined = addresses.get(item.token);
 
-      if (address) {
+      if (
+        address &&
+        canNameResolvedClientAddress({
+          attributes: item.event.attributes,
+          address,
+          proxies,
+        })
+      ) {
         nameVaultAddress(item.event, address);
         named++;
       }

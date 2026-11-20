@@ -2919,6 +2919,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.DATA_SECURITY_AI,
+            title: "AI",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "data security ai",
+              "ai proposals",
+              "waiting for you",
+              "done by ai",
+              "approve ai changes",
+              "oneuptime ai data security",
+            ],
+            settings: ["Work on new issues"],
+          },
+          {
             page: PageMap.DATA_SECURITY_SENSITIVE_DATA,
             title: "Sensitive Data",
             icon: IconProp.Fingerprint,

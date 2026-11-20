@@ -102,7 +102,7 @@ La ingesta crea los entornos por usted, así que no hay nada que escribir. Abra 
 
 ## Aplicaciones y despliegues
 
-Cada servicio que ejecuta un entorno es una aplicación suya, con el nombre que le da la consola de la plataforma. **Plataformas de aplicaciones → Todas las aplicaciones** enumera cada aplicación con la revisión que ejecuta y sus solicitudes, su tasa de errores y su latencia p95 de la última hora, y la pestaña **Aplicaciones** de un entorno enumera las suyas.
+Cada servicio que ejecuta un entorno es una aplicación suya, con el nombre que le da la consola de la plataforma. **Plataformas de aplicaciones → Todas las aplicaciones** enumera cada aplicación con la revisión que ejecuta y sus solicitudes, su tasa de errores y su latencia p95 de la última hora, y la pestaña **Aplicaciones** de un entorno enumera las suyas. Una aplicación de App Service que no envía trazas muestra ahí en su lugar las cifras de su sitio según Azure Monitor: las solicitudes que contó Azure, la proporción respondida con un estado 5xx y el tiempo de respuesta medio.
 
 | Plataforma | Aplicación | Separada por | Revisión |
 | --- | --- | --- | --- |

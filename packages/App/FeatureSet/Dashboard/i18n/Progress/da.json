@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 8150
+    "keys": 60451,
+    "untranslated": 8304
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -87,6 +87,7 @@
     "Container: {{name}}",
     "Content Security Policy",
     "Controller",
+    "Core Web Vitals",
     "CrowdStrike",
     "Cyan",
     "DE",
@@ -563,6 +564,7 @@
     "stacks",
     "status",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "subnet",
     "sum by (job) (rate(http_requests_total[5m]))",

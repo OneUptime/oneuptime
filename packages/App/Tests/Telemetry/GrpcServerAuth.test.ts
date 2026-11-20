@@ -274,6 +274,11 @@ describe("GrpcServer authenticateGrpcRequest", () => {
       keyType: TelemetryIngestionKeyType.Browser,
       allowedOrigins: ["https://shop.example.com"],
     },
+    // A Mobile key sends over OTLP/HTTP only (issue #6457).
+    [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey]: {
+      keyType: TelemetryIngestionKeyType.Mobile,
+      pinnedServiceName: "storefront-mobile",
+    },
   };
 
   const expectedCodeForReason: Record<
@@ -284,6 +289,8 @@ describe("GrpcServer authenticateGrpcRequest", () => {
       grpc.status.PERMISSION_DENIED,
     [TelemetryIngestionKeyRefusalReason.Expired]: grpc.status.UNAUTHENTICATED,
     [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
+      grpc.status.PERMISSION_DENIED,
+    [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey]:
       grpc.status.PERMISSION_DENIED,
   };
 

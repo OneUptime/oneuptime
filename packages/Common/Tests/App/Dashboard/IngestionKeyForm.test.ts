@@ -12,6 +12,7 @@ import Dictionary from "../../../Types/Dictionary";
 import {
   BROWSER_INGESTION_KEY_NAME,
   IngestionKeyFormOptions,
+  MOBILE_INGESTION_KEY_NAME,
   SERVER_INGESTION_KEY_NAME,
   getDefaultIngestionKeyName,
   getIngestionKeyFormFields,
@@ -19,6 +20,7 @@ import {
   getIngestionKeyNameAfterTypeChange,
   getUniqueIngestionKeyName,
   isBrowserIngestionKey,
+  isMobileIngestionKey,
   prepareIngestionKeyForCreate,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeyForm";
 
@@ -52,6 +54,11 @@ const BROWSER_GUIDE: IngestionKeyFormOptions = {
   keyType: TelemetryIngestionKeyType.Browser,
   keyName: "RUM key",
 };
+// The RUM guide's mobile option (issue #6457).
+const MOBILE_GUIDE: IngestionKeyFormOptions = {
+  keyType: TelemetryIngestionKeyType.Mobile,
+  keyName: "RUM key",
+};
 
 function fieldKey(field: Field<TelemetryIngestionKey>): string {
   return (
@@ -76,6 +83,33 @@ function fieldNamed(
 
   if (!field) {
     throw new Error(`No ${key} field`);
+  }
+
+  return field;
+}
+
+/*
+ * The field a reader sees for this key type: on Settings a field can be
+ * there twice, once for each type it means something on - a Mobile key's
+ * required app on the first page, a Browser key's optional pin among its
+ * settings.
+ */
+function fieldShownFor(
+  fields: Fields,
+  key: string,
+  keyType: TelemetryIngestionKeyType | undefined,
+): ModelField<TelemetryIngestionKey> {
+  const field: ModelField<TelemetryIngestionKey> | undefined = fields.find(
+    (candidate: ModelField<TelemetryIngestionKey>): boolean => {
+      return (
+        fieldKey(candidate) === key &&
+        (!candidate.showIf || candidate.showIf({ keyType }))
+      );
+    },
+  );
+
+  if (!field) {
+    throw new Error(`No ${key} field for a ${keyType} key`);
   }
 
   return field;
@@ -215,14 +249,27 @@ describe("Telemetry ingestion key create form", () => {
   });
 
   describe("fields", () => {
-    test("Settings: Name and Key Type open, Description folded, the browser settings on their own step", () => {
+    test("Settings: Name and Key Type open, a Mobile key's app beside them, Description folded, the browser settings on their own step", () => {
       expect(layout(getIngestionKeyFormFields(SETTINGS))).toEqual([
         ["name", "key", false],
         ["keyType", "key", false],
+        ["pinnedServiceName", "key", false],
         ["description", "key", true],
         ["allowedOrigins", "browser-settings", false],
         ["pinnedServiceName", "browser-settings", true],
       ]);
+    });
+
+    test("a Mobile guide asks for the name and the app's service name on one page, with the description folded", () => {
+      expect(layout(getIngestionKeyFormFields(MOBILE_GUIDE))).toEqual([
+        ["name", "key", false],
+        ["pinnedServiceName", "key", false],
+        ["description", "key", true],
+      ]);
+      // No origins: a Mobile key is refused from a web page.
+      expect(
+        getIngestionKeyFormFields(MOBILE_GUIDE).map(fieldKey),
+      ).not.toContain("allowedOrigins");
     });
 
     test("a Server guide asks for the name only, with the description folded", () => {
@@ -280,9 +327,10 @@ describe("Telemetry ingestion key create form", () => {
           fields,
           "description",
         );
-        const pinned: ModelField<TelemetryIngestionKey> = fieldNamed(
+        const pinned: ModelField<TelemetryIngestionKey> = fieldShownFor(
           fields,
           "pinnedServiceName",
+          TelemetryIngestionKeyType.Browser,
         );
 
         expect(description.collapsibleSection?.id).toBe(
@@ -310,10 +358,10 @@ describe("Telemetry ingestion key create form", () => {
 
       const settings: Fields = getIngestionKeyFormFields(SETTINGS);
 
-      for (const options of [SERVER_GUIDE, BROWSER_GUIDE]) {
+      for (const options of [SERVER_GUIDE, BROWSER_GUIDE, MOBILE_GUIDE]) {
         for (const field of getIngestionKeyFormFields(options)) {
           expect(describe(field)).toBe(
-            describe(fieldNamed(settings, fieldKey(field))),
+            describe(fieldShownFor(settings, fieldKey(field), options.keyType)),
           );
         }
       }
@@ -335,9 +383,10 @@ describe("Telemetry ingestion key create form", () => {
       ).toEqual([
         TelemetryIngestionKeyType.Server,
         TelemetryIngestionKeyType.Browser,
+        TelemetryIngestionKeyType.Mobile,
       ]);
 
-      for (const options of [SERVER_GUIDE, BROWSER_GUIDE]) {
+      for (const options of [SERVER_GUIDE, BROWSER_GUIDE, MOBILE_GUIDE]) {
         expect(getIngestionKeyFormFields(options).map(fieldKey)).not.toContain(
           "keyType",
         );
@@ -345,25 +394,96 @@ describe("Telemetry ingestion key create form", () => {
     });
 
     test("the browser settings show on Settings only once Browser is picked", () => {
-      const fields: Fields = getIngestionKeyFormFields(SETTINGS);
+      const browserSettings: Fields = getIngestionKeyFormFields(
+        SETTINGS,
+      ).filter((field: ModelField<TelemetryIngestionKey>): boolean => {
+        return field.stepId === "browser-settings";
+      });
 
-      for (const key of ["allowedOrigins", "pinnedServiceName"]) {
-        const field: ModelField<TelemetryIngestionKey> = fieldNamed(
-          fields,
-          key,
-        );
-        expect(
-          field.showIf?.({ keyType: TelemetryIngestionKeyType.Server }),
-        ).toBe(false);
+      expect(browserSettings.map(fieldKey)).toEqual([
+        "allowedOrigins",
+        "pinnedServiceName",
+      ]);
+      for (const field of browserSettings) {
+        for (const keyType of [
+          TelemetryIngestionKeyType.Server,
+          TelemetryIngestionKeyType.Mobile,
+        ]) {
+          expect(field.showIf?.({ keyType })).toBe(false);
+        }
         expect(
           field.showIf?.({ keyType: TelemetryIngestionKeyType.Browser }),
         ).toBe(true);
       }
 
-      // A guide that makes Browser keys shows them from the start.
-      for (const field of getIngestionKeyFormFields(BROWSER_GUIDE)) {
-        expect(field.showIf).toBeUndefined();
+      // A guide that makes Browser or Mobile keys shows its fields from the start.
+      for (const options of [BROWSER_GUIDE, MOBILE_GUIDE]) {
+        for (const field of getIngestionKeyFormFields(options)) {
+          expect(field.showIf).toBeUndefined();
+        }
       }
+    });
+
+    /*
+     * The pin is what keeps a key copied out of an app to that app's
+     * telemetry (#6457), so a Mobile key is never made without it.
+     */
+    test("a Mobile key's app shows on Settings only once Mobile is picked, and is required", () => {
+      const mobileApp: ModelField<TelemetryIngestionKey> = fieldShownFor(
+        getIngestionKeyFormFields(SETTINGS),
+        "pinnedServiceName",
+        TelemetryIngestionKeyType.Mobile,
+      );
+
+      expect(mobileApp.stepId).toBe("key");
+      expect(mobileApp.required).toBe(true);
+      expect(mobileApp.collapsibleSection).toBeUndefined();
+      for (const keyType of [
+        TelemetryIngestionKeyType.Server,
+        TelemetryIngestionKeyType.Browser,
+      ]) {
+        expect(mobileApp.showIf?.({ keyType })).toBe(false);
+      }
+      expect(
+        isMobileIngestionKey({ keyType: TelemetryIngestionKeyType.Mobile }),
+      ).toBe(true);
+      expect(
+        isMobileIngestionKey({ keyType: TelemetryIngestionKeyType.Browser }),
+      ).toBe(false);
+    });
+
+    test.each([SETTINGS, MOBILE_GUIDE])(
+      "a Mobile key without its app's service name is not created (%#)",
+      (options: IngestionKeyFormOptions) => {
+        const fields: Fields = getIngestionKeyFormFields(options);
+        const mobile: FormValues<TelemetryIngestionKey> = {
+          name: "Mobile key",
+          keyType: TelemetryIngestionKeyType.Mobile,
+        };
+
+        expect(validate(fields, mobile)["pinnedServiceName"]).toBe(
+          "Pinned Service Name is required.",
+        );
+        expect(
+          validate(fields, { ...mobile, pinnedServiceName: "checkout-ios" }),
+        ).toEqual({});
+      },
+    );
+
+    test("a guide that knows the app fills its service name in", () => {
+      expect(
+        fieldNamed(
+          getIngestionKeyFormFields({
+            ...MOBILE_GUIDE,
+            pinnedServiceName: "checkout-ios",
+          }),
+          "pinnedServiceName",
+        ).defaultValue,
+      ).toBe("checkout-ios");
+      expect(
+        fieldNamed(getIngestionKeyFormFields(MOBILE_GUIDE), "pinnedServiceName")
+          .defaultValue,
+      ).toBeUndefined();
     });
   });
 
@@ -390,6 +510,10 @@ describe("Telemetry ingestion key create form", () => {
       expect(
         getDefaultIngestionKeyName(TelemetryIngestionKeyType.Browser),
       ).toBe(BROWSER_INGESTION_KEY_NAME);
+      expect(getDefaultIngestionKeyName(TelemetryIngestionKeyType.Mobile)).toBe(
+        MOBILE_INGESTION_KEY_NAME,
+      );
+      expect(MOBILE_INGESTION_KEY_NAME).toBe("Mobile key");
     });
 
     test("a pinned type without a name of the door's own starts as that type's name", () => {
@@ -593,6 +717,24 @@ describe("Telemetry ingestion key create form", () => {
       expect(values.keyType).toBe(TelemetryIngestionKeyType.Server);
     });
 
+    test("picking Mobile drops a Browser key's origins, and keeps the app's service name", () => {
+      const values: FormValues<TelemetryIngestionKey> = pickKeyType(
+        getIngestionKeyFormFields(SETTINGS),
+        {
+          name: "Browser key",
+          keyType: TelemetryIngestionKeyType.Browser,
+          allowedOrigins: '["https://app.example.com"]' as never,
+          pinnedServiceName: "checkout-ios",
+        },
+        TelemetryIngestionKeyType.Mobile,
+      );
+
+      expect(values.allowedOrigins).toBeUndefined();
+      expect(values.pinnedServiceName).toBe("checkout-ios");
+      expect(values.name).toBe("Mobile key");
+      expect(values.keyType).toBe(TelemetryIngestionKeyType.Mobile);
+    });
+
     test("picking Browser keeps what is there", () => {
       const values: FormValues<TelemetryIngestionKey> = pickKeyType(
         getIngestionKeyFormFields(SETTINGS),
@@ -643,6 +785,22 @@ describe("Telemetry ingestion key create form", () => {
       expect(item.allowedOrigins).toBeUndefined();
       expect(item.pinnedServiceName).toBeUndefined();
       expect(item.name).toBe("Server key");
+    });
+
+    test("a Mobile key keeps its app's service name, and never sends origins", () => {
+      const item: TelemetryIngestionKey = prepareIngestionKeyForCreate(
+        key({
+          name: "Mobile key",
+          keyType: TelemetryIngestionKeyType.Server,
+          allowedOrigins: ["https://app.example.com"],
+          pinnedServiceName: "checkout-ios",
+        }),
+        MOBILE_GUIDE,
+      );
+
+      expect(item.keyType).toBe(TelemetryIngestionKeyType.Mobile);
+      expect(item.allowedOrigins).toBeUndefined();
+      expect(item.pinnedServiceName).toBe("checkout-ios");
     });
 
     test("a Browser key keeps its origins and pinned service", () => {

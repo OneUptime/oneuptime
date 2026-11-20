@@ -16,7 +16,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import TelemetryIngestionKeyPolicy from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
-import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
+import TelemetryIngestionKeyType, {
+  readTelemetryIngestionKeyType,
+} from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import OriginAllowList from "../../Utils/Telemetry/OriginAllowList";
 import logger from "../Utils/Logger";
 import TelemetryIngestionBudgetValidation, {
@@ -357,6 +359,34 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * A Mobile key (issue #6457) is published in every copy of an app, so
+     * the one thing that keeps a copied key to that app's telemetry is its
+     * pin: everything it writes is filed under that service name. A Mobile
+     * key without one would let a copy write as any service, so it is
+     * refused at creation, as a Browser key without origins is.
+     *
+     * It has no origins to list: a mobile SDK sends no Origin header, and
+     * the ingest guard refuses a Mobile key on a request that has one. A
+     * list given at creation would read as a protection that is not there,
+     * so it is refused; one set later (the key page edits every key's list)
+     * is ignored at ingest, as a Server key's is, without the read of the
+     * keys' types that refusing it would cost every edit of a list.
+     */
+    if (keyType === TelemetryIngestionKeyType.Mobile) {
+      if (allowedOrigins.length > 0) {
+        throw new BadDataException(
+          "A Mobile ingestion key has no allowed origins, because a mobile app sends no Origin header. Leave Allowed Origins empty, or create a Browser key for a web page.",
+        );
+      }
+
+      if (!this.validatePinnedServiceName(data["pinnedServiceName"])) {
+        throw new BadDataException(
+          "A Mobile ingestion key must be pinned to its app's service name. Set Pinned Service Name to the service.name your app sends, so a key copied out of the app can only write that app's telemetry.",
+        );
+      }
+    }
+
     if (Object.prototype.hasOwnProperty.call(data, "allowedOrigins")) {
       data["allowedOrigins"] = allowedOrigins;
     }
@@ -506,6 +536,18 @@ export class Service extends DatabaseService<Model> {
       data["pinnedServiceName"] = this.validatePinnedServiceName(
         data["pinnedServiceName"],
       );
+
+      /*
+       * Unpinning a Mobile key would let every copy of the app write as any
+       * service (issue #6457). Only a cleared pin needs the keys' types, so
+       * the read is paid for only then.
+       */
+      if (!data["pinnedServiceName"]) {
+        await this.assertNoMobileKeyIsBeingUpdated(
+          updateBy,
+          "A Mobile ingestion key must stay pinned to its app's service name, so a key copied out of the app can only write that app's telemetry. To retire the key, turn it off or delete it.",
+        );
+      }
     }
 
     if (isTouched("requestsPerMinuteLimit")) {
@@ -1205,9 +1247,9 @@ export class Service extends DatabaseService<Model> {
      * Every TelemetryIngestionKey that exists today was written before the
      * keyType column did, so it reads back as NULL (or, on a node whose model
      * metadata is momentarily behind a rolling deploy, as absent). Anything
-     * that is not exactly "Browser" resolves to Server, which is the
-     * historical behaviour in full: no origin checks, every ingest surface, no
-     * default rate limit, no pinned service name.
+     * that is not exactly "Browser" or "Mobile" resolves to Server, which is
+     * the historical behaviour in full: no origin checks, every ingest
+     * surface, no default rate limit, no pinned service name.
      *
      * Written as an allowlist of the ONE restrictive value rather than a
      * lookup that falls back on failure, so that a typo, a truncated column, a
@@ -1216,10 +1258,9 @@ export class Service extends DatabaseService<Model> {
      * always towards "behaves like it always did", never towards "quietly
      * gained privileges".
      */
-    const keyType: TelemetryIngestionKeyType =
-      token.keyType === TelemetryIngestionKeyType.Browser
-        ? TelemetryIngestionKeyType.Browser
-        : TelemetryIngestionKeyType.Server;
+    const keyType: TelemetryIngestionKeyType = readTelemetryIngestionKeyType(
+      token.keyType,
+    );
 
     /*
      * Blank entries are dropped, not just non-strings. OriginAllowList.matches
@@ -1371,10 +1412,16 @@ export class Service extends DatabaseService<Model> {
       return TelemetryIngestionKeyType.Server;
     }
 
+    if (value === TelemetryIngestionKeyType.Mobile) {
+      return TelemetryIngestionKeyType.Mobile;
+    }
+
     throw new BadDataException(
       `"${String(value)}" is not a valid ingestion key type. Use "${
         TelemetryIngestionKeyType.Server
-      }" or "${TelemetryIngestionKeyType.Browser}".`,
+      }", "${TelemetryIngestionKeyType.Browser}" or "${
+        TelemetryIngestionKeyType.Mobile
+      }".`,
     );
   }
 
@@ -1551,6 +1598,30 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException(
           `A Browser ingestion key must keep at least one allowed origin. Clearing the list would stop the key accepting any telemetry - turn the key off or delete it instead. The key's ID is ${affectedKey._id}.`,
         );
+      }
+    }
+  }
+
+  /*
+   * Refuse an update that would loosen a Mobile key (issue #6457) - its pin
+   * cleared, or origins it cannot use listed - when any row the update
+   * matches is one. Read and held as assertNoBrowserKeyIsBeingUpdated is.
+   */
+  private async assertNoMobileKeyIsBeingUpdated(
+    updateBy: UpdateBy<Model>,
+    message: string,
+  ): Promise<void> {
+    const affectedKeys: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        keyType: true,
+      },
+    );
+
+    for (const affectedKey of affectedKeys) {
+      if (affectedKey.keyType === TelemetryIngestionKeyType.Mobile) {
+        throw new BadDataException(message);
       }
     }
   }

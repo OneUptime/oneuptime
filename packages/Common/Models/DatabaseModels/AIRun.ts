@@ -652,6 +652,39 @@ export default class AIRun extends BaseModel {
   public triggeredBySecurityCaseId?: ObjectID = undefined;
 
   /*
+   * Set when the run is about a Data Security issue (#10364): a code task
+   * Fix with AI started for one issue, and the AI runs OneUptime AI starts
+   * on its own for an issue. Only the issue's id: a run is read by every
+   * Project Member and Viewer, and what the issue says is for the people
+   * who read the issue.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By Data Security Issue ID",
+    description:
+      "The Data Security issue this run is about: a fix asked for it, or work OneUptime AI started on it.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByDataSecurityIssueId?: ObjectID = undefined;
+
+  /*
    * Set on RemediationPlan runs: the AutoRemediationSuggestion this planning
    * run is picking a runbook for. The suggestion carries the reverse link
    * (aiRunId) for the dashboard.

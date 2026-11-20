@@ -12,11 +12,11 @@ Strumenta un'app Android nativa con OpenTelemetry Android in modo che si present
 
 ## Come funziona
 
-OpenTelemetry Android viene eseguito dentro la tua app. Invia tracce, log e metriche a OneUptime tramite OTLP con una chiave di acquisizione **Server**, e aggiunge un'intestazione W3C `traceparent` alle richieste che la tua app effettua, così gli span del tuo backend si uniscono alle tracce dell'app.
+OpenTelemetry Android viene eseguito dentro la tua app. Invia tracce, log e metriche a OneUptime tramite OTLP con una chiave di acquisizione **Mobile**, fissata alla tua app, e aggiunge un'intestazione W3C `traceparent` alle richieste che la tua app effettua, così gli span del tuo backend si uniscono alle tracce dell'app.
 
 ```mermaid title="Dall'app a OneUptime, e attraverso il tuo backend"
 flowchart TB
-    app["La tua app Android<br/>con OpenTelemetry Android"] -->|"OTLP con una<br/>chiave Server"| oneuptime["OneUptime"]
+    app["La tua app Android<br/>con OpenTelemetry Android"] -->|"OTLP con una<br/>chiave Mobile"| oneuptime["OneUptime"]
     app -->|"richieste con<br/>un'intestazione traceparent"| api["Le tue API: ordini,<br/>POS, display della cucina"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Applicazione RUM mobile"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Prima di iniziare
 
 - Un'app Android il cui `minSdk` è 23 o superiore, compilata con `compileSdk` 34 o superiore. Con un `minSdk` inferiore a 26, attiva il [desugaring delle librerie core](https://developer.android.com/studio/write/java8-support#library-desugaring), con Android Gradle Plugin 8.3.0 o successivo e `android.useFullClasspathForDexingTransform=true` in `gradle.properties`.
-- Una chiave di acquisizione **Server**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** con **Crea chiave di acquisizione**. Una chiave **Browser** viene rifiutata da un'app: è verificata rispetto all'intestazione `Origin`, che un'app non invia.
+- Una chiave di acquisizione **Mobile**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** con **Crea chiave di acquisizione**, con il `service.name` della tua app come **Nome del servizio fissato**. Una chiave **Browser** viene rifiutata da un'app: è verificata rispetto all'intestazione `Origin`, che un'app non invia.
 - Queste impostazioni OTLP. Se ospiti OneUptime in proprio, sostituisci `https://oneuptime.com` con il tuo host.
 
 | Impostazione | Valore |
@@ -35,7 +35,7 @@ flowchart TB
 | Intestazione | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> La chiave viaggia dentro la tua app, e un'app si può spacchettare: dai quindi per scontato che qualcuno la copierà. Nella pagina della chiave, imposta un **Nome del servizio fissato**, un **Requests Per Minute Limit** e una data in **Scade il**, e ruota la chiave a ogni rilascio.
+> La chiave viaggia dentro la tua app, e un'app si può spacchettare: dai quindi per scontato che qualcuno la copierà. Nella pagina della chiave, imposta un **Nome del servizio fissato**, un **Limite di richieste al minuto** e una data in **Scade il**, e ruota la chiave a ogni rilascio.
 
 ## Aggiungere OpenTelemetry Android
 
@@ -303,7 +303,7 @@ OpenTelemetry Android imposta `device.model.identifier` da sé, quindi l'app è 
 :::
 
 :::details Non arriva nulla, o la chiave viene rifiutata
-Esegui la verifica della chiave descritta in [Aggiungere OpenTelemetry Android](#aggiungere-opentelemetry-android). Un `401` significa che la chiave è sconosciuta, revocata, disattivata o scaduta. Una chiave **Browser** viene rifiutata da un'app: usa una chiave **Server**. Verifica che `baseUrl` finisca con `/otlp`, senza `/v1/traces`: l'agente aggiunge il percorso da sé.
+Esegui la verifica della chiave descritta in [Aggiungere OpenTelemetry Android](#aggiungere-opentelemetry-android). Un `401` significa che la chiave è sconosciuta, revocata, disattivata o scaduta. Una chiave **Browser** viene rifiutata da un'app: usa una chiave **Mobile**. Verifica che `baseUrl` finisca con `/otlp`, senza `/v1/traces`: l'agente aggiunge il percorso da sé.
 :::
 
 :::details Un crash o un ANR non è in Eccezioni

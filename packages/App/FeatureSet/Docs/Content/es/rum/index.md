@@ -94,7 +94,7 @@ Una aplicación muestra **Recibiendo datos** mientras llega telemetría y **Sin 
 :::steps
 ### Crear una clave de ingesta
 
-Abre **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** y haz clic en **Crear clave de ingesta**. Una aplicación web necesita una clave de **Navegador**, que solo funciona desde los orígenes que indiques. Una aplicación móvil necesita una clave de **Servidor**, porque un SDK móvil no envía el encabezado `Origin`.
+Abre **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** y haz clic en **Crear clave de ingesta**. Una aplicación web necesita una clave de **Navegador**, que solo funciona desde los orígenes que indiques. Una aplicación móvil necesita una clave de **Móvil**, fijada al `service.name` de la aplicación: viaja dentro de la aplicación, así que solo puede enviar las trazas, los registros y las métricas de esa aplicación.
 
 ### Instrumentar tu aplicación
 

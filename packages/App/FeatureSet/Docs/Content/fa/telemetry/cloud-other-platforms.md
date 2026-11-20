@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-تشخیص‌دهنده‌های SDK بستر را با نقطه به‌صورت `azure.app_service` می‌نویسند؛ OneUptime هنگام دریافت آن را به `azure_app_service` بازنویسی می‌کند. در .NET، `OpenTelemetry.Resources.Azure` را اضافه کنید و `.ConfigureResource(r => r.AddAzureAppServiceDetector())` را فراخوانی کنید. زبان‌های دیگر `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` را به `OTEL_RESOURCE_ATTRIBUTES` اضافه می‌کنند، و `service.instance.id` را در کد از `WEBSITE_INSTANCE_ID` می‌گیرند.
+تشخیص‌دهنده‌های SDK بستر را با نقطه به‌صورت `azure.app_service` می‌نویسند؛ OneUptime هنگام دریافت آن را به `azure_app_service` بازنویسی می‌کند. هر پشته تشخیص‌دهندهٔ منبع App Service خودش را دارد که هر نمونه را نام می‌برد و `cloud.resource_id` را برابر شناسهٔ سایت می‌گذارد: همین برنامه را به اعداد Azure Monitor سایتش پیوند می‌دهد. تشخیص‌دهندهٔ پشتهٔ خود را روشن کنید:
+
+| پشته | تشخیص‌دهندهٔ منبع App Service آن |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`، با `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | عامل Java در OpenTelemetry، با `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`، با `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`، با `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. هویت مدیریت‌شدهٔ اختصاص‌یافته توسط سیستم را برای برنامه روشن کنید (**Settings → Identity**)، و روی گاوصندوق به آن **Key Vault Secrets User** بدهید. کل سرآیند، `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`، را به‌عنوان راز `oneuptime-otlp-headers` ذخیره کنید.
@@ -182,9 +187,9 @@ OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 
 **شبکه:** App Service مستقیم به اینترنت می‌رسد، مگر آن‌که **VNet integration** همراه با **Route All** روشن باشد. در آن صورت VNet به یک NAT gateway نیاز دارد، یا به مسیری به فایروالی که TCP ۴۴۳ به میزبان OneUptime را اجازه دهد.
 
-**آنچه صفحهٔ برنامه نشان می‌دهد:** درخواست‌ها، نرخ خطا و تأخیر از ترِیس‌های برنامه می‌آیند، پس برنامه‌ای که فقط لاگ یا متریک می‌فرستد آنجا **هیچ ترِیسی دریافت نشده** را نشان می‌دهد، و **بررسی راه‌اندازی** آن می‌گوید چه باید افزود. App Service به برنامه CPU یا حافظهٔ جداگانه‌ای نمی‌دهد، و کاشی‌های CPU و حافظهٔ آن همین را می‌گویند. اشتراک را در **ابر** > **اتصال** وصل کنید تا **نمای کلی** برنامه یک بخش **Azure Monitor** بگیرد: درخواست‌ها، خطاهای سرور و کلاینت، زمان پاسخ، زمان CPU و حافظهٔ سایت، آن‌طور که Azure اندازه می‌گیرد، هرچه برنامه بفرستد. سپس زبانهٔ **نمونه‌ها** نمونه‌هایی را که Azure برنامه را روی آن‌ها اجرا می‌کند فهرست می‌کند، و زبانهٔ **ویرایش‌ها** استقرارهایی را که Azure نگه می‌دارد.
+**آنچه صفحهٔ برنامه نشان می‌دهد:** درخواست‌ها، نرخ خطا و تأخیر از ترِیس‌های برنامه می‌آیند، پس برنامه‌ای که فقط لاگ یا متریک می‌فرستد آنجا **هیچ ترِیسی دریافت نشده** را نشان می‌دهد، و **بررسی راه‌اندازی** آن می‌گوید چه باید افزود. App Service به برنامه CPU یا حافظهٔ جداگانه‌ای نمی‌دهد، و کاشی‌های CPU و حافظهٔ آن همین را می‌گویند. اشتراک را در **ابر** > **اتصال** وصل کنید تا **نمای کلی** برنامه یک بخش **Azure Monitor** بگیرد: درخواست‌ها، خطاهای سرور و کلاینت، زمان پاسخ، زمان CPU و حافظهٔ سایت، آن‌طور که Azure اندازه می‌گیرد، هرچه برنامه بفرستد. سپس زبانهٔ **نمونه‌ها** نمونه‌هایی را که Azure برنامه را روی آن‌ها اجرا می‌کند فهرست می‌کند، و زبانهٔ **ویرایش‌ها** استقرارهایی را که Azure نگه می‌دارد. در **بسترهای برنامه** > **همه برنامه‌ها** و زبانهٔ **برنامه‌ها** در یک محیط، برنامه‌ای که ترِیس نمی‌فرستد به‌جای آن اعداد سایتش را از Azure Monitor نشان می‌دهد: درخواست‌هایی که Azure شمرد، سهم پاسخ‌های با وضعیت 5xx و میانگین زمان پاسخ.
 
-زبانهٔ **راه‌اندازی** برنامه این تنظیمات را به‌صورت فرمان‌های Azure Cloud Shell برای .NET، Java، Node.js یا Python می‌دهد، با نام، گروه منابع و اشتراک خود برنامه در هر فرمان. برای لاگ‌های کنسول، HTTP و پلتفرم خود سایت هم، در **ابر** > **اتصال** در ردیف اشتراک **جریان‌دادن متریک‌ها و لاگ‌ها** را انتخاب کنید: این لاگ‌ها در صفحهٔ برنامه، در زبانهٔ **لاگ‌ها** زیر **از تنظیمات تشخیصی Azure** نمایش داده می‌شوند.
+زبانهٔ **راه‌اندازی** برنامه این تنظیمات را به‌صورت فرمان‌های Azure Cloud Shell برای .NET، Java، Node.js یا Python می‌دهد، با نام، گروه منابع و اشتراک خود برنامه در هر فرمان. برای لاگ‌های کنسول، HTTP و پلتفرم خود سایت هم، در **ابر** > **اتصال** در ردیف اشتراک **جریان‌دادن متریک‌ها و لاگ‌ها** را انتخاب کنید: این لاگ‌ها در صفحهٔ برنامه، در زبانهٔ **لاگ‌ها** زیر **از تنظیمات تشخیصی Azure** نمایش داده می‌شوند. راهنمای راه‌اندازی محیط هم گام‌های هر پشته را می‌دهد، با جای‌نگهدارهایی برای نام و گروه منابع برنامه.
 
 ## Azure Container Instances
 

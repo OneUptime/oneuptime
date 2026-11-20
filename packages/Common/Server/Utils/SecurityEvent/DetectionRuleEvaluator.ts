@@ -78,6 +78,7 @@ import {
 import SigmaClickhouseCompiler, {
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
+  buildSigmaFieldHasValue,
 } from "./Sigma/SigmaClickhouseCompiler";
 import {
   MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES,
@@ -1846,6 +1847,15 @@ export default class DetectionRuleEvaluator {
       ? buildSigmaFieldExpression(rule.groupByField)
       : null;
 
+    /*
+     * A rule that counts per value leaves out the events with no value for
+     * its group field (#10415): the read decides when, by the threshold and
+     * the distinct count it is given.
+     */
+    const groupHasValueExpression: Statement | null = rule.groupByField
+      ? buildSigmaFieldHasValue(rule.groupByField)
+      : null;
+
     const distinctCountExpression: Statement | null = rule.distinctCountField
       ? buildSigmaDistinctCountExpression(rule.distinctCountField)
       : null;
@@ -1859,6 +1869,7 @@ export default class DetectionRuleEvaluator {
         endTime: data.endTime,
         whereFragment,
         groupByExpression,
+        groupHasValueExpression,
         distinctCountExpression,
         minMatchCount: matchCountThreshold,
         // One more than a run records, so it can tell "more than it reads".

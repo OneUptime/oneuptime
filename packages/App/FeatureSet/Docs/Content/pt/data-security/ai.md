@@ -23,11 +23,12 @@ A Segurança de dados lê os seus dados ela mesma, dentro das suas varreduras, e
 | Recurso | O que envia | Roda sozinho |
 | --- | --- | --- |
 | **Explicar com IA** | O título, a gravidade e as evidências do problema, por que a verificação dele importa e a correção para a nuvem do repositório de dados; o nome, o tipo, a região e o ID de nuvem do repositório de dados, a sensibilidade dele e os nomes dos seus tipos de dados; para um problema na telemetria, onde cada tipo de dado foi encontrado: o atributo, o corpo do registro ou o prompt em que ele está | Não: uma pessoa pede, na página de um problema |
+| **Análise de problemas novos** | O título, a gravidade e as evidências do problema, por que a verificação dele importa e a correção para a nuvem do repositório de dados; o nome, o tipo, a região e o ID de nuvem do repositório de dados, a sensibilidade dele e os nomes dos seus tipos de dados; para um problema na telemetria, onde cada tipo de dado foi encontrado: o atributo, o corpo do registro ou o prompt em que ele está | Sim: um novo problema crítico ou alto a inicia, enquanto **Trabalhar em problemas novos** estiver ligado |
 | **Corrigir com IA** | O que Explicar com IA envia, como uma solicitação ao agente de código, que então lê o próprio código do repositório para fazer a alteração | Não: uma pessoa pede, em um repositório que pode alterar em **Código** |
 | **Sugestões para campos que nenhum detector identificou** | O tipo de repositório de dados e os tipos de dados que a IA pode nomear; o nome de cada campo, os nomes dos campos ao lado e as formas dos seus valores, cada letra como `a` ou `A` e cada dígito como `9`; quantos valores foram lidos e qual o tamanho deles | Sim: a varredura de conteúdo de um repositório de dados as inicia |
 | **Pergunte à IA** | Os repositórios de dados, problemas e acessos que a pessoa pode ler na Segurança de dados; o que foi encontrado e onde, cada tipo de dado por local, com contagens e confiança | Não: uma pessoa faz uma pergunta |
 
-**Explicar com IA** e **Pergunte à IA** também leem primeiro o [contexto de IA](/docs/ai/ai-context) da sua equipe, quando ela tem um: as notas que a sua equipe escreveu para o OneUptime AI sobre os seus sistemas.
+**Explicar com IA** e **Pergunte à IA** também leem primeiro o [contexto de IA](/docs/ai/ai-context) da sua equipe, quando ela tem um: as notas que a sua equipe escreveu para o OneUptime AI sobre os seus sistemas. **Análise de problemas novos** também o lê.
 
 ### O texto que os seus sistemas escreveram é dado
 

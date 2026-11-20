@@ -375,7 +375,7 @@ OneUptime biedt OTLP/gRPC aan op dezelfde host als de webapp, op poort 443 via T
 
 Bij een zelf gehoste installatie bereikt gRPC OneUptime alleen via HTTPS: een onversleutelde HTTP-verbinding (h2c) wordt geweigerd. Wordt je instantie via gewoon HTTP aangeboden, gebruik dan OTLP/HTTP.
 
-Twee instellingen van een sleutel gelden alleen voor OTLP/HTTP: de **Requests Per Minute Limit** en de **Vastgezette servicenaam**. Via gRPC verstuurde gegevens houden de `service.name` waarmee ze zijn verstuurd, en tellen niet mee voor de limiet.
+Twee instellingen van een sleutel gelden alleen voor OTLP/HTTP: de **Limiet voor verzoeken per minuut** en de **Vastgezette servicenaam**. Via gRPC verstuurde gegevens houden de `service.name` waarmee ze zijn verstuurd, en tellen niet mee voor de limiet.
 
 ### Antwoorden
 
@@ -389,7 +389,7 @@ OneUptime beantwoordt een export zodra de gegevens in de wachtrij staan, en de g
 | `413` | — | Het verzoek is groter dan de groottelimiet. | Stuur kleinere batches. |
 | `415` | — | Niet-ondersteunde `Content-Encoding`. | Gebruik `gzip`, `deflate` of `zstd`, of geen compressie. |
 | `422` | `PERMISSION_DENIED` | De sleutel is uitgeschakeld, of het is een browsersleutel die buiten zijn toegestane origins wordt gebruikt. | Schakel de sleutel weer in, of stuur met een serversleutel. |
-| `429` | — | De **Requests Per Minute Limit** van de sleutel is bereikt. | In eerste instantie niets: exporters proberen het opnieuw na de `Retry-After`-tijd. Verhoog de limiet als het blijft gebeuren. |
+| `429` | — | De **Limiet voor verzoeken per minuut** van de sleutel is bereikt. | In eerste instantie niets: exporters proberen het opnieuw na de `Retry-After`-tijd. Verhoog de limiet als het blijft gebeuren. |
 | `503` | `UNAVAILABLE` | OneUptime is aan het opstarten, of de ingestiewachtrij is niet beschikbaar. | Niets: OTLP-exporters herhalen een `503` uit zichzelf. |
 
 `401`, `402`, `413`, `415` en `422` zijn permanente fouten voor OTLP-exporters: de exporter laat de batch vallen en logt de fout in plaats van het opnieuw te proberen.
@@ -409,7 +409,7 @@ De pagina van elke sleutel, onder **Projectinstellingen → Telemetrie & APM →
 | **Vastgezette servicenaam** | Indien ingesteld, vervangt `service.name` bij alles wat met deze sleutel via OTLP/HTTP wordt gestuurd. |
 | **Ingeschakeld** | Zet dit uit om met de sleutel gestuurde gegevens meteen niet meer te accepteren, zonder hem te verwijderen. |
 | **Verloopt om** | Na deze datum wordt de sleutel geweigerd. Leeg betekent dat hij nooit verloopt. |
-| **Requests Per Minute Limit** | Het maximale aantal OTLP/HTTP-verzoeken per minuut dat met de sleutel wordt geaccepteerd, over alle clients die hem gebruiken. Leeg betekent geen limiet bij een serversleutel, en 6.000 bij een browsersleutel. |
+| **Limiet voor verzoeken per minuut** | Het maximale aantal OTLP/HTTP-verzoeken per minuut dat met de sleutel wordt geaccepteerd, over alle clients die hem gebruiken. Leeg betekent geen limiet bij een serversleutel, en 6.000 bij een browsersleutel. |
 | **Laatst gebruikt op** | Wanneer voor het laatst gegevens met de sleutel zijn geaccepteerd. Gebruik dit om sleutels te vinden die je veilig kunt roteren of verwijderen. |
 
 **Geheime sleutel opnieuw instellen** op de pagina van de sleutel vervangt het geheim. Elke applicatie en collector die met het oude stuurt, wordt geweigerd tot je hem bijwerkt. Voor browsersleutels, het veilig vervangen van een sleutel en wat elke weigering betekent, zie [Ingestiesleutels](/docs/telemetry/ingestion-keys).

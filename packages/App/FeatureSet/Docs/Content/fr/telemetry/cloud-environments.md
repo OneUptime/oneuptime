@@ -102,7 +102,7 @@ L'ingestion crée les environnements pour vous : il n'y a donc rien à saisir. O
 
 ## Applications et déploiements
 
-Chaque service qu'un environnement exécute en est une application, nommée comme la console de la plateforme la nomme. **Plateformes d'applications → Toutes les applications** liste chaque application avec la révision qu'elle exécute ainsi que ses requêtes, son taux d'erreur et sa latence p95 sur la dernière heure, et l'onglet **Applications** d'un environnement liste les siennes.
+Chaque service qu'un environnement exécute en est une application, nommée comme la console de la plateforme la nomme. **Plateformes d'applications → Toutes les applications** liste chaque application avec la révision qu'elle exécute ainsi que ses requêtes, son taux d'erreur et sa latence p95 sur la dernière heure, et l'onglet **Applications** d'un environnement liste les siennes. Une application App Service qui n'envoie pas de traces y affiche à la place les chiffres de son site selon Azure Monitor : les requêtes qu'Azure a comptées, la part de réponses avec un statut 5xx et le temps de réponse moyen.
 
 | Plateforme | Application | Séparée par | Révision |
 | --- | --- | --- | --- |

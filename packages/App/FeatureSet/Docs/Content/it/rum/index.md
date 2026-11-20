@@ -94,7 +94,7 @@ Un'applicazione mostra **Riceve dati** finché arriva telemetria e **Nessun traf
 :::steps
 ### Creare una chiave di acquisizione
 
-Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**. Un'app web ha bisogno di una chiave **Browser**, che funziona solo dalle origini che elenchi. Un'app mobile ha bisogno di una chiave **Server**, perché un SDK mobile non invia l'intestazione `Origin`.
+Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**. Un'app web ha bisogno di una chiave **Browser**, che funziona solo dalle origini che elenchi. Un'app mobile ha bisogno di una chiave **Mobile**, fissata al `service.name` dell'app: viaggia dentro l'app, quindi può inviare solo le tracce, i log e le metriche di quell'app.
 
 ### Strumentare la tua app
 

@@ -125,7 +125,7 @@ const MIGRATIONS_DIRECTORY: string = path.dirname(MIGRATION_PATH);
 type ColumnsAddedLaterFunction = (tableName: string) => Set<string>;
 
 // The migration that adds the record actor columns to every table (#10290).
-const RECORD_ACTOR_COLUMNS_MIGRATION_TIMESTAMP: string = "1809187200000";
+const RECORD_ACTOR_COLUMNS_MIGRATION_TIMESTAMP: string = "1809187400000";
 
 const columnsAddedByLaterMigrations: ColumnsAddedLaterFunction = (
   tableName: string,

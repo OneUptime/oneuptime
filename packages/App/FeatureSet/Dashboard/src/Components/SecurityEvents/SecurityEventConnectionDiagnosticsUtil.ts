@@ -127,6 +127,7 @@ export const CONNECTOR_RECORDS_NAMES: Readonly<Record<string, string>> = {
   record: translationKey("records"),
   "audit event": translationKey("audit events"),
   detection: translationKey("detections"),
+  "firewall event": translationKey("firewall events"),
 };
 
 export function connectorRecordsName(
@@ -1128,6 +1129,18 @@ const CONNECTOR_PROVIDER_DETAIL_LABELS: Record<string, string> = {
   lateCount: translationKey("Created later than the poll interval"),
   maxLagMinutes: translationKey("Longest lag (minutes)"),
   includeNonAlertingDetections: translationKey("Includes non-alerting records"),
+  // Cloudflare: the zones read and what each run left out.
+  readsEveryZone: translationKey("Reads every zone"),
+  zonesRead: translationKey("Zones read, with their plans"),
+  unreadableZones: translationKey("Zones the API token cannot read"),
+  zonesWithoutFirewallEvents: translationKey(
+    "Zones whose plan has no firewall events",
+  ),
+  letThroughWithoutAttack: translationKey(
+    "Let through by your rules, with no attack in them",
+  ),
+  sampledEvents: translationKey("Sampled events"),
+  estimatedRequests: translationKey("Estimated requests they stand for"),
 };
 
 const CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS: Record<

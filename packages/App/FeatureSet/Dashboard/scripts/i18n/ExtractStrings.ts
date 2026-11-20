@@ -610,6 +610,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a person, a team or an on-call schedule was not added to an
+   * escalation rule: the rule pages them already (#10465). The server
+   * refuses in English with their names in the sentence, and the Dashboard
+   * says it in the reader's language with the names as written. Only the
+   * sentences the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/EscalationRuleResponderOnce.ts",
+    kind: "keys",
+  },
+  /*
    * What a dashboard template's chart says while it draws its fallback
    * query - why, and where the fix is. Stored in the dashboard as written
    * and looked up where the chart draws it; only the hints the file marks

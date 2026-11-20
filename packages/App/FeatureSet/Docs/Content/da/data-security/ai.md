@@ -23,11 +23,12 @@ Datasikkerhed læser selv dine data, i sine scanninger, og gemmer intet af dem. 
 | Funktion | Hvad den sender | Kører af sig selv |
 | --- | --- | --- |
 | **Forklar med AI** | Problemets titel, alvorlighed og beviser, hvorfor dets kontrol er vigtig, og rettelsen til datalagerets cloud; datalagerets navn, type, region og cloud-id, dets følsomhed og navnene på dets datatyper; for et problem i telemetrien, hvor hver slags data blev fundet: attributten, logindholdet eller prompten, det står i | Nej: en person spørger, på et problems side |
+| **Analyse af nye problemer** | Problemets titel, alvorlighed og beviser, hvorfor dets kontrol er vigtig, og rettelsen til datalagerets cloud; datalagerets navn, type, region og cloud-id, dets følsomhed og navnene på dets datatyper; for et problem i telemetrien, hvor hver slags data blev fundet: attributten, logindholdet eller prompten, det står i | Ja: et nyt kritisk eller højt problem starter den, mens **Arbejd med nye problemer** er slået til |
 | **Ret med AI** | Det, Forklar med AI sender, som en anmodning til kodeagenten, der derefter læser repositoryets egen kode for at foretage ændringen | Nej: en person spørger, i et repository, som vedkommende må ændre under **Kode** |
 | **Forslag til felter, som ingen detektor placerede** | Typen af datalager og de datatyper, som AI må nævne; hvert felts navn, navnene på felterne ved siden af og formerne på dets værdier, hvert bogstav som `a` eller `A` og hvert ciffer som `9`; hvor mange værdier der blev læst, og hvor lange de er | Ja: et datalagers indholdsscanning starter dem |
 | **Spørg AI** | De datalagre, problemer og adgange, som personen må læse i Datasikkerhed; hvad der blev fundet hvor, hver datatype efter placering, med antal og sikkerhed | Nej: en person stiller et spørgsmål |
 
-**Forklar med AI** og **Spørg AI** læser også først dit teams [AI-kontekst](/docs/ai/ai-context), når der er en: de noter, dit team har skrevet til OneUptime AI om jeres systemer.
+**Forklar med AI** og **Spørg AI** læser også først dit teams [AI-kontekst](/docs/ai/ai-context), når der er en: de noter, dit team har skrevet til OneUptime AI om jeres systemer. **Analyse af nye problemer** læser den også.
 
 ### Tekst, som dine systemer skrev, er data
 

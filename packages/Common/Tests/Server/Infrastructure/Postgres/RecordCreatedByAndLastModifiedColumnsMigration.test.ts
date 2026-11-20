@@ -6,12 +6,12 @@ import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseMod
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddGuidedSetupRun1809187025300 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187025300-AddGuidedSetupRun";
 import {
-  AddRecordCreatedByAndLastModifiedColumns1809187200000,
+  AddRecordCreatedByAndLastModifiedColumns1809187400000,
   getAddRecordActorColumnsStatement,
   getDropRecordActorColumnsStatement,
   RECORD_ACTOR_COLUMN_DEFINITIONS,
   RECORD_ACTOR_TABLES,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187200000-AddRecordCreatedByAndLastModifiedColumns";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187400000-AddRecordCreatedByAndLastModifiedColumns";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import {
   LAST_MODIFIED_BY_USER_COLUMN,
@@ -142,14 +142,14 @@ describe("which tables and columns", () => {
 describe("up", () => {
   test("runs outside a transaction, so each table is held for its own statement alone", () => {
     expect(
-      new AddRecordCreatedByAndLastModifiedColumns1809187200000().transaction,
+      new AddRecordCreatedByAndLastModifiedColumns1809187400000().transaction,
     ).toBe(false);
   });
 
   test("alters each table once, with all six columns in one statement", async () => {
     const { runner, statements } = recordQueries();
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187400000().up(
       runner,
     );
 
@@ -167,7 +167,7 @@ describe("up", () => {
   test("asks which tables have every column already, by the six names", async () => {
     const { runner, lookups } = recordQueries();
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187400000().up(
       runner,
     );
 
@@ -186,7 +186,7 @@ describe("up", () => {
     const altered: Array<string> = RECORD_ACTOR_TABLES.slice(0, 200);
     const { runner, statements } = recordQueries(altered);
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187400000().up(
       runner,
     );
 
@@ -202,7 +202,7 @@ describe("up", () => {
   test("run by a runner that answers nothing, as a migration test records statements, alters every table", async () => {
     const statements: Array<string> = [];
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up({
+    await new AddRecordCreatedByAndLastModifiedColumns1809187400000().up({
       query: async (statement: string): Promise<void> => {
         if (!statement.includes('"information_schema"."columns"')) {
           statements.push(statement);
@@ -216,7 +216,7 @@ describe("up", () => {
   test("run again once every table is altered, alters nothing", async () => {
     const { runner, statements } = recordQueries([...RECORD_ACTOR_TABLES]);
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187400000().up(
       runner,
     );
 
@@ -228,7 +228,7 @@ describe("down", () => {
   test("drops the six columns of each table, in the order the generator drops them", async () => {
     const { runner, statements } = recordQueries();
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().down(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187400000().down(
       runner,
     );
 
@@ -247,18 +247,18 @@ describe("its place among the migrations", () => {
     expect(
       registered.filter((migration: unknown): boolean => {
         return (
-          migration === AddRecordCreatedByAndLastModifiedColumns1809187200000
+          migration === AddRecordCreatedByAndLastModifiedColumns1809187400000
         );
       }),
     ).toHaveLength(1);
     expect(
-      registered.indexOf(AddRecordCreatedByAndLastModifiedColumns1809187200000),
+      registered.indexOf(AddRecordCreatedByAndLastModifiedColumns1809187400000),
     ).toBeGreaterThan(registered.indexOf(AddGuidedSetupRun1809187025300));
   });
 
   test("is named for what it does, with its number", () => {
     expect(
-      new AddRecordCreatedByAndLastModifiedColumns1809187200000().name,
-    ).toBe("AddRecordCreatedByAndLastModifiedColumns1809187200000");
+      new AddRecordCreatedByAndLastModifiedColumns1809187400000().name,
+    ).toBe("AddRecordCreatedByAndLastModifiedColumns1809187400000");
   });
 });

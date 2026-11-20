@@ -7,7 +7,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * what created a record - a person, an API key, a workflow, an MCP client, a
  * server admin or OneUptime itself, and which key, workflow or client - and
  * when a person, a key, a workflow or an MCP client last modified it, and who.
- * Six nullable columns on each of the 639 tables, exactly as
+ * Six nullable columns on each of the 641 tables, exactly as
  * `npm run generate-postgres-migration` wrote them, and nothing else: no
  * default, no index, no foreign key (the base model says why).
  *
@@ -638,6 +638,8 @@ export const RECORD_ACTOR_TABLES: ReadonlyArray<string> = [
   "FormOIDC",
   "SecurityBlock",
   "SecurityBlockEnforcement",
+  "DataSecurityAiDecision",
+  "DataSecurityAiProposal",
   "MonitorTest",
   "ScheduledMaintenanceFeed",
   "WorkspaceUserAuthToken",
@@ -707,10 +709,10 @@ export const getDropRecordActorColumnsStatement: (table: string) => string = (
     .join(", ")}`;
 };
 
-export class AddRecordCreatedByAndLastModifiedColumns1809187200000
+export class AddRecordCreatedByAndLastModifiedColumns1809187400000
   implements MigrationInterface
 {
-  public name: string = "AddRecordCreatedByAndLastModifiedColumns1809187200000";
+  public name: string = "AddRecordCreatedByAndLastModifiedColumns1809187400000";
 
   // One table locked at a time, each for its own statement. See above.
   public transaction: boolean = false;

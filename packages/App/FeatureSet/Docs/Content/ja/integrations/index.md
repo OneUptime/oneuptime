@@ -61,6 +61,7 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | [Okta System Log](/docs/integrations/okta) | インバウンド | Okta のサインイン、アカウントの変更、脅威の検出をセキュリティイベントに取り込みます。 |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | インバウンド | Microsoft Entra ID のサインインとディレクトリの変更、Microsoft 365 監査ログをセキュリティイベントに取り込みます。 |
 | [Google Workspace](/docs/integrations/google-workspace) | インバウンド | Google Workspace のサインイン、管理者による変更、Google 自身の検出をセキュリティイベントに取り込みます。 |
+| [Cloudflare](/docs/integrations/cloudflare) | インバウンド | Cloudflare のファイアウォールがブロック、チャレンジ、ログ記録したものを、アプリに到達したものと並べてセキュリティイベントに取り込みます。 |
 
 ### チケットと IT サービス管理
 
