@@ -3,6 +3,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { ResourceAttentionDialogRead } from "../../../Components/ResourcePart/ResourceAttentionDialog";
 import {
+  SYSTEMD_FAILED_UNITS_LISTED,
   SystemdFailedUnit,
   SystemdUnitJournalLine,
   getSystemdFailedUnitItems,
@@ -30,7 +31,7 @@ import {
  */
 
 // How many failed units the list's count opens, the newest failure first.
-export const SYSTEMD_FAILED_UNITS_LISTED: number = 50;
+export { SYSTEMD_FAILED_UNITS_LISTED };
 
 export async function loadSystemdUnitFailure(data: {
   hostIdentifier: string;

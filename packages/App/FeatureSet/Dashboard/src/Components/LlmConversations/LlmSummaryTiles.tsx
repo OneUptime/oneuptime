@@ -49,8 +49,13 @@ export interface LlmTileProps {
    * tile is no control around another; leave out onClick with it.
    */
   hintRoute?: Route | undefined;
-  // What the hint's link opens, in English: its tooltip and its name.
+  /*
+   * What the hint's link opens, in English: its tooltip and its name,
+   * looked up by the link - unless isHintRouteTitleTranslated says it is in
+   * the reader's words already (a sentence built around a value).
+   */
   hintRouteTitle?: string | undefined;
+  isHintRouteTitleTranslated?: boolean | undefined;
   icon: IconProp;
   iconClassName: string;
   iconTileClassName: string;
@@ -103,8 +108,9 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
             <Link
               to={props.hintRoute}
               dataTestId={`${props.dataTestId}-hint`}
-              // Looked up by the link, in the reader's language.
+              // Looked up by the link, in the reader's language, once.
               title={props.hintRouteTitle}
+              isTitleTranslated={props.isHintRouteTitleTranslated}
               className="inline-flex items-center gap-0.5 rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11"
             >
               <>
