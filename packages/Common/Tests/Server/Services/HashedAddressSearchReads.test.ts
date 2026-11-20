@@ -13,6 +13,8 @@ import HashedAddressSearch, {
 } from "../../../Server/Utils/Telemetry/HashedAddressSearch";
 import ScrubAction from "../../../Server/Utils/Telemetry/ScrubAction";
 import Log from "../../../Models/AnalyticsModels/Log";
+import Span from "../../../Models/AnalyticsModels/Span";
+import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Search from "../../../Types/BaseDatabase/Search";
@@ -168,7 +170,7 @@ const logSearch: (projectId?: ObjectID) => Query<Log> = (
     projectId,
     body: new Search(ADDRESS),
     attributes: { "client.address": ADDRESS },
-  } as Query<Log>;
+  } as unknown as Query<Log>;
 };
 
 describe("every read of logs compares the address and its token", () => {
@@ -343,7 +345,7 @@ describe("spans and exception occurrences too", () => {
         projectId: PROJECT,
         name: new Search(`connect ${ADDRESS}`),
         attributes: { "client.address": ADDRESS },
-      },
+      } as unknown as Query<Span>,
       select: { name: true },
       limit: new PositiveNumber(10),
       skip: new PositiveNumber(0),
@@ -365,7 +367,7 @@ describe("spans and exception occurrences too", () => {
       query: {
         projectId: PROJECT,
         attributes: { "client.address": ADDRESS },
-      },
+      } as unknown as Query<Span>,
       props: ROOT,
     });
 
@@ -378,7 +380,7 @@ describe("spans and exception occurrences too", () => {
         projectId: PROJECT,
         message: new Search(`connect ${ADDRESS} refused`),
         attributes: { "client.address": ADDRESS },
-      },
+      } as unknown as Query<ExceptionInstance>,
       props: ROOT,
     });
 
@@ -426,7 +428,7 @@ describe("what is not bound", () => {
 
   test("a read across projects compares no token", async () => {
     await LogService.countBy({
-      query: { ...logSearch(), projectId: undefined },
+      query: { ...logSearch(), projectId: undefined } as unknown as Query<Log>,
       props: ROOT,
     });
 
@@ -447,7 +449,7 @@ describe("what is not bound", () => {
       query: {
         projectId: PROJECT,
         attributes: { "server.address": "10.0.0.12" },
-      },
+      } as unknown as Query<Log>,
       props: ROOT,
     });
 

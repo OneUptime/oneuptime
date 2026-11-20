@@ -74,7 +74,7 @@ describe("a query's operators reach the escaping helpers", () => {
     ["ends with", new EndsWith("a_b%")],
   ])("%s", (_operator: string, value: unknown) => {
     const query: Query<Monitor> = QueryUtil.serializeQuery<Monitor>(Monitor, {
-      name: value,
+      name: value as never,
     } as Query<Monitor>);
 
     expect(String(paramsOf(query["name"])[0])).toContain("a\\_b\\%");

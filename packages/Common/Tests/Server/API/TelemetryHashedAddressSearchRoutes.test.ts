@@ -194,7 +194,7 @@ const LOG_READER_ONLY: Principal = principalOf(PROJECT, [
   row(Permission.ReadTelemetryServiceLog),
 ]);
 const NO_TELEMETRY_READER: Principal = principalOf(PROJECT, [
-  row(Permission.ReadIncident),
+  row(Permission.ReadIncidentSla),
 ]);
 const LOG_READER_OF_NO_SERVICE: Principal = principalOf(PROJECT, [
   row(Permission.ReadTelemetryServiceLog, {
@@ -204,6 +204,29 @@ const LOG_READER_OF_NO_SERVICE: Principal = principalOf(PROJECT, [
 ]);
 
 let currentPrincipal: Principal = PROJECT_MEMBER;
+
+// A read stubbed to answer nothing, and what it was handed.
+interface StubbedRead {
+  mock: { calls: Array<Array<unknown>> };
+}
+
+const stubRead: (service: unknown, method: string) => StubbedRead = (
+  service: unknown,
+  method: string,
+): StubbedRead => {
+  return jest
+    .spyOn(service as never, method as never)
+    .mockResolvedValue([] as never) as unknown as StubbedRead;
+};
+
+// The tokens a read's request was handed, if any.
+const tokensOf: (request: unknown) => HashedAddressTokens | undefined = (
+  request: unknown,
+): HashedAddressTokens | undefined => {
+  return (request as Record<string, unknown>)["hashedAddresses"] as unknown as
+    | HashedAddressTokens
+    | undefined;
+};
 
 interface CallResult {
   thrownToNext: unknown;
@@ -353,9 +376,7 @@ describe("a chart's read is handed the caller's own project's tokens", () => {
     tokens: HashedAddressTokens | undefined;
     request: JSONObject;
   }> => {
-    const read: jest.SpyInstance = jest
-      .spyOn(LogAggregationService, "getHistogram")
-      .mockResolvedValue([] as never);
+    const read: StubbedRead = stubRead(LogAggregationService, "getHistogram");
 
     const result: CallResult = await callRoute({
       uri: "/telemetry/logs/histogram",
@@ -373,7 +394,7 @@ describe("a chart's read is handed the caller's own project's tokens", () => {
     const request: JSONObject = read.mock.calls[0]![0] as JSONObject;
 
     return {
-      tokens: request["hashedAddresses"] as HashedAddressTokens | undefined,
+      tokens: tokensOf(request),
       request,
     };
   };
@@ -413,9 +434,7 @@ describe("a chart's read is handed the caller's own project's tokens", () => {
   });
 
   test("the logs facets: every facet's read", async () => {
-    const read: jest.SpyInstance = jest
-      .spyOn(LogAggregationService, "getFacetValues")
-      .mockResolvedValue([] as never);
+    const read: StubbedRead = stubRead(LogAggregationService, "getFacetValues");
 
     await callRoute({
       uri: "/telemetry/logs/facets",
@@ -430,18 +449,12 @@ describe("a chart's read is handed the caller's own project's tokens", () => {
     expect(read.mock.calls.length).toBeGreaterThan(0);
 
     for (const call of read.mock.calls) {
-      expect(
-        (
-          (call[0] as JSONObject)["hashedAddresses"] as HashedAddressTokens
-        ).hashedFormOf(ADDRESS),
-      ).toBe(tokenIn(PROJECT));
+      expect(tokensOf(call[0])?.hashedFormOf(ADDRESS)).toBe(tokenIn(PROJECT));
     }
   });
 
   test("the traces histogram", async () => {
-    const read: jest.SpyInstance = jest
-      .spyOn(TraceAggregationService, "getHistogram")
-      .mockResolvedValue([] as never);
+    const read: StubbedRead = stubRead(TraceAggregationService, "getHistogram");
 
     await callRoute({
       uri: "/telemetry/traces/histogram",
@@ -449,19 +462,16 @@ describe("a chart's read is handed the caller's own project's tokens", () => {
       body: { ...LAST_HOUR, nameSearchText: `GET ${ADDRESS}` },
     });
 
-    expect(
-      (
-        (read.mock.calls[0]![0] as JSONObject)[
-          "hashedAddresses"
-        ] as HashedAddressTokens
-      ).hashedFormOf(ADDRESS),
-    ).toBe(tokenIn(PROJECT));
+    expect(tokensOf(read.mock.calls[0]![0])?.hashedFormOf(ADDRESS)).toBe(
+      tokenIn(PROJECT),
+    );
   });
 
   test("the exceptions histogram", async () => {
-    const read: jest.SpyInstance = jest
-      .spyOn(ExceptionAggregationService, "getHistogram")
-      .mockResolvedValue([] as never);
+    const read: StubbedRead = stubRead(
+      ExceptionAggregationService,
+      "getHistogram",
+    );
 
     await callRoute({
       uri: "/telemetry/exceptions/histogram",
@@ -469,19 +479,13 @@ describe("a chart's read is handed the caller's own project's tokens", () => {
       body: { ...LAST_HOUR, messageSearchText: `connect ${ADDRESS}` },
     });
 
-    expect(
-      (
-        (read.mock.calls[0]![0] as JSONObject)[
-          "hashedAddresses"
-        ] as HashedAddressTokens
-      ).hashedFormOf(ADDRESS),
-    ).toBe(tokenIn(PROJECT));
+    expect(tokensOf(read.mock.calls[0]![0])?.hashedFormOf(ADDRESS)).toBe(
+      tokenIn(PROJECT),
+    );
   });
 
   test("a caller who may not read logs is refused before anything is read", async () => {
-    const read: jest.SpyInstance = jest
-      .spyOn(LogAggregationService, "getHistogram")
-      .mockResolvedValue([] as never);
+    const read: StubbedRead = stubRead(LogAggregationService, "getHistogram");
 
     const result: CallResult = await callRoute({
       uri: "/telemetry/logs/histogram",
@@ -490,7 +494,7 @@ describe("a chart's read is handed the caller's own project's tokens", () => {
     });
 
     expect(result.thrownToNext || result.errorResponse).toBeDefined();
-    expect(read).not.toHaveBeenCalled();
+    expect(read.mock.calls).toHaveLength(0);
     expect(counted.ruleReads).toBe(0);
   });
 });

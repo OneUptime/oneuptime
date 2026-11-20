@@ -278,7 +278,7 @@ describe("a log whose address was hashed is found by a search for the address", 
         },
       },
     ],
-  ])("%s", (_search: string, query: JSONObject) => {
+  ])("%s", (_search: string, query: unknown) => {
     expect(isFound(hashed, query as JSONObject)).toBe(false);
     expect(
       isFound(
