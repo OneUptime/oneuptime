@@ -1,5 +1,5 @@
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
-import SignInAgain, { SIGN_IN_AGAIN_STATE_FIELD } from "../Utils/SignInAgain";
+import SignInAgain from "../Utils/SignInAgain";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import {
   respondToMobileSsoFailure,
@@ -264,12 +264,10 @@ router.get(
           isMobile: isMobileRequest,
           // The mobile app's hand-off (#9989): null for any other sign-in.
           mobileFlowId: mobileFlowId,
-          ...(isSignInAgain
-            ? {
-                [SIGN_IN_AGAIN_STATE_FIELD]:
-                  OneUptimeDate.getCurrentDate().getTime(),
-              }
-            : {}),
+          // When Sign In Again sent the person (SIGN_IN_AGAIN_STATE_FIELD), or null.
+          signInAgainRequestedAt: isSignInAgain
+            ? OneUptimeDate.getCurrentDate().getTime()
+            : null,
         },
         OIDC_STATE_COOKIE_TTL_SECONDS,
       );

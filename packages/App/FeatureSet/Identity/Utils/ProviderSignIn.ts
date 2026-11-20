@@ -39,7 +39,7 @@ import {
 } from "Common/Types/UserSession/SessionSignIn";
 import User from "Common/Models/DatabaseModels/User";
 import AuthenticationEmail from "./AuthenticationEmail";
-import SignInAgain, { SIGN_IN_AGAIN_STATE_FIELD } from "./SignInAgain";
+import SignInAgain from "./SignInAgain";
 import OneUptimeDate from "Common/Types/Date";
 
 /*
@@ -370,12 +370,10 @@ const createProviderSignInRouter: (
             state: request.state,
             nonce: request.nonce,
             codeVerifier: request.codeVerifier,
-            ...(isSignInAgain
-              ? {
-                  [SIGN_IN_AGAIN_STATE_FIELD]:
-                    OneUptimeDate.getCurrentDate().getTime(),
-                }
-              : {}),
+            // When Sign In Again sent the person (SIGN_IN_AGAIN_STATE_FIELD), or null.
+            signInAgainRequestedAt: isSignInAgain
+              ? OneUptimeDate.getCurrentDate().getTime()
+              : null,
           },
           STATE_TTL_IN_SECONDS,
         ),
