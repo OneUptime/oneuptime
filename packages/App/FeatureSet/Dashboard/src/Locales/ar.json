@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "لا تقرؤه أي مراقبة أو لوحة معلومات أو هدف SLO أو قاعدة تسجيل.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "تعذّر التحقق الآن من بعض المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل، وقد تقرؤه.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "تقرؤه {{count}} من المراقبات ولوحات المعلومات وأهداف SLO وقواعد التسجيل. وبعد إزالته لن تتلقى بيانات جديدة.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "يقرؤه {{count}} من المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل. وبعد إزالته لن يتلقى بيانات جديدة."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "يقرؤه {{count}} من المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل. وبعد إزالته لن يتلقى بيانات جديدة.",
+  "Another custom role": "دور مخصص آخر",
+  "No workflow runs as it": "لا يعمل أي سير عمل بصفته",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "يحذف هذا الدور المخصص نهائيًا. إن كانت مهام سير عمل تعمل بصفته، فاذكر ما تعمل بصفته من الآن فصاعدًا، وإلا يرفض OneUptime الحذف ويذكر أسماءها. ولاختيار دور مخصص آخر، ضع معرّفه مكان {{placeholder}}."
 }

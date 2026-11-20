@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "このメトリクスを読み取っているモニター、ダッシュボード、SLO、記録ルールはありません。",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "一部のモニター、ダッシュボード、SLO、記録ルールを今は確認できませんでした。これらがこのメトリクスを読み取っている可能性があります。",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} 件のモニター、ダッシュボード、SLO、記録ルールがこのメトリクスを読み取っています。削除すると、これらには新しいデータが届かなくなります。",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 件のモニター、ダッシュボード、SLO、記録ルールがこのメトリクスを読み取っています。削除すると、これらには新しいデータが届かなくなります。"
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 件のモニター、ダッシュボード、SLO、記録ルールがこのメトリクスを読み取っています。削除すると、これらには新しいデータが届かなくなります。",
+  "Another custom role": "別のカスタムロール",
+  "No workflow runs as it": "このロールとして実行されるワークフローなし",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "カスタムロールを完全に削除します。このロールとして実行されるワークフローがある場合は、今後何として実行するかを指定してください。指定しないと OneUptime は削除を拒否し、それらのワークフローの名前を挙げます。別のカスタムロールにするには、{{placeholder}} をその ID に置き換えてください。"
 }

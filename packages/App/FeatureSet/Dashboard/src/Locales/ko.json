@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "이 메트릭을 읽는 모니터, 대시보드, SLO, 기록 규칙이 없습니다.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "일부 모니터, 대시보드, SLO, 기록 규칙을 지금 확인하지 못했으며, 이들이 이 메트릭을 읽을 수 있습니다.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "모니터, 대시보드, SLO, 기록 규칙 {{count}}개가 이 메트릭을 읽습니다. 제거하면 이들은 더 이상 새 데이터를 받지 못합니다.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "모니터, 대시보드, SLO, 기록 규칙 {{count}}개가 이 메트릭을 읽습니다. 제거하면 이들은 더 이상 새 데이터를 받지 못합니다."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "모니터, 대시보드, SLO, 기록 규칙 {{count}}개가 이 메트릭을 읽습니다. 제거하면 이들은 더 이상 새 데이터를 받지 못합니다.",
+  "Another custom role": "다른 사용자 정의 역할",
+  "No workflow runs as it": "이 역할로 실행되는 워크플로 없음",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "사용자 정의 역할을 영구적으로 삭제합니다. 이 역할로 실행되는 워크플로가 있으면 앞으로 무엇으로 실행할지 지정하세요. 그렇지 않으면 OneUptime이 삭제를 거부하고 해당 워크플로의 이름을 알려 줍니다. 다른 사용자 정의 역할로 하려면 {{placeholder}} 자리에 그 역할의 ID를 넣으세요."
 }

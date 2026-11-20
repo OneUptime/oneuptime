@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Nessun monitor, dashboard, SLO o regola di registrazione la legge.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Non è stato possibile controllare ora alcuni monitor, dashboard, SLO o regole di registrazione, che potrebbero leggerla.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitor, dashboard, SLO e regole di registrazione la leggono. Una volta rimossa, non ricevono più nuovi dati.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO o regola di registrazione la legge. Una volta rimossa, non riceve più nuovi dati."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO o regola di registrazione la legge. Una volta rimossa, non riceve più nuovi dati.",
+  "Another custom role": "Un altro ruolo personalizzato",
+  "No workflow runs as it": "Nessun flusso di lavoro viene eseguito come questo ruolo",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Questo elimina definitivamente il ruolo personalizzato. Se dei flussi di lavoro vengono eseguiti come questo ruolo, indica come cosa vengono eseguiti d'ora in poi, altrimenti OneUptime rifiuta l'eliminazione e li nomina. Per un altro ruolo personalizzato, inserisci il suo ID al posto di {{placeholder}}."
 }

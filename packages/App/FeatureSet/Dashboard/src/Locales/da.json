@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Ingen monitor, dashboard, SLO eller optagelsesregel læser den.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Nogle monitorer, dashboards, SLO'er eller optagelsesregler kunne ikke kontrolleres lige nu og læser den måske.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitorer, dashboards, SLO'er og optagelsesregler læser den. Når den er fjernet, får de ingen nye data.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO eller optagelsesregel læser den. Når den er fjernet, kommer der ingen nye data."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO eller optagelsesregel læser den. Når den er fjernet, kommer der ingen nye data.",
+  "Another custom role": "En anden brugerdefineret rolle",
+  "No workflow runs as it": "Ingen arbejdsgang kører som den",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Dette sletter den brugerdefinerede rolle for altid. Hvis arbejdsgange kører som den, så angiv, hvad de skal køre som fra nu af, ellers afviser OneUptime sletningen og nævner dem. For en anden brugerdefineret rolle skal du sætte dens ID i stedet for {{placeholder}}."
 }

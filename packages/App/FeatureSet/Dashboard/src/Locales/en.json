@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "No monitor, dashboard, SLO or recording rule reads it.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO or recording rule reads it. Once it is removed, it gets no new data."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO or recording rule reads it. Once it is removed, it gets no new data.",
+  "Another custom role": "Another custom role",
+  "No workflow runs as it": "No workflow runs as it",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}."
 }

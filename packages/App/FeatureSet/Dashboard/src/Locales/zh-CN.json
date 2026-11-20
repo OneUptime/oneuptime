@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "没有监视器、仪表板、SLO 或记录规则读取此指标。",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "部分监视器、仪表板、SLO 或记录规则暂时无法检查，它们可能读取此指标。",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} 个监视器、仪表板、SLO 和记录规则读取此指标。移除后，它们将不再获得新数据。",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 个监视器、仪表板、SLO 和记录规则读取此指标。移除后，它们将不再获得新数据。"
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 个监视器、仪表板、SLO 和记录规则读取此指标。移除后，它们将不再获得新数据。",
+  "Another custom role": "另一个自定义角色",
+  "No workflow runs as it": "没有以此角色运行的工作流",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "这会永久删除该自定义角色。如果有工作流以此角色运行，请说明它们今后以什么身份运行，否则 OneUptime 会拒绝删除并列出这些工作流。若要改用另一个自定义角色，请将 {{placeholder}} 替换为它的 ID。"
 }

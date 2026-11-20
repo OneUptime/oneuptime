@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Её не читает ни один монитор, панель, SLO или правило записи.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Некоторые мониторы, панели, SLO или правила записи сейчас не удалось проверить, и они могут её читать.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "Её читают мониторы, панели, SLO и правила записи: {{count}}. После удаления они перестанут получать новые данные.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "Её читает {{count}} монитор, панель, SLO или правило записи. После удаления новые данные поступать не будут."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "Её читает {{count}} монитор, панель, SLO или правило записи. После удаления новые данные поступать не будут.",
+  "Another custom role": "Другая пользовательская роль",
+  "No workflow runs as it": "Ни один рабочий процесс не выполняется от имени этой роли",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Это удаляет пользовательскую роль навсегда. Если от имени этой роли выполняются рабочие процессы, укажите, от имени чего они будут выполняться дальше, иначе OneUptime отклонит удаление и назовёт их. Для другой пользовательской роли подставьте её ID вместо {{placeholder}}."
 }

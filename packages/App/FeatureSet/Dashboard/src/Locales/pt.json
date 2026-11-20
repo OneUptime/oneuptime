@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Nenhum monitor, painel, SLO ou regra de gravação a lê.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Não foi possível verificar agora alguns monitores, painéis, SLOs ou regras de gravação, que podem lê-la.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitores, painéis, SLOs e regras de gravação a leem. Depois que ela for removida, eles deixam de receber dados novos.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, painel, SLO ou regra de gravação a lê. Depois que ela for removida, deixam de chegar dados novos."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, painel, SLO ou regra de gravação a lê. Depois que ela for removida, deixam de chegar dados novos.",
+  "Another custom role": "Outra função personalizada",
+  "No workflow runs as it": "Nenhum fluxo de trabalho é executado como esta função",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Isso exclui a função personalizada de vez. Se houver fluxos de trabalho executados como esta função, informe como eles passam a ser executados, ou o OneUptime recusa a exclusão e os nomeia. Para outra função personalizada, coloque o ID dela no lugar de {{placeholder}}."
 }

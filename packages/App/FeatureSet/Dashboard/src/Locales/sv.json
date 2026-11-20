@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Ingen monitor, instrumentpanel, SLO eller inspelningsregel läser det.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Vissa monitorer, instrumentpaneler, SLO:er eller inspelningsregler kunde inte kontrolleras just nu och kan läsa det.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitorer, instrumentpaneler, SLO:er och inspelningsregler läser det. När det har tagits bort får de inga nya data.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, instrumentpanel, SLO eller inspelningsregel läser det. När det har tagits bort kommer inga nya data in."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, instrumentpanel, SLO eller inspelningsregel läser det. När det har tagits bort kommer inga nya data in.",
+  "Another custom role": "En annan anpassad roll",
+  "No workflow runs as it": "Inget arbetsflöde körs som den",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Det här tar bort den anpassade rollen för gott. Om arbetsflöden körs som den måste du ange vad de ska köras som från och med nu, annars nekar OneUptime borttagningen och namnger dem. För en annan anpassad roll anger du dess ID i stället för {{placeholder}}."
 }

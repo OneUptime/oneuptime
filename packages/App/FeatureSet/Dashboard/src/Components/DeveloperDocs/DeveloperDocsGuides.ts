@@ -87,6 +87,7 @@ import {
   TranslatableTerm,
   translateTemplate,
   translateText,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
   CLI_NOTE_COLUMN,
@@ -117,6 +118,15 @@ import {
   getCliNpmInstallCommand,
   getCliUpdateExample,
 } from "Common/Utils/DeveloperDocs/CliExamples";
+import {
+  DeleteChoice,
+  DeleteChoiceWay,
+  getDeleteChoiceExampleValue,
+  getDeleteChoices,
+  getDeleteChoiceWayData,
+  getDeleteChoiceWays,
+} from "Common/Utils/DeveloperDocs/DeleteChoices";
+import { WorkflowRunAs } from "Common/Types/Workflow/WorkflowRunAs";
 import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../SetupGuide/AgentInstallCommands";
 
 /*
@@ -295,6 +305,142 @@ function guideCopy(
   context: DeveloperDocsGuideContext,
 ): DeveloperDocsGuideCopy {
   return DEVELOPER_DOCS_GUIDE_COPY[page][context.scope];
+}
+
+/*
+ * A DELETE THAT SAYS MORE THAN THE RECORD, IN THE PAGE'S OWN WORDS (#10031).
+ *
+ * OneUptime deletes a custom role that workflows run as only when the
+ * delete says what they run as instead, and refuses one that doesn't,
+ * naming them (Common/Utils/DeveloperDocs/DeleteChoices.ts). The API and
+ * CLI pages' Delete it step showed a bare delete, so a reader who copied
+ * it met the refusal first. For a table whose delete takes choices, the
+ * step says when they are needed, and has a tab for the plain delete and
+ * one for each way of giving them: the request body the API takes
+ * (miscDataProps) on the API page, the flags the CLI takes on the CLI
+ * page, both written from the facts the API, the CLI, Terraform and the
+ * MCP server read.
+ *
+ * Each such table words its step here, so each sentence is one key in
+ * every locale. DeveloperDocsDeleteChoices.test.ts fails for a table whose
+ * delete takes choices but has no words, or a way without its tab.
+ */
+export interface DeveloperDocsDeleteChoiceWords {
+  /*
+   * The step's description: what the delete does, when it needs to say
+   * more, and {{placeholder}} where a record's ID goes (<custom-role-id>).
+   */
+  description: string;
+  // The tab of the delete that says nothing besides the record.
+  withoutChoices: string;
+  // The tab of each way, by the value it gives (getDeleteChoiceWays).
+  ways: Readonly<Record<string, string>>;
+}
+
+export const DEVELOPER_DOCS_DELETE_CHOICE_WORDS: Readonly<
+  Record<string, DeveloperDocsDeleteChoiceWords>
+> = {
+  CustomRole: {
+    description: translationKey(
+      "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.",
+    ),
+    withoutChoices: translationKey("No workflow runs as it"),
+    ways: {
+      // The Delete dialog's own words for the choice.
+      [WorkflowRunAs.Default]: translationKey("Default permissions"),
+      [WorkflowRunAs.CustomRole]: translationKey("Another custom role"),
+    },
+  },
+};
+
+// One tab of a delete step: its label, and what the delete sends besides the record.
+export interface DeveloperDocsDeleteTab {
+  label: string;
+  // The delete's miscDataProps; null for the delete that sends no body.
+  miscDataProps: JSONObject | null;
+}
+
+export interface DeveloperDocsDeleteChoiceStep {
+  description: string;
+  tabs: Array<DeveloperDocsDeleteTab>;
+}
+
+/*
+ * The Delete it step of a record whose delete takes choices: its
+ * description, in the reader's language, and its tabs - the plain delete
+ * first, as most records need it, then each way. Null for a table whose
+ * delete takes none, or that has no words for them yet.
+ */
+export function getDeveloperDocsDeleteChoiceStep(
+  modelType: DatabaseBaseModelType,
+): DeveloperDocsDeleteChoiceStep | null {
+  const tableName: string = getTableName(modelType);
+  const words: DeveloperDocsDeleteChoiceWords | undefined =
+    DEVELOPER_DOCS_DELETE_CHOICE_WORDS[tableName];
+
+  if (!getDeleteChoices(tableName) || !words) {
+    return null;
+  }
+
+  const ways: Array<DeleteChoiceWay> = getDeleteChoiceWays(tableName);
+  // Where a record's ID goes in a way: <custom-role-id>.
+  const placeholders: Array<string> = ways.flatMap(
+    (way: DeleteChoiceWay): Array<string> => {
+      return way.with.map((choice: DeleteChoice): string => {
+        return getDeleteChoiceExampleValue(choice);
+      });
+    },
+  );
+
+  return {
+    description: translateTemplate(words.description, {
+      placeholder: placeholders[0] || "",
+    }),
+    tabs: [
+      { label: words.withoutChoices, miscDataProps: null },
+      ...ways.map((way: DeleteChoiceWay): DeveloperDocsDeleteTab => {
+        return {
+          label: words.ways[way.value] || way.value,
+          miscDataProps: getDeleteChoiceWayData(way),
+        };
+      }),
+    ],
+  };
+}
+
+/*
+ * The Delete it step, as a page writes a delete (`deleteOf`): a curl
+ * command or a CLI command, given what the delete sends besides the record.
+ */
+function deleteStep(
+  context: DeveloperDocsGuideContext,
+  deleteOf: (miscDataProps: JSONObject | null) => string,
+): DeveloperDocsStep {
+  const choiceStep: DeveloperDocsDeleteChoiceStep | null =
+    getDeveloperDocsDeleteChoiceStep(getModelType(context));
+
+  if (!choiceStep) {
+    return {
+      title: "Delete it",
+      description: translateTemplate(
+        "This deletes the {{singular}} for good.",
+        {
+          singular: sentenceTerms(context).singular,
+        },
+      ),
+      markdown: deleteOf(null),
+    };
+  }
+
+  return {
+    title: "Delete it",
+    description: choiceStep.description,
+    variants: choiceStep.tabs.map(
+      (tab: DeveloperDocsDeleteTab): SetupGuideStepVariant => {
+        return { label: tab.label, markdown: deleteOf(tab.miscDataProps) };
+      },
+    ),
+  };
 }
 
 function docsUrl(context: DeveloperDocsGuideContext, path: string): string {
@@ -1081,16 +1227,15 @@ function getApiResourceGuide(
   }
 
   if (operations.canDelete) {
-    steps.push({
-      title: "Delete it",
-      description: translateTemplate(
-        "This deletes the {{singular}} for good.",
-        {
-          singular: sentenceTerms(context).singular,
-        },
-      ),
-      markdown: curl({ method: "DELETE", url: itemUrl }),
-    });
+    steps.push(
+      deleteStep(context, (miscDataProps: JSONObject | null): string => {
+        return curl({
+          method: "DELETE",
+          url: itemUrl,
+          body: miscDataProps ? { miscDataProps } : undefined,
+        });
+      }),
+    );
   }
 
   const tasks: Array<DeveloperDocsApiTask> = getApiTasks({
@@ -1952,17 +2097,18 @@ function getCliResourceGuide(
   }
 
   if (operations.includes(CliOperation.Delete)) {
-    steps.push({
-      title: "Delete it",
-      description: translateTemplate(
-        "This deletes the {{singular}} for good.",
-        { singular: sentenceTerms(context).singular },
-      ),
-      markdown: codeBlock(
-        "bash",
-        getCliDeleteExample({ modelType, id: record.id }).command,
-      ),
-    });
+    steps.push(
+      deleteStep(context, (miscDataProps: JSONObject | null): string => {
+        return codeBlock(
+          "bash",
+          getCliDeleteExample({
+            modelType,
+            id: record.id,
+            choices: miscDataProps || undefined,
+          }).command,
+        );
+      }),
+    );
   }
 
   return {

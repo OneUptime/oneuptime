@@ -59284,5 +59284,8 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "هیچ مانیتور، داشبورد، SLO یا قاعده ضبطی آن را نمی‌خواند.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "برخی مانیتورها، داشبوردها، SLOها یا قواعد ضبط اکنون بررسی نشدند و ممکن است آن را بخوانند.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} مانیتور، داشبورد، SLO و قاعده ضبط آن را می‌خوانند. پس از حذف آن، دیگر دادهٔ تازه‌ای نمی‌گیرند.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} مانیتور، داشبورد، SLO یا قاعده ضبط آن را می‌خواند. پس از حذف آن، دیگر دادهٔ تازه‌ای نمی‌گیرد."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} مانیتور، داشبورد، SLO یا قاعده ضبط آن را می‌خواند. پس از حذف آن، دیگر دادهٔ تازه‌ای نمی‌گیرد.",
+  "Another custom role": "نقش سفارشی دیگر",
+  "No workflow runs as it": "هیچ گردش کاری به‌عنوان این نقش اجرا نمی‌شود",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "این کار نقش سفارشی را برای همیشه حذف می‌کند. اگر گردش‌های کاری به‌عنوان این نقش اجرا می‌شوند، بگویید از این پس به‌عنوان چه اجرا شوند، وگرنه OneUptime حذف را رد می‌کند و نام آن‌ها را می‌آورد. برای نقش سفارشی دیگر، شناسهٔ آن را به‌جای {{placeholder}} بگذارید."
 }
