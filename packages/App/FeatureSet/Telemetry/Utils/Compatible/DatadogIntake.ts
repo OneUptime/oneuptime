@@ -1,7 +1,20 @@
 import protobuf from "protobufjs";
 import path from "path";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  COMPATIBLE_JSON_MAX_VALUES,
+  DATADOG_PROTOBUF_MAX_ELEMENTS,
+} from "Common/Types/Telemetry/CompatibleIngest";
 import { copyOwnValues, writeOwnValue } from "Common/Utils/LookupTable";
+import JsonElementCounter, {
+  JsonElementCount,
+  JsonElementCountOutcome,
+} from "./JsonElementCount";
+import ProtobufElementCounter, {
+  ProtobufCountSchema,
+  ProtobufElementCount,
+  ProtobufElementCountOutcome,
+} from "./ProtobufElementCount";
 import OtlpJson, {
   OTLP_SEVERITY_DEBUG,
   OTLP_SEVERITY_ERROR,
@@ -97,6 +110,16 @@ import OtlpJson, {
  * no name or an unknown status; the logs of a request past the first
  * MAX_DATADOG_LOGS_PER_REQUEST. Each translation counts what it dropped.
  * A series' source_type_name and origin metadata are not kept.
+ *
+ * LIMITS
+ *
+ * A JSON body is counted before it is parsed (JsonElementCount), and a
+ * protobuf payload before it is decoded (ProtobufElementCount): one over
+ * COMPATIBLE_JSON_MAX_VALUES values, or DATADOG_PROTOBUF_MAX_ELEMENTS
+ * series, points, resources, tags and sketches, is refused with 413, which
+ * the Agent drops rather than retries. A payload's fields that nothing here
+ * reads - a sketch's bins, an old Agent's distribution samples, origin and
+ * Agent metadata - are not decoded at all.
  */
 
 // The most logs one request is translated into; the rest are dropped.
@@ -178,6 +201,72 @@ export const DatadogMetricPayload: protobuf.Type = AgentPayloadProto.lookupType(
 export const DatadogSketchPayload: protobuf.Type = AgentPayloadProto.lookupType(
   "datadog.agentpayload.SketchPayload",
 );
+
+/*
+ * The payloads as they are decoded: the same messages without the fields
+ * nothing here reads, which a decoder then steps over without making
+ * anything of them - a Dogsketch's bins (k, n: up to thousands a sketch),
+ * an old Agent's Distribution samples (v, g, delta, buf), the origin
+ * metadata of a series or sketch, and the Agent's own metadata (its API key
+ * among it). The full types above stay for what writes a payload.
+ */
+const UNREAD_FIELDS: ReadonlyArray<[string, ReadonlyArray<string>]> = [
+  ["datadog.agentpayload.MetricPayload.MetricSeries", ["metadata"]],
+  ["datadog.agentpayload.SketchPayload", ["metadata"]],
+  ["datadog.agentpayload.SketchPayload.Sketch", ["metadata"]],
+  ["datadog.agentpayload.SketchPayload.Sketch.Dogsketch", ["k", "n"]],
+  [
+    "datadog.agentpayload.SketchPayload.Sketch.Distribution",
+    ["v", "g", "delta", "buf"],
+  ],
+];
+
+const ReadingProto: protobuf.Root = protobuf.loadSync(PROTO_PATH);
+
+for (const [typeName, fieldNames] of UNREAD_FIELDS) {
+  const type: protobuf.Type = ReadingProto.lookupType(typeName);
+
+  for (const fieldName of fieldNames) {
+    type.remove(type.fields[fieldName]!);
+  }
+
+  /*
+   * The decoder is made again for the fields left; the constructor every
+   * message is made with was made as the file loaded, and would still give
+   * each one an empty array of every repeated field removed.
+   */
+  type.ctor = protobuf.Type.generateConstructor(type)() as protobuf.Constructor<
+    Record<string, unknown>
+  >;
+}
+
+export const DatadogMetricPayloadAsRead: protobuf.Type =
+  ReadingProto.lookupType("datadog.agentpayload.MetricPayload");
+export const DatadogSketchPayloadAsRead: protobuf.Type =
+  ReadingProto.lookupType("datadog.agentpayload.SketchPayload");
+
+/*
+ * What each payload, as read, decodes into an object, for the count taken
+ * before it is decoded: each series with its resources, tags and points;
+ * each sketch with its tags, Dogsketches and Distributions.
+ */
+export const DATADOG_METRIC_PAYLOAD_COUNT: ProtobufCountSchema = {
+  messages: {
+    1: {
+      messages: { 1: {}, 4: {} },
+      strings: new Set<number>([3]),
+    },
+  },
+};
+
+export const DATADOG_SKETCH_PAYLOAD_COUNT: ProtobufCountSchema = {
+  messages: {
+    1: {
+      messages: { 3: {}, 7: {} },
+      strings: new Set<number>([4]),
+    },
+  },
+};
 
 /*
  * int64s as numbers (every Datadog timestamp, count and interval fits),
@@ -393,11 +482,15 @@ interface FoundField {
 export default class DatadogIntake {
   /*
    * A JSON body, for the endpoints that take one (series, check runs).
-   * Throws a DatadogIntakeError (400) when it is not JSON.
+   * Throws a DatadogIntakeError: 400 when it is not JSON, 413 when it holds
+   * more than COMPATIBLE_JSON_MAX_VALUES values (counted before it is
+   * parsed).
    */
   public static parseJson(body: Buffer | string): unknown {
+    const text: string = DatadogIntake.bodyText(body);
+
     try {
-      return JSON.parse(DatadogIntake.bodyText(body));
+      return JSON.parse(text);
     } catch {
       throw new DatadogIntakeError(400, "The body is not valid JSON.");
     }
@@ -546,7 +639,12 @@ export default class DatadogIntake {
     options: DatadogTranslateOptions = {},
   ): DatadogMetricsTranslation {
     return DatadogIntake.seriesV2ToOtlp(
-      DatadogIntake.decode(DatadogMetricPayload, body, "MetricPayload"),
+      DatadogIntake.decode(
+        DatadogMetricPayloadAsRead,
+        DATADOG_METRIC_PAYLOAD_COUNT,
+        body,
+        "MetricPayload",
+      ),
       options,
     );
   }
@@ -565,7 +663,8 @@ export default class DatadogIntake {
     options: DatadogTranslateOptions = {},
   ): DatadogMetricsTranslation {
     const payload: JSONObject = DatadogIntake.decode(
-      DatadogSketchPayload,
+      DatadogSketchPayloadAsRead,
+      DATADOG_SKETCH_PAYLOAD_COUNT,
       body,
       "SketchPayload",
     );
@@ -1891,28 +1990,71 @@ export default class DatadogIntake {
 
   // VALUES
 
+  /*
+   * A protobuf payload, counted before it is decoded: one that would
+   * decode into more than DATADOG_PROTOBUF_MAX_ELEMENTS objects is a 413,
+   * and bytes that are not the message a 400 - neither is decoded.
+   */
   private static decode(
     type: protobuf.Type,
+    countSchema: ProtobufCountSchema,
     body: Buffer | Uint8Array,
     name: string,
   ): JSONObject {
+    const notThePayload: () => DatadogIntakeError = (): DatadogIntakeError => {
+      return new DatadogIntakeError(
+        400,
+        `The body is not a Datadog ${name} protobuf.`,
+      );
+    };
+
+    const count: ProtobufElementCount = ProtobufElementCounter.count(
+      body,
+      countSchema,
+      DATADOG_PROTOBUF_MAX_ELEMENTS,
+    );
+
+    if (count.outcome === ProtobufElementCountOutcome.OverLimit) {
+      throw new DatadogIntakeError(
+        413,
+        `The ${name} holds more than ${DATADOG_PROTOBUF_MAX_ELEMENTS} series, points, resources, tags and sketches. Send smaller payloads.`,
+      );
+    }
+
+    if (count.outcome === ProtobufElementCountOutcome.Malformed) {
+      throw notThePayload();
+    }
+
     let message: protobuf.Message;
 
     try {
       message = type.decode(body as Uint8Array);
     } catch {
-      throw new DatadogIntakeError(
-        400,
-        `The body is not a Datadog ${name} protobuf.`,
-      );
+      throw notThePayload();
     }
 
     return type.toObject(message, TO_OBJECT_OPTIONS) as JSONObject;
   }
 
+  /*
+   * A JSON body as text, its values counted before it is parsed: over
+   * COMPATIBLE_JSON_MAX_VALUES is a 413.
+   */
   private static bodyText(body: Buffer | string): string {
     const text: string =
       typeof body === "string" ? body : body.toString("utf8");
+
+    const values: JsonElementCount = JsonElementCounter.count(
+      text,
+      COMPATIBLE_JSON_MAX_VALUES,
+    );
+
+    if (values.outcome === JsonElementCountOutcome.OverLimit) {
+      throw new DatadogIntakeError(
+        413,
+        `${JsonElementCounter.tooManyValuesMessage(COMPATIBLE_JSON_MAX_VALUES)} Send smaller payloads.`,
+      );
+    }
 
     // A byte order mark is not JSON.
     return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;

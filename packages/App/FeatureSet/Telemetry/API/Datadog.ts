@@ -11,6 +11,7 @@ import Express, {
 import CompatibleIngestCredential, {
   CompatibleCredentialScheme,
 } from "../Utils/Compatible/CompatibleIngestCredential";
+import { ingestMetricsMiddleware } from "../Middleware/IngestRequestMetrics";
 import DatadogIngestService from "../Services/DatadogIngestService";
 
 /*
@@ -37,6 +38,19 @@ const router: ExpressRouter = Express.getRouter();
 const credentials: RequestHandler = CompatibleIngestCredential.middleware([
   CompatibleCredentialScheme.DatadogApiKey,
 ]);
+
+/*
+ * OneUptime's own ingest metrics, by what each route carries. The Agent's
+ * key check and its host metadata carry no telemetry, and are not counted.
+ */
+const logsIngestMetrics: RequestHandler = ingestMetricsMiddleware(
+  "logs",
+  TelemetryIngestSurface.Datadog,
+);
+const metricsIngestMetrics: RequestHandler = ingestMetricsMiddleware(
+  "metrics",
+  TelemetryIngestSurface.Datadog,
+);
 
 type DatadogIngestHandlerName =
   | "ingestLogs"
@@ -77,6 +91,7 @@ const acceptMetadata: RequestHandler = (
 router.post(
   "/datadog/api/v2/logs",
   TelemetryIngestionDisabled.middleware,
+  logsIngestMetrics,
   credentials,
   DatadogIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
@@ -87,6 +102,7 @@ router.post(
 router.post(
   "/datadog/api/v1/series",
   TelemetryIngestionDisabled.middleware,
+  metricsIngestMetrics,
   credentials,
   DatadogIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
@@ -97,6 +113,7 @@ router.post(
 router.post(
   "/datadog/api/v2/series",
   TelemetryIngestionDisabled.middleware,
+  metricsIngestMetrics,
   credentials,
   DatadogIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
@@ -107,6 +124,7 @@ router.post(
 router.post(
   "/datadog/api/beta/sketches",
   TelemetryIngestionDisabled.middleware,
+  metricsIngestMetrics,
   credentials,
   DatadogIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
@@ -117,6 +135,7 @@ router.post(
 router.post(
   "/datadog/api/v1/check_run",
   TelemetryIngestionDisabled.middleware,
+  metricsIngestMetrics,
   credentials,
   DatadogIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
@@ -160,6 +179,7 @@ router.post(
   "/api/v2/logs",
   DatadogIngestService.onlyWithApiKey,
   TelemetryIngestionDisabled.middleware,
+  logsIngestMetrics,
   credentials,
   DatadogIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),

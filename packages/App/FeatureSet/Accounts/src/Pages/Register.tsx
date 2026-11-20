@@ -581,10 +581,12 @@ const RegisterPage: () => JSX.Element = () => {
 
   /*
    * An invitation whose person signs in with single sign-on (#9819): their
-   * project's providers, in place of a password they could not set.
+   * project's providers, in place of a password they could not set. The
+   * link goes with it, as the proof of the mailbox a provider's first
+   * sign-in on OneUptime Cloud asks for (#9898).
    */
   if (invitation?.ssoSignIn) {
-    return <InvitedSsoSignIn invitation={invitation} />;
+    return <InvitedSsoSignIn invitation={invitation} link={invitationLink} />;
   }
 
   if (emailAwaitingVerification !== null) {

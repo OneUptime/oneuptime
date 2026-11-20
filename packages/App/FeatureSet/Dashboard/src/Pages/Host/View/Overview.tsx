@@ -1951,7 +1951,7 @@ const HostOverview: FunctionComponent<
     };
 
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="flex min-w-0 items-center gap-1">
@@ -1968,18 +1968,25 @@ const HostOverview: FunctionComponent<
             <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
           </div>
         </div>
-        <LineChartElement
-          data={withTranslatedSeriesNames(params.data, translator)}
-          xAxis={xAxis}
-          yAxis={yAxis}
-          curve={params.curve ?? ChartCurve.MONOTONE}
-          sync={true}
-          syncid={`host-overview-${modelId.toString()}`}
-          heightInPx={180}
-          showLegend={params.showLegend ?? false}
-          referenceRegions={params.referenceRegions}
-          connectNulls={params.connectNulls}
-        />
+        {/*
+         * At the foot of its card: a row of cards grows to its tallest - a
+         * legend on two lines, in German or on a phone - and the plots and
+         * time axes still line up under the hover line they share (#7125).
+         */}
+        <div className="mt-auto">
+          <LineChartElement
+            data={withTranslatedSeriesNames(params.data, translator)}
+            xAxis={xAxis}
+            yAxis={yAxis}
+            curve={params.curve ?? ChartCurve.MONOTONE}
+            sync={true}
+            syncid={`host-overview-${modelId.toString()}`}
+            heightInPx={180}
+            showLegend={params.showLegend ?? false}
+            referenceRegions={params.referenceRegions}
+            connectNulls={params.connectNulls}
+          />
+        </div>
       </div>
     );
   };

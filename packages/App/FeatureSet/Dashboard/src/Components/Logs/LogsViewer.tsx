@@ -3310,6 +3310,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
           histogramBucketIntervalMs={histogram.bucketIntervalMs}
+          histogramBucketTimezone={histogram.bucketTimezone}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
           facetData={facetData}
           facetLoading={facetLoading || awaitsInitialSavedView}

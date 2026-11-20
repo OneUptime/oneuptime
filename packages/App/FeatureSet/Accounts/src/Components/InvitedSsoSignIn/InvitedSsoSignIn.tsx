@@ -1,4 +1,5 @@
 import InvitedSignUpHeader from "../InvitedSignUpHeader/InvitedSignUpHeader";
+import { confirmSignUpInvitationSsoSignIn } from "../../Utils/SignUpInvitation";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { SignUpInvitation } from "Common/Types/Accounts/SignUpInvitation";
@@ -30,10 +31,21 @@ import { useTranslation } from "react-i18next";
  *
  * With no provider turned on yet, the page says so and whom to ask, rather
  * than offer a way in that cannot work.
+ *
+ * On OneUptime Cloud a project's provider signs someone in only once they
+ * have confirmed it from their mailbox, which took a second email and a
+ * second trip through the provider. The link this page was opened with
+ * proves the mailbox already, so picking a provider first tells the server
+ * so, with the link's address and token (#9898,
+ * confirmSignUpInvitationSsoSignIn), and only then starts its sign-in:
+ * the provider signs them in the first time. Whatever the server says, or
+ * if it says nothing in time, the sign-in starts all the same.
  */
 
 export interface ComponentProps {
   invitation: SignUpInvitation;
+  // The link the page was opened with: the invited address and its token.
+  link?: { email: string; token: string } | null | undefined;
 }
 
 export const INVITED_SSO_PROVIDERS_TEST_ID: string = "register-sso-providers";
@@ -54,6 +66,23 @@ const InvitedSsoSignIn: (props: ComponentProps) => ReactElement = (
 
   const providers: Array<SsoSignInProvider> =
     props.invitation.ssoSignIn?.providers || [];
+
+  // The link said first, then the provider's sign-in, whatever came of it.
+  const signInWith: (route: string) => Promise<void> = async (
+    route: string,
+  ): Promise<void> => {
+    setIsLeaving(true);
+
+    if (props.link) {
+      await confirmSignUpInvitationSsoSignIn({
+        email: props.link.email,
+        token: props.link.token,
+        projectId: props.invitation.projectId,
+      });
+    }
+
+    Navigation.navigate(URL.fromURL(IDENTITY_URL).addRoute(new Route(route)));
+  };
 
   /*
    * "Sign in with Okta", in the reader's language, unless the admin wrote a
@@ -82,10 +111,7 @@ const InvitedSsoSignIn: (props: ComponentProps) => ReactElement = (
             return;
           }
 
-          setIsLeaving(true);
-          Navigation.navigate(
-            URL.fromURL(IDENTITY_URL).addRoute(new Route(route)),
-          );
+          void signInWith(route);
         },
       };
     },
