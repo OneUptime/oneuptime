@@ -6,7 +6,10 @@ import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
-import { SecurityPlaybookApprovalDecision, SecurityPlaybookTarget } from "../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import {
+  SecurityPlaybookApprovalDecision,
+  SecurityPlaybookTarget,
+} from "../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import ProductKey from "../../Types/Product/ProductKey";
 import {
   SecurityPlaybookApprovalStandingKind,

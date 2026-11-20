@@ -841,32 +841,32 @@ describe("a security case page", () => {
   test.each([
     ["not an id", "../../settings"],
     ["not text", 42],
-  ])("a run that is %s is left out: the case opens as any case does", (
-    _name: string,
-    runId: unknown,
-  ) => {
-    const handlers: HandlersModule = loadHandlers();
-    const container: FakeNavigationContainer =
-      createNavigationContainer(MAIN_TAB_ROUTES);
-    handlers.setNavigationRef(container.ref);
+  ])(
+    "a run that is %s is left out: the case opens as any case does",
+    (_name: string, runId: unknown) => {
+      const handlers: HandlersModule = loadHandlers();
+      const container: FakeNavigationContainer =
+        createNavigationContainer(MAIN_TAB_ROUTES);
+      handlers.setNavigationRef(container.ref);
 
-    handlers.handleNotificationResponse(
-      tap({
-        entityType: "security-case",
-        entityId: CASE_ID,
-        projectId: PROJECT_ID,
-        runId,
-      }),
-    );
+      handlers.handleNotificationResponse(
+        tap({
+          entityType: "security-case",
+          entityId: CASE_ID,
+          projectId: PROJECT_ID,
+          runId,
+        }),
+      );
 
-    expect(container.navigations).toEqual([
-      {
-        routeName: "Inbox",
-        screen: "SecurityCaseDetail",
-        params: { caseId: CASE_ID, projectId: PROJECT_ID },
-      },
-    ]);
-  });
+      expect(container.navigations).toEqual([
+        {
+          routeName: "Inbox",
+          screen: "SecurityCaseDetail",
+          params: { caseId: CASE_ID, projectId: PROJECT_ID },
+        },
+      ]);
+    },
+  );
 });
 
 describe("a link to a security case, inside the app", () => {

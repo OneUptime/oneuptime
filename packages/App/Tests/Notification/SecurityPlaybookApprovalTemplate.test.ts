@@ -119,7 +119,8 @@ describe("the approval email's Would Act On row", () => {
  */
 describe("the approval email's evidence", () => {
   const EVIDENCE: Record<string, string> = {
-    approvalAction: "Contain the host in CrowdStrike, through CrowdStrike (prod)",
+    approvalAction:
+      "Contain the host in CrowdStrike, through CrowdStrike (prod)",
     stepTargets: "web-01: the case is grouped on it",
     approvalLeftAlone: "db-02: on your protected list (db-*)",
     approvalEvidence:

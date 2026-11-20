@@ -328,7 +328,10 @@ export function PlaybookApprovalDecidedNotice({
           <Text
             key={line}
             selectable
-            style={{ ...typography.footnote, color: theme.colors.textSecondary }}
+            style={{
+              ...typography.footnote,
+              color: theme.colors.textSecondary,
+            }}
           >
             {`• ${line}`}
           </Text>

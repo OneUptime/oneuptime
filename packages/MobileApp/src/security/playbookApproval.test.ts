@@ -415,11 +415,15 @@ describe("what the case's playbooks contained", () => {
           stepId: "suspend",
           action: "Suspend Okta User",
           status: "Failed",
-          targets: ["Undone", "Left Out", "Failed", "Not Found", "Already Done"].map(
-            (state: string, index: number) => {
-              return { type: "User", value: `user-${index}@acme.test`, state };
-            },
-          ),
+          targets: [
+            "Undone",
+            "Left Out",
+            "Failed",
+            "Not Found",
+            "Already Done",
+          ].map((state: string, index: number) => {
+            return { type: "User", value: `user-${index}@acme.test`, state };
+          }),
         },
       ],
     });
@@ -462,7 +466,12 @@ describe("what the case's playbooks contained", () => {
     expect(
       readContainedPlaybookTargets([run]).map(
         (item: ContainedPlaybookTarget) => {
-          return [item.stepId, item.stepNumber, item.undoTitle, item.target.value];
+          return [
+            item.stepId,
+            item.stepNumber,
+            item.undoTitle,
+            item.target.value,
+          ];
         },
       ),
     ).toEqual([["contain", 2, "Lift containment in CrowdStrike", "web-01"]]);
@@ -488,9 +497,18 @@ describe("what the case's playbooks contained", () => {
     ).toEqual([
       ["Suspend the user in Okta", "Unsuspend the user in Okta"],
       ["Contain the host in CrowdStrike", "Lift containment in CrowdStrike"],
-      ["Isolate the device in Microsoft Defender", "Release the device in Microsoft Defender"],
-      ["Disable the user in Microsoft Entra ID", "Enable the user in Microsoft Entra ID"],
-      ["Suspend the user in Google Workspace", "Unsuspend the user in Google Workspace"],
+      [
+        "Isolate the device in Microsoft Defender",
+        "Release the device in Microsoft Defender",
+      ],
+      [
+        "Disable the user in Microsoft Entra ID",
+        "Enable the user in Microsoft Entra ID",
+      ],
+      [
+        "Suspend the user in Google Workspace",
+        "Unsuspend the user in Google Workspace",
+      ],
     ]);
   });
 

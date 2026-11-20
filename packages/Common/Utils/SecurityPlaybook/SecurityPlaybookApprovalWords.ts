@@ -379,9 +379,7 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   outcomeErrored: translationKey("Errored: {{count}}"),
   outcomeReachedDatabase: translationKey("Reached the database: {{count}}"),
   threatIntel: translationKey("Known to threat intel: {{values}}"),
-  notProtected: translationKey(
-    "Nothing it acts on is on your protected list.",
-  ),
+  notProtected: translationKey("Nothing it acts on is on your protected list."),
   notOwnAddress: translationKey("Not one of your addresses: {{values}}"),
   noSignedInUser: translationKey("No signed-in user used it: {{values}}"),
   undoEach: translationKey(
@@ -606,7 +604,9 @@ function wordHeadline(
     const decided: Record<string, ApprovalValue> = {
       person: asText(standing.deciderName || ""),
       time: asTime(
-        context.formatTime(standing.decidedAt || OneUptimeDate.getCurrentDate()),
+        context.formatTime(
+          standing.decidedAt || OneUptimeDate.getCurrentDate(),
+        ),
       ),
     };
 
@@ -994,7 +994,9 @@ export function wordSecurityPlaybookApproval(data: {
     progress: wordProgress(ask, context),
     action: wordAction(ask, context),
     targets: ask.targets.map(
-      (target: SecurityPlaybookApprovalTarget): SecurityPlaybookApprovalLine => {
+      (
+        target: SecurityPlaybookApprovalTarget,
+      ): SecurityPlaybookApprovalLine => {
         return wordTarget(target, context);
       },
     ),
@@ -1039,7 +1041,9 @@ export function wordSecurityPlaybookApprovalAnswer(data: {
         {
           person: asText(data.deciderName || ""),
           time: asTime(
-            context.formatTime(data.decidedAt || OneUptimeDate.getCurrentDate()),
+            context.formatTime(
+              data.decidedAt || OneUptimeDate.getCurrentDate(),
+            ),
           ),
         },
       );

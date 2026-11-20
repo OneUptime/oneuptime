@@ -535,7 +535,9 @@ describe("reading a step's approval, by whoever can read the run and its case", 
       user.name = new Name("Sam Starter");
       return user;
     }) as never);
-    jest.spyOn(SecurityDetectionService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockResolvedValue([] as never);
     jest
       .spyOn(ThreatIntelIndicatorService, "findActiveIndicatorsByValues")
       .mockResolvedValue([] as never);

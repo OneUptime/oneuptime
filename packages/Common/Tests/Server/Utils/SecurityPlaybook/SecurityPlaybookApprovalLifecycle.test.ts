@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import Queue from "../../../../Server/Infrastructure/Queue";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
@@ -164,12 +171,16 @@ beforeEach(() => {
   edits = [];
   undone = [];
 
-  jest.spyOn(SecurityPlaybookRunService, "findOneBy").mockImplementation((async () => {
-    return runModel();
-  }) as never);
-  jest.spyOn(SecurityPlaybookRunService, "findOneById").mockImplementation((async () => {
-    return runModel();
-  }) as never);
+  jest
+    .spyOn(SecurityPlaybookRunService, "findOneBy")
+    .mockImplementation((async () => {
+      return runModel();
+    }) as never);
+  jest
+    .spyOn(SecurityPlaybookRunService, "findOneById")
+    .mockImplementation((async () => {
+      return runModel();
+    }) as never);
   jest
     .spyOn(SecurityPlaybookRunService, "findOneUpdatableById")
     .mockImplementation((async () => {
@@ -233,11 +244,13 @@ beforeEach(() => {
     securityCase.entities = [] as never;
     return securityCase;
   }) as never);
-  jest.spyOn(SecurityCaseService, "findOneById").mockImplementation((async () => {
-    const securityCase: SecurityCase = new SecurityCase();
-    securityCase.caseNumberWithPrefix = "SEC-12";
-    return securityCase;
-  }) as never);
+  jest
+    .spyOn(SecurityCaseService, "findOneById")
+    .mockImplementation((async () => {
+      const securityCase: SecurityCase = new SecurityCase();
+      securityCase.caseNumberWithPrefix = "SEC-12";
+      return securityCase;
+    }) as never);
 
   // The Okta connection the step acts through, and the protected list: empty.
   jest
@@ -260,9 +273,9 @@ beforeEach(() => {
   jest
     .spyOn(
       SecurityPlaybookContainment as unknown as {
-        act: (data: { values: Array<string> }) => Promise<
-          Map<string, ContainmentTargetOutcome>
-        >;
+        act: (data: {
+          values: Array<string>;
+        }) => Promise<Map<string, ContainmentTargetOutcome>>;
       },
       "act",
     )
@@ -298,7 +311,9 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
 
   jest
     .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
@@ -348,17 +363,15 @@ beforeEach(() => {
       auth.workspaceProjectId = "T0TEAM";
       return auth;
     }) as never);
-  jest
-    .spyOn(SlackUtil, "updateMessage")
-    .mockImplementation((async (data: {
-      location: { channelId: string };
-      messageBlocks: Array<unknown>;
-    }) => {
-      edits.push({
-        channelId: data.location.channelId,
-        blocks: JSON.stringify(data.messageBlocks),
-      });
-    }) as never);
+  jest.spyOn(SlackUtil, "updateMessage").mockImplementation((async (data: {
+    location: { channelId: string };
+    messageBlocks: Array<unknown>;
+  }) => {
+    edits.push({
+      channelId: data.location.channelId,
+      blocks: JSON.stringify(data.messageBlocks),
+    });
+  }) as never);
   jest
     .spyOn(Semaphore, "lock")
     .mockRejectedValue(new Error("no Valkey in this test"));
@@ -407,10 +420,14 @@ describe("an approval, from Slack to the product and back", () => {
     ]);
 
     // Every copy says it was done, and what became of each target.
-    expect(edits.slice(-2).map((edit: { channelId: string }): string => {
-      return edit.channelId;
-    })).toEqual(["C0SOC", "D0JANE"]);
-    expect(latestEdit()).toMatch(/Approved by Jane Doe at \{\{TIME\(.+\)\}\}\*\* Done at \{\{TIME\(.+\)\}\}\./);
+    expect(
+      edits.slice(-2).map((edit: { channelId: string }): string => {
+        return edit.channelId;
+      }),
+    ).toEqual(["C0SOC", "D0JANE"]);
+    expect(latestEdit()).toMatch(
+      /Approved by Jane Doe at \{\{TIME\(.+\)\}\}\*\* Done at \{\{TIME\(.+\)\}\}\./,
+    );
     expect(latestEdit()).toContain("`alice@acme.com`: done · suspended");
     expect(latestEdit()).toContain("`bob@acme.com`: done · suspended");
 
@@ -545,7 +562,10 @@ describe("an approval, from Slack to the product and back", () => {
 
 describe("what a step's approval round is held to", () => {
   test("the digest names the action, the connection and the proposed targets - and nothing else", () => {
-    const targets: Array<{ value: string; state: SecurityPlaybookTargetState }> = [
+    const targets: Array<{
+      value: string;
+      state: SecurityPlaybookTargetState;
+    }> = [
       { value: "Alice@acme.com", state: SecurityPlaybookTargetState.Proposed },
       { value: "bob@acme.com", state: SecurityPlaybookTargetState.Proposed },
       { value: "ceo@acme.com", state: SecurityPlaybookTargetState.Protected },
@@ -560,7 +580,11 @@ describe("what a step's approval round is held to", () => {
     expect(
       SecurityPlaybookApprovalReader.getTargetsDigest({
         step: STEPS[0]!,
-        targets: [targets[1]!, targets[2]!, { ...targets[0]!, value: "alice@ACME.com" }],
+        targets: [
+          targets[1]!,
+          targets[2]!,
+          { ...targets[0]!, value: "alice@ACME.com" },
+        ],
       }),
     ).toBe(digest);
     // A protected target comes and goes without changing what is acted on.
@@ -574,18 +598,30 @@ describe("what a step's approval round is held to", () => {
     expect(
       SecurityPlaybookApprovalReader.getTargetsDigest({
         step: STEPS[0]!,
-        targets: [...targets, { value: "mallory@acme.com", state: SecurityPlaybookTargetState.Proposed }],
+        targets: [
+          ...targets,
+          {
+            value: "mallory@acme.com",
+            state: SecurityPlaybookTargetState.Proposed,
+          },
+        ],
       }),
     ).not.toBe(digest);
     expect(
       SecurityPlaybookApprovalReader.getTargetsDigest({
-        step: { ...STEPS[0]!, action: SecurityPlaybookActionType.EndOktaSessions },
+        step: {
+          ...STEPS[0]!,
+          action: SecurityPlaybookActionType.EndOktaSessions,
+        },
         targets,
       }),
     ).not.toBe(digest);
     expect(
       SecurityPlaybookApprovalReader.getTargetsDigest({
-        step: { ...STEPS[0]!, config: { connectionId: ObjectID.generate().toString() } },
+        step: {
+          ...STEPS[0]!,
+          config: { connectionId: ObjectID.generate().toString() },
+        },
         targets,
       }),
     ).not.toBe(digest);
@@ -732,7 +768,11 @@ describe("what a step's approval round is held to", () => {
         triggeredByUserId: JANE,
         trigger: SecurityPlaybookTrigger.Manual,
       }),
-    ).toEqual({ kind: "Person", playbookName: "Contain", personName: "Jane Doe" });
+    ).toEqual({
+      kind: "Person",
+      playbookName: "Contain",
+      personName: "Jane Doe",
+    });
     expect(
       await SecurityPlaybookApprovalReader.getSource({
         playbookName: "Contain",

@@ -666,7 +666,9 @@ describe("an approval somebody decided since the push", () => {
     expect(
       screen.getByTestId("playbook-approval-decided-progress"),
     ).toHaveTextContent("Done at 10:44 UTC.");
-    expect(screen.getByText("• alice@acme.test: done · suspended")).toBeTruthy();
+    expect(
+      screen.getByText("• alice@acme.test: done · suspended"),
+    ).toBeTruthy();
   });
 
   test("a rejection, or a run that stopped waiting, has no progress to tell", async () => {
@@ -684,7 +686,9 @@ describe("an approval somebody decided since the push", () => {
     expect(
       screen.getByTestId("playbook-approval-decided-headline"),
     ).toHaveTextContent("Rejected by Jane Doe at 10:43 UTC. Nothing was done.");
-    expect(screen.queryByTestId("playbook-approval-decided-progress")).toBeNull();
+    expect(
+      screen.queryByTestId("playbook-approval-decided-progress"),
+    ).toBeNull();
   });
 });
 
@@ -772,7 +776,11 @@ describe("what the case's playbooks contained", () => {
 
   test("nothing contained, no section", async () => {
     await render(
-      <ContainedTargetsSection contained={[]} undoing={null} onUndo={jest.fn()} />,
+      <ContainedTargetsSection
+        contained={[]}
+        undoing={null}
+        onUndo={jest.fn()}
+      />,
     );
 
     expect(screen.queryByTestId("playbook-contained-section")).toBeNull();

@@ -136,7 +136,9 @@ export default class WorkspaceSecurityPlaybookApproval {
     }>,
   ): string | undefined {
     for (const press of presses) {
-      if (!WorkspaceSecurityPlaybookApproval.isApprovalAction(press.actionType)) {
+      if (
+        !WorkspaceSecurityPlaybookApproval.isApprovalAction(press.actionType)
+      ) {
         continue;
       }
 
@@ -175,7 +177,9 @@ export default class WorkspaceSecurityPlaybookApproval {
    * sign as it is - another button's value, one changed by a character, one
    * signed with another key, one that is not text at all.
    */
-  public static readValue(value: unknown): SecurityPlaybookApprovalRound | null {
+  public static readValue(
+    value: unknown,
+  ): SecurityPlaybookApprovalRound | null {
     if (
       typeof value !== "string" ||
       !value ||
@@ -314,10 +318,13 @@ export default class WorkspaceSecurityPlaybookApproval {
     const isWaiting: boolean =
       data.ask.standing.kind === SecurityPlaybookApprovalStandingKind.Waiting;
 
-    const markdown: (text: MarkdownText | string) => WorkspacePayloadMarkdown =
-      (text: MarkdownText | string): WorkspacePayloadMarkdown => {
-        return { _type: "WorkspacePayloadMarkdown", text: text.toString() };
-      };
+    const markdown: (
+      text: MarkdownText | string,
+    ) => WorkspacePayloadMarkdown = (
+      text: MarkdownText | string,
+    ): WorkspacePayloadMarkdown => {
+      return { _type: "WorkspacePayloadMarkdown", text: text.toString() };
+    };
 
     const bullets: (lines: Array<SecurityPlaybookApprovalLine>) => string = (
       lines: Array<SecurityPlaybookApprovalLine>,
@@ -330,7 +337,12 @@ export default class WorkspaceSecurityPlaybookApproval {
     };
 
     const blocks: Array<WorkspaceMessageBlock> = [
-      markdown(WorkspaceSecurityPlaybookApproval.getHeadlineMarkdown(data.ask, wording)),
+      markdown(
+        WorkspaceSecurityPlaybookApproval.getHeadlineMarkdown(
+          data.ask,
+          wording,
+        ),
+      ),
     ];
 
     blocks.push(
@@ -394,9 +406,8 @@ export default class WorkspaceSecurityPlaybookApproval {
 
     return {
       messageBlocks: blocks,
-      notificationText: WorkspaceSecurityPlaybookApproval.getNotificationText(
-        wording,
-      ),
+      notificationText:
+        WorkspaceSecurityPlaybookApproval.getNotificationText(wording),
     };
   }
 

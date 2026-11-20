@@ -1106,7 +1106,6 @@ describe("a playbook step waiting for an approval", () => {
   });
 });
 
-
 /*
  * The approval's evidence, a push that named its run, and the undo of what
  * a playbook contained (#10341): the phone says what the approval's Slack
@@ -1115,6 +1114,12 @@ describe("a playbook step waiting for an approval", () => {
  * case.
  */
 const OTHER_RUN_ID: string = "7a6b0000-0009-4000-8000-000000000009";
+
+// What the screen asked about a run's approval, and whether it meant it.
+type AskedApproval = { runId: string | null; enabled: boolean };
+
+// A button of the confirmation an undo asks with.
+type ConfirmButton = { text?: string; style?: string; onPress?: () => void };
 
 function readout(
   overrides: Partial<PlaybookApprovalReadout> = {},
@@ -1156,7 +1161,9 @@ describe("the approval's evidence on the case's screen", () => {
     expect(
       within(card).getByText("• Nothing it acts on is on your protected list."),
     ).toBeTruthy();
-    expect(within(card).getByTestId("playbook-approval-undo")).toHaveTextContent(
+    expect(
+      within(card).getByTestId("playbook-approval-undo"),
+    ).toHaveTextContent(
       "Can be undone: each one, with Unsuspend the user in Okta on the case.",
     );
   });
@@ -1220,7 +1227,7 @@ describe("a push about an approval", () => {
     await renderScreen({ runId: RUN_ID });
 
     expect(
-      mockApprovals.asked.filter((asked) => {
+      mockApprovals.asked.filter((asked: AskedApproval) => {
         return asked.runId === RUN_ID && asked.enabled;
       }),
     ).toEqual([]);
@@ -1231,7 +1238,7 @@ describe("a push about an approval", () => {
     await renderScreen({ runId: "../../admin" });
 
     expect(
-      mockApprovals.asked.some((asked) => {
+      mockApprovals.asked.some((asked: AskedApproval) => {
         return asked.runId === "../../admin";
       }),
     ).toBe(false);
@@ -1246,7 +1253,11 @@ describe("undoing what a playbook contained", () => {
     ]);
   });
 
-  function confirmButtons(): Array<{ text?: string; style?: string; onPress?: () => void }> {
+  function confirmButtons(): Array<{
+    text?: string;
+    style?: string;
+    onPress?: () => void;
+  }> {
     return (alertSpy.mock.calls[0]![2] ?? []) as Array<{
       text?: string;
       style?: string;
@@ -1274,7 +1285,7 @@ describe("undoing what a playbook contained", () => {
       expect.any(Array),
     );
     expect(
-      confirmButtons().map((button) => {
+      confirmButtons().map((button: ConfirmButton) => {
         return [button.text, button.style];
       }),
     ).toEqual([

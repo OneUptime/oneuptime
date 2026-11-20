@@ -707,12 +707,11 @@ function setUpRunWaitingForApproval(): void {
     return true;
   });
   // What the engine saves is what the job reads back, as from the database.
-  getJestSpyOn(
-    SecurityPlaybookRunService,
-    "updateOneById",
-  ).mockImplementation(async (args: unknown) => {
-    Object.assign(run!, (args as { data: JSONObject }).data);
-  });
+  getJestSpyOn(SecurityPlaybookRunService, "updateOneById").mockImplementation(
+    async (args: unknown) => {
+      Object.assign(run!, (args as { data: JSONObject }).data);
+    },
+  );
   getJestSpyOn(
     SecurityPlaybookRunService,
     "updateColumnsByIdWithoutHooks",
@@ -766,7 +765,6 @@ function setUpRunWaitingForApproval(): void {
     projectAuth.authToken = "xoxb-project-token";
     return [projectAuth];
   });
-
 }
 
 describe("a security case from opening to approval", () => {
@@ -913,9 +911,7 @@ describe("a security case from opening to approval", () => {
     // The push opens the approval itself, on the case.
     expect(pushRuns).toEqual([RUN_ID.toString()]);
     // #soc gets the approval with its buttons.
-    expect(slackMarkdown()[0]).toContain(
-      "⏸️ **Approval needed on [CASE-12](",
-    );
+    expect(slackMarkdown()[0]).toContain("⏸️ **Approval needed on [CASE-12](");
     expect(
       slackPosts[0]!.messageBlocks
         .filter((block: WorkspaceMessageBlock): boolean => {
@@ -984,9 +980,10 @@ describe("a security case from opening to approval", () => {
         return (args as { data: WorkspaceLiveMessage }).data;
       },
     );
-    getJestSpyOn(WorkspaceLiveMessageService, "findByMessageKey").mockResolvedValue(
-      [] as never,
-    );
+    getJestSpyOn(
+      WorkspaceLiveMessageService,
+      "findByMessageKey",
+    ).mockResolvedValue([] as never);
 
     await SecurityPlaybookEngine.executeRun(RUN_ID);
     await runQueuedJobs();
@@ -1025,16 +1022,24 @@ describe("a security case from opening to approval", () => {
     };
 
     // In German, with its buttons, and a notification line of its own.
-    expect(
-      (slack.messageBlocks[0] as WorkspacePayloadMarkdown).text,
-    ).toContain("**Genehmigung nötig für [CASE-12](");
-    expect(buttonTitles(slack)).toEqual(["Genehmigen", "Ablehnen", "Fall öffnen"]);
+    expect((slack.messageBlocks[0] as WorkspacePayloadMarkdown).text).toContain(
+      "**Genehmigung nötig für [CASE-12](",
+    );
+    expect(buttonTitles(slack)).toEqual([
+      "Genehmigen",
+      "Ablehnen",
+      "Fall öffnen",
+    ]);
     expect(slack.notificationText).toBe(
       "Genehmigung nötig für CASE-12: Credential dumping on web-01",
     );
     // Microsoft Teams draws it as its cards do, with the same buttons.
     expect(teams.messageBlocks).not.toEqual(slack.messageBlocks);
-    expect(buttonTitles(teams)).toEqual(["Genehmigen", "Ablehnen", "Fall öffnen"]);
+    expect(buttonTitles(teams)).toEqual([
+      "Genehmigen",
+      "Ablehnen",
+      "Fall öffnen",
+    ]);
     // Each Slack and Teams copy is kept as it lands; Mattermost has no buttons for it.
     expect(typeof slack.onSent).toBe("function");
     expect(typeof teams.onSent).toBe("function");

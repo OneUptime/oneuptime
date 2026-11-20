@@ -62,14 +62,17 @@ const formatTime: (date: Date) => SecurityPlaybookApprovalTime = (
   };
 };
 
-const contextIn: (language: string) => SecurityPlaybookApprovalWordingContext =
-  (language: string): SecurityPlaybookApprovalWordingContext => {
-    return {
-      translator: getServerTranslator(language),
-      productName: "OneUptime",
-      formatTime,
-    };
+const contextIn: (
+  language: string,
+) => SecurityPlaybookApprovalWordingContext = (
+  language: string,
+): SecurityPlaybookApprovalWordingContext => {
+  return {
+    translator: getServerTranslator(language),
+    productName: "OneUptime",
+    formatTime,
   };
+};
 
 const ENGLISH: SecurityPlaybookApprovalWordingContext = contextIn("en");
 
@@ -250,19 +253,22 @@ describe("who or what asked: every source of an approval", () => {
       SecurityPlaybookTrigger.Manual,
       "Asked by playbook Contain, which was started by hand.",
     ],
-  ])("a playbook started by %s", (trigger: SecurityPlaybookTrigger, said: string) => {
-    expect(
-      word(
-        askOf({
-          source: {
-            kind: SecurityPlaybookApprovalSourceKind.Playbook,
-            playbookName: "Contain",
-            trigger,
-          },
-        }),
-      ).source.text,
-    ).toBe(said);
-  });
+  ])(
+    "a playbook started by %s",
+    (trigger: SecurityPlaybookTrigger, said: string) => {
+      expect(
+        word(
+          askOf({
+            source: {
+              kind: SecurityPlaybookApprovalSourceKind.Playbook,
+              playbookName: "Contain",
+              trigger,
+            },
+          }),
+        ).source.text,
+      ).toBe(said);
+    },
+  );
 
   test("a person, an automatic response policy, and OneUptime AI", () => {
     expect(
@@ -360,8 +366,14 @@ describe("the evidence", () => {
       word(
         askOf({
           evidence: [
-            { kind: SecurityPlaybookApprovalEvidenceKind.Requests, outcomes: {} },
-            { kind: SecurityPlaybookApprovalEvidenceKind.ThreatIntel, values: [] },
+            {
+              kind: SecurityPlaybookApprovalEvidenceKind.Requests,
+              outcomes: {},
+            },
+            {
+              kind: SecurityPlaybookApprovalEvidenceKind.ThreatIntel,
+              values: [],
+            },
           ],
         }),
       ).evidence,
@@ -570,14 +582,14 @@ describe("what an attacker or the project wrote stays text", () => {
       expect(line.text.length).toBeGreaterThan(0);
     }
 
-    expect(wording.targets[0]!.text).toBe(
-      `\`evil\` user: failed · ${MENTION}`,
-    );
+    expect(wording.targets[0]!.text).toBe(`\`evil\` user: failed · ${MENTION}`);
     expect(wording.source.text).toBe(
       `Asked by ${MENTION}, who started playbook **Contain** by hand.`,
     );
     // The playbook's name is bold, its own asterisks escaped.
-    expect(wording.source.markdown.toString()).toContain("**\\*\\*Contain\\*\\***");
+    expect(wording.source.markdown.toString()).toContain(
+      "**\\*\\*Contain\\*\\***",
+    );
   });
 });
 
@@ -657,8 +669,7 @@ describe("in every language OneUptime writes in", () => {
 
   // Every line of every standing, worded in `language`.
   function everyLine(language: string): Array<string> {
-    const context: SecurityPlaybookApprovalWordingContext =
-      contextIn(language);
+    const context: SecurityPlaybookApprovalWordingContext = contextIn(language);
     const lines: Array<string> = [];
 
     const standings: Array<SecurityPlaybookApprovalAsk["standing"]> = [
@@ -682,9 +693,8 @@ describe("in every language OneUptime writes in", () => {
     ];
 
     for (const standing of standings) {
-      const wording: SecurityPlaybookApprovalWording = wordSecurityPlaybookApproval(
-        { ask: askOf({ standing }), context },
-      );
+      const wording: SecurityPlaybookApprovalWording =
+        wordSecurityPlaybookApproval({ ask: askOf({ standing }), context });
 
       lines.push(
         wording.headline.text,
@@ -743,9 +753,11 @@ describe("in every language OneUptime writes in", () => {
     "%s names the action by the Dashboard's own title for it",
     (language: string) => {
       const translator: Translator = getServerTranslator(language);
-      const wording: SecurityPlaybookApprovalWording = wordSecurityPlaybookApproval(
-        { ask: askOf({ connectionName: undefined }), context: contextIn(language) },
-      );
+      const wording: SecurityPlaybookApprovalWording =
+        wordSecurityPlaybookApproval({
+          ask: askOf({ connectionName: undefined }),
+          context: contextIn(language),
+        });
 
       expect(wording.action.text).toBe(
         translator.translateText("Suspend the user in Okta"),

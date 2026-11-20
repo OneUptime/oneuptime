@@ -696,7 +696,9 @@ describe("a playbook step's approval, pressed in Slack", () => {
     expect(decisions).toHaveLength(1);
     expect(decisions[0]!["status"]).toBe(SecurityPlaybookRunStatus.Queued);
     const result: SecurityPlaybookStepResult = (
-      decisions[0]!["stepResults"] as unknown as Array<SecurityPlaybookStepResult>
+      decisions[0]![
+        "stepResults"
+      ] as unknown as Array<SecurityPlaybookStepResult>
     )[0]!;
     expect(result.approval).toMatchObject({
       decision: SecurityPlaybookApprovalDecision.Approved,
@@ -717,7 +719,9 @@ describe("a playbook step's approval, pressed in Slack", () => {
     expect(queued).toEqual(["SecurityPlaybooks:RunPlaybook"]);
 
     // Told only them, where they pressed.
-    expect(answers()).toEqual(["You approved it. The step is running now, and this message shows how it goes."]);
+    expect(answers()).toEqual([
+      "You approved it. The step is running now, and this message shows how it goes.",
+    ]);
 
     // Both copies say who approved, and offer nothing to press but Open Case.
     expect(
@@ -756,7 +760,9 @@ describe("a playbook step's approval, pressed in Slack", () => {
       "👎 Rejected step 1 (Suspend the user in Okta) of playbook **Contain account takeover**, from Slack, which ends the run.",
     );
     expect(queued).toEqual([]);
-    expect(answers()).toEqual(["You rejected it. The run has ended, and nothing was done."]);
+    expect(answers()).toEqual([
+      "You rejected it. The run has ended, and nothing was done.",
+    ]);
     expect(edits()).toHaveLength(2);
 
     for (const edit of edits()) {
@@ -809,7 +815,9 @@ describe("a playbook step's approval, pressed in Slack", () => {
 
     expect(decisions).toHaveLength(1);
     const result: SecurityPlaybookStepResult = (
-      decisions[0]!["stepResults"] as unknown as Array<SecurityPlaybookStepResult>
+      decisions[0]![
+        "stepResults"
+      ] as unknown as Array<SecurityPlaybookStepResult>
     )[0]!;
     expect(result.approval?.targets).toEqual(["bob@acme.com"]);
     expect(
@@ -902,7 +910,9 @@ describe("a playbook step's approval, pressed in Slack", () => {
     await WorkspaceSecurityPlaybookApprovalMessages.settle();
 
     expect(decisions).toHaveLength(1);
-    expect(answers()).toEqual(["You approved it. The step is running now, and this message shows how it goes."]);
+    expect(answers()).toEqual([
+      "You approved it. The step is running now, and this message shows how it goes.",
+    ]);
   });
 
   test("a second tap, once approved, is told who approved and when, and decides nothing more", async () => {
@@ -928,7 +938,9 @@ describe("a playbook step's approval, pressed in Slack", () => {
     expect(decisions).toHaveLength(1);
     expect(answers()).toEqual([
       "You approved it. The step is running now, and this message shows how it goes.",
-      expect.stringMatching(/^Already approved by Simon Lee at .+, so nothing more was done\.$/),
+      expect.stringMatching(
+        /^Already approved by Simon Lee at .+, so nothing more was done\.$/,
+      ),
     ]);
   });
 

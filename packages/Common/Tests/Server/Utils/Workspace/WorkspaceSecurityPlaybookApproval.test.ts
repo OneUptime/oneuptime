@@ -100,9 +100,11 @@ function buttonsOf(
     .filter((block: WorkspaceMessageBlock): boolean => {
       return block._type === "WorkspacePayloadButtons";
     })
-    .flatMap((block: WorkspaceMessageBlock): Array<WorkspaceMessagePayloadButton> => {
-      return (block as WorkspacePayloadButtons).buttons;
-    });
+    .flatMap(
+      (block: WorkspaceMessageBlock): Array<WorkspaceMessagePayloadButton> => {
+        return (block as WorkspacePayloadButtons).buttons;
+      },
+    );
 }
 
 function markdownOf(message: SecurityPlaybookApprovalMessage): string {
@@ -180,7 +182,9 @@ describe("what the buttons carry", () => {
       const signature: string = crypto
         .createHmac(
           "sha256",
-          TokenSigningKey.deriveKey("workspace-security-playbook-approval-button"),
+          TokenSigningKey.deriveKey(
+            "workspace-security-playbook-approval-button",
+          ),
         )
         .update(payload, "utf8")
         .digest("base64url");
@@ -210,7 +214,9 @@ describe("what the buttons carry", () => {
       [...good.slice(0, 4), "s".repeat(101), good[5]],
       [...good.slice(0, 5), "short"],
     ]) {
-      expect(WorkspaceSecurityPlaybookApproval.readValue(sign(fields))).toBeNull();
+      expect(
+        WorkspaceSecurityPlaybookApproval.readValue(sign(fields)),
+      ).toBeNull();
     }
   });
 
@@ -219,7 +225,10 @@ describe("what the buttons carry", () => {
 
     expect(
       WorkspaceSecurityPlaybookApproval.getSignedProjectId([
-        { actionType: SlackActionType.ApproveSecurityPlaybookStep, actionValue: value },
+        {
+          actionType: SlackActionType.ApproveSecurityPlaybookStep,
+          actionValue: value,
+        },
       ]),
     ).toBe(ROUND.projectId.toString());
 
@@ -241,7 +250,10 @@ describe("what the buttons carry", () => {
       }),
     ).toEqual({
       purpose: "approve this playbook step",
-      again: { kind: WorkspaceConnectRequestAgainKind.Button, label: "Approve" },
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Button,
+        label: "Approve",
+      },
     });
     expect(
       WorkspaceSecurityPlaybookApprovalPress.describe({
@@ -287,13 +299,21 @@ describe("the message", () => {
       }),
     ).toEqual([
       ["Approve", SlackActionType.ApproveSecurityPlaybookStep, true],
-      ["Approve Some…", SlackActionType.ViewApproveSomeSecurityPlaybookStep, false],
+      [
+        "Approve Some…",
+        SlackActionType.ViewApproveSomeSecurityPlaybookStep,
+        false,
+      ],
       ["Reject", SlackActionType.RejectSecurityPlaybookStep, false],
       ["Open Case", SlackActionType.OpenInOneUptime, false],
     ]);
-    expect(buttons.slice(0, 3).map((button: WorkspaceMessagePayloadButton): string => {
-      return button.value;
-    })).toEqual([value, value, value]);
+    expect(
+      buttons
+        .slice(0, 3)
+        .map((button: WorkspaceMessagePayloadButton): string => {
+          return button.value;
+        }),
+    ).toEqual([value, value, value]);
     // Open Case opens the approval on the case, and decides nothing.
     expect(buttons[3]!.url?.toString()).toBe(CASE_URL);
     expect(buttons[3]!.value).toBe("");
@@ -307,7 +327,9 @@ describe("the message", () => {
     expect(markdown).toContain(
       "Asked by playbook **Contain account takeover**, which started when the case opened.",
     );
-    expect(markdown).toContain("• Nothing it acts on is on your protected list.");
+    expect(markdown).toContain(
+      "• Nothing it acts on is on your protected list.",
+    );
     expect(markdown).toContain(
       "Can be undone: each one, with **Unsuspend the user in Okta** on the case.",
     );
@@ -328,9 +350,11 @@ describe("the message", () => {
       });
 
     expect(
-      buttonsOf(message).map((button: WorkspaceMessagePayloadButton): string => {
-        return button.actionId;
-      }),
+      buttonsOf(message).map(
+        (button: WorkspaceMessagePayloadButton): string => {
+          return button.actionId;
+        },
+      ),
     ).toEqual([
       SlackActionType.ApproveSecurityPlaybookStep,
       SlackActionType.RejectSecurityPlaybookStep,
@@ -348,7 +372,10 @@ describe("the message", () => {
               state: SecurityPlaybookTargetState.Done,
               detail: "suspended",
             },
-            { value: "bob@acme.com", state: SecurityPlaybookTargetState.LeftOut },
+            {
+              value: "bob@acme.com",
+              state: SecurityPlaybookTargetState.LeftOut,
+            },
           ],
           standing: {
             kind: SecurityPlaybookApprovalStandingKind.Approved,
@@ -363,9 +390,11 @@ describe("the message", () => {
       });
 
     expect(
-      buttonsOf(approved).map((button: WorkspaceMessagePayloadButton): string => {
-        return button.actionId;
-      }),
+      buttonsOf(approved).map(
+        (button: WorkspaceMessagePayloadButton): string => {
+          return button.actionId;
+        },
+      ),
     ).toEqual([SlackActionType.OpenInOneUptime]);
 
     const markdown: string = markdownOf(approved);
@@ -441,11 +470,20 @@ describe("the message", () => {
       });
 
     expect(
-      buttonsOf(message).map((button: WorkspaceMessagePayloadButton): string => {
-        return button.title;
-      }),
-    ).toEqual(["Genehmigen", "Teilweise genehmigen…", "Ablehnen", "Fall öffnen"]);
-    expect(markdownOf(message)).toContain("**Benutzer in Okta sperren**, über Okta (acme)");
+      buttonsOf(message).map(
+        (button: WorkspaceMessagePayloadButton): string => {
+          return button.title;
+        },
+      ),
+    ).toEqual([
+      "Genehmigen",
+      "Teilweise genehmigen…",
+      "Ablehnen",
+      "Fall öffnen",
+    ]);
+    expect(markdownOf(message)).toContain(
+      "**Benutzer in Okta sperren**, über Okta (acme)",
+    );
     expect(message.notificationText).toBe(
       "Genehmigung nötig für SEC-12: Credential stuffing",
     );
@@ -463,10 +501,12 @@ describe("Approve Some…", () => {
     expect(form.title).toBe("Approve Some");
     expect(form.submitButtonTitle).toBe("Approve");
     expect(form.cancelButtonTitle).toBe("Cancel");
-    expect(form.actionId).toBe(SlackActionType.SubmitApproveSomeSecurityPlaybookStep);
-    expect(WorkspaceSecurityPlaybookApproval.readValue(form.actionValue)).toEqual(
-      ROUND,
+    expect(form.actionId).toBe(
+      SlackActionType.SubmitApproveSomeSecurityPlaybookStep,
     );
+    expect(
+      WorkspaceSecurityPlaybookApproval.readValue(form.actionValue),
+    ).toEqual(ROUND);
 
     const boxes: Array<WorkspaceCheckboxBlock> = form.blocks.filter(
       (block: WorkspaceMessageBlock): boolean => {
@@ -477,11 +517,29 @@ describe("Approve Some…", () => {
     // The protected one is never offered: it is never acted on.
     expect(
       boxes.map((box: WorkspaceCheckboxBlock): Array<unknown> => {
-        return [box.blockId, box.label, box.optionLabel, box.initialValue, box.optional];
+        return [
+          box.blockId,
+          box.label,
+          box.optionLabel,
+          box.initialValue,
+          box.optional,
+        ];
       }),
     ).toEqual([
-      ["approveTarget0", "alice@acme.com: the case is grouped on it", "alice@acme.com", true, true],
-      ["approveTarget1", "bob@acme.com: known to threat intel", "bob@acme.com", true, true],
+      [
+        "approveTarget0",
+        "alice@acme.com: the case is grouped on it",
+        "alice@acme.com",
+        true,
+        true,
+      ],
+      [
+        "approveTarget1",
+        "bob@acme.com: known to threat intel",
+        "bob@acme.com",
+        true,
+        true,
+      ],
     ]);
   });
 
@@ -511,8 +569,12 @@ describe("Approve Some…", () => {
       ]),
     ).toBe(true);
     expect(WorkspaceSecurityPlaybookApproval.isSlackBoxTicked([])).toBe(false);
-    expect(WorkspaceSecurityPlaybookApproval.isSlackBoxTicked(undefined)).toBe(false);
-    expect(WorkspaceSecurityPlaybookApproval.isSlackBoxTicked("value")).toBe(false);
+    expect(WorkspaceSecurityPlaybookApproval.isSlackBoxTicked(undefined)).toBe(
+      false,
+    );
+    expect(WorkspaceSecurityPlaybookApproval.isSlackBoxTicked("value")).toBe(
+      false,
+    );
   });
 });
 
@@ -569,7 +631,8 @@ describe("the payload Slack and Microsoft Teams are sent, for each source of an 
           messageBlocks: message.messageBlocks,
         });
       const json: string = JSON.stringify(blocks);
-      const value: string = WorkspaceSecurityPlaybookApproval.encodeValue(ROUND);
+      const value: string =
+        WorkspaceSecurityPlaybookApproval.encodeValue(ROUND);
 
       // Slack's mrkdwn: bold is one star, the playbook's name stays bold.
       expect(json).toContain(said.split(" ").slice(0, 2).join(" "));
@@ -586,7 +649,11 @@ describe("the payload Slack and Microsoft Teams are sent, for each source of an 
 
       expect(
         actions.map((action: JSONObject): Array<unknown> => {
-          return [action["action_id"], action["value"] || null, action["url"] || null];
+          return [
+            action["action_id"],
+            action["value"] || null,
+            action["url"] || null,
+          ];
         }),
       ).toEqual([
         [SlackActionType.ApproveSecurityPlaybookStep, value, null],
@@ -607,15 +674,17 @@ describe("the payload Slack and Microsoft Teams are sent, for each source of an 
           round: ROUND,
           workspaceType: WorkspaceType.MicrosoftTeams,
         });
-      const card: JSONObject = MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks(
-        { messageBlocks: message.messageBlocks },
-      );
+      const card: JSONObject =
+        MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+          messageBlocks: message.messageBlocks,
+        });
       const texts: string = (card["body"] as Array<JSONObject>)
         .map((element: JSONObject): string => {
           return String(element["text"] || "");
         })
         .join("\n");
-      const value: string = WorkspaceSecurityPlaybookApproval.encodeValue(ROUND);
+      const value: string =
+        WorkspaceSecurityPlaybookApproval.encodeValue(ROUND);
 
       expect(texts).toContain(said.split(" ").slice(0, 2).join(" "));
       expect(texts).toContain("`alice@acme.com`: the case is grouped on it");
@@ -626,18 +695,36 @@ describe("the payload Slack and Microsoft Teams are sent, for each source of an 
             return [
               action["type"],
               (action["data"] as JSONObject | undefined)?.["action"] || null,
-              (action["data"] as JSONObject | undefined)?.["actionValue"] || null,
+              (action["data"] as JSONObject | undefined)?.["actionValue"] ||
+                null,
               action["url"] || null,
             ];
           },
         ),
       ).toEqual([
-        ["Action.Submit", SlackActionType.ApproveSecurityPlaybookStep, value, null],
-        ["Action.Submit", SlackActionType.ViewApproveSomeSecurityPlaybookStep, value, null],
-        ["Action.Submit", SlackActionType.RejectSecurityPlaybookStep, value, null],
+        [
+          "Action.Submit",
+          SlackActionType.ApproveSecurityPlaybookStep,
+          value,
+          null,
+        ],
+        [
+          "Action.Submit",
+          SlackActionType.ViewApproveSomeSecurityPlaybookStep,
+          value,
+          null,
+        ],
+        [
+          "Action.Submit",
+          SlackActionType.RejectSecurityPlaybookStep,
+          value,
+          null,
+        ],
         ["Action.OpenUrl", null, null, CASE_URL],
       ]);
-      expect((card["actions"] as Array<JSONObject>)[0]!["style"]).toBe("positive");
+      expect((card["actions"] as Array<JSONObject>)[0]!["style"]).toBe(
+        "positive",
+      );
     },
   );
 

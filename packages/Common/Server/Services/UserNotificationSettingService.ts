@@ -900,7 +900,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 ...(mattermostMessage.notificationText
                   ? { notificationText: mattermostMessage.notificationText }
                   : {}),
-                ...(mattermostMessage.onSent ? { onSent: mattermostMessage.onSent } : {}),
+                ...(mattermostMessage.onSent
+                  ? { onSent: mattermostMessage.onSent }
+                  : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,

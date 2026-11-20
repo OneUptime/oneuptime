@@ -117,7 +117,10 @@ import {
 import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { WorkspaceLiveMessageDestinationType } from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import { ExpressRequest, ExpressResponse } from "../../../../Server/Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+} from "../../../../Server/Utils/Express";
 import {
   CloudAdapter,
   ConfigurationBotFrameworkAuthentication,
@@ -538,9 +541,7 @@ function cardOf(request: ConnectorRequest | undefined): JSONObject {
 function answersOf(delivery: Delivery): Array<string> {
   return delivery.requests
     .filter((request: ConnectorRequest): boolean => {
-      return (
-        request.method === "POST" && request.activity["type"] !== "typing"
-      );
+      return request.method === "POST" && request.activity["type"] !== "typing";
     })
     .map((request: ConnectorRequest): string => {
       const text: string = String(
@@ -595,7 +596,8 @@ beforeEach(() => {
           ToBotFromChannelOpenIdMetadataUrl: keys.metadataUrl,
           ToBotFromChannelTokenIssuer: ISSUER,
           ToBotFromEmulatorOpenIdMetadataUrl: keys.metadataUrl,
-          ToChannelFromBotLoginUrl: "https://login.botframework.test/test-tenant",
+          ToChannelFromBotLoginUrl:
+            "https://login.botframework.test/test-tenant",
           ToChannelFromBotOAuthScope: "https://api.botframework.test",
           OAuthUrl: "https://token.botframework.test",
           CallerId: "urn:botframework:azure",
@@ -620,7 +622,9 @@ beforeEach(() => {
     );
 
   jest.spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId").mockResolvedValue({
-    projectAuth: { projectId: PROJECT_ID } as unknown as WorkspaceProjectAuthToken,
+    projectAuth: {
+      projectId: PROJECT_ID,
+    } as unknown as WorkspaceProjectAuthToken,
     isAmbiguous: false,
     candidateProjectIds: [PROJECT_ID],
   } as MicrosoftTeamsTenantResolution);
@@ -712,7 +716,9 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
   jest.spyOn(AuditLogService, "recordUpdate").mockImplementation((async () => {
     auditUpdates++;
   }) as never);
@@ -756,16 +762,16 @@ beforeEach(() => {
   jest
     .spyOn(WorkspaceLiveMessageService, "updateOneById")
     .mockResolvedValue(undefined as never);
-  jest.spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth").mockImplementation(
-    (async () => {
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+    .mockImplementation((async () => {
       const auth: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
       auth.projectId = PROJECT_ID;
       auth.workspaceType = WorkspaceType.MicrosoftTeams;
       auth.authToken = "teams-token";
       auth.workspaceProjectId = TENANT_ID;
       return auth;
-    }) as never,
-  );
+    }) as never);
   // The edit of the card, as the Bot Framework is asked for it.
   jest
     .spyOn(MicrosoftTeamsUtil, "updateMessage")
@@ -814,40 +820,55 @@ describe("the Bot Framework's token, checked by the bot's own adapter", () => {
   });
 
   test.each([
-    ["no token at all", (): string | null => {
-      return null;
-    }],
-    ["a token signed with a key the channel never published", (): string | null => {
-      return `Bearer ${channelToken({ serviceUrl: connector.serviceUrl, key: forgingKey.privateKey })}`;
-    }],
-    ["a token that expired more than five minutes ago (stale)", (): string | null => {
-      return `Bearer ${channelToken({ serviceUrl: connector.serviceUrl, expiresInSeconds: -6 * 60 })}`;
-    }],
-    ["a token for another app", (): string | null => {
-      return `Bearer ${channelToken({ serviceUrl: connector.serviceUrl, audience: "99999999-2222-3333-4444-555555555555" })}`;
-    }],
-    ["a token for another service URL", (): string | null => {
-      return `Bearer ${channelToken({ serviceUrl: "https://evil.example/" })}`;
-    }],
-  ])("%s is refused before the press is read", async (
-    _name: string,
-    authorization: () => string | null,
-  ) => {
-    const delivery: Delivery = await deliver(
-      press("ApproveSecurityPlaybookStep"),
-      authorization(),
-    );
+    [
+      "no token at all",
+      (): string | null => {
+        return null;
+      },
+    ],
+    [
+      "a token signed with a key the channel never published",
+      (): string | null => {
+        return `Bearer ${channelToken({ serviceUrl: connector.serviceUrl, key: forgingKey.privateKey })}`;
+      },
+    ],
+    [
+      "a token that expired more than five minutes ago (stale)",
+      (): string | null => {
+        return `Bearer ${channelToken({ serviceUrl: connector.serviceUrl, expiresInSeconds: -6 * 60 })}`;
+      },
+    ],
+    [
+      "a token for another app",
+      (): string | null => {
+        return `Bearer ${channelToken({ serviceUrl: connector.serviceUrl, audience: "99999999-2222-3333-4444-555555555555" })}`;
+      },
+    ],
+    [
+      "a token for another service URL",
+      (): string | null => {
+        return `Bearer ${channelToken({ serviceUrl: "https://evil.example/" })}`;
+      },
+    ],
+  ])(
+    "%s is refused before the press is read",
+    async (_name: string, authorization: () => string | null) => {
+      const delivery: Delivery = await deliver(
+        press("ApproveSecurityPlaybookStep"),
+        authorization(),
+      );
 
-    /*
-     * Refused by the SDK's own check: 401 for what it calls unauthorized,
-     * 500 for a signature it cannot verify (jsonwebtoken's error is not its
-     * AuthenticationError). Either way nothing of the press is read.
-     */
-    expect([401, 500]).toContain(delivery.httpStatus);
-    expect(reads).toBe(0);
-    expect(decisions).toEqual([]);
-    expect(delivery.requests).toEqual([]);
-  });
+      /*
+       * Refused by the SDK's own check: 401 for what it calls unauthorized,
+       * 500 for a signature it cannot verify (jsonwebtoken's error is not its
+       * AuthenticationError). Either way nothing of the press is read.
+       */
+      expect([401, 500]).toContain(delivery.httpStatus);
+      expect(reads).toBe(0);
+      expect(decisions).toEqual([]);
+      expect(delivery.requests).toEqual([]);
+    },
+  );
 
   test("an activity delivered again - the same activity id - is decided once", async () => {
     const activity: JSONObject = press("ApproveSecurityPlaybookStep");
@@ -908,7 +929,9 @@ describe("a playbook step's approval, pressed in Microsoft Teams", () => {
 
     expect(decisions).toHaveLength(1);
     expect(decisions[0]!["status"]).toBe(SecurityPlaybookRunStatus.Cancelled);
-    expect(feed[0]!.markdown).toContain(", from Microsoft Teams, which ends the run.");
+    expect(feed[0]!.markdown).toContain(
+      ", from Microsoft Teams, which ends the run.",
+    );
     expect(answersOf(delivery)).toEqual([
       "You rejected it. The run has ended, and nothing was done.",
     ]);
@@ -927,11 +950,11 @@ describe("a playbook step's approval, pressed in Microsoft Teams", () => {
         return request.method === "POST";
       }),
     );
-    const toggles: Array<JSONObject> = (card["body"] as Array<JSONObject>).filter(
-      (element: JSONObject): boolean => {
-        return element["type"] === "Input.Toggle";
-      },
-    );
+    const toggles: Array<JSONObject> = (
+      card["body"] as Array<JSONObject>
+    ).filter((element: JSONObject): boolean => {
+      return element["type"] === "Input.Toggle";
+    });
 
     expect(
       toggles.map((toggle: JSONObject): Array<unknown> => {
@@ -985,7 +1008,9 @@ describe("a playbook step's approval, pressed in Microsoft Teams", () => {
 
     expect(decisions).toHaveLength(1);
     expect(answersOf(second)).toEqual([
-      expect.stringMatching(/^Already approved by Simon Lee at .+, so nothing more was done\.$/),
+      expect.stringMatching(
+        /^Already approved by Simon Lee at .+, so nothing more was done\.$/,
+      ),
     ]);
   });
 

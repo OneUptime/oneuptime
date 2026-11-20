@@ -1448,8 +1448,9 @@ export default class SecurityCaseNotifications {
     const approval: SecurityPlaybookApprovalRead | null =
       await this.readApproval({ projectId: data.projectId, run });
     const approvalUrl: string = approval?.ask.caseUrl || facts.url;
-    const evidence: SecurityPlaybookApprovalEmailEvidence | undefined =
-      approval ? getApprovalEmailEvidence(approval.ask) : undefined;
+    const evidence: SecurityPlaybookApprovalEmailEvidence | undefined = approval
+      ? getApprovalEmailEvidence(approval.ask)
+      : undefined;
 
     // Each approver's own chat message is in the language on their account.
     const languages: Map<string, string> = new Map<string, string>();

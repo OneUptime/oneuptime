@@ -272,7 +272,9 @@ export default class WorkspaceSecurityPlaybookApprovalActions {
       });
 
     // Somebody got there first, or the run stopped waiting.
-    if (read.ask.standing.kind !== SecurityPlaybookApprovalStandingKind.Waiting) {
+    if (
+      read.ask.standing.kind !== SecurityPlaybookApprovalStandingKind.Waiting
+    ) {
       return refuse(
         WorkspaceSecurityPlaybookApprovalActions.getLateKind(read),
         read,
@@ -301,7 +303,9 @@ export default class WorkspaceSecurityPlaybookApprovalActions {
       return refuse(SecurityPlaybookApprovalAnswerKind.StartedTheRun, read);
     }
 
-    if (data.actionType === SlackActionType.ViewApproveSomeSecurityPlaybookStep) {
+    if (
+      data.actionType === SlackActionType.ViewApproveSomeSecurityPlaybookStep
+    ) {
       return {
         outcome: SecurityPlaybookApprovalPressOutcome.ShowForm,
         language,
@@ -346,12 +350,14 @@ export default class WorkspaceSecurityPlaybookApprovalActions {
         },
       });
     } catch (err) {
-      return await WorkspaceSecurityPlaybookApprovalActions.answerRefusedDecision({
-        err,
-        round: data.round,
-        projectId: data.projectId,
-        language,
-      });
+      return await WorkspaceSecurityPlaybookApprovalActions.answerRefusedDecision(
+        {
+          err,
+          round: data.round,
+          projectId: data.projectId,
+          language,
+        },
+      );
     }
 
     return {

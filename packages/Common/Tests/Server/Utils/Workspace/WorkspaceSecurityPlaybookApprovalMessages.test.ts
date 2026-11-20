@@ -121,7 +121,9 @@ function askOf(
   };
 }
 
-function readOf(ask: SecurityPlaybookApprovalAsk): SecurityPlaybookApprovalRead {
+function readOf(
+  ask: SecurityPlaybookApprovalAsk,
+): SecurityPlaybookApprovalRead {
   return {
     round: ROUND,
     ask,
@@ -193,8 +195,12 @@ let places: Map<WorkspaceType, Array<WorkspaceMessagePayload> | Error>;
 let posted: Array<WorkspaceMessagePayload>;
 let current: SecurityPlaybookApprovalRead | null;
 let readSpy: SpyInstance<typeof SecurityPlaybookApprovalReader.read>;
-let slackEdits: Array<Parameters<typeof SlackUtil.updateMessage>[0]>;
-let teamsEdits: Array<Parameters<typeof MicrosoftTeamsUtil.updateMessage>[0]>;
+// What Slack and the Bot Framework were asked to edit.
+type SlackEdit = Parameters<typeof SlackUtil.updateMessage>[0];
+type TeamsEdit = Parameters<typeof MicrosoftTeamsUtil.updateMessage>[0];
+
+let slackEdits: Array<SlackEdit>;
+let teamsEdits: Array<TeamsEdit>;
 
 beforeEach(() => {
   store = new InMemoryLiveMessages();
@@ -270,9 +276,11 @@ beforeEach(() => {
     });
   jest
     .spyOn(SlackUtil, "updateMessage")
-    .mockImplementation(async (data: Parameters<typeof SlackUtil.updateMessage>[0]) => {
-      slackEdits.push(data);
-    });
+    .mockImplementation(
+      async (data: Parameters<typeof SlackUtil.updateMessage>[0]) => {
+        slackEdits.push(data);
+      },
+    );
   jest
     .spyOn(MicrosoftTeamsUtil, "updateMessage")
     .mockImplementation(
@@ -309,9 +317,11 @@ describe("posting the approval where the case's rules name for approvals", () =>
       });
     }
 
-    expect(posted.map((payload: WorkspaceMessagePayload) => {
-      return [payload.workspaceType, payload.messageBlocks];
-    })).toEqual([
+    expect(
+      posted.map((payload: WorkspaceMessagePayload) => {
+        return [payload.workspaceType, payload.messageBlocks];
+      }),
+    ).toEqual([
       [WorkspaceType.Slack, blocksOf(WAITING, WorkspaceType.Slack, "en")],
       [
         WorkspaceType.MicrosoftTeams,
@@ -348,12 +358,16 @@ describe("posting the approval where the case's rules name for approvals", () =>
       read: WAITING,
     });
 
-    expect(slackEdits.map((edit) => {
-      return edit.messageBlocks;
-    })).toEqual([blocksOf(APPROVED, WorkspaceType.Slack, "en")]);
-    expect(teamsEdits.map((edit) => {
-      return edit.messageBlocks;
-    })).toEqual([blocksOf(APPROVED, WorkspaceType.MicrosoftTeams, "en")]);
+    expect(
+      slackEdits.map((edit: SlackEdit) => {
+        return edit.messageBlocks;
+      }),
+    ).toEqual([blocksOf(APPROVED, WorkspaceType.Slack, "en")]);
+    expect(
+      teamsEdits.map((edit: TeamsEdit) => {
+        return edit.messageBlocks;
+      }),
+    ).toEqual([blocksOf(APPROVED, WorkspaceType.MicrosoftTeams, "en")]);
   });
 
   test("a workspace whose rules cannot be read is left out; the other still gets it", async () => {
@@ -365,9 +379,11 @@ describe("posting the approval where the case's rules name for approvals", () =>
       }),
     ).resolves.toBe(1);
 
-    expect(store.rows.map((row: WorkspaceLiveMessage) => {
-      return row.workspaceType;
-    })).toEqual([WorkspaceType.MicrosoftTeams]);
+    expect(
+      store.rows.map((row: WorkspaceLiveMessage) => {
+        return row.workspaceType;
+      }),
+    ).toEqual([WorkspaceType.MicrosoftTeams]);
   });
 
   test("a place it cannot be posted in is left out; the next place still gets it", async () => {
@@ -385,9 +401,11 @@ describe("posting the approval where the case's rules name for approvals", () =>
       }),
     ).resolves.toBe(2);
 
-    expect(store.rows.map((row: WorkspaceLiveMessage) => {
-      return row.channelId;
-    })).toEqual(["C0SOC", "19:soc@thread.tacv2"]);
+    expect(
+      store.rows.map((row: WorkspaceLiveMessage) => {
+        return row.channelId;
+      }),
+    ).toEqual(["C0SOC", "19:soc@thread.tacv2"]);
   });
 
   test("no rule names a place for approvals: nothing posted, and the run is not read again", async () => {
@@ -500,28 +518,28 @@ describe("keeping each approver's direct message as it lands", () => {
   test.each([
     ["no id at all", ""],
     ["an id no column can keep whole", `D${"0".repeat(600)}`],
-  ])("where it landed cannot be kept (%s): nothing is kept, and nothing edited", async (
-    _name: string,
-    channelId: string,
-  ) => {
-    current = APPROVED;
+  ])(
+    "where it landed cannot be kept (%s): nothing is kept, and nothing edited",
+    async (_name: string, channelId: string) => {
+      current = APPROVED;
 
-    await WorkspaceSecurityPlaybookApprovalMessages.keepDirectMessage({
-      read: WAITING,
-      userId: JANE,
-      language: "en",
-      messageBlocks: blocksOf(WAITING, WorkspaceType.Slack, "en"),
-      sent: {
-        workspaceType: WorkspaceType.Slack,
-        workspaceProjectId: "T0TEAM",
-        channelId,
-        messageId: "1760000000.000300",
-      },
-    });
+      await WorkspaceSecurityPlaybookApprovalMessages.keepDirectMessage({
+        read: WAITING,
+        userId: JANE,
+        language: "en",
+        messageBlocks: blocksOf(WAITING, WorkspaceType.Slack, "en"),
+        sent: {
+          workspaceType: WorkspaceType.Slack,
+          workspaceProjectId: "T0TEAM",
+          channelId,
+          messageId: "1760000000.000300",
+        },
+      });
 
-    expect(store.rows).toEqual([]);
-    expect(slackEdits).toEqual([]);
-  });
+      expect(store.rows).toEqual([]);
+      expect(slackEdits).toEqual([]);
+    },
+  );
 
   test("a row that cannot be written loses the edit, never the message: nothing throws", async () => {
     current = APPROVED;
@@ -585,7 +603,11 @@ describe("drawing every copy again when the approval moves on", () => {
   }
 
   beforeEach(() => {
-    keep({ workspaceType: WorkspaceType.Slack, channelId: "C0SOC", language: "en" });
+    keep({
+      workspaceType: WorkspaceType.Slack,
+      channelId: "C0SOC",
+      language: "en",
+    });
     keep({
       workspaceType: WorkspaceType.Slack,
       channelId: "D0JANE",
@@ -620,7 +642,7 @@ describe("drawing every copy again when the approval moves on", () => {
       stepIndex: 1,
     });
     expect(
-      slackEdits.map((edit) => {
+      slackEdits.map((edit: SlackEdit) => {
         return [edit.location.channelId, edit.messageBlocks];
       }),
     ).toEqual([
@@ -653,7 +675,9 @@ describe("drawing every copy again when the approval moves on", () => {
     current = APPROVED;
     jest
       .mocked(SlackUtil.updateMessage)
-      .mockRejectedValueOnce(new BadRequestException("Error from Slack is_archived"));
+      .mockRejectedValueOnce(
+        new BadRequestException("Error from Slack is_archived"),
+      );
 
     await expect(
       WorkspaceSecurityPlaybookApprovalMessages.refreshStep({
@@ -663,9 +687,11 @@ describe("drawing every copy again when the approval moves on", () => {
       }),
     ).resolves.toBe(2);
 
-    expect(slackEdits.map((edit) => {
-      return edit.location.channelId;
-    })).toEqual(["D0JANE"]);
+    expect(
+      slackEdits.map((edit: SlackEdit) => {
+        return edit.location.channelId;
+      }),
+    ).toEqual(["D0JANE"]);
     expect(teamsEdits).toHaveLength(1);
   });
 
@@ -688,9 +714,11 @@ describe("drawing every copy again when the approval moves on", () => {
      * channel post does. Jane's direct messages were sent through other
      * workspaces than the one the project is connected to now: left alone.
      */
-    expect(slackEdits.map((edit) => {
-      return edit.location.channelId;
-    })).toEqual(["C0SOC"]);
+    expect(
+      slackEdits.map((edit: SlackEdit) => {
+        return edit.location.channelId;
+      }),
+    ).toEqual(["C0SOC"]);
     expect(teamsEdits).toEqual([]);
   });
 
@@ -798,14 +826,22 @@ describe("which of a run's steps are drawn again", () => {
     ).resolves.toBe(2);
 
     expect(
-      refreshStep.mock.calls.map((call) => {
-        return call[0].stepIndex;
-      }),
+      refreshStep.mock.calls.map(
+        (
+          call: Parameters<
+            typeof WorkspaceSecurityPlaybookApprovalMessages.refreshStep
+          >,
+        ) => {
+          return call[0].stepIndex;
+        },
+      ),
     ).toEqual([0, 2]);
   });
 
   test("a run that is gone: nothing", async () => {
-    jest.spyOn(SecurityPlaybookApprovalReader, "readRun").mockResolvedValue(null);
+    jest
+      .spyOn(SecurityPlaybookApprovalReader, "readRun")
+      .mockResolvedValue(null);
     const refreshStep: SpyInstance<
       typeof WorkspaceSecurityPlaybookApprovalMessages.refreshStep
     > = jest.spyOn(WorkspaceSecurityPlaybookApprovalMessages, "refreshStep");

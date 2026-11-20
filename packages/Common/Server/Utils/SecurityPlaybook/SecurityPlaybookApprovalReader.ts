@@ -393,7 +393,10 @@ export default class SecurityPlaybookApprovalReader {
         actsOnEntities && definition
           ? getSecurityPlaybookUndoAction(definition.type)?.type
           : undefined,
-      standing: await SecurityPlaybookApprovalReader.getStanding({ run, result }),
+      standing: await SecurityPlaybookApprovalReader.getStanding({
+        run,
+        result,
+      }),
     };
 
     return {
@@ -448,9 +451,10 @@ export default class SecurityPlaybookApprovalReader {
       };
     }
 
-    const deciderName: string = await SecurityPlaybookApprovalReader.getPersonName(
-      result.approval?.decidedByUserId,
-    );
+    const deciderName: string =
+      await SecurityPlaybookApprovalReader.getPersonName(
+        result.approval?.decidedByUserId,
+      );
     const decidedAt: Date | undefined = SecurityPlaybookApprovalReader.readDate(
       result.approval?.decidedAt,
     );
@@ -463,9 +467,8 @@ export default class SecurityPlaybookApprovalReader {
       };
     }
 
-    const completedAt: Date | undefined = SecurityPlaybookApprovalReader.readDate(
-      result.completedAt,
-    );
+    const completedAt: Date | undefined =
+      SecurityPlaybookApprovalReader.readDate(result.completedAt);
 
     let progress: SecurityPlaybookApprovalProgress;
 
@@ -510,9 +513,10 @@ export default class SecurityPlaybookApprovalReader {
     const playbookName: string = run.playbookName || "";
 
     if (run.triggeredByUserId) {
-      const personName: string = await SecurityPlaybookApprovalReader.getPersonName(
-        run.triggeredByUserId.toString(),
-      );
+      const personName: string =
+        await SecurityPlaybookApprovalReader.getPersonName(
+          run.triggeredByUserId.toString(),
+        );
 
       if (personName) {
         return {
@@ -551,7 +555,9 @@ export default class SecurityPlaybookApprovalReader {
               undoneByName: await SecurityPlaybookApprovalReader.getPersonName(
                 target.undoneByUserId,
               ),
-              undoneAt: SecurityPlaybookApprovalReader.readDate(target.undoneAt),
+              undoneAt: SecurityPlaybookApprovalReader.readDate(
+                target.undoneAt,
+              ),
             }
           : {}),
       });
@@ -569,7 +575,10 @@ export default class SecurityPlaybookApprovalReader {
       "connectionId"
     ] as JSONValue | undefined;
 
-    if (typeof connectionId !== "string" || !ObjectID.isValidUUID(connectionId)) {
+    if (
+      typeof connectionId !== "string" ||
+      !ObjectID.isValidUUID(connectionId)
+    ) {
       return undefined;
     }
 
@@ -656,7 +665,9 @@ export default class SecurityPlaybookApprovalReader {
     );
 
     if (data.actsOnEntities && actsOnSome) {
-      evidence.push({ kind: SecurityPlaybookApprovalEvidenceKind.NotProtected });
+      evidence.push({
+        kind: SecurityPlaybookApprovalEvidenceKind.NotProtected,
+      });
     }
 
     return evidence;

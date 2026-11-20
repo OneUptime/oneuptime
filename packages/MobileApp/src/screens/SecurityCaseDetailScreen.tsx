@@ -140,7 +140,9 @@ export const CASE_ACTION_MIN_WIDTH: number = 180;
 const AI_TRIAGE_FEED_EVENT: string = "AiTriage";
 
 function isSameId(a: string | null | undefined, b: string | null): boolean {
-  return Boolean(a) && Boolean(b) && String(a).toLowerCase() === b!.toLowerCase();
+  return (
+    Boolean(a) && Boolean(b) && String(a).toLowerCase() === b!.toLowerCase()
+  );
 }
 
 /*

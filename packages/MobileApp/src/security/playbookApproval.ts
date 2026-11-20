@@ -408,7 +408,9 @@ export function readContainedPlaybookTargets(
  * What an undo is asked to confirm, as the dashboard asks it: the target
  * gets its access back.
  */
-export function describePlaybookUndo(contained: ContainedPlaybookTarget): string {
+export function describePlaybookUndo(
+  contained: ContainedPlaybookTarget,
+): string {
   return `${contained.target.value} gets its access back, undoing step ${contained.stepNumber}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.`;
 }
 

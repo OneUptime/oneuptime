@@ -540,7 +540,9 @@ describe("a step's approval, as its chat messages say it", () => {
     targets: ["alice@acme.test: the case is grouped on it"],
     leftAlone: ["ceo@acme.test: on your protected list"],
     source: "Asked by playbook Contain, which started when the case opened.",
-    evidence: ["12 requests behind the case: Turned away: 9, Reached the app: 3"],
+    evidence: [
+      "12 requests behind the case: Turned away: 9, Reached the app: 3",
+    ],
     undo: "Can be undone: each one, with Unsuspend the user in Okta on the case.",
   };
 
