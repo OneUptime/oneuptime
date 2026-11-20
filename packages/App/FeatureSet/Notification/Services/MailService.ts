@@ -1675,9 +1675,15 @@ export default class MailService {
        * readable by project members who may not touch subscribers, so it
        * keeps the link with its token redacted (see
        * StatusPageSubscriberUnsubscribe.redactCredentials).
+       *
+       * And the subject the sender gave for the log, when it gave one
+       * (EmailEnvelope.projectLogSubject): an invitation written in the
+       * invitee's own language is logged in the inviter's, so the log does
+       * not say which addresses had an account, nor what they read (#9897).
+       * The server's own email log keeps the subject sent.
        */
       emailLog.subject = StatusPageSubscriberUnsubscribe.redactCredentials(
-        mail.subject,
+        MailService.getProjectLogSubject(mail),
       );
 
       /*
@@ -2083,6 +2089,19 @@ export default class MailService {
 
       throw err;
     }
+  }
+
+  /*
+   * The subject a project's email log keeps of an email (before its
+   * credentials are redacted): the one its sender gave for the log
+   * (EmailEnvelope.projectLogSubject, #9897), else the one sent.
+   */
+  public static getProjectLogSubject(mail: EmailEnvelope): string {
+    const projectLogSubject: string | undefined = mail.projectLogSubject;
+
+    return typeof projectLogSubject === "string" && projectLogSubject.trim()
+      ? projectLogSubject
+      : mail.subject;
   }
 
   // What an email that went says of itself, with or without its images.

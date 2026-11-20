@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | 모니터의 검사를 실행하는 글로벌 프로브. 호스트의 네트워크를 사용합니다. |
 | `global-runner` | `oneuptime/runner` | 모든 프로젝트의 런북 JavaScript 단계와 OneUptime AI의 코드 수정을 실행하는, 함께 제공되는 글로벌 Runner. |
 | `postgres` | `postgres:15` | 구성과 상태: 모니터, 인시던트, 사용자. `postgres` 볼륨에 저장됩니다. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | 텔레메트리: 로그, 메트릭, 트레이스, 예외. `clickhouse` 볼륨에 저장됩니다. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | 텔레메트리: 로그, 메트릭, 트레이스, 예외. `clickhouse` 볼륨에 저장됩니다. |
 | `valkey` | `valkey/valkey:9.1-alpine` | 캐시와 큐. 디스크에는 아무것도 보관하지 않습니다. |
 
 > [!NOTE]
@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-모든 컨테이너가 실행되면 `npm run status-check`로 검사를 다시 실행합니다. 이 검사는 `ONEUPTIME_HTTP_PORT`가 ingress를 공개한 주소와 포트(예: `127.0.0.1:8080`)에서, 서버의 브라우저처럼 호스트 이름 `localhost`로 ingress를 확인합니다.
+모든 컨테이너가 실행되면 `npm run status-check`로 검사를 다시 실행합니다. 이 검사는 `ONEUPTIME_HTTP_PORT`가 ingress를 공개한 주소와 포트(예: `127.0.0.1:8080`)에서, 서버의 브라우저처럼 호스트 이름 `localhost`로 ingress를 확인합니다. `PROVISION_SSL=true`이면 `STATUS_PAGE_HTTPS_PORT`가 ingress를 공개한 곳에서 `HOST`도 HTTPS로 확인합니다.
 :::
 
 :::details 브라우저에 "이 주소에는 OneUptime이 설정되어 있지 않습니다"가 표시됨

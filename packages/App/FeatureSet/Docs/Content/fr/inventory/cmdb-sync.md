@@ -171,6 +171,7 @@ Le [tableau des hôtes](#attributs-dactif-des-hôtes) et le [tableau des équipe
 | Nom du système d'exploitation | `os.name` | Seulement depuis les SDK qui le déclarent : sinon `os.description` nomme le système |
 | Type d'appareil | `device.type` | Facultatif : apposez-le de la même façon (`Hypervisor`, `Workstation`) |
 | Emplacement | `device.location` | Facultatif : apposez-le de la même façon (`Frankfurt DC, Rack B4`) |
+| Niveau du correctif de sécurité | `android.os.security_patch` | Sur un appareil Android : fourni par l'Agent Android ou par son gestionnaire d'appareils |
 
 Tout ce qui est marqué Oui vient du processeur `resourcedetection` du collecteur, et figure déjà dans la configuration que OneUptime génère pour vous.
 

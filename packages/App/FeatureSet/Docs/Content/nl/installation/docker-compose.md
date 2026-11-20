@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | Een globale sonde die de controles van uw monitors uitvoert. Hij gebruikt het netwerk van de host. |
 | `global-runner` | `oneuptime/runner` | De meegeleverde globale Runner, die de JavaScript-stappen van runbooks en de codecorrecties van OneUptime AI voor elk project uitvoert. |
 | `postgres` | `postgres:15` | Configuratie en status: monitors, incidenten, gebruikers. Opgeslagen in het volume `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetrie: logs, metrics, traces en exceptions. Opgeslagen in het volume `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Telemetrie: logs, metrics, traces en exceptions. Opgeslagen in het volume `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache en wachtrijen. Hij bewaart niets op schijf. |
 
 > [!NOTE]
@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Zodra elke container draait, voert u de controle opnieuw uit met `npm run status-check`. Die controleert de ingress waar `ONEUPTIME_HTTP_PORT` hem publiceert, met adres en poort, zoals `127.0.0.1:8080`, en met de hostnaam `localhost`, zoals een browser op de server zou doen.
+Zodra elke container draait, voert u de controle opnieuw uit met `npm run status-check`. Die controleert de ingress waar `ONEUPTIME_HTTP_PORT` hem publiceert, met adres en poort, zoals `127.0.0.1:8080`, en met de hostnaam `localhost`, zoals een browser op de server zou doen. Met `PROVISION_SSL=true` controleert die ook `HOST` via HTTPS, waar `STATUS_PAGE_HTTPS_PORT` de ingress publiceert.
 :::
 
 :::details De browser toont "OneUptime is niet ingesteld voor dit adres"

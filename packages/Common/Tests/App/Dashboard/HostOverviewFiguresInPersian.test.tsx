@@ -302,13 +302,27 @@ function drawnTiles(): Array<DrawnTile> {
     });
 }
 
-// The Filesystems table's use column: "96.0%" a row.
+function drawnTexts(testId: string): Array<string> {
+  return screen.queryAllByTestId(testId).map((cell: HTMLElement): string => {
+    return withoutIsolateMarks(cell.textContent || "").trim();
+  });
+}
+
+/*
+ * The Filesystems table's Used column, a mount a row, as the shared storage
+ * bar draws it since 4da47f4f578 (#9647): its share used, whole as every
+ * storage bar writes it, then how much - "96%" over "96.0 GiB".
+ */
 function drawnFilesystemUse(): Array<string> {
-  return screen
-    .queryAllByTestId("host-filesystem-utilization")
-    .map((cell: HTMLElement): string => {
-      return withoutIsolateMarks(cell.textContent || "").trim();
-    });
+  return drawnTexts("host-filesystem-usage");
+}
+
+// Its Free and Size columns, a mount a row: figures too.
+function drawnFilesystemSpace(): Array<string> {
+  return [
+    ...drawnTexts("host-filesystem-free"),
+    ...drawnTexts("host-filesystem-size"),
+  ];
 }
 
 // Every figure the page drew that should be in the reader's digits.
@@ -324,11 +338,13 @@ function drawnFigures(): Array<string> {
     }
   }
 
-  return [...figures, ...drawnFilesystemUse()].filter(
-    (text: string): boolean => {
-      return text !== "" && text !== "—";
-    },
-  );
+  return [
+    ...figures,
+    ...drawnFilesystemUse(),
+    ...drawnFilesystemSpace(),
+  ].filter((text: string): boolean => {
+    return text !== "" && text !== "—";
+  });
 }
 
 describe("a host's Overview on a Persian page", () => {
@@ -372,13 +388,34 @@ describe("a host's Overview on a Persian page", () => {
 
     const use: Array<string> = drawnFilesystemUse();
 
-    expect(use.length).toBeGreaterThan(0);
-    expect(use).toContain("۹۶٫۰٪");
+    // "/" and "/var", a row each.
+    expect(use).toHaveLength(2);
+    // /var 96% full and / 30%: Persian digits and Persian's percent sign.
+    expect(
+      use.some((cell: string): boolean => {
+        return cell.startsWith("۹۶٪");
+      }),
+    ).toBe(true);
+    expect(
+      use.some((cell: string): boolean => {
+        return cell.startsWith("۳۰٪");
+      }),
+    ).toBe(true);
 
-    for (const cell of use) {
-      expect({ cell, latin: LATIN_DIGIT.test(cell) }).toEqual({
+    // Each mount's use, what is free and its size: no Latin digit in any.
+    const space: Array<string> = drawnFilesystemSpace();
+
+    expect(space).toHaveLength(4);
+
+    for (const cell of [...use, ...space]) {
+      expect({
+        cell,
+        latin: LATIN_DIGIT.test(cell),
+        persian: PERSIAN_DIGIT.test(cell),
+      }).toEqual({
         cell,
         latin: false,
+        persian: true,
       });
     }
   });
@@ -448,7 +485,18 @@ describe("the same page in English and German (the negative control)", () => {
         return tile.value;
       }),
     ).toEqual(["40.0%", "50.0%", "96.0%", "1.00", "3"]);
-    expect(drawnFilesystemUse()).toContain("96.0%");
+    expect(
+      drawnFilesystemUse().some((cell: string): boolean => {
+        return cell.startsWith("96%");
+      }),
+    ).toBe(true);
+    expect(
+      [...drawnFilesystemUse(), ...drawnFilesystemSpace()].every(
+        (cell: string): boolean => {
+          return LATIN_DIGIT.test(cell);
+        },
+      ),
+    ).toBe(true);
     expect(
       drawnFigures().some((text: string): boolean => {
         return PERSIAN_DIGIT.test(text);

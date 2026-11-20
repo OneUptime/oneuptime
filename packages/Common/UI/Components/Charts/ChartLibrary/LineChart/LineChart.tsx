@@ -42,6 +42,7 @@ import useChartRangeSelection, {
 import { AxisDomain } from "recharts/types/util/types";
 
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
+import { getLegendExtraRowsHeight } from "../Utils/LegendExtraRows";
 import {
   AvailableChartColors,
   ChartColorValue,
@@ -446,25 +447,8 @@ const Legend: React.ForwardRefExoticComponent<
 
 Legend.displayName = "Legend";
 
-/*
- * How much taller a legend is than its first row: 0 while its items fit on
- * one line, a row's height for each line they wrap onto.
- */
-export function getLegendExtraRowsHeight(
-  legend: HTMLElement | null | undefined,
-): number {
-  if (!legend) {
-    return 0;
-  }
-
-  const firstItem: HTMLElement | null = legend.querySelector("li");
-
-  if (!firstItem) {
-    return 0;
-  }
-
-  return Math.max(0, legend.clientHeight - firstItem.offsetHeight);
-}
+// The measure the area and bar charts' legends take too.
+export { getLegendExtraRowsHeight };
 
 const ChartLegend: (
   { payload }: any,

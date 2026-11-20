@@ -159,7 +159,10 @@ jobs:
       # stand-in App on node:26-alpine3.24, published on 127.0.0.1, [::1],
       # an address of the runner's own and a port alone, as
       # ONEUPTIME_HTTP_PORT can publish it (#10024). The check must pass on
-      # each, and the check it replaced must fail on one address.
+      # each, and the check it replaced must fail on one address. A second
+      # ingress serves HOST over HTTPS (PROVISION_SSL, a certificate made
+      # with the runner's openssl), published as STATUS_PAGE_HTTPS_PORT can
+      # publish it, and the check must ask for HOST over HTTPS there (#10169).
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"

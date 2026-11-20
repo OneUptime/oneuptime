@@ -836,7 +836,8 @@ const HostSystemdUnitView: FunctionComponent<
                   })
                 : "no samples in range"
           }
-          isSublabelTranslated={Boolean(failedLine)}
+          // Why it failed, or when it was read: worded here. Else English.
+          isSublabelTranslated={Boolean(failedLine || identity.latestSampleAt)}
         />
         <StatTile
           title="Availability"
@@ -878,6 +879,8 @@ const HostSystemdUnitView: FunctionComponent<
                   },
                 )
           }
+          // A count of samples, worded here.
+          isSublabelTranslated={true}
           percent={availability.percent}
           barClassName={
             availability.percent === null
@@ -911,6 +914,8 @@ const HostSystemdUnitView: FunctionComponent<
                 )
               : "in selected range"
           }
+          // Since when, worded here. Else English, looked up by the tile.
+          isSublabelTranslated={Boolean(truncatedFrom)}
         />
       </div>
     );

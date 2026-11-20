@@ -1,4 +1,7 @@
+import { formatReaderFigure } from "../../Types/DateLanguage";
 import {
+  composedValue,
+  formatList,
   TemplateValue,
   translationKey,
   Translator,
@@ -29,7 +32,16 @@ import { StateListType } from "../StateListType";
  *     monitor's monitoring was turned off, a network site recovered, an SLO,
  *     its burn rate rule or its policy tier no longer holds it open, a
  *     budget's month ended, Data Security or Data Observability closed it,
- *     auto-remediation or OneUptime AI fixed it.
+ *     auto-remediation or OneUptime AI fixed it;
+ *   - and an incident's or an alert's own root cause, when OneUptime opened
+ *     it itself (#10125): a Sigma rule or a threat intel feed matched, a Data
+ *     Security check failed, an incoming request matched a grouping key, an
+ *     SLO's burn rate or error budget crossed its line, a network site rolled
+ *     up, what cost the most of a cloud budget, a workflow or a chat paged
+ *     people - and, on older records, who opened it. The record's Root Cause
+ *     page and its What happened card read it (RecordRootCauseWording), and
+ *     so does View Cause: IncidentService and AlertService copy it to the
+ *     record's first state, and to every monitor status it changed.
  *
  * Each note is defined here once (StatusChangeNote): how OneUptime writes it,
  * its values as {{placeholders}}, how older rows wrote it, and the key the
@@ -68,6 +80,28 @@ export interface StatusChangeNote {
    * of its list ("Operational") reads in the reader's words.
    */
   recordNames?: Readonly<Record<string, StateListType>> | undefined;
+  /*
+   * The values that are a person as OneUptime names one - their name linked
+   * to their page, "[Jane Doe](https://...)", as mdText writes it. The note
+   * is read only when the value is one: a root cause a person typed that
+   * starts the same way ("Incident created by a bad deploy") reads as
+   * written.
+   */
+  people?: ReadonlyArray<string> | undefined;
+  // The values that are a chat handle with its "@", "@maya": read only so.
+  handles?: ReadonlyArray<string> | undefined;
+  /*
+   * The values that are a percentage as a writer places it ("25%",
+   * "12.35%"): read only so, and written in the reader's digits ("۲۵٪").
+   */
+  percents?: ReadonlyArray<string> | undefined;
+  /*
+   * The values that are a list of what cost what, as a budget writes it -
+   * "Amazon EC2 ($437.87), Amazon S3 ($272.74) and AWS Lambda ($34.84)" -
+   * each item kept as written, joined as the reader's language joins a
+   * list ("... و AWS Lambda ($34.84)").
+   */
+  costs?: ReadonlyArray<string> | undefined;
 }
 
 // Each value: at most this long, on one line, so a match is linear in the text.
@@ -79,6 +113,34 @@ const PLACEHOLDER: RegExp = /\{\{(\w+)\}\}/g;
 
 // A figure as a writer places it: digits only.
 const WHOLE_NUMBER: RegExp = /^\d+$/;
+
+/*
+ * A value of a shape (people, handles, percents), as a pattern reads it:
+ * bounded, on one line, so a match stays linear in the text. A person's
+ * link is the one WhoOpenedItRootCause has always read: its text as mdText
+ * escaped it, its address without a space or a bracket.
+ */
+const PERSON_LINK_PATTERN: string = String.raw`\[(?:\\.|[^\\\]\n]){1,${MAX_VALUE_LENGTH}}\]\([^()\s]{1,${MAX_VALUE_LENGTH}}\)`;
+const HANDLE_PATTERN: string = `@[^\\n]{1,${MAX_VALUE_LENGTH}}?`;
+const PERCENT_PATTERN: string = String.raw`\d{1,12}(?:\.\d{1,12})?%`;
+
+// A percentage as a writer places it, its figure apart from its sign.
+const PERCENT_VALUE: RegExp = /^(\d{1,12}(?:\.\d{1,12})?)%$/;
+
+// The most decimals a percentage is written with: formatSloPolicyTierThreshold's.
+const PERCENT_DECIMALS: number = 2;
+
+/*
+ * One item of a list of costs: what, then what it cost in brackets - an
+ * amount, so it holds a digit ("Amazon EC2 ($437.87)").
+ */
+const COST_ITEM: RegExp = /^[^\n]+ \([^()\n]*\d[^()\n]*\)$/;
+
+// Where one item of a list of costs ends and the next begins, as written.
+const COST_SEPARATOR: RegExp = /\)(?:, | and )/g;
+
+// The last two items of a list, as the reader's language joins them.
+const ITEMS_AND_LAST: string = translationKey("{{items}} and {{last}}");
 
 /*
  * ---------------------------------------------------------------------------
@@ -653,6 +715,123 @@ const FIXED_NOTES: ReadonlyArray<StatusChangeNote> = [
 ];
 
 /*
+ * ---------------------------------------------------------------------------
+ * An incident's or an alert's own root cause, when OneUptime opened it
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * Who opened the record, as OneUptime wrote it into an empty root cause
+ * until e1318450be7: still on older records, their first state and the
+ * monitor statuses they changed. It says who, not why, so the What
+ * happened card reads it as no root cause yet (WhoOpenedItRootCause); the
+ * Root Cause page and View Cause say who declared or created it, as a state
+ * a person changed says "Changed by".
+ */
+export const WHO_OPENED_IT_NOTES: ReadonlyArray<StatusChangeNote> = [
+  {
+    written: "Incident created by {{user}}",
+    said: translationKey("Declared by {{user}}"),
+    people: ["user"],
+  },
+  {
+    written: "Alert created by {{user}}",
+    said: translationKey("Created by {{user}}"),
+    people: ["user"],
+  },
+  // Slack's Declare Incident: the member's handle, "@maya", as Slack sent it.
+  {
+    written: "Incident created by {{handle}} on Slack.",
+    said: translationKey("Declared by {{handle}} in Slack."),
+    handles: ["handle"],
+  },
+  // Microsoft Teams' Declare Incident, and the OneUptime AI copilot's tool.
+  {
+    written: "Incident created via Microsoft Teams",
+    said: translationKey("Declared from Microsoft Teams."),
+  },
+  {
+    written: "Incident created via the OneUptime AI copilot.",
+    said: translationKey("Declared by OneUptime AI."),
+  },
+];
+
+/*
+ * Why OneUptime opened the record (#10125): a security detection, an
+ * incoming request's grouping key, an SLO, a network site, a cloud budget,
+ * a page. Each writer places its values with mdText, and
+ * StateChangeNotesInReadersLanguage.test.ts holds it to its template here.
+ */
+const RECORD_ROOT_CAUSE_NOTES: ReadonlyArray<StatusChangeNote> = [
+  /*
+   * IncomingRequestIncidentGrouping: the key as code, the span mdText
+   * writes around it part of the value ("`checkout-42`").
+   */
+  {
+    written: translationKey("Incoming request matched grouping key {{key}}."),
+  },
+  // DetectionRuleEvaluator and ThreatIntelMatcher, an alert's or an incident's.
+  {
+    written: translationKey(
+      'Sigma detection rule "{{rule}}" matched security events.',
+    ),
+  },
+  {
+    written: translationKey(
+      'Threat intel feed "{{feed}}" indicator matched security events.',
+    ),
+  },
+  // DataSecurityIntegrations: the check's id and the store's name, as written.
+  {
+    written: translationKey(
+      'The Data Security check "{{check}}" failed on {{store}}.',
+    ),
+  },
+  // The EvaluateSlos job: a burn rate rule's breach, and a policy tier's.
+  {
+    written: translationKey(
+      'Error budget burn rate breached the "{{rule}}" rule of SLO "{{slo}}".',
+    ),
+  },
+  {
+    written: translationKey(
+      'The error budget left of SLO "{{slo}}" is at or below {{threshold}}, the "{{tier}}" tier of its error budget policy.',
+    ),
+    percents: ["threshold"],
+  },
+  // NetworkSiteService: the site's alert, the status it rolled up to.
+  {
+    written: translationKey(
+      "Network site **{{site}}** rolled up to **{{status}}**.",
+    ),
+    recordNames: { status: StateListType.MonitorStatus },
+  },
+  // CloudBudgetEvaluator.describeTopServices: where the month's money went.
+  {
+    written: translationKey("What cost the most this month: {{services}}."),
+    costs: ["services"],
+  },
+  /*
+   * An alert opened to page people (OnCallPageService for a workflow,
+   * WorkspacePage for Slack and Microsoft Teams, its name as written).
+   */
+  {
+    written: translationKey(
+      "Created by workflow **{{workflow}}** to page people.",
+    ),
+  },
+  {
+    written: translationKey(
+      "Created by **{{pager}}** from {{workspace}} to page people.",
+    ),
+  },
+  {
+    written: translationKey("Created from {{workspace}} to page people."),
+  },
+  ...WHO_OPENED_IT_NOTES,
+];
+
+/*
  * Every note OneUptime writes, in the order they are read: a note's
  * template is literal enough that no two match the same text.
  */
@@ -668,6 +847,7 @@ export const STATUS_CHANGE_NOTES: ReadonlyArray<StatusChangeNote> = [
   ...BUDGET_NOTES,
   ...DATA_NOTES,
   ...FIXED_NOTES,
+  ...RECORD_ROOT_CAUSE_NOTES,
 ];
 
 // A note's placeholders, in the order its template names them, each once.
@@ -687,11 +867,29 @@ export function getStatusChangeNotePlaceholders(
   return names;
 }
 
+// What a value of the note may be, as a pattern: its shape's, else any line.
+function getValuePattern(note: StatusChangeNote, name: string): string {
+  if (note.people?.includes(name)) {
+    return PERSON_LINK_PATTERN;
+  }
+
+  if (note.handles?.includes(name)) {
+    return HANDLE_PATTERN;
+  }
+
+  if (note.percents?.includes(name)) {
+    return PERCENT_PATTERN;
+  }
+
+  return `[^\\n]{1,${MAX_VALUE_LENGTH}}?`;
+}
+
 /*
  * A template as a pattern that reads a stored note whole: its words as
- * written, each value lazy and bounded, a value named twice the same twice.
+ * written, each value lazy and bounded (or of its shape), a value named
+ * twice the same twice.
  */
-function toPattern(template: string): RegExp {
+function toPattern(template: string, note: StatusChangeNote): RegExp {
   let pattern: string = "^";
   let index: number = 0;
   const seen: Set<string> = new Set<string>();
@@ -702,7 +900,7 @@ function toPattern(template: string): RegExp {
     pattern += escapeRegExp(template.slice(index, match.index));
     pattern += seen.has(name)
       ? `\\k<${name}>`
-      : `(?<${name}>[^\\n]{1,${MAX_VALUE_LENGTH}}?)`;
+      : `(?<${name}>${getValuePattern(note, name)})`;
     seen.add(name);
     index = (match.index as number) + match[0].length;
   }
@@ -719,7 +917,11 @@ const READABLE_NOTES: ReadonlyArray<ReadableNote> = STATUS_CHANGE_NOTES.map(
   (note: StatusChangeNote): ReadableNote => {
     return {
       note: note,
-      patterns: [note.written, ...(note.formerly || [])].map(toPattern),
+      patterns: [note.written, ...(note.formerly || [])].map(
+        (template: string): RegExp => {
+          return toPattern(template, note);
+        },
+      ),
     };
   },
 );
@@ -748,7 +950,37 @@ export function readStatusChangeNote(text: string): {
   return null;
 }
 
-// A note's value as the sentence takes it: a figure in the reader's digits, a default name in their words.
+/*
+ * The items of a list of costs as a budget wrote it ("A ($1), B ($2) and C
+ * ($3)"), each as written; null when it is not one, item by item - a name
+ * with a ", " of its own in brackets is read as no list, and kept whole.
+ */
+export function readCostItems(list: string): Array<string> | null {
+  const items: Array<string> = [];
+  let start: number = 0;
+
+  for (const separator of list.matchAll(COST_SEPARATOR)) {
+    // The bracket that ends an item is the item's.
+    items.push(list.slice(start, (separator.index as number) + 1));
+    start = (separator.index as number) + separator[0].length;
+  }
+
+  items.push(list.slice(start));
+
+  return items.every((item: string): boolean => {
+    return COST_ITEM.test(item);
+  })
+    ? items
+    : null;
+}
+
+/*
+ * A note's value as the sentence takes it: a figure or a percentage in the
+ * reader's digits, a default name in their words, a list of costs joined
+ * as their language joins a list. A list and a percentage are written with
+ * the sentence's translator (composedValue): an English sentence of a
+ * language that does not word it yet reads "and", and English digits.
+ */
 function toTemplateValue(data: {
   note: StatusChangeNote;
   name: string;
@@ -760,6 +992,39 @@ function toTemplateValue(data: {
 
     if (Number.isFinite(figure) && WHOLE_NUMBER.test(data.value)) {
       return data.translator.formatNumber(figure);
+    }
+  }
+
+  if (data.note.percents?.includes(data.name)) {
+    const percent: RegExpExecArray | null = PERCENT_VALUE.exec(data.value);
+    const figure: number = percent ? Number(percent[1]) : Number.NaN;
+
+    if (Number.isFinite(figure)) {
+      return composedValue((sentence: Translator): string => {
+        return formatReaderFigure(figure, {
+          decimals: PERCENT_DECIMALS,
+          dropTrailingZeros: true,
+          isPercent: true,
+          language: sentence.language,
+        });
+      });
+    }
+  }
+
+  if (data.note.costs?.includes(data.name)) {
+    const items: Array<string> | null = readCostItems(data.value);
+
+    if (items && items.length > 1) {
+      return composedValue((sentence: Translator): string => {
+        return sentence.translateTemplate(
+          ITEMS_AND_LAST,
+          {
+            items: formatList(items.slice(0, -1), sentence),
+            last: items[items.length - 1] as string,
+          },
+          { setsValuesApart: true },
+        );
+      });
     }
   }
 

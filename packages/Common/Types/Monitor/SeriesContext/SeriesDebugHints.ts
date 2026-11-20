@@ -3,6 +3,7 @@ import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
 import {
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
   ManagedDeviceCheckInAttribute,
 } from "../../DeviceManagement/ManagedDeviceCheckIn";
 
@@ -1286,11 +1287,15 @@ export default class SeriesDebugHints {
   }
 
   /*
-   * A managed device that stopped checking in: the readings its
-   * connection's last reads took of it, newest first, with the OneUptime CLI
-   * - how long it had been quiet at each read, so when it went quiet, and its
-   * alias and group on their attributes. Read-only; only for a series that
-   * names the device.
+   * A managed device a connection's alert names - one that stopped checking
+   * in, or an Android device behind on its security patches (#10098): the
+   * readings its connection's last reads took of it, newest first, with the
+   * OneUptime CLI. Its check-ins first - how long it had been quiet at each
+   * read, so when it went quiet, and its alias and group on their
+   * attributes - then its security patch's age at each read, with the level
+   * on its attributes, which an Android device has. A series names the
+   * device alone, whichever template it is of, so both are offered.
+   * Read-only; only for a series that names the device.
    */
   private static managedDeviceCommands(
     seriesLabels: JSONObject,
@@ -1303,18 +1308,29 @@ export default class SeriesDebugHints {
       return [];
     }
 
-    const query: string = JSON.stringify({
-      name: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
-      attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
-    });
+    const readingsOf: (metricName: string) => string = (
+      metricName: string,
+    ): string => {
+      const query: string = JSON.stringify({
+        name: metricName,
+        attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
+      });
+
+      return `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
+        query,
+      )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`;
+    };
 
     return [
       {
         purpose:
           "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
-        command: `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
-          query,
-        )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+        command: readingsOf(MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME),
+      },
+      {
+        purpose:
+          "An Android device's security patch at each read: how many days old it was, and its level",
+        command: readingsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME),
       },
     ];
   }

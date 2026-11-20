@@ -840,7 +840,8 @@ services:
       net.ipv4.tcp_fin_timeout: "15"
     environment:
       <<: *common-runtime-variables
-      ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
+      # 80 when empty or unset, as the ports below publish it.
+      ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT:-80}
       NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
       NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
       # HTTP/2 for HOST on the HTTPS port, which the ingress serves itself only
@@ -862,9 +863,17 @@ services:
       # waits until the App has applied them (SchemaMigrationWait), as the
       # Helm chart's runtime pods wait for its migrate Job.
       RUN_DATABASE_MIGRATIONS_ON_BOOT: "false"
+    # An empty or unset ONEUPTIME_HTTP_PORT or STATUS_PAGE_HTTPS_PORT is port
+    # 80 or 443, config.example.env's own, which everything on the server
+    # assumes: npm start's status check, the doctor, backup.sh's report and
+    # the bundled probes (FollowIngressPort.js). Without the default, ":7849"
+    # had Docker publish the ingress on a port it picked as it started, where
+    # none of them looked (#10170). PostgreSQL's port in docker-compose.yml
+    # does the same. A port Docker picks some other way (0, or an address
+    # with no port after it) stops npm start (Preflight.js).
     ports:
-      - "${ONEUPTIME_HTTP_PORT}:7849"
-      - "${STATUS_PAGE_HTTPS_PORT}:7850"
+      - "${ONEUPTIME_HTTP_PORT:-80}:7849"
+      - "${STATUS_PAGE_HTTPS_PORT:-443}:7850"
     logging:
       driver: "json-file"
       options:

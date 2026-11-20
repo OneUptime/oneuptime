@@ -1,3 +1,4 @@
+import Timezone from "../../../Types/Timezone";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -223,6 +224,11 @@ export interface ComponentProps {
    * bucketed them. It is what lets a click on a bar open that bar's logs.
    */
   histogramBucketIntervalMs?: number | undefined;
+  /*
+   * The zone the histogram's day bars were cut in (the answer's
+   * bucketTimezone, #7923).
+   */
+  histogramBucketTimezone?: Timezone | undefined;
   onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
   facetData?: FacetData;
   facetLoading?: boolean;
@@ -1650,6 +1656,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           error={props.histogramError}
           onRetry={props.onRetryHistogram}
           bucketIntervalMs={props.histogramBucketIntervalMs}
+          bucketTimezone={props.histogramBucketTimezone}
           onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
           onZoomOut={viewerZoom.onZoomOut}
         />

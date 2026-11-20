@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | 执行监视器检查的全局探测器。它使用主机网络。 |
 | `global-runner` | `oneuptime/runner` | 内置的全局 Runner，为所有项目运行运行手册的 JavaScript 步骤和 OneUptime AI 的代码修复。 |
 | `postgres` | `postgres:15` | 配置和状态：监视器、事件、用户。保存在 `postgres` 卷中。 |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遥测数据：日志、指标、追踪和异常。保存在 `clickhouse` 卷中。 |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | 遥测数据：日志、指标、追踪和异常。保存在 `clickhouse` 卷中。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | 缓存和队列。它不在磁盘上保存任何数据。 |
 
 > [!NOTE]
@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-所有容器都运行后，用 `npm run status-check` 再次运行检查。它会在 `ONEUPTIME_HTTP_PORT` 发布 ingress 的地址和端口（例如 `127.0.0.1:8080`）上，像服务器上的浏览器那样用主机名 `localhost` 检查 ingress。
+所有容器都运行后，用 `npm run status-check` 再次运行检查。它会在 `ONEUPTIME_HTTP_PORT` 发布 ingress 的地址和端口（例如 `127.0.0.1:8080`）上，像服务器上的浏览器那样用主机名 `localhost` 检查 ingress。如果 `PROVISION_SSL=true`，它还会在 `STATUS_PAGE_HTTPS_PORT` 发布 ingress 的地方，通过 HTTPS 检查 `HOST`。
 :::
 
 :::details 浏览器显示 "此地址未设置 OneUptime"

@@ -726,6 +726,33 @@ const TELEMETRY_INGEST_ADDRESSES = [
     ],
   },
 
+  /*
+   * The OneUptime Android agent asks for the log sessions open for its
+   * device here, every minute (#9806). It posts beside its OTLP, under
+   * /telemetry: the address its OneUptime URL (`<URL>/otlp`) is read into,
+   * which every agent has called since log sessions shipped.
+   */
+  {
+    method: "POST",
+    route: "/android-agent/v1/log-sessions",
+    addresses: [
+      {
+        address: "/telemetry/android-agent/v1/log-sessions",
+        handedOutBy: [
+          {
+            file: "agents/AndroidAgent/app/src/main/java/com/oneuptime/androidagent/logsession/LogSessionClient.kt",
+            contains:
+              'const val PATH: String = "/telemetry/android-agent/v1/log-sessions"',
+          },
+          {
+            file: "agents/AndroidAgent/README.md",
+            contains: "POST `/telemetry/android-agent/v1/log-sessions`",
+          },
+        ],
+      },
+    ],
+  },
+
   // Session replay and product analytics, from the browser and mobile recorders.
   ...[
     ["POST", "/session-replay/v1/chunk", "CHUNK_PATH"],

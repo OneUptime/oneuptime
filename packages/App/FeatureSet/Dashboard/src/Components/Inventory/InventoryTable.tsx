@@ -65,13 +65,19 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import AndroidSecurityPatch, {
-  AndroidSecurityPatchStatus,
-} from "Common/Types/Host/AndroidSecurityPatch";
 import AndroidAgentPermissions, {
   ANDROID_AGENT_PERMISSIONS_ATTRIBUTE,
   AndroidAgentPermission,
 } from "Common/Types/Host/AndroidAgentPermissions";
+import {
+  SecurityPatchReading,
+  SecurityPatchStatusPill,
+  readSecurityPatch,
+} from "./SecurityPatchStatus";
+import DeviceManagerIds, {
+  DEVICE_MANAGER_ID_TITLE,
+  getDeviceManagerIdsExportValue,
+} from "./DeviceManagerIds";
 
 /*
  * The inventory list — the one place the whole estate is listed, whatever
@@ -163,26 +169,12 @@ export function getInventoryAssetColumns(): Columns<InventoryItem> {
  * and hidden as they are until the viewer turns it on: the patch level as
  * the device reports it, and whether it is behind - more than 90 days old,
  * the rule the Security Patch Level filter and the Security Patch Out of
- * Date alert read (Common/Types/Host/AndroidSecurityPatch). The CSV export
- * carries the level itself. Anything with no patch level reads the quiet
- * dash, and exports an empty cell.
+ * Date alert read (Common/Types/Host/AndroidSecurityPatch), in the words
+ * the device's Asset Details card says it in (SecurityPatchStatus). The
+ * CSV export carries the level itself. Anything with no patch level reads
+ * the quiet dash, and exports an empty cell.
  */
 export const INVENTORY_SECURITY_PATCH_COLUMN_ID: string = `${INVENTORY_ASSET_COLUMN_ID_PREFIX}${InventoryAssetField.SecurityPatch}`;
-
-const SECURITY_PATCH_STATUS_LABELS: Record<AndroidSecurityPatchStatus, string> =
-  {
-    [AndroidSecurityPatchStatus.OutOfDate]: translationKey("Out of Date"),
-    [AndroidSecurityPatchStatus.UpToDate]: translationKey("Up to Date"),
-  };
-
-const SECURITY_PATCH_STATUS_TONES: Record<
-  AndroidSecurityPatchStatus,
-  PillTone
-> = {
-  // Needs a look soon: a device to update, not one that broke.
-  [AndroidSecurityPatchStatus.OutOfDate]: PillTone.Warning,
-  [AndroidSecurityPatchStatus.UpToDate]: PillTone.Success,
-};
 
 export function getInventorySecurityPatchColumn(
   now: Date,
@@ -200,25 +192,19 @@ export function getInventorySecurityPatchColumn(
     disableSort: true,
     hideOnMobile: true,
     getElement: (item: InventoryItem): ReactElement => {
-      const level: string | undefined = AndroidSecurityPatch.readLevel(
+      const reading: SecurityPatchReading | undefined = readSecurityPatch(
         getInventoryAssetValue(item, InventoryAssetField.SecurityPatch),
+        now,
       );
 
-      if (!level) {
+      if (!reading) {
         return <TableEmptyValue />;
       }
 
-      const status: AndroidSecurityPatchStatus =
-        AndroidSecurityPatch.getStatus(level, now) ||
-        AndroidSecurityPatchStatus.UpToDate;
-
       return (
         <div className="flex flex-col items-start gap-1">
-          <span className="text-sm text-gray-900">{level}</span>
-          <Pill
-            text={SECURITY_PATCH_STATUS_LABELS[status]}
-            tone={SECURITY_PATCH_STATUS_TONES[status]}
-          />
+          <span className="text-sm text-gray-900">{reading.level}</span>
+          <SecurityPatchStatusPill status={reading.status} />
         </div>
       );
     },
@@ -235,9 +221,9 @@ export function getInventorySecurityPatchColumn(
  * agent runs on, whether it still lacks READ_LOGS, READ_DROPBOX_DATA or
  * usage access, which only adb grants - so a fleet owner finds the devices
  * to run the grants on, and exports them, with their names, serial numbers
- * and an Esper import's device IDs, from one list. Hidden until turned on.
- * The CSV export writes what the agent sends: the missing grants' names,
- * or "none".
+ * and, in the Device Manager ID column beside it, the ID Esper's Secure
+ * Remote ADB takes, from one list. Hidden until turned on. The CSV export
+ * writes what the agent sends: the missing grants' names, or "none".
  */
 export const INVENTORY_AGENT_PERMISSIONS_COLUMN_ID: string =
   "inventory-agent-permissions";
@@ -305,6 +291,39 @@ export function getInventoryAgentPermissionsColumn(): Columns<InventoryItem>[num
 
 const AGENT_PERMISSIONS_GRANTED: string = translationKey("All Granted");
 const AGENT_PERMISSIONS_MISSING: string = translationKey("Missing");
+
+/*
+ * Device Manager ID (#10097): the ID each device manager that imports a
+ * device knows it by, which its console and CLI reach it by - Esper's is
+ * what `espercli secureadb connect --device` takes to grant the Android
+ * agent's permissions (DeviceManagerIds says why). Beside Agent
+ * Permissions, hidden as it is until turned on, so the devices that still
+ * lack a grant are exported with the ID each command takes. Each ID can be
+ * copied; the CSV export writes the IDs alone.
+ */
+export const INVENTORY_DEVICE_MANAGER_ID_COLUMN_ID: string =
+  "inventory-device-manager-id";
+
+export function getInventoryDeviceManagerIdColumn(): Columns<InventoryItem>[number] {
+  return {
+    field: {
+      entityType: true,
+      descriptiveAttributes: true,
+    },
+    id: INVENTORY_DEVICE_MANAGER_ID_COLUMN_ID,
+    title: DEVICE_MANAGER_ID_TITLE,
+    type: FieldType.Element,
+    isHiddenByDefault: true,
+    disableSort: true,
+    hideOnMobile: true,
+    getElement: (item: InventoryItem): ReactElement => {
+      return <DeviceManagerIds attributes={item.descriptiveAttributes} />;
+    },
+    getExportValue: (item: InventoryItem): string => {
+      return getDeviceManagerIdsExportValue(item.descriptiveAttributes);
+    },
+  };
+}
 
 export interface ComponentProps {
   /**
@@ -693,6 +712,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
           ...assetColumns,
           getInventorySecurityPatchColumn(now),
           getInventoryAgentPermissionsColumn(),
+          getInventoryDeviceManagerIdColumn(),
         ]}
       />
     </Fragment>

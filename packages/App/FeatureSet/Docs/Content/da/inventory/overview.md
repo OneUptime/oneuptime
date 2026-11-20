@@ -74,13 +74,13 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 
 ### Aktivdetaljer
 
-En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver begge på samme måde: værtsnavn, IP-adresse, MAC-adresse, serienummer, producent, model, firmwareversion, operativsystem, OS-version, enhedstype og placering. Kortet for en Android-enhed har også dens sikkerhedspatchniveau, fra Android-agenten eller dens MDM. En oplysning, som intet har rapporteret, står som **Ukendt**, og kortet forklarer, hvorfor det er sådan, og hvordan de ukendte bliver udfyldt: en enhed, der ikke rapporterer dem over SNMP, en enhed, der ikke er læst endnu, eller en Meraki-enhed, hvis dashboard har dem.
+En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver begge på samme måde: værtsnavn, IP-adresse, MAC-adresse, serienummer, producent, model, firmwareversion, operativsystem, OS-version, enhedstype og placering. Kortet for en Android-enhed har også dens sikkerhedspatchniveau, fra Android-agenten eller dens MDM. Det siger også, om patchen er **Ikke opdateret**, som kolonnen **Sikkerhedspatchniveau** gør, og hvor mange dage gammel den er. En oplysning, som intet har rapporteret, står som **Ukendt**, og kortet forklarer, hvorfor det er sådan, og hvordan de ukendte bliver udfyldt: en enhed, der ikke rapporterer dem over SNMP, en enhed, der ikke er læst endnu, eller en Meraki-enhed, hvis dashboard har dem.
 
 - En værts oplysninger kommer fra ressourceattributterne på dens telemetri: dens IP- og MAC-adresser, arkitektur og operativsystem fra start, og dens serienummer, mærke, model og firmware, når du stempler dem på.
 - En netværksenheds oplysninger kommer fra dens SNMP-polling, dens rolle og dens site. Det, dens polling ikke har læst, kommer fra discovery: den seneste scanning af dens adresse, en routers ARP-tabel eller dens sondes DNS-opslag. En enhed uden ENTITY-MIB, som en Meraki MX, får stadig sit mærke, sin model og sit operativsystem fra sin systembeskrivelse og sin MAC-adresse fra sine egne porte. Dens IP-adresse vises aldrig som dens værtsnavn.
 - En Meraki-enhed henter også det, dens polling lader stå tomt, fra Meraki-dashboardet, blandt andet dens serienummer, model og firmware, når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation.
 
-**Alle elementer** finder de Android-enheder, der kræver handling. Filteret **Sikkerhedspatchniveau** viser under **Ikke opdateret** de enheder, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, den samme regel, som advarslen Security Patch Out of Date i [Værts-monitor](/docs/monitor/host-monitor) bruger. Filteret **Agenttilladelser** viser de enheder, hvor [Android-agenten](/docs/telemetry/android-agent) stadig mangler READ_LOGS, READ_DROPBOX_DATA eller adgang til forbrugsdata. Hvert filter har en kolonne med samme navn, skjult indtil du slår den til, og den kommer med i CSV-eksporten.
+**Alle elementer** finder de Android-enheder, der kræver handling. Filteret **Sikkerhedspatchniveau** viser under **Ikke opdateret** de enheder, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, den samme regel, som advarslen Security Patch Out of Date i [Værts-monitor](/docs/monitor/host-monitor) bruger. Filteret **Agenttilladelser** viser de enheder, hvor [Android-agenten](/docs/telemetry/android-agent) stadig mangler READ_LOGS, READ_DROPBOX_DATA eller adgang til forbrugsdata. Hvert filter har en kolonne med samme navn, skjult indtil du slår den til, og den kommer med i CSV-eksporten. Ved siden af dem rummer kolonnen **MDM-ID** det id, som en enheds MDM kender den under, fx det Esper-id, som `espercli secureadb connect --device` tager.
 
 Kortet viser, hvor hver oplysning kom fra, og hvornår. Den kilde, de fleste oplysninger deler, som en værts collector, en netværksenheds egen SNMP-polling eller den discovery-scanning, der læste den, nævnes én gang, under oplysningerne. Enhver anden kilde, som en routers ARP-tabel eller en værdi gemt på enheden, nævnes under sin oplysning. En værdi, der er gemt på en netværksenhed, erstattes aldrig af det, discovery læser, og når de to er forskellige, viser kortet begge.
 
@@ -115,6 +115,7 @@ Gå til **Produkter → Ressourcer → Inventar**, derefter **Administrerede enh
 | Model, producent, serienummer, operativsystem og dets version, build samt IP- og MAC-adresser | Enhedens kort **Aktivdetaljer** og kolonnerne i **Alle elementer** |
 | Status, seneste check-in, gruppe, sikkerhedspatchniveau, IMEI, batteri, lagerplads og Esper-agent | Enhedens kort **Esper** og listen **Enheder** under **Administrerede enheder** |
 | Apps og deres versioner | Enhedens liste **Installerede apps** |
+| Dens Esper-enheds-id | Kolonnen **MDM-ID** i **Alle elementer** |
 
 ### Én enhed, ikke to
 
@@ -138,6 +139,8 @@ En enhed, der fjernes fra Esper, markeres som **Fjernet**, og dens element arkiv
 Under **Administrerede enheder** klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Esper Android Device Stopped Checking In** og **Esper Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-enhed, der ikke har tjekket ind hos Esper i mere end en time, den anden for hver Apple-enhed efter mere end et døgn, hver opkaldt efter enheden og løst, så snart den tjekker ind igen.
 
 Hver læsning af forbindelsen registrerer som metrikken `oneuptime.managed_device.check_in.age`, hvor mange minutter siden hver enhed sidst tjekkede ind, og monitoren tjekker hver enheds seneste værdi hvert 5. minut. En enhed, der også kører Android Agent, overlades til **Host Stopped Reporting**, så den aldrig advarer to gange, og en enhed, der er fjernet fra Esper, løser sin advarsel. En læsning, der fejler, registrerer intet, så ingen advarsel åbnes eller løses før den næste. Hæv monitorens tærskel for en flåde, der slukkes om natten.
+
+Opret også **Esper Security Patch Out of Date**, så åbner hver Android-enhed, hvis sikkerhedspatchniveau ifølge Esper er mere end 90 dage gammelt, sin egen advarsel, som løses, når enheden er opdateret. Hver læsning registrerer som metrikken `oneuptime.managed_device.security_patch.age`, hvor mange dage gammelt hver Android-enheds patchniveau er. En enhed, der kører Android Agent, overlades til sin værts **Security Patch Out of Date**, så den aldrig advarer to gange.
 
 ## Importer enheder fra Microsoft Intune
 
@@ -165,7 +168,7 @@ En enhed tjekker ind hos Intune cirka hver ottende time, og dens seneste check-i
 
 Intune navngiver en enhed det, dens ejer kaldte den, så to enheder kan have samme navn: alle iPhones, som ingen har omdøbt, hedder `iPhone`. Et navn, som to enheder i en forbindelse deler, tilhører ingen af dem i inventaret: hver navngives i stedet efter sit serienummer og får sit navn tilbage, så snart ingen anden enhed har det.
 
-For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Intune Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Intune i mere end et døgn, opkaldt efter enheden. En bærbar, der er slukket en weekend, ser ens ud, så hæv monitorens tærskel, hvis et døgn er for kort tid for dine.
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Intune Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Intune i mere end et døgn, opkaldt efter enheden. En bærbar, der er slukket en weekend, ser ens ud, så hæv monitorens tærskel, hvis et døgn er for kort tid for dine. **Intune Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon.
 
 ## Importer enheder fra Workspace ONE UEM
 
@@ -191,7 +194,7 @@ En enhed rapporterer til Workspace ONE efter sin egen tidsplan, en iPhone med ti
 
 En app eller Android Agent, der sender telemetri fra en enhed, bliver ét element sammen med enheden via dens serienummer: sæt Android Agents indstilling `device_serial` til opslagsværdien `{DeviceSerialNumber}` i dens administrerede konfiguration.
 
-For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Workspace ONE Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har rapporteret til Workspace ONE i mere end et døgn, opkaldt efter enheden.
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Workspace ONE Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har rapporteret til Workspace ONE i mere end et døgn, opkaldt efter enheden. **Workspace ONE Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon.
 
 ## Importer enheder fra SOTI MobiControl
 
@@ -215,7 +218,7 @@ En MobiControl-agent holder en aktiv forbindelse til sin server, så en enhed, h
 
 En app eller Android Agent, der sender telemetri fra en enhed, bliver ét element sammen med enheden via dens serienummer: sæt Android Agents indstilling `device_serial` til makroen `%SERIALNUM%` i dens administrerede konfiguration.
 
-For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **SOTI Device Stopped Checking In** og **SOTI Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-, Windows- eller Linux-enhed, hvis agent ikke har været forbundet i mere end en time, og den anden for hver Apple-enhed, der ikke har tjekket ind i mere end et døgn, hver opkaldt efter enheden.
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **SOTI Device Stopped Checking In** og **SOTI Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-, Windows- eller Linux-enhed, hvis agent ikke har været forbundet i mere end en time, og den anden for hver Apple-enhed, der ikke har tjekket ind i mere end et døgn, hver opkaldt efter enheden. **SOTI Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon.
 
 ## Tilføj noget manuelt
 

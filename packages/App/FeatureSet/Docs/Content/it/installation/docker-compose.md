@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | Una sonda globale che esegue i controlli dei tuoi monitor. Usa la rete dell'host. |
 | `global-runner` | `oneuptime/runner` | Il Runner globale incluso, che esegue i passaggi JavaScript dei runbook e le correzioni del codice di OneUptime AI per ogni progetto. |
 | `postgres` | `postgres:15` | Configurazione e stato: monitor, incidenti, utenti. Conservati nel volume `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetria: log, metriche, trace ed eccezioni. Conservata nel volume `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Telemetria: log, metriche, trace ed eccezioni. Conservata nel volume `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache e code. Non conserva nulla su disco. |
 
 > [!NOTE]
@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Quando ogni container è in esecuzione, ripeti il controllo con `npm run status-check`. Controlla l'ingress dove lo pubblica `ONEUPTIME_HTTP_PORT`, con indirizzo e porta, come `127.0.0.1:8080`, e con il nome host `localhost`, come farebbe un browser sul server.
+Quando ogni container è in esecuzione, ripeti il controllo con `npm run status-check`. Controlla l'ingress dove lo pubblica `ONEUPTIME_HTTP_PORT`, con indirizzo e porta, come `127.0.0.1:8080`, e con il nome host `localhost`, come farebbe un browser sul server. Con `PROVISION_SSL=true` controlla anche `HOST` in HTTPS, dove `STATUS_PAGE_HTTPS_PORT` pubblica l'ingress.
 :::
 
 :::details Il browser mostra "OneUptime non è configurato per questo indirizzo"

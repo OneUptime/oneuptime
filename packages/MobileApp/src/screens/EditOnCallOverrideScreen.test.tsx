@@ -26,6 +26,16 @@ import {
   OVERRIDE_ENDED_REFUSAL,
   OVERRIDE_CONFLICT_WHAT_TO_DO,
 } from "../oncall/overrideEdit";
+import {
+  clearAllProjectPermissions,
+  recordProjectPermissions,
+} from "../api/projectPermissions";
+import type { OverrideTeamPeopleState } from "../hooks/useOverrideTeamPeople";
+import {
+  OVERRIDE_TEAM_COVER_REFUSAL,
+  OVERRIDE_TEAM_EDIT_REFUSAL,
+  OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
+} from "../oncall/overrideTeamAccess";
 import type { OnCallOverrideChange } from "../api/onCallOverrides";
 import type { OnCallOverrideItem, ProjectUserItem } from "../api/types";
 
@@ -126,6 +136,45 @@ jest.mock("../hooks/useProjectUsers", () => {
         isLoading: false,
         isError: false,
         refetch: jest.fn(),
+      };
+    },
+  };
+});
+
+/*
+ * The people of the teams the sheet is kept to (useOverrideTeamPeople):
+ * what a test says, and what each render asked for. Asked with no teams,
+ * nothing is known, as the hook answers.
+ */
+const mockTeamPeople: { current: OverrideTeamPeopleState | null } = {
+  current: null,
+};
+const mockTeamPeopleAsked: Array<{
+  projectId: string | null;
+  teamIds: ReadonlyArray<string> | null;
+}> = [];
+
+jest.mock("../hooks/useOverrideTeamPeople", () => {
+  return {
+    useOverrideTeamPeople: (data: {
+      projectId: string | null;
+      teamIds: ReadonlyArray<string> | null;
+    }): OverrideTeamPeopleState => {
+      mockTeamPeopleAsked.push(data);
+
+      if (data.teamIds && mockTeamPeople.current) {
+        return mockTeamPeople.current;
+      }
+
+      return {
+        users: [],
+        membersByTeam: null,
+        teamNames: null,
+        isLoading: false,
+        isError: false,
+        refetch: async (): Promise<void> => {
+          return undefined;
+        },
       };
     },
   };
@@ -561,5 +610,286 @@ describe("a refusal", () => {
     expect(screen.queryByText("Edit that override")).toBeNull();
     expect(mockFindConflict).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #9883: for someone who manages the user overrides of their own teams'
+ * people only (Manage On-Call Policy User Overrides for Own Team), an
+ * override naming anybody outside those teams is not theirs to change: the
+ * server refuses any edit of it, End now included, so the sheet says why in
+ * place of the form, in the server's words. One of theirs offers only the
+ * teams' people to cover, saying which teams - as the Dashboard's Edit does.
+ */
+describe("for someone who manages their own team's overrides", () => {
+  const TEAM_PAYMENTS: string = "team-payments";
+  const OUTSIDER: string = "user-outsider";
+
+  const OUTSIDER_USER: ProjectUserItem = {
+    userId: OUTSIDER,
+    name: "Omar Okafor",
+    email: "omar@example.com",
+  };
+
+  // Ada and Priya are in Payments; Pat and Omar in no team of Ada's.
+  const PAYMENTS_PEOPLE: OverrideTeamPeopleState = {
+    users: [USERS[0]!, USERS[1]!],
+    membersByTeam: new Map<string, Set<string>>([
+      [TEAM_PAYMENTS, new Set<string>([ME, PRIYA])],
+    ]),
+    teamNames: ["Payments"],
+    isLoading: false,
+    isError: false,
+    refetch: async (): Promise<void> => {
+      return undefined;
+    },
+  };
+
+  function holding(rows: Array<Record<string, unknown>>): void {
+    recordProjectPermissions("project-1", {
+      "project-permissions": JSON.stringify({
+        _type: "UserTenantAccessPermission",
+        projectId: { _type: "ObjectID", value: "project-1" },
+        permissions: rows,
+      }),
+    });
+  }
+
+  function row(
+    permission: string,
+    data: { teamId?: string; scope?: string; labelIds?: Array<unknown> } = {},
+  ): Record<string, unknown> {
+    return {
+      _type: "UserPermission",
+      permission: permission,
+      labelIds: data.labelIds ?? [],
+      scope: data.scope ?? "All",
+      isBlockPermission: false,
+      ...(data.teamId
+        ? { teamId: { _type: "ObjectID", value: data.teamId } }
+        : {}),
+    };
+  }
+
+  const TEAM_SCOPED: Array<Record<string, unknown>> = [
+    row("OnCallViewer"),
+    row("ManageTeamOnCallDutyPolicyUserOverride", { teamId: TEAM_PAYMENTS }),
+  ];
+
+  function lastTeamPeopleAsked(): (typeof mockTeamPeopleAsked)[number] {
+    return mockTeamPeopleAsked[mockTeamPeopleAsked.length - 1]!;
+  }
+
+  beforeEach(() => {
+    clearAllProjectPermissions();
+    mockTeamPeopleAsked.length = 0;
+    mockTeamPeople.current = PAYMENTS_PEOPLE;
+    // The whole project, an outsider among them: what the sheet must not offer.
+    mockUsers.current = [...USERS, OUTSIDER_USER];
+  });
+
+  afterEach(() => {
+    clearAllProjectPermissions();
+    mockTeamPeople.current = null;
+  });
+
+  test("an override covered by somebody outside the teams: why, in place of the form, with nothing to save or end", async () => {
+    holding(TEAM_SCOPED);
+    mockOverride.current = override({
+      _id: "override-running",
+      routeAlertsToUser: { _id: PAT, name: "Pat Kim" },
+      startsAt: "2026-11-13T08:00:00.000Z",
+      endsAt: "2026-11-13T20:00:00.000Z",
+    });
+
+    await render(<EditOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("edit-override-team-locked")).getByText(
+        OVERRIDE_TEAM_EDIT_REFUSAL,
+      ),
+    ).toBeTruthy();
+    // Which override it is: who is away, who covers, where.
+    expect(
+      within(screen.getByTestId("edit-override-away")).getByText("You"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("edit-override-locked-cover").props.children,
+    ).toBe("Pat Kim");
+    expect(screen.getByText("All on-call policies")).toBeTruthy();
+    expect(screen.queryByTestId("save-override")).toBeNull();
+    expect(screen.queryByTestId("edit-override-end-now")).toBeNull();
+    expect(screen.queryByTestId("edit-override-cover")).toBeNull();
+    expect(lastTeamPeopleAsked()).toEqual({
+      projectId: "project-1",
+      teamIds: [TEAM_PAYMENTS],
+    });
+  });
+
+  test("one whose person away is outside the teams is locked the same way, a skip too", async () => {
+    holding(TEAM_SCOPED);
+    mockOverride.current = override({
+      overrideUser: { _id: PAT, name: "Pat Kim" },
+      routeAlertsToUser: null,
+    });
+
+    await render(<EditOnCallOverrideScreen />);
+
+    expect(
+      within(screen.getByTestId("edit-override-team-locked")).getByText(
+        OVERRIDE_TEAM_EDIT_REFUSAL,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("edit-override-locked-cover").props.children,
+    ).toBe("Next person in the rotation");
+    expect(screen.queryByTestId("save-override")).toBeNull();
+  });
+
+  test("one of the team's people: the form, the picker offering only the team, and saying which", async () => {
+    holding(TEAM_SCOPED);
+
+    await render(<EditOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("edit-override-team-locked")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("edit-override-cover"));
+
+    expect(screen.getByTestId(`user-option-${PRIYA}`)).toBeTruthy();
+    expect(screen.queryByTestId(`user-option-${PAT}`)).toBeNull();
+    expect(screen.queryByTestId(`user-option-${OUTSIDER}`)).toBeNull();
+    expect(
+      within(screen.getByTestId("user-picker-hint")).getByText(
+        "Only people in Payments are listed: the teams that let you manage user overrides.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("handing a teammate's cover to the rotation saves, as before", async () => {
+    holding(TEAM_SCOPED);
+
+    await render(<EditOnCallOverrideScreen />);
+
+    await fireEvent.press(screen.getByText("The rotation"));
+    await save();
+
+    expect(lastChange()).toEqual({ routeAlertsToUserId: null });
+  });
+
+  test("nobody else in the teams to cover: the picker says so", async () => {
+    holding(TEAM_SCOPED);
+    // Ada away on her own: only Ada in the team.
+    mockTeamPeople.current = {
+      ...PAYMENTS_PEOPLE,
+      users: [USERS[0]!],
+      membersByTeam: new Map<string, Set<string>>([
+        [TEAM_PAYMENTS, new Set<string>([ME])],
+      ]),
+    };
+    mockOverride.current = override({ routeAlertsToUser: null });
+
+    await render(<EditOnCallOverrideScreen />);
+
+    await fireEvent.press(screen.getByText("A teammate"));
+    await fireEvent.press(screen.getByTestId("edit-override-cover"));
+
+    expect(
+      within(screen.getByTestId("user-picker-empty")).getByText(
+        OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
+      ),
+    ).toBeTruthy();
+  });
+
+  test("somebody picked to cover before the server said whom they may name is refused before anything is sent", async () => {
+    await render(<EditOnCallOverrideScreen />);
+
+    // The whole project, until the rows arrive.
+    await fireEvent.press(screen.getByTestId("edit-override-cover"));
+    await fireEvent.press(screen.getByTestId(`user-option-${OUTSIDER}`));
+
+    await act(async (): Promise<void> => {
+      holding(TEAM_SCOPED);
+    });
+
+    await save();
+
+    expect(
+      within(screen.getByTestId("edit-override-error")).getByText(
+        OVERRIDE_TEAM_COVER_REFUSAL,
+      ),
+    ).toBeTruthy();
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  test("while who is in the teams is not known nothing is locked: the server decides", async () => {
+    holding(TEAM_SCOPED);
+    mockTeamPeople.current = { ...PAYMENTS_PEOPLE, membersByTeam: null };
+    mockOverride.current = override({
+      routeAlertsToUser: { _id: PAT, name: "Pat Kim" },
+    });
+
+    await render(<EditOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("edit-override-team-locked")).toBeNull();
+    expect(screen.getByTestId("save-override")).toBeTruthy();
+  });
+
+  test("a policy's override, beside a role narrowed to a label, is the server's to weigh: the form, everyone offered", async () => {
+    holding([
+      ...TEAM_SCOPED,
+      row("OnCallMember", {
+        scope: "Labels",
+        labelIds: [{ _type: "ObjectID", value: "label-team-a" }],
+      }),
+    ]);
+    mockOverride.current = override({
+      routeAlertsToUser: { _id: PAT, name: "Pat Kim" },
+      onCallDutyPolicyId: "policy-1",
+      onCallDutyPolicy: { _id: "policy-1", name: "Payments Primary" },
+    });
+
+    await render(<EditOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+    expect(screen.queryByTestId("edit-override-team-locked")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("edit-override-cover"));
+
+    expect(screen.getByTestId(`user-option-${OUTSIDER}`)).toBeTruthy();
+  });
+
+  test("the same override held globally keeps to the team, as a narrower role cannot reach it", async () => {
+    holding([
+      ...TEAM_SCOPED,
+      row("OnCallMember", {
+        scope: "Labels",
+        labelIds: [{ _type: "ObjectID", value: "label-team-a" }],
+      }),
+    ]);
+    mockOverride.current = override({
+      routeAlertsToUser: { _id: PAT, name: "Pat Kim" },
+    });
+
+    await render(<EditOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked().teamIds).toEqual([TEAM_PAYMENTS]);
+    expect(screen.getByTestId("edit-override-team-locked")).toBeTruthy();
+  });
+
+  test("a permission that reaches everyone: the form and the whole project, as before", async () => {
+    holding([row("OnCallMember"), ...TEAM_SCOPED]);
+    mockOverride.current = override({
+      routeAlertsToUser: { _id: PAT, name: "Pat Kim" },
+    });
+
+    await render(<EditOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+    expect(screen.queryByTestId("edit-override-team-locked")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("edit-override-cover"));
+
+    expect(screen.getByTestId(`user-option-${OUTSIDER}`)).toBeTruthy();
+    expect(screen.queryByTestId("user-picker-hint")).toBeNull();
   });
 });
