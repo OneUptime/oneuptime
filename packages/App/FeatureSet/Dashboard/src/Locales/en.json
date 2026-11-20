@@ -60217,6 +60217,9 @@
   "Your permissions do not reach this episode.": "Your permissions do not reach this episode.",
   "Your permissions do not reach this incident.": "Your permissions do not reach this incident.",
   "Your permissions do not reach this maintenance event.": "Your permissions do not reach this maintenance event.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Your accounts' costs are read in turn, as fast as their cloud allows.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Your cloud limits how fast costs can be read, so these are read with the connection's next read.",
   "Monitors shown": "Monitors shown",
   "Pick what you want to do first, and its steps show here.": "Pick what you want to do first, and its steps show here.",
   "Your first steps": "Your first steps"

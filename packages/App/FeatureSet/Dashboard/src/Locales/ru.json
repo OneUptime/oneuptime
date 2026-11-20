@@ -60217,6 +60217,9 @@
   "Your permissions do not reach this episode.": "Ваши права не распространяются на этот эпизод.",
   "Your permissions do not reach this incident.": "Ваши права не распространяются на этот инцидент.",
   "Your permissions do not reach this maintenance event.": "Ваши права не распространяются на это событие обслуживания.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Затраты ваших аккаунтов читаются по очереди, так быстро, как позволяет их облако.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Ваше облако ограничивает скорость чтения затрат, поэтому эти затраты будут прочитаны следующими, примерно {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ваше облако ограничивает скорость чтения затрат, поэтому эти затраты будут прочитаны при следующем чтении подключения.",
   "Monitors shown": "Показанные мониторы",
   "Pick what you want to do first, and its steps show here.": "Выберите, с чего хотите начать, и здесь появятся нужные шаги.",
   "Your first steps": "Ваши первые шаги"

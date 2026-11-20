@@ -61,6 +61,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 Cost Management antwortet für jedes Abonnement, mit der Ressource, für die jede Kostenposition anfällt, und das Lesen kostet nichts. Wenn es für ein Abonnement nicht antworten kann, sagt die Seite **Kosten** des Kontos, warum.
 
+Cost Management begrenzt, wie schnell die Kosten eines Mandanten gelesen werden, für alle, die sie lesen, gleich: Jede Abfrage kostet eine Abfrageverarbeitungseinheit (QPU) für jeden Monat an Daten, den sie liest, und ein Mandant hat 12 QPU alle 10 Sekunden, 60 pro Minute und 600 pro Stunde. OneUptime liest die Abonnements eines Mandanten nacheinander innerhalb von zwei Dritteln jedes Kontingents, wartet so lange, wie Cost Management es verlangt, wenn es eine Abfrage abweist, und macht beim nächsten Lesevorgang dort weiter, wo es aufgehört hat. Ein noch nicht gelesenes Abonnement zeigt **In der Warteschlange** und wann es gelesen wird; eines mit Werten behält sie in der Zwischenzeit.
+
 ## Google Cloud
 
 Google Cloud hat keine API für die Kosten eines Projekts: OneUptime liest sie aus dem Export Ihres Rechnungskontos nach BigQuery.
@@ -151,6 +153,10 @@ Die Verbindung darf die Kosten des Kontos noch nicht lesen. Führen Sie ihren Ei
 
 :::details Ein Konto zeigt Nicht eingerichtet
 Seine Cloud hat noch keine Kosten zu liefern. Schalten Sie bei AWS Cost Explorer ein; geben Sie bei Google Cloud die Tabelle des Exports unter **Tabelle des Abrechnungsexports** an. Die ersten Werte kommen mit dem nächsten Lesevorgang, innerhalb von 12 Stunden.
+:::
+
+:::details Ein Konto zeigt In der Warteschlange
+Seine Kosten warten, bis sie an der Reihe sind: Azure Cost Management begrenzt, wie schnell die Kosten eines Mandanten gelesen werden. Das Konto zeigt, wann sie gelesen werden, beim ersten Lesevorgang der Verbindung ab dann, und es ist nichts zu tun. Ein Konto, das schon Werte hat, behält sie in der Zwischenzeit.
 :::
 
 :::details Kosten pro Ressource zeigt Nicht eingerichtet

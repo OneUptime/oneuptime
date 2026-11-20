@@ -60217,6 +60217,9 @@
   "Your permissions do not reach this episode.": "您的權限不涵蓋此片段。",
   "Your permissions do not reach this incident.": "您的權限不涵蓋此事件。",
   "Your permissions do not reach this maintenance event.": "您的權限不涵蓋此維護事件。",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "您的帳戶成本依序讀取，速度以其雲端允許的為準。",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "您的雲端限制了讀取成本的速度，因此這些成本排在下一輪，約於{{time}}讀取。",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "您的雲端限制了讀取成本的速度，因此這些成本將在連線的下一次讀取時讀取。",
   "Monitors shown": "顯示的監測器",
   "Pick what you want to do first, and its steps show here.": "選擇您想先做的事，相應的步驟會顯示在這裡。",
   "Your first steps": "您的第一步"

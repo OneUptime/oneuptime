@@ -60217,6 +60217,9 @@
   "Your permissions do not reach this episode.": "आपकी अनुमतियां इस एपिसोड तक नहीं पहुंचतीं।",
   "Your permissions do not reach this incident.": "आपकी अनुमतियां इस घटना तक नहीं पहुंचतीं।",
   "Your permissions do not reach this maintenance event.": "आपकी अनुमतियां इस रखरखाव इवेंट तक नहीं पहुंचतीं।",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "आपके खातों की लागत बारी-बारी से पढ़ी जाती है, उतनी तेज़ी से जितनी उनका क्लाउड अनुमति देता है।",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये आगे, लगभग {{time}} पर पढ़ी जाएँगी।",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये कनेक्शन की अगली रीडिंग में पढ़ी जाएँगी।",
   "Monitors shown": "दिखाए गए मॉनिटर",
   "Pick what you want to do first, and its steps show here.": "चुनें कि आप पहले क्या करना चाहते हैं, और उसके चरण यहाँ दिखेंगे।",
   "Your first steps": "आपके पहले कदम"

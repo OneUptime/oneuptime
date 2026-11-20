@@ -60217,6 +60217,9 @@
   "Your permissions do not reach this episode.": "Le tue autorizzazioni non arrivano a questo episodio.",
   "Your permissions do not reach this incident.": "Le tue autorizzazioni non arrivano a questo incidente.",
   "Your permissions do not reach this maintenance event.": "Le tue autorizzazioni non arrivano a questo evento di manutenzione.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "I costi dei tuoi account vengono letti a turno, alla velocità consentita dal loro cloud.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Il tuo cloud limita la velocità con cui si possono leggere i costi, quindi questi vengono letti in seguito, verso il {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Il tuo cloud limita la velocità con cui si possono leggere i costi, quindi questi vengono letti alla prossima lettura della connessione.",
   "Monitors shown": "Monitor mostrati",
   "Pick what you want to do first, and its steps show here.": "Scegli cosa vuoi fare per primo e qui compariranno i passaggi.",
   "Your first steps": "I tuoi primi passi"
