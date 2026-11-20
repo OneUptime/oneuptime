@@ -70,10 +70,27 @@ export const PUBLIC_DASHBOARD_API_COOKIE_PATH: string = "/public-dashboard-api";
 
 /*
  * Where a dashboard's public link signs its private user out, before the
- * dashboard's id (Types/Dashboard/DashboardPrivateUserRoutes): the only path
+ * dashboard's id (Types/Dashboard/DashboardPrivateUserSignIn): the only path
  * its sign-out cookie is sent to.
  */
 export const DASHBOARD_PRIVATE_USER_SIGN_OUT_COOKIE_PATH_PREFIX: string = `${PUBLIC_DASHBOARD_API_COOKIE_PATH}/private-user/logout`;
+
+/*
+ * Where a form's public link calls its server (#10249): its page, on the
+ * installation's own address (/accounts/form/<share key>) and on every
+ * custom domain of the form, calls /api/form - the form itself, its
+ * submissions and its private user's sign-in alike. A form private user's
+ * session cookies are sent only there (setFormPrivateUserCookie), never
+ * to the rest of a host the form shares with OneUptime's own pages.
+ */
+export const FORM_API_COOKIE_PATH: string = "/api/form";
+
+/*
+ * Where a form's public link signs its private user out, before the form's
+ * id (Types/Form/FormPrivateUserSignIn): the only path its sign-out cookie
+ * is sent to.
+ */
+export const FORM_PRIVATE_USER_SIGN_OUT_COOKIE_PATH_PREFIX: string = `${FORM_API_COOKIE_PATH}/private-user/logout`;
 
 export default class CookieUtil {
   // set cookie with express response
@@ -855,6 +872,198 @@ export default class CookieUtil {
       CookieUtil.getDashboardPrivateUserSignOutKey(dashboardId),
       {
         path: CookieUtil.getDashboardPrivateUserSignOutPath(dashboardId),
+        sameSite: "strict",
+        httpOnly: true,
+      },
+    );
+  }
+
+  /*
+   * A form private user's session on one form's public link
+   * (#10249), in three cookies named after the form, so a browser holds
+   * one session per form and per host - a cookie is its host's alone,
+   * so a custom domain and OneUptime's own address each sign in on their
+   * own:
+   *
+   *   - the access token (JsonWebTokenPurpose.FormPrivateUserSession),
+   *     for fifteen minutes;
+   *   - the refresh token, which renews it, for as long as the session;
+   *   - the sign-out cookie (FormPrivateUserSessionSignOut), for as
+   *     long, sent only to the form's own sign-out.
+   *
+   * Every one is HttpOnly, SameSite=Strict - a page of another site never
+   * has a browser send them, so no other site can read the form or
+   * sign its reader out - and Secure whenever the browser reached OneUptime
+   * over HTTPS (setCookie). The access and refresh tokens are sent only to
+   * the public link's API (FORM_API_COOKIE_PATH), never to the
+   * rest of the host. Returns the access token.
+   */
+  @CaptureSpan()
+  public static setFormPrivateUserCookie(data: {
+    expressResponse: ExpressResponse;
+    formId: ObjectID;
+    // The FormPrivateUser whose session it is.
+    privateUserId: ObjectID;
+    sessionId: ObjectID;
+    refreshToken: string;
+    refreshTokenExpiresAt: Date;
+    accessTokenExpiresInSeconds?: number | undefined;
+  }): string {
+    const accessTokenExpiresInSeconds: number =
+      data.accessTokenExpiresInSeconds ||
+      CookieUtil.DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS;
+
+    const token: string = JSONWebToken.signFormPrivateUserSessionToken({
+      formId: data.formId,
+      userId: data.privateUserId,
+      sessionId: data.sessionId,
+      expiresInSeconds: accessTokenExpiresInSeconds,
+    });
+
+    CookieUtil.setCookie(
+      data.expressResponse,
+      CookieUtil.getFormPrivateUserTokenKey(data.formId),
+      token,
+      {
+        maxAge: accessTokenExpiresInSeconds * 1000,
+        httpOnly: true,
+        sameSite: "strict",
+        path: FORM_API_COOKIE_PATH,
+      },
+    );
+
+    const refreshTokenTtl: number = Math.max(
+      data.refreshTokenExpiresAt.getTime() - Date.now(),
+      0,
+    );
+
+    CookieUtil.setCookie(
+      data.expressResponse,
+      CookieUtil.getFormPrivateUserRefreshTokenKey(data.formId),
+      data.refreshToken,
+      {
+        maxAge: refreshTokenTtl,
+        httpOnly: true,
+        sameSite: "strict",
+        path: FORM_API_COOKIE_PATH,
+      },
+    );
+
+    CookieUtil.setCookie(
+      data.expressResponse,
+      CookieUtil.getFormPrivateUserSignOutKey(data.formId),
+      JSONWebToken.signFormPrivateUserSessionSignOutToken({
+        formId: data.formId,
+        userId: data.privateUserId,
+        sessionId: data.sessionId,
+        expiresInSeconds: refreshTokenTtl / 1000,
+      }),
+      {
+        maxAge: refreshTokenTtl,
+        httpOnly: true,
+        sameSite: "strict",
+        path: CookieUtil.getFormPrivateUserSignOutPath(data.formId),
+      },
+    );
+
+    return token;
+  }
+
+  @CaptureSpan()
+  public static getFormPrivateUserTokenKey(formId: ObjectID): string {
+    return `${CookieName.FormPrivateUserToken}-${formId.toString()}`;
+  }
+
+  @CaptureSpan()
+  public static getFormPrivateUserRefreshTokenKey(formId: ObjectID): string {
+    return `${CookieName.FormPrivateUserRefreshToken}-${formId.toString()}`;
+  }
+
+  @CaptureSpan()
+  public static getFormPrivateUserSignOutKey(formId: ObjectID): string {
+    return `${CookieName.FormPrivateUserSignOut}-${formId.toString()}`;
+  }
+
+  // The only path a form's sign-out cookie is sent to: its own sign-out.
+  @CaptureSpan()
+  public static getFormPrivateUserSignOutPath(formId: ObjectID): string {
+    return `${FORM_PRIVATE_USER_SIGN_OUT_COOKIE_PATH_PREFIX}/${formId.toString()}`;
+  }
+
+  // The access token a browser sent for this form's public link, if any.
+  @CaptureSpan()
+  public static getFormPrivateUserTokenFromExpressRequest(
+    req: ExpressRequest,
+    formId: ObjectID,
+  ): string | undefined {
+    return CookieUtil.getCookieFromExpressRequest(
+      req,
+      CookieUtil.getFormPrivateUserTokenKey(formId),
+    );
+  }
+
+  @CaptureSpan()
+  public static getFormPrivateUserRefreshTokenFromExpressRequest(
+    req: ExpressRequest,
+    formId: ObjectID,
+  ): string | undefined {
+    return CookieUtil.getCookieFromExpressRequest(
+      req,
+      CookieUtil.getFormPrivateUserRefreshTokenKey(formId),
+    );
+  }
+
+  /*
+   * The sign-out cookie for this form a browser sent, which it sends
+   * only to the form's sign-out. Read from the cookie only: never from
+   * a body or a header.
+   */
+  @CaptureSpan()
+  public static getFormPrivateUserSignOutTokenFromExpressRequest(
+    req: ExpressRequest,
+    formId: ObjectID,
+  ): string | undefined {
+    return CookieUtil.getCookieFromExpressRequest(
+      req,
+      CookieUtil.getFormPrivateUserSignOutKey(formId),
+    );
+  }
+
+  /*
+   * Clears every cookie a private user's sign-in to one form left in
+   * the browser, each on the path and with the attributes it was set with,
+   * so the browser removes it. Another form's, a status page's and
+   * OneUptime's own are left as they are; so is the form's master
+   * password cookie, which is no one's session.
+   */
+  @CaptureSpan()
+  public static removeFormPrivateUserCookies(
+    res: ExpressResponse,
+    formId: ObjectID,
+  ): void {
+    CookieUtil.removeCookie(
+      res,
+      CookieUtil.getFormPrivateUserTokenKey(formId),
+      {
+        path: FORM_API_COOKIE_PATH,
+        sameSite: "strict",
+        httpOnly: true,
+      },
+    );
+    CookieUtil.removeCookie(
+      res,
+      CookieUtil.getFormPrivateUserRefreshTokenKey(formId),
+      {
+        path: FORM_API_COOKIE_PATH,
+        sameSite: "strict",
+        httpOnly: true,
+      },
+    );
+    CookieUtil.removeCookie(
+      res,
+      CookieUtil.getFormPrivateUserSignOutKey(formId),
+      {
+        path: CookieUtil.getFormPrivateUserSignOutPath(formId),
         sameSite: "strict",
         httpOnly: true,
       },

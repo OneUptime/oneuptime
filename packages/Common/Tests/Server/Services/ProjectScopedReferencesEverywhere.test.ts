@@ -210,6 +210,14 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "VMwareVCenterConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
   "VMwareVCenterConnectionTestService.ts":
     "VMwareVCenterConnectionTestService.test.ts (the probe as a vCenter's collection probe; the vCenter read within the test's project, a foreign and a missing one answered alike)",
+  /*
+   * A team or label budget's team and label (#6386): read pinned to the
+   * budget's project for every caller, root included, another project's
+   * refused in the same words as a missing one; an update names neither.
+   * Every other reference it comes to name gets the project check.
+   */
+  "TelemetryIngestionTeamLabelBudgetService.ts":
+    "TelemetryIngestionTeamLabelBudgetService.test.ts (the team and the label: another project's refused like a missing one, for a teammate and OneUptime alike; whose budget it is never changes)",
 };
 
 /*

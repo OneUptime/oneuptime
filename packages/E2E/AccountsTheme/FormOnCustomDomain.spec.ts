@@ -12,7 +12,8 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  *   - The page is the form and nothing else: no OneUptime logo, a footer with
  *     only the language picker, titled with the form's name.
  *   - It reads the form, and sends the answers, at the address it was opened
- *     on (/api/form/custom-domain), never by a key.
+ *     on (/api/form/custom-domain), never by a key - after asking there
+ *     whether the form asks its visitors to sign in (#10249).
  *   - It is light whatever the visitor picked and their device does.
  *   - At a laptop's width and a phone's, in English, German and Persian,
  *     nothing is wider than the screen; Persian reads right to left.
@@ -183,7 +184,9 @@ test.describe("a form on its own domain", () => {
     const record: FixtureRecord = await fixture(page);
     const origin: string = new URL(page.url()).origin;
 
+    // First whether the form asks its visitors to sign in (#10249).
     expect(record.requests).toEqual([
+      "GET /api/form/custom-domain/sign-in-state",
       "GET /api/form/custom-domain",
       "POST /api/form/custom-domain/submit",
     ]);
@@ -191,7 +194,7 @@ test.describe("a form on its own domain", () => {
       record.addresses.map((address: string): string => {
         return new URL(address).origin;
       }),
-    ).toEqual([origin, origin]);
+    ).toEqual([origin, origin, origin]);
     expect(record.unexpected).toEqual([]);
 
     await shoot(page, testInfo, "submitted");

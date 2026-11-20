@@ -11,13 +11,41 @@ import DataSourceTableResult from "Common/Types/DataSource/DataSourceTableResult
 import DataSourceQueryConfig, {
   DataSourceResultKind,
 } from "Common/Types/DataSource/DataSourceQueryConfig";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import { PUBLIC_DASHBOARD_PROMQL_QUERY_PATH } from "Common/Types/Dashboard/PublicDashboardPromQL";
+import {
+  DASHBOARD_WIDGET_SORT_REQUEST_FIELD,
+  DashboardWidgetSortChoice,
+  formatDashboardWidgetSortChoice,
+} from "Common/Types/Dashboard/DashboardWidgetSort";
+import {
+  PublicDashboardContext,
+  getPublicDashboardContext,
+} from "../Components/Dashboard/Utils/PublicDashboardContext";
+import DashboardResourceList from "../Components/Dashboard/Utils/DashboardResourceList";
 
 /*
- * Client for the authenticated /data-source/query endpoint. Used by the
- * four Data Source widgets (chart, value, gauge, table) — the widget types
- * that exist to read external systems. NEVER called on public dashboards:
- * the public API has no data-source surface, the widgets are stripped from
- * the config served there, and the renderers draw a placeholder anyway.
+ * Which of a public dashboard's stored PromQL queries to run (issue
+ * #10226): the widget the page draws, and the query's place among its
+ * queries - never the query's text, which the page is not served.
+ */
+export interface PublicDataSourceQueryTarget {
+  componentId: string;
+  queryIndex: number;
+  // The toolbar's variables: only their picks are sent.
+  variables: Array<DashboardVariable> | undefined;
+}
+
+/*
+ * Client for the Data Source widgets' queries (chart, value, gauge, table).
+ *
+ * Signed in, the authenticated /data-source/query endpoint, sent the query
+ * text with the variables already filled in. On a public dashboard
+ * (issue #10226), a widget is drawn only when it reads this project's
+ * metrics, and its data comes from the dashboard's own public route, by
+ * the widget and the query's place: the page holds no query text to send,
+ * and the server runs only the queries the dashboard stores. A widget that
+ * reads an outside system is never on a public dashboard.
  */
 export default class DataSourceQueryUtil {
   private static async execute(data: {
@@ -50,17 +78,86 @@ export default class DataSourceQueryUtil {
     return (response.data["result"] as JSONObject) || {};
   }
 
+  /*
+   * One stored query of a public dashboard's widget, through its public
+   * route: the widget, the query's place, the window, the variables' picks
+   * and a table's sort - nothing the server runs as a query.
+   */
+  private static async executePublic(data: {
+    target: PublicDataSourceQueryTarget;
+    startDate: Date;
+    endDate: Date;
+    sort?: DashboardWidgetSortChoice | null | undefined;
+  }): Promise<JSONObject> {
+    const context: PublicDashboardContext | null = getPublicDashboardContext();
+
+    if (!context) {
+      throw new Error(
+        "This widget's data can be read only on its public dashboard.",
+      );
+    }
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await context.postJSON(
+        `${PUBLIC_DASHBOARD_PROMQL_QUERY_PATH}/${context.dashboardId.toString()}`,
+        {
+          componentId: data.target.componentId,
+          queryIndex: data.target.queryIndex,
+          startDate: data.startDate.toISOString(),
+          endDate: data.endDate.toISOString(),
+          variables: DashboardResourceList.getVariableSelections(
+            data.target.variables,
+          ),
+          ...(data.sort
+            ? {
+                [DASHBOARD_WIDGET_SORT_REQUEST_FIELD]:
+                  formatDashboardWidgetSortChoice(data.sort),
+              }
+            : {}),
+        },
+      );
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    return (response.data["result"] as JSONObject) || {};
+  }
+
   public static async fetchTimeSeries(data: {
     queryConfig: DataSourceQueryConfig;
     startDate: Date;
     endDate: Date;
     stepInSeconds?: number | undefined;
   }): Promise<AggregatedResult> {
-    const result: JSONObject = await this.execute({
-      ...data,
-      resultKind: DataSourceResultKind.TimeSeries,
-    });
+    return this.readTimeSeries(
+      await this.execute({
+        ...data,
+        resultKind: DataSourceResultKind.TimeSeries,
+      }),
+    );
+  }
 
+  // A public dashboard's stored query, as a time series (issue #10226).
+  public static async fetchPublicTimeSeries(data: {
+    target: PublicDataSourceQueryTarget;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<AggregatedResult> {
+    return this.readTimeSeries(await this.executePublic(data));
+  }
+
+  // A public dashboard's stored query, as a table, in the order it draws it.
+  public static async fetchPublicTable(data: {
+    target: PublicDataSourceQueryTarget;
+    startDate: Date;
+    endDate: Date;
+    sort: DashboardWidgetSortChoice | null | undefined;
+  }): Promise<DataSourceTableResult> {
+    return this.readTable(await this.executePublic(data));
+  }
+
+  private static readTimeSeries(result: JSONObject): AggregatedResult {
     const rawData: Array<JSONObject> =
       (result["data"] as Array<JSONObject>) || [];
 
@@ -97,11 +194,15 @@ export default class DataSourceQueryUtil {
     startDate: Date;
     endDate: Date;
   }): Promise<DataSourceTableResult> {
-    const result: JSONObject = await this.execute({
-      ...data,
-      resultKind: DataSourceResultKind.Table,
-    });
+    return this.readTable(
+      await this.execute({
+        ...data,
+        resultKind: DataSourceResultKind.Table,
+      }),
+    );
+  }
 
+  private static readTable(result: JSONObject): DataSourceTableResult {
     return {
       columns:
         (result["columns"] as unknown as DataSourceTableResult["columns"]) ||

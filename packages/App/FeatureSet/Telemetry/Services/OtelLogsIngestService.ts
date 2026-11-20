@@ -170,6 +170,9 @@ import {
 } from "Common/Types/Telemetry/ExceptionSource";
 import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
 import { countOtlpLogRecords } from "Common/Utils/Telemetry/OtlpRecordCount";
+import SecurityAddressVaultWriter, {
+  SecurityAddressVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -501,6 +504,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         logger.error("Error loading pipelines/drop filters/scrub rules:");
         logger.error(loadError);
       }
+
+      /*
+       * The addresses this batch's IP Address Hash rules hide, kept for
+       * Security Events' address vault when Security Events reads the
+       * project's logs (#10395): null - and nothing kept - otherwise.
+       * Written once, after the batch's logs are stored, never awaited: a
+       * log is stored with its token whatever the vault does.
+       */
+      const addressVault: SecurityAddressVaultBatch | null =
+        await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
 
       /*
        * The event loop is handed back by the time the work took, not every
@@ -1452,6 +1469,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     logRow = LogScrubRuleService.scrubLog(
                       logRow,
                       loadedScrubRules,
+                      addressVault,
                     );
                   }
 
@@ -1576,6 +1594,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             ]
           : []),
       ]);
+
+      // The logs are stored: their hashed addresses go to the vault, on their own.
+      addressVault?.write();
 
       await this.flushProxmoxNotifications({
         projectId: projectId,

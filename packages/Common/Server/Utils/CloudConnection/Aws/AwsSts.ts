@@ -1,5 +1,9 @@
 import crypto from "crypto";
 import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../../../Types/CloudConnection/AwsRoleExternalIdRefusal";
+import {
+  AwsRoleSignInWords,
+  CLOUD_CONNECT_ROLE_SIGN_IN_WORDS,
+} from "../../../../Types/CloudConnection/AwsRoleSignInFailures";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import {
   AWS_EXTERNAL_ID_DIGITS,
@@ -7,6 +11,11 @@ import {
   getAwsExternalIdConditionText,
   getAwsExternalIdForProject,
 } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import { getAwsSesExternalIdForProject } from "../../../../Types/Email/AmazonSesRoleExternalId";
+import {
+  AMAZON_SES_ROLE_SIGN_IN_WORDS,
+  AMAZON_SES_ROLE_WITHOUT_EXTERNAL_ID,
+} from "../../../../Types/Email/AmazonSesRoleWords";
 import { getRefusalText } from "../../../../Types/Exception/RefusalWithValues";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
@@ -85,9 +94,14 @@ import {
  *     server use a role it found taking any id.
  *
  * The probe is not Cloud Connect's alone: anything that signs in to a
- * customer's role with OneUptime's identity (a project's Amazon SES role,
- * #7378) calls assumeRole with its own connection id, and is checked the
- * same way.
+ * customer's role with OneUptime's identity says what for (AwsRolePurpose)
+ * and is checked the same way. A project's Amazon SES role (#7378) signs in
+ * with its config's id and a purpose of its own, which picks the external
+ * id (email's, from a label of its own: a role made for a project's email
+ * cannot be read through by its Cloud Connect connections, nor the other
+ * way round), the words a failure is said in, and a key space of its own
+ * for the verdicts and sessions: a Cloud Connect verdict never stands for
+ * an email one, or the other way round.
  */
 
 const STS_SERVICE: string = "sts";
@@ -139,6 +153,91 @@ export interface AwsAssumedRole {
 export type AwsRoleCheckVerdict =
   | "requires-external-id"
   | "takes-any-external-id";
+
+/*
+ * WHAT A SIGN-IN TO A CUSTOMER'S ROLE IS FOR. Every caller of assumeRole
+ * names one, and it picks:
+ *
+ *   - the external id the role is signed in to with, derived here from
+ *     the project's own id with the purpose's own label - never one a
+ *     request names (getRolePurposeExternalId);
+ *   - what the project is told when the role lets any id in, or when the
+ *     check or the sign-in fails, in the purpose's words;
+ *   - where its verdicts and sessions are kept: each purpose a key space
+ *     of its own (AssumedRoleCache.keyOf), so a verdict of one purpose
+ *     never stands for another's, even for the same project and role.
+ */
+export enum AwsRolePurpose {
+  // Cloud Connect: a connection's reads and test, Data Security's reads and responses.
+  CloudConnect = "cloud-connect",
+  // A project's Amazon SES config that signs in with a role in its own account (#7378).
+  AmazonSes = "amazon-ses",
+}
+
+interface AwsRolePurposeRules {
+  // The project's own external id for this purpose.
+  getExternalId: (projectId: string) => string;
+  // What the project is told of a role that lets OneUptime in with any id.
+  getRoleWithoutExternalIdMessage: (projectId: string) => string;
+  // What it is told when the check or the sign-in fails.
+  words: AwsRoleSignInWords;
+  /*
+   * Before every key of the purpose's verdicts and sessions. Cloud
+   * Connect's keys are as they were before there were purposes, so the
+   * verdicts every server keeps for them hold across an upgrade.
+   */
+  keyPrefix: string;
+  // How the server's log names the purpose.
+  logLabel: string;
+  // What the id beside the project is, in the server's log.
+  recordLabel: string;
+}
+
+const ROLE_PURPOSES: Record<AwsRolePurpose, AwsRolePurposeRules> = {
+  [AwsRolePurpose.CloudConnect]: {
+    getExternalId: (projectId: string): string => {
+      return getAwsExternalIdForProject(projectId);
+    },
+    getRoleWithoutExternalIdMessage: (projectId: string): string => {
+      return getRoleWithoutExternalIdMessage(projectId);
+    },
+    words: CLOUD_CONNECT_ROLE_SIGN_IN_WORDS,
+    keyPrefix: "",
+    logLabel: "Cloud connections",
+    recordLabel: "connection",
+  },
+  [AwsRolePurpose.AmazonSes]: {
+    getExternalId: (projectId: string): string => {
+      return getAwsSesExternalIdForProject(projectId);
+    },
+    getRoleWithoutExternalIdMessage: (): string => {
+      return AMAZON_SES_ROLE_WITHOUT_EXTERNAL_ID;
+    },
+    words: AMAZON_SES_ROLE_SIGN_IN_WORDS,
+    keyPrefix: "amazon-ses|",
+    logLabel: "Amazon SES",
+    recordLabel: "SMTP config",
+  },
+};
+
+/*
+ * The external id a project's role of a purpose trusts OneUptime with:
+ * always the project's own, derived from its id alone, and never the same
+ * for two purposes.
+ */
+export function getRolePurposeExternalId(
+  purpose: AwsRolePurpose,
+  projectId: string,
+): string {
+  return ROLE_PURPOSES[purpose].getExternalId(projectId);
+}
+
+// The words a purpose's failures are said in.
+export function getRolePurposeWords(
+  purpose: AwsRolePurpose,
+): AwsRoleSignInWords {
+  return ROLE_PURPOSES[purpose].words;
+}
 
 // The STS Region for a connection: its first Region's partition home.
 export function getStsRegion(regions: Array<string>): string {
@@ -220,9 +319,12 @@ export function getRoleWithoutExternalIdMessage(projectId: string): string {
   });
 }
 
-function roleWithoutExternalId(projectId: string): LlmProviderError {
+function roleWithoutExternalId(
+  purpose: AwsRolePurpose,
+  projectId: string,
+): LlmProviderError {
   return new LlmProviderError({
-    message: getRoleWithoutExternalIdMessage(projectId),
+    message: ROLE_PURPOSES[purpose].getRoleWithoutExternalIdMessage(projectId),
     kind: CloudConnectionFailureKind.Settings,
   });
 }
@@ -276,17 +378,20 @@ async function requestRoleSession(data: {
 }
 
 /*
- * A sign-in or a check that failed, in OneUptime's words. AWS's own answer
- * to OneUptime's identity names that identity ("User: arn:aws:iam::...
- * is not authorized to perform: sts:AssumeRole"), so it goes to the
- * server's log and never to the project. The kind, status and body stay on
- * the error for the caller: a credential of the server's that AWS no
- * longer takes is fetched again (AwsServerIdentity.refusedBy).
+ * A sign-in or a check that failed, in OneUptime's words - its purpose's
+ * (AwsRoleSignInWords), each a key of the Dashboard's locales, so the
+ * reader gets it in their language (#10474). AWS's own answer to
+ * OneUptime's identity names that identity ("User: arn:aws:iam::... is not
+ * authorized to perform: sts:AssumeRole"), so it goes to the server's log
+ * and never to the project. The kind, status and body stay on the error
+ * for the caller: a credential of the server's that AWS no longer takes is
+ * fetched again (AwsServerIdentity.refusedBy).
  */
 function describeRoleFailure(data: {
   error: unknown;
   roleArn: string;
   step: "check" | "sign-in";
+  purpose: AwsRolePurpose;
 }): unknown {
   // The read's budget spent, and anything else that is not AWS's answer: as it is.
   if (!(data.error instanceof LlmProviderError)) {
@@ -295,37 +400,31 @@ function describeRoleFailure(data: {
 
   const error: LlmProviderError = data.error;
   const isCheck: boolean = data.step === "check";
-  const doing: string = isCheck
-    ? "checked that the role requires your project's external ID"
-    : "signed in to the role";
+  const rules: AwsRolePurposeRules = ROLE_PURPOSES[data.purpose];
+  const words: AwsRoleSignInWords = rules.words;
   let kind: CloudConnectionFailureKind = error.kind;
   let message: string;
 
   switch (error.kind) {
     case CloudConnectionFailureKind.RateLimited:
-      message = `AWS asked OneUptime to slow down while it ${doing}, so nothing was read through it. OneUptime tries again on the next read.`;
+      message = isCheck ? words.checkRateLimited : words.signInRateLimited;
       break;
     case CloudConnectionFailureKind.Unavailable:
-      message = `AWS did not answer while OneUptime ${doing}, so nothing was read through it. OneUptime tries again on the next read.`;
+      message = isCheck ? words.checkUnanswered : words.signInUnanswered;
       break;
     case CloudConnectionFailureKind.Authentication:
       // OneUptime's own credential, not the role: nothing the project can change.
       kind = CloudConnectionFailureKind.Unavailable;
-      message =
-        "AWS did not take the credentials this OneUptime signs in to roles with, so it could not sign in to the role. That is not the role's setup: OneUptime tries again on the next read, and the server's log says why.";
+      message = words.serverCredentialsRefused;
       break;
     case CloudConnectionFailureKind.Permission:
-      message = isCheck
-        ? "OneUptime could not check that the role requires your project's external ID, so it does not sign in to it. Check that the role ARN is right, then test the connection again."
-        : "OneUptime could not sign in to the role. Check that the role exists and trusts OneUptime with your project's external ID: run the setup command again.";
+      message = isCheck ? words.checkFailed : words.signInNotPermitted;
       break;
     default:
-      message = isCheck
-        ? "OneUptime could not check that the role requires your project's external ID, so it does not sign in to it. Check that the role ARN is right, then test the connection again."
-        : "AWS did not let OneUptime sign in to the role. Check that the role ARN is right and that the role trusts OneUptime with your project's external ID: run the setup command again.";
+      message = isCheck ? words.checkFailed : words.signInRefused;
   }
 
-  const logged: string = `Cloud connections: ${
+  const logged: string = `${rules.logLabel}: ${
     isCheck
       ? `could not check that role ${data.roleArn} requires its project's external id, so it was not signed in to`
       : `could not sign in to role ${data.roleArn}`
@@ -366,6 +465,8 @@ export async function probeRoleExternalId(data: {
   roleArn: string;
   roleSessionName: string;
   region: string;
+  // Whose words a failure is said in: Cloud Connect's when left out.
+  purpose?: AwsRolePurpose | undefined;
   now?: (() => Date) | undefined;
   timeoutInMs?: number | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
@@ -397,7 +498,12 @@ export async function probeRoleExternalId(data: {
       return "requires-external-id";
     }
 
-    throw describeRoleFailure({ error, roleArn, step: "check" });
+    throw describeRoleFailure({
+      error,
+      roleArn,
+      step: "check",
+      purpose: data.purpose || AwsRolePurpose.CloudConnect,
+    });
   }
 
   return "takes-any-external-id";
@@ -608,21 +714,25 @@ export class AwsRoleCheckCache {
 
 /*
  * A customer's role, signed in to with OneUptime's identity and this
- * project's external id - always the project's own, never one a request
- * names - once the role is known to require it: checked first
- * (probeRoleExternalId) unless a check of this connection's role still
- * holds (AwsRoleCheckCache), and refused with the condition to add when it
- * lets any id in. Every way into a customer's AWS account - a test, every
- * read (metrics, inventory, changes and health, costs and savings), a live
- * read, Data Security's reads and its responses - signs in here, through
- * AwsCloudConnector.getCredentials.
+ * project's external id for the purpose - always the project's own, never
+ * one a request names (getRolePurposeExternalId) - once the role is known
+ * to require it: checked first (probeRoleExternalId) unless a check of
+ * this connection's role still holds (AwsRoleCheckCache), and refused with
+ * the condition to add when it lets any id in. Every way into a customer's
+ * AWS account - a test, every read (metrics, inventory, changes and
+ * health, costs and savings), a live read, Data Security's reads and its
+ * responses - signs in here, through AwsCloudConnector.getCredentials; a
+ * project's Amazon SES role through AmazonSesProjectRole.
  */
 export async function assumeRole(data: {
+  // What the sign-in is for: the external id, the words, the key space.
+  purpose: AwsRolePurpose;
   transport: CloudConnectorTransport;
   // OneUptime's own credential, never the customer's.
   credentials: AwsCredentials;
   roleArn: string;
   projectId: string;
+  // The connection's id - for Amazon SES, the SMTP config's.
   connectionId: string;
   region: string;
   now?: (() => Date) | undefined;
@@ -640,6 +750,7 @@ export async function assumeRole(data: {
   keepsVerdict?: boolean | undefined;
 }): Promise<AwsAssumedRole> {
   const roleArn: string = data.roleArn.trim();
+  const rules: AwsRolePurposeRules = ROLE_PURPOSES[data.purpose];
   const key: string = AssumedRoleCache.keyOf(data);
   const roleSessionName: string = getRoleSessionName(data.connectionId);
   const keeps: boolean = !data.noCache || data.keepsVerdict === true;
@@ -650,7 +761,7 @@ export async function assumeRole(data: {
   let checkedAtMs: number | null = null;
 
   if (kept === "takes-any-external-id") {
-    throw roleWithoutExternalId(data.projectId);
+    throw roleWithoutExternalId(data.purpose, data.projectId);
   }
 
   if (kept !== "requires-external-id") {
@@ -662,6 +773,7 @@ export async function assumeRole(data: {
       roleArn,
       roleSessionName,
       region: data.region,
+      purpose: data.purpose,
       now: data.now,
       timeoutInMs: data.timeoutInMs,
       sleep: data.sleep,
@@ -670,14 +782,14 @@ export async function assumeRole(data: {
 
     if (verdict === "takes-any-external-id") {
       logger.warn(
-        `Cloud connections: role ${roleArn} (project ${data.projectId}, connection ${data.connectionId}) let this OneUptime sign in with an external id no project has, so it is not used: its trust policy needs the sts:ExternalId condition. The session AWS handed out was dropped unread.`,
+        `${rules.logLabel}: role ${roleArn} (project ${data.projectId}, ${rules.recordLabel} ${data.connectionId}) let this OneUptime sign in with an external id no project has, so it is not used: its trust policy needs the sts:ExternalId condition. The session AWS handed out was dropped unread.`,
       );
 
       if (keeps) {
         await AwsRoleCheckCache.set(key, verdict, checkedAtMs);
       }
 
-      throw roleWithoutExternalId(data.projectId);
+      throw roleWithoutExternalId(data.purpose, data.projectId);
     }
   }
 
@@ -689,8 +801,8 @@ export async function assumeRole(data: {
       credentials: data.credentials,
       roleArn,
       roleSessionName,
-      // Always this project's own: never one a request names.
-      externalId: getAwsExternalIdForProject(data.projectId),
+      // Always this project's own, for this purpose: never one a request names.
+      externalId: getRolePurposeExternalId(data.purpose, data.projectId),
       durationSeconds: ASSUMED_ROLE_SESSION_SECONDS,
       region: data.region,
       step: "role sign-in",
@@ -700,7 +812,12 @@ export async function assumeRole(data: {
       budget: data.budget,
     });
   } catch (error) {
-    throw describeRoleFailure({ error, roleArn, step: "sign-in" });
+    throw describeRoleFailure({
+      error,
+      roleArn,
+      step: "sign-in",
+      purpose: data.purpose,
+    });
   }
 
   const accessKeyId: string = readXmlTag(text, "AccessKeyId");
@@ -710,7 +827,7 @@ export async function assumeRole(data: {
 
   if (!accessKeyId || !secretAccessKey || !sessionToken) {
     throw new LlmProviderError({
-      message: "AWS did not return credentials for the role.",
+      message: rules.words.noCredentialsReturned,
       kind: CloudConnectionFailureKind.Other,
     });
   }
@@ -740,12 +857,39 @@ export async function assumeRole(data: {
 export class AssumedRoleCache {
   private static sessions: Map<string, AwsAssumedRole> = new Map();
 
+  /*
+   * A role's key, per purpose, project, connection (or SMTP config) and
+   * role ARN: Cloud Connect's when no purpose is named, as it was before
+   * there were purposes. Another purpose's keys start with its own prefix,
+   * which no project id does, so no key of one purpose is another's.
+   */
   public static keyOf(data: {
+    purpose?: AwsRolePurpose | undefined;
     projectId: string;
     connectionId: string;
     roleArn: string;
   }): string {
-    return `${data.projectId}|${data.connectionId}|${data.roleArn.trim()}`;
+    const prefix: string =
+      ROLE_PURPOSES[data.purpose || AwsRolePurpose.CloudConnect].keyPrefix;
+
+    return `${prefix}${data.projectId}|${data.connectionId}|${data.roleArn.trim()}`;
+  }
+
+  /*
+   * A session dropped before it expires: one AWS no longer takes (a
+   * service answered ExpiredToken or an unknown token for it), so the next
+   * call signs in again. Its role's check stands.
+   */
+  public static forget(key: string, session?: AwsCredentials): void {
+    const kept: AwsAssumedRole | undefined = this.sessions.get(key);
+
+    // Not one a sign-in made meanwhile.
+    if (
+      kept &&
+      (!session || kept.credentials.accessKeyId === session.accessKeyId)
+    ) {
+      this.sessions.delete(key);
+    }
   }
 
   public static async get(key: string): Promise<AwsCredentials | undefined> {

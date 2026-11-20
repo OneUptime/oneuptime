@@ -6,7 +6,9 @@ import {
   SecurityAttackCampaign,
   getCampaignGotThroughCount,
   getCampaignNotFollowedCount,
+  isCampaignAddressHidden,
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
+import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenClientAddressCopy";
 import SecurityEventRequestOutcome from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { WebAttackKind } from "Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import {
@@ -86,6 +88,26 @@ export const CAMPAIGNS_DESCRIPTION: string = translationKey(
 );
 
 export const UNKNOWN_ADDRESS: string = translationKey("Unknown address");
+
+/*
+ * What a campaign's row names it by: the address its requests came from, as
+ * written; else, in the reader's language, that a scrub rule hid it from
+ * every one of them (#10397), or that nobody knew it.
+ */
+export function getCampaignAddressText(
+  campaign: SecurityAttackCampaign,
+  translator: Translator,
+): string {
+  if (campaign.sourceIp) {
+    return campaign.sourceIp;
+  }
+
+  const words: string = isCampaignAddressHidden(campaign)
+    ? HIDDEN_BY_A_SCRUB_RULE
+    : UNKNOWN_ADDRESS;
+
+  return translator.translateText(words) || words;
+}
 
 export const ATTACKERS_LABEL: string = translationKey("Attackers");
 export const ATTACK_REQUESTS_LABEL: string = translationKey("Attack requests");

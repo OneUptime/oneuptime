@@ -250,7 +250,7 @@ Through the API and Terraform, the order is the widget's `arguments.sort`: a col
 A [public dashboard](/docs/dashboards/sharing) draws most widgets for its visitors, each showing only what it was set up to show. A few cannot be shown without a signed-in session:
 
 - **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events**, **Security Events Flow**, **Funnel** and **User Retention** say in their place that they are not available on public dashboards.
-- The External Data Sources widgets are left out of a public dashboard altogether, because their settings are the query itself.
+- The External Data Sources widgets show their data when they read **This project's metrics (PromQL)**, never their queries. A widget on an external data source is left out of a public dashboard altogether.
 
 ## When a widget can't be shown
 

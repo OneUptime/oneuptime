@@ -400,6 +400,40 @@ export default class AppMetrics {
     return this.ingestDroppedCounter;
   }
 
+  // -- Security Events' address vault (#10395) ---------------------------
+
+  /*
+   * The bounded attributes the vault's write counter carries: the signal
+   * whose ingest wrote (log or trace) and how the write ended - written,
+   * failed (ClickHouse refused it), or skipped (too many writes were in
+   * flight). Never a project, a token or an address.
+   */
+  public static readonly ADDRESS_VAULT_SIGNAL_ATTRIBUTE: string =
+    "oneuptime.telemetry.signal";
+  public static readonly ADDRESS_VAULT_OUTCOME_ATTRIBUTE: string =
+    "oneuptime.security.address_vault.outcome";
+
+  private static addressVaultWriteCounter: TelemetryCounter | null = null;
+
+  /*
+   * Addresses ingest handed Security Events' address vault, counted by how
+   * the write ended. A failed or skipped write never fails or delays the
+   * batch, whose records keep the token: the only loss is that Security
+   * Events cannot name those addresses, so this is where it shows.
+   */
+  public static getAddressVaultWriteCounter(): TelemetryCounter {
+    if (!this.addressVaultWriteCounter) {
+      this.addressVaultWriteCounter = Telemetry.getCounter({
+        name: "oneuptime.security.address_vault.write.count",
+        description:
+          "Addresses an IP Address Hash scrub rule hid that ingest wrote to Security Events' address vault, partitioned by signal and outcome (written, failed, skipped).",
+        unit: "1",
+      });
+    }
+
+    return this.addressVaultWriteCounter;
+  }
+
   // -- Live updates: who could read a record before a write -------------
 
   /*

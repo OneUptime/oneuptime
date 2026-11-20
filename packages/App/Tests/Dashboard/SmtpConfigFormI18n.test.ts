@@ -111,7 +111,7 @@ const PROVIDER_STRINGS: Array<string> = [
   // The provider cards' titles and lines.
   "Provider",
   "SMTP Server",
-  "Send through Amazon Simple Email Service with an IAM access key.",
+  "Send through Amazon Simple Email Service with an IAM access key or an IAM role in your AWS account.",
   "Send through Mailgun's API with an API key and a sending domain.",
   "Send through Postmark's API with a server API token.",
   "Send through Resend's API with an API key.",
@@ -147,7 +147,34 @@ const PROJECT_PROVIDER_STRINGS: Array<string> = [
   "How OneUptime sends this project's email.",
   "Send through SendGrid's API with an API key.",
   "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.",
+  // Amazon SES's IAM role in the project's own AWS account (#7378).
+  "IAM Role in Your AWS Account",
+  "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.",
+  "Role ARN",
+  "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.",
 ];
+
+/*
+ * What the Dashboard draws under an Amazon SES config's Role ARN (#7378):
+ * how to make the role, folded, and why it cannot be shown. Drawn by the
+ * panel the page hands the builder (AmazonSesRoleSetupPanel), not the
+ * builder itself.
+ */
+const ROLE_SETUP_STRINGS: Array<string> = [
+  "Set Up the Role in AWS",
+  "External ID",
+  "Trust Policy",
+  "Create the role with this trust policy, then allow it ses:SendEmail on your sender's identity.",
+  "OneUptime could not read the role's setup from the server. Open the form again to try again.",
+  "Read the guide",
+];
+
+const ROLE_SETUP_FILE: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "CustomSMTP",
+  "AmazonSesRoleSetupPanel.tsx",
+);
 
 /*
  * The strings only the instance's Amazon SES card draws: how it signs in,
@@ -204,6 +231,7 @@ const DASHBOARD_STRINGS: Array<string> = [
   ...NEW_STRINGS,
   ...PROVIDER_STRINGS,
   ...PROJECT_PROVIDER_STRINGS,
+  ...ROLE_SETUP_STRINGS,
 ];
 
 const ADMIN_STRINGS: Array<string> = [
@@ -233,6 +261,8 @@ const MAY_READ_AS_ENGLISH: Array<string> = [
  * server now, and its translations name a mail server.)
  */
 const RETIRED_STRINGS: Array<string> = [
+  // Amazon SES's card, before a project's config could sign in with a role (#7378).
+  "Send through Amazon Simple Email Service with an IAM access key.",
   "Use SSL / TLS",
   "Enable secure email communication. Recommended for most providers.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.",
@@ -356,6 +386,18 @@ describe("the mail server forms' strings", () => {
     });
 
     expect(unused).toEqual([]);
+  });
+
+  test("the Amazon SES role's setup panel draws each of its strings, written whole", () => {
+    const panel: string = stripComments(
+      fs.readFileSync(ROLE_SETUP_FILE, "utf8"),
+    );
+
+    expect(
+      ROLE_SETUP_STRINGS.filter((text: string): boolean => {
+        return !panel.includes(`"${text}"`);
+      }),
+    ).toEqual([]);
   });
 
   test("the Amazon SES card's identity row draws each of its strings, written whole", () => {

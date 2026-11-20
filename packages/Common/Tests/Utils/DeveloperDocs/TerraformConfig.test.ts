@@ -14,6 +14,9 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageOidc from "../../../Models/DatabaseModels/StatusPageOidc";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
+import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
+import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -1031,4 +1034,53 @@ describe("looking a resource up by name", () => {
       }),
     ).toBeNull();
   });
+});
+
+/*
+ * A permission is its key (#10300). As a JSON value, which the spec made it,
+ * an existing row's configuration left it to the server: a key is no JSON
+ * object, so it could not be written back the way it was read. A row taken
+ * over that way kept the row's permission only because the provider keeps a
+ * permission it is not given.
+ */
+describe("a permission row's configuration", () => {
+  const PARENT_ID: string = "1a2b3c4d-1234-4b2c-9d8e-0123456789ab";
+
+  test.each([
+    ["TeamPermission", TeamPermission, "teamId", "team_id"],
+    ["ApiKeyPermission", ApiKeyPermission, "apiKeyId", "api_key_id"],
+    [
+      "CustomRolePermission",
+      CustomRolePermission,
+      "customRoleId",
+      "custom_role_id",
+    ],
+  ])(
+    "%s writes its permission as the key",
+    (
+      _name: string,
+      modelType: DatabaseBaseModelType,
+      parentColumn: string,
+      parentAttribute: string,
+    ) => {
+      const config: TerraformResourceConfig | null = getTerraformResourceConfig(
+        {
+          modelType,
+          json: {
+            _id: "2b3c4d5e-1234-4b2c-9d8e-0123456789ab",
+            [parentColumn]: PARENT_ID,
+            permission: "IncidentMember",
+          },
+        },
+      );
+
+      expect(config?.resourceHcl).toMatch(
+        new RegExp(`\\n {2}${parentAttribute}\\s+= "${PARENT_ID}"`),
+      );
+      expect(config?.resourceHcl).toMatch(
+        /\n {2}permission\s+= "IncidentMember"\n/,
+      );
+      expect(config?.resourceHcl).not.toContain("jsonencode");
+    },
+  );
 });

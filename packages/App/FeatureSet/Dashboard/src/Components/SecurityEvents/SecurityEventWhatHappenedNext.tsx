@@ -15,6 +15,7 @@ import {
   describeWhatHappenedNext,
   getRequestOutcomeColor,
 } from "./SecurityEventRequestStory";
+import { FROM_A_HIDDEN_ADDRESS } from "./HiddenClientAddressCopy";
 
 export const WHAT_HAPPENED_NEXT_TEST_ID: string =
   "security-event-what-happened-next";
@@ -73,6 +74,13 @@ const SecurityEventWhatHappenedNext: FunctionComponent<ComponentProps> = (
       text: translator.translateTemplate(FROM_ADDRESS, {
         address: facts.clientAddress,
       }),
+    });
+  } else if (facts.hiddenClientAddress) {
+    // Who sent it is said even when a scrub rule hid the address (#10397).
+    chips.push({
+      text:
+        translator.translateText(FROM_A_HIDDEN_ADDRESS) ||
+        FROM_A_HIDDEN_ADDRESS,
     });
   }
 

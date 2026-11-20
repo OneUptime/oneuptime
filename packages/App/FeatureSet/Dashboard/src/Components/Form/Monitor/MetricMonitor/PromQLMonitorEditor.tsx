@@ -32,7 +32,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import API from "Common/UI/Utils/API/API";
@@ -306,7 +306,15 @@ const PromQLMonitorEditor: FunctionComponent<ComponentProps> = (
       )}
 
       <div data-testid={PROMQL_MONITOR_PREVIEW_TEST_ID}>
-        {preview.kind === "running" && <ComponentLoader />}
+        {/*
+         * The chart's shape while the preview runs, in its frame, so the
+         * form does not move when the lines arrive (#10333).
+         */}
+        {preview.kind === "running" && (
+          <div className="rounded-lg border border-gray-200 p-2 shadow-sm">
+            <ChartSkeleton />
+          </div>
+        )}
 
         {preview.kind === "error" && (
           <p className="text-sm text-red-700" role="alert">

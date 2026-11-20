@@ -116,6 +116,8 @@ const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
         label: label.name,
         isUserContent: true,
         ...(label.color ? { color: new Color(label.color) } : {}),
+        // Two labels of one name told apart in the picker (#10314).
+        ...(label.sharedName ? { sharedName: label.sharedName } : {}),
       };
     },
   );

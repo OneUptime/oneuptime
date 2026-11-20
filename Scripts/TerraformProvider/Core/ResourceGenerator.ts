@@ -224,6 +224,14 @@ export class ResourceGenerator {
       return "PhoneKeepSameNumber()";
     }
 
+    /*
+     * A permission's key, written plainly or with jsonencode() as earlier
+     * versions of the provider asked (StaticFiles/permissionkey.go).
+     */
+    if (attr.type === "string" && attr.isPermission) {
+      return "PermissionKeepSameKey()";
+    }
+
     if (attr.type === "number") {
       return "NumberKeepSameAPINumber()";
     }
@@ -547,6 +555,19 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       phoneCasesFile(),
     );
     /*
+     * A permission's key (OneUptime#10300): the type, its plan modifier and
+     * validator, which take the key written with jsonencode(), as earlier
+     * versions asked, as the same permission; their tests; and a create,
+     * refresh, plan, import and lookup of each permission resource through
+     * the real protocol server, from either form and from state in either.
+     */
+    await this.copyStaticFile("permissionkey.go", "internal/provider");
+    await this.copyStaticFile("permissionkey_test.go", "internal/provider");
+    await this.copyStaticFile(
+      "permission_roundtrip_test.go",
+      "internal/provider",
+    );
+    /*
      * NumberFromAPI, which every number attribute - of resources and data
      * sources alike - is read through, and its tests: the shapes the API
      * answers numbers in, and a create, read, plan and lookup of the
@@ -749,6 +770,11 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("client_test.go", "internal/provider");
     // And its asking again while a name is another resource's (#9855).
     await this.copyStaticFile("client_name_taken_test.go", "internal/provider");
+    // And while a domain or an identifier is (#10319).
+    await this.copyStaticFile(
+      "client_value_taken_test.go",
+      "internal/provider",
+    );
 
     /*
      * The acceptance tests: the core resources through a real Terraform and
@@ -1160,7 +1186,7 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       ([name, attr]: [string, any]) => {
         return (
           attr.type === "string" &&
-          (attr.isComplexObject || attr.isPhone) &&
+          (attr.isComplexObject || attr.isPhone || attr.isPermission) &&
           !(attr.computed && !attr.optional) &&
           !isProjectIdName(name)
         );
@@ -1516,6 +1542,9 @@ ${this.generateValidObjectTypesMap()}
         goType = "RFC3339Value";
       } else if (attr.type === "string" && attr.isPhone) {
         goType = "PhoneValue";
+      } else if (attr.type === "string" && attr.isPermission) {
+        // A permission's key, plain or JSON-encoded (permissionkey.go).
+        goType = "PermissionKeyValue";
       } else if (attr.type === "string" && attr.isComplexObject) {
         goType = "JSONSubsetValue";
       }
@@ -1586,6 +1615,13 @@ ${this.generateValidObjectTypesMap()}
       options.push("CustomType: RFC3339Type{}");
     } else if (attr.type === "string" && attr.isPhone) {
       options.push("CustomType: PhoneType{}");
+    } else if (attr.type === "string" && attr.isPermission) {
+      /*
+       * A permission's key and the same key written with jsonencode() are
+       * one value (PermissionKeyType), so a read keeps the form the state
+       * holds and an apply the form the plan does.
+       */
+      options.push("CustomType: PermissionKeyType{}");
     } else if (attr.type === "string" && attr.isComplexObject) {
       options.push("CustomType: JSONSubsetType{}");
     }
@@ -1811,6 +1847,17 @@ ${this.generateValidObjectTypesMap()}
       validators = `,
                 Validators: []validator.String{
                     PhoneValidator(),
+                }`;
+    } else if (
+      attr.type === "string" &&
+      attr.isPermission &&
+      !isComputedOnly &&
+      !isProjectIdField
+    ) {
+      // A permission's key, never JSON of another kind (permissionkey.go).
+      validators = `,
+                Validators: []validator.String{
+                    PermissionKeyValidator(),
                 }`;
     } else if (
       attr.type === "string" &&
@@ -3358,6 +3405,14 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
 
     /*
+     * A permission is sent as its key, the way OneUptime takes it, also
+     * when the configuration writes it with jsonencode() (permissionkey.go).
+     */
+    if (terraformAttr.type === "string" && terraformAttr.isPermission) {
+      return `requestDataMap["${apiFieldName}"] = PermissionKeyOf(data.${fieldName}.ValueString())`;
+    }
+
+    /*
      * Scalar arrays are sent as plain values; only entity-reference arrays
      * are wrapped in {_id: ...} objects.
      */
@@ -3669,6 +3724,19 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         ${fieldName} = NewPhoneValue(val)
     } else {
         ${fieldName} = NewPhoneNull()
+    }`;
+        }
+
+        /*
+         * A permission arrives as its key. PermissionKeyType's semantic
+         * equality keeps the plan's or the state's form when it is the same
+         * key written with jsonencode() (permissionkey.go).
+         */
+        if (attr.isPermission) {
+          return `if val, ok := ${responseValue}.(string); ok && val != "" {
+        ${fieldName} = NewPermissionKeyValue(val)
+    } else {
+        ${fieldName} = NewPermissionKeyNull()
     }`;
         }
 

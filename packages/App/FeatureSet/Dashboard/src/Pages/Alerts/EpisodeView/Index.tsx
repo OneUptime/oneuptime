@@ -603,6 +603,7 @@ const AlertEpisodeView: FunctionComponent<
                 telemetryQuery={telemetrySnapshot.telemetryQuery}
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
+                seriesLabels={telemetrySnapshot.seriesLabels}
                 eventNoun="alert"
                 metricRuleEventId={snapshotMemberId}
                 /*
