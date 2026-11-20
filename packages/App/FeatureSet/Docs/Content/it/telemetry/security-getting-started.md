@@ -62,6 +62,7 @@ La scheda **I tuoi log**, in cima a **Connessioni**, non richiede installazioni.
 | AWS CloudTrail | Accessi alla console, modifiche nei tuoi account AWS e chiamate che AWS ha rifiutato |
 | Log di audit di Google Cloud | Modifiche nei tuoi progetti Google Cloud, chiamate che Google ha rifiutato e accessi a Google Workspace condivisi con Google Cloud |
 | Log di attività di Azure e di Entra ID | Modifiche nelle tue sottoscrizioni Azure, avvisi di Defender for Cloud, e accessi e modifiche alla directory di Microsoft Entra ID |
+| Log di Azure Key Vault, Storage e SQL | Segreti di Key Vault letti e modificati, richieste di archiviazione rifiutate, anonime o che modificano dati con una SAS, e accessi, rifiuti e modifiche delle autorizzazioni di Azure SQL |
 | Audit trail di OpenStack | Accessi falliti, assegnazioni di ruoli e modifiche in Keystone, ciò che il filtro di audit ha visto di ogni API, security group aperti a tutto il mondo e immagini rese pubbliche |
 | CEF | Minacce, connessioni bloccate e accessi da firewall, IDS, WAF e altri prodotti di sicurezza che inviano Common Event Format |
 | LEEF | Lo stesso dai prodotti che inviano Log Event Extended Format, come molti fanno per IBM QRadar |

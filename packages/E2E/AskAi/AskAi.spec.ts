@@ -1618,16 +1618,23 @@ test.describe("what an answer carries fits where it is drawn", () => {
       for (const label of labels) {
         expect(label, label.text).toEqual({ text: label.text, lines: 1 });
       }
-      // Each value held to its unit, as read (#8717).
+      /*
+       * Each value held to its unit, as read (#8717), half a second a tick
+       * with the figures that step needs (#10117): recharts' own steps read
+       * "650 ms", "1.3 s", "1.95 s", "2.6 s".
+       */
       expect(
         labels.map((label: { text: string; lines: number }): string => {
           return label.text;
         }),
       ).toEqual(
         expect.arrayContaining([
-          withUnit(650, "ms"),
-          withUnit(1.3, "s"),
-          withUnit(2.6, "s"),
+          withUnit(0, "ms"),
+          withUnit(500, "ms"),
+          withUnit("1.0", "s"),
+          withUnit("1.5", "s"),
+          withUnit("2.0", "s"),
+          withUnit("2.5", "s"),
         ]),
       );
     });

@@ -149,6 +149,14 @@ export interface MonitorRecommendationContext {
    */
   deviceManagementProvider?: string | null | undefined;
   /*
+   * How often the connection is read, in minutes (its config's
+   * readIntervalInMinutes): Connection Stopped Reading waits three of them
+   * (#10006). `null` / `undefined` is the default interval. A monitor made
+   * before the interval changed keeps the wait it was made with, and is
+   * still the recommendation (getEquivalentMonitorSteps).
+   */
+  deviceManagementReadIntervalInMinutes?: number | null | undefined;
+  /*
    * The services a cloud has reported, by what Keystone's catalog calls them. A template about a
    * service a cloud may not run is offered only to a cloud reporting it. Not known is the same as
    * not reporting it: an alert that could never fire is worse than one a moment late.

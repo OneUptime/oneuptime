@@ -227,22 +227,33 @@ export default class QueryPermission {
    * SortValidator.checkSortPermission - the way canReadRelatedColumn reads
    * it, but for the permissions that let nobody read through a relation
    * (PendingInviteeProfiles.getPermissionsNotCountedThroughRelation): on a
-   * person's account, CurrentUser, which every signed-in person holds and
-   * which means the account's own person - whom a relation never shows the
-   * reader to be. Without it, a project member filtered its people by
+   * person's own records, CurrentUser, which every signed-in person holds
+   * and which means the record's own person - whom a relation never shows
+   * the reader to be. Without it, a project member filtered its people by
    * `user.isEmailVerified` (whether an address it invited had an account
-   * before), and by their language, time zone, company or phone (#9895).
+   * before), and by their language, time zone, company or phone (#9895);
+   * and its SMS, call and WhatsApp logs by the on-call timeline entry,
+   * notification rule and method of the person each was sent to (#10176).
    */
   public static canFilterOrOrderByRelatedColumn(data: {
     relatedModel: BaseModel;
     column: string;
     held: HeldPermissions;
+    /*
+     * Whether the read's own query is pinned to the caller's own records
+     * (OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser): then the
+     * person's own records its relations reach are the caller's.
+     */
+    isReadPinnedToCaller?: boolean | undefined;
   }): boolean {
     return QueryPermission.canReadRelatedColumn({
-      ...data,
+      relatedModel: data.relatedModel,
+      column: data.column,
+      held: data.held,
       notCounted:
         PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(
           data.relatedModel,
+          { isReadPinnedToCaller: data.isReadPinnedToCaller },
         ),
     });
   }
@@ -307,6 +318,17 @@ export default class QueryPermission {
     const held: HeldPermissions = HeldPermissionsUtil.fromRows({
       rows: ColumnPermissions.getColumnCheckRows(props),
     });
+
+    /*
+     * A read pinned to the caller's own records reaches their own records
+     * through its relations too (canFilterOrOrderByRelatedColumn, #10176).
+     */
+    const isReadPinnedToCaller: boolean =
+      OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+        modelType,
+        query,
+        props,
+      );
 
     // Now we need to check all columns.
 
@@ -386,6 +408,7 @@ export default class QueryPermission {
         filter: (query as Record<string, unknown>)[key],
         held: held,
         props: props,
+        isReadPinnedToCaller: isReadPinnedToCaller,
       });
     }
   }
@@ -493,7 +516,7 @@ export default class QueryPermission {
    * relation may select, or one of the id and timestamp columns every
    * select may name, is filtered on freely; any other only by a caller who
    * may read that column of the related model (canFilterOrOrderByRelatedColumn:
-   * never through CurrentUser on a person's account, #9895) - and
+   * never through CurrentUser on a person's own records, #9895, #10176) - and
    * never by a workflow's step when the related model is a setting that
    * holds credentials, whose read a step acting as a Project Admin is not
    * lent (RelationListPermission.isReadWithheldFromWorkflow): whoever may
@@ -507,6 +530,8 @@ export default class QueryPermission {
     filter: unknown;
     held: HeldPermissions;
     props: DatabaseCommonInteractionProps;
+    // The read's own query pinned to the caller's own records.
+    isReadPinnedToCaller: boolean;
   }): void {
     const filters: Array<unknown> = Array.isArray(data.filter)
       ? data.filter
@@ -588,6 +613,7 @@ export default class QueryPermission {
             relatedModel: relatedModel,
             column: relatedColumn,
             held: data.held,
+            isReadPinnedToCaller: data.isReadPinnedToCaller,
           }) ||
             RelationListPermission.isReadWithheldFromWorkflow(
               tableColumnMetadata.modelType,
@@ -613,6 +639,7 @@ export default class QueryPermission {
           filter: relationFilter[relatedColumn],
           held: data.held,
           props: data.props,
+          isReadPinnedToCaller: data.isReadPinnedToCaller,
         });
       }
     }

@@ -12,6 +12,7 @@ import {
   buildCloudMonitoredResourceIdentifier,
   resolveCloudMonitoredResource,
 } from "../../../Types/Cloud/CloudMonitoredResource";
+import { MetricOutputReaders } from "../../../Types/Metrics/MetricOutputReaders";
 import ObjectID from "../../../Types/ObjectID";
 import {
   findMetricReaders,
@@ -38,6 +39,11 @@ import {
  * For a type's addition (#10078), which resources of the type its readers
  * read it of - hidden readers' too, never named - and which of them read
  * it of every resource: what it can be kept for alone instead of removed.
+ *
+ * A recording rule among them is followed to what reads the metric it
+ * writes, and on down the chain (#10085): those read the rule's output,
+ * not the added metric, so they name what removing it leaves without data,
+ * never which resources it can be kept for.
  */
 
 const READER_KINDS: ReadonlyArray<{
@@ -132,12 +138,16 @@ function toCloudReader(
     id: reader.id,
     name: reader.name,
     widgets: (reader.widgets || []).map((widget: MetricReaderWidget) => {
-      return { title: widget.title, type: widget.type };
+      return { id: widget.id, title: widget.title, type: widget.type };
     }),
   };
 
   if (reader.outputMetricName) {
     found.outputMetricName = reader.outputMetricName;
+  }
+
+  if (reader.outputReaders) {
+    found.outputReaders = reader.outputReaders;
   }
 
   return found;
@@ -199,6 +209,8 @@ export async function findCloudAddedMetricReaders(data: {
     },
     props: data.props,
     keepsReferences: isKeepFor,
+    // A recording rule that reads it writes its output without it: what reads that is named (#10085).
+    followsOutputMetrics: true,
   });
   const readers: Array<CloudAddedMetricReader> = [];
   const uncheckedKinds: Array<CloudAddedMetricReaderKind> = [];
@@ -257,6 +269,12 @@ export async function findCloudAddedMetricReaders(data: {
     uncheckedKinds,
     hiddenByKind,
   };
+  const hiddenOutputReaders: MetricOutputReaders | undefined =
+    found[MetricReaderKind.MetricRecordingRule].hiddenOutputReaders;
+
+  if (hiddenOutputReaders) {
+    answer.hiddenOutputReaders = hiddenOutputReaders;
+  }
 
   // Something reads a type's addition: the resources it can be kept for alone.
   if (data.keepForResources && (readers.length > 0 || hidden > 0)) {

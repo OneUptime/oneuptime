@@ -30,6 +30,7 @@ flowchart TB
 - **Uma assinatura do Azure conectada.** Conecte-a primeiro em **Nuvem → Conectar**: veja [Conectar uma conta de nuvem](/docs/telemetry/cloud-accounts).
 - **Um Proprietário do projeto ou um Administrador do projeto.** Só eles podem ativar a leitura e parar a transmissão.
 - **Azure Cloud Shell**, conectado como **Owner** das assinaturas, ou como **Contributor** que também seja **User Access Administrator**: o comando cria um grupo de recursos e uma atribuição de função, e altera configurações de diagnóstico.
+- **Para os logs do Microsoft Entra ID, um Security Administrator** do locatário que também seja **Owner** ou **Contributor** do grupo de recursos que o comando cria: só ele pode enviar os logs do locatário para um hub de eventos.
 - **Uma saída para o Azure, em um OneUptime auto-hospedado.** O OneUptime lê cada namespace em `<namespace>.servicebus.windows.net` na porta 9093, e os namespaces aceitam conexões da internet.
 
 ## Configurar a transmissão
@@ -43,6 +44,8 @@ Vá para **Nuvem → Conectar** e, na linha da assinatura do Azure, escolha **Tr
 
 **Métricas** transmite as métricas principais de cada recurso, minuto a minuto, as métricas que o OneUptime exibe em gráficos e usa para avaliar cada recurso, exceto [as que uma configuração de diagnóstico não pode enviar](#o-que-chega), que a conexão continua lendo. **Métricas e logs** acrescenta os logs próprios de cada recurso, cada categoria que o Azure mantém para ele, e **Registros** transmite só os logs de recursos.
 
+Em **Para Eventos de segurança**, **Log de atividades de cada assinatura** faz o comando enviar as alterações, os alertas do Defender for Cloud e as recusas do Azure Policy de cada assinatura para o hub de eventos da primeira região, e **Logs de login e de auditoria do Microsoft Entra ID** acrescenta um segundo comando, para um Security Administrator do seu locatário. Os [Eventos de segurança](/docs/telemetry/security-events#encontrar-eventos-de-segurança-nos-seus-logs) leem os dois.
+
 ### Ativar a leitura
 
 Escolha **Ativar a leitura**. O OneUptime procura os hubs de eventos a cada minuto, e os aguarda até o comando criá-los.
@@ -50,6 +53,10 @@ Escolha **Ativar a leitura**. O OneUptime procura os hubs de eventos a cada minu
 ### Executar o comando no Azure Cloud Shell
 
 Copie o comando, execute-o no Azure Cloud Shell e aguarde terminar. Ele informa cada região em que criou um hub de eventos, quantos recursos enviam para eles e quais recursos deixou de fora, com o motivo do Azure.
+
+### Executar o comando do Microsoft Entra ID, se você o escolheu
+
+Quando o primeiro comando terminar, um Security Administrator do locatário executa o segundo no Azure Cloud Shell. Ele dá ao locatário uma configuração de diagnóstico que envia os logs de login, de auditoria e de risco do Microsoft Entra ID para o hub de eventos da primeira região, e diz o que o Azure pediu quando recusa.
 
 ### Aguardar os primeiros eventos
 
@@ -83,9 +90,13 @@ Um namespace do Service Bus ou do Event Hubs não transmite métricas. As leitur
 
 Um log é arquivado sob o recurso pelo ID do ARM do recurso, levado como `cloud.resource_id`, e mantém a categoria, a operação, o resultado e as propriedades como atributos, por exemplo `azure.category`.
 
-Um registro do log de atividades da categoria `Administrative`, `Security` ou `Policy`, e um registro de login, de auditoria ou de risco do Microsoft Entra ID, chegam inteiros, como corpo do log, mesmo um sobre um grupo de recursos, uma assinatura ou o locatário em vez de um recurso. Com [Encontrar eventos de segurança nos seus logs](/docs/telemetry/security-events#encontrar-eventos-de-segurança-nos-seus-logs) ativado, cada um é lido como um evento de segurança, como um de um pipeline de logs, e salvo uma única vez, por quantos caminhos chegar ao OneUptime. O comando configura só os logs de recursos: o log de atividades de uma assinatura e os logs do Microsoft Entra ID chegam ao stream por uma configuração de diagnóstico própria que os envia para um dos hubs de eventos dele.
+Um registro do log de atividades da categoria `Administrative`, `Security` ou `Policy`, e um registro de login, de auditoria ou de risco do Microsoft Entra ID, chegam inteiros, como corpo do log, mesmo um sobre um grupo de recursos, uma assinatura ou o locatário em vez de um recurso. Com [Encontrar eventos de segurança nos seus logs](/docs/telemetry/security-events#encontrar-eventos-de-segurança-nos-seus-logs) ativado, cada um é lido como um evento de segurança, como um de um pipeline de logs, e salvo uma única vez, por quantos caminhos chegar ao OneUptime. Com **Log de atividades de cada assinatura** ativado, o comando dá a cada assinatura uma configuração de diagnóstico que envia o log de atividades dela para o hub de eventos da primeira região, e o comando do Microsoft Entra ID dá uma ao locatário.
 
-Máquinas virtuais, conjuntos de dimensionamento, discos, interfaces de rede, redes virtuais, pontos de extremidade privados, gateways NAT, zonas DNS e planos do App Service não enviam logs de recursos próprios, então as páginas deles não têm a aba **Registros**. Os logs de uma conta de armazenamento são os dos seus serviços, e os de um aplicativo de contêiner, os do seu ambiente.
+O `AuditEvent` de um Key Vault, os `StorageRead`, `StorageWrite` e `StorageDelete` de uma conta de armazenamento e os `SQLSecurityAuditEvents` de um banco de dados do Azure SQL também chegam inteiros, cada um arquivado sob o seu recurso, e os Eventos de segurança leem os que importam para a segurança: veja [Logs de auditoria próprios dos recursos do Azure](/docs/telemetry/security-events#logs-de-auditoria-próprios-dos-recursos-do-azure). Um banco de dados do Azure SQL só envia a sua auditoria depois que a auditoria dele é ativada, com o Azure Monitor como destino.
+
+Máquinas virtuais, conjuntos de dimensionamento, discos, interfaces de rede, redes virtuais, pontos de extremidade privados, gateways NAT, zonas DNS e planos do App Service não enviam logs de recursos próprios, então as páginas deles não têm a aba **Registros**. Os logs de um aplicativo de contêiner são os do seu ambiente.
+
+Os logs de uma conta de armazenamento são os dos seus serviços de blob, arquivo, fila e tabela: o comando dá a cada serviço uma configuração de diagnóstico própria, e os logs deles são arquivados sob a conta, na aba **Registros** dela. São todas as requisições que a conta atende, então uma conta movimentada envia muitos.
 
 ## O que o comando cria
 
@@ -98,6 +109,9 @@ O grupo de recursos se chama `oneuptime-stream-` seguido dos 8 primeiros caracte
 | Um hub de eventos em cada um, `oneuptime`, com 2 partições | Guarda os eventos até o OneUptime lê-los |
 | A função **Azure Event Hubs Data Receiver** para o aplicativo da conexão, só no grupo de recursos | Permite que o aplicativo leia os hubs de eventos, e nada mais |
 | Uma configuração de diagnóstico em cada recurso, `OneUptime-<suffix>` | Envia as métricas, os logs ou ambos do recurso para o hub de eventos da região dele |
+| Com logs, uma configuração de diagnóstico em cada um dos serviços de blob, arquivo, fila e tabela de uma conta de armazenamento, `OneUptime-<suffix>` | Envia os logs dos serviços para o hub de eventos da região da conta |
+| Com **Log de atividades de cada assinatura**, uma configuração de diagnóstico em cada assinatura, `OneUptime-<suffix>` | Envia os registros `Administrative`, `Security` e `Policy` dela para o hub de eventos da primeira região |
+| Com o comando do Microsoft Entra ID, a configuração de diagnóstico do locatário, `OneUptime-<suffix>` | Envia os logs de login, de auditoria e de risco dele para o hub de eventos da primeira região |
 
 Um recurso de uma região global, como o Front Door, envia para o hub de eventos da primeira região. Um recurso do qual o Azure mantém só métricas ou só logs é configurado com o que tem, e um que já tem 5 configurações de diagnóstico, o máximo que o Azure permite, fica de fora. O Azure cobra a unidade de produtividade de cada namespace por hora, e os eventos que as configurações de diagnóstico enviam.
 
@@ -110,20 +124,31 @@ Na linha da assinatura em **Nuvem → Conectar**, escolha **Parar a transmissão
 
 ### Excluir o que o comando criou
 
-Os hubs de eventos e as configurações de diagnóstico ficam no Azure, e o Azure os cobra, até serem excluídos. A caixa mostra o comando: ele exclui a configuração de diagnóstico de cada recurso e depois o grupo de recursos, em qualquer assinatura que o contenha.
+Os hubs de eventos e as configurações de diagnóstico ficam no Azure, e o Azure os cobra, até serem excluídos. A caixa mostra o comando: ele exclui a configuração de diagnóstico de cada recurso, as dos serviços das contas de armazenamento e a de cada assinatura, e depois o grupo de recursos, em qualquer assinatura que o contenha. Ele também exclui a configuração do Microsoft Entra ID quando você tem permissão para isso, e caso contrário diz quem tem.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -162,6 +187,10 @@ A caixa e a dica da linha dizem o porquê. Quando o aplicativo não pode ler os 
 
 :::details O comando deixou recursos de fora
 Ele os lista, cada um com o motivo do Azure. Um recurso de um tipo sem configurações de diagnóstico não envia nada, e em um que já tem 5 configurações de diagnóstico é preciso excluir uma antes. Depois execute o comando de novo.
+:::
+
+:::details O log de atividades ou os logs do Microsoft Entra ID ficaram de fora
+O comando diz o que o Azure pediu. A configuração de diagnóstico de uma assinatura exige `Microsoft.Insights/diagnosticSettings/write` na assinatura, que o Owner, o Contributor e o Monitoring Contributor dela têm, e a do locatário exige um Security Administrator do locatário. As duas exigem `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` no grupo de recursos que o comando cria, que o Owner e o Contributor dele têm. Depois execute o comando de novo.
 :::
 
 ## Próximas etapas

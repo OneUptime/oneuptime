@@ -1,4 +1,5 @@
 import {
+  INVITATION_SSO_SIGN_IN_API_URL,
   SIGN_UP_INVITATION_API_URL,
   SIGN_UP_INVITATION_SSO_API_URL,
 } from "./ApiPaths";
@@ -110,6 +111,55 @@ export const confirmSignUpInvitationSsoSignIn: (
         data: {
           email: data.email,
           token: data.token,
+          projectId: data.projectId,
+        },
+      });
+    } catch {
+      // The provider's answer asks the mailbox instead.
+    }
+  };
+
+  const timer: { id?: ReturnType<typeof setTimeout> | undefined } = {};
+
+  const timeout: Promise<void> = new Promise<void>(
+    (resolve: () => void): void => {
+      timer.id = setTimeout(() => {
+        resolve();
+      }, timeoutInMs);
+    },
+  );
+
+  try {
+    await Promise.race([tell(), timeout]);
+  } finally {
+    if (timer.id !== undefined) {
+      clearTimeout(timer.id);
+    }
+  }
+};
+
+/*
+ * Client half of POST /identity/invitation-sso-sign-in (#10178): said as
+ * someone who has signed up already picks one of the project's providers
+ * on the project's SSO page their invitation opened, with the invitation's
+ * single-use link and the project. Like the sign-up page's (above): the
+ * answer is the same whatever the server found, so nothing is read from it,
+ * and the page goes on to the provider whatever happens. Never throws.
+ */
+export const confirmInvitationSsoSignIn: (
+  data: { token: string; signature: string; projectId: string },
+  timeoutInMs?: number,
+) => Promise<void> = async (
+  data: { token: string; signature: string; projectId: string },
+  timeoutInMs: number = SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS,
+): Promise<void> => {
+  const tell: () => Promise<void> = async (): Promise<void> => {
+    try {
+      await API.post<JSONObject>({
+        url: INVITATION_SSO_SIGN_IN_API_URL,
+        data: {
+          token: data.token,
+          signature: data.signature,
           projectId: data.projectId,
         },
       });

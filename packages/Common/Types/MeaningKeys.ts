@@ -107,6 +107,18 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   // An on-call calendar link no calendar app has read in its first two days.
   "Not fetched yet (calendar feed)",
   /*
+   * A device manager connection not read yet, read in part, and failing to
+   * read: its Status on Inventory > Managed Devices' Device Managers, for
+   * every service a connection reads (DeviceManagementWords, #10009).
+   * Russian words a state on its own in the neuter, as its Off, Stale and
+   * Healthy are ("Выключено", "Устарело", "Исправно"), where the bare
+   * words are a noun ("Ожидание"), a verb ("Догоняет") and a masculine
+   * noun ("Сбой"), which stay the other pages'.
+   */
+  "Waiting (device manager connection)",
+  "Catching up (device manager connection)",
+  "Failing (device manager connection)",
+  /*
    * The Logs, Traces, Metrics and Exceptions explorers' tab that counts and
    * charts what came in (their NavTabs, breadcrumbs and search entries).
    * The bare "Insights" is OneUptime AI's findings - the Products menu's

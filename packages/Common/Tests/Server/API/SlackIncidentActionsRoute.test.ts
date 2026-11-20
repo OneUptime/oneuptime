@@ -488,6 +488,11 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
     id: ObjectID;
     props: DatabaseCommonInteractionProps;
   }>;
+  let membersUpdated: Array<{
+    id: ObjectID;
+    data: JSONObject;
+    props: DatabaseCommonInteractionProps;
+  }>;
   let pages: Array<{
     targets: OnCallPageTargets;
     about: unknown;
@@ -520,6 +525,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
     updates = [];
     membersCreated = [];
     membersDeleted = [];
+    membersUpdated = [];
     pages = [];
     incidentReads = [];
     incident = {
@@ -745,6 +751,16 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         props: DatabaseCommonInteractionProps;
       }) => {
         membersDeleted.push(deleteOneById);
+        return 1;
+      }) as never);
+    jest
+      .spyOn(IncidentMemberService, "updateOneById")
+      .mockImplementation((async (updateOneById: {
+        id: ObjectID;
+        data: JSONObject;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        membersUpdated.push(updateOneById);
         return 1;
       }) as never);
     // Who somebody given a role is, read as OneUptime.
@@ -1432,7 +1448,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(slackCalls).toEqual([]);
     });
 
-    test("Assign Role: Simon becomes Incident Commander, as Simon - added first, then Ana taken off the role that takes one person", async () => {
+    test("Assign Role: Simon becomes Incident Commander, as Simon - Ana's row of the role that takes one person names him, in one change", async () => {
       const answer: RouteAnswer = await submit({
         callbackId: "SubmitAssignIncidentRole",
         privateMetadata: severityMetadata(),
@@ -1445,13 +1461,35 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(answer.body).toEqual({ response_action: "clear" });
       await settle();
 
+      // Handed on as the Dashboard's Reassign hands it on (#10270).
+      expect(membersUpdated).toEqual([
+        { id: ANA_AS_COMMANDER, data: { userId: SIMON }, props: PROPS },
+      ]);
+      expect(membersCreated).toEqual([]);
+      expect(membersDeleted).toEqual([]);
+      expect(slackCalls).toEqual([]);
+    });
+
+    test("Assign Role: a role that takes several people adds Simon, and takes nobody off", async () => {
+      const answer: RouteAnswer = await submit({
+        callbackId: "SubmitAssignIncidentRole",
+        privateMetadata: severityMetadata(),
+        state: {
+          incidentRole: staticSelect(SCRIBE.toString()),
+          incidentRolePerson: staticSelect(SIMON.toString()),
+        },
+      });
+
+      expect(answer.body).toEqual({ response_action: "clear" });
+      await settle();
+
       expect(membersCreated).toHaveLength(1);
       expect(membersCreated[0]!.member.userId).toEqual(SIMON);
-      expect(membersCreated[0]!.member.incidentRoleId).toEqual(COMMANDER);
+      expect(membersCreated[0]!.member.incidentRoleId).toEqual(SCRIBE);
       expect(membersCreated[0]!.member.incidentId).toEqual(INCIDENT_ID);
       expect(membersCreated[0]!.props).toBe(PROPS);
-      expect(membersDeleted).toEqual([{ id: ANA_AS_COMMANDER, props: PROPS }]);
-      expect(slackCalls).toEqual([]);
+      expect(membersUpdated).toEqual([]);
+      expect(membersDeleted).toEqual([]);
     });
 
     test("Assign Role with nobody picked: said under each field left empty", async () => {
@@ -1475,10 +1513,11 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(membersCreated).toEqual([]);
     });
 
-    test("a member who may add people to roles but not take them off cannot move the role that takes one person: why, and nothing written", async () => {
+    test("a member who may add people to roles and take them off, but not change a role's row, cannot move the role that takes one person: why, and nothing written", async () => {
       memberProps = propsWith([
         Permission.IncidentViewer,
         Permission.CreateIncidentMember,
+        Permission.DeleteIncidentMember,
       ]);
 
       await submit({
@@ -1492,11 +1531,38 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       const said: SlackCall = await onlyAnswer();
 
       expect(membersCreated).toEqual([]);
+      expect(membersUpdated).toEqual([]);
       expect(membersDeleted).toEqual([]);
-      // The role, who would come off it, and what allows it - once each.
+      // The role, who holds it, and what allows it - once each.
       expect(textOf(said.data["blocks"])).toBe(
-        "Could not assign the role: Incident Commander takes one person, and you do not have permission to take Ana Ruiz off it. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Delete Incident Member.\n",
+        "Could not assign the role: Incident Commander takes one person, and you do not have permission to reassign it from Ana Ruiz. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Edit Incident Member.\n",
       );
+    });
+
+    test("#10191's customer - who may change roles but take nobody off one - moves the role that takes one person: one change of Ana's row", async () => {
+      memberProps = propsWith([
+        Permission.IncidentViewer,
+        Permission.CreateIncidentMember,
+        Permission.EditIncidentMember,
+      ]);
+
+      const answer: RouteAnswer = await submit({
+        callbackId: "SubmitAssignIncidentRole",
+        privateMetadata: severityMetadata(),
+        state: {
+          incidentRole: staticSelect(COMMANDER.toString()),
+          incidentRolePerson: staticSelect(SIMON.toString()),
+        },
+      });
+
+      expect(answer.body).toEqual({ response_action: "clear" });
+      await settle();
+
+      expect(membersUpdated).toHaveLength(1);
+      expect(membersUpdated[0]!.id).toEqual(ANA_AS_COMMANDER);
+      expect(membersUpdated[0]!.data).toEqual({ userId: SIMON });
+      expect(membersCreated).toEqual([]);
+      expect(membersDeleted).toEqual([]);
     });
 
     test("Page Someone: the page about the incident, as Simon; who was paged, told to Simon", async () => {

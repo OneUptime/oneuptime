@@ -193,6 +193,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | AWS CloudTrail | CloudWatch Logs로 전달되는 추적을 컬렉터의 `awscloudwatch` 리시버로 읽음. **클라우드**에서 연결한 계정이면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음. **클라우드**에서 연결한 프로젝트면 그 [스트림](/docs/telemetry/cloud-streaming-google-cloud) 또는 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음. 또는 연결한 구독의 [스트림](/docs/telemetry/cloud-streaming-azure) 이벤트 허브로 보냄. **클라우드**에서 연결한 구독의 활동 로그면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
+| Azure Key Vault, Storage 및 SQL 로그 | Event Hub로 스트리밍하는 리소스의 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음. 또는 연결한 구독의 [스트림](/docs/telemetry/cloud-streaming-azure)이 로그와 함께 추가하는 진단 설정. [Azure 리소스 자체의 감사 로그](#azure-리소스-자체의-감사-로그) 참고 |
 | OpenStack 감사 기록 | 클라우드의 알림과 감사 필터를 `driver = log`로 로그에 보내고, 에이전트의 [로그 프로필](/docs/telemetry/openstack#누가-무엇을-했는가)이 읽음 |
 | CEF, LEEF | 제품의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
 | Palo Alto Networks, FortiGate, Cisco ASA | 방화벽 자체의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
@@ -204,6 +205,18 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 CEF나 LEEF 탐지 결과, Palo Alto Networks, FortiGate, Cisco ASA의 위협처럼 보안 제품이 로그에 기록하는 위협은 연결된 제품의 경고처럼 [케이스](/docs/telemetry/security-cases)를 열고, 그 위협이 가리키는 사용자, 호스트, 주소의 위험을 높입니다. 어느 심각도부터 열지는 **내 로그**의 **케이스를 여는 심각도**에서 정하며, 다른 심각도를 고르지 않는 한 **높음 이상**이고 **없음**으로 둘 수도 있습니다. 제품의 로그인과 차단된 연결은 이벤트로 남아 규칙이 읽을 수 있습니다.
 
 두 가지 경로로 OneUptime에 도착하는 레코드는 한 번만 저장됩니다. 연결이 읽고 Azure가 로그로도 내보내는 Microsoft Entra ID 로그인, 로그와 연결된 AWS 계정의 감사 로그 양쪽에 있는 CloudTrail 레코드, 또는 클라우드 계정의 스트림이 보내고 **클라우드 감사 로그**도 읽는 감사 레코드가 그렇습니다.
+
+#### Azure 리소스 자체의 감사 로그
+
+Key Vault, 스토리지 계정, Azure SQL 데이터베이스는 각각 모든 요청을 기록하는 자체 감사 로그를 둡니다. 그중 보안 팀이 살펴보는 것만 보안 이벤트가 됩니다.
+
+| 리소스 | 보안 이벤트가 되는 것 |
+| --- | --- |
+| Key Vault(`AuditEvent`) | Key Vault가 거부한 요청, 내준 시크릿, 시크릿·키·인증서 또는 Key Vault 자체의 삭제·영구 삭제·백업, 액세스 정책 변경, 보관 내용 변경. 단, 모든 Azure SDK 클라이언트가 테넌트를 알아내려고 토큰 없이 보내는 첫 호출에서 받는 401은 제외합니다. Key Vault는 이를 `Authentication` 작업으로 기록합니다 |
+| 스토리지 계정(`StorageRead`, `StorageWrite`, `StorageDelete`) | 권한이 없어 거부된 요청, 정적 웹 사이트의 페이지와 CORS 프리플라이트를 제외하고 자격 증명 없이 처리된 요청, 컨테이너·파일 공유·큐·테이블의 액세스 목록 변경 또는 그중 하나의 통째 삭제, 공유 액세스 서명(SAS)으로 서명된 쓰기 또는 삭제. 단, 성공한 읽기는 SAS 읽기를 포함해 제외합니다 |
+| Azure SQL(`SQLSecurityAuditEvents`) | 실패한 로그인, 풀링된 연결의 재사용이 아닌 새 연결에서의 로그인, 권한 부여·거부·취소, 역할 구성원이나 암호 변경, 가장, 로그인·사용자·역할의 생성·변경·삭제, 권한 확인에 실패한 작업. 단, 감사의 대부분을 차지하는 일괄 처리는 제외합니다 |
+
+스토리지 계정이 기록하는 것의 대부분은 성공한 읽기입니다. 대부분의 앱이 SAS로 브라우저에 파일을 건네기 때문입니다. 이 읽기는 로그에 통째로 남아 계정의 **로그** 탭에서 볼 수 있습니다. 공유 액세스 서명으로 무엇을 읽었는지 보려면 그곳에서 `"type":"SAS"`를 검색하세요. 각 이벤트는 리소스를 ID로 가리키고 스토리지 서비스의 이벤트는 그 계정도 가리키므로 해당 리소스의 **보안 이벤트** 페이지에 표시되며, 두 번 도착한 레코드는 한 번만 저장됩니다.
 
 ### 클라우드 계정의 감사 로그 읽기
 

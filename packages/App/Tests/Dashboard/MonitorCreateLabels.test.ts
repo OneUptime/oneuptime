@@ -252,7 +252,9 @@ describe("Monitor create labels", () => {
     );
     /*
      * The page hands it the one More fields section it builds once, shared
-     * with the description, so both fold under a single header.
+     * with the description and, for a monitor that checks a host, the
+     * network device it checks (#9545), so all of them fold under a single
+     * header.
      */
     expect(source).toContain(
       squash(
@@ -261,7 +263,7 @@ describe("Monitor create labels", () => {
     );
     expect(
       source.split("collapsibleSection: MONITOR_INFO_MORE_FIELDS").length - 1,
-    ).toBe(2);
+    ).toBe(3);
   });
 
   test("keeps Labels on the step every monitor type walks, with no step of their own", () => {

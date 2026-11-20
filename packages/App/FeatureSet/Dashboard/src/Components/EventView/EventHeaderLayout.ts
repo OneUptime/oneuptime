@@ -377,6 +377,21 @@ export const EVENT_HEADER_FACT_VALUE_CLASS_NAME: string =
   "min-w-0 break-words pb-4 text-sm font-medium text-gray-900";
 
 /*
+ * A FACT WHOSE VALUE IS CHANGED RIGHT THERE (#10195): the commander's name,
+ * which hands the role on. The value's control carries
+ * EVENT_HEADER_FACT_EDITOR_ATTRIBUTE; while it is pointed at, focused from
+ * the keyboard or open, a pencil fades in after the fact's label, so the
+ * label and the name read as one thing to change. Decoration only: the
+ * control's own name says what it does.
+ */
+export const EVENT_HEADER_FACT_EDITOR_ATTRIBUTE: string = "data-fact-editor";
+
+export const EVENT_HEADER_EDITABLE_FACT_CLASS_NAME: string = "group/fact";
+
+export const EVENT_HEADER_FACT_EDIT_HINT_CLASS_NAME: string =
+  "mt-px h-3 w-3 flex-shrink-0 text-indigo-500 opacity-0 transition-opacity group-has-[[data-fact-editor]:hover]/fact:opacity-100 group-has-[[data-fact-editor]:focus-visible]/fact:opacity-100 group-has-[[data-fact-editor][aria-expanded=true]]/fact:opacity-100";
+
+/*
  * The band at the foot of the header, by what it says: OneUptime AI's
  * (indigo), a warning (amber), a failure (red), or plain. A band, not a box:
  * it runs from edge to edge under a hairline, its corners the card's own.

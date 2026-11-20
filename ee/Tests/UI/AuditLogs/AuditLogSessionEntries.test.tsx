@@ -393,6 +393,9 @@ describe("the Action filter", () => {
       "Resource Name",
       "Action",
       "User Email",
+      // What a workflow's change ran as, and with whose permissions (#9766).
+      "Workflow Ran As",
+      "Workflow Permissions Given By",
       "Time",
     ]);
   });

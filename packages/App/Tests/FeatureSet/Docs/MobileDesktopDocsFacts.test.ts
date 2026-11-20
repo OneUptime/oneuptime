@@ -535,7 +535,9 @@ describe("signing in to the mobile app", () => {
   /*
    * The server offers a project's providers by an email's domain, never by
    * the account it has (#9824), so the answer explains the domain, and says
-   * nothing about accounts or the projects an email belongs to.
+   * nothing about accounts or the projects an email belongs to. It names the
+   * roles that may add a domain to a provider, as the English pages name
+   * every built-in role they mean (DocsRoleNamesInRunningText).
    */
   it("quotes the app's answer to an email with no single sign-on", () => {
     expect(mobile("src/screens/auth/SSOLoginScreen.tsx")).toContain(

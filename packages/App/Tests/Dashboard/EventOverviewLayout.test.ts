@@ -707,6 +707,24 @@ describe("incident-only layout", () => {
     );
     expect(view).toContain("withRoleGiven({");
     /*
+     * The commander's name hands the role on (#10195) while the incident is
+     * open, to a reader who may change the role row's person - the roles
+     * card's Reassign gate (#10191): one update of the row, the person
+     * named at once (withRoleReassigned), the roles card and the feed read
+     * again.
+     */
+    expect(view).toContain(
+      "const mayReassignRoles: boolean = getIncidentRoleReassignGate(privateRecordOptions).isAllowed;",
+    );
+    expect(view).toContain(
+      "onReassign: isResolved || !primaryRole || !mayReassignRoles ? undefined : async ( member: EventRoleMember, person: PeoplePickerOption, ): Promise<void> => { const incidentId: string = modelIdString; await reassignIncidentRole({ memberId: new ObjectID(member.memberId!), userId: new ObjectID(person.id), });",
+    );
+    expect(view).toContain(
+      "withRoleReassigned({ snapshot: current.value, member: member, person: person, }) || current.value,",
+    );
+    // Never a removal and an addition.
+    expect(view).not.toContain("deleteItem");
+    /*
      * A private incident's roles are given only with the permissions of the
      * teams that own it: asked with what the reader holds on it, the header
      * offers Assign only when one of those may (PrivateRecordScope).

@@ -403,7 +403,8 @@ describe("issue #10080: a third kind of unit is drawn to a scale of its own", ()
 
     const [left] = valueAxes();
 
-    expect(left![left!.length - 1]).toBe("100.00%");
+    // Its percent scale tops out at 100%, in quarters with no figure after the point (#10117).
+    expect(left).toEqual(["0%", "25%", "50%", "75%", "100%"]);
     expect(chipAxisOf("processes")).toBe("Own scale");
   });
 

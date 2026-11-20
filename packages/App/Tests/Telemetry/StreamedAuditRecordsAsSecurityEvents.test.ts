@@ -42,10 +42,17 @@ import {
   readCloudLoggingEntry,
 } from "../../FeatureSet/Telemetry/Utils/GcpPubSub/CloudLoggingEntries";
 import {
+  anonymousStorageRecord,
+  sasStorageRecord,
+  sqlDatabaseRecord,
+} from "Common/Tests/Utils/SecurityEvent/LogParsers/AzureResourceLogFixtures";
+import {
   MINUTE_MS,
+  STORAGE_ID,
   SUBSCRIPTION,
   VAULT_ID,
   VM_ID,
+  appServiceConsoleRecord,
   eventOf,
   streamContext,
   vaultAuditRecord,
@@ -389,6 +396,7 @@ describe("Azure Event Hubs: the Activity Log and Entra ID's records a diagnostic
     const decoded: AzureDiagnosticDecoded = decodeAzure([
       vaultPolicyChangeExported(),
       vaultAuditRecord(),
+      appServiceConsoleRecord(),
     ]);
     const lines: Array<StoredLine> = storedLines(
       decoded.resourceLogs.map((delivered: { resource: JSONObject }) => {
@@ -396,13 +404,16 @@ describe("Azure Event Hubs: the Activity Log and Entra ID's records a diagnostic
       }),
     );
 
-    expect(lines).toHaveLength(2);
+    expect(lines).toHaveLength(3);
 
     const policy: StoredLine = lines.find((line: StoredLine): boolean => {
       return line.attributes["azure.category"] === "Administrative";
     })!;
     const audit: StoredLine = lines.find((line: StoredLine): boolean => {
       return line.attributes["azure.category"] === "AuditEvent";
+    })!;
+    const console: StoredLine = lines.find((line: StoredLine): boolean => {
+      return line.attributes["azure.category"] === "AppServiceConsoleLogs";
     })!;
 
     expect(JSON.parse(policy.body)).toEqual(vaultPolicyChangeExported());
@@ -413,8 +424,10 @@ describe("Azure Event Hubs: the Activity Log and Entra ID's records a diagnostic
       "resource.cloud.resource_id": VAULT_ID,
       "resource.cloud.account.id": SUBSCRIPTION,
     });
-    // A Key Vault's own AuditEvent is no category the parsers read: a one-line log, as before.
-    expect(audit.body).toBe("SecretGet: Success (OK)");
+    // A key vault's own audit log is read too now (#10110): kept whole.
+    expect(JSON.parse(audit.body)).toEqual(vaultAuditRecord());
+    // An app's console line is no audit record: a one-line log, as before.
+    expect(console.body).toContain("connect ECONNREFUSED 10.0.0.5:5432");
   });
 
   test("a record about a resource group, a subscription or the tenant is kept, not dropped as naming no resource", () => {
@@ -487,8 +500,8 @@ describe("Azure Event Hubs: the Activity Log and Entra ID's records a diagnostic
       },
     ]);
 
-    // The access policy change, the group deleted, Defender's alert and the refused sign-in: not the vault's own audit line.
-    expect(streamed).toHaveLength(4);
+    // The access policy change, the group deleted, Defender's alert, the refused sign-in - and the vault's own secret read (#10110).
+    expect(streamed).toHaveLength(5);
     expect(
       streamed
         .map((event: NormalizedSecurityEvent): Array<string> => {
@@ -505,7 +518,9 @@ describe("Azure Event Hubs: the Activity Log and Entra ID's records a diagnostic
 
     for (const event of streamed) {
       expect(event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE]).toBe(
-        SecurityLogFormat.AzureActivity,
+        event.productName === "Azure Key Vault"
+          ? SecurityLogFormat.AzureResourceLogs
+          : SecurityLogFormat.AzureActivity,
       );
       // Each has an id of its own, never one made up from its line.
       expect(event.eventUid.startsWith("log:")).toBe(false);
@@ -727,6 +742,185 @@ function bucketMadePublic(): JSONObject {
     },
   );
 }
+
+/*
+ * A RESOURCE'S OWN AUDIT LOG THROUGH THE STREAM (#10110): a key vault's
+ * AuditEvent, a storage account's blob service's requests and an Azure SQL
+ * database's audit, as the stream's diagnostic settings send them to the
+ * event hubs. Each keeps itself as its line's body - a storage service's
+ * filed under its account - so "Your logs" reads it as it reads a raw
+ * pipeline's, it reaches its resource's page, and arriving twice it is
+ * stored once.
+ */
+describe("Azure Event Hubs: a resource's own audit log, read as security events (#10110)", () => {
+  const BLOB_SERVICE_ID: string = `${STORAGE_ID}/blobServices/default`;
+
+  function anonymousRead(): JSONObject {
+    return anonymousStorageRecord({
+      resourceId: BLOB_SERVICE_ID.toUpperCase(),
+    });
+  }
+
+  function streamedLines(records: Array<JSONObject>): Array<StoredLine> {
+    return storedLines(
+      decodeAzure(records).resourceLogs.map(
+        (delivered: { resource: JSONObject }) => {
+          return delivered.resource;
+        },
+      ),
+    );
+  }
+
+  test("a vault's, a storage service's and Azure SQL's records keep themselves whole; a storage service's is filed under its account", () => {
+    const records: Array<JSONObject> = [
+      vaultAuditRecord(),
+      anonymousRead(),
+      sqlDatabaseRecord(),
+    ];
+    const lines: Array<StoredLine> = streamedLines(records);
+
+    expect(lines).toHaveLength(3);
+    expect(
+      lines.map((line: StoredLine): JSONObject => {
+        return JSON.parse(line.body) as JSONObject;
+      }),
+    ).toEqual(expect.arrayContaining(records));
+
+    const storage: StoredLine = lines.find((line: StoredLine): boolean => {
+      return line.attributes["azure.category"] === "StorageRead";
+    })!;
+
+    // Its account's Logs tab, and the account's own region.
+    expect(storage.attributes).toMatchObject({
+      "resource.cloud.resource_id": STORAGE_ID,
+      "resource.azure.resource.id": BLOB_SERVICE_ID.toUpperCase(),
+      "resource.cloud.region": "eastus",
+      "resource.cloud.account.id": SUBSCRIPTION,
+    });
+  });
+
+  test("Your logs reads each as it reads a raw pipeline's: the same events, with ids of their own", () => {
+    const records: Array<JSONObject> = [
+      vaultAuditRecord(),
+      anonymousRead(),
+      sqlDatabaseRecord(),
+    ];
+    const streamed: Array<NormalizedSecurityEvent> = readAsYourLogs(
+      streamedLines(records),
+    );
+    const piped: Array<NormalizedSecurityEvent> = readAsYourLogs([
+      {
+        body: JSON.stringify({ records }),
+        attributes: {},
+        logId: ObjectID.generate().toString(),
+      },
+    ]);
+
+    expect(
+      streamed
+        .map((event: NormalizedSecurityEvent): string => {
+          return event.productName;
+        })
+        .sort(),
+    ).toEqual(["Azure Key Vault", "Azure SQL", "Azure Storage"]);
+    expect(
+      streamed
+        .map((event: NormalizedSecurityEvent): Array<string> => {
+          return identityOf(event);
+        })
+        .sort(),
+    ).toEqual(
+      piped
+        .map((event: NormalizedSecurityEvent): Array<string> => {
+          return identityOf(event);
+        })
+        .sort(),
+    );
+
+    for (const event of streamed) {
+      expect(event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE]).toBe(
+        SecurityLogFormat.AzureResourceLogs,
+      );
+      expect(event.eventUid.startsWith("log:")).toBe(false);
+    }
+  });
+
+  test("the vault's secret read is on the vault's page: by its ID, and by the vault its line was filed under", () => {
+    const [event] = readAsYourLogs(streamedLines([vaultAuditRecord()]));
+
+    expect(event!.activityName).toBe("SecretGet");
+    expect(event!.principalUser).toBe("alice@acme.com");
+    expect(event!.observables).toContain(VAULT_ID.toLowerCase());
+    expect(event!.attributes[SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]).toBe(
+      VAULT_ID.toLowerCase(),
+    );
+  });
+
+  test("the blob service's anonymous read is on the storage account's page, the same two ways", () => {
+    const [event] = readAsYourLogs(streamedLines([anonymousRead()]));
+
+    expect(event!.observables).toEqual(
+      expect.arrayContaining([
+        BLOB_SERVICE_ID.toLowerCase(),
+        STORAGE_ID.toLowerCase(),
+      ]),
+    );
+    expect(event!.attributes[SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]).toBe(
+      STORAGE_ID.toLowerCase(),
+    );
+  });
+
+  test("streamed, redelivered by the event hub and piped, each record is stored once", async () => {
+    const { table } = installStore();
+    const records: Array<JSONObject> = [
+      vaultAuditRecord(),
+      anonymousRead(),
+      sqlDatabaseRecord(),
+    ];
+
+    expect(
+      await store(readAsYourLogs(streamedLines(records)), table),
+    ).toHaveLength(3);
+    // An event hub delivers at least once: the same records, as new lines.
+    expect(
+      await store(readAsYourLogs(streamedLines(records)), table),
+    ).toHaveLength(0);
+    expect(
+      await store(
+        readAsYourLogs([
+          {
+            body: JSON.stringify({ records }),
+            attributes: {},
+            logId: ObjectID.generate().toString(),
+          },
+        ]),
+        table,
+      ),
+    ).toHaveLength(0);
+    expect(table).toHaveLength(3);
+  });
+
+  test("a storage account's SAS read stays in Logs whole, under the account, and is no security event", () => {
+    const lines: Array<StoredLine> = streamedLines([
+      sasStorageRecord({
+        resourceId: BLOB_SERVICE_ID.toUpperCase(),
+        category: "StorageRead",
+        operationName: "GetBlob",
+        statusCode: 200,
+      }),
+    ]);
+
+    expect(lines).toHaveLength(1);
+    expect(
+      ((JSON.parse(lines[0]!.body) as JSONObject)["identity"] as JSONObject)[
+        "type"
+      ],
+    ).toBe("SAS");
+    expect(lines[0]!.attributes["resource.cloud.resource_id"]).toBe(STORAGE_ID);
+    expect(matchesSecurityLogPrefilter(lines[0]!.body)).toBe(false);
+    expect(readAsYourLogs(lines)).toEqual([]);
+  });
+});
 
 describe("Google Cloud Pub/Sub: the audit logs a log sink streams", () => {
   test("an audit log's entry keeps itself as its line's body, its words as attributes", () => {

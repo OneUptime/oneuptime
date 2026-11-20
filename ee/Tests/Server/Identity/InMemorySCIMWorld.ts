@@ -4,6 +4,7 @@ import User from "Common/Models/DatabaseModels/User";
 import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import Email from "Common/Types/Email";
+import HashedString from "Common/Types/HashedString";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -33,6 +34,13 @@ export interface WorldUser {
   // "" for an account with no name.
   name: string;
   isMasterAdmin: boolean;
+  /*
+   * Whether the account has a password: someone signed up to it, or SCIM
+   * made it with a random one. None for an account an invitation made that
+   * nobody has claimed yet - what TeamMemberService mints a registration
+   * token for (#10180).
+   */
+  hasPassword?: boolean | undefined;
 }
 
 export interface WorldMembership {
@@ -96,6 +104,7 @@ class InMemorySCIMWorld {
     email: string;
     name?: string | null;
     isMasterAdmin?: boolean;
+    hasPassword?: boolean;
   }): string {
     const id: string = idOf(ObjectID.generate());
     this.users.push({
@@ -103,6 +112,7 @@ class InMemorySCIMWorld {
       email: data.email.toLowerCase(),
       name: data.name === null ? "" : data.name || data.email.split("@")[0]!,
       isMasterAdmin: Boolean(data.isMasterAdmin),
+      hasPassword: Boolean(data.hasPassword),
     });
     return id;
   }
@@ -215,6 +225,9 @@ const toUser: (row: WorldUser) => User = (row: WorldUser): User => {
     user.name = new Name(row.name);
   }
   user.isMasterAdmin = row.isMasterAdmin;
+  if (row.hasPassword) {
+    user.password = new HashedString("set", true);
+  }
   return user;
 };
 
@@ -303,6 +316,7 @@ export const fakeUserService: Record<string, unknown> = {
       email: args.email.toString(),
       name: args.name?.toString() || "",
       isMasterAdmin: false,
+      hasPassword: Boolean(args.generateRandomPassword),
     };
     scimWorld.users.push(row);
     return toUser(row);

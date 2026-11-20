@@ -1,3 +1,4 @@
+import { getManagedDeviceStorageDetails } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import {
   ManagedDevicePlatform,
   readManagedDevicePlatformFromName,
@@ -305,6 +306,22 @@ export function parseWorkspaceOneDevice(
   if (details["totalStorage"] || details["totalRam"]) {
     details["memoryUnits"] = "GB";
   }
+
+  /*
+   * In bytes, for how full it is (#10008): DeviceCapacity and
+   * AvailableDeviceCapacity are in gigabytes, as Apple's MDM names the same
+   * keys. Both are in one unit, so how full a device is never hangs on it.
+   */
+  const capacity: number | null = readNumber(raw["DeviceCapacity"]);
+  const available: number | null = readNumber(raw["AvailableDeviceCapacity"]);
+
+  Object.assign(
+    details,
+    getManagedDeviceStorageDetails({
+      totalBytes: capacity === null ? null : capacity * 1e9,
+      freeBytes: available === null ? null : available * 1e9,
+    }),
+  );
 
   const ipAddresses: Array<string> = [];
   let networkMac: string = "";

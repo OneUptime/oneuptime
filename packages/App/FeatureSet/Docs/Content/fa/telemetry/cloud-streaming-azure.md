@@ -30,6 +30,7 @@ flowchart TB
 - **یک اشتراک Azure متصل.** نخست آن را در **ابر** > **اتصال** متصل کنید: [اتصال یک حساب ابری](/docs/telemetry/cloud-accounts) را ببینید.
 - **مالک پروژه یا مدیر پروژه.** فقط آن‌ها می‌توانند خواندن را روشن کنند و جریان‌دادن را متوقف کنند.
 - **Azure Cloud Shell**، وارد شده با نقش **Owner** اشتراک‌ها، یا به‌عنوان **Contributor**ی که **User Access Administrator** هم باشد: فرمان یک گروه منابع و یک انتساب نقش می‌سازد و تنظیم‌های عیب‌یابی را تغییر می‌دهد.
+- **برای لاگ‌های Microsoft Entra ID، یک Security Administrator** مستأجر که در گروه منابعی که فرمان می‌سازد **Owner** یا **Contributor** هم باشد: فقط او می‌تواند لاگ‌های مستأجر را به یک هاب رویداد بفرستد.
 - **راهی به Azure، در OneUptime خودمیزبان.** OneUptime هر فضای نام را در `<namespace>.servicebus.windows.net` روی پورت ۹۰۹۳ می‌خواند و فضاهای نام اتصال از اینترنت را می‌پذیرند.
 
 ## راه‌اندازی جریان‌دادن
@@ -43,6 +44,8 @@ flowchart TB
 
 **متریک‌ها** متریک‌های کلیدی هر منبع را دقیقه به دقیقه جریان می‌دهد، یعنی متریک‌هایی که OneUptime نمودار هر منبع را با آن‌ها می‌کشد و آن را می‌سنجد، جز [آن‌هایی که یک تنظیم عیب‌یابی نمی‌تواند بفرستد](#چه-چیزی-میرسد) و اتصال همچنان آن‌ها را می‌خواند. **متریک‌ها و لاگ‌ها** لاگ‌های خود هر منبع، یعنی هر دسته‌ای که Azure برای آن نگه می‌دارد، را می‌افزاید و **لاگ‌ها** فقط لاگ‌های منابع را جریان می‌دهد.
 
+زیر **برای رویدادهای امنیتی**، با **لاگ فعالیت هر اشتراک** فرمان تغییرات هر اشتراک، هشدارهای Defender for Cloud و ردهای Azure Policy را به هاب رویداد نخستین منطقه می‌فرستد، و **لاگ‌های ورود و ممیزی Microsoft Entra ID** فرمان دومی برای یک Security Administrator مستأجر شما می‌افزاید. [رویدادهای امنیتی](/docs/telemetry/security-events#یافتن-رویدادهای-امنیتی-در-لاگهای-شما) هر دو را می‌خواند.
+
 ### خواندن را روشن کنید
 
 **روشن کردن خواندن** را انتخاب کنید. OneUptime هر دقیقه دنبال هاب‌های رویداد می‌گردد و تا وقتی فرمان آن‌ها را بسازد منتظرشان می‌ماند.
@@ -50,6 +53,10 @@ flowchart TB
 ### فرمان را در Azure Cloud Shell اجرا کنید
 
 فرمان را کپی کنید، در Azure Cloud Shell اجرا کنید و منتظر بمانید تا تمام شود. فرمان هر منطقه‌ای را که در آن هاب رویداد ساخته، تعداد منابعی را که به آن‌ها می‌فرستند و منابعی را که کنار گذاشته، همراه با دلیل Azure، می‌گوید.
+
+### فرمان Microsoft Entra ID را اجرا کنید، اگر آن را برگزیده‌اید
+
+پس از پایان فرمان نخست، یک Security Administrator مستأجر فرمان دوم را در Azure Cloud Shell اجرا می‌کند. این فرمان به مستأجر یک تنظیم عیب‌یابی می‌دهد که لاگ‌های ورود، ممیزی و ریسک Microsoft Entra ID را به هاب رویداد نخستین منطقه می‌فرستد، و وقتی Azure نپذیرد، می‌گوید Azure چه چیزی خواسته است.
 
 ### منتظر نخستین رویدادها بمانید
 
@@ -83,9 +90,13 @@ flowchart TB
 
 یک لاگ با شناسهٔ ARM منبع زیر همان منبع بایگانی می‌شود، که به‌صورت `cloud.resource_id` همراهش است، و دسته، عملیات، نتیجه و ویژگی‌هایش را به‌عنوان ویژگی نگه می‌دارد، مانند `azure.category`.
 
-رکوردی از Activity Log در دستهٔ `Administrative`، `Security` یا `Policy` و رکورد ورود، ممیزی یا ریسک Microsoft Entra ID کامل می‌رسند، به‌عنوان متن لاگشان، حتی رکوردی که به‌جای یک منبع دربارهٔ یک گروه منابع، یک اشتراک یا tenant است. وقتی [یافتن رویدادهای امنیتی در لاگ‌های شما](/docs/telemetry/security-events#یافتن-رویدادهای-امنیتی-در-لاگهای-شما) روشن باشد، هر کدام مثل رکوردی که از یک خط لولهٔ لاگ می‌آید به‌عنوان رویداد امنیتی خوانده می‌شود و از هر چند راه که به OneUptime برسد، فقط یک‌بار ذخیره می‌شود. فرمان فقط لاگ‌های منابع را راه می‌اندازد: Activity Log یک اشتراک و لاگ‌های Microsoft Entra ID با یک تنظیم عیب‌یابی جداگانه به جریان می‌رسند که آن‌ها را به یکی از هاب‌های رویداد آن می‌فرستد.
+رکوردی از Activity Log در دستهٔ `Administrative`، `Security` یا `Policy` و رکورد ورود، ممیزی یا ریسک Microsoft Entra ID کامل می‌رسند، به‌عنوان متن لاگشان، حتی رکوردی که به‌جای یک منبع دربارهٔ یک گروه منابع، یک اشتراک یا مستأجر است. وقتی [یافتن رویدادهای امنیتی در لاگ‌های شما](/docs/telemetry/security-events#یافتن-رویدادهای-امنیتی-در-لاگهای-شما) روشن باشد، هر کدام مثل رکوردی که از یک خط لولهٔ لاگ می‌آید به‌عنوان رویداد امنیتی خوانده می‌شود و از هر چند راه که به OneUptime برسد، فقط یک‌بار ذخیره می‌شود. وقتی **لاگ فعالیت هر اشتراک** روشن باشد، فرمان به هر اشتراک یک تنظیم عیب‌یابی می‌دهد که Activity Log آن را به هاب رویداد نخستین منطقه می‌فرستد، و فرمان Microsoft Entra ID یکی هم به مستأجر می‌دهد.
 
-ماشین‌های مجازی، مجموعه‌های مقیاس، دیسک‌ها، رابط‌های شبکه، شبکه‌های مجازی، نقاط پایانی خصوصی، دروازه‌های NAT، ناحیه‌های DNS و طرح‌های App Service لاگ منبع خودشان را نمی‌فرستند، پس صفحه‌هایشان زبانهٔ **لاگ‌ها** ندارد. لاگ‌های یک حساب ذخیره‌سازی لاگ‌های سرویس‌های آن است و لاگ‌های یک برنامهٔ کانتینری لاگ‌های محیط آن.
+لاگ‌های `AuditEvent` یک Key Vault، `StorageRead`، `StorageWrite` و `StorageDelete` یک حساب ذخیره‌سازی و `SQLSecurityAuditEvents` یک پایگاه دادهٔ Azure SQL هم کامل می‌رسند و هر کدام زیر منبع خود بایگانی می‌شود، و رویدادهای امنیتی آن‌هایی را که برای امنیت مهم‌اند می‌خواند: [لاگ‌های ممیزی خود منابع Azure](/docs/telemetry/security-events#لاگهای-ممیزی-خود-منابع-azure) را ببینید. یک پایگاه دادهٔ Azure SQL فقط وقتی ممیزی‌اش را می‌فرستد که ممیزی آن روشن باشد و Azure Monitor یکی از مقصدهایش باشد.
+
+ماشین‌های مجازی، مجموعه‌های مقیاس، دیسک‌ها، رابط‌های شبکه، شبکه‌های مجازی، نقاط پایانی خصوصی، دروازه‌های NAT، زُن‌های DNS و طرح‌های App Service لاگ منبع خودشان را نمی‌فرستند، پس صفحه‌هایشان زبانهٔ **لاگ‌ها** ندارد. لاگ‌های یک برنامهٔ کانتینری لاگ‌های محیط آن است.
+
+لاگ‌های یک حساب ذخیره‌سازی لاگ‌های سرویس‌های blob، file، queue و table آن است: فرمان به هر سرویس یک تنظیم عیب‌یابی جداگانه می‌دهد و لاگ‌هایشان زیر خود حساب، در زبانهٔ **لاگ‌ها**، بایگانی می‌شود. این لاگ‌ها هر درخواستی‌اند که حساب پاسخ می‌دهد، پس یک حساب پرکار لاگ‌های بسیاری می‌فرستد.
 
 ## فرمان چه چیزهایی می‌سازد
 
@@ -98,6 +109,9 @@ flowchart TB
 | یک هاب رویداد در هر کدام، `oneuptime`، با ۲ پارتیشن | رویدادها را تا وقتی OneUptime بخواندشان نگه می‌دارد |
 | نقش **Azure Event Hubs Data Receiver** برای برنامهٔ اتصال، فقط روی گروه منابع | به برنامه اجازه می‌دهد هاب‌های رویداد را بخواند، و نه چیز دیگری |
 | یک تنظیم عیب‌یابی روی هر منبع، `OneUptime-<suffix>` | متریک‌ها، لاگ‌ها یا هر دوی منبع را به هاب رویداد منطقه‌اش می‌فرستد |
+| وقتی لاگ‌ها جریان داده شوند، یک تنظیم عیب‌یابی روی هر یک از سرویس‌های blob، file، queue و table یک حساب ذخیره‌سازی، `OneUptime-<suffix>` | لاگ‌های سرویس‌ها را به هاب رویداد منطقهٔ حساب می‌فرستد |
+| با **لاگ فعالیت هر اشتراک**، یک تنظیم عیب‌یابی روی هر اشتراک، `OneUptime-<suffix>` | رکوردهای `Administrative`، `Security` و `Policy` آن را به هاب رویداد نخستین منطقه می‌فرستد |
+| با فرمان Microsoft Entra ID، تنظیم عیب‌یابی مستأجر، `OneUptime-<suffix>` | لاگ‌های ورود، ممیزی و ریسک مستأجر را به هاب رویداد نخستین منطقه می‌فرستد |
 
 منبعی در یک منطقهٔ سراسری، مانند Front Door، به هاب رویداد نخستین منطقه می‌فرستد. منبعی که Azure فقط متریک یا فقط لاگ آن را نگه می‌دارد با همان چیزی که دارد راه‌اندازی می‌شود، و منبعی که از قبل ۵ تنظیم عیب‌یابی دارد، یعنی بیشترین تعدادی که Azure اجازه می‌دهد، کنار گذاشته می‌شود. Azure هزینهٔ واحد توان عملیاتی هر فضای نام را ساعتی دریافت می‌کند، و هزینهٔ رویدادهایی که تنظیم‌های عیب‌یابی می‌فرستند.
 
@@ -110,20 +124,31 @@ flowchart TB
 
 ### آنچه فرمان ساخته را حذف کنید
 
-هاب‌های رویداد و تنظیم‌های عیب‌یابی تا وقتی حذف نشوند در Azure می‌مانند و Azure هزینه‌شان را دریافت می‌کند. پنجره فرمان را نشان می‌دهد: تنظیم عیب‌یابی هر منبع و سپس گروه منابع را، در هر اشتراکی که باشد، حذف می‌کند.
+هاب‌های رویداد و تنظیم‌های عیب‌یابی تا وقتی حذف نشوند در Azure می‌مانند و Azure هزینه‌شان را دریافت می‌کند. پنجره فرمان را نشان می‌دهد: تنظیم عیب‌یابی هر منبع، سرویس‌های حساب‌های ذخیره‌سازی آن و هر اشتراک و سپس گروه منابع را، در هر اشتراکی که باشد، حذف می‌کند. اگر اجازه داشته باشید، تنظیم Microsoft Entra ID را هم حذف می‌کند، وگرنه می‌گوید چه کسی اجازه دارد.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -162,6 +187,10 @@ oneuptime_stream_stop
 
 :::details فرمان منابعی را کنار گذاشت
 آن‌ها را، هر کدام با دلیل Azure، فهرست می‌کند. منبعی از نوعی که تنظیم عیب‌یابی ندارد چیزی نمی‌فرستد، و در منبعی که از قبل ۵ تنظیم عیب‌یابی دارد، نخست باید یکی از آن‌ها حذف شود. سپس فرمان را دوباره اجرا کنید.
+:::
+
+:::details فرمان Activity Log یا لاگ‌های Microsoft Entra ID را کنار گذاشت
+فرمان می‌گوید Azure چه چیزی خواسته است. تنظیم عیب‌یابی یک اشتراک به `Microsoft.Insights/diagnosticSettings/write` روی همان اشتراک نیاز دارد که Owner، Contributor و Monitoring Contributor آن دارند، و تنظیم مستأجر به یک Security Administrator مستأجر. هر دو به `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` روی گروه منابعی که فرمان می‌سازد نیاز دارند که Owner و Contributor آن دارند. سپس فرمان را دوباره اجرا کنید.
 :::
 
 ## گام‌های بعدی

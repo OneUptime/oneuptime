@@ -21,7 +21,7 @@
  * WorkflowService.onCreateSuccess).
  */
 
-import { JSONObject } from "../JSON";
+import { JSONObject, JSONValue } from "../JSON";
 import IconProp from "../Icon/IconProp";
 import HuntressSeverity from "../Huntress/HuntressSeverity";
 import ComponentID from "./ComponentID";
@@ -307,6 +307,17 @@ export interface WorkflowTemplateVariable {
    * template that does not ask for that setting.
    */
   prefilledFrom?: string | undefined;
+  /**
+   * For an optional setting a script reads from its arguments, beside
+   * others: left blank, every reference to it is written as empty text when
+   * the workflow is created. A blank setting gets no workflow variable, so
+   * the reference would otherwise reach the script as its literal braces,
+   * with a warning in every run's log that it did not resolve. Only a
+   * reference that is a whole JSON string, "{{local.variables.<name>}}",
+   * may sit inside a longer argument (Templates.test.ts), so emptying it
+   * leaves the argument valid JSON.
+   */
+  emptyWhenBlank?: boolean | undefined;
 }
 
 /*
@@ -823,6 +834,12 @@ interface TemplateRecordKind {
   hasPublicNotes: boolean;
   /** The other kind, for the warning about running both create-from-Jira templates. */
   otherPlural: string;
+  /**
+   * Where the record names the monitor behind it: an incident lists its
+   * monitors among its affected resources, and an alert has the one
+   * monitor that raised it.
+   */
+  monitorRelation: string;
 }
 
 const INCIDENT_KIND: TemplateRecordKind = {
@@ -863,6 +880,7 @@ const INCIDENT_KIND: TemplateRecordKind = {
     "title, severity, description, root cause or remediation notes",
   hasPublicNotes: true,
   otherPlural: "alerts",
+  monitorRelation: "monitors",
 };
 
 const ALERT_KIND: TemplateRecordKind = {
@@ -900,6 +918,7 @@ const ALERT_KIND: TemplateRecordKind = {
     "title, severity, description, root cause or remediation notes",
   hasPublicNotes: false,
   otherPlural: "incidents",
+  monitorRelation: "monitor",
 };
 
 /*
@@ -2873,6 +2892,12 @@ const DYNAMICS_CLIENT_SECRET: WorkflowTemplateVariable = {
   isOAuth2SettingOnly: true,
 };
 
+/*
+ * A column's logical name: its publisher prefix, an underscore and the rest,
+ * in lower case. The scripts hold the same pattern as COLUMN.
+ */
+const DYNAMICS_COLUMN_LOGICAL_NAME: RegExp = /^[a-z][a-z0-9]*_[a-z0-9_]+$/;
+
 const DYNAMICS_LINK_COLUMN: WorkflowTemplateVariable = {
   name: "dynamicsLinkColumn",
   title: "Case Link Column",
@@ -2882,10 +2907,121 @@ const DYNAMICS_LINK_COLUMN: WorkflowTemplateVariable = {
   required: true,
   isSecret: false,
   format: {
-    pattern: /^[a-z][a-z0-9]*_[a-z0-9_]+$/,
+    pattern: DYNAMICS_COLUMN_LOGICAL_NAME,
     message:
       "Enter the column's logical name, in lower case and with its prefix, such as new_oneuptimelink. Its display name will not work.",
   },
+};
+
+/*
+ * For a Case table that names one configuration item per case (#9358): an
+ * incident or an alert can have several affected resources, and the
+ * create-case script writes one of them into this column, by the rule its
+ * CONFIGURATION_ITEM_PRECEDENCE states. Optional, so it is left blank by
+ * most, and a blank one is written as empty text (emptyWhenBlank): the
+ * script then leaves the column out.
+ */
+const DYNAMICS_CONFIGURATION_ITEM_COLUMN: WorkflowTemplateVariable = {
+  name: "dynamicsConfigurationItemColumn",
+  title: "Configuration Item Column",
+  description:
+    "The logical name of a text column on the Case table that each new case writes its main affected resource into, such as new_configurationitem.",
+  placeholder: "new_configurationitem",
+  required: false,
+  isSecret: false,
+  format: {
+    pattern: DYNAMICS_COLUMN_LOGICAL_NAME,
+    message:
+      "Enter the column's logical name, in lower case and with its prefix, such as new_configurationitem. Its display name will not work.",
+  },
+  emptyWhenBlank: true,
+};
+
+interface DynamicsCaseResourceList {
+  /** The record's list of these resources: a column of Incident and of Alert. */
+  relation: string;
+  /** What a case's description calls one of them. */
+  noun: string;
+}
+
+/*
+ * The affected resources a case names, list by list, in the order the
+ * dashboard's Affected Resources column lists them (AffectedResourceNames),
+ * after the monitor behind the record (dynamicsCaseResourceLists). The
+ * Kubernetes, Docker and Podman resources and containers, which that column
+ * leaves out too, are not named.
+ */
+const DYNAMICS_CASE_RESOURCE_LISTS: ReadonlyArray<DynamicsCaseResourceList> = [
+  { relation: "hosts", noun: "host" },
+  { relation: "networkDevices", noun: "network device" },
+  { relation: "kubernetesClusters", noun: "Kubernetes cluster" },
+  { relation: "dockerHosts", noun: "Docker host" },
+  { relation: "podmanHosts", noun: "Podman host" },
+  { relation: "proxmoxClusters", noun: "Proxmox cluster" },
+  { relation: "openStackClouds", noun: "OpenStack cloud" },
+  { relation: "vmwareVCenters", noun: "VMware vCenter" },
+  { relation: "cephClusters", noun: "Ceph cluster" },
+  { relation: "storageArrays", noun: "storage array" },
+  { relation: "dockerSwarmClusters", noun: "Docker Swarm cluster" },
+  { relation: "iotFleets", noun: "IoT fleet" },
+  { relation: "databaseServers", noun: "database server" },
+  { relation: "cloudResources", noun: "cloud resource" },
+  { relation: "services", noun: "service" },
+  { relation: "serviceLevelObjectives", noun: "SLO" },
+];
+
+type DynamicsCaseResourceListsFunction = (
+  kind: TemplateRecordKind,
+) => Array<DynamicsCaseResourceList>;
+
+/** A record's affected resources as its Affected Resources column lists them: the monitor first. */
+const dynamicsCaseResourceLists: DynamicsCaseResourceListsFunction = (
+  kind: TemplateRecordKind,
+): Array<DynamicsCaseResourceList> => {
+  return [
+    { relation: kind.monitorRelation, noun: "monitor" },
+    ...DYNAMICS_CASE_RESOURCE_LISTS,
+  ];
+};
+
+type DynamicsConfigurationItemPrecedenceFunction = (
+  kind: TemplateRecordKind,
+) => Array<string>;
+
+/*
+ * Which affected resource the configuration item is, as the script ships:
+ * the lists in the dashboard's order, with the monitor moved to the end,
+ * because a monitor is what noticed the problem, and the rest are what has
+ * it. In the example #9358 gives, a Kubernetes cluster and the monitor
+ * watching its warning events, the cluster.
+ */
+const dynamicsConfigurationItemPrecedence: DynamicsConfigurationItemPrecedenceFunction =
+  (kind: TemplateRecordKind): Array<string> => {
+    return [
+      ...DYNAMICS_CASE_RESOURCE_LISTS.map(
+        (list: DynamicsCaseResourceList): string => {
+          return list.relation;
+        },
+      ),
+      kind.monitorRelation,
+    ];
+  };
+
+type DynamicsCaseResourceSelectFunction = (
+  kind: TemplateRecordKind,
+) => JSONObject;
+
+/** What the create-case trigger reads of each list: the names the script writes. */
+const dynamicsCaseResourceSelect: DynamicsCaseResourceSelectFunction = (
+  kind: TemplateRecordKind,
+): JSONObject => {
+  const select: JSONObject = {};
+
+  for (const list of dynamicsCaseResourceLists(kind)) {
+    select[list.relation] = { _id: true, name: true };
+  }
+
+  return select;
 };
 
 const DYNAMICS_CUSTOMER: WorkflowTemplateVariable = {
@@ -3122,6 +3258,16 @@ const dynamicsPrepareCaseScript: DynamicsKindScriptFunction = (
   kind: TemplateRecordKind,
 ): string => {
   const r: string = kind.noun;
+  const precedence: string = dynamicsConfigurationItemPrecedence(kind)
+    .map((relation: string): string => {
+      return `'${relation}'`;
+    })
+    .join(", ");
+  const nouns: string = dynamicsCaseResourceLists(kind)
+    .map((list: DynamicsCaseResourceList): string => {
+      return `  ${list.relation}: '${list.noun}',`;
+    })
+    .join("\n");
 
   return dynamicsScript(
     kind,
@@ -3144,6 +3290,19 @@ const CASE_TYPE = 2;
 // The Case table's own limits on a title and a description. Raise them if yours allows more.
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 2000;
+// The affected resource the Configuration Item Column setting's column gets, when it is set: the
+// first kind on this list the ${r} is linked to, and the first of that kind by name. The monitor
+// comes last, because it noticed the problem, and the rest are what has it. Reorder the list, or
+// leave a kind out, to choose another. The trigger reads these kinds and no others.
+const CONFIGURATION_ITEM_PRECEDENCE = [${precedence}];
+// The most of a name that column takes: a new text column holds 100 characters.
+const MAX_CONFIGURATION_ITEM_LENGTH = 100;
+// The description names this many affected resources, and counts the rest.
+const MAX_LISTED_RESOURCES = 10;
+// What the description calls each kind of affected resource, in the order it names them.
+const RESOURCE_NOUNS = {
+${nouns}
+};
 
 const ${r} = readJson(args.${r}) || {};
 const customFields = ${r}.customFields || {};
@@ -3167,6 +3326,15 @@ if (!COLUMN.test(linkColumn)) {
   return skip('The Case Link Column setting, ' + (linkColumn || 'which is empty') + ', is not the logical name of a column, such as new_oneuptimelink, so no case was opened.');
 }
 
+// The column the case's configuration item goes in. Left blank, the case has none.
+const configurationItemColumn = oneLine(args.configurationItemColumn);
+if (configurationItemColumn && !COLUMN.test(configurationItemColumn)) {
+  return skip('The Configuration Item Column setting, ' + configurationItemColumn + ', is not the logical name of a column, such as new_configurationitem, so no case was opened.');
+}
+if (configurationItemColumn === linkColumn) {
+  return skip('The Configuration Item Column and Case Link Column settings are both ' + linkColumn + ', but the link to OneUptime needs a column of its own, so no case was opened.');
+}
+
 // The customer every new case is filed against: an account's id, or contacts(<id>) for a contact.
 const customerText = oneLine(args.customer).replace(/^\//, '');
 const customerMatch = customerText.match(/^(accounts|contacts)\((.*)\)$/i);
@@ -3186,6 +3354,24 @@ const state = ${r}.${kind.stateRelation} ? oneLine(${r}.${kind.stateRelation}.na
 const lines = [number + ' was ${kind.created} in OneUptime.', 'Open it in OneUptime: ' + ${r}Url];
 if (severity) lines.push('Severity: ' + severity);
 if (state) lines.push('State: ' + state);
+// The names of one kind of the ${r}'s affected resources, in order, each once.
+const resourcesOf = (list) => {
+  const value = ${r}[list];
+  const names = (Array.isArray(value) ? value : value && typeof value === 'object' ? [value] : [])
+    .map((resource) => (resource && typeof resource === 'object' ? oneLine(valueOf(resource.name)) : ''))
+    .filter((name) => name !== '')
+    .sort();
+  return names.filter((name, index) => names.indexOf(name) === index);
+};
+// Every affected resource, as the ${r}'s Affected Resources column lists them.
+const affected = [];
+Object.keys(RESOURCE_NOUNS).forEach((list) => {
+  resourcesOf(list).forEach((name) => affected.push(RESOURCE_NOUNS[list] + ' ' + name));
+});
+if (affected.length) {
+  const more = affected.length - MAX_LISTED_RESOURCES;
+  lines.push('Affected resources: ' + affected.slice(0, MAX_LISTED_RESOURCES).join(', ') + (more > 0 ? ' and ' + more + ' more' : ''));
+}
 const description = clean(${r}.description).trim();
 if (description) lines.push('', description);
 // A monitor fills these in when it raises the ${r}; often they say more than the description.
@@ -3216,6 +3402,11 @@ const CASE = {
 };
 // Dataverse takes the customer as a link to an account or a contact row, and requires one.
 CASE['customerid_' + (customerTable === 'contacts' ? 'contact' : 'account') + '@odata.bind'] = '/' + customerTable + '(' + customerId + ')';
+// The one affected resource the configuration item column names, by CONFIGURATION_ITEM_PRECEDENCE.
+if (configurationItemColumn) {
+  const item = CONFIGURATION_ITEM_PRECEDENCE.find((list) => resourcesOf(list).length > 0);
+  if (item) CASE[configurationItemColumn] = limit(defuse(resourcesOf(item)[0]), MAX_CONFIGURATION_ITEM_LENGTH);
+}
 // What the other Dynamics 365 templates find the case by.
 CASE[linkColumn] = ${kind.upper}_LINK_PREFIX + ${r}Id;
 
@@ -4027,6 +4218,7 @@ const dynamicsCreateCaseTemplate: DynamicsTemplateFunction = (
       ...DYNAMICS_VARIABLES,
       DYNAMICS_CUSTOMER,
       oneUptimeUrlVariable(kind, "the Dynamics 365 case"),
+      DYNAMICS_CONFIGURATION_ITEM_COLUMN,
     ],
     oauth2Variables: [DYNAMICS_ACCESS_TOKEN],
     graph: columnGraph([
@@ -4047,6 +4239,8 @@ const dynamicsCreateCaseTemplate: DynamicsTemplateFunction = (
             remediationNotes: true,
             [kind.severityRelation]: { _id: true, name: true },
             [kind.stateRelation]: { name: true },
+            // The case's description names them, and its configuration item is one of them.
+            ...dynamicsCaseResourceSelect(kind),
           },
         },
       },
@@ -4073,6 +4267,7 @@ const dynamicsCreateCaseTemplate: DynamicsTemplateFunction = (
             oneuptimeUrl: "{{local.variables.oneuptimeUrl}}",
             linkColumn: "{{local.variables.dynamicsLinkColumn}}",
             customer: "{{local.variables.dynamicsCustomer}}",
+            configurationItemColumn: `{{local.variables.${DYNAMICS_CONFIGURATION_ITEM_COLUMN.name}}}`,
             severities:
               "{{local.components.find-severities-1.returnValues.models}}",
             [r]: `{{local.components.${trigger}.returnValues.model}}`,
@@ -9346,6 +9541,92 @@ export const buildGraphForTemplate: BuildGraphForTemplateFunction = (
 
   return buildTemplateGraph(spec, generateId);
 };
+
+type WithoutReferencesFunction = (
+  value: JSONValue,
+  references: Array<string>,
+) => JSONValue;
+
+// The value with each of these references taken out of its text, however deep it sits.
+const withoutReferences: WithoutReferencesFunction = (
+  value: JSONValue,
+  references: Array<string>,
+): JSONValue => {
+  if (typeof value === "string") {
+    return references.reduce((text: string, reference: string): string => {
+      return text.split(reference).join("");
+    }, value);
+  }
+
+  if (Array.isArray(value)) {
+    return (value as Array<JSONValue>).map((entry: JSONValue): JSONValue => {
+      return withoutReferences(entry, references);
+    });
+  }
+
+  if (value && typeof value === "object") {
+    const result: JSONObject = {};
+
+    for (const [key, entry] of Object.entries(value as JSONObject)) {
+      result[key] = withoutReferences(entry as JSONValue, references);
+    }
+
+    return result;
+  }
+
+  return value;
+};
+
+export type EmptyBlankSettingReferencesFunction = (props: {
+  graph: JSONObject;
+  template: WorkflowTemplate;
+  /** What was typed into each of the template's fields, by name. */
+  values: Record<string, string | undefined>;
+}) => JSONObject;
+
+/*
+ * A setting marked emptyWhenBlank, left blank, as the create wizard writes
+ * it: no workflow variable is made for it, and each reference to it, in any
+ * argument of any step, becomes empty text. Edits the graph in place and
+ * hands it back. A setting that was filled in keeps its references.
+ */
+export const emptyBlankSettingReferences: EmptyBlankSettingReferencesFunction =
+  (props: {
+    graph: JSONObject;
+    template: WorkflowTemplate;
+    values: Record<string, string | undefined>;
+  }): JSONObject => {
+    const references: Array<string> = props.template.variables
+      .filter((variable: WorkflowTemplateVariable): boolean => {
+        const value: string | undefined = props.values[variable.name];
+
+        return Boolean(variable.emptyWhenBlank) && !value?.trim();
+      })
+      .map((variable: WorkflowTemplateVariable): string => {
+        return `{{local.variables.${variable.name}}}`;
+      });
+
+    if (references.length === 0) {
+      return props.graph;
+    }
+
+    for (const node of (props.graph["nodes"] || []) as Array<JSONObject>) {
+      const data: JSONObject | undefined = node["data"] as
+        | JSONObject
+        | undefined;
+      const args: JSONObject | undefined = data?.["arguments"] as
+        | JSONObject
+        | undefined;
+
+      if (!data || !args) {
+        continue;
+      }
+
+      data["arguments"] = withoutReferences(args, references) as JSONObject;
+    }
+
+    return props.graph;
+  };
 
 /*
  * The handful the picker opens on. Forty-odd templates shown at once, each as

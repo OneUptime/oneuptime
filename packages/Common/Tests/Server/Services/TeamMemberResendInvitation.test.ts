@@ -335,6 +335,37 @@ describe("the email it sends", () => {
     );
   });
 
+  /*
+   * Sent again to the address the project invited (#10175): what the
+   * answer, the email and the project's Email Log say. The address Grace's
+   * account has moved to since is not the project's to learn.
+   */
+  test("goes to the address the project invited, not the one Grace's account has moved to", async () => {
+    const MOVED_TO: string = "grace.new@elsewhere.example";
+
+    membership!.inviteeEmail = new Email(GRACE_EMAIL);
+    grace!.email = new Email(MOVED_TO);
+    grace!.password = new HashedString("signed-up-since", true);
+
+    await expect(resend()).resolves.toEqual({ email: GRACE_EMAIL });
+
+    expect(sentMails()).toHaveLength(1);
+    expect(sentMails()[0]!.toEmail.toString()).toBe(GRACE_EMAIL);
+    expect(JSON.stringify(sentMails()[0])).not.toContain(MOVED_TO);
+    expect(invitationsCounted()).toBe(1);
+  });
+
+  test("an invitation made before the address was kept goes to the account's, as before", async () => {
+    grace!.email = new Email("grace.new@elsewhere.example");
+
+    await expect(resend()).resolves.toEqual({
+      email: "grace.new@elsewhere.example",
+    });
+    expect(sentMails()[0]!.toEmail.toString()).toBe(
+      "grace.new@elsewhere.example",
+    );
+  });
+
   test("names the person who sent it again, in the subject and the first line", async () => {
     await resend();
 

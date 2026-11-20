@@ -169,13 +169,17 @@ function group(events: Array<NormalizedSecurityEvent>): SharedRecordGroup {
 }
 
 describe("SecurityEventStoreOnce - which records more than one way brings in", () => {
-  test("Microsoft Entra ID's and the three clouds' audit records", () => {
+  test("Microsoft Entra ID's and the three clouds' audit records, and an Azure resource's own audit log", () => {
     expect([...SHARED_RECORD_PRODUCT_NAMES].sort()).toEqual(
       [
         "Microsoft Entra ID",
         "AWS CloudTrail",
         "Google Cloud Audit Logs",
         "Azure Activity Log",
+        // A key vault's, a storage account's and Azure SQL's (#10110).
+        "Azure Key Vault",
+        "Azure Storage",
+        "Azure SQL",
       ].sort(),
     );
   });

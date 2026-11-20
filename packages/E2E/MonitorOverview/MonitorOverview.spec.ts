@@ -437,6 +437,21 @@ function headline(page: Page): Locator {
   return page.getByTestId("monitor-overview-headline");
 }
 
+/*
+ * The status badge of a monitor whose status says something is wrong: a
+ * button named by the status that opens what made it so (#9592), with
+ * "Show why" as its hint for a screen reader and under the pointer.
+ */
+async function expectStatusWhy(page: Page, status: string): Promise<void> {
+  const why: Locator = page
+    .getByTestId("monitor-overview-badge")
+    .getByRole("button", { name: status, exact: true });
+
+  await expect(why).toHaveText(status);
+  await expect(why).toHaveAttribute("aria-haspopup", "dialog");
+  await expect(why).toHaveAccessibleDescription("Show why");
+}
+
 function statBar(page: Page): Locator {
   return page.getByRole("group", { name: "Uptime and open work", exact: true });
 }
@@ -927,9 +942,8 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-icon")).toHaveClass(
       /bg-red-50/,
     );
-    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
-      "Offline",
-    );
+    // Every probe sees it down, so the badge says why when pressed.
+    await expectStatusWhy(page, "Offline");
     expect(
       await backgroundColor(page.getByTestId("monitor-overview-status-dot")),
     ).toBe(OFFLINE_RGB);
@@ -2796,10 +2810,11 @@ test.describe("the hero's actions", () => {
     // The server starts it at its own now.
     expect(creates[0]!.data["startsAt"]).toBeUndefined();
 
-    // The page reads the monitor again and shows the new status.
-    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
-      "Offline",
-    );
+    /*
+     * The page reads the monitor again and shows the new status, which
+     * says why when pressed.
+     */
+    await expectStatusWhy(page, "Offline");
     await expect(headline(page)).toHaveText(/^Offline/);
     await expect(page.getByTestId("monitor-overview-icon")).toHaveClass(
       /bg-red-50/,
@@ -3724,9 +3739,13 @@ test.describe("owners, added from the hero", () => {
       .toEqual(["Jordan Patel", "Platform"]);
     await list.getByRole("option", { name: /Jordan Patel/ }).click();
 
-    await expect(
-      owners.getByRole("img", { name: "Jordan Patel" }),
-    ).toBeVisible();
+    /*
+     * His avatar: an image named by its owner (#9769), with his profile
+     * picture drawn inside it.
+     */
+    const avatar: Locator = owners.getByLabel("Jordan Patel", { exact: true });
+    await expect(avatar).toHaveAttribute("role", "img");
+    await expect(avatar).toBeVisible();
     await expect
       .poll(async (): Promise<Array<string>> => {
         return listedNames(list);

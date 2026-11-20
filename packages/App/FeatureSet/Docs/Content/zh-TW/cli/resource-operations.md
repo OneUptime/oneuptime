@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 清單會向 OneUptime 請求金鑰可讀取的每筆記錄的所有欄位。`--fields` 則只請求它指定的欄位，點號後面的則是關聯記錄的欄位，例如 `currentIncidentState.name`。表格顯示六個欄位；JSON 顯示全部（請參閱 [輸出格式](/docs/cli/output-formats)）。`--all` 每次讀取 100 筆記錄，逐頁讀完，最多 100,000 筆；`count` 會告訴你總數。
 
-標籤依名稱排列，而不是最新的在前：名稱以數字開頭的標籤排在前面，依該數字的大小排序（`2. Team` 在 `10. Owner` 之前），其餘標籤依字母順序排在後面。要依其他順序列出，請指定 `--sort`。
+標籤依名稱排列，而不是最新的在前：名稱以數字開頭的標籤排在前面，依該數字的大小排序（`2. Team` 在 `10. Owner` 之前），其餘標籤依字母順序排在後面。透過拖曳排序的記錄（例如事件狀態）依該順序列出。要依其他順序列出，請指定 `--sort`。
 
 ### 篩選清單
 

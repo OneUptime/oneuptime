@@ -104,7 +104,9 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *     Stopped Checking In (#10087), and Host Stopped Reporting for a device
  *     the Android Agent reports (#9835); and each device manager's Security
  *     Patch Out of Date (#10098), with the Android Agent's own Security
- *     Patch Out of Date for a device it reports.
+ *     Patch Out of Date for a device it reports; each device manager's Low
+ *     Battery and Storage Nearly Full (#10008), with the Android Agent's
+ *     own, and each connection's Connection Stopped Reading (#10006).
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -121,6 +123,19 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Workspace ONE Security Patch Out of Date",
       "SOTI Security Patch Out of Date",
       "Security Patch Out of Date",
+      "Esper Low Battery",
+      "Workspace ONE Low Battery",
+      "SOTI Low Battery",
+      "Low Battery",
+      "Esper Storage Nearly Full",
+      "Intune Storage Nearly Full",
+      "Workspace ONE Storage Nearly Full",
+      "SOTI Storage Nearly Full",
+      "Storage Nearly Full",
+      "Esper Connection Stopped Reading",
+      "Intune Connection Stopped Reading",
+      "Workspace ONE Connection Stopped Reading",
+      "SOTI Connection Stopped Reading",
     ],
     [API_REFERENCE]: ["⋯", "Owned", "On Update"],
   };

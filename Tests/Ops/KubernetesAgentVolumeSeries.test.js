@@ -77,7 +77,11 @@ function filterConditions() {
 
 // The types a condition drops, in its order, read from the type key it names.
 function droppedTypes(condition, typeKey) {
-  const escaped = typeKey.replace(/\./g, "\\.");
+  /*
+   * Every character a pattern reads as syntax, backslashes included, as
+   * Common's escapeRegExp does: these plain JavaScript tests cannot import it.
+   */
+  const escaped = typeKey.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
   return [
     ...condition.matchAll(
       new RegExp(`resource\\.attributes\\["${escaped}"\\] == "([^"]+)"`, "g"),
