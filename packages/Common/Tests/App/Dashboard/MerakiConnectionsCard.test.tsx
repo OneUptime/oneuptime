@@ -1457,10 +1457,11 @@ describe("the organization's devices that are not network devices here", () => {
         return `${line.state}: ${line.text}`;
       }),
     ).toEqual([
-      "without-address: 700 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
+      // What went wrong first, to act on; then what was left out, and why.
       "failed-devices: 5,000 devices could not be added:" +
         "User is not allowed to create on serialNumber column of Network Device. No permission allows it: the column is set by the server, not by a request." +
         "5,000 devices, including AP-1, AP-2, AP-3",
+      "without-address: 700 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
       "remaining: 1,300 more devices are left to add.Add the rest",
     ]);
     expect(

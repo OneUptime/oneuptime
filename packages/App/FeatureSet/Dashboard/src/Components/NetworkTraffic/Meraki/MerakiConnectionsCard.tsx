@@ -965,9 +965,12 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
         });
       }
 
+      // What it added beside the devices, and what went wrong: to act on.
+      addSitesAndFailureLines(state);
+
       /*
-       * The devices of the kinds picked it did not try to add, and why -
-       * in the words the dialog said them in before the ask.
+       * Then the devices of the kinds picked it did not try to add, and
+       * why - in the words the dialog said them in before the ask.
        */
       const leftOutLines: Array<{
         key: string;
@@ -1003,8 +1006,6 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
           ),
         });
       }
-
-      addSitesAndFailureLines(state);
 
       if (state.remainingCount > 0 && isOutcomeNewer) {
         addLine({
