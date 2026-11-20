@@ -156,11 +156,11 @@ Some changes ask you to confirm it's you first, even though you are signed in, s
 - turn two-factor authentication off;
 - delete your account.
 
-**Confirm It's You** asks for your password, and for your second step while two-factor authentication is on: a code from your authenticator app, your security key or one of your backup codes. With a passkey, click **Use a Passkey** instead. If you sign in only through single sign-on, Google or Microsoft, click **Sign In Again**: OneUptime has your identity provider ask you to sign in again, then brings you back to the page. The change then goes through.
+**Confirm It's You** asks for your password, and for your second step while two-factor authentication is on: a code from your authenticator app, your security key or one of your backup codes. With a passkey, click **Use a Passkey** instead. If you sign in only through single sign-on, Google or Microsoft, click **Sign In Again**: OneUptime has your identity provider ask you to sign in again, then brings you back to the page. The change then goes through. If you sign in only with Vercel, which cannot confirm it's you, choose **Sign In Another Way** and sign in with a link emailed to you instead.
 
 Once you have confirmed, you are not asked again for 10 minutes in that browser. Five wrong attempts sign that browser out, but never lock your account: sign in again and try once more. OneUptime emails you when this happens, and whenever a backup code confirms it's you.
 
-On a self-hosted server, master admins confirm it's them in the same way before they change how someone else signs in, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key. The master API key cannot make these changes.
+On a self-hosted server, master admins confirm it's them in the same way before they change how someone else signs in, delete someone else's account, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key or turn it back on. The master API key cannot make these changes.
 
 Signing in again counts only when your identity provider says you signed in after OneUptime sent you to it. If the provider signs you in with a session it already has, without asking for your password, that confirms nothing: sign out of the provider first, then click **Sign In Again**. Where your server lets you sign in with an emailed link, **Sign In Another Way** does that instead. What OneUptime asks each provider for, and what an administrator can change when signing in again does not confirm:
 
@@ -170,6 +170,9 @@ Signing in again counts only when your identity provider says you signed in afte
 | OpenID Connect | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |
 | Google | When you signed in (`auth_time`). Google cannot be asked to have you sign in again. | Turn on Session age claims for the server's Google sign-in app, which must be published and verified. |
 | Microsoft | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |
+| Vercel | Nothing: Vercel cannot be asked to have you sign in again, and does not say when you signed in. | It never confirms. Choose **Sign In Another Way** and sign in with a link emailed to you, or set a password with **Forgot password?** and confirm with it. |
+
+What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.
 
 ## Your projects
 

@@ -217,7 +217,11 @@ export type InboxStackParamList = {
    * One security case: where a security-case push lands, and what the
    * Security list, a link in an incident or alert, and Home open.
    */
-  SecurityCaseDetail: { caseId: string; projectId: string };
+  /*
+   * runId: the playbook run a push about an approval named - its approval
+   * first, or what became of it once somebody decided.
+   */
+  SecurityCaseDetail: { caseId: string; projectId: string; runId?: string };
 } & Pick<IncidentsStackParamList, "IncidentDetail" | "IncidentEpisodeDetail"> &
   Pick<AlertsStackParamList, "AlertDetail" | "AlertEpisodeDetail">;
 

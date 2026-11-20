@@ -121,6 +121,7 @@ describe("the keys that name their meaning", () => {
         "Change (schema change)",
         "Created (import result)",
         "Deleted (invoice status)",
+        "Expired (block)",
         "Expired (rule exception)",
         "Expired (threat indicator)",
         "Failing (device manager connection)",
@@ -188,6 +189,8 @@ describe("the keys that name their meaning", () => {
      */
     expect(getWordOfMeaningKey("Expired (threat indicator)")).toBe("Expired");
     expect(getWordOfMeaningKey("Expired (rule exception)")).toBe("Expired");
+    // #10338: a block of the blocklist whose time is up.
+    expect(getWordOfMeaningKey("Expired (block)")).toBe("Expired");
     expect(getWordOfMeaningKey("Upcoming (rule exception)")).toBe("Upcoming");
     expect(getWordOfMeaningKey("Not fetched yet (OAuth token)")).toBe(
       "Not fetched yet",

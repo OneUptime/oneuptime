@@ -92,6 +92,8 @@ import MicrosoftTeamsAuthAction, {
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
 import MicrosoftTeamsRemediationActions from "./Actions/Remediation";
 import MicrosoftTeamsPublicNoteApprovalActions from "./Actions/PublicNoteApproval";
+import MicrosoftTeamsSecurityPlaybookApprovalActions from "./Actions/SecurityPlaybookApproval";
+import WorkspaceSecurityPlaybookApproval from "../WorkspaceSecurityPlaybookApproval";
 import {
   MicrosoftTeamsActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
@@ -5937,6 +5939,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
+       * A playbook step waiting for approval, on its card in a channel,
+       * a chat or an approver's personal chat: Approve, Approve Some… and
+       * the card it answers with, and Reject.
+       */
+      if (
+        MicrosoftTeamsSecurityPlaybookApprovalActions.isSecurityPlaybookApprovalAction(
+          actionType,
+        )
+      ) {
+        await MicrosoftTeamsSecurityPlaybookApprovalActions.handle({
+          actionType,
+          actionValue,
+          value,
+          projectId,
+          oneUptimeUserId,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
+
+      /*
        * A fix OneUptime AI proposes for approval: Review and approve, its
        * card's Approve and run, and Dismiss.
        */
@@ -6600,9 +6623,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       | undefined;
     const from: JSONObject =
       (data.activity["from"] as JSONObject | undefined) || {};
+    /*
+     * The project a card was sent for (MicrosoftTeamsCardProject), or the
+     * one a playbook step's approval value was signed for - a card posted
+     * to a channel or chat of no one project names it that way
+     * (WorkspaceSecurityPlaybookApproval).
+     */
     const drawnForProjectId: string | undefined =
       data.chosenProjectId?.toString() ||
-      MicrosoftTeamsCardProject.readDrawnForProjectId(data.activity["value"]);
+      MicrosoftTeamsCardProject.readDrawnForProjectId(data.activity["value"]) ||
+      WorkspaceSecurityPlaybookApproval.readValue(
+        data.actionValue,
+      )?.projectId.toString();
 
     return {
       recordIds: data.actionValue ? [data.actionValue] : [],

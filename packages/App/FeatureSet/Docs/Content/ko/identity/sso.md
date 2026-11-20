@@ -287,6 +287,31 @@ OneUptime이 로그아웃시킨 뒤 브라우저가 공급자 자체의 로그�
 등록하지 않은 공급자는 OneUptime에서 로그아웃한 사람을 돌려보내지 않고 자체 오류 페이지를 보여 줍니다. 그래도 OneUptime에서는 로그아웃된 상태입니다.
 :::
 
+## 본인 확인을 위해 다시 로그인하기
+
+누군가 로그인 방식을 바꾸거나 계정을 삭제하기 전에 OneUptime은 [본인 확인](/docs/introduction/your-account#본인-확인)을 요청합니다. OneUptime에 비밀번호나 패스키 없이 ID 공급자로만 로그인하는 사람은 **다시 로그인**으로 확인합니다. OneUptime이 그 사람을 공급자에게 보내 다시 로그인하게 하도록 요청합니다. 공급자가 그 시점이나 그 이후에 로그인했다고 알려 줄 때만 인정되며, 두 시계의 차이로 앞뒤 1분은 허용합니다. 이미 있는 세션으로 곧바로 다시 로그인시키거나 로그인한 시간을 알려 주지 않는 공급자는 아무것도 확인하지 않으며, 그 사람에게는 관리자에게 설정을 바꿔 달라고 요청하라는 안내가 표시됩니다.
+
+:::tabs
+@tab SAML
+OneUptime은 `ForceAuthn="true"`를 보내고, 로그인한 시간을 어설션의 `AuthnInstant`에서 읽습니다.
+
+| ID 공급자 | 설정할 내용 |
+| --- | --- |
+| Okta | **General** 탭에서 **SAML Settings**를 편집하고 **Show Advanced Settings**를 클릭한 뒤 **Honor Force Authentication**을 **Yes**로 설정하세요. **No**로 두면 Okta는 요청을 무시합니다. |
+| Microsoft Entra ID | 없음: Entra ID는 요청을 따르며, `AuthnInstant`는 그 사람이 로그인한 시간입니다. |
+| Keycloak | 없음: Keycloak은 요청을 따릅니다. 하지만 `AuthnInstant`는 로그인한 시간이 아니라 응답한 시간이므로, OneUptime은 Keycloak이 다시 물었는지 확인할 수 없습니다. OneUptime이 직접 확인하도록 Keycloak은 OpenID Connect로 연결하세요. |
+| Google Workspace | 설정할 것이 없습니다. Google은 요청을 따르는지 밝히지 않습니다. `AuthnInstant`는 그 사람이 마지막으로 Google에 로그인한 시간이므로, 아직 Google에 로그인되어 있는 사람은 먼저 Google에서 로그아웃합니다. |
+@tab OpenID Connect
+OneUptime은 `prompt=login`과 `max_age=0`을 보내고, 로그인한 시간을 ID 토큰의 `auth_time`에서 읽습니다.
+
+| ID 공급자 | 설정할 내용 |
+| --- | --- |
+| Okta | 없음: Okta는 둘 다 따르며 항상 `auth_time`을 보냅니다. |
+| Microsoft Entra ID | 앱 등록의 **Token configuration**에서 **Add optional claim**을 클릭하고 **ID**를 선택한 뒤 `auth_time`을 추가하세요. Entra ID는 이를 선택적 클레임으로만 보냅니다. `prompt=login`은 따릅니다. |
+| Keycloak | 클라이언트에 `basic` 클라이언트 스코프를 그대로 두세요. 여기에 `auth_time`이 들어 있습니다. Keycloak 25 이상은 모든 클라이언트에 이 스코프를 줍니다. |
+| Google Workspace | OAuth 클라이언트의 **Session age claims**를 **Google Auth Platform** > **Settings** > **Advanced Settings**에서 켜세요. 앱은 게시되고 인증되어 있어야 합니다. Google은 두 요청을 모두 받지 않으므로 OneUptime은 대신 `auth_time`을 요청하며, 아직 Google에 로그인되어 있는 사람은 먼저 Google에서 로그아웃합니다. |
+:::
+
 ## SSO 사용자의 역할과 팀
 
 OneUptime은 ID 공급자의 역할이나 그룹을 가져오지 않습니다. 사람이 할 수 있는 일은 그 사람이 속한 팀에서 결정됩니다. 공급자는 새로 온 사람을 자신의 **팀**에 추가하고, 팀과 그 권한은 [사용자, 팀 및 권한](/docs/permissions/index)에서 설명하는 대로 OneUptime에서 관리합니다. 팀 멤버 구성을 ID 공급자와 맞춰 두려면 [SCIM](/docs/identity/scim)을 사용하세요. 로그인할 때 참여하는 각 팀은 해당 팀의 **감사 로그** 페이지에 로그인한 사람의 변경으로 기록됩니다.

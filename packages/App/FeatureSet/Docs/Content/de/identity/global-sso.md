@@ -104,6 +104,12 @@ Registrieren Sie die Weiterleitungs-URI nach der Abmeldung, die die Karte **URL 
 
 Wo Okta, Microsoft Entra ID, Auth0 und Keycloak diese Einstellungen haben, steht auf der Seite [SSO](/docs/identity/sso).
 
+## Erneut anmelden, um zu bestätigen, dass Sie es sind
+
+Wer sich nur über einen globalen Anbieter anmeldet, bestätigt mit **Erneut anmelden**, dass er es ist, bevor er ändert, wie er sich anmeldet, oder sein Konto löscht: OneUptime schickt die Person mit `ForceAuthn="true"` für SAML oder `prompt=login` und `max_age=0` für OpenID Connect zurück zum Anbieter und zählt das nur, wenn der Anbieter in `AuthnInstant` oder `auth_time` sagt, dass sie sich zu diesem Zeitpunkt oder danach angemeldet hat. Wenn Sie einen globalen Anbieter hinzufügen, ändern oder löschen, werden Sie zuerst gebeten, [zu bestätigen, dass Sie es sind](/docs/introduction/your-account#bestätigen-dass-sie-es-sind).
+
+Was Sie in Okta, Microsoft Entra ID, Keycloak und Google Workspace einstellen, steht auf der Seite [SSO](/docs/identity/sso#erneut-anmelden-um-zu-bestätigen-dass-sie-es-sind).
+
 ## SSO durchsetzen
 
 Einen globalen Anbieter einzurichten zwingt niemanden, ihn zu nutzen; die Anmeldung mit Passwort funktioniert weiter. Um SSO zu verlangen, schalten Sie die Anforderung für ein Projekt oder für die ganze Instanz ein:

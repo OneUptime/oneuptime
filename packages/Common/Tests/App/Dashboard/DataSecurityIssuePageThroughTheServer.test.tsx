@@ -566,6 +566,41 @@ describe("a data security issue's page, through the server", () => {
     },
     FLOW_TIMEOUT_IN_MS,
   );
+
+  /*
+   * Data Security whole without AI (#10365): with the project's Enable AI
+   * off, the issue's page is all there - what is wrong, the evidence, the
+   * store and what it holds - and draws no AI action; with it on, both.
+   */
+  test.each([
+    [false, []],
+    [true, ["Explain with AI", "Fix with AI"]],
+  ])(
+    "with Enable AI %s, the page is whole and draws the AI actions %j",
+    async (enableAi: boolean, actions: Array<string>) => {
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      project.enableAi = enableAi;
+      jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+
+      await renderIssuePage();
+      await issueShown();
+
+      expect(screen.getAllByText(TITLE).length).toBeGreaterThan(0);
+      expect(
+        screen.getByTestId("data-security-issue-evidence"),
+      ).toHaveTextContent(EVIDENCE);
+      expect(screen.getByText("On customer-exports")).toBeInTheDocument();
+      expect(within(storeHolds()).getByText("Card number")).toBeInTheDocument();
+
+      expect(
+        ["Explain with AI", "Fix with AI"].filter((action: string) => {
+          return screen.queryAllByText(action).length > 0;
+        }),
+      ).toEqual(actions);
+    },
+    FLOW_TIMEOUT_IN_MS,
+  );
 });
 
 describe("every record the issue's page names has its own sentence when it cannot be loaded", () => {
