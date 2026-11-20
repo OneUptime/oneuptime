@@ -44,9 +44,9 @@ import {
  * The curated alert library for ONE device management connection (a
  * DeviceManagementConnection row: an Esper tenant, #9835): Metrics monitors
  * over the readings each read of the connection writes for its devices
- * (ManagedDeviceCheckIn), filtered on the connection's id, so one monitor
- * watches every device the connection imports - one enrolled next week
- * too - and alerts once per device.
+ * (ManagedDeviceCheckIn), filtered on the connection's id and its service,
+ * so one monitor watches every device the connection imports - one
+ * enrolled next week too - and alerts once per device.
  *
  * A connection is offered its own service's templates
  * (getManagedDeviceAlertTemplatesFor), each with the silence that says a
@@ -301,6 +301,17 @@ export interface ManagedDeviceAlertTemplate {
    */
   followsReadInterval?: boolean | undefined;
   getMonitorStep: (args: ManagedDeviceAlertTemplateArgs) => MonitorStep;
+  /*
+   * The steps a monitor made from an earlier version of it has, which are
+   * still it (getManagedDeviceAlertTemplateEquivalentSteps): a check-in or
+   * security patch template's query, made before it read its service as
+   * well as its connection (#10059, #10123, #10182), reads the same
+   * devices. So a monitor made then still counts as made, and is never
+   * offered a second time.
+   */
+  getEarlierMonitorSteps?:
+    | ((args: ManagedDeviceAlertTemplateArgs) => Array<MonitorStep>)
+    | undefined;
 }
 
 /*
@@ -308,14 +319,17 @@ export interface ManagedDeviceAlertTemplate {
  * one's last check-in, the devices no agent reports - of the given
  * platforms, where the template reads some apart - one series per device.
  * Max per minute: two reads in one minute ("Read now" beside a scheduled
- * one) say the longer silence, never a mix of the two.
+ * one) say the longer silence, never a mix of the two. The service, where
+ * it is given, is read too (see buildManagedDeviceReadingMetricMonitor).
  */
 export function buildManagedDeviceCheckInMetricMonitor(data: {
   deviceManagementConnectionId: string;
   platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
+  provider?: DeviceManagementProvider | undefined;
 }): MonitorStepMetricMonitor {
   return buildManagedDeviceReadingMetricMonitor({
     deviceManagementConnectionId: data.deviceManagementConnectionId,
+    provider: data.provider,
     platforms: data.platforms,
     metricName: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
     metricAlias: METRIC_ALIAS,
@@ -329,13 +343,16 @@ export function buildManagedDeviceCheckInMetricMonitor(data: {
 /*
  * The query of a connection's Android devices' security patches (#10098):
  * the days since each one's patch level, of the devices no agent reports,
- * one series per device. Max per minute, as the check-ins read theirs.
+ * one series per device. Max per minute, as the check-ins read theirs, and
+ * the service read too where it is given.
  */
 export function buildManagedDeviceSecurityPatchMetricMonitor(data: {
   deviceManagementConnectionId: string;
+  provider?: DeviceManagementProvider | undefined;
 }): MonitorStepMetricMonitor {
   return buildManagedDeviceReadingMetricMonitor({
     deviceManagementConnectionId: data.deviceManagementConnectionId,
+    provider: data.provider,
     // Android's alone: no other platform has a security patch level.
     platforms: [ManagedDevicePlatform.Android],
     metricName: MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
@@ -395,11 +412,16 @@ export function buildManagedDeviceStorageMetricMonitor(data: {
  * agent reports, of the given platforms, one series per device. Max per
  * minute unless the metric says otherwise.
  *
- * The service, where it is given, is read as well (#10008): it changes no
- * reading the connection's id does not already pick, and it keeps each
- * service's template of a metric apart from the others' in the
+ * The service, where it is given, is read as well - every template gives
+ * it: it changes no reading the connection's id does not already pick (a
+ * connection reads one service, and every reading names it), and it keeps
+ * each service's template of a metric apart from the others' in the
  * recommendations' fingerprint (MonitorRecommendationUtil), so a monitor
- * made from Esper's is never another service's.
+ * made from Esper's is never another service's. The battery and storage
+ * templates read it from the start (#10008); the check-in and security
+ * patch templates since their services' templates of one metric were told
+ * apart, and a monitor made from one of them before is still theirs
+ * (getEarlierMonitorSteps).
  */
 function buildManagedDeviceReadingMetricMonitor(data: {
   deviceManagementConnectionId: string;
@@ -483,6 +505,77 @@ interface CheckInTemplateSpec {
 function buildCheckInTemplate(
   spec: CheckInTemplateSpec,
 ): ManagedDeviceAlertTemplate {
+  /*
+   * The template's step, its query reading the template's service - or,
+   * for a monitor made before it did, the connection alone.
+   */
+  const buildStep: (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ) => MonitorStep = (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Metrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setMetricMonitor(
+      buildManagedDeviceCheckInMetricMonitor({
+        deviceManagementConnectionId: args.deviceManagementConnectionId,
+        platforms: spec.platforms,
+        provider,
+      }),
+    );
+
+    const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance({
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      incidentSeverityId: args.defaultIncidentSeverityId,
+      alertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      metricAlias: METRIC_ALIAS,
+      filterType: FilterType.GreaterThan,
+      value: spec.thresholdInMinutes,
+      incidentTitle: spec.incidentTitle,
+      incidentDescription: spec.incidentDescription,
+      criteriaName: "A device stopped checking in",
+      criteriaDescription: spec.criteriaDescription,
+      resourceNoun: "device",
+      /*
+       * Each device holds one reading here, its latest
+       * (judgeLatestReading): Any Value is that reading. All Values would
+       * also ask one reading to cover the two-hour window, which a reading
+       * taken every 15 minutes never does (MetricWindowCoverage).
+       */
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      metricAlias: METRIC_ALIAS,
+      filterType: FilterType.LessThanOrEqualTo,
+      value: spec.thresholdInMinutes,
+      /*
+       * No dead band: a device that checks in again reads a few minutes,
+       * nowhere near the threshold, and a band would only keep the monitor
+       * offline for a device that reads exactly the threshold.
+       */
+      recoveryValue: spec.thresholdInMinutes,
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+    step.setMonitorCriteria(criteria);
+
+    return step;
+  };
+
   return {
     id: spec.id,
     provider: spec.provider,
@@ -496,65 +589,13 @@ function buildCheckInTemplate(
     thresholdInMinutes: spec.thresholdInMinutes,
     platforms: spec.platforms,
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
-        monitorName: args.monitorName,
-        monitorType: MonitorType.Metrics,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-      });
-
-      step.setMetricMonitor(
-        buildManagedDeviceCheckInMetricMonitor({
-          deviceManagementConnectionId: args.deviceManagementConnectionId,
-          platforms: spec.platforms,
-        }),
-      );
-
-      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
-        {
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias: METRIC_ALIAS,
-          filterType: FilterType.GreaterThan,
-          value: spec.thresholdInMinutes,
-          incidentTitle: spec.incidentTitle,
-          incidentDescription: spec.incidentDescription,
-          criteriaName: "A device stopped checking in",
-          criteriaDescription: spec.criteriaDescription,
-          resourceNoun: "device",
-          /*
-           * Each device holds one reading here, its latest
-           * (judgeLatestReading): Any Value is that reading. All Values
-           * would also ask one reading to cover the two-hour window, which a
-           * reading taken every 15 minutes never does (MetricWindowCoverage).
-           */
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-        },
-      );
-
-      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: METRIC_ALIAS,
-        filterType: FilterType.LessThanOrEqualTo,
-        value: spec.thresholdInMinutes,
-        /*
-         * No dead band: a device that checks in again reads a few minutes,
-         * nowhere near the threshold, and a band would only keep the
-         * monitor offline for a device that reads exactly the threshold.
-         */
-        recoveryValue: spec.thresholdInMinutes,
-        metricAggregationType: EvaluateOverTimeType.AnyValue,
-      });
-
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-      step.setMonitorCriteria(criteria);
-
-      return step;
+      return buildStep(args, spec.provider);
+    },
+    // A monitor made before the query read its service (#9835, #9837, #10086, #10087).
+    getEarlierMonitorSteps: (
+      args: ManagedDeviceAlertTemplateArgs,
+    ): Array<MonitorStep> => {
+      return [buildStep(args, undefined)];
     },
   };
 }
@@ -919,6 +960,64 @@ function buildSecurityPatchTemplate(
    */
   const maxAge: number = ANDROID_SECURITY_PATCH_MAX_AGE_DAYS;
 
+  // Its step, its query reading its service - or, made before, the connection alone.
+  const buildStep: (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ) => MonitorStep = (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Metrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setMetricMonitor(
+      buildManagedDeviceSecurityPatchMetricMonitor({
+        deviceManagementConnectionId: args.deviceManagementConnectionId,
+        provider,
+      }),
+    );
+
+    const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance({
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      incidentSeverityId: args.defaultIncidentSeverityId,
+      alertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      metricAlias: SECURITY_PATCH_METRIC_ALIAS,
+      filterType: FilterType.GreaterThan,
+      value: maxAge,
+      incidentTitle: `[${spec.serviceName}] Security patch out of date`,
+      incidentDescription: `An Android device ${spec.serviceName} manages has a security patch level more than 90 days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through the system update policy ${spec.serviceName} sets on it, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. This resolves on its own once ${spec.serviceName} reports a patch level from the last 90 days.`,
+      criteriaName: "A device's security patch is out of date",
+      criteriaDescription: `Triggers when a device's latest reading says its security patch level is more than 90 days old, once for each such device.`,
+      resourceNoun: "device",
+      // Each device holds one reading here, its latest: Any Value is that reading.
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      metricAlias: SECURITY_PATCH_METRIC_ALIAS,
+      filterType: FilterType.LessThanOrEqualTo,
+      value: maxAge,
+      // No dead band: an update to a patch from the last 90 days is up to date.
+      recoveryValue: maxAge,
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+    step.setMonitorCriteria(criteria);
+
+    return step;
+  };
+
   return {
     id: spec.id,
     provider: spec.provider,
@@ -932,55 +1031,13 @@ function buildSecurityPatchTemplate(
     maxSecurityPatchAgeInDays: maxAge,
     platforms: [ManagedDevicePlatform.Android],
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
-        monitorName: args.monitorName,
-        monitorType: MonitorType.Metrics,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-      });
-
-      step.setMetricMonitor(
-        buildManagedDeviceSecurityPatchMetricMonitor({
-          deviceManagementConnectionId: args.deviceManagementConnectionId,
-        }),
-      );
-
-      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
-        {
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias: SECURITY_PATCH_METRIC_ALIAS,
-          filterType: FilterType.GreaterThan,
-          value: maxAge,
-          incidentTitle: `[${spec.serviceName}] Security patch out of date`,
-          incidentDescription: `An Android device ${spec.serviceName} manages has a security patch level more than 90 days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through the system update policy ${spec.serviceName} sets on it, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. This resolves on its own once ${spec.serviceName} reports a patch level from the last 90 days.`,
-          criteriaName: "A device's security patch is out of date",
-          criteriaDescription: `Triggers when a device's latest reading says its security patch level is more than 90 days old, once for each such device.`,
-          resourceNoun: "device",
-          // Each device holds one reading here, its latest: Any Value is that reading.
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-        },
-      );
-
-      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: SECURITY_PATCH_METRIC_ALIAS,
-        filterType: FilterType.LessThanOrEqualTo,
-        value: maxAge,
-        // No dead band: an update to a patch from the last 90 days is up to date.
-        recoveryValue: maxAge,
-        metricAggregationType: EvaluateOverTimeType.AnyValue,
-      });
-
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-      step.setMonitorCriteria(criteria);
-
-      return step;
+      return buildStep(args, spec.provider);
+    },
+    // A monitor made before the query read its service (#10098).
+    getEarlierMonitorSteps: (
+      args: ManagedDeviceAlertTemplateArgs,
+    ): Array<MonitorStep> => {
+      return [buildStep(args, undefined)];
     },
   };
 }
@@ -1322,26 +1379,43 @@ export function getManagedDeviceAlertTemplateById(
   );
 }
 
+// Whether a monitor made from a template may have another step than the template's own.
+export function hasManagedDeviceAlertTemplateEquivalentSteps(
+  template: ManagedDeviceAlertTemplate,
+): boolean {
+  return Boolean(
+    template.followsReadInterval || template.getEarlierMonitorSteps,
+  );
+}
+
 /*
  * The other steps a monitor made from a template may have and still be it
- * (MonitorRecommendation.getEquivalentMonitorSteps): Connection Stopped
- * Reading's at each wait another read interval a connection may have gives
- * it, for a monitor made before its connection's interval changed, which
- * keeps the wait it was made with and is never offered a second time. No
- * other template's step follows the interval.
+ * (MonitorRecommendation.getEquivalentMonitorSteps), each of which counts
+ * as made, so the template is never offered a second time:
+ *
+ *   - those of an earlier version of it (getEarlierMonitorSteps): a
+ *     check-in or security patch template's from before its query read its
+ *     service;
+ *   - Connection Stopped Reading's at each wait another read interval a
+ *     connection may have gives it, for a monitor made before its
+ *     connection's interval changed, which keeps the wait it was made
+ *     with. No other template's step follows the interval.
  */
 export function getManagedDeviceAlertTemplateEquivalentSteps(
   template: ManagedDeviceAlertTemplate,
   args: ManagedDeviceAlertTemplateArgs,
 ): Array<MonitorStep> {
+  const steps: Array<MonitorStep> = [
+    ...(template.getEarlierMonitorSteps?.(args) || []),
+  ];
+
   if (!template.followsReadInterval) {
-    return [];
+    return steps;
   }
 
   const waits: Set<number> = new Set<number>([
     getManagedDeviceConnectionStoppedReadingMinutes(args.readIntervalInMinutes),
   ]);
-  const steps: Array<MonitorStep> = [];
 
   for (const interval of DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES) {
     const wait: number =

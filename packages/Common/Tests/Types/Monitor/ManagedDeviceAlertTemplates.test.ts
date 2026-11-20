@@ -271,12 +271,16 @@ describe("the catalog of a connection's alerts", () => {
         unknown
       >) || {};
 
-    // Every device of the connection: no platform is named.
+    // Every device of the connection, and its service: no platform is named.
     expect(Object.keys(attributes).sort()).toEqual(
       [
         ManagedDeviceCheckInAttribute.ConnectionId,
         ManagedDeviceCheckInAttribute.IsHost,
+        ManagedDeviceCheckInAttribute.Provider,
       ].sort(),
+    );
+    expect(attributes[ManagedDeviceCheckInAttribute.Provider]).toBe(
+      DeviceManagementProvider.Intune,
     );
   });
 });
@@ -291,6 +295,11 @@ describe("what the monitor reads", () => {
     expect(query.metricQueryData.filterData.attributes).toEqual({
       [ManagedDeviceCheckInAttribute.ConnectionId]: CONNECTION_ID,
       [ManagedDeviceCheckInAttribute.IsHost]: "false",
+      /*
+       * Its service as well: the connection's readings all name it, and it
+       * keeps each service's check-in template apart from the others'.
+       */
+      [ManagedDeviceCheckInAttribute.Provider]: DeviceManagementProvider.Esper,
       // An Apple device checks in hours apart: it has a template of its own.
       [ManagedDeviceCheckInAttribute.Platform]: ManagedDevicePlatform.Android,
     });
@@ -432,10 +441,26 @@ describe("what the monitor reads", () => {
       buildManagedDeviceCheckInMetricMonitor({
         deviceManagementConnectionId: CONNECTION_ID,
         platforms: [ManagedDevicePlatform.Android],
+        provider: DeviceManagementProvider.Esper,
       }),
     ).toEqual(metricMonitorOf(stepOf()));
 
     // With no platforms, it reads every device of the connection.
+    expect(
+      Object.keys(
+        buildManagedDeviceCheckInMetricMonitor({
+          deviceManagementConnectionId: CONNECTION_ID,
+          provider: DeviceManagementProvider.Esper,
+        }).metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
+          .attributes || {},
+      ),
+    ).toEqual([
+      ManagedDeviceCheckInAttribute.ConnectionId,
+      ManagedDeviceCheckInAttribute.IsHost,
+      ManagedDeviceCheckInAttribute.Provider,
+    ]);
+
+    // With no service, the connection alone: a monitor made before it read one.
     expect(
       Object.keys(
         buildManagedDeviceCheckInMetricMonitor({
