@@ -65,8 +65,13 @@ learned one can find their way around the next.
   same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
   that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
   brings the rest of Home back, with the line that shows it again; once finished, "More to set up" is
-  one card among Home's others while core steps no goal brought are left (#7986). Enforced by
-  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
+  one card among Home's others while core steps no goal brought are left (#7986). While it is all of
+  Home, the page is centred, its title over it, as wide as the guided setups it leads to: a wide
+  screen drew it in the left half of the page with nothing beside it (#10276). From lg up, the
+  question lists the steps the goals picked bring beside the goals, as they are picked, and the
+  checklist puts how far the person is and the goals beside its steps. Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx) and
+  [WelcomeChecklistFlow](../../packages/Common/Tests/App/Dashboard/WelcomeChecklistFlow.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
   setup: Home's headline leaves out "Create your first monitor" while the Welcome card offers that
@@ -83,7 +88,8 @@ learned one can find their way around the next.
   records that step makes as it makes them - waiting, being made, made or in use with Open, skipped,
   or failed with why and Try again (`GuidedSetupResourcePanel`) - so the person always knows what
   exists and what to do next: a monitor and an on-call policy were made with nothing on screen to
-  say so (#10276). A step not reached yet says why it is there, a bar shows how far the person is,
+  say so (#10276). Every setup lists what it makes: a status page and what it shows, a service and
+  the monitors watching it too, and Try again makes only what is still missing. A step not reached yet says why it is there, a bar shows how far the person is,
   and the page is centred, as wide as its steps and its panel need, where a wide screen left two
   thirds of it empty. The run - what it made and how each record is getting on - is kept on the
   server, so another device or a reload opens the setup where the person left it, and the panel
