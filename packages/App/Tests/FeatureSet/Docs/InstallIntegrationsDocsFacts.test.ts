@@ -1092,9 +1092,10 @@ describe("Local Development, against the scripts it runs", () => {
         }
       )["service"],
     ).toBe("ingress");
+    // Ports 80 and 443 even where config.env leaves them empty (#10170).
     expect(ingress["ports"]).toEqual([
-      "${ONEUPTIME_HTTP_PORT}:7849",
-      "${STATUS_PAGE_HTTPS_PORT}:7850",
+      "${ONEUPTIME_HTTP_PORT:-80}:7849",
+      "${STATUS_PAGE_HTTPS_PORT:-443}:7850",
     ]);
     expect(config.get("ONEUPTIME_HTTP_PORT")).toBe("80");
     expect(config.get("STATUS_PAGE_HTTPS_PORT")).toBe("443");
@@ -1450,6 +1451,17 @@ describe("Docker Compose, against the compose files and scripts", () => {
         expect(inlineCodes(row[3] as string)).toContain("127.0.0.1");
       }
 
+      if (unwrap(row[1] as string) === "ingress") {
+        // The row's port even where config.env leaves the setting empty (#10170).
+        expect(
+          (base["ingress"]?.["ports"] as Array<string>).filter(
+            (entry: string): boolean => {
+              return entry.startsWith(`\${${settings[0]}:-${row[0]}}:`);
+            },
+          ),
+        ).toHaveLength(1);
+      }
+
       expect({
         port: row[0],
         setting: config.get(settings[0] as string),
@@ -1457,8 +1469,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     }
 
     expect(base["ingress"]?.["ports"]).toEqual([
-      "${ONEUPTIME_HTTP_PORT}:7849",
-      "${STATUS_PAGE_HTTPS_PORT}:7850",
+      "${ONEUPTIME_HTTP_PORT:-80}:7849",
+      "${STATUS_PAGE_HTTPS_PORT:-443}:7850",
     ]);
     expect(valueAt(base, "probe-1.environment.PORT")).toBe(
       "${GLOBAL_PROBE_1_PORT}",
