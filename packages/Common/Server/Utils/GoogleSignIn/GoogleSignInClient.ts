@@ -53,6 +53,33 @@ export const GMAIL_DOMAINS: ReadonlyArray<string> = [
 ];
 const SCOPES: string = "openid email profile";
 
+/*
+ * Sign In Again's request for when the person signed in (#10217). Google
+ * takes no prompt=login (its prompt is none, consent or select_account) and
+ * documents no max_age, so it cannot be asked to ask again: it can only be
+ * asked to say when they signed in, which it does once the OAuth client has
+ * Session age claims on. Sign In Again then counts only a sign-in made at
+ * or after it sent the person to Google.
+ */
+const AUTH_TIME_CLAIMS_REQUEST: string = JSON.stringify({
+  id_token: { auth_time: { essential: true } },
+});
+
+/*
+ * When an ID token says its person authenticated (OpenID Connect Core 2:
+ * auth_time, in seconds since the epoch), or null when it does not say:
+ * Sign In Again holds it to the moment the person was sent (#10217).
+ */
+const readAuthTime: (claims: Record<string, unknown>) => Date | null = (
+  claims: Record<string, unknown>,
+): Date | null => {
+  const value: unknown = claims["auth_time"];
+
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? new Date(value * 1000)
+    : null;
+};
+
 export interface GoogleSignInRequest {
   authorizationUrl: string;
   state: string;
@@ -63,6 +90,12 @@ export interface GoogleSignInRequest {
 export interface GoogleIdentity {
   email: Email;
   name: string | null;
+  /*
+   * When Google says its person signed in (auth_time), or null: Google
+   * sends it only when the sign-in asks for it and the OAuth client has
+   * Session age claims on (GoogleSignIn/RELEASING.md).
+   */
+  authenticatedAt: Date | null;
   // The Google account's own ID (sub), which never changes.
   subject: string;
   // The Google Workspace domain the account belongs to, or null for Gmail.
@@ -109,8 +142,13 @@ export default class GoogleSignInClient {
     return buffer.toString("base64url");
   }
 
-  // Where to send the browser, and what its callback has to match.
-  public createSignInRequest(): GoogleSignInRequest {
+  /*
+   * Where to send the browser, and what its callback has to match. A Sign
+   * In Again (#10217) also asks Google to say when the person signed in.
+   */
+  public createSignInRequest(options?: {
+    isSignInAgain?: boolean | undefined;
+  }): GoogleSignInRequest {
     const state: string = GoogleSignInClient.base64Url(crypto.randomBytes(32));
     const nonce: string = GoogleSignInClient.base64Url(crypto.randomBytes(32));
     const codeVerifier: string = GoogleSignInClient.base64Url(
@@ -132,6 +170,10 @@ export default class GoogleSignInClient {
       // Lets someone signed in to several Google accounts choose which.
       prompt: "select_account",
     });
+
+    if (options?.isSignInAgain) {
+      params.set("claims", AUTH_TIME_CLAIMS_REQUEST);
+    }
 
     return {
       authorizationUrl: `${AUTHORIZATION_URL}?${params.toString()}`,
@@ -279,6 +321,7 @@ export default class GoogleSignInClient {
       name: typeof name === "string" && name.trim() ? name.trim() : null,
       subject: subject,
       hostedDomain: hostedDomain,
+      authenticatedAt: readAuthTime(claims),
     };
   }
 
