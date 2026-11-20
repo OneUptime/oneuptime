@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "فشل فحص «{{check}}» من «أمن البيانات» على {{store}}.",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "ميزانية الأخطاء المتبقية لهدف SLO «{{slo}}» عند {{threshold}} أو أقل، وهو المستوى «{{tier}}» في سياسة ميزانية الأخطاء الخاصة به.",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "طابق مؤشر من موجز استخبارات التهديدات «{{feed}}» أحداثًا أمنية.",
-  "What cost the most this month: {{services}}.": "ما كلّف أكثر هذا الشهر: {{services}}."
+  "What cost the most this month: {{services}}.": "ما كلّف أكثر هذا الشهر: {{services}}.",
+  "Add OneUptime's journald operators": "إضافة عوامل معالجة journald من OneUptime",
+  "Add OneUptime's operators": "إضافة عوامل المعالجة من OneUptime",
+  "Failed systemd units can't say why": "وحدات Systemd التي فشلت لا تذكر السبب",
+  "OneUptime's journald operators": "عوامل معالجة journald من OneUptime",
+  "Operators added. The hosts get the new version within a minute.": "أُضيفت عوامل المعالجة. يحصل المضيفون على الإصدار الجديد خلال دقيقة.",
+  "Save as New Version": "حفظ كإصدار جديد",
+  "Show OneUptime's operators": "عرض عوامل المعالجة من OneUptime",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "بعض مستقبِلات journald في هذا الإعداد بلا عوامل معالجة، لذا يرسل مضيفوه أسطر journal الخاصة بها كإدخالات كاملة، بلا وحدة.",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "لبعض مستقبِلات journald في هذا الإعداد عوامل معالجة خاصة بها، ولا يضع أيٌّ منها سطر journal تحت وحدته.",
+  "The operators were not added.": "لم تُضف عوامل المعالجة.",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "لا يحتوي مستقبِل journald في هذا الإعداد على عوامل معالجة، لذا يرسل مضيفوه كل سطر من journal كإدخال كامل، بلا وحدة.",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "لمستقبِل journald في هذا الإعداد عوامل معالجة خاصة به، ولا يضع أيٌّ منها سطر journal تحت وحدته.",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "مستقبِل journald الافتراضي في OneUptime لنظام Linux. انسخ عوامل المعالجة الخاصة به إلى مستقبِلك، بجانب عواملك، ليُوضع كل سطر من journal تحت وحدته.",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "تُضاف تحت كل مستقبِل journald لا يحتوي عليها، ولا يتغير شيء آخر. وبعد الحفظ يصبح إصدارًا جديدًا يصل إلى مضيفيه خلال دقيقة."
 }

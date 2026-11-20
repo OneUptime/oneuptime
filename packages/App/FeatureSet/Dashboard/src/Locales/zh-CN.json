@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "数据安全检查“{{check}}”在 {{store}} 上失败。",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "SLO“{{slo}}”剩余的错误预算已不高于 {{threshold}}，即其错误预算策略的“{{tier}}”级别。",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "威胁情报源“{{feed}}”的指标匹配了安全事件。",
-  "What cost the most this month: {{services}}.": "本月成本最高的项：{{services}}。"
+  "What cost the most this month: {{services}}.": "本月成本最高的项：{{services}}。",
+  "Add OneUptime's journald operators": "添加 OneUptime 的 journald operator",
+  "Add OneUptime's operators": "添加 OneUptime 的 operator",
+  "Failed systemd units can't say why": "失败的 systemd 单元无法说明原因",
+  "OneUptime's journald operators": "OneUptime 的 journald operator",
+  "Operators added. The hosts get the new version within a minute.": "已添加 operator。主机会在一分钟内收到新版本。",
+  "Save as New Version": "另存为新版本",
+  "Show OneUptime's operators": "显示 OneUptime 的 operator",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "此配置的部分 journald 接收器没有 operator，因此其主机将这些 journal 行作为整条记录发送，不带单元。",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "此配置的部分 journald 接收器有自己的 operator，但没有一个会将 journal 行归入其单元。",
+  "The operators were not added.": "未添加 operator。",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "此配置的 journald 接收器没有 operator，因此其主机将每行 journal 作为整条记录发送，不带单元。",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "此配置的 journald 接收器有自己的 operator，但没有一个会将 journal 行归入其单元。",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptime 用于 Linux 的默认 journald 接收器。将其中的 operator 复制到你的接收器中、放在你自己的旁边，即可将每行 journal 归入其单元。",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "它们会加到每个没有 operator 的 journald 接收器下，其他部分保持不变。保存后成为新版本，其主机会在一分钟内收到。"
 }

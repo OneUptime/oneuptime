@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "Die Prüfung „{{check}}“ der Datensicherheit ist für {{store}} fehlgeschlagen.",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "Das verbleibende Fehlerbudget des SLO „{{slo}}“ liegt bei höchstens {{threshold}}, der Stufe „{{tier}}“ seiner Fehlerbudget-Richtlinie.",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "Ein Indikator des Threat-Intel-Feeds „{{feed}}“ traf auf Sicherheitsereignisse zu.",
-  "What cost the most this month: {{services}}.": "Was diesen Monat am meisten gekostet hat: {{services}}."
+  "What cost the most this month: {{services}}.": "Was diesen Monat am meisten gekostet hat: {{services}}.",
+  "Add OneUptime's journald operators": "journald-Operatoren von OneUptime hinzufügen",
+  "Add OneUptime's operators": "Operatoren von OneUptime hinzufügen",
+  "Failed systemd units can't say why": "Fehlgeschlagene Systemd-Units können nicht sagen, warum",
+  "OneUptime's journald operators": "journald-Operatoren von OneUptime",
+  "Operators added. The hosts get the new version within a minute.": "Operatoren hinzugefügt. Die Hosts erhalten die neue Version innerhalb einer Minute.",
+  "Save as New Version": "Als neue Version speichern",
+  "Show OneUptime's operators": "Operatoren von OneUptime anzeigen",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "Einige journald-Receiver dieser Konfiguration haben keine Operatoren, daher senden ihre Hosts deren Journal-Zeilen als ganze Einträge, ohne Unit.",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "Einige journald-Receiver dieser Konfiguration haben eigene Operatoren, und keiner davon ordnet eine Journal-Zeile ihrer Unit zu.",
+  "The operators were not added.": "Die Operatoren wurden nicht hinzugefügt.",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "Der journald-Receiver dieser Konfiguration hat keine Operatoren, daher senden ihre Hosts jede Journal-Zeile als ganzen Eintrag, ohne Unit.",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "Der journald-Receiver dieser Konfiguration hat eigene Operatoren, und keiner davon ordnet eine Journal-Zeile ihrer Unit zu.",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "Der Standard-journald-Receiver von OneUptime für Linux. Kopieren Sie seine Operatoren neben Ihre eigenen in Ihren, damit jede Journal-Zeile ihrer Unit zugeordnet wird.",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Sie kommen unter jeden journald-Receiver, der keine hat, und sonst ändert sich nichts. Gespeichert ist es eine neue Version, die ihre Hosts in einer Minute erhalten."
 }

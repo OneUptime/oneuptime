@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "بررسی «{{check}}» امنیت داده روی {{store}} ناموفق بود.",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "بودجه خطای باقی‌مانده SLO «{{slo}}» به {{threshold}} یا کمتر رسیده است، یعنی سطح «{{tier}}» در سیاست بودجه خطای آن.",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "یک شاخص از فید اطلاعات تهدید «{{feed}}» با رویدادهای امنیتی مطابقت داشت.",
-  "What cost the most this month: {{services}}.": "بیشترین هزینه‌های این ماه: {{services}}."
+  "What cost the most this month: {{services}}.": "بیشترین هزینه‌های این ماه: {{services}}.",
+  "Add OneUptime's journald operators": "افزودن عملگرهای journald از OneUptime",
+  "Add OneUptime's operators": "افزودن عملگرهای OneUptime",
+  "Failed systemd units can't say why": "واحدهای Systemd ناموفق نمی‌توانند علت را بگویند",
+  "OneUptime's journald operators": "عملگرهای journald از OneUptime",
+  "Operators added. The hosts get the new version within a minute.": "عملگرها اضافه شدند. میزبان‌ها ظرف یک دقیقه نسخه جدید را دریافت می‌کنند.",
+  "Save as New Version": "ذخیره به‌عنوان نسخه جدید",
+  "Show OneUptime's operators": "نمایش عملگرهای OneUptime",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "برخی از گیرنده‌های journald این پیکربندی عملگر ندارند، پس میزبان‌های آن خط‌های ژورنال آن‌ها را به‌صورت ورودی‌های کامل و بدون واحد می‌فرستند.",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "برخی از گیرنده‌های journald این پیکربندی عملگرهای خودشان را دارند و هیچ‌کدام خط ژورنال را زیر واحدش ثبت نمی‌کند.",
+  "The operators were not added.": "عملگرها اضافه نشدند.",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "گیرنده journald این پیکربندی عملگر ندارد، پس میزبان‌های آن هر خط ژورنال را به‌صورت یک ورودی کامل و بدون واحد می‌فرستند.",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "گیرنده journald این پیکربندی عملگرهای خودش را دارد و هیچ‌کدام خط ژورنال را زیر واحدش ثبت نمی‌کند.",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "گیرنده journald پیش‌فرض OneUptime برای Linux. عملگرهای آن را کنار عملگرهای خودتان در گیرنده خود کپی کنید تا هر خط ژورنال زیر واحدش ثبت شود.",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "این عملگرها زیر هر گیرنده journald که عملگری ندارد قرار می‌گیرند و چیز دیگری تغییر نمی‌کند. با ذخیره، نسخه‌ای جدید ساخته می‌شود که ظرف یک دقیقه به میزبان‌های آن می‌رسد."
 }

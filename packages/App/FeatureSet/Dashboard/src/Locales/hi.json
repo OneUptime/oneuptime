@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "डेटा सुरक्षा की जांच \"{{check}}\" {{store}} पर विफल रही।",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "SLO \"{{slo}}\" का बचा हुआ एरर बजट {{threshold}} या उससे कम है, जो उसकी एरर बजट नीति का \"{{tier}}\" स्तर है।",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "थ्रेट इंटेल फ़ीड \"{{feed}}\" का एक संकेतक सुरक्षा इवेंट से मेल खाया।",
-  "What cost the most this month: {{services}}.": "इस महीने सबसे ज़्यादा लागत किसकी रही: {{services}}।"
+  "What cost the most this month: {{services}}.": "इस महीने सबसे ज़्यादा लागत किसकी रही: {{services}}।",
+  "Add OneUptime's journald operators": "OneUptime के journald ऑपरेटर जोड़ें",
+  "Add OneUptime's operators": "OneUptime के ऑपरेटर जोड़ें",
+  "Failed systemd units can't say why": "फ़ेल हुई systemd यूनिट कारण नहीं बता सकतीं",
+  "OneUptime's journald operators": "OneUptime के journald ऑपरेटर",
+  "Operators added. The hosts get the new version within a minute.": "ऑपरेटर जोड़े गए। होस्ट को एक मिनट में नया संस्करण मिलता है।",
+  "Save as New Version": "नए संस्करण के रूप में सहेजें",
+  "Show OneUptime's operators": "OneUptime के ऑपरेटर दिखाएँ",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "इस कॉन्फ़िग के कुछ journald रिसीवर में कोई ऑपरेटर नहीं है, इसलिए इसके होस्ट उनकी जर्नल लाइनें बिना यूनिट के पूरी एंट्री के रूप में भेजते हैं।",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "इस कॉन्फ़िग के कुछ journald रिसीवर के अपने ऑपरेटर हैं, और उनमें से कोई भी जर्नल लाइन को उसकी यूनिट के तहत नहीं रखता।",
+  "The operators were not added.": "ऑपरेटर नहीं जोड़े गए।",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "इस कॉन्फ़िग के journald रिसीवर में कोई ऑपरेटर नहीं है, इसलिए इसके होस्ट हर जर्नल लाइन को बिना यूनिट के पूरी एंट्री के रूप में भेजते हैं।",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "इस कॉन्फ़िग के journald रिसीवर के अपने ऑपरेटर हैं, और उनमें से कोई भी जर्नल लाइन को उसकी यूनिट के तहत नहीं रखता।",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "Linux के लिए OneUptime का डिफ़ॉल्ट journald रिसीवर। हर जर्नल लाइन को उसकी यूनिट के तहत रखने के लिए इसके ऑपरेटर अपने रिसीवर में, अपने ऑपरेटर के साथ, कॉपी करें।",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "ये हर उस journald रिसीवर के नीचे जुड़ते हैं जिसमें कोई नहीं है, और कुछ और नहीं बदलता। सहेजने पर यह नया संस्करण बनता है, जो एक मिनट में इसके होस्ट तक पहुँचता है।"
 }

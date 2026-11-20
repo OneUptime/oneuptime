@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "{{store}}에서 데이터 보안 검사 \"{{check}}\"에 실패했습니다.",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "SLO \"{{slo}}\"의 남은 오류 예산이 {{threshold}} 이하로, 오류 예산 정책의 \"{{tier}}\" 단계에 해당합니다.",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "보안 이벤트가 위협 인텔리전스 피드 \"{{feed}}\"의 지표에 일치했습니다.",
-  "What cost the most this month: {{services}}.": "이번 달 비용이 가장 컸던 항목: {{services}}."
+  "What cost the most this month: {{services}}.": "이번 달 비용이 가장 컸던 항목: {{services}}.",
+  "Add OneUptime's journald operators": "OneUptime journald 오퍼레이터 추가",
+  "Add OneUptime's operators": "OneUptime 오퍼레이터 추가",
+  "Failed systemd units can't say why": "실패한 systemd 유닛이 이유를 알려 줄 수 없음",
+  "OneUptime's journald operators": "OneUptime의 journald 오퍼레이터",
+  "Operators added. The hosts get the new version within a minute.": "오퍼레이터를 추가했습니다. 호스트는 1분 안에 새 버전을 받습니다.",
+  "Save as New Version": "새 버전으로 저장",
+  "Show OneUptime's operators": "OneUptime 오퍼레이터 보기",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "이 구성의 일부 journald 수신기에 오퍼레이터가 없어, 호스트가 그 저널 줄을 유닛 없이 전체 항목으로 보냅니다.",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "이 구성의 일부 journald 수신기에 자체 오퍼레이터가 있지만, 저널 줄을 해당 유닛 아래에 두는 오퍼레이터는 없습니다.",
+  "The operators were not added.": "오퍼레이터를 추가하지 못했습니다.",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "이 구성의 journald 수신기에 오퍼레이터가 없어, 호스트가 저널의 각 줄을 유닛 없이 전체 항목으로 보냅니다.",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "이 구성의 journald 수신기에 자체 오퍼레이터가 있지만, 저널 줄을 해당 유닛 아래에 두는 오퍼레이터는 없습니다.",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptime의 Linux용 기본 journald 수신기입니다. 이 오퍼레이터를 자체 오퍼레이터 옆에 복사해 넣으면 저널의 각 줄이 해당 유닛 아래에 놓입니다.",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "오퍼레이터가 없는 각 journald 수신기 아래에 추가되며 다른 부분은 바뀌지 않습니다. 저장하면 새 버전이 되고, 1분 안에 호스트에 전달됩니다."
 }

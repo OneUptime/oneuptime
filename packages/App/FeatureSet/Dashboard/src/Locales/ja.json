@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "データセキュリティのチェック「{{check}}」が {{store}} で失敗しました。",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "SLO「{{slo}}」の残りのエラーバジェットが {{threshold}} 以下になりました。エラーバジェットポリシーの段階「{{tier}}」です。",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "脅威インテリジェンスのフィード「{{feed}}」のインジケーターがセキュリティイベントに一致しました。",
-  "What cost the most this month: {{services}}.": "今月コストが最も高かったもの：{{services}}。"
+  "What cost the most this month: {{services}}.": "今月コストが最も高かったもの：{{services}}。",
+  "Add OneUptime's journald operators": "OneUptime の journald オペレーターを追加",
+  "Add OneUptime's operators": "OneUptime のオペレーターを追加",
+  "Failed systemd units can't say why": "失敗した systemd ユニットの理由を表示できません",
+  "OneUptime's journald operators": "OneUptime の journald オペレーター",
+  "Operators added. The hosts get the new version within a minute.": "オペレーターを追加しました。ホストには 1 分以内に新しいバージョンが届きます。",
+  "Save as New Version": "新しいバージョンとして保存",
+  "Show OneUptime's operators": "OneUptime のオペレーターを表示",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "この設定の一部の journald レシーバーにはオペレーターがないため、ホストはそのジャーナルの行をユニットなしのエントリー全体として送信します。",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "この設定の一部の journald レシーバーには独自のオペレーターがありますが、ジャーナルの行をそのユニットに振り分けるものはありません。",
+  "The operators were not added.": "オペレーターは追加されませんでした。",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "この設定の journald レシーバーにはオペレーターがないため、ホストはジャーナルの各行をユニットなしのエントリー全体として送信します。",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "この設定の journald レシーバーには独自のオペレーターがありますが、ジャーナルの行をそのユニットに振り分けるものはありません。",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptime の Linux 向け既定の journald レシーバーです。そのオペレーターを独自のものと並べて自分のレシーバーにコピーすると、ジャーナルの各行がユニットに振り分けられます。",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "オペレーターのない各 journald レシーバーの下に追加され、ほかは変わりません。保存すると新しいバージョンになり、1 分以内にホストに届きます。"
 }

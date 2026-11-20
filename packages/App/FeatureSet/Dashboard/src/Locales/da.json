@@ -59731,5 +59731,19 @@
   "The Data Security check \"{{check}}\" failed on {{store}}.": "Kontrollen \"{{check}}\" i Datasikkerhed mislykkedes for {{store}}.",
   "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "Det resterende fejlbudget for SLO'en \"{{slo}}\" er på {{threshold}} eller derunder, niveauet \"{{tier}}\" i dens fejlbudgetpolitik.",
   "Threat intel feed \"{{feed}}\" indicator matched security events.": "En indikator fra feedet med trusselsinformation \"{{feed}}\" matchede sikkerhedshændelser.",
-  "What cost the most this month: {{services}}.": "Hvad der kostede mest denne måned: {{services}}."
+  "What cost the most this month: {{services}}.": "Hvad der kostede mest denne måned: {{services}}.",
+  "Add OneUptime's journald operators": "Tilføj OneUptimes journald-operatorer",
+  "Add OneUptime's operators": "Tilføj OneUptimes operatorer",
+  "Failed systemd units can't say why": "Fejlede systemd-units kan ikke sige hvorfor",
+  "OneUptime's journald operators": "OneUptimes journald-operatorer",
+  "Operators added. The hosts get the new version within a minute.": "Operatorer tilføjet. Værterne får den nye version inden for et minut.",
+  "Save as New Version": "Gem som ny version",
+  "Show OneUptime's operators": "Vis OneUptimes operatorer",
+  "Some of this config's journald receivers have no operators, so its hosts send their journal lines as whole entries, under no unit.": "Nogle af denne konfigurations journald-modtagere har ingen operatorer, så dens værter sender deres journallinjer som hele poster, uden enhed.",
+  "Some of this config's journald receivers have operators of their own, and none of them files a journal line under its unit.": "Nogle af denne konfigurations journald-modtagere har deres egne operatorer, og ingen af dem placerer en journallinje under dens enhed.",
+  "The operators were not added.": "Operatorerne blev ikke tilføjet.",
+  "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "Denne konfigurations journald-modtager har ingen operatorer, så dens værter sender hver journallinje som en hel post, uden enhed.",
+  "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "Denne konfigurations journald-modtager har sine egne operatorer, og ingen af dem placerer en journallinje under dens enhed.",
+  "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptimes standard-journald-modtager til Linux. Kopiér dens operatorer ind i din ved siden af dine egne for at placere hver journallinje under dens enhed.",
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "De kommer under hver journald-modtager, der ingen har, og intet andet ændres. Gemt bliver den en ny version, som dens værter får inden for et minut."
 }
