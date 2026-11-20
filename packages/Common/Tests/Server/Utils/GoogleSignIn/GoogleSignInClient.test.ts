@@ -143,6 +143,66 @@ describe("GoogleSignInClient.createSignInRequest", () => {
   });
 });
 
+/*
+ * Sign In Again (#10217): Google takes no prompt=login and documents no
+ * max_age, so it cannot be asked to ask again. It is asked to say when the
+ * person signed in (auth_time), which it does once the OAuth client has
+ * Session age claims on (GoogleSignIn/RELEASING.md); Sign In Again then
+ * counts only a sign-in made after it sent the person to Google.
+ */
+describe("GoogleSignInClient, for Sign In Again", () => {
+  it("asks Google to say when the person signed in, and nothing it does not take", () => {
+    const request: GoogleSignInRequest = createClient(
+      createFakeHttpClient([]),
+    ).createSignInRequest({ isSignInAgain: true });
+
+    const params: URLSearchParams = new URL(request.authorizationUrl)
+      .searchParams;
+
+    expect(JSON.parse(params.get("claims")!)).toEqual({
+      id_token: { auth_time: { essential: true } },
+    });
+    expect(params.get("prompt")).toBe("select_account");
+    expect(params.has("max_age")).toBe(false);
+  });
+
+  it("any other sign-in asks for no claims", () => {
+    for (const request of [
+      createClient(createFakeHttpClient([])).createSignInRequest(),
+      createClient(createFakeHttpClient([])).createSignInRequest({
+        isSignInAgain: false,
+      }),
+    ]) {
+      expect(new URL(request.authorizationUrl).searchParams.has("claims")).toBe(
+        false,
+      );
+    }
+  });
+
+  it("reads when Google says the person signed in, and nothing when it does not say", () => {
+    expect(
+      GoogleSignInClient.readIdentity(
+        claimsFor({ auth_time: 1795168800 }),
+        NONCE,
+      ).authenticatedAt,
+    ).toEqual(new Date(1795168800 * 1000));
+
+    // Session age claims off: Google sends no auth_time.
+    expect(
+      GoogleSignInClient.readIdentity(claimsFor(), NONCE).authenticatedAt,
+    ).toBeNull();
+
+    for (const authTime of ["1795168800", 0, -1, null]) {
+      expect(
+        GoogleSignInClient.readIdentity(
+          claimsFor({ auth_time: authTime }),
+          NONCE,
+        ).authenticatedAt,
+      ).toBeNull();
+    }
+  });
+});
+
 describe("GoogleSignInClient.readIdentity", () => {
   it("signs in a Google Workspace account by its email address", () => {
     const identity: GoogleIdentity = GoogleSignInClient.readIdentity(
