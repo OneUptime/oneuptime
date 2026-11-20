@@ -59766,5 +59766,9 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "このグラフは発生した例外の件数を示します。新しい例外、再発した例外、通常を上回る増加、セッションやインストールの割合では表示されません。",
   "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "iOS アプリのバイナリの 1 つのビルドの関数シンボルで、その dSYM から取得したものです。アプリのクラッシュとハングのスタックのフレームを関数名で表示し、関数ごとにグループ化するために使われます。バイナリの UUID でフレームと照合されます。",
   "dSYMs": "dSYM",
-  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "選択した範囲のセッションのうち、クラッシュで終わらなかったものの割合です。99.5% 未満でバーが黄、99% 未満で赤になります。下の行は同じ割合をインストール単位で示したもので、インストールはユーザーの目安になります。OpenTelemetry Android が設定する app.installation.id、または iOS アプリの device.id から求め、どちらも送らないアプリでは、クラッシュしたセッションの数を示します。"
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "選択した範囲のセッションのうち、クラッシュで終わらなかったものの割合です。99.5% 未満でバーが黄、99% 未満で赤になります。下の行は同じ割合をインストール単位で示したもので、インストールはユーザーの目安になります。OpenTelemetry Android が設定する app.installation.id、または iOS アプリの device.id から求め、どちらも送らないアプリでは、クラッシュしたセッションの数を示します。",
+  "Click to reassign": "クリックして再割り当て",
+  "Reassign {{role}}": "{{role}} を再割り当て",
+  "The person was not removed from the role.": "メンバーはロールから削除されませんでした。",
+  "The role was not reassigned.": "ロールは再割り当てされませんでした。"
 }
