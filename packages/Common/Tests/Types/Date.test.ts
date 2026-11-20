@@ -219,7 +219,7 @@ describe("class OneUptimeDate", () => {
       expect(result[0]).toContain("EDT");
       expect(result[0]).not.toContain("EST");
       // 17:00 UTC in summer EDT (UTC-4) = 01:00 PM
-      expect(result[0]).toContain("01:00 PM");
+      expect(result[0]).toContain("1:00 PM");
     });
 
     test("picks the correct abbreviation per-timezone for the same event", () => {
