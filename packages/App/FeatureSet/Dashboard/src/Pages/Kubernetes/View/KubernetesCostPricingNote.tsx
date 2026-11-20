@@ -34,8 +34,8 @@ import { KubernetesCostEngineView } from "../Utils/KubernetesCostEngine";
  * each hour as it closes, then brings the reconciled figures in (#9969).
  * Before any reconciled hour has arrived the line says "Prices: AWS list
  * prices, before Kubecost reconciles them with your bill"; after, "Prices:
- * reconciled with your AWS bill up to Nov 17, 2026, 3:00 PM, list prices
- * after", or, when every hour of the window is, just "reconciled with your
+ * reconciled with your AWS bill up to Nov 17, 2026, 3:00 PM, then list
+ * prices", or, when every hour of the window is, just "reconciled with your
  * AWS bill".
  *
  * And, only while the chart still bundles an OpenCost the agent does not
@@ -187,7 +187,7 @@ const KubernetesCostPricingNote: FunctionComponent<ComponentProps> = (
       prices = (
         <span data-testid={`${KUBERNETES_COST_PRICING_TEST_ID}-reconciled`}>
           {translator.translateTemplate(
-            "Prices: reconciled with your {{provider}} bill up to {{time}}, list prices after",
+            "Prices: reconciled with your {{provider}} bill up to {{time}}, then list prices",
             {
               provider,
               time: writeReaderMoment(reconciliation.through),

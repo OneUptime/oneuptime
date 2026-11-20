@@ -59155,7 +59155,7 @@
   "Is Cost Adjustment": "Is Cost Adjustment",
   "Memory Peaks From": "Memory Peaks From",
   "Prices: reconciled with your {{provider}} bill": "Prices: reconciled with your {{provider}} bill",
-  "Prices: reconciled with your {{provider}} bill up to {{time}}, list prices after": "Prices: reconciled with your {{provider}} bill up to {{time}}, list prices after",
+  "Prices: reconciled with your {{provider}} bill up to {{time}}, then list prices": "Prices: reconciled with your {{provider}} bill up to {{time}}, then list prices",
   "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:": "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:",
   "Without another Prometheus, keep the bundled engine: memory recommendations need it.": "Without another Prometheus, keep the bundled engine: memory recommendations need it.",
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.": "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.",

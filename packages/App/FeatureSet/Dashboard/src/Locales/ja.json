@@ -59155,7 +59155,7 @@
   "Is Cost Adjustment": "コスト調整",
   "Memory Peaks From": "メモリのピークの出どころ",
   "Prices: reconciled with your {{provider}} bill": "価格: {{provider}} の請求書と照合済み",
-  "Prices: reconciled with your {{provider}} bill up to {{time}}, list prices after": "価格: {{time}} まで {{provider}} の請求書と照合済み、以降は標準料金",
+  "Prices: reconciled with your {{provider}} bill up to {{time}}, then list prices": "価格: {{time}} まで {{provider}} の請求書と照合済み、以降は標準料金",
   "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:": "このクラスターでは独自の {{engine}} ({{service}}) が動いており、コストエージェントはそれを読み取っています。エージェントが {{engine}} の読み取る Prometheus を見つけられなかったため、メモリの適正サイズ化は引き続き同梱の Prometheus からピークを読み取っています。両方を停止するには、同じアップグレードで cAdvisor を収集する Prometheus を指定してください:",
   "Without another Prometheus, keep the bundled engine: memory recommendations need it.": "ほかに Prometheus がない場合は、同梱のエンジンを残してください。メモリの推奨値に必要です。",
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.": "Kubecost はクラウドの請求書を読み取り、各時間の約 2 日後に実際の支払額と価格を照合します。OneUptime は照合済みの時間をそれぞれ取り込みます。それまでの間、以降の時間はクラウドの公開標準料金です。",

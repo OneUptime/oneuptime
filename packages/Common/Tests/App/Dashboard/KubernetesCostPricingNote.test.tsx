@@ -294,7 +294,7 @@ describe("KubernetesCostPricingNote", () => {
         screen.getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-reconciled`),
       ),
     ).toBe(
-      "Prices: reconciled with your AWS bill up to Nov 17, 2026, 3:00 PM, list prices after",
+      "Prices: reconciled with your AWS bill up to Nov 17, 2026, 3:00 PM, then list prices",
     );
     expect(line().className).toContain("text-gray-600");
     expect(
