@@ -930,7 +930,7 @@ describe("OneUptime API Reference: the fields a create left out, and a list's si
     const changes: ListChanges | null = ListChangesUtil.fromRequestBody({
       body: body as never,
       listColumns: listColumns,
-      modelName: new Monitor().singularName,
+      modelName: new Monitor().singularName || "Monitor",
     });
 
     expect(changes).toEqual({
