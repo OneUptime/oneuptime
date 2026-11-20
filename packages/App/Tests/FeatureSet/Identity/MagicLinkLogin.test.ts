@@ -39,6 +39,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import Timezone from "Common/Types/Timezone";
+import { confirmEverySession } from "Common/Tests/Server/TestingUtils/ReauthenticationConfirmed";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import {
   SecondFactor,
@@ -720,6 +721,12 @@ function letWritesRunForReal(): void {
  * having written the row.
  */
 async function changePasswordOnProfilePage(): Promise<void> {
+  /*
+   * From a session that has confirmed it's its person's, as the profile asks
+   * before a new password (#10155).
+   */
+  confirmEverySession();
+
   expect(
     await UserService.updateOneById({
       id: new ObjectID(USER_ID),

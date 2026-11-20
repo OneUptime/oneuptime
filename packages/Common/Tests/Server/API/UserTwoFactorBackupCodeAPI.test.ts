@@ -36,6 +36,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * The two self-service routes a signed-in user drives from their profile page:
@@ -457,6 +458,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   jest.clearAllMocks();
 
   getStatusSpy = getJestSpyOn(

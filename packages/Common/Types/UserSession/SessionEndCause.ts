@@ -7,8 +7,9 @@
  * token runs out after 30 days without use; or when OneUptime revokes it -
  * a new password, a blocked account, two factor authentication reset or
  * required by a server admin, a server admin signing out everyone who
- * signed in without SSO while the server requires it, or a server admin
- * clearing someone's sign-in settings.
+ * signed in without SSO while the server requires it, a server admin
+ * clearing someone's sign-in settings, or too many wrong attempts in the
+ * session to confirm it is its person's (#10155).
  *
  * Each cause is revoked with the words sessions have always been revoked
  * with (UserSession.revokedReason, a ShortText column): a refresh that comes
@@ -39,6 +40,12 @@ export enum SessionEndCause {
    * end with the password or key they were signed in with.
    */
   SignInSettingsCleared = "SignInSettingsCleared",
+  /*
+   * Too many wrong attempts in this session to confirm it was its person's
+   * before a change to how they sign in (#10155, Types/Accounts/
+   * Reauthentication): the session ends, never the account's sign-in.
+   */
+  ReauthenticationFailed = "ReauthenticationFailed",
   // A revocation that names none of the causes above.
   Other = "Other",
 }
@@ -67,6 +74,8 @@ export const SESSION_END_CAUSE_REVOKED_REASONS: Readonly<
   [SessionEndCause.TwoFactorReset]: "Two factor auth reset by admin",
   [SessionEndCause.SignedInWithoutSso]: "Signed in without SSO",
   [SessionEndCause.SignInSettingsCleared]: "Sign-in settings cleared by admin",
+  [SessionEndCause.ReauthenticationFailed]:
+    "Too many failed re-authentications",
 };
 
 // The words a session revoked for `cause` is kept with.
