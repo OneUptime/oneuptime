@@ -48,6 +48,11 @@ import {
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  ClientAddressReading,
+  markClientAddressTrust,
+  resolveClientAddress,
+} from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import {
   afterAll,
@@ -1331,6 +1336,69 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       expect(
         judgedUids(rule).filter((uid: string): boolean => {
           return uid.startsWith("nowhere");
+        }),
+      ).toEqual([]);
+    });
+
+    test("failed sign-ins that claim an innocent address are never counted as it: with nothing verified they make no finding, and through a verified peer they count as the peer (#10416)", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+
+      // Each sender writes X-Forwarded-For: 192.0.2.44, someone else's address.
+      const spoofed: ClientAddressReading = resolveClientAddress({
+        forwardedClient: "192.0.2.44",
+        forwardedClientFrom: "client.address",
+      });
+      const throughPeer: ClientAddressReading = resolveClientAddress({
+        peer: "203.0.113.7",
+        forwardedClient: "192.0.2.44",
+        forwardedClientFrom: "client.address",
+        forwardedFor: "192.0.2.44",
+      });
+
+      // What the scans keep of each: the claim beside the address, never as it.
+      function kept(reading: ClientAddressReading): Record<string, string> {
+        const attributes: JSONObject = {};
+
+        markClientAddressTrust(attributes, reading);
+
+        return attributes as Record<string, string>;
+      }
+
+      expect([spoofed.address, throughPeer.address]).toEqual([
+        "",
+        "203.0.113.7",
+      ]);
+
+      arrive(
+        ...failures({
+          prefix: "spoofed",
+          count: 10,
+          fromMinute: 6,
+          attributes: kept(spoofed),
+        }),
+        ...failures({
+          prefix: "through-peer",
+          count: 10,
+          fromMinute: 6,
+          principalIp: throughPeer.address,
+          attributes: kept(throughPeer),
+        }),
+      );
+
+      await runMinutes(1, 20);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "192.0.2.44")).toHaveLength(0);
+      expect(firingsFor(rule, "203.0.113.7")).toHaveLength(1);
+      expect(firingsFor(rule, "203.0.113.7")[0]!.eventCount).toBe(10);
+      expect(
+        judgedUids(rule).filter((uid: string): boolean => {
+          return uid.startsWith("spoofed");
         }),
       ).toEqual([]);
     });
