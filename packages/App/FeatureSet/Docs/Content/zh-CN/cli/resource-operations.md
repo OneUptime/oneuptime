@@ -209,7 +209,7 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 
 ### 工作流以其身份运行的自定义角色
 
-只有当删除说明了工作流改以什么身份运行时，OneUptime 才会删除工作流以其身份运行的自定义角色；没有说明的删除会被拒绝，并列出这些工作流的名称。用 `--workflows-run-as` 说明：`Default` 即默认权限，`CustomRole` 即你可以授予团队的另一个自定义角色，并在 `--workflows-run-as-custom-role-id` 中给出它的 ID。绝不会是 Project Owner：删除角色绝不会扩大工作流能做的事。
+只有当删除说明了工作流改以什么身份运行时，OneUptime 才会删除工作流以其身份运行的自定义角色；没有说明的删除会被拒绝，并列出这些工作流的名称。用 `--workflows-run-as` 说明：`Default` 即默认权限，`CustomRole` 即你可以授予团队的另一个自定义角色，并在 `--workflows-run-as-custom-role-id` 中给出它的 ID。绝不会是项目所有者：删除角色绝不会扩大工作流能做的事。
 
 ```bash
 # They run with the default permissions

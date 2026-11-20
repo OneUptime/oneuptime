@@ -2,6 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -880,8 +882,28 @@ describe("the records a resource's ids point at", () => {
   });
 });
 
-describe("attributes Terraform cannot set", () => {
-  test("a Kubernetes cluster's provider is left out, and the configuration says why", () => {
+describe("attributes named like a Terraform meta-argument", () => {
+  /*
+   * `provider = "aws"` in a resource block is Terraform's own provider
+   * meta-argument. The provider exposes the attribute as provider_value,
+   * and a cloud account's is required: a configuration that left it out,
+   * as this one did, failed `terraform plan` before importing anything.
+   */
+  test("a cloud account's provider is set as provider_value, the provider's name for it", () => {
+    const account: CloudAccount = new CloudAccount();
+    account._id = "2a2b3c4d-1234-4b2c-9d8e-0123456789ab";
+    account.name = "Production";
+    account.provider = CloudProvider.AWS;
+    account.accountId = "123456789012";
+
+    const config: TerraformResourceConfig = configFor(account, CloudAccount);
+
+    expect(config.resourceHcl).toMatch(/^\s*provider_value\s*= "aws"$/m);
+    expect(config.resourceHcl).not.toMatch(/^\s*provider\s*=/m);
+    expect(config.resourceHcl).not.toContain("reserves");
+  });
+
+  test("a Kubernetes cluster's provider is OneUptime's once the cluster exists, so it is left out", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
     cluster.name = "production-us-east";
@@ -893,32 +915,7 @@ describe("attributes Terraform cannot set", () => {
       KubernetesCluster,
     );
 
-    // `provider = "EKS"` in a resource block is Terraform's own meta-argument.
-    expect(config.resourceHcl).not.toMatch(/^\s*provider\s*=/m);
-    expect(config.resourceHcl).toContain(
-      "# Not set here, because Terraform reserves the name: provider.",
-    );
-    expect(config.omittedReserved).toEqual([
-      {
-        attributeName: "provider",
-        title: expect.any(String),
-        reason: TerraformOmissionReason.ReservedName,
-      },
-    ]);
-  });
-
-  test("a cluster without a provider says nothing about it", () => {
-    const cluster: KubernetesCluster = new KubernetesCluster();
-    cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
-    cluster.name = "production-us-east";
-    cluster.clusterIdentifier = "production-us-east";
-
-    const config: TerraformResourceConfig = configFor(
-      cluster,
-      KubernetesCluster,
-    );
-
-    expect(config.omittedReserved).toEqual([]);
+    expect(config.resourceHcl).not.toMatch(/^\s*provider(_value)?\s*=/m);
     expect(config.resourceHcl).not.toContain("reserves");
   });
 });

@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-Het ID van het record staat in het `import`-blok dat de pagina **Ontwikkelaars → Terraform** van het record in het dashboard schrijft, en `oneuptime <resource> list` toont met de [OneUptime-CLI](/docs/cli/resource-operations#records-tonen) de ID's van een soort record. Zodra de resource gereed is, toont `status.atProvider` het record. Om het vanaf dan te beheren, schrijf je de velden ervan in `spec.forProvider` en zet je `managementPolicies` op `["*"]`.
+De pagina **Ontwikkelaars → Crossplane** van het record in het dashboard schrijft dit manifest voor je, met het ID, en een manifest dat het record overneemt met de velden zoals ze zijn. `oneuptime <resource> list` toont met de [OneUptime-CLI](/docs/cli/resource-operations#records-tonen) de ID's van een soort record. Zodra de resource gereed is, toont `status.atProvider` het record. Om het vanaf dan te beheren, schrijf je de velden ervan in `spec.forProvider` en zet je `managementPolicies` op `["*"]`.
 
 ## Secrets
 

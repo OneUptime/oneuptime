@@ -97,6 +97,12 @@ import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCle
 import InvitationInviterUtil, {
   InvitationInviter,
 } from "../Utils/TeamMember/InvitationInviter";
+import {
+  getInvitationLanguage,
+  getInvitationProjectLogLanguage,
+} from "../../Types/Team/InvitationEmailWords";
+import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
+import { getUserChosenLanguage } from "../../Types/UserLanguage";
 import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 import { SsoManagedBy } from "../../Types/SSO/SsoManagedSignIn";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
@@ -911,6 +917,26 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     });
 
     /*
+     * In the invitee's language (#9897, Types/Team/InvitationEmailWords):
+     * the one their account picked, else the inviter's - an account this
+     * invitation made has none - else English, as a project has no language
+     * of its own. Subject and body alike.
+     *
+     * The project's email log, which its members and viewers read, keeps
+     * the subject in the language the email has for an invitee with no
+     * language of their own: the inviter's, else English. Written in the
+     * invitee's, it would say that the address already had an account, and
+     * which language it reads (#9823).
+     */
+    const language: string = getInvitationLanguage({
+      inviteeLanguage: await TeamMemberService.readInviteeLanguage(user.id),
+      inviterLanguage: inviter?.language,
+    });
+    const projectLogLanguage: string = getInvitationProjectLogLanguage({
+      inviterLanguage: inviter?.language,
+    });
+
+    /*
      * An invitation that makes the person's sign-in SSO's (#9819): every
      * project they would be in manages sign-in with SSO, or the server
      * requires it. They have no password to set and nothing to create, so
@@ -969,13 +995,57 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         projectName: project.name!,
         inviter: inviter,
         isAccepted: data.isAccepted,
+        language: language,
+      }),
+      projectLogSubject: InvitationInviterUtil.getSubject({
+        projectName: project.name!,
+        inviter: inviter,
+        isAccepted: data.isAccepted,
+        language: projectLogLanguage,
       }),
       isSubjectLiteral: true,
+      ...(language === DEFAULT_READER_LANGUAGE ? {} : { language: language }),
       replyToEmail: InvitationInviterUtil.getReplyTo({
         inviter: inviter,
         isSelfHosted: !IsBillingEnabled,
       }),
     };
+  }
+
+  /*
+   * The language the invitee's account picked (Types/UserLanguage), or ""
+   * when it picked none - as an account this invitation made has not. Read
+   * by the account's id for every invitation, new account or not, so the
+   * work is the same either way. A read that fails is none: the invitation
+   * is written in the inviter's language, and never held back for it.
+   */
+  private static async readInviteeLanguage(
+    userId: ObjectID | null | undefined,
+  ): Promise<string> {
+    if (!userId) {
+      return "";
+    }
+
+    try {
+      const account: User | null = await UserService.findOneById({
+        id: userId,
+        select: {
+          _id: true,
+          language: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return getUserChosenLanguage(account);
+    } catch (err) {
+      logger.warn(
+        "Could not read the language of an invitee's account; the invitation is written in the inviter's.",
+      );
+      logger.warn(err);
+      return "";
+    }
   }
 
   /*

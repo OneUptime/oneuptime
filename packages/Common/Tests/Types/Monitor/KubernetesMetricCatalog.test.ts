@@ -696,12 +696,14 @@ describe("KubernetesMetricCatalog", () => {
       expect(restartsPipeline).toContain(
         "          exporters:\n            - forward/restarts-increase\n",
       );
-      expect(restartsPipeline).not.toContain("- k8sattributes");
+      // The chart names it by kubernetes-agent.componentType (#9930).
+      expect(restartsPipeline).not.toContain("- {{ $k8sAttributes }}");
+      expect(restartsPipeline).not.toMatch(/- k8s_?attributes/);
       expect(metricsPipeline).toContain("            - k8s_cluster\n");
       expect(metricsPipeline).toContain(
         "            - forward/restarts-increase\n",
       );
-      expect(metricsPipeline).toContain("            - k8sattributes\n");
+      expect(metricsPipeline).toContain("            - {{ $k8sAttributes }}\n");
 
       // Every kind a Workload Kind can name is a name k8sattributes extracts.
       for (const kind of KUBERNETES_WORKLOAD_KINDS) {

@@ -404,6 +404,7 @@ describe("parseDeploymentConfigObject", () => {
         version: 1,
         containers: [{ name: "legacy-api", list: "containers" }],
         volumes: [],
+        resourcesRead: true,
       },
     });
   });

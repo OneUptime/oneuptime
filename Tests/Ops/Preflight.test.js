@@ -46,6 +46,7 @@ const {
   asciiNameOf,
   exampleAddress,
   hostFindings,
+  pickedPortFindings,
   dockerFailureOf,
   dockerFindings,
   freeDiskBytes,
@@ -1827,6 +1828,191 @@ describeWithCompose("the ports as Compose renders the shipped files", () => {
           return `${port.address || "*"}:${port.port}`;
         }),
     ).toEqual(["127.0.0.1:8080", "*:443", "*:3884"]);
+  });
+
+  /*
+   * An empty ONEUPTIME_HTTP_PORT had Docker publish the ingress on a port it
+   * picked (#10170), where the status check and the probes never looked: the
+   * port check above skipped it, as Compose rendered no port for it. Empty
+   * is port 80 now (docker-compose.base.yml), and the forms that still
+   * leave the port to Docker stop the start (the next describe).
+   */
+  test("an empty ONEUPTIME_HTTP_PORT is rendered on port 80, and checked there", () => {
+    const config = renderCompose(["docker-compose.yml"], {
+      ONEUPTIME_HTTP_PORT: "",
+      STATUS_PAGE_HTTPS_PORT: "",
+    });
+    const found = publishedPortsOf(config, servicesToStart(config, ""));
+
+    expect(
+      found
+        .filter((port) => {
+          return port.service === "ingress";
+        })
+        .map((port) => {
+          return `${port.address || "*"}:${port.port} ${port.entry.setting}`;
+        }),
+    ).toEqual(["*:80 ONEUPTIME_HTTP_PORT", "*:443 STATUS_PAGE_HTTPS_PORT"]);
+  });
+});
+
+/*
+ * #10170: a setting that leaves the ingress's port to Docker - an address
+ * with no port after it, or port 0 - has Docker publish it on a port it
+ * picks as it starts the container, where nothing on the server looks: npm
+ * start's status check waited five minutes at port 80. The start stops, with
+ * the line to write. Empty is the default port, and is fine.
+ * ComposeIngressPorts.test.js holds these forms to what Compose renders.
+ */
+describe("an ingress port left to Docker to pick", () => {
+  const PICKED_HTTP = (value, fixed) => {
+    return {
+      level: "stop",
+      message: `ONEUPTIME_HTTP_PORT in config.env is ${value}, which leaves the port to Docker: it would publish OneUptime's ingress on a port it picks as it starts, and nothing on this server would know which. Name the port, such as ONEUPTIME_HTTP_PORT=${fixed}.`,
+    };
+  };
+
+  test.each([
+    [":", "80"],
+    ["0", "80"],
+    ["00", "80"],
+    ["127.0.0.1:", "127.0.0.1:80"],
+    ["127.0.0.1:0", "127.0.0.1:80"],
+    ["0.0.0.0:", "0.0.0.0:80"],
+    ["10.0.0.5:0", "10.0.0.5:80"],
+    ["[::1]:", "[::1]:80"],
+    // Compose takes IPv6 without brackets too; the line to write has them.
+    ["::1:", "[::1]:80"],
+    ["::1:0", "[::1]:80"],
+    ["[::]:0", "[::]:80"],
+    [":::", "[::]:80"],
+    ["[2001:db8::5]:", "[2001:db8::5]:80"],
+  ])(
+    "ONEUPTIME_HTTP_PORT=%s stops the start: write ONEUPTIME_HTTP_PORT=%s",
+    (value, fixed) => {
+      expect(
+        pickedPortFindings(settingsWith([`ONEUPTIME_HTTP_PORT=${value}`])),
+      ).toEqual([PICKED_HTTP(value, fixed)]);
+    },
+  );
+
+  test("read as config.env writes it: quoted, or with spaces around it", () => {
+    for (const line of [
+      'ONEUPTIME_HTTP_PORT="127.0.0.1:"',
+      "ONEUPTIME_HTTP_PORT='127.0.0.1:'",
+      "ONEUPTIME_HTTP_PORT = 127.0.0.1: ",
+    ]) {
+      expect(pickedPortFindings(settingsWith([line]))).toEqual([
+        PICKED_HTTP("127.0.0.1:", "127.0.0.1:80"),
+      ]);
+    }
+  });
+
+  test("STATUS_PAGE_HTTPS_PORT, with its own default", () => {
+    expect(
+      pickedPortFindings(settingsWith(["STATUS_PAGE_HTTPS_PORT=127.0.0.1:"])),
+    ).toEqual([
+      {
+        level: "stop",
+        message:
+          "STATUS_PAGE_HTTPS_PORT in config.env is 127.0.0.1:, which leaves the port to Docker: it would publish OneUptime's HTTPS on a port it picks as it starts, and nothing on this server would know which. Name the port, such as STATUS_PAGE_HTTPS_PORT=127.0.0.1:443.",
+      },
+    ]);
+  });
+
+  test("both, each said, ONEUPTIME_HTTP_PORT first", () => {
+    expect(
+      levelsOf(
+        pickedPortFindings(
+          settingsWith([
+            "STATUS_PAGE_HTTPS_PORT=0",
+            "ONEUPTIME_HTTP_PORT=127.0.0.1:",
+          ]),
+        ),
+      ),
+    ).toEqual(["stop", "stop"]);
+    expect(
+      pickedPortFindings(
+        settingsWith(["STATUS_PAGE_HTTPS_PORT=0", "ONEUPTIME_HTTP_PORT=:"]),
+      ).map((finding) => {
+        return finding.message.split(" ")[0];
+      }),
+    ).toEqual(["ONEUPTIME_HTTP_PORT", "STATUS_PAGE_HTTPS_PORT"]);
+  });
+
+  test.each([
+    "",
+    "80",
+    "8080",
+    ":8080",
+    "0.0.0.0:80",
+    "127.0.0.1:8080",
+    "[::1]:8080",
+    "::1:8080",
+    "10.0.0.5:8443",
+    // A port of 0 written in a longer number is a port of its own.
+    "8000",
+    "10",
+  ])("ONEUPTIME_HTTP_PORT=%j names its port: nothing to say", (value) => {
+    expect(
+      pickedPortFindings(
+        settingsWith([
+          `ONEUPTIME_HTTP_PORT=${value}`,
+          `STATUS_PAGE_HTTPS_PORT=${value}`,
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a config.env without them says nothing: Compose publishes 80 and 443", () => {
+    expect(pickedPortFindings(settingsWith(["HOST=localhost"]))).toEqual([]);
+  });
+
+  // Compose refuses these as it starts, in words of its own.
+  test.each(["::", "eighty", "localhost:", "abc:0", "1.2.3:"])(
+    "ONEUPTIME_HTTP_PORT=%s, which Compose cannot read, is Compose's to say",
+    (value) => {
+      expect(
+        pickedPortFindings(settingsWith([`ONEUPTIME_HTTP_PORT=${value}`])),
+      ).toEqual([]);
+    },
+  );
+
+  test("config.example.env names both ports", () => {
+    expect(pickedPortFindings(readSettings(TEMPLATE))).toEqual([]);
+  });
+
+  test("the start stops on it, says why last, and still runs the other checks", async () => {
+    const result = await runWith({
+      config: TEMPLATE.replace(
+        "ONEUPTIME_HTTP_PORT=80",
+        "ONEUPTIME_HTTP_PORT=127.0.0.1:",
+      ),
+    });
+
+    expect(result.code).toBe(1);
+    expect(
+      result.lines.filter((line) => {
+        return line.startsWith("  ✗ ");
+      }),
+    ).toEqual([`  ✗ ${PICKED_HTTP("127.0.0.1:", "127.0.0.1:80").message}`]);
+    // HOST is still checked after it.
+    expect(result.lines.join("\n")).toContain("  ! HOST is localhost");
+    expect(result.lines.slice(-2)[0]).toContain(
+      "OneUptime did not start. Fix what is marked ✗",
+    );
+  });
+
+  test("an empty one starts: it is port 80", async () => {
+    const result = await runWith({
+      config: TEMPLATE.replace(
+        "ONEUPTIME_HTTP_PORT=80",
+        "ONEUPTIME_HTTP_PORT=",
+      ),
+    });
+
+    expect(result.code).toBe(0);
+    expect(result.lines.join("\n")).not.toContain("leaves the port to Docker");
   });
 });
 

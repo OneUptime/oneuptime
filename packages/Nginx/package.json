@@ -8,7 +8,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "node --test Tests/NginxConfigParser.test.js Tests/NginxConfig.test.js Tests/NginxTemplateRender.test.js Tests/IngestAccessLogPlumbing.test.js Tests/OtlpIngestBodySize.test.js Tests/IngressListensOnIpv6.test.js Tests/PrimaryServerName.test.js Tests/PrimaryServerHttp2.test.js Tests/FormCustomDomainBodySize.test.js Tests/TelemetryIngestRouting.test.js Tests/CompatibleIngestLocations.test.js",
+    "test": "node --test Tests/NginxConfigParser.test.js Tests/NginxConfig.test.js Tests/NginxTemplateRender.test.js Tests/IngestAccessLogPlumbing.test.js Tests/OtlpIngestBodySize.test.js Tests/IngressListensOnIpv6.test.js Tests/PrimaryServerName.test.js Tests/PrimaryServerHttp2.test.js Tests/FormCustomDomainBodySize.test.js Tests/TelemetryIngestRouting.test.js Tests/CompatibleIngestLocations.test.js Tests/ProbeIngestUnderAnyHost.test.js",
     "start": "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js",
     "compile": "tsc",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true"

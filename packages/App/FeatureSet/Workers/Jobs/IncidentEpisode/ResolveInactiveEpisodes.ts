@@ -9,6 +9,7 @@ import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingR
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import { EPISODE_RESOLVED_NO_NEW_INCIDENT } from "Common/Utils/Monitor/StatusChangeNotes";
 
 RunCron(
   "IncidentEpisode:ResolveInactiveEpisodes",
@@ -184,6 +185,7 @@ const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
         episode.id,
         undefined, // No user - auto-resolved due to inactivity
         true, // Cascade to incidents - resolve all member incidents as well
+        EPISODE_RESOLVED_NO_NEW_INCIDENT,
       );
     } catch (error) {
       logger.error(

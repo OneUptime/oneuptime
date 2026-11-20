@@ -181,7 +181,7 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 | ---------------------- | --------------------------------------------------------------------------- |
 | **Översikt** | **Översikt**, **Tillståndstidslinje**, **Medlemslarm**, **Ägare** |
 | **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar**, **Privata anteckningar** |
-| **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
+| **Utvecklare** | **Terraform**, **Crossplane**, **API**, **CLI**, **AI-assistenter** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 
 **Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Larm i den här episoden** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.

@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 使用 Grafana Alloy 时，添加一个 `prometheus.remote_write` 组件，并把抓取结果转发给它：
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-remote write 1.0 和 2.0 都可以接受，并且与所有发送方的发送方式一样，经过 snappy 压缩。
+remote write 1.0 和 2.0 都可以接受，并且与所有发送方的发送方式一样，经过 snappy 压缩。要发送携带每个序列的类型、单位和描述的 2.0，请设置 `protobuf_message: io.prometheus.write.v2.Request`（Prometheus 3）或 `protobuf_message = "io.prometheus.write.v2.Request"`（Alloy）。Prometheus 在保存 exemplar 后（`--enable-feature=exemplar-storage`），会通过 `send_exemplars: true` 发送它们；Alloy 默认就会发送。
 
 ### 序列会变成什么
 
 - **名称和标签保持不变。** `http_requests_total{job="checkout", code="500"}` 会成为带有属性 `job` 和 `code` 的指标 `http_requests_total`，因此从 Grafana 迁移过来的查询也能找到它。
 - **job 就是服务。** 按照 OpenTelemetry 对 Prometheus 的映射规则，每个 `job` 成为一个服务，每个 `instance` 成为该服务的实例。
 - **类型会保留。** 计数器以及直方图的桶和计数都是累积总和，因此它们的速率能正确绘制成图表。类型来自发送方附带的元数据；没有元数据时，名称以 `_total` 结尾的是计数器，带有 `le` 标签的 `_bucket` 是直方图的桶。
+- **经典直方图可以绘制百分位数。** 经典直方图保留其 `_bucket`、`_count` 和 `_sum` 序列。在[指标浏览器](/docs/telemetry/metrics-explorer)中用 P50 到 P99 绘制其 `_bucket` 指标，每次抓取的桶都会作为一个直方图读取，无论每个桶是通过哪个请求到达的。在 [PromQL](/docs/telemetry/promql) 中，`histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` 的结果与 Prometheus 中相同。
 - **原生直方图** 会变成指数直方图，带自定义桶的原生直方图会变成直方图。
-- **不保留：** 陈旧标记（staleness marker）以及其他 NaN 或无穷大样本、计数器的 `_created` 序列，以及 exemplar。
+- **exemplar 链接到追踪。** 带有 `trace_id`（或 `traceID`）标签的 exemplar 会把它的数据点链接到该追踪和 span：在指标的图表上点击它的点，即可查看该追踪或它的日志。它的值和其他标签不会保留，数据点通过另一个请求到达的 exemplar 也不会保留。
+- **不保留：** 陈旧标记（staleness marker）以及其他 NaN 或无穷大的值，以及计数器的 `_created` 序列。它们仍会计为已写入，因此发送方不会报告失败的样本。
+- **拒绝：** 任何版本的 remote write 都不允许的数据，例如没有指标名称的序列，或时间戳为负数的样本。请求的其余部分会被存储，发送方会收到说明哪些内容被拒绝的 `400`。
 
 ## Loki
 
@@ -106,6 +115,8 @@ Fluent Bit 的 `loki` 输出需要分开填写主机和路径：
     Http_Passwd  YOUR_TELEMETRY_KEY
     Labels       job=fluent-bit
 ```
+
+OneUptime 按 Loki 的方式应答：push 存储后返回 `204`，无法读取的 push 返回 `400`，超过下方限制的 push 返回 `413`，缺少密钥或密钥未知时返回 `401`，每日预算用完时返回 `403`，超过速率时返回带 `Retry-After` 的 `429`，暂时无法接收时返回 `503`。Promtail、Alloy 和 Vector 会重试 `429` 或 `503`，对其他被拒绝的批次则记录原因并丢弃；Fluent Bit 会丢弃 `400`，其他情况一律重试，直到达到它的 `Retry_Limit`。
 
 ### 日志流会变成什么
 
@@ -209,8 +220,10 @@ DSN 末尾的 `1` 是 Sentry SDK 所要求的，不会被读取。浏览器应�
 
 ## 限制与摄取预算
 
-- **请求大小**：OneUptime 的入口在 `/telemetry` 下接受最大 4 MB 的请求，每个正文解压后最多 64 MB。
-- **摄取预算**：Prometheus remote write 和 Loki 在读取正文之前就会对照指标或日志预算进行检查，预算用完时以 `403` 拒绝。HEC 批次、Datadog 负载或 Sentry 信封可能携带多种信号，因此每种信号会在存储时计入它自己的预算，并在该预算用完时被丢弃。
+- **请求大小**：OneUptime 的入口在 `/telemetry` 下接受最大 4 MB 的请求，每个正文解压后最多 64 MB。Prometheus remote write 请求解压后最多 32 MB，最多包含 500,000 个序列、标签和样本，因此任何单个请求都无法耗尽服务器的内存。Prometheus 和 Alloy 默认每个请求发送 2,000 个样本，远低于这两个上限；超过上限的请求会以 `413` 拒绝，此时请调低 `queue_config` 中的 `max_samples_per_send`。
+- **Loki push**：一次 push 解压后最多 32 MB，最多包含 500,000 个条目、标签和结构化元数据，其中日志流的标签按它的每个条目各计一次。Promtail 和 Alloy 默认发送 1 MB 的批次，远低于这两个上限；超过上限的 push 会以 `413` 拒绝，此时请调低客户端的批次大小。
+- **JSON 与 Datadog 负载**：JSON 正文最多包含 1,000,000 个值（对象、数组、字符串和数字），Datadog Agent 的 protobuf 负载最多包含 500,000 个序列、数据点、标签和 sketch。两者都会在读取前计数，超过上限的请求会以 `413` 拒绝。
+- **摄取预算**：Prometheus remote write 和 Loki 在读取正文之前就会对照指标或日志预算进行检查，预算用完时以 `403` 拒绝。之后，每个请求都会像 OTLP 请求一样按解压后的大小计入，也会计入团队或标签的预算。HEC 批次、Datadog 负载或 Sentry 信封可能携带多种信号，因此每种信号会在存储时计入它自己的预算，并在该预算用完时被丢弃：HEC 批次中的日志和指标事件分摊它的大小，Sentry 信封按 OneUptime 保留的条目计入，而不计入它的附件、回放或性能分析数据。
 
 ## 故障排除
 

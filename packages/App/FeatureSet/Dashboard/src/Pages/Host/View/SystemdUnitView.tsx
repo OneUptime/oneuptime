@@ -99,31 +99,20 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
 import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
-import ResourceAttentionPill from "../../../Components/ResourcePart/ResourceAttentionPill";
-import {
-  ResourceAttentionDialogRead,
-  RESOURCE_ATTENTION_VIEW_LINK_CLASS_NAME,
-} from "../../../Components/ResourcePart/ResourceAttentionDialog";
-import {
-  ResourceAttentionItem,
-  ResourceAttentionSeverity,
-} from "../../../Components/ResourcePart/ResourceAttention";
+import SystemdUnitFailedPill from "../../../Components/Host/SystemdUnitFailedPill";
+import { RESOURCE_ATTENTION_VIEW_LINK_CLASS_NAME } from "../../../Components/ResourcePart/ResourceAttentionDialog";
 import {
   getResourceAttentionSinceText,
   getResourceAttentionText,
 } from "../../../Components/ResourcePart/ResourceAttentionRow";
 import {
-  SYSTEMD_UNIT_CURRENT,
   SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS,
   SYSTEMD_UNIT_RECENT_LINES_SHOWN,
   SystemdUnitFailure,
   SystemdUnitJournalLine,
   getSystemdFailureReason,
-  getSystemdUnitFailureItem,
   getSystemdUnitFailureSince,
-  getSystemdUnitLineEvents,
   getSystemdUnitLogsRoute,
-  getSystemdUnitOwnLines,
   readSystemdUnitFailure,
 } from "../Utils/SystemdUnitFailure";
 import {
@@ -131,25 +120,6 @@ import {
   getSystemdUnitJournalWindow,
   readSystemdUnitJournal,
 } from "../Utils/SystemdUnitJournal";
-
-// The dialog a failed unit's state opens (#9748).
-const FAILED_TITLE: string = translationKey("Why {{unit}} failed");
-const FAILED_HINT: string = translationKey("Show why");
-const FAILED_EMPTY: string = translationKey("Nothing needs attention now.");
-const FAILED_READ_FAILED: string = translationKey(
-  "Couldn't read what needs attention",
-);
-const STATE_FAILED: string = translationKey("Failed");
-const KIND_SYSTEMD_UNIT: string = translationKey("Systemd unit");
-
-/*
- * A failed unit whose journal says nothing of why: the host's collector
- * does not send each line's unit (a Collector Config of the project's own),
- * or the unit failed before the window.
- */
-const NO_REASON_IN_JOURNAL: string = translationKey(
-  "Its journal of the last {{days}} days does not say why. OneUptime's default collector config sends each journal line with its unit.",
-);
 
 const RECENT_LOGS_TITLE: string = translationKey("Recent logs");
 const RECENT_LOGS_DESCRIPTION: string = translationKey(
@@ -625,56 +595,6 @@ const HostSystemdUnitView: FunctionComponent<
       ? readSystemdUnitFailure(journal.lines)
       : null;
 
-  /*
-   * What the Failed pill opens: the unit, why, since when, and the lines
-   * it printed before it failed - read again when pressed, so it is never
-   * the page's older read.
-   */
-  const loadFailure: () => Promise<ResourceAttentionDialogRead> =
-    async (): Promise<ResourceAttentionDialogRead> => {
-      const journalWindow: SystemdUnitJournalWindow =
-        getSystemdUnitJournalWindow(OneUptimeDate.getCurrentDate());
-      const lines: Array<SystemdUnitJournalLine> = await readSystemdUnitJournal(
-        {
-          hostIdentifier: hostIdentifier,
-          unitName: unitName,
-          window: journalWindow,
-        },
-      );
-      const read: SystemdUnitFailure | null = readSystemdUnitFailure(lines);
-
-      if (read) {
-        return {
-          items: [
-            getSystemdUnitFailureItem({
-              unitName: unitName,
-              failure: read,
-              lines: lines,
-            }),
-          ],
-        };
-      }
-
-      // Its journal says nothing of why: say so, with what it printed last.
-      const item: ResourceAttentionItem = {
-        key: SYSTEMD_UNIT_CURRENT.key,
-        kind: KIND_SYSTEMD_UNIT,
-        icon: IconProp.Cog6Tooth,
-        name: unitName,
-        severity: ResourceAttentionSeverity.Critical,
-        reasons: [{ text: STATE_FAILED }],
-        explanation: translator.translateTemplate(NO_REASON_IN_JOURNAL, {
-          days: translator.formatNumber(SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS),
-        }),
-        events: getSystemdUnitLineEvents({
-          unitName: unitName,
-          lines: getSystemdUnitOwnLines({ lines: lines }),
-        }),
-      };
-
-      return { items: [item] };
-    };
-
   const onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void = (
     interval: AutoRefreshInterval,
   ): void => {
@@ -784,25 +704,11 @@ const HostSystemdUnitView: FunctionComponent<
                      * status, since when, and what the unit printed.
                      */}
                     {identity && isFailed && hostIdentifier ? (
-                      <ResourceAttentionPill
-                        label={
-                          translator.translateText(STATE_FAILED) || STATE_FAILED
-                        }
-                        tone="danger"
+                      <SystemdUnitFailedPill
+                        hostIdentifier={hostIdentifier}
+                        unitName={unitName}
+                        isCurrentUnit={true}
                         testId="systemd-unit-failed"
-                        hint={FAILED_HINT}
-                        dialog={{
-                          title: translator.translateTemplate(
-                            FAILED_TITLE,
-                            { unit: unitName },
-                            { setsValuesApart: true },
-                          ),
-                          load: loadFailure,
-                          emptyMessage: FAILED_EMPTY,
-                          whatFailed: FAILED_READ_FAILED,
-                          showKind: false,
-                          current: SYSTEMD_UNIT_CURRENT,
-                        }}
                       />
                     ) : identity ? (
                       <StatePill state={identity.currentState} />
@@ -930,7 +836,8 @@ const HostSystemdUnitView: FunctionComponent<
                   })
                 : "no samples in range"
           }
-          isSublabelTranslated={Boolean(failedLine)}
+          // Why it failed, or when it was read: worded here. Else English.
+          isSublabelTranslated={Boolean(failedLine || identity.latestSampleAt)}
         />
         <StatTile
           title="Availability"
@@ -972,6 +879,8 @@ const HostSystemdUnitView: FunctionComponent<
                   },
                 )
           }
+          // A count of samples, worded here.
+          isSublabelTranslated={true}
           percent={availability.percent}
           barClassName={
             availability.percent === null
@@ -1005,6 +914,8 @@ const HostSystemdUnitView: FunctionComponent<
                 )
               : "in selected range"
           }
+          // Since when, worded here. Else English, looked up by the tile.
+          isSublabelTranslated={Boolean(truncatedFrom)}
         />
       </div>
     );

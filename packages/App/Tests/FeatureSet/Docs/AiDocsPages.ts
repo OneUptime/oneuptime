@@ -267,6 +267,15 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Inviting people.",
     // The guided setups and Ask AI link to each other (#7245).
     "Step by step instead.",
+    // Code changes, a section of their own (#6983).
+    "Never the default branch.",
+    "Each file whole.",
+    "What the card can say.",
+    "Reading again.",
+    "Hidden values.",
+    "Hidden values",
+    "In Auto-run.",
+    "Approved anyway.",
   ],
   [AI_SRE]: [
     "strictly read-only",

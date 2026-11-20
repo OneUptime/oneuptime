@@ -75,6 +75,12 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import Timezone from "Common/Types/Timezone";
+import {
+  getExplorerBarMinutes,
+  getHistogramRequestTimezone,
+  readHistogramBucketTimezone,
+} from "Common/UI/Components/Charts/Utils/HistogramDayBars";
 import {
   EXCEPTION_SPAN_SCOPE_QUERY_KEY,
   ExceptionSpanScope,
@@ -301,7 +307,8 @@ function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   const totalMs: number = endTime.getTime() - startTime.getTime();
   const targetBuckets: number = 40;
   const raw: number = Math.max(60000, Math.floor(totalMs / targetBuckets));
-  return Math.max(1, Math.ceil(raw / 60000));
+  // A bar of half a day or more is a day, from the reader's midnight (#7923).
+  return getExplorerBarMinutes(Math.max(1, Math.ceil(raw / 60000)));
 }
 
 // The server's histogram bucket key for each status (TraceAggregationService).
@@ -1028,6 +1035,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const [histogramBucketIntervalMs, setHistogramBucketIntervalMs] = useState<
     number | undefined
+  >(undefined);
+  // The zone its day bars were cut in, set with them (#7923).
+  const [histogramBucketTimezone, setHistogramBucketTimezone] = useState<
+    Timezone | undefined
   >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
   // Why the chart did not load; it says so in its own card.
@@ -2209,16 +2220,22 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      */
     const isLatencyChart: boolean = chartMetric !== "count";
 
+    // A bar of a day starts at the reader's midnight (#7923).
+    const histogramTimezone: Timezone | undefined =
+      getHistogramRequestTimezone();
+
     const histogramPayload: JSONObject = isLatencyChart
       ? {
           ...aggregationRequest,
           bucketSizeInMinutes,
+          ...(histogramTimezone ? { timezone: histogramTimezone } : {}),
           chartType: "timeseries",
           metric: chartMetric,
         }
       : {
           ...aggregationRequest,
           bucketSizeInMinutes,
+          ...(histogramTimezone ? { timezone: histogramTimezone } : {}),
         };
 
     /*
@@ -2343,10 +2360,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
       // Both endpoints bucket by the size this request asked for.
       setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
+      setHistogramBucketTimezone(
+        readHistogramBucketTimezone(
+          histogramResult.value.data["bucketTimezone"],
+        ),
+      );
       setHistogramError(undefined);
     } else {
       setHistogramBuckets([]);
       setHistogramBucketIntervalMs(undefined);
+      setHistogramBucketTimezone(undefined);
       setHistogramError(
         TelemetryLoadErrorUtil.fromError(histogramResult.reason),
       );
@@ -4046,6 +4069,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         void fetchHistogramAndFacets();
       }}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
+      histogramBucketTimezone={histogramBucketTimezone}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       histogramValueFormatter={
         chartMetric === "count"

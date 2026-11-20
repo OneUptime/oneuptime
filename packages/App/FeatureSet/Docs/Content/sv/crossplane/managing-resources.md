@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-Postens ID står i `import`-blocket som dess sida **Utvecklare → Terraform** skriver i instrumentpanelen, och `oneuptime <resource> list` listar ID:na för ett slags post med [OneUptimes CLI](/docs/cli/resource-operations#lista-poster). När resursen är redo visar `status.atProvider` posten. För att hantera den från och med då skriver du dess fält i `spec.forProvider` och sätter `managementPolicies` till `["*"]`.
+Postens sida **Utvecklare → Crossplane** i instrumentpanelen skriver det här manifestet åt dig, med postens ID, och ett som tar över posten med dess fält som de är. `oneuptime <resource> list` listar ID:na för ett slags post med [OneUptimes CLI](/docs/cli/resource-operations#lista-poster). När resursen är redo visar `status.atProvider` posten. För att hantera den från och med då skriver du dess fält i `spec.forProvider` och sätter `managementPolicies` till `["*"]`.
 
 ## Hemligheter
 

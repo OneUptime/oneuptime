@@ -20,11 +20,59 @@
 
 export const COMPATIBLE_INGEST_URL_PREFIX: string = "/telemetry";
 
+/*
+ * The most values a compatible endpoint's JSON body may parse into - every
+ * object, array, string (a key too), number, true, false and null -
+ * counted before it is parsed. These bodies are parsed on the App's request
+ * thread, and "[]," is three bytes but an array of forty on the heap: 32 MiB
+ * of empty arrays would take half a gigabyte and seconds of that thread.
+ * Every client's own batches are far below it: a 5 MB Datadog log payload,
+ * or a 2 MiB batch from the OpenTelemetry Collector's Splunk HEC exporter,
+ * is a few hundred thousand.
+ */
+export const COMPATIBLE_JSON_MAX_VALUES: number = 1000000;
+
 // Prometheus remote write (1.0 and 2.0): a Prometheus server, Grafana Alloy, an agent.
 export const PROMETHEUS_REMOTE_WRITE_PATH: string = "/prometheus/api/v1/write";
 
+/*
+ * The most a remote write request may be, as sent and once its snappy
+ * compression is undone. Prometheus and Alloy send 2,000 samples a request
+ * by default, well under a megabyte; VictoriaMetrics' own receiver holds a
+ * request to the same 32 MiB.
+ */
+export const PROMETHEUS_REMOTE_WRITE_MAX_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * The most series, labels, samples, exemplars, histograms and histogram
+ * buckets one remote write request may hold, counted before it is decoded:
+ * each one is an object in memory once it is, so a small body packed with
+ * empty series cannot take gigabytes. 2,000 samples of series with a dozen
+ * labels are about 28,000.
+ */
+export const PROMETHEUS_REMOTE_WRITE_MAX_ELEMENTS: number = 500000;
+
 // Loki's push API, at Loki's own path: Promtail, Grafana Alloy, Fluent Bit, Vector.
 export const LOKI_PUSH_PATH: string = "/loki/api/v1/push";
+
+/*
+ * The most a Loki push may be, as sent and once decompressed (its snappy
+ * or gzip undone). Promtail and Alloy send batches of 1 MiB by default
+ * (batch_size), and Loki itself refuses a push over its 6 MB ingestion
+ * burst; remote write is held to the same 32 MiB.
+ */
+export const LOKI_PUSH_MAX_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * The most streams, entries, labels and structured metadata one Loki push
+ * may hold, a stream's labels counted once for each of its entries: every
+ * entry becomes a log record that carries them all as attributes. Counted
+ * before a protobuf push is decoded, and again as the push is read, before
+ * anything is translated, so a small body cannot become millions of
+ * objects. A 1 MiB batch of 100-byte lines from streams of five labels is
+ * about 60,000.
+ */
+export const LOKI_PUSH_MAX_ELEMENTS: number = 500000;
 
 /*
  * Splunk's HTTP Event Collector, at Splunk's own paths. Some clients
@@ -64,6 +112,15 @@ export const DATADOG_METADATA_PATHS: ReadonlyArray<string> = [
   "/intake",
   "/api/v1/metadata",
 ];
+
+/*
+ * The most series, points, resources, tags, sketches and sketch summaries
+ * one Datadog Agent protobuf payload (/api/v2/series, /api/beta/sketches)
+ * may hold, counted before it is decoded: each is an object once it is.
+ * The Agent splits its payloads at 10,000 points and 5 MB decompressed,
+ * about 300,000 of them at most.
+ */
+export const DATADOG_PROTOBUF_MAX_ELEMENTS: number = 500000;
 
 // Every intake path, as served under /datadog.
 export const DATADOG_PATHS: ReadonlyArray<string> = [

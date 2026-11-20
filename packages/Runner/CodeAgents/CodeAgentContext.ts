@@ -1,11 +1,15 @@
 import {
-  COMPACTED_CONTEXT_SHARE,
+  AgentContextSize,
   DEFAULT_MAX_CONTEXT_CHARS,
+  getAgentContextSize,
+  getForgottenResultKeys,
+  getToolCallsByResultIndex,
+  getToolResultLoopKey,
+  LeftOutResultsReading,
   measureContextChars,
   measureMessageChars,
 } from "Common/Server/Utils/AI/Chat/AgentContextCompactor";
 import { LLMMessage, LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
-import { agentLoopResultKey } from "Common/Types/AI/AgentLoopDetector";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 
 /*
@@ -41,7 +45,12 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
  *
  * Each result is described by the call it answers in its own round: some
  * providers number the calls of each response from the same id (Ollama's
- * tool_call_0), so an id alone names a call of every round.
+ * tool_call_0), so an id alone names a call of every round. Which call
+ * that is, what the loop detector knows a result by, and which results the
+ * model no longer has once some are left out are the rules Ask AI's and
+ * the investigations' compaction follow too, shared with it (issue #6985,
+ * AgentContextCompactor): this agent keeps only its own notes, its cuts
+ * and its size.
  */
 
 // The rounds whose results and arguments stay whole, newest first.
@@ -109,17 +118,11 @@ export interface CodeAgentCompaction {
   cutResultOrigins: Map<string, string>;
 }
 
-// The size the conversation is kept under, and cut back to past it.
-export interface CodeAgentContextSize {
-  maxChars: number;
-  targetChars: number;
-}
+// The size the conversation is kept under, and cut back to past it: every agent's (AgentContextSize).
+export type CodeAgentContextSize = AgentContextSize;
 
 export function getContextSize(maxChars: number): CodeAgentContextSize {
-  return {
-    maxChars,
-    targetChars: Math.floor(maxChars * COMPACTED_CONTEXT_SHARE),
-  };
+  return getAgentContextSize(maxChars);
 }
 
 export const DEFAULT_CODE_AGENT_CONTEXT_SIZE: CodeAgentContextSize =
@@ -272,9 +275,22 @@ export default class CodeAgentContext {
 
     // The call each result answers, as the calls were before this cut.
     const callForResult: Map<number, LLMToolCall> =
-      CodeAgentContext.callsByResultIndex(messages);
+      getToolCallsByResultIndex(messages);
     // The results cut here: the key of what is left, to the whole's.
     const cutsNow: Map<string, string> = new Map<string, string>();
+
+    // The key of the whole result a result cut here or before was cut from, or the key itself.
+    const wholeKeyOf: (key: string) => string = (key: string): string => {
+      return cutsNow.get(key) ?? earlierCuts.get(key) ?? key;
+    };
+
+    // How this agent's conversation holds the results it left out, or cut.
+    const reading: LeftOutResultsReading = {
+      isLeftOut: (content: string): boolean => {
+        return content.startsWith(ELIDED_RESULT_PREFIX);
+      },
+      getWholeResultKey: wholeKeyOf,
+    };
 
     /*
      * The key the loop detector knows a result by (agentLoopResultKey): of
@@ -288,13 +304,11 @@ export default class CodeAgentContext {
       call: LLMToolCall,
       content: string,
     ): string | null => {
-      if (content.startsWith(ELIDED_RESULT_PREFIX)) {
+      if (reading.isLeftOut(content)) {
         return null;
       }
 
-      const key: string = CodeAgentContext.resultKey(call, content);
-
-      return cutsNow.get(key) ?? earlierCuts.get(key) ?? key;
+      return wholeKeyOf(getToolResultLoopKey(call, content));
     };
 
     // The results the model had, and loses here.
@@ -466,7 +480,7 @@ export default class CodeAgentContext {
 
       // The call each result answers, as the rounds are now.
       const callNow: Map<number, LLMToolCall> =
-        CodeAgentContext.callsByResultIndex(messages);
+        getToolCallsByResultIndex(messages);
 
       for (let index: number = 0; index < messages.length; index++) {
         const message: LLMMessage = messages[index] as LLMMessage;
@@ -502,43 +516,38 @@ export default class CodeAgentContext {
         outcome.cutResults++;
 
         if (call && wholeKey) {
-          cutsNow.set(CodeAgentContext.resultKey(call, cut), wholeKey);
+          cutsNow.set(getToolResultLoopKey(call, cut), wholeKey);
         }
       }
     }
 
     /*
      * What the conversation still holds, whole or cut, is still the
-     * model's; the results it holds cut are passed on to the next
-     * compaction.
+     * model's (getForgottenResultKeys); the results it holds cut are
+     * passed on to the next compaction.
      */
-    const keptResultKeys: Set<string> = new Set<string>();
     const cutResultOrigins: Map<string, string> = new Map<string, string>();
 
-    for (const [index, call] of CodeAgentContext.callsByResultIndex(messages)) {
+    for (const [index, call] of getToolCallsByResultIndex(messages)) {
       const content: string = (messages[index] as LLMMessage).content;
-      const wholeKey: string | null = wholeResultKey(call, content);
 
-      if (!wholeKey) {
+      if (reading.isLeftOut(content)) {
         continue;
       }
 
-      keptResultKeys.add(wholeKey);
-
-      const key: string = CodeAgentContext.resultKey(call, content);
+      const key: string = getToolResultLoopKey(call, content);
+      const wholeKey: string = wholeKeyOf(key);
 
       if (key !== wholeKey) {
         cutResultOrigins.set(key, wholeKey);
       }
     }
 
-    outcome.forgottenResultKeys = Array.from(
-      new Set<string>(
-        lostResultKeys.filter((key: string): boolean => {
-          return !keptResultKeys.has(key);
-        }),
-      ),
-    );
+    outcome.forgottenResultKeys = getForgottenResultKeys({
+      messages,
+      lostResultKeys,
+      reading,
+    });
     outcome.cutResultOrigins = cutResultOrigins;
     outcome.messages = messages;
     outcome.charsAfter = measureContextChars(messages);
@@ -604,51 +613,6 @@ export default class CodeAgentContext {
     }
 
     return rounds;
-  }
-
-  /*
-   * The call each tool result answers, by the result's index: the call of
-   * its id in the assistant message of its own round, never one of another
-   * round that the provider gave the same id.
-   */
-  private static callsByResultIndex(
-    messages: Array<LLMMessage>,
-  ): Map<number, LLMToolCall> {
-    const pairs: Map<number, LLMToolCall> = new Map<number, LLMToolCall>();
-    let roundCalls: Map<string, LLMToolCall> = new Map<string, LLMToolCall>();
-
-    messages.forEach((message: LLMMessage, index: number): void => {
-      if (message.role === "assistant") {
-        roundCalls = new Map<string, LLMToolCall>(
-          (message.toolCalls || []).map(
-            (toolCall: LLMToolCall): [string, LLMToolCall] => {
-              return [toolCall.id, toolCall];
-            },
-          ),
-        );
-        return;
-      }
-
-      const call: LLMToolCall | undefined =
-        message.role === "tool" && message.toolCallId
-          ? roundCalls.get(message.toolCallId)
-          : undefined;
-
-      if (call) {
-        pairs.set(index, call);
-      }
-    });
-
-    return pairs;
-  }
-
-  // What the loop detector knows a call's result by, as the result reads.
-  private static resultKey(call: LLMToolCall, content: string): string {
-    return agentLoopResultKey({
-      name: call.name,
-      arguments: call.arguments || {},
-      output: content,
-    });
   }
 
   // The conversation's size once every result longer than maxChars is cut to it.
@@ -811,9 +775,7 @@ export default class CodeAgentContext {
     // The first line of each call's result, by the call it answers.
     const results: Map<LLMToolCall, string> = new Map<LLMToolCall, string>();
 
-    for (const [index, call] of CodeAgentContext.callsByResultIndex(
-      data.removed,
-    )) {
+    for (const [index, call] of getToolCallsByResultIndex(data.removed)) {
       const content: string = (data.removed[index] as LLMMessage).content;
 
       results.set(

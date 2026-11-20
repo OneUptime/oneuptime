@@ -1,3 +1,4 @@
+import Timezone from "../../../Types/Timezone";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -51,6 +52,7 @@ import {
 } from "../Date/TimeRangePickerDropdown";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
+import { copyLogLineLink } from "./components/CopyLogLineLinkButton";
 import OpenedLogLine, { LogsViewerOpenedLog } from "./components/OpenedLogLine";
 import LogsHistogram from "./components/LogsHistogram";
 import LogsFacetSidebar from "./components/LogsFacetSidebar";
@@ -222,6 +224,11 @@ export interface ComponentProps {
    * bucketed them. It is what lets a click on a bar open that bar's logs.
    */
   histogramBucketIntervalMs?: number | undefined;
+  /*
+   * The zone the histogram's day bars were cut in (the answer's
+   * bucketTimezone, #7923).
+   */
+  histogramBucketTimezone?: Timezone | undefined;
   onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
   facetData?: FacetData;
   facetLoading?: boolean;
@@ -318,6 +325,28 @@ export function isPressableControl(target: EventTarget | null): boolean {
     target instanceof Element &&
     target.closest(PRESSABLE_CONTROL_SELECTOR) !== null
   );
+}
+
+/*
+ * The line a row shortcut acts on (l, #9944): the row the keyboard is on
+ * (j and k), or, with none, the row that is open. None when neither is.
+ */
+export function getShortcutLog(data: {
+  logs: Array<Log>;
+  focusedRowIndex: number;
+  selectedLogId: string | null;
+}): Log | undefined {
+  if (data.focusedRowIndex >= 0 && data.focusedRowIndex < data.logs.length) {
+    return data.logs[data.focusedRowIndex];
+  }
+
+  if (!data.selectedLogId) {
+    return undefined;
+  }
+
+  return data.logs.find((log: Log, index: number): boolean => {
+    return resolveLogIdentifier(log, index) === data.selectedLogId;
+  });
 }
 
 const severityWeight: Record<string, number> = {
@@ -1239,6 +1268,28 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         return;
       }
 
+      /*
+       * l copies the link to the row the keyboard is on - or, with none,
+       * the opened one - as the row's Copy Link does (#9944). Never with a
+       * modifier: Ctrl+L and ⌘L are the browser's address bar.
+       */
+      if (e.key === "l" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const log: Log | undefined = getShortcutLog({
+          logs: displayedLogs,
+          focusedRowIndex,
+          selectedLogId,
+        });
+        const link: string =
+          log && props.getLogLink ? props.getLogLink(log) || "" : "";
+
+        if (link) {
+          e.preventDefault();
+          void copyLogLineLink({ link, translator });
+        }
+
+        return;
+      }
+
       if (e.key === "Enter") {
         /*
          * Enter on a button or a link presses it, and is no more than that:
@@ -1274,6 +1325,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     selectedLogId,
     showKeyboardShortcuts,
     handleSearchSubmit,
+    props.getLogLink,
+    translator,
   ]);
 
   const handlePageChange: (page: number) => void = (page: number): void => {
@@ -1603,6 +1656,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           error={props.histogramError}
           onRetry={props.onRetryHistogram}
           bucketIntervalMs={props.histogramBucketIntervalMs}
+          bucketTimezone={props.histogramBucketTimezone}
           onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
           onZoomOut={viewerZoom.onZoomOut}
         />
@@ -1745,6 +1799,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                   getTraceRoute={props.getTraceRoute}
                   getSpanRoute={props.getSpanRoute}
                   resolveSpanRoute={props.resolveSpanRoute}
+                  getLogLink={props.getLogLink}
                   renderExpandedContent={(log: Log) => {
                     return (
                       <LogDetailsPanel

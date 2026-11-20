@@ -123,6 +123,7 @@ export const PROVIDER_LOGO_MARK_BOXES: Readonly<
   [ProviderLogo.Prometheus]: "0 0 24 24",
   [ProviderLogo.Docker]: "-0.001 3.388 24.002 17.224",
   [ProviderLogo.Terraform]: "1.44 0 21.121 24",
+  [ProviderLogo.Crossplane]: "262.503 56.66 373.143 786.68",
   [ProviderLogo.Proxmox]: "0 1.547 24.001 20.906",
   [ProviderLogo.Ceph]: "-0.001 0.256 24.002 23.488",
   [ProviderLogo.GitHub]: "0 0.296 24 23.407",

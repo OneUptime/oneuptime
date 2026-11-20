@@ -148,6 +148,101 @@ function getIntuneFailureWords(
 }
 
 /*
+ * Why a Workspace ONE UEM test or read failed, and what to do (#10086):
+ * OneUptime signs in with an OAuth client or an administrator's account,
+ * and the tenant's API server answers.
+ */
+function getWorkspaceOneFailureWords(
+  failureKind: LlmConnectionFailureKind | undefined,
+): DeviceManagementTestWords {
+  switch (failureKind) {
+    case LlmConnectionFailureKind.Authentication:
+      return {
+        headline: translationKey("Workspace ONE refused OneUptime's sign-in."),
+        advice: translationKey(
+          "Copy the OAuth client's ID and secret again and check its region, or check the administrator's username, password and REST API key.",
+        ),
+      };
+    case LlmConnectionFailureKind.Permission:
+      return {
+        headline: translationKey(
+          "OneUptime's admin role may not read Workspace ONE's devices.",
+        ),
+        advice: translationKey(
+          "Give the role Read on Devices and Apps under its REST API permissions, at the organization group whose devices OneUptime reads.",
+        ),
+      };
+    case LlmConnectionFailureKind.Settings:
+      return {
+        headline: translationKey("Check the REST API URL."),
+        advice: translationKey(
+          "Workspace ONE shows it in its REST API settings, like https://as1234.awmdm.com. OneUptime Cloud reads servers on the public internet only.",
+        ),
+      };
+    case LlmConnectionFailureKind.RateLimited:
+      return {
+        headline: translationKey("Workspace ONE asked OneUptime to slow down."),
+        advice: translationKey(
+          "Try again in a minute. If the tenant's daily API quota is used up, reads start again once it resets.",
+        ),
+      };
+    default:
+      return {
+        headline: translationKey("OneUptime could not reach Workspace ONE."),
+        advice: translationKey(
+          "Check the REST API URL. If it is right, the server may be having trouble: try again in a few minutes.",
+        ),
+      };
+  }
+}
+
+/*
+ * Why a SOTI MobiControl test or read failed, and what to do (#10087): an
+ * API client and a MobiControl user sign OneUptime in at the server.
+ */
+function getSotiFailureWords(
+  failureKind: LlmConnectionFailureKind | undefined,
+): DeviceManagementTestWords {
+  switch (failureKind) {
+    case LlmConnectionFailureKind.Authentication:
+      return {
+        headline: translationKey("MobiControl refused OneUptime's sign-in."),
+        advice: translationKey(
+          "Check the API client's ID and secret, and the user's username and password. The user must be a MobiControl user with Web Console Access.",
+        ),
+      };
+    case LlmConnectionFailureKind.Permission:
+      return {
+        headline: translationKey(
+          "The MobiControl user may not read the devices.",
+        ),
+        advice: translationKey(
+          "Give it Web Console Access and View Installed Applications, and View Groups on the device groups to read.",
+        ),
+      };
+    case LlmConnectionFailureKind.Settings:
+      return {
+        headline: translationKey("Check the server's address."),
+        advice: translationKey(
+          "It is the address of the MobiControl web console, without /MobiControl. OneUptime Cloud reads servers on the public internet only.",
+        ),
+      };
+    case LlmConnectionFailureKind.RateLimited:
+      return {
+        headline: translationKey("MobiControl asked OneUptime to slow down."),
+        advice: translationKey("Try again in a minute."),
+      };
+    default:
+      return {
+        headline: translationKey("OneUptime could not reach MobiControl."),
+        advice: translationKey(
+          "Check the server's address. If it is right, the server may be having trouble: try again in a few minutes.",
+        ),
+      };
+  }
+}
+
+/*
  * Why a test or a read failed, and what to do, by the kind of failure and
  * the connection's service (Esper's when none is said): the server's own
  * message, in English, goes under these.
@@ -158,6 +253,14 @@ export function getDeviceManagementFailureWords(
 ): DeviceManagementTestWords {
   if (provider === DeviceManagementProvider.Intune) {
     return getIntuneFailureWords(failureKind);
+  }
+
+  if (provider === DeviceManagementProvider.WorkspaceOne) {
+    return getWorkspaceOneFailureWords(failureKind);
+  }
+
+  if (provider === DeviceManagementProvider.Soti) {
+    return getSotiFailureWords(failureKind);
   }
 
   switch (failureKind) {
@@ -245,9 +348,16 @@ export function getManagedDeviceMatchWords(
 ): string | undefined {
   switch (match) {
     case ManagedDeviceHostMatch.Name:
-      return provider === DeviceManagementProvider.Intune
-        ? translationKey("Telemetry names it by its Intune name")
-        : translationKey("Telemetry names it by its Esper name");
+      switch (provider) {
+        case DeviceManagementProvider.Intune:
+          return translationKey("Telemetry names it by its Intune name");
+        case DeviceManagementProvider.WorkspaceOne:
+          return translationKey("Telemetry names it by its Workspace ONE name");
+        case DeviceManagementProvider.Soti:
+          return translationKey("Telemetry names it by its MobiControl name");
+        default:
+          return translationKey("Telemetry names it by its Esper name");
+      }
     case ManagedDeviceHostMatch.SerialNumber:
       return translationKey("Telemetry names it by its serial number");
     case ManagedDeviceHostMatch.Created:
@@ -305,8 +415,8 @@ export function getManagedDeviceOperatingSystemLine(device: {
 /*
  * The device managers a project can connect, as "Connect device manager"
  * offers them: each by its product name, what it imports and how
- * OneUptime signs in. Drawn with OneUptime's own icons: neither brand has a
- * one-colour mark OneUptime may draw (Common/Types/ProviderLogo).
+ * OneUptime signs in. Drawn with OneUptime's own icons: none of the brands
+ * has a one-colour mark OneUptime may draw (Common/Types/ProviderLogo).
  */
 /*
  * The connections list's button ("Connect" and its singularName, "device
@@ -338,6 +448,20 @@ export const DEVICE_MANAGEMENT_PROVIDER_CHOICES: ReadonlyArray<DeviceManagementP
         "Windows PCs, Macs, iPhones, iPads and Android devices, read through Microsoft Graph with an app registration.",
       ),
       icon: IconProp.ComputerDesktop,
+    },
+    {
+      provider: DeviceManagementProvider.WorkspaceOne,
+      description: translationKey(
+        "Phones, tablets and computers, read through the Workspace ONE REST API with an OAuth client.",
+      ),
+      icon: IconProp.DeviceTablet,
+    },
+    {
+      provider: DeviceManagementProvider.Soti,
+      description: translationKey(
+        "Rugged devices, phones, tablets and computers, read from your MobiControl server with an API client.",
+      ),
+      icon: IconProp.Signal,
     },
   ];
 

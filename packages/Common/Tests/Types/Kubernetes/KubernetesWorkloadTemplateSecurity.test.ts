@@ -295,6 +295,7 @@ describe("each workload's pod template is read into a pod's security block", () 
         },
       ],
       volumes: [],
+      resourcesRead: true,
     });
   });
 });

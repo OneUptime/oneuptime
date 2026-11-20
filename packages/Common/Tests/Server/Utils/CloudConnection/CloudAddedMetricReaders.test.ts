@@ -32,16 +32,19 @@ import {
   MetricNameReference,
 } from "../../../../Server/Utils/Telemetry/MetricReaders";
 import {
+  CloudAddedMetricKeepBlock,
   CloudAddedMetricReader,
   CloudAddedMetricReaderKind,
   CloudAddedMetricReaders,
   readCloudAddedMetricReaders,
 } from "../../../../Types/Cloud/CloudAddedMetricReaders";
 import {
+  CLOUD_ADDED_METRIC_REFUSALS,
   CloudAddedMetric,
   CloudAddedMetricScope,
   getCloudAddedMetricKey,
   getCloudAddedMetricStoredName,
+  readCloudAddedMetrics,
   toStoredCloudAddedMetrics,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
 import {
@@ -595,7 +598,11 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
         kind: CloudAddedMetricReaderKind.Dashboard,
         id: ID(5),
         name: "Databases",
-        widgets: ["Swap", ""],
+        // By title and kind (#10107): an untitled one is drawn by its kind.
+        widgets: [
+          { title: "Swap", type: "Chart" },
+          { title: "", type: "Chart" },
+        ],
       },
     ]);
   });
@@ -615,7 +622,10 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
         kind: CloudAddedMetricReaderKind.Dashboard,
         id: ID(5),
         name: "Databases",
-        widgets: ["Orders", "Every database"],
+        widgets: [
+          { title: "Orders", type: "Table" },
+          { title: "Every database", type: "Table" },
+        ],
       },
     ]);
   });
@@ -759,7 +769,13 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
       readCloudAddedMetricReaders({
         readers: [
           { kind: "monitor", id: ID(1), name: "A", widgets: [] },
-          { kind: "dashboard", id: ID(2), name: "B", widgets: ["W", 3] },
+          {
+            kind: "dashboard",
+            id: ID(2),
+            name: "B",
+            // An older answer's title alone, the new one's title and kind.
+            widgets: ["W", 3, { title: "X", type: "Gauge" }, null],
+          },
           {
             kind: "recordingRule",
             id: ID(3),
@@ -784,7 +800,10 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
           kind: CloudAddedMetricReaderKind.Dashboard,
           id: ID(2),
           name: "B",
-          widgets: ["W"],
+          widgets: [
+            { title: "W", type: "" },
+            { title: "X", type: "Gauge" },
+          ],
         },
         {
           kind: CloudAddedMetricReaderKind.RecordingRule,
@@ -936,6 +955,383 @@ describe("what reads an addition of a resource", () => {
       }),
     ).rejects.toThrow(
       "This metric is not added to what this resource's cloud connection reads.",
+    );
+  });
+});
+
+/*
+ * #10078: a metric added for every resource of its type is often read of a
+ * few of them alone. Before it is removed, the lookup says which resources
+ * its readers read it of - hidden readers' too, never named - and which
+ * readers read it of every resource, so the dialog can offer to keep it for
+ * those alone; and keepFor does, each read by an addition of its own.
+ */
+describe("keeping a type's addition for the resources its readers read", () => {
+  let resource: CloudResource;
+  let connection: CloudConnection;
+  let resourcesOfType: Array<CloudResource>;
+  let saved: Array<JSONObject>;
+
+  const BILLING_ROW: ObjectID = new ObjectID(
+    "5f8b9c1e-3333-4333-8333-333333333333",
+  );
+  const REPORTS_ROW: ObjectID = new ObjectID(
+    "5f8b9c1e-3333-4333-8333-333333333334",
+  );
+
+  function typeWide(): CloudAddedMetric {
+    const metric: CloudAddedMetric = {
+      key: "",
+      provider: CloudProvider.AWS,
+      scope: CloudAddedMetricScope.Type,
+      resourceType: RDS,
+      namespace: "AWS/RDS",
+      name: "SwapUsage",
+      aggregation: "Average",
+      unit: "",
+      addedAt: "2026-11-19T12:00:00.000Z",
+      addedByUserId: ASKER.toString(),
+    };
+
+    return { ...metric, key: getCloudAddedMetricKey(metric) };
+  }
+
+  // A database row, with what its cloud knows it as.
+  function databaseRow(id: ObjectID, name: string): CloudResource {
+    const row: CloudResource = new CloudResource();
+
+    row.id = id;
+    row.name = name;
+    row.projectId = PROJECT;
+    row.cloudProvider = CloudProvider.AWS;
+    row.cloudResourceType = RDS;
+    row.cloudAccountId = ACCOUNT;
+    row.cloudRegion = "us-east-1";
+    row.cloudConnectionId = CONNECTION;
+    row.resourceIdentifier = identifierOf(name);
+    row.telemetryAttributes = database(name);
+
+    return row;
+  }
+
+  // The rows a query asks for: by their ids when it names some.
+  function rowsAsked(findBy: AnyFindBy): Array<CloudResource> {
+    const operator:
+      | { objectLiteralParameters?: Record<string, Array<string>> }
+      | undefined = (findBy.query as Record<string, unknown>)["_id"] as
+      | { objectLiteralParameters?: Record<string, Array<string>> }
+      | undefined;
+
+    if (!operator) {
+      return resourcesOfType;
+    }
+
+    const asked: Array<string> = Object.values(
+      operator.objectLiteralParameters || {},
+    )
+      .flat()
+      .map((id: string): string => {
+        return id.toString().toLowerCase();
+      });
+
+    return resourcesOfType.filter((row: CloudResource): boolean => {
+      return asked.includes(row.id!.toString().toLowerCase());
+    });
+  }
+
+  beforeEach(() => {
+    resource = databaseRow(RESOURCE, "orders");
+    connection = new CloudConnection();
+    connection.id = CONNECTION;
+    connection.projectId = PROJECT;
+    connection.provider = CloudProvider.AWS;
+    connection.isEnabled = true;
+    connection.serviceId = new ObjectID(SERVICE);
+    connection.addedMetrics = toStoredCloudAddedMetrics([typeWide()]) as never;
+    connection.pullState = {};
+    resourcesOfType = [
+      resource,
+      databaseRow(BILLING_ROW, "billing"),
+      databaseRow(REPORTS_ROW, "reports"),
+    ];
+    saved = [];
+    monitors = [
+      monitorOf(1, "Orders swap", [query(SWAP, database("orders"))]),
+      monitorOf(2, "Billing swap", [query(SWAP, database("billing"))]),
+    ];
+
+    jest
+      .spyOn(CloudResourceService, "findOneBy")
+      .mockImplementation((async () => {
+        return resource;
+      }) as never);
+    jest.spyOn(CloudResourceService, "findBy").mockImplementation((async (
+      findBy: AnyFindBy,
+    ) => {
+      return rowsAsked(findBy);
+    }) as never);
+    jest
+      .spyOn(CloudConnectionService, "findOneBy")
+      .mockImplementation((async () => {
+        return connection;
+      }) as never);
+    jest
+      .spyOn(CloudConnectionService, "updateOneById")
+      .mockImplementation((async (update: { data: JSONObject }) => {
+        saved.push(update.data);
+      }) as never);
+  });
+
+  async function readersOfType(): Promise<CloudAddedMetricReaders> {
+    return await CloudResourceMetrics.readersOf({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { userId: ASKER, tenantId: PROJECT },
+      key: typeWide().key,
+    });
+  }
+
+  test("the resources its readers read it of, by name, and none that nothing reads", async () => {
+    const readers: CloudAddedMetricReaders = await readersOfType();
+
+    expect(readers.keepFor).toEqual({
+      resources: [
+        { id: BILLING_ROW.toString(), name: "billing" },
+        { id: RESOURCE.toString(), name: "orders" },
+      ],
+    });
+    expect(
+      readers.readers.map((reader: CloudAddedMetricReader) => {
+        return [reader.name, reader.readsEveryResource];
+      }),
+    ).toEqual([
+      ["Billing swap", undefined],
+      ["Orders swap", undefined],
+    ]);
+  });
+
+  test("a reader of every resource is marked, and it cannot be kept for some alone", async () => {
+    monitors = [
+      monitorOf(1, "Orders swap", [query(SWAP, database("orders"))]),
+      monitorOf(3, "Every database's swap", [query(SWAP, {})]),
+    ];
+
+    const readers: CloudAddedMetricReaders = await readersOfType();
+
+    expect(
+      readers.readers.map((reader: CloudAddedMetricReader) => {
+        return [reader.name, Boolean(reader.readsEveryResource)];
+      }),
+    ).toEqual([
+      ["Every database's swap", true],
+      ["Orders swap", false],
+    ]);
+    expect(readers.keepFor?.blockedBy).toBe(
+      CloudAddedMetricKeepBlock.EveryResource,
+    );
+  });
+
+  test("a reader the asker cannot open counts: its resource is kept for, and it is never named", async () => {
+    monitors = [
+      monitorOf(1, "Orders swap", [query(SWAP, database("orders"))]),
+      monitorOf(2, "Reports swap", [query(SWAP, database("reports"))]),
+    ];
+    readable = { monitor: [ID(1)] };
+
+    const readers: CloudAddedMetricReaders = await readersOfType();
+
+    expect(namesOf(readers)).toEqual(["monitor:Orders swap"]);
+    expect(readers.hidden).toBe(1);
+    expect(readers.hiddenByKind).toEqual({
+      [CloudAddedMetricReaderKind.Monitor]: 1,
+    });
+    expect(readers.keepFor?.resources).toEqual([
+      { id: RESOURCE.toString(), name: "orders" },
+      { id: REPORTS_ROW.toString(), name: "reports" },
+    ]);
+    expect(readers.keepFor?.blockedBy).toBeUndefined();
+
+    // One they cannot open that reads it of every resource: never named, still a block.
+    (monitors as Array<Monitor>).push(
+      monitorOf(3, "Private every database", [query(SWAP, {})]),
+    );
+
+    expect((await readersOfType()).keepFor?.blockedBy).toBe(
+      CloudAddedMetricKeepBlock.EveryResource,
+    );
+  });
+
+  test("records that could not be checked: it cannot be kept for some alone, as one of them may read the others", async () => {
+    dashboards = new Error("The dashboards could not be read.");
+
+    expect((await readersOfType()).keepFor?.blockedBy).toBe(
+      CloudAddedMetricKeepBlock.Unchecked,
+    );
+  });
+
+  test("kept for them, the connection would read more than it may: said before it is offered", async () => {
+    const others: Array<CloudAddedMetric> = [];
+
+    for (let index: number = 1; index < 50; index++) {
+      const metric: CloudAddedMetric = {
+        ...typeWide(),
+        name: `Metric${index}`,
+      };
+
+      others.push({ ...metric, key: getCloudAddedMetricKey(metric) });
+    }
+
+    connection.addedMetrics = toStoredCloudAddedMetrics([
+      typeWide(),
+      ...others,
+    ]) as never;
+
+    expect((await readersOfType()).keepFor?.blockedBy).toBe(
+      CloudAddedMetricKeepBlock.ConnectionFull,
+    );
+  });
+
+  test("nothing reads it, or it is one resource's own: nothing to keep it for", async () => {
+    monitors = [];
+
+    expect((await readersOfType()).keepFor).toBeUndefined();
+
+    const own: CloudAddedMetric = {
+      ...typeWide(),
+      scope: CloudAddedMetricScope.Resource,
+      cloudResourceId: RESOURCE.toString(),
+      accountId: ACCOUNT,
+      region: "us-east-1",
+      dimensions: [{ name: "DBInstanceIdentifier", value: "orders" }],
+    };
+
+    own.key = getCloudAddedMetricKey(own);
+    connection.addedMetrics = toStoredCloudAddedMetrics([own]) as never;
+    monitors = [monitorOf(1, "Orders swap", [query(SWAP, database("orders"))])];
+
+    expect(
+      (
+        await CloudResourceMetrics.readersOf({
+          projectId: PROJECT,
+          cloudResourceId: RESOURCE,
+          props: { userId: ASKER, tenantId: PROJECT },
+          key: own.key,
+        })
+      ).keepFor,
+    ).toBeUndefined();
+  });
+
+  test("kept for them: each its own addition, by what its cloud knows it as, with the unit the reads learned; the type's goes", async () => {
+    connection.pullState = {
+      awsAddedMetricUnits: {
+        [typeWide().key]: { unit: "Bytes", checkedAt: "2026-11-19T12:00:00Z" },
+      },
+    } as never;
+
+    const kept: { addedMetrics: Array<CloudAddedMetric> } =
+      await CloudResourceMetrics.keepFor({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { userId: ASKER, tenantId: PROJECT },
+        key: typeWide().key,
+        cloudResourceIds: [RESOURCE.toString(), BILLING_ROW.toString()],
+      });
+
+    expect(
+      kept.addedMetrics.map((metric: CloudAddedMetric) => {
+        return {
+          scope: metric.scope,
+          cloudResourceId: metric.cloudResourceId,
+          accountId: metric.accountId,
+          region: metric.region,
+          dimensions: metric.dimensions,
+          unit: metric.unit,
+        };
+      }),
+    ).toEqual([
+      {
+        scope: CloudAddedMetricScope.Resource,
+        cloudResourceId: RESOURCE.toString(),
+        accountId: ACCOUNT,
+        region: "us-east-1",
+        dimensions: [{ name: "DBInstanceIdentifier", value: "orders" }],
+        unit: "Bytes",
+      },
+      {
+        scope: CloudAddedMetricScope.Resource,
+        cloudResourceId: BILLING_ROW.toString(),
+        accountId: ACCOUNT,
+        region: "us-east-1",
+        dimensions: [{ name: "DBInstanceIdentifier", value: "billing" }],
+        unit: "Bytes",
+      },
+    ]);
+    // Saved on the connection, as stored.
+    expect(saved).toHaveLength(1);
+    expect(
+      readCloudAddedMetrics(saved[0]!["addedMetrics"]).map(
+        (metric: CloudAddedMetric): string => {
+          return metric.key;
+        },
+      ),
+    ).toEqual(
+      kept.addedMetrics.map((metric: CloudAddedMetric): string => {
+        return metric.key;
+      }),
+    );
+  });
+
+  test("refused, with why: a resource's own addition, no resource, one that is no resource of its type the connection reads", async () => {
+    const refusalOf: (
+      ids: Array<string>,
+      key?: string,
+    ) => Promise<string> = async (
+      ids: Array<string>,
+      key: string = typeWide().key,
+    ): Promise<string> => {
+      try {
+        await CloudResourceMetrics.keepFor({
+          projectId: PROJECT,
+          cloudResourceId: RESOURCE,
+          props: { userId: ASKER, tenantId: PROJECT },
+          key,
+          cloudResourceIds: ids,
+        });
+      } catch (error) {
+        return (error as Error).message;
+      }
+
+      return "kept";
+    };
+
+    expect(await refusalOf([])).toBe(
+      CLOUD_ADDED_METRIC_REFUSALS["keepForNone"],
+    );
+    expect(await refusalOf(["not an id"])).toBe(
+      CLOUD_ADDED_METRIC_REFUSALS["keepForNone"],
+    );
+    expect(await refusalOf([ObjectID.generate().toString()])).toBe(
+      CLOUD_ADDED_METRIC_REFUSALS["keepForOtherResource"],
+    );
+    expect(await refusalOf([RESOURCE.toString()], "no-such-key")).toBe(
+      "This metric is not added to what this resource's cloud connection reads.",
+    );
+    expect(saved).toEqual([]);
+
+    const own: CloudAddedMetric = {
+      ...typeWide(),
+      scope: CloudAddedMetricScope.Resource,
+      cloudResourceId: RESOURCE.toString(),
+      accountId: ACCOUNT,
+      region: "us-east-1",
+      dimensions: [{ name: "DBInstanceIdentifier", value: "orders" }],
+    };
+
+    own.key = getCloudAddedMetricKey(own);
+    connection.addedMetrics = toStoredCloudAddedMetrics([own]) as never;
+
+    expect(await refusalOf([RESOURCE.toString()], own.key)).toBe(
+      CLOUD_ADDED_METRIC_REFUSALS["keepForNotTypeWide"],
     );
   });
 });

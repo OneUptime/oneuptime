@@ -99,10 +99,69 @@ receivers:
           process.memory.utilization:
             enabled: true
 
-  # The systemd journal: every unit's logs, info and above.
+  # The systemd journal: every unit's logs, info and above. Each line is sent
+  # as its message, at its level, with the unit it is about and - for a unit
+  # that failed - systemd's own result and exit status, which the Systemd
+  # Units page reads why it failed from. The rest of an entry (its command
+  # line, user and group ids, cursor) stays on this host.
   journald:
-    directory: /var/log/journal
     priority: info
+    # A line holding a control character arrives as text, not as numbers.
+    convert_message_bytes: true
+    operators:
+      # What systemd itself says about a unit comes from PID 1, naming it in UNIT.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT != nil'
+        from: body.UNIT
+        to: attributes["systemd.unit.name"]
+      - type: move
+        if: 'attributes["systemd.unit.name"] == nil and body._SYSTEMD_UNIT != nil'
+        from: body._SYSTEMD_UNIT
+        to: attributes["systemd.unit.name"]
+      # Why a unit failed, in systemd's words: its result and how its process ended.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT_RESULT != nil'
+        from: body.UNIT_RESULT
+        to: attributes["systemd.unit.result"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_CODE != nil'
+        from: body.EXIT_CODE
+        to: attributes["systemd.unit.exit_code"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_STATUS != nil'
+        from: body.EXIT_STATUS
+        to: attributes["systemd.unit.exit_status"]
+      - type: move
+        if: 'body.SYSLOG_IDENTIFIER != nil'
+        from: body.SYSLOG_IDENTIFIER
+        to: attributes["syslog.identifier"]
+      - type: move
+        if: 'body._PID != nil'
+        from: body._PID
+        to: attributes["process.pid"]
+      # The journal's priority as the line's severity: syslog's levels.
+      - type: severity_parser
+        if: 'body.PRIORITY != nil'
+        parse_from: body.PRIORITY
+        preset: none
+        overwrite_text: true
+        mapping:
+          fatal: "0"
+          error3: "1"
+          error2: "2"
+          error: "3"
+          warn: "4"
+          info2: "5"
+          info: "6"
+          debug: "7"
+      # Nothing else of the entry leaves the host: the message is the line.
+      - type: retain
+        fields:
+          - body.MESSAGE
+      - type: move
+        from: body.MESSAGE
+        to: body
+        on_error: send_quiet
 
   # Powers the Systemd Units tab (otelcol-contrib v0.143.0+).
   systemd:
@@ -543,18 +602,20 @@ systemd 호스트에서는 `/var/log/syslog`와 `/var/log/messages`가 저널에
 
 ### systemd 저널
 
-systemd 호스트에서 `journald` 리시버는 모든 유닛의 로그를 구조화된 필드와 함께 한곳에서 읽습니다. 위의 Linux 구성은 `info` 이상을 모두 읽습니다. 일부 유닛으로 좁히려면:
+systemd 호스트에서 `journald` 리시버는 모든 유닛의 로그를 한곳에서 읽습니다. 위의 Linux 구성은 `info` 이상을 모두 읽고, 그 `operators`는 각 항목을 메시지로, syslog 레벨로, 해당 유닛 아래에 분류해 보냅니다(`systemd.unit.name`). 실패한 유닛에는 systemd 자체의 결과와 프로세스가 끝난 방식을 더하며(`systemd.unit.result`, `systemd.unit.exit_code`, `systemd.unit.exit_status`), 호스트의 **Systemd 유닛** 페이지는 이를 읽어 유닛이 실패한 이유를 알려 줍니다. 항목의 그 밖의 내용은 머신을 떠나지 않습니다. 명령줄, 사용자, 커서도 보내지 않습니다.
+
+리시버를 바꿀 때도 operators는 그대로 두세요. operators가 없으면 각 줄이 저널 항목 전체로 JSON 그대로, 유닛 없이 도착하고, 실패한 유닛의 페이지는 실패한 이유를 알려 줄 수 없습니다. 일부 유닛만 읽으려면 `units` 아래에 나열하세요:
 
 ```yaml
 receivers:
   journald:
-    directory: /var/log/journal
     units:
       # Drop this list to ingest everything; restrict it to limit volume.
       - ssh.service
       - cron.service
       - nginx.service
     priority: info
+    # Keep convert_message_bytes and the operators of the config above.
 ```
 
 리시버는 모든 systemd 호스트에 있는 `journalctl`을 실행하며, Collector 사용자는 `systemd-journal` 그룹에 속해야 합니다.
@@ -928,11 +989,11 @@ Kubernetes 노드는 OneUptime에서 호스트가 아닙니다. 텔레메트리�
 ```yaml
 receivers:
   journald:
-    directory: /var/log/journal
     units:
       - ssh.service
       - nginx.service
     priority: warning # info and debug are dropped before export
+    # Keep convert_message_bytes and the operators of the config above.
 ```
 
 - 양이 많은 `Security` 이벤트 채널을 `query:`로 감사하는 이벤트 ID로 좁히거나([Windows 이벤트 로그](#windows-이벤트-로그)처럼), 채널을 빼세요.

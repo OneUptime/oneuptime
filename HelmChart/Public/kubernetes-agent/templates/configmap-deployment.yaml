@@ -1,3 +1,14 @@
+{{- /*
+  The types the renamed components go by on the collector this renders for:
+  k8s_objects, k8s_attributes, cumulative_to_delta, resource_detection and
+  otlp_http, or the old types on a collector from before the rename
+  (kubernetes-agent.componentType).
+*/}}
+{{- $k8sObjects := include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_objects") }}
+{{- $k8sAttributes := include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_attributes") }}
+{{- $cumulativeToDelta := include "kubernetes-agent.componentType" (dict "root" . "type" "cumulative_to_delta") }}
+{{- $resourceDetection := include "kubernetes-agent.componentType" (dict "root" . "type" "resource_detection") }}
+{{- $otlpHttp := include "kubernetes-agent.componentType" (dict "root" . "type" "otlp_http") }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -40,7 +51,7 @@ data:
           - storage
 
       # Watch Kubernetes events and ingest as logs
-      k8sobjects:
+      {{ $k8sObjects }}:
         objects:
           - name: events
             mode: watch
@@ -106,7 +117,7 @@ data:
       # another API may serve the same name (OpenShift Serverless's
       # routes.serving.knative.dev and services.serving.knative.dev). A
       # Service names none: the receiver takes no group as the core one.
-      k8sobjects/openshift:
+      {{ $k8sObjects }}/openshift:
         error_mode: ignore
         objects:
           - name: clusteroperators
@@ -142,7 +153,7 @@ data:
       # ignore, so a cluster that refuses one of them skips it instead of
       # stopping the events and every other spec
       # (kubernetes-agent.complianceObjectsEnabled).
-      k8sobjects/compliance:
+      {{ $k8sObjects }}/compliance:
         error_mode: ignore
         objects:
           - name: roles
@@ -578,7 +589,7 @@ data:
       # workload names (see transform/restarts-increase). No container.id:
       # the increase is keyed without it, and k8sattributes would put the
       # running container's ID back on it, a new one with every restart.
-      k8sattributes:
+      {{ $k8sAttributes }}:
         auth_type: serviceAccount
         extract:
           metadata:
@@ -783,7 +794,7 @@ data:
             statements:
               - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.container.restarts.increase"
           {{- end }}
-      {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase:
+      {{ $cumulativeToDelta }}/restarts-increase:
         include:
           metrics:
             - k8s.container.restarts.increase
@@ -844,7 +855,7 @@ data:
             statements:
               - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.job.failed_pods.increase"
           {{- end }}
-      {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/job-failures-increase:
+      {{ $cumulativeToDelta }}/job-failures-increase:
         include:
           metrics:
             - k8s.job.failed_pods.increase
@@ -967,7 +978,7 @@ data:
         {{- include "kubernetes-agent.memoryLimiter" (.Values.deployment.resources.limits.memory | default "4Gi") | nindent 8 }}
 
     exporters:
-      otlphttp:
+      {{ $otlpHttp }}:
         endpoint: "{{ .Values.oneuptime.url }}/otlp"
         encoding: json
         headers:
@@ -1017,16 +1028,16 @@ data:
             # (see transform/job-failures-increase). First, so filters.metrics
             # sees the copy under the name it is sent with.
             - transform/job-failures-increase
-            - {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/job-failures-increase
+            - {{ $cumulativeToDelta }}/job-failures-increase
             - transform/pod-level-mark
-            - k8sattributes
+            - {{ $k8sAttributes }}
             - transform/pod-level-unmark
             {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
             - filter/telemetry
             {{- end }}
             - resource
             {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
-            - resourcedetection/openshift
+            - {{ $resourceDetection }}/openshift
             {{- end }}
             {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
             # Before batch, so a dropped datapoint never takes a batch slot.
@@ -1034,15 +1045,15 @@ data:
             {{- end }}
             - batch
           exporters:
-            - otlphttp
+            - {{ $otlpHttp }}
         logs:
           receivers:
-            - k8sobjects
+            - {{ $k8sObjects }}
             {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
-            - k8sobjects/openshift
+            - {{ $k8sObjects }}/openshift
             {{- end }}
             {{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
-            - k8sobjects/compliance
+            - {{ $k8sObjects }}/compliance
             {{- end }}
           processors:
             - memory_limiter
@@ -1050,10 +1061,10 @@ data:
             # First, so no other processor holds a Route's key.
             - transform/openshift-route-tls
             {{- end }}
-            - k8sattributes
+            - {{ $k8sAttributes }}
             - resource
             {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
-            - resourcedetection/openshift
+            - {{ $resourceDetection }}/openshift
             {{- end }}
             - transform/severity
             # Intentionally NOT filtered by filters.logs.minSeverity — see the
@@ -1061,7 +1072,7 @@ data:
             # high-value signal, and every one of them would be dropped.
             - batch
           exporters:
-            - otlphttp
+            - {{ $otlpHttp }}
         {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
         # Traces pipeline: accept OTLP spans from the eBPF DaemonSet, enrich
         # with k8s attributes, stamp cluster name, and forward to OneUptime.
@@ -1085,11 +1096,11 @@ data:
           processors:
             - memory_limiter
             - transform/pod-level-mark
-            - k8sattributes
+            - {{ $k8sAttributes }}
             - transform/pod-level-unmark
             - resource
             {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
-            - resourcedetection/openshift
+            - {{ $resourceDetection }}/openshift
             {{- end }}
             {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
             # Before the user's filters and the sampler, so neither spends
@@ -1115,7 +1126,7 @@ data:
             {{- end }}
             - batch
           exporters:
-            - otlphttp
+            - {{ $otlpHttp }}
         {{- end }}
         # The restarts since each container's previous sample, for
         # CrashLoopBackOff Detection (see transform/restarts-increase). A
@@ -1139,6 +1150,6 @@ data:
             # After the rename, so filters.metrics sees the name sent.
             - filter/telemetry
             {{- end }}
-            - {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
+            - {{ $cumulativeToDelta }}/restarts-increase
           exporters:
             - forward/restarts-increase

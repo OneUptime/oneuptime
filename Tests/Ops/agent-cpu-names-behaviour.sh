@@ -93,10 +93,18 @@ for (const name of names) {
   }
 }
 // Right after memory_limiter, filter first, so everything after them (the
-// telemetry filters among them) sees the names OneUptime does.
-const processors = collector.service.pipelines.metrics.processors;
+// telemetry filters among them) sees the names OneUptime does. Only the volume
+// filter may come between: it drops the small volumes of a pod before anything
+// else costs them (filter/volume-series, #9644), and reads no metric name.
+const processors = collector.service.pipelines.metrics.processors.filter((name) => {
+  return name !== "filter/volume-series";
+});
 if (processors.slice(0, 3).join(",") !== `memory_limiter,${names.join(",")}`) {
   throw new Error(`the metrics pipeline runs ${processors.join(", ")}`);
+}
+const volumeFilterAt = collector.service.pipelines.metrics.processors.indexOf("filter/volume-series");
+if (volumeFilterAt !== -1 && volumeFilterAt !== 1) {
+  throw new Error(`the metrics pipeline runs filter/volume-series at ${volumeFilterAt}, not right after memory_limiter`);
 }
 
 const config = {

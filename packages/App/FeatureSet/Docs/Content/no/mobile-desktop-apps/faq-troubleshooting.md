@@ -109,7 +109,7 @@ Appen nådde ikke `https://<your-oneuptime>/api/status`. Sjekk adressen, inklude
 :::
 
 :::details «No SSO configuration found for the email»
-Ingen prosjekter på dette OneUptime tilbyr ennå single sign-on for domenet til den e-postadressen: en administrator for prosjektet legger domenet til prosjektets SSO-leverandør, uansett hvem e-postadressen tilhører. Sjekk e-postadressen, eller logg inn med passordet ditt. Leverandører som administratoren din har satt opp for hele installasjonen, står foran e-postfeltet.
+Ingen prosjekter på dette OneUptime tilbyr ennå single sign-on for domenet til den e-postadressen: en Prosjekteier eller Prosjektadministrator legger domenet til prosjektets SSO-leverandør, uansett hvem e-postadressen tilhører. Sjekk e-postadressen, eller logg inn med passordet ditt. Leverandører som administratoren din har satt opp for hele installasjonen, står foran e-postfeltet.
 :::
 
 :::details En sikkerhetsnøkkel er din eneste andre faktor

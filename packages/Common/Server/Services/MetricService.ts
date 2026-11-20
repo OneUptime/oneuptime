@@ -15,6 +15,11 @@ import {
   getRollupAggregationExpression,
   isDistributionPointType,
 } from "../Utils/AnalyticsDatabase/DistributionAggregation";
+import {
+  appendClassicHistogramBucketSource,
+  getClassicHistogramFanoutExpression,
+  isClassicHistogramBucketName,
+} from "../Utils/AnalyticsDatabase/ClassicHistogramPercentile";
 import AggregationType, {
   getPercentileLevel,
   isPercentileAggregation,
@@ -209,6 +214,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * class checks it too, but only after them.
      */
     AggregateUtil.readTimezone(aggregateBy.timezone);
+
+    /*
+     * A percentile of a `_bucket` metric is a classic histogram's when the
+     * metric is a sum or a gauge (ClassicHistogramPercentile): its point
+     * type is read now, into the cache the statement builder reads.
+     */
+    if (this.mayBeClassicHistogramBucketAggregate(aggregateBy)) {
+      await this.resolveMetricPointType(aggregateBy);
+    }
 
     if (
       aggregateBy.includeSampleAttributes === true &&
@@ -474,27 +488,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private async resolveMetricPointType(
     aggregateBy: AggregateBy<Metric>,
   ): Promise<string | null> {
-    const metricName: string | null = this.getExactMetricNameFromQuery(
-      aggregateBy.query,
-    );
-    if (!metricName) {
+    const target: {
+      projectId: string;
+      metricName: string;
+      cacheKey: string;
+    } | null = this.getMetricPointTypeTarget(aggregateBy);
+    if (!target) {
       return null;
     }
+    const { projectId, metricName, cacheKey } = target;
 
-    const queryRecord: Record<string, unknown> =
-      (aggregateBy.query as unknown as Record<string, unknown>) || {};
-    const projectIdValue: unknown = queryRecord["projectId"];
-    let projectId: string = "";
-    if (projectIdValue instanceof ObjectID) {
-      projectId = projectIdValue.toString();
-    } else if (typeof projectIdValue === "string") {
-      projectId = projectIdValue;
-    }
-    if (!projectId) {
-      return null;
-    }
-
-    const cacheKey: string = `${projectId}|${metricName}`;
     const cached: { pointType: string | null; expiresAt: number } | undefined =
       this.metricPointTypeCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
@@ -620,6 +623,100 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }
       this.metricPointTypeCache.delete(oldestKey);
     }
+  }
+
+  /*
+   * A percentile of `value` over one metric named `<family>_bucket`: a
+   * classic histogram's buckets, if the metric is a sum or a gauge.
+   */
+  private mayBeClassicHistogramBucketAggregate(
+    aggregateBy: AggregateBy<Metric>,
+  ): boolean {
+    if (
+      !isPercentileAggregation(aggregateBy.aggregationType) ||
+      aggregateBy.aggregateColumnName.toString() !== "value"
+    ) {
+      return false;
+    }
+
+    const metricName: string | null = this.getExactMetricNameFromQuery(
+      aggregateBy.query,
+    );
+
+    return Boolean(metricName && isClassicHistogramBucketName(metricName));
+  }
+
+  /*
+   * Whether a percentile reads a classic histogram from its `_bucket`
+   * series: a candidate (above) whose metric's point type, cached by
+   * aggregateBy, is a sum's or a gauge's - never a histogram that only
+   * happens to be named `_bucket`, whose own buckets the fanout reads.
+   */
+  private isClassicHistogramBucketAggregate(
+    aggregateBy: AggregateBy<Metric>,
+  ): boolean {
+    if (!this.mayBeClassicHistogramBucketAggregate(aggregateBy)) {
+      return false;
+    }
+
+    const target: {
+      projectId: string;
+      metricName: string;
+      cacheKey: string;
+    } | null = this.getMetricPointTypeTarget(aggregateBy);
+
+    if (!target) {
+      return false;
+    }
+
+    const cached: { pointType: string | null; expiresAt: number } | undefined =
+      this.metricPointTypeCache.get(target.cacheKey);
+
+    return Boolean(
+      cached &&
+        cached.expiresAt > Date.now() &&
+        (cached.pointType === "Sum" || cached.pointType === "Gauge"),
+    );
+  }
+
+  /*
+   * The project and the one metric a query names, and their point type
+   * cache key (`<projectId>|<metric name>`); null when it names no one
+   * metric of one project.
+   */
+  private getMetricPointTypeTarget(aggregateBy: AggregateBy<Metric>): {
+    projectId: string;
+    metricName: string;
+    cacheKey: string;
+  } | null {
+    const metricName: string | null = this.getExactMetricNameFromQuery(
+      aggregateBy.query,
+    );
+
+    if (!metricName) {
+      return null;
+    }
+
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+    const projectIdValue: unknown = queryRecord["projectId"];
+    let projectId: string = "";
+
+    if (projectIdValue instanceof ObjectID) {
+      projectId = projectIdValue.toString();
+    } else if (typeof projectIdValue === "string") {
+      projectId = projectIdValue;
+    }
+
+    if (!projectId) {
+      return null;
+    }
+
+    return {
+      projectId: projectId,
+      metricName: metricName,
+      cacheKey: `${projectId}|${metricName}`,
+    };
   }
 
   private isDistributionMetricAggregate(
@@ -1472,7 +1569,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * histogram) silently drops to the scalar fallback rather than
      * exploding.
      */
-    const fanoutExpression: string = `
+    const isClassicHistogram: boolean =
+      this.isClassicHistogramBucketAggregate(aggregateBy);
+
+    const fanoutExpression: string = isClassicHistogram
+      ? getClassicHistogramFanoutExpression()
+      : `
       multiIf(
         metricPointType = 'ExponentialHistogram' AND notEmpty(positiveBucketCounts),
           arrayMap(
@@ -1607,20 +1709,39 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         ? { timestampColumn: aggregationTimestampColumn }
         : undefined,
     );
-    statement.append(
-      ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
-    );
-    statement.append(whereStatement);
-    statement.append(this.getRetentionReadFilter());
-    if (percentileApplyTopK) {
-      this.appendTopKGroupRestriction({
+    // The query's raw-table conditions, after `WHERE TRUE`.
+    const appendPercentileFilters: (target: Statement) => void = (
+      target: Statement,
+    ): void => {
+      target.append(whereStatement);
+      target.append(this.getRetentionReadFilter());
+      if (percentileApplyTopK) {
+        this.appendTopKGroupRestriction({
+          statement: target,
+          databaseName,
+          aggregateBy,
+          topK: percentileTopK!,
+          groupByKeys,
+          attributeGroupKeys,
+        });
+      }
+    };
+
+    if (isClassicHistogram) {
+      // Each series' scrape as one histogram (ClassicHistogramPercentile).
+      statement.append(` FROM `);
+      appendClassicHistogramBucketSource({
         statement,
-        databaseName,
-        aggregateBy,
-        topK: percentileTopK!,
-        groupByKeys,
-        attributeGroupKeys,
+        table: `${databaseName}.${this.model.tableName}`,
+        timestampColumn: aggregationTimestampColumn,
+        groupByColumns: groupByKeys,
+        appendFilters: appendPercentileFilters,
       });
+    } else {
+      statement.append(
+        ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
+      );
+      appendPercentileFilters(statement);
     }
     statement.append(SQL`) `);
 

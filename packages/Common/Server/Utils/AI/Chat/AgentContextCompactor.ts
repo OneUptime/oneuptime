@@ -1,5 +1,8 @@
 import { LLMMessage, LLMToolCall } from "../../LLM/LLMService";
-import { agentLoopResultKey } from "../../../../Types/AI/AgentLoopDetector";
+import {
+  AgentLoopToolCall,
+  agentLoopResultKey,
+} from "../../../../Types/AI/AgentLoopDetector";
 
 /*
  * Keeps a long-running agent loop inside the model's context window.
@@ -255,12 +258,117 @@ export function getElidedToolResultCitations(
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * RESULTS A CONVERSATION LEFT OUT: ONE SET OF RULES FOR EVERY AGENT LOOP
+ * (issue #6985).
+ *
+ * Ask AI's turns and the investigations' runs leave the oldest results of a
+ * long conversation out here (compactAgentContext); the Runner's code agent
+ * leaves them out in a compaction of its own (Runner/CodeAgents/
+ * CodeAgentContext), which also cuts long results to their start and end.
+ * Each keeps its own note in a result's place, and its own size - a fixed
+ * one here, the model's context window for the code agent (#6530), and in
+ * time for these too (#9936: a size is all compactAgentContext is given,
+ * AgentContextSize). What a result is known by, which call it answers, and
+ * which of the results left out the model no longer has are one thing for
+ * all three, written once:
+ *
+ *   getToolCallsByResultIndex  the call each result answers, in its own
+ *                              round;
+ *   getToolResultLoopCall      what a loop records of a result it ran;
+ *   getToolResultLoopKey       what a compaction names a result by: the
+ *                              same, so the loop detector forgets exactly
+ *                              the results a compaction left out;
+ *   getForgottenResultKeys     of the results left out, those the model no
+ *                              longer has in any form.
+ *
+ * An agent says only how its own note reads (LeftOutResultsReading): a fix
+ * to the rules is made here, once, for every agent.
+ * ---------------------------------------------------------------------------
+ */
+
+// The size a conversation is kept under, and cut back to once it is past it.
+export interface AgentContextSize {
+  maxChars: number;
+  targetChars: number;
+}
+
+// A size of `maxChars`, cut back to two thirds of it (COMPACTED_CONTEXT_SHARE).
+export function getAgentContextSize(maxChars: number): AgentContextSize {
+  return {
+    maxChars,
+    targetChars: Math.floor(maxChars * COMPACTED_CONTEXT_SHARE),
+  };
+}
+
+// How an agent's conversation holds the results it left out.
+export interface LeftOutResultsReading {
+  // Whether a tool message is the agent's own note in place of a result.
+  isLeftOut: (content: string) => boolean;
+  /*
+   * For an agent that cuts a long result to its start and end (the code
+   * agent): the key of the whole result a cut one was made from, or the
+   * key itself. The model still has a result it holds cut, so the whole
+   * result is not forgotten.
+   */
+  getWholeResultKey?: ((key: string) => string) | undefined;
+}
+
+// Whether a tool message is the note compactAgentContext left in place of a result.
+export function isElidedToolResult(content: string): boolean {
+  return (
+    typeof content === "string" && content.startsWith(ELIDED_TOOL_RESULT_PREFIX)
+  );
+}
+
+// Ask AI's and the investigations' conversations: results left out by compactAgentContext.
+export const ELIDED_TOOL_RESULTS: LeftOutResultsReading = {
+  isLeftOut: isElidedToolResult,
+};
+
+/*
+ * What a loop records of a result it ran, for its loop detector
+ * (AgentLoopToolCall): the call, with its arguments as the model sent them,
+ * and the result as the model was shown it, less the citation it was framed
+ * with (getToolResultLoopOutput) - the same call made again gets a new
+ * citation and returns the same thing. Every agent loop records its results
+ * through here, and every compaction names a result it leaves out the same
+ * way (getToolResultLoopKey), so the two always agree.
+ */
+export function getToolResultLoopCall(data: {
+  toolCall: Pick<LLMToolCall, "name" | "arguments">;
+  // The tool message the model was shown for the call.
+  content: string;
+  isError: boolean;
+}): AgentLoopToolCall {
+  return {
+    name: data.toolCall.name,
+    arguments: data.toolCall.arguments,
+    output: getToolResultLoopOutput(data.content),
+    isError: data.isError,
+  };
+}
+
+/*
+ * What the loop detector knows a result by (agentLoopResultKey): the call
+ * it answers and what the model was shown of it, as a loop records it.
+ */
+export function getToolResultLoopKey(
+  call: Pick<LLMToolCall, "name" | "arguments">,
+  content: string,
+): string {
+  return agentLoopResultKey(
+    getToolResultLoopCall({ toolCall: call, content, isError: false }),
+  );
+}
+
+/*
  * The call each tool result answers, by the result's index: the call of its
  * id in the assistant message of its own round, never one of another round
  * that the provider gave the same id (Ollama numbers the calls of every
  * response from tool_call_0).
  */
-function getCallsByResultIndex(
+export function getToolCallsByResultIndex(
   messages: ReadonlyArray<LLMMessage>,
 ): Map<number, LLMToolCall> {
   const pairs: Map<number, LLMToolCall> = new Map<number, LLMToolCall>();
@@ -292,16 +400,46 @@ function getCallsByResultIndex(
 }
 
 /*
- * What the loop detector knows a result by (agentLoopResultKey): the call
- * it answers, with its arguments as the loop recorded them, and the result
- * as the model was shown it, less its citation (getToolResultLoopOutput).
+ * Of the results a compaction left out (lostResultKeys, each as the result
+ * read before it was left out), those the model no longer has in any form:
+ * less any the conversation as it was left still holds - an answer to the
+ * same call, the same, whole or (for an agent that cuts) cut. Each once.
  */
-function getResultLoopKey(call: LLMToolCall, content: string): string {
-  return agentLoopResultKey({
-    name: call.name,
-    arguments: call.arguments,
-    output: getToolResultLoopOutput(content),
-  });
+export function getForgottenResultKeys(data: {
+  // The conversation as the compaction left it.
+  messages: ReadonlyArray<LLMMessage>;
+  lostResultKeys: ReadonlyArray<string>;
+  reading: LeftOutResultsReading;
+}): Array<string> {
+  if (data.lostResultKeys.length === 0) {
+    return [];
+  }
+
+  const keptResultKeys: Set<string> = new Set<string>();
+
+  for (const [index, call] of getToolCallsByResultIndex(data.messages)) {
+    const content: string | undefined = data.messages[index]?.content;
+
+    if (typeof content !== "string" || data.reading.isLeftOut(content)) {
+      continue;
+    }
+
+    const key: string = getToolResultLoopKey(call, content);
+
+    keptResultKeys.add(
+      data.reading.getWholeResultKey
+        ? data.reading.getWholeResultKey(key)
+        : key,
+    );
+  }
+
+  return Array.from(
+    new Set<string>(
+      data.lostResultKeys.filter((key: string): boolean => {
+        return !keptResultKeys.has(key);
+      }),
+    ),
+  );
 }
 
 export interface CompactionResult {
@@ -326,6 +464,8 @@ export interface CompactionResult {
  * otherwise, COMPACTED_CONTEXT_SHARE) — never the newest
  * `minKeepRecentToolResults`. System and user messages and assistant turns
  * are never touched, and a transcript within `maxChars` is left as it is.
+ * An AgentContextSize - the code agent's, sized to the model's window - is
+ * such options as it is.
  */
 export function compactAgentContext(
   messages: Array<LLMMessage>,
@@ -359,7 +499,7 @@ export function compactAgentContext(
 
   // The call each result answers, as the conversation was before this cut.
   const callForResult: Map<number, LLMToolCall> =
-    getCallsByResultIndex(messages);
+    getToolCallsByResultIndex(messages);
   // The results left out here, as the loop detector knows them.
   const lostResultKeys: Array<string> = [];
 
@@ -385,7 +525,7 @@ export function compactAgentContext(
 
     const message: LLMMessage | undefined = messages[index];
 
-    if (!message || message.content.startsWith(ELIDED_TOOL_RESULT_PREFIX)) {
+    if (!message || isElidedToolResult(message.content)) {
       continue;
     }
 
@@ -399,7 +539,7 @@ export function compactAgentContext(
     const call: LLMToolCall | undefined = callForResult.get(index);
 
     if (call) {
-      lostResultKeys.push(getResultLoopKey(call, message.content));
+      lostResultKeys.push(getToolResultLoopKey(call, message.content));
     }
 
     chars -= message.content.length - replacement.length;
@@ -411,45 +551,13 @@ export function compactAgentContext(
     elidedCount,
     charsBefore,
     charsAfter: chars,
+    // Less any the conversation still holds whole: the model has those.
     forgottenResultKeys: getForgottenResultKeys({
       messages,
-      callForResult,
       lostResultKeys,
+      reading: ELIDED_TOOL_RESULTS,
     }),
   };
-}
-
-/*
- * Of the results a compaction left out, those the model no longer has in
- * any form: less any the conversation still holds whole - an answer to the
- * same call, the same - which it does have.
- */
-function getForgottenResultKeys(data: {
-  messages: ReadonlyArray<LLMMessage>;
-  callForResult: ReadonlyMap<number, LLMToolCall>;
-  lostResultKeys: ReadonlyArray<string>;
-}): Array<string> {
-  if (data.lostResultKeys.length === 0) {
-    return [];
-  }
-
-  const keptResultKeys: Set<string> = new Set<string>();
-
-  for (const [index, call] of data.callForResult) {
-    const message: LLMMessage | undefined = data.messages[index];
-
-    if (message && !message.content.startsWith(ELIDED_TOOL_RESULT_PREFIX)) {
-      keptResultKeys.add(getResultLoopKey(call, message.content));
-    }
-  }
-
-  return Array.from(
-    new Set<string>(
-      data.lostResultKeys.filter((key: string): boolean => {
-        return !keptResultKeys.has(key);
-      }),
-    ),
-  );
 }
 
 /*

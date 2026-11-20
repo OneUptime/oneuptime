@@ -28,7 +28,7 @@ Abra **Produtos → IA / LLM**, em **Observabilidade**. O produto tem sete abas:
 | Aba | O que mostra |
 | --- | --- |
 | **Conversas** | Cada conversa que sua IA teve, primeiro as que precisam de atenção. Acima da lista: conversas, respostas da IA, quantas precisam de atenção, custo e o tempo de resposta típico. |
-| **Chamadas** | Cada chamada de modelo, embedding, agente e ferramenta. Filtre por serviço, provedor, modelo, operação, pessoa, equipe ou conversa; clique em uma chamada para abri-la no visualizador de traces. |
+| **Chamadas** | Cada chamada de modelo, embedding, agente e ferramenta. Filtre por serviço, provedor, modelo, operação, pessoa, equipe, conversa ou status; uma chamada que falhou mostra o seu erro sob o seu status. Clique em uma chamada para abri-la no visualizador de traces. |
 | **Uso** | Chamadas, tokens e custo de um período, ordenados por funcionário, equipe, modelo, provedor ou aplicação; em **Contas de provedor**, o que foi cobrado das suas contas conectadas. |
 | **Alertas** | Alertas prontos para quando a IA responde mal, e seus monitores de IA / LLM. |
 | **Orçamentos** | Limites de custo diários, publicados como métricas sobre as quais você pode alertar. |
@@ -239,7 +239,7 @@ Um alerta pronto dispara um alerta que se resolve sozinho, e mostra o monitor co
 
 ## Veja quem gasta o quê
 
-A aba **Uso** mostra as chamadas, os tokens e o custo de um período (os últimos 7 dias, a menos que você escolha outro), e uma tabela dos 25 primeiros em uma de cinco divisões: **Funcionário**, **Equipe**, **Modelo**, **Provedor** e **Aplicação / Serviço**. Chamadas que não citam ninguém são contadas em **Sem atribuição**, nunca descartadas.
+A aba **Uso** mostra as chamadas, os tokens e o custo de um período (os últimos 7 dias, a menos que você escolha outro), e uma tabela dos 25 primeiros em uma de cinco divisões: **Funcionário**, **Equipe**, **Modelo**, **Provedor** e **Aplicação / Serviço**. Chamadas que não citam ninguém são contadas em **Sem atribuição**, nunca descartadas. A taxa de erro sob **Chamadas de IA** abre **Chamadas** nas chamadas do período que falharam, com **Status** em **Erro**.
 
 Estas são **Suas chamadas de IA**. Escolha **Contas de provedor** para ver o que foi cobrado das suas contas conectadas da OpenAI, Anthropic, Azure, Bedrock, Vertex AI e Cursor: veja [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts#ver-o-uso). As duas coisas nunca são somadas.
 

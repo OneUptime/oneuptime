@@ -26,6 +26,11 @@ import {
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { HistogramBucket } from "Common/UI/Components/LogsViewer/types";
 import { LogsHistogramData } from "Common/UI/Components/LogsViewer/useLogsHistogram";
+import Timezone from "Common/Types/Timezone";
+import {
+  getHistogramRequestTimezone,
+  readHistogramBucketTimezone,
+} from "Common/UI/Components/Charts/Utils/HistogramDayBars";
 
 /*
  * Every facet whose values name a resource, in sidebar order. Re-exported
@@ -81,9 +86,16 @@ export function buildLogsHistogramRequest(
   const dateRange: InBetween<Date> =
     RangeStartAndEndDateTimeUtil.getStartAndEndDate(params.timeRange);
 
+  /*
+   * The reader's zone, so a bar of a day starts at their midnight (#7923):
+   * the server picks a day's bar for a window over 30 days.
+   */
+  const timezone: Timezone | undefined = getHistogramRequestTimezone();
+
   return {
     startTime: dateRange.startValue.toISOString(),
     endTime: dateRange.endValue.toISOString(),
+    ...(timezone ? { timezone: timezone } : {}),
     ...buildLogsAggregateScope(params),
   };
 }
@@ -271,6 +283,8 @@ export function parseLogsHistogramResponse(
       Number.isFinite(bucketSizeInMinutes) && bucketSizeInMinutes > 0
         ? bucketSizeInMinutes * MINUTE_MS
         : undefined,
+    // The zone its day bars were cut in, when they were (#7923).
+    bucketTimezone: readHistogramBucketTimezone(data?.["bucketTimezone"]),
   };
 }
 

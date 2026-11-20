@@ -17,6 +17,7 @@ import {
   GCP_USD_PER_MILLION_TIME_SERIES,
   estimateCloudAddedMetricCost,
   getAzureFiveMinuteReadsPerMonth,
+  getGcpSplitLearnsPerMonth,
   getReadsPerMonth,
 } from "../../../Types/CloudConnection/CloudConnectionCost";
 
@@ -315,6 +316,11 @@ describe("what a metric split by a dimension costs a month", () => {
         seriesPerResource: 3,
       }).monthlyUnits,
     ).toBe(2 * 3 * reads);
+    /*
+     * Google Cloud (#10076): each resource's busiest 10 a read, and as many
+     * again for the hour's learning of which they are - at most, since a
+     * resource of fewer values returns fewer.
+     */
     expect(
       estimateCloudAddedMetricCost({
         provider: CloudProvider.GCP,
@@ -324,11 +330,14 @@ describe("what a metric split by a dimension costs a month", () => {
         seriesPerResource: 10,
       }),
     ).toEqual({
-      monthlyUnits: 10 * reads,
+      monthlyUnits: 10 * (reads + getGcpSplitLearnsPerMonth()),
       monthlyCostUsd:
-        ((10 * reads) / 1000000) * GCP_USD_PER_MILLION_TIME_SERIES,
+        ((10 * (reads + getGcpSplitLearnsPerMonth())) / 1000000) *
+        GCP_USD_PER_MILLION_TIME_SERIES,
       ridesInExistingCall: false,
+      isAtMost: true,
     });
+    expect(getGcpSplitLearnsPerMonth()).toBe(30 * 24);
     // Unsplit, a series a resource, whatever the count says.
     expect(
       estimateCloudAddedMetricCost({
@@ -338,6 +347,49 @@ describe("what a metric split by a dimension costs a month", () => {
         seriesPerResource: 7,
       }).monthlyUnits,
     ).toBe(reads);
+  });
+
+  test("Google Cloud: at most each resource's busiest values a read and the hour's learning of them; never more than the cap, however many values it has", () => {
+    const learns: number = getGcpSplitLearnsPerMonth();
+    const typeWide: ReturnType<typeof estimateCloudAddedMetricCost> =
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 186,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 10,
+      });
+
+    expect(typeWide.monthlyUnits).toBe(186 * 10 * (reads + learns));
+    expect(typeWide.isAtMost).toBe(true);
+    // A label of 300 values costs what one of 10 does: the 10 busiest alone.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 300,
+      }).monthlyUnits,
+    ).toBe(10 * (reads + learns));
+    // Read every 15 minutes: fewer reads, the same hourly learning.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 15,
+        isSplit: true,
+        seriesPerResource: 10,
+      }).monthlyUnits,
+    ).toBe(10 * (getReadsPerMonth(15) + learns));
+    // Read whole, it is no more than said: one series a read.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+      }).isAtMost,
+    ).toBeUndefined();
   });
 
   test("Azure: a call of its own each read, however few metrics the key metrics' call has", () => {
