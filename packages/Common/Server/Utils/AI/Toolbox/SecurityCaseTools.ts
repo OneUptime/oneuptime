@@ -3,6 +3,7 @@ import ThreatIntelIndicator from "../../../../Models/AnalyticsModels/ThreatIntel
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "../../../../Models/DatabaseModels/SecurityCaseNote";
+import SecurityCaseStatus from "../../../../Models/DatabaseModels/SecurityCaseStatus";
 import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "../../../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../../../Models/DatabaseModels/SecurityPlaybookRun";
@@ -490,6 +491,29 @@ function getStatusName(
   return SecurityCaseStatuses.find(values.statuses, statusId)?.name || "";
 }
 
+/*
+ * The colour of a case's status, as the Security Cases pages draw it
+ * (issue #7176): the dot a read's card draws before the line that names the
+ * status. None for a case with no status, a status with no colour, or one
+ * with no name - its card's line would then start with the priority, and
+ * the dot would sit beside the wrong word.
+ */
+function getStatusColor(
+  values: ProjectSecurityCaseValues,
+  statusId: ObjectID | undefined,
+): string | undefined {
+  const status: SecurityCaseStatus | null = SecurityCaseStatuses.find(
+    values.statuses,
+    statusId,
+  );
+
+  if (!status?.name) {
+    return undefined;
+  }
+
+  return status.color?.toString() || undefined;
+}
+
 function getPriorityName(
   values: ProjectSecurityCaseValues,
   priorityId: ObjectID | undefined,
@@ -674,6 +698,8 @@ async function readOneCase(
         detectionCount: securityCase.detectionCount || 0,
         entities: securityCase.entities,
       }),
+      // Its status in the status's own colour, as a monitor's card has (issue #7176).
+      statusColor: getStatusColor(values, securityCase.securityCaseStatusId),
       link: target,
     }),
   };

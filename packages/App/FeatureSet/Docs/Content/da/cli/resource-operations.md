@@ -209,7 +209,7 @@ Den svarer `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` 
 
 ### En brugerdefineret rolle, som arbejdsgange kører som
 
-OneUptime sletter kun en brugerdefineret rolle, som arbejdsgange kører som, når sletningen siger, hvad de skal køre som i stedet, og afviser en sletning, der ikke gør det, med navnene på arbejdsgangene. Sig det med `--workflows-run-as`: `Default`, standardtilladelserne, eller `CustomRole`, en anden brugerdefineret rolle, du kunne give et team, med dens ID i `--workflows-run-as-custom-role-id`. Aldrig Project Owner: at slette en rolle giver aldrig en arbejdsgang flere tilladelser.
+OneUptime sletter kun en brugerdefineret rolle, som arbejdsgange kører som, når sletningen siger, hvad de skal køre som i stedet, og afviser en sletning, der ikke gør det, med navnene på arbejdsgangene. Sig det med `--workflows-run-as`: `Default`, standardtilladelserne, eller `CustomRole`, en anden brugerdefineret rolle, du kunne give et team, med dens ID i `--workflows-run-as-custom-role-id`. Aldrig Projektejer: at slette en rolle giver aldrig en arbejdsgang flere tilladelser.
 
 ```bash
 # They run with the default permissions

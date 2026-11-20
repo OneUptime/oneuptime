@@ -3,8 +3,14 @@ import { INCIDENT_FINAL_STATE } from "../../../Components/StateTimeline/StateTim
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import StateChangeCauseModal, {
+  useWordStateChangeCause,
+} from "../../../Components/StateTimeline/StateChangeCause";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelStatusTimeline from "Common/UI/Components/StatusTimeline/ModelStatusTimeline";
@@ -28,8 +34,22 @@ import useStateTimelineRowDelete, {
   StateTimelineRowDeleteProps,
 } from "../../../Components/StateTimeline/StateTimelineRowDelete";
 import { StateTimelineRecord } from "Common/Utils/StateTimeline/StateTimelineRowDelete";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+
+/*
+ * Why each state began, as View Cause shows it: what a person, the API or
+ * OneUptime itself said when it changed the episode's state - "Resolved
+ * because every incident in it is resolved." - in the reader's language
+ * (StatusChangeCauseWording, #9959), as an incident's own State Timeline
+ * shows it.
+ */
+const NO_ROOT_CAUSE_TEXT: string = translationKey("No root cause identified.");
 
 /*
  * What adding a state asks: the state, and when it began - now, unless it
@@ -93,6 +113,11 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
       stateColumn: "incidentState",
     });
 
+  // The change View Cause shows: its root cause, as stored.
+  const [shownCause, setShownCause] = useState<string | null>(null);
+  const wordCause: (data: { cause: string; log: unknown }) => string =
+    useWordStateChangeCause();
+
   const onBeforeCreate: (
     item: IncidentEpisodeStateTimeline,
   ) => Promise<IncidentEpisodeStateTimeline> = (
@@ -148,6 +173,10 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
         getItemName={stateRowDelete.getItemName}
         deleteConfirmationWarning={stateRowDelete.deleteConfirmationWarning}
         onFetchSuccess={stateRowDelete.onFetchSuccess}
+        causeColumn="rootCause"
+        noCauseText={NO_ROOT_CAUSE_TEXT}
+        // In the reader's language, as an incident's View Cause (#9959).
+        wordCause={wordCause}
         showViewIdButton={true}
       />
     );
@@ -180,6 +209,26 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={onBeforeCreate}
+        selectMoreFields={{
+          rootCause: true,
+        }}
+        actionButtons={[
+          {
+            title: "View Cause",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.TransparentCube,
+            onClick: async (
+              item: IncidentEpisodeStateTimeline,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setShownCause(
+                item["rootCause"] ? item["rootCause"].toString() : "",
+              );
+
+              onCompleteAction();
+            },
+          },
+        ]}
         cardProps={{
           title: "State Timeline",
           description:
@@ -264,6 +313,17 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
           getStateTimelineDurationColumn<IncidentEpisodeStateTimeline>(),
         ]}
       />
+      {shownCause !== null ? (
+        <StateChangeCauseModal
+          rootCause={shownCause}
+          noCauseText={NO_ROOT_CAUSE_TEXT}
+          onClose={() => {
+            setShownCause(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

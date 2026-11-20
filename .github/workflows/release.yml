@@ -1735,6 +1735,22 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
+      # The arm64 package's binary is started below, on this amd64 runner:
+      # QEMU runs it. By commit, as cosign's installer below, and its image
+      # by version, pulled with the Docker Hub login above.
+      - name: Set up QEMU for the arm64 package
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          image: docker.io/tonistiigi/binfmt:qemu-v10.2.3
+          platforms: arm64
+
+      # Before anything is pushed: each platform's package embeds that
+      # platform's runtime image, its provider binary is built for it, and it
+      # starts (#6617). The end-to-end test above installs the amd64 package
+      # only.
+      - name: Check the provider's packages
+        run: bash ./Scripts/CrossplaneProvider/check-package.sh --run
+
       # By commit, as sign-images installs it (see there).
       - name: Install cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3

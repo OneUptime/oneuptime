@@ -123,6 +123,34 @@ describe("the provider's hand-written Go", () => {
       ]),
     );
   });
+
+  /*
+   * #10144: controller-gen names a CRD, and the file it writes it to, by the
+   * kind's plural, and wrote OnCallScheduleLayers' CRD over
+   * OnCallScheduleLayer's, whose plural was the same. internal/kinds gives
+   * OnCallScheduleLayer a plural of its own, as Upjet's Resource.Path; the
+   * generator stops before it writes anything when two kinds' CRDs would
+   * still share a name; and config/crds_test.go holds the configuration and
+   * the package's CRDs to one CRD for each kind.
+   */
+  test("gives every kind a CRD of its own", () => {
+    expect(read("config/provider.go")).toContain("r.Path = kinds.Path(r.Kind)");
+    expect(read("internal/kinds/kinds.go")).toMatch(
+      /^\t"OnCallScheduleLayer": "oncallschedulelayerdefinitions",$/m,
+    );
+
+    const generator: string = read("cmd/generator/main.go");
+    const check: number = generator.indexOf("kinds.Clashes(config.CRDs(pc))");
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(generator.indexOf("runner.Run(pc)"));
+
+    expect(goFiles).toEqual(
+      expect.arrayContaining([
+        "config/crds_test.go",
+        "internal/kinds/kinds_test.go",
+      ]),
+    );
+  });
 });
 
 describe("the ProviderConfig", () => {
@@ -207,6 +235,25 @@ describe("the package", () => {
       "meta.crossplane.io/source: github.com/OneUptime/oneuptime",
     );
     expect(meta).toContain("https://oneuptime.com/docs/crossplane");
+  });
+
+  // What a package catalog, such as the Upbound Marketplace, lists (#6618).
+  test("has the name and the icon a catalog lists it by", () => {
+    expect(meta).toContain(
+      "\n    friendly-name.meta.crossplane.io: Provider OneUptime\n",
+    );
+
+    // The icon the Helm charts show, at the address they show it from.
+    const iconLine: RegExp = /^icon: (\S+)$/m;
+    const chartIcon: string | undefined = iconLine.exec(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "HelmChart", "Public", "oneuptime", "Chart.yaml"),
+        "utf-8",
+      ),
+    )?.[1];
+
+    expect(chartIcon).toMatch(/^https:\/\/oneuptime\.com\/.+\.png$/);
+    expect(meta).toContain(`\n    meta.crossplane.io/iconURI: ${chartIcon}\n`);
   });
 
   test("runs as a user that is not root, on an image with nothing else in it", () => {

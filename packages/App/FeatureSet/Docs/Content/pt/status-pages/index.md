@@ -98,7 +98,7 @@ Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado 
 | **Assinantes** | **Assinantes** (uma única página, com uma aba para cada canal: E-mail, SMS, Slack, Microsoft Teams e Webhook), **Configurações de assinantes**, **Logs de notificação**: o que foi enviado aos assinantes. |
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |
 | **Segurança** | **Acesso** (quem pode ver a página), **Usuários privados**, **Login único** (uma aba para SAML e outra para OIDC), **SCIM**. |
-| **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA**: a página como código. |
+| **Desenvolvedores** | **Terraform**, **Crossplane**, **API**, **CLI**, **Assistentes de IA**: a página como código. |
 | **Avançado** | **MCP**, **Status incorporado**, **Relatórios**, **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir página de status**. |
 
 Apenas **Visão geral** e **Recursos**, o que a página mostra, começam abertas. Todas as outras seções começam recolhidas, como as seções pouco usadas de todos os menus da OneUptime: clique no título de uma seção para mostrar suas páginas. Uma seção se abre sozinha quando você está em uma das páginas dela, como **Configurações** ou **Assinantes**.

@@ -9,7 +9,7 @@ The OneUptime Kubernetes agent is a Helm chart that collects your cluster's metr
 - [Install the agent](#install-the-agent): Four steps with Helm.
 - [Install as an Amazon EKS add-on](#install-as-an-amazon-eks-add-on): From the EKS console, with no Helm.
 - [OpenShift](#openshift): The preset, the security context constraints it creates, and OpenShift's own alerts.
-- [Cluster hardening](#cluster-hardening): Pod Security Standards and CIS Benchmark scores, and the agent's own permissions.
+- [Cluster hardening](#cluster-hardening): Pod Security Standards, CIS Benchmark and NSA/CISA Hardening Guide scores, kube-bench's node checks, and the agent's own permissions.
 - [Configuration options](#configuration-options): Filters, sampling, control plane, service mesh, costs and labels.
 - [Kubernetes AI agent](#kubernetes-ai-agent): Read-only `kubectl` for OneUptime AI, and fixes when you allow them.
 - [Reduce what you send](#reducing-the-volume-of-data-collected): The levers, in order of impact.
@@ -202,6 +202,7 @@ Set them in the EKS console's **Optional configuration settings**, or with `--co
 - `logs.enabled`, `ebpf.enabled` and `aiAgent.enabled`: pod logs, eBPF traces and the [Kubernetes AI agent](#kubernetes-ai-agent), each on by default.
 - `kubeStateMetrics.enabled`: kube-state-metrics, off by default.
 - `cost.enabled`: [cost observability](/docs/telemetry/kubernetes-cost), `auto` by default: on, except with the `eks-fargate` preset.
+- `kubeletstats.nodesProxy`: whether the agent's ClusterRole grants `nodes/proxy`, which reaches the whole kubelet API and fails CIS 5.1.10. `auto`, the default, grants it on EKS 1.34 and 1.35, whose nodes may run kubelets older than 1.33. Set `false` once every node runs 1.33 or later (`kubectl get nodes` shows each node's version): a node whose kubelet is older would then send none of the node, pod, container and volume metrics its kubelet reports.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -316,19 +317,53 @@ Search them in **Logs**, or drop the ones you do not want with a drop filter. To
 
 ## Cluster hardening
 
-A cluster's **Compliance** page, under **Security**, scores the cluster itself in its **Cluster Hardening** section, against three frameworks. It reads what the agent already sends: the cluster's pods, its namespaces and, for the CIS Benchmark, its RBAC, service accounts and NetworkPolicies. The cluster's menu shows the page as soon as the agent reports the cluster's pods, whether or not the cluster runs a database.
+A cluster's **Compliance** page, under **Security**, scores the cluster itself in its **Cluster Hardening** section, against four frameworks. It reads what the agent already sends: the cluster's pods, its namespaces and, for the CIS Benchmark and the NSA/CISA guide, its RBAC, service accounts and NetworkPolicies. With kube-bench on, it also scores what only the nodes can answer: see [Node and control plane controls](#node-and-control-plane-controls). The cluster's menu shows the page as soon as the agent reports the cluster's pods, whether or not the cluster runs a database.
 
 | Framework | What it scores |
 | --- | --- |
 | **Pod Security Standards: Baseline** | Every workload running on the cluster, against the Baseline policy of the cluster's Kubernetes version: privileged containers, the host's namespaces, ports and paths, added capabilities and every other field the policy names, read from each pod's spec |
 | **Pod Security Standards: Restricted** | The same workloads, against the Restricted policy: Baseline's controls, and only the volume types it allows, running as a user other than root, no privilege escalation, a seccomp profile and every capability dropped |
-| **CIS Kubernetes Benchmark v2.0** | The 27 controls of section 5 the Kubernetes API can answer: bindings that grant cluster-admin, Secrets, `nodes/proxy` and the other rights its controls name, roles with wildcards, the default service accounts, Pod Security Admission or a policy engine in each namespace, NetworkPolicies, and what each pod runs |
+| **CIS Kubernetes Benchmark v2.0** | The 27 controls of section 5 the Kubernetes API can answer: bindings that grant cluster-admin, Secrets, `nodes/proxy` and the other rights its controls name, roles with wildcards, the default service accounts, Pod Security Admission or a policy engine in each namespace, NetworkPolicies, and what each pod runs. With kube-bench on, also the node and control plane controls it checks on the nodes |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | The guide's recommendations OneUptime can read: non-root containers, immutable file systems, no privileged containers or host namespaces and resource limits on every container, from each pod's spec; a default-deny NetworkPolicy both ways in each namespace that runs pods; least privilege in RBAC; and, with kube-bench on, the TLS, authentication, authorization and audit settings of the control plane and the kubelets |
 
 Each framework's tile shows its score, and how many workloads it evaluated and how many fail. Its controls list the failing ones first: each says what it finds wrong and how to fix it, and lists the workloads, roles, bindings, service accounts or namespaces that fail it, each linked to its page, down to the container or volume and the field, such as `securityContext.privileged`. Where Data Security scores the databases running on the cluster, they stay below, under **Databases on This Cluster**.
 
 The Pod Security Standards are scored for the cluster's own Kubernetes version: its newest kubelet's, up to the newest version OneUptime knows. A control that a later version added counts only from that version on, and the page says which version it scored against.
 
-The benchmark's other 104 controls check the nodes' files and kubelets or the control plane's flags, or need a person's review. No API answers them, so they are listed under **Not Scored Here**, grouped by why, and are never passing or failing. On a managed control plane, such as EKS, GKE or AKS, the page says they are the provider's benchmark's.
+Without kube-bench, the benchmark's other 104 controls check the nodes' files and kubelets or the control plane's flags, or need a person's review. No API answers them, so they are listed under **Not Scored Here**, grouped by why, and are never passing or failing. On a managed control plane, such as EKS, GKE or AKS, the page says they are the provider's benchmark's.
+
+The NSA/CISA guide's recommendations that nothing OneUptime reads can answer, such as scanning images for vulnerabilities or encrypting Secrets at rest, are listed the same way under its own **Not Scored Here**, each with its section of the guide. A control whose source the cluster has not sent, such as a kubelet setting before kube-bench runs, is *not evaluated* and counts neither way.
+
+### Node and control plane controls
+
+The benchmark's node and control plane controls, the API server's, controller manager's, scheduler's, etcd's and kubelet's flags and the permissions of their files, can only be read on the nodes. With `compliance.nodeBenchmark.enabled`, the agent runs [kube-bench](https://github.com/aquasecurity/kube-bench) there every six hours, and the page scores each check it makes as a control of the CIS Benchmark, failing by each node that fails it, with the switches and **Accept** every control has. It is off by default, because of what it takes:
+
+- Each run's pod runs as root in the node's process namespace (`hostPID`), which kube-bench needs to read the components' command lines. It is not privileged: it drops every Linux capability but `DAC_OVERRIDE`, forbids privilege escalation and runs on a read-only root filesystem.
+- It mounts the node's Kubernetes directories read-only: `/etc/kubernetes`, which on a control plane node holds the cluster's CA key and `admin.conf`, and `/var/lib/kubelet`, which holds the volumes of every pod on that node, Secrets among them.
+- Its image is Aqua Security's, not OneUptime's. Pin it by digest with `compliance.nodeBenchmark.image.digest`, and mirror it with `compliance.nodeBenchmark.image.repository`.
+- Its service account mounts no token and is bound to no role, and a NetworkPolicy keeps its pods off the network. It writes each check's number and result as its container's termination message, which the agent's resource snapshots already send.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+To run it now, rather than at the schedule's next time:
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+kube-bench runs the benchmark of the cluster's platform, picked from its Kubernetes version: the CIS Amazon EKS Benchmark on EKS, the CIS GKE Benchmark on GKE and the generic benchmark elsewhere. On AKS, add `--set compliance.nodeBenchmark.benchmark=aks-1.8`; where a managed cluster ran the generic benchmark, the page says which one to set. On a managed control plane, kube-bench scores the worker nodes, and the control plane's controls stay the provider's, as no pod can read them. It is left out on GKE Autopilot, EKS Fargate and OpenShift. The chart's README lists every value, and what each platform's benchmark leaves unknown.
+
+**Nodes Read by kube-bench** lists the nodes it last ran on, with the benchmark it ran, when, and why a run could not finish. The checks its benchmark marks manual are listed by number under **Not Scored Here**, for a person's review.
+
+### Accept one finding
+
+**Accept** on a failing finding asks why, then counts that object as passing the control, or every control of the framework, until the acceptance expires or you **Revoke** it. Each control lists its accepted findings apart, and **Accepted Findings** lists every one with who accepted it, when and why.
+
+Where a failing workload is the agent's own, its node collector, eBPF instrumentation, profiler or kube-bench, the finding says so, why the agent needs what the control fails, and the value that removes it. **Accept With This Reason** opens the dialog with that reason filled in, for every control of the framework.
 
 ### Turn a framework, a control or a namespace off
 
@@ -340,7 +375,7 @@ Turn off what does not apply to a cluster. Each switch is the cluster's own and 
 
 ### Export a framework
 
-**Export CSV** and **Export JSON** download a framework's report: every control, whether it passes, what fails it and how to fix it, and the Kubernetes version it was scored against.
+**Export CSV** and **Export JSON** download a framework's report: every control, whether it passes, what fails it and how to fix it, what is not scored and why, and the Kubernetes version it was scored against. The CIS Benchmark's JSON also holds the nodes kube-bench read.
 
 ### What the agent reads for it
 
@@ -356,6 +391,8 @@ The agent reads each kubelet through the subresources the kubelet authorizes its
 | `cost.prometheus.nodesProxy` | `auto` (the default) grants it on the `eks-fargate` preset only, where no pod reaches a node's kubelet and the cost Prometheus reads cAdvisor through the API server. Everywhere else it reads each node's kubelet on port 10250 |
 
 Where the agent's own binding fails 5.1.10, the page says the binding is the agent's, why it grants `nodes/proxy`, and the value that drops it.
+
+On the Amazon EKS add-on, which takes no Helm `--set`, the page names the add-on's configuration value instead: `{"kubeletstats": {"nodesProxy": false}}`, once every node runs 1.33 or later. The add-on has no `cost.prometheus.nodesProxy`: with the `eks-fargate` preset and cost turned on, only `{"cost": {"enabled": false}}` drops `nodes/proxy`.
 
 ## Configuration options
 

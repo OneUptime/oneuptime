@@ -1,4 +1,10 @@
 import { JSONObject } from "../JSON";
+import {
+  KubernetesNodeBenchmarkBlock,
+  NODE_BENCHMARK_CONTAINER,
+  isNodeBenchmarkPod,
+  readNodeBenchmarkMessage,
+} from "./KubernetesNodeBenchmark";
 import { PodSecurity, readPodSecurity } from "./KubernetesPodSecurity";
 
 /*
@@ -428,6 +434,11 @@ export interface KubernetesPodObject {
      * (KubernetesPodSecurity). Optional: pods stored before it have none.
      */
     security?: PodSecurity | undefined;
+    /*
+     * What kube-bench found on the pod's node, for one of the chart's
+     * kube-bench pods that finished (#9873; KubernetesNodeBenchmark).
+     */
+    nodeBenchmark?: KubernetesNodeBenchmarkBlock | undefined;
   };
   status: {
     phase: string;
@@ -1158,6 +1169,64 @@ function parseContainerState(
   };
 }
 
+/*
+ * What kube-bench found on its node (#9873): the chart's kube-bench pods
+ * write it as their kube-bench container's termination message, which this
+ * reads whole - the container's message the pages show is cut to a kilobyte
+ * (shortenKubernetesMessage) - into a block of the pod's spec
+ * (KubernetesNodeBenchmark). Null for a container still running, and for a
+ * message that is not the chart's.
+ */
+function readPodNodeBenchmark(
+  statusKv: JSONObject,
+): KubernetesNodeBenchmarkBlock | null {
+  const statuses: string | JSONObject | null = getKvValue(
+    statusKv,
+    "containerStatuses",
+  );
+
+  if (!statuses || typeof statuses === "string") {
+    return null;
+  }
+
+  for (const kvList of getArrayValues(statuses)) {
+    if (getKvStringValue(kvList, "name") !== NODE_BENCHMARK_CONTAINER) {
+      continue;
+    }
+
+    const stateKv: string | JSONObject | null = getKvValue(kvList, "state");
+    const stateValues: Array<JSONObject> | undefined =
+      stateKv && typeof stateKv !== "string"
+        ? (stateKv["values"] as Array<JSONObject> | undefined)
+        : undefined;
+    const state: JSONObject | undefined = stateValues?.[0];
+
+    if (!state || state["key"] !== "terminated") {
+      return null;
+    }
+
+    const value: JSONObject | undefined = state["value"] as
+      | JSONObject
+      | undefined;
+    const detail: JSONObject | undefined = value
+      ? ((value["kvlistValue"] || value["kvlist_value"]) as
+          | JSONObject
+          | undefined)
+      : undefined;
+
+    if (!detail) {
+      return null;
+    }
+
+    return readNodeBenchmarkMessage(
+      getKvStringValue(detail, "message"),
+      getKvStringValue(detail, "finishedAt") || undefined,
+    );
+  }
+
+  return null;
+}
+
 function parseContainerStatuses(
   statusesArrayValue: JSONObject | null,
 ): Array<KubernetesContainerStatus> {
@@ -1411,6 +1480,14 @@ export function parsePodObject(
       podStatus.startTime = startTime;
     }
 
+    // A kube-bench pod's results (#9873); every other pod keeps its old shape.
+    const nodeBenchmark: KubernetesNodeBenchmarkBlock | null =
+      isNodeBenchmarkPod(metadata.labels) &&
+      statusKv &&
+      typeof statusKv !== "string"
+        ? readPodNodeBenchmark(statusKv)
+        : null;
+
     return {
       metadata,
       spec: {
@@ -1430,6 +1507,7 @@ export function parsePodObject(
           specKv && typeof specKv !== "string"
             ? readPodSecurity(kvListToPlainObject(specKv), metadata.annotations)
             : undefined,
+        ...(nodeBenchmark ? { nodeBenchmark } : {}),
       },
       status: podStatus,
     };

@@ -65,7 +65,7 @@ En tjenestes sidemenu har seks sektioner:
 | **Telemetri** | Dens **Protokoller**, **Sikkerhedshændelser**, **Spor**, **Metrikker**, **Profiler**, **Undtagelser** og **Source maps**, allerede filtreret til denne tjeneste. |
 | **Aktivitet** | De **Hændelser**, **Advarsler** og begivenheder under **Planlagt vedligeholdelse**, der berører den. |
 | **Sikkerhed** | **Datasikkerhed**: de følsomme data, som tjenestens logs, traces og undtagelser indeholder, og hvad der skal rettes ([Følsomme data i telemetri](/docs/data-security/telemetry)). **Overholdelse**: hvordan de data står i forhold til hver ramme, med en kontakt, der slår en ramme eller et krav fra for denne tjeneste ([Overholdelse i Datasikkerhed](/docs/data-security/compliance#på-en-ressources-side)). Sektionen vises, når Datasikkerhed har scannet tjenestens telemetri, og er foldet sammen fra start. |
-| **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |
+| **Udvikler** | **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |
 | **Avanceret** | **Indstillinger**, **Auditlogs** og **Slet tjeneste**. **Avanceret** er foldet sammen fra start: fold den ud først. |
 
 Ved siden af navnet viser en tjenestes **Oversigt**, om dens telemetri kommer: **Modtager data**, mens der er kommet noget inden for de sidste 30 minutter, **Ingen nylige data**, så snart der ikke kommer mere, og **Venter på data** før dens første telemetri. En tjeneste, der kun sender spans, mens den behandler forespørgsler, viser **Ingen nylige data**, når ingen kalder den, så det alene er ikke en fejl.

@@ -453,7 +453,7 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
           key: "totalCost",
           title: "Total Cost",
           description:
-            "Total cost of the row over the window (all components).",
+            "Total cost of the row over the window (all components). On a row where isCostAdjustment is true, the change a later reading of the window made to it, which can be negative.",
         },
         {
           key: "cpuEfficiency",
@@ -687,6 +687,54 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
         },
       });
 
+    /*
+     * Where the row's memory peak came from (#9970), as the cost agent said
+     * of its shipment: the note that advises stopping the bundled engine
+     * reads it, because with "bundled" stopping it stops the peaks too.
+     */
+    const memoryPeaksFromColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "memoryPeaksFrom",
+        isLowCardinality: true,
+        title: "Memory Peaks From",
+        description:
+          "Where the cost agent read the row's memory peak (ramBytesUsageMax) for right-sizing: engine (the Prometheus the cluster's own cost engine reads), bundled (the Prometheus the chart bundled beside its OpenCost), configured (the one cost.engine.prometheusUrl names), or empty when it had none. Empty on rows from an agent older than this column.",
+        required: true,
+        defaultValue: "",
+        type: TableColumnType.Text,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    /*
+     * A row that corrects an earlier one (#9969). A Kubecost that reads the
+     * cloud's bill reconciles its prices with it about two days after each
+     * hour, after the cost agent shipped the hour; the agent reads the hour
+     * again then, and ingest writes the difference from what it holds, per
+     * workload, pod and container, as a row of its own: the table only ever
+     * appends, and a plain sum of a window's rows is the engine's latest
+     * figure. Such a row's costs are the change and its usage is 0, so it is
+     * summed with the rest and left out of every count and average.
+     */
+    const isCostAdjustmentColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "isCostAdjustment",
+        title: "Is Cost Adjustment",
+        description:
+          "True for a row that brings the costs of the row with the same window, namespace, workload, pod and container in line with a later reading of the window, as a Kubecost reconciles its prices with the cloud bill: its costs, efficiencyWeight and weightedEfficiency are the change, added to that row's, and its usage, requests, limits, efficiencies and memory peak are 0. Sum it with the other rows; count or average only the rows where it is false.",
+        required: true,
+        defaultValue: false,
+        type: TableColumnType.Boolean,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
@@ -741,6 +789,8 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
         bundledEngineUnusedColumn,
         pricingSourceColumn,
         pricingProviderColumn,
+        memoryPeaksFromColumn,
+        isCostAdjustmentColumn,
         retentionDateColumn,
       ],
       sortKeys: [
@@ -1118,6 +1168,22 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
 
   public set pricingProvider(v: string | undefined) {
     this.setColumnValue("pricingProvider", v);
+  }
+
+  public get memoryPeaksFrom(): string | undefined {
+    return this.getColumnValue("memoryPeaksFrom") as string | undefined;
+  }
+
+  public set memoryPeaksFrom(v: string | undefined) {
+    this.setColumnValue("memoryPeaksFrom", v);
+  }
+
+  public get isCostAdjustment(): boolean | undefined {
+    return this.getColumnValue("isCostAdjustment") as boolean | undefined;
+  }
+
+  public set isCostAdjustment(v: boolean | undefined) {
+    this.setColumnValue("isCostAdjustment", v);
   }
 
   public get weightedEfficiency(): number | undefined {

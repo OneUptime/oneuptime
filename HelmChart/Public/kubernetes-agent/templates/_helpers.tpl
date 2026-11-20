@@ -488,7 +488,7 @@ Usage: {{- with include "kubernetes-agent.nodesProxyReasons" . }}
 {{- end -}}
 
 {{- define "kubernetes-agent.openshiftDetector" -}}
-resourcedetection/openshift:
+{{ include "kubernetes-agent.componentType" (dict "root" . "type" "resource_detection") }}/openshift:
   detectors: [openshift]
   override: false
   openshift:
@@ -1299,19 +1299,57 @@ Usage: {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "ve
 {{- end -}}
 
 {{/*
-The type the cumulative-to-delta processor goes by on the collector this
-renders for. Collector 0.157.0 renamed it cumulative_to_delta and keeps
-cumulativetodelta as a deprecated alias; a collector before 0.157.0 knows only
-cumulativetodelta and refuses the whole config for the new name ("unknown type"),
-and 0.96.0 is what `helm upgrade --reuse-values` keeps (_stale-defaults.tpl).
-Both names were validated on 0.96.0, 0.156.0, 0.157.0, 0.161.0 and 0.165.0.
-Usage: {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
+The renamed collector components the chart's configs use (#9930): each type
+as the collector now names it, with the type it went by before and the first
+release that has the new one, read from the component's metadata.yaml at that
+tag and the one before it:
+
+  otlp_http            otlphttp            0.144.0
+  k8s_attributes       k8sattributes       0.146.0
+  file_log             filelog             0.149.0
+  host_metrics         hostmetrics         0.151.0
+  k8s_objects          k8sobjects          0.151.0
+  kubelet_stats        kubeletstats        0.152.0
+  resource_detection   resourcedetection   0.153.0
+  cumulative_to_delta  cumulativetodelta   0.157.0
+
+opentelemetry-collector-contrib, and the collector's own OTLP HTTP exporter,
+renamed them to snake_case and kept every old type as a deprecated alias: the
+collector warns `"kubeletstats" alias is deprecated; use "kubelet_stats"
+instead` on every start, and a later release drops the alias, after which it
+refuses the whole config ("unknown type"). A collector older than the rename
+knows only the old type and refuses a config that names the new one, and
+`helm upgrade --reuse-values` keeps 0.96.0 on a release from before 0.161.0
+(_stale-defaults.tpl).
 */}}
-{{- define "kubernetes-agent.cumulativeToDeltaProcessor" -}}
-{{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.157.0")) "true" -}}
-cumulative_to_delta
+{{- define "kubernetes-agent.renamedComponentTypes" -}}
+{{- toJson (dict "otlp_http" (list "otlphttp" "0.144.0") "k8s_attributes" (list "k8sattributes" "0.146.0") "file_log" (list "filelog" "0.149.0") "host_metrics" (list "hostmetrics" "0.151.0") "k8s_objects" (list "k8sobjects" "0.151.0") "kubelet_stats" (list "kubeletstats" "0.152.0") "resource_detection" (list "resourcedetection" "0.153.0") "cumulative_to_delta" (list "cumulativetodelta" "0.157.0")) -}}
+{{- end -}}
+
+{{/*
+The type a renamed component goes by on the collector this renders for
+(image.tag): its new type from the release that has it, its old one before.
+A component's id is its type and, after a slash, its own name
+(file_log/audit): only the type changes.
+
+What a rename does to an upgrade: the collector keys a component's stored
+state by its id (a storage extension's file is named after the component's
+type and name), so a renamed component would start over from nothing it
+stored. Nothing the chart runs stores any: the file_log receivers keep their
+offsets in memory (no storage extension), and every other renamed component
+holds none. So an upgrade that renames them restarts the collectors as any
+upgrade does, and resumes as any restart does.
+Usage: {{ include "kubernetes-agent.componentType" (dict "root" . "type" "kubelet_stats") }}
+*/}}
+{{- define "kubernetes-agent.componentType" -}}
+{{- $renamed := get (include "kubernetes-agent.renamedComponentTypes" . | fromJson) .type -}}
+{{- if not $renamed -}}
+{{- fail (printf "kubernetes-agent.componentType: %q is no renamed component type the chart knows" .type) -}}
+{{- end -}}
+{{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" .root "version" (index $renamed 1))) "true" -}}
+{{- .type -}}
 {{- else -}}
-cumulativetodelta
+{{- index $renamed 0 -}}
 {{- end -}}
 {{- end -}}
 

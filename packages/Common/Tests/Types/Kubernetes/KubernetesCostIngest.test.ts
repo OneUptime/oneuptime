@@ -225,11 +225,21 @@ describe("KubernetesCostIngest", () => {
       expect(Object.keys(payloadFields).sort()).toEqual([
         "allocations",
         "clusterName",
+        "correction",
         "costEngine",
         "currency",
         "shipmentChunk",
         "shipmentId",
       ]);
+      /*
+       * A later reading of windows shipped before (#9969): an agent older
+       * than the field sends none, and its shipments are first readings.
+       */
+      expect(payloadFields["correction"]).toEqual({
+        name: "correction",
+        optional: true,
+        type: "boolean | undefined",
+      });
       expect(payloadFields["clusterName"]?.optional).toBe(false);
       expect(payloadFields["allocations"]?.optional).toBe(false);
       /*

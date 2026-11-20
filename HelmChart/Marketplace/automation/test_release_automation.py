@@ -727,6 +727,9 @@ class AwsCatalogEksAddonTest(unittest.TestCase):
         self.assertIn("existingSecretName", properties["oneuptime"]["properties"])
         self.assertIn("eks-fargate", properties["preset"]["enum"])
         self.assertIn("enabled", properties["ebpf"]["properties"])
+        # Dropping nodes/proxy on EKS 1.34 and 1.35 (#9928), as the add-on's own value.
+        self.assertIn("nodesProxy", properties["kubeletstats"]["properties"])
+        self.assertIn('{"kubeletstats": {"nodesProxy": false}}', usage)
 
     def test_refuses_what_aws_would_refuse(self) -> None:
         delivery = self.delivery()

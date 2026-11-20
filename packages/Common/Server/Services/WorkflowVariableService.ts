@@ -5,6 +5,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
 import WorkflowRunAsAuthority, {
   WorkflowRunAsAction,
@@ -32,6 +33,9 @@ import {
   normalizeOAuth2AdditionalParameters,
 } from "../../Types/Workflow/WorkflowVariableOAuth";
 import Model from "../../Models/DatabaseModels/WorkflowVariable";
+
+// The workflow a variable belongs to, under each of its names.
+const WORKFLOW_KEYS: Array<string> = ["workflowId", "workflow"];
 
 /*
  * Whether a value of isSecret marks a variable secret. What comes back from
@@ -290,12 +294,23 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
-  // A raised workflow's variable, created by who may change the workflow.
+  /*
+   * A raised workflow's variable, created by who may change the workflow:
+   * the workflow named under either of its names, two that disagree
+   * refused (ReferenceNamesReadTogether), so a create that names it by the
+   * relation is held to the workflow's holders as well.
+   */
   protected override async onCreatePermitted(
     onCreate: OnCreate<Model>,
   ): Promise<void> {
     onCreate.carryForward = await this.holdVariablesToWorkflowHolders({
-      workflowIds: [onCreate.createBy.data.workflowId],
+      workflowIds: [
+        RelationIdUtil.readConsistent(
+          onCreate.createBy.data as unknown as Record<string, unknown>,
+          WORKFLOW_KEYS,
+          "Workflow",
+        ),
+      ],
       props: onCreate.createBy.props,
     });
   }

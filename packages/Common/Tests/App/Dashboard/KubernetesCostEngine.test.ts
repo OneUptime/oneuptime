@@ -5,7 +5,10 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONValue } from "../../../Types/JSON";
-import { KubernetesCostPricingSource } from "../../../Types/Kubernetes/KubernetesCostPricing";
+import {
+  KubernetesCostMemoryPeaksSource,
+  KubernetesCostPricingSource,
+} from "../../../Types/Kubernetes/KubernetesCostPricing";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -42,6 +45,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import {
+  KubernetesCostEngineView,
   fetchKubernetesCostEngine,
   toKubernetesCostEngine,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesCostEngine";
@@ -72,6 +76,7 @@ describe("toKubernetesCostEngine", () => {
           bundledEngineUnused: true,
           pricingSource: "list-prices",
           pricingProvider: "AWS",
+          memoryPeaksFrom: "engine",
         }),
       ),
     ).toEqual({
@@ -80,6 +85,7 @@ describe("toKubernetesCostEngine", () => {
       bundledEngineUnused: true,
       pricingSource: KubernetesCostPricingSource.ListPrices,
       pricingProvider: "AWS",
+      memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Engine,
     });
   });
 
@@ -126,6 +132,7 @@ describe("toKubernetesCostEngine", () => {
       bundledEngineUnused: false,
       pricingSource: KubernetesCostPricingSource.ListPrices,
       pricingProvider: "",
+      memoryPeaksFrom: "",
     });
   });
 });
@@ -158,6 +165,7 @@ describe("fetchKubernetesCostEngine", () => {
       bundledEngineUnused: false,
       pricingSource: KubernetesCostPricingSource.DefaultRates,
       pricingProvider: "",
+      memoryPeaksFrom: "",
     });
 
     const request: any = mockGetList.mock.calls[0]![0];
@@ -177,11 +185,156 @@ describe("fetchKubernetesCostEngine", () => {
         "bundledEngineUnused",
         "costEngine",
         "costEngineService",
+        "memoryPeaksFrom",
         "pricingProvider",
         "pricingSource",
+        "windowEnd",
         "windowStart",
       ].sort(),
     );
+    // An engine that reads no bill has nothing reconciled to look for.
+    expect(mockGetList).toHaveBeenCalledTimes(1);
+  });
+
+  // #9970: where the memory peaks come from, as the newest row says.
+  test("reads where the newest hour's memory peaks came from", async () => {
+    mockGetList.mockResolvedValue({
+      data: [
+        row({
+          costEngine: "Kubecost",
+          costEngineService: "kubecost/kubecost-frontend",
+          bundledEngineUnused: true,
+          pricingSource: "default-rates",
+          memoryPeaksFrom: "bundled",
+        }),
+      ],
+      count: 1,
+    } as never);
+
+    const engine: KubernetesCostEngineView | null =
+      await fetchKubernetesCostEngine({
+        kubernetesClusterId: CLUSTER_ID,
+        startDate: START,
+        endDate: END,
+      });
+
+    expect(engine?.memoryPeaksFrom).toBe(
+      KubernetesCostMemoryPeaksSource.Bundled,
+    );
+    expect(engine?.bundledEngineUnused).toBe(true);
+  });
+
+  /*
+   * #9969: for a Kubecost that reads the cloud's bill, how far the window's
+   * figures are reconciled: the newest correction row's hour.
+   */
+  test("for a Kubecost that reads the bill, reads how far the window is reconciled", async () => {
+    mockGetList
+      .mockResolvedValueOnce({
+        data: [
+          row({
+            costEngine: "Kubecost",
+            pricingSource: "billing-integration",
+            pricingProvider: "AWS",
+            windowStart: "2026-11-18T11:00:00.000Z",
+            windowEnd: "2026-11-18T12:00:00.000Z",
+          }),
+        ],
+        count: 1,
+      } as never)
+      .mockResolvedValueOnce({
+        data: [
+          row({
+            windowStart: "2026-11-16T09:00:00.000Z",
+            windowEnd: "2026-11-16T10:00:00.000Z",
+          }),
+        ],
+        count: 1,
+      } as never);
+
+    const engine: KubernetesCostEngineView | null =
+      await fetchKubernetesCostEngine({
+        kubernetesClusterId: CLUSTER_ID,
+        startDate: START,
+        endDate: END,
+      });
+
+    expect(engine?.pricingSource).toBe(
+      KubernetesCostPricingSource.BillingIntegration,
+    );
+    expect(engine?.reconciledThrough).toEqual(
+      new Date("2026-11-16T10:00:00.000Z"),
+    );
+    expect(engine?.pricedThrough).toEqual(new Date("2026-11-18T12:00:00.000Z"));
+
+    const reconciledRequest: any = mockGetList.mock.calls[1]![0];
+
+    expect(reconciledRequest.modelType).toBe(KubernetesCostAllocation);
+    expect(reconciledRequest.query.isCostAdjustment).toBe(true);
+    expect(reconciledRequest.query.kubernetesClusterId).toBe(
+      CLUSTER_ID.toString(),
+    );
+    expect(reconciledRequest.query.windowStart.startValue).toEqual(START);
+    expect(reconciledRequest.query.windowStart.endValue).toEqual(END);
+    expect(reconciledRequest.sort).toEqual({
+      windowStart: SortOrder.Descending,
+    });
+    expect(reconciledRequest.limit).toBe(1);
+    expect(Object.keys(reconciledRequest.select).sort()).toEqual([
+      "windowEnd",
+      "windowStart",
+    ]);
+  });
+
+  test("a window no reconciliation reached yet says none", async () => {
+    mockGetList
+      .mockResolvedValueOnce({
+        data: [
+          row({
+            pricingSource: "billing-integration",
+            pricingProvider: "AWS",
+            windowEnd: "2026-11-18T12:00:00.000Z",
+          }),
+        ],
+        count: 1,
+      } as never)
+      .mockResolvedValueOnce({ data: [], count: 0 } as never);
+
+    const engine: KubernetesCostEngineView | null =
+      await fetchKubernetesCostEngine({
+        kubernetesClusterId: CLUSTER_ID,
+        startDate: START,
+        endDate: END,
+      });
+
+    expect(engine?.reconciledThrough).toBeNull();
+    expect(engine?.pricedThrough).toEqual(new Date("2026-11-18T12:00:00.000Z"));
+  });
+
+  test("a read of the reconciled hours that fails leaves the prices as they were read", async () => {
+    mockGetList
+      .mockResolvedValueOnce({
+        data: [
+          row({
+            pricingSource: "billing-integration",
+            pricingProvider: "AWS",
+          }),
+        ],
+        count: 1,
+      } as never)
+      .mockRejectedValueOnce(new Error("Server Error") as never);
+
+    const engine: KubernetesCostEngineView | null =
+      await fetchKubernetesCostEngine({
+        kubernetesClusterId: CLUSTER_ID,
+        startDate: START,
+        endDate: END,
+      });
+
+    expect(engine?.pricingSource).toBe(
+      KubernetesCostPricingSource.BillingIntegration,
+    );
+    expect(engine?.reconciledThrough).toBeNull();
   });
 
   test("is null for a window with no cost rows", async () => {

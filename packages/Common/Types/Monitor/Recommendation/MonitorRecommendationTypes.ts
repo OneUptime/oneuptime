@@ -245,6 +245,18 @@ export interface MonitorRecommendationContext {
    */
   kubernetesProvider?: string | null | undefined;
   /*
+   * Whether some node of a Kubernetes cluster keeps its container images on
+   * a disk of its own, as ingest stores it on the node's row (a reading of
+   * its image filesystem, latestImageFsCapacityBytes, only when one scrape
+   * shows it is not the root filesystem). Only then is Node Image Disk Almost
+   * Full recommended (#10056): on a node that keeps its images on its root
+   * filesystem, as most nodes do, it reads that root filesystem, which High
+   * Node Disk Usage already watches, so a cluster of such nodes would get two
+   * alerts for one full disk. Anything but true leaves it out of the
+   * recommendations; the template picker offers it to every cluster.
+   */
+  kubernetesHasSeparateImageDisk?: boolean | null | undefined;
+  /*
    * A host's OS type as the Host keeps it (HostOperatingSystem): `android`
    * for a device the Android agent reports. An Android device is offered
    * the templates only a device has (unplugged, low battery, overheating,

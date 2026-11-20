@@ -1,5 +1,12 @@
-import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
-import { dashboardLocale, readAsTheDocsWriteIt } from "./DocsDashboardLabels";
+import { DOCS_LANGUAGES } from "./DocsContentSupport";
+import {
+  codeChangeCautionIndex,
+  codeChangeCautionQuoting,
+  codeChangesSectionOf,
+  codeDocsCautionLine,
+  codeDocsTranslatorFor,
+} from "./CodeChangesDocsSection";
+import { dashboardLocale } from "./DocsDashboardLabels";
 import { readRepoFile } from "./InventoryAndApiDocsSupport";
 import {
   AI_ACTION_CODE_FILE,
@@ -18,7 +25,7 @@ import {
   CodeFileUnseen,
   findCodeFileUnseen,
 } from "Common/Types/CodeRepository/CodeFileSeen";
-import { createTranslator, Translator } from "Common/Types/Translator";
+import { Translator } from "Common/Types/Translator";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -29,7 +36,6 @@ import { describe, expect, it } from "@jest/globals";
  * Dashboard's own. The English is held to the code that makes it true.
  */
 
-const PAGE: string = "ai/ask-ai";
 const BRANCH: string = "fix/login";
 const FILE: string = "src/billing/charge.ts";
 
@@ -45,32 +51,7 @@ const CHANGED: AIActionSentence = aiActionPluralSentence(
   },
 );
 
-const translatorFor: (language: string) => Translator = (
-  language: string,
-): Translator => {
-  const words: Record<string, unknown> = dashboardLocale(language);
-
-  // What it draws, as the page writes it (asTheDocsWriteIt).
-  return readAsTheDocsWriteIt(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = words[text];
-      return typeof value === "string" ? value : undefined;
-    }, language),
-  );
-};
-
-// The bullet about proposing code changes, which says it all.
-const codeBulletOf: (language: string) => string = (
-  language: string,
-): string => {
-  return (
-    readPage(language, PAGE)
-      .split("\n")
-      .find((line: string): boolean => {
-        return line.startsWith("- ") && line.includes(FILE);
-      }) || ""
-  );
-};
+const translatorFor: (language: string) => Translator = codeDocsTranslatorFor;
 
 const autoRunTitle: string = (
   AIChatPermissionModeHelper.getOptions().find(
@@ -85,27 +66,30 @@ const flat: (text: string) => string = (text: string): string => {
 };
 
 describe("the Ask AI page on a code change written from an older read (issue #6313)", () => {
-  it("quotes the card line as the English card says it, beside the code-change action it is about", () => {
-    const bullet: string = codeBulletOf("en");
+  it("quotes the card line as the English card says it, as a caution of its own in the Code changes section", () => {
     const line: string = describeAIActionSentence(CHANGED);
 
     expect(line).toBe(
       "This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: src/billing/charge.ts.",
     );
-    expect(bullet).toMatch(/^- Propose a code change:/);
-    expect(bullet).toContain(`"${line}"`);
+    expect(codeChangeCautionQuoting("en", line)).toBe(
+      `  - "${line}" The file changed on the branch after Ask AI read it.`,
+    );
   });
 
   it("says what counts, what else the card names, what to do, and what Auto-run, a late change and an approved pull request do", () => {
-    const bullet: string = codeBulletOf("en");
+    const bullet: string = codeChangesSectionOf("en");
 
     for (const said of [
       "Ask AI writes each file whole, from the file as it last read it, and reads a repository's main branch unless it is asked for another.",
-      "If a file changed on the branch after Ask AI read it, the card names it before you approve the commit or the pull request",
-      "It also names a file Ask AI read only on another branch, where it is different, a file Ask AI never read but replaces, and a file OneUptime could not check.",
+      "So before you approve a commit or a pull request, its card names each file whose version would write over what Ask AI did not see.",
+      `"${describeAIActionSentence(codeDocsCautionLine(AI_ACTION_PLURAL_LINES.codeFilesReadOnAnotherBranch))}" Ask AI read the file only on another branch, where it is different.`,
+      `"${describeAIActionSentence(codeDocsCautionLine(AI_ACTION_PLURAL_LINES.codeFilesNotRead))}" Ask AI never read the file it replaces.`,
+      `"${describeAIActionSentence(codeDocsCautionLine(AI_ACTION_PLURAL_LINES.codeFilesNotChecked))}"`,
       "A new file never counts.",
       "To keep what someone else changed, skip the action and ask Ask AI to read the files again.",
-      `In ${autoRunTitle}, where nobody approves actions, Ask AI does not make such a change: it reads the files again and makes its change on them as they are now.`,
+      `**In ${autoRunTitle}.** Where nobody approves actions, Ask AI does not make a change its card would warn about`,
+      "Ask AI reads the files again and makes its change on them as they are now",
       "If a file changes while the card waits for you, approving it changes nothing, and Ask AI proposes the change again.",
       "A pull request you approve anyway lists those files in its description, for whoever reviews it.",
     ]) {
@@ -213,22 +197,32 @@ describe("the Ask AI page on a code change written from an older read (issue #63
       }
       expect(line).toContain(BRANCH);
       expect(line).toContain(FILE);
-      expect(codeBulletOf(language)).toContain(line);
+      expect(codeChangeCautionQuoting(language, line)).toBeDefined();
     });
 
     it("names Auto-run as its Dashboard does", () => {
       const label: unknown = dashboardLocale(language)[autoRunTitle];
 
       expect(typeof label).toBe("string");
-      expect(codeBulletOf(language)).toContain(label as string);
+      expect(codeChangesSectionOf(language)).toContain(label as string);
     });
 
-    it("keeps the bullet it extends: one line, in its place", () => {
-      const lines: Array<string> = readPage(language, PAGE).split("\n");
-      const english: Array<string> = readPage("en", PAGE).split("\n");
+    it("keeps the caution in its place: right after the one about hidden values, where the English page has it", () => {
+      const translator: Translator = translatorFor(language);
+      const hidden: string = describeAIActionSentence(
+        codeDocsCautionLine(
+          AI_ACTION_PLURAL_LINES.codeFilesValuesHidden,
+          "config/servers.ts",
+        ),
+        translator,
+      );
+      const changed: string = describeAIActionSentence(CHANGED, translator);
 
-      expect(lines.indexOf(codeBulletOf(language))).toBe(
-        english.indexOf(codeBulletOf("en")),
+      expect(codeChangeCautionIndex(language, changed)).toBe(
+        codeChangeCautionIndex(language, hidden) + 1,
+      );
+      expect(codeChangeCautionIndex(language, changed)).toBe(
+        codeChangeCautionIndex("en", describeAIActionSentence(CHANGED)),
       );
     });
   });

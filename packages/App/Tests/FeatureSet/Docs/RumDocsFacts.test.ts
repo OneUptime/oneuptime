@@ -489,6 +489,7 @@ describe("RUM Overview: where RUM lives in the Dashboard", () => {
 
     expect(developerItems).toEqual([
       "Terraform",
+      "Crossplane",
       "API",
       "CLI",
       "AI Assistants",

@@ -8,9 +8,11 @@ import {
   CloudAddedMetric,
   CloudAddedMetricDimension,
   CloudAddedMetricScope,
+  CLOUD_MAX_ADDED_METRICS_PER_CONNECTION,
   addCloudAddedMetric,
   getCloudAddedMetricStoredName,
   getCloudAddedMetricsOfResource,
+  keepCloudAddedMetricFor,
   readCloudAddedMetrics,
   removeCloudAddedMetric,
   toStoredCloudAddedMetrics,
@@ -43,7 +45,10 @@ import {
   GCP_RESOURCE_TYPE_ATTRIBUTE,
   buildCloudMonitoredResourceIdentifier,
 } from "../../../Types/Cloud/CloudMonitoredResource";
-import { CloudAddedMetricReaders } from "../../../Types/Cloud/CloudAddedMetricReaders";
+import {
+  CloudAddedMetricKeepBlock,
+  CloudAddedMetricReaders,
+} from "../../../Types/Cloud/CloudAddedMetricReaders";
 import { getAwsDocumentedMetricUnit } from "../../../Types/Cloud/AwsMetricUnits";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
@@ -79,6 +84,7 @@ import {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import CloudConnectionService from "../../Services/CloudConnectionService";
 import CloudResourceService from "../../Services/CloudResourceService";
 import MetricService from "../../Services/MetricService";
@@ -92,6 +98,7 @@ import {
   findAwsMetricUnit,
   listMetrics,
 } from "./Aws/AwsCloudWatch";
+import { getAwsLearnedUnit } from "./Aws/AwsAddedMetricUnits";
 import AzureCloudConnector, {
   AZURE_FIVE_MINUTE_CURSOR,
   SelectedMetric,
@@ -859,6 +866,20 @@ export default class CloudResourceMetrics {
       })
       .join("|");
     const byName: Map<string, CloudPublishedMetric> = new Map();
+    // The unit the connection's reads learned of an addition (#10077), "" for none.
+    const learnedUnitOf: (key: string | undefined) => string = (
+      key: string | undefined,
+    ): string => {
+      return key
+        ? getAwsLearnedUnit({
+            pullState: CloudConnectionPullRunner.readPullState(
+              data.connection.pullState,
+            ),
+            accountId: place.accountId,
+            key,
+          })
+        : "";
+    };
     /*
      * Per metric, its series of one dimension more than the resource's own
      * - a load balancer's per Availability Zone, per target group - by that
@@ -940,8 +961,12 @@ export default class CloudResourceMetrics {
       byName.set(metric.metricName.toLowerCase(), {
         name: metric.metricName,
         namespace: place.namespace,
-        // As its datapoints said when it was added, else as AWS documents it (#9809).
+        /*
+         * As its datapoints carry it, as the reads learned it (#10077), else
+         * as they said when it was added, else as AWS documents it (#9809).
+         */
         unit:
+          learnedUnitOf(status.addedKey) ||
           CloudResourceMetrics.addedUnitOf(data.applying, status.addedKey) ||
           getAwsDocumentedMetricUnit(place.namespace, metric.metricName),
         aggregation: getAwsDefaultStatistic(metric.metricName),
@@ -960,19 +985,20 @@ export default class CloudResourceMetrics {
         continue;
       }
 
+      const splitOnly: string | undefined = CloudResourceMetrics.statusOf({
+        applying: data.applying,
+        namespace: place.namespace,
+        name,
+        isKey: false,
+      }).addedKey;
+
       byName.set(name.toLowerCase(), {
         name,
         namespace: place.namespace,
         unit:
-          CloudResourceMetrics.addedUnitOf(
-            data.applying,
-            CloudResourceMetrics.statusOf({
-              applying: data.applying,
-              namespace: place.namespace,
-              name,
-              isKey: false,
-            }).addedKey,
-          ) || getAwsDocumentedMetricUnit(place.namespace, name),
+          learnedUnitOf(splitOnly) ||
+          CloudResourceMetrics.addedUnitOf(data.applying, splitOnly) ||
+          getAwsDocumentedMetricUnit(place.namespace, name),
         aggregation: getAwsDefaultStatistic(name),
         dimensions: place.dimensions.map(
           (dimension: CloudAddedMetricDimension) => {
@@ -1045,6 +1071,7 @@ export default class CloudResourceMetrics {
           Boolean(data.learnedUnits) &&
           candidate.status === CloudPublishedMetricStatus.Added &&
           Boolean(candidate.addedKey) &&
+          !learnedUnitOf(candidate.addedKey) &&
           !CloudResourceMetrics.addedUnitOf(data.applying, candidate.addedKey)
         );
       })
@@ -1465,10 +1492,14 @@ export default class CloudResourceMetrics {
     return data.listed.aggregation;
   }
 
-  // What a resource's own addition is read by, from what its cloud knows it as.
+  /*
+   * What a resource's own addition is read by, from what its cloud knows it
+   * as: an AWS resource's series by the dimensions its listing found, else
+   * by its own (a type's addition kept for it, #10078).
+   */
   private static resourceIdentityOf(data: {
     target: CloudResourceTarget;
-    listed: CloudPublishedMetric;
+    listed?: CloudPublishedMetric | undefined;
   }): Partial<CloudAddedMetric> {
     const identity: Partial<CloudAddedMetric> = {
       cloudResourceId: data.target.resource.id!.toString(),
@@ -1484,7 +1515,9 @@ export default class CloudResourceMetrics {
 
       identity.accountId = place.accountId;
       identity.region = place.region;
-      identity.dimensions = data.listed.dimensions || [];
+      identity.dimensions =
+        data.listed?.dimensions ||
+        getAwsDimensionsOfAttributes(data.target.attributes);
     } else if (data.target.provider === CloudProvider.GCP) {
       identity.accountId =
         String(data.target.resource.cloudAccountId || "") ||
@@ -1588,17 +1621,24 @@ export default class CloudResourceMetrics {
       );
     }
 
-    const identifiers: Set<string> = new Set<string>(
-      addition.scope === CloudAddedMetricScope.Type
-        ? await CloudResourceMetrics.getResourceIdentifiersOfType({
+    const isTypeWide: boolean = addition.scope === CloudAddedMetricScope.Type;
+    const ofType: Array<{ id: string; name: string; identifier: string }> =
+      isTypeWide
+        ? await CloudResourceMetrics.getResourcesOfType({
             projectId: data.projectId,
             connectionId: target.connection.id!,
             type: target.type,
           })
+        : [];
+    const identifiers: Set<string> = new Set<string>(
+      isTypeWide
+        ? ofType.map((resource: { identifier: string }): string => {
+            return resource.identifier;
+          })
         : [String(target.resource.resourceIdentifier || "").toLowerCase()],
     );
 
-    return await findCloudAddedMetricReaders({
+    const readers: CloudAddedMetricReaders = await findCloudAddedMetricReaders({
       projectId: data.projectId,
       storedName: getCloudAddedMetricStoredName(addition),
       serviceId: target.connection.serviceId?.toString() || null,
@@ -1608,15 +1648,36 @@ export default class CloudResourceMetrics {
         );
       },
       props: data.props,
+      ...(isTypeWide ? { keepForResources: ofType } : {}),
     });
+
+    /*
+     * Kept for its readers' resources alone, each one's own addition takes
+     * the place of its type's: past the connection's cap, it cannot be.
+     */
+    if (
+      readers.keepFor &&
+      !readers.keepFor.blockedBy &&
+      readCloudAddedMetrics(target.connection.addedMetrics).length -
+        1 +
+        readers.keepFor.resources.length >
+        CLOUD_MAX_ADDED_METRICS_PER_CONNECTION
+    ) {
+      readers.keepFor.blockedBy = CloudAddedMetricKeepBlock.ConnectionFull;
+    }
+
+    return readers;
   }
 
-  // The identifiers of the resources of a type the connection reads, in lower case.
-  private static async getResourceIdentifiersOfType(data: {
+  /*
+   * The resources of a type the connection reads: each its row's id, its
+   * name, and its identifier in lower case.
+   */
+  private static async getResourcesOfType(data: {
     projectId: ObjectID;
     connectionId: ObjectID;
     type: string;
-  }): Promise<Array<string>> {
+  }): Promise<Array<{ id: string; name: string; identifier: string }>> {
     const rows: Array<CloudResource> = await CloudResourceService.findBy({
       query: {
         projectId: data.projectId,
@@ -1624,19 +1685,158 @@ export default class CloudResourceMetrics {
         cloudResourceType: data.type,
         isArchived: false,
       },
-      select: { _id: true, resourceIdentifier: true },
+      select: { _id: true, name: true, resourceIdentifier: true },
       limit: 10000,
       skip: 0,
       props: { isRoot: true },
     });
 
     return rows
-      .map((row: CloudResource): string => {
-        return String(row.resourceIdentifier || "").toLowerCase();
+      .map((row: CloudResource) => {
+        return {
+          id: row.id?.toString() || "",
+          name: String(row.name || ""),
+          identifier: String(row.resourceIdentifier || "").toLowerCase(),
+        };
       })
-      .filter((identifier: string): boolean => {
-        return Boolean(identifier);
+      .filter((resource: { id: string; identifier: string }): boolean => {
+        return Boolean(resource.id && resource.identifier);
       });
+  }
+
+  /*
+   * KEEPS A TYPE'S ADDITION FOR SOME OF ITS RESOURCES ALONE (#10078): the
+   * ones its readers read it of, as the dialog that offered it named them.
+   * Each is a resource of its type the connection reads, and is read from
+   * then on by its own addition of the same metric, read the same way - an
+   * AWS one with the unit the reads learned (#10077); the rest stop costing
+   * anything. Refused, with why, for an addition of one resource, a
+   * resource that is not one of its type the connection reads, or past the
+   * connection's cap.
+   */
+  public static async keepFor(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    key: string;
+    cloudResourceIds: Array<string>;
+  }): Promise<{ addedMetrics: Array<CloudAddedMetric> }> {
+    const target: CloudResourceTarget =
+      await CloudResourceMetrics.loadTarget(data);
+
+    if (!target.connection) {
+      throw new BadDataException(
+        "No cloud connection reads this resource, so it has no added metrics.",
+      );
+    }
+
+    const existing: Array<CloudAddedMetric> = readCloudAddedMetrics(
+      target.connection.addedMetrics,
+    );
+    const addition: CloudAddedMetric | undefined =
+      getCloudAddedMetricsOfResource({
+        added: existing,
+        resourceType: target.type,
+        cloudResourceId: target.resource.id!.toString(),
+      }).find((metric: CloudAddedMetric): boolean => {
+        return metric.key === data.key;
+      });
+
+    if (!addition) {
+      throw new BadDataException(
+        "This metric is not added to what this resource's cloud connection reads.",
+      );
+    }
+
+    if (addition.scope !== CloudAddedMetricScope.Type) {
+      throw new BadDataException(
+        CLOUD_ADDED_METRIC_REFUSALS["keepForNotTypeWide"]!,
+      );
+    }
+
+    const ids: Array<string> = Array.from(
+      new Set<string>(
+        data.cloudResourceIds
+          .map((id: string): string => {
+            return String(id || "").trim();
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    if (ids.length === 0) {
+      throw new BadDataException(CLOUD_ADDED_METRIC_REFUSALS["keepForNone"]!);
+    }
+
+    if (ids.length > CLOUD_MAX_ADDED_METRICS_PER_CONNECTION) {
+      throw new BadDataException(
+        CLOUD_ADDED_METRIC_REFUSALS["keepForConnectionFull"]!,
+      );
+    }
+
+    const rows: Array<CloudResource> = await CloudResourceService.findBy({
+      query: {
+        _id: QueryHelper.any(ids),
+        projectId: data.projectId,
+        cloudConnectionId: target.connection.id!,
+        cloudResourceType: target.type,
+        isArchived: false,
+      },
+      select: RESOURCE_SELECT as never,
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    if (rows.length !== ids.length) {
+      throw new BadDataException(
+        CLOUD_ADDED_METRIC_REFUSALS["keepForOtherResource"]!,
+      );
+    }
+
+    const pullState: CloudConnectionPullState =
+      CloudConnectionPullRunner.readPullState(target.connection.pullState);
+    let unit: string = "";
+
+    const resources: Array<Partial<CloudAddedMetric>> = rows.map(
+      (row: CloudResource): Partial<CloudAddedMetric> => {
+        const of: CloudResourceTarget = {
+          resource: row,
+          provider: target.provider,
+          type: target.type,
+          attributes: readAttributes(row.telemetryAttributes),
+          connection: target.connection,
+        };
+        const identity: Partial<CloudAddedMetric> =
+          CloudResourceMetrics.resourceIdentityOf({ target: of });
+
+        // The unit the reads learned of the type's addition, of any of its accounts.
+        unit =
+          unit ||
+          (target.provider === CloudProvider.AWS
+            ? getAwsLearnedUnit({
+                pullState,
+                accountId: identity.accountId,
+                key: addition.key,
+              })
+            : "");
+
+        return identity;
+      },
+    );
+
+    const next: Array<CloudAddedMetric> = keepCloudAddedMetricFor({
+      added: existing,
+      key: addition.key,
+      resources,
+      ...(unit ? { unit } : {}),
+    });
+
+    await CloudResourceMetrics.saveAddedMetrics(target.connection, next);
+
+    return { addedMetrics: next };
   }
 
   // Removes one of the additions that apply to the resource, by its key.
