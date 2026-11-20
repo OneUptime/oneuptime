@@ -128,8 +128,11 @@ export default class ArchivableValueGuard {
       });
 
       /*
-       * The name is taken, as by a value in use, and nothing was written:
-       * said with its code beside its words (NameTakenException, #9855).
+       * The name is taken, and nothing was written: said with its code
+       * beside its words (NameTakenException, #9855). The code says an
+       * archived value has it (#10065): nothing an apply does to the values
+       * in service gives the name up, so the Terraform provider answers at
+       * once, with where to unarchive it, rather than ask again.
        */
       if (archivedNamesake) {
         throw new NameTakenException(
@@ -137,6 +140,7 @@ export default class ArchivableValueGuard {
             definition: data.definition,
             name: name,
           }),
+          { isArchived: true },
         );
       }
     }

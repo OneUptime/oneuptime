@@ -20,6 +20,7 @@ import {
   getNameTakenRefusalText,
   normalizeName,
 } from "../../../Types/Database/UniqueName";
+import { ARCHIVED_COLUMN, isArchivedValue } from "../../../Utils/ArchivableValues";
 
 /*
  * A NAME ONE OF ITS KIND IN ITS PROJECT, ON A CREATE AND ON A RENAME
@@ -297,10 +298,18 @@ export default class UniqueNameInProject {
       ) as unknown as JSONObject;
     }
 
+    /*
+     * Whether the other record is archived is read of every kind that can
+     * be, for the refusal's code (below).
+     */
+    const isArchivable: boolean =
+      data.rules.service.getModel().hasColumn(ARCHIVED_COLUMN);
+
     const clash: TBaseModel | null = await data.rules.service.findOneBy({
       query: query as unknown as Query<TBaseModel>,
       select: {
         ...(data.rules.clashSelect || {}),
+        ...(isArchivable ? { [ARCHIVED_COLUMN]: true } : {}),
         _id: true,
       } as Select<TBaseModel>,
       ...(data.rules.clashSort ? { sort: data.rules.clashSort } : {}),
@@ -323,10 +332,13 @@ export default class UniqueNameInProject {
     /*
      * With its code beside its words (NameTakenException): nothing was
      * written, so a client may ask again once the other record gives the
-     * name up, as the Terraform provider does inside one apply (#9855).
+     * name up, as the Terraform provider does inside one apply (#9855). An
+     * archived one never does in an apply, and its code says so (#10065):
+     * the provider answers at once with where to unarchive it.
      */
     throw new NameTakenException(
       described || getNameTakenRefusalText(data.rules.takenRefusal, data.name),
+      { isArchived: isArchivedValue(clash) },
     );
   }
 }
