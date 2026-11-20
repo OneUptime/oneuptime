@@ -345,7 +345,7 @@ Führen Sie den Befehl erneut aus: Er vergibt die Rollen, die OneUptime braucht.
 :::
 
 :::details Die Rolle lässt die Anmeldung von OneUptime ohne die externe ID Ihres Projekts zu
-Ihre Vertrauensrichtlinie verlangt die externe ID Ihres Projekts nicht mit der Bedingung `sts:ExternalId`, daher könnte jedes Projekt, das den ARN der Rolle kennt, Ihr Konto über OneUptime lesen, und OneUptime verwendet die Rolle nicht. Fügen Sie die Bedingung, die die Meldung zeigt, der Anweisung hinzu, die OneUptime vertraut, oder führen Sie den Befehl erneut aus und verbinden Sie die Rolle, die er ausgibt. Ein Test prüft die Rolle sofort erneut, und sobald er besteht, verwenden Lesevorgänge die Rolle sofort; ohne Test prüfen sie sie innerhalb einer Stunde erneut.
+Ihre Vertrauensrichtlinie verlangt die externe ID Ihres Projekts nicht mit der Bedingung `sts:ExternalId`, daher könnte jedes Projekt, das den ARN der Rolle kennt, Ihr Konto über OneUptime lesen, und OneUptime verwendet die Rolle nicht. Fügen Sie die Bedingung, die die Meldung zeigt, der Anweisung hinzu, die OneUptime vertraut, oder führen Sie den Befehl erneut aus und verbinden Sie die Rolle, die er ausgibt. Ein Test prüft die Rolle sofort erneut, und sobald er besteht, verwenden Lesevorgänge die Rolle umgehend; ohne Test prüfen sie sie innerhalb einer Stunde erneut.
 :::
 
 :::details Google Cloud lässt den Befehl keinen Schlüssel erstellen

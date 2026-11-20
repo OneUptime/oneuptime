@@ -1626,6 +1626,102 @@ describe("the verdict, for every server", () => {
     expect(countOf(fake)).toEqual({ checks: 2, signIns: 1 });
   });
 
+  test("a refusal a server found stands over an older pass the shared cache still holds, when its write did not reach it", async () => {
+    const options: FakeAwsOptions = roleOptions();
+    const fake: FakeAws = createFakeAws(options);
+
+    // Another server's check passed, kept for every server.
+    await onAnotherServer(async (): Promise<void> => {
+      await connector.getCredentials(roleSettings(), callOptions(fake));
+    });
+    expect(sharedVerdictOf()?.["verdict"]).toBe("requires-external-id");
+
+    // The condition is dropped, and this server's test finds it, but the cache is down for the write.
+    options.rolesTakingAnyExternalId = true;
+    later(10 * 60 * 1000);
+    isReachable = false;
+
+    const tested: CloudConnectionTestResult = await connector.testConnection(
+      roleSettings(),
+      callOptions(fake),
+    );
+
+    expect(tested.status).toBe("fail");
+    isReachable = true;
+    // The shared cache still holds the older pass.
+    expect(sharedVerdictOf()?.["verdict"]).toBe("requires-external-id");
+
+    // This server keeps to the refusal it found: nothing is signed in to or read.
+    const refusal: LlmProviderError = await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    expect(refusal.message).toBe(getRoleWithoutExternalIdMessage(PROJECT));
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 1 });
+  });
+
+  test("a pass of an older check, written after a server's refusal, does not hand that server the role", async () => {
+    const fake: FakeAws = createFakeAws(
+      roleOptions({ rolesTakingAnyExternalId: true }),
+    );
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    // Another server's pass, from a check made a moment before, lands after the refusal.
+    shared.set(sharedKeyOf(), {
+      value: JSON.stringify({
+        verdict: "requires-external-id",
+        checkedAtMs: NOW.getTime() - 1000,
+      }),
+      expiresAtMs: clockMs + ROLE_CHECK_PASS_MS,
+    });
+
+    expect(await AwsRoleCheckCache.get(keyOf())).toBe("takes-any-external-id");
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 0 });
+  });
+
+  test("a server's own refusal holds while the shared cache has lost it", async () => {
+    const fake: FakeAws = createFakeAws(
+      roleOptions({ rolesTakingAnyExternalId: true }),
+    );
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    // The shared cache restarted empty.
+    shared.clear();
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+    // Refused as it found, without asking AWS again.
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 0 });
+  });
+
+  test("a server's own pass is not kept over a refusal the shared cache gives back, however old", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+
+    // A refusal checked before this server's pass, still holding.
+    shared.set(sharedKeyOf(), {
+      value: JSON.stringify({
+        verdict: "takes-any-external-id",
+        checkedAtMs: NOW.getTime() - 5 * 60 * 1000,
+      }),
+      expiresAtMs: clockMs + ROLE_CHECK_REFUSAL_MS,
+    });
+
+    expect(await AwsRoleCheckCache.get(keyOf())).toBe("takes-any-external-id");
+    expect(await AssumedRoleCache.get(keyOf())).toBeUndefined();
+  });
+
   test.each([
     ["nothing at all", ""],
     ["text that is not JSON", "requires-external-id"],

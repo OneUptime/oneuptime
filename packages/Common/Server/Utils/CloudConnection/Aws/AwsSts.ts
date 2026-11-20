@@ -79,6 +79,10 @@ import {
  *     own last check found, or checks afresh: never to a pass it did not
  *     find. A value read back that is not a verdict of this file's writing
  *     is none, and the role is checked again.
+ *   - A refusal a server found stands for it until a check made after it
+ *     passes: neither a write of it that did not reach the shared cache,
+ *     nor a pass of an older check written there after it, lets that
+ *     server use a role it found taking any id.
  *
  * The probe is not Cloud Connect's alone: anything that signs in to a
  * customer's role with OneUptime's identity (a project's Amazon SES role,
@@ -491,13 +495,21 @@ function describeCacheError(error: unknown): string {
  * Kept in the shared cache (GlobalCache), for every server, and read back
  * from it while it can be reached: whichever server checked a connection's
  * role last, and a test of it, decides for all (#10424). Each server also
- * keeps the verdicts of its own checks, to keep to when the shared cache
- * cannot be reached; a verdict it only read is never one of them, so an
- * outage hands no server a pass it did not find.
+ * keeps the verdicts of its own checks: what it keeps to when the shared
+ * cache cannot be reached, and a refusal of its own that stands over an
+ * older pass the shared cache gives back. A verdict it only read is never
+ * one of them, so an outage hands no server a pass it did not find.
  */
 export class AwsRoleCheckCache {
   // This server's own checks: what it keeps to while the shared cache is down.
   private static ownVerdicts: Map<string, KeptRoleCheck> = new Map();
+
+  // Whether a check is a refusal this server found, that holds now.
+  private static isOwnRefusal(
+    own: KeptRoleCheck | undefined,
+  ): own is KeptRoleCheck {
+    return own?.verdict === "takes-any-external-id";
+  }
 
   public static async get(
     key: string,
@@ -513,11 +525,26 @@ export class AwsRoleCheckCache {
         )}).`,
       );
 
-      return this.getOwn(key);
+      return this.getOwn(key)?.verdict;
     }
 
-    // When the shared cache answers, its verdict is the one: none is none.
-    return readKeptRoleCheck(shared, Date.now())?.verdict;
+    const kept: KeptRoleCheck | null = readKeptRoleCheck(shared, Date.now());
+    const own: KeptRoleCheck | undefined = this.getOwn(key);
+
+    /*
+     * A refusal this server found stands until a check made after it
+     * passed: its write may not have reached the shared cache, or a pass of
+     * an older check may have been written there after it.
+     */
+    if (
+      this.isOwnRefusal(own) &&
+      (!kept || kept.checkedAtMs <= own.checkedAtMs)
+    ) {
+      return own.verdict;
+    }
+
+    // Otherwise the shared cache's verdict is the one: none is none.
+    return kept?.verdict;
   }
 
   public static async set(
@@ -562,7 +589,8 @@ export class AwsRoleCheckCache {
     this.ownVerdicts.clear();
   }
 
-  private static getOwn(key: string): AwsRoleCheckVerdict | undefined {
+  // This server's own last check of a key, while it holds.
+  private static getOwn(key: string): KeptRoleCheck | undefined {
     const kept: KeptRoleCheck | undefined = this.ownVerdicts.get(key);
 
     if (!kept) {
@@ -574,7 +602,7 @@ export class AwsRoleCheckCache {
       return undefined;
     }
 
-    return kept.verdict;
+    return kept;
   }
 }
 
