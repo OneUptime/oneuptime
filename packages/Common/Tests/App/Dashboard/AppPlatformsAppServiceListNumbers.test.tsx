@@ -136,6 +136,7 @@ import CloudAppsTable from "../../../../App/FeatureSet/Dashboard/src/Components/
 import {
   APP_NO_TRACES_HINT,
   APP_PLATFORM_SIGNALS_HINT,
+  CloudAppSignalsSummaryCell,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/CloudAppCells";
 import {
   AppServiceMetric,
@@ -722,5 +723,79 @@ describe("All Apps", () => {
     expect(column?.headerTooltip).toContain(
       "An App Service app that sends no traces shows its site's numbers from Azure Monitor",
     );
+  });
+});
+
+describe("the Last hour cell, drawn alone", () => {
+  const NO_TRACED_REQUESTS: {
+    requests: number;
+    errors: number;
+    errorRatePercent: number | null;
+    p95Ms: number | null;
+  } = { requests: 0, errors: 0, errorRatePercent: null, p95Ms: null };
+
+  test("a refresh keeps the site's numbers on screen until the new ones are in", () => {
+    render(
+      <CloudAppSignalsSummaryCell
+        signals={NO_TRACED_REQUESTS}
+        hasTraces={false}
+        platformSignals={{
+          requests: 40,
+          serverErrors: 0,
+          serverErrorRatePercent: 0,
+          responseTimeMs: 90,
+        }}
+        isLoadingPlatformSignals={true}
+      />,
+    );
+
+    expect(screen.getByTestId("cloud-app-platform-signals")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("cloud-app-platform-signals-loading"),
+    ).toBeNull();
+  });
+
+  test("a site that answered requests but no 5xx point was read says its requests first, never 0% server errors", () => {
+    render(
+      <CloudAppSignalsSummaryCell
+        signals={NO_TRACED_REQUESTS}
+        hasTraces={false}
+        platformSignals={{
+          requests: 40,
+          serverErrors: null,
+          serverErrorRatePercent: null,
+          responseTimeMs: null,
+        }}
+      />,
+    );
+
+    expect(
+      textOf(document.body, "cloud-app-platform-requests"),
+    ).toBe("40 requests");
+    expect(
+      screen.queryByTestId("cloud-app-platform-server-errors"),
+    ).toBeNull();
+    expect(screen.queryByTestId("cloud-app-platform-response-time")).toBeNull();
+    expect(textOf(document.body, "cloud-app-platform-source")).toBe(
+      "Azure Monitor",
+    );
+  });
+
+  test("an app whose traced requests are in keeps them, whatever its site measured", () => {
+    render(
+      <CloudAppSignalsSummaryCell
+        signals={{ requests: 10, errors: 0, errorRatePercent: 0, p95Ms: 30 }}
+        hasTraces={false}
+        platformSignals={{
+          requests: 40,
+          serverErrors: 0,
+          serverErrorRatePercent: 0,
+          responseTimeMs: 90,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("cloud-app-signals")).toBeInTheDocument();
+    expect(screen.queryByTestId("cloud-app-platform-signals")).toBeNull();
   });
 });

@@ -480,7 +480,6 @@ export default class CloudApp extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ObjectID,
-    canReadOnRelationQuery: true,
     title: "Platform Cloud Resource ID",
     description:
       "ID of the Cloud Resource this app runs as in its cloud's monitoring, such as an Azure App Service app's site. Set by OneUptime.",

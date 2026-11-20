@@ -174,7 +174,7 @@ SDK の検出器はプラットフォームをドット付きの `azure.app_serv
 | スタック | その App Service リソース検出器 |
 | --- | --- |
 | .NET | `OpenTelemetry.Resources.Azure` と `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
-| Java | OpenTelemetry Java エージェント と `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Java | OpenTelemetry Java エージェントと `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
 | Node.js | `@opentelemetry/auto-instrumentations-node` と `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
 | Python | `opentelemetry-resource-detector-azure` と `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 

@@ -472,7 +472,8 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
   const signals: CloudAppSignals = props.signals;
 
   if (signals.requests <= 0 && props.hasTraces === false) {
-    if (props.isLoadingPlatformSignals) {
+    // A refresh keeps what the cell shows until the new numbers are in.
+    if (props.isLoadingPlatformSignals && !props.platformSignals) {
       return (
         <span data-testid="cloud-app-platform-signals-loading">
           <InlineValueSkeleton widthClassName="w-24" />
