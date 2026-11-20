@@ -520,7 +520,13 @@ describe("an invitation into a project that manages sign-in with SSO is emailed 
     });
   });
 
-  test("someone signed up already: Sign In with SSO, on Sign in with SSO", async () => {
+  /*
+   * Someone who has signed up is sent to the project's own SSO page, which
+   * lists its providers (#10178) - on OneUptime Cloud with a single-use link
+   * of their own (InvitationSsoSignInLink.test.ts holds it), on a
+   * self-hosted server, which asks no mailbox, without one.
+   */
+  test("someone signed up already: Sign In with SSO, on the project's own SSO page", async () => {
     findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
     const asked: jest.SpyInstance = jest
       .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
@@ -529,9 +535,13 @@ describe("an invitation into a project that manages sign-in with SSO is emailed 
     await callHook(TeamMemberService, "onBeforeCreate", inviteBy());
 
     const vars: Record<string, string> = emailVars();
+    const page: string = `https://oneuptime.test/accounts/sso/${PROJECT_ID.toString()}`;
 
     expect(vars["isSsoSignIn"]).toBe("true");
-    expect(vars["ssoSignInLink"]).toBe("https://oneuptime.test/accounts/sso");
+    expect(
+      vars["ssoSignInLink"] === page ||
+        vars["ssoSignInLink"]!.startsWith(`${page}?invitation=`),
+    ).toBe(true);
     // Their own projects count: asked about this account.
     expect(String(asked.mock.calls[0]![0]["userId"])).toBe(USER_ID.toString());
   });

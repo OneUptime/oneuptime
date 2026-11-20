@@ -8,6 +8,8 @@ import SignUpAttempt, {
   SignUpAttemptRecord,
 } from "../Utils/SignUpAttempt";
 import SignUpInvitationUtil from "../Utils/SignUpInvitation";
+import InvitationSsoSignIn from "../Utils/InvitationSsoSignIn";
+import { INVITATION_SSO_SIGN_IN_ROUTE } from "Common/Types/Accounts/InvitationSsoSignIn";
 import UserResponse from "../Utils/UserResponse";
 import {
   SIGN_UP_INVITATION_PROJECT_KEY,
@@ -735,6 +737,47 @@ router.post(
       await SignUpInvitationUtil.confirmSsoSignIn({
         email: req.body?.["email"],
         token: req.body?.["token"],
+        projectId: req.body?.["projectId"],
+      });
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * POST /invitation-sso-sign-in: the project's SSO page an invitation opens
+ * for someone who has signed up already, as its person picks one of the
+ * project's providers (#10178, Common/Types/Accounts/InvitationSsoSignIn),
+ * with the invitation's single-use link - its token and signature - and the
+ * project. On OneUptime Cloud the link is taken as the mailbox's
+ * confirmation of that project's single sign-on (InvitationSsoSignIn), with
+ * the checks the sign-up page's link is held to, so the provider signs them
+ * in the first time, with no second email; on a self-hosted server nothing
+ * is written. Nobody is signed in to ask: the link is the proof of the
+ * invited mailbox, and its signature is checked before anything is read.
+ *
+ * Every request is answered alike - the same empty success, with no
+ * caching - whatever came of it, as /sign-up-invitation/sso is, and behind
+ * the same limiter, on its bucket. The page goes on to the provider either
+ * way.
+ */
+router.post(
+  INVITATION_SSO_SIGN_IN_ROUTE,
+  signUpInvitationRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      await InvitationSsoSignIn.confirm({
+        token: req.body?.["token"],
+        signature: req.body?.["signature"],
         projectId: req.body?.["projectId"],
       });
 

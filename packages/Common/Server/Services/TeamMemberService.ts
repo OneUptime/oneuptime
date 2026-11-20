@@ -27,6 +27,7 @@ import PublicMessageRateLimit, {
 import InvitationEmailWindow, {
   InvitationEmailWindowClaim,
 } from "../Utils/TeamMember/InvitationEmailWindow";
+import InvitationSsoSignInLink from "../Utils/TeamMember/InvitationSsoSignInLink";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Exception from "../../Types/Exception/Exception";
 import AccessTokenService from "./AccessTokenService";
@@ -1274,15 +1275,15 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
     const ssoSignInLink: string = needsRegistration
       ? registerLink
-      : URL.fromString(
-          new URL(
-            httpProtocol,
-            host,
-            new Route(AccountsRoute.toString()),
-          ).toString(),
-        )
-          .addRoute("/sso")
-          .toString();
+      : await TeamMemberService.getSignedUpSsoSignInLink({
+          ssoManagedBy: ssoManagedBy,
+          user: user,
+          email: email,
+          projectId: data.projectId,
+          isAccepted: data.isAccepted,
+          host: host,
+          httpProtocol: httpProtocol,
+        });
 
     return {
       toEmail: email,
@@ -1330,6 +1331,63 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         isSelfHosted: !IsBillingEnabled,
       }),
     };
+  }
+
+  /*
+   * Where an invitation's Sign In with SSO opens for someone who has signed
+   * up already (#10178):
+   *
+   *   - when the project's single sign-on manages their sign-in, the
+   *     project's own SSO page, which lists its providers
+   *     (/accounts/sso/<project id>, #9918) - "Sign in with SSO" finds them
+   *     only by the address's verified domain, so found nothing for an
+   *     address on another domain - and, on OneUptime Cloud, with a
+   *     single-use link of their own (InvitationSsoSignInLink): picking a
+   *     provider there confirms the project's single sign-on, so the
+   *     provider signs them in the first time, with no second email. Not
+   *     for an invitation accepted for them, which has nothing to accept,
+   *     and not on a self-hosted server, which asks no mailbox;
+   *   - else "Sign in with SSO" (/accounts/sso), as before: the server
+   *     requires single sign-on, and its own providers sign them in.
+   *
+   * Minted with the email, after the request (#10180), and only into it.
+   */
+  private static async getSignedUpSsoSignInLink(data: {
+    ssoManagedBy: SsoManagedBy | null;
+    user: User;
+    email: Email;
+    projectId: ObjectID;
+    isAccepted: boolean;
+    host: Hostname;
+    httpProtocol: Protocol;
+  }): Promise<string> {
+    if (data.ssoManagedBy !== SsoManagedBy.Projects) {
+      return URL.fromString(
+        new URL(
+          data.httpProtocol,
+          data.host,
+          new Route(AccountsRoute.toString()),
+        ).toString(),
+      )
+        .addRoute("/sso")
+        .toString();
+    }
+
+    if (!IsBillingEnabled || data.isAccepted || !data.user.id) {
+      return InvitationSsoSignInLink.getPageUrl({
+        host: data.host,
+        httpProtocol: data.httpProtocol,
+        projectId: data.projectId,
+      });
+    }
+
+    return await InvitationSsoSignInLink.mint({
+      userId: data.user.id,
+      email: data.email,
+      projectId: data.projectId,
+      host: data.host,
+      httpProtocol: data.httpProtocol,
+    });
   }
 
   /*
