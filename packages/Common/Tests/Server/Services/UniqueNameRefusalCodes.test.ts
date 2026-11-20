@@ -56,32 +56,37 @@ const PARENT_ID: ObjectID = new ObjectID(
 
 type ModelType = { new (): BaseModel };
 
+// A kind whose name is one of its kind, and the columns it is one within.
+interface NamedKind {
+  type: ModelType;
+  scope: Array<string>;
+}
+
 interface UniqueChecks {
   checkUniqueColumnBy: (createBy: CreateBy<BaseModel>) => Promise<unknown>;
 }
 
 // The kinds whose model holds its name one of its kind, and in what.
-const NAMED_KINDS: Array<{ type: ModelType; scope: Array<string> }> =
-  AllModelTypes.map((type: ModelType) => {
-    const scope: string | Array<string> | undefined = getUniqueColumnBy(
-      new type(),
-      "name",
-    );
+const NAMED_KINDS: Array<NamedKind> = AllModelTypes.map((type: ModelType) => {
+  const scope: string | Array<string> | undefined = getUniqueColumnBy(
+    new type(),
+    "name",
+  );
 
-    return {
-      type: type,
-      scope: scope === undefined ? [] : Array.isArray(scope) ? scope : [scope],
-    };
-  }).filter((kind: { scope: Array<string> }): boolean => {
-    return kind.scope.length > 0;
-  });
+  return {
+    type: type,
+    scope: scope === undefined ? [] : Array.isArray(scope) ? scope : [scope],
+  };
+}).filter((kind: { scope: Array<string> }): boolean => {
+  return kind.scope.length > 0;
+});
 
 const nameOf: (type: ModelType) => string = (type: ModelType): string => {
   return new type().tableName || type.name;
 };
 
 // A new record of the kind, named Primary, in its project and its parent.
-function newRecord(kind: { type: ModelType; scope: Array<string> }): BaseModel {
+function newRecord(kind: NamedKind): BaseModel {
   const record: BaseModel = new kind.type();
   const fields: Record<string, unknown> = record as unknown as Record<
     string,
@@ -223,12 +228,12 @@ describe("a kind whose model holds its name one of its kind (@UniqueColumnBy)", 
   });
 
   test.each(
-    NAMED_KINDS.map((kind: { type: ModelType; scope: Array<string> }) => {
+    NAMED_KINDS.map((kind: NamedKind): [string, NamedKind] => {
       return [nameOf(kind.type), kind];
     }),
   )(
     "%s: a create onto a name a record in service has is refused with name_taken, in its words as before",
-    async (_table: string, kind: { type: ModelType; scope: Array<string> }) => {
+    async (_table: string, kind: NamedKind) => {
       const { service } = serviceWith(kind.type, { isArchived: false });
 
       const error: unknown = await refusalOf(create(service, newRecord(kind)));
@@ -241,14 +246,14 @@ describe("a kind whose model holds its name one of its kind (@UniqueColumnBy)", 
   );
 
   test.each(
-    NAMED_KINDS.filter((kind: { type: ModelType }): boolean => {
+    NAMED_KINDS.filter((kind: NamedKind): boolean => {
       return new kind.type().hasColumn(ARCHIVED_COLUMN);
-    }).map((kind: { type: ModelType; scope: Array<string> }) => {
+    }).map((kind: NamedKind): [string, NamedKind] => {
       return [nameOf(kind.type), kind];
     }),
   )(
     "%s: a create onto a name only an archived record has is refused with name_taken_by_archived, and says so",
-    async (_table: string, kind: { type: ModelType; scope: Array<string> }) => {
+    async (_table: string, kind: NamedKind) => {
       const { service } = serviceWith(kind.type, { isArchived: true });
 
       const error: unknown = await refusalOf(create(service, newRecord(kind)));
@@ -261,10 +266,11 @@ describe("a kind whose model holds its name one of its kind (@UniqueColumnBy)", 
   );
 
   test("a kind that cannot be archived is never asked whether the other record is", async () => {
-    const kind: { type: ModelType; scope: Array<string> } | undefined =
-      NAMED_KINDS.find((named: { type: ModelType }): boolean => {
+    const kind: NamedKind | undefined = NAMED_KINDS.find(
+      (named: { type: ModelType }): boolean => {
         return !new named.type().hasColumn(ARCHIVED_COLUMN);
-      });
+      },
+    );
 
     expect(kind).toBeDefined();
 
@@ -385,7 +391,9 @@ describe("a taken value of a unique column that is not a name", () => {
 describe("a value named as an archived one (ArchivableValueGuard)", () => {
   test.each(
     Object.values(ARCHIVABLE_VALUES).map(
-      (definition: ArchivableValueDefinition) => {
+      (
+        definition: ArchivableValueDefinition,
+      ): [string, ArchivableValueDefinition] => {
         return [definition.tableName, definition];
       },
     ),
