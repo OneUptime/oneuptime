@@ -55,6 +55,26 @@ export const getPromQLMonitorSeriesNames: (
   });
 };
 
+/*
+ * "instance = a:9090, job = api": the series an incident or alert keeps
+ * the labels of, as its card says what it is narrowed to - in label order,
+ * as MetricSeriesScope says a grouped series. "" for none.
+ */
+export const getPromQLSeriesSummary: (
+  seriesLabels: JSONObject | null | undefined,
+) => string = (seriesLabels: JSONObject | null | undefined): string => {
+  if (!seriesLabels) {
+    return "";
+  }
+
+  return Object.keys(seriesLabels)
+    .sort()
+    .map((name: string): string => {
+      return `${name} = ${String(seriesLabels[name])}`;
+    })
+    .join(", ");
+};
+
 // Whether two label sets hold the same labels, each with the same value.
 const isSameLabels: (a: PromQLLabels, b: JSONObject) => boolean = (
   a: PromQLLabels,

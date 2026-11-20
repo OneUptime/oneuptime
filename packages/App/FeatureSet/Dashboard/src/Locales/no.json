@@ -60450,5 +60450,7 @@
   "{{unitName}} is active on {{hostName}}": "{{unitName}} er aktiv på {{hostName}}",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} er ikke aktiv på {{hostName}}",
   "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} på {{hostName}} rapporterer ikke lenger",
-  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Velg kodelageret som inneholder koden for denne tjenesten. OneUptime AI åpner en pull request der."
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Velg kodelageret som inneholder koden for denne tjenesten. OneUptime AI åpner en pull request der.",
+  "Showing the first {{count}} series this expression returns.": "Viser de første {{count}} seriene dette uttrykket returnerer.",
+  "Showing the first {{count}} series this expression returns._one": "Viser den første serien dette uttrykket returnerer ({{count}})."
 }

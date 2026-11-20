@@ -60450,5 +60450,7 @@
   "{{unitName}} is active on {{hostName}}": "{{unitName}} está activa en {{hostName}}",
   "{{unitName}} is not active on {{hostName}}": "{{unitName}} no está activa en {{hostName}}",
   "{{unitName}} stopped reporting on {{hostName}}": "{{unitName}} dejó de informar en {{hostName}}",
-  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Elige el repositorio que contiene el código de este servicio. OneUptime AI abrirá allí una solicitud de incorporación de cambios."
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Elige el repositorio que contiene el código de este servicio. OneUptime AI abrirá allí una solicitud de incorporación de cambios.",
+  "Showing the first {{count}} series this expression returns.": "Se muestran las primeras {{count}} series que devuelve esta expresión.",
+  "Showing the first {{count}} series this expression returns._one": "Se muestra la primera serie que devuelve esta expresión ({{count}})."
 }

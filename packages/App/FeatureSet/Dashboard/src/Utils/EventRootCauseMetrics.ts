@@ -6,6 +6,7 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import { MonitorStepMetricMonitorUtil } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
@@ -76,6 +77,11 @@ export interface RootCauseMetrics {
   // "host.name = prod-01": what the charts were narrowed to; "" when nothing.
   seriesSummary: string;
   /*
+   * The series the event opened for, by its labels: what a PromQL monitor's
+   * card charts alone (issue #10227).
+   */
+  seriesLabels?: JSONObject | null | undefined;
+  /*
    * Set when the event kept no metric snapshot and the card charts its
    * monitor as the monitor reads now: the resource that monitor watches,
    * by name ("" when it names none), for the card to say so.
@@ -109,6 +115,19 @@ type HasQueriesFunction = (
 const hasMetric: HasQueriesFunction = (
   queryConfigs: Array<MetricQueryConfigData> | null | undefined,
 ): boolean => {
+  /*
+   * A PromQL step's snapshot names no metric: its one query is the
+   * expression the check evaluated (issue #10227), which the card charts.
+   */
+  if (
+    MonitorStepMetricMonitorUtil.getPromQLQueryOfViewConfig({
+      queryConfigs: queryConfigs || [],
+      formulaConfigs: [],
+    })
+  ) {
+    return true;
+  }
+
   return (queryConfigs || []).some(
     (queryConfig: MetricQueryConfigData): boolean => {
       return Boolean(
@@ -206,6 +225,7 @@ export function getRootCauseMetrics(
         seriesLabels: input.seriesLabels,
         unsetLabel: input.unsetLabel,
       }),
+      seriesLabels: input.seriesLabels,
       chartedFromMonitorNow: undefined,
     };
   }
@@ -242,6 +262,7 @@ export function getRootCauseMetrics(
       seriesLabels: input.seriesLabels,
       unsetLabel: input.unsetLabel,
     }),
+    seriesLabels: input.seriesLabels,
     chartedFromMonitorNow: {
       resourceName: getMonitorResourceName(
         MonitorStepMetricQueries.getSettings({
