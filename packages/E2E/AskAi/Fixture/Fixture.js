@@ -36,6 +36,9 @@
  *                    the conversation since (issue #6570), and one read
  *                    whole in two parts, the first left out since (issue
  *                    #6984);
+ *                    code-skipped, one whose commit of a file changed
+ *                    since Ask AI read it Auto-run did not make: its
+ *                    Skipped row says why under its title (issue #6982);
  *                    monitors, "Which monitors are down right now?"
  *                    answered with two monitors read by id - one
  *                    Offline, one whose monitoring is off - and the
@@ -137,6 +140,7 @@ import {
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
   AI_ACTION_CODE_FILE,
+  AI_ACTION_CODE_NOT_MADE,
   AI_ACTION_LINES,
   AI_ACTION_NAME,
   AI_ACTION_NEW_MONITOR,
@@ -212,6 +216,7 @@ const threadKind = [
   "rich",
   "actions",
   "code",
+  "code-skipped",
   "monitors",
   "readcards",
   "setup",
@@ -633,6 +638,54 @@ function codeChangeAction(status) {
     isMutation: true,
     requiresApproval: true,
     status,
+  };
+}
+
+/*
+ * A commit of one file on fix/login that Auto-run did not make, as the
+ * server stores it (ChatAgentRunner, CodeFilesSeen): Skipped, with the
+ * caution its card would have shown and the reason its row says under its
+ * title, in the reader's language (issue #6982). Its English is the
+ * summary exports and AI Logs print.
+ */
+const CODE_NOT_MADE_REASON =
+  AI_ACTION_CODE_NOT_MADE.notCommittedChangedSinceRead;
+
+const CODE_SKIPPED_WORDS = {
+  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 1, {
+    branch: CODE_BRANCH,
+  }),
+  description: [
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead,
+      1,
+      {
+        branch: CODE_BRANCH,
+        files: codeFiles(["src/billing/refund.ts"]),
+      },
+    ),
+  ],
+  reason: aiActionSentence(CODE_NOT_MADE_REASON),
+};
+
+function codeChangeSkippedAction() {
+  const english = describeAIActionWords(CODE_SKIPPED_WORDS);
+
+  return {
+    id: "call_commit_skipped_1",
+    toolName: "commit_code_to_branch",
+    title: english.title,
+    description: english.description,
+    words: CODE_SKIPPED_WORDS,
+    arguments: {
+      branchName: CODE_BRANCH,
+      commitMessage: "fix: round refunds to the cent",
+      changes: [{ filePath: "src/billing/refund.ts", content: "export {};\n" }],
+    },
+    isMutation: true,
+    requiresApproval: false,
+    status: AIChatToolActionStatus.Skipped,
+    resultSummary: CODE_NOT_MADE_REASON,
   };
 }
 
@@ -1072,6 +1125,8 @@ let richConversation = null;
 let actionsConversation = null;
 // The conversation waiting to commit three files (?thread=code).
 let codeConversation = null;
+// The conversation whose commit Auto-run did not make (?thread=code-skipped).
+let codeSkippedConversation = null;
 // The conversation waiting on a setup plan (?thread=setup).
 let setupConversation = null;
 // The same in a project that pages people already (?thread=setup-busy).
@@ -1735,6 +1790,24 @@ function seedHistory() {
     });
   }
 
+  if (threadKind === "code-skipped") {
+    codeSkippedConversation = conversationOf("Round refunds to the cent", 4);
+    messageOf(codeSkippedConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: "Refunds are off by a cent. Fix it on fix/login.",
+      createdAt: minutesAgo(4),
+    });
+    messageOf(
+      codeSkippedConversation.id.toString(),
+      AIChatMessageRole.Assistant,
+      {
+        contentInMarkdown:
+          "I did not commit the fix: src/billing/refund.ts changed on fix/login after I read it. I will read it again and make the change on it as it is now.",
+        toolActions: [codeChangeSkippedAction()],
+        createdAt: minutesAgo(4),
+      },
+    );
+  }
+
   if (threadKind === "setup") {
     setupConversation = conversationOf("Monitor example.com and text me", 2);
     messageOf(setupConversation.id.toString(), AIChatMessageRole.User, {
@@ -1871,6 +1944,7 @@ fixture.conversationIds = {
   rich: richConversation?.id.toString(),
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
+  "code-skipped": codeSkippedConversation?.id.toString(),
   monitors: monitorsConversation?.id.toString(),
   readcards: readCardsConversation?.id.toString(),
   setup: setupConversation?.id.toString(),
