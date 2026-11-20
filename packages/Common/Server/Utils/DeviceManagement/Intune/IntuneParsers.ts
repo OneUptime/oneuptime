@@ -178,7 +178,8 @@ export function parseIntuneDevice(
   /*
    * In bytes, as Graph gives them, for how full it is (#10008). Graph's
    * free space is 0 until the device reports it: that is no figure.
-   * Intune's device list says nothing of a battery.
+   * Intune's device list says nothing of a battery: an iPhone's or an
+   * iPad's is asked of the device alone (parseIntuneBatteryLevel, #10287).
    */
   Object.assign(
     details,
@@ -327,6 +328,35 @@ export function parseIntuneDetectedApps(value: unknown): Array<ProviderApp> {
   }
 
   return apps;
+}
+
+/*
+ * One device's battery, in percent, as beta's single-device GET with
+ * $select=id,hardwareInformation answers it (#10287): its
+ * hardwareInformation.batteryLevelPercentage, "between 0.0 and 100, or
+ * null if the battery level cannot be determined", which Intune fills per
+ * check-in, on iOS and iPadOS alone, and only where it has the device's
+ * Device Information access right. Whole, 1 to 100; null for none, for 0
+ * (no device at 0% checks in) and for anything else. The device at the
+ * answer's top level, or under "value" as the reference's example writes
+ * it.
+ */
+export function parseIntuneBatteryLevel(value: unknown): number | null {
+  const answer: JSONObject = asObject(value);
+  const device: JSONObject =
+    answer["hardwareInformation"] === undefined &&
+    asObject(answer["value"])["hardwareInformation"] !== undefined
+      ? asObject(answer["value"])
+      : answer;
+  const level: number | null = readNumber(
+    asObject(device["hardwareInformation"])["batteryLevelPercentage"],
+  );
+
+  if (level === null || level <= 0 || level > 100) {
+    return null;
+  }
+
+  return Math.max(1, Math.round(level));
 }
 
 /*

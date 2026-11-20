@@ -61,6 +61,8 @@ Listans sidomeny har sidorna som tar hand om alla dina instrumentpaneler:
 | **Delning** | Vem som kan se den, dess offentliga länk och en IP-tillåtelselista under Fler inställningar. |
 | **Varumärke** | Sidtitel, beskrivning, logotyp, tema och favicon för den offentliga instrumentpanelen. |
 | **Anpassade domäner** | Lägg den offentliga instrumentpanelen på din egen domän. |
+| **Privata användare** | De personer som får logga in på den offentliga länken, när bara personer som loggar in kan se den. |
+| **Enkel inloggning** | SAML- och OpenID Connect-leverantörerna de loggar in med, och **Kräv SSO för inloggning**. |
 | **Inställningar** | Duplicera, exportera eller arkivera instrumentpanelen. |
 | **Ägare** | Användarna och teamen som äger den. |
 | **Granskningsloggar** | Varje ändring som gjorts på instrumentpanelen, och vem som gjorde den. |

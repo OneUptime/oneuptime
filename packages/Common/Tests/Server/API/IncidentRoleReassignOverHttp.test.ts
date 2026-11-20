@@ -27,13 +27,17 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodeRoleMemberService, {
   ALREADY_HOLDS_EPISODE_ROLE_MESSAGE,
+  ALREADY_HOLDS_TARGET_EPISODE_ROLE_MESSAGE,
 } from "../../../Server/Services/IncidentEpisodeRoleMemberService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentMemberService, {
   ALREADY_HOLDS_INCIDENT_ROLE_MESSAGE,
+  ALREADY_HOLDS_TARGET_ROLE_MESSAGE,
+  MOVE_ONE_ROLE_AT_A_TIME_MESSAGE,
   REASSIGN_ONE_ROLE_AT_A_TIME_MESSAGE,
   ROLE_HOLDER_REQUIRED_MESSAGE,
+  ROLE_REQUIRED_MESSAGE,
 } from "../../../Server/Services/IncidentMemberService";
 import IncidentRoleService from "../../../Server/Services/IncidentRoleService";
 import IncidentService from "../../../Server/Services/IncidentService";
@@ -745,6 +749,274 @@ describe("what the server refuses of a hand-over", () => {
   });
 });
 
+/*
+ * A PERSON MOVED TO ANOTHER ROLE IN ONE CHANGE (#10274). An update of a
+ * role row's role - through the API, Terraform or a workflow's Update step
+ * (Edit Incident Member) - wrote nothing to the feed, told nobody, and
+ * left the incident's channels as they were. It is now said as Reassign
+ * says a hand-over: one entry by whoever made it, the person told of the
+ * role they hold now and brought into the channels, and refused where it
+ * would leave them holding a role twice.
+ */
+describe("PUT /api/incident-member/:id moves someone to another role in one change (#10274)", () => {
+  const responderRow: () => StoredRow = (): StoredRow => {
+    return members.get(RESPONDER_ROW_ID)!;
+  };
+
+  const MOVED_SAM: string = `👤 Moved **${personLink(SAM_ID)}** from **Responder** to **Incident Commander** on ${INCIDENT_LINK}.`;
+
+  test("Sam is moved from Responder to Incident Commander: the same row names the role, and keeps its person", async () => {
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBe(200);
+
+    // One write of one row: never a delete and a create.
+    expect(members.deletes).toHaveLength(0);
+    expect(members.inserts).toHaveLength(0);
+    expect(members.updates).toHaveLength(1);
+    expect(idOf(members.updates[0]!.id)).toBe(RESPONDER_ROW_ID);
+
+    expect(idOf(responderRow()["incidentRoleId"])).toBe(COMMANDER_ROLE_ID);
+    expect(idOf(responderRow()["userId"])).toBe(SAM_ID);
+    expect(idOf(responderRow()["incidentId"])).toBe(INCIDENT_ID);
+    // Maya's row is not touched.
+    expect(idOf(commanderRow()["userId"])).toBe(MAYA_ID);
+    expect(idOf(commanderRow()["incidentRoleId"])).toBe(COMMANDER_ROLE_ID);
+  });
+
+  test("the feed says it in one entry, by whoever moved them, from the role they held to the one they hold now", async () => {
+    await handOn(RESPONDER_ROW_ID, { incidentRoleId: COMMANDER_ROLE_ID });
+
+    expect(
+      feedItems.map((item: { markdown: string }): string => {
+        return item.markdown;
+      }),
+    ).toEqual([MOVED_SAM]);
+    expect(feedItems[0]!.incidentId).toBe(INCIDENT_ID);
+
+    const data: JSONObject = feedItems[0]!.data;
+    // Its author is the person who made the change, said in the channels too.
+    expect(String(data["userId"]).toLowerCase()).toBe(ANA_ID);
+    expect(data["incidentFeedEventType"]).toBe(
+      IncidentFeedEventType.IncidentMemberAdded,
+    );
+    expect(data["workspaceNotification"]).toEqual({
+      sendWorkspaceNotification: true,
+      leadWithAuthor: true,
+    });
+  });
+
+  test("they are told of the role they hold now: the row is marked not told yet, for the job that tells them", async () => {
+    await handOn(RESPONDER_ROW_ID, { incidentRoleId: COMMANDER_ROLE_ID });
+
+    expect(members.updates[0]!.set["isMemberNotified"]).toBe(false);
+    expect(responderRow()["isMemberNotified"]).toBe(false);
+  });
+
+  test("they join the incident's channels whose rules add the people given a role", async () => {
+    await handOn(RESPONDER_ROW_ID, { incidentRoleId: COMMANDER_ROLE_ID });
+
+    // The invites go out in the background.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(invites).toEqual([{ incidentId: INCIDENT_ID, userIds: [SAM_ID] }]);
+  });
+
+  test("somebody moving themselves reads as moving - never 'Sam moved Sam'", async () => {
+    caller = teammate(
+      [Permission.ReadIncidentMember, Permission.EditIncidentMember],
+      SAM_ID,
+    );
+
+    await handOn(RESPONDER_ROW_ID, { incidentRoleId: COMMANDER_ROLE_ID });
+
+    expect(
+      feedItems.map((item: { markdown: string }): string => {
+        return item.markdown;
+      }),
+    ).toEqual([
+      `👤 Moved from **Responder** to **Incident Commander** on ${INCIDENT_LINK}.`,
+    ]);
+  });
+
+  test("the role can be named by the relation as well as by the ID column", async () => {
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRole: { _id: COMMANDER_ROLE_ID },
+    });
+
+    expect(sent.status).toBe(200);
+    expect(idOf(responderRow()["incidentRoleId"])).toBe(COMMANDER_ROLE_ID);
+    expect(feedItems).toHaveLength(1);
+  });
+
+  test("a project member may move them: their role allows any change of the incident's roles", async () => {
+    caller = PROJECT_MEMBER;
+
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBe(200);
+    expect(idOf(responderRow()["incidentRoleId"])).toBe(COMMANDER_ROLE_ID);
+  });
+
+  test("moving them to the role they hold changes nobody, and says nothing", async () => {
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRoleId: RESPONDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBe(200);
+    expect(idOf(responderRow()["incidentRoleId"])).toBe(RESPONDER_ROLE_ID);
+    expect(responderRow()["isMemberNotified"]).toBe(true);
+    expect(feedItems).toHaveLength(0);
+    expect(invites).toHaveLength(0);
+  });
+});
+
+describe("what the server refuses of a move (#10274)", () => {
+  const expectResponderUntouched: () => void = (): void => {
+    const row: StoredRow = members.get(RESPONDER_ROW_ID)!;
+    expect(idOf(row["userId"])).toBe(SAM_ID);
+    expect(idOf(row["incidentRoleId"])).toBe(RESPONDER_ROLE_ID);
+    expect(members.updates).toHaveLength(0);
+    expect(members.deletes).toHaveLength(0);
+    expect(feedItems).toHaveLength(0);
+  };
+
+  test("a role they hold on the incident already is refused, in words that say what to do instead", async () => {
+    // Sam commands the incident too, by a row of his own.
+    members.rows.push(
+      memberRow({
+        id: "10191000-0000-4000-8000-0000000000d4",
+        userId: SAM_ID,
+        roleId: COMMANDER_ROLE_ID,
+      }),
+    );
+
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBe(400);
+    expect(refusalOf(sent)).toBe(ALREADY_HOLDS_TARGET_ROLE_MESSAGE);
+    expectResponderUntouched();
+  });
+
+  test("a role cleared is refused: a person on an incident always holds one", async () => {
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRoleId: null,
+    });
+
+    expect(sent.status).toBe(400);
+    expect(refusalOf(sent)).toBe(ROLE_REQUIRED_MESSAGE);
+    expectResponderUntouched();
+  });
+
+  test("a move of several role rows at once is refused: one person moves at a time", async () => {
+    await expect(
+      IncidentMemberService.updateBy({
+        query: { incidentId: new ObjectID(INCIDENT_ID) },
+        data: { incidentRoleId: new ObjectID(RESPONDER_ROLE_ID) },
+        limit: 10,
+        skip: 0,
+        props: EDITOR,
+      }),
+    ).rejects.toThrow(MOVE_ONE_ROLE_AT_A_TIME_MESSAGE);
+
+    expectResponderUntouched();
+    expect(idOf(commanderRow()["incidentRoleId"])).toBe(COMMANDER_ROLE_ID);
+  });
+
+  test("someone who may give and take off roles but not change them is refused", async () => {
+    caller = GIVER_AND_TAKER;
+
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBeGreaterThanOrEqual(400);
+    expectResponderUntouched();
+  });
+
+  test("a private incident's roles are moved by its owners only", async () => {
+    setPrivateRecords({
+      table: "Incident",
+      records: [{ id: INCIDENT_ID, seenBy: [MAYA_ID] }],
+    });
+
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBeGreaterThanOrEqual(400);
+    expectResponderUntouched();
+  });
+});
+
+describe("a person and a role changed in one update (#10274)", () => {
+  test("the person who held the old role is taken off it and the one named given the new role, as two entries say it", async () => {
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      userId: JORDAN_ID,
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBe(200);
+
+    const row: StoredRow = members.get(RESPONDER_ROW_ID)!;
+    expect(idOf(row["userId"])).toBe(JORDAN_ID);
+    expect(idOf(row["incidentRoleId"])).toBe(COMMANDER_ROLE_ID);
+    expect(row["isMemberNotified"]).toBe(false);
+
+    expect(
+      feedItems.map((item: { markdown: string }): string => {
+        return item.markdown;
+      }),
+    ).toEqual([
+      `👤 Removed **${personLink(SAM_ID)}** as **Responder** from ${INCIDENT_LINK}.`,
+      `👤 Added **${personLink(JORDAN_ID)}** as **Incident Commander** to ${INCIDENT_LINK}.`,
+    ]);
+
+    expect(feedItems[0]!.data["incidentFeedEventType"]).toBe(
+      IncidentFeedEventType.IncidentMemberRemoved,
+    );
+    expect(feedItems[1]!.data["incidentFeedEventType"]).toBe(
+      IncidentFeedEventType.IncidentMemberAdded,
+    );
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(invites).toEqual([
+      { incidentId: INCIDENT_ID, userIds: [JORDAN_ID] },
+    ]);
+  });
+
+  test("refused when the person named holds the new role already", async () => {
+    members.rows.push(
+      memberRow({
+        id: "10191000-0000-4000-8000-0000000000d5",
+        userId: JORDAN_ID,
+        roleId: COMMANDER_ROLE_ID,
+      }),
+    );
+
+    const sent: SentRequest = await handOn(RESPONDER_ROW_ID, {
+      userId: JORDAN_ID,
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    expect(sent.status).toBe(400);
+    expect(refusalOf(sent)).toBe(ALREADY_HOLDS_INCIDENT_ROLE_MESSAGE);
+    expect(idOf(members.get(RESPONDER_ROW_ID)!["userId"])).toBe(SAM_ID);
+    expect(feedItems).toHaveLength(0);
+  });
+});
+
 describe("the Dashboard's own Reassign (reassignIncidentRole)", () => {
   test("sends one PUT of the role's row - no DELETE, no POST - and the server hands the role on", async () => {
     await reassignIncidentRole({
@@ -981,5 +1253,207 @@ describe("PUT /api/incident-episode-role-member/:id hands an episode's role on, 
     ).toBe(MAYA_ID);
     expect(members.updates).toHaveLength(0);
     expect(feedItems).toHaveLength(0);
+  });
+});
+
+/*
+ * AN EPISODE'S ROW MOVED TO ANOTHER ROLE (#10274): the episode's incidents
+ * follow, as they follow a hand-over - each incident's row the episode gave
+ * moves with it, said in that incident's feed by whoever moved the
+ * episode's row.
+ */
+describe("PUT /api/incident-episode-role-member/:id moves someone to another role, and its incidents follow (#10274)", () => {
+  const EPISODE_COMMANDER_ROW_ID: string =
+    "10191000-0000-4000-8000-0000000000f1";
+
+  const MAYA_ON_INCIDENT: string = "10191000-0000-4000-8000-0000000000f2";
+  const MAYA_ON_OTHER: string = "10191000-0000-4000-8000-0000000000f3";
+  const MAYA_RESPONDS_ON_OTHER: string = "10191000-0000-4000-8000-0000000000f6";
+
+  beforeEach(() => {
+    caller = EPISODE_EDITOR;
+
+    episodeRoleMembers.rows.push({
+      _id: EPISODE_COMMANDER_ROW_ID,
+      projectId: PROJECT_ID.toString(),
+      incidentEpisodeId: EPISODE_ID,
+      userId: MAYA_ID,
+      incidentRoleId: COMMANDER_ROLE_ID,
+    });
+
+    for (const incidentId of [
+      INCIDENT_ID,
+      OTHER_INCIDENT_ID,
+      THIRD_INCIDENT_ID,
+    ]) {
+      episodeIncidents.rows.push({
+        _id: `10191000-0000-4000-8000-${incidentId.slice(-12, -2)}ee`,
+        projectId: PROJECT_ID.toString(),
+        incidentEpisodeId: EPISODE_ID,
+        incidentId: incidentId,
+      });
+    }
+
+    /*
+     * The first incident: Maya commands it from the episode. The second:
+     * she commands it and responds to it already. The third: nobody does
+     * from the episode.
+     */
+    members.rows.length = 0;
+    members.rows.push(
+      memberRow({
+        id: MAYA_ON_INCIDENT,
+        incidentId: INCIDENT_ID,
+        userId: MAYA_ID,
+        roleId: COMMANDER_ROLE_ID,
+      }),
+      memberRow({
+        id: MAYA_ON_OTHER,
+        incidentId: OTHER_INCIDENT_ID,
+        userId: MAYA_ID,
+        roleId: COMMANDER_ROLE_ID,
+      }),
+      memberRow({
+        id: MAYA_RESPONDS_ON_OTHER,
+        incidentId: OTHER_INCIDENT_ID,
+        userId: MAYA_ID,
+        roleId: RESPONDER_ROLE_ID,
+      }),
+    );
+  });
+
+  test("the episode's row names the new role, in one change, and keeps its person", async () => {
+    const sent: SentRequest = await server.request(
+      "PUT",
+      `/api/incident-episode-role-member/${EPISODE_COMMANDER_ROW_ID}`,
+      { data: { incidentRoleId: RESPONDER_ROLE_ID } },
+    );
+
+    expect(sent.status).toBe(200);
+    expect(episodeRoleMembers.deletes).toHaveLength(0);
+    expect(episodeRoleMembers.inserts).toHaveLength(0);
+
+    const row: StoredRow = episodeRoleMembers.get(EPISODE_COMMANDER_ROW_ID)!;
+    expect(idOf(row["incidentRoleId"])).toBe(RESPONDER_ROLE_ID);
+    expect(idOf(row["userId"])).toBe(MAYA_ID);
+  });
+
+  test("each incident follows: Maya's row moves with it, goes where she holds the role already, and she is given it where nobody held it", async () => {
+    await server.request(
+      "PUT",
+      `/api/incident-episode-role-member/${EPISODE_COMMANDER_ROW_ID}`,
+      { data: { incidentRoleId: RESPONDER_ROLE_ID } },
+    );
+
+    // The first incident: the same row, moved, and Maya told of it.
+    expect(idOf(members.get(MAYA_ON_INCIDENT)!["incidentRoleId"])).toBe(
+      RESPONDER_ROLE_ID,
+    );
+    expect(idOf(members.get(MAYA_ON_INCIDENT)!["userId"])).toBe(MAYA_ID);
+    expect(members.get(MAYA_ON_INCIDENT)!["isMemberNotified"]).toBe(false);
+
+    // The second: she responds already, so only her commander's row goes.
+    expect(members.get(MAYA_ON_OTHER)).toBeUndefined();
+    expect(idOf(members.get(MAYA_RESPONDS_ON_OTHER)!["incidentRoleId"])).toBe(
+      RESPONDER_ROLE_ID,
+    );
+
+    // The third: she is given it, as the episode gives its roles.
+    const third: Array<StoredRow> = members.rows.filter(
+      (row: StoredRow): boolean => {
+        return idOf(row["incidentId"]) === THIRD_INCIDENT_ID;
+      },
+    );
+    expect(third).toHaveLength(1);
+    expect(idOf(third[0]!["userId"])).toBe(MAYA_ID);
+    expect(idOf(third[0]!["incidentRoleId"])).toBe(RESPONDER_ROLE_ID);
+
+    // Each incident's feed says what happened there, by who did it.
+    const byIncident: Record<string, Array<string>> = {};
+    for (const item of feedItems) {
+      byIncident[item.incidentId] = [
+        ...(byIncident[item.incidentId] || []),
+        item.markdown,
+      ];
+    }
+
+    expect(byIncident[INCIDENT_ID]).toEqual([
+      expect.stringMatching(
+        /^👤 Moved \*\*\[Maya Chen\].* from \*\*Incident Commander\*\* to \*\*Responder\*\* on /,
+      ),
+    ]);
+    expect(byIncident[OTHER_INCIDENT_ID]).toEqual([
+      expect.stringMatching(
+        /^👤 Removed \*\*\[Maya Chen\].* as \*\*Incident Commander\*\*/,
+      ),
+    ]);
+    expect(byIncident[THIRD_INCIDENT_ID]).toEqual([
+      expect.stringMatching(
+        /^👤 Added \*\*\[Maya Chen\].* as \*\*Responder\*\*/,
+      ),
+    ]);
+
+    for (const item of feedItems) {
+      expect(String(item.data["userId"]).toLowerCase()).toBe(ANA_ID);
+    }
+  });
+
+  test("a role she holds on the episode already is refused, and no incident changes", async () => {
+    episodeRoleMembers.rows.push({
+      _id: "10191000-0000-4000-8000-0000000000f7",
+      projectId: PROJECT_ID.toString(),
+      incidentEpisodeId: EPISODE_ID,
+      userId: MAYA_ID,
+      incidentRoleId: RESPONDER_ROLE_ID,
+    });
+
+    const sent: SentRequest = await server.request(
+      "PUT",
+      `/api/incident-episode-role-member/${EPISODE_COMMANDER_ROW_ID}`,
+      { data: { incidentRoleId: RESPONDER_ROLE_ID } },
+    );
+
+    expect(sent.status).toBe(400);
+    expect(refusalOf(sent)).toBe(ALREADY_HOLDS_TARGET_EPISODE_ROLE_MESSAGE);
+    expect(
+      idOf(episodeRoleMembers.get(EPISODE_COMMANDER_ROW_ID)!["incidentRoleId"]),
+    ).toBe(COMMANDER_ROLE_ID);
+    expect(members.updates).toHaveLength(0);
+    expect(members.deletes).toHaveLength(0);
+    expect(members.inserts).toHaveLength(0);
+    expect(feedItems).toHaveLength(0);
+  });
+
+  test("a person and a role changed at once on the episode: each incident's row follows both", async () => {
+    const sent: SentRequest = await server.request(
+      "PUT",
+      `/api/incident-episode-role-member/${EPISODE_COMMANDER_ROW_ID}`,
+      { data: { userId: JORDAN_ID, incidentRoleId: RESPONDER_ROLE_ID } },
+    );
+
+    expect(sent.status).toBe(200);
+
+    // The first incident: Maya's commander row now names Jordan as Responder.
+    expect(idOf(members.get(MAYA_ON_INCIDENT)!["userId"])).toBe(JORDAN_ID);
+    expect(idOf(members.get(MAYA_ON_INCIDENT)!["incidentRoleId"])).toBe(
+      RESPONDER_ROLE_ID,
+    );
+
+    const byIncident: Record<string, Array<string>> = {};
+    for (const item of feedItems) {
+      byIncident[item.incidentId] = [
+        ...(byIncident[item.incidentId] || []),
+        item.markdown,
+      ];
+    }
+
+    expect(byIncident[INCIDENT_ID]).toEqual([
+      expect.stringMatching(
+        /^👤 Removed \*\*\[Maya Chen\].* as \*\*Incident Commander\*\*/,
+      ),
+      expect.stringMatching(
+        /^👤 Added \*\*\[Jordan Patel\].* as \*\*Responder\*\*/,
+      ),
+    ]);
   });
 });

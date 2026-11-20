@@ -505,6 +505,8 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
             throw new BadDataException("Password is required");
           }
 
+          await UserAPI.assertMasterAdminConfirmed(req);
+
           await UserService.setPassword({
             userId: userId,
             password: password,
@@ -568,6 +570,9 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
         try {
           const userId: ObjectID = UserAPI.getUserIdFromParams(req);
 
+          // The link signs its holder in to the account: theirs to confirm.
+          await UserAPI.assertMasterAdminConfirmed(req);
+
           const setPasswordLink: { link: string; email: Email } =
             await UserService.getSetPasswordLink({
               userId: userId,
@@ -622,6 +627,15 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
             );
           }
 
+          /*
+           * Stopping the requirement takes a step out of someone's sign-in,
+           * and waits for a confirmation (#10216); requiring it only adds
+           * one, and asks nothing.
+           */
+          if (!isRequired) {
+            await UserAPI.assertMasterAdminConfirmed(req);
+          }
+
           await UserService.setTwoFactorAuthRequired({
             userId: userId,
             isRequired: isRequired,
@@ -659,6 +673,8 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+
+          await UserAPI.assertMasterAdminConfirmed(req);
 
           await UserService.resetTwoFactorAuth({
             userId: userId,
@@ -706,6 +722,8 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
               "Say whether you confirm clearing a master admin's sign-in settings with true or false (isMasterAdminConfirmed).",
             );
           }
+
+          await UserAPI.assertMasterAdminConfirmed(req);
 
           const answer: ClearLocalSignInAnswer =
             await LocalSignInClearing.clearForPerson({
@@ -865,6 +883,32 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     const value: unknown = body[field];
 
     return typeof value === "string" ? value : undefined;
+  }
+
+  /*
+   * A MASTER ADMIN'S CHANGE TO HOW SOMEONE SIGNS IN WAITS UNTIL THEIR
+   * SESSION CONFIRMS IT'S THEM (#10216, Utils/Reauthentication).
+   *
+   * Set Password, a link to set a first password, resetting two-factor
+   * authentication, no longer requiring it and clearing someone's sign-in
+   * settings each hand an account to whoever asks, or take a step out of
+   * its sign-in. Whoever held a master admin's session - a laptop left
+   * unlocked, a stolen cookie - could do any of them to anyone on the
+   * server without their password. Now each is refused until the master
+   * admin's own session has confirmed it's theirs, with their own password
+   * and second step or their passkey, and goes through once it has: the
+   * Admin Dashboard asks, and sends it again (Common/UI/Utils/
+   * Reauthentication). Asked once the request is known to be well formed,
+   * before anything is read, written or sent.
+   *
+   * These routes take a master admin's session only, never the master API
+   * key (MasterAdminAuthorization), and the check refuses a request with no
+   * session in any case.
+   */
+  private static async assertMasterAdminConfirmed(
+    req: ExpressRequest,
+  ): Promise<void> {
+    await MasterAdminAuthorization.assertSessionConfirmed(req);
   }
 
   /*

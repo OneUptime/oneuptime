@@ -910,6 +910,9 @@ export default class MonitorIncident {
             storageMap,
             seriesLabels,
             seriesContext,
+            metricNames: MonitorTemplateUtil.getMetricNamesReadBy(
+              input.dataToProcess,
+            ),
           });
 
           incident.title = text.title;

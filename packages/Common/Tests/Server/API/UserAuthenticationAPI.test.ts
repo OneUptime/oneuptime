@@ -25,6 +25,18 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+
+/*
+ * A master admin's change to how someone signs in waits until the session confirms it's its
+ * person's (Confirm It's You, #10216): every session here has confirmed.
+ * The check itself, through the same hooks and routes, is pinned by
+ * Tests/Server/Services/AdminReauthenticationGates.test.ts and
+ * Tests/Server/API/AdminReauthenticationRoutes.test.ts.
+ */
+beforeEach(() => {
+  confirmEverySession();
+});
 
 /*
  * The three master-admin endpoints behind the Admin Dashboard's

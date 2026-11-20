@@ -48,6 +48,12 @@ enum EmailTemplateType {
   TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   TwoFactorWrongCodes = "TwoFactorWrongCodes.hbs",
   /*
+   * A session of a person's account was signed out after too many wrong
+   * attempts to confirm it was them (#10218, Server/Utils/Reauthentication/
+   * SignedOutEmail), in their own language.
+   */
+  ReauthenticationSignedOut = "ReauthenticationSignedOut.hbs",
+  /*
    * A person's password, passkeys and second steps were cleared by a server
    * admin or an owner of their projects (#9818, #9820,
    * Types/SSO/SignInSettingsClearedEmail), in their own language.
@@ -89,6 +95,15 @@ enum EmailTemplateType {
    */
   StatusPagePrivateUserEmailAddressChanged = "StatusPagePrivateUserEmailAddressChanged.hbs",
   StatusPageWelcomeEmail = "StatusPageWelcomeEmail.hbs",
+  /*
+   * A private user of a dashboard's public link (#10250), or a form's: the
+   * invitation that sets their first password, a password reset link, and
+   * word that their password was changed. Named for the resource only, so
+   * one template serves every kind (Server/Services/PrivateUserServiceBase).
+   */
+  PrivateUserInvitation = "PrivateUserInvitation.hbs",
+  PrivateUserForgotPassword = "PrivateUserForgotPassword.hbs",
+  PrivateUserPasswordChanged = "PrivateUserPasswordChanged.hbs",
   SubscriberScheduledMaintenanceEventNoteCreated = "SubscriberScheduledMaintenanceEventNoteCreated.hbs",
   SubscriberScheduledMaintenanceEventNoteUpdated = "SubscriberScheduledMaintenanceEventNoteUpdated.hbs",
   SMTPTest = "SMTPTest.hbs",

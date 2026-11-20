@@ -64,7 +64,7 @@
 
 ### ورود با نقش IAM سرور
 
-یک نصب خودمیزبان روی AWS می‌تواند ایمیل‌های خودش را با نقش IAM که AWS به سرور می‌دهد بفرستد، بی‌آنکه کلید دسترسی‌ای در OneUptime نگهداری شود: اعتبارنامه‌هایی که AWS می‌دهد ظرف چند ساعت منقضی می‌شوند، و OneUptime پیش از آن اعتبارنامه‌های تازه می‌گیرد. این فقط برای ایمیل‌های خود سرور است. پیکربندی Amazon SES یک پروژه همیشه با کلید دسترسی وارد می‌شود، چون نقش سرور هویت AWS خود سرور است، نه هویت یک پروژه.
+یک نصب خودمیزبان می‌تواند ایمیل‌های خودش را با یک نقش IAM بفرستد، بی‌آنکه کلید دسترسی‌ای در OneUptime نگهداری شود: روی AWS با نقشی که AWS به سرور می‌دهد، و هر جای دیگر با نقشی که با IAM Roles Anywhere به آن وارد می‌شود. اعتبارنامه‌ها ظرف چند ساعت منقضی می‌شوند، و OneUptime پیش از آن اعتبارنامه‌های تازه می‌گیرد. این فقط برای ایمیل‌های خود سرور است. پیکربندی Amazon SES یک پروژه همیشه با کلید دسترسی وارد می‌شود، چون نقش سرور هویت AWS خود سرور است، نه هویت یک پروژه.
 
 سیاست بالا را به نقش بدهید، سپس OneUptime را با آن نقش اجرا کنید:
 
@@ -88,11 +88,32 @@ serviceAccount:
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+بیرون از AWS، روی سرورهای خودتان یا در ابری دیگر، سرور از راه IAM Roles Anywhere با یک نقش وارد می‌شود؛ این سرویس یک گواهی X.509 را با اعتبارنامه‌های نقش عوض می‌کند. در IAM Roles Anywhere یک trust anchor برای مرجع صدور گواهی خود و یک پروفایل برای نقش بسازید. سپس ابزار کمکی اعتبارنامهٔ AWS، یعنی `aws_signing_helper`، را همراه با گواهی، کلید خصوصی آن و یک فایل پیکربندی AWS که پروفایلش ابزار کمکی را به‌عنوان `credential_process` خود اجرا می‌کند، در یک پوشه بگذارید:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+با Docker Compose، پوشه را فقط‌خواندنی mount کنید و فایل و پروفایل را در `docker-compose.override.yml`، کنار `docker-compose.yml`، نام ببرید:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+با چارت Helm، پیکربندی، گواهی و کلید آن را از یک Secret با `extraVolumes` و `extraVolumeMounts` mount کنید، `AWS_CONFIG_FILE` و `AWS_PROFILE` را با `extraEnv` تنظیم کنید، و ابزار کمکی را در ایمیجی بگذارید که روی ایمیج OneUptime ساخته شده است: یک Secret حداکثر 1 مگابایت جا دارد. OneUptime ابزار کمکی را بدون shell، با مسیر کاملش، حداکثر 30 ثانیه، و فقط از فایل پیکربندی‌ای اجرا می‌کند که خودش نتواند تغییرش دهد: فایلی که بتواند در آن بنویسد رد می‌شود.
 :::
 
 سپس در Admin Dashboard روی **ویرایش Amazon SES** کلیک کنید، **نقش IAM این سرور** را به‌عنوان **نوع احراز هویت** برگزینید، و **منطقه** را وارد کنید. ذخیره کردن آن هر کلید دسترسی‌ای را که پیش‌تر نگهداری شده بود حذف می‌کند.
 
-OneUptime اعتبارنامه‌های سرور را همان‌جایی می‌جوید که SDKهای AWS می‌جویند، به این ترتیب: `AWS_ACCESS_KEY_ID` و `AWS_SECRET_ACCESS_KEY` در محیط آن، یک توکن هویت وب (`AWS_ROLE_ARN` و `AWS_WEB_IDENTITY_TOKEN_FILE`)، نقطهٔ پایانی اعتبارنامه‌های کانتینر در Amazon ECS و EKS Pod Identity، و سپس سرویس متادیتای اینستنس EC2 (IMDSv2).
+OneUptime اعتبارنامه‌های سرور را همان‌جایی می‌جوید که SDKهای AWS می‌جویند، به این ترتیب: `AWS_ACCESS_KEY_ID` و `AWS_SECRET_ACCESS_KEY` در محیط آن، پروفایل AWS که `AWS_PROFILE`، `AWS_CONFIG_FILE` یا `AWS_SHARED_CREDENTIALS_FILE` نام می‌برد (کلیدهای آن یا `credential_process` آن)، یک توکن هویت وب (`AWS_ROLE_ARN` و `AWS_WEB_IDENTITY_TOKEN_FILE`)، نقطهٔ پایانی اعتبارنامه‌های کانتینر در Amazon ECS و EKS Pod Identity، و سپس سرویس متادیتای اینستنس EC2 (IMDSv2). وقتی هیچ‌کدام از این سه تنظیم نشده باشد، OneUptime هیچ فایل پیکربندی AWS را نمی‌خواند.
 
 ## SendGrid
 

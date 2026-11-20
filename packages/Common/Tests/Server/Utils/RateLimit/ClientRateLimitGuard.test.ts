@@ -79,6 +79,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "changes of email address per signed-in account, and per new address, an hour (#9821)",
   "packages/Common/Server/Utils/Reauthentication/Reauthentication.ts":
     "wrong attempts to confirm it's you per signed-in session (#10155); its attempts per person and client are counted by IdentityRateLimit",
+  "packages/Common/Server/Utils/Reauthentication/SignedOutEmail.ts":
+    "emails about sessions signed out for getting Confirm It's You wrong, per account and day (#10218), so nobody can fill an owner's inbox with them",
   "packages/Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector.ts":
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
@@ -122,6 +124,12 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a status page single sign-on",
   "packages/App/FeatureSet/Identity/API/StatusPageOIDC.ts":
     "records the address of a status page single sign-on",
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    "records the address of a dashboard private user's sign-in (#10250); its attempts are counted by IdentityRateLimit, and its password resets by PublicMessageRateLimit",
+  "packages/App/FeatureSet/Identity/API/DashboardSSO.ts":
+    "records the address of a dashboard single sign-on",
+  "packages/App/FeatureSet/Identity/API/DashboardOIDC.ts":
+    "records the address of a dashboard single sign-on",
   "packages/App/FeatureSet/Notification/API/Telegram.ts":
     "hands the address to VerificationCodeRateLimit.consume, which counts through ClientRateLimitCounter",
   "packages/App/FeatureSet/Runbook/API/RunbookWebhook.ts":

@@ -9,6 +9,8 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import PrivateRecordScopeProvider from "../../../Components/PrivateRecord/PrivateRecordScopeProvider";
+import RecordAccessScopeProvider from "../../../Components/RecordAccess/RecordAccessScopeProvider";
+import { RecordAccessKind } from "Common/Types/RecordAccess/RecordAccess";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -31,16 +33,25 @@ const IncidentEpisodeViewLayout: FunctionComponent<
        * A private episode is changed only with the permissions of the teams
        * that own it: every page of it offers only what the reader may do
        * there (PrivateRecordScopeProvider).
+       *
+       * And what the server says the reader may do on this episode by its
+       * labels, its owners and its privacy: every lock on its pages
+       * reads it (RecordAccessScopeProvider, #10272).
        */}
-      <PrivateRecordScopeProvider
-        modelType={IncidentEpisode}
+      <RecordAccessScopeProvider
+        kind={RecordAccessKind.IncidentEpisode}
         modelId={modelId}
-        ownerTeamModelType={IncidentEpisodeOwnerTeam}
-        ownerUserModelType={IncidentEpisodeOwnerUser}
-        ownerKey="incidentEpisodeId"
       >
-        <Outlet />
-      </PrivateRecordScopeProvider>
+        <PrivateRecordScopeProvider
+          modelType={IncidentEpisode}
+          modelId={modelId}
+          ownerTeamModelType={IncidentEpisodeOwnerTeam}
+          ownerUserModelType={IncidentEpisodeOwnerUser}
+          ownerKey="incidentEpisodeId"
+        >
+          <Outlet />
+        </PrivateRecordScopeProvider>
+      </RecordAccessScopeProvider>
     </ModelPage>
   );
 };

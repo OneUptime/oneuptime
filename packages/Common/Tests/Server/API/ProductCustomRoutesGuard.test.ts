@@ -126,7 +126,14 @@ interface ProductRouteFile {
 // A refusal the file may hold whatever its product: a rule's table names it.
 const ANY_PRODUCT: ReadonlyArray<ProductKey> = SWITCHABLE_PRODUCTS;
 
-// The products of every setup action the API runs outside Ask AI's chat (#7241).
+/*
+ * The products of every setup action the API runs outside Ask AI's chat
+ * (#7241): since #10041, Monitors (a website's and a service's monitors,
+ * who is told), Services (a service's recommended monitors), On-Call
+ * (paging, people added to a policy) and Status Pages. Inviting people and
+ * How to Reach Me are of no one product, so they name none and run while
+ * any product is off ("what the decisions stand on" holds the list).
+ */
 const SETUP_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
   new Set<ProductKey>(
     SETUP_ACTIONS_RUN_OUTSIDE_CHAT.flatMap(
@@ -883,6 +890,30 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       '"/status-page-idp-login/:statusPageId/:statusPageSsoId"': PUBLIC_PAGE,
     },
   },
+  // A dashboard's sign-in page on its public link (#10250), as a status page's.
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    {
+      products: [ProductKey.Dashboards],
+      leftAlone: {
+        "`${DashboardPrivateUserApiRoutes.login}/:dashboardId`": PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.logout}/:dashboardId`": PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.refreshToken}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.forgotPassword}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.resetPassword}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.exchangeLoginCode}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.signInMethods}/:dashboardId`": READ,
+      },
+    },
+  "packages/App/FeatureSet/Identity/API/DashboardSSO.ts": {
+    products: [ProductKey.Dashboards],
+    leftAlone: {
+      '"/dashboard-idp-login/:dashboardId/:dashboardSsoId"': PUBLIC_PAGE,
+    },
+  },
   "packages/Common/Server/API/WorkflowVariableAPI.ts": {
     products: [ProductKey.Workflows],
     leftAlone: {},
@@ -1162,6 +1193,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,
         "packages/App/API/AdminHealth.ts": 3,
         "packages/App/FeatureSet/Notification/API/BroadcastEmail.ts": 2,
+        /*
+         * #7380: Notification/API/ServerAwsIdentity.ts, beside it, registers
+         * one GET - which AWS identity the server's own Amazon SES signs in
+         * as, for a master admin - so it reads, and is no decision here.
+         */
         "packages/App/FeatureSet/Notification/API/ServerTestSend.ts": 4,
         "packages/App/FeatureSet/Notification/API/CallAndSmsGateway.ts": 1,
       },
@@ -1838,6 +1874,28 @@ describe("every route file of the server is held to a decision", () => {
 });
 
 describe("what the decisions stand on", () => {
+  /*
+   * POST /api/setup-actions/run names the products of the action its body
+   * names (#7241, #10041): a new action, or one that changes its products,
+   * changes what the route refuses while a product is off, so it is a
+   * decision written here.
+   */
+  test("the setup actions' route names Monitors, Services, On-Call and Status Pages, and its people and How to Reach Me no product", () => {
+    expect([...SETUP_ACTION_PRODUCTS].sort()).toEqual(
+      [
+        ProductKey.Monitors,
+        ProductKey.Services,
+        ProductKey.OnCall,
+        ProductKey.StatusPages,
+      ].sort(),
+    );
+
+    for (const action of ["invite_people", "set_how_to_reach_me"]) {
+      expect(SETUP_ACTIONS_RUN_OUTSIDE_CHAT).toContain(action);
+      expect([action, getToolProducts(action)]).toEqual([action, []]);
+    }
+  });
+
   test.each([
     ["packages/Common/Server/API/DataObservabilityAPI.ts", "DataObservability"],
     ["packages/Common/Server/API/DataSecurityAPI.ts", "DataSecurity"],

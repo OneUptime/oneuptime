@@ -10,7 +10,7 @@ import DashboardCommandPalette from "./Components/CommandPalette/DashboardComman
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
 import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
-import ReauthenticationPrompt from "./Components/Reauthentication/ReauthenticationPrompt";
+import ReauthenticationPrompt from "Common/UI/Components/Reauthentication/ReauthenticationPrompt";
 import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
 import DashboardRecording from "./Components/DashboardRecording/DashboardRecording";
 import MasterPage from "./Components/MasterPage/MasterPage";

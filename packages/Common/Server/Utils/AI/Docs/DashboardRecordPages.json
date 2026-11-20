@@ -264,6 +264,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/status-pages/:id/developer/crossplane",
+        "products": [
+          "status-pages"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -465,6 +478,19 @@
           "iac"
         ],
         "path": "/dashboard/:projectId/monitors/:id/developer/terraform",
+        "products": [
+          "monitors"
+        ]
+      },
+      {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/monitors/:id/developer/crossplane",
         "products": [
           "monitors"
         ]
@@ -707,6 +733,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/incidents/:id/developer/crossplane",
+        "products": [
+          "incidents"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -912,6 +951,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/alerts/:id/developer/crossplane",
+        "products": [
+          "alerts"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -1069,6 +1121,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/policies/:id/developer/crossplane",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -1196,6 +1261,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/schedules/:id/developer/crossplane",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -1315,6 +1393,19 @@
           "iac"
         ],
         "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/developer/terraform",
+        "products": [
+          "on-call"
+        ]
+      },
+      {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/developer/crossplane",
         "products": [
           "on-call"
         ]
@@ -1499,6 +1590,19 @@
           "iac"
         ],
         "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/developer/terraform",
+        "products": [
+          "scheduled-maintenance"
+        ]
+      },
+      {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/scheduled-maintenance-events/:id/developer/crossplane",
         "products": [
           "scheduled-maintenance"
         ]
@@ -1757,6 +1861,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/service/:id/developer/crossplane",
+        "products": [
+          "services"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -1857,6 +1974,16 @@
           "iac"
         ],
         "path": "/dashboard/:projectId/teams/:id/developer/terraform"
+      },
+      {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/teams/:id/developer/crossplane"
       },
       {
         "title": "API",
@@ -1985,6 +2112,19 @@
           "iac"
         ],
         "path": "/dashboard/:projectId/workflows/:id/developer/terraform",
+        "products": [
+          "workflows"
+        ]
+      },
+      {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/workflows/:id/developer/crossplane",
         "products": [
           "workflows"
         ]
@@ -2138,6 +2278,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/dashboards/:id/developer/crossplane",
+        "products": [
+          "dashboards"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -2273,6 +2426,19 @@
           "iac"
         ],
         "path": "/dashboard/:projectId/runbooks/:id/developer/terraform",
+        "products": [
+          "runbooks"
+        ]
+      },
+      {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/runbooks/:id/developer/crossplane",
         "products": [
           "runbooks"
         ]
@@ -2458,6 +2624,19 @@
         ]
       },
       {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/slos/:id/developer/crossplane",
+        "products": [
+          "slos"
+        ]
+      },
+      {
         "title": "API",
         "section": "Developer",
         "keywords": [
@@ -2589,6 +2768,19 @@
           "iac"
         ],
         "path": "/dashboard/:projectId/forms/:id/developer/terraform",
+        "products": [
+          "forms"
+        ]
+      },
+      {
+        "title": "Crossplane",
+        "section": "Developer",
+        "keywords": [
+          "crossplane provider",
+          "gitops",
+          "kubernetes manifest"
+        ],
+        "path": "/dashboard/:projectId/forms/:id/developer/crossplane",
         "products": [
           "forms"
         ]

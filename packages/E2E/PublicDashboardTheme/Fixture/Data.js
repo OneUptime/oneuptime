@@ -291,7 +291,7 @@ export const DARK_LOGO = {
   fileType: "image/svg+xml",
 };
 
-export const metadataAnswer = (dashboardId, isUnlocked) => {
+export const metadataAnswer = (dashboardId, isUnlocked, signedInAs) => {
   const scenario = getScenario(dashboardId);
 
   if (!scenario || !scenario.answers) {
@@ -308,7 +308,14 @@ export const metadataAnswer = (dashboardId, isUnlocked) => {
     };
   }
 
-  const isPromptOnly = scenario.hasPassword && !isUnlocked;
+  /*
+   * Before the password, or before one of its private users has signed in
+   * (#10250), only what the prompt shows: the name, the page title, the
+   * favicon and the theme.
+   */
+  const isPromptOnly =
+    (scenario.hasPassword && !isUnlocked) ||
+    (scenario.requiresSignIn && !signedInAs);
 
   const body = {
     _id: dashboardId,
@@ -320,6 +327,9 @@ export const metadataAnswer = (dashboardId, isUnlocked) => {
     description: isPromptOnly ? "" : "Live health of Acme's production",
     pageDescription: isPromptOnly ? "" : "Live health of Acme's production",
     logoFile: isPromptOnly ? null : LOGO,
+    // Whether visitors sign in first, and who has: asked every load.
+    requireSignIn: scenario.requiresSignIn,
+    signedInAs: scenario.requiresSignIn ? signedInAs || null : null,
   };
 
   // A dashboard made before the setting has none stored: the API says Light.

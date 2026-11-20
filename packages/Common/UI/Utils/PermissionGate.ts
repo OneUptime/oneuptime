@@ -23,6 +23,12 @@ import { joinSentences } from "./SentenceSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
 import TeamOwnedRuleHeld from "../../Types/TeamOwnedRule/TeamOwnedRuleHeld";
 import {
+  getRecordAccessGateOptions,
+  RecordAccessScope,
+  RecordGateAccess,
+  RecordGateOperation,
+} from "./RecordAccessScope";
+import {
   getGlobalTranslator,
   SentenceOptions,
   translatableTerm,
@@ -151,6 +157,13 @@ export interface PermissionGateResult {
    * button with an empty reason.
    */
   disabledReason?: string | undefined;
+  /*
+   * Refused by what the server says of the record the page is open on
+   * (PermissionGateOptions.recordAccess), not by the reader's own
+   * permissions: they hold what the operation asks, and naming it again
+   * would only puzzle them.
+   */
+  isRefusedOnRecord?: boolean | undefined;
 }
 
 /*
@@ -161,6 +174,11 @@ export interface PermissionGateResult {
  */
 export interface PermissionCheckableModel {
   singularName: string | null;
+  /*
+   * A database model's table, by which the server's answer for the record
+   * a page is open on is read (PermissionGateOptions.recordAccess).
+   */
+  tableName?: string | null | undefined;
   hasCreatePermissions: (permissions: Array<Permission>) => boolean;
   hasReadPermissions: (permissions: Array<Permission>) => boolean;
   hasUpdatePermissions: (permissions: Array<Permission>) => boolean;
@@ -270,6 +288,18 @@ export interface PermissionGateOptions extends HeldPermissionsOptions {
    * allow it, or the team block that refuses it, follow as usual.
    */
   sentence?: string | undefined;
+  /*
+   * What the server says the reader may do on the record the page is open
+   * on and on its parts (RecordAccessScope, #10272), read for the table of
+   * the model asked about - so options a page built for its record serve
+   * the gates of the record's parts too: an operation it refuses is
+   * locked, with its reason after the lock's first sentence, though the
+   * reader's own permissions allow it somewhere in the project - their
+   * grant is limited to labels the record does not carry, to records they
+   * do not own, a team blocks it on the record's labels. While it is read
+   * for a reader it may narrow, nothing of the record is offered.
+   */
+  recordAccess?: RecordAccessScope | undefined;
 }
 
 /*
@@ -395,6 +425,37 @@ export default class PermissionGate {
   }
 
   /*
+   * Whether the reader's permissions may reach some records of the project
+   * and not others: a grant limited to labels or to the records they own,
+   * or a team's block on some labels (HeldPermissionsUtil.fromRows keeps
+   * them apart from what reaches the whole project). Only then can what the
+   * server says of one record (RecordAccessScope) lock what their own
+   * permissions allow, so only then does a record's page hold its changes
+   * back while it asks. A master admin's reach every record; a snapshot
+   * not landed yet may hold anything, and nothing is offered on it anyway.
+   */
+  public static mayReachSomeRecordsOnly(
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    if (User.isMasterAdmin()) {
+      return false;
+    }
+
+    const held: HeldPermissions = this.getHeldPermissions(options);
+
+    if (!this.isLoaded(held)) {
+      return true;
+    }
+
+    return (
+      held.blockedForSomeLabels.length > 0 ||
+      held.allowed.some((permission: Permission): boolean => {
+        return !held.allowedProjectWide.includes(permission);
+      })
+    );
+  }
+
+  /*
    * Whether `held` is a snapshot at all (HeldPermissionsUtil.isLoaded):
    * anything in it, a block included - a member whose every row is a block
    * has a snapshot, and it refuses. An empty one has not landed yet.
@@ -495,7 +556,11 @@ export default class PermissionGate {
      * is standing in front of - nor, with a team's block, looser.
      */
     if (this.snapshotAllows(model, action, { ...options, held: held })) {
-      return { isAllowed: true };
+      return this.weighRecordAccess({
+        model: model,
+        action: action,
+        options: options,
+      });
     }
 
     /*
@@ -533,6 +598,54 @@ export default class PermissionGate {
         permissions: modelPermissions,
         held: held,
       }),
+    };
+  }
+
+  /*
+   * An operation the reader's own permissions allow, weighed against what
+   * the server says of it on the record the page is open on (#10272): held
+   * back - not offered, nothing said - while that answer is read for a
+   * reader it may narrow; locked, with the server's reason after the lock's
+   * first sentence, where it refuses it; allowed otherwise. Only a write is
+   * weighed: whoever opened the record's page reads it.
+   */
+  private static weighRecordAccess(data: {
+    model: PermissionCheckableModel;
+    action: ModelAction;
+    options?: PermissionGateOptions | undefined;
+  }): PermissionGateResult {
+    const access: RecordGateAccess | undefined = getRecordAccessGateOptions(
+      data.options?.recordAccess || null,
+      data.model,
+    );
+
+    if (!access || data.action === ModelAction.Read) {
+      return { isAllowed: true };
+    }
+
+    if (access.isHeldBack) {
+      return { isAllowed: false };
+    }
+
+    const reason: string | undefined =
+      access.refusals[data.action as RecordGateOperation];
+
+    if (!reason) {
+      return { isAllowed: true };
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: joinSentences([
+        this.buildFirstSentence({
+          singularName:
+            data.options?.singularName || data.model.singularName || "item",
+          verb: (data.options?.verb?.trim() || data.action).toLowerCase(),
+          sentence: data.options?.sentence,
+        }),
+        reason,
+      ]),
+      isRefusedOnRecord: true,
     };
   }
 
@@ -931,8 +1044,13 @@ export default class PermissionGate {
     columnPermissions: Array<Permission>;
     options?: PermissionGateOptions | undefined;
   }): PermissionGateResult {
+    /*
+     * Refused on the record the page is open on, the reader holds what the
+     * column asks: the record's reason stands (weighRecordAccess).
+     */
     if (
       !data.recordGate.disabledReason ||
+      data.recordGate.isRefusedOnRecord ||
       data.columnPermissions.length === 0
     ) {
       return data.recordGate;

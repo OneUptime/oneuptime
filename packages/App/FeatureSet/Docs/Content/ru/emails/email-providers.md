@@ -64,7 +64,7 @@
 
 ### Вход с ролью IAM сервера
 
-Самостоятельно размещённая установка в AWS может отправлять собственную почту от имени роли IAM, которую AWS выдаёт серверу, без ключа доступа, хранимого в OneUptime: учётные данные, которые выдаёт AWS, истекают в течение нескольких часов, и OneUptime получает новые до того, как это произойдёт. Это касается только собственной почты сервера. Конфигурация Amazon SES проекта всегда входит с ключом доступа, потому что роль сервера — это собственное удостоверение AWS сервера, а не проекта.
+Самостоятельно размещённая установка может отправлять собственную почту от имени роли IAM, без ключа доступа, хранимого в OneUptime: в AWS — роли, которую AWS выдаёт серверу, а в любом другом месте — роли, в которую сервер входит через IAM Roles Anywhere. Учётные данные истекают в течение нескольких часов, и OneUptime получает новые до того, как это произойдёт. Это касается только собственной почты сервера. Конфигурация Amazon SES проекта всегда входит с ключом доступа, потому что роль сервера — это собственное удостоверение AWS сервера, а не проекта.
 
 Дайте роли политику, приведённую выше, а затем запустите OneUptime от её имени:
 
@@ -88,11 +88,32 @@ serviceAccount:
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Вне AWS, на собственных серверах или в другом облаке, сервер входит от имени роли через IAM Roles Anywhere, который обменивает сертификат X.509 на учётные данные роли. Создайте в IAM Roles Anywhere trust anchor для своего центра сертификации и профиль для роли. Затем положите помощник AWS для учётных данных, `aws_signing_helper`, в одну папку с сертификатом, его закрытым ключом и файлом конфигурации AWS, профиль которого запускает помощник как свой `credential_process`:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+С Docker Compose подключите папку только для чтения и укажите файл и профиль в `docker-compose.override.yml` рядом с `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+С Helm-чартом подключите конфигурацию, сертификат и его ключ из Secret через `extraVolumes` и `extraVolumeMounts`, задайте `AWS_CONFIG_FILE` и `AWS_PROFILE` через `extraEnv` и положите помощник в образ, собранный на основе образа OneUptime: Secret вмещает не больше 1 МБ. OneUptime запускает помощник без оболочки, по полному пути, не дольше 30 секунд и только из файла конфигурации, который сам не может изменить: файл, в который он мог бы писать, отклоняется.
 :::
 
 Затем в Admin Dashboard нажмите **Изменить Amazon SES**, выберите **Роль IAM этого сервера** как **Тип аутентификации** и введите **Регион**. При сохранении удаляется ключ доступа, сохранённый ранее.
 
-OneUptime ищет учётные данные сервера там же, где их ищут AWS SDK, в таком порядке: `AWS_ACCESS_KEY_ID` и `AWS_SECRET_ACCESS_KEY` в его окружении, токен веб-удостоверения (`AWS_ROLE_ARN` и `AWS_WEB_IDENTITY_TOKEN_FILE`), конечная точка учётных данных контейнера Amazon ECS и EKS Pod Identity, затем служба метаданных инстанса EC2 (IMDSv2).
+OneUptime ищет учётные данные сервера там же, где их ищут AWS SDK, в таком порядке: `AWS_ACCESS_KEY_ID` и `AWS_SECRET_ACCESS_KEY` в его окружении, профиль AWS, который называет `AWS_PROFILE`, `AWS_CONFIG_FILE` или `AWS_SHARED_CREDENTIALS_FILE` (его ключи или его `credential_process`), токен веб-удостоверения (`AWS_ROLE_ARN` и `AWS_WEB_IDENTITY_TOKEN_FILE`), конечная точка учётных данных контейнера Amazon ECS и EKS Pod Identity, затем служба метаданных инстанса EC2 (IMDSv2). Если ни одна из трёх переменных не задана, OneUptime не читает файлы конфигурации AWS.
 
 ## SendGrid
 

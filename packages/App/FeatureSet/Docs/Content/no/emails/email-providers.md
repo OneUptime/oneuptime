@@ -64,7 +64,7 @@ Fyll inn **Tilgangsnøkkel-ID** og **Hemmelig tilgangsnøkkel**, og sett **Regio
 
 ### Logg inn med serverens IAM-rolle
 
-En selvdriftet installasjon på AWS kan sende sin egen e-post som IAM-rollen AWS gir serveren, uten at noen tilgangsnøkkel lagres i OneUptime: legitimasjonen AWS deler ut, utløper i løpet av timer, og OneUptime henter ny før den gjør det. Dette gjelder bare serverens egen e-post. Et prosjekts Amazon SES-konfigurasjon logger alltid inn med en tilgangsnøkkel, fordi serverens rolle er serverens egen AWS-identitet, ikke et prosjekts.
+En selvdriftet installasjon kan sende sin egen e-post som en IAM-rolle, uten at noen tilgangsnøkkel lagres i OneUptime: på AWS rollen AWS gir serveren, alle andre steder en rolle den logger inn som med IAM Roles Anywhere. Legitimasjonen utløper i løpet av timer, og OneUptime henter ny før den gjør det. Dette gjelder bare serverens egen e-post. Et prosjekts Amazon SES-konfigurasjon logger alltid inn med en tilgangsnøkkel, fordi serverens rolle er serverens egen AWS-identitet, ikke et prosjekts.
 
 Gi rollen policyen ovenfor, og kjør deretter OneUptime som den:
 
@@ -88,11 +88,32 @@ Knytt rollen til instansen som instansprofilen dens. Med OneUptime i Docker på 
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Utenfor AWS, på dine egne servere eller i en annen sky, logger serveren inn som en rolle gjennom IAM Roles Anywhere, som bytter et X.509-sertifikat mot rollens legitimasjon. Opprett et trust anchor for sertifikatutstederen din og en profil for rollen i IAM Roles Anywhere. Legg deretter AWS sitt hjelpeprogram for legitimasjon, `aws_signing_helper`, i en mappe sammen med sertifikatet, den private nøkkelen og en AWS-konfigurasjonsfil der profilen kjører hjelpeprogrammet som sin `credential_process`:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Med Docker Compose monterer du mappen skrivebeskyttet og angir filen og profilen i `docker-compose.override.yml`, ved siden av `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Med Helm-chartet monterer du konfigurasjonen, sertifikatet og nøkkelen fra en Secret med `extraVolumes` og `extraVolumeMounts`, setter `AWS_CONFIG_FILE` og `AWS_PROFILE` med `extraEnv` og legger hjelpeprogrammet i et image bygget på OneUptimes: en Secret rommer høyst 1 MB. OneUptime kjører hjelpeprogrammet uten shell, med full sti, i høyst 30 sekunder og bare fra en konfigurasjonsfil den ikke selv kan endre: en fil den kan skrive til, avvises.
 :::
 
 Klikk deretter **Rediger Amazon SES** i Admin Dashboard, velg **Denne serverens IAM-rolle** som **Autentiseringstype**, og fyll inn **Region**. Når du lagrer, fjernes en tilgangsnøkkel som var lagret fra før.
 
-OneUptime ser etter serverens legitimasjon der AWS-SDK-ene gjør det, i denne rekkefølgen: `AWS_ACCESS_KEY_ID` og `AWS_SECRET_ACCESS_KEY` i miljøet, et webidentitetstoken (`AWS_ROLE_ARN` og `AWS_WEB_IDENTITY_TOKEN_FILE`), endepunktet for containerlegitimasjon i Amazon ECS og EKS Pod Identity, og til slutt instansmetadatatjenesten i EC2 (IMDSv2).
+OneUptime ser etter serverens legitimasjon der AWS-SDK-ene gjør det, i denne rekkefølgen: `AWS_ACCESS_KEY_ID` og `AWS_SECRET_ACCESS_KEY` i miljøet, AWS-profilen som `AWS_PROFILE`, `AWS_CONFIG_FILE` eller `AWS_SHARED_CREDENTIALS_FILE` angir (nøklene eller `credential_process`), et webidentitetstoken (`AWS_ROLE_ARN` og `AWS_WEB_IDENTITY_TOKEN_FILE`), endepunktet for containerlegitimasjon i Amazon ECS og EKS Pod Identity, og til slutt instansmetadatatjenesten i EC2 (IMDSv2). Er ingen av de tre satt, leser ikke OneUptime noen AWS-konfigurasjonsfil.
 
 ## SendGrid
 

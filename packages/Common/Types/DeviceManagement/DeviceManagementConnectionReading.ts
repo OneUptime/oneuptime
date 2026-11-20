@@ -31,9 +31,15 @@ import { ManagedDeviceCheckInAttribute } from "./ManagedDeviceCheckIn";
  * "Esper Connection Stopped Reading" and each service's) alerts once no
  * read has worked for longer than the chip's Stale rule allows
  * (getDeviceManagementStaleAfterMinutes: three of its intervals and ten
- * minutes), and resolves with the first read that works. A connection
- * turned off is not read and writes nothing, as its devices write nothing:
- * its alert, if one is open, stays open until it reads again.
+ * minutes), and resolves with the first read that works.
+ *
+ * A connection turned off is not read, so no read of it is overdue: it
+ * writes one last reading as it is turned off, 0 minutes with the outcome
+ * "off", and nothing more until it is turned back on, as its devices write
+ * nothing. Its monitor reads that reading as the connection's newest, and
+ * what it had open was resolved as the connection was turned off, saying
+ * why (DeviceManagementConnectionAlerts, #10286). A connection deleted
+ * writes none: every monitor that reads it alone is turned off with it.
  *
  * Each reading names the connection and its service as the devices'
  * readings do, its name (what the monitor groups by, so the alert says
@@ -49,7 +55,7 @@ export const MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME: string =
 export const MANAGED_DEVICE_CONNECTION_READ_AGE_UNIT: string = "min";
 
 export const MANAGED_DEVICE_CONNECTION_READ_AGE_DESCRIPTION: string =
-  "Minutes since a device management connection last read its devices: 0 at a read that worked, more at each read that failed and whenever a read is due. One reading per connection at every read, and each time a read of it is queued.";
+  "Minutes since a device management connection last read its devices: 0 at a read that worked, more at each read that failed and whenever a read is due, and 0 once more when it is turned off, as nothing is due of it then. One reading per connection at every read, and each time a read of it is queued.";
 
 // Every metric a connection writes about itself.
 export const MANAGED_DEVICE_CONNECTION_METRIC_NAMES: ReadonlyArray<string> = [
@@ -87,6 +93,11 @@ export enum DeviceManagementConnectionReadOutcome {
   Failed = "failed",
   // A read fell due and was queued: it has not finished yet.
   Due = "due",
+  /*
+   * The connection was turned off (#10286): no read of it is due while it
+   * is off, so none is overdue. Its last reading, at 0.
+   */
+  Off = "off",
 }
 
 /*
@@ -191,7 +202,9 @@ export function getDeviceManagementConnectionReadingName(data: {
 
 /*
  * One reading of a connection: how long since a read of it worked, and what
- * it came to. A read that worked reads 0 and carries no error. Pure.
+ * it came to. A read that worked reads 0 and carries no error; so does a
+ * connection turned off, which nothing reads, so nothing is overdue - its
+ * last read that worked is still the one it had. Pure.
  */
 export function getDeviceManagementConnectionReading(
   input: DeviceManagementConnectionReadingInput,
@@ -199,6 +212,8 @@ export function getDeviceManagementConnectionReading(
   const hasWorked: boolean =
     input.outcome === DeviceManagementConnectionReadOutcome.Success ||
     input.outcome === DeviceManagementConnectionReadOutcome.Partial;
+  const isOff: boolean =
+    input.outcome === DeviceManagementConnectionReadOutcome.Off;
   const lastSuccessfulReadAt: number | undefined = hasWorked
     ? input.asOf.getTime()
     : toTime(input.lastSuccessfulReadAt);
@@ -221,7 +236,7 @@ export function getDeviceManagementConnectionReading(
     ] = new Date(lastSuccessfulReadAt).toISOString();
   }
 
-  if (!hasWorked) {
+  if (!hasWorked && !isOff) {
     const error: string = getDeviceManagementConnectionReadingError(
       input.lastError,
     );
@@ -240,13 +255,14 @@ export function getDeviceManagementConnectionReading(
   }
 
   return {
-    ageInMinutes: hasWorked
-      ? 0
-      : getDeviceManagementConnectionReadAgeInMinutes({
-          lastSuccessfulReadAt: input.lastSuccessfulReadAt,
-          createdAt: input.createdAt,
-          asOf: input.asOf,
-        }),
+    ageInMinutes:
+      hasWorked || isOff
+        ? 0
+        : getDeviceManagementConnectionReadAgeInMinutes({
+            lastSuccessfulReadAt: input.lastSuccessfulReadAt,
+            createdAt: input.createdAt,
+            asOf: input.asOf,
+          }),
     attributes,
   };
 }

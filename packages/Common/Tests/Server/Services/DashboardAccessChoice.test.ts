@@ -9,10 +9,13 @@ import {
   test,
 } from "@jest/globals";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import DashboardPrivateUserSession from "../../../Models/DatabaseModels/DashboardPrivateUserSession";
+import DashboardPrivateUserSessionService from "../../../Server/Services/DashboardPrivateUserSessionService";
 import DashboardService from "../../../Server/Services/DashboardService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import CookieUtil from "../../../Server/Utils/Cookie";
+import { PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE } from "../../../Server/Utils/Dashboard/PublicDashboardAccess";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
@@ -48,15 +51,16 @@ import { getJestSpyOn } from "../../Spy";
 /*
  * Who can view a dashboard is one choice on its Sharing page (only people
  * in this project, anyone with the link, anyone with the link and a
- * password). The page writes a choice as the columns that change (Types/
- * Dashboard/DashboardAccess), with a password whenever the move needs one.
- * These pin, at the server, that what it writes is what the choice says:
+ * password, only people who sign in). The page writes a choice as the
+ * columns that change (Types/Dashboard/DashboardAccess), with a password
+ * whenever the move needs one. These pin, at the server, that what it
+ * writes is what the choice says:
  *
  *   - the server's own read check (DashboardService.hasReadAccess) keeps the
- *     public link closed, opens it, or asks for the password - the choice
- *     made - from every state a dashboard can start in, with billing on and
- *     off, and never leaves a dashboard in a state it reads as another
- *     choice;
+ *     public link closed, opens it, asks for the password, or asks its
+ *     visitors to sign in as one of its private users - the choice made -
+ *     from every state a dashboard can start in, with billing on and off,
+ *     and never leaves a dashboard in a state it reads as another choice;
  *   - no move leaves the public link locked (the password switch on with no
  *     password, where the server fails closed and lets nobody in): a move
  *     to the password carries one whenever none is stored, so a visitor
@@ -64,12 +68,14 @@ import { getJestSpyOn } from "../../Spy";
  *   - on OneUptime Cloud (billing on), the column check (ColumnPermission,
  *     which refuses a write that carries a plan-gated column switched on,
  *     changed or not) refuses exactly the moves that make a dashboard
- *     PUBLIC below Growth. Making one private again ("Only people in this
+ *     PUBLIC below Growth, or turn sign-in on (requireSignIn, Growth, as
+ *     private users are). Making one private again ("Only people in this
  *     project") takes isPublicDashboard back to its default, which every
  *     plan may write: a dashboard a trial left public can always be made
- *     private (a paid feature can always be switched off). Moving between
- *     the two public choices, and changing the password, works on every
- *     plan. The Sharing page's plan pill names a plan for exactly the moves
+ *     private (a paid feature can always be switched off), and sign-in can
+ *     always be turned off. Moving between the open and password choices,
+ *     and changing the password, works on every plan. The Sharing page's
+ *     plan pill names a plan for exactly the moves
  *     the server refuses, and its dialog for a move off a choice the plan
  *     does not include names the plan coming back needs. The IP allowlist
  *     (Scale) is never part of a choice's write;
@@ -119,6 +125,13 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const DASHBOARD_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
+);
+// A private user of the dashboard, and the session they signed in with.
+const PRIVATE_USER_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const SESSION_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
 );
 
 // The states a dashboard can start in (what the server stores).
@@ -187,6 +200,42 @@ const START_STATES: Array<[string, DashboardAccessState]> = [
       hasMasterPassword: false,
     },
   ],
+  [
+    "a dashboard only people who sign in can view",
+    {
+      isPublicDashboard: true,
+      enableMasterPassword: false,
+      requireSignIn: true,
+      hasMasterPassword: false,
+    },
+  ],
+  [
+    "a dashboard only people who sign in can view, a password kept from before",
+    {
+      isPublicDashboard: true,
+      enableMasterPassword: false,
+      requireSignIn: true,
+      hasMasterPassword: true,
+    },
+  ],
+  [
+    "a dashboard that asks visitors to sign in, its password switch left on",
+    {
+      isPublicDashboard: true,
+      enableMasterPassword: true,
+      requireSignIn: true,
+      hasMasterPassword: true,
+    },
+  ],
+  [
+    "a private dashboard with sign-in left on",
+    {
+      isPublicDashboard: false,
+      enableMasterPassword: false,
+      requireSignIn: true,
+      hasMasterPassword: false,
+    },
+  ],
 ];
 
 // Every start state moved to every choice: [the start, the choice, its state].
@@ -214,6 +263,8 @@ const storedDashboard: (state: DashboardAccessState) => Dashboard = (
   dashboard.projectId = PROJECT_ID;
   dashboard.isPublicDashboard = state.isPublicDashboard === true;
   dashboard.enableMasterPassword = state.enableMasterPassword === true;
+  dashboard.requireSignIn = state.requireSignIn === true;
+  dashboard.requireSsoForLogin = false;
   dashboard.isArchived = false;
 
   if (state.hasMasterPassword) {
@@ -263,6 +314,10 @@ const dashboardAfter: (
     dashboard.enableMasterPassword = written.enableMasterPassword;
   }
 
+  if (written.requireSignIn !== undefined) {
+    dashboard.requireSignIn = written.requireSignIn;
+  }
+
   if (written.masterPassword) {
     dashboard.masterPassword = new HashedString("new-hash", true);
   }
@@ -276,6 +331,7 @@ const stateOf: (dashboard: Dashboard) => DashboardAccessState = (
   return {
     isPublicDashboard: dashboard.isPublicDashboard,
     enableMasterPassword: dashboard.enableMasterPassword,
+    requireSignIn: dashboard.requireSignIn,
     hasMasterPassword: Boolean(dashboard.masterPassword),
   };
 };
@@ -301,6 +357,26 @@ const unlockedRequest: () => ExpressRequest = (): ExpressRequest => {
       },
       900,
     );
+
+  return request;
+};
+
+/*
+ * One of the dashboard's private users, signed in on it: the access-token
+ * cookie the sign-in route sets, a token signed for this session of this
+ * dashboard. The session it names is live (the lookup is stubbed in
+ * readAccess, as no database runs here).
+ */
+const signedInRequest: () => ExpressRequest = (): ExpressRequest => {
+  const request: ExpressRequest = anonymousRequest();
+
+  request.cookies[CookieUtil.getDashboardPrivateUserTokenKey(DASHBOARD_ID)] =
+    JSONWebToken.signDashboardPrivateUserSessionToken({
+      dashboardId: DASHBOARD_ID,
+      userId: PRIVATE_USER_ID,
+      sessionId: SESSION_ID,
+      expiresInSeconds: 900,
+    });
 
   return request;
 };
@@ -366,6 +442,32 @@ const readAccess: (
   request: ExpressRequest,
 ): Promise<ReadAccess> => {
   getJestSpyOn(DashboardService, "findOneById").mockResolvedValue(dashboard);
+
+  // The live session the signed-in visitor's token names, and no other.
+  getJestSpyOn(
+    DashboardPrivateUserSessionService,
+    "findSignedInSession",
+  ).mockImplementation(
+    async (lookup: {
+      resourceId: ObjectID;
+      sessionId: ObjectID;
+      privateUserId: ObjectID;
+    }): Promise<DashboardPrivateUserSession | null> => {
+      if (
+        lookup.resourceId.toString() !== DASHBOARD_ID.toString() ||
+        lookup.sessionId.toString() !== SESSION_ID.toString() ||
+        lookup.privateUserId.toString() !== PRIVATE_USER_ID.toString()
+      ) {
+        return null;
+      }
+
+      const session: DashboardPrivateUserSession =
+        new DashboardPrivateUserSession();
+      session.id = SESSION_ID;
+
+      return session;
+    },
+  );
 
   return await DashboardService.hasReadAccess({
     dashboardId: DASHBOARD_ID,
@@ -444,15 +546,22 @@ describe.each([
           anonymousRequest(),
         );
 
-        // ...and for one who entered the password.
+        // ...for one who entered the password...
         const unlocked: ReadAccess = await readAccess(
           dashboard,
           unlockedRequest(),
         );
 
+        // ...and for one of its private users, signed in on it.
+        const signedIn: ReadAccess = await readAccess(
+          dashboard,
+          signedInRequest(),
+        );
+
         if (to === DashboardAccess.AnyoneWithLink) {
           expect(anonymous).toEqual({ hasReadAccess: true });
           expect(unlocked).toEqual({ hasReadAccess: true });
+          expect(signedIn).toEqual({ hasReadAccess: true });
           return;
         }
 
@@ -464,15 +573,157 @@ describe.each([
           );
           // The password lets a visitor in: the link is not locked.
           expect(unlocked).toEqual({ hasReadAccess: true });
+          // A private user's session is no password.
+          expect(signedIn.hasReadAccess).toBe(false);
+          expect(signedIn.error).toBeInstanceOf(
+            MasterPasswordRequiredException,
+          );
           return;
         }
 
-        // Only the project: the public link answers nobody, password or not.
+        if (to === DashboardAccess.SignIn) {
+          expect(anonymous.error).toBeInstanceOf(NotAuthenticatedException);
+          expect((anonymous.error as Error).message).toBe(
+            PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+          );
+          // A password the dashboard may still hold lets nobody in...
+          expect(unlocked.hasReadAccess).toBe(false);
+          expect((unlocked.error as Error).message).toBe(
+            PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+          );
+          // ...and signing in does.
+          expect(signedIn).toEqual({ hasReadAccess: true });
+          return;
+        }
+
+        // Only the project: the public link answers nobody, whatever they hold.
         expect(anonymous.error).toBeInstanceOf(NotAuthenticatedException);
         expect(unlocked.hasReadAccess).toBe(false);
         expect(unlocked.error).toBeInstanceOf(NotAuthenticatedException);
+        expect(signedIn.hasReadAccess).toBe(false);
+        expect(signedIn.error).toBeInstanceOf(NotAuthenticatedException);
       },
     );
+
+    test("a signed-in visitor's token for another dashboard, or one that does not decode, lets nobody in", async () => {
+      const dashboard: Dashboard = storedDashboard({
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        requireSignIn: true,
+        hasMasterPassword: false,
+      });
+
+      const otherDashboard: ExpressRequest = anonymousRequest();
+      otherDashboard.cookies[
+        CookieUtil.getDashboardPrivateUserTokenKey(DASHBOARD_ID)
+      ] = JSONWebToken.signDashboardPrivateUserSessionToken({
+        dashboardId: ObjectID.generate(),
+        userId: PRIVATE_USER_ID,
+        sessionId: SESSION_ID,
+        expiresInSeconds: 900,
+      });
+
+      const garbled: ExpressRequest = anonymousRequest();
+      garbled.cookies[
+        CookieUtil.getDashboardPrivateUserTokenKey(DASHBOARD_ID)
+      ] = "not-a-token";
+
+      // A token of another kind: the unlock cookie's, in the session's place.
+      const otherKind: ExpressRequest = anonymousRequest();
+      otherKind.cookies[
+        CookieUtil.getDashboardPrivateUserTokenKey(DASHBOARD_ID)
+      ] = JSONWebToken.signJsonPayload(
+        {
+          dashboardId: DASHBOARD_ID.toString(),
+          type: DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER,
+        },
+        900,
+      );
+
+      for (const request of [otherDashboard, garbled, otherKind]) {
+        const result: ReadAccess = await readAccess(dashboard, request);
+
+        expect(result.hasReadAccess).toBe(false);
+        expect((result.error as Error).message).toBe(
+          PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+        );
+      }
+    });
+
+    test("a session that ended lets nobody in: it is read live, on every request", async () => {
+      const dashboard: Dashboard = storedDashboard({
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        requireSignIn: true,
+        hasMasterPassword: false,
+      });
+
+      expect(await readAccess(dashboard, signedInRequest())).toEqual({
+        hasReadAccess: true,
+      });
+
+      // Signed out, its password changed, or the private user removed.
+      getJestSpyOn(DashboardService, "findOneById").mockResolvedValue(
+        dashboard,
+      );
+      getJestSpyOn(
+        DashboardPrivateUserSessionService,
+        "findSignedInSession",
+      ).mockResolvedValue(null);
+
+      const result: { hasReadAccess: boolean; error?: unknown } =
+        await DashboardService.hasReadAccess({
+          dashboardId: DASHBOARD_ID,
+          req: signedInRequest(),
+        });
+
+      expect(result.hasReadAccess).toBe(false);
+      expect((result.error as Error).message).toBe(
+        PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+      );
+    });
+
+    test("a session lookup that fails refuses: the visitor is asked to sign in", async () => {
+      const dashboard: Dashboard = storedDashboard({
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        requireSignIn: true,
+        hasMasterPassword: false,
+      });
+
+      getJestSpyOn(DashboardService, "findOneById").mockResolvedValue(
+        dashboard,
+      );
+      getJestSpyOn(
+        DashboardPrivateUserSessionService,
+        "findSignedInSession",
+      ).mockRejectedValue(new Error("the database is away"));
+
+      const result: { hasReadAccess: boolean; error?: unknown } =
+        await DashboardService.hasReadAccess({
+          dashboardId: DASHBOARD_ID,
+          req: signedInRequest(),
+        });
+
+      expect(result.hasReadAccess).toBe(false);
+      expect((result.error as Error).message).toBe(
+        PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+      );
+    });
+
+    test("an open dashboard's requests never look a session up", async () => {
+      const dashboard: Dashboard = storedDashboard({
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+      });
+
+      await readAccess(dashboard, signedInRequest());
+
+      expect(
+        DashboardPrivateUserSessionService.findSignedInSession,
+      ).not.toHaveBeenCalled();
+    });
 
     test("a locked dashboard (the switch on, no password) lets nobody in through its link, even with the unlock cookie", async () => {
       const locked: Dashboard = storedDashboard({
@@ -543,15 +794,18 @@ describe.each([
   },
 );
 
-describe("on OneUptime Cloud, a move is refused below Growth exactly when it makes the dashboard public", () => {
+describe("on OneUptime Cloud, a move is refused below Growth exactly when it makes the dashboard public or asks its visitors to sign in", () => {
   beforeEach(() => {
     setTestBillingEnabled(true);
   });
 
-  test("isPublicDashboard is the one Growth-gated column a choice writes; the IP allowlist needs Scale", () => {
+  test("isPublicDashboard and requireSignIn are the Growth-gated columns a choice writes; the IP allowlist and Require SSO need Scale", () => {
     const model: Dashboard = new Dashboard();
 
     expect(model.getColumnBillingAccessControl("isPublicDashboard")).toEqual(
+      expect.objectContaining({ update: PlanType.Growth }),
+    );
+    expect(model.getColumnBillingAccessControl("requireSignIn")).toEqual(
       expect.objectContaining({ update: PlanType.Growth }),
     );
     expect(
@@ -561,13 +815,17 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it mak
     expect(model.getColumnBillingAccessControl("ipWhitelist")).toEqual(
       expect.objectContaining({ update: PlanType.Scale }),
     );
+    expect(model.getColumnBillingAccessControl("requireSsoForLogin")).toEqual(
+      expect.objectContaining({ update: PlanType.Scale }),
+    );
   });
 
   test.each(MOVES)(
     "%s, moved to %s",
     (_label: string, to: DashboardAccess, from: DashboardAccessState) => {
       const data: Dashboard = writeFor(from, to);
-      const makesPublic: boolean = data.isPublicDashboard === true;
+      const makesPublic: boolean =
+        data.isPublicDashboard === true || data.requireSignIn === true;
 
       // A choice never writes the IP allowlist, so its plan never stands in the way.
       expect(data.ipWhitelist).toBeUndefined();
@@ -612,8 +870,9 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it mak
 
         /*
          * A move off a public dashboard to "Only people in this project",
-         * below Growth: allowed, and the dialog says sharing it again needs
-         * Growth. Every other move says nothing of the kind.
+         * or off "Only people who sign in" to any other choice, below
+         * Growth: allowed, and the dialog says coming back needs Growth.
+         * Every other move says nothing of the kind.
          */
         const planToComeBack: PlanType | null =
           getPlanNeededToComeBackToDashboardAccess({ from, to, getPlanNeeded });
@@ -622,9 +881,15 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it mak
           getDashboardAccess(from) !== DashboardAccess.ProjectOnly &&
           to === DashboardAccess.ProjectOnly;
 
+        const isLeavingSignIn: boolean =
+          getDashboardAccess(from) === DashboardAccess.SignIn &&
+          to !== DashboardAccess.SignIn;
+
         expect([plan, planToComeBack]).toEqual([
           plan,
-          plan === PlanType.Free && isLeavingPublic ? PlanType.Growth : null,
+          plan === PlanType.Free && (isLeavingPublic || isLeavingSignIn)
+            ? PlanType.Growth
+            : null,
         ]);
       }
     },
@@ -657,12 +922,46 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it mak
     for (const to of [
       DashboardAccess.AnyoneWithLink,
       DashboardAccess.AnyoneWithPassword,
+      DashboardAccess.SignIn,
     ]) {
       expect([
         to,
         checkWrite(writeFor(privateDashboard, to), PlanType.Free),
       ]).toEqual([to, GROWTH_REFUSAL]);
     }
+  });
+
+  test("turning sign-in off works on Free, to any choice; turning it on again does not", () => {
+    const signInOnly: DashboardAccessState = {
+      isPublicDashboard: true,
+      enableMasterPassword: false,
+      requireSignIn: true,
+      hasMasterPassword: true,
+    };
+
+    for (const to of [
+      DashboardAccess.ProjectOnly,
+      DashboardAccess.AnyoneWithLink,
+      DashboardAccess.AnyoneWithPassword,
+    ]) {
+      const write: Dashboard = writeFor(signInOnly, to);
+
+      expect(write.requireSignIn).toBe(false);
+      expect([to, checkWrite(write, PlanType.Free)]).toEqual([to, "allowed"]);
+    }
+
+    // From a public dashboard: the sign-in switch alone, refused below Growth.
+    const open: DashboardAccessState = {
+      isPublicDashboard: true,
+      enableMasterPassword: false,
+      hasMasterPassword: false,
+    };
+    const signIn: Dashboard = writeFor(open, DashboardAccess.SignIn);
+
+    expect(signIn.isPublicDashboard).toBeUndefined();
+    expect(signIn.requireSignIn).toBe(true);
+    expect(checkWrite(signIn, PlanType.Free)).toBe(GROWTH_REFUSAL);
+    expect(checkWrite(signIn, PlanType.Growth)).toBe("allowed");
   });
 
   test("a write that carries the public switch unchanged is refused below Growth too, which is why only changed columns are sent", () => {

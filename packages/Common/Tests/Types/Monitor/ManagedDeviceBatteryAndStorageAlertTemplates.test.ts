@@ -10,6 +10,7 @@ import {
   getManagedDeviceAlertTemplatesFor,
 } from "../../../Types/Monitor/ManagedDeviceAlertTemplates";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
   MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
@@ -26,7 +27,9 @@ import {
   CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
+  NoDataPolicy,
 } from "../../../Types/Monitor/CriteriaFilter";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepMetricMonitor from "../../../Types/Monitor/MonitorStepMetricMonitor";
@@ -51,12 +54,13 @@ import { describe, expect, test } from "@jest/globals";
 
 const CONNECTION_ID: string = ObjectID.generate().toString();
 
-const BATTERY_TEMPLATE_IDS: Partial<Record<DeviceManagementProvider, string>> =
-  {
-    [DeviceManagementProvider.Esper]: "esper-low-battery",
-    [DeviceManagementProvider.WorkspaceOne]: "workspace-one-low-battery",
-    [DeviceManagementProvider.Soti]: "soti-low-battery",
-  };
+const BATTERY_TEMPLATE_IDS: Record<DeviceManagementProvider, string> = {
+  [DeviceManagementProvider.Esper]: "esper-low-battery",
+  // #10287: an iPhone's or iPad's, each asked alone on Graph's beta.
+  [DeviceManagementProvider.Intune]: "intune-low-battery",
+  [DeviceManagementProvider.WorkspaceOne]: "workspace-one-low-battery",
+  [DeviceManagementProvider.Soti]: "soti-low-battery",
+};
 
 const STORAGE_TEMPLATE_IDS: Record<DeviceManagementProvider, string> = {
   [DeviceManagementProvider.Esper]: "esper-storage-nearly-full",
@@ -115,7 +119,7 @@ function hostThreshold(id: string): number {
 }
 
 describe("which connections are offered them", () => {
-  test("Low Battery to each service whose device list says a device's battery; Intune's says none", () => {
+  test("Low Battery to every service, each its own", () => {
     for (const provider of DEVICE_MANAGEMENT_PROVIDERS) {
       const batteries: Array<string> = getManagedDeviceAlertTemplatesFor(
         provider,
@@ -131,10 +135,28 @@ describe("which connections are offered them", () => {
 
       expect({ provider, batteries }).toEqual({
         provider,
-        batteries: BATTERY_TEMPLATE_IDS[provider]
-          ? [BATTERY_TEMPLATE_IDS[provider]]
-          : [],
+        batteries: [BATTERY_TEMPLATE_IDS[provider]],
       });
+      expect(template(BATTERY_TEMPLATE_IDS[provider]).provider).toBe(provider);
+    }
+  });
+
+  test("Intune's says which devices Intune says a battery of: an iPhone's or an iPad's alone", () => {
+    expect(template("intune-low-battery").name).toBe("Intune Low Battery");
+    expect(template("intune-low-battery").summary).toBe(
+      "An iPhone or iPad Intune manages has less than 20% battery left.",
+    );
+    expect(template("intune-low-battery").description).toContain(
+      "Intune says the battery of an iPhone or an iPad alone, as of its last check-in",
+    );
+
+    // The others' devices lists say every device's: no such sentence.
+    for (const id of [
+      "esper-low-battery",
+      "workspace-one-low-battery",
+      "soti-low-battery",
+    ]) {
+      expect(template(id).description).not.toContain("alone, as of");
     }
   });
 
@@ -350,6 +372,7 @@ describe("what the monitors read", () => {
 
   test.each([
     ["esper-low-battery", "[Esper] Low battery"],
+    ["intune-low-battery", "[Intune] Low battery"],
     ["workspace-one-low-battery", "[Workspace ONE] Low battery"],
     ["soti-low-battery", "[SOTI] Low battery"],
     ["esper-storage-nearly-full", "[Esper] Storage nearly full"],
@@ -423,4 +446,202 @@ describe("whether a monitor already covers them", () => {
       }
     }
   });
+});
+
+/*
+ * #10288: Low Battery leaves a device on its charger be, where its service
+ * says which: Workspace ONE (AcLineStatus) and SOTI (an Android+ device's
+ * IsCharging). Its step reads the device's charging beside its battery, one
+ * series per device, and fires only when the battery is low and the device
+ * is off its charger; a device its service says neither of counts as off
+ * it. Esper's and Intune's read the battery alone, as before.
+ */
+describe("Low Battery leaves a device on its charger be", () => {
+  const CHARGING_TEMPLATE_IDS: Array<string> = [
+    "workspace-one-low-battery",
+    "soti-low-battery",
+  ];
+
+  function queriesOf(step: MonitorStep): Array<MetricQueryConfigData> {
+    return metricMonitorOf(step).metricViewConfig.queryConfigs;
+  }
+
+  test.each(CHARGING_TEMPLATE_IDS)(
+    "%s reads each device's charging beside its battery: the same devices, one series each",
+    (id: string) => {
+      const [battery, charging] = queriesOf(
+        template(id).getMonitorStep(args()),
+      );
+
+      expect(queriesOf(template(id).getMonitorStep(args()))).toHaveLength(2);
+      expect(battery!.metricQueryData.filterData.metricName).toBe(
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+      );
+      expect(charging!.metricQueryData.filterData.metricName).toBe(
+        MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+      );
+      expect(charging!.metricQueryData.filterData.attributes).toEqual(
+        battery!.metricQueryData.filterData.attributes,
+      );
+      expect(charging!.metricQueryData.groupByAttributeKeys).toEqual(
+        battery!.metricQueryData.groupByAttributeKeys,
+      );
+      // On its charger at either of two reads in a minute is on it.
+      expect(charging!.metricQueryData.filterData.aggegationType).toBe(
+        MetricsAggregationType.Max,
+      );
+      expect(charging!.metricAliasData!.metricVariable).not.toBe(
+        battery!.metricAliasData!.metricVariable,
+      );
+    },
+  );
+
+  test.each(CHARGING_TEMPLATE_IDS)(
+    "%s fires below 20% and off its charger - a device that says neither is off it - and is well at 20% or on its charger",
+    (id: string) => {
+      const step: MonitorStep = template(id).getMonitorStep(args());
+      const [battery, charging] = queriesOf(step);
+      const [unhealthy, healthy]: Array<MonitorCriteriaInstance> =
+        instancesOf(step);
+
+      expect(unhealthy!.data!.filterCondition).toBe(FilterCondition.All);
+      expect(
+        unhealthy!.data!.filters.map((filter: CriteriaFilter) => {
+          return {
+            alias: filter.metricMonitorOptions?.metricAlias,
+            type: filter.filterType,
+            value: Number(filter.value),
+            noData: filter.metricMonitorOptions?.onNoDataPolicy,
+          };
+        }),
+      ).toEqual([
+        {
+          alias: battery!.metricAliasData!.metricVariable,
+          type: FilterType.LessThan,
+          value: 20,
+          noData: undefined,
+        },
+        {
+          alias: charging!.metricAliasData!.metricVariable,
+          type: FilterType.LessThan,
+          value: 1,
+          noData: NoDataPolicy.TreatAsZero,
+        },
+      ]);
+
+      expect(healthy!.data!.filterCondition).toBe(FilterCondition.Any);
+      expect(
+        healthy!.data!.filters.map((filter: CriteriaFilter) => {
+          return {
+            alias: filter.metricMonitorOptions?.metricAlias,
+            type: filter.filterType,
+            value: Number(filter.value),
+            noData: filter.metricMonitorOptions?.onNoDataPolicy,
+          };
+        }),
+      ).toEqual([
+        {
+          alias: battery!.metricAliasData!.metricVariable,
+          type: FilterType.GreaterThanOrEqualTo,
+          value: 20,
+          noData: undefined,
+        },
+        {
+          alias: charging!.metricAliasData!.metricVariable,
+          type: FilterType.GreaterThanOrEqualTo,
+          value: 1,
+          noData: undefined,
+        },
+      ]);
+
+      expect(template(id).description).toContain("is left be");
+      expect(unhealthy!.data!.description).toContain("not on its charger");
+      expect(unhealthy!.data!.alerts[0]!.description).toContain(
+        "reports it on its charger",
+      );
+    },
+  );
+
+  test("Esper's and Intune's read the battery alone, their services saying no charging state", () => {
+    for (const id of ["esper-low-battery", "intune-low-battery"]) {
+      const step: MonitorStep = template(id).getMonitorStep(args());
+      const [unhealthy, healthy]: Array<MonitorCriteriaInstance> =
+        instancesOf(step);
+
+      expect({ id, queries: queriesOf(step).length }).toEqual({
+        id,
+        queries: 1,
+      });
+      expect(unhealthy!.data!.filters).toHaveLength(1);
+      expect(healthy!.data!.filters).toHaveLength(1);
+      expect(template(id).getEarlierMonitorSteps).toBeUndefined();
+      expect(template(id).description).not.toContain("is left be");
+    }
+  });
+
+  test.each(CHARGING_TEMPLATE_IDS)(
+    "%s's monitor made before, of the battery alone, still counts as made, and on its own connection alone",
+    (id: string) => {
+      const candidate: ManagedDeviceAlertTemplate = template(id);
+      const earlier: Array<MonitorStep> =
+        candidate.getEarlierMonitorSteps!(args());
+      const recommendations: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DeviceManagementConnection,
+          { deviceManagementProvider: candidate.provider },
+        );
+      const recommendationArgs: MonitorRecommendationArgs = {
+        resourceIdentifier: CONNECTION_ID,
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "Stores West",
+      };
+
+      // The battery alone, read from the service, as #10008 made it.
+      expect(earlier).toHaveLength(1);
+      expect(queriesOf(earlier[0]!)).toHaveLength(1);
+      expect(
+        queriesOf(earlier[0]!)[0]!.metricQueryData.filterData.attributes,
+      ).toEqual(
+        queriesOf(candidate.getMonitorStep(args()))[0]!.metricQueryData
+          .filterData.attributes,
+      );
+      expect(instancesOf(earlier[0]!)[0]!.data!.filters).toHaveLength(1);
+
+      expect([
+        ...MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations,
+          existingMonitorSteps: [earlier[0]!],
+          args: recommendationArgs,
+        }),
+      ]).toEqual([
+        `${MonitorRecommendationResourceType.DeviceManagementConnection}:${id}`,
+      ]);
+      // And today's step counts too, as itself.
+      expect([
+        ...MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations,
+          existingMonitorSteps: [candidate.getMonitorStep(args())],
+          args: recommendationArgs,
+        }),
+      ]).toEqual([
+        `${MonitorRecommendationResourceType.DeviceManagementConnection}:${id}`,
+      ]);
+      // Of another connection, it is none of this one's.
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations,
+          existingMonitorSteps: [
+            candidate.getEarlierMonitorSteps!({
+              ...args(),
+              deviceManagementConnectionId: ObjectID.generate().toString(),
+            })[0]!,
+          ],
+          args: recommendationArgs,
+        }).size,
+      ).toBe(0);
+    },
+  );
 });

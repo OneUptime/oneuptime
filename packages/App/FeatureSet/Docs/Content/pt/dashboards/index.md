@@ -61,6 +61,8 @@ Abra um painel, e o menu lateral dele tem estas páginas. Toda seção, exceto *
 | **Compartilhamento** | Quem pode vê-lo, o link público dele e uma lista de IPs permitidos em Mais configurações. |
 | **Marca** | Título da página, descrição, logotipo, tema e favicon do painel público. |
 | **Domínios personalizados** | Hospedar o painel público no seu próprio domínio. |
+| **Usuários privados** | As pessoas que podem entrar no link público, quando apenas quem entra pode vê-lo. |
+| **Login único** | Os provedores SAML e OpenID Connect com que elas entram, e **Exigir SSO para entrar**. |
 | **Configurações** | Duplicar, exportar ou arquivar o painel. |
 | **Proprietários** | Os usuários e as equipes a que ele pertence. |
 | **Registros de auditoria** | Cada alteração feita no painel, e quem a fez. |

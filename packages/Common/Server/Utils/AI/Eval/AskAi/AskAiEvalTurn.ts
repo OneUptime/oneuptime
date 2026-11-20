@@ -17,6 +17,12 @@ import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPol
 import OnCallDutyPolicyEscalationRule from "../../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleUser from "../../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import TeamPermission from "../../../../../Models/DatabaseModels/TeamPermission";
+import Dashboard from "../../../../../Models/DatabaseModels/Dashboard";
+import Form from "../../../../../Models/DatabaseModels/Form";
+import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
+import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Runbook from "../../../../../Models/DatabaseModels/Runbook";
+import ServiceLevelObjective from "../../../../../Models/DatabaseModels/ServiceLevelObjective";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import ProjectMilestone from "../../../../../Models/DatabaseModels/ProjectMilestone";
 import Service from "../../../../../Models/DatabaseModels/Service";
@@ -78,6 +84,12 @@ import OnCallReadinessService, {
   ReadinessStatus,
 } from "../../../../Services/OnCallReadinessService";
 import PayAsYouGoBillingService from "../../../../Services/PayAsYouGoBillingService";
+import DashboardService from "../../../../Services/DashboardService";
+import FormService from "../../../../Services/FormService";
+import IncomingCallPolicyService from "../../../../Services/IncomingCallPolicyService";
+import OnCallDutyPolicyScheduleService from "../../../../Services/OnCallDutyPolicyScheduleService";
+import RunbookService from "../../../../Services/RunbookService";
+import ServiceLevelObjectiveService from "../../../../Services/ServiceLevelObjectiveService";
 import ProbeService from "../../../../Services/ProbeService";
 import ProjectMilestoneService from "../../../../Services/ProjectMilestoneService";
 import ProjectService from "../../../../Services/ProjectService";
@@ -1120,6 +1132,71 @@ export default class AskAiEvalTurnRunner {
           : null;
       },
     );
+
+    /*
+     * The records a question is asked on since #10104 - a schedule, a call
+     * policy, a team, a dashboard, a runbook, an SLO, a form - each read by
+     * its ID as the Go to button reads it (DashboardRecordReaders).
+     */
+    const namedRecordReads: Array<{
+      service: unknown;
+      modelType: { new (): unknown };
+      records: ReadonlyArray<AskAiEvalNamedRecord>;
+    }> = [
+      {
+        service: OnCallDutyPolicyScheduleService,
+        modelType: OnCallDutyPolicySchedule,
+        records: project.onCallSchedules,
+      },
+      {
+        service: IncomingCallPolicyService,
+        modelType: IncomingCallPolicy,
+        records: project.incomingCallPolicies,
+      },
+      {
+        service: TeamService,
+        modelType: Team,
+        records: project.teams,
+      },
+      {
+        service: DashboardService,
+        modelType: Dashboard,
+        records: project.dashboards,
+      },
+      {
+        service: RunbookService,
+        modelType: Runbook,
+        records: project.runbooks,
+      },
+      {
+        service: ServiceLevelObjectiveService,
+        modelType: ServiceLevelObjective,
+        records: project.slos,
+      },
+      {
+        service: FormService,
+        modelType: Form,
+        records: project.forms,
+      },
+    ];
+
+    for (const read of namedRecordReads) {
+      patches.set(
+        read.service,
+        "findOneById",
+        async (args: { id: ObjectID }): Promise<unknown> => {
+          const record: AskAiEvalNamedRecord | undefined = read.records.find(
+            (candidate: AskAiEvalNamedRecord): boolean => {
+              return isId(args.id, candidate.id);
+            },
+          );
+
+          return record
+            ? model(read.modelType, { _id: record.id, name: record.name })
+            : null;
+        },
+      );
+    }
 
     // Services, each sending every kind of telemetry.
     patches.set(

@@ -41,5 +41,7 @@ export const reauthenticationStatusAnswer: (
       passkey: false,
       signInAgain: false,
     },
+    // An account with a password never signs in again to confirm.
+    signInAgain: null,
   }) as unknown as JSONObject;
 };
