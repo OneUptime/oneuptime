@@ -7,8 +7,9 @@
  * and the Admin Dashboard under the App's own names alone - HOST, localhost
  * and ingress, without the port - and under any other name a status page's
  * custom domain, which has no status page here: 404. The routes the App
- * serves under every name (/status, /status-page, /public-dashboard, /api)
- * answer 200, and the doctor's POST a server with nothing to fix.
+ * serves under every name (/status, /status-page, /public-dashboard, /api
+ * and a probe's) answer 200, and the doctor's POST a server with nothing to
+ * fix.
  *
  * It writes every request it takes, a JSON line each, to
  * /requests/requests.jsonl before it answers, so the test reads them all.
@@ -49,8 +50,16 @@ const PRIMARY_HOSTS = new Set(
 // The frontends the App serves under its own names alone (primaryHostOnly).
 const PRIMARY_HOST_ONLY = ["/accounts", "/dashboard", "/admin"];
 
-// What the App serves under every name.
-const EVERY_HOST = ["/status", "/status-page", "/public-dashboard", "/api"];
+// What the App serves under every name, a probe's API among it.
+const EVERY_HOST = [
+  "/status",
+  "/status-page",
+  "/public-dashboard",
+  "/api",
+  "/probe-ingest",
+  "/ingestor",
+  "/incoming-request-ingest",
+];
 
 const isUnder = (pathname, prefix) => {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);

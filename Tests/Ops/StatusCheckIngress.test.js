@@ -46,6 +46,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 const { configExampleSettings } = require("./Utils/ComposePorts");
+const { ingressUrlOf } = require("../../Scripts/Install/FollowIngressPort");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const RUN = process.env.RUN_STATUS_CHECK_INGRESS_TESTS === "1";
@@ -274,6 +275,44 @@ function hasIpv6Loopback() {
 function wait(milliseconds) {
   return new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
+  });
+}
+
+/*
+ * The status of a POST of `bytes` bytes to `pathname` of `origin`, under the
+ * Host the origin names, as a probe sends its reports to the ONEUPTIME_URL
+ * it is given.
+ */
+function postTo(origin, pathname, bytes) {
+  return new Promise((resolve) => {
+    const body = Buffer.alloc(bytes, "a");
+    const request = http.request(
+      new URL(pathname, origin),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": body.length,
+        },
+        agent: false,
+        timeout: 15000,
+      },
+      (response) => {
+        response.resume();
+        response.on("end", () => {
+          resolve(response.statusCode);
+        });
+      },
+    );
+
+    request.on("timeout", () => {
+      request.destroy();
+      resolve(0);
+    });
+    request.on("error", () => {
+      resolve(0);
+    });
+    request.end(body);
   });
 }
 
@@ -792,6 +831,63 @@ describeRuntime("npm start's status check, against the real ingress", () => {
         ["GET", "/status/ready", "localhost", 200],
         ["POST", "/api/admin/health/doctor", "localhost", 200],
       ]);
+    },
+  );
+
+  /*
+   * The bundled probes send no Host header of their own: they call the
+   * ONEUPTIME_URL FollowIngressPort gives them, which names the ingress by
+   * the address it is published on, but for 127.0.0.1 (localhost). Under
+   * such a name the status-page server forwarded their reports on nginx's
+   * 1M default; a synthetic monitor's screenshots came back 413. It takes
+   * the primary's 50M for a probe's paths now, and keeps 1M for the rest.
+   */
+  test.each([
+    ["127.0.0.1", 0],
+    ["an address of this machine's own", 1],
+    ["[::1]", 2],
+  ])(
+    "on %s, a bundled probe's 2 MB report reaches the App, and the status pages there keep their 1M",
+    async (_label, index) => {
+      const form = oneAddressForms()[index];
+
+      if (!form) {
+        console.log("No ::1 on this machine: the [::1] forms are not run.");
+        return;
+      }
+
+      const [setting] = form;
+      const origin = ingressUrlOf(setting).url;
+      const bytes = 2 * 1024 * 1024;
+
+      for (const pathname of [
+        "/probe-ingest/probe/response/ingest",
+        "/ingestor/probe/response/ingest",
+        "/incoming-request-ingest/incoming-request/0123456789abcdef",
+      ]) {
+        const before = requestsSeen().length;
+
+        expect({
+          pathname,
+          status: await postTo(origin, pathname, bytes),
+        }).toEqual({
+          pathname,
+          status: 200,
+        });
+        expect(
+          requestsSeen()
+            .slice(before)
+            .map((entry) => {
+              return [entry.path, entry.bytes];
+            }),
+        ).toEqual([[pathname, bytes]]);
+      }
+
+      // Elsewhere nginx's 1M stays, in the primary and the status-page server alike.
+      const before = requestsSeen().length;
+
+      expect(await postTo(origin, "/", bytes)).toBe(413);
+      expect(requestsSeen().slice(before)).toEqual([]);
     },
   );
 });
