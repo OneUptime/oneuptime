@@ -1132,6 +1132,7 @@ import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddN
 import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
 import { AddDashboardPrivateUsersAndSingleSignOn1809187030250 } from "./1809187030250-AddDashboardPrivateUsersAndSingleSignOn";
 import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000-MakeEscalationRuleRespondersUnique";
+import { AddProjectAmazonSesIamRole1809187137800 } from "./1809187137800-AddProjectAmazonSesIamRole";
 
 export default [
   InitialMigration,
@@ -2268,4 +2269,5 @@ export default [
   AddGuidedSetupRun1809187025300,
   AddDashboardPrivateUsersAndSingleSignOn1809187030250,
   MakeEscalationRuleRespondersUnique1809187100000,
+  AddProjectAmazonSesIamRole1809187137800,
 ];
