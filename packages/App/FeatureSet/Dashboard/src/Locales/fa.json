@@ -59642,5 +59642,22 @@
   "New Email Link Expires": "زمان انقضای پیوند نشانی ایمیل جدید",
   "Send Link Again": "ارسال دوباره پیوند",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "پیوندی که به {{email}} ایمیل کردیم منقضی شده است، بنابراین نشانی ایمیل شما تغییر نکرده است. برای کامل کردن تغییر یک پیوند جدید بفرستید، یا تغییر را لغو کنید.",
-  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم."
+  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم.",
+  "Data to visualize: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST).": "داده‌ای برای مصورسازی: PromQL روی متریک‌های این پروژه، یا یک پرس‌وجو به یک سیستم متصل (Prometheus، SQL، ClickHouse، Loki، Elasticsearch، REST).",
+  "Each series the expression returns is judged on its own and opens its own incident, up to {{count}} series.": "هر سری که عبارت برمی‌گرداند جداگانه سنجیده می‌شود و حادثهٔ خودش را باز می‌کند، تا {{count}} سری.",
+  "Move to When to alert": "انتقال به «چه وقت هشدار داده شود»",
+  "No outside data sources connected yet: this project's metrics are here to query with PromQL. To chart another system, add it under Dashboards → Settings → Data Sources.": "هنوز هیچ منبع دادهٔ بیرونی‌ای متصل نشده است: متریک‌های این پروژه برای پرس‌وجو با PromQL در دسترس‌اند. برای نمودار سیستمی دیگر، آن را در داشبوردها ← تنظیمات ← منابع داده اضافه کنید.",
+  "Query Builder": "سازندهٔ پرس‌وجو",
+  "Rows to render: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST).": "سطرهایی برای نمایش: PromQL روی متریک‌های این پروژه، یا یک پرس‌وجو به یک سیستم متصل (Prometheus، SQL، ClickHouse، Loki، Elasticsearch، REST).",
+  "Runs over this project's metrics, as the PromQL tab on the Metrics page does, for the services you may read.": "روی متریک‌های این پروژه اجرا می‌شود، همان‌طور که زبانهٔ PromQL در صفحهٔ متریک‌ها اجرا می‌شود، برای سرویس‌هایی که اجازهٔ خواندنشان را دارید.",
+  "The PromQL expression does not parse: {{error}}": "عبارت PromQL تجزیه نمی‌شود: {{error}}",
+  "The PromQL expression is a range vector, which a monitor cannot compare. Wrap it in a function such as rate(...[5m]) or avg_over_time(...[5m]).": "عبارت PromQL یک بردار بازه‌ای است که مانیتور نمی‌تواند آن را مقایسه کند. آن را در تابعی مانند rate(...[5m]) یا avg_over_time(...[5m]) قرار دهید.",
+  "The PromQL expression is a string, which a monitor cannot compare. Write an expression that returns numbers.": "عبارت PromQL یک رشته است که مانیتور نمی‌تواند آن را مقایسه کند. عبارتی بنویسید که عدد برگرداند.",
+  "The PromQL expression this monitor evaluates; each series it returns is judged on its own.": "عبارت PromQL که این مانیتور ارزیابی می‌کند؛ هر سری که برمی‌گرداند جداگانه سنجیده می‌شود.",
+  "The same visualizations, driven by a query in its own language: PromQL over this project's metrics, or a system OneUptime does not own — Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch, or any REST API, connected under Dashboards → Settings → Data Sources. Not available on public dashboards.": "همان نمایش‌ها، با یک پرس‌وجو به زبان خودش: PromQL روی متریک‌های این پروژه، یا سامانه‌ای که متعلق به OneUptime نیست — Prometheus، PostgreSQL، MySQL، SQL Server، ClickHouse، Loki، Elasticsearch یا هر API از نوع REST، که در داشبوردها ← تنظیمات ← منابع داده وصل می‌شود. در داشبوردهای عمومی در دسترس نیست.",
+  "This expression keeps only the series it compares as true. Move the comparison to When to alert to chart every series and judge each one there.": "این عبارت فقط سری‌هایی را نگه می‌دارد که مقایسه‌اش برایشان درست است. مقایسه را به «چه وقت هشدار داده شود» منتقل کنید تا نمودار همهٔ سری‌ها را نشان دهد و هر کدام همان‌جا سنجیده شود.",
+  "This expression returns {{count}} series. A monitor judges at most {{max}} of them on each check: aggregate it with sum by (...) or add label matchers.": "این عبارت {{count}} سری برمی‌گرداند. مانیتور در هر بررسی حداکثر {{max}} سری از آن‌ها را می‌سنجد: آن را با sum by (...) تجمیع کنید یا تطبیق‌دهندهٔ برچسب اضافه کنید.",
+  "This project's metrics (PromQL)": "متریک‌های این پروژه (PromQL)",
+  "Write the PromQL expression this monitor evaluates, such as sum(rate(http_requests_total[5m])).": "عبارت PromQL را که این مانیتور ارزیابی می‌کند بنویسید، مانند sum(rate(http_requests_total[5m])).",
+  "Write the metric with": "نوشتن متریک با"
 }

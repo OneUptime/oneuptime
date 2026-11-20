@@ -59642,5 +59642,22 @@
   "New Email Link Expires": "Udløb af link til ny e-mailadresse",
   "Send Link Again": "Send link igen",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Linket, vi sendte til {{email}}, er udløbet, så din e-mailadresse er ikke ændret. Send et nyt link for at gøre ændringen færdig, eller annuller den.",
-  "We emailed the new address again.": "Vi har sendt en e-mail til den nye adresse igen."
+  "We emailed the new address again.": "Vi har sendt en e-mail til den nye adresse igen.",
+  "Data to visualize: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST).": "Data to visualize: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST).",
+  "Each series the expression returns is judged on its own and opens its own incident, up to {{count}} series.": "Each series the expression returns is judged on its own and opens its own incident, up to {{count}} series.",
+  "Move to When to alert": "Flyt til Hvornår der advares",
+  "No outside data sources connected yet: this project's metrics are here to query with PromQL. To chart another system, add it under Dashboards → Settings → Data Sources.": "No outside data sources connected yet: this project's metrics are here to query with PromQL. To chart another system, add it under Dashboards → Settings → Data Sources.",
+  "Query Builder": "Forespørgselsbygger",
+  "Rows to render: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST).": "Rows to render: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST).",
+  "Runs over this project's metrics, as the PromQL tab on the Metrics page does, for the services you may read.": "Runs over this project's metrics, as the PromQL tab on the Metrics page does, for the services you may read.",
+  "The PromQL expression does not parse: {{error}}": "The PromQL expression does not parse: {{error}}",
+  "The PromQL expression is a range vector, which a monitor cannot compare. Wrap it in a function such as rate(...[5m]) or avg_over_time(...[5m]).": "The PromQL expression is a range vector, which a monitor cannot compare. Wrap it in a function such as rate(...[5m]) or avg_over_time(...[5m]).",
+  "The PromQL expression is a string, which a monitor cannot compare. Write an expression that returns numbers.": "The PromQL expression is a string, which a monitor cannot compare. Write an expression that returns numbers.",
+  "The PromQL expression this monitor evaluates; each series it returns is judged on its own.": "The PromQL expression this monitor evaluates; each series it returns is judged on its own.",
+  "The same visualizations, driven by a query in its own language: PromQL over this project's metrics, or a system OneUptime does not own — Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch, or any REST API, connected under Dashboards → Settings → Data Sources. Not available on public dashboards.": "The same visualizations, driven by a query in its own language: PromQL over this project's metrics, or a system OneUptime does not own — Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch, or any REST API, connected under Dashboards → Settings → Data Sources. Not available on public dashboards.",
+  "This expression keeps only the series it compares as true. Move the comparison to When to alert to chart every series and judge each one there.": "This expression keeps only the series it compares as true. Move the comparison to When to alert to chart every series and judge each one there.",
+  "This expression returns {{count}} series. A monitor judges at most {{max}} of them on each check: aggregate it with sum by (...) or add label matchers.": "This expression returns {{count}} series. A monitor judges at most {{max}} of them on each check: aggregate it with sum by (...) or add label matchers.",
+  "This project's metrics (PromQL)": "Dette projekts metrikker (PromQL)",
+  "Write the PromQL expression this monitor evaluates, such as sum(rate(http_requests_total[5m])).": "Write the PromQL expression this monitor evaluates, such as sum(rate(http_requests_total[5m])).",
+  "Write the metric with": "Skriv metrikken med"
 }

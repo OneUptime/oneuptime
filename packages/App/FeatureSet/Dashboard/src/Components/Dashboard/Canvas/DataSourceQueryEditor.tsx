@@ -149,7 +149,9 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
     return [
       {
         value: PROJECT_METRICS_DATA_SOURCE_ID,
-        label: translator.translateText(PROJECT_METRICS_SOURCE_LABEL),
+        label:
+          translator.translateText(PROJECT_METRICS_SOURCE_LABEL) ||
+          PROJECT_METRICS_SOURCE_LABEL,
       },
       ...dataSources.map((dataSource: DataSourceModel) => {
         return {

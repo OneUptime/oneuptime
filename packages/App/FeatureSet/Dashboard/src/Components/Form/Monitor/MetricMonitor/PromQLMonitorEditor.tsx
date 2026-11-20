@@ -34,6 +34,7 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -74,14 +75,21 @@ const MOVE_COMPARISON_TEXT: string = translationKey(
  * sentences PromQLMonitorExpression says in English, a parser's own words
  * kept as they are.
  */
+export const PROMQL_MONITOR_PARSE_ERROR_TEXT: string = translationKey(
+  "The PromQL expression does not parse: {{error}}",
+);
+
 export const PROMQL_MONITOR_PROBLEM_TEXT: Readonly<
-  Record<PromQLMonitorExpressionProblemKind, string>
+  Record<
+    Exclude<
+      PromQLMonitorExpressionProblemKind,
+      PromQLMonitorExpressionProblemKind.DoesNotParse
+    >,
+    string
+  >
 > = {
   [PromQLMonitorExpressionProblemKind.Empty]: translationKey(
     "Write the PromQL expression this monitor evaluates, such as sum(rate(http_requests_total[5m])).",
-  ),
-  [PromQLMonitorExpressionProblemKind.DoesNotParse]: translationKey(
-    "The PromQL expression does not parse: {{error}}",
   ),
   [PromQLMonitorExpressionProblemKind.RangeVector]: translationKey(
     "The PromQL expression is a range vector, which a monitor cannot compare. Wrap it in a function such as rate(...[5m]) or avg_over_time(...[5m]).",
@@ -243,10 +251,18 @@ const PromQLMonitorEditor: FunctionComponent<ComponentProps> = (
         </span>
         {problem && (
           <FieldError
-            message={translator.translateTemplate(
-              PROMQL_MONITOR_PROBLEM_TEXT[problem.kind],
-              { error: problem.detail || "" },
-            )}
+            message={
+              problem.kind === PromQLMonitorExpressionProblemKind.DoesNotParse
+                ? translator.translateTemplate(
+                    PROMQL_MONITOR_PARSE_ERROR_TEXT,
+                    {
+                      error: errorInSentence(problem.detail),
+                    },
+                  )
+                : translator.translateText(
+                    PROMQL_MONITOR_PROBLEM_TEXT[problem.kind],
+                  ) || PROMQL_MONITOR_PROBLEM_TEXT[problem.kind]
+            }
           />
         )}
         <p className="mt-1 text-xs text-gray-500">
