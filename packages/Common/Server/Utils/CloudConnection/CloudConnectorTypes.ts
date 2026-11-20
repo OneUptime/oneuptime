@@ -86,10 +86,14 @@ export interface GcpSplitLearned {
   /*
    * A type's: the resources of the type that the read it was learned in
    * found by their key metrics, but it did not see - a VM without the Ops
-   * Agent never reports the metric. Found again, they make no learning due;
-   * a resource found since does.
+   * Agent never reports the metric. Found again, they are no new ones.
    */
   checked?: Array<Record<string, string>> | undefined;
+  /*
+   * A type's: the resources of the type a read found since, which the next
+   * read learns alone - their busiest values, not every resource's again.
+   */
+  pending?: Array<Record<string, string>> | undefined;
 }
 
 /*

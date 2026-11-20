@@ -605,10 +605,12 @@ export function isGcpSeriesOfResources(
  *     every value, so a value it never had before - a first 503 - is read
  *     at once; when it has the cap's values too, that read learns its
  *     busiest (learnGcpSplitFromRead) and the next is narrowed.
- *   - Learned again an hour later (isGcpSplitLearnDue), a quarter of an hour
- *     later while nothing reported, and at once for a resource of a type's
- *     addition found since it was learned (getGcpSplitResourcesUnseen) - not
- *     for one found then without the metric, which would learn every read.
+ *   - Learned again an hour later (isGcpSplitLearnDue), and a quarter of an
+ *     hour later while nothing reported. A resource of a type's addition
+ *     found since is learned alone at the next read, narrowed to it
+ *     (getGcpSplitResourcesUnseen): its busiest values, not every
+ *     resource's again. One the learning's read found without the metric -
+ *     a VM without the Ops Agent - is no new one.
  *
  * What it costs a month, shown before it is added, counts the reads and the
  * learning, ten series a resource each (estimateCloudAddedMetricCost).
@@ -852,7 +854,7 @@ export function getGcpSplitValuesOfSeries(
  * read twice; and the rest of the ask's resources read for every value,
  * narrowed to them. A batch's resources the learning did not see (they had
  * no data) are among the rest; a type's resources it did not see are read
- * from its next learning, which they make due (getGcpSplitResourcesUnseen).
+ * once the next read has learned them (getGcpSplitResourcesUnseen).
  */
 export function planGcpSplitReads(data: {
   ask: GcpAddedMetricAsk;
@@ -1127,41 +1129,134 @@ export function getGcpSplitResourcesChecked(data: {
 }
 
 /*
- * Whether a type's split addition, read for some resources' busiest values,
- * missed a resource of its type the read found (by its key metrics): its
- * learning is then due at once, so the new resource is read from the next
- * read, not an hour later. One the read it was learned in found too is no
- * new one (getGcpSplitResourcesChecked): it does not report the metric, and
- * learning again every read would bill as much as the read. Nor is one
- * while the learning holds the most it keeps: learning again would keep no
- * more, and the hour's learning ranks them all.
+ * The resources of a type's split addition, read for some resources'
+ * busiest values, that the read found by their key metrics and its
+ * learning does not know (#10076): the next read learns them alone
+ * (addGcpSplitResourcesLearned), so a VM made since is read from then, not
+ * an hour on, and costs its own busiest values, not every VM's again. One
+ * the read it was learned in found too is no new one
+ * (getGcpSplitResourcesChecked): it does not report the metric. As many as
+ * the most a learning keeps leaves room for; past it, the hour's learning
+ * ranks them all. None while every resource is read for every value: the
+ * read itself finds new ones.
  */
 export function getGcpSplitResourcesUnseen(data: {
   learned: GcpSplitLearned;
   split: GcpSplitRead;
   found: ReadonlyArray<Record<string, string>>;
-}): number {
+}): Array<Record<string, string>> {
   const checked: Array<Record<string, string>> = data.learned.checked || [];
+  const pending: Array<Record<string, string>> = data.learned.pending || [];
+  const room: number =
+    GCP_SPLIT_MAX_LEARNED_RESOURCES -
+    data.learned.capped.length -
+    data.learned.others.length -
+    checked.length -
+    pending.length;
 
-  if (
-    data.learned.capped.length === 0 ||
-    data.learned.capped.length + data.learned.others.length + checked.length >=
-      GCP_SPLIT_MAX_LEARNED_RESOURCES
-  ) {
-    return 0;
+  if (data.learned.capped.length === 0 || room <= 0) {
+    return [];
   }
 
   const known: Set<string> = getGcpSplitResourcesLearned(data.learned);
 
-  for (const resource of checked) {
+  for (const resource of [...checked, ...pending]) {
     known.add(labelSetKey(resource));
   }
 
-  return Array.from(
-    getGcpSplitResourcesFound(data.split, data.found).keys(),
-  ).filter((key: string): boolean => {
-    return !known.has(key);
-  }).length;
+  const found: Map<string, Record<string, string>> = getGcpSplitResourcesFound(
+    data.split,
+    data.found,
+  );
+
+  return Array.from(found.keys())
+    .filter((key: string): boolean => {
+      return !known.has(key);
+    })
+    .sort()
+    .slice(0, room)
+    .map((key: string): Record<string, string> => {
+      return found.get(key)!;
+    });
+}
+
+/*
+ * A type's learning with what learning some of its new resources alone
+ * found (#10076): each one that reported is the learning's own - read for
+ * its busiest values when it had the cap's - and each one that did not is
+ * kept with the ones found without the metric. The learning keeps its
+ * hour, so the whole is learned again on time.
+ */
+export function addGcpSplitResourcesLearned(data: {
+  learned: GcpSplitLearned;
+  // The new resources this learning was of.
+  resources: ReadonlyArray<Record<string, string>>;
+  added: GcpSplitLearned;
+}): GcpSplitLearned {
+  const known: Set<string> = getGcpSplitResourcesLearned(data.learned);
+  const capped: GcpSplitLearned["capped"] = data.added.capped.filter(
+    (entry: { resource: Record<string, string> }): boolean => {
+      return !known.has(labelSetKey(entry.resource));
+    },
+  );
+  const others: Array<Record<string, string>> = data.added.others.filter(
+    (resource: Record<string, string>): boolean => {
+      return !known.has(labelSetKey(resource));
+    },
+  );
+  const reported: Set<string> = getGcpSplitResourcesLearned(data.added);
+  const learnedNow: Set<string> = new Set<string>(
+    data.resources.map((resource: Record<string, string>): string => {
+      return labelSetKey(resource);
+    }),
+  );
+  const learned: GcpSplitLearned = {
+    ...data.learned,
+    capped: [...data.learned.capped, ...capped].slice(
+      0,
+      GCP_SPLIT_MAX_LEARNED_RESOURCES,
+    ),
+    others: [...data.learned.others, ...others].slice(
+      0,
+      GCP_SPLIT_MAX_LEARNED_RESOURCES,
+    ),
+  };
+  const checked: Map<string, Record<string, string>> = new Map();
+
+  for (const resource of [...(data.learned.checked || []), ...data.resources]) {
+    const key: string = labelSetKey(resource);
+
+    if (!known.has(key) && !reported.has(key)) {
+      checked.set(key, resource);
+    }
+  }
+
+  const pending: Array<Record<string, string>> = (
+    data.learned.pending || []
+  ).filter((resource: Record<string, string>): boolean => {
+    return !learnedNow.has(labelSetKey(resource));
+  });
+
+  delete learned.checked;
+  delete learned.pending;
+
+  if (checked.size > 0) {
+    learned.checked = Array.from(checked.values()).slice(
+      0,
+      Math.max(
+        0,
+        GCP_SPLIT_MAX_LEARNED_RESOURCES -
+          learned.capped.length -
+          learned.others.length,
+      ),
+    );
+  }
+
+  if (pending.length > 0) {
+    learned.pending = pending;
+  }
+
+  return learned;
 }
 
 /*
@@ -2881,18 +2976,50 @@ export default class GcpCloudConnector implements CloudConnector {
         }
       }
 
-      const dueSplits: Array<{
+      /*
+       * What is learned: each split due whole, and a type's resources a read
+       * found since it was learned, alone - narrowed to them in as few calls
+       * as their labels allow - while the whole is not due.
+       */
+      const splitLearnings: Array<{
         projectId: string;
         ask: GcpAddedMetricAsk;
         key: string;
-      }> = splitAsks.filter((entry: { key: string }): boolean => {
-        return isGcpSplitLearnDue(splitValues[entry.key], now);
-      });
-      // The splits learned in this read.
+        newResources?: Array<Record<string, string>> | undefined;
+      }> = [];
+
+      for (const entry of splitAsks) {
+        if (isGcpSplitLearnDue(splitValues[entry.key], now)) {
+          splitLearnings.push(entry);
+          continue;
+        }
+
+        for (const batch of planGcpResourceBatches({
+          metricType: entry.ask.metric.metricType,
+          resourceType: entry.ask.resourceType,
+          resources: splitValues[entry.key]?.pending || [],
+        })) {
+          splitLearnings.push({
+            projectId: entry.projectId,
+            key: entry.key,
+            ask: {
+              ...entry.ask,
+              resourceLabels: batch.labels,
+              ...(batch.labelIn ? { resourceLabelIn: batch.labelIn } : {}),
+              resources: batch.resources,
+            },
+            newResources: batch.resources,
+          });
+        }
+      }
+
+      // The splits learned whole in this read.
       const learnedNow: Set<string> = new Set<string>();
+      // Each split's warning once, however many calls it was learned in.
+      const warnedSplits: Set<string> = new Set<string>();
       const learnings: Array<Settled<GcpSplitLearned>> =
         await mapWithConcurrency(
-          dueSplits,
+          splitLearnings,
           CONCURRENCY,
           async (entry: {
             projectId: string;
@@ -2909,38 +3036,45 @@ export default class GcpCloudConnector implements CloudConnector {
         );
 
       learnings.forEach((outcome: Settled<GcpSplitLearned>, index: number) => {
-        const entry: { ask: GcpAddedMetricAsk; key: string } =
-          dueSplits[index]!;
+        const entry: {
+          ask: GcpAddedMetricAsk;
+          key: string;
+          newResources?: Array<Record<string, string>> | undefined;
+        } = splitLearnings[index]!;
+        let warning: string | null = null;
 
         if (outcome.ok) {
-          splitValues[entry.key] = outcome.value;
-          learnedNow.add(entry.key);
-
-          if (outcome.value.via === "list") {
-            warnings.push(
-              `Cloud Monitoring could not rank the values of ${entry.ask.metric.metricType} by ${entry.ask.split!.label} with PromQL, so its busiest values were learned from all of them this hour.`,
-            );
+          if (!entry.newResources) {
+            splitValues[entry.key] = outcome.value;
+            learnedNow.add(entry.key);
+          } else if (splitValues[entry.key]) {
+            splitValues[entry.key] = addGcpSplitResourcesLearned({
+              learned: splitValues[entry.key]!,
+              resources: entry.newResources,
+              added: outcome.value,
+            });
           }
 
-          return;
-        }
-
-        if (outcome.error instanceof CloudReadBudgetSpent) {
-          return;
-        }
-
-        // Kept as last learned where they were: still read for those alone.
-        warnings.push(
-          `Could not learn which values of ${entry.ask.metric.metricType} by ${
-            entry.ask.split!.label
-          } to read${
+          if (outcome.value.via === "list") {
+            warning = `Cloud Monitoring could not rank the values of ${entry.ask.metric.metricType} by ${entry.ask.split!.label} with PromQL, so its busiest values were learned from all of them this hour.`;
+          }
+        } else if (!(outcome.error instanceof CloudReadBudgetSpent)) {
+          // Kept as last learned where they were: still read for those alone.
+          warning = `Could not learn which values of ${
+            entry.ask.metric.metricType
+          } by ${entry.ask.split!.label} to read${
             splitValues[entry.key] ? ", so the last ones learned were read" : ""
           }: ${
             outcome.error instanceof Error
               ? outcome.error.message
               : String(outcome.error)
-          }`,
-        );
+          }`;
+        }
+
+        if (warning && !warnedSplits.has(entry.key)) {
+          warnedSplits.add(entry.key);
+          warnings.push(warning);
+        }
       });
 
       for (const entry of splitAsks) {
@@ -3189,7 +3323,7 @@ export default class GcpCloudConnector implements CloudConnector {
           foundByType.get(`${entry.projectId}\n${entry.ask.resourceType}`) ||
           [];
 
-        // Learned in this read: the resources it found without the metric are no new ones.
+        // Learned whole in this read: the resources it found without the metric are no new ones.
         if (learnedNow.has(entry.key)) {
           const checked: Array<Record<string, string>> =
             getGcpSplitResourcesChecked({
@@ -3201,16 +3335,22 @@ export default class GcpCloudConnector implements CloudConnector {
           if (checked.length > 0) {
             splitValues[entry.key] = { ...learned, checked };
           }
-        } else if (
+
+          continue;
+        }
+
+        // Found since: learned alone at the next read.
+        const unseen: Array<Record<string, string>> =
           getGcpSplitResourcesUnseen({
             learned,
             split: entry.ask.split!,
             found,
-          }) > 0
-        ) {
+          });
+
+        if (unseen.length > 0) {
           splitValues[entry.key] = {
             ...learned,
-            at: new Date(0).toISOString(),
+            pending: [...(learned.pending || []), ...unseen],
           };
         }
       }

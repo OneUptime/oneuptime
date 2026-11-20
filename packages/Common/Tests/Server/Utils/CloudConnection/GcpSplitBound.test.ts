@@ -12,6 +12,7 @@ import GcpCloudConnector, {
   GCP_SPLIT_LEARN_EVERY_MS,
   GCP_SPLIT_MAX_LEARNED_RESOURCES,
   GcpAddedMetricAsk,
+  addGcpSplitResourcesLearned,
   getGcpAddedMetricsToAsk,
   getGcpSplitLearnKey,
   getGcpSplitResourcesChecked,
@@ -1343,7 +1344,7 @@ describe("what a read of every value learns", () => {
     ).toEqual([vmLabels("1002"), vmLabels("1003")]);
   });
 
-  test("a type's resource the learning never saw, found by its key metrics, makes it due", () => {
+  test("a type's resources the learning never saw, found by their key metrics, are learned alone at the next read", () => {
     const learned: GcpSplitLearned = {
       at: NOW.toISOString(),
       via: "promql",
@@ -1357,14 +1358,28 @@ describe("what a read of every value learns", () => {
         split,
         found: [{ ...vmLabels("1001"), extra: "kept aside" }, vmLabels("1002")],
       }),
-    ).toBe(0);
+    ).toEqual([]);
+    // Each once, by the split's resource labels alone, in label order.
     expect(
       getGcpSplitResourcesUnseen({
         learned,
         split,
-        found: [vmLabels("1001"), vmLabels("1003"), vmLabels("1003")],
+        found: [
+          vmLabels("1004"),
+          vmLabels("1001"),
+          { ...vmLabels("1003"), extra: "kept aside" },
+          vmLabels("1003"),
+        ],
       }),
-    ).toBe(1);
+    ).toEqual([vmLabels("1003"), vmLabels("1004")]);
+    // Already to be learned: not twice.
+    expect(
+      getGcpSplitResourcesUnseen({
+        learned: { ...learned, pending: [vmLabels("1003")] },
+        split,
+        found: [vmLabels("1003"), vmLabels("1004")],
+      }),
+    ).toEqual([vmLabels("1004")]);
     // Every value read: the read itself finds new resources.
     expect(
       getGcpSplitResourcesUnseen({
@@ -1372,7 +1387,7 @@ describe("what a read of every value learns", () => {
         split,
         found: [vmLabels("1003")],
       }),
-    ).toBe(0);
+    ).toEqual([]);
   });
 
   test("a type's resource the read it was learned in found without the metric - no Ops Agent - is no new one; one found since is", () => {
@@ -1403,17 +1418,17 @@ describe("what a read of every value learns", () => {
         split,
         found: [vmLabels("1001"), vmLabels("1002"), vmLabels("1003")],
       }),
-    ).toBe(0);
+    ).toEqual([]);
     expect(
       getGcpSplitResourcesUnseen({
         learned: { ...learned, checked },
         split,
         found: [vmLabels("1003"), vmLabels("1004"), vmLabels("1004")],
       }),
-    ).toBe(1);
+    ).toEqual([vmLabels("1004")]);
   });
 
-  test("while a learning holds the most it keeps, no resource found makes it due: the hour's learning ranks them all", () => {
+  test("as many new resources as the most a learning keeps leaves room for; past it, the hour's learning ranks them all", () => {
     const vms: Array<Record<string, string>> = Array.from(
       { length: GCP_SPLIT_MAX_LEARNED_RESOURCES + 10 },
       (_value: unknown, index: number): Record<string, string> => {
@@ -1440,15 +1455,84 @@ describe("what a read of every value learns", () => {
         split,
         found: [...vms, vmLabels("99999")],
       }),
-    ).toBe(0);
-    // Short of the most it keeps, each resource it does not know is new.
+    ).toEqual([]);
+    // One short of it: the one it has room for.
     expect(
       getGcpSplitResourcesUnseen({
         learned: { ...learned, checked: checked.slice(1) },
         split,
         found: vms,
       }),
-    ).toBe(11);
+    ).toHaveLength(1);
+    expect(
+      getGcpSplitResourcesUnseen({
+        learned: {
+          ...learned,
+          checked: checked.slice(2),
+          pending: [vmLabels("99999")],
+        },
+        split,
+        found: vms,
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("what learning new resources alone found is added to the learning, which keeps its hour", () => {
+    const learned: GcpSplitLearned = {
+      at: NOW.toISOString(),
+      via: "promql",
+      capped: [{ resource: vmLabels("1001"), values: ["nginx"] }],
+      others: [vmLabels("1002")],
+      checked: [vmLabels("1009")],
+      pending: [vmLabels("1003"), vmLabels("1004"), vmLabels("1005")],
+    };
+    const added: GcpSplitLearned = {
+      at: new Date(NOW.getTime() + 5 * MINUTE_MS).toISOString(),
+      via: "promql",
+      capped: [{ resource: vmLabels("1003"), values: commands(0, 9) }],
+      // Known already: not twice.
+      others: [vmLabels("1002")],
+    };
+
+    // 1003 and 1004 learned; 1004 reported nothing; 1005 waits for its call.
+    expect(
+      addGcpSplitResourcesLearned({
+        learned,
+        resources: [vmLabels("1003"), vmLabels("1004")],
+        added,
+      }),
+    ).toEqual({
+      at: NOW.toISOString(),
+      via: "promql",
+      capped: [
+        { resource: vmLabels("1001"), values: ["nginx"] },
+        { resource: vmLabels("1003"), values: commands(0, 9) },
+      ],
+      others: [vmLabels("1002")],
+      checked: [vmLabels("1009"), vmLabels("1004")],
+      pending: [vmLabels("1005")],
+    });
+    // The last of them learned: none waits.
+    expect(
+      addGcpSplitResourcesLearned({
+        learned: {
+          ...learned,
+          checked: undefined,
+          pending: [vmLabels("1005")],
+        },
+        resources: [vmLabels("1005")],
+        added: {
+          ...added,
+          capped: [],
+          others: [vmLabels("1005")],
+        },
+      }),
+    ).toEqual({
+      at: NOW.toISOString(),
+      via: "promql",
+      capped: [{ resource: vmLabels("1001"), values: ["nginx"] }],
+      others: [vmLabels("1002"), vmLabels("1005")],
+    });
   });
 });
 
@@ -1775,7 +1859,7 @@ describe("a split read against Google, as it answers and bills", () => {
       [PROCESS_CPU]: [...processesOf("1001", 30), ...processesOf("1003", 4)],
     });
 
-    // Found by its CPU, which the learning never saw: due again at once.
+    // Found by its CPU, which the learning never saw: learned at the next read.
     const second: CloudReadResult = await readAt(
       fake,
       [addition()],
@@ -1784,9 +1868,15 @@ describe("a split read against Google, as it answers and bills", () => {
     );
 
     expect(fake.queries).toHaveLength(1);
-    expect(Object.values(second.nextState.gcpSplitValues || {})[0]!.at).toBe(
-      new Date(0).toISOString(),
-    );
+    expect(Object.values(second.nextState.gcpSplitValues || {})[0]).toEqual({
+      at: NOW.toISOString(),
+      via: "promql",
+      capped: [
+        { resource: vmLabels("1001"), values: commands(20, 29).reverse() },
+      ],
+      others: [],
+      pending: [vmLabels("1003")],
+    });
 
     const third: CloudReadResult = await readAt(
       fake,
@@ -1795,8 +1885,22 @@ describe("a split read against Google, as it answers and bills", () => {
       new Date(NOW.getTime() + 10 * MINUTE_MS),
     );
 
+    // 1003 alone: its 4 values, not 1001's 10 again.
     expect(fake.queries).toHaveLength(2);
+    expect(fake.queries[1]).toContain(
+      'project_id="acme-prod", instance_id="1003", zone="us-central1-a"',
+    );
+    expect(fake.billed.promql).toEqual([10, 4]);
     expect(writtenValues(third)).toContain("1003:cmd-03");
+    // Its hour kept: the whole is learned again on time.
+    expect(Object.values(third.nextState.gcpSplitValues || {})[0]).toEqual({
+      at: NOW.toISOString(),
+      via: "promql",
+      capped: [
+        { resource: vmLabels("1001"), values: commands(20, 29).reverse() },
+      ],
+      others: [vmLabels("1003")],
+    });
   });
 
   test("a VM of the type that never reports the metric - no Ops Agent - is no new VM: an hour of reads learns once, and a VM made since at the next read", async () => {
@@ -1845,7 +1949,10 @@ describe("a split read against Google, as it answers and bills", () => {
       state = { ...last.nextState, ...withVms() };
     }
 
+    // 1004 alone, its 4 values.
     expect(fake.queries).toHaveLength(2);
+    expect(fake.queries[1]).toContain('instance_id="1004"');
+    expect(fake.billed.promql).toEqual([10, 4]);
     expect(writtenValues(last!)).toEqual(
       [
         ...commands(20, 29).map((command: string): string => {
