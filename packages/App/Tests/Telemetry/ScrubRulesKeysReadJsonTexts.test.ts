@@ -26,7 +26,8 @@ import {
   readingOf,
   shapeDifference,
 } from "Common/Tests/Utils/Telemetry/JsonKeysCases";
-import crypto from "crypto";
+import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
+import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -61,12 +62,19 @@ interface RuleSpec {
   fields?: string | undefined;
 }
 
+// The project the rules are of: their Hash tokens are keyed with it.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193b0a1-0000-7000-8000-000000a20394",
+);
+
 function compile(
   service: unknown,
   rule: LogScrubRule | TraceScrubRule,
   spec: RuleSpec,
 ): { rule: LogScrubRule | TraceScrubRule; regex: ScrubRegExp } {
   rule.name = "test rule";
+  // A Hash rule hashes with its project's key, as the rules ingest loads do.
+  rule.projectId = PROJECT_ID;
   rule.patternType = spec.patternType;
   rule.scrubAction = spec.action || "redact";
 
@@ -115,8 +123,9 @@ function logBody(body: string, specs: Array<RuleSpec> = [KEYS]): string {
   return scrubbedLog({ body: body, attributes: {} }, specs)["body"] as string;
 }
 
-function sha8(text: string): string {
-  return crypto.createHash("sha256").update(text).digest("hex").slice(0, 8);
+// What a Hash rule of PROJECT_ID leaves of a text (#10394).
+function token(text: string): string {
+  return ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: text });
 }
 
 // A request body as an application logs it: a number JSON.parse cannot keep, spaces.
@@ -216,7 +225,7 @@ describe("a log's attributes: a JSON text held in a string is read key by key", 
           { patternType: "sensitiveKeys", action: "hash" },
         ])["form"] as string,
       ),
-    ).toEqual({ password: `[HASHED:${sha8("hunter2")}]`, user: "ada" });
+    ).toEqual({ password: token("hunter2"), user: "ada" });
   });
 
   test("with a pattern rule before or after it, both apply and the text stays JSON", () => {
@@ -411,8 +420,8 @@ describe("within the record's bounds", () => {
      * found nothing left and hidden the whole text as one.
      */
     expect(read).toHaveLength(400);
-    expect(read[0]).toEqual({ token: `[HASHED:${sha8(REDACTED)}]`, n: 0 });
-    expect(read[49]).toEqual({ token: `[HASHED:${sha8(REDACTED)}]`, n: 49 });
+    expect(read[0]).toEqual({ token: token(REDACTED), n: 0 });
+    expect(read[49]).toEqual({ token: token(REDACTED), n: 49 });
     // Hidden whole by the first; a text in a list, which the second keeps.
     expect(read[50]).toBe(REDACTED);
   });
@@ -555,14 +564,14 @@ describe("a span: its attributes, its events' and its links' JSON texts are read
     );
     expect(JSON.parse(content.message)).toEqual({
       error: "declined\n****-****-****-1111",
-      card_number: `[HASHED:${sha8("4111")}]`,
-      request: `{"token":"[HASHED:${sha8("t-1")}]"}`,
+      card_number: token("4111"),
+      request: `{"token":"${token("t-1")}"}`,
     });
     expect(JSON.parse(content.stackTrace)).toEqual([
       "at pay()",
-      { api_key: `[HASHED:${sha8("k-1")}]` },
+      { api_key: token("k-1") },
     ]);
-    expect(content.exceptionType).toBe(`{"secret":"[HASHED:${sha8("s-1")}]"}`);
+    expect(content.exceptionType).toBe(`{"secret":"${token("s-1")}"}`);
   });
 
   test("an exception with no type keeps none, and a plain message is kept", () => {

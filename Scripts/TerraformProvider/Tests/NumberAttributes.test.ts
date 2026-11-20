@@ -11,6 +11,7 @@ import {
   TerraformResource,
 } from "../Core/Types";
 import { StringUtils } from "../Core/StringUtils";
+import { providerGoFilePath, providerGoFiles } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 
 /*
@@ -23,7 +24,7 @@ import { buildFixtureSpec } from "./Fixtures";
  * rule failed with "Provider produced inconsistent result after apply".
  *
  * Every number attribute - of every resource and every data source - is now
- * read through one Go function, numberFromAPI (StaticFiles/apinumber.go),
+ * read through one Go function, NumberFromAPI (StaticFiles/apinumber.go),
  * which reads a JSON number, numeric text, and either inside a wrapper, and
  * keeps the value the attribute held when the API answered the same number.
  * These pin that the generated code calls it everywhere and reads numbers no
@@ -31,22 +32,24 @@ import { buildFixtureSpec } from "./Fixtures";
  * apinumber_roundtrip_test.go) pin what it does.
  */
 
-const PROVIDER_DIR: string = "internal/provider";
-
 let outputDir: string;
 let resources: Array<TerraformResource>;
 let dataSources: Array<TerraformDataSource>;
 
 function readGenerated(fileName: string): string {
-  return fs.readFileSync(path.join(outputDir, PROVIDER_DIR, fileName), "utf-8");
+  return fs.readFileSync(
+    path.join(outputDir, providerGoFilePath(fileName)),
+    "utf-8",
+  );
 }
 
 function generatedFiles(prefix: string): Array<string> {
-  return fs
-    .readdirSync(path.join(outputDir, PROVIDER_DIR))
-    .filter((fileName: string): boolean => {
+  // The provider package's files and every shard's (Core/ProviderShards.ts).
+  return Array.from(providerGoFiles(outputDir).keys()).filter(
+    (fileName: string): boolean => {
       return fileName.startsWith(prefix) && fileName.endsWith(".go");
-    });
+    },
+  );
 }
 
 function numberAttributes(
@@ -100,7 +103,7 @@ describe("the one line that reads a number", () => {
         "data.Priority",
         'dataMap["priority"]',
       ),
-    ).toBe('data.Priority = numberFromAPI(data.Priority, dataMap["priority"])');
+    ).toBe('data.Priority = NumberFromAPI(data.Priority, dataMap["priority"])');
   });
 
   test("is what a map read of a number generates too", () => {
@@ -112,13 +115,13 @@ describe("the one line that reads a number", () => {
           goType,
           "data.Priority",
         ),
-      ).toBe('data.Priority = numberFromAPI(data.Priority, item["priority"])');
+      ).toBe('data.Priority = NumberFromAPI(data.Priority, item["priority"])');
     }
   });
 });
 
 describe("a resource with a number attribute", () => {
-  test("reads it through numberFromAPI in Create and in Read", () => {
+  test("reads it through NumberFromAPI in Create and in Read", () => {
     const go: string = readGenerated("resource_monitor_status.go");
 
     const create: string = go.substring(
@@ -132,12 +135,12 @@ describe("a resource with a number attribute", () => {
 
     for (const method of [create, read]) {
       expect(method).toContain(
-        'data.Priority = numberFromAPI(data.Priority, dataMap["priority"])',
+        'data.Priority = NumberFromAPI(data.Priority, dataMap["priority"])',
       );
     }
   });
 
-  test("reads it through numberFromAPI in Update", () => {
+  test("reads it through NumberFromAPI in Update", () => {
     const go: string = readGenerated("resource_monitor.go");
     const update: string = go.substring(
       go.indexOf(") Update(ctx context.Context"),
@@ -145,7 +148,7 @@ describe("a resource with a number attribute", () => {
     );
 
     expect(update).toContain(
-      'data.Priority = numberFromAPI(data.Priority, dataMap["priority"])',
+      'data.Priority = NumberFromAPI(data.Priority, dataMap["priority"])',
     );
   });
 
@@ -163,14 +166,14 @@ describe("a data source with a number attribute", () => {
     return readGenerated("data_source_monitor_status.go");
   };
 
-  test("reads it through numberFromAPI, keeping the lookup argument it was given", () => {
+  test("reads it through NumberFromAPI, keeping the lookup argument it was given", () => {
     expect(go()).toContain(
-      'data.Priority = numberFromAPI(data.Priority, item["priority"])',
+      'data.Priority = NumberFromAPI(data.Priority, item["priority"])',
     );
   });
 
   test("still looks it up by the number", () => {
-    expect(go()).toContain('filters["priority"] = lookupNumber(data.Priority)');
+    expect(go()).toContain('filters["priority"] = LookupNumber(data.Priority)');
   });
 
   /*
@@ -202,7 +205,7 @@ describe("every number attribute of every generated resource and data source", (
     expect(count).toBeGreaterThanOrEqual(4);
   });
 
-  test("is read from the API only through numberFromAPI", () => {
+  test("is read from the API only through NumberFromAPI", () => {
     const misread: Array<string> = [];
 
     const check: (
@@ -220,7 +223,7 @@ describe("every number attribute of every generated resource and data source", (
         const apiField: string = attribute.apiFieldName || name;
         const field: string = StringUtils.toPascalCase(name);
         const read: string = `${responseMap}["${apiField}"]`;
-        const throughTheHelper: string = `data.${field} = numberFromAPI(data.${field}, ${read})`;
+        const throughTheHelper: string = `data.${field} = NumberFromAPI(data.${field}, ${read})`;
 
         // Every place the generated code touches the answer is the helper.
         if (countOf(source, read) !== countOf(source, throughTheHelper)) {
@@ -266,9 +269,9 @@ describe("the Go copied in beside the generated code", () => {
     );
   });
 
-  test("numberFromAPI takes what the generated code passes it", () => {
+  test("NumberFromAPI takes what the generated code passes it", () => {
     expect(readGenerated("apinumber.go")).toContain(
-      "func numberFromAPI(previous types.Number, value interface{}) types.Number {",
+      "func NumberFromAPI(previous types.Number, value interface{}) types.Number {",
     );
   });
 
