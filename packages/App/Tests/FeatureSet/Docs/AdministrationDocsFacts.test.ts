@@ -861,9 +861,9 @@ describe("Inviting People", () => {
       "return await SsoManagedSignIn.getManagedByOnceIn({",
     );
     expect(rule).toContain("public static async getManagedByOnceIn(data: {");
-    // The page: the project's providers, and no password.
+    // The page: the project's providers, and no password - with the link, as #9898's proof of the mailbox.
     expect(register).toContain(
-      "if (invitation?.ssoSignIn) { return <InvitedSsoSignIn invitation={invitation} />; }",
+      "if (invitation?.ssoSignIn) { return <InvitedSsoSignIn invitation={invitation} link={invitationLink} />; }",
     );
     // Signing in through the project's SSO accepts the invitation.
     expect(gate).toContain(
