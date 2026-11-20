@@ -301,6 +301,12 @@ export default class SortValidator {
           }),
           query: data.query,
           props: data.props,
+          isReadPinnedToCaller:
+            OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+              data.modelType,
+              data.query,
+              data.props,
+            ),
         });
       }
     }
@@ -320,6 +326,11 @@ export default class SortValidator {
     held: HeldPermissions;
     query: Query<BaseModel>;
     props: DatabaseCommonInteractionProps;
+    /*
+     * The list's own query pinned to the caller's own records: the person's
+     * own records its relations reach are the caller's (#10176).
+     */
+    isReadPinnedToCaller: boolean;
   }): void {
     const relatedModel: BaseModel = new data.relatedModelType();
 
@@ -363,10 +374,11 @@ export default class SortValidator {
       });
 
       /*
-       * A column only a person reads of their own account - their language,
-       * whether their address is verified - orders no list of people: a
-       * relation never shows the reader to be that person
-       * (QueryPermission.canFilterOrOrderByRelatedColumn, #9895).
+       * A column only a person reads of their own records - their
+       * account's language, whether their address is verified, their
+       * notification methods and on-call logs - orders no list: a relation
+       * never shows the reader to be that person
+       * (QueryPermission.canFilterOrOrderByRelatedColumn, #9895, #10176).
        */
       if (
         !alwaysReadable.includes(relatedField) &&
@@ -375,6 +387,7 @@ export default class SortValidator {
           relatedModel: relatedModel,
           column: relatedField,
           held: data.held,
+          isReadPinnedToCaller: data.isReadPinnedToCaller,
         }) ||
           RelationListPermission.isReadWithheldFromWorkflow(
             data.relatedModelType,

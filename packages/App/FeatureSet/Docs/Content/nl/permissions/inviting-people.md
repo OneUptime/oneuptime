@@ -107,6 +107,8 @@ Klik bij **Gebruikers** op de persoon en daarna op **Teams**.
 
 Klik op **Uitnodigen**, kies het **Team** en klik in het dialoogvenster op **Uitnodigen**. Een lid zit meteen in het nieuwe team. Wie nog niet is toegetreden, krijgt nog een uitnodiging, en het accepteren van een van beide accepteert ze allebei.
 
+Uw project e-mailt iemand hoogstens één uitnodiging per uur. Een uitnodiging binnen een uur na de laatste mail, voor een ander team of nadat u de persoon hebt verwijderd, wordt aangemaakt, maar er gaat geen tweede mail uit totdat die persoon er een accepteert of weigert. **Uitnodiging opnieuw verzenden** in het rijmenu van de persoon bij **Gebruikers** verstuurt er nog steeds een.
+
 ### Uit een team halen
 
 Klik op **Verwijderen** in de rij van het team. Is het het laatste team waarin die persoon is toegetreden, dan haalt het verwijderen die uit het project, en het dialoogvenster zegt dat voordat er iets verandert.
@@ -139,7 +141,11 @@ In OneUptime Cloud heeft een project met het Free-abonnement ruimte voor één p
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-Naar één adres kunnen 10 uitnodigingen per uur worden gestuurd, voor projecten en privéstatuspagina's samen, wie ze ook stuurt. Wacht een uur en nodig de persoon daarna opnieuw uit.
+Uw project kan naar één adres 10 uitnodigingen per uur sturen, voor zijn teams en zijn privéstatuspagina's samen. Uitnodigingen van andere projecten tellen niet mee. Wacht een uur en nodig de persoon daarna opnieuw uit.
+:::
+
+:::details "This invitation cannot be sent right now"
+OneUptime stuurt naar één adres niet meer dan 50 uitnodigingen per uur vanuit alle projecten samen, en deze zou daaroverheen gaan. Er is niets aangemaakt. Probeer het over een uur opnieuw.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"
