@@ -60502,5 +60502,9 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "此表單不要求訪客登入，因此在您於其「分享」頁面開啟「僅限登入的人」之前，這些設定不起作用。",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "不是此表單私人使用者、且您的單一登入也不允許進入的訪客，將無法再開啟或提交它。",
   "Who Can Open This Form": "誰可以開啟此表單",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "只有該表單的私人使用者和您的單一登入允許進入的人才能開啟並提交它。其他所有人都會被要求登入。"
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "只有該表單的私人使用者和您的單一登入允許進入的人才能開啟並提交它。其他所有人都會被要求登入。",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "可能未監測此服務：其 PromQL 查詢還依 {{labels}} 篩選，此頁面無法核實。",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "可能未監測此服務：其 PromQL 查詢可能會排除它讀取的部分序列，此頁面無法核實。",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "可能未監測此單元：其 PromQL 查詢還依 {{labels}} 篩選，此頁面無法核實。",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "可能未監測此單元：其 PromQL 查詢可能會排除它讀取的部分序列，此頁面無法核實。"
 }

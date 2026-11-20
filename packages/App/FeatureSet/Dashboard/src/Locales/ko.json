@@ -60502,5 +60502,9 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "이 양식은 방문자에게 로그인을 요청하지 않으므로, 공유 페이지에서 \"로그인한 사람만\"을 켜기 전까지는 이 설정이 아무 효과도 없습니다.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "이 양식의 비공개 사용자가 아니고 싱글 사인온도 허용하지 않는 방문자는 더 이상 양식을 열거나 제출할 수 없습니다.",
   "Who Can Open This Form": "이 양식을 열 수 있는 사람",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "양식의 비공개 사용자와 싱글 사인온이 허용한 사람만 양식을 열고 제출할 수 있습니다. 그 밖의 모든 사람은 로그인하라는 요청을 받습니다."
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "양식의 비공개 사용자와 싱글 사인온이 허용한 사람만 양식을 열고 제출할 수 있습니다. 그 밖의 모든 사람은 로그인하라는 요청을 받습니다.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "이 서비스를 감시하지 않을 수 있습니다. PromQL 쿼리가 {{labels}} 기준으로도 필터링하며, 이 페이지에서는 이를 확인할 수 없습니다.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "이 서비스를 감시하지 않을 수 있습니다. PromQL 쿼리가 읽는 시리즈 중 일부를 제외할 수 있으며, 이 페이지에서는 이를 확인할 수 없습니다.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "이 유닛을 감시하지 않을 수 있습니다. PromQL 쿼리가 {{labels}} 기준으로도 필터링하며, 이 페이지에서는 이를 확인할 수 없습니다.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "이 유닛을 감시하지 않을 수 있습니다. PromQL 쿼리가 읽는 시리즈 중 일부를 제외할 수 있으며, 이 페이지에서는 이를 확인할 수 없습니다."
 }

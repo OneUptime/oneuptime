@@ -60502,5 +60502,9 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.",
   "Who Can Open This Form": "Who Can Open This Form",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in."
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check."
 }

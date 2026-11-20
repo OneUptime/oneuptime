@@ -60502,5 +60502,9 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "このフォームは訪問者にサインインを求めていないため、「共有」ページで「サインインした人のみ」をオンにするまで、これらの設定は何もしません。",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "このフォームのプライベートユーザーではなく、シングルサインオンでも許可されない訪問者は、フォームを開くことも送信することもできなくなります。",
   "Who Can Open This Form": "このフォームを開ける人",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "フォームを開いて送信できるのは、フォームのプライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人はサインインを求められます。"
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "フォームを開いて送信できるのは、フォームのプライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人はサインインを求められます。",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "このサービスを監視していない可能性があります。PromQL クエリが {{labels}} でも絞り込んでおり、このページではそれを確認できません。",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "このサービスを監視していない可能性があります。PromQL クエリが読み取る系列の一部を除外することがあり、このページではそれを確認できません。",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "このユニットを監視していない可能性があります。PromQL クエリが {{labels}} でも絞り込んでおり、このページではそれを確認できません。",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "このユニットを監視していない可能性があります。PromQL クエリが読み取る系列の一部を除外することがあり、このページではそれを確認できません。"
 }
