@@ -111,7 +111,11 @@ describe("the paths the App's own clients send large bodies to", () => {
 
   test.each([
     // The Dashboard's upload: nginx sends /file to /api/file.
-    ["a file the Dashboard uploads", [`/api${FileRoute.toString()}`], FILE_REQUEST_BODY_LIMIT],
+    [
+      "a file the Dashboard uploads",
+      [`/api${FileRoute.toString()}`],
+      FILE_REQUEST_BODY_LIMIT,
+    ],
     [
       "a vCenter's collection",
       under(PROBE_INGEST_ROUTE_PREFIXES, "/probe/vmware/collection"),
@@ -134,7 +138,10 @@ describe("the paths the App's own clients send large bodies to", () => {
     ],
     [
       "a probe's packet capture",
-      under(PROBE_INGEST_ROUTE_PREFIXES, "/probe/packet-capture/response/ingest"),
+      under(
+        PROBE_INGEST_ROUTE_PREFIXES,
+        "/probe/packet-capture/response/ingest",
+      ),
       LARGE_REQUEST_BODY_LIMIT,
     ],
     [
@@ -155,12 +162,18 @@ describe("the paths the App's own clients send large bodies to", () => {
     ],
     [
       "an inbound email",
-      ["/incoming-email/sendgrid/secret", "/probe-ingest/incoming-email/sendgrid/secret"],
+      [
+        "/incoming-email/sendgrid/secret",
+        "/probe-ingest/incoming-email/sendgrid/secret",
+      ],
       LARGE_REQUEST_BODY_LIMIT,
     ],
     [
       "the infrastructure agent's report",
-      under(SERVER_MONITOR_ROUTE_PREFIXES, "/server-monitor/response/ingest/key"),
+      under(
+        SERVER_MONITOR_ROUTE_PREFIXES,
+        "/server-monitor/response/ingest/key",
+      ),
       LARGE_REQUEST_BODY_LIMIT,
     ],
     [
@@ -189,7 +202,11 @@ describe("the paths the App's own clients send large bodies to", () => {
     ],
     [
       "a workflow's webhook trigger and the builder's save",
-      ["/workflow/manual/run/id", "/workflow/update/id", "/workflow/trigger/key"],
+      [
+        "/workflow/manual/run/id",
+        "/workflow/update/id",
+        "/workflow/trigger/key",
+      ],
       LARGE_REQUEST_BODY_LIMIT,
     ],
     [
@@ -214,29 +231,47 @@ describe("the paths the App's own clients send large bodies to", () => {
       ["/api/notification/email/send", "/api/notification/webhook/send"],
       LARGE_REQUEST_BODY_LIMIT,
     ],
-  ])(
-    "%s",
-    (_what: string, paths: Array<string>, limit: RequestBodyLimit) => {
-      for (const route of paths) {
-        expect({ route, limit: getRequestBodyLimit(route) }).toEqual({
-          route,
-          limit: limit,
-        });
-      }
-    },
-  );
+  ])("%s", (_what: string, paths: Array<string>, limit: RequestBodyLimit) => {
+    for (const route of paths) {
+      expect({ route, limit: getRequestBodyLimit(route) }).toEqual({
+        route,
+        limit: limit,
+      });
+    }
+  });
 
   test("the routes are still where the list says: their routers register them", () => {
     for (const [file, route] of [
-      ["FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts", '"/probe/vmware/collection"'],
-      ["FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection.ts", '"/probe/openstack/collection"'],
-      ["FeatureSet/Telemetry/API/ProbeIngest/Probe.ts", '"/probe/response/ingest"'],
-      ["FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail.ts", '"/incoming-email/sendgrid/:secret"'],
-      ["FeatureSet/Telemetry/API/ServerMonitorIngest/ServerMonitor.ts", '"/server-monitor/response/ingest/:secretkey"'],
-      ["FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts", '"/incoming-request/:secretkey"'],
+      [
+        "FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts",
+        '"/probe/vmware/collection"',
+      ],
+      [
+        "FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection.ts",
+        '"/probe/openstack/collection"',
+      ],
+      [
+        "FeatureSet/Telemetry/API/ProbeIngest/Probe.ts",
+        '"/probe/response/ingest"',
+      ],
+      [
+        "FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail.ts",
+        '"/incoming-email/sendgrid/:secret"',
+      ],
+      [
+        "FeatureSet/Telemetry/API/ServerMonitorIngest/ServerMonitor.ts",
+        '"/server-monitor/response/ingest/:secretkey"',
+      ],
+      [
+        "FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts",
+        '"/incoming-request/:secretkey"',
+      ],
       ["FeatureSet/Telemetry/API/Fluent.ts", '"/fluentd/v1/logs"'],
       ["FeatureSet/Telemetry/API/DbtArtifactsIngest.ts", '"/dbt/v1/artifacts"'],
-      ["FeatureSet/Telemetry/API/SourceMapIngest.ts", '"/source-maps/v1/upload"'],
+      [
+        "FeatureSet/Telemetry/API/SourceMapIngest.ts",
+        '"/source-maps/v1/upload"',
+      ],
     ] as Array<[string, string]>) {
       expect({ file, registers: readSource(file).includes(route) }).toEqual({
         file,
@@ -296,9 +331,13 @@ describe("a collection is counted before it is parsed", () => {
     req: ExpressRequest,
   ): Promise<unknown> {
     return new Promise<unknown>((resolve: (value: unknown) => void) => {
-      middleware(req, {} as ExpressResponse, ((error?: unknown) => {
-        resolve(error);
-      }) as NextFunction);
+      middleware(
+        req,
+        {} as ExpressResponse,
+        ((error?: unknown) => {
+          resolve(error);
+        }) as NextFunction,
+      );
     });
   }
 
@@ -318,8 +357,13 @@ describe("a collection is counted before it is parsed", () => {
       );
 
       // As StartServer holds the route: a report's limit.
-      (req as unknown as { requestBodyLimit: RequestBodyLimit }).requestBodyLimit =
-        { ...REPORT_REQUEST_BODY_LIMIT, values: 1000000, objectsArraysAndStrings: 1000000 };
+      (
+        req as unknown as { requestBodyLimit: RequestBodyLimit }
+      ).requestBodyLimit = {
+        ...REPORT_REQUEST_BODY_LIMIT,
+        values: 1000000,
+        objectsArraysAndStrings: 1000000,
+      };
 
       expect(
         await run(GzipRequestBodyMiddleware.parseBody, req),

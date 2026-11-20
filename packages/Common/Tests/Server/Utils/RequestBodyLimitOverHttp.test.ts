@@ -173,7 +173,7 @@ function describeBody(req: express.Request): Record<string, unknown> {
     bytes: Buffer.isBuffer(body) ? body.length : undefined,
     keys:
       body && typeof body === "object" && !Buffer.isBuffer(body)
-        ? Object.keys(body as object)
+        ? Object.keys(body as Record<string, unknown>)
         : [],
   };
 }
@@ -382,9 +382,10 @@ describe("an ordinary API route", () => {
   test("still parses a body just under 1 MiB, and a gzip one", async () => {
     const body: string = oneString(ORDINARY_BYTES - 1024);
 
-    expect(
-      await post({ path: "/api/monitor/get-list", body: body }),
-    ).toEqual({ status: 200, body: { isBuffer: false, keys: ["text"] } });
+    expect(await post({ path: "/api/monitor/get-list", body: body })).toEqual({
+      status: 200,
+      body: { isBuffer: false, keys: ["text"] },
+    });
 
     // A gzip body is the route's to read: it gets the bytes, inflated.
     expect(
@@ -405,7 +406,10 @@ describe("an ordinary API route", () => {
       body: oneString(ORDINARY_BYTES + 1024),
     });
 
-    expect(result).toEqual({ status: 413, body: { error: TOO_LARGE_FOR_ROUTE } });
+    expect(result).toEqual({
+      status: 413,
+      body: { error: TOO_LARGE_FOR_ROUTE },
+    });
     // Not the sentence a proxy's 413 gets: no admin is sent to raise one.
     expect(readUnexplainedError(TOO_LARGE_FOR_ROUTE)).toBeNull();
   });
@@ -472,9 +476,7 @@ describe("the routes that take large bodies take what they are sent", () => {
   }, 120000);
 
   test("a probe's monitor result with two 10 MB screenshots", async () => {
-    const screenshot: string = crypto
-      .randomBytes(7.5 * MIB)
-      .toString("base64");
+    const screenshot: string = crypto.randomBytes(7.5 * MIB).toString("base64");
 
     const result: HttpResult = await post({
       path: "/probe-ingest/probe/response/ingest",

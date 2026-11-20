@@ -874,10 +874,7 @@ describe("the listener, over HTTP", () => {
   test("refuses a JSON body with more values than OneUptime reads, gzip-compressed or not, and forwards nothing", async () => {
     const spy: ApiFetchSpy = mockForwardSucceeds();
     const bomb: string = `[${"[],".repeat(1100000)}[]]`;
-    const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      JSON,
-      "parse",
-    );
+    const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
 
     const plain: Answer = await send({
       method: "POST",

@@ -121,9 +121,9 @@ describe("readRequestBodyRefusal", () => {
 
     // The JSON, form and protobuf parsers: each takes its route's bytes.
     expect(startServer).not.toMatch(/limit:\s*"[^"]+"/);
-    expect(Array.from(startServer.matchAll(/limit: limit\.bytes/g))).toHaveLength(
-      3,
-    );
+    expect(
+      Array.from(startServer.matchAll(/limit: limit\.bytes/g)),
+    ).toHaveLength(3);
     expect(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime).toContain(
       "the 50 MB OneUptime takes in one request",
     );

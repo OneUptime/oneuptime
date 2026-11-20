@@ -177,129 +177,125 @@ const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = [
   "/airbyte/*",
 ];
 
-export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<LargeRequestBodyRoute> =
-  [
-    {
-      paths: ["/api/file"],
-      limit: FILE_REQUEST_BODY_LIMIT,
-      reason:
-        "A file the Dashboard uploads - an attachment, an image in a note, a logo - travels as JSON, one number for each of its bytes. The Dashboard takes files of up to 10 MB: 36 MB of JSON.",
-    },
-    {
-      paths: [
-        ...under(PROBE_INGEST_ROUTE_PREFIXES, [
-          "/probe/vmware/collection",
-          "/probe/openstack/collection",
-        ]),
-        "/telemetry-writer/insert",
-      ],
-      limit: REPORT_REQUEST_BODY_LIMIT,
-      reason:
-        "A probe's collection of a vCenter or an OpenStack cloud is up to 48 MiB of OTLP metrics, and a forwarding pod's ClickHouse rows up to 30 MB a request: millions of values. A refused collection is lost, and so are refused rows.",
-    },
-    {
-      paths: ["/probe-ingest/*", "/ingestor/*", "/probe/*"],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "What probes report: a synthetic monitor's screenshots (up to 50 MB a run), packet captures (up to 25 MB), SNMP walks, discovery scans and data store scans.",
-    },
-    {
-      // Under /probe-ingest too, which the entry above takes.
-      paths: ["/incoming-email/*"],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "An inbound email of up to 50 MB, attachments included, as its provider delivers it.",
-    },
-    {
-      paths: under(SERVER_MONITOR_ROUTE_PREFIXES, ["/server-monitor/*"]),
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "The infrastructure agent's report on a host: every process, disk and network interface it has.",
-    },
-    {
-      paths: under(INCOMING_REQUEST_ROUTE_PREFIXES, ["/incoming-request/*"]),
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "Whatever a system sends to an incoming request monitor (nginx sends /heartbeat here too). Bodies of up to 50 MB are documented as accepted.",
-    },
-    {
-      paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_INGEST_PATHS),
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "Batches of logs, events, profiles, source maps and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
-    },
-    {
-      paths: ["/workflow/*", "/api/huntress/webhook/*"],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "A workflow's webhook trigger takes whatever the system that calls it sends, Huntress's incident reports among them, and the builder saves a workflow's whole graph, its code steps and all.",
-    },
-    {
-      paths: [
-        "/runbook/*",
-        "/runner-ingest/*",
-        "/runbook-agent-ingest/*",
-        "/kubernetes-ai-agent-ingest/*",
-        "/resource-ai-agent-ingest/*",
-        "/api/ai-agent-data/*",
-        "/api/ai-agent-task/*",
-        "/api/ai-agent-task-log/*",
-      ],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "Runners and agents report a job's result with the output of its commands, and the Runner's code agent sends model prompts as large as the model's context window, with the code they hold.",
-    },
-    {
-      paths: ["/api/notification/*"],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "OneUptime's own services send every email, SMS, call, chat message and outgoing webhook through these routes: an email carries the whole note or announcement it tells of. A refused one is a notification lost.",
-    },
-    {
-      paths: [
-        "/api/form/public/:shareKey/submit",
-        "/api/form/custom-domain/submit",
-      ],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "A form submission carries its files, base64-encoded: up to 20 MB of them.",
-    },
-    {
-      paths: [
-        "/api/tool-import/upload",
-        "/api/security-watchlist/import",
-        "/api/incident-video-call/:callId/transcript",
-      ],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "Files read in the browser and sent as text: another tool's export (up to 10 MB), a watchlist's values (up to 4 MB) and a call's transcript (up to 5 MB).",
-    },
-    {
-      paths: [
-        ...createAndUpdate("/status-page"),
-        ...createAndUpdate("/status-page-subscriber-notification-template"),
-        ...createAndUpdate("/dashboard"),
-      ],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "A status page's custom HTML, CSS and JavaScript, an email template's HTML and a dashboard's widgets have no length limit, and may hold images and fonts inline.",
-    },
-    {
-      paths: under(IDENTITY_ROUTE_PREFIXES, [
-        "/scim/*",
-        "/status-page-scim/*",
+export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<LargeRequestBodyRoute> = [
+  {
+    paths: ["/api/file"],
+    limit: FILE_REQUEST_BODY_LIMIT,
+    reason:
+      "A file the Dashboard uploads - an attachment, an image in a note, a logo - travels as JSON, one number for each of its bytes. The Dashboard takes files of up to 10 MB: 36 MB of JSON.",
+  },
+  {
+    paths: [
+      ...under(PROBE_INGEST_ROUTE_PREFIXES, [
+        "/probe/vmware/collection",
+        "/probe/openstack/collection",
       ]),
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "An identity provider provisions a group with all of its members in one request.",
-    },
-    {
-      paths: ["/api/github/webhook", "/api/billing/webhook"],
-      limit: LARGE_REQUEST_BODY_LIMIT,
-      reason:
-        "GitHub sends webhook payloads of up to 25 MB, and Stripe states no limit for an event: one refused is retried for three days, then lost.",
-    },
-  ];
+      "/telemetry-writer/insert",
+    ],
+    limit: REPORT_REQUEST_BODY_LIMIT,
+    reason:
+      "A probe's collection of a vCenter or an OpenStack cloud is up to 48 MiB of OTLP metrics, and a forwarding pod's ClickHouse rows up to 30 MB a request: millions of values. A refused collection is lost, and so are refused rows.",
+  },
+  {
+    paths: ["/probe-ingest/*", "/ingestor/*", "/probe/*"],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "What probes report: a synthetic monitor's screenshots (up to 50 MB a run), packet captures (up to 25 MB), SNMP walks, discovery scans and data store scans.",
+  },
+  {
+    // Under /probe-ingest too, which the entry above takes.
+    paths: ["/incoming-email/*"],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "An inbound email of up to 50 MB, attachments included, as its provider delivers it.",
+  },
+  {
+    paths: under(SERVER_MONITOR_ROUTE_PREFIXES, ["/server-monitor/*"]),
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "The infrastructure agent's report on a host: every process, disk and network interface it has.",
+  },
+  {
+    paths: under(INCOMING_REQUEST_ROUTE_PREFIXES, ["/incoming-request/*"]),
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "Whatever a system sends to an incoming request monitor (nginx sends /heartbeat here too). Bodies of up to 50 MB are documented as accepted.",
+  },
+  {
+    paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_INGEST_PATHS),
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "Batches of logs, events, profiles, source maps and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
+  },
+  {
+    paths: ["/workflow/*", "/api/huntress/webhook/*"],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "A workflow's webhook trigger takes whatever the system that calls it sends, Huntress's incident reports among them, and the builder saves a workflow's whole graph, its code steps and all.",
+  },
+  {
+    paths: [
+      "/runbook/*",
+      "/runner-ingest/*",
+      "/runbook-agent-ingest/*",
+      "/kubernetes-ai-agent-ingest/*",
+      "/resource-ai-agent-ingest/*",
+      "/api/ai-agent-data/*",
+      "/api/ai-agent-task/*",
+      "/api/ai-agent-task-log/*",
+    ],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "Runners and agents report a job's result with the output of its commands, and the Runner's code agent sends model prompts as large as the model's context window, with the code they hold.",
+  },
+  {
+    paths: ["/api/notification/*"],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "OneUptime's own services send every email, SMS, call, chat message and outgoing webhook through these routes: an email carries the whole note or announcement it tells of. A refused one is a notification lost.",
+  },
+  {
+    paths: [
+      "/api/form/public/:shareKey/submit",
+      "/api/form/custom-domain/submit",
+    ],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "A form submission carries its files, base64-encoded: up to 20 MB of them.",
+  },
+  {
+    paths: [
+      "/api/tool-import/upload",
+      "/api/security-watchlist/import",
+      "/api/incident-video-call/:callId/transcript",
+    ],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "Files read in the browser and sent as text: another tool's export (up to 10 MB), a watchlist's values (up to 4 MB) and a call's transcript (up to 5 MB).",
+  },
+  {
+    paths: [
+      ...createAndUpdate("/status-page"),
+      ...createAndUpdate("/status-page-subscriber-notification-template"),
+      ...createAndUpdate("/dashboard"),
+    ],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "A status page's custom HTML, CSS and JavaScript, an email template's HTML and a dashboard's widgets have no length limit, and may hold images and fonts inline.",
+  },
+  {
+    paths: under(IDENTITY_ROUTE_PREFIXES, ["/scim/*", "/status-page-scim/*"]),
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "An identity provider provisions a group with all of its members in one request.",
+  },
+  {
+    paths: ["/api/github/webhook", "/api/billing/webhook"],
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    reason:
+      "GitHub sends webhook payloads of up to 25 MB, and Stripe states no limit for an event: one refused is retried for three days, then lost.",
+  },
+];
 
 interface CompiledPattern {
   segments: Array<string>;
@@ -362,8 +358,9 @@ const compile: (
   return byFirstSegment;
 };
 
-const PATTERNS_BY_FIRST_SEGMENT: Map<string, Array<CompiledPattern>> =
-  compile(LARGE_REQUEST_BODY_ROUTES);
+const PATTERNS_BY_FIRST_SEGMENT: Map<string, Array<CompiledPattern>> = compile(
+  LARGE_REQUEST_BODY_ROUTES,
+);
 
 const matches: (
   pattern: CompiledPattern,

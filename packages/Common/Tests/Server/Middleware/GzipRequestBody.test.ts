@@ -830,7 +830,11 @@ describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inf
 
   test("a JSON body under the limit is handed on whole, counted", async () => {
     const payload: Buffer = Buffer.from(
-      JSON.stringify({ values: Array.from({ length: 50000 }, (): number => 1) }),
+      JSON.stringify({
+        values: Array.from({ length: 50000 }, (): number => {
+          return 1;
+        }),
+      }),
     );
     const driver: Driver = new Driver(
       { "content-type": "application/json" },

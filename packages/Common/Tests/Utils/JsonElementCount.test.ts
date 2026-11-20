@@ -410,9 +410,10 @@ describe("JsonElementTally over bytes", () => {
     }
 
     for (let cut: number = 0; cut <= notEscaped.length; cut++) {
-      expect({ cut, values: tallyInPieces(notEscaped, [cut]).values }).toEqual(
-        { cut, values: 4 },
-      );
+      expect({ cut, values: tallyInPieces(notEscaped, [cut]).values }).toEqual({
+        cut,
+        values: 4,
+      });
     }
 
     // A long run, every backslash in a piece of its own.

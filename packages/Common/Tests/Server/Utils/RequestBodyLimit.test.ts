@@ -72,10 +72,7 @@ describe("the large routes", () => {
       LARGE_REQUEST_BODY_LIMIT,
     ],
     ["/incoming-request/key", LARGE_REQUEST_BODY_LIMIT],
-    [
-      "/incoming-request-ingest/incoming-request/key",
-      LARGE_REQUEST_BODY_LIMIT,
-    ],
+    ["/incoming-request-ingest/incoming-request/key", LARGE_REQUEST_BODY_LIMIT],
     ["/fluentd/v1/logs", LARGE_REQUEST_BODY_LIMIT],
     ["/telemetry/fluentd/v1/logs", LARGE_REQUEST_BODY_LIMIT],
     ["/telemetry/dbt/v1/artifacts", LARGE_REQUEST_BODY_LIMIT],

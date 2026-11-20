@@ -183,10 +183,7 @@ describe("json verify: regression guard", () => {
 
   test("decodes the buffer once, the first time rawBody is read, and not before", () => {
     const buf: Buffer = Buffer.from("{}");
-    const toString: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      buf,
-      "toString",
-    );
+    const toString: ReturnType<typeof jest.spyOn> = jest.spyOn(buf, "toString");
     const req: OneUptimeRequest = {} as OneUptimeRequest;
 
     invokeJsonVerify(req, buf);
@@ -421,9 +418,7 @@ describe("StartServer wires the exported options into its middlewares", () => {
       FILE_REQUEST_BODY_LIMIT,
     ]) {
       expect(createJsonBodyParserOptions(limit).limit).toBe(limit.bytes);
-      expect(createUrlEncodedBodyParserOptions(limit).limit).toBe(
-        limit.bytes,
-      );
+      expect(createUrlEncodedBodyParserOptions(limit).limit).toBe(limit.bytes);
     }
 
     expect(ORDINARY_REQUEST_BODY_LIMIT.bytes).toBe(1024 * 1024);

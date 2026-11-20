@@ -47,19 +47,20 @@ export const MAX_DECOMPRESSED_REQUEST_BODY_BYTES: number =
  * inflates. Any other body is handed on as its bytes, uncounted: a route
  * that parses one as JSON counts it first (RequestBodyJson).
  */
-export const isJsonContentType: (contentType: string | undefined) => boolean =
-  (contentType: string | undefined): boolean => {
-    if (!contentType) {
-      return false;
-    }
+export const isJsonContentType: (contentType: string | undefined) => boolean = (
+  contentType: string | undefined,
+): boolean => {
+  if (!contentType) {
+    return false;
+  }
 
-    const mediaType: string = contentType.split(";")[0]!.trim().toLowerCase();
+  const mediaType: string = contentType.split(";")[0]!.trim().toLowerCase();
 
-    return (
-      mediaType === "application/json" ||
-      (mediaType.startsWith("application/") && mediaType.endsWith("+json"))
-    );
-  };
+  return (
+    mediaType === "application/json" ||
+    (mediaType.startsWith("application/") && mediaType.endsWith("+json"))
+  );
+};
 
 /*
  * Inflate a `Content-Encoding: gzip` request body under hard limits, and
