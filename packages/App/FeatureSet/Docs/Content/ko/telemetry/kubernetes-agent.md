@@ -202,6 +202,7 @@ EKS 콘솔의 **Optional configuration settings** 섹션에서 설정하거나, 
 - `logs.enabled`, `ebpf.enabled`, `aiAgent.enabled`: Pod 로그, eBPF 트레이스, [Kubernetes AI 에이전트](#kubernetes-ai-에이전트). 모두 기본적으로 켜져 있습니다.
 - `kubeStateMetrics.enabled`: kube-state-metrics. 기본적으로 꺼져 있습니다.
 - `cost.enabled`: [비용 옵저버빌리티](/docs/telemetry/kubernetes-cost). 기본값은 `auto`이며, `eks-fargate` 프리셋을 제외하면 켜져 있습니다.
+- `kubeletstats.nodesProxy`: 에이전트의 ClusterRole이 `nodes/proxy`를 부여할지 여부입니다. 이 권한은 kubelet API 전체에 접근할 수 있고 CIS 5.1.10에서 실패합니다. 기본값인 `auto`는 노드가 1.33보다 오래된 kubelet을 실행할 수 있는 EKS 1.34와 1.35에서 이를 부여합니다. 모든 노드가 1.33 이상을 실행하면 `false`로 설정하세요(`kubectl get nodes`로 각 노드의 버전을 볼 수 있습니다). 그러면 kubelet이 그보다 오래된 노드는 그 kubelet이 보고하는 노드, Pod, 컨테이너, 볼륨 메트릭을 하나도 보내지 않습니다.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -390,6 +391,8 @@ kube-bench는 클러스터의 Kubernetes 버전으로 판단한 플랫폼의 벤
 | `cost.prometheus.nodesProxy` | `auto`(기본값)는 `eks-fargate` 프리셋에서만 이를 부여합니다. 이 프리셋에서는 어떤 Pod도 노드의 kubelet에 도달할 수 없어, 비용 계산에 쓰는 Prometheus가 API 서버를 통해 cAdvisor를 읽습니다. 그 밖의 모든 곳에서는 포트 10250으로 각 노드의 kubelet을 읽습니다 |
 
 에이전트 자체의 역할 바인딩이 5.1.10에서 실패하면, 페이지는 그 역할 바인딩이 에이전트의 것이라는 점, `nodes/proxy`를 부여하는 이유, 그리고 이를 없애는 값을 알려 줍니다.
+
+Helm의 `--set`을 받지 않는 Amazon EKS 추가 기능에서는 페이지가 그 대신 추가 기능의 구성 값 `{"kubeletstats": {"nodesProxy": false}}`를 알려 줍니다(모든 노드가 1.33 이상을 실행하면 설정). 추가 기능에는 `cost.prometheus.nodesProxy`가 없으므로, `eks-fargate` 프리셋에서 비용을 켜 두었다면 `{"cost": {"enabled": false}}`만이 `nodes/proxy`를 없앱니다.
 
 ## 구성 옵션
 

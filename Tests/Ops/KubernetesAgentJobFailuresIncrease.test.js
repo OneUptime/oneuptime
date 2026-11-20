@@ -35,9 +35,9 @@ const path = require("path");
 const yaml = require("js-yaml");
 const behaviour = require("./Utils/KubernetesAgentJobFailuresIncreaseBehaviour");
 const {
-  processorNamesFor,
+  componentNamesFor,
   templateForPinnedCollector,
-} = require("./Utils/CumulativeToDeltaProcessor");
+} = require("./Utils/CollectorComponentTypes");
 
 // The collector a `helm upgrade --reuse-values` keeps on a release from before 0.161.0.
 const REUSE_VALUES_IMAGE = "otel/opentelemetry-collector-contrib:0.96.0";
@@ -54,9 +54,10 @@ function readRepoFile(file) {
 
 /*
  * The Deployment template as the chart renders it for the collector it pins:
- * the template asks kubernetes-agent.cumulativeToDeltaProcessor for the
- * cumulative-to-delta processor's type, which is cumulative_to_delta there
- * (and cumulativetodelta before 0.157.0: Utils/CumulativeToDeltaProcessor.js).
+ * the template asks kubernetes-agent.componentType for each renamed
+ * component's type, which is the new one there (cumulative_to_delta,
+ * k8s_attributes, otlp_http; the old ones before each rename:
+ * Utils/CollectorComponentTypes.js).
  */
 function readDeploymentTemplate() {
   return templateForPinnedCollector(readRepoFile(DEPLOYMENT_TEMPLATE));
@@ -392,11 +393,15 @@ describe("agent-job-failures-increase-behaviour.sh: what it feeds the collector 
 
   // A rendered cluster collector config, named as `image` knows its processors.
   function stubCollector(image) {
-    const increase = processorNamesFor(behaviour.INCREASE_PROCESSORS, image);
-    const lifted = processorNamesFor(behaviour.LIFTED_PROCESSORS, image);
+    const increase = componentNamesFor(behaviour.INCREASE_PROCESSORS, image);
+    const lifted = componentNamesFor(behaviour.LIFTED_PROCESSORS, image);
+    const [exporter, attributes] = componentNamesFor(
+      ["otlp_http", "k8s_attributes"],
+      image,
+    );
     return {
       processors: Object.fromEntries(
-        [...lifted, "memory_limiter", "k8sattributes", "batch"].map((name) => {
+        [...lifted, "memory_limiter", attributes, "batch"].map((name) => {
           return [name, { marker: name }];
         }),
       ),
@@ -407,11 +412,11 @@ describe("agent-job-failures-increase-behaviour.sh: what it feeds the collector 
             processors: [
               "memory_limiter",
               ...increase,
-              "k8sattributes",
+              attributes,
               "resource",
               "batch",
             ],
-            exporters: ["otlphttp"],
+            exporters: [exporter],
           },
         },
       },
@@ -458,7 +463,7 @@ describe("agent-job-failures-increase-behaviour.sh: what it feeds the collector 
         [
           ...behaviour.LIFTED_PROCESSORS,
           "memory_limiter",
-          "k8sattributes",
+          "k8s_attributes",
           "batch",
         ].map((name) => {
           return [name, { marker: name }];
@@ -471,11 +476,11 @@ describe("agent-job-failures-increase-behaviour.sh: what it feeds the collector 
             processors: [
               "memory_limiter",
               ...behaviour.INCREASE_PROCESSORS,
-              "k8sattributes",
+              "k8s_attributes",
               "resource",
               "batch",
             ],
-            exporters: ["otlphttp"],
+            exporters: ["otlp_http"],
           },
         },
       },

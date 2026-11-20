@@ -2,7 +2,7 @@
 #
 # Run the Kubernetes agent's `filter/volume-series` processor -- exactly as
 # the chart renders it -- inside the collector image the chart ships, push one
-# scrape of the kubeletstats receiver's volume series through it, and check
+# scrape of the kubelet_stats receiver's volume series through it, and check
 # which come out the other side.
 #
 # Why this exists: the receiver's volume group sends five series for every
@@ -19,9 +19,15 @@
 # generic ephemeral volume quietly missing from OneUptime, or the token series
 # back.
 #
+# Every volume goes in under each name a collector can give it (#10055): the
+# receiver's k8s.volume.name and k8s.volume.type, semantic conventions'
+# k8s.pod.volume.name and k8s.pod.volume.type (semantic-conventions#4272) on
+# the receiver's series and on semantic conventions' own k8s.pod.volume.*, and
+# both names at once, as a receiver that moves from one to the other may send.
+#
 # Twice: on the collector the chart pins, and on 0.96.0 (rendered for that
 # tag), which `helm upgrade --reuse-values` keeps. Both must keep and drop the
-# same volumes:
+# same volumes, under every name, and log nothing about the filter:
 #   - dropped: configMap, secret and downwardAPI volumes; a volume typed
 #     `projected`, whatever it is called; and, with no type, the service
 #     account token Kubernetes mounts (kube-api-access-<suffix>) and the
@@ -33,7 +39,7 @@
 # each kept series once, its resource as it went in.
 # Utils/KubernetesAgentVolumeSeriesBehaviour.js builds the config and the
 # payload and checks the export; KubernetesAgentVolumeSeries.test.js holds
-# them to the chart's condition.
+# them to the chart's conditions.
 #
 # Needs docker, helm and node (js-yaml from this package). Usage:
 #   bash Tests/Ops/agent-volume-series-behaviour.sh
@@ -133,6 +139,17 @@ run_case() {
   done
 
   node "${HELPER}" check "${dir}/out/metrics.json" "${label} on ${image}"
+
+  # A condition that fails to evaluate is logged, and keeps the volume
+  # (error_mode: ignore). One that errs on a volume of either name fails here,
+  # even where keeping that volume is right.
+  local logged
+  logged="$(docker logs "${host}" 2>&1 | grep -E $'\t(warn|error)\t' | grep -F 'volume-series' || true)"
+  if [ -n "${logged}" ]; then
+    echo "    FAILED: ${label}: the filter logged on ${image}:"
+    printf '%s\n' "${logged}" | tail -10
+    exit 1
+  fi
   docker rm -f "${host}" >/dev/null
   echo "==> ${label}: the volumes OneUptime reads kept, the rest dropped, on ${image}"
 }

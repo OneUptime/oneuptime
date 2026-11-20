@@ -78,7 +78,10 @@ import {
   getComplianceObjectKey,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFinding";
 import { KubernetesComplianceFramework } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFramework";
-import { OneUptimeAgentNodesProxyReason } from "Common/Types/Kubernetes/Compliance/KubernetesRbac";
+import {
+  OneUptimeAgentInstall,
+  OneUptimeAgentNodesProxyReason,
+} from "Common/Types/Kubernetes/Compliance/KubernetesRbac";
 import {
   KubernetesComplianceNotEvaluatedReason,
   KubernetesComplianceRequirementResult,
@@ -363,26 +366,57 @@ const VOLUME_LABEL: string = translationKey("Volume {{name}}");
 /*
  * The OneUptime agent's own binding (#9878): said so, and under 5.1.10, why
  * its role grants nodes/proxy, with the one value that drops it once nothing
- * needs it. The values are code, drawn as written in every language.
+ * needs it: a Helm --set, or on the Amazon EKS add-on, whose buyer cannot
+ * run Helm, its configuration values (#9928). The values are code, drawn as
+ * written in every language.
  */
 const AGENT_OWN_BINDING: string = translationKey(
   "This binding is the OneUptime Kubernetes agent's own.",
 );
 
+interface AgentNodesProxyWords {
+  template: string;
+  setting: string;
+}
+
 const AGENT_NODES_PROXY_REASONS: Readonly<
-  Record<OneUptimeAgentNodesProxyReason, { template: string; setting: string }>
+  Record<
+    OneUptimeAgentNodesProxyReason,
+    Readonly<Record<OneUptimeAgentInstall, AgentNodesProxyWords>>
+  >
 > = {
   [OneUptimeAgentNodesProxyReason.KubeletPods]: {
-    template: translationKey(
-      "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with {{setting}}.",
-    ),
-    setting: "--set kubeletstats.nodesProxy=false",
+    [OneUptimeAgentInstall.Helm]: {
+      template: translationKey(
+        "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, upgrade the agent with {{setting}}.",
+      ),
+      setting: "--set kubeletstats.nodesProxy=false",
+    },
+    [OneUptimeAgentInstall.AwsEksAddon]: {
+      template: translationKey(
+        "A kubelet older than Kubernetes 1.33 lets the agent read its node's pods only through nodes/proxy. Once every node runs 1.33 or later, add {{setting}} to the configuration values of the agent's Amazon EKS add-on.",
+      ),
+      setting: '{"kubeletstats": {"nodesProxy": false}}',
+    },
   },
   [OneUptimeAgentNodesProxyReason.CostPrometheus]: {
-    template: translationKey(
-      "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with {{setting}}.",
-    ),
-    setting: "--set cost.prometheus.nodesProxy=false",
+    [OneUptimeAgentInstall.Helm]: {
+      template: translationKey(
+        "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with {{setting}}.",
+      ),
+      setting: "--set cost.prometheus.nodesProxy=false",
+    },
+    /*
+     * The add-on reads cAdvisor through the API server on its eks-fargate
+     * preset alone, with cost turned on, and takes no value that changes
+     * how: turning cost off is what drops nodes/proxy there.
+     */
+    [OneUptimeAgentInstall.AwsEksAddon]: {
+      template: translationKey(
+        "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Only turning cost off drops nodes/proxy here: add {{setting}} to the configuration values of the agent's Amazon EKS add-on.",
+      ),
+      setting: '{"cost": {"enabled": false}}',
+    },
   },
 };
 
@@ -2411,8 +2445,9 @@ const AcceptanceNote: FunctionComponent<{
 /*
  * The OneUptime agent's own binding (#9878): whose it is, and, under 5.1.10,
  * why its role grants nodes/proxy - as the role's label says - with the
- * value that drops it once nothing needs it. A role from an older chart
- * names no reason: it grants nodes/proxy everywhere, and upgrading drops it.
+ * value that drops it once nothing needs it, as the agent was installed
+ * (#9928). A role from an older chart names no reason: it grants nodes/proxy
+ * everywhere, and upgrading drops it.
  */
 const AgentBindingNote: FunctionComponent<{
   agent: KubernetesComplianceAgentObject;
@@ -2426,6 +2461,11 @@ const AgentBindingNote: FunctionComponent<{
   const { translator } = props;
   const reasons: Array<OneUptimeAgentNodesProxyReason> =
     props.isNodesProxyControl ? props.agent.nodesProxyReasons : [];
+  // A server before #9928 says nothing of it: a Helm install.
+  const install: OneUptimeAgentInstall =
+    props.agent.installedAs === OneUptimeAgentInstall.AwsEksAddon
+      ? OneUptimeAgentInstall.AwsEksAddon
+      : OneUptimeAgentInstall.Helm;
 
   return (
     <div
@@ -2439,8 +2479,8 @@ const AgentBindingNote: FunctionComponent<{
       <div className="space-y-1">
         <p>{translator.translateText(AGENT_OWN_BINDING)}</p>
         {reasons.map((reason: OneUptimeAgentNodesProxyReason): ReactElement => {
-          const words: { template: string; setting: string } =
-            AGENT_NODES_PROXY_REASONS[reason];
+          const words: AgentNodesProxyWords =
+            AGENT_NODES_PROXY_REASONS[reason][install];
 
           return (
             <p key={reason}>

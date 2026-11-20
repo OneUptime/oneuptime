@@ -119,7 +119,7 @@ tests:
       auditLogs.enabled: true
     asserts:
       - matchRegexRaw:
-          pattern: "  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+          pattern: "  - Node, pod, and container resource metrics \\(kubelet_stats\\)\\n"
       - matchRegexRaw:
           pattern: "  - Pod logs via the Kubernetes API \\(log-tailer Deployment"
       - notMatchRegexRaw:
@@ -149,7 +149,7 @@ tests:
       preset: openshift
     asserts:
       - matchRegexRaw:
-          pattern: "  - Kubernetes events \\(k8sobjects\\)\\n  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services \\(k8sobjects/openshift\\)\\n"
+          pattern: "  - Kubernetes events \\(k8s_objects\\)\\n  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services \\(k8s_objects/openshift\\)\\n"
 
   - it: does not list them when resource specs are off
     set:
@@ -157,4 +157,4 @@ tests:
       resourceSpecs.enabled: false
     asserts:
       - notMatchRegexRaw:
-          pattern: "k8sobjects/openshift"
+          pattern: "k8s_?objects/openshift"

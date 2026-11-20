@@ -411,6 +411,15 @@ const KubernetesClusterNodeDetail: FunctionComponent<
             error={partState.error}
             onRetry={partState.refresh}
             routes={routes}
+            /*
+             * Its alerts card lists Node Image Disk Almost Full only for a
+             * node whose images have a disk of their own (#10056): on any
+             * other it reads the root filesystem High Node Disk Usage
+             * watches.
+             */
+            alertContext={{
+              kubernetesHasSeparateImageDisk: Boolean(disk?.image),
+            }}
           />
           {/*
            * How full its disk is: a node out of disk evicts its pods and
