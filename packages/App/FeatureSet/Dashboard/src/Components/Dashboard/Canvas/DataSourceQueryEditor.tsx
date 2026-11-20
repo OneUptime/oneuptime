@@ -8,6 +8,10 @@ import React, {
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
+import {
+  PROJECT_METRICS_DATA_SOURCE_ID,
+  ProjectMetricsDataSourceUtil,
+} from "Common/Types/DataSource/ProjectMetricsDataSource";
 import DataSourceModel from "Common/Models/DatabaseModels/DataSource";
 import DataSourceType, {
   DataSourceTypeProps,
@@ -33,13 +37,21 @@ import Button, {
 import IconProp from "Common/Types/Icon/IconProp";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 // Each query card's header: its label, and its Remove at the other end.
 export const DATA_SOURCE_QUERY_CARD_HEADER_TEST_ID: string =
   "data-source-query-card-header";
+
+/*
+ * The source every project has (issue #7713): PromQL over its own metrics,
+ * first in the picker, and what a new query reads until another is picked.
+ */
+export const PROJECT_METRICS_SOURCE_LABEL: string = translationKey(
+  "This project's metrics (PromQL)",
+);
 
 export interface ComponentProps {
   component: DashboardBaseComponent;
@@ -134,15 +146,21 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
    * words (#7091); a name and a type it has are drawn as they are.
    */
   const dropdownOptions: Array<DropdownOption> = useMemo(() => {
-    return dataSources.map((dataSource: DataSourceModel) => {
-      return {
-        value: dataSource._id?.toString() || "",
-        label: `${dataSource.name || getUnnamedText(translator)} (${
-          dataSource.dataSourceType || translator.translateText("Unknown")
-        })`,
-        isUserContent: true,
-      };
-    });
+    return [
+      {
+        value: PROJECT_METRICS_DATA_SOURCE_ID,
+        label: translator.translateText(PROJECT_METRICS_SOURCE_LABEL),
+      },
+      ...dataSources.map((dataSource: DataSourceModel) => {
+        return {
+          value: dataSource._id?.toString() || "",
+          label: `${dataSource.name || getUnnamedText(translator)} (${
+            dataSource.dataSourceType || translator.translateText("Unknown")
+          })`,
+          isUserContent: true,
+        };
+      }),
+    ];
   }, [dataSources, translator.language]);
 
   const writeConfigs: (next: Array<DataSourceQueryConfig>) => void = (
@@ -175,6 +193,11 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
   ) => DataSourceType | undefined = (
     dataSourceId: string,
   ): DataSourceType | undefined => {
+    // The project's own metrics are read in PromQL, as a Prometheus is.
+    if (ProjectMetricsDataSourceUtil.isProjectMetrics(dataSourceId)) {
+      return DataSourceType.Prometheus;
+    }
+
     const matched: DataSourceModel | undefined = dataSources.find(
       (dataSource: DataSourceModel) => {
         return dataSource._id?.toString() === dataSourceId;
@@ -295,6 +318,13 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
             />
           </p>
         )}
+        {ProjectMetricsDataSourceUtil.isProjectMetrics(config.dataSourceId) && (
+          <p className="mt-1 text-xs text-gray-500">
+            {translator.translateText(
+              "Runs over this project's metrics, as the PromQL tab on the Metrics page does, for the services you may read.",
+            )}
+          </p>
+        )}
         {selectedType && !DataSourceTypeUtil.isDatabaseType(selectedType) && (
           <p className="mt-1 text-xs text-gray-400">
             <TranslatedSentence
@@ -330,8 +360,8 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
         title="Query"
         description={
           isTable
-            ? "Rows to render, from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST)."
-            : "Data to visualize, from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST)."
+            ? "Rows to render: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST)."
+            : "Data to visualize: PromQL over this project's metrics, or a query to a connected system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST)."
         }
         variant="bordered"
         /*
@@ -348,9 +378,9 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
             </p>
           )}
           {!loadError && dataSources.length === 0 && (
-            <p className="text-xs text-gray-500">
+            <p className="mb-3 text-xs text-gray-500">
               {translator.translateText(
-                "No data sources connected yet. Add one under Dashboards → Settings → Data Sources.",
+                "No outside data sources connected yet: this project's metrics are here to query with PromQL. To chart another system, add it under Dashboards → Settings → Data Sources.",
               )}
             </p>
           )}
@@ -359,7 +389,11 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
               return renderQueryCard(config, index);
             },
           )}
-          {dataSources.length > 0 && (isChart || queryConfigs.length === 0) && (
+          {/*
+           * Always: the project's own metrics are a source every project
+           * has, so a new query starts on them.
+           */}
+          {(isChart || queryConfigs.length === 0) && (
             <Button
               title="Add Query"
               buttonStyle={ButtonStyleType.OUTLINE}
@@ -370,7 +404,7 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
                   ...queryConfigs,
                   {
                     id: ObjectID.generate().toString(),
-                    dataSourceId: "",
+                    dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
                     query: "",
                   },
                 ]);
