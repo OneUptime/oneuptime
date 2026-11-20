@@ -131,6 +131,11 @@ const accessControlFor: AccessControlForFunction = (
   return model.getColumnAccessControlForAllColumns()[column];
 };
 
+/*
+ * The SLO lists below end with SLOs' levels (#10289), which follow the
+ * project-wide roles on SLOs' records: SLO Admin where Project Admin is, and
+ * every level where Viewer is.
+ */
 describe("SLO overhaul models are registered and routable", () => {
   test.each([
     ["ServiceLevelObjectiveMonitorRule", ServiceLevelObjectiveMonitorRule],
@@ -252,6 +257,7 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateServiceLevelObjectiveMonitorRule,
+      Permission.SloAdmin,
     ]);
     expect(model.getReadPermissions()).toEqual([
       Permission.ProjectOwner,
@@ -259,16 +265,21 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadServiceLevelObjectiveMonitorRule,
+      Permission.SloAdmin,
+      Permission.SloMember,
+      Permission.SloViewer,
     ]);
     expect(model.getUpdatePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditServiceLevelObjectiveMonitorRule,
+      Permission.SloAdmin,
     ]);
     expect(model.getDeletePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.DeleteServiceLevelObjectiveMonitorRule,
+      Permission.SloAdmin,
     ]);
   });
 
@@ -481,6 +492,7 @@ describe("ServiceLevelObjective archive columns", () => {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateServiceLevelObjective,
+      Permission.SloAdmin,
     ]);
     expect(accessControl?.read).toContain(Permission.ReadServiceLevelObjective);
     expect(accessControl?.read).toContain(Permission.Viewer);
@@ -488,6 +500,7 @@ describe("ServiceLevelObjective archive columns", () => {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditServiceLevelObjective,
+      Permission.SloAdmin,
     ]);
   });
 
@@ -715,6 +728,7 @@ describe("ServiceLevelObjectiveBurnRateRule output options", () => {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.CreateServiceLevelObjectiveBurnRateRule,
+          Permission.SloAdmin,
         ],
       });
       expect({ column, update: accessControl?.update }).toEqual({
@@ -723,6 +737,7 @@ describe("ServiceLevelObjectiveBurnRateRule output options", () => {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.EditServiceLevelObjectiveBurnRateRule,
+          Permission.SloAdmin,
         ],
       });
       expect(accessControl?.read).toContain(

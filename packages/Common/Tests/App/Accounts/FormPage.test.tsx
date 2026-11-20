@@ -34,6 +34,7 @@ import {
   PublicForm,
   PublicFormFieldType,
 } from "../../../Types/Form/FormPublic";
+import { FORM_SIGN_IN_STATE_ROUTE } from "../../../Types/Form/FormPrivateUserSignIn";
 import { FormTemplateFieldSetting } from "../../../Types/Form/FormTemplate";
 import { JSONObject } from "../../../Types/JSON";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -152,6 +153,7 @@ const mockedAxios: FakeTransport = axios as unknown as FakeTransport;
 const SHARE_KEY: string = "8a4f2c1e-3b5d-4c6e-9f70-1a2b3c4d5e6f";
 const FORM_URL: string = `${DASHBOARD_ORIGIN}/api/form/public/${SHARE_KEY}`;
 const SUBMIT_URL: string = `${FORM_URL}/submit`;
+const SIGN_IN_STATE_URL: string = `${FORM_URL}${FORM_SIGN_IN_STATE_ROUTE}`;
 const CRITICAL_ID: string = "c1c1c1c1-0000-4000-8000-000000000001";
 const MINOR_ID: string = "c1c1c1c1-0000-4000-8000-000000000002";
 
@@ -287,6 +289,18 @@ beforeEach(() => {
   window.localStorage.clear();
   setCaptcha(false, "");
   server = new FakeAxiosServer(mockedAxios);
+  /*
+   * The page's first question (#10249): this form does not ask its
+   * visitors to sign in, so the page goes on to read it - as often as a
+   * test opens the page.
+   */
+  server.on(
+    HTTPMethod.GET,
+    SIGN_IN_STATE_URL,
+    Array.from({ length: 4 }, (): FakeReply => {
+      return { status: 200, data: { requireSignIn: false } };
+    }),
+  );
 
   navigateSpy = jest
     .spyOn(Navigation, "navigate")
@@ -313,12 +327,15 @@ describe("the page reads the form behind its link", () => {
   test("one GET, through the page's own client, with its header and an empty tenant", async () => {
     await renderForm();
 
-    expect(sentRequests()).toEqual([`GET ${FORM_URL}`]);
+    expect(sentRequests()).toEqual([
+      `GET ${SIGN_IN_STATE_URL}`,
+      `GET ${FORM_URL}`,
+    ]);
 
-    const headers: Record<string, unknown> = server.sent[0]!.headers as Record<
-      string,
-      unknown
-    >;
+    const headers: Record<string, unknown> = server.requestsTo(
+      HTTPMethod.GET,
+      FORM_URL,
+    )[0]!.headers as Record<string, unknown>;
 
     expect(headers[FORM_PAGE_HEADER]).toBe(FORM_PAGE_HEADER_VALUE);
     expect(headers["tenantid"]).toBe("");
@@ -359,7 +376,10 @@ describe("the page reads the form behind its link", () => {
 
     await renderPage(SHARE_KEY.toUpperCase());
 
-    expect(sentRequests()).toEqual([`GET ${FORM_URL}`]);
+    expect(sentRequests()).toEqual([
+      `GET ${SIGN_IN_STATE_URL}`,
+      `GET ${FORM_URL}`,
+    ]);
   });
 
   test("a link that is not a key reads nothing and says the form is not available", async () => {
@@ -758,7 +778,10 @@ describe("links to incident forms", () => {
     await flush();
 
     expect(await screen.findByTestId("form-field-title")).toBeInTheDocument();
-    expect(sentRequests()).toEqual([`GET ${FORM_URL}`]);
+    expect(sentRequests()).toEqual([
+      `GET ${SIGN_IN_STATE_URL}`,
+      `GET ${FORM_URL}`,
+    ]);
   });
 });
 

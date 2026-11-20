@@ -29,6 +29,7 @@ import FormAPI, {
 import Redis from "../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import FormDomainService from "../../../Server/Services/FormDomainService";
+import FormPrivateUserSessionService from "../../../Server/Services/FormPrivateUserSessionService";
 import FormService, {
   FORM_NOT_AVAILABLE_MESSAGE,
 } from "../../../Server/Services/FormService";
@@ -40,9 +41,13 @@ import IncidentSeverityService from "../../../Server/Services/IncidentSeveritySe
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import CaptchaUtil from "../../../Server/Utils/Captcha";
+import CookieUtil from "../../../Server/Utils/Cookie";
+import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import SameOriginRequest from "../../../Server/Utils/SameOriginRequest";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Form from "../../../Models/DatabaseModels/Form";
+import FormPrivateUser from "../../../Models/DatabaseModels/FormPrivateUser";
+import FormPrivateUserSession from "../../../Models/DatabaseModels/FormPrivateUserSession";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import {
@@ -59,8 +64,13 @@ import {
   FORM_PAGE_HEADER,
   FORM_PAGE_HEADER_VALUE,
 } from "../../../Types/Form/FormPublic";
+import {
+  FORM_SIGN_IN_REQUIRED_MESSAGE,
+  FORM_SIGN_IN_STATE_ROUTE,
+} from "../../../Types/Form/FormPrivateUserSignIn";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONObject } from "../../../Types/JSON";
+import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterAll,
@@ -107,7 +117,10 @@ if (
  *   - reading needs the form page's own header, submitting needs JSON, and
  *     both are counted per form by the domain (d:<domain>);
  *   - a form that is off answers its domain as it answers its link;
- *   - the CNAME check answers its own token on its own domain only.
+ *   - the CNAME check answers its own token on its own domain only;
+ *   - a form that asks its visitors to sign in (#10249) shows and takes
+ *     nothing, on its domain or its link, without a live session of one of
+ *     its private users, and its sign-in state says only who is signed in.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -739,6 +752,272 @@ describe("a form's routes on its own domain, over HTTP", () => {
       });
 
       expect(client.counters.size).toBe(0);
+    });
+  });
+
+  /*
+   * A form set to Only people who sign in (#10249), on its domain and on
+   * its link alike. Every route that shows or takes the form answers 401
+   * to a visitor holding no live session of one of its private users - the
+   * form's own cookie, carrying a token OneUptime signed for this form - and
+   * says nothing of the form; one of its private users, signed in, is
+   * answered as anybody was before. The session is the real cookie and the
+   * real token; only its row is a stand-in. The sign-in state, the route
+   * the page asks first, names the form's id, its name and who is signed
+   * in - and of a form that does not ask, nothing.
+   */
+  describe("a form that asks its visitors to sign in (#10249)", () => {
+    const SESSION_ID: ObjectID = new ObjectID(
+      "c0000000-0000-4000-8000-0000000000e1",
+    );
+    const PRIVATE_USER_ID: ObjectID = new ObjectID(
+      "c0000000-0000-4000-8000-0000000000e2",
+    );
+    const OTHER_FORM_ID: ObjectID = new ObjectID(
+      "c0000000-0000-4000-8000-0000000000e3",
+    );
+    const SIGNED_IN_EMAIL: string = "reader@acme.com";
+    const LINK_HOST: string = new URL(INSTANCE_ORIGIN).host;
+
+    interface PublicRoute {
+      name: string;
+      method: "GET" | "POST";
+      path: string;
+      host: string;
+      origin: string;
+    }
+
+    // Every route that shows or takes the form: on its link, on its domain.
+    const ROUTES: Array<PublicRoute> = [
+      {
+        name: "GET /api/form/public/:shareKey",
+        method: "GET",
+        path: `/api/form/public/${SHARE_KEY}`,
+        host: LINK_HOST,
+        origin: INSTANCE_ORIGIN,
+      },
+      {
+        name: "POST /api/form/public/:shareKey/submit",
+        method: "POST",
+        path: `/api/form/public/${SHARE_KEY}/submit`,
+        host: LINK_HOST,
+        origin: INSTANCE_ORIGIN,
+      },
+      {
+        name: `GET ${READ}`,
+        method: "GET",
+        path: READ,
+        host: FORM_DOMAIN,
+        origin: `https://${FORM_DOMAIN}`,
+      },
+      {
+        name: `POST ${SUBMIT}`,
+        method: "POST",
+        path: SUBMIT,
+        host: FORM_DOMAIN,
+        origin: `https://${FORM_DOMAIN}`,
+      },
+    ];
+
+    // The page's first question, on its link and on its domain.
+    const SIGN_IN_STATE_ROUTES: Array<PublicRoute> = [
+      {
+        name: `GET /api/form/public/:shareKey${FORM_SIGN_IN_STATE_ROUTE}`,
+        method: "GET",
+        path: `/api/form/public/${SHARE_KEY}${FORM_SIGN_IN_STATE_ROUTE}`,
+        host: LINK_HOST,
+        origin: INSTANCE_ORIGIN,
+      },
+      {
+        name: `GET ${READ}${FORM_SIGN_IN_STATE_ROUTE}`,
+        method: "GET",
+        path: `${READ}${FORM_SIGN_IN_STATE_ROUTE}`,
+        host: FORM_DOMAIN,
+        origin: `https://${FORM_DOMAIN}`,
+      },
+    ];
+
+    // The form's access cookie, holding a token signed for `tokenFormId`.
+    const sessionCookie: (tokenFormId?: ObjectID) => string = (
+      tokenFormId?: ObjectID,
+    ): string => {
+      const token: string = JSONWebToken.signFormPrivateUserSessionToken({
+        formId: tokenFormId || new ObjectID(FORM_ID),
+        userId: PRIVATE_USER_ID,
+        sessionId: SESSION_ID,
+        expiresInSeconds: 60,
+      });
+
+      return `${CookieUtil.getFormPrivateUserTokenKey(new ObjectID(FORM_ID))}=${token}`;
+    };
+
+    const call: (route: PublicRoute, cookie?: string) => Promise<HttpResult> = (
+      route: PublicRoute,
+      cookie?: string,
+    ): Promise<HttpResult> => {
+      return send({
+        port,
+        method: route.method,
+        path: route.path,
+        host: route.host,
+        headers: {
+          origin: route.origin,
+          ...(cookie ? { cookie: cookie } : {}),
+        },
+        body: route.method === "POST" ? { data: ANSWERS } : undefined,
+      });
+    };
+
+    let sessionLookups: number;
+
+    beforeEach(() => {
+      FORMS[0]!.requireSignIn = true;
+      sessionLookups = 0;
+
+      // The session row: live for this form's private user, and nobody else.
+      jest
+        .spyOn(FormPrivateUserSessionService, "findSignedInSession")
+        .mockImplementation((async (data: {
+          resourceId: ObjectID;
+          sessionId: ObjectID;
+          privateUserId: ObjectID;
+        }): Promise<FormPrivateUserSession | null> => {
+          sessionLookups++;
+
+          if (
+            data.resourceId.toString() !== FORM_ID ||
+            data.sessionId.toString() !== SESSION_ID.toString() ||
+            data.privateUserId.toString() !== PRIVATE_USER_ID.toString()
+          ) {
+            return null;
+          }
+
+          const privateUser: FormPrivateUser = new FormPrivateUser();
+          privateUser.email = new Email(SIGNED_IN_EMAIL);
+
+          const session: FormPrivateUserSession = new FormPrivateUserSession();
+          session._id = SESSION_ID.toString();
+          session.formPrivateUser = privateUser;
+
+          return session;
+        }) as never);
+    });
+
+    afterEach(() => {
+      FORMS[0]!.requireSignIn = false;
+    });
+
+    it.each(ROUTES)(
+      "$name answers 401 to a visitor without a session, and says nothing of the form",
+      async (route: PublicRoute) => {
+        const result: HttpResult = await call(route);
+
+        expect(result.status).toBe(401);
+        expect(errorMessageOf(result)).toBe(FORM_SIGN_IN_REQUIRED_MESSAGE);
+        expect(JSON.stringify(result.body)).not.toContain("Report a Problem");
+        expect(JSON.stringify(result.body)).not.toContain("Your Email");
+        expect(incidentCreate).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(ROUTES)(
+      "$name answers a token signed for another form, and one OneUptime never signed, as no session",
+      async (route: PublicRoute) => {
+        const otherForms: HttpResult = await call(
+          route,
+          sessionCookie(OTHER_FORM_ID),
+        );
+        const forged: HttpResult = await call(
+          route,
+          `${CookieUtil.getFormPrivateUserTokenKey(new ObjectID(FORM_ID))}=not-a-token`,
+        );
+
+        expect(otherForms.status).toBe(401);
+        expect(forged.status).toBe(401);
+        // Neither is looked up: the token itself says it is not this form's.
+        expect(sessionLookups).toBe(0);
+        expect(incidentCreate).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(ROUTES)(
+      "$name serves one of its private users, signed in",
+      async (route: PublicRoute) => {
+        const result: HttpResult = await call(route, sessionCookie());
+
+        expect(result.status).toBe(200);
+        expect(sessionLookups).toBe(1);
+
+        if (route.method === "GET") {
+          expect(result.body?.["name"]).toBe("Report a Problem");
+        } else {
+          expect(result.body?.["reference"]).toBe("INC-42");
+          expect(incidentCreate).toHaveBeenCalledTimes(1);
+        }
+      },
+    );
+
+    it.each(ROUTES)(
+      "$name answers a session that no longer counts as none",
+      async (route: PublicRoute) => {
+        // Revoked, run out, its private user removed, its provider off.
+        jest
+          .spyOn(FormPrivateUserSessionService, "findSignedInSession")
+          .mockResolvedValue(null as never);
+
+        const result: HttpResult = await call(route, sessionCookie());
+
+        expect(result.status).toBe(401);
+        expect(errorMessageOf(result)).toBe(FORM_SIGN_IN_REQUIRED_MESSAGE);
+      },
+    );
+
+    it.each(SIGN_IN_STATE_ROUTES)(
+      "$name names the form's id and name, and nobody signed in, to a visitor without a session",
+      async (route: PublicRoute) => {
+        const result: HttpResult = await call(route);
+
+        expect(result.status).toBe(200);
+        expect(result.body).toEqual({
+          requireSignIn: true,
+          formId: FORM_ID,
+          name: "Report a Problem",
+          signedInAs: null,
+        });
+      },
+    );
+
+    it.each(SIGN_IN_STATE_ROUTES)(
+      "$name names the private user signed in",
+      async (route: PublicRoute) => {
+        const result: HttpResult = await call(route, sessionCookie());
+
+        expect(result.status).toBe(200);
+        expect(result.body?.["signedInAs"]).toBe(SIGNED_IN_EMAIL);
+      },
+    );
+
+    it.each(SIGN_IN_STATE_ROUTES)(
+      "$name names nothing of a form that does not ask",
+      async (route: PublicRoute) => {
+        FORMS[0]!.requireSignIn = false;
+
+        const result: HttpResult = await call(route, sessionCookie());
+
+        expect(result.status).toBe(200);
+        expect(result.body).toEqual({ requireSignIn: false });
+        expect(sessionLookups).toBe(0);
+      },
+    );
+
+    it("asks a form that does not ask its visitors to sign in for nobody's session", async () => {
+      FORMS[0]!.requireSignIn = false;
+
+      for (const route of ROUTES) {
+        expect((await call(route)).status).toBe(200);
+      }
+
+      expect(sessionLookups).toBe(0);
     });
   });
 });
