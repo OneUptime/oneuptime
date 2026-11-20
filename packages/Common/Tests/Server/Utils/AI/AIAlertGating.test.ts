@@ -7,6 +7,7 @@ import AlertSeverityService from "../../../../Server/Services/AlertSeverityServi
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -21,9 +22,10 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * investigated:
  *   - severity floor: an explicit per-project minimum severity; unset means
  *     every severity (it used to default to the project's top two tiers);
- *   - per-monitor cooldown: a monitor already investigated within a window
- *     the project set is not re-investigated; unset means no cooldown (it
- *     used to default to 30 minutes);
+ *   - per-monitor cooldown: an alert whose monitor already had an alert with
+ *     the same title investigated within a window the project set is not
+ *     investigated; unset means no cooldown (it used to default to 30
+ *     minutes);
  *   - an alert-specific concurrency cap in the shared queue; unset means no
  *     cap (it used to default to 3).
  *
@@ -36,9 +38,11 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 function fakeAlert(data: {
   monitorId?: ObjectID | undefined;
   severityOrder?: number | undefined;
+  title?: string | undefined;
 }): Alert {
   return {
     id: ObjectID.generate(),
+    title: data.title ?? "High CPU usage on web-1",
     monitorId: data.monitorId,
     alertSeverity:
       data.severityOrder !== undefined
@@ -71,10 +75,16 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
     project?: Project;
     explicitFloorSeverity?: AlertSeverity | null;
     recentRunCount?: number;
+    /*
+     * How many of the alerts those runs were for have this alert's title:
+     * all of them unless a test says otherwise - the same alert again.
+     */
+    sameTitleCount?: number;
   }): {
     severityLookup: jest.SpyInstance;
     severityList: jest.SpyInstance;
-    countBy: jest.SpyInstance;
+    runLookup: jest.SpyInstance;
+    titleLookup: jest.SpyInstance;
   } {
     jest.spyOn(AlertService, "findOneById").mockResolvedValue(data.alert);
     jest
@@ -87,11 +97,21 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
     const severityList: jest.SpyInstance = jest
       .spyOn(AlertSeverityService, "findBy")
       .mockResolvedValue([{ order: 1 }, { order: 2 }] as Array<AlertSeverity>);
-    const countBy: jest.SpyInstance = jest
-      .spyOn(AIRunService, "countBy")
-      .mockResolvedValue(new PositiveNumber(data.recentRunCount || 0));
+    // The monitor's investigations in the window, each for an alert of its own.
+    const runLookup: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findBy")
+      .mockResolvedValue(
+        Array.from({ length: data.recentRunCount || 0 }, () => {
+          return { triggeredByAlertId: ObjectID.generate() } as AIRun;
+        }),
+      );
+    const titleLookup: jest.SpyInstance = jest
+      .spyOn(AlertService, "countBy")
+      .mockResolvedValue(
+        new PositiveNumber(data.sameTitleCount ?? (data.recentRunCount || 0)),
+      );
 
-    return { severityLookup, severityList, countBy };
+    return { severityLookup, severityList, runLookup, titleLookup };
   }
 
   function gate(): Promise<AlertGateDecision> {
@@ -111,7 +131,7 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
   describe("investigation rules", () => {
     test("an alert no rule matches is not investigated, and says how many rules there are", async () => {
       const monitorId: ObjectID = ObjectID.generate();
-      const { countBy } = mockGates({
+      const { runLookup } = mockGates({
         alert: fakeAlert({ monitorId, severityOrder: 1 }),
       });
       jest
@@ -127,7 +147,7 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
         monitorId,
       });
       // Checked first: the cooldown is never read.
-      expect(countBy).not.toHaveBeenCalled();
+      expect(runLookup).not.toHaveBeenCalled();
       expect(ProjectService.findOneById).not.toHaveBeenCalled();
     });
 
@@ -268,7 +288,7 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
      */
     test("with no configured cooldown, a repeat alert from a just-investigated monitor is investigated again", async () => {
       const monitorId: ObjectID = ObjectID.generate();
-      const { countBy } = mockGates({
+      const { runLookup } = mockGates({
         alert: fakeAlert({ severityOrder: 1, monitorId }),
         recentRunCount: 1,
       });
@@ -278,12 +298,12 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
       expect(decision.investigate).toBe(true);
       expect(decision.monitorId).toBe(monitorId);
       // No cooldown, so there is nothing to look up.
-      expect(countBy).not.toHaveBeenCalled();
+      expect(runLookup).not.toHaveBeenCalled();
     });
 
-    test("skips when the monitor was already investigated within a configured window", async () => {
+    test("skips when the monitor already had the same alert investigated within a configured window", async () => {
       const monitorId: ObjectID = ObjectID.generate();
-      const { countBy } = mockGates({
+      const { runLookup } = mockGates({
         alert: fakeAlert({ severityOrder: 1, monitorId }),
         project: fakeProject(undefined, 30),
         recentRunCount: 1,
@@ -296,7 +316,7 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
       expect(decision.reason).toContain("within the last 30 minutes");
       expect(decision.notStartedCode).toBe("monitor_cooldown");
       expect(decision.notStartedDetails).toEqual({ cooldownWindowMinutes: 30 });
-      expect(countBy).toHaveBeenCalledWith(
+      expect(runLookup).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             monitorId,
@@ -315,6 +335,71 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
       expect((await gate()).investigate).toBe(true);
     });
 
+    /*
+     * One monitor can open many different alerts - an Incoming Request
+     * monitor that another alerting system posts to opens one per host and
+     * check. The cooldown holds back the same alert again, not the others.
+     */
+    test("an alert with another title on a just-investigated monitor is investigated", async () => {
+      const { titleLookup } = mockGates({
+        alert: fakeAlert({
+          severityOrder: 1,
+          monitorId: ObjectID.generate(),
+          title: "Disk is almost full on db-2",
+        }),
+        project: fakeProject(undefined, 30),
+        recentRunCount: 1,
+        sameTitleCount: 0,
+      });
+
+      const decision: AlertGateDecision = await gate();
+
+      expect(decision.investigate).toBe(true);
+      expect(decision.notStartedCode).toBeUndefined();
+      expect(titleLookup).toHaveBeenCalledTimes(1);
+    });
+
+    test("the title is compared with the alerts the window's investigations were for, and no others", async () => {
+      const title: string = "Disk is almost full on db-2";
+      const { runLookup, titleLookup } = mockGates({
+        alert: fakeAlert({
+          severityOrder: 1,
+          monitorId: ObjectID.generate(),
+          title,
+        }),
+        project: fakeProject(undefined, 30),
+        recentRunCount: 2,
+      });
+
+      expect((await gate()).notStartedCode).toBe("monitor_cooldown");
+
+      expect(runLookup).toHaveBeenCalledWith(
+        expect.objectContaining({ select: { triggeredByAlertId: true } }),
+      );
+      const runs: Array<AIRun> = await runLookup.mock.results[0]!.value;
+      const query: Record<string, unknown> = (
+        titleLookup.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+      expect(query["projectId"]).toBe(projectId);
+      expect(query["title"]).toBe(title);
+      for (const run of runs) {
+        expect(JSON.stringify(query["_id"])).toContain(
+          run.triggeredByAlertId!.toString(),
+        );
+      }
+    });
+
+    test("no title is looked up when the monitor had no investigation in the window", async () => {
+      const { titleLookup } = mockGates({
+        alert: fakeAlert({ severityOrder: 1, monitorId: ObjectID.generate() }),
+        project: fakeProject(undefined, 30),
+        recentRunCount: 0,
+      });
+
+      expect((await gate()).investigate).toBe(true);
+      expect(titleLookup).not.toHaveBeenCalled();
+    });
+
     test("the cooldown counts alert investigations only, so incident runs cannot suppress an alert", async () => {
       const monitorId: ObjectID = ObjectID.generate();
       const alertSubjectFilter: Record<string, string> = {
@@ -326,7 +411,7 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
       jest.spyOn(QueryHelper, "notNull").mockReturnValue(alertSubjectFilter);
       jest.spyOn(QueryHelper, "isNull").mockReturnValue(incidentSubjectFilter);
 
-      const { countBy } = mockGates({
+      const { runLookup } = mockGates({
         alert: fakeAlert({ severityOrder: 1, monitorId }),
         project: fakeProject(undefined, 30),
         recentRunCount: 0,
@@ -335,14 +420,14 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
       await gate();
 
       const query: Record<string, unknown> = (
-        countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+        runLookup.mock.calls[0]![0] as { query: Record<string, unknown> }
       ).query;
       expect(query["triggeredByAlertId"]).toBe(alertSubjectFilter);
       expect(query["triggeredByIncidentId"]).toBe(incidentSubjectFilter);
     });
 
     test("alerts without a monitor skip the dedupe check entirely, even with a cooldown set", async () => {
-      const { countBy } = mockGates({
+      const { runLookup } = mockGates({
         alert: fakeAlert({ severityOrder: 1 }),
         project: fakeProject(undefined, 30),
       });
@@ -350,29 +435,29 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
       const decision: AlertGateDecision = await gate();
 
       expect(decision.investigate).toBe(true);
-      expect(countBy).not.toHaveBeenCalled();
+      expect(runLookup).not.toHaveBeenCalled();
     });
 
     test("a cooldown of 0 disables the dedupe check entirely", async () => {
-      const { countBy } = mockGates({
+      const { runLookup } = mockGates({
         alert: fakeAlert({ severityOrder: 1, monitorId: ObjectID.generate() }),
         project: fakeProject(undefined, 0),
         recentRunCount: 1,
       });
 
       expect((await gate()).investigate).toBe(true);
-      expect(countBy).not.toHaveBeenCalled();
+      expect(runLookup).not.toHaveBeenCalled();
     });
 
     test("a negative cooldown is read as none rather than inverting the query", async () => {
-      const { countBy } = mockGates({
+      const { runLookup } = mockGates({
         alert: fakeAlert({ severityOrder: 1, monitorId: ObjectID.generate() }),
         project: fakeProject(undefined, -30),
         recentRunCount: 1,
       });
 
       expect((await gate()).investigate).toBe(true);
-      expect(countBy).not.toHaveBeenCalled();
+      expect(runLookup).not.toHaveBeenCalled();
     });
 
     test("a custom cooldown is used for the dedupe window", async () => {
@@ -417,7 +502,7 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
    */
   test("a project with no alert AI settings investigates a low-severity repeat alert", async () => {
     const monitorId: ObjectID = ObjectID.generate();
-    const { severityLookup, severityList, countBy } = mockGates({
+    const { severityLookup, severityList, runLookup } = mockGates({
       alert: fakeAlert({ severityOrder: 7, monitorId }),
       recentRunCount: 3,
     });
@@ -431,7 +516,7 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
     });
     expect(severityLookup).not.toHaveBeenCalled();
     expect(severityList).not.toHaveBeenCalled();
-    expect(countBy).not.toHaveBeenCalled();
+    expect(runLookup).not.toHaveBeenCalled();
   });
 });
 
