@@ -30,14 +30,14 @@ describeDayUptimeGraphUtilInProcessTimezone({
     // The evening of the spring-forward: the window crosses Mar 8.
     {
       instant: "2026-03-09T03:00:00.000Z",
-      localDayLabel: "Mar 08, 2026",
-      utcDayLabel: "Mar 09, 2026",
+      localDayLabel: "Mar 8, 2026",
+      utcDayLabel: "Mar 9, 2026",
     },
     // The evening of the fall-back: the window crosses Nov 1.
     {
       instant: "2026-11-02T03:30:00.000Z",
-      localDayLabel: "Nov 01, 2026",
-      utcDayLabel: "Nov 02, 2026",
+      localDayLabel: "Nov 1, 2026",
+      utcDayLabel: "Nov 2, 2026",
     },
   ],
   utcBarLabels: [

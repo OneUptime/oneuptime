@@ -1966,6 +1966,7 @@ export default class Monitor extends BaseModel {
     description:
       "Who set Network Device: Automatic (OneUptime, by the address the monitor checks seen from its probes) or Person. OneUptime updates an automatic one when the monitor's probes change, and never one a person set. Empty on a monitor tied before this was recorded.",
     example: "Automatic",
+    allowedValues: Object.values(NetworkDeviceTieSource),
   })
   @Column({
     type: ColumnType.ShortText,

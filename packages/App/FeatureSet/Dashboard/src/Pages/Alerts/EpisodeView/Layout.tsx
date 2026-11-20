@@ -9,6 +9,8 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import PrivateRecordScopeProvider from "../../../Components/PrivateRecord/PrivateRecordScopeProvider";
+import RecordAccessScopeProvider from "../../../Components/RecordAccess/RecordAccessScopeProvider";
+import { RecordAccessKind } from "Common/Types/RecordAccess/RecordAccess";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -31,16 +33,25 @@ const AlertEpisodeViewLayout: FunctionComponent<
        * A private episode is changed only with the permissions of the teams
        * that own it: every page of it offers only what the reader may do
        * there (PrivateRecordScopeProvider).
+       *
+       * And what the server says the reader may do on this episode by its
+       * labels, its owners and its privacy: every lock on its pages
+       * reads it (RecordAccessScopeProvider, #10272).
        */}
-      <PrivateRecordScopeProvider
-        modelType={AlertEpisode}
+      <RecordAccessScopeProvider
+        kind={RecordAccessKind.AlertEpisode}
         modelId={modelId}
-        ownerTeamModelType={AlertEpisodeOwnerTeam}
-        ownerUserModelType={AlertEpisodeOwnerUser}
-        ownerKey="alertEpisodeId"
       >
-        <Outlet />
-      </PrivateRecordScopeProvider>
+        <PrivateRecordScopeProvider
+          modelType={AlertEpisode}
+          modelId={modelId}
+          ownerTeamModelType={AlertEpisodeOwnerTeam}
+          ownerUserModelType={AlertEpisodeOwnerUser}
+          ownerKey="alertEpisodeId"
+        >
+          <Outlet />
+        </PrivateRecordScopeProvider>
+      </RecordAccessScopeProvider>
     </ModelPage>
   );
 };

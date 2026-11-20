@@ -168,7 +168,7 @@ async function expectAiSection(
   }
 
   const menu: Locator = page.getByRole("navigation", {
-    name: "Main navigation",
+    name: "Pages in this section",
   });
 
   for (const item of ["Insights", "Activity", "Settings"]) {

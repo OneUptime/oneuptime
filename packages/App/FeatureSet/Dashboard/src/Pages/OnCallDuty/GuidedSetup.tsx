@@ -1,5 +1,6 @@
 import { ON_CALL_SETUP_COPY } from "../../Components/GuidedSetup/OnCall/OnCallSetup";
 import OnCallGuidedSetup from "../../Components/GuidedSetup/OnCall/OnCallGuidedSetup";
+import { GUIDED_SETUP_PAGE_CLASS_NAME } from "../../Components/GuidedSetup/GuidedSetupFrame";
 import { getOnCallDutyBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
@@ -21,6 +22,7 @@ const OnCallDutyGuidedSetup: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <Page
+      className={GUIDED_SETUP_PAGE_CLASS_NAME}
       title={ON_CALL_SETUP_COPY.pageTitle}
       description={ON_CALL_SETUP_COPY.pageDescription}
       breadcrumbLinks={getOnCallDutyBreadcrumbs(

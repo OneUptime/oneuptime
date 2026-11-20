@@ -475,7 +475,7 @@ function shortDateTime(time: number): string {
 }
 
 /*
- * "Sep 21 2026, 11:14:00 AM UTC" — the EmbeddedMetricCard picker's custom
+ * "Sep 21, 2026, 11:14:00 AM UTC" — the EmbeddedMetricCard picker's custom
  * label (RangeStartAndEndDateView), en-US. The zone abbreviation is the
  * browser's, so any single word is accepted there.
  */

@@ -9,8 +9,14 @@ import UserSessionService from "../../Services/UserSessionService";
 import UserTotpAuthService from "../../Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "../../Services/UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "../../Services/UserWebAuthnService";
+import GlobalConfigService from "../../Services/GlobalConfigService";
 import logger from "../Logger";
+import SsoRequiredSignIn from "../SsoRequiredSignIn";
 import TotpAuth from "../TotpAuth";
+import TwoFactorBackupCodeNotification, {
+  BackupCodeUse,
+} from "../TwoFactorBackupCodeNotification";
+import ReauthenticationSignedOutEmail from "./SignedOutEmail";
 import User from "../../../Models/DatabaseModels/User";
 import UserSession from "../../../Models/DatabaseModels/UserSession";
 import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
@@ -18,10 +24,14 @@ import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
 import {
   REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT,
   REAUTHENTICATION_MESSAGES,
+  REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES,
   REAUTHENTICATION_WINDOW_IN_MINUTES,
   ReauthenticationMethods,
+  ReauthenticationPurpose,
+  ReauthenticationSignInAgain,
   ReauthenticationStatus,
   ReauthenticationWebAuthnKind,
+  SignInAgainProvider,
 } from "../../../Types/Accounts/Reauthentication";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -36,6 +46,11 @@ import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsEx
 import ObjectID from "../../../Types/ObjectID";
 import RequestOrigin from "../../../Types/RequestOrigin";
 import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
+import {
+  readSessionSignIn,
+  SessionSignIn,
+  SignInMethod,
+} from "../../../Types/UserSession/SessionSignIn";
 
 /*
  * CONFIRM IT'S YOU BEFORE YOU CHANGE HOW YOU SIGN IN (#10155).
@@ -66,8 +81,13 @@ import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
  * REAUTHENTICATION_WINDOW_IN_MINUTES: never in the access token, which
  * the browser holds, and never for the account, which another session of
  * somebody else's would share. An account with neither a password nor a
- * passkey has nothing to confirm in place: its session's own sign-in in
- * the window is its confirmation, read from the session's row.
+ * passkey has nothing to confirm in place: its session's own sign-in is
+ * its confirmation, read from the session's row - only a sign-in that
+ * proved its person was asked just now (#10217): a sign-in link, or a
+ * Sign In Again whose identity provider authenticated them at or after the
+ * moment OneUptime sent them there (Types/Accounts/Reauthentication,
+ * judgeSignInAgain). An identity provider that signs a browser straight
+ * back in with a session it remembers proves nothing.
  *
  * FAILS CLOSED: with Valkey unreachable nothing is confirmed, and a change
  * that needs a confirmation is refused with what to do (try again in a
@@ -131,9 +151,12 @@ export default class Reauthentication {
    */
   public static getSessionOf(
     props: DatabaseCommonInteractionProps,
+    purpose: ReauthenticationPurpose = ReauthenticationPurpose.OwnSignIn,
   ): ReauthenticationSession {
     if (!props.userId || !props.sessionId) {
-      throw new BadDataException(REAUTHENTICATION_MESSAGES.notFromASession);
+      throw new BadDataException(
+        REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES[purpose],
+      );
     }
 
     return { userId: props.userId, sessionId: props.sessionId };
@@ -233,6 +256,125 @@ export default class Reauthentication {
       confirmedUntil: confirmedUntil,
       windowInMinutes: REAUTHENTICATION_WINDOW_IN_MINUTES,
       methods: methods,
+      signInAgain: methods.signInAgain
+        ? await Reauthentication.getSignInAgain(session)
+        : null,
+    };
+  }
+
+  /*
+   * WHERE SIGN IN AGAIN TAKES THIS SESSION (#10217): back through the
+   * provider it signed in with - its own start, which Sign In Again opens
+   * asking the provider to authenticate the person again - or, for a
+   * sign-in link and a session that does not say, the sign-in page. With
+   * why this session's own Sign In Again did not confirm it's you, when it
+   * was one that did not, and whether a sign-in link can stand in.
+   */
+  public static async getSignInAgain(
+    session: ReauthenticationSession,
+  ): Promise<ReauthenticationSignInAgain> {
+    const row: UserSession | null =
+      await Reauthentication.readSessionRow(session);
+
+    const signIn: SessionSignIn | null = row
+      ? readSessionSignIn(row.additionalInfo)
+      : null;
+
+    const canUseSignInLink: boolean =
+      !(await SsoRequiredSignIn.isSsoRequired()) &&
+      !(await GlobalConfigService.getMagicLinkLoginTurnedOff());
+
+    const refusal: ReauthenticationSignInAgain["refusal"] =
+      signIn?.signInAgain && "refusal" in signIn.signInAgain
+        ? signIn.signInAgain.refusal
+        : null;
+
+    const where: {
+      route: string | null;
+      provider: SignInAgainProvider;
+      providerName: string | null;
+    } = Reauthentication.getSignInAgainRoute(signIn);
+
+    return {
+      route: where.route,
+      provider: where.provider,
+      providerName: where.providerName,
+      refusal: refusal,
+      canUseSignInLink: canUseSignInLink,
+    };
+  }
+
+  /*
+   * The start of the sign-in a session's sign-in record names, under
+   * Identity's address: a project's or the server's own SAML or OpenID
+   * Connect provider by its id (kept since #10217), Google, Microsoft.
+   * Anything else - a sign-in link, Vercel, a session that does not say -
+   * goes to the sign-in page, where the person chooses.
+   */
+  public static getSignInAgainRoute(signIn: SessionSignIn | null): {
+    route: string | null;
+    provider: SignInAgainProvider;
+    providerName: string | null;
+  } {
+    const signInPage: {
+      route: string | null;
+      provider: SignInAgainProvider;
+      providerName: string | null;
+    } = {
+      route: null,
+      provider: SignInAgainProvider.SignInPage,
+      providerName: null,
+    };
+
+    if (!signIn) {
+      return signInPage;
+    }
+
+    if (signIn.method === SignInMethod.Google) {
+      return {
+        route: "/google/sign-in",
+        provider: SignInAgainProvider.Google,
+        providerName: "Google",
+      };
+    }
+
+    if (signIn.method === SignInMethod.Microsoft) {
+      return {
+        route: "/microsoft/sign-in",
+        provider: SignInAgainProvider.Microsoft,
+        providerName: "Microsoft",
+      };
+    }
+
+    if (
+      (signIn.method !== SignInMethod.Saml &&
+        signIn.method !== SignInMethod.OpenIdConnect) ||
+      !signIn.ssoProviderId
+    ) {
+      return signInPage;
+    }
+
+    const providerId: string = signIn.ssoProviderId.toString();
+    const projectId: string | null = signIn.ssoProjectId
+      ? signIn.ssoProjectId.toString()
+      : null;
+
+    let route: string;
+
+    if (signIn.method === SignInMethod.Saml) {
+      route = projectId
+        ? `/sso/${projectId}/${providerId}`
+        : `/global-sso/${providerId}`;
+    } else {
+      route = projectId
+        ? `/oidc/${projectId}/${providerId}`
+        : `/global-oidc/${providerId}`;
+    }
+
+    return {
+      route: route,
+      provider: SignInAgainProvider.SingleSignOn,
+      providerName: signIn.ssoProviderName || null,
     };
   }
 
@@ -247,16 +389,19 @@ export default class Reauthentication {
    */
   public static async assertConfirmed(
     props: DatabaseCommonInteractionProps,
+    purpose: ReauthenticationPurpose = ReauthenticationPurpose.OwnSignIn,
   ): Promise<void> {
     if (props.isRoot) {
       return;
     }
 
-    const session: ReauthenticationSession =
-      Reauthentication.getSessionOf(props);
+    const session: ReauthenticationSession = Reauthentication.getSessionOf(
+      props,
+      purpose,
+    );
 
     if ((await Reauthentication.getConfirmedUntil(session)) === null) {
-      throw new ReauthenticationRequiredException();
+      throw new ReauthenticationRequiredException(purpose);
     }
   }
 
@@ -383,6 +528,7 @@ export default class Reauthentication {
       methods: methods,
       proofKind: proofKind,
       proof: data.proof,
+      requestOrigin: data.requestOrigin,
     });
 
     if (wrong !== null) {
@@ -496,11 +642,48 @@ export default class Reauthentication {
     }
   }
 
-  // Until when an account that confirms by signing in is confirmed by this session's sign-in, or null.
+  /*
+   * Until when an account that confirms by signing in is confirmed by this
+   * session's sign-in, or null. Only a sign-in that proved its person was
+   * asked counts (#10217): a Sign In Again its provider says it
+   * authenticated, from that moment; a sign-in link, from when it was
+   * opened. Any other sign-in - a provider's, however recent, that may have
+   * asked nothing - confirms nothing.
+   */
   private static async getSignInConfirmedUntil(
     session: ReauthenticationSession,
     now: number,
   ): Promise<number | null> {
+    const row: UserSession | null =
+      await Reauthentication.readSessionRow(session);
+
+    if (!row || !row.createdAt) {
+      return null;
+    }
+
+    const signIn: SessionSignIn | null = readSessionSignIn(row.additionalInfo);
+
+    let since: number | null = null;
+
+    if (signIn?.signInAgain && "reauthenticatedAt" in signIn.signInAgain) {
+      since = signIn.signInAgain.reauthenticatedAt.getTime();
+    } else if (signIn?.method === SignInMethod.SignInLink) {
+      since = new Date(row.createdAt).getTime();
+    }
+
+    if (since === null) {
+      return null;
+    }
+
+    const until: number = since + Reauthentication.WINDOW_IN_MS;
+
+    return until > now ? until : null;
+  }
+
+  // The session's own row, while it is live and its person's; else null.
+  private static async readSessionRow(
+    session: ReauthenticationSession,
+  ): Promise<UserSession | null> {
     const row: UserSession | null = await UserSessionService.findOneById({
       id: session.sessionId,
       select: {
@@ -508,6 +691,7 @@ export default class Reauthentication {
         userId: true,
         isRevoked: true,
         createdAt: true,
+        additionalInfo: true,
       },
       props: {
         isRoot: true,
@@ -517,17 +701,13 @@ export default class Reauthentication {
     if (
       !row ||
       row.isRevoked !== false ||
-      !row.createdAt ||
       row.userId?.toString().toLowerCase() !==
         session.userId.toString().toLowerCase()
     ) {
       return null;
     }
 
-    const until: number =
-      new Date(row.createdAt).getTime() + Reauthentication.WINDOW_IN_MS;
-
-    return until > now ? until : null;
+    return row;
   }
 
   private static async assertWithinRateLimit(data: {
@@ -611,6 +791,7 @@ export default class Reauthentication {
     methods: ReauthenticationMethods;
     proofKind: ProofKind;
     proof: ReauthenticationProof;
+    requestOrigin?: RequestOrigin | undefined;
   }): Promise<string | null> {
     if (data.proofKind === ProofKind.Passkey) {
       return await Reauthentication.checkKey({
@@ -642,12 +823,30 @@ export default class Reauthentication {
     }
 
     if (typeof data.proof.backupCode === "string" && data.proof.backupCode) {
-      return (await UserTwoFactorBackupCodeService.consumeCode({
+      const isSpent: boolean = await UserTwoFactorBackupCodeService.consumeCode(
+        {
+          userId: data.session.userId,
+          code: data.proof.backupCode,
+        },
+      );
+
+      if (!isSpent) {
+        return REAUTHENTICATION_MESSAGES.wrongBackupCode;
+      }
+
+      /*
+       * Spent, as a sign-in spends one: its owner hears of it at the address
+       * on the account, with how many are left (#10219). Never waited for -
+       * the code is gone, and the confirmation stands whatever the mail
+       * server does.
+       */
+      void TwoFactorBackupCodeNotification.notifyCodeUsed({
         userId: data.session.userId,
-        code: data.proof.backupCode,
-      }))
-        ? null
-        : REAUTHENTICATION_MESSAGES.wrongBackupCode;
+        usedFor: BackupCodeUse.ConfirmItsYou,
+        origin: data.requestOrigin,
+      });
+
+      return null;
     }
 
     return (await Reauthentication.isAuthenticatorCodeRight(
@@ -769,27 +968,40 @@ export default class Reauthentication {
     }
   }
 
-  // The session that used its allowance up ends, and the browser is signed out.
+  /*
+   * The session that used its allowance up ends, and the browser is signed
+   * out. Its owner is emailed (#10218, ./SignedOutEmail) - once for the
+   * session, only by the attempt that ended it live, never by one that came
+   * after - and never waited for.
+   */
   private static async endSession(data: {
     session: ReauthenticationSession;
     requestOrigin?: RequestOrigin | undefined;
   }): Promise<never> {
-    await UserSessionService.revokeLiveSessionOfUser(
-      {
-        userId: data.session.userId,
-        sessionId: data.session.sessionId,
-      },
-      {
-        cause: SessionEndCause.ReauthenticationFailed,
-        requestOrigin: data.requestOrigin,
-      },
-    );
+    const isEndedNow: boolean =
+      await UserSessionService.revokeLiveSessionOfUser(
+        {
+          userId: data.session.userId,
+          sessionId: data.session.sessionId,
+        },
+        {
+          cause: SessionEndCause.ReauthenticationFailed,
+          requestOrigin: data.requestOrigin,
+        },
+      );
 
     await Reauthentication.forgetAttempts(data.session.sessionId);
 
     logger.info(
       `A session of user ${data.session.userId.toString()} was signed out after ${REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT} wrong attempts to confirm it was theirs.`,
     );
+
+    if (isEndedNow) {
+      void ReauthenticationSignedOutEmail.notify({
+        userId: data.session.userId,
+        origin: data.requestOrigin,
+      });
+    }
 
     throw new NotAuthenticatedException(REAUTHENTICATION_MESSAGES.signedOut);
   }

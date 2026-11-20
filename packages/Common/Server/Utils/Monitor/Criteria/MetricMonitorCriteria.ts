@@ -61,6 +61,7 @@ import MetricHourBaseline, {
   METRIC_BASELINE_MAX_SERIES,
 } from "../MetricHourBaseline";
 import { readOwnValue, writeOwnValue } from "../../../../Utils/LookupTable";
+import { EventLoopBudget } from "../../EventLoop";
 
 const HOUR_IN_MS: number = 60 * 60 * 1000;
 
@@ -96,6 +97,20 @@ export type IsCriteriaInEffect = (
  */
 type BaselineReads = Map<string, Promise<MetricSeriesBaselines>>;
 
+/*
+ * What every series of one evaluation was judged to be by each criteria
+ * filter (evaluateAllSeries), kept for the evaluation (#10108). A criteria
+ * that matches is judged twice over the same series - once for its verdict,
+ * once for the series it matched (MonitorCriteriaEvaluator
+ * .collectPerSeriesMatches) - and at 16,000 series each pass was a block of
+ * the event loop of its own. Keyed by the filter itself: a check judges
+ * each filter of its criteria once.
+ */
+export type MetricSeriesEvaluations = Map<
+  CriteriaFilter,
+  Promise<Array<MetricSeriesEvaluationResult>>
+>;
+
 // One hour of a window: which hour of the week, and its earliest data point.
 interface HourJudged {
   hourOfWeek: number;
@@ -121,6 +136,8 @@ export default class MetricMonitorCriteria {
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
     isInEffect?: IsCriteriaInEffect | undefined;
+    // The evaluation's judgements so far, shared with its per-series pass.
+    evaluations?: MetricSeriesEvaluations | undefined;
   }): Promise<string | null> {
     const evaluations: Array<MetricSeriesEvaluationResult> =
       await MetricMonitorCriteria.evaluateAllSeries(input);
@@ -250,7 +267,7 @@ export default class MetricMonitorCriteria {
    * and labels. The caller fans this out into one incident per
    * breaching series.
    */
-  public static async evaluateAllSeries(input: {
+  public static evaluateAllSeries(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
@@ -258,6 +275,36 @@ export default class MetricMonitorCriteria {
      * Absent: nothing is in effect, so every series that has not covered
      * the window waits.
      */
+    isInEffect?: IsCriteriaInEffect | undefined;
+    /*
+     * The evaluation's judgements so far: a filter already judged for this
+     * check is not judged again (MetricSeriesEvaluations).
+     */
+    evaluations?: MetricSeriesEvaluations | undefined;
+  }): Promise<Array<MetricSeriesEvaluationResult>> {
+    if (!input.evaluations) {
+      return MetricMonitorCriteria.evaluateEverySeries(input);
+    }
+
+    const judged: Promise<Array<MetricSeriesEvaluationResult>> | undefined =
+      input.evaluations.get(input.criteriaFilter);
+
+    if (judged) {
+      return judged;
+    }
+
+    const judging: Promise<Array<MetricSeriesEvaluationResult>> =
+      MetricMonitorCriteria.evaluateEverySeries(input);
+
+    input.evaluations.set(input.criteriaFilter, judging);
+
+    return judging;
+  }
+
+  private static async evaluateEverySeries(input: {
+    dataToProcess: DataToProcess;
+    criteriaFilter: CriteriaFilter;
+    monitorStep: MonitorStep;
     isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<Array<MetricSeriesEvaluationResult>> {
     if (
@@ -431,9 +478,22 @@ export default class MetricMonitorCriteria {
       return [result];
     }
 
-    return await Promise.all(
-      seriesBreakdown!.map((series: MetricSeriesResult) => {
-        return MetricMonitorCriteria.evaluateOneSeries({
+    /*
+     * One series after another, handing the event loop back as they go: a
+     * grouped monitor's 16,000 series were judged in one block of it per
+     * filter, so nothing else the process does ran meanwhile (#10108). The
+     * series are judged as they were, in their order.
+     */
+    const evaluations: Array<MetricSeriesEvaluationResult> = [];
+    const budget: EventLoopBudget = new EventLoopBudget();
+
+    for (const series of seriesBreakdown!) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
+      evaluations.push(
+        await MetricMonitorCriteria.evaluateOneSeries({
           criteriaFilter: input.criteriaFilter,
           aggregatedResults: series.aggregatedResults,
           queryConfigs,
@@ -453,9 +513,11 @@ export default class MetricMonitorCriteria {
           queryAttributes: metricResponse.queryAttributes,
           groupByAttributeKeys,
           seriesCount: seriesBreakdown!.length,
-        });
-      }),
-    );
+        }),
+      );
+    }
+
+    return evaluations;
   }
 
   /*

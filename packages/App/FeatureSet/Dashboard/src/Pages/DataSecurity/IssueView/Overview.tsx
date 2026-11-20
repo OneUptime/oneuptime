@@ -799,7 +799,15 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
                 className="mt-1.5 flex flex-wrap items-center gap-2"
                 data-testid="data-security-issue-store-holds"
               >
-                <SensitivityPill sensitivity={store?.sensitivity} />
+                {/*
+                 * Only a sensitivity read: one the reader may not read, or
+                 * of a store that did not load, is not "Public" (#10281).
+                 */}
+                {store?.sensitivity ? (
+                  <SensitivityPill sensitivity={store.sensitivity} />
+                ) : (
+                  <></>
+                )}
                 {storeDataTypes.isLoading ? (
                   <InlineValueSkeleton widthClassName="w-32" />
                 ) : storeDataTypes.error && dataTypeIds.length === 0 ? (

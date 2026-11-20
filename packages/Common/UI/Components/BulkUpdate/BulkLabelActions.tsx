@@ -18,6 +18,13 @@ import ObjectID from "../../../Types/ObjectID";
 import { sortLabels } from "../../../Utils/LabelOrder";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../Utils/Project";
+import {
+  SharedNameFacts,
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "../../Utils/SharedNameOptions";
+import { getNameKey } from "../../../Types/Database/UniqueName";
+import { SharedNameKind } from "../../../Types/Database/SharedNames";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -34,6 +41,74 @@ import {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
 } from "./BulkUpdateForm";
+
+/*
+ * The labels of a bulk Remove Labels that share a name, read on their own
+ * with what tells them apart (#10064): the items' labels come through a
+ * relation, which reads no description. Nothing is read when no two share
+ * a name, and a read that fails leaves them without it.
+ */
+export const BulkLabelReads: {
+  readFactsOfLabelsSharingAName: (
+    labels: Array<Label>,
+  ) => Promise<Map<string, SharedNameFacts>>;
+} = {
+  readFactsOfLabelsSharingAName: async (
+    labels: Array<Label>,
+  ): Promise<Map<string, SharedNameFacts>> => {
+    const facts: Map<string, SharedNameFacts> = new Map<
+      string,
+      SharedNameFacts
+    >();
+    const idsByName: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    for (const label of labels) {
+      const id: string = label._id?.toString() || "";
+      const nameKey: string = getNameKey(label.name);
+
+      if (id && nameKey) {
+        idsByName.set(nameKey, [...(idsByName.get(nameKey) || []), id]);
+      }
+    }
+
+    const sharingIds: Array<string> = Array.from(idsByName.values())
+      .filter((ids: Array<string>): boolean => {
+        return ids.length > 1;
+      })
+      .flat();
+
+    if (sharingIds.length === 0) {
+      return facts;
+    }
+
+    try {
+      const result: ListResult<Label> = await ModelAPI.getList<Label>({
+        modelType: Label,
+        query: { _id: new Includes(sharingIds) } as any,
+        limit: sharingIds.length,
+        skip: 0,
+        select: { _id: true, name: true, ...getSharedNameSelect(Label) },
+        sort: {},
+      });
+
+      for (const label of result.data) {
+        const labelFacts: SharedNameFacts | undefined =
+          getSharedNameFacts(label);
+
+        if (label._id && labelFacts) {
+          facts.set(label._id.toString(), labelFacts);
+        }
+      }
+    } catch {
+      // Marked all the same, without what sets each apart.
+    }
+
+    return facts;
+  },
+};
 
 export interface BulkLabelActionsConfig<T extends BaseModel> {
   modelType: { new (): T };
@@ -116,6 +191,8 @@ function useBulkLabelActions<T extends BaseModel>(
             _id: true,
             name: true,
             color: true,
+            // What tells labels of one name apart (SharedNameOptions, #10064).
+            ...getSharedNameSelect(Label),
           },
           sort: {
             name: SortOrder.Ascending,
@@ -385,6 +462,17 @@ function useBulkLabelActions<T extends BaseModel>(
         }
       }
 
+      /*
+       * Labels the items have that share a name (#10064): a relation is
+       * read without a label's description, so theirs are read on their
+       * own, to tell them apart. Only when two share a name; a failed read
+       * leaves them marked without what sets each apart.
+       */
+      const factsById: Map<string, SharedNameFacts> =
+        await BulkLabelReads.readFactsOfLabelsSharingAName(
+          Array.from(labelById.values()),
+        );
+
       // In natural order, as labels are listed everywhere (Utils/LabelOrder).
       const options: Array<DropdownOption> = sortLabels<Label>(
         Array.from(labelById.values()),
@@ -394,6 +482,9 @@ function useBulkLabelActions<T extends BaseModel>(
           value: label._id?.toString() || "",
           // A label's name is its owner's, drawn as written.
           isUserContent: true,
+          sharedName: factsById.get(label._id?.toString() || "") || {
+            kind: SharedNameKind.Label,
+          },
         };
 
         if (label.color) {
@@ -425,6 +516,7 @@ function useBulkLabelActions<T extends BaseModel>(
         value: label._id?.toString() || "",
         // A label's name is its owner's, drawn as written.
         isUserContent: true,
+        sharedName: getSharedNameFacts(label),
       };
 
       if (label.color) {

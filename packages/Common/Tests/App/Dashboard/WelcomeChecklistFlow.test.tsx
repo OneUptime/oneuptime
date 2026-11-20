@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#a-products-first-page
 import {
   afterEach,
   beforeEach,
@@ -101,6 +102,12 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 });
 
 import GettingStarted, {
+  GETTING_STARTED_BODY_CLASS_NAME,
+  GETTING_STARTED_STEPS_CLASS_NAME,
+  GETTING_STARTED_SUMMARY_CLASS_NAME,
+  GETTING_STARTED_TEST_IDS,
+  GOAL_CHIP_CLASS_NAME,
+  HOW_ONEUPTIME_WORKS_LINE_TEST_ID,
   WelcomeCardView,
   getMoreSteps,
   getStepAfter,
@@ -111,18 +118,27 @@ import GettingStarted, {
   offersFirstMonitor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import {
+  WELCOME_CHECKLIST_COPY,
   WELCOME_GOALS,
   WELCOME_GOAL_CARDS,
   WELCOME_JUST_LOOKING_GOAL,
   WelcomeGoalEntry,
+  getWelcomeStepEntry,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog";
 import {
+  GOAL_CARDS_CLASS_NAME,
   GOAL_CARD_CLASS_NAME,
   GOAL_CHECKBOX_CLASS_NAME,
   GOAL_MARK_AT_REST_CLASS_NAME,
   GOAL_MARK_CHOSEN_CLASS_NAME,
   GOAL_MARK_CLASS_NAME,
+  GOAL_QUESTION_BODY_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/GoalQuestion";
+import {
+  GOAL_PLAN_PANEL_CLASS_NAME,
+  GOAL_PLAN_PANEL_COPY,
+  GOAL_PLAN_PANEL_TEST_IDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/GoalPlanPanel";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectGoal, {
@@ -133,6 +149,7 @@ import {
   WelcomeAudience,
   WelcomeChecklistStepState,
   WelcomeStep,
+  getPlanStepsForGoals,
   getWelcomeStepsMinutes,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklist";
 import {
@@ -1373,5 +1390,167 @@ describe("what the card draws", () => {
     expect(
       getStepAfter([step(WelcomeStep.Monitor)], WelcomeStep.Monitor),
     ).toBeNull();
+  });
+});
+
+/*
+ * BESIDE THE QUESTION AND THE STEPS (#10276): a wide screen drew the
+ * question and the checklist across the left of the page, with nothing
+ * beside them. From lg up the question lists the steps the goals picked
+ * bring beside the goals, as they are picked, and the checklist puts how
+ * far the person is and the goals beside its steps.
+ */
+describe("beside the question and the steps", () => {
+  test("with nothing picked, the panel beside the goals says the steps show there, from lg up", async () => {
+    await renderGettingStarted();
+
+    const panel: HTMLElement = screen.getByTestId(
+      GOAL_PLAN_PANEL_TEST_IDS.panel,
+    );
+
+    expect(panel.className).toBe(GOAL_PLAN_PANEL_CLASS_NAME);
+    expect(panel.className).toContain("hidden");
+    expect(panel.className).toContain("lg:block");
+    // Named by its title, for a screen reader moving by landmarks.
+    expect(
+      within(panel).getByRole("heading", { name: GOAL_PLAN_PANEL_COPY.title }),
+    ).toBeInTheDocument();
+    expect(
+      within(panel).getByTestId(GOAL_PLAN_PANEL_TEST_IDS.nothingPicked),
+    ).toHaveTextContent(GOAL_PLAN_PANEL_COPY.nothingPicked);
+    expect(within(panel).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  test("picking goals lists the steps they bring, in the checklist's order, each with its minutes; unpicking takes them away", async () => {
+    await renderGettingStarted();
+
+    fireEvent.click(goalBox(ProjectGoal.OnCall));
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
+
+    const panel: HTMLElement = screen.getByTestId(
+      GOAL_PLAN_PANEL_TEST_IDS.panel,
+    );
+    const expected: Array<WelcomeStep> = getPlanStepsForGoals([
+      ProjectGoal.OnCall,
+      ProjectGoal.Uptime,
+    ]);
+
+    expect(expected.length).toBeGreaterThan(1);
+    expect(
+      within(panel)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string | null => {
+          return item.getAttribute("data-testid");
+        }),
+    ).toEqual(
+      expected.map((planStep: WelcomeStep): string => {
+        return GOAL_PLAN_PANEL_TEST_IDS.step(planStep);
+      }),
+    );
+
+    for (const planStep of expected) {
+      const minutes: number = WELCOME_STEP_MINUTES[planStep];
+      expect(
+        within(panel).getByTestId(GOAL_PLAN_PANEL_TEST_IDS.step(planStep)),
+      ).toHaveTextContent(
+        `${getWelcomeStepEntry(planStep).title}About ${minutes} minute${
+          minutes === 1 ? "" : "s"
+        }`,
+      );
+    }
+    // The checklist's own line says what the steps are.
+    expect(panel).toHaveTextContent(WELCOME_CHECKLIST_COPY.description);
+    // The line beside Continue counts the same steps.
+    expect(screen.getByTestId("welcome-question-plan-steps")).toHaveTextContent(
+      `${expected.length} steps to set up`,
+    );
+
+    fireEvent.click(goalBox(ProjectGoal.OnCall));
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
+
+    expect(
+      within(panel).getByTestId(GOAL_PLAN_PANEL_TEST_IDS.nothingPicked),
+    ).toBeInTheDocument();
+    expect(within(panel).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  test("the goals take the room beside the panel, three to a row once there is room for them", () => {
+    expect(GOAL_QUESTION_BODY_CLASS_NAME).toContain(
+      "lg:grid-cols-[minmax(0,1fr)_17rem]",
+    );
+    expect(GOAL_CARDS_CLASS_NAME).toContain("sm:grid-cols-2");
+    expect(GOAL_CARDS_CLASS_NAME).toContain("xl:grid-cols-3");
+    expect(GOAL_CARDS_CLASS_NAME).not.toContain("lg:grid-cols-3");
+  });
+
+  test("the checklist puts how far, and the goals with Change, beside its steps; How OneUptime works is the last line", async () => {
+    fetchMock.mockResolvedValue(
+      answer({ goals: [ProjectGoal.Uptime, ProjectGoal.OnCall] }),
+    );
+    await renderGettingStarted();
+
+    const body: HTMLElement = screen.getByTestId(GETTING_STARTED_TEST_IDS.body);
+    const summary: HTMLElement = screen.getByTestId(
+      GETTING_STARTED_TEST_IDS.summary,
+    );
+    const steps: HTMLElement = screen.getByTestId("getting-started-steps");
+    const howItWorks: HTMLElement = screen.getByTestId(
+      HOW_ONEUPTIME_WORKS_LINE_TEST_ID,
+    );
+
+    expect(body.className).toBe(GETTING_STARTED_BODY_CLASS_NAME);
+    expect(body.className).toContain("lg:grid-cols-[minmax(0,1fr)_20rem]");
+    // The column beside the steps from lg up.
+    expect(summary.className).toBe(GETTING_STARTED_SUMMARY_CLASS_NAME);
+    expect(summary.className).toContain("lg:col-start-2");
+    expect(steps.className).toBe(GETTING_STARTED_STEPS_CLASS_NAME);
+    expect(steps.className).toContain("lg:col-start-1");
+    expect(
+      within(summary).getByTestId("getting-started-progress"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByTestId("welcome-checklist-goals"),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByTestId("welcome-checklist-change-goals"),
+    ).toBeInTheDocument();
+
+    // On a phone they come first, then the steps, then How OneUptime works.
+    expect(
+      summary.compareDocumentPosition(steps) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(body.contains(howItWorks)).toBe(false);
+    expect(
+      body.compareDocumentPosition(howItWorks) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // A goal is a card's shape, so one that takes two lines reads right.
+    expect(
+      screen.getByTestId(`welcome-checklist-goal-${ProjectGoal.Uptime}`)
+        .className,
+    ).toBe(GOAL_CHIP_CLASS_NAME);
+    expect(GOAL_CHIP_CLASS_NAME).toContain("rounded-lg");
+    expect(GOAL_CHIP_CLASS_NAME).not.toContain("rounded-full");
+  });
+
+  test("a change that does not save is said once, over the steps and their column", async () => {
+    fetchMock.mockResolvedValue(
+      answer({ goals: [ProjectGoal.Uptime, ProjectGoal.OnCall] }),
+    );
+    // What the API says of a change the server did not take.
+    postMock.mockResolvedValue(null);
+    await renderGettingStarted();
+
+    await press("getting-started-dismiss");
+
+    const alerts: Array<HTMLElement> = screen.getAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent(WELCOME_CHECKLIST_COPY.couldNotSave);
+    expect(
+      alerts[0]!.compareDocumentPosition(
+        screen.getByTestId(GETTING_STARTED_TEST_IDS.body),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

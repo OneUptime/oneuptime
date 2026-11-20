@@ -1,5 +1,6 @@
 import { STATUS_PAGE_SETUP_COPY } from "../../Components/GuidedSetup/StatusPage/StatusPageSetup";
 import StatusPageGuidedSetup from "../../Components/GuidedSetup/StatusPage/StatusPageGuidedSetup";
+import { GUIDED_SETUP_PAGE_CLASS_NAME } from "../../Components/GuidedSetup/GuidedSetupFrame";
 import { getStatusPagesBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
@@ -21,6 +22,7 @@ const StatusPagesGuidedSetup: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <Page
+      className={GUIDED_SETUP_PAGE_CLASS_NAME}
       title={STATUS_PAGE_SETUP_COPY.setupTitle}
       description={STATUS_PAGE_SETUP_COPY.setupDescription}
       breadcrumbLinks={getStatusPagesBreadcrumbs(

@@ -14,7 +14,10 @@ import MonitorRecordText, {
 } from "../../../../Server/Utils/Monitor/MonitorRecordText";
 import MonitorTemplateUtil from "../../../../Server/Utils/Monitor/MonitorTemplateUtil";
 import SeriesContextEnricher from "../../../../Server/Utils/Monitor/SeriesContextEnricher";
+import { MANAGED_DEVICE_READING_METRIC_NAMES } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { JSONObject } from "../../../../Types/JSON";
+import { getManagedDeviceAlertTemplateById } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -196,6 +199,89 @@ describe("MonitorRecordText.render", () => {
     expect(text.title).toContain("checkout-7d9f-2xk");
     expect(text.description).toContain("checkout-7d9f-2xk");
   });
+
+  /*
+   * #10209: a managed device's alert, as MonitorAlert and MonitorIncident
+   * open one - the template's own words, rendered with the check's answer,
+   * whose view names the metric the step reads - carries the command of
+   * that reading alone, in its description and in {{seriesDebugCommands}}.
+   */
+  test.each([
+    ["esper-low-battery", "oneuptime.managed_device.battery.level"],
+    ["esper-storage-nearly-full", "oneuptime.managed_device.storage.used"],
+    [
+      "esper-security-patch-out-of-date",
+      "oneuptime.managed_device.security_patch.age",
+    ],
+    [
+      "esper-device-stopped-checking-in",
+      "oneuptime.managed_device.check_in.age",
+    ],
+  ])(
+    "a device's %s alert carries the command of its own reading alone",
+    (templateId: string, metricName: string) => {
+      const step: MonitorStep = getManagedDeviceAlertTemplateById(
+        templateId,
+      )!.getMonitorStep({
+        deviceManagementConnectionId: ObjectID.generate().toString(),
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "Stores West",
+      });
+      const alert: { title: string; description: string } =
+        step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!.data!
+          .alerts[0]!;
+      const seriesLabels: JSONObject = {
+        "oneuptime.managed_device.name": "STORE-0412-TC52",
+      };
+      // The check's answer: the step's own view, as the worker hands it on.
+      const dataToProcess: DataToProcess = {
+        metricViewConfig: MonitorStep.getMetricsViewConfig(step),
+        metricResult: [],
+      } as unknown as DataToProcess;
+      const storageMap: JSONObject =
+        MonitorTemplateUtil.buildTemplateStorageMap({
+          monitorType: MonitorType.Metrics,
+          dataToProcess,
+          seriesLabels,
+        });
+
+      const text: MonitorRecordTextResult = MonitorRecordText.render({
+        titleTemplate: alert.title,
+        descriptionTemplate: alert.description,
+        monitorType: MonitorType.Metrics,
+        storageMap,
+        seriesLabels,
+        metricNames: MonitorTemplateUtil.getMetricNamesReadBy(dataToProcess),
+      });
+
+      for (const written of [
+        text.description,
+        String(storageMap["seriesDebugCommands"]),
+      ]) {
+        expect(written.split("oneuptime metric list").length - 1).toBe(1);
+        expect(written).toContain(`"name":"${metricName}"`);
+      }
+
+      /*
+       * Before #10209 the alert listed every reading of the device,
+       * check-ins first - its charging too since #10288.
+       */
+      const unnarrowed: string = MonitorRecordText.render({
+        titleTemplate: alert.title,
+        descriptionTemplate: alert.description,
+        monitorType: MonitorType.Metrics,
+        storageMap,
+        seriesLabels,
+      }).description;
+
+      expect(unnarrowed.split("oneuptime metric list").length - 1).toBe(
+        MANAGED_DEVICE_READING_METRIC_NAMES.length,
+      );
+    },
+  );
 });
 
 describe("MonitorTemplateUtil.buildStorageMapBeforeCheck", () => {

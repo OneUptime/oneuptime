@@ -170,6 +170,8 @@ const IDENTITY: MicrosoftIdentity = {
   name: "Ada Lovelace",
   tenantId: MICROSOFT_CONSUMER_TENANT_ID,
   objectId: "00000000-0000-0000-66f3-3332eca7ea81",
+  // No auth_time optional claim: Microsoft says nothing of when.
+  authenticatedAt: null,
 };
 
 interface FakeResponse {

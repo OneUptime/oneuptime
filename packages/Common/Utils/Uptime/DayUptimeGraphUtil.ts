@@ -520,7 +520,7 @@ export default class DayUptimeGraphUtil {
     const label: string =
       OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
         date: data.date,
-        format: "MMM DD, YYYY",
+        format: "MMM D, YYYY",
         timezone: data.timezone,
       });
 

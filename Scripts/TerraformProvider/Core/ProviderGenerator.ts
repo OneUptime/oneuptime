@@ -9,6 +9,7 @@ import {
   URL_ATTRIBUTE_DESCRIPTION,
 } from "./ProviderWords";
 import {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODE,
   REFUSAL_CODE_FIELD,
 } from "Common/Types/Exception/NameTakenException";
@@ -383,30 +384,49 @@ func (c *Client) doRequestOnce(ctx context.Context, method, path string, body in
 
 /*
  * A NAME ANOTHER RECORD HAS, ASKED AGAIN WHILE ANOTHER RESOURCE GIVES IT UP
- * (OneUptime/oneuptime#9855).
+ * (OneUptime/oneuptime#9855, #10065).
  *
- * Teams, labels, on-call policies and on-call schedules each have a name of
- * their own in a project: a create, or a rename, onto a name another one
- * has is refused with 400, and nothing is written. Terraform makes the
- * independent changes of one apply side by side, so in a chain of renames
- * (A becomes B while B becomes C) A's rename is refused whenever it runs
- * before B's has given the name up. Asked again a moment later, it goes
- * through, and the chain converges in one apply.
+ * Every kind with a name of its own in a project refuses a create, or a
+ * rename, onto a name another record of its kind has, with 400, and nothing
+ * is written: teams, labels, on-call policies and on-call schedules, and
+ * since #10065 every other kind too - incident and alert severities and
+ * states, monitor statuses, status pages, workflows, dashboards and the
+ * rest. Terraform makes the independent changes of one apply side by side,
+ * so a write onto a name another resource of the same apply gives up is
+ * refused whenever it runs first: in a chain of renames (A becomes B while
+ * B becomes C) A's rename runs before B's has given the name up, and a
+ * resource that takes the name of one the apply deletes runs before the
+ * delete. Asked again a moment later, it goes through, and the apply
+ * converges in one go.
  *
  * The refusal is told apart by the code the server sends beside its message
  * (Common/Types/Exception/NameTakenException.ts, whose constants these
- * are), never by its English, which may be reworded. Any other answer is
- * handed back at once, and so is the refusal of a server from before the
- * code, as it always was.
+ * are), never by its English, which may be reworded. The code says what has
+ * the name:
+ *
+ *   - nameTakenRefusalCode: a record in service. The one refusal asked
+ *     again: another resource of this apply may be renaming that record
+ *     away, or deleting it, at this very moment.
+ *   - nameTakenByArchivedRefusalCode: only an archived record. Somebody
+ *     retired it, its name stays taken, and nothing an apply does to the
+ *     records in service gives the name up, so waiting would only make the
+ *     apply fail later. It is handed back at once, with the server's own
+ *     sentence, which says to unarchive it or pick another name.
+ *
+ * Any other answer is handed back at once, and so is the refusal of a
+ * server from before the code, as it always was.
  *
  * A swap (A and B for each other) or any cycle never goes through: none of
- * its renames can go first. Once nameTakenRetry.window has passed since the
- * first refusal, the refusal is handed back as it came, and ParseResponse
- * says to go by way of a temporary name (nameTakenAdvice).
+ * its renames can go first. Nor does a name a record outside the
+ * configuration has, such as one OneUptime made with the project. Once
+ * nameTakenRetry.window has passed since the first refusal, the refusal is
+ * handed back as it came, and ParseResponse says what to do in either case
+ * (nameTakenAdvice).
  */
 const (
-    refusalCodeField     = "${REFUSAL_CODE_FIELD}"
-    nameTakenRefusalCode = "${NAME_TAKEN_REFUSAL_CODE}"
+    refusalCodeField               = "${REFUSAL_CODE_FIELD}"
+    nameTakenRefusalCode           = "${NAME_TAKEN_REFUSAL_CODE}"
+    nameTakenByArchivedRefusalCode = "${NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE}"
 )
 
 // How long, and how often, a refusal of a name another record has is asked again.
@@ -431,9 +451,10 @@ func writesARecord(method string) bool {
 }
 
 // askAgainWhileNameIsTaken asks for the write again, with backoff, for as
-// long as the server refuses it because another record has the name and
+// long as the server refuses it because a record in service has the name and
 // nameTakenRetry.window has not passed. A refused write wrote nothing, so
-// asking again is safe, a create's POST included.
+// asking again is safe, a create's POST included. A name only an archived
+// record has is handed back at once.
 func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path string, body interface{}, resp *http.Response) (*http.Response, error) {
     retry := c.nameTakenRetry
     if retry.window <= 0 {
@@ -450,13 +471,22 @@ func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path stri
     wait := retry.firstWait
 
     for {
-        refused, err := isNameTakenResponse(resp)
+        code, err := readRefusalCode(resp)
         if err != nil {
             return nil, err
         }
 
+        // No resource of this apply gives up a name an archived record has.
+        if code == nameTakenByArchivedRefusalCode {
+            tflog.Debug(ctx, "OneUptime refused a name an archived record has; not asking again, since nothing this apply does gives it up", map[string]any{
+                "method": method,
+                "path":   path,
+            })
+            return resp, nil
+        }
+
         remaining := time.Until(deadline)
-        if !refused || remaining <= 0 {
+        if code != nameTakenRefusalCode || remaining <= 0 {
             return resp, nil
         }
 
@@ -489,40 +519,51 @@ func (c *Client) askAgainWhileNameIsTaken(ctx context.Context, method, path stri
     }
 }
 
-// isNameTakenResponse reports whether resp is a refusal of a name another
-// record has. It reads a 400's body to tell, and puts it back for the caller.
-func isNameTakenResponse(resp *http.Response) (bool, error) {
+// readRefusalCode reads the code a 400 carries beside its message: "" for
+// none, and for any other answer. It reads the body to tell, and puts it
+// back for the caller.
+func readRefusalCode(resp *http.Response) (string, error) {
     if resp == nil || resp.StatusCode != http.StatusBadRequest {
-        return false, nil
+        return "", nil
     }
 
     body, err := io.ReadAll(resp.Body)
     resp.Body.Close()
     if err != nil {
-        return false, fmt.Errorf("failed to read response body: %w", err)
+        return "", fmt.Errorf("failed to read response body: %w", err)
     }
     resp.Body = io.NopCloser(bytes.NewReader(body))
 
-    return isNameTakenRefusal(body), nil
+    return refusalCodeOf(body), nil
 }
 
-// isNameTakenRefusal reports whether an error body carries the code of a
-// refusal of a name another record has, beside its message.
-func isNameTakenRefusal(body []byte) bool {
+// refusalCodeOf reads the code an error body carries beside its message, or
+// "" when it carries none.
+func refusalCodeOf(body []byte) string {
     var parsed map[string]interface{}
     if err := json.Unmarshal(body, &parsed); err != nil {
-        return false
+        return ""
     }
 
     code, _ := parsed[refusalCodeField].(string)
-    return code == nameTakenRefusalCode
+    return code
 }
 
-// nameTakenAdvice is what a refusal of a name another record has adds to the
-// server's own words once it has been asked again for the whole window: no
-// resource of this apply gave the name up.
+// isNameTakenRefusal reports whether an error body refuses a name a record
+// in service has: the refusal another resource of the same apply may end, by
+// renaming that record away or deleting it. A name only an archived record
+// has (nameTakenByArchivedRefusalCode) is not one.
+func isNameTakenRefusal(body []byte) bool {
+    return refusalCodeOf(body) == nameTakenRefusalCode
+}
+
+// nameTakenAdvice is what a refusal of a name a record in service has adds
+// to the server's own words once it has been asked again for the whole
+// window: no resource of this apply gave the name up. Either a record
+// outside this configuration has it, or resources of this configuration
+// swap names, and neither ever goes through on its own.
 func (c *Client) nameTakenAdvice() string {
-    advice := "If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
+    advice := "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record. If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
     if c.nameTakenRetry.window <= 0 {
         return advice
     }
@@ -705,7 +746,9 @@ func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
         body, _ := io.ReadAll(resp.Body)
         message := apiErrorMessage(body)
 
-        // A name another record still has: what to do when it is one of this configuration's.
+        // A name a record in service still has: what to do when nothing gives it
+        // up. A name an archived record has keeps the server's own words alone,
+        // which say to unarchive it or pick another name.
         if resp.StatusCode == http.StatusBadRequest && isNameTakenRefusal(body) {
             message += " " + c.nameTakenAdvice()
         }

@@ -95,7 +95,11 @@ import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { fail, ok } from "./Store";
+import { fail, ok, readWorld, worldJournal, writeWorld } from "./Store";
+import {
+  applyGuidedSetupRunChange,
+  parseGuidedSetupRunChange,
+} from "Common/Types/GuidedSetup/GuidedSetupRun";
 
 export const PROJECT_ID = "10000000-0000-4000-8000-000000006831";
 export const ADA_ID = "40000000-0000-4000-8000-000000000001";
@@ -248,7 +252,14 @@ export const GRID_GROUPS = [
   {
     _id: "66000000-0000-4000-8000-000000000002",
     name: "Regions worldwide",
-    columns: ["US East", "US West", "EU", "Asia Pacific", "South America", "Africa"],
+    columns: [
+      "US East",
+      "US West",
+      "EU",
+      "Asia Pacific",
+      "South America",
+      "Africa",
+    ],
   },
 ];
 export const GRID_ROWS = ["API", "Dashboard"];
@@ -333,7 +344,12 @@ function seedStatusPageGrid(store, statuses) {
   });
 
   // Off the grid: a service and a region the group does not define.
-  addResource(GRID_GROUPS[0], "Search indexer in Asia Pacific", "Search", "Asia Pacific");
+  addResource(
+    GRID_GROUPS[0],
+    "Search indexer in Asia Pacific",
+    "Search",
+    "Asia Pacific",
+  );
   addResource(GRID_GROUPS[0], "Billing API on Mars", "API", "Mars");
 }
 
@@ -354,7 +370,11 @@ function seedBusyProject(store, statuses) {
       const index = componentIndex * BUSY_REGIONS.length + regionIndex;
       // A few not operational, as a project in use has.
       const status =
-        index === 13 ? statuses[2] : index % 37 === 5 ? statuses[1] : statuses[0];
+        index === 13
+          ? statuses[2]
+          : index % 37 === 5
+            ? statuses[1]
+            : statuses[0];
       const carried = [region === "ap-south" ? staging : production];
 
       if (["Billing", "Checkout", "Payments"].includes(component)) {
@@ -443,6 +463,8 @@ export function seedNewProject(options) {
     projectId: new ObjectID(PROJECT_ID),
     log: options.log,
     journalKey: "__journeyFixtureJournal",
+    // ?world=: every device of the world reads the same writes (server.js).
+    journalStore: options.world ? worldJournal(options.world) : undefined,
   });
   const projectId = new ObjectID(PROJECT_ID);
 
@@ -757,6 +779,8 @@ export function seedNewProject(options) {
     isTestPageAnswered: options.isTestPageAnswered !== false,
     // ?billing=on: OneUptime Cloud, which can always send.
     isBillingEnabled: Boolean(options.billing),
+    // ?world=: the server state this tab shares with other devices, or null.
+    world: options.world || null,
   };
 }
 
@@ -1199,7 +1223,106 @@ export function dashboardRoutes(project) {
     };
   };
 
+  /*
+   * EACH GUIDED SETUP'S RUN, AS THE SERVER KEEPS IT (#7253: GuidedSetupRunAPI),
+   * merged by the real rules (Common/Types/GuidedSetup/GuidedSetupRun): in the
+   * world when the tab names one (?world=, server.js), so a second browser
+   * context is a second device of the same person; in the tab's
+   * sessionStorage otherwise, so a reload reads it as a server would. The
+   * spec forgets them (window.__journeyFixture.guidedSetupRuns.forget()) to
+   * play a run the server never had - an older Dashboard's, kept in one
+   * browser.
+   */
+  const RUNS_KEY = "__journeyFixtureGuidedSetupRuns";
+  const readRuns = () => {
+    if (project.world) {
+      return readWorld(project.world, "guided-setup-runs") || {};
+    }
+    try {
+      return JSON.parse(window.sessionStorage.getItem(RUNS_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  };
+  const writeRuns = (runs) => {
+    if (project.world) {
+      writeWorld(project.world, "guided-setup-runs", runs);
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(RUNS_KEY, JSON.stringify(runs));
+    } catch {
+      // A tab without storage keeps nothing: every page opens afresh.
+    }
+  };
+  const setupOf = (url) => {
+    return url.pathname.split("/guided-setup-run/")[1].split("/")[0];
+  };
+
+  if (window.__journeyFixture) {
+    window.__journeyFixture.guidedSetupRuns = {
+      read: readRuns,
+      forget: () => {
+        writeRuns({});
+      },
+    };
+  }
+
   return [
+    [
+      "GET",
+      /\/guided-setup-run\/[a-z_]+$/,
+      ({ url }) => {
+        const setup = setupOf(url);
+        return ok({ setup, run: readRuns()[setup] || null });
+      },
+    ],
+    [
+      "POST",
+      /\/guided-setup-run\/[a-z_]+\/forget$/,
+      ({ url }) => {
+        const setup = setupOf(url);
+        const runs = readRuns();
+        delete runs[setup];
+        writeRuns(runs);
+        return ok({ setup, run: null });
+      },
+    ],
+    [
+      "POST",
+      /\/guided-setup-run\/[a-z_]+$/,
+      ({ url, body }) => {
+        const setup = setupOf(url);
+        let change = null;
+        try {
+          change = parseGuidedSetupRunChange(body);
+        } catch (error) {
+          return fail(400, error.message);
+        }
+        const runs = readRuns();
+        const current = runs[setup] || null;
+        const merged = applyGuidedSetupRunChange({
+          values: current ? current.values : {},
+          resources: current ? current.resources : {},
+          change,
+          now: store.NOW,
+        });
+        if (
+          Object.keys(merged.values).length === 0 &&
+          Object.keys(merged.resources).length === 0
+        ) {
+          delete runs[setup];
+        } else {
+          runs[setup] = {
+            ...merged,
+            revision: (current ? current.revision : 0) + 1,
+            updatedAt: store.NOW.toISOString(),
+          };
+        }
+        writeRuns(runs);
+        return ok({ setup, run: runs[setup] || null });
+      },
+    ],
     [
       /*
        * Home's Welcome card (issue #6803), built with the real rules: a

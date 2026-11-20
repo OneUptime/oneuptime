@@ -128,6 +128,11 @@ export default class MonitorAlert {
     keepResponseContent?: boolean | undefined;
     // The step the check ran: the state timeline's copy names its destination.
     monitorStep?: MonitorStep | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<Array<Alert>> {
     /*
      * check active alerts and if there are open alerts, do not create another
@@ -200,6 +205,8 @@ export default class MonitorAlert {
           : input.rootCause;
 
         // then resolve alert.
+        await input.keepEvaluationLock?.();
+
         await this.resolveOpenAlert({
           openAlert: openAlert,
           rootCause: rootCause,
@@ -469,6 +476,11 @@ export default class MonitorAlert {
      * resolveSeriesAlertsByFingerprint). Per-key create + dedupe still run.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -514,6 +526,7 @@ export default class MonitorAlert {
               input.breachingSeriesFingerprintsByCriteriaId,
             disableSeriesAbsenceResolution:
               input.disableSeriesAbsenceResolution,
+            keepEvaluationLock: input.keepEvaluationLock,
           });
 
     if (!input.criteriaInstance.data?.createAlerts) {
@@ -623,8 +636,36 @@ export default class MonitorAlert {
      */
     let networkDeviceOwners: NetworkDeviceOwners | null = null;
 
+    /*
+     * This criteria's open alerts by their series (undefined: the whole
+     * monitor's), the first of each in the order they were read - the one a
+     * search of the list for the series met first. Read once: a grouped
+     * monitor's series were each searched for in every open alert (#10108).
+     */
+    const criteriaId: string | undefined =
+      input.criteriaInstance.data?.id?.toString() || undefined;
+    const openAlertsBySeries: Map<string | undefined, Alert> = new Map<
+      string | undefined,
+      Alert
+    >();
+
+    for (const alert of openAlerts) {
+      const seriesKey: string | undefined =
+        alert.seriesFingerprint || undefined;
+
+      if (
+        (alert.createdCriteriaId || undefined) === criteriaId &&
+        !openAlertsBySeries.has(seriesKey)
+      ) {
+        openAlertsBySeries.set(seriesKey, alert);
+      }
+    }
+
     for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
       for (const seriesMatch of seriesToProcess) {
+        // Outside the catch below: a lost lock stops every series.
+        await input.keepEvaluationLock?.();
+
         try {
           const seriesFingerprint: string | undefined =
             seriesMatch?.fingerprint;
@@ -706,15 +747,8 @@ export default class MonitorAlert {
            * cycle) and normalise both sides to `undefined` on missing so dedupe
            * stays correct instead of creating a duplicate alert each cycle.
            */
-          const alreadyOpenAlert: Alert | undefined = openAlerts.find(
-            (alert: Alert) => {
-              return (
-                (alert.createdCriteriaId || undefined) ===
-                  (input.criteriaInstance.data?.id?.toString() || undefined) &&
-                (alert.seriesFingerprint || undefined) === seriesFingerprint
-              );
-            },
-          );
+          const alreadyOpenAlert: Alert | undefined =
+            openAlertsBySeries.get(seriesFingerprint);
 
           const hasAlreadyOpenAlert: boolean = Boolean(alreadyOpenAlert);
 
@@ -807,6 +841,9 @@ export default class MonitorAlert {
             storageMap,
             seriesLabels,
             seriesContext,
+            metricNames: MonitorTemplateUtil.getMetricNamesReadBy(
+              input.dataToProcess,
+            ),
           });
 
           alert.title = text.title;

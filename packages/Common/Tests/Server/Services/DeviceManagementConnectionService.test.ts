@@ -4,10 +4,16 @@ import DeviceManagementConnectionService, {
 } from "../../../Server/Services/DeviceManagementConnectionService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import DeviceManagementConnectionAlerts from "../../../Server/Utils/DeviceManagement/DeviceManagementConnectionAlerts";
 import { DeviceManagementSettings } from "../../../Server/Utils/DeviceManagement/DeviceManagementTypes";
 import ManagedDeviceInventory from "../../../Server/Utils/DeviceManagement/ManagedDeviceInventory";
+import logger from "../../../Server/Utils/Logger";
 import DeviceManagementProvider from "../../../Types/DeviceManagement/DeviceManagementProvider";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -502,7 +508,255 @@ describe("editing a connection", () => {
   });
 });
 
+describe("turning a connection off (#10286)", () => {
+  type UpdateHooks = {
+    onUpdateSuccess: (
+      onUpdate: OnUpdate<DeviceManagementConnection>,
+      updatedItemIds: Array<ObjectID>,
+    ) => Promise<OnUpdate<DeviceManagementConnection>>;
+  };
+
+  const OTHER_CONNECTION_ID: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  let heldTo: Array<DeviceManagementConnection>;
+  let held: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    heldTo = [
+      newConnection({
+        _id: CONNECTION_ID.toString(),
+        name: "Esper acme",
+        isEnabled: true,
+        config: { tenant: "acme", readIntervalInMinutes: 30 },
+        lastSuccessfulPullAt: new Date("2026-11-20T13:30:00.000Z"),
+        createdAt: new Date("2026-10-01T09:00:00.000Z"),
+      }),
+      // Off already: writing the switch back turns nothing off.
+      newConnection({
+        _id: OTHER_CONNECTION_ID.toString(),
+        name: "Esper globex",
+        isEnabled: false,
+      }),
+    ];
+
+    held = jest
+      .spyOn(
+        DeviceManagementConnectionService as unknown as {
+          findRowsAndHoldUpdateToThem: () => Promise<unknown>;
+        },
+        "findRowsAndHoldUpdateToThem",
+      )
+      .mockImplementation((async () => {
+        return heldTo;
+      }) as never);
+  });
+
+  test("the connections it turns off are carried to after the write, read as the update writes them", async () => {
+    const turnOff: UpdateBy<DeviceManagementConnection> = updateBy(
+      { isEnabled: false },
+      { projectId: PROJECT_ID.toString() },
+    );
+
+    const onUpdate: OnUpdate<DeviceManagementConnection> =
+      await service.onBeforeUpdate(turnOff);
+
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(onUpdate.carryForward).toEqual({
+      turnedOff: [
+        {
+          connectionId: CONNECTION_ID,
+          projectId: PROJECT_ID,
+          name: "Esper acme",
+          provider: DeviceManagementProvider.Esper,
+          readIntervalInMinutes: 30,
+          lastSuccessfulPullAt: new Date("2026-11-20T13:30:00.000Z"),
+          createdAt: new Date("2026-10-01T09:00:00.000Z"),
+        },
+      ],
+    });
+  });
+
+  test("an update that leaves the switch alone, or turns it on, reads nothing for it and carries nothing", async () => {
+    for (const data of [{ name: "Kiosks" }, { isEnabled: true }]) {
+      const onUpdate: OnUpdate<DeviceManagementConnection> =
+        await service.onBeforeUpdate(updateBy(data));
+
+      expect(onUpdate.carryForward).toBeNull();
+    }
+
+    expect(held).not.toHaveBeenCalled();
+  });
+
+  test("turned off with new settings in one update: the settings are still checked by the one row they name", async () => {
+    const both: UpdateBy<DeviceManagementConnection> = updateBy({
+      isEnabled: false,
+      config: { readIntervalInMinutes: 60 },
+    });
+
+    const onUpdate: OnUpdate<DeviceManagementConnection> =
+      await service.onBeforeUpdate(both);
+
+    expect((both.data as unknown as JSONObject)["config"]).toEqual({
+      tenant: "acme",
+      readIntervalInMinutes: 60,
+    });
+    expect(
+      (onUpdate.carryForward as { turnedOff: Array<unknown> }).turnedOff,
+    ).toHaveLength(1);
+  });
+
+  test("once written, the connections it turned off resolve their alerts, saying who turned them off", async () => {
+    const calls: Array<JSONObject> = [];
+
+    jest
+      .spyOn(DeviceManagementConnectionAlerts, "onConnectionsTurnedOff")
+      .mockImplementation((async (data: JSONObject) => {
+        calls.push(data);
+        return [];
+      }) as never);
+
+    const userId: ObjectID = ObjectID.generate();
+    const turnedOff: Array<JSONObject> = [
+      {
+        connectionId: CONNECTION_ID,
+        projectId: PROJECT_ID,
+        name: "Esper acme",
+      },
+      {
+        connectionId: OTHER_CONNECTION_ID,
+        projectId: PROJECT_ID,
+        name: "Esper globex",
+      },
+    ];
+
+    await (service as unknown as UpdateHooks).onUpdateSuccess(
+      {
+        updateBy: {
+          ...updateBy({ isEnabled: false }),
+          props: { userId },
+        },
+        carryForward: { turnedOff },
+      } as unknown as OnUpdate<DeviceManagementConnection>,
+      // The update wrote only the first.
+      [CONNECTION_ID],
+    );
+
+    expect(calls).toEqual([
+      { connections: [turnedOff[0]], turnedOffByUserId: userId },
+    ]);
+  });
+
+  test("an update that turned nothing off asks nothing, and a failure never fails the update", async () => {
+    const turnedOffAlerts: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DeviceManagementConnectionAlerts, "onConnectionsTurnedOff")
+      .mockRejectedValue(new Error("Postgres is gone") as never);
+    jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined as never;
+    });
+
+    const onUpdate: OnUpdate<DeviceManagementConnection> = {
+      updateBy: updateBy({ name: "Kiosks" }),
+      carryForward: null,
+    } as unknown as OnUpdate<DeviceManagementConnection>;
+
+    await (service as unknown as UpdateHooks).onUpdateSuccess(onUpdate, [
+      CONNECTION_ID,
+    ]);
+    expect(turnedOffAlerts).not.toHaveBeenCalled();
+
+    await expect(
+      (service as unknown as UpdateHooks).onUpdateSuccess(
+        {
+          updateBy: updateBy({ isEnabled: false }),
+          carryForward: {
+            turnedOff: [{ connectionId: CONNECTION_ID, projectId: PROJECT_ID }],
+          },
+        } as unknown as OnUpdate<DeviceManagementConnection>,
+        [CONNECTION_ID],
+      ),
+    ).resolves.toBeDefined();
+    expect(logger.error).toHaveBeenCalled();
+  });
+});
+
 describe("deleting a connection", () => {
+  test("once deleted, the monitors that read only it are turned off, saying who deleted it", async () => {
+    type DeleteHooks = {
+      onDeleteSuccess: (
+        onDelete: OnDelete<DeviceManagementConnection>,
+        deletedItemIds: Array<ObjectID>,
+      ) => Promise<OnDelete<DeviceManagementConnection>>;
+    };
+
+    jest
+      .spyOn(
+        DeviceManagementConnectionService as unknown as {
+          findRowsAndHoldDeleteToThem: () => Promise<unknown>;
+        },
+        "findRowsAndHoldDeleteToThem",
+      )
+      .mockImplementation((async () => {
+        return [
+          newConnection({
+            _id: CONNECTION_ID.toString(),
+            name: "Esper acme",
+          }),
+        ];
+      }) as never);
+    jest
+      .spyOn(ManagedDeviceInventory, "releaseConnection")
+      .mockResolvedValue(0 as never);
+
+    const calls: Array<JSONObject> = [];
+
+    jest
+      .spyOn(DeviceManagementConnectionAlerts, "onConnectionsDeleted")
+      .mockImplementation((async (data: JSONObject) => {
+        calls.push(data);
+        return [];
+      }) as never);
+
+    const userId: ObjectID = ObjectID.generate();
+    const onDelete: OnDelete<DeviceManagementConnection> =
+      (await service.onBeforeDelete({
+        query: { _id: CONNECTION_ID.toString() },
+        props: { isRoot: true, userId },
+      } as unknown as DeleteBy<DeviceManagementConnection>)) as OnDelete<DeviceManagementConnection>;
+
+    expect(onDelete.carryForward).toEqual({
+      connections: [
+        {
+          connectionId: CONNECTION_ID,
+          projectId: PROJECT_ID,
+          name: "Esper acme",
+          provider: DeviceManagementProvider.Esper,
+        },
+      ],
+    });
+
+    // A delete that removed nothing turns nothing off.
+    await (service as unknown as DeleteHooks).onDeleteSuccess(onDelete, []);
+    expect(calls).toEqual([]);
+
+    await (service as unknown as DeleteHooks).onDeleteSuccess(onDelete, [
+      CONNECTION_ID,
+    ]);
+    expect(calls).toEqual([
+      {
+        connections: [
+          {
+            connectionId: CONNECTION_ID,
+            projectId: PROJECT_ID,
+            name: "Esper acme",
+            provider: DeviceManagementProvider.Esper,
+          },
+        ],
+        deletedByUserId: userId,
+      },
+    ]);
+  });
+
   test("its devices' hosts in Inventory are let go first", async () => {
     jest
       .spyOn(

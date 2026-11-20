@@ -10,6 +10,8 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { CloudConnectionSettings } from "../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import AwsServerIdentity from "../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
+import AwsDefaultCredentialChain from "../../../Server/Utils/Aws/AwsDefaultCredentialChain";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudConnectionAuthMethod,
@@ -112,12 +114,22 @@ function stored(overrides: Partial<CloudConnection> = {}): CloudConnection {
 beforeEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  /*
+   * A server with no AWS credentials of its own either (#7379): OneUptime
+   * has no AWS identity until a test gives it the Cloud Connect key.
+   */
+  AwsServerIdentity.useCredentialChain(
+    new AwsDefaultCredentialChain({
+      env: { AWS_EC2_METADATA_DISABLED: "true" },
+    }),
+  );
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  AwsServerIdentity.useCredentialChain(null);
 });
 
 describe("validateSettings", () => {

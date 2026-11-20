@@ -8,6 +8,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RunbookVariable from "../../Models/DatabaseModels/RunbookVariable";
 import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
@@ -286,8 +287,9 @@ export class Service extends ProjectReferencesService<RunbookVariable> {
         })
       ).toNumber();
 
+      // With the code a program tells a taken name by (#10065).
       if (clashes > 0) {
-        throw new BadDataException(
+        throw new NameTakenException(
           row.runbookId
             ? `This runbook already has a variable named "${newName}". Variable names must be unique within a runbook.`
             : `A global variable named "${newName}" already exists in this project. Global variable names must be unique.`,

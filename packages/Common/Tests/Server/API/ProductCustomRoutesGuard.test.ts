@@ -183,7 +183,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
     },
   },
-  // Its own routes only read today: a write added here names Monitors.
+  /*
+   * Its own routes read, but for Import Alerts' Convert with OneUptime AI
+   * (#7697), which writes nothing and is refused while Monitors is off: an
+   * import's monitors are created through the CRUD API, refused with it.
+   */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
     leftAlone: {},
@@ -1120,6 +1124,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
+      "A person's own progress through a guided setup (#7253), which spans products: it keeps only where they are, and every record a step makes goes through its own product's routes.",
+      {
+        "packages/Common/Server/API/GuidedSetupRunAPI.ts": 2,
+      },
+    ),
+    ...decided(
       "Asking people how OneUptime went - an answer, the words after it, may OneUptime ask - and a master admin deleting an answer (#7366): of no one product. Feedback has its own switch on the server (Admin Dashboard > Feedback), and its routes refuse an answer while it is off.",
       {
         "packages/Common/Server/API/ProductFeedbackAPI.ts": 4,
@@ -1152,6 +1162,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,
         "packages/App/API/AdminHealth.ts": 3,
         "packages/App/FeatureSet/Notification/API/BroadcastEmail.ts": 2,
+        /*
+         * #7380: Notification/API/ServerAwsIdentity.ts, beside it, registers
+         * one GET - which AWS identity the server's own Amazon SES signs in
+         * as, for a master admin - so it reads, and is no decision here.
+         */
         "packages/App/FeatureSet/Notification/API/ServerTestSend.ts": 4,
         "packages/App/FeatureSet/Notification/API/CallAndSmsGateway.ts": 1,
       },

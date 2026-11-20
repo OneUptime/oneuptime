@@ -31,6 +31,22 @@ const FRONTENDS: Array<string> = [
   "Accounts",
 ];
 
+/*
+ * Shared components the frontends draw that hold a password of their own:
+ * Confirm It's You (#10155), which the Dashboard and the Admin Dashboard
+ * both mount (#10216).
+ */
+const SHARED_FILES: Array<string> = [
+  path.join(
+    PACKAGES_DIR,
+    "Common",
+    "UI",
+    "Components",
+    "Reauthentication",
+    "ReauthenticationPrompt.tsx",
+  ),
+];
+
 const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set<string>([
   "node_modules",
   "dist",
@@ -241,6 +257,16 @@ function scanFrontends(): FileScan {
     }
   }
 
+  for (const file of SHARED_FILES) {
+    const fileScan: FileScan = scanSource(
+      toRelative(file),
+      fs.readFileSync(file, "utf8"),
+    );
+
+    scan.fields.push(...fileScan.fields);
+    scan.rawInputs.push(...fileScan.rawInputs);
+  }
+
   return scan;
 }
 
@@ -399,9 +425,10 @@ describe("password fields across the frontends", () => {
   /*
    * One hand-built password Input is the person's own: Confirm It's You
    * (#10155), the prompt that asks for the password they sign in with
-   * before a change to how they sign in. It is open only while it asks, so
-   * a password manager offers the person's own login there and nowhere
-   * else on the Dashboard; any other is a secret the product stores.
+   * before a change to how they sign in, shared by the Dashboard and the
+   * Admin Dashboard (#10216). It is open only while it asks, so a password
+   * manager offers the person's own login there and nowhere else on either;
+   * any other is a secret the product stores.
    */
   test("no hand-built password Input (workflow secrets, SNMP credentials) claims to be someone's own, but Confirm It's You", () => {
     expect(
@@ -413,7 +440,7 @@ describe("password fields across the frontends", () => {
           return input.file;
         }),
     ).toEqual([
-      "App/FeatureSet/Dashboard/src/Components/Reauthentication/ReauthenticationPrompt.tsx",
+      "Common/UI/Components/Reauthentication/ReauthenticationPrompt.tsx",
     ]);
   });
 });

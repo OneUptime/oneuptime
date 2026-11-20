@@ -65,8 +65,13 @@ learned one can find their way around the next.
   same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
   that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
   brings the rest of Home back, with the line that shows it again; once finished, "More to set up" is
-  one card among Home's others while core steps no goal brought are left (#7986). Enforced by
-  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
+  one card among Home's others while core steps no goal brought are left (#7986). While it is all of
+  Home, the page is centred, its title over it, as wide as the guided setups it leads to: a wide
+  screen drew it in the left half of the page with nothing beside it (#10276). From lg up, the
+  question lists the steps the goals picked bring beside the goals, as they are picked, and the
+  checklist puts how far the person is and the goals beside its steps. Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx) and
+  [WelcomeChecklistFlow](../../packages/Common/Tests/App/Dashboard/WelcomeChecklistFlow.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
   setup: Home's headline leaves out "Create your first monitor" while the Welcome card offers that
@@ -79,9 +84,19 @@ learned one can find their way around the next.
   records, coming back opens the first step not done, and it ends with a summary read from the
   records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Beside its
   steps it lists what the setup sets up, ticked as each step is done, and about how long it takes,
-  the minutes Home's checklist says beside its step (#8897). Its journey gets a budget of its own, with
-  `"path": "guided"`. Enforced by
-  [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
+  the minutes Home's checklist says beside its step (#8897). Under each step's outcome it lists the
+  records that step makes as it makes them - waiting, being made, made or in use with Open, skipped,
+  or failed with why and Try again (`GuidedSetupResourcePanel`) - so the person always knows what
+  exists and what to do next: a monitor and an on-call policy were made with nothing on screen to
+  say so (#10276). Every setup lists what it makes: a status page and what it shows, a service and
+  the monitors watching it too, and Try again makes only what is still missing. A step not reached yet says why it is there, a bar shows how far the person is,
+  and the page is centred, as wide as its steps and its panel need, where a wide screen left two
+  thirds of it empty. The run - what it made and how each record is getting on - is kept on the
+  server, so another device or a reload opens the setup where the person left it, and the panel
+  says whether it is saved (#7253). Its journey gets a budget of its own, with `"path": "guided"`.
+  Enforced by
+  [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx) and
+  [GuidedSetupResourcePanel](../../packages/Common/Tests/App/Dashboard/GuidedSetupResourcePanel.test.tsx).
 
 ### Side menus
 
@@ -386,6 +401,13 @@ work out, starts from a default for everything else, and folds what most people 
   a keyboard could open the header's notification bell but choose nothing in it, and could not go
   back to a finished step of a form (#9136). Enforced by
   [ClickOnlyControlsGuard](../../packages/Common/Tests/UI/Components/ClickOnlyControlsGuard.test.ts).
+- **A role is one a screen reader knows.** A `role` says what a part is, and only a role WAI-ARIA
+  defines means anything: the browser drops a made-up one, and accessibility checkers flag it on
+  every page that draws it. A secret behind "Click to reveal" carried `role="hidden-text"` and
+  `role="revealed-text"` only so that tests could find its parts (#7964). A test finds a part by
+  what a person sees (a button's words) or by its `data-testid`, never by a role made up for it.
+  Enforced by
+  [AriaRolesGuard](../../packages/Common/Tests/UI/Components/AriaRolesGuard.test.ts).
 - **A finger can hit it.** Under a finger (`[@media(pointer:coarse)]:min-h-11`) a control is at
   least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
   compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
@@ -981,15 +1003,30 @@ what was further down.
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
 - **A time of day writes its hour the way its clock does:** no zero on a 12-hour clock ("5:14 AM",
-  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app.
-  A feed and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the
-  mobile app "Nov 5, 05:14 AM" (#7650). An Intl options object asks `getHourOption` for its hour
-  (`Common/Types/DateLanguage`, or the mobile app's own in `src/utils/date`), or
-  `getLocaleClockHourOption` for a language's own clock, and names `"numeric"` or `"2-digit"` only
-  beside the clock it is right on. Enforced by
+  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app,
+  English's whole dates too ("Nov 5, 2025, 5:14 AM", not "Nov 05 2025, 05:14 AM", #7652). A feed
+  and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the mobile app
+  "Nov 5, 05:14 AM" (#7650). The clock is always the reader's (`getUserPrefers12HourFormat`): a
+  calendar's grid, an AI chat's PDF axis and a connection's local time followed their language's
+  own, "17:14" down a German calendar beside a table's "5:14 PM" (#7651). An Intl options object
+  asks `getHourOption` for its hour (`Common/Types/DateLanguage`, or the mobile app's own in
+  `src/utils/date`), and names `"numeric"` or `"2-digit"` only beside the clock it is right on.
+  Enforced by
   [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
   and
   [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
+- **A date, a time, a day's name and a range are written by one pair of helpers,** `OneUptimeDate`
+  and `Common/Types/DateLanguage`, never by a component's own `Intl.DateTimeFormat`,
+  `toLocaleDateString` or moment pattern. Those took the hour from the browser's tz data instead of
+  OneUptime's: an hour early in Vancouver in an older browser from November 2026, and named "PDT"
+  where every other date said "MST" (#10038). `getDateTimeFormat` works the wall clock out with
+  moment-timezone and has Intl write only the words. A time takes its language's mark between its
+  hours and minutes, as CLDR writes it: "10.05" in Danish, "10:05" elsewhere (#7914). A window
+  within one day names its day and its zone once: "Nov 5, 2025, 5:14 AM – 6:14 AM" on the time range
+  button, "between Nov 13, 2026, 9:00 AM and 5:30 PM GMT+08" on a filter's chip
+  (`getLocalDateTimeRangeEnds`, #7281, #7721). Enforced by
+  [DatesWrittenByOneHelperGuard](../../packages/Common/Tests/Types/DatesWrittenByOneHelperGuard.test.ts),
+  whose list of exceptions only shrinks.
 - **A date and a time are the reader's, never the browser's:** in the zone they picked in User
   Settings, on their 12- or 24-hour clock, written by `OneUptimeDate` or
   `Common/UI/Utils/ReaderMoments` (a moment, a day, a time of day). `toLocaleString`,
@@ -1375,6 +1412,14 @@ then `npm run i18n:validate` from the root.
   [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
   and
   [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
+- **A day's name standing alone is cased as its language writes it,** by CLDR's contextTransforms,
+  not by "a label starts with a capital": "Lunes" on a Spanish button and in its menu, "Lundi" on a
+  French button but "lundi" in its menu, "mandag" everywhere in Danish, Norwegian and Swedish, whose
+  CLDR data capitalises a language's name in a menu but never a day's (#7660). A day button, its
+  aria-label and its title, a menu of days, a calendar's or a timeline's header and a heading that
+  starts with the day draw it through `writeStandAloneDayName` (`Common/Types/DateLanguage`), or
+  `OneUptimeDate.getDayOfWeekName`; a day inside a sentence keeps the locale's wording. Enforced by
+  [DayNamesStandingAloneGuard](../../packages/Common/Tests/App/Dashboard/DayNamesStandingAloneGuard.test.ts).
 - **A cloud's product name is written as the cloud writes it.** A kind of cloud resource is named by
   the catalog's label, a product's name ("Virtual Machine", "Cloud Run"), in every language and on
   every page: the rows, the cards, the overview, Topology, a Type filter's menu and its chip. The docs'

@@ -1309,7 +1309,7 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     const overview: Locator = page.getByRole("tabpanel", { name: "Overview" });
     await expect(overview).not.toContainText(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
     await expect(overview).toContainText(
-      /Start Time\s*[A-Z][a-z]{2} \d{2} \d{4}, \d{2}:\d{2}/,
+      /Start Time\s*[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2}/,
     );
   });
 });

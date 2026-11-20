@@ -21,7 +21,13 @@ import {
 import * as fs from "fs";
 import * as path from "path";
 import * as React from "react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  MemoryRouter,
+  Outlet,
+  Route as RouterRoute,
+  Routes,
+  useOutletContext,
+} from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -238,6 +244,11 @@ import {
   QUICKSTART_MAX_WIDTH_CLASS_NAME,
   WelcomeCardView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import HomeLayout, {
+  HOME_QUICKSTART_PAGE_CLASS_NAME,
+  HomeFrame,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
+import { GUIDED_SETUP_PAGE_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
 import { HomeCounts } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
 import {
@@ -545,6 +556,32 @@ const PROJECT: Project = Object.assign(new Project(), {
   _id: PROJECT_ID,
   name: "Acme Commerce",
 });
+
+// Home inside a frame that hears what it says (HomeFrame, #10276).
+function FramedPage(props: {
+  frame: { setIsQuickstart: MockFunction };
+}): React.ReactElement {
+  return (
+    <MemoryRouter>
+      <Routes>
+        <RouterRoute element={<Outlet context={props.frame} />}>
+          <RouterRoute
+            path="*"
+            element={
+              <Home
+                pageRoute={RouteMap[PageMap.HOME] as Route}
+                currentProject={PROJECT}
+                hasPaymentMethod={true}
+                projects={[PROJECT]}
+                isLoadingProjects={false}
+              />
+            }
+          />
+        </RouterRoute>
+      </Routes>
+    </MemoryRouter>
+  );
+}
 
 function Page(props: {
   projects?: Array<Project> | undefined;
@@ -1270,6 +1307,113 @@ describe("a brand-new project's quickstart", () => {
     expect(screen.getByTestId("home-command-bar")).toBeVisible();
     expect(screen.getByTestId("home-needs-attention")).toBeVisible();
     expect(screen.getByTestId("home-explore-products")).toBeVisible();
+  });
+
+  /*
+   * A wide screen drew the quickstart in the left half of the page and
+   * nothing beside it (#10276): while it is all of Home, Home tells its
+   * frame, which centres the page as a guided setup's is.
+   */
+  test("tells its frame it is the quickstart, so the page is centred; Hide gives the page its width back", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    const frame: { setIsQuickstart: MockFunction } = {
+      setIsQuickstart: getJestMockFunction(),
+    };
+
+    await act(async () => {
+      render(<FramedPage frame={frame} />);
+    });
+    await waitFor(() => {
+      expect(homeMode()).toBe(HomeMode.Quickstart);
+    });
+    expect(frame.setIsQuickstart).toHaveBeenLastCalledWith(true);
+
+    welcomePostMock.mockResolvedValue({
+      ...newProjectAnswer(),
+      isHiddenForMe: true,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("getting-started-dismiss"));
+    });
+    await waitFor(() => {
+      expect(homeMode()).toBe(HomeMode.Overview);
+    });
+    expect(frame.setIsQuickstart).toHaveBeenLastCalledWith(false);
+  });
+
+  test("a project in use never centres the page, and leaving Home gives the frame its width back", async () => {
+    const frame: { setIsQuickstart: MockFunction } = {
+      setIsQuickstart: getJestMockFunction(),
+    };
+    let result: RenderResult | null = null;
+
+    await act(async () => {
+      result = render(<FramedPage frame={frame} />);
+    });
+    await waitFor(() => {
+      expect(homeMode()).toBe(HomeMode.Overview);
+    });
+    expect(frame.setIsQuickstart).not.toHaveBeenCalledWith(true);
+
+    frame.setIsQuickstart.mockClear();
+    act(() => {
+      result!.unmount();
+    });
+    expect(frame.setIsQuickstart).toHaveBeenCalledWith(false);
+  });
+
+  test("Home's frame centres the page, title and trail over the quickstart, only while Home says so", async () => {
+    let setFromHome: ((isQuickstart: boolean) => void) | null = null;
+
+    const Inside: () => React.ReactElement = (): React.ReactElement => {
+      const frame: HomeFrame = useOutletContext<HomeFrame>();
+      setFromHome = frame.setIsQuickstart;
+      return <div data-testid="inside-home" />;
+    };
+
+    let result: RenderResult | null = null;
+    await act(async () => {
+      result = render(
+        <MemoryRouter>
+          <Routes>
+            <RouterRoute
+              element={
+                <HomeLayout
+                  pageRoute={RouteMap[PageMap.HOME] as Route}
+                  currentProject={PROJECT}
+                  hasPaymentMethod={true}
+                />
+              }
+            >
+              <RouterRoute path="*" element={<Inside />} />
+            </RouterRoute>
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    const page: () => Element = (): Element => {
+      return result!.container.firstElementChild!;
+    };
+
+    // The page's whole width, as any page's.
+    expect(page().className).not.toContain("mx-auto");
+    expect(
+      within(page() as HTMLElement).getByTestId("inside-home"),
+    ).toBeVisible();
+
+    act(() => {
+      setFromHome!(true);
+    });
+    expect(page().className).toBe(HOME_QUICKSTART_PAGE_CLASS_NAME);
+    expect(HOME_QUICKSTART_PAGE_CLASS_NAME).toBe(GUIDED_SETUP_PAGE_CLASS_NAME);
+    expect(page().className).toContain("mx-auto");
+    expect(page().className).toContain("max-w-7xl");
+
+    act(() => {
+      setFromHome!(false);
+    });
+    expect(page().className).not.toContain("mx-auto");
   });
 
   test("Show it, on that line, makes Home the quickstart again", async () => {

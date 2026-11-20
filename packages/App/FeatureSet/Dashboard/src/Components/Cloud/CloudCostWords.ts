@@ -6,6 +6,7 @@ import {
   getCloudCostChangePercent,
 } from "Common/Types/Cloud/CloudCost";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import { writeReaderMoment } from "Common/UI/Utils/ReaderMoments";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -45,7 +46,48 @@ export const COST_STATE_LABELS: Readonly<Record<CloudCostState, string>> = {
   [CloudCostState.NotAllowed]: translationKey("Needs permission"),
   [CloudCostState.NotSetUp]: translationKey("Not set up"),
   [CloudCostState.Failed]: translationKey("Could not read"),
+  [CloudCostState.Queued]: translationKey("Queued"),
 };
+
+/*
+ * Why a queued account's costs are not read yet, and when they are: its
+ * cloud limits how fast costs are read (Azure Cost Management, a tenant at
+ * a time), so they wait their turn - read at the connection's first read
+ * from then, or with its next read once that time has passed.
+ */
+export const QUEUED_COSTS_READ_AT: string = translationKey(
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.",
+);
+export const QUEUED_COSTS_NEXT_READ: string = translationKey(
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.",
+);
+
+/*
+ * Before any account's costs are read, when every one of them is queued:
+ * in place of the steps to set them up, which are done.
+ */
+export const COSTS_QUEUED_NOTE: string = translationKey(
+  "Your accounts' costs are read in turn, as fast as their cloud allows.",
+);
+
+export function getCloudQueuedCostsLine(data: {
+  nextReadAt: string | undefined;
+  now: Date;
+  translator: Translator;
+}): string {
+  const at: number = Date.parse(data.nextReadAt || "");
+
+  if (!Number.isFinite(at) || at <= data.now.getTime()) {
+    return (
+      data.translator.translateText(QUEUED_COSTS_NEXT_READ) ||
+      QUEUED_COSTS_NEXT_READ
+    );
+  }
+
+  return data.translator.translateTemplate(QUEUED_COSTS_READ_AT, {
+    time: writeReaderMoment(new Date(at)),
+  });
+}
 
 /*
  * What to do so an account's costs are read, by cloud: the guide's section

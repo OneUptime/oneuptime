@@ -556,6 +556,16 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
     delivery: "throw",
   },
   /*
+   * Convert with OneUptime AI on an import's preview (Import from Grafana
+   * or Datadog, Import Alerts): the person waits on the request
+   * (POST /dashboard/import/convert-query-with-ai and its /monitor twin),
+   * and a refusal is the message the preview shows under the query.
+   */
+  {
+    file: "Common/Server/Utils/AI/ObservabilityImport/ImportQueryConversion.ts",
+    delivery: "throw",
+  },
+  /*
    * Reading an incident call's transcript runs in the background: start()
    * checks the switch first and stores "Skipped" with the sentence that
    * says where to turn it on, and a refusal while it reads is stored on the

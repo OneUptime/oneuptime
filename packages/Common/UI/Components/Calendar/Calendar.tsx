@@ -1,6 +1,9 @@
 import {
-  getLocaleClockHourOption,
-  getNumberLocale,
+  ReaderDateTimeFormat,
+  getDateLocale,
+  getDateTimeFormat,
+  getHourOption,
+  writeStandAloneDayName,
 } from "../../../Types/DateLanguage";
 import { Blue500 } from "../../../Types/BrandColors";
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
@@ -209,32 +212,116 @@ const formatTimeRangeStart: (
   return `${formatTime(range.start)} – `;
 };
 
+/*
+ * A time on the calendar, written by whatever writes the calendar's other
+ * dates: the moment localizer in English, Intl in another language.
+ */
+type CalendarTimeWriter = (
+  date: Date,
+  culture?: Culture,
+  local?: DateLocalizer,
+) => string;
+
+/*
+ * English's time on the reader's clock (#7651), as the moment localizer
+ * writes the calendar's other English dates: "7:26 PM" on a 12-hour clock,
+ * "19:26" on a 24-hour one. It was react-big-calendar's own "LT", always
+ * "7:26 PM", beside a table's "19:26" for a reader on a 24-hour clock.
+ */
+const getEnglishCalendarTimeWriter: (
+  use12HourFormat: boolean,
+) => CalendarTimeWriter = (use12HourFormat: boolean): CalendarTimeWriter => {
+  const pattern: string = use12HourFormat ? "h:mm A" : "HH:mm";
+
+  return (date: Date, culture?: Culture, local?: DateLocalizer): string => {
+    return local
+      ? local.format(date, pattern, culture)
+      : moment(date).format(pattern);
+  };
+};
+
 export const formatEventTimeRangeStart: (
   range: DateRange,
   culture?: Culture,
   local?: DateLocalizer,
+  use12HourFormat?: boolean | undefined,
 ) => string = (
   range: DateRange,
   culture?: Culture,
   local?: DateLocalizer,
+  use12HourFormat?: boolean | undefined,
 ): string => {
+  const time: CalendarTimeWriter = getEnglishCalendarTimeWriter(
+    use12HourFormat ?? OneUptimeDate.getUserPrefers12HourFormat(),
+  );
+
   return formatTimeRangeStart(range, (date: Date): string => {
-    return local
-      ? local.format(date, "LT", culture)
-      : moment(date).format("LT");
+    return time(date, culture, local);
   });
+};
+
+/*
+ * The formats that write a time: the hours down the side, an event's and
+ * the agenda's times, and a range being selected - all from one writer.
+ */
+const getCalendarTimeFormats: (time: CalendarTimeWriter) => Formats = (
+  time: CalendarTimeWriter,
+): Formats => {
+  const between: (
+    range: DateRange,
+    culture?: Culture,
+    local?: DateLocalizer,
+  ) => string = (
+    range: DateRange,
+    culture?: Culture,
+    local?: DateLocalizer,
+  ): string => {
+    return `${time(range.start, culture, local)} – ${time(range.end, culture, local)}`;
+  };
+
+  return {
+    timeGutterFormat: time,
+    agendaTimeFormat: time,
+    agendaTimeRangeFormat: between,
+    eventTimeRangeFormat: between,
+    selectRangeFormat: between,
+    eventTimeRangeStartFormat: (
+      range: DateRange,
+      culture?: Culture,
+      local?: DateLocalizer,
+    ): string => {
+      return formatTimeRangeStart(range, (date: Date): string => {
+        return time(date, culture, local);
+      });
+    },
+    eventTimeRangeEndFormat: (
+      range: DateRange,
+      culture?: Culture,
+      local?: DateLocalizer,
+    ): string => {
+      return ` – ${time(range.end, culture, local)}`;
+    },
+  };
 };
 
 /*
  * A day's number as a calendar writes it, in every language: "1", "۱" -
  * never react-big-calendar's own "01", whose leading zero no wall or phone
  * calendar writes ("۰۱" on a Persian page). In the month's grid, and beside
- * the day's name above a week's columns.
+ * the day's name above a week's columns. One set per clock, so a calendar
+ * keeps the same formats from one draw to the next.
  */
-const CALENDAR_FORMATS: Formats = {
-  dateFormat: "D",
-  dayFormat: "D ddd",
-  eventTimeRangeStartFormat: formatEventTimeRangeStart,
+const ENGLISH_CALENDAR_FORMATS: Readonly<Record<"12" | "24", Formats>> = {
+  "12": {
+    dateFormat: "D",
+    dayFormat: "D ddd",
+    ...getCalendarTimeFormats(getEnglishCalendarTimeWriter(true)),
+  },
+  "24": {
+    dateFormat: "D",
+    dayFormat: "D ddd",
+    ...getCalendarTimeFormats(getEnglishCalendarTimeWriter(false)),
+  },
 };
 
 const ENGLISH_LANGUAGE: string = "en";
@@ -242,45 +329,74 @@ const ENGLISH_LANGUAGE: string = "en";
 /*
  * The dates and times the views write - the month's and the week's titles,
  * the day names, the day numbers in the grid, the hours down the side, an
- * event's times - in the reader's language. English keeps react-big-
- * calendar's own wording (the moment localizer's). Another language gets
- * the browser's (Intl), always on the Gregorian calendar the grid is laid
- * out in (Persian would otherwise name the month of its own calendar above
- * a Gregorian grid), and in the language's own figures, as every other date
- * on the page is (Common/Types/DateLanguage): "اکتبر ۲۰۲۶" over "۱", "۲".
+ * event's times - in the reader's language and on the reader's clock
+ * (OneUptimeDate.getUserPrefers12HourFormat), as the tables beside the
+ * calendar write them (#7651). English keeps react-big-calendar's own
+ * wording (the moment localizer's), but for its times. Another language
+ * gets Intl's words (DateLanguage's getDateTimeFormat), always on the
+ * Gregorian calendar the grid is laid out in (Persian would otherwise name
+ * the month of its own calendar above a Gregorian grid), and in the
+ * language's own figures, as every other date on the page is: "اکتبر ۲۰۲۶"
+ * over "۱", "۲". The calendar lays its dates out on the browser's own wall
+ * clock (the pages shift them there), so they are written on that clock.
+ *
+ * A day's name above a column, and a header that starts with one, is
+ * written as the language writes a day's name standing alone
+ * (writeStandAloneDayName, #7660): "Lun 16" in Spanish, "man. 16" in
+ * Danish.
  */
-export const getCalendarFormats: (language: string | undefined) => Formats = (
+export const getCalendarFormats: (
   language: string | undefined,
+  use12HourFormat?: boolean | undefined,
+) => Formats = (
+  language: string | undefined,
+  use12HourFormat?: boolean | undefined,
 ): Formats => {
   const code: string = (language || ENGLISH_LANGUAGE).trim();
+  const twelveHour: boolean =
+    use12HourFormat ?? OneUptimeDate.getUserPrefers12HourFormat();
 
   if (
     !code ||
     code === ENGLISH_LANGUAGE ||
     code.startsWith(`${ENGLISH_LANGUAGE}-`)
   ) {
-    return CALENDAR_FORMATS;
+    return ENGLISH_CALENDAR_FORMATS[twelveHour ? "12" : "24"];
   }
+
+  const locale: string = getDateLocale(code);
 
   const formatter: (
     options: Intl.DateTimeFormatOptions,
   ) => (date: Date) => string = (
     options: Intl.DateTimeFormatOptions,
   ): ((date: Date) => string) => {
-    let format: Intl.DateTimeFormat;
-
-    try {
-      format = new Intl.DateTimeFormat(getNumberLocale(code), {
-        calendar: "gregory",
-        ...options,
-      } as Intl.DateTimeFormatOptions);
-    } catch {
-      // A language Intl does not know: English, as the grid would be.
-      format = new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options);
-    }
+    const format: ReaderDateTimeFormat | null =
+      getDateTimeFormat({ locale: locale, timezones: [], options: options }) ||
+      // A shape Intl refuses in this language: English, as the grid would be.
+      getDateTimeFormat({
+        locale: ENGLISH_LANGUAGE,
+        timezones: [],
+        options: options,
+      });
 
     return (date: Date): string => {
-      return format.format(date);
+      return format ? format.format(date) : date.toISOString();
+    };
+  };
+
+  // A header that starts with a day's name: as the day stands alone.
+  const standingAlone: (
+    write: (date: Date) => string,
+  ) => (date: Date) => string = (
+    write: (date: Date) => string,
+  ): ((date: Date) => string) => {
+    return (date: Date): string => {
+      return writeStandAloneDayName({
+        name: write(date),
+        language: code,
+        context: "standAlone",
+      });
     };
   };
 
@@ -295,45 +411,41 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
   };
 
   /*
-   * The hours on the language's own clock: a German or Japanese grid says
-   * 00:00 and 08:00, a Korean or Arabic one 오전 8:00 and 8:00 ص - a
-   * 12-hour time has no leading zero (issue #7279).
+   * The hours on the reader's clock: a 24-hour grid says 00:00 and 08:00,
+   * a 12-hour one 8:00 AM, 오전 8:00 and 8:00 ص - a 12-hour time has no
+   * leading zero (issue #7279).
    */
   const time: (date: Date) => string = formatter({
-    hour: getLocaleClockHourOption(getNumberLocale(code) || code),
+    hour: getHourOption(twelveHour),
     minute: "2-digit",
+    hour12: twelveHour,
   });
 
   return {
     // The day numbers in the month's grid, as English's: "1", "۱".
     dateFormat: formatter({ day: "numeric" }),
-    weekdayFormat: formatter({ weekday: "short" }),
-    dayFormat: formatter({ weekday: "short", day: "numeric" }),
-    dayHeaderFormat: formatter({
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    }),
+    weekdayFormat: standingAlone(formatter({ weekday: "short" })),
+    dayFormat: standingAlone(formatter({ weekday: "short", day: "numeric" })),
+    dayHeaderFormat: standingAlone(
+      formatter({
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      }),
+    ),
     monthHeaderFormat: formatter({ month: "long", year: "numeric" }),
     dayRangeHeaderFormat: between(formatter({ month: "long", day: "numeric" })),
     agendaHeaderFormat: between(
       formatter({ year: "numeric", month: "numeric", day: "numeric" }),
     ),
-    agendaDateFormat: formatter({
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }),
-    agendaTimeFormat: time,
-    agendaTimeRangeFormat: between(time),
-    timeGutterFormat: time,
-    eventTimeRangeFormat: between(time),
-    eventTimeRangeStartFormat: (range: DateRange): string => {
-      return formatTimeRangeStart(range, time);
-    },
-    eventTimeRangeEndFormat: (range: DateRange): string => {
-      return ` – ${time(range.end)}`;
-    },
+    agendaDateFormat: standingAlone(
+      formatter({
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }),
+    ),
+    ...getCalendarTimeFormats(time),
   };
 };
 
@@ -379,33 +491,24 @@ export const hasShortWeekdayNames: (language: string | undefined) => boolean = (
     return cached;
   }
 
-  let hasShortNames: boolean = true;
+  const short: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getDateLocale(code),
+    timezones: ["UTC"],
+    options: { weekday: "short" },
+  });
+  const long: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getDateLocale(code),
+    timezones: ["UTC"],
+    options: { weekday: "long" },
+  });
 
-  try {
-    const short: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-      getNumberLocale(code),
-      {
-        calendar: "gregory",
-        weekday: "short",
-        timeZone: "UTC",
-      } as Intl.DateTimeFormatOptions,
-    );
-    const long: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-      getNumberLocale(code),
-      {
-        calendar: "gregory",
-        weekday: "long",
-        timeZone: "UTC",
-      } as Intl.DateTimeFormatOptions,
-    );
-
-    hasShortNames = A_WEEK.some((day: Date): boolean => {
+  // A language Intl does not know: English's names, as the grid's are.
+  const hasShortNames: boolean =
+    !short ||
+    !long ||
+    A_WEEK.some((day: Date): boolean => {
       return short.format(day) !== long.format(day);
     });
-  } catch {
-    // A language Intl does not know: English's names, as the grid's are.
-    hasShortNames = true;
-  }
 
   shortWeekdayNamesCache.set(code, hasShortNames);
 
@@ -425,27 +528,30 @@ export const getNarrowDayNameFormats: (
 ) => NarrowDayNameFormats = (
   language: string | undefined,
 ): NarrowDayNameFormats => {
+  /*
+   * On the browser's own wall clock, as the calendar lays its days out. A
+   * narrow name takes no capital it lacks: CLDR's capitals are for every
+   * width but the narrow one ("day-format-except-narrow").
+   */
   const formatter: (
     options: Intl.DateTimeFormatOptions,
   ) => (date: Date) => string = (
     options: Intl.DateTimeFormatOptions,
   ): ((date: Date) => string) => {
-    let format: Intl.DateTimeFormat;
-
-    try {
-      format = new Intl.DateTimeFormat(
-        getNumberLocale(language || ENGLISH_LANGUAGE),
-        {
-          calendar: "gregory",
-          ...options,
-        } as Intl.DateTimeFormatOptions,
-      );
-    } catch {
-      format = new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options);
-    }
+    const format: ReaderDateTimeFormat | null =
+      getDateTimeFormat({
+        locale: getDateLocale(language || ENGLISH_LANGUAGE),
+        timezones: [],
+        options: options,
+      }) ||
+      getDateTimeFormat({
+        locale: ENGLISH_LANGUAGE,
+        timezones: [],
+        options: options,
+      });
 
     return (date: Date): string => {
-      return format.format(date);
+      return format ? format.format(date) : "";
     };
   };
 

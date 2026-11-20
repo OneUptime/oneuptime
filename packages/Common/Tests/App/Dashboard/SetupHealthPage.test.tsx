@@ -281,7 +281,7 @@ describe("a finding, in the reader's words, with where to fix it", () => {
      * UTC (issue #8475) where it read as moment's "GMT", so the zone's name
      * no longer tells the two apart: the server's way of writing the date does.
      */
-    expect(english).toContain("Nov 14 2026, 03:00 AM UTC");
+    expect(english).toContain("Nov 14, 2026, 3:00 AM UTC");
     expect(english).not.toContain("2026-11-14");
 
     const low: SetupHealthFinding = makeSetupHealthFinding({

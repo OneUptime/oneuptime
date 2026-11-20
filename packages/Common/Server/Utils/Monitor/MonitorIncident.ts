@@ -141,6 +141,11 @@ export default class MonitorIncident {
     keepResponseContent?: boolean | undefined;
     // The step the check ran: the state timeline's copy names its destination.
     monitorStep?: MonitorStep | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<Array<Incident>> {
     /*
      * check active incidents and if there are open incidents, do not create
@@ -217,6 +222,8 @@ export default class MonitorIncident {
           : input.rootCause;
 
         // then resolve incident.
+        await input.keepEvaluationLock?.();
+
         await this.resolveOpenIncident({
           openIncident: openIncident,
           rootCause: rootCause,
@@ -504,6 +511,11 @@ export default class MonitorIncident {
      * Per-key create + dedupe still happen via matchesPerSeries.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<void> {
     const incidentLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -554,6 +566,7 @@ export default class MonitorIncident {
               input.breachingSeriesFingerprintsByCriteriaId,
             disableSeriesAbsenceResolution:
               input.disableSeriesAbsenceResolution,
+            keepEvaluationLock: input.keepEvaluationLock,
           });
 
     if (!input.criteriaInstance.data?.createIncidents) {
@@ -669,9 +682,38 @@ export default class MonitorIncident {
      */
     let networkDeviceOwners: NetworkDeviceOwners | null = null;
 
+    /*
+     * This criteria's open incidents by their series (undefined: the whole
+     * monitor's), in the order they were read: a series is looked up, not
+     * searched for in every open incident (#10108).
+     */
+    const criteriaId: string | undefined =
+      input.criteriaInstance.data?.id?.toString() || undefined;
+    const openIncidentsBySeries: Map<
+      string | undefined,
+      Array<Incident>
+    > = new Map<string | undefined, Array<Incident>>();
+
+    for (const incident of openIncidents) {
+      if ((incident.createdCriteriaId || undefined) !== criteriaId) {
+        continue;
+      }
+
+      const seriesKey: string | undefined =
+        incident.seriesFingerprint || undefined;
+      const ofSeries: Array<Incident> =
+        openIncidentsBySeries.get(seriesKey) || [];
+
+      ofSeries.push(incident);
+      openIncidentsBySeries.set(seriesKey, ofSeries);
+    }
+
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
       for (const seriesMatch of seriesToProcess) {
+        // Outside the catch below: a lost lock stops every series.
+        await input.keepEvaluationLock?.();
+
         try {
           const seriesFingerprint: string | undefined =
             seriesMatch?.fingerprint;
@@ -766,18 +808,15 @@ export default class MonitorIncident {
            * once its template has one it must still be found, or a second
            * incident would open beside it while the first is still open.
            */
-          const alreadyOpenIncident: Incident | undefined = openIncidents.find(
-            (incident: Incident) => {
-              return (
-                (incident.createdCriteriaId || undefined) ===
-                  (input.criteriaInstance.data?.id?.toString() || undefined) &&
-                (!incident.createdIncidentTemplateId ||
-                  incident.createdIncidentTemplateId ===
-                    (criteriaIncident.id?.toString() || undefined)) &&
-                (incident.seriesFingerprint || undefined) === seriesFingerprint
-              );
-            },
-          );
+          const alreadyOpenIncident: Incident | undefined = (
+            openIncidentsBySeries.get(seriesFingerprint) || []
+          ).find((incident: Incident) => {
+            return (
+              !incident.createdIncidentTemplateId ||
+              incident.createdIncidentTemplateId ===
+                (criteriaIncident.id?.toString() || undefined)
+            );
+          });
 
           const hasAlreadyOpenIncident: boolean = Boolean(alreadyOpenIncident);
 
@@ -871,6 +910,9 @@ export default class MonitorIncident {
             storageMap,
             seriesLabels,
             seriesContext,
+            metricNames: MonitorTemplateUtil.getMetricNamesReadBy(
+              input.dataToProcess,
+            ),
           });
 
           incident.title = text.title;

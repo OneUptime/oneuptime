@@ -82,8 +82,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * and MonitorResourceUtil.monitorResource, through the real criteria
  * evaluator, opens one alert for a connection no read of which has worked
  * for longer than its Stale point, and resolves it at the first read that
- * works. A window with no reading at all - the connection turned off, the
- * workers stopped - resolves nothing.
+ * works. A window with no reading at all - the workers stopped - resolves
+ * nothing. A connection turned off or deleted resolves its alert itself
+ * (MonitorResourceDeviceManagementConnectionGone, #10286).
  *
  * Postgres, Redis and the incident and alert machinery are stood in for;
  * what is asserted is what they are asked to do.
@@ -644,7 +645,7 @@ describe.each(PROVIDERS)(
       expect(closeAlerts).toHaveBeenCalled();
     });
 
-    test("a window with no reading at all - turned off, or the workers stopped - resolves nothing", async () => {
+    test("a window with no reading at all - the workers stopped - resolves nothing", async () => {
       const response: ProbeApiIngestResponse =
         await MonitorResourceUtil.monitorResource(check([]));
 

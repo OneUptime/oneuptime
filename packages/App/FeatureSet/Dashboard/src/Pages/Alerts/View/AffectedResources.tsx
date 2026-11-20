@@ -61,6 +61,13 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+  /*
+   * The metrics the monitor's steps read: a managed device's commands are
+   * those of the reading its monitor alerts on (#10209). Read with the type.
+   */
+  const [metricNames, setMetricNames] = useState<Array<string> | undefined>(
+    undefined,
+  );
 
   const seriesLabels: JSONObject | undefined = hasSeriesLabelsFromPage
     ? normalizeSeriesLabels(props.seriesLabels)
@@ -105,13 +112,20 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
         select: {
           monitor: {
             monitorType: true,
+            monitorSteps: true,
           },
         },
       });
 
       setMonitorType(alert?.monitor?.monitorType);
+      setMetricNames(
+        SeriesDebugHints.getMetricNamesOfMonitorSteps(
+          alert?.monitor?.monitorSteps,
+        ),
+      );
     } catch {
       setMonitorType(undefined);
+      setMetricNames(undefined);
     }
   };
 
@@ -135,6 +149,7 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (!hasSeriesLabels) {
       setMonitorType(undefined);
+      setMetricNames(undefined);
       return;
     }
 
@@ -154,6 +169,7 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
     SeriesDebugHints.getDebugCommands({
       monitorType: monitorType,
       seriesLabels: seriesLabels,
+      metricNames: metricNames,
     }).length > 0;
 
   return (
@@ -178,6 +194,7 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
           <SeriesDebugCommandsViewer
             monitorType={monitorType}
             seriesLabels={seriesLabels}
+            metricNames={metricNames}
           />
         </Card>
       ) : (

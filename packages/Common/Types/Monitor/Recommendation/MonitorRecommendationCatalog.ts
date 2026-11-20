@@ -129,6 +129,7 @@ import {
   getAllManagedDeviceAlertTemplates,
   getManagedDeviceAlertTemplateEquivalentSteps,
   getManagedDeviceAlertTemplatesFor,
+  hasManagedDeviceAlertTemplateEquivalentSteps,
 } from "../ManagedDeviceAlertTemplates";
 
 /*
@@ -1222,15 +1223,18 @@ function normalizeManagedDeviceTemplate(
     },
   });
 
-  if (!template.followsReadInterval) {
+  if (!hasManagedDeviceAlertTemplateEquivalentSteps(template)) {
     return recommendation;
   }
 
   return {
     ...recommendation,
     /*
-     * A monitor made before its connection's interval changed keeps the
-     * wait it was made with, and is still this recommendation.
+     * A monitor made from an earlier version of the template (a check-in's
+     * or a security patch's from before its query read its service), or
+     * before its connection's interval changed (Connection Stopped
+     * Reading's, which keeps the wait it was made with), is still this
+     * recommendation.
      */
     getEquivalentMonitorSteps: (
       args: MonitorRecommendationArgs,

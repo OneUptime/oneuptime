@@ -1,4 +1,8 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  ReaderDateTimeFormat,
+  getDateLocale,
+  getDateTimeFormat,
+} from "Common/Types/DateLanguage";
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
@@ -115,15 +119,18 @@ export const formatCalendarPart: (data: {
   const options: Intl.DateTimeFormatOptions =
     data.part === "month" ? { month: "short" } : { day: "numeric" };
 
-  try {
-    return new Intl.DateTimeFormat(getNumberLocale(data.language || "en"), {
-      ...options,
-      timeZone: OneUptimeDate.getCurrentTimezone().toString(),
-    }).format(data.date);
-  } catch {
-    // An unknown language or zone: the browser's own, in English.
-    return new Intl.DateTimeFormat("en", options).format(data.date);
-  }
+  /*
+   * The day from OneUptime's own zone data, as every date (#10038), on the
+   * Gregorian calendar the dashboard counts in: a bare "fa" named the
+   * month of the Solar Hijri one. A language Intl does not know is English.
+   */
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getDateLocale(data.language),
+    timezones: [OneUptimeDate.getCurrentTimezone().toString()],
+    options: options,
+  });
+
+  return format ? format.format(data.date) : "";
 };
 
 export interface ComponentProps {

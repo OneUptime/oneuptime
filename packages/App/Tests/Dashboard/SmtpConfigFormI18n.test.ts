@@ -23,7 +23,8 @@ import path from "path";
  * The instance's Amazon SES card also asks how the server signs in: with an
  * access key, or with the IAM role AWS gives the server itself (#7000). A
  * project's config always signs in with a key, so those strings are the
- * Admin Dashboard's alone.
+ * Admin Dashboard's alone. So are the card's words for which AWS identity
+ * the server signs in as (#7380).
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -159,6 +160,44 @@ const ADMIN_PROVIDER_STRINGS: Array<string> = [
   "This Server's IAM Role",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.",
   "Send through Amazon SES with an access key or this server's IAM role.",
+];
+
+/*
+ * What the instance's Amazon SES card says of the identity the server
+ * signs in as, in role mode (#7380): its row, where the credentials came
+ * from, and why it cannot sign in. Drawn by the card's own row
+ * (ServerAwsIdentityLine), not the builder: the Admin Dashboard's alone.
+ */
+const ADMIN_IDENTITY_STRINGS: Array<string> = [
+  "Signs In As",
+  "Check again",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}",
+  "This server cannot sign in to AWS. {{error}}",
+  "A test email shows whether it may send.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.",
+  "From the server's AWS profile.",
+  "From IAM roles for service accounts.",
+  "From EKS Pod Identity.",
+  "From the ECS task role.",
+  "From the container credentials endpoint.",
+  "From the EC2 instance profile.",
+];
+
+const IDENTITY_FILES: ReadonlyArray<string> = [
+  path.join(
+    ADMIN_SRC,
+    "Pages",
+    "Settings",
+    "Email",
+    "ServerAwsIdentityLine.tsx",
+  ),
+  path.join(
+    ADMIN_SRC,
+    "Pages",
+    "Settings",
+    "Email",
+    "EmailProviderSettingsCard.tsx",
+  ),
 ];
 
 const DASHBOARD_STRINGS: Array<string> = [
@@ -319,6 +358,18 @@ describe("the mail server forms' strings", () => {
     expect(unused).toEqual([]);
   });
 
+  test("the Amazon SES card's identity row draws each of its strings, written whole", () => {
+    const drawn: string = IDENTITY_FILES.map((file: string): string => {
+      return fs.readFileSync(file, "utf8");
+    }).join("\n");
+
+    expect(
+      ADMIN_IDENTITY_STRINGS.filter((text: string): boolean => {
+        return !drawn.includes(`"${text}"`);
+      }),
+    ).toEqual([]);
+  });
+
   test("none of the old form's words for what changed is drawn any more", () => {
     const drawn: Array<string> = RETIRED_STRINGS.filter(
       (text: string): boolean => {
@@ -332,7 +383,14 @@ describe("the mail server forms' strings", () => {
   test("English carries every new string as itself, in both apps", () => {
     for (const [directory, strings] of [
       [DASHBOARD_LOCALES, DASHBOARD_STRINGS],
-      [ADMIN_LOCALES, [...ADMIN_STRINGS, ...ADMIN_PROVIDER_STRINGS]],
+      [
+        ADMIN_LOCALES,
+        [
+          ...ADMIN_STRINGS,
+          ...ADMIN_PROVIDER_STRINGS,
+          ...ADMIN_IDENTITY_STRINGS,
+        ],
+      ],
     ] as Array<[string, Array<string>]>) {
       const english: Locale = readLocale(directory, "en.json");
 
@@ -394,6 +452,23 @@ describe("the mail server forms' strings", () => {
 
       expect(
         ADMIN_PROVIDER_STRINGS.flatMap((text: string): Array<string> => {
+          return findProblems(text, admin[text]);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each(
+    ADMIN_FILES.filter((file: string) => {
+      return file !== "en.json";
+    }),
+  )(
+    "the Admin Dashboard's %s translates which AWS identity the server signs in as",
+    (file: string) => {
+      const admin: Locale = readLocale(ADMIN_LOCALES, file);
+
+      expect(
+        ADMIN_IDENTITY_STRINGS.flatMap((text: string): Array<string> => {
           return findProblems(text, admin[text]);
         }),
       ).toEqual([]);
