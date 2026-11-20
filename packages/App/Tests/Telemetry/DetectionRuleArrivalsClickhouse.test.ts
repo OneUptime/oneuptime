@@ -467,7 +467,7 @@ async function runMinutes(from: number, to: number): Promise<void> {
 
 function recordedFor(rule: DetectionRule): Array<RecordedSignal> {
   return world.recorded.filter((recorded: RecordedSignal): boolean => {
-    return recorded.signal.detectionRuleId.toString() === rule._id;
+    return recorded.signal.detectionRuleId?.toString() === rule._id;
   });
 }
 
