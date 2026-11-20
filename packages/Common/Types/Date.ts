@@ -1065,6 +1065,28 @@ export default class OneUptimeDate {
   }
 
   /*
+   * A clock of the day - working hours' "09:00", a schedule's "9:00 AM" -
+   * that is no instant, in the reader's language and on the clock asked
+   * for (the reader's when left out): "09:00", "9:00 AM", "09.00" in
+   * Danish, "오전 9:00" in Korean, "۰۹:۰۰" in Persian. Hand-written, it was
+   * English's "9:00 AM" and a colon on every page.
+   */
+  public static getClockTimeString(
+    hour: number,
+    minute: number,
+    options?: { use12HourFormat?: boolean | undefined },
+  ): string {
+    return this.writeTimeOfDay({
+      date: new Date(Date.UTC(2024, 0, 1, hour, minute)),
+      timezone: "UTC",
+      includeMinutes: true,
+      includeSeconds: false,
+      use12HourFormat:
+        options?.use12HourFormat ?? this.getUserPrefers12HourFormat(),
+    });
+  }
+
+  /*
    * THE DAY OF THE WEEK `date` FALLS ON, BY ITS NAME (#7660).
    *
    * In `timezone` (the reader's when left out) and in the reader's

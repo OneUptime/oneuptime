@@ -1,4 +1,8 @@
-import { getHourOption, getNumberLocale } from "../../../Types/DateLanguage";
+import {
+  ReaderDateTimeFormat,
+  getDateTimeFormat,
+  getHourOption,
+} from "../../../Types/DateLanguage";
 import {
   FeedClock,
   formatFeedDay,
@@ -28,40 +32,25 @@ import moment from "moment-timezone";
  */
 export type StatusTimelineClock = FeedClock;
 
-const formatterCache: Map<string, Intl.DateTimeFormat | null> = new Map<
-  string,
-  Intl.DateTimeFormat | null
->();
-
+/*
+ * The timeline's formatter for a shape, built once by DateLanguage, which
+ * works the wall clock out in the reader's zone with OneUptime's own zone
+ * data and has Intl write only the words (#10038).
+ */
 const getFormat: (data: {
   clock: StatusTimelineClock;
   shape: string;
   options: Intl.DateTimeFormatOptions;
-}) => Intl.DateTimeFormat | null = (data: {
+}) => ReaderDateTimeFormat | null = (data: {
   clock: StatusTimelineClock;
   shape: string;
   options: Intl.DateTimeFormatOptions;
-}): Intl.DateTimeFormat | null => {
-  const locale: string = getFeedLocale(data.clock.language);
-  const key: string = `${locale}|${data.clock.timezone}|${data.shape}|${data.clock.use12HourClock ? 12 : 24}`;
-
-  if (formatterCache.has(key)) {
-    return formatterCache.get(key) || null;
-  }
-
-  let format: Intl.DateTimeFormat | null = null;
-
-  try {
-    format = new Intl.DateTimeFormat(getNumberLocale(locale), {
-      ...data.options,
-      timeZone: data.clock.timezone,
-    });
-  } catch {
-    format = null;
-  }
-
-  formatterCache.set(key, format);
-  return format;
+}): ReaderDateTimeFormat | null => {
+  return getDateTimeFormat({
+    locale: getFeedLocale(data.clock.language),
+    timezones: [data.clock.timezone],
+    options: data.options,
+  });
 };
 
 const inZone: (date: Date, clock: StatusTimelineClock) => moment.Moment = (
@@ -76,7 +65,7 @@ export const formatStatusTimelineShortDate: (
   date: Date,
   clock: StatusTimelineClock,
 ) => string = (date: Date, clock: StatusTimelineClock): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "short-date",
     options: { month: "short", day: "numeric" },
@@ -90,7 +79,7 @@ export const formatStatusTimelineMonth: (
   date: Date,
   clock: StatusTimelineClock,
 ) => string = (date: Date, clock: StatusTimelineClock): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "month",
     options: { month: "short", year: "numeric" },
@@ -104,7 +93,7 @@ export const formatStatusTimelineYear: (
   date: Date,
   clock: StatusTimelineClock,
 ) => string = (date: Date, clock: StatusTimelineClock): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "year",
     options: { year: "numeric" },
@@ -126,7 +115,7 @@ export const formatStatusTimelineTimeWithSeconds: (
   date: Date,
   clock: StatusTimelineClock,
 ) => string = (date: Date, clock: StatusTimelineClock): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "time-seconds",
     options: {
@@ -149,7 +138,7 @@ export const formatStatusTimelineShortDateTime: (
   date: Date,
   clock: StatusTimelineClock,
 ) => string = (date: Date, clock: StatusTimelineClock): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "short-date-time",
     options: {
@@ -173,7 +162,7 @@ export const formatStatusTimelineShortDateTimeWithSeconds: (
   date: Date,
   clock: StatusTimelineClock,
 ) => string = (date: Date, clock: StatusTimelineClock): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "short-date-time-seconds",
     options: {

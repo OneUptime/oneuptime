@@ -5,8 +5,11 @@ import {
 import OneUptimeDate, { Moment } from "../../Types/Date";
 import {
   getDateLocale,
+  inEnglishDates,
+  ReaderDateTimeFormat,
   getDateTimeFormat,
   isEnglishDateLanguage,
+  writeClockInLocale,
   writeDigitsInLocale,
 } from "../../Types/DateLanguage";
 import Timezone from "../../Types/Timezone";
@@ -247,7 +250,7 @@ const getClockMeridiemInLocale: (data: {
   timezone: string;
   locale: string;
 }): { text: string; isFirst: boolean } | null => {
-  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
     locale: data.locale,
     timezones: [data.timezone],
     options: CLOCK_MERIDIEM_OPTIONS,
@@ -320,7 +323,18 @@ export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
     seconds: data.showSeconds ? zoned.format("ss") : null,
     meridiem: use12HourFormat ? zoned.format("A") : null,
     isMeridiemFirst: false,
-    dateText: data.showDate ? zoned.format("ddd, MMM D") : null,
+    // "Mon, Sep 14": the day as OneUptimeDate writes it in English.
+    dateText: data.showDate
+      ? inEnglishDates((): string => {
+          return OneUptimeDate.getDateAsFormattedStringInTimezone({
+            date: data.date,
+            timezone: timezone,
+            onlyShowDate: true,
+            showWeekday: true,
+            hideYear: true,
+          });
+        })
+      : null,
     zoneAbbreviation: data.showTimezoneAbbreviation
       ? OneUptimeDate.getZoneAbbrByTimezone(timezone as Timezone, data.date)
       : null,
@@ -334,7 +348,8 @@ export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
 
   const locale: string = getDateLocale(data.language);
 
-  display.time = writeDigitsInLocale(display.time, locale);
+  // "10.05" in Danish, "۱۰:۰۵" in Persian: the language's marks (#7914).
+  display.time = writeClockInLocale(display.time, locale);
   display.seconds =
     display.seconds === null
       ? null
@@ -356,7 +371,7 @@ export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
   }
 
   if (data.showDate) {
-    const dateFormat: Intl.DateTimeFormat | null = getDateTimeFormat({
+    const dateFormat: ReaderDateTimeFormat | null = getDateTimeFormat({
       locale: locale,
       timezones: [timezone],
       options: CLOCK_DATE_OPTIONS,

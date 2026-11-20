@@ -38,12 +38,11 @@ export interface TimelineDay {
   start: Date;
   end: Date;
   dayOfMonth: number;
-  // "Mon"
-  weekdayShort: string;
-  // "M"
-  weekdayNarrow: string;
-  // "Sep"
-  monthShort: string;
+  /*
+   * The day's names are the reader's, written where the day is drawn
+   * (OneUptimeDate.getDayOfWeekName, #7660): they were English's "Mon" and
+   * "Sep" here, on every page.
+   */
   isWeekend: boolean;
   isFirstOfMonth: boolean;
 }
@@ -121,9 +120,6 @@ export default class ScheduleTimelineLayout {
           data.timezone,
         ),
         dayOfMonth: date.date(),
-        weekdayShort: date.format("ddd"),
-        weekdayNarrow: date.format("dd").charAt(0),
-        monthShort: date.format("MMM"),
         isWeekend: isoWeekday === 6 || isoWeekday === 7,
         isFirstOfMonth: date.date() === 1,
       });

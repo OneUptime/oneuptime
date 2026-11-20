@@ -16,6 +16,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import CronTab from "../../../Utils/CronTab";
 import { describeCronSchedule } from "../../../Utils/CronScheduleText";
 import {
+  ReaderDateTimeFormat,
   getDateLocale,
   getDateTimeFormat,
   isEnglishDateLanguage,
@@ -122,23 +123,22 @@ export const formatNextRun: (date: Date, language: string) => string = (
   language: string,
 ): string => {
   const english: () => string = (): string => {
-    try {
-      return (
-        new Intl.DateTimeFormat("en-US", {
-          ...NEXT_RUN_FORMAT,
-          timeZone: "UTC",
-        }).format(date) + " UTC"
-      );
-    } catch {
-      return date.toUTCString();
-    }
+    const englishFormat: ReaderDateTimeFormat | null = getDateTimeFormat({
+      locale: "en-US",
+      timezones: ["UTC"],
+      options: NEXT_RUN_FORMAT,
+    });
+
+    return englishFormat
+      ? `${englishFormat.format(date)} UTC`
+      : date.toUTCString();
   };
 
   if (isEnglishDateLanguage(language)) {
     return english();
   }
 
-  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
     locale: getDateLocale(language),
     timezones: ["UTC"],
     options: NEXT_RUN_FORMAT,
