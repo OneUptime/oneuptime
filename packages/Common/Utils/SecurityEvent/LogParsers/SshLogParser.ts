@@ -1,6 +1,13 @@
+import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
+import {
+  ScrubbedAddress,
+  ScrubbedAddressPlace,
+  markClientAddressScrubbed,
+  readScrubbedAddress,
+} from "../ScrubbedAddress";
 import {
   MAX_TEXT_LINE_LENGTH,
   SecurityLogLine,
@@ -30,6 +37,14 @@ import {
  * The account name is whatever the client sent, so it can hold spaces and
  * even " from ". The address is therefore read after the LAST " from ",
  * which sshd writes after the name.
+ *
+ * Where an IP Address log scrub rule hid the address, the line holds what
+ * the rule left ("Failed password for root from [REDACTED] port 52314
+ * ssh2"). The sign-in is still one (#10485): an event with no principal IP
+ * that says a scrub rule hid it (Utils/SecurityEvent/ScrubbedAddress), so
+ * "Repeated failed sign-ins for one account" still counts it, and the rules
+ * that count per address leave it out rather than count every hidden
+ * address as one (#10415).
  */
 
 export const SSH_AUTHENTICATION_CLASS_UID: number = 3002;
@@ -52,7 +67,20 @@ export interface SshSignIn {
   method: string;
   user: string;
   isInvalidUser: boolean;
+  // The address the sign-in came from; '' when a scrub rule hid it.
   ip: string;
+  // What a scrub rule left where the address was, when it hid it.
+  scrubbed: ScrubbedAddress | null;
+  // The address as the line writes it: the address, or what the rule left.
+  source: string;
+  port: number;
+}
+
+interface SshSource {
+  fromIndex: number;
+  ip: string;
+  scrubbed: ScrubbedAddress | null;
+  source: string;
   port: number;
 }
 
@@ -92,11 +120,12 @@ function isMethodName(method: string): boolean {
   });
 }
 
-// The address and port after the last " from " that follows `from`.
-function readSource(
-  text: string,
-  from: number,
-): { fromIndex: number; ip: string; port: number } | null {
+/*
+ * The address and port after the last " from " that follows `from`: an
+ * address, or what a scrub rule left where it was. Anything else - a name,
+ * a word - is no sign-in line of sshd's.
+ */
+function readSource(text: string, from: number): SshSource | null {
   const fromIndex: number = text.lastIndexOf(FROM);
 
   if (fromIndex < from) {
@@ -104,9 +133,13 @@ function readSource(
   }
 
   const ipStart: number = fromIndex + FROM.length;
-  const ip: string = readIpAddress(readWord(text, ipStart));
+  const word: string = readWord(text, ipStart);
+  const ip: string = readIpAddress(word);
+  const scrubbed: ScrubbedAddress | null = ip
+    ? null
+    : readScrubbedAddress(word);
 
-  if (!ip) {
+  if (!ip && !scrubbed) {
     return null;
   }
 
@@ -114,7 +147,7 @@ function readSource(
   const port: number =
     portIndex === -1 ? 0 : readPort(readWord(text, portIndex + PORT.length));
 
-  return { fromIndex, ip, port };
+  return { fromIndex, ip, scrubbed, source: ip || word, port };
 }
 
 // "Failed <method> for [invalid user ]<user> from <ip> port <port>" and Accepted.
@@ -150,8 +183,7 @@ function readAttempt(
     userStart += INVALID_USER_PREFIX.length;
   }
 
-  const source: { fromIndex: number; ip: string; port: number } | null =
-    readSource(text, userStart);
+  const source: SshSource | null = readSource(text, userStart);
 
   if (!source) {
     return null;
@@ -169,6 +201,8 @@ function readAttempt(
     user,
     isInvalidUser,
     ip: source.ip,
+    scrubbed: source.scrubbed,
+    source: source.source,
     port: source.port,
   };
 }
@@ -182,8 +216,7 @@ function readInvalidUser(text: string): SshSignIn | null {
   }
 
   const userStart: number = markerIndex + INVALID_USER_MARKER.length;
-  const source: { fromIndex: number; ip: string; port: number } | null =
-    readSource(text, userStart);
+  const source: SshSource | null = readSource(text, userStart);
 
   if (!source) {
     return null;
@@ -201,6 +234,8 @@ function readInvalidUser(text: string): SshSignIn | null {
     user,
     isInvalidUser: true,
     ip: source.ip,
+    scrubbed: source.scrubbed,
+    source: source.source,
     port: source.port,
   };
 }
@@ -229,9 +264,24 @@ export default class SshLogParser {
     const host: string = readLogHost(line);
     const isFailure: boolean = signIn.outcome === "Failure";
 
+    // The address as the line says it: what a scrub rule left, when it hid it.
     const message: string = isFailure
-      ? `Failed SSH sign-in${signIn.isInvalidUser ? " for unknown user" : " for"} ${signIn.user} from ${signIn.ip}${host ? ` on ${host}` : ""}`
-      : `SSH sign-in for ${signIn.user} from ${signIn.ip}${host ? ` on ${host}` : ""}`;
+      ? `Failed SSH sign-in${signIn.isInvalidUser ? " for unknown user" : " for"} ${signIn.user} from ${signIn.source}${host ? ` on ${host}` : ""}`
+      : `SSH sign-in for ${signIn.user} from ${signIn.source}${host ? ` on ${host}` : ""}`;
+
+    const attributes: JSONObject = {
+      "ssh.method": signIn.method,
+      "ssh.invalid_user": signIn.isInvalidUser ? "true" : "false",
+      ...(signIn.port ? { "source.port": String(signIn.port) } : {}),
+    };
+
+    // A scrub rule hid the address: the event says so, and names none.
+    if (signIn.scrubbed) {
+      markClientAddressScrubbed(attributes, {
+        scrubbed: signIn.scrubbed,
+        place: ScrubbedAddressPlace.LogBody,
+      });
+    }
 
     return [
       buildLogSecurityEvent({
@@ -245,11 +295,7 @@ export default class SshLogParser {
         principalUser: signIn.user,
         principalIp: signIn.ip,
         targetHost: host,
-        attributes: {
-          "ssh.method": signIn.method,
-          "ssh.invalid_user": signIn.isInvalidUser ? "true" : "false",
-          ...(signIn.port ? { "source.port": String(signIn.port) } : {}),
-        },
+        attributes,
       }),
     ];
   }
