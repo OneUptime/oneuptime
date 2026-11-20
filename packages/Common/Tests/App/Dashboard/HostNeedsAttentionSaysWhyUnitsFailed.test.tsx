@@ -585,7 +585,7 @@ describe("in Persian", () => {
 
     const words: Translator = createTranslator(
       (key: string): string | undefined => {
-        return (persianLocale as Record<string, string>)[key];
+        return (persianLocale as unknown as Record<string, string>)[key];
       },
       "fa",
     );

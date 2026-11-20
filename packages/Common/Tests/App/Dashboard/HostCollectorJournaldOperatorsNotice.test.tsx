@@ -388,7 +388,7 @@ describe("in Persian", () => {
       nsSeparator: false,
       initImmediate: false,
     });
-    const words: Record<string, string> = persianLocale as Record<
+    const words: Record<string, string> = persianLocale as unknown as Record<
       string,
       string
     >;
