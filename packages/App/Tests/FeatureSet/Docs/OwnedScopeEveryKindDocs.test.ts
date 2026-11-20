@@ -72,7 +72,7 @@ const OWNED_PARAGRAPH_LEAD: Record<string, string> = {
 const OWNED_PARAGRAPH_SAYS: Record<string, Array<string>> = {
   en: [
     "It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers.",
-    "Probes, Runners, AI agents, on-call schedules and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own.",
+    "Probes, Runners, AI agents, on-call schedules, network sites and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own.",
     "A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own.",
   ],
   da: [

@@ -44,6 +44,8 @@ Het type, de naam, de beschrijving, de ouder en de ligging van een locatie bewer
 
 Locaties die niets bevatten, gaan in één stap: **Lege locaties verwijderen**, in het menu boven de lijst **Locaties**, toont elke locatie zonder apparaten (ook gearchiveerde), zonder locaties eronder en zonder endpoint, koppeling, regel of onderhoudsgebeurtenis die haar gebruikt. Het noemt de eerste tien en verwijdert na uw bevestiging precies de getoonde locaties: een locatie die intussen een apparaat krijgt, blijft bestaan. Het is voor wie locaties mag verwijderen.
 
+De kaart **Hierarchy** boven aan de pagina **Locaties** tekent de boom. Ze blijft ingeklapt tot je op **Hiërarchie tonen** klikt, en blijft de volgende keer zichtbaar als je haar zichtbaar laat. Ze toont eerst de locaties op het hoogste niveau, vijftig tegelijk, en de onderliggende locaties van een locatie zodra je die opent. **Locaties zoeken op naam** vindt een locatie overal in de boom en opent de locaties erboven, en **Locaties zonder apparaten verbergen** laat elke locatie weg zonder apparaat erin of eronder.
+
 Elk apparaat hangt aan één locatie. De subboom van een locatie is de locatie zelf plus elke locatie eronder, en de apparaten van de subboom zijn waaruit haar gezondheid wordt samengevat, dus een regio zonder eigen apparaten heeft toch een status, omdat de units eronder die hebben.
 
 > [!NOTE]
@@ -81,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` en `siteType` zijn verplicht. `siteType` moet een van de locatietypen van het project zijn.
 - `parentName` noemt de bovenliggende locatie, die in hetzelfde bestand mag staan: rijen zonder ouder, of met een ouder die al bestaat, gaan eerst, daarna hun kinderen. Laat het leeg voor een locatie op het hoogste niveau.
 - Een rij waarvan de ouder niet gevonden wordt, wordt overgeslagen, en de resultaten noemen haar. **Voorbeeld van import** laat zien wat het bestand gaat maken voordat er iets wordt weggeschreven.
+
+## Veel locaties tegelijk wijzigen
+
+Een import van een Meraki-organisatie voegt een locatie toe voor elk van haar netwerken, allemaal op het hoogste niveau. Je opent ze niet een voor een: selecteer ze in de lijst **Locaties**, door rijen aan te vinken of alle locaties te selecteren die aan de filters voldoen, en open **Bulkacties**.
+
+| Actie | Wat ze doet |
+| --- | --- |
+| **Bovenliggende locatie instellen** / **Bovenliggende locatie wissen** | Verplaatst elke geselecteerde locatie, met alle locaties eronder, onder de locatie die je kiest, waar ze meetelt voor de gezondheid van die locatie. **Bovenliggende locatie wissen** verplaatst ze naar het hoogste niveau. Een locatie heeft een type nodig om onder een andere te staan, en een locatie die een Meraki-import toevoegt heeft er geen: als sommige van de geselecteerde locaties geen type hebben, vraagt het dialoogvenster welk type ze krijgen, en de andere houden het hunne. |
+| **Standaardsonde instellen** / **Standaardsonde wissen** | Stelt de [standaardsonde](#monitoringstandaarden) van elke geselecteerde locatie in, voor de apparaten die er later aan worden toegevoegd. De apparaten die er al op staan, houden hun sondes. |
+| **Labels toevoegen** / **Labels verwijderen** | Labels groeperen locaties zodat je ze samen kunt filteren en selecteren. Ze bepalen niet wie een locatie kan zien. |
+| **Eigenaar toevoegen** / **Eigenaar verwijderen** | De eigenaren van een locatie zijn eigenaar van de waarschuwing die ze geeft wanneer ze ongezond is. De pagina **Eigenaren** van een locatie toont ze. |
+
+Elke actie is één dialoogvenster en één keer opslaan voor de hele selectie, en elke locatie doorloopt dezelfde controles als een bewerking op haar eigen pagina Instellingen. Als een actie klaar is, somt ze op hoeveel locaties zijn gewijzigd, welke mislukten en waarom (een locatie kan niet onder zichzelf of een locatie eronder komen, en ook niet onder een locatie van een type dat alleen apparaten bevat), en welke ze niet heeft gewijzigd en waarom: een locatie die al onder die bovenliggende locatie stond, of de locatie die als bovenliggende is gekozen.
 
 ## De kaart
 
@@ -213,7 +228,7 @@ Een monitor aan dezelfde gebeurtenis koppelen, doet nog steeds wat het altijd de
 
 ## Waarschuwen op een locatie
 
-De kaart **Alerting** op de pagina **Instellingen** van een locatie heeft **Alert When Unhealthy**: er opent een waarschuwing als het overzicht van de locatie naar een status gaat die niet operationeel is, en die lost zichzelf op als de locatie herstelt. **Ernst van waarschuwing** stelt de ernst in; leeg gelaten is het de zwaarste van het project.
+De kaart **Alerting** op de pagina **Instellingen** van een locatie heeft **Alert When Unhealthy**: er opent een waarschuwing als het overzicht van de locatie naar een status gaat die niet operationeel is, en die lost zichzelf op als de locatie herstelt. **Ernst van waarschuwing** stelt de ernst in; leeg gelaten is het de zwaarste van het project. De eigenaren van de locatie, op haar pagina **Eigenaren**, zijn eigenaar van de waarschuwing.
 
 Er wordt alleen op de wijziging gewaarschuwd: het aanzetten voor een locatie die al ongezond is, wacht op de volgende wijziging in plaats van over het verleden te waarschuwen. Degraded is niet operationeel, dus een locatie met het percentagebeleid waarschuwt zodra een van haar meldende apparaten uitvalt, net als een locatie met het beleid van de slechtste status; de waarschuwing blijft open, zonder een tweede, terwijl de locatie tussen Degraded en Offline wisselt, en haar titel noemt de status die de locatie als eerste bereikte.
 
