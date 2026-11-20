@@ -1,6 +1,7 @@
 import {
   UserOverrideFormTeamLimit,
   getUserOverrideFormFields,
+  getUserOverrideFormTeamLimitKey,
   prepareUserOverrideForCreate,
   prepareUserOverrideForUpdate,
 } from "./UserOverrideForm";
@@ -210,11 +211,8 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
     : undefined;
 
   // What the fields are rebuilt for when the team limit is known.
-  const teamLimitSignature: string = formTeamLimit
-    ? `${formTeamLimit.teamIds.join(",")}|${formTeamLimit.hint || ""}|${
-        formTeamLimit.memberIds ? formTeamLimit.memberIds.size : "-"
-      }`
-    : "";
+  const teamLimitSignature: string =
+    getUserOverrideFormTeamLimitKey(formTeamLimit);
 
   /*
    * What each question asked under Ends found: whether those times overlap

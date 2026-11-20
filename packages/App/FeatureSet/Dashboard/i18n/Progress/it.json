@@ -339,6 +339,7 @@
     "Seccomp (Restricted)",
     "Server",
     "Server / VM",
+    "Server: {{server}}",
     "Serverless",
     "Service Mesh",
     "Shell",

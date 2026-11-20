@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | Eine globale Sonde, die die Prüfungen Ihrer Monitore ausführt. Sie nutzt das Netzwerk des Hosts. |
 | `global-runner` | `oneuptime/runner` | Der mitgelieferte globale Runner, der die JavaScript-Schritte von Runbooks und die Codekorrekturen von OneUptime AI für jedes Projekt ausführt. |
 | `postgres` | `postgres:15` | Konfiguration und Zustand: Monitore, Vorfälle, Benutzer. Gespeichert im Volume `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetrie: Logs, Metriken, Traces und Exceptions. Gespeichert im Volume `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Telemetrie: Logs, Metriken, Traces und Exceptions. Gespeichert im Volume `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache und Warteschlangen. Er speichert nichts auf der Festplatte. |
 
 > [!NOTE]
@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` prüft OneUptime auf seinem neuen Port, `localhost:8080`, und endet mit **OneUptime is up!**
+`npm start` prüft OneUptime dort, wo der Ingress jetzt lauscht, `127.0.0.1:8080`, und endet mit **OneUptime is up!**
+
+Nur dieser Server erreicht den Ingress jetzt. Der Ingress leitet Anfragen nach Hostnamen weiter: Nur `HOST` und `localhost` erreichen die gesamte Anwendung, und jeder andere Name, auch die Adresse `127.0.0.1`, wird als Domain einer Statusseite behandelt. Darum gibt Ihr Proxy `HOST` weiter, den Namen, den der Browser angefragt hat, die Sonde ruft `http://localhost:8080` auf, und die Prüfung, mit der `npm start` endet, verbindet sich wie `npm run doctor` mit `127.0.0.1:8080`, unter dem Hostnamen `localhost:8080`.
 
 #### Den Proxy konfigurieren
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Sobald jeder Container läuft, führen Sie die Prüfung mit `npm run status-check` erneut aus. Sie prüft den Ingress auf dem Port, den `ONEUPTIME_HTTP_PORT` festlegt.
+Sobald jeder Container läuft, führen Sie die Prüfung mit `npm run status-check` erneut aus. Sie prüft den Ingress dort, wo `ONEUPTIME_HTTP_PORT` ihn veröffentlicht, mit Adresse und Port, etwa `127.0.0.1:8080`, und unter dem Hostnamen `localhost`, wie ein Browser auf dem Server. Mit `PROVISION_SSL=true` prüft sie außerdem `HOST` über HTTPS, dort, wo `STATUS_PAGE_HTTPS_PORT` den Ingress veröffentlicht.
 :::
 
 :::details Der Browser zeigt "OneUptime ist für diese Adresse nicht eingerichtet"

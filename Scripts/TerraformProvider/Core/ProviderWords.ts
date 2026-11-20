@@ -21,3 +21,11 @@ export const URL_ATTRIBUTE_DESCRIPTION: string =
 
 export const API_KEY_ATTRIBUTE_DESCRIPTION: string =
   "An API key of the project to manage, from its **Settings** > **API Keys**. Falls back to the `ONEUPTIME_API_KEY` environment variable; the provider stops before any plan when neither is set.";
+
+/*
+ * The provider's third setting (#10134): what a configuration's list of
+ * records OneUptime adds to as well - a record's labels, an incident's
+ * on-call policies - holds (StaticFiles/entries.go).
+ */
+export const EXCLUSIVE_LISTS_ATTRIBUTE_DESCRIPTION: string =
+  "How a configuration holds a list OneUptime adds to as well, such as a record's `labels`, which label rules add to. Left out or `false`, Terraform adds and takes off the entries the configuration lists and leaves every other entry: one OneUptime or a person adds stays. `true` makes the configuration's list the record's whole list, as earlier versions of the provider did: Terraform takes off every entry the configuration does not list, one a rule added included.";

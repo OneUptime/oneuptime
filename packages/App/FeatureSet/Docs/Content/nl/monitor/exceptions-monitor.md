@@ -129,7 +129,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een uitzonderingen-monitor hebben zes soorten **Filtertype**: **Aantal uitzonderingen**, het aantal uitzonderingen dat in het venster overeenkwam, en **Nieuwe uitzonderingen**, **Opnieuw opgetreden uitzonderingen**, **Toename van uitzonderingen (in %)**, **Sessies met uitzonderingen (in %)** en **Sessies**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
+De criteria van een uitzonderingen-monitor hebben acht soorten **Filtertype**: **Aantal uitzonderingen**, het aantal uitzonderingen dat in het venster overeenkwam, en **Nieuwe uitzonderingen**, **Opnieuw opgetreden uitzonderingen**, **Toename van uitzonderingen (in %)**, **Sessies met uitzonderingen (in %)**, **Sessies**, **Installaties met uitzonderingen (in %)** en **Installaties**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
@@ -184,6 +184,19 @@ Een app op duizenden telefoons heeft altijd wel wat crashes, dus wat het team wi
 | **Sessies** | De sessies in het venster: de verschillende `session.id` van de spans van de services van de monitor. Combineer dit filtertype met het aandeel, zodat een aandeel van een paar sessies geen waarschuwing geeft. |
 
 Met **Alleen niet-afgehandelde uitzonderingen** aan en de typen `ANR` en `Hang` uitgesloten, is het aandeel het crashpercentage van een mobiele app. De aanbeveling **App Crash Rate** van een mobiele app waarschuwt wanneer meer dan 1,09% van de sessies van een uur crasht, het percentage dat Android vitals slecht gedrag noemt, zodra het uur minstens 250 sessies heeft. **App ANR Rate** telt alleen `ANR` en `Hang`, boven 0,47%. Om zelf zo'n regel te schrijven, kiest u **Een aandeel van de sessies** onder **Waarschuwen bij** in **Wanneer waarschuwen**.
+
+## Een aandeel van de installaties
+
+Over een dag is het percentage dat Android vitals beoordeelt en de Play Console toont het aandeel van de installaties van een app dat crashte: iemand bij wie de app vijf keer crasht, is één installatie die crashte. Voor een mobiele app waarvan de telemetrie de installatie noemt, kan een uitzonderingen-monitor waarschuwen bij dat aandeel, naast of in plaats van het aandeel van de sessies.
+
+| Filtertype | Wat het leest in het venster |
+| --- | --- |
+| **Installaties met uitzonderingen (in %)** | Het aandeel van de installaties in het venster waarop een overeenkomende uitzondering optrad. Zonder installatie in het venster is er geen aandeel, en komt geen criterium erop overeen. |
+| **Installaties** | De installaties in het venster: de verschillende installaties die de spans van de services van de monitor noemen. Combineer dit filtertype met het aandeel, zodat een aandeel van een paar installaties geen waarschuwing geeft. |
+
+Een installatie is wat de resource van de app noemt: de `app.installation.id` die OpenTelemetry Android vanaf versie 1.1 instelt, anders de `device.id` van een iOS-app, zijn leveranciers-ID. Een Android-installatie eindigt wanneer de app wordt verwijderd, dus een herinstallatie is een nieuwe installatie. Een iOS-installatie blijft bestaan zolang een van de apps van de leverancier op het apparaat staat, dus de enige opnieuw installeren levert een nieuwe installatie op, en een van twee opnieuw installeren niet. Een installatie hoort bij het venster wanneer de app er een span in stuurde. Een crash telt ook mee wanneer de installatie ervan geen span stuurde, zoals een iOS-crash die MetricKit een dag later meldt, en het aandeel komt nooit boven 100%.
+
+**Daily Crash Rate** waarschuwt wanneer meer dan 1,09% van minstens 250 installaties op een dag crasht, en **Daily ANR Rate** wanneer meer dan 0,47% ervan een ANR of een vastloper heeft. Om zelf zo'n regel te schrijven, kiest u **Een aandeel van de installaties** onder **Waarschuwen bij** in **Wanneer waarschuwen**.
 
 ## Pieken ten opzichte van wat normaal is
 

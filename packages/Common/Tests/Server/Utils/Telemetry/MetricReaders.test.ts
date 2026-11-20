@@ -28,6 +28,7 @@ import {
   MetricNameReference,
   MetricReaderKind,
   MetricReaders,
+  MetricReadersOfKind,
   MetricReaderWidget,
 } from "../../../../Server/Utils/Telemetry/MetricReaders";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -982,5 +983,94 @@ describe("which records read it", () => {
       expect.objectContaining({ name: "Growth" }),
       expect.objectContaining({ name: "Variables", widgets: [] }),
     ]);
+  });
+});
+
+/*
+ * #10078: a caller that tells more of what each reader reads - which cloud
+ * resource a query names - asks for the references that read it. Every
+ * reference of a record is then asked, not only up to the first that reads
+ * it; the hidden readers' are kept apart, never with a name; and an answer
+ * that did not ask for them has none, as Drop This Metric's.
+ */
+describe("the references that read it, when asked for", () => {
+  test("each reader with its references that read it, every one of them; a hidden reader's apart, never named", async () => {
+    const twoQueries: Monitor = monitorOf("Two signups", LEAKED);
+
+    (
+      twoQueries as unknown as {
+        monitorSteps: {
+          value: {
+            monitorStepsInstanceArray: Array<{
+              data: {
+                metricMonitor: {
+                  metricViewConfig: { queryConfigs: Array<unknown> };
+                };
+              };
+            }>;
+          };
+        };
+      }
+    ).monitorSteps.value.monitorStepsInstanceArray[0]!.data.metricMonitor.metricViewConfig.queryConfigs.push(
+      metricQuery(`${LEAKED}.retries`, [CHECKOUT]),
+      metricQuery("http.server.duration"),
+    );
+    monitors.splice(
+      0,
+      monitors.length,
+      twoQueries,
+      monitorOf("Hidden", LEAKED),
+    );
+    serve(MonitorService, {
+      all: monitors,
+      visible: (monitor: Monitor): boolean => {
+        return monitor.name !== "Hidden";
+      },
+    });
+
+    const asked: Array<string> = [];
+    const found: MetricReaders = await findMetricReaders({
+      projectId: PROJECT_ID,
+      reads: (reference: MetricNameReference): boolean => {
+        asked.push(reference.metricName);
+        return readsLeak(reference);
+      },
+      props: PROPS,
+      keepsReferences: true,
+    });
+    const monitorsFound: MetricReadersOfKind = found[MetricReaderKind.Monitor];
+
+    expect(monitorsFound.readers).toEqual([
+      {
+        id: twoQueries.id!.toString(),
+        name: "Two signups",
+        references: [
+          { metricName: LEAKED, serviceIds: null },
+          { metricName: `${LEAKED}.retries`, serviceIds: [CHECKOUT] },
+        ],
+      },
+    ]);
+    // Every reference asked: not only up to the first that reads it.
+    expect(asked).toContain("http.server.duration");
+    expect(monitorsFound.hiddenCount).toBe(1);
+    expect(monitorsFound.hiddenReferences).toEqual([
+      { metricName: LEAKED, serviceIds: null },
+    ]);
+    // A dashboard's references are its widgets' that read it.
+    expect(found[MetricReaderKind.Dashboard].readers[0]!.references).toEqual([
+      { metricName: LEAKED, serviceIds: null },
+    ]);
+  });
+
+  test("not asked for, none: the answer Drop This Metric reads is as it was", async () => {
+    const found: MetricReaders = await readers();
+
+    for (const kind of METRIC_READER_KINDS) {
+      expect(found[kind].hiddenReferences).toBeUndefined();
+
+      for (const reader of found[kind].readers) {
+        expect(reader.references).toBeUndefined();
+      }
+    }
   });
 });

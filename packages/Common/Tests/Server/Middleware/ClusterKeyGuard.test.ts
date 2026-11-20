@@ -1392,17 +1392,89 @@ function problemsOfTool(
     return problems;
   }
 
-  // The clusterkey header, as ClusterKeyAuthorization reads it, and no other.
+  /*
+   * The clusterkey header, as ClusterKeyAuthorization reads it, and no
+   * other - but the Host header of a tool listed with one, which names the
+   * ingress by the name it serves OneUptime under (#10024).
+   */
   const headerNames: Array<string> = headersObject.properties.map(
     (property: ts.ObjectLiteralElementLike): string => {
       return nameOfProperty(property, sourceFile);
     },
   );
+  const listedHeaderNames: Array<string> = entry.host
+    ? ["Host", "clusterkey"]
+    : ["clusterkey"];
 
-  if (headerNames.join(", ") !== "clusterkey") {
+  if (headerNames.join(", ") !== listedHeaderNames.join(", ")) {
     problems.push(
-      `its request's headers are ${headerNames.join(", ")}, not the clusterkey header alone`,
+      `its request's headers are ${headerNames.join(", ")}, not ${entry.host ? "the Host header and then the clusterkey header" : "the clusterkey header alone"}`,
     );
+  }
+
+  /*
+   * The Host header's value: as listed, and made of the declarations listed
+   * for it alone, each declared as written - the ingress's own name, which
+   * changes nothing of where the request goes, never the key.
+   */
+  if (entry.host) {
+    const hostHeader: ts.ObjectLiteralElementLike | undefined =
+      headersObject.properties.find(
+        (property: ts.ObjectLiteralElementLike): boolean => {
+          return nameOfProperty(property, sourceFile) === "Host";
+        },
+      );
+    const hostValue: ts.Expression | null =
+      hostHeader && ts.isPropertyAssignment(hostHeader)
+        ? hostHeader.initializer
+        : null;
+
+    if (!hostValue || hostValue.getText(sourceFile) !== entry.host.value) {
+      problems.push(
+        `its Host header is ${hostValue ? hostValue.getText(sourceFile) : "not a value of its own"}, not ${entry.host.value}`,
+      );
+    } else {
+      const hostListedNames: Array<string> = [];
+
+      for (const line of entry.host.declarations) {
+        for (const name of namesDeclaredBy(line)) {
+          hostListedNames.push(name);
+
+          const written: string = statementTextOf(
+            declarationOf(name, hostValue),
+            sourceFile,
+          );
+
+          if (written !== oneLine(line)) {
+            problems.push(
+              `${name}, of the Host header, is declared as ${written}, not ${line}`,
+            );
+          }
+        }
+      }
+
+      const hostNames: Array<string> = [];
+
+      const collectHostNames: (node: ts.Node) => void = (
+        node: ts.Node,
+      ): void => {
+        if (ts.isIdentifier(node) && usesAName(node)) {
+          hostNames.push(node.text);
+        }
+
+        ts.forEachChild(node, collectHostNames);
+      };
+
+      collectHostNames(hostValue);
+
+      for (const name of hostNames) {
+        if (!hostListedNames.includes(name)) {
+          problems.push(
+            `the Host header is made of ${name}, which is not listed`,
+          );
+        }
+      }
+    }
   }
 
   /*
@@ -2010,6 +2082,75 @@ describe("the installation's own tools present the key to the doctor alone, on t
       expect(problemsOfTool(doctor)).toEqual([]);
     });
 
+    /*
+     * The Host header beside the key's names the ingress by the name it
+     * serves OneUptime under (#10024): any other value, or one made of
+     * anything but its listed declaration, fails.
+     */
+    test("npm run doctor sending the key with a Host header of another value", () => {
+      expect(
+        problemsOfTool(
+          doctor,
+          changed(
+            doctor,
+            "headers: { Host: ingressHost, clusterkey: encodeURIComponent(secret) },",
+            'headers: { Host: settings.get("HOST"), clusterkey: encodeURIComponent(secret) },',
+          ),
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          'its Host header is settings.get("HOST"), not ingressHost',
+        ]),
+      );
+    });
+
+    test("npm run doctor naming the Host header from a declaration other than the listed one", () => {
+      expect(
+        problemsOfTool(
+          doctor,
+          changed(
+            doctor,
+            'const ingressHost = ingress ? ingress.host : "localhost";',
+            'const ingressHost = String(settings.get("HOST") || "localhost");',
+          ),
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          'ingressHost, of the Host header, is declared as const ingressHost = String(settings.get("HOST") || "localhost");, not const ingressHost = ingress ? ingress.host : "localhost";',
+        ]),
+      );
+    });
+
+    test("npm run doctor sending another header beside the key's", () => {
+      expect(
+        problemsOfTool(
+          doctor,
+          changed(
+            doctor,
+            "headers: { Host: ingressHost, clusterkey: encodeURIComponent(secret) },",
+            "headers: { Host: ingressHost, clusterkey: encodeURIComponent(secret), Referer: ingressUrl },",
+          ),
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          "its request's headers are Host, clusterkey, Referer, not the Host header and then the clusterkey header",
+        ]),
+      );
+    });
+
+    test("a tool listed without a Host header that sends one fails, as before", () => {
+      const withoutHost: ClusterKeyRouteToolCaller = {
+        ...doctor,
+        host: undefined,
+      };
+
+      expect(problemsOfTool(withoutHost)).toEqual(
+        expect.arrayContaining([
+          "its request's headers are Host, clusterkey, not the clusterkey header alone",
+        ]),
+      );
+    });
+
     test("diagnose.sh presenting the key without asking whether the app refuses it", () => {
       expect(
         problemsOfTool(
@@ -2122,8 +2263,8 @@ describe("the installation's own tools present the key to the doctor alone, on t
             "\n  isPlaceholderValue,\n",
             "\n  isPlaceholderValue: _isPlaceholderValue,\n",
           ).replace(
-            'const { ingressUrlOf } = require("./FollowIngressPort");',
-            'const { ingressUrlOf } = require("./FollowIngressPort");\nconst isPlaceholderValue = () => false;',
+            'const { ingressRequestOf } = require("./FollowIngressPort");',
+            'const { ingressRequestOf } = require("./FollowIngressPort");\nconst isPlaceholderValue = () => false;',
           ),
         ).join("\n"),
       ).toContain(

@@ -104,7 +104,7 @@ O Android só deixa um aplicativo ler os logs de outros aplicativos com a permis
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Com o Esper, execute esse comando pelo **Secure Remote ADB**: ative o acesso ADB para o dispositivo, conecte-se com `espercli secureadb connect --device DEVICE_ID` e depois execute o comando. O Android reinicia o agente quando a permissão é concedida, e o agente começa a ler na mesma hora.
+Com o Esper, execute esse comando pelo **Secure Remote ADB**: ative o acesso ADB para o dispositivo, conecte-se com `espercli secureadb connect --device DEVICE_ID` e depois execute o comando. O Android reinicia o agente quando a permissão é concedida, e o agente começa a ler na mesma hora. A coluna **ID no gerenciador de dispositivos** do inventário traz o `DEVICE_ID` de cada dispositivo.
 
 O que o agente passa a ler depende da versão do Android:
 
@@ -126,7 +126,7 @@ O primeiro comando é para o Android 15 e posteriores; o acesso ao uso também p
 
 ### Conceder as permissões em toda a frota
 
-Cada relatório do agente diz quais dessas permissões ainda lhe faltam. Para listar os dispositivos que precisam delas, abra **Inventário**, depois **Todos os itens**, e filtre por **Permissões do agente**: **Ausente**. Ative a coluna **Permissões do agente** para ver o que falta em cada dispositivo e exporte a lista como CSV.
+Cada relatório do agente diz quais dessas permissões ainda lhe faltam. Para listar os dispositivos que precisam delas, abra **Inventário**, depois **Todos os itens**, e filtre por **Permissões do agente**: **Ausente**. Ative a coluna **Permissões do agente** para ver o que falta em cada dispositivo e exporte a lista como CSV. Ative também a coluna **ID no gerenciador de dispositivos**, e a exportação traz o ID do Esper de cada dispositivo, o `DEVICE_ID` que o `espercli secureadb connect --device` recebe.
 
 Uma política de dispositivo não consegue concedê-las: READ_LOGS e READ_DROPBOX_DATA são permissões que só o adb, o sistema ou o fabricante do dispositivo podem dar, e o acesso ao uso é definido pelo adb ou pela pessoa diante do dispositivo. O que o Esper oferece, e por que nada disso as concede:
 
@@ -204,7 +204,7 @@ Uma sessão precisa de READ_LOGS e de `logcat_enabled`; sem eles, ela mostra **I
 
 Em **Hosts**, o sistema operacional do dispositivo aparece como Android, com o logotipo do Android.
 
-Um dispositivo está atrasado nos patches de segurança quando o nível do patch de segurança dele tem mais de 90 dias. O Google publica um boletim de segurança do Android todo mês, e o Android Enterprise Recommended exige que o fabricante de um dispositivo distribua cada um em até 90 dias, então um dispositivo mais atrasado do que isso não tem correções que o fabricante dele já deveria ter distribuído. Em **Inventário**, o filtro **Nível do patch de segurança** lista esses dispositivos em **Atualização necessária**; o modelo **Security Patch Out of Date** abre um alerta para cada um.
+Um dispositivo está atrasado nos patches de segurança quando o nível do patch de segurança dele tem mais de 90 dias. O Google publica um boletim de segurança do Android todo mês, e o Android Enterprise Recommended exige que o fabricante de um dispositivo distribua cada um em até 90 dias, então um dispositivo mais atrasado do que isso não tem correções que o fabricante dele já deveria ter distribuído. Em **Inventário**, o filtro **Nível do patch de segurança** lista esses dispositivos em **Atualização necessária**; o modelo **Security Patch Out of Date** abre um alerta para cada um. Um dispositivo Android que um gerenciador de dispositivos importa, e que não executa o agente, recebe o alerta do modelo da própria conexão dele, como **Esper Security Patch Out of Date**, pelo nível do patch que o gerenciador de dispositivos informa; um dispositivo que executa o agente fica a cargo deste modelo, então nunca alerta duas vezes.
 
 As inicializações do dispositivo na última hora são a métrica `android.boot.recent_count`, e um dispositivo que não para de reiniciar registra um aviso a cada inicialização. Em **Hosts**, um dispositivo Android recebe modelos de alerta próprios: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full e Security Patch Out of Date, junto com Host Stopped Reporting, Host Restarted e High Memory Utilization, e High CPU Utilization quando ele passa a informar o uso de CPU. Os primeiros comandos de depuração de cada alerta são comandos adb. Veja [Monitor de hosts](/docs/monitor/host-monitor#dispositivos-android).
 

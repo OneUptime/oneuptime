@@ -25,11 +25,15 @@ import {
 
 /*
  * A connection's secrets, decrypted: whichever its service takes. Esper
- * takes an API key; Microsoft Intune an app registration's client secret.
+ * takes an API key; Microsoft Intune an app registration's client secret;
+ * Workspace ONE an OAuth client's secret, or an administrator's password
+ * and the tenant's REST API key (apiKey); SOTI MobiControl an API client's
+ * secret and its API user's password.
  */
 export interface DeviceManagementSecrets {
   apiKey: string;
   clientSecret?: string | undefined;
+  password?: string | undefined;
 }
 
 /*
@@ -46,11 +50,13 @@ export interface DeviceManagementSettings extends DeviceManagementSecrets {
 export function getDeviceManagementSecretValues(
   secrets: DeviceManagementSecrets,
 ): Array<string> {
-  return [secrets.apiKey, secrets.clientSecret || ""].filter(
-    (value: string): boolean => {
-      return Boolean(value);
-    },
-  );
+  return [
+    secrets.apiKey,
+    secrets.clientSecret || "",
+    secrets.password || "",
+  ].filter((value: string): boolean => {
+    return Boolean(value);
+  });
 }
 
 /*
@@ -205,6 +211,14 @@ export interface DeviceManagementSession {
    * of the apps it pushed. A device it does not is never due.
    */
   readsAppsOf(device: { platform: ManagedDevicePlatform }): boolean;
+  /*
+   * The most devices whose apps one read reads, for a service whose API
+   * counts every request against a daily quota (Workspace ONE): absent,
+   * the runner's own MAX_APP_DEVICES_PER_READ. A device past it waits for
+   * the next scheduled read, which is not brought forward for it - an
+   * early read would spend the quota on the device list again.
+   */
+  maxAppDevicesPerRead?: number | undefined;
   // One device's installed apps, every page of them.
   readApps(data: {
     enterpriseId: string;

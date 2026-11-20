@@ -104,7 +104,7 @@ Android 只允许拥有 READ_LOGS 权限的应用读取其他应用的日志，�
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-使用 Esper 时，请通过 **Secure Remote ADB** 运行该命令：为设备开启 ADB 访问，用 `espercli secureadb connect --device DEVICE_ID` 连接，然后运行命令。授予权限后，Android 会重启代理，代理随即开始读取。
+使用 Esper 时，请通过 **Secure Remote ADB** 运行该命令：为设备开启 ADB 访问，用 `espercli secureadb connect --device DEVICE_ID` 连接，然后运行命令。授予权限后，Android 会重启代理，代理随即开始读取。资产清单的 **设备管理服务 ID** 列显示每台设备的 `DEVICE_ID`。
 
 之后代理读取的内容取决于 Android 版本：
 
@@ -126,7 +126,7 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 ### 为整个设备群授予这些权限
 
-代理的每次上报都会说明它仍缺少其中哪些权限。要列出需要这些权限的设备，请打开 **资产清单** ，再打开 **所有项目** ，然后把 **代理权限** 筛选条件设为 **缺失** 。开启 **代理权限** 列即可查看每台设备缺少什么，并可将列表导出为 CSV。
+代理的每次上报都会说明它仍缺少其中哪些权限。要列出需要这些权限的设备，请打开 **资产清单** ，再打开 **所有项目** ，然后把 **代理权限** 筛选条件设为 **缺失** 。开启 **代理权限** 列即可查看每台设备缺少什么，并可将列表导出为 CSV。再开启 **设备管理服务 ID** 列，导出的列表就会包含每台设备的 Esper ID，即作为 `DEVICE_ID` 传给 `espercli secureadb connect --device` 的值。
 
 设备策略无法授予这些权限：READ_LOGS 和 READ_DROPBOX_DATA 是只有 adb、系统或设备制造商才能授予的权限，而使用情况访问权限由 adb 或设备前的人设置。下面是 Esper 提供的几种方式，以及它们为何都无法授予这些权限：
 
@@ -204,7 +204,7 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 
 在 **主机** 中，设备的操作系统显示为 Android，并带有 Android 的标志。
 
-当设备的安全补丁级别距今超过 90 天时，它的安全补丁就落后了。Google 每月发布一期 Android 安全公告，Android Enterprise Recommended 要求设备制造商在 90 天内推送每一期的更新，因此落后得更久的设备缺少其制造商本应推送的修复。在 **资产清单** 中， **安全补丁级别** 筛选条件会列出 **需要更新** 的设备； **Security Patch Out of Date** 模板会针对每一台这样的设备发出警报。
+当设备的安全补丁级别距今超过 90 天时，它的安全补丁就落后了。Google 每月发布一期 Android 安全公告，Android Enterprise Recommended 要求设备制造商在 90 天内推送每一期的更新，因此落后得更久的设备缺少其制造商本应推送的修复。在 **资产清单** 中， **安全补丁级别** 筛选条件会列出 **需要更新** 的设备； **Security Patch Out of Date** 模板会针对每一台这样的设备发出警报。由设备管理服务导入、未运行代理的 Android 设备，由其连接自己的模板（例如 **Esper Security Patch Out of Date**）根据设备管理服务报告的补丁级别发出警报；运行代理的设备交由这个模板，因此不会重复发出警报。
 
 设备在过去一小时内的启动次数是指标 `android.boot.recent_count` ，不断重启的设备会在每次启动时记录一条警告日志。在 **主机** 中，Android 设备会获得自己的警报模板：Device Unplugged、Low Battery、Device Overheating、Restart Loop、Storage Nearly Full 和 Security Patch Out of Date，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，并在上报 CPU 使用率后获得 High CPU Utilization。每个警报最先给出的调试命令都是 adb 命令。请参阅 [主机监控](/docs/monitor/host-monitor#android-设备) 。
 

@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | La requête est incorrecte : la clé API est invalide, une valeur n'est pas autorisée, un champ ne peut pas être écrit, un enregistrement nommé n'est pas à vous, ou elle modifie plusieurs projets à la fois. Le message dit ce qui ne va pas. | [Les enregistrements qu'une requête nomme](#les-enregistrements-quune-requête-nomme) |
 | `402` | L'offre du projet n'inclut pas ce que la requête utilise. Le message nomme l'offre. | [Fonctionnalités que votre offre n'inclut pas](#fonctionnalités-que-votre-offre-ninclut-pas) |
 | `404` | L'enregistrement n'existe pas, se trouve dans un autre projet, ou vous n'avez pas le droit de le lire : la même réponse dans chaque cas. | [Modifier ou supprimer un enregistrement que vous ne pouvez pas lire](#modifier-ou-supprimer-un-enregistrement-que-vous-ne-pouvez-pas-lire) |
+| `413` | Le corps dépasse ce que OneUptime accepte dans la requête : 1 Mo contenant au plus 100 000 valeurs JSON pour la plupart des requêtes, et 50 Mo pour une requête qui envoie un fichier, un tableau de bord ou une page de statut. Le message indique la limite. Sur un serveur que vous gérez vous-même, `REQUEST_BODY_MAX_BYTES` et `REQUEST_BODY_MAX_JSON_VALUES` relèvent la limite de la plupart des requêtes. | [Requêtes et réponses](#requêtes-et-réponses) |
 | `422` | Vous n'avez pas le droit de faire cela : la clé API n'a aucune autorisation pour ce type d'enregistrement, vous pouvez lire l'enregistrement mais pas le modifier, ou les étiquettes d'une autorisation l'excluent. Le message dit pourquoi. | [Modifier ou supprimer un enregistrement que vous ne pouvez pas lire](#modifier-ou-supprimer-un-enregistrement-que-vous-ne-pouvez-pas-lire) |
 | `500` | Quelque chose a échoué côté serveur. Quand le propriétaire d'un nouvel enregistrement ne peut pas être écrit, l'enregistrement est retiré, donc la création peut être retentée. | [Les enregistrements qu'une requête nomme](#les-enregistrements-quune-requête-nomme) |
 
@@ -291,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 N'envoyez pas ces champs dans une mise à jour. Les rares qu'une personne modifie ont leur propre requête : renouveler un secret client SCIM fixe le moment où il cesse de fonctionner, et `POST /api/host/:id/try-collector-config-again` renvoie à un hôte la configuration du collecteur qui a échoué sur lui. Un champ que vous et OneUptime modifiez tous les deux, comme les `labels` d'un enregistrement, que les règles d'étiquettes complètent, vous le définissez comme avant.
+
+Une création qui a laissé un champ de côté le nomme dans l'en-tête `X-OneUptime-Fields-Left-Out` de la réponse, les champs séparés par des virgules ; une réponse qui n'a rien laissé de côté n'a pas cet en-tête. La CLI affiche les champs dans une note, la réponse du serveur MCP les liste dans `fieldsLeftOut`, et le fournisseur Terraform les montre dans un avertissement.
+
+### Ajouter des entrées à une liste et les enlever
+
+Une modification peut ajouter des enregistrements à une liste, ou en enlever, sans envoyer la liste entière : `addToList` et `removeFromList` nomment les ID à ajouter et à enlever, liste par liste. Chaque entrée que la modification ne nomme pas reste, y compris une que quelqu'un d'autre ou une règle d'étiquettes ajoute au même moment :
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Envoyé à `PUT /api/monitor/<id>`, ce corps renomme le moniteur, lui ajoute une étiquette et lui en enlève une autre. Laissez `data` de côté quand la modification ne fait qu'ajouter et enlever des entrées. Une entrée est l'ID de l'enregistrement, ou un objet avec son `_id`, comme dans `data`, et ajouter une entrée que la liste contient déjà, ou en enlever une qu'elle ne contient pas, ne change rien.
+
+Les listes qu'une modification peut nommer sont celles que la référence complète de l'API liste sous `addToList` pour la requête `PUT` de la ressource. Une modification faite ainsi est vérifiée comme le serait la liste entière qu'elle laisse, selon les règles ci-dessus : votre autorisation de modifier la liste, chaque enregistrement qu'elle ajoute devant être un de ceux de votre projet que vous pouvez lire, et les étiquettes qu'une autorisation restreinte à des étiquettes conserve. Une liste envoyée à la fois entière, dans `data`, et dans `addToList` ou `removeFromList` est refusée avec un `400` :
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Les fournisseurs Terraform et Crossplane modifient ainsi les étiquettes d'un enregistrement, si bien qu'une étiquette qu'une règle ajoute pendant leur exécution reste : voir [Les étiquettes et les autres listes auxquelles OneUptime ajoute aussi](/docs/terraform/complete-guide#les-étiquettes-et-les-autres-listes-auxquelles-oneuptime-ajoute-aussi).
 
 ## États et épisodes
 

@@ -233,15 +233,24 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      * An iOS hang's exception type, as Exceptions lists it, and the
      * heading its stack trace draws over the binaries, as ingest writes
      * it (MetricKitCallStack): text the reader finds as it is (#9712).
+     * And the daily recommendations, as their cards name them: a card
+     * draws the template's name as written (#9924).
      */
-    [MOBILE_SETUP]: ["Hang", "Binary Images"],
+    [MOBILE_SETUP]: [
+      "Hang",
+      "Binary Images",
+      "Daily Crash Rate",
+      "Daily ANR Rate",
+    ],
     /*
      * A mobile app's recommendations, as their cards name them: a card
-     * draws the template's name as written (#9711, #9716).
+     * draws the template's name as written (#9711, #9716, #9924).
      */
     [ANDROID_SETUP]: [
       "App Crash Rate",
       "App ANR Rate",
+      "Daily Crash Rate",
+      "Daily ANR Rate",
       "Device Stopped Reporting",
       "App Stopped Reporting",
     ],
@@ -285,6 +294,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
  * its Network panel's type filters) and a Power Pages site's settings.
  */
 export const OTHER_PRODUCTS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  // App Store Connect's button that hands back a build's dSYMs.
+  [MOBILE_SETUP]: ["Download dSYMs"],
   // Esper's console, where a blueprint holds an app's managed configuration.
   [ANDROID_SETUP]: ["Managed Configuration"],
   [SESSION_REPLAY_TROUBLESHOOTING]: [

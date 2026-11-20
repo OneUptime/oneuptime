@@ -123,6 +123,34 @@ describe("the provider's hand-written Go", () => {
       ]),
     );
   });
+
+  /*
+   * #10144: controller-gen names a CRD, and the file it writes it to, by the
+   * kind's plural, and wrote OnCallScheduleLayers' CRD over
+   * OnCallScheduleLayer's, whose plural was the same. internal/kinds gives
+   * OnCallScheduleLayer a plural of its own, as Upjet's Resource.Path; the
+   * generator stops before it writes anything when two kinds' CRDs would
+   * still share a name; and config/crds_test.go holds the configuration and
+   * the package's CRDs to one CRD for each kind.
+   */
+  test("gives every kind a CRD of its own", () => {
+    expect(read("config/provider.go")).toContain("r.Path = kinds.Path(r.Kind)");
+    expect(read("internal/kinds/kinds.go")).toMatch(
+      /^\t"OnCallScheduleLayer": "oncallschedulelayerdefinitions",$/m,
+    );
+
+    const generator: string = read("cmd/generator/main.go");
+    const check: number = generator.indexOf("kinds.Clashes(config.CRDs(pc))");
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(generator.indexOf("runner.Run(pc)"));
+
+    expect(goFiles).toEqual(
+      expect.arrayContaining([
+        "config/crds_test.go",
+        "internal/kinds/kinds_test.go",
+      ]),
+    );
+  });
 });
 
 describe("the ProviderConfig", () => {
@@ -216,7 +244,8 @@ describe("the package", () => {
     );
 
     // The icon the Helm charts show, at the address they show it from.
-    const chartIcon: string | undefined = /^icon: (\S+)$/m.exec(
+    const iconLine: RegExp = /^icon: (\S+)$/m;
+    const chartIcon: string | undefined = iconLine.exec(
       fs.readFileSync(
         path.join(REPO_ROOT, "HelmChart", "Public", "oneuptime", "Chart.yaml"),
         "utf-8",

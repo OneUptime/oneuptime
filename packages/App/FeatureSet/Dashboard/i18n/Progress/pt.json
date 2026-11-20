@@ -396,6 +396,7 @@
     "compute-01 · RegionTwo",
     "compute-07 · RegionOne",
     "customer facing|tier-1",
+    "dSYMs",
     "datastore",
     "db-primary",
     "deadlocks",

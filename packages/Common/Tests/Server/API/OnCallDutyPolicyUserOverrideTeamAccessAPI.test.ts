@@ -86,9 +86,12 @@ import {
   BOB,
   CAROL,
   DAVE,
+  ERIN,
   EVERYONE,
+  OTHER_POLICY,
   OUTSIDER_AWAY,
   OUTSIDER_COVERS,
+  PAT,
   PROJECT,
   RUNNING_OUTSIDER,
   RUNNING_TEAM,
@@ -350,5 +353,199 @@ describe("DELETE /on-call-duty-policy-user-override/:id", () => {
     expect(refusal().message).toBe(USER_OVERRIDE_TEAM_DELETE_REFUSAL);
     expect(table.get(OUTSIDER_AWAY)).toBeDefined();
     expect(world.feedItemCount()).toBe(0);
+  });
+});
+
+/*
+ * "Skip until..." beside a person on a schedule's layers (issue #9884)
+ * saves time away for them with nobody named to cover - a skip - as a
+ * global override, or, for a caller whose permission covers only some
+ * policies, one on each policy offered. The page locks the button beside
+ * the people outside the caller's teams because the server refuses each of
+ * these saves for them; here are the saves as the page sends them.
+ */
+describe("Skip until... on a schedule's layers, as the page saves it", () => {
+  test("skips a teammate: nobody named to cover, the rotation covers", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: BOB }),
+    });
+
+    accepted();
+    expect(table.inserts).toHaveLength(1);
+    expect(table.inserts[0]?.["routeAlertsToUserId"] ?? null).toBeNull();
+  });
+
+  test("refuses to skip somebody of another team, saying why, and writes nothing", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: CAROL }),
+    });
+
+    expect(refusal()).toBeInstanceOf(CreateScopeException);
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_AWAY_REFUSAL);
+    expect(table.inserts).toHaveLength(0);
+  });
+
+  test("refuses to skip somebody who shares only a team that gives the permission to nobody", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: ERIN }),
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_AWAY_REFUSAL);
+    expect(table.inserts).toHaveLength(0);
+  });
+
+  test("refuses to skip somebody whose invitation to the team is not accepted yet", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: PAT }),
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_AWAY_REFUSAL);
+    expect(table.inserts).toHaveLength(0);
+  });
+
+  test("on a policy it is added on, the same: a teammate is skipped, somebody of another team refused", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: {
+        data: {
+          ...(createBody({ away: BOB })["data"] as JSONObject),
+          onCallDutyPolicyId: OTHER_POLICY,
+        },
+      },
+    });
+
+    accepted();
+    expect(table.inserts).toHaveLength(1);
+
+    await send({
+      method: "post",
+      uri: PATH,
+      body: {
+        data: {
+          ...(createBody({ away: CAROL })["data"] as JSONObject),
+          onCallDutyPolicyId: OTHER_POLICY,
+        },
+      },
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_AWAY_REFUSAL);
+    expect(table.inserts).toHaveLength(1);
+  });
+
+  test("a caller whose permission reaches everyone skips anybody, as before", async () => {
+    props = member([row(Permission.OnCallMember, { teamId: EVERYONE })]);
+
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: CAROL }),
+    });
+
+    accepted();
+    expect(table.inserts).toHaveLength(1);
+  });
+});
+
+/*
+ * The mobile app's cover sheets (issue #9883) send these: "Cover for me"
+ * names the caller away and the person picked covering; "I'll take over"
+ * the person picked away and the caller covering; Edit sends who covers
+ * from now on - nobody, for the rotation - or a new end. The app offers
+ * only the caller's teams' people, and locks Edit, End now and Cancel on
+ * an override naming anyone else, because the server refuses each of these
+ * for them; End now and Cancel are the routes above.
+ */
+describe("the mobile app's cover, as the app sends it", () => {
+  test("Cover for me, a teammate covering, is added", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: ALICE, covers: BOB }),
+    });
+
+    accepted();
+    expect(table.inserts).toHaveLength(1);
+  });
+
+  test("Cover for me, somebody of another team covering, is refused, saying why", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: ALICE, covers: CAROL }),
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_COVER_REFUSAL);
+    expect(table.inserts).toHaveLength(0);
+  });
+
+  test("I'll take over, for somebody of another team, is refused, saying why", async () => {
+    await send({
+      method: "post",
+      uri: PATH,
+      body: createBody({ away: CAROL, covers: ALICE }),
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_AWAY_REFUSAL);
+    expect(table.inserts).toHaveLength(0);
+  });
+
+  test("Edit hands a teammate's cover to the rotation", async () => {
+    await send({
+      method: "put",
+      uri: `${PATH}/:id`,
+      params: { id: TEAM_GLOBAL },
+      body: { data: { routeAlertsToUserId: null } },
+    });
+
+    accepted();
+    expect(storedCover(TEAM_GLOBAL)).toBeNull();
+  });
+
+  test("Edit is refused on an override naming somebody of another team, even to hand it to the rotation", async () => {
+    await send({
+      method: "put",
+      uri: `${PATH}/:id`,
+      params: { id: OUTSIDER_COVERS },
+      body: { data: { routeAlertsToUserId: null } },
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_EDIT_REFUSAL);
+    expect(storedCover(OUTSIDER_COVERS)).toBe(CAROL);
+  });
+
+  test("Edit is refused on one whose person away is of another team, even only its end", async () => {
+    const endsAt: Date = new Date("2026-11-20T15:00:00.000Z");
+
+    await send({
+      method: "put",
+      uri: `${PATH}/:id`,
+      params: { id: OUTSIDER_AWAY },
+      body: { data: { endsAt: endsAt.toISOString() } },
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_EDIT_REFUSAL);
+    expect(
+      new Date(String(table.get(OUTSIDER_AWAY)?.["endsAt"])).toISOString(),
+    ).toBe("2026-11-20T17:00:00.000Z");
+  });
+
+  test("Cancel is refused on an upcoming one whose cover is of another team, and keeps it", async () => {
+    await send({
+      method: "delete",
+      uri: `${PATH}/:id`,
+      params: { id: OUTSIDER_COVERS },
+    });
+
+    expect(refusal().message).toBe(USER_OVERRIDE_TEAM_DELETE_REFUSAL);
+    expect(table.get(OUTSIDER_COVERS)).toBeDefined();
   });
 });

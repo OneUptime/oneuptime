@@ -2,6 +2,7 @@ import DashboardDataSourceGaugeComponent from "../../../Types/Dashboard/Dashboar
 import { DataSourceValueReduce } from "../../../Types/Dashboard/DashboardComponents/DashboardDataSourceValueComponent";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
@@ -39,7 +40,8 @@ export default class DashboardDataSourceGaugeComponentUtil extends DashboardBase
       arguments: {
         query: {
           id: ObjectID.generate().toString(),
-          dataSourceId: "",
+          // A new query reads the project's own metrics (issue #7713).
+          dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
           query: "",
         },
         reduce: DataSourceValueReduce.Last,

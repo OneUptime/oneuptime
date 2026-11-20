@@ -2,15 +2,15 @@ name: Time Zone Data
 
 # Is OneUptime's time zone data as new as IANA's latest tz database release?
 #
-# OneUptime computes and shows times with four copies of the tz database:
+# OneUptime computes and shows times with three copies of the tz database:
 # moment-timezone's (every rotation, handoff, restriction, maintenance
-# window, report and summary), the ICU in each image's Node.js (dates in the
-# reader's language), ClickHouse's (charts' days in the reader's zone) and
-# the Postgres image's zoneinfo (a status page's uptime days). Each is
-# updated on its own schedule, and nothing said when one fell behind: British
-# Columbia moved to permanent UTC-7 in tzdata 2026b (April 2026), and
-# OneUptime still carried 2024b in November, an hour off for everyone there
-# (#9999).
+# window, report and summary, and a status page's uptime days), the ICU in
+# each image's Node.js (dates in the reader's language) and ClickHouse's
+# (charts' days in the reader's zone). Each is updated on its own schedule,
+# and nothing said when one fell behind: British Columbia moved to permanent
+# UTC-7 in tzdata 2026b (April 2026), and OneUptime still carried 2024b in
+# November, an hour off for everyone there (#9999). Postgres's zoneinfo cuts
+# nothing: a status page's days reach it as instants (#10039).
 #
 #   check    Scripts/TimeZoneData/CheckTimeZoneData.js reads IANA's latest
 #            release and the one each copy carries (moment's from the npm
@@ -57,8 +57,8 @@ jobs:
         with:
           node-version: 26
 
-      # Not through mirror.gcr.io: a mirror answers for a tag (postgres:15,
-      # node:26-alpine3.24) with whatever image it holds, which can be older
+      # Not through mirror.gcr.io: a mirror answers for a tag
+      # (node:26-alpine3.24) with whatever image it holds, which can be older
       # than the one people pull, and this reads the one they pull.
       - name: Read each copy's release
         id: check

@@ -7,6 +7,8 @@ Inventariet är en enda lista över allt OneUptime vet om din miljö: tjänster,
 - [Hitta rätt](#hitta-rätt): Inventariets sidor och varje objekts egna sidor.
 - [Importera enheter från Esper](#importera-enheter-från-esper): Varje Android- och Apple-enhet som din Esper-tenant registrerar, alltid aktuell.
 - [Importera enheter från Microsoft Intune](#importera-enheter-från-microsoft-intune): Varje Windows-dator, Mac, iPhone, iPad och Android-enhet som Intune hanterar, alltid aktuell.
+- [Importera enheter från Workspace ONE UEM](#importera-enheter-från-workspace-one-uem): Varje telefon, surfplatta och dator som Workspace ONE hanterar, alltid aktuell.
+- [Importera enheter från SOTI MobiControl](#importera-enheter-från-soti-mobicontrol): Varje robust enhet, telefon, surfplatta och dator som MobiControl hanterar, alltid aktuell.
 - [Lägg till något manuellt](#lägg-till-något-manuellt): Ett API från tredje part, en extern databas eller en appliance.
 - [Arkivera i stället för att radera](#arkivera-i-stället-för-att-radera): Sättet att städa listan som består.
 :::
@@ -27,14 +29,14 @@ flowchart TB
 | Källa | I API:t | Var det kommer ifrån | Hur länge det stannar |
 | --- | --- | --- | --- |
 | **Upptäckt** | `discovered` | OpenTelemetry-resursattribut, lästa när telemetri kommer in: en tjänst, en värd, ett Kubernetes-objekt eller en virtuell maskin som skickar telemetri. | Registreras på nytt med varje batch. Tas bort när det har varit tyst längre än fönstret för sin typ (se nedan). |
-| **Speglat** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar, Podman-värdar och de enheter som en Esper- eller Microsoft Intune-anslutning importerar. Kopieras var 15:e minut. En Esper-enhet kopieras varje gång dess anslutning läses. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
+| **Speglat** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar, Podman-värdar och de enheter som en MDM-anslutning importerar. Kopieras var 15:e minut. En hanterad enhet kopieras varje gång dess anslutning läses. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
 | **Tillagt av dig** | `manual` | Tillagt av dig, för något OneUptime inte kan se: ett API från tredje part, en databas som en leverantör sköter, en appliance i ett rack. | Tills du raderar det. Inget får det att löpa ut. |
 
 Ett upptäckt eller speglat objekt kan inte byta namn eller få en annan typ: källan skulle skriva över ändringen vid nästa genomgång. Objektets sida **Inställningar** berättar i stället var en bestående ändring ska göras. Det du alltid kan lägga till på vilket objekt som helst, oavsett källa, är värden i anpassade fält: se [Anpassade inventariefält](/docs/inventory/custom-fields).
 
 ### Hur länge ett tyst objekt stannar
 
-Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för det flyttas tidpunkten då det senast sågs fram, och listans kolumn **Status** visar hur nyligen det var. Detsamma gäller en enhet från Esper eller Intune: varje gång den checkar in hos sin MDM. Andra speglade objekt och de du har lagt till har inget hjärtslag, så deras status förblir tom i stället för att larma.
+Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för det flyttas tidpunkten då det senast sågs fram, och listans kolumn **Status** visar hur nyligen det var. Detsamma gäller en hanterad enhet: varje gång den checkar in hos sin MDM. Andra speglade objekt och de du har lagt till har inget hjärtslag, så deras status förblir tom i stället för att larma.
 
 | Status | Vad det betyder |
 | --- | --- |
@@ -60,9 +62,9 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 | --- | --- |
 | **Översikt** | Hur många objekt du har, vad de är, hur många som har tystnat och vad som lades till senast. |
 | **Alla objekt** | Alla objekt. Sök på namn, beskrivning eller identitetsnyckel, avgränsa listan efter typ, källa, status eller anpassat fält, och lägg till ett objekt manuellt. |
-| **Hanterade enheter** | Dina Esper- och Microsoft Intune-anslutningar och varje enhet som de importerar, med dess status, grupp, modell och operativsystem. |
+| **Hanterade enheter** | Dina MDM-anslutningar – Esper, Microsoft Intune, Workspace ONE UEM och SOTI MobiControl – och varje enhet som de importerar, med dess status, grupp, modell och operativsystem. |
 | **Topologikarta** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
-| **Tystnat** | De objekt som inget har hörts från på mer än ett dygn: upptäckta objekt som inte har skickat någon telemetri och enheter som har slutat checka in hos Esper. |
+| **Tystnat** | De objekt som inget har hörts från på mer än ett dygn: upptäckta objekt som inte har skickat någon telemetri och enheter som har slutat checka in hos sin MDM. |
 | **Efter källa** | Objekten från en källa: **Upptäckt**, **Speglat** eller **Tillagt av dig**. |
 | **Inställningar → Anpassade fält** | De fält ditt projekt för på varje objekt. |
 | **Hjälp → Dokumentation** | En kort guide till inventariet, med de typer av objekt det känner igen. |
@@ -72,13 +74,13 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 
 ### Tillgångsdetaljer
 
-En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriver båda på samma sätt: värdnamn, IP-adress, MAC-adress, serienummer, tillverkare, modell, firmwareversion, operativsystem, OS-version, enhetstyp och plats. Kortet för en Android-enhet har också dess säkerhetspatchnivå, från Android-agenten eller Esper. En uppgift som inget har rapporterat står som **Okänd**, och kortet förklarar varför det är så och hur de okända fylls i: en enhet som inte rapporterar dem över SNMP, en enhet som inte har lästs ännu, eller en Meraki-enhet vars dashboard har dem.
+En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriver båda på samma sätt: värdnamn, IP-adress, MAC-adress, serienummer, tillverkare, modell, firmwareversion, operativsystem, OS-version, enhetstyp och plats. Kortet för en Android-enhet har också dess säkerhetspatchnivå, från Android-agenten eller dess MDM. Det visar också om patchen är **Föråldrad**, som kolumnen **Säkerhetspatchnivå** gör, och hur många dagar gammal den är. En uppgift som inget har rapporterat står som **Okänd**, och kortet förklarar varför det är så och hur de okända fylls i: en enhet som inte rapporterar dem över SNMP, en enhet som inte har lästs ännu, eller en Meraki-enhet vars dashboard har dem.
 
 - En värds uppgifter kommer från resursattributen i dess telemetri: dess IP- och MAC-adresser, arkitektur och operativsystem från början, och dess serienummer, märke, modell och firmware när du stämplar på dem.
 - En nätverksenhets uppgifter kommer från dess SNMP-pollning, dess roll och dess plats. Det som dess pollning inte har läst kommer från discovery: den senaste skanningen av dess adress, en routers ARP-tabell eller dess sonds DNS-uppslag. En enhet utan ENTITY-MIB, som en Meraki MX, får ändå sitt märke, sin modell och sitt operativsystem från sin systembeskrivning och sin MAC-adress från sina egna portar. Dess IP-adress visas aldrig som dess värdnamn.
 - En Meraki-enhet hämtar också det som dess pollning lämnar tomt från Meraki-dashboarden, bland annat dess serienummer, modell och firmware, när en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation.
 
-I **Alla objekt** hittar du de Android-enheter som behöver åtgärdas. Filtret **Säkerhetspatchnivå** listar de enheter som står som **Föråldrad**, vars säkerhetspatchnivå är äldre än 90 dagar, samma regel som larmet Security Patch Out of Date i en [värdmonitor](/docs/monitor/host-monitor) läser. Filtret **Agentbehörigheter** listar de enheter där [Android-agenten](/docs/telemetry/android-agent) fortfarande saknar READ_LOGS, READ_DROPBOX_DATA eller åtkomst till användningsdata. Båda har en kolumn med samma namn, dold tills du slår på den, och den följer med i CSV-exporten.
+I **Alla objekt** hittar du de Android-enheter som behöver åtgärdas. Filtret **Säkerhetspatchnivå** listar de enheter som står som **Föråldrad**, vars säkerhetspatchnivå är äldre än 90 dagar, samma regel som larmet Security Patch Out of Date i en [värdmonitor](/docs/monitor/host-monitor) läser. Filtret **Agentbehörigheter** listar de enheter där [Android-agenten](/docs/telemetry/android-agent) fortfarande saknar READ_LOGS, READ_DROPBOX_DATA eller åtkomst till användningsdata. Båda har en kolumn med samma namn, dold tills du slår på den, och den följer med i CSV-exporten. Bredvid dem har kolumnen **MDM-ID** det id som en enhets MDM känner den under, till exempel det Esper-id som `espercli secureadb connect --device` tar.
 
 Kortet visar var varje uppgift kom ifrån och när. Den källa som de flesta uppgifterna delar, som en värds collector, en nätverksenhets egen SNMP-pollning eller den discovery-skanning som läste den, nämns en gång, under uppgifterna. Varje annan källa, som en routers ARP-tabell eller ett värde som sparats på enheten, nämns under sin uppgift. Ett värde som har sparats på en nätverksenhet ersätts aldrig av det som discovery läser, och när de två skiljer sig visar kortet båda.
 
@@ -113,6 +115,7 @@ Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade en
 | Modell, tillverkare, serienummer, operativsystem och dess version, byggnummer samt IP- och MAC-adresser | Enhetens kort **Tillgångsdetaljer** och kolumnerna i **Alla objekt** |
 | Status, senaste incheckning, grupp, säkerhetspatchnivå, IMEI, batteri, lagring och Esper-agent | Enhetens kort **Esper** och listan **Enheter** under **Hanterade enheter** |
 | Appar och deras versioner | Enhetens lista **Installerade appar** |
+| Dess Esper-enhets-id | Kolumnen **MDM-ID** i **Alla objekt** |
 
 ### En enhet, inte två
 
@@ -136,6 +139,8 @@ En enhet som tas bort från Esper markeras som **Borttagen**, och dess objekt ar
 Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Android Device Stopped Checking In** och **Esper Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-enhet som inte har checkat in hos Esper på mer än en timme, den andra för varje Apple-enhet efter mer än ett dygn, vart och ett namngivet efter enheten och löst så snart den checkar in igen.
 
 Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting, så inget larm öppnas eller löses förrän vid nästa. Höj monitorns tröskel för en flotta som stängs av på natten.
+
+Skapa också **Esper Security Patch Out of Date**, så öppnar varje Android-enhet vars säkerhetspatchnivå enligt Esper är mer än 90 dagar gammal ett eget larm, som löses när enheten har uppdaterats. Varje läsning registrerar som mätvärdet `oneuptime.managed_device.security_patch.age` hur många dagar gammal varje Android-enhets patchnivå är. En enhet som kör Android Agent lämnas åt sin värds **Security Patch Out of Date**, så den larmar aldrig två gånger.
 
 ## Importera enheter från Microsoft Intune
 
@@ -163,7 +168,57 @@ En enhet checkar in hos Intune ungefär var åttonde timme, och dess senaste inc
 
 Intune namnger en enhet med det namn dess ägare gav den, så två enheter kan ha samma namn: varje iPhone som ingen har bytt namn på heter `iPhone`. Ett namn som två enheter i en anslutning delar är ingen av dem i inventariet: var och en namnges i stället efter sitt serienummer och får tillbaka sitt namn så snart ingen annan enhet har det.
 
-För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Intune Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Intune på mer än ett dygn, namngivet efter enheten. En bärbar dator som är avstängd under en helg ser likadan ut, så höj monitorns tröskel om ett dygn är för kort för dina.
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Intune Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Intune på mer än ett dygn, namngivet efter enheten. En bärbar dator som är avstängd under en helg ser likadan ut, så höj monitorns tröskel om ett dygn är för kort för dina. **Intune Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
+
+## Importera enheter från Workspace ONE UEM
+
+Anslut en Workspace ONE UEM-server, så finns varje enhet som den hanterar i inventariet: dess iPhone, iPad, Mac-datorer, Windows-datorer, Android-enheter och Linux-maskiner. Varje enhet är en värd, med det som Workspace ONE vet om den: dess organisationsgrupp, dess operativsystem och dess version, dess modell, serienummer och IMEI, dess efterlevnad, registrering och ägarskap, dess batteri, lagring och minne, och dess appar. Workspace ONE skickar ingenting av sig självt, så OneUptime läser den enligt ett schema: enheterna var 15:e minut och varje enhets appar var 6:e timme.
+
+:::steps
+### Skapa en skrivskyddad roll
+
+Gå till `Accounts`, sedan `Administrators`, sedan `Roles` i Workspace ONE UEM-konsolen och klicka på `Add Role`. Under `API`, sedan `REST`, väljer du `Read` för `Devices` och för `Apps`, och inget annat. Den rollen är allt OneUptime behöver: den listar enheterna och deras appar, och kan inte ändra något.
+
+### Skapa en OAuth-klient
+
+Gå till `Groups & Settings`, sedan `Configurations`, sedan `OAuth Client Management`, och klicka på `Add`. Välj den organisationsgrupp vars enheter OneUptime läser, och ge klienten rollen du skapade. Kopiera dess `Client ID` och dess `Client Secret`: Workspace ONE visar hemligheten en gång.
+
+### Anslut servern
+
+Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade enheter**, klicka på **Anslut MDM** och välj **Workspace ONE UEM**. Ange **REST API-URL**, som `Groups & Settings`, `All Settings`, `System`, `Advanced`, `API`, `REST API` visar, till exempel `https://as1234.awmdm.com`. Behåll **OAuth-klient** under **Logga in med**, ange **Klient-ID** och **Klienthemlighet**, och välj **Region** för ditt datacenters tokentjänst. **Anslut** testar klienten innan något sparas: den säger hur många enheter en läsning kommer att importera, eller vad som är fel och hur du åtgärdar det.
+:::
+
+En Workspace ONE-server i egen drift har ingen tokentjänst: välj **Administratörskonto** under **Logga in med**, och ange **Användarnamn** och **Lösenord** för en administratör med den skrivskyddade rollen samt **REST API-nyckel** från samma REST API-inställningar, där basautentisering måste vara tillåten. OneUptime Cloud läser bara servrar på det publika internet, så en server i ett privat nätverk läses av en självhostad OneUptime.
+
+En enhet rapporterar till Workspace ONE enligt sitt eget schema, en iPhone med timmar emellan, så en enhet som inte har gjort det på ett dygn är **Offline**. En enhet som inte längre är registrerad utelämnas. En enhet namnges med det namn den rapporterar, inte med sitt visningsnamn, som Workspace ONE bildar av användarens namn, och ingenting om en enhets användare läses. Varje begäran räknas mot tenantens dagliga API-kvot, så en läsning läser apparna för högst 25 enheter, och nästa läsning för de följande.
+
+En app eller Android Agent som skickar telemetri från en enhet blir ett och samma objekt som den via enhetens serienummer: sätt Android Agents inställning `device_serial` till uppslagsvärdet `{DeviceSerialNumber}` i dess hanterade konfiguration.
+
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Workspace ONE Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har rapporterat till Workspace ONE på mer än ett dygn, namngivet efter enheten. **Workspace ONE Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
+
+## Importera enheter från SOTI MobiControl
+
+Anslut en SOTI MobiControl-server, i SOTI:s moln eller i egen drift, så finns varje enhet som den hanterar i inventariet: dess robusta Android-enheter, telefoner, surfplattor och skannrar, dess iPhone, iPad och Mac-datorer, och dess Windows- och Linux-datorer. Varje enhet är en värd, med det som MobiControl vet om den: dess enhetsgrupp, dess operativsystem och dess version, dess modell, serienummer och IMEI, dess efterlevnad, dess agent, dess batteri, lagring och minne, och dess installerade program. MobiControl skickar ingenting av sig självt, så OneUptime läser den enligt ett schema: enheterna var 15:e minut och varje enhets appar var 6:e timme.
+
+:::steps
+### Skapa en skrivskyddad MobiControl-användare
+
+Lägg till en av MobiControls egna användare i MobiControl-webbkonsolen, inte en SOTI Identity-användare. Tillåt `Web Console Access` och `View Installed Applications` i dess allmänna behörigheter och inget annat, och ge den `View Groups` på de enhetsgrupper som OneUptime läser. Den användaren är allt OneUptime behöver: den kan se enheterna och deras appar, och inte ändra något.
+
+### Skapa en API-klient
+
+Gå till `Global Settings`, sedan `Services`, sedan `API Client` i webbkonsolen och lägg till en. Kopiera dess `Client ID` och dess `Client Secret`: MobiControl visar hemligheten en gång. En server som är äldre än MobiControl 2024.0 skapar en på servern med `MCAdmin.exe APIClientAdd -n:OneUptime`.
+
+### Anslut MobiControl-servern
+
+Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade enheter**, klicka på **Anslut MDM** och välj **SOTI MobiControl**. Ange **Server**, adressen till din webbkonsol utan `/MobiControl`, till exempel `https://acme.mobicontrolcloud.com`, och API-klientens **Klient-ID** och **Klienthemlighet**, sedan användarens **Användarnamn** och **Lösenord**. **Anslut** testar inloggningen innan något sparas: den säger hur många enheter en läsning kommer att importera, eller vad som är fel och hur du åtgärdar det.
+:::
+
+En MobiControl-agent håller en aktiv anslutning till sin server, så en enhet vars agent är ansluten är online, och en vars agent inte har varit ansluten på 30 minuter är **Offline**. En iPhone, iPad eller Mac checkar in via Apples push-tjänst, med timmar emellan, och är **Offline** efter ett dygn. En enhet som en administratör har inaktiverat är **Inaktiverad**, och en som håller på att avregistreras utelämnas. OneUptime Cloud läser bara servrar på det publika internet, så en server i ett privat nätverk läses av en självhostad OneUptime. Ingenting om en enhets användare läses.
+
+En app eller Android Agent som skickar telemetri från en enhet blir ett och samma objekt som den via enhetens serienummer: sätt Android Agents inställning `device_serial` till makrot `%SERIALNUM%` i dess hanterade konfiguration.
+
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **SOTI Device Stopped Checking In** och **SOTI Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-, Windows- eller Linux-enhet vars agent inte har varit ansluten på mer än en timme, och den andra för varje Apple-enhet som inte har checkat in på mer än ett dygn, vart och ett namngivet efter enheten. **SOTI Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
 
 ## Lägg till något manuellt
 

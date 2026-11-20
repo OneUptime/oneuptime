@@ -150,7 +150,7 @@ describe("the Analytics timeseries are time charts over the explorer's window", 
         'resolveChartTimeRangeZoom({ onTimeRangeSelect: props.onTimeRangeSelect, onTimeRangeReset: props.onTimeRangeReset, isTimeAxis: chartType === "timeseries", pageZoom: pageZoom, })',
       );
       expect(source).toContain(
-        "useHistogramRangeSelection({ onTimeRangeSelect: zoomHandlers.onTimeRangeSelect, onZoomOut: zoomHandlers.onTimeRangeReset, bucketIntervalMs: timeseriesBucketMs, })",
+        "useHistogramRangeSelection({ onTimeRangeSelect: zoomHandlers.onTimeRangeSelect, onZoomOut: zoomHandlers.onTimeRangeReset, bucketIntervalMs: timeseriesBucketMs, bucketTimezone: timeseriesBucketTimezone, })",
       );
       expect(count(source, "onMouseDown={selection.onMouseDown}")).toBe(
         chartCount,

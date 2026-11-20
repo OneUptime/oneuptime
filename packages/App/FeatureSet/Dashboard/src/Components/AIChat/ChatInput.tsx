@@ -131,10 +131,11 @@ const ChatInput: FunctionComponent<ComponentProps> = (
         className="block max-h-40 min-h-[2.5rem] w-full resize-none overscroll-contain border-0 bg-transparent px-4 pb-1 pt-3 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
       />
       {/*
-       * What the controls' menus are placed against: the panel is too narrow
-       * for one that starts at the second control and runs its own width.
+       * The controls' menus are drawn on the tooltip layer, against the
+       * window (LayeredPopover), not against this row: the panel cannot cut
+       * them off, however narrow it is.
        */}
-      <div className="relative flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+      <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
         <div className="flex min-w-0 flex-wrap items-center gap-1">
           {props.leading}
         </div>

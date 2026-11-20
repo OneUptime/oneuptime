@@ -8,6 +8,7 @@ import {
   ExceptionGroupingKey,
   getExceptionGroupingKey,
 } from "Common/Server/Utils/Telemetry/ExceptionGrouping";
+import { JsonValueBudget } from "Common/Utils/JsonElementCount";
 import SentryEnvelope, {
   MAX_ENVELOPE_ITEMS,
   MAX_EXCEPTIONS_PER_CHAIN,
@@ -3382,5 +3383,148 @@ describe("SentryEnvelope: what is skipped", () => {
     expect(translation.traces).toBeNull();
     expect(translation.logs).toBeNull();
     expect(translation.eventId).toBeNull();
+  });
+});
+
+describe("SentryEnvelope - what each signal is counted at", () => {
+  const ERROR_PAYLOAD: string = JSON.stringify({
+    event_id: "9ec79c33ec9942ab8353589fcb2e04dc",
+    exception: { values: [{ type: "ValueError", value: "bad amount" }] },
+  });
+  const MESSAGE_PAYLOAD: string = JSON.stringify({
+    message: "payment retried",
+    level: "warning",
+  });
+  const LOG_PAYLOAD: string = JSON.stringify({
+    items: [{ timestamp: 1705400000, level: "info", body: "paid" }],
+  });
+  const TRANSACTION_PAYLOAD: string = JSON.stringify({
+    type: "transaction",
+    transaction: "GET /",
+    start_timestamp: 1705400000,
+    timestamp: 1705400001,
+    contexts: {
+      trace: {
+        trace_id: "771a43a4192642f0b136d5159a501700",
+        span_id: "a0cfbde2bdff3adc",
+      },
+    },
+  });
+
+  test("an item's bytes count for the signal it became: errors and transactions as traces, messages and logs as logs", () => {
+    const translation: SentryTranslation = translateEnvelope(
+      envelopeOf({}, [
+        { header: { type: "event" }, payload: ERROR_PAYLOAD },
+        { header: { type: "event" }, payload: MESSAGE_PAYLOAD },
+        { header: { type: "log" }, payload: LOG_PAYLOAD },
+        { header: { type: "transaction" }, payload: TRANSACTION_PAYLOAD },
+      ]),
+    );
+
+    expect(translation.ingestBytes).toEqual({
+      traces:
+        Buffer.byteLength(ERROR_PAYLOAD) +
+        Buffer.byteLength(TRANSACTION_PAYLOAD),
+      logs: Buffer.byteLength(MESSAGE_PAYLOAD) + Buffer.byteLength(LOG_PAYLOAD),
+    });
+  });
+
+  test("items that are not kept - an attachment, a session, a payload that is no object - count for nothing", () => {
+    const translation: SentryTranslation = translateEnvelope(
+      envelopeOf({}, [
+        {
+          header: { type: "attachment" },
+          payload: "x".repeat(5000),
+          length: true,
+        },
+        { header: { type: "session" }, payload: { status: "ok" } },
+        { header: { type: "event" }, payload: "[1, 2]" },
+      ]),
+    );
+
+    expect(translation.ingestBytes).toEqual({ traces: 0, logs: 0 });
+  });
+});
+
+describe("SentryEnvelope - JSON values, counted before each part is parsed", () => {
+  const refusalOf: (read: () => unknown) => SentryEnvelopeError = (
+    read: () => unknown,
+  ): SentryEnvelopeError => {
+    try {
+      read();
+    } catch (error) {
+      expect(error).toBeInstanceOf(SentryEnvelopeError);
+      return error as SentryEnvelopeError;
+    }
+
+    throw new Error("The envelope was not refused.");
+  };
+
+  test("an envelope header over the limit is a 413", () => {
+    const error: SentryEnvelopeError = refusalOf(() => {
+      return SentryEnvelope.parseEnvelope(
+        Buffer.from('{"a":[1,2,3,4,5]}\n'),
+        new JsonValueBudget(5),
+      );
+    });
+
+    expect(error.statusCode).toBe(413);
+    expect(error.message).toBe(
+      "The request holds more than 5 JSON values (objects, arrays, strings and numbers). Send fewer items an envelope.",
+    );
+  });
+
+  test("headers and items are counted against one limit, whichever passes it", () => {
+    // Header 3 values, item header 3, payload 5: eleven in all.
+    const body: Buffer = envelopeOf({ event_id: "x" }, [
+      { header: { type: "event" }, payload: { message: "hi", a: 1 } },
+    ]);
+
+    const atTheLimit: JsonValueBudget = new JsonValueBudget(11);
+    expect(
+      SentryEnvelope.fromEnvelope(
+        SentryEnvelope.parseEnvelope(body, atTheLimit),
+        { nowInMs: NOW_MS, jsonValues: atTheLimit },
+      ).accepted.messages,
+    ).toBe(1);
+
+    // The headers fit; the item is what passes the limit.
+    const pastIt: JsonValueBudget = new JsonValueBudget(10);
+    const envelope: ParsedSentryEnvelope = SentryEnvelope.parseEnvelope(
+      body,
+      pastIt,
+    );
+
+    expect(
+      refusalOf(() => {
+        return SentryEnvelope.fromEnvelope(envelope, {
+          nowInMs: NOW_MS,
+          jsonValues: pastIt,
+        });
+      }).statusCode,
+    ).toBe(413);
+  });
+
+  test("an item of a type that is not kept is never counted", () => {
+    const budget: JsonValueBudget = new JsonValueBudget(6);
+    const body: Buffer = envelopeOf({}, [
+      {
+        header: { type: "attachment" },
+        payload: JSON.stringify(
+          Array.from({ length: 100 }, () => {
+            return [];
+          }),
+        ),
+        length: true,
+      },
+    ]);
+
+    // Header 1, item header 3 (and length 2): the attachment's 101 never.
+    expect(
+      SentryEnvelope.fromEnvelope(SentryEnvelope.parseEnvelope(body, budget), {
+        nowInMs: NOW_MS,
+        jsonValues: budget,
+      }).ignoredItemTypes,
+    ).toEqual(["attachment"]);
   });
 });

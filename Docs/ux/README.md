@@ -191,7 +191,10 @@ next, and how to change it last.
   disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
   as systemd said it: its result, its exit code or the signal that killed it, since when and what
   it printed last, from its journal (#9748), on its page and on its row of the host's Systemd
-  Units list, whose "3 units failed" opens all of them (#9960). A count opens its parts only while the resource's
+  Units list, whose "3 units failed" opens all of them (#9960), and in the host's Needs attention
+  and behind its Degraded (#10129): one bounded read of what systemd said of those units, never on
+  a tick of the auto-refresh, and a row as it was while the journal says nothing of why. A count
+  opens its parts only while the resource's
   agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
   what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
   "fleet disconnected" where it counted its devices online, rather than calling every device
@@ -362,6 +365,21 @@ work out, starts from a default for everything else, and folds what most people 
   shared components and never saw the Regions card's (i) in its row's link (#10015). Enforced
   by
   [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **A menu, a list or a panel opens on the tooltip layer, never in place.** Drawn `absolute`
+  under its control, a popup was cut off wherever the box it sat in clipped. The logs toolbar's
+  Columns lost its foot over a trace's empty logs (#9859), and a search's suggestions ran into an
+  investigation drawer's scroll area (#9909). The shared `LayeredPopover`
+  (`Common/UI/Components/Tooltip/LayeredPopover`) draws it on the page's body, placed against the
+  window: under its control, above it where the window has no room, on the roomier side, cut down
+  and scrolling, where neither side has it all, and slid along inside the window's sides. A busy
+  day's "+N more" list opened past a short window's top until it was drawn there too (#9911). Tab
+  goes through a popup as if it sat after its control, Escape closes it and is spent there, and a
+  press outside closes it. A field's popup, such as a search's suggestions, is drawn there with
+  `isFieldPopup`, which leaves Tab, Escape and a press to the field. The popup's own classes are
+  its look only, never a place: no `absolute`, `top-full` or margin under its control. The popups
+  still drawn in place are listed with why each is not cut off today, and the list only shrinks
+  (#10162). Enforced by
+  [HandRolledPopupsGuard](../../packages/Common/Tests/UI/Components/HandRolledPopupsGuard.test.ts).
 - **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
   `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
   focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:
@@ -774,6 +792,16 @@ what was further down.
 - **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
   the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
   [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
+- **A chart's legend that wraps grows the chart, never squeezes its plot.** A line, area or bar
+  chart drawn at a fixed height grows by its legend's lines past the first, so its plot keeps its
+  height: Product Analytics' Active users plot went from 78px to 30px on a phone (#6562), and a
+  Host's Network chart, In and Out in German beside the side menu, read a line shorter than the CPU
+  chart beside it (#7125). Cards side by side put their chart at the card's foot (a column,
+  `mt-auto`), so a row grows to its tallest card and the plots and time axes still line up under the
+  hover line they share. Only a chart that must fit a box of its own, a dashboard widget's, says so
+  (`growsWhenLegendWraps={false}`), or draws no legend. Enforced by
+  [ChartsGrowWithTheirLegendGuard](../../packages/App/Tests/Dashboard/ChartsGrowWithTheirLegendGuard.test.ts)
+  and [ChartLegendRows](../../packages/Common/Tests/UI/Components/Charts/ChartLegendRows.test.tsx).
 - **A chart's title is the one thing its row must say.** The zoom hint beside it is the shared
   `TimeRangeZoomHint`, never drawn on a phone's width or on a screen that is only touched, where no
   finger drags or double-clicks, and a title row wraps, so a hint that does not fit beside the title
@@ -1090,6 +1118,12 @@ what was further down.
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
+- **An axis of days labels its first and its last day,** and the days between at a step that keeps
+  them apart: 30 days labelled every 4th day ended on day 29, so the chart's right-hand end, today,
+  had no date under it and the reader counted to know where the window ends (#7126). The shared line,
+  area and bar charts do it for an axis of days, weeks, months or years (`getTimeAxisTickInterval`);
+  an axis of clock times keeps its even spacing from the first slot. Enforced by
+  [ChartDayAxisBothEnds](../../packages/Common/Tests/UI/Components/Charts/ChartDayAxisBothEnds.test.tsx).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
   yet", and a sentence joined from translated pieces keeps English's order, punctuation and digits
   whatever each piece says: every table row's ⋯ button read "More actions for" and then the row's

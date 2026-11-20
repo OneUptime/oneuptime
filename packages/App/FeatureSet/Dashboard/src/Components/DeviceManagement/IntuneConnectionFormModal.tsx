@@ -2,7 +2,6 @@ import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManag
 import {
   DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
   DEFAULT_INTUNE_CLOUD,
-  DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES,
   DeviceManagementConfig,
   INTUNE_CLOUDS,
   INTUNE_CLOUD_TITLES,
@@ -12,14 +11,14 @@ import {
 } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
 import { DeviceManagementTestResult } from "Common/Types/DeviceManagement/DeviceManagementConnectionTest";
 import DeviceManagementProvider from "Common/Types/DeviceManagement/DeviceManagementProvider";
-import HashedString from "Common/Types/HashedString";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Field, {
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
@@ -35,16 +34,23 @@ import React, {
   useState,
 } from "react";
 import { runDeviceManagementTest } from "./DeviceManagementApi";
-import { READ_INTERVAL_WORDS } from "./DeviceManagementWords";
+import {
+  getDeviceManagerIntervalOptions,
+  readDeviceManagerFormText,
+} from "./DeviceManagerFormParts";
 import {
   getTestFailureSentence,
   getTestPassedSentence,
 } from "./EsperConnectionFormModal";
 
 /*
- * Connect a Microsoft Intune tenant, or edit a connection (#9837): three
- * questions - the tenant, the app registration's client ID and its secret -
- * with the cloud, the name and how often to read folded under More fields.
+ * Connect a Microsoft Intune tenant, or edit a connection (#9837), in two
+ * steps (Docs/ux/README.md#steps, LongFormStepsGuard), as every device
+ * manager's form of more than three rows walks them:
+ *
+ *   App registration  the tenant, the app registration's client ID and its
+ *                     secret, with the cloud folded under More fields;
+ *   Connection        its name and how often it is read, from defaults.
  *
  * Connect tests before it saves: a token from Microsoft Entra, the first
  * device of Intune's list, and how many devices a read will import. A
@@ -63,19 +69,6 @@ export interface ComponentProps {
   onSaved: () => void;
 }
 
-function readText(value: JSONValue | undefined): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  // BasicForm wraps Password values in HashedString before submit.
-  if (value instanceof HashedString) {
-    return value.toString();
-  }
-
-  return typeof value === "string" ? value.trim() : String(value).trim();
-}
-
 const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -92,16 +85,6 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
     DeviceManagementProvider.Intune,
   );
 
-  const intervalOptions: Array<DropdownOption> =
-    DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES.map(
-      (minutes: number): DropdownOption => {
-        return {
-          value: minutes,
-          label: READ_INTERVAL_WORDS[minutes] || String(minutes),
-        };
-      },
-    );
-
   // Product names, drawn as written.
   const cloudOptions: Array<DropdownOption> = INTUNE_CLOUDS.map(
     (cloud: IntuneCloud): DropdownOption => {
@@ -113,14 +96,31 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const steps: Array<FormStep<JSONObject>> = [
+    { id: "app-registration", title: "App registration" },
+    { id: "connection", title: "Connection" },
+  ];
+
+  const clientIdField: Field<JSONObject> = {
+    field: { clientId: true },
+    title: "Application (Client) ID",
+    description:
+      "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.",
+    fieldType: FormFieldSchemaType.Text,
+    stepId: "app-registration",
+    required: true,
+    disableSpellCheck: true,
+    placeholder: "00000000-0000-0000-0000-000000000000",
+  };
+
   const nameField: Field<JSONObject> = {
     field: { name: true },
     title: "Name",
     description: "How this connection is listed.",
     fieldType: FormFieldSchemaType.Text,
+    stepId: "connection",
     required: isEditing,
     placeholder: "Microsoft Intune",
-    collapsibleSection: isEditing ? undefined : moreFields,
   };
 
   const intervalField: Field<JSONObject> = {
@@ -129,25 +129,13 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
     description:
       "How often the devices, their groups and their check-ins are read. Each device's apps are read every 6 hours.",
     fieldType: FormFieldSchemaType.Dropdown,
+    stepId: "connection",
     required: true,
-    dropdownOptions: intervalOptions,
-    collapsibleSection: isEditing ? undefined : moreFields,
-  };
-
-  const clientIdField: Field<JSONObject> = {
-    field: { clientId: true },
-    title: "Application (Client) ID",
-    description:
-      "On the app registration's Overview. It needs the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph.",
-    fieldType: FormFieldSchemaType.Text,
-    required: true,
-    disableSpellCheck: true,
-    placeholder: "00000000-0000-0000-0000-000000000000",
+    dropdownOptions: getDeviceManagerIntervalOptions(),
   };
 
   const fields: Array<Field<JSONObject>> = isEditing
     ? [
-        nameField,
         clientIdField,
         {
           field: { clientSecret: true },
@@ -155,10 +143,12 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
           description:
             "A new secret replaces the stored one. Leave blank to keep it.",
           fieldType: FormFieldSchemaType.Password,
+          stepId: "app-registration",
           required: false,
           disableSpellCheck: true,
           placeholder: "Unchanged",
         },
+        nameField,
         intervalField,
       ]
     : [
@@ -168,6 +158,7 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
           description:
             "The Directory (tenant) ID on the app registration's Overview in the Microsoft Entra admin center, or a domain of the tenant.",
           fieldType: FormFieldSchemaType.Text,
+          stepId: "app-registration",
           required: true,
           disableSpellCheck: true,
           placeholder: "contoso.onmicrosoft.com",
@@ -179,6 +170,7 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
           description:
             "The secret's value, from Certificates & secrets on the app registration. OneUptime only reads.",
           fieldType: FormFieldSchemaType.Password,
+          stepId: "app-registration",
           required: true,
           disableSpellCheck: true,
         },
@@ -187,6 +179,7 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
           title: "Cloud",
           description: "The Microsoft cloud the tenant is in.",
           fieldType: FormFieldSchemaType.Dropdown,
+          stepId: "app-registration",
           required: true,
           dropdownOptions: cloudOptions,
           collapsibleSection: moreFields,
@@ -247,12 +240,16 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
         setIsLoading(true);
 
         try {
-          const clientSecret: string = readText(values["clientSecret"]);
-          const clientId: string = readText(values["clientId"]);
+          const clientSecret: string = readDeviceManagerFormText(
+            values["clientSecret"],
+          );
+          const clientId: string = readDeviceManagerFormText(
+            values["clientId"],
+          );
           const readIntervalInMinutes: number =
             Number(values["readIntervalInMinutes"]) ||
             DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES;
-          const name: string = readText(values["name"]);
+          const name: string = readDeviceManagerFormText(values["name"]);
 
           if (isEditing && props.connection?.id) {
             const isClientIdChanged: boolean =
@@ -297,9 +294,9 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
             return;
           }
 
-          const tenant: string = readText(values["tenant"]);
+          const tenant: string = readDeviceManagerFormText(values["tenant"]);
           const cloud: string =
-            readText(values["cloud"]) || DEFAULT_INTUNE_CLOUD;
+            readDeviceManagerFormText(values["cloud"]) || DEFAULT_INTUNE_CLOUD;
           const result: DeviceManagementTestResult =
             await runDeviceManagementTest({
               provider: DeviceManagementProvider.Intune,
@@ -352,6 +349,7 @@ const IntuneConnectionFormModal: FunctionComponent<ComponentProps> = (
           ? "edit-intune-connection-form"
           : "create-intune-connection-form",
         initialValues,
+        steps,
         fields,
       }}
     />
