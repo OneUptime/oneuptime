@@ -23,6 +23,7 @@ import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import AuditLogChangesModal, {
   AUDIT_LOG_FIELDS_CHANGED,
+  getChangedFieldLabels,
 } from "./AuditLogChangesModal";
 import {
   AuditLogsStoppedCopy,
@@ -380,10 +381,17 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     return getAuditLogsQuery({
       projectId: ProjectUtil.getCurrentProjectId(),
       resourceType: props.resourceType,
+      resourceTypes: props.resourceTypes,
       resourceId: props.resourceId,
       rootResourceId: props.rootResourceId,
     });
-  }, [props.resourceType, props.resourceId, props.rootResourceId]);
+  }, [
+    props.resourceType,
+    // A list handed in anew each draw: compared by what it holds.
+    (props.resourceTypes || []).join("\n"),
+    props.resourceId,
+    props.rootResourceId,
+  ]);
 
   const extraSelect: Select<AuditLog> = {
     resourceName: true,
@@ -979,22 +987,49 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                 translator: translator,
               });
 
+              /*
+               * What an update changed, by the fields' names, so a reader
+               * scanning the log sees which fields each change was to
+               * without opening every row (#10290). The values, before
+               * and after, are behind the button.
+               */
+              const changedFields: Array<string> =
+                item.action === AuditLogAction.Update
+                  ? getChangedFieldLabels({
+                      changes: rawChanges,
+                      storedResourceType: item.resourceType,
+                      translator: translator,
+                    })
+                  : [];
+
               return (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDetailItem(item);
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
-                >
-                  <Icon
-                    icon={IconProp.List}
-                    size={SizeProp.Small}
-                    thick={ThickProp.Thick}
-                    className="h-3 w-3 text-gray-500"
-                  />
-                  {label}
-                </button>
+                <div className="flex min-w-0 flex-col items-start gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailItem(item);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                  >
+                    <Icon
+                      icon={IconProp.List}
+                      size={SizeProp.Small}
+                      thick={ThickProp.Thick}
+                      className="h-3 w-3 text-gray-500"
+                    />
+                    {label}
+                  </button>
+                  {changedFields.length > 0 ? (
+                    <span
+                      data-testid="audit-log-changed-fields"
+                      className="max-w-full break-words text-xs text-gray-500"
+                    >
+                      {changedFields.join(" · ")}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               );
             },
           },
@@ -1012,6 +1047,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             ? getResourceTypeLabel(detailItem.resourceType)
             : undefined
         }
+        storedResourceType={detailItem?.resourceType}
         resourceName={detailItem?.resourceName}
         changes={detailItem?.changes}
       />

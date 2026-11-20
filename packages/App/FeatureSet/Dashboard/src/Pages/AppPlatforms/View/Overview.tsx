@@ -737,6 +737,7 @@ const CloudEnvironmentOverview: FunctionComponent<
         detailRows={detailRows}
         detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         recordId={modelId.toString()}
+        recordModelType={CloudApp}
         settingsRoute={populate(
           PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,
         )}

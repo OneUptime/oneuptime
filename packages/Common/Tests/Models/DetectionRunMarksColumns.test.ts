@@ -33,11 +33,11 @@ const SCHEMA_MIGRATIONS_DIRECTORY: string = path.join(
   "SchemaMigrations",
 );
 
-const MIGRATION_NAME: string = "AddDetectionRunMarksAndFiringKeys1809187400000";
+const MIGRATION_NAME: string = "AddDetectionRunMarksAndFiringKeys1809187421130";
 
 const MIGRATION_PATH: string = path.join(
   SCHEMA_MIGRATIONS_DIRECTORY,
-  "1809187400000-AddDetectionRunMarksAndFiringKeys.ts",
+  "1809187421130-AddDetectionRunMarksAndFiringKeys.ts",
 );
 
 function typeOrmColumn(
@@ -103,7 +103,7 @@ describe("DetectionRule.lastFailedAt (#10490)", () => {
     const migration: string = fs.readFileSync(
       path.join(
         SCHEMA_MIGRATIONS_DIRECTORY,
-        "1809187410000-AddDetectionRuleLastFailedAt.ts",
+        "1809187421140-AddDetectionRuleLastFailedAt.ts",
       ),
       "utf8",
     );
@@ -119,7 +119,7 @@ describe("DetectionRule.lastFailedAt (#10490)", () => {
       'ALTER TABLE "DetectionRule" DROP COLUMN "lastFailedAt"',
     );
     expect(
-      index.indexOf("  AddDetectionRuleLastFailedAt1809187410000,"),
+      index.indexOf("  AddDetectionRuleLastFailedAt1809187421140,"),
     ).toBeGreaterThan(index.indexOf(`  ${MIGRATION_NAME},`));
   });
 });
@@ -175,7 +175,7 @@ describe(`${MIGRATION_NAME}`, () => {
     );
 
     expect(index).toContain(
-      `import { ${MIGRATION_NAME} } from "./1809187400000-AddDetectionRunMarksAndFiringKeys";`,
+      `import { ${MIGRATION_NAME} } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";`,
     );
     expect(index).toContain(`  ${MIGRATION_NAME},\n`);
   });

@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * default to fill. Every rule starts with no mark and every detection with
  * no names, as before.
  */
-export class AddDetectionRunMarksAndFiringKeys1809187400000
+export class AddDetectionRunMarksAndFiringKeys1809187421130
   implements MigrationInterface
 {
-  public name: string = "AddDetectionRunMarksAndFiringKeys1809187400000";
+  public name: string = "AddDetectionRunMarksAndFiringKeys1809187421130";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
