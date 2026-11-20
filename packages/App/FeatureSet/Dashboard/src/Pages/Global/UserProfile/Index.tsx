@@ -73,7 +73,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const feedbackSettings: ProductFeedbackSettings | null =
     useProductFeedbackSettings();
   const signInManagement: SignInManagementState = useSignInManagement();
-  // Read Basic Info again once a change of email address is cancelled.
+  // Read Basic Info again once a change of email address is cancelled or sent again.
   const [basicInfoRefresher, setBasicInfoRefresher] = useState<boolean>(false);
 
   return (
@@ -170,7 +170,10 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Email",
               placeholder: "No email added",
               fieldType: FieldType.Element,
-              // With a new address waiting to be confirmed, if there is one.
+              /*
+               * With a new address waiting to be confirmed, if there is one,
+               * and whether its link still works (#9908).
+               */
               getElement: (user: User) => {
                 return (
                   <PendingEmailChange
@@ -178,7 +181,10 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     pendingEmail={
                       user.newUnverifiedTemporaryEmail?.toString() || null
                     }
-                    onCancelled={() => {
+                    pendingEmailLinkExpires={
+                      user.newUnverifiedTemporaryEmailExpires || null
+                    }
+                    onChanged={() => {
                       setBasicInfoRefresher((value: boolean) => {
                         return !value;
                       });
@@ -240,6 +246,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ],
           selectMoreFields: {
             newUnverifiedTemporaryEmail: true,
+            newUnverifiedTemporaryEmailExpires: true,
           },
           modelId: UserUtil.getUserId(),
         }}

@@ -26,7 +26,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
-const { processorNamesFor } = require("./CumulativeToDeltaProcessor");
+const { componentNamesFor } = require("./CollectorComponentTypes");
 
 // The cluster collector's pipeline the processors run in.
 const PIPELINE = "metrics";
@@ -381,8 +381,9 @@ function readRenderedDeployment(renderedFile) {
  * no image, as the chart's pinned collector names them.
  */
 function behaviourConfig(collector, image) {
-  const increaseProcessors = processorNamesFor(INCREASE_PROCESSORS, image);
-  const liftedProcessors = processorNamesFor(LIFTED_PROCESSORS, image);
+  const increaseProcessors = componentNamesFor(INCREASE_PROCESSORS, image);
+  const liftedProcessors = componentNamesFor(LIFTED_PROCESSORS, image);
+  const exporters = componentNamesFor(["otlp_http"], image);
   const pipeline = collector.service.pipelines[PIPELINE];
   if (!pipeline) {
     fail(`the cluster collector has no ${PIPELINE} pipeline`);
@@ -397,7 +398,7 @@ function behaviourConfig(collector, image) {
   if (!pipeline.receivers.includes("k8s_cluster")) {
     fail(`${PIPELINE} receives from ${pipeline.receivers.join(", ")}`);
   }
-  if (pipeline.exporters.join(",") !== "otlphttp") {
+  if (pipeline.exporters.join(",") !== exporters.join(",")) {
     fail(`${PIPELINE} exports to ${pipeline.exporters.join(", ")}`);
   }
 

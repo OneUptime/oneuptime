@@ -162,8 +162,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
       getAllKubernetesAlertTemplates().length +
       getAllKubernetesEventAlertTemplates().length +
       getAllOpenShiftAlertTemplates().length,
+    /*
+     * And Node Image Disk Almost Full on a cluster with a node that keeps
+     * its images on a disk of its own alone (#10056).
+     */
     contextFreeTemplateCount:
-      getAllKubernetesAlertTemplates().length +
+      getAllKubernetesAlertTemplates().length -
+      1 +
       getAllKubernetesEventAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
   },

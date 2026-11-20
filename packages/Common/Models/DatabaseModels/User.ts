@@ -111,6 +111,32 @@ class User extends UserModel {
   })
   public newUnverifiedTemporaryEmail?: string = undefined;
 
+  /*
+   * When the link that confirms newUnverifiedTemporaryEmail stops working
+   * (#9908), so User Profile can say a waiting change's link has expired.
+   * Written with the waiting address, the same whether or not another
+   * account has it, and cleared with it; OneUptime's to write
+   * (UserService.onUpdatePermitted). Empty for a change asked for before
+   * this was kept.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "New Email Link Expires",
+    description:
+      "When the link sent to confirm the new email address waiting on this account stops working.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public newUnverifiedTemporaryEmailExpires?: Date = undefined;
+
   @Index()
   @ColumnAccessControl({
     create: [],
