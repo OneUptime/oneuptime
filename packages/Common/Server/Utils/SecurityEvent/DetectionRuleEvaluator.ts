@@ -784,14 +784,24 @@ export default class DetectionRuleEvaluator {
     }
 
     try {
-      const current: DetectionRule | null =
-        await DetectionRuleService.findOneById({
+      let current: DetectionRule | null;
+
+      try {
+        current = await DetectionRuleService.findOneById({
           id: ruleId,
           select: DETECTION_RULE_REAL_TIME_SELECT,
           props: {
             isRoot: true,
           },
         });
+      } catch (error) {
+        // Read again next turn: nothing was judged, so nothing is lost.
+        logger.error(
+          `DetectionRuleEvaluator: rule ${ruleId.toString()} could not be read again under its run lock; left to the next turn:`,
+        );
+        logger.error(error);
+        return;
+      }
 
       if (
         !current ||
