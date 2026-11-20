@@ -259,7 +259,11 @@ describe("an OTLP/HTTP export's outcome, and its key's Last Used At", () => {
     expect(await post(TOKEN).answer).toBe(200);
 
     expect(outcomes).toEqual([
-      { "telemetry.signal": "logs", outcome: "accepted" },
+      {
+        "telemetry.signal": "logs",
+        "telemetry.surface": "otel-logs",
+        outcome: "accepted",
+      },
     ]);
     expect(stampedKeyIds()).toEqual([policy.ingestionKeyId.toString()]);
   });
@@ -270,7 +274,11 @@ describe("an OTLP/HTTP export's outcome, and its key's Last Used At", () => {
     expect(await post(TOKEN).answer).toBe(503);
 
     expect(outcomes).toEqual([
-      { "telemetry.signal": "logs", outcome: "error" },
+      {
+        "telemetry.signal": "logs",
+        "telemetry.surface": "otel-logs",
+        outcome: "error",
+      },
     ]);
     expect(stampedKeyIds()).toEqual([]);
   });
@@ -279,7 +287,11 @@ describe("an OTLP/HTTP export's outcome, and its key's Last Used At", () => {
     expect(await post(null).answer).toBe(401);
 
     expect(outcomes).toEqual([
-      { "telemetry.signal": "logs", outcome: "rejected" },
+      {
+        "telemetry.signal": "logs",
+        "telemetry.surface": "otel-logs",
+        outcome: "rejected",
+      },
     ]);
     expect(stampedKeyIds()).toEqual([]);
   });
@@ -319,7 +331,11 @@ describe("an OTLP/HTTP export's outcome, and its key's Last Used At", () => {
 
     expect(queuedJobs).toBe(1);
     expect(outcomes).toEqual([
-      { "telemetry.signal": "logs", outcome: "error" },
+      {
+        "telemetry.signal": "logs",
+        "telemetry.surface": "otel-logs",
+        outcome: "error",
+      },
     ]);
     expect(stampedKeyIds()).toEqual([]);
   });

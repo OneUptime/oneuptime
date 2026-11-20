@@ -177,16 +177,26 @@ export default class QueryPermission {
 
   /*
    * Whether `held` may read one column of a record reached by a relation -
-   * for a filter through the relation here, and for a sort through it
-   * (SortValidator.checkSortPermission).
+   * for a select through the relation here. `notCounted` are permissions
+   * that let nobody read it this way (canFilterOrOrderByRelatedColumn).
    */
   public static canReadRelatedColumn(data: {
     relatedModel: BaseModel;
     column: string;
     held: HeldPermissions;
+    notCounted?: ReadonlyArray<Permission> | undefined;
   }): boolean {
-    const tablePermissions: Array<Permission> =
-      data.relatedModel.getReadPermissions() || [];
+    const counted: (permissions: Array<Permission>) => Array<Permission> = (
+      permissions: Array<Permission>,
+    ): Array<Permission> => {
+      return permissions.filter((permission: Permission): boolean => {
+        return !(data.notCounted || []).includes(permission);
+      });
+    };
+
+    const tablePermissions: Array<Permission> = counted(
+      data.relatedModel.getReadPermissions() || [],
+    );
 
     if (!data.relatedModel.getColumnAccessControlFor(data.column)) {
       return HeldPermissionsUtil.holdsAnyOf(data.held, tablePermissions, {
@@ -197,8 +207,9 @@ export default class QueryPermission {
       });
     }
 
-    const columnPermissions: Array<Permission> =
-      data.relatedModel.getColumnAccessControlFor(data.column)!.read || [];
+    const columnPermissions: Array<Permission> = counted(
+      data.relatedModel.getColumnAccessControlFor(data.column)!.read || [],
+    );
 
     return HeldPermissionsUtil.holdsAnyOf(data.held, columnPermissions, {
       wildcard: HeldPermissionsUtil.getColumnWildcard({
@@ -207,6 +218,54 @@ export default class QueryPermission {
         tablePermissions: tablePermissions,
         columnPermissions: columnPermissions,
       }),
+    });
+  }
+
+  /*
+   * Whether `held` may filter or order a list by one column of a record a
+   * relation reaches - checkRelationFilterPermission here, and
+   * SortValidator.checkSortPermission - the way canReadRelatedColumn reads
+   * it, but for the permissions that let nobody read through a relation
+   * (PendingInviteeProfiles.getPermissionsNotCountedThroughRelation): on a
+   * person's account, CurrentUser, which every signed-in person holds and
+   * which means the account's own person - whom a relation never shows the
+   * reader to be. Without it, a project member filtered its people by
+   * `user.isEmailVerified` (whether an address it invited had an account
+   * before), and by their language, time zone, company or phone (#9895).
+   */
+  public static canFilterOrOrderByRelatedColumn(data: {
+    relatedModel: BaseModel;
+    column: string;
+    held: HeldPermissions;
+  }): boolean {
+    return QueryPermission.canReadRelatedColumn({
+      ...data,
+      notCounted:
+        PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(
+          data.relatedModel,
+        ),
+    });
+  }
+
+  /*
+   * Who may filter or order by one column of a related model, as a refusal
+   * names them: its readers but those canFilterOrOrderByRelatedColumn does
+   * not count.
+   */
+  public static getRelatedFilterPermissions(
+    relatedModel: BaseModel,
+    column: string,
+  ): Array<Permission> {
+    const notCounted: ReadonlyArray<Permission> =
+      PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(
+        relatedModel,
+      );
+
+    return QueryPermission.getRelatedReadPermissions(
+      relatedModel,
+      column,
+    ).filter((permission: Permission): boolean => {
+      return !notCounted.includes(permission);
     });
   }
 
@@ -433,7 +492,8 @@ export default class QueryPermission {
    * read: a column marked canReadOnRelationQuery, which any reader of the
    * relation may select, or one of the id and timestamp columns every
    * select may name, is filtered on freely; any other only by a caller who
-   * may read that column of the related model (canReadRelatedColumn) - and
+   * may read that column of the related model (canFilterOrOrderByRelatedColumn:
+   * never through CurrentUser on a person's account, #9895) - and
    * never by a workflow's step when the related model is a setting that
    * holds credentials, whose read a step acting as a Project Admin is not
    * lent (RelationListPermission.isReadWithheldFromWorkflow): whoever may
@@ -524,7 +584,7 @@ export default class QueryPermission {
         if (
           !excludedColumnNames.includes(relatedColumn) &&
           !relatedColumnMetadata.canReadOnRelationQuery &&
-          (!QueryPermission.canReadRelatedColumn({
+          (!QueryPermission.canFilterOrOrderByRelatedColumn({
             relatedModel: relatedModel,
             column: relatedColumn,
             held: data.held,
@@ -539,7 +599,7 @@ export default class QueryPermission {
               column: relatedColumn,
               relatedModelName: relatedModel.singularName || "",
               relationColumn: data.relationColumn,
-              permissions: QueryPermission.getRelatedReadPermissions(
+              permissions: QueryPermission.getRelatedFilterPermissions(
                 relatedModel,
                 relatedColumn,
               ),

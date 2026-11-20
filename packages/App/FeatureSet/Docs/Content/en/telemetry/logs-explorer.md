@@ -63,7 +63,7 @@ Click a value in the **Filters** sidebar to add it as a chip: a severity, a serv
 Click a row. Its details open beside the list.
 :::
 
-Your search, your chips and the time range are kept in the page's address, so a refresh, a bookmark or a shared link opens the same logs. A link to one log line, such as a security event's **View log line**, opens that line above the list, read with your own permissions. **Copy Link** on a line's details copies such a link, with the list you copied it from under it, over the same time range.
+Your search, your chips and the time range are kept in the page's address, so a refresh, a bookmark or a shared link opens the same logs. A link to one log line, such as a security event's **View log line**, opens that line above the list, read with your own permissions. **Copy Link** on a line's details copies such a link, with the list you copied it from under it, over the same time range. A row of the list has **Copy Link** too, beside its message, so you can copy a line's link without opening it.
 
 ## Read a log
 
@@ -194,6 +194,7 @@ Press `?` in the Viewer to see these.
 | --- | --- |
 | `j` / `k` | Move to the next or previous log. |
 | Enter | Open or close the selected log. |
+| `l` | Copy a link to the selected log. |
 | Esc | Close the details panel. |
 | `/` | Jump to the search box. |
 | ⌘ + Enter or Ctrl + Enter | Apply the search. |

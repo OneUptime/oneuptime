@@ -63,7 +63,7 @@ Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme pu
 Cliquez sur une ligne. Ses détails s'ouvrent à côté de la liste.
 :::
 
-Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux. Un lien vers une seule ligne de journal, comme **Voir la ligne de journal** d'un événement de sécurité, ouvre cette ligne au-dessus de la liste, lue avec vos propres permissions. **Copier le lien**, dans le détail d'une ligne, copie un tel lien, avec en dessous la liste d'où vous l'avez copié, sur la même plage de temps.
+Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux. Un lien vers une seule ligne de journal, comme **Voir la ligne de journal** d'un événement de sécurité, ouvre cette ligne au-dessus de la liste, lue avec vos propres permissions. **Copier le lien**, dans le détail d'une ligne, copie un tel lien, avec en dessous la liste d'où vous l'avez copié, sur la même plage de temps. Chaque ligne de la liste a aussi **Copier le lien**, à côté de son message : vous copiez ainsi le lien d'une ligne sans l'ouvrir.
 
 ## Lire un journal
 
@@ -194,6 +194,7 @@ Appuyez sur `?` dans le Lecteur pour les voir.
 | --- | --- |
 | `j` / `k` | Passer au journal suivant ou précédent. |
 | Enter | Ouvrir ou fermer le journal sélectionné. |
+| `l` | Copier un lien vers le journal sélectionné. |
 | Esc | Fermer le panneau de détails. |
 | `/` | Aller à la zone de recherche. |
 | ⌘ + Enter ou Ctrl + Enter | Appliquer la recherche. |

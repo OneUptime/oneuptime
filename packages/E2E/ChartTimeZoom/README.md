@@ -112,7 +112,10 @@ severity, count }` per bucket and series that has rows, in time order; the logs
   above an explorer.
 - Empty on purpose: incidents, alerts, scheduled maintenance, monitors, dismissals,
   change events, exemplars (raw `Metric` rows with a trace id), trace saved views,
-  Docker and Podman hosts.
+  Docker and Podman hosts, and security events (an opened log line's details read
+  the events naming it, and find none).
+- Every page has the Dashboard's toast region (`ToastRegion`, as its `src/Index.tsx`
+  draws it), where a log row's Copy Link says "Link copied".
 
 Any route not listed above renders a "Not modelled" stub (`data-testid="stub-page"`).
 
@@ -641,6 +644,20 @@ own: two value axes, never a third, the percent axis kept at or under 100% (the 
 pulled it up to thousands), the processes' line spread over the plot, its chip saying "Own
 scale" beside an "Own scale: …" badge, and the chart's note saying it has no axis
 (`metric-explorer-own-scale-*-synthetic.png`).
+
+## Logs explorer: Copy Link on a log row
+
+`LogRowCopyLink.spec.ts` (5 tests, same fixture and command) pins #9944: a row of the Logs
+explorer's list has Copy Link beside its Copy log message, so a line's link is copied
+without opening it. The page's clipboard is recorded (`navigator.clipboard` is replaced
+before the page loads), so what each press copied is read exactly. At 1440px the row's
+Copy Link shows under the pointer, copies the link the row's details copy (the Logs page
+naming the line, over the list's hour, pinned), says "Link copied" and leaves the row
+closed, and the link opens that very line above the list; Tab reaches it after Copy log
+message and shows it, and Enter presses it; `l` copies the link of the row `j` moved to,
+and the shortcuts panel lists it after Enter. On a 390px phone, with nothing to hover,
+both of a row's actions show, 32px across with room between, and a tap copies the link
+without opening the row, the page never scrolling sideways.
 
 ## Run it
 

@@ -63,7 +63,7 @@ Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett 
 Klicka på en rad. Dess detaljer öppnas bredvid listan.
 :::
 
-Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar. En länk till en enda loggrad, till exempel en säkerhetshändelses **Visa loggrad**, öppnar den raden ovanför listan, läst med dina egna behörigheter. **Kopiera länk** i en rads detaljer kopierar en sådan länk, med listan du kopierade den från under raden, över samma tidsintervall.
+Din sökning, dina chips och tidsintervallet sparas i sidans adress, så en omladdning, ett bokmärke eller en delad länk öppnar samma loggar. En länk till en enda loggrad, till exempel en säkerhetshändelses **Visa loggrad**, öppnar den raden ovanför listan, läst med dina egna behörigheter. **Kopiera länk** i en rads detaljer kopierar en sådan länk, med listan du kopierade den från under raden, över samma tidsintervall. Varje rad i listan har också **Kopiera länk**, bredvid meddelandet, så att du kan kopiera en rads länk utan att öppna den.
 
 ## Läs en logg
 
@@ -194,6 +194,7 @@ Tryck på `?` i Tittare för att se dem.
 | --- | --- |
 | `j` / `k` | Gå till nästa eller föregående logg. |
 | Enter | Öppna eller stäng den valda loggen. |
+| `l` | Kopiera en länk till den valda loggen. |
 | Esc | Stäng detaljpanelen. |
 | `/` | Hoppa till sökrutan. |
 | ⌘ + Enter eller Ctrl + Enter | Tillämpa sökningen. |

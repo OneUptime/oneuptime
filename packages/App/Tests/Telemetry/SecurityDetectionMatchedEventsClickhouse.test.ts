@@ -14,7 +14,20 @@ import {
   Statement,
 } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import SecurityDetectionMatchedEventsReader from "Common/Server/Utils/SecurityCase/SecurityDetectionMatchedEventsReader";
+import SecurityCaseMatches from "Common/Server/Utils/SecurityCase/Context/SecurityCaseMatches";
 import DetectionRuleEvaluator from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import DetectionRuleRetrohunt from "Common/Server/Utils/SecurityEvent/DetectionRuleRetrohunt";
+import TelemetryReadAccess from "Common/Server/Utils/Telemetry/TelemetryReadAccess";
+import DetectionRuleService from "Common/Server/Services/DetectionRuleService";
+import SecurityCaseService from "Common/Server/Services/SecurityCaseService";
+import SecurityDetectionService from "Common/Server/Services/SecurityDetectionService";
+import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
+import {
+  SecurityCaseMatchBasis,
+  SecurityCaseMatchedDetectionJson,
+  SecurityCaseMatchesJson,
+} from "Common/Types/SecurityCase/SecurityCaseMatches";
+import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import SigmaClickhouseCompiler, {
   buildSigmaFieldExpression,
 } from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
@@ -59,6 +72,13 @@ import {
  *   a correlation's      every group it fires for at once - a run's 100 -
  *   groups               by its own group-by, each keeping its share of
  *                        the firing, in one read (#9795);
+ *   a correlation's      what Why This Case Was Opened lists for one that
+ *   case                 kept none: its own group's events, by its own
+ *                        group-by, over its run's window - exactly what it
+ *                        would have kept - and none of the near misses
+ *                        naming its address, which the read by what the
+ *                        events name listed; a group no observable holds
+ *                        (a route) too (#9939);
  *
  * each only the project's own events, in the window the source read. Run
  * on a table built from the SecurityEvent model.
@@ -164,11 +184,14 @@ function eventRow(data: {
   principalUser?: string | undefined;
   statusName?: string | undefined;
   classUid?: number | undefined;
+  className?: string | undefined;
   observables?: Array<string> | undefined;
   requestOutcome?: string | undefined;
+  attributes?: Record<string, string> | undefined;
 }): JSONObject {
   const attributes: Record<string, string> = {
     "oneuptime.log.id": `log-${data.uid}`,
+    ...(data.attributes || {}),
   };
 
   return {
@@ -180,7 +203,9 @@ function eventRow(data: {
     createdAt: OneUptimeDate.toClickhouseDateTime(data.time),
     eventUid: data.uid,
     classUid: data.classUid ?? 3002,
-    className: data.classUid === 2004 ? "Detection Finding" : "Authentication",
+    className:
+      data.className ??
+      (data.classUid === 2004 ? "Detection Finding" : "Authentication"),
     statusName: data.statusName ?? "Failure",
     severityId: 3,
     severityName: "Medium",
@@ -305,6 +330,125 @@ function uids(kept: SecurityDetectionMatchedEvents | undefined): Array<string> {
   );
 }
 
+// A burst of server errors on one route (#9939): grouped by a field no observable holds.
+const ROUTE_BURST: string = `title: Server error
+id: 7c0f2a51-0000-4000-8000-000000000005
+name: server_error
+level: low
+detection:
+  selection:
+    className: HTTP Activity
+    statusName: Failure
+  condition: selection
+---
+title: A burst of server errors on one route
+id: 7c0f2a51-0000-4000-8000-000000000006
+level: high
+correlation:
+  type: event_count
+  rules:
+    - server_error
+  group-by:
+    - http.route
+  timespan: 5m
+  condition:
+    gte: 3
+`;
+
+/*
+ * What a case's Why This Case Was Opened lists for a correlation's
+ * detection (SecurityCaseMatches, #9939): its Postgres reads answered here
+ * - the case, the detection as it was recorded, its rule, run every ten
+ * minutes and firing as the run ended - and its events read from this
+ * ClickHouse, as a reader whose role reads every source.
+ */
+async function caseMatchesOf(data: {
+  projectId: ObjectID;
+  yaml: string;
+  groupValue: string;
+  firedAt: Date;
+  // What the detection kept as it fired; none when left out.
+  kept?: SecurityDetectionMatchedEvents | undefined;
+}): Promise<SecurityCaseMatchedDetectionJson> {
+  const caseId: ObjectID = ObjectID.generate();
+  const rule: DetectionRule = new DetectionRule();
+  rule._id = ObjectID.generate().toString();
+  rule.projectId = data.projectId;
+  rule.name = "A correlation";
+  rule.sigmaRuleYaml = data.yaml;
+  rule.isEnabled = true;
+  rule.evaluationIntervalInMinutes = 10;
+  rule.matchCountThreshold = 1;
+
+  const detection: SecurityDetection = new SecurityDetection();
+  detection._id = ObjectID.generate().toString();
+  detection.title = `A correlation - ${data.groupValue}`;
+  detection.source = SecurityDetectionSource.DetectionRule;
+  detection.groupValue = data.groupValue;
+  detection.firstSeenAt = data.firedAt;
+  detection.lastSeenAt = data.firedAt;
+  detection.eventCount = 1;
+  detection.fireCount = 1;
+  detection.detectionRuleId = new ObjectID(rule._id);
+
+  if (data.kept) {
+    detection.matchedEvents = JSON.parse(JSON.stringify(data.kept)) as never;
+  }
+
+  const spies: Array<{ mockRestore: () => void }> = [
+    jest.spyOn(SecurityCaseService, "findOneBy").mockResolvedValue({
+      _id: caseId.toString(),
+      id: caseId,
+      projectId: data.projectId,
+      entities: [],
+      createdAt: data.firedAt,
+      firstDetectedAt: data.firedAt,
+      lastDetectedAt: data.firedAt,
+      detectionCount: 1,
+    } as never),
+    jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockResolvedValue([detection] as never),
+    jest
+      .spyOn(DetectionRuleService, "findBy")
+      .mockResolvedValue([rule] as never),
+    jest
+      .spyOn(TelemetryReadAccess, "getServiceFilter")
+      .mockResolvedValue({} as never),
+    jest
+      .spyOn(DetectionRuleRetrohunt, "loadDefinition")
+      .mockImplementation(async (): Promise<DetectionRuleDefinition> => {
+        return SigmaRuleSetParser.parse(data.yaml);
+      }),
+  ];
+
+  try {
+    const answer: SecurityCaseMatchesJson | null =
+      await SecurityCaseMatches.build({
+        projectId: data.projectId,
+        securityCaseId: caseId,
+        props: { isRoot: true },
+        now: new Date(data.firedAt.getTime() + 60 * MINUTE),
+      });
+
+    expect(answer!.failedSources).toEqual([]);
+
+    return answer!.detections[0]!;
+  } finally {
+    for (const spy of spies) {
+      spy.mockRestore();
+    }
+  }
+}
+
+function listedUids(
+  detection: SecurityCaseMatchedDetectionJson,
+): Array<string> {
+  return detection.events.map((event: { eventUid: string }): string => {
+    return event.eventUid;
+  });
+}
+
 integration("the events a detection keeps, against ClickHouse", () => {
   let clickhouse: ClickhouseDatabase;
   let client: ClickhouseClient;
@@ -410,6 +554,18 @@ integration("the events a detection keeps, against ClickHouse", () => {
       step: string,
     ): string => {
       return `${prefix}-seq-${address}-${step}`;
+    };
+    /*
+     * A project of its own for a case's correlation detections (#9939):
+     * failures then a success from the address that fired, and near misses
+     * around them - another address's failure and a sign-in to it, each
+     * naming the address among its observables, its own failure hours
+     * before, a request that names it - none of them its group's events.
+     */
+    const caseProjectId: ObjectID = ObjectID.generate();
+    const firingAddress: string = "203.0.113.50";
+    const caseUid: (name: string) => string = (name: string): string => {
+      return `${prefix}-case-${name}`;
     };
 
     beforeAll(async (): Promise<void> => {
@@ -573,6 +729,89 @@ integration("the events a detection keeps, against ClickHouse", () => {
           uid: `${prefix}-alice-elsewhere`,
           principalUser: "alice",
           principalIp: "198.19.0.2",
+        }),
+      );
+
+      // A case's correlation (#9939): the group that fired, and its near misses.
+      rows.push(
+        ...[0, 1, 2].map((index: number): JSONObject => {
+          return eventRow({
+            projectId: caseProjectId,
+            sourceId,
+            time: at(60 + index),
+            uid: caseUid(`fail-${index}`),
+            principalIp: firingAddress,
+            requestOutcome: "Rejected",
+          });
+        }),
+        eventRow({
+          projectId: caseProjectId,
+          sourceId,
+          time: at(120),
+          uid: caseUid("ok"),
+          principalIp: firingAddress,
+          statusName: "Success",
+          requestOutcome: "Reached App",
+        }),
+        // Another address's failure, naming the address among its observables.
+        eventRow({
+          projectId: caseProjectId,
+          sourceId,
+          time: at(63),
+          uid: caseUid("other-group-naming"),
+          principalIp: "203.0.113.51",
+          observables: ["203.0.113.51", firingAddress],
+        }),
+        // A sign-in from elsewhere to the address: its target, not its source.
+        eventRow({
+          projectId: caseProjectId,
+          sourceId,
+          time: at(121),
+          uid: caseUid("to-the-address"),
+          principalIp: "198.51.100.77",
+          statusName: "Success",
+          observables: ["198.51.100.77", firingAddress],
+        }),
+        // The address's own failure, two hours before its run.
+        eventRow({
+          projectId: caseProjectId,
+          sourceId,
+          time: new Date(START.getTime() - 120 * MINUTE),
+          uid: caseUid("hours-before"),
+          principalIp: firingAddress,
+        }),
+        // A request from the address: no step of the correlation.
+        eventRow({
+          projectId: caseProjectId,
+          sourceId,
+          time: at(90),
+          uid: caseUid("request"),
+          principalIp: firingAddress,
+          className: "HTTP Activity",
+          statusName: "Success",
+        }),
+        // Server errors on the checkout route, and two on the cart's.
+        ...[0, 1, 2, 3].map((index: number): JSONObject => {
+          return eventRow({
+            projectId: caseProjectId,
+            sourceId,
+            time: at(200 + index),
+            uid: caseUid(`checkout-${index}`),
+            principalIp: `198.51.100.${10 + index}`,
+            className: "HTTP Activity",
+            attributes: { "http.route": "/api/checkout" },
+          });
+        }),
+        ...[0, 1].map((index: number): JSONObject => {
+          return eventRow({
+            projectId: caseProjectId,
+            sourceId,
+            time: at(201 + index),
+            uid: caseUid(`cart-${index}`),
+            principalIp: `198.51.100.${20 + index}`,
+            className: "HTTP Activity",
+            attributes: { "http.route": "/api/cart" },
+          });
         }),
       );
 
@@ -779,6 +1018,132 @@ integration("the events a detection keeps, against ClickHouse", () => {
       );
 
       expect(Number(count!.rows)).toBeGreaterThan(0);
+    });
+
+    /*
+     * A correlation's detection that kept no events (#9939): its case reads
+     * them again as the correlation keeps them when it fires - its steps'
+     * events of its own group, by its own group-by, over the window its
+     * run read - where it read the events naming any of the group's values.
+     */
+    describe("a correlation's case that kept no events", () => {
+      test("lists the events of the group that fired, and none of the near misses naming its address", async () => {
+        const detection: SecurityCaseMatchedDetectionJson = await caseMatchesOf(
+          {
+            projectId: caseProjectId,
+            yaml: signInSequence(["principalIp"]),
+            groupValue: firingAddress,
+            firedAt: END,
+          },
+        );
+
+        expect(detection.isKept).toBe(false);
+        expect(detection.basis).toBe(SecurityCaseMatchBasis.CorrelationSteps);
+        expect(listedUids(detection)).toEqual([
+          caseUid("fail-0"),
+          caseUid("fail-1"),
+          caseUid("fail-2"),
+          caseUid("ok"),
+        ]);
+        expect(detection.matchedEventCount).toBe(4);
+        expect(detection.outcomes).toEqual({ Rejected: 3, "Reached App": 1 });
+      });
+
+      test("its near misses are real: read by what the events name, as it was, they were listed too", async () => {
+        const named: Array<{ eventUid: string }> = await readJson<{
+          eventUid: string;
+        }>(
+          client,
+          `SELECT eventUid FROM ${database}.${new SecurityEvent().tableName} WHERE projectId = '${caseProjectId.toString()}' AND has(observables, '${firingAddress}') AND className = 'Authentication' AND time >= '${OneUptimeDate.toClickhouseDateTime64(
+            new Date(START.getTime() - 11 * MINUTE),
+          )}' ORDER BY time`,
+        );
+
+        expect(
+          named.map((row: { eventUid: string }): string => {
+            return row.eventUid;
+          }),
+        ).toEqual([
+          caseUid("fail-0"),
+          caseUid("fail-1"),
+          caseUid("fail-2"),
+          caseUid("other-group-naming"),
+          caseUid("ok"),
+          caseUid("to-the-address"),
+        ]);
+      });
+
+      test("a group no observable holds - a route - lists its route's events, where it listed none", async () => {
+        const detection: SecurityCaseMatchedDetectionJson = await caseMatchesOf(
+          {
+            projectId: caseProjectId,
+            yaml: ROUTE_BURST,
+            groupValue: "/api/checkout",
+            firedAt: END,
+          },
+        );
+
+        expect(listedUids(detection)).toEqual([
+          caseUid("checkout-0"),
+          caseUid("checkout-1"),
+          caseUid("checkout-2"),
+          caseUid("checkout-3"),
+        ]);
+      });
+
+      test("lists what it would have kept as it fired, event for event", async () => {
+        const kept: Map<string, SecurityDetectionMatchedEvents> =
+          await readCorrelationGroups({
+            projectId: caseProjectId,
+            groupBy: ["principalIp"],
+            groupValues: [firingAddress],
+          });
+        const detection: SecurityCaseMatchedDetectionJson = await caseMatchesOf(
+          {
+            projectId: caseProjectId,
+            yaml: signInSequence(["principalIp"]),
+            groupValue: firingAddress,
+            firedAt: END,
+          },
+        );
+
+        expect(listedUids(detection)).toEqual(uids(kept.get(firingAddress)));
+        expect(detection.outcomes).toEqual(kept.get(firingAddress)!.outcomes);
+      });
+
+      test("one that kept its events lists those, and reads no events table", async () => {
+        const kept: Map<string, SecurityDetectionMatchedEvents> =
+          await readCorrelationGroups({
+            projectId: caseProjectId,
+            groupBy: ["principalIp"],
+            groupValues: [firingAddress],
+          });
+        const executeQuery: ReturnType<typeof jest.spyOn> = jest.spyOn(
+          SecurityEventService,
+          "executeQuery",
+        );
+
+        const detection: SecurityCaseMatchedDetectionJson = await caseMatchesOf(
+          {
+            projectId: caseProjectId,
+            yaml: signInSequence(["principalIp"]),
+            groupValue: firingAddress,
+            firedAt: END,
+            kept: kept.get(firingAddress),
+          },
+        );
+
+        expect(executeQuery).not.toHaveBeenCalled();
+        executeQuery.mockRestore();
+
+        expect(detection.isKept).toBe(true);
+        expect(listedUids(detection)).toEqual([
+          caseUid("fail-0"),
+          caseUid("fail-1"),
+          caseUid("fail-2"),
+          caseUid("ok"),
+        ]);
+      });
     });
   });
 });

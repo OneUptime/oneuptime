@@ -3,7 +3,10 @@ import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Util
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
-import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
+import {
+  decodeHtmlEntities,
+  markupAsSpacesWithOutlookContent,
+} from "Common/Tests/Helpers/HtmlText";
 import {
   screenReaderPieces,
   timesSaid,
@@ -667,7 +670,10 @@ describe("the partials every email is built from", () => {
         isSelfHosted: "true",
       });
 
-      expect(textOf(html)).toContain("Need help? Ask your server's admin.");
+      // As read: the line is in the email's language, escaped (#9897).
+      expect(decodeHtmlEntities(textOf(html))).toContain(
+        "Need help? Ask your server's admin.",
+      );
       expect(html).not.toContain("support@oneuptime.com");
       expect(html).not.toContain("OneUptime");
     },

@@ -1,13 +1,19 @@
 import { describe, expect, it, test } from "@jest/globals";
 import protobuf from "protobufjs";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  COMPATIBLE_JSON_MAX_VALUES,
+  DATADOG_PROTOBUF_MAX_ELEMENTS,
+} from "Common/Types/Telemetry/CompatibleIngest";
 import DatadogIntake, {
   DatadogIntakeError,
   DatadogLogsOptions,
   DatadogLogsTranslation,
   DatadogMetricPayload,
+  DatadogMetricPayloadAsRead,
   DatadogMetricsTranslation,
   DatadogSketchPayload,
+  DatadogSketchPayloadAsRead,
   MAX_DATADOG_LOGS_PER_REQUEST,
 } from "../../../FeatureSet/Telemetry/Utils/Compatible/DatadogIntake";
 
@@ -2580,5 +2586,209 @@ describe("agent_payload.proto", () => {
         "datadog.agentpayload.SketchPayload.Sketch",
       ).reserved,
     ).toEqual([[5, 5], [6, 6], "distributionsK", "distributionsC"]);
+  });
+});
+
+describe("the Agent's payloads, as read", () => {
+  const fieldNamesOf: (
+    root: protobuf.Root,
+    typeName: string,
+  ) => Array<string> = (
+    root: protobuf.Root,
+    typeName: string,
+  ): Array<string> => {
+    return root
+      .lookupType(`datadog.agentpayload.${typeName}`)
+      .fieldsArray.map((field: protobuf.Field): string => {
+        return field.name;
+      });
+  };
+
+  it("leave out only what nothing here reads: bins, distribution samples, and origin and Agent metadata", () => {
+    const read: protobuf.Root = DatadogMetricPayloadAsRead.root;
+
+    expect(DatadogSketchPayloadAsRead.root).toBe(read);
+    expect(read).not.toBe(DatadogMetricPayload.root);
+    expect(fieldNamesOf(read, "MetricPayload.MetricSeries")).toEqual([
+      "resources",
+      "metric",
+      "tags",
+      "points",
+      "type",
+      "unit",
+      "sourceTypeName",
+      "interval",
+    ]);
+    expect(fieldNamesOf(read, "SketchPayload")).toEqual(["sketches"]);
+    expect(fieldNamesOf(read, "SketchPayload.Sketch")).toEqual([
+      "metric",
+      "host",
+      "distributions",
+      "tags",
+      "dogsketches",
+    ]);
+    expect(fieldNamesOf(read, "SketchPayload.Sketch.Dogsketch")).toEqual([
+      "ts",
+      "cnt",
+      "min",
+      "max",
+      "avg",
+      "sum",
+    ]);
+    expect(fieldNamesOf(read, "SketchPayload.Sketch.Distribution")).toEqual([
+      "ts",
+      "cnt",
+      "min",
+      "max",
+      "avg",
+      "sum",
+    ]);
+  });
+
+  it("translate a sketch with its bins exactly as one without them", () => {
+    const sketch: (withBins: boolean) => Buffer = (
+      withBins: boolean,
+    ): Buffer => {
+      return Buffer.from(
+        DatadogSketchPayload.encode(
+          DatadogSketchPayload.fromObject({
+            sketches: [
+              {
+                metric: "http.latency",
+                host: "web-1",
+                tags: ["env:prod"],
+                dogsketches: [
+                  {
+                    ts: 1700000000,
+                    cnt: 4,
+                    min: 1,
+                    max: 8,
+                    sum: 15,
+                    ...(withBins ? { k: [0, 5, 9], n: [1, 2, 1] } : {}),
+                  },
+                ],
+                distributions: [
+                  {
+                    ts: 1700000000,
+                    cnt: 2,
+                    min: 1,
+                    max: 2,
+                    sum: 3,
+                    ...(withBins
+                      ? { v: [1, 2], g: [1, 1], delta: [0, 0] }
+                      : {}),
+                  },
+                ],
+                metadata: withBins ? { origin: { originService: 3 } } : {},
+              },
+            ],
+            ...(withBins ? { metadata: { apiKey: "secret" } } : {}),
+          }),
+        ).finish(),
+      );
+    };
+
+    expect(
+      DatadogIntake.sketchesToOtlp(sketch(true), { nowInMs: 1700000100000 }),
+    ).toEqual(
+      DatadogIntake.sketchesToOtlp(sketch(false), { nowInMs: 1700000100000 }),
+    );
+  });
+});
+
+describe("the limits a Datadog payload is held to", () => {
+  const refusalOf: (read: () => unknown) => {
+    status: number;
+    message: string;
+  } = (read: () => unknown): { status: number; message: string } => {
+    try {
+      read();
+    } catch (error) {
+      if (error instanceof DatadogIntakeError) {
+        return { status: error.statusCode, message: error.message };
+      }
+
+      throw error;
+    }
+
+    throw new Error("Expected the payload to be refused.");
+  };
+
+  const emptyMessages: (count: number) => Buffer = (count: number): Buffer => {
+    const body: Buffer = Buffer.alloc(count * 2);
+
+    for (let index: number = 0; index < count; index++) {
+      body[index * 2] = 0x0a;
+      body[index * 2 + 1] = 0x00;
+    }
+
+    return body;
+  };
+
+  test("a protobuf payload of more elements than the limit is a 413, and is not decoded", () => {
+    const decode: jest.SpyInstance = jest.spyOn(
+      DatadogMetricPayloadAsRead,
+      "decode",
+    );
+
+    try {
+      expect(
+        refusalOf(() => {
+          return DatadogIntake.seriesV2ProtobufToOtlp(
+            emptyMessages(DATADOG_PROTOBUF_MAX_ELEMENTS + 1),
+          );
+        }).status,
+      ).toBe(413);
+      expect(decode).not.toHaveBeenCalled();
+
+      // At the limit it is read: every empty series dropped, nothing kept.
+      expect(
+        DatadogIntake.seriesV2ProtobufToOtlp(
+          emptyMessages(DATADOG_PROTOBUF_MAX_ELEMENTS),
+        ).metrics,
+      ).toBeNull();
+    } finally {
+      decode.mockRestore();
+    }
+  });
+
+  test("bytes that are not the payload are a 400, before anything is decoded", () => {
+    expect(
+      refusalOf(() => {
+        return DatadogIntake.sketchesToOtlp(Buffer.from([0x0a, 0x05, 0x0a]));
+      }),
+    ).toEqual({
+      status: 400,
+      message: "The body is not a Datadog SketchPayload protobuf.",
+    });
+  });
+
+  test("a JSON body of more values than JSON may hold is a 413 on every JSON payload, logs and NDJSON among them", () => {
+    const tooMany: string = `[${"1,".repeat(COMPATIBLE_JSON_MAX_VALUES)}1]`;
+
+    for (const read of [
+      (): unknown => {
+        return DatadogIntake.parseJson(tooMany);
+      },
+      (): unknown => {
+        return DatadogIntake.logsToOtlp(tooMany);
+      },
+      (): unknown => {
+        return DatadogIntake.logsToOtlp(`{"message":"a"}\n${tooMany}`);
+      },
+    ]) {
+      expect(refusalOf(read).status).toBe(413);
+    }
+  });
+
+  test("JSON at the limit is read", () => {
+    // The array and its logs: exactly the values JSON may hold.
+    const logs: number = COMPATIBLE_JSON_MAX_VALUES - 1;
+    const atTheLimit: string = `[${"{},".repeat(logs - 1)}{}]`;
+    const translation: DatadogLogsTranslation =
+      DatadogIntake.logsToOtlp(atTheLimit);
+
+    expect(translation.count).toBe(MAX_DATADOG_LOGS_PER_REQUEST);
+    expect(translation.droppedCount).toBe(logs - MAX_DATADOG_LOGS_PER_REQUEST);
   });
 });

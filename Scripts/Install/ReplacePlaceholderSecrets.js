@@ -102,13 +102,22 @@ const isCommentLine = (line) => {
   return trimmed.startsWith("#") || trimmed.startsWith("//");
 };
 
-// The KEY of a KEY=value line (surrounding whitespace ignored), or null.
+/*
+ * The KEY of a KEY=value line, or null, as WithConfig.sh reads it for
+ * Compose: the whitespace around it dropped, and an "export " before it
+ * too. Read without the export, `export HOST=...` was a setting Compose
+ * got and every check of npm start missed, and npm run update appended the
+ * template's HOST after it, which then won (MergeEnvTemplate.js).
+ */
 const assignedKeyOf = (line) => {
   if (isCommentLine(line) || !line.includes("=")) {
     return null;
   }
 
-  return line.split("=")[0].trim();
+  return line
+    .split("=")[0]
+    .trim()
+    .replace(/^export[ \t]+/, "");
 };
 
 // The value of a KEY=value line, without surrounding whitespace or quotes.
@@ -410,6 +419,7 @@ module.exports = {
   SHIPPED_FALLBACK,
   PLACEHOLDER_MARK,
   isPlaceholderValue,
+  assignedKeyOf,
   readSettings,
   datastorePasswordDecisions,
   replacePlaceholderSecrets,

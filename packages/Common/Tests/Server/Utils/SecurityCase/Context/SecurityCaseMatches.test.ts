@@ -6,12 +6,14 @@ import SecurityDetectionService from "../../../../../Server/Services/SecurityDet
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
 import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../../../Server/Utils/Logger";
+import DetectionRuleRetrohunt from "../../../../../Server/Utils/SecurityEvent/DetectionRuleRetrohunt";
 import SecurityCaseMatches, {
   buildFallbackLookup,
   buildMatchWhere,
   buildMatchedEventsStatement,
   buildMatchedOutcomesStatement,
   buildRuleCondition,
+  getCorrelationMatchWindow,
   getGroupValues,
   getKeptEventsForReader,
   getRuleResponseSteps,
@@ -28,6 +30,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import {
   SECURITY_CASE_MATCHES_MAX_DETECTIONS,
   SECURITY_CASE_MATCHES_MAX_EVENTS,
+  SECURITY_CASE_MATCHES_MAX_WINDOW_IN_HOURS,
   SecurityCaseMatchBasis,
   SecurityCaseMatchedDetectionJson,
   SecurityCaseMatchesJson,
@@ -35,6 +38,7 @@ import {
 } from "../../../../../Types/SecurityCase/SecurityCaseMatches";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
+import { cutShortDetectionText } from "../../../../../Types/SecurityCase/SecurityDetectionText";
 import { DETECTION_RULE_LIBRARY } from "../../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import { getDetectionRuleLibraryResponseSteps } from "../../../../../Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
 import {
@@ -43,6 +47,7 @@ import {
 } from "../../../../../Types/SecurityEvent/DetectionRuleResponseSteps";
 import { buildSecurityDetectionMatchedEvent } from "../../../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import OcsfSeverity from "../../../../../Types/SecurityEvent/OcsfSeverity";
+import { DetectionRuleDefinition } from "../../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRuleSetParser from "../../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -436,7 +441,7 @@ describe("a detection rule's detection", () => {
     expect(condition!.condition.query).not.toContain("principalIp");
   });
 
-  test("reads a correlation's rules, naming its group, over its timespan and its interval", async () => {
+  test("reads a correlation's steps for its own group, over its timespan and its interval", async () => {
     rules = [
       ruleRow({
         name: "Failed then successful sign-in",
@@ -455,12 +460,19 @@ describe("a detection rule's detection", () => {
     expect(detection.rule!.isCorrelation).toBe(true);
     // Ten minutes it looks across, five it reads, and a minute of slack.
     expect(detection.windowStart).toBe("2026-11-17T19:12:00.000Z");
+    expect(detection.windowEnd).toBe("2026-11-17T19:29:00.000Z");
 
     const statement: Statement = eventsStatement();
 
+    // Either step's events, the group as its own group-by takes it (#9939).
     expect(statement.query).toContain(" OR ");
-    expect(statement.query).toContain("hasAny(observables");
-    expect(JSON.stringify(statement.query_params)).toContain("203.0.113.7");
+    expect(statement.query).toMatch(
+      /has\(\{p\d+:Array\(String\)\}, arrayStringConcat\(\[toString\(principalIp\)\], ' \/ '\)\)/,
+    );
+    expect(statement.query).not.toContain("hasAny(observables");
+    expect(Object.values(statement.query_params)).toContainEqual([
+      "203.0.113.7",
+    ]);
   });
 
   test("falls back to what it is about when its rule no longer reads", async () => {
@@ -551,6 +563,576 @@ describe("the other sources", () => {
     expect(detection.events).toEqual([]);
     expect(detection.matchedEventCount).toBeNull();
     expect(executeQuery).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A correlation's detection that kept no events (#9939) - it fired before
+ * detections kept them, or its read at firing time failed - is read again
+ * as it keeps them when it fires (buildCorrelationEventsRead, #9795): its
+ * steps' events whose group, taken as its own reads take each group-by
+ * field, is the detection's, over the window its runs read
+ * (getCorrelationMatchedEventsStart). It used to be read by observables:
+ * nothing for a group no observable holds, and every event naming an
+ * address for one grouped by an address.
+ */
+describe("a correlation's detection that kept no events", () => {
+  const SERVER_ERROR: string = `title: Server error
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a11
+name: server_error
+level: low
+detection:
+  selection:
+    className: HTTP Activity
+    statusName: Failure
+  condition: selection`;
+
+  const FAILED_SIGN_IN: string = `title: Failed sign-in
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a01
+name: failed_sign_in
+level: low
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection`;
+
+  const SUCCESSFUL_SIGN_IN: string = `title: Successful sign-in
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a02
+name: successful_sign_in
+level: low
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection`;
+
+  // A correlation and the rules it reads, as one file holds them.
+  function correlationYaml(
+    correlation: string,
+    readRules: Array<string>,
+  ): string {
+    return [correlation, ...readRules].join("\n---\n");
+  }
+
+  // A burst of server errors on one route: grouped by a field no observable holds.
+  const ROUTE_BURST_YAML: string = correlationYaml(
+    `title: A burst of server errors on one route
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a12
+level: high
+correlation:
+  type: event_count
+  rules:
+    - server_error
+  group-by:
+    - http.route
+  timespan: 5m
+  condition:
+    gte: 20`,
+    [SERVER_ERROR],
+  );
+
+  // One user from one address, by two fields.
+  const USER_AT_ADDRESS_YAML: string = correlationYaml(
+    `title: Failed then successful sign-in, one user from one address
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a13
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_in
+    - successful_sign_in
+  group-by:
+    - principalUser
+    - principalIp
+  timespan: 10m`,
+    [FAILED_SIGN_IN, SUCCESSFUL_SIGN_IN],
+  );
+
+  // The address the failures come from, and the one the success signs in to.
+  const ALIASED_YAML: string = correlationYaml(
+    `title: Failures from an address, then a sign-in to it
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a14
+level: high
+correlation:
+  type: temporal
+  rules:
+    - failed_sign_in
+    - successful_sign_in
+  group-by:
+    - address
+  timespan: 10m
+  aliases:
+    address:
+      failed_sign_in: principalIp
+      successful_sign_in: targetIp`,
+    [FAILED_SIGN_IN, SUCCESSFUL_SIGN_IN],
+  );
+
+  const UNGROUPED_YAML: string = correlationYaml(
+    `title: Server errors across the project
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a15
+level: medium
+correlation:
+  type: event_count
+  rules:
+    - server_error
+  timespan: 5m
+  condition:
+    gte: 100`,
+    [SERVER_ERROR],
+  );
+
+  // A user signing in from an address the past thirty days never held.
+  const NEW_ADDRESS_YAML: string = correlationYaml(
+    `title: Sign-in from a new address
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a16
+level: medium
+correlation:
+  type: new_value
+  rules:
+    - successful_sign_in
+  group-by:
+    - principalUser
+  timespan: 30d
+  condition:
+    field: principalIp`,
+    [SUCCESSFUL_SIGN_IN],
+  );
+
+  // Many failures counted over half an hour, then a success.
+  const COUNTED_STEP_YAML: string = `title: Many failures, then a success
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a17
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - many_failures
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Many failures
+id: 6d4c1f90-4f3d-4e55-9b71-2d0d7c8a1a18
+name: many_failures
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  timespan: 30m
+  condition:
+    gte: 5
+---
+${FAILED_SIGN_IN}
+---
+${SUCCESSFUL_SIGN_IN}
+`;
+
+  function useCorrelation(data: {
+    yaml: string;
+    groupValue: string;
+    detection?: DetectionOverrides | undefined;
+  }): void {
+    rules = [
+      ruleRow({
+        name: "A correlation",
+        sigmaRuleYaml: data.yaml,
+        groupByField: "",
+        matchCountThreshold: 1,
+        evaluationIntervalInMinutes: 5,
+      }),
+    ];
+    detections = [
+      detectionRow({ groupValue: data.groupValue, ...data.detection }),
+    ];
+  }
+
+  function groupParams(statement: Statement): Array<unknown> {
+    return Object.values(statement.query_params).filter(
+      (value: unknown): boolean => {
+        return Array.isArray(value);
+      },
+    );
+  }
+
+  test("a group no observable holds - a route - is read by the route", async () => {
+    useCorrelation({ yaml: ROUTE_BURST_YAML, groupValue: "/api/checkout" });
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+    const statement: Statement = eventsStatement();
+
+    expect(detection.basis).toBe(SecurityCaseMatchBasis.CorrelationSteps);
+    expect(statement.query).toMatch(
+      /has\(\{p\d+:Array\(String\)\}, arrayStringConcat\(\[toString\(attributes\[\{p\d+:String\}\]\)\], ' \/ '\)\)/,
+    );
+    expect(Object.values(statement.query_params)).toContain("http.route");
+    expect(groupParams(statement)).toEqual([["/api/checkout"]]);
+    expect(statement.query).not.toContain("hasAny(observables");
+    expect(detection.events).toHaveLength(2);
+  });
+
+  test("a group of two fields is the pair, as the case names it", async () => {
+    useCorrelation({
+      yaml: USER_AT_ADDRESS_YAML,
+      groupValue: "alice / 203.0.113.7",
+    });
+
+    await matches();
+
+    const statement: Statement = eventsStatement();
+
+    expect(statement.query).toContain(
+      "arrayStringConcat([toString(principalUser), toString(principalIp)], ' / ')",
+    );
+    // The pair whole, never each value alone: bob at the same address is not alice's.
+    expect(groupParams(statement)).toEqual([["alice / 203.0.113.7"]]);
+    expect(statement.query).not.toContain("hasAny(observables");
+  });
+
+  test("an alias is each step's own field: the failures' source, the success's target", async () => {
+    useCorrelation({ yaml: ALIASED_YAML, groupValue: "203.0.113.7" });
+
+    await matches();
+
+    const statement: Statement = eventsStatement();
+
+    expect(statement.query).toContain("arrayStringConcat([toString(multiIf(");
+    expect(statement.query).toContain("principalIp, ");
+    expect(statement.query).toContain("targetIp, '')");
+    expect(groupParams(statement)).toEqual([["203.0.113.7"]]);
+  });
+
+  test("a correlation that does not group reads every event of its steps", async () => {
+    useCorrelation({ yaml: UNGROUPED_YAML, groupValue: "" });
+
+    await matches();
+
+    const statement: Statement = eventsStatement();
+
+    expect(statement.query).not.toContain("has(");
+    expect(statement.query).not.toContain("hasAny(observables");
+    expect(groupParams(statement)).toEqual([]);
+  });
+
+  test("a count reads its rolling window, from the step a timespan before its run", async () => {
+    useCorrelation({ yaml: ROUTE_BURST_YAML, groupValue: "/api/checkout" });
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    /*
+     * Its run: the five minutes to 19:28. Its window steps by five seconds
+     * (a sixtieth of five minutes), and its first holds the 59 steps before
+     * it: from 19:18:05, and a minute of slack.
+     */
+    expect(detection.windowStart).toBe("2026-11-17T19:17:05.000Z");
+    expect(detection.windowEnd).toBe("2026-11-17T19:29:00.000Z");
+  });
+
+  test("a sequence reads its timespan, and an event_count step's own, before its run", async () => {
+    useCorrelation({ yaml: COUNTED_STEP_YAML, groupValue: "203.0.113.7" });
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    // 19:23, less ten minutes and the step's thirty, and a minute of slack.
+    expect(detection.windowStart).toBe("2026-11-17T18:42:00.000Z");
+    expect(detection.windowEnd).toBe("2026-11-17T19:29:00.000Z");
+  });
+
+  test("a new value reads its own run, never the thirty days of history its values are new against", async () => {
+    useCorrelation({ yaml: NEW_ADDRESS_YAML, groupValue: "alice" });
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+    const statement: Statement = eventsStatement();
+
+    /*
+     * Its run's five minutes, and a minute either side. It used to start
+     * thirty days and five minutes before, and end the day after that.
+     */
+    expect(detection.windowStart).toBe("2026-11-17T19:22:00.000Z");
+    expect(detection.windowEnd).toBe("2026-11-17T19:29:00.000Z");
+    expect(groupParams(statement)).toEqual([["alice"]]);
+  });
+
+  /*
+   * A group value longer than a detection keeps was recorded cut short,
+   * ending in an ellipsis: matched as it was recorded, no event's value is
+   * it, and the case listed nothing. Its group is the one that starts so.
+   */
+  test("a group recorded cut short is the group whose value starts as it does", async () => {
+    const route: string = `/api/search/${"q".repeat(600)}`;
+
+    useCorrelation({
+      yaml: ROUTE_BURST_YAML,
+      groupValue: cutShortDetectionText(route),
+    });
+
+    await matches();
+
+    const statement: Statement = eventsStatement();
+    const start: string = cutShortDetectionText(route).slice(0, -1);
+
+    expect(statement.query).toMatch(
+      /startsWith\(arrayStringConcat\(\[toString\(attributes\[\{p\d+:String\}\]\)\], ' \/ '\), \{p\d+:String\}\)/,
+    );
+    expect(statement.query).not.toContain("has(");
+    expect(Object.values(statement.query_params)).toContain(start);
+    expect(route.startsWith(start)).toBe(true);
+  });
+
+  test("so is a single rule's", () => {
+    const address: string = `2001:db8::${"f".repeat(600)}`;
+    const built: ReturnType<typeof buildRuleCondition> = buildRuleCondition({
+      rule: { groupByField: "principalIp" },
+      definition: SigmaRuleSetParser.parse(PATH_TRAVERSAL_YAML),
+      groupValue: cutShortDetectionText(address),
+    });
+
+    expect(built!.condition.query).toMatch(
+      /startsWith\(principalIp, \{p\d+:String\}\)/,
+    );
+    expect(built!.condition.query).not.toContain("principalIp = ");
+    expect(Object.values(built!.condition.query_params)).toContain(
+      cutShortDetectionText(address).slice(0, -1),
+    );
+
+    // A value kept whole is matched as it is.
+    expect(
+      buildRuleCondition({
+        rule: { groupByField: "principalIp" },
+        definition: SigmaRuleSetParser.parse(PATH_TRAVERSAL_YAML),
+        groupValue: "35.196.249.14",
+      })!.condition.query,
+    ).toContain("principalIp = ");
+  });
+
+  test("a step it cannot resolve leaves it to what the detection is about", () => {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      CORRELATION_YAML,
+    ) as DetectionRuleDefinition;
+
+    if (definition.kind !== "correlation") {
+      throw new Error("expected a correlation");
+    }
+
+    expect(() => {
+      buildRuleCondition({
+        rule: { groupByField: "" },
+        definition: {
+          ...definition,
+          steps: [
+            definition.steps[0]!,
+            { reference: "elsewhere", title: "elsewhere", origin: "project" },
+          ],
+        },
+        groupValue: "203.0.113.7",
+      });
+    }).toThrow('Correlation step "elsewhere" is not resolved to a rule.');
+
+    expect(
+      buildRuleCondition({
+        rule: { groupByField: "" },
+        definition: { ...definition, steps: [] },
+        groupValue: "203.0.113.7",
+      }),
+    ).toBeNull();
+  });
+
+  test("a step it cannot resolve as the case is read falls back to the events naming the group", async () => {
+    useCorrelation({ yaml: CORRELATION_YAML, groupValue: "203.0.113.7" });
+
+    const retrohunt: jest.SpyInstance = jest
+      .spyOn(DetectionRuleRetrohunt, "loadDefinition")
+      .mockImplementation(async (): Promise<DetectionRuleDefinition> => {
+        const parsed: DetectionRuleDefinition =
+          SigmaRuleSetParser.parse(CORRELATION_YAML);
+
+        if (parsed.kind !== "correlation") {
+          throw new Error("expected a correlation");
+        }
+
+        return {
+          ...parsed,
+          steps: [
+            { reference: "elsewhere", title: "elsewhere", origin: "project" },
+          ],
+        };
+      });
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    expect(retrohunt).toHaveBeenCalled();
+    expect(detection.basis).toBe(SecurityCaseMatchBasis.NamedEntities);
+    expect(eventsStatement().query).toContain("hasAny(observables");
+  });
+
+  test("one that kept its events lists them, over the same window, without reading the table", async () => {
+    useCorrelation({
+      yaml: NEW_ADDRESS_YAML,
+      groupValue: "alice",
+      detection: {
+        matchedEvents: {
+          events: [
+            buildSecurityDetectionMatchedEvent(
+              eventRow({ eventUid: "kept:alice", principalUser: "alice" }),
+            ),
+          ],
+          outcomes: { Rejected: 1 },
+        } as never,
+      },
+    });
+
+    const detection: SecurityCaseMatchedDetectionJson = (await matches())
+      .detections[0]!;
+
+    expect(detection.isKept).toBe(true);
+    expect(
+      detection.events.map((event: { eventUid: string }): string => {
+        return event.eventUid;
+      }),
+    ).toEqual(["kept:alice"]);
+    expect(detection.basis).toBe(SecurityCaseMatchBasis.CorrelationSteps);
+    expect(detection.windowStart).toBe("2026-11-17T19:22:00.000Z");
+    expect(executeQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe("the time a correlation's events are read over", () => {
+  const FIRST: Date = new Date("2026-11-17T19:28:00.000Z");
+
+  function window(data: {
+    yaml: string;
+    lastSeenAt?: Date | undefined;
+    now?: Date | undefined;
+    intervalInMinutes?: number | undefined;
+  }): { start: string; end: string } | null {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      data.yaml,
+    );
+
+    if (definition.kind !== "correlation") {
+      throw new Error("expected a correlation");
+    }
+
+    const read: ReturnType<typeof getCorrelationMatchWindow> =
+      getCorrelationMatchWindow({
+        correlation: definition.correlation,
+        steps: definition.steps,
+        rule: { evaluationIntervalInMinutes: data.intervalInMinutes ?? 5 },
+        firstSeenAt: FIRST,
+        lastSeenAt: data.lastSeenAt || FIRST,
+        now: data.now || NOW,
+      });
+
+    return read
+      ? { start: read.start.toISOString(), end: read.end.toISOString() }
+      : null;
+  }
+
+  function correlation(type: string, timespan: string, extra: string): string {
+    return `title: A correlation
+correlation:
+  type: ${type}
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalUser]
+  timespan: ${timespan}
+${extra}
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection`;
+  }
+
+  test("a sequence of a day still reaches its run, past the day its window may otherwise span", () => {
+    const read: { start: string; end: string } | null = window({
+      yaml: correlation("temporal", "24h", ""),
+    });
+
+    // A day and five minutes before it fired, and a minute of slack.
+    expect(read!.start).toBe("2026-11-16T19:22:00.000Z");
+    // Never short of the firing itself, though that is past a day.
+    expect(read!.end).toBe("2026-11-17T19:29:00.000Z");
+  });
+
+  test("ends a minute after its last firing, at most a day past its start, never past now", () => {
+    const longRunning: { start: string; end: string } | null = window({
+      yaml: correlation("event_count", "10m", "  condition:\n    gte: 3"),
+      lastSeenAt: new Date(FIRST.getTime() + 3 * 24 * 60 * 60000),
+      now: new Date(FIRST.getTime() + 4 * 24 * 60 * 60000),
+    });
+
+    expect(
+      new Date(longRunning!.end).getTime() -
+        new Date(longRunning!.start).getTime(),
+    ).toBe(SECURITY_CASE_MATCHES_MAX_WINDOW_IN_HOURS * 60 * 60000);
+
+    const justFired: { start: string; end: string } | null = window({
+      yaml: correlation("event_count", "10m", "  condition:\n    gte: 3"),
+      now: new Date(FIRST.getTime() + 20 * 1000),
+    });
+
+    expect(justFired!.end).toBe("2026-11-17T19:28:20.000Z");
+  });
+
+  test("reads the run of the rule's own interval", () => {
+    expect(
+      window({
+        yaml: correlation(
+          "new_value",
+          "7d",
+          "  condition:\n    field: principalIp",
+        ),
+        intervalInMinutes: 15,
+      })!.start,
+    ).toBe("2026-11-17T19:12:00.000Z");
+  });
+
+  test("none for a detection with no time at all", () => {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      correlation("temporal", "10m", ""),
+    );
+
+    if (definition.kind !== "correlation") {
+      throw new Error("expected a correlation");
+    }
+
+    expect(
+      getCorrelationMatchWindow({
+        correlation: definition.correlation,
+        steps: definition.steps,
+        rule: { evaluationIntervalInMinutes: 5 },
+        firstSeenAt: null,
+        lastSeenAt: undefined,
+        now: NOW,
+      }),
+    ).toBeNull();
+    expect(
+      getCorrelationMatchWindow({
+        correlation: definition.correlation,
+        steps: definition.steps,
+        rule: { evaluationIntervalInMinutes: 5 },
+        firstSeenAt: "not a date",
+        lastSeenAt: undefined,
+        now: NOW,
+      }),
+    ).toBeNull();
   });
 });
 

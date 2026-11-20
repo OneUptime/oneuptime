@@ -6,6 +6,7 @@ import OtelPayloadDecoder, {
   OtelPayloadEncoding,
 } from "../OtelPayloadDecoder";
 import { MAX_OTLP_REQUEST_BYTES } from "../../Middleware/OtelRequestMiddleware";
+import IngestRequestMetrics from "../../Middleware/IngestRequestMetrics";
 import {
   CloudStreamBodyTooLarge,
   drainCloudStreamBody,
@@ -103,9 +104,21 @@ export default class CompatibleIngestBody {
    * The body as sent, at most MAX_OTLP_REQUEST_BYTES. A body a parser read
    * first (a JSON one some middleware reached before this route) is given
    * back as the bytes it was, so a route still works behind a stack that
-   * did not leave its path alone.
+   * did not leave its path alone. Its size is recorded in OneUptime's own
+   * ingest metrics (IngestRequestMetrics) once it is read.
    */
   public static async readRaw(
+    req: ExpressRequest,
+    limits?: CompatibleBodyLimits | undefined,
+  ): Promise<Buffer> {
+    const raw: Buffer = await CompatibleIngestBody.readSent(req, limits);
+
+    IngestRequestMetrics.recordPayloadSize(req, raw.length);
+
+    return raw;
+  }
+
+  private static async readSent(
     req: ExpressRequest,
     limits?: CompatibleBodyLimits | undefined,
   ): Promise<Buffer> {
