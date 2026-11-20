@@ -55,6 +55,7 @@ import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DataSecurityDropMetricImpact,
+  DataSecurityMetricUser,
   DataSecurityDropMetricUnavailableReason,
 } from "../../../../../Types/DataSecurity/DataSecurityApiTypes";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
@@ -867,6 +868,116 @@ describe("what dropping would do, before it is asked for", () => {
     expect(MonitorService.findBy).toHaveBeenCalledWith(
       expect.objectContaining({ props: READER, select: { _id: true } }),
     );
+  });
+
+  /*
+   * #10085: a recording rule the drop empties computes its output metric
+   * without those metrics, so what reads that output is named under it, on
+   * down the chain - counted where the reader may not see it, and named
+   * under the count of the rules they may not see.
+   */
+  test("a recording rule it empties names what reads its output metric, on down the chain", async () => {
+    const ratesWidgetId: string = "0d0d0d0d-0000-4000-8000-0000000000a1";
+    const rates: Dashboard = new Dashboard(ObjectID.generate());
+
+    rates.name = "Rates";
+    (rates as unknown as { dashboardViewConfig: unknown }).dashboardViewConfig =
+      {
+        components: [
+          {
+            componentType: "Chart",
+            componentId: ratesWidgetId,
+            arguments: {
+              chartTitle: "Daily signup rate",
+              metricQueryConfig: {
+                metricQueryData: {
+                  filterData: { metricName: "signup_rate_daily" },
+                },
+              },
+            },
+          },
+        ],
+      };
+    monitors.push(monitorOf("Signup rate alert", "signup_rate"));
+    dashboards.push(rates);
+    rules.push(ruleOf("Signup rate daily", "signup_rate"));
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+    const rule: DataSecurityMetricUser = impact.recordingRules[0]!;
+
+    expect(rule.name).toBe("Signup rate");
+    expect(rule.outputReaders!.monitors).toEqual({
+      readers: [{ id: monitors[2]!.id!.toString(), name: "Signup rate alert" }],
+      hidden: 0,
+    });
+    expect(rule.outputReaders!.recordingRules.readers).toEqual([
+      {
+        id: rules[2]!.id!.toString(),
+        name: "Signup rate daily",
+        outputMetricName: "signup_rate_daily",
+        outputReaders: {
+          monitors: { readers: [], hidden: 0 },
+          dashboards: {
+            readers: [
+              {
+                id: rates.id!.toString(),
+                name: "Rates",
+                widgets: [
+                  {
+                    id: ratesWidgetId,
+                    title: "Daily signup rate",
+                    type: "Chart",
+                  },
+                ],
+              },
+            ],
+            hidden: 0,
+          },
+          slos: { readers: [], hidden: 0 },
+          recordingRules: { readers: [], hidden: 0 },
+        },
+      },
+    ]);
+    // Those read the rule's output, not the dropped metrics: named only under it.
+    expect(impact.monitors).toHaveLength(1);
+    expect(impact.recordingRules).toHaveLength(1);
+    expect(impact.recordingRulesHiddenOutputReaders).toBeUndefined();
+  });
+
+  test("what reads the output of a rule the reader may not see is named under its count, the rule never", async () => {
+    monitors.push(
+      monitorOf("Signup rate alert", "signup_rate"),
+      monitorOf("Secret rate alert", "signup_rate"),
+    );
+    serve(
+      MonitorService,
+      () => {
+        return monitors;
+      },
+      (monitor: Monitor): boolean => {
+        return !monitor.name!.startsWith("Secret");
+      },
+    );
+    serve(
+      MetricRecordingRuleService,
+      () => {
+        return rules;
+      },
+      (): boolean => {
+        return false;
+      },
+    );
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+
+    expect(impact.recordingRules).toEqual([]);
+    expect(impact.recordingRulesHidden).toBe(1);
+    expect(impact.recordingRulesHiddenOutputReaders!.monitors).toEqual({
+      readers: [{ id: monitors[2]!.id!.toString(), name: "Signup rate alert" }],
+      hidden: 1,
+    });
+    expect(JSON.stringify(impact)).not.toContain(rules[0]!.id!.toString());
+    expect(JSON.stringify(impact)).not.toContain("Secret rate alert");
   });
 
   test("records that could not be read are said to be unchecked, not none, and the rest is still said", async () => {

@@ -36,6 +36,12 @@ import PublicMessageRateLimit, {
 } from "../Utils/RateLimit/PublicMessageRateLimit";
 import Exception from "../../Types/Exception/Exception";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
+import PrivateUserEmailAddressChangedNotice from "../Utils/StatusPage/PrivateUserEmailAddressChangedNotice";
+import { EMAIL_ADDRESS_CHANGED_BY_KEY } from "../../Types/Accounts/EmailAddressChangedEmail";
+import {
+  getPrivateUserEmailAddressChanger,
+  PrivateUserEmailAddressChangedBy,
+} from "../../Types/StatusPage/PrivateUserEmailAddressChangedEmail";
 import { IsNull, MoreThan, UpdateResult } from "typeorm";
 
 // The status page's two names, ID column first: a write may use either.
@@ -50,6 +56,16 @@ interface PrivateUserCreateCarryForward {
   invitationPermit: PublicMessageSendPermit | null;
   // Set as onCreateSuccess starts: from then on the email may have gone out.
   isSending: boolean;
+}
+
+/*
+ * A private user whose address an update changes, as onBeforeUpdate read
+ * them: the address they had is told once the update is through (#10156).
+ */
+interface PrivateUserAddressChange {
+  privateUserId: ObjectID;
+  statusPageId: ObjectID;
+  previousEmail: Email;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -227,6 +243,9 @@ export class Service extends ProjectReferencesService<Model> {
      */
     NewPasswordRule.assertMet(updateBy.data.password);
 
+    // The users whose address this write changes, for the email to the old one (#10156).
+    const addressesChanging: Array<PrivateUserAddressChange> = [];
+
     if (updateBy.data.email) {
       const newEmail: string = (updateBy.data.email as Email)
         .toString()
@@ -236,6 +255,7 @@ export class Service extends ProjectReferencesService<Model> {
         await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           email: true,
+          statusPageId: true,
         });
 
       for (const user of existingUsers) {
@@ -253,6 +273,14 @@ export class Service extends ProjectReferencesService<Model> {
 
         if (currentEmail === newEmail) {
           continue;
+        }
+
+        if (user.email && user.statusPageId) {
+          addressesChanging.push({
+            privateUserId: user.id,
+            statusPageId: user.statusPageId,
+            previousEmail: user.email,
+          });
         }
 
         await this.updateOneById({
@@ -273,7 +301,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     return {
       updateBy: updateBy,
-      carryForward: null,
+      carryForward: addressesChanging,
     };
   }
 
@@ -342,7 +370,75 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    if (onUpdate.updateBy.data.email) {
+      this.tellPreviousAddressesOfChange(onUpdate, updatedItemIds);
+    }
+
     return onUpdate;
+  }
+
+  /*
+   * EVERY ADDRESS A PRIVATE USER LEAVES IS TOLD (#10156).
+   *
+   * A private user whose address this write changed is emailed at the
+   * address they had (Utils/StatusPage/PrivateUserEmailAddressChangedNotice):
+   * that it changed, to which address (masked), when, and who changed it by
+   * role - the status page's team, or its identity provider through SCIM
+   * (which names itself in miscDataProps; honoured on a root write only,
+   * getPrivateUserEmailAddressChanger). Once per user the write reached
+   * whose address it changed, as onBeforeUpdate read them: a write of the
+   * address a user already has - SCIM sends it again with every push -
+   * sends nothing.
+   *
+   * Never awaited: the answer does not wait on an email, and the sender
+   * never throws. A write made with `ignoreHooks: true` skips this, as it
+   * skips the links the change ends (onBeforeUpdate).
+   */
+  private tellPreviousAddressesOfChange(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): void {
+    const changes: Array<PrivateUserAddressChange> = Array.isArray(
+      onUpdate.carryForward,
+    )
+      ? (onUpdate.carryForward as Array<PrivateUserAddressChange>)
+      : [];
+
+    if (changes.length === 0) {
+      return;
+    }
+
+    const newEmail: Email = new Email(String(onUpdate.updateBy.data.email));
+    const written: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+    const changedBy: PrivateUserEmailAddressChangedBy =
+      getPrivateUserEmailAddressChanger({
+        isRoot: onUpdate.updateBy.props.isRoot === true,
+        namedChanger:
+          onUpdate.updateBy.miscDataProps?.[EMAIL_ADDRESS_CHANGED_BY_KEY],
+      });
+
+    for (const change of changes) {
+      if (
+        !written.has(change.privateUserId.toString().toLowerCase()) ||
+        change.previousEmail.toString().toLowerCase() ===
+          newEmail.toString().toLowerCase()
+      ) {
+        continue;
+      }
+
+      void PrivateUserEmailAddressChangedNotice.send({
+        privateUserId: change.privateUserId,
+        statusPageId: change.statusPageId,
+        previousEmail: change.previousEmail,
+        newEmail: newEmail,
+        changedBy: changedBy,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
   }
 
   @CaptureSpan()

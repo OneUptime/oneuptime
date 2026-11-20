@@ -1419,6 +1419,9 @@ describe("SentryEnvelope.fromEnvelope: error events", () => {
       transactions: 0,
       spans: 0,
       logs: 0,
+      checkIns: 0,
+      feedback: 0,
+      profiles: 0,
     });
     expect(translation.ignoredItemTypes).toEqual([
       "attachment",
@@ -2432,6 +2435,9 @@ describe("SentryEnvelope: IDs and times", () => {
       transactions: 1,
       spans: 1,
       logs: 1,
+      checkIns: 0,
+      feedback: 0,
+      profiles: 0,
     });
 
     const spans: Array<FlatSpan> = spansOf(translation);
@@ -2574,6 +2580,9 @@ describe("SentryEnvelope: transactions", () => {
       transactions: 1,
       spans: 5,
       logs: 0,
+      checkIns: 0,
+      feedback: 0,
+      profiles: 0,
     });
     expect(spans).toHaveLength(5);
 
@@ -2864,6 +2873,9 @@ describe("SentryEnvelope: transactions", () => {
       transactions: 1,
       spans: 5,
       logs: 0,
+      checkIns: 0,
+      feedback: 0,
+      profiles: 0,
     });
     expect(viaStore.eventId).toBe("9f8e7d6c5b4a43f2e1d0c9b8a7f6e5d4");
   });
@@ -3333,9 +3345,10 @@ describe("SentryEnvelope: what is skipped", () => {
           payload: Buffer.from([0x78, 0x9c, 0x0a, 0x01]),
           length: true,
         },
+        // A check-in naming no monitor, a report and feedback saying nothing.
         { header: { type: "check_in" }, payload: { status: "ok" } },
         { header: { type: "statsd" }, payload: "a:1|c" },
-        { header: { type: "user_report" }, payload: { comments: "hm" } },
+        { header: { type: "user_report" }, payload: { comments: " " } },
         { header: { type: "feedback" }, payload: { contexts: {} } },
         { header: { type: "otel_log" }, payload: { body: "x" } },
         { header: {}, payload: { anything: true } },
@@ -3347,21 +3360,22 @@ describe("SentryEnvelope: what is skipped", () => {
       ]),
     );
 
+    /*
+     * A profile with no samples to read is skipped too, named once the
+     * other items are read: profiles are read last.
+     */
     expect(translation.ignoredItemTypes).toEqual([
       "session",
       "sessions",
-      "profile",
-      "profile_chunk",
       "replay_event",
       "replay_recording",
-      "check_in",
       "statsd",
-      "user_report",
-      "feedback",
       "otel_log",
       "unknown",
+      "profile",
+      "profile_chunk",
     ]);
-    expect(translation.malformedItemCount).toBe(5);
+    expect(translation.malformedItemCount).toBe(8);
     expect(translation.traces).toBeNull();
     expect(translation.logs).toBeNull();
     expect(translation.eventId).toBeNull();
@@ -3371,6 +3385,9 @@ describe("SentryEnvelope: what is skipped", () => {
       transactions: 0,
       spans: 0,
       logs: 0,
+      checkIns: 0,
+      feedback: 0,
+      profiles: 0,
     });
   });
 
@@ -3426,6 +3443,7 @@ describe("SentryEnvelope - what each signal is counted at", () => {
         Buffer.byteLength(ERROR_PAYLOAD) +
         Buffer.byteLength(TRANSACTION_PAYLOAD),
       logs: Buffer.byteLength(MESSAGE_PAYLOAD) + Buffer.byteLength(LOG_PAYLOAD),
+      profiles: 0,
     });
   });
 
@@ -3442,7 +3460,11 @@ describe("SentryEnvelope - what each signal is counted at", () => {
       ]),
     );
 
-    expect(translation.ingestBytes).toEqual({ traces: 0, logs: 0 });
+    expect(translation.ingestBytes).toEqual({
+      traces: 0,
+      logs: 0,
+      profiles: 0,
+    });
   });
 });
 

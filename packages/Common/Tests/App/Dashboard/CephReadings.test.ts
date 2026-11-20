@@ -17,6 +17,7 @@ import {
   CEPH_LATEST_WINDOW_MINUTES,
   CephHealthCheckReadings,
   CephPgStateReadings,
+  loadCephClusterPgReasonStates,
   loadCephHealthChecks,
   loadCephLatestPerLabel,
   loadCephPgReasonStates,
@@ -271,6 +272,185 @@ describe("what Ceph is doing about each pool's missing copies", () => {
     const byPool: Map<string, CephPgReasonStates> =
       await loadCephPgReasonStates("ceph-prod");
     expect(byPool.size).toBe(0);
+  });
+});
+
+/*
+ * The two kinds of release, as their mgr's prometheus module exports them
+ * and OneUptime stores the series: the cluster's identity and the scrape's
+ * target as resource attributes, and Ceph's own labels beside them.
+ *
+ *   - Luminous (and the first Mimic releases) counts every placement-group
+ *     state for the whole cluster: `ceph_pg_degraded 12`, no pool_id, every
+ *     state of its PG_STATES list set, 0 when no group is in it.
+ *   - Nautilus and later (Reef here) count them per pool:
+ *     `ceph_pg_degraded{pool_id="1"} 12`, 0 for every state a pool's groups
+ *     are not in, and ceph_pg_total per pool too.
+ */
+const SCRAPED_FROM: Record<string, string> = {
+  "resource.ceph.cluster.name": "ceph-prod",
+  "resource.oneuptime.agent.version": "0.165.0",
+  "resource.server.address": "ceph-mon-1",
+  "resource.server.port": "9283",
+  "resource.url.scheme": "http",
+};
+
+const PG_STATE_SERIES: Array<string> = [
+  "total",
+  "active",
+  "clean",
+  "degraded",
+  "undersized",
+  ...CEPH_PG_REASON_STATES,
+];
+
+// What a Luminous mgr exports: each state once, for the cluster.
+function luminousExport(counts: Record<string, number>): void {
+  for (const state of PG_STATE_SERIES) {
+    series[`ceph_pg_${state}`] = [
+      point(0.5, counts[state] ?? 0, { ...SCRAPED_FROM }),
+      // The scrape before: an older reading is never the newest.
+      point(1, (counts[state] ?? 0) + 1, { ...SCRAPED_FROM }),
+    ];
+  }
+}
+
+// What a Reef mgr exports: each state per pool.
+function reefExport(byPool: Record<string, Record<string, number>>): void {
+  for (const state of PG_STATE_SERIES) {
+    series[`ceph_pg_${state}`] = Object.entries(byPool).map(
+      ([poolId, counts]: [string, Record<string, number>]) => {
+        return point(0.5, counts[state] ?? 0, {
+          ...SCRAPED_FROM,
+          pool_id: poolId,
+        });
+      },
+    );
+  }
+}
+
+describe("a Luminous mgr's cluster-wide placement groups (#10016)", () => {
+  beforeEach(() => {
+    luminousExport({
+      total: 224,
+      active: 224,
+      clean: 208,
+      degraded: 12,
+      undersized: 4,
+      recovering: 4,
+      backfill_wait: 8,
+    });
+  });
+
+  test("are the cluster's totals, and no pool has states of its own", async () => {
+    const readings: CephPgStateReadings = await loadCephPgStates("ceph-prod");
+
+    expect(readings.byPool.size).toBe(0);
+    expect(readings.totals).toEqual({
+      total: 224,
+      active: 224,
+      clean: 208,
+      degraded: 12,
+      undersized: 4,
+    });
+  });
+
+  test("say what Ceph is doing about them for the whole cluster, every state it exports, idle ones at 0", async () => {
+    const states: CephPgReasonStates | null =
+      await loadCephClusterPgReasonStates("ceph-prod");
+
+    expect(states).toEqual(
+      Object.fromEntries(
+        CEPH_PG_REASON_STATES.map((state: string): [string, number] => {
+          return [
+            state,
+            state === "recovering" ? 4 : state === "backfill_wait" ? 8 : 0,
+          ];
+        }),
+      ),
+    );
+    // One read per state, each the cluster's series.
+    const reads: Array<MetricRequest> = requests.filter(
+      (request: MetricRequest): boolean => {
+        return CEPH_PG_REASON_STATES.includes(
+          request.query.name.replace(/^ceph_pg_/, ""),
+        );
+      },
+    );
+    expect(reads).toHaveLength(CEPH_PG_REASON_STATES.length);
+    for (const request of reads) {
+      expect(request.query.attributes).toEqual({
+        "resource.ceph.cluster.name": "ceph-prod",
+      });
+    }
+  });
+
+  test("name no pool, so the per-pool read finds none", async () => {
+    const byPool: Map<string, CephPgReasonStates> =
+      await loadCephPgReasonStates("ceph-prod");
+    expect(byPool.size).toBe(0);
+  });
+});
+
+describe("a Reef mgr's per-pool placement groups", () => {
+  beforeEach(() => {
+    reefExport({
+      "1": {
+        total: 128,
+        active: 128,
+        clean: 116,
+        degraded: 12,
+        recovering: 4,
+        backfill_wait: 8,
+      },
+      "2": { total: 32, active: 32, clean: 32 },
+    });
+  });
+
+  test("are each pool's, and the cluster's are their sums", async () => {
+    const readings: CephPgStateReadings = await loadCephPgStates("ceph-prod");
+
+    expect(readings.byPool.get("1")).toEqual({
+      total: 128,
+      active: 128,
+      clean: 116,
+      degraded: 12,
+      undersized: 0,
+    });
+    expect(readings.totals).toEqual({
+      total: 160,
+      active: 160,
+      clean: 148,
+      degraded: 12,
+      undersized: 0,
+    });
+  });
+
+  test("say what Ceph is doing per pool, and leave nothing to read for the cluster as a whole", async () => {
+    const byPool: Map<string, CephPgReasonStates> =
+      await loadCephPgReasonStates("ceph-prod");
+    expect(byPool.get("1")?.["recovering"]).toBe(4);
+    expect(byPool.get("1")?.["backfill_wait"]).toBe(8);
+    expect(byPool.get("2")?.["recovering"]).toBe(0);
+
+    // A pool's series is never taken for the cluster's.
+    expect(await loadCephClusterPgReasonStates("ceph-prod")).toBeNull();
+  });
+});
+
+describe("the cluster's states, beside a pool's", () => {
+  test("a reading that carries a pool_id is never the cluster's, whatever its age", async () => {
+    series["ceph_pg_recovering"] = [
+      point(0.5, 9, { ...SCRAPED_FROM, pool_id: "1" }),
+      point(1, 4, { ...SCRAPED_FROM }),
+    ];
+    const states: CephPgReasonStates | null =
+      await loadCephClusterPgReasonStates("ceph-prod");
+    expect(states).toEqual({ recovering: 4 });
+  });
+
+  test("a mgr that sends none of them reports nothing to read", async () => {
+    expect(await loadCephClusterPgReasonStates("ceph-prod")).toBeNull();
   });
 });
 

@@ -155,7 +155,12 @@ const SUPPORT_BLOCK_CALL: RegExp = /\{\{>\s*SupportBlock\b/;
 const TEMPLATES_WITH_A_HELP_LINE: ReadonlyArray<string> = [
   "AccountAlreadyExists",
   "CompleteRegistration",
-  // A new address's link, and the word that it has an account already (#9821).
+  /*
+   * The two emails to a new address a person asked to make their account's
+   * (#9821): its link, or word that another account has it. Their reader
+   * may have no account here at all, and on a self-hosted server only its
+   * admin can say whose request it was.
+   */
   "ConfirmEmailChange",
   "ConfirmProjectSsoSignIn",
   "EmailChangeAddressTaken",

@@ -97,6 +97,29 @@ export interface GcpSplitLearned {
 }
 
 /*
+ * GOOGLE CLOUD: A SPLIT METRIC PROMQL COULD NOT RANK (#10164). Its busiest
+ * values are learned from a timeSeries.list of the hour instead, which
+ * returns - and Google bills - every value of each resource once. Asking
+ * PromQL again each hour would fail again before the list, so the read
+ * remembers it, and asks PromQL again a day after.
+ */
+export interface GcpSplitUnranked {
+  // When PromQL last could not rank it: asked again a day after.
+  at: string;
+  /*
+   * What the hour's list returned of each resource that reported it, on
+   * average, rounded up: the series one learning bills a resource. Absent
+   * until a list has run.
+   */
+  valuesPerResource?: number | undefined;
+  // Its metric, aligner and label, for what More Metrics says of it.
+  metricType: string;
+  aligner: string;
+  label: string;
+  projectId: string;
+}
+
+/*
  * AWS: AN ADDED METRIC'S UNIT AS ITS DATAPOINTS CARRY IT, AS THE READ LEARNED
  * IT (#10077, AwsAddedMetricUnits).
  */
@@ -167,6 +190,13 @@ export interface CloudConnectionPullState {
    * getGcpSplitLearnKey), the values its resources are read for (#10076).
    */
   gcpSplitValues?: Record<string, GcpSplitLearned> | undefined;
+  /*
+   * Google Cloud: per split metric of a project (by getGcpSplitRankKey), when
+   * PromQL last could not rank its values (#10164): its learning goes
+   * straight to the hour's list until a day has passed, and More Metrics
+   * says what that list costs.
+   */
+  gcpSplitUnranked?: Record<string, GcpSplitUnranked> | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
   // When the inventory last listed every resource (CloudInventory).

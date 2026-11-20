@@ -50,7 +50,7 @@ flowchart TB
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime मेट्रिक्स को OpenTelemetry के तरीक�
 
 | OneUptime में | PromQL में |
 | --- | --- |
-| गेज `system.cpu.utilization` | `system_cpu_utilization` |
-| काउंटर `http.requests` | `http_requests`, या `http_requests_total` |
-| हिस्टोग्राम `http.server.request.duration` | `http_server_request_duration_bucket` (`le` के साथ), `_count` और `_sum` |
+| `1` में एक गेज `system.cpu.utilization` | `system_cpu_utilization_ratio`, या `system_cpu_utilization` |
+| `By` में एक गेज `system.memory.usage` | `system_memory_usage_bytes`, या `system_memory_usage` |
+| एक काउंटर `http.requests` | `http_requests_total`, या `http_requests` |
+| `s` में एक हिस्टोग्राम `http.server.request.duration` | `http_server_request_duration_seconds_bucket` (`le` के साथ), `_count` और `_sum`, या `_seconds` के बिना वही नाम |
 | समरी `rpc.latency` | `rpc_latency` (`quantile` के साथ), `_count` और `_sum` |
 | विशेषता `http.route` | लेबल `http_route` |
 | रिसोर्स विशेषता `service.name` | लेबल `resource_service_name`, और `job` |
 | रिसोर्स विशेषता `service.instance.id` | लेबल `resource_service_instance_id`, और `instance` |
 
 - **डॉट और डैश अंडरस्कोर बन जाते हैं**, मेट्रिक और लेबल दोनों के नामों में। किसी मेट्रिक या लेबल को ठीक उसी नाम से लेने के लिए जिससे वह सहेजा गया है, उसे कोट करें, जैसे Prometheus 3 करता है: `{"http.server.request.duration", "http.route"="/checkout"}`।
+- **इकाई नाम का हिस्सा है**, जैसे Prometheus 3 और OpenTelemetry Collector उसे लिखते हैं: `s` के लिए `_seconds` जुड़ता है, `By` के लिए `_bytes`, `By/s` के लिए `_bytes_per_second` और `%` के लिए `_percent`; `1` वाला गेज `_ratio` पर और काउंटर `_total` पर ख़त्म होता है, और `{request}` जैसी कोष्ठक में लिखी इकाई कुछ नहीं जोड़ती। बिना इकाई वाला नाम भी मेट्रिक ढूँढ लेता है, और **मेट्रिक का नाम जोड़ें** हर मेट्रिक को इकाई के साथ दिखाता है।
 - **डेल्टा काउंटर जोड़कर पढ़े जाते हैं**, क्वेरी की समय सीमा की शुरुआत से, इसलिए `rate()` और `increase()` उन्हें किसी भी दूसरे काउंटर की तरह पढ़ते हैं।
 - **एक्सपोनेंशियल हिस्टोग्राम** में `_count` और `_sum` होते हैं, पर कोई बकेट नहीं।
 
@@ -144,6 +146,7 @@ Prometheus के नेटिव हिस्टोग्राम फ़ंक
 | मूल्यांकन में लगने वाला समय | 30 सेकंड |
 | किसी सीरीज़ का नवीनतम सैंपल ढूँढने के लिए सिलेक्टर कितना पीछे देखता है | 5 मिनट |
 | सबक्वेरी का स्टेप, जब क्वेरी उसे नहीं बताती | 1 मिनट |
+| एक प्रोजेक्ट हर मिनट जितनी क्वेरी भेज सकता है | 1,200 |
 
 ## समस्या निवारण
 
@@ -159,10 +162,15 @@ Prometheus के नेटिव हिस्टोग्राम फ़ंक
 क्वेरी उससे ज़्यादा माँगती है जितना एक रीड रख सकता है। लेबल मैचर जोड़ें, समय सीमा छोटी करें, या बड़ा स्टेप इस्तेमाल करें।
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+इस प्रोजेक्ट के डैशबोर्ड, Grafana और स्क्रिप्ट ने इस मिनट मिलकर API को 1,200 से ज़्यादा क्वेरी भेजीं। पैनल अगले मिनट फिर से लोड होंगे; सीमा के भीतर रहने के लिए डैशबोर्ड कम बार रीफ़्रेश करें।
+:::
+
 ## अगले कदम
 
 :::cards
 - [मेट्रिक्स एक्सप्लोरर](/docs/telemetry/metrics-explorer): बिना क्वेरी लिखे मेट्रिक्स का चार्ट बनाएँ।
-- [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor): जब कोई मेट्रिक किसी सीमा को पार करे तो अलर्ट करें।
-- [बाहरी डेटा स्रोत](/docs/dashboards/data-sources): अपने डैशबोर्ड पर किसी बाहरी Prometheus का चार्ट बनाएँ।
+- [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor): किसी मेट्रिक या PromQL एक्सप्रेशन पर अलर्ट करें, हर सीरीज़ के लिए एक घटना।
+- [बाहरी डेटा स्रोत](/docs/dashboards/data-sources): अपने डैशबोर्ड पर PromQL का चार्ट बनाएँ, इस प्रोजेक्ट के मेट्रिक्स पर या किसी बाहरी Prometheus पर।
+- [LogQL](/docs/telemetry/logql): LogQL से लॉग क्वेरी करें, Grafana के Loki डेटा स्रोत से भी।
 :::

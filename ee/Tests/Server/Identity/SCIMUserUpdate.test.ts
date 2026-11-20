@@ -518,6 +518,14 @@ describe("Status Page SCIM single-user PUT/PATCH", () => {
       expect(privateUserService.updateOneById).toHaveBeenCalledWith({
         id: USER_ID,
         data: { email: new Email(UPDATED_EMAIL) },
+        /*
+         * The identity provider's change, by role: the address the private
+         * user leaves is told so (#10156).
+         */
+        miscDataProps: {
+          [EMAIL_ADDRESS_CHANGED_BY_KEY]:
+            EmailAddressChangedBy.IdentityProvider,
+        },
         props: { isRoot: true },
       });
       expect(privateUserService.deleteOneById).not.toHaveBeenCalled();
@@ -625,6 +633,14 @@ describe("Status Page SCIM Bulk PUT/PATCH", () => {
       expect(privateUserService.updateOneById).toHaveBeenCalledWith({
         id: USER_ID,
         data: { email: new Email(UPDATED_EMAIL) },
+        /*
+         * The identity provider's change, by role: the address the private
+         * user leaves is told so (#10156).
+         */
+        miscDataProps: {
+          [EMAIL_ADDRESS_CHANGED_BY_KEY]:
+            EmailAddressChangedBy.IdentityProvider,
+        },
         props: { isRoot: true },
       });
       expect(privateUserService.deleteOneById).not.toHaveBeenCalled();
@@ -686,6 +702,9 @@ describe("Status Page SCIM Bulk PUT/PATCH", () => {
     expect(privateUserService.updateOneById).toHaveBeenCalledWith({
       id: secondUserId,
       data: { email: new Email(UPDATED_EMAIL) },
+      miscDataProps: {
+        [EMAIL_ADDRESS_CHANGED_BY_KEY]: EmailAddressChangedBy.IdentityProvider,
+      },
       props: { isRoot: true },
     });
     expect(createStatusPageSCIMLog).toHaveBeenCalledWith(

@@ -9,7 +9,9 @@ import RumSessionPinService from "../../../Server/Services/RumSessionPinService"
 import UserOnCallShiftReminderService from "../../../Server/Services/UserOnCallShiftReminderService";
 import UserService from "../../../Server/Services/UserService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
-import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
+import UserWebAuthnService, {
+  WEBAUTHN_ADDED_BY_REGISTRATION_ONLY_MESSAGE,
+} from "../../../Server/Services/UserWebAuthnService";
 import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
 import RumSessionPin from "../../../Models/DatabaseModels/RumSessionPin";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -29,6 +31,8 @@ import {
   test,
 } from "@jest/globals";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Whether a person's sign-in is managed by single sign-on (#9688) has a
@@ -165,11 +169,24 @@ async function pastTheHooks(
 
 describe("an authenticator is enrolled for the person making the request", () => {
   test.each([
-    ["a TOTP authenticator", UserTotpAuthService],
-    ["a passkey", UserWebAuthnService],
-  ])(
+    /*
+     * Begun from the profile, by a session that has confirmed it's its
+     * person's, as adding an app asks first (#10155).
+     */
+    ["a TOTP authenticator", UserTotpAuthService, { userId: USER_ID }],
+    /*
+     * Added by its verified registration alone, a write OneUptime makes for
+     * the session's person: a session's own create is refused (below).
+     */
+    ["a passkey", UserWebAuthnService, { userId: USER_ID, isRoot: true }],
+  ] as Array<[string, unknown, DatabaseCommonInteractionProps]>)(
     "%s: a user relation sent beside the session user is not what is stored",
-    async (_label: string, service: unknown) => {
+    async (
+      _label: string,
+      service: unknown,
+      props: DatabaseCommonInteractionProps,
+    ) => {
+      confirmEverySession();
       jest
         .spyOn(UserService, "findOneById")
         .mockRejectedValue(new PastTheStep() as never);
@@ -185,7 +202,7 @@ describe("an authenticator is enrolled for the person making the request", () =>
           "onBeforeCreate",
         )({
           data: data,
-          props: { userId: USER_ID },
+          props: props,
         }),
       );
 
@@ -194,6 +211,33 @@ describe("an authenticator is enrolled for the person making the request", () =>
       expect(has(data, "user")).toBe(false);
     },
   );
+
+  test("a passkey a session sends to the API's create is refused before anything is read or stored (#10155)", async () => {
+    const findUser: SpyInstance<typeof UserService.findOneById> = jest
+      .spyOn(UserService, "findOneById")
+      .mockRejectedValue(new PastTheStep() as never);
+
+    const data: Record<string, unknown> = {
+      name: "My phone",
+      user: { _id: ID_B },
+    };
+
+    const outcome: unknown = await outcomeOf(
+      hookOf(
+        UserWebAuthnService,
+        "onBeforeCreate",
+      )({
+        data: data,
+        props: { userId: USER_ID },
+      }),
+    );
+
+    expect(outcome).toBeInstanceOf(BadDataException);
+    expect((outcome as Error).message).toBe(
+      WEBAUTHN_ADDED_BY_REGISTRATION_ONLY_MESSAGE,
+    );
+    expect(findUser).not.toHaveBeenCalled();
+  });
 });
 
 describe("a session replay erasure is asked for by the person making the request", () => {

@@ -274,6 +274,10 @@ const PendingEmailChange: FunctionComponent<ComponentProps> = (
             />
           )}
           <div className="flex flex-wrap gap-3">
+            {/*
+             * Each button looks its own title up (Button): handed the
+             * English, never a translation it would look up again.
+             */}
             {maySendAgain ? (
               <Button
                 title={PENDING_EMAIL_CHANGE_COPY.sendAgain}

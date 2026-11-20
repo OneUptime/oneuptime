@@ -80,6 +80,10 @@ import {
   ChartValueAxesPlan,
   useValueAxesTicks,
 } from "../Utils/UseValueAxesTicks";
+import PlotHeightProbe, {
+  PlotRoom,
+  usePlotRoom,
+} from "../Utils/PlotHeightProbe";
 import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 
 /*
@@ -671,6 +675,13 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * precision when the chart steps the axis itself (ValueAxisTicks).
    */
   valueFormatter?: ValueAxisFormatter;
+  /*
+   * For a value axis of spans of time, the seconds one value stands for
+   * (1 for seconds, 0.001 for milliseconds): it steps in natural units of
+   * time, 15 sec, 5 min, 30 min, 6 h (issue #10118). Left out, the axis
+   * steps in round decimal steps.
+   */
+  valueDurationUnitInSeconds?: number | undefined;
   startEndOnly?: boolean;
   showXAxis?: boolean;
   showYAxis?: boolean;
@@ -821,6 +832,7 @@ const AreaChart: React.ForwardRefExoticComponent<
       ownScales,
       categoryValueFormatters,
       onLegendExtraRowsHeightChange,
+      valueDurationUnitInSeconds,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
@@ -912,10 +924,12 @@ const AreaChart: React.ForwardRefExoticComponent<
         )
       : [];
     /*
-     * Each value axis stepped so its neighbouring ticks read apart, and as
-     * wide as its widest tick (issue #10079). The expected-range band is
+     * Each value axis stepped evenly in round steps of its unit, and as
+     * wide as its widest tick (issues #10079, #10117). The expected-range band is
      * drawn against the first axis, so it takes the band in.
      */
+    // The ticks the plot has room for, once recharts has laid it out.
+    const plotRoom: PlotRoom = usePlotRoom();
     const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
       data: data,
       categories: categories,
@@ -926,6 +940,8 @@ const AreaChart: React.ForwardRefExoticComponent<
       secondDomain: secondYAxisDomain,
       allowDecimals: allowDecimals,
       valueFormatter: valueFormatter,
+      durationUnitInSeconds: valueDurationUnitInSeconds,
+      mostTicks: plotRoom.mostTicks,
       yAxisWidth: yAxisWidth,
       bandKeys:
         anomalyBandLowerKey && anomalyBandUpperKey
@@ -934,7 +950,8 @@ const AreaChart: React.ForwardRefExoticComponent<
     });
     /*
      * Each category's value in the tooltip, in the unit of the axis it is
-     * on, to the figures that axis's ticks are written with.
+     * on, to that axis's resolution where its own figures cannot tell two
+     * ticks apart.
      */
     const categoryValueFormatter: (
       category: string,
@@ -947,8 +964,8 @@ const AreaChart: React.ForwardRefExoticComponent<
         secondYAxis: secondYAxis,
         ownScales: ownScales,
         categoryValueFormatters: categoryValueFormatters,
-        firstAxisPrecision: valueAxes.first.ticks.precision,
-        secondAxisPrecision: valueAxes.second?.ticks.precision,
+        firstAxisPrecision: valueAxes.first.ticks.tooltipPrecision,
+        secondAxisPrecision: valueAxes.second?.ticks.tooltipPrecision,
       });
     };
     const hasOnValueChange: boolean = Boolean(onValueChange);
@@ -1149,6 +1166,8 @@ const AreaChart: React.ForwardRefExoticComponent<
                   );
                 })}
               </defs>
+              {/* Hands the axes the plot's height, so a short one takes fewer ticks. */}
+              <PlotHeightProbe onPlotHeight={plotRoom.onPlotHeight} />
               {showGridLines ? (
                 <CartesianGrid
                   className={cx("stroke-gray-100")}
