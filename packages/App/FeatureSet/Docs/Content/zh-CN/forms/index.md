@@ -265,7 +265,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 公开页面与两个不需要 API 密钥的路由通信：`GET /api/form/public/<shareKey>` 返回表单的名称、描述和问题，如果有的话，还会返回其徽标、徽标的替代文本和网站图标（图片为 base64），以及其模板和这些模板对页面所问问题的答案；`POST /api/form/public/<shareKey>/submit` 用于提交表单，并在 `templateId` 中指明提交者所用的模板。它们是页面自己的端点，而不是供您在其上构建的 API：每次调用都要经过表单的保护措施（请参阅 [分享与安全](/docs/forms/sharing-and-security)），并且会随页面一起变化。要从您自己的代码创建事件，请使用 API 密钥调用 `POST /api/incident`，请参阅 [声明事件](/docs/incidents/declaring-incidents)。 在表单的 [自定义域名](/docs/forms/sharing-and-security#自定义域名) 上，页面改为使用该域名上的 `GET /api/form/custom-domain` 和 `POST /api/form/custom-domain/submit`，它们不含任何密钥：由域名指明表单。
 
-在只有登录的人才能打开的表单上，这些路由会向任何未以其私人用户身份登录的人返回 `401`。页面会先读取 `GET /api/form/public/<shareKey>/sign-in-state` (在自定义域名上是 `GET /api/form/custom-domain/sign-in-state`)，它只说明表单是否要求访问者登录，以及在要求时表单的名称和谁已登录。
+在只有登录的人才能打开的表单上，这些路由会向任何未以其私人用户身份登录的人返回 `401`。页面会先读取 `GET /api/form/public/<shareKey>/sign-in-state` (在自定义域名上是 `GET /api/form/custom-domain/sign-in-state`)，它只说明表单是否要求访问者登录，以及在要求时表单的 ID、名称和谁已登录。
 
 ## 您的事件表单去了哪里
 

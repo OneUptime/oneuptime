@@ -265,7 +265,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 공개 페이지는 API 키가 필요 없는 두 경로와 통신합니다. `GET /api/form/public/<shareKey>` 는 양식의 이름, 설명, 질문을 반환하며, 있으면 로고, 로고의 대체 텍스트, 파비콘 (이미지는 base64) 과, 페이지가 묻는 질문에 대한 답변이 담긴 템플릿도 반환합니다. `POST /api/form/public/<shareKey>/submit` 은 양식을 제출하며, 제출자가 시작한 템플릿을 `templateId` 로 지정합니다. 이것들은 페이지 전용 엔드포인트이지, 무언가를 만들 기반이 되는 API가 아닙니다. 모든 호출은 양식의 보호 장치를 거치며 ([공유 및 보안](/docs/forms/sharing-and-security) 참조), 페이지와 함께 바뀝니다. 자신의 코드에서 인시던트를 만들려면 API 키로 `POST /api/incident` 를 사용하세요. [인시던트 선언](/docs/incidents/declaring-incidents) 을 참조하세요. 양식의 [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 에서는 페이지가 대신 그 도메인의 `GET /api/form/custom-domain` 과 `POST /api/form/custom-domain/submit` 을 사용하며, 여기에는 키가 없고 도메인이 양식을 가리킵니다.
 
-로그인한 사람만 열 수 있는 양식에서는, 이 경로들이 그 양식의 비공개 사용자로 로그인하지 않은 모든 사람에게 `401`로 응답합니다. 페이지는 먼저 `GET /api/form/public/<shareKey>/sign-in-state`를, 사용자 정의 도메인에서는 `GET /api/form/custom-domain/sign-in-state`를 읽으며, 이는 양식이 방문자에게 로그인을 요구하는지와, 요구한다면 그 이름과 누가 로그인했는지만 알려 줍니다.
+로그인한 사람만 열 수 있는 양식에서는, 이 경로들이 그 양식의 비공개 사용자로 로그인하지 않은 모든 사람에게 `401`로 응답합니다. 페이지는 먼저 `GET /api/form/public/<shareKey>/sign-in-state`를, 사용자 정의 도메인에서는 `GET /api/form/custom-domain/sign-in-state`를 읽으며, 이는 양식이 방문자에게 로그인을 요구하는지와, 요구한다면 그 ID와 이름과 누가 로그인했는지만 알려 줍니다.
 
 ## 인시던트 양식이 옮겨 간 곳
 

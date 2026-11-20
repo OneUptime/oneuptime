@@ -15,6 +15,7 @@ import {
 import FormSignInView from "../Components/FormSignIn/FormSignInView";
 import {
   FormSignInTarget,
+  describeFormSignInError,
   exchangeFormLoginCode,
   loadFormSignInState,
   renewFormSession,
@@ -26,7 +27,6 @@ import {
   FORM_RESET_PASSWORD_PARAMETER,
   FormSignInState,
 } from "Common/Types/Form/FormPrivateUserSignIn";
-import API from "Common/UI/Utils/API/API";
 import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import { isKnownFormMessage } from "../Utils/FormMessage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -381,7 +381,7 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
           await exchangeFormLoginCode(target, loginCode);
           signedInAs = (await loadFormSignInState(shareKey)).signedInAs || null;
         } catch (err) {
-          error = API.getFriendlyMessage(err);
+          error = describeFormSignInError(err);
         }
       }
 

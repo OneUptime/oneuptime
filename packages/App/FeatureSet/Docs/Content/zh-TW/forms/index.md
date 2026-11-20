@@ -265,7 +265,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 公開頁面會與兩個不需要 API 金鑰的路由通訊：`GET /api/form/public/<shareKey>` 會傳回表單的名稱、描述和問題，如果有的話，還會傳回其標誌、標誌的替代文字和網站圖示（圖片為 base64），以及其範本和這些範本對頁面所問問題的答案；`POST /api/form/public/<shareKey>/submit` 用於提交表單，並在 `templateId` 中指明提交者所使用的範本。它們是頁面自己的端點，而不是供您在其上建構的 API：每次呼叫都要經過表單的保護措施（請參閱 [分享與安全](/docs/forms/sharing-and-security)），且會隨頁面一起變更。若要從您自己的程式碼建立事件，請使用 API 金鑰呼叫 `POST /api/incident`，請參閱 [宣告事件](/docs/incidents/declaring-incidents)。 在表單的 [自訂網域](/docs/forms/sharing-and-security#自訂網域) 上，頁面改為使用該網域上的 `GET /api/form/custom-domain` 和 `POST /api/form/custom-domain/submit`，它們不含任何金鑰：由網域指明表單。
 
-在只有登入的人才能開啟的表單上，這些路由會向任何未以其私人使用者身分登入的人回傳 `401`。頁面會先讀取 `GET /api/form/public/<shareKey>/sign-in-state` (在自訂網域上是 `GET /api/form/custom-domain/sign-in-state`)，它只說明表單是否要求訪客登入，以及在要求時表單的名稱和誰已登入。
+在只有登入的人才能開啟的表單上，這些路由會向任何未以其私人使用者身分登入的人回傳 `401`。頁面會先讀取 `GET /api/form/public/<shareKey>/sign-in-state` (在自訂網域上是 `GET /api/form/custom-domain/sign-in-state`)，它只說明表單是否要求訪客登入，以及在要求時表單的 ID、名稱和誰已登入。
 
 ## 您的事件表單去了哪裡
 

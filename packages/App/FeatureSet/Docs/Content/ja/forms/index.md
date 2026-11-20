@@ -265,7 +265,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 公開ページは API キーを必要としない 2 つのルートと通信します。`GET /api/form/public/<shareKey>` はフォームの名前、説明、質問を返し、ある場合はロゴ、ロゴの代替テキスト、ファビコン (画像は base64)、そしてページが尋ねる質問への回答を含むテンプレートも返します。`POST /api/form/public/<shareKey>/submit` はフォームを送信し、送信者が使い始めたテンプレートを `templateId` で示します。これらはページ専用のエンドポイントであり、これを土台に何かを作るための API ではありません。すべての呼び出しはフォームの保護を通り ([共有とセキュリティ](/docs/forms/sharing-and-security) を参照)、ページとともに変更されます。自分のコードからインシデントを作成するには、API キーを使って `POST /api/incident` を呼び出します。[インシデントの宣言](/docs/incidents/declaring-incidents) を参照してください。 フォームの [カスタムドメイン](/docs/forms/sharing-and-security#カスタムドメイン) では、ページは代わりにそのドメイン上の `GET /api/form/custom-domain` と `POST /api/form/custom-domain/submit` を使います。これらはキーを含まず、ドメインがフォームを示します。
 
-サインインした人だけが開けるフォームでは、これらのルートは、そのプライベートユーザーとしてサインインしていない人に `401` を返します。ページはまず `GET /api/form/public/<shareKey>/sign-in-state` (カスタムドメインでは `GET /api/form/custom-domain/sign-in-state`) を読みます。これが伝えるのは、フォームが訪問者にサインインを求めるかどうかと、求める場合はその名前と誰がサインインしているかだけです。
+サインインした人だけが開けるフォームでは、これらのルートは、そのプライベートユーザーとしてサインインしていない人に `401` を返します。ページはまず `GET /api/form/public/<shareKey>/sign-in-state` (カスタムドメインでは `GET /api/form/custom-domain/sign-in-state`) を読みます。これが伝えるのは、フォームが訪問者にサインインを求めるかどうかと、求める場合はその ID と名前と誰がサインインしているかだけです。
 
 ## インシデントフォームの移行先
 

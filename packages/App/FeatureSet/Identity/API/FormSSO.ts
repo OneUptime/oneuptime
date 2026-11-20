@@ -42,7 +42,7 @@ const router: ExpressRouter = Express.getRouter();
 
 /*
  * ---------------------------------------------------------------------------
- * A DASHBOARD'S SAML SIGN-IN (#10249), for the people who open its public
+ * A FORM'S SAML SIGN-IN (#10249), for the people who open its public
  * link when it asks its visitors to sign in - as a status page's
  * (StatusPageSSO), served by core in every edition. The ACS URL
  * (/identity/form-idp-login/:formId/:formSsoId) is pasted

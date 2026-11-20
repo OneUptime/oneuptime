@@ -61,7 +61,7 @@ const getRedirectUri: (data: {
 
 /*
  * ---------------------------------------------------------------------------
- * A DASHBOARD'S OPENID CONNECT SIGN-IN (#10249), for the people who open
+ * A FORM'S OPENID CONNECT SIGN-IN (#10249), for the people who open
  * its public link when it asks its visitors to sign in - as a status page's
  * (StatusPageOIDC), served by core in every edition. The redirect URI
  * (/identity/form-oidc-callback/:formId/:formOidcId) is

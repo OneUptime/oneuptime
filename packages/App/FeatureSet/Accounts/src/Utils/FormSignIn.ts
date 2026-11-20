@@ -14,6 +14,7 @@ import {
 } from "Common/Types/Form/FormPrivateUserSignIn";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL, IDENTITY_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
 
 /*
  * A FORM'S PAGE SIGNS ITS VISITORS IN (#10249), on the host it is served
@@ -260,4 +261,14 @@ export const getFormSsoSignInUrl: (data: {
       data.formId,
     )}/${encodeURIComponent(data.providerId)}`,
   );
+};
+
+/*
+ * What a refused sign-in request says, in the server's words - for the
+ * page, which talks to no client itself (App/Tests/Accounts/FormPageWiring).
+ */
+export const describeFormSignInError: (error: unknown) => string = (
+  error: unknown,
+): string => {
+  return API.getFriendlyMessage(error);
 };
