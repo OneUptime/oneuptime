@@ -916,8 +916,26 @@ export default class SeriesLabelDisplay {
     seriesLabels: JSONObject | undefined,
     options?: InlineSummaryOptions | undefined,
   ): string {
-    const summary: string = SeriesLabelDisplay.buildInlineSummary(
-      seriesLabels,
+    return SeriesLabelDisplay.formatTitleSuffix(
+      SeriesLabelDisplay.getDisplayLabels(seriesLabels, options),
+      options,
+    );
+  }
+
+  /*
+   * The title suffix of display labels already picked, in the order given:
+   * buildTitleSuffix's, for a caller that has chosen which labels to say
+   * (SeriesContextEnricher.enrichTitle, the labels a title does not name
+   * yet), or "" when there is nothing to say. A title is plain text: where
+   * it is placed into Markdown - a feed item, a chat message - it is placed
+   * as text, escaped there.
+   */
+  public static formatTitleSuffix(
+    labels: Array<DisplaySeriesLabel>,
+    options?: InlineSummaryOptions | undefined,
+  ): string {
+    const summary: string = SeriesLabelDisplay.formatInlineLabels(
+      labels,
       options,
     );
 
