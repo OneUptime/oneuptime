@@ -32,7 +32,7 @@
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` 顯示記錄在 OneUptime 中的樣子，包括它的 `id`。你沒有設定、而由 OneUptime 填入的欄位（例如預設值），會在記錄建立後複製到 `spec.forProvider` 中，這樣下一次檢查就不會發現需要變更的內容。但 OneUptime 自己持續更新的欄位永遠不會被複製過去，請參閱 [OneUptime 持續更新的欄位](#oneuptime-持續更新的欄位)。
+`status.atProvider` 顯示記錄在 OneUptime 中的樣子，包括它的 `id`。你沒有設定、而由 OneUptime 填入的欄位（例如預設值），會在記錄建立後複製到 `spec.forProvider` 中，這樣下一次檢查就不會發現需要變更的內容。但 OneUptime 自己持續更新的欄位，以及 OneUptime 也會變更的欄位，永遠不會被複製過去，請參閱 [OneUptime 持續更新的欄位](#oneuptime-持續更新的欄位)。
 
 ## 參照其他資源
 
@@ -104,7 +104,7 @@ kubectl -n team-a get secret collector-telemetry-key -o jsonpath='{.data.attribu
 
 ## 在 Kubernetes 之外所做的變更
 
-提供者每 10 分鐘把每個資源與其記錄核對一次，並改回別人在 OneUptime 中所做的任何變更。若要更頻繁地檢查，請為提供者加上一個帶有 `--poll` 的執行階段設定：
+提供者每 10 分鐘把每個資源與其記錄核對一次，並改回別人在 OneUptime 中所做的任何變更，但 OneUptime 也會變更的欄位除外（見下文）。若要更頻繁地檢查，請為提供者加上一個帶有 `--poll` 的執行階段設定：
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ spec:
 
 ### OneUptime 持續更新的欄位
 
-有些欄位由 OneUptime 負責持續更新，提供者把它們交給 OneUptime：從不把它們複製到 `spec.forProvider`，也從不把它們改回。
+有些欄位由 OneUptime 負責持續更新，或者也會由 OneUptime 變更，提供者會保留 OneUptime 所做的變更：從不把這些欄位複製到 `spec.forProvider`，也從不把它們改回。
 
 - 只有 OneUptime 才會寫入的欄位，例如遙測監測器上次執行的時間（`telemetryMonitorLastMonitorAt`）或 Kubernetes 叢集的節點數（`nodeCount`），只會出現在 `status.atProvider` 中。
 - 可以指定記錄初始值的欄位，例如監測器的 `currentMonitorStatusId` 或事件的 `currentIncidentStateId`，可在建立記錄時寫在 `spec.initProvider` 或 `spec.forProvider` 中。此後 OneUptime 會改變它，就像監測器的檢查會改變監測器的狀態那樣；`status.atProvider` 顯示它目前的值。
+- 你和 OneUptime 都會變更的欄位，例如記錄的 `labels`（標籤規則會在其中加上標籤）、例外的 `isResolved` 或網路裝置的 `siteId`（網路探索會變更它），由你寫在 `spec.forProvider` 中。提供者在建立記錄時傳送它，之後每當資訊清單中的值有所變更時再次傳送，並保留 OneUptime 在這段期間所做的變更。像 `labels` 這樣的清單會保留 OneUptime 加上的項目，找回資訊清單中列出但被人移除的項目，並拿掉你從資訊清單中刪除的項目。
 
-`kubectl explain` 會在每個可以指定初始值的欄位的說明中註明這一點。如果舊版的提供者曾把這些欄位填入某個資源的 `spec.forProvider`，該資源會自動不再與 OneUptime 衝突，你不需要修改任何內容。
+`kubectl explain` 會在每個可以指定初始值的欄位以及每個 OneUptime 也會變更的欄位的說明中註明這一點。如果舊版的提供者曾把這些欄位填入某個資源的 `spec.forProvider`，該資源會自動不再與 OneUptime 衝突，你不需要修改任何內容。
+
+對於 OneUptime 也會變更的欄位，提供者會把資訊清單上次套用的內容儲存在資源的 `crossplane.oneuptime.com/last-applied` 註解中。在舊版的提供者填入過的清單（例如 `labels`）中，你移除的項目會作為 OneUptime 的項目留在記錄上；你第一次變更該清單之後資訊清單中列出的項目屬於你，你移除它時，它也會從記錄中刪除。
 
 ## 刪除資源
 

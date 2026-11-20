@@ -282,6 +282,16 @@ OneUptime 根據請求本身記錄是誰建立了記錄——以及是誰封存�
 
 API 參考將這些欄位標示為唯讀。請求在其他變更之外為其中某個欄位傳送的值會被忽略，因此其餘變更可以通過；除此之外什麼都不傳送的更新會被拒絕，並傳回一則指明這些欄位的訊息。OneUptime 代表某人自行建立的記錄——從 Slack 或 Microsoft Teams 發布的備註、透過邀請建立的帳戶——會指明那個人。
 
+### 只有 OneUptime 才會寫入的欄位
+
+有些欄位只由 OneUptime 寫入：遙測監測器上次執行和下次執行的時間、代理程式上次回報的內容、SLA 的截止時間、SCIM 用戶端密鑰失效的時間。API 參考將它們標示為唯讀，並且不把它們放入建立和更新的請求本文。傳送其中某個欄位的建立（例如複製一筆你讀取的記錄時就會如此）會去掉該欄位後通過，新記錄取得 OneUptime 的值。傳送其中某個欄位的更新會被拒絕，回應會指明它傳送的每一個此類欄位：
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+更新時請不要傳送這些欄位。少數由人變更的欄位各有專屬的請求：輪替 SCIM 用戶端密鑰會設定它失效的時間，`POST /api/host/:id/try-collector-config-again` 會把在主機上失敗的收集器設定再次傳送給該主機。你和 OneUptime 都會變更的欄位，例如記錄的 `labels`（標籤規則會在其中加上標籤），仍由你像以前一樣設定。
+
 ## 狀態與片段
 
 ### 新記錄的初始狀態

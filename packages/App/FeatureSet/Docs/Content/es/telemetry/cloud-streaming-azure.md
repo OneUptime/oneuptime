@@ -83,6 +83,8 @@ Un espacio de nombres de Service Bus o Event Hubs no transmite métricas. Las le
 
 Un registro se archiva bajo su recurso por el ID de ARM del recurso, que lleva como `cloud.resource_id`, y conserva su categoría, operación, resultado y propiedades como atributos, por ejemplo `azure.category`.
 
+Una entrada del registro de actividad de la categoría `Administrative`, `Security` o `Policy`, y una entrada de inicio de sesión, de auditoría o de riesgo de Microsoft Entra ID, llegan enteras, como cuerpo de su registro, incluso una sobre un grupo de recursos, una suscripción o el inquilino en lugar de un recurso. Con [Encontrar eventos de seguridad en tus registros](/docs/telemetry/security-events#encontrar-eventos-de-seguridad-en-sus-registros) activado, cada una se lee como un evento de seguridad, igual que una de una canalización de registros, y se guarda una sola vez, por muchas vías que llegue a OneUptime. El comando solo configura los registros de recursos: el registro de actividad de una suscripción y los registros de Microsoft Entra ID llegan a la transmisión por una configuración de diagnóstico propia que los envía a uno de sus centros de eventos.
+
 Las máquinas virtuales, los conjuntos de escalado, los discos, las interfaces de red, las redes virtuales, los puntos de conexión privados, las puertas de enlace NAT, las zonas DNS y los planes de App Service no envían registros de recursos propios, así que sus páginas no tienen pestaña **Registros**. Los registros de una cuenta de almacenamiento son los de sus servicios, y los de una aplicación de contenedor, los de su entorno.
 
 ## Qué crea el comando

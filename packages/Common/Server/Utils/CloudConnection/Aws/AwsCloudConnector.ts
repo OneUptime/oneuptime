@@ -1,3 +1,4 @@
+import { getAwsDocumentedMetricUnit } from "../../../../Types/Cloud/AwsMetricUnits";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
   AWS_DEFAULT_PERIOD_SECONDS,
@@ -12,6 +13,7 @@ import {
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CloudAddedMetric,
   CloudAddedMetricDimension,
   CloudAddedMetricScope,
@@ -231,13 +233,18 @@ interface AwsSeries {
  * An added metric (CloudAddedMetrics) as the read reads a key metric: with
  * its statistic, every five minutes, and never one a key-metric stream
  * carries (streamedSince null). Its group is not shown anywhere: a
- * resource's page lists an added metric under its own heading.
+ * resource's page lists an added metric under its own heading. Its unit is
+ * the one its datapoints carried when it was added (#9809), else the one
+ * AWS documents for it; with neither, it is stored with none, rather than
+ * as CloudWatch's "None", which says the metric has no unit.
  */
 export function toAwsAddedKeyMetric(metric: CloudAddedMetric): AwsKeyMetric {
   return {
     metricName: metric.name,
     statistic: metric.aggregation as AwsStatistic,
-    unit: metric.unit || "None",
+    unit:
+      metric.unit ||
+      getAwsDocumentedMetricUnit(metric.namespace || "", metric.name),
     group: CloudKeyMetricGroup.Traffic,
     periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
     streamedSince: null,
@@ -301,6 +308,69 @@ export function getAwsResourceAdditionsToRead(data: {
       !getAwsKeyMetric(metric.namespace || "", metric.name)
     );
   });
+}
+
+/*
+ * THE SERIES AN ADDITION SPLIT BY A DIMENSION READS (#9808).
+ *
+ * CloudWatch keeps a series per combination of dimensions a metric is
+ * published with: a load balancer's RequestCount under LoadBalancer alone,
+ * and under LoadBalancer and AvailabilityZone, one per zone. An addition
+ * split by a dimension reads the resource's own series with that one more,
+ * a series per value - the values listed now, so a zone or a target group
+ * added later is read from the next read - in the order of their values,
+ * at most CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES of them: each is a metric
+ * GetMetricData bills.
+ */
+export function pickAwsSplitSeries(data: {
+  listed: ReadonlyArray<AwsListedMetric>;
+  // The resource's own series' dimensions, without the split.
+  own: ReadonlyArray<CloudAddedMetricDimension>;
+  splitBy: string;
+}): Array<AwsListedMetric> {
+  const valueOf: (metric: AwsListedMetric) => string = (
+    metric: AwsListedMetric,
+  ): string => {
+    return (
+      metric.dimensions.find((dimension: CloudAddedMetricDimension) => {
+        return dimension.name === data.splitBy;
+      })?.value || ""
+    );
+  };
+  const seen: Set<string> = new Set<string>();
+
+  return data.listed
+    .filter((metric: AwsListedMetric): boolean => {
+      const value: string = valueOf(metric);
+
+      if (
+        !value ||
+        seen.has(value) ||
+        metric.dimensions.length !== data.own.length + 1 ||
+        !data.own.every((dimension: CloudAddedMetricDimension): boolean => {
+          return metric.dimensions.some(
+            (candidate: CloudAddedMetricDimension): boolean => {
+              return (
+                candidate.name === dimension.name &&
+                candidate.value === dimension.value
+              );
+            },
+          );
+        })
+      ) {
+        return false;
+      }
+
+      seen.add(value);
+      return true;
+    })
+    .sort((a: AwsListedMetric, b: AwsListedMetric): number => {
+      const valueA: string = valueOf(a);
+      const valueB: string = valueOf(b);
+
+      return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+    })
+    .slice(0, CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES);
 }
 
 interface RegionNamespace {
@@ -841,6 +911,8 @@ export default class AwsCloudConnector implements CloudConnector {
       keyMetric: AwsKeyMetric;
       // An addition's type: only its resources' series are kept.
       addedForType?: string | undefined;
+      // An addition split by a dimension (#9808): its series of each value.
+      splitBy?: string | undefined;
     }> = [
       ...data.pair.namespace.metrics.map(
         (keyMetric: AwsKeyMetric): { keyMetric: AwsKeyMetric } => {
@@ -850,16 +922,32 @@ export default class AwsCloudConnector implements CloudConnector {
       ...(data.addedMetrics || []).map(
         (
           added: CloudAddedMetric,
-        ): { keyMetric: AwsKeyMetric; addedForType: string } => {
+        ): {
+          keyMetric: AwsKeyMetric;
+          addedForType: string;
+          splitBy?: string | undefined;
+        } => {
           return {
             keyMetric: toAwsAddedKeyMetric(added),
             addedForType: added.resourceType.toLowerCase(),
+            ...(added.splitBy ? { splitBy: added.splitBy } : {}),
           };
         },
       ),
     ];
+    // Per resource, a split addition's series, picked once all are listed.
+    const splits: Map<
+      string,
+      {
+        resource: CloudMonitoredResource;
+        keyMetric: AwsKeyMetric;
+        own: Array<CloudAddedMetricDimension>;
+        splitBy: string;
+        listed: Array<AwsListedMetric>;
+      }
+    > = new Map();
 
-    for (const { keyMetric, addedForType } of toList) {
+    for (const { keyMetric, addedForType, splitBy } of toList) {
       const listed: Array<AwsListedMetric> = await listMetrics(
         {
           transport: data.options.transport,
@@ -880,6 +968,62 @@ export default class AwsCloudConnector implements CloudConnector {
       for (const metric of listed) {
         // A series the metric is not read from (AwsKeyMetric.onlyDimensionValues).
         if (!isAwsKeyMetricSeries(keyMetric, dimensionsOf(metric))) {
+          continue;
+        }
+
+        if (splitBy) {
+          /*
+           * A split's series is one of the resource's own with the split
+           * one more: it is the resource the series without it is about,
+           * and its own series is the one of fewest dimensions.
+           */
+          const own: Array<CloudAddedMetricDimension> =
+            metric.dimensions.filter(
+              (dimension: CloudAddedMetricDimension): boolean => {
+                return dimension.name !== splitBy;
+              },
+            );
+
+          if (own.length === metric.dimensions.length || own.length === 0) {
+            continue;
+          }
+
+          const resource: CloudMonitoredResource | null = this.resolveSeries({
+            metric: { ...metric, dimensions: own },
+            accountId: data.accountId,
+            region: data.pair.region,
+          });
+
+          if (
+            !resource ||
+            resource.resourceType.toLowerCase() !== addedForType
+          ) {
+            continue;
+          }
+
+          const splitKey: string = `${resource.identityKey}|${keyMetric.metricName}`;
+          const known:
+            | {
+                resource: CloudMonitoredResource;
+                keyMetric: AwsKeyMetric;
+                own: Array<CloudAddedMetricDimension>;
+                splitBy: string;
+                listed: Array<AwsListedMetric>;
+              }
+            | undefined = splits.get(splitKey);
+
+          if (!known || own.length < known.own.length) {
+            splits.set(splitKey, {
+              resource,
+              keyMetric,
+              own,
+              splitBy,
+              listed: [metric],
+            });
+          } else if (own.length === known.own.length) {
+            known.listed.push(metric);
+          }
+
           continue;
         }
 
@@ -922,6 +1066,21 @@ export default class AwsCloudConnector implements CloudConnector {
 
     for (const series of kept.values()) {
       all.push(...series);
+    }
+
+    for (const split of splits.values()) {
+      for (const metric of pickAwsSplitSeries({
+        listed: split.listed,
+        own: split.own,
+        splitBy: split.splitBy,
+      })) {
+        all.push({
+          metric,
+          keyMetric: split.keyMetric,
+          resource: split.resource,
+          isAdded: true,
+        });
+      }
     }
 
     return all;
@@ -1512,6 +1671,41 @@ export default class AwsCloudConnector implements CloudConnector {
       accountId,
       activePairs,
     })) {
+      if (metric.splitBy) {
+        // Split (#9808): its series of each value, as CloudWatch lists them now.
+        try {
+          series.push(
+            ...(await this.listOwnSplitSeries({
+              metric,
+              accountId,
+              credentials,
+              options,
+              budget,
+            })),
+          );
+        } catch (error) {
+          if (error instanceof CloudReadBudgetSpent) {
+            break;
+          }
+
+          if (
+            error instanceof LlmProviderError &&
+            (error.kind === CloudConnectionFailureKind.Permission ||
+              error.kind === CloudConnectionFailureKind.Authentication)
+          ) {
+            throw error;
+          }
+
+          warnings.push(
+            `Could not list ${metric.namespace} ${metric.name} in ${metric.region}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+
+        continue;
+      }
+
       const listedMetric: AwsListedMetric = {
         namespace: metric.namespace!,
         metricName: metric.name,
@@ -2912,6 +3106,68 @@ export default class AwsCloudConnector implements CloudConnector {
       warnings: outcome.warnings,
       complete: outcome.complete && !options.budget.isSpent(),
     };
+  }
+
+  /*
+   * A resource's own addition split by a dimension (#9808): the series
+   * CloudWatch lists of it on the resource's dimensions, lately active,
+   * that carry the split one more - a series per value, the first
+   * CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES by value.
+   */
+  private async listOwnSplitSeries(data: {
+    metric: CloudAddedMetric;
+    accountId: string;
+    credentials: AwsCredentials;
+    options: CloudReadOptions;
+    budget: CloudReadBudget;
+  }): Promise<Array<AwsSeries>> {
+    const own: Array<CloudAddedMetricDimension> = (
+      data.metric.dimensions || []
+    ).map((dimension: CloudAddedMetricDimension) => {
+      return { name: dimension.name, value: dimension.value };
+    });
+    const listed: Array<AwsListedMetric> = await listMetrics(
+      {
+        transport: data.options.transport,
+        credentials: data.credentials,
+        region: data.metric.region!,
+        now: data.options.now,
+        timeoutInMs: data.options.requestTimeoutInMs,
+        sleep: data.options.sleep,
+        budget: data.budget,
+      },
+      {
+        namespace: data.metric.namespace!,
+        metricName: data.metric.name,
+        dimensions: own,
+      },
+    );
+    const resource: CloudMonitoredResource | null = this.resolveSeries({
+      metric: {
+        namespace: data.metric.namespace!,
+        metricName: data.metric.name,
+        dimensions: own,
+      },
+      accountId: data.accountId,
+      region: data.metric.region!,
+    });
+
+    if (!resource) {
+      return [];
+    }
+
+    return pickAwsSplitSeries({
+      listed,
+      own,
+      splitBy: data.metric.splitBy!,
+    }).map((metric: AwsListedMetric): AwsSeries => {
+      return {
+        metric,
+        keyMetric: toAwsAddedKeyMetric(data.metric),
+        resource,
+        isAdded: true,
+      };
+    });
   }
 
   private addToGroup(data: {

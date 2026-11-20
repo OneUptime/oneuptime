@@ -116,6 +116,11 @@ func ResourceDefaults() ujconfig.ResourceOption {
 		// One an older provider made in the background gets the annotation
 		// from its status (externalname.go).
 		r.InitializerFns = append(r.InitializerFns, NewExternalNameFromStatus)
+		// What its manifest last applied of the fields people and OneUptime
+		// both change, for the plan of each reconcile (lastapplied.go).
+		if recorder := NewLastAppliedRecorder(r); recorder != nil {
+			r.InitializerFns = append(r.InitializerFns, recorder)
+		}
 		// What late initialization and spec.initProvider leave to OneUptime
 		// (lateinit.go).
 		lateInitialization(r)

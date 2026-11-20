@@ -32,7 +32,7 @@ En typs fält är Terraform-resursens argument, i camelCase, under `spec.forProv
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` visar posten så som OneUptime har den, med dess `id`. Ett fält som du utelämnar och som OneUptime fyller i, till exempel ett standardvärde, kopieras till `spec.forProvider` när posten har skapats, så att nästa kontroll inte hittar något att ändra. Ett fält som OneUptime själv håller uppdaterat kopieras aldrig: se [Fält som OneUptime håller uppdaterade](#fält-som-oneuptime-håller-uppdaterade).
+`status.atProvider` visar posten så som OneUptime har den, med dess `id`. Ett fält som du utelämnar och som OneUptime fyller i, till exempel ett standardvärde, kopieras till `spec.forProvider` när posten har skapats, så att nästa kontroll inte hittar något att ändra. Ett fält som OneUptime själv håller uppdaterat, eller som OneUptime också ändrar, kopieras aldrig: se [Fält som OneUptime håller uppdaterade](#fält-som-oneuptime-håller-uppdaterade).
 
 ## Referera till andra resurser
 
@@ -104,7 +104,7 @@ Ett fält som innehåller en hemlighet, till exempel lösenfrasen för TLS-klien
 
 ## Ändringar som görs utanför Kubernetes
 
-Providern kontrollerar varje resurs mot dess post var 10:e minut och återställer allt som någon har ändrat i OneUptime. För att kontrollera oftare ger du providern en körtidskonfiguration med `--poll`:
+Providern kontrollerar varje resurs mot dess post var 10:e minut och återställer allt som någon har ändrat i OneUptime, utom i ett fält som OneUptime också ändrar (se nedan). För att kontrollera oftare ger du providern en körtidskonfiguration med `--poll`:
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ För att låta instrumentpanelen äga ett fält efter att posten har skapats skr
 
 ### Fält som OneUptime håller uppdaterade
 
-Vissa fält håller OneUptime själv uppdaterade, och providern lämnar dem åt OneUptime: den kopierar dem aldrig till `spec.forProvider` och återställer dem aldrig.
+Vissa fält håller OneUptime själv uppdaterade, andra ändrar OneUptime också, och providern låter OneUptimes ändringar vara: den kopierar aldrig de här fälten till `spec.forProvider` och återställer dem aldrig.
 
 - Ett fält som bara OneUptime skriver, till exempel när en telemetrimonitor senast kördes (`telemetryMonitorLastMonitorAt`) eller hur många noder ett Kubernetes-kluster har (`nodeCount`), finns bara i `status.atProvider`.
 - Ett fält som en post startar med, till exempel en monitors `currentMonitorStatusId` eller en incidents `currentIncidentStateId`, kan anges för att skapa posten, i `spec.initProvider` eller `spec.forProvider`. Därefter ändrar OneUptime det, så som en monitors kontroller ändrar dess status, och `status.atProvider` visar var det står nu.
+- Ett fält som både du och OneUptime ändrar, till exempel en posts `labels`, som etikettregler lägger till etiketter i, ett undantags `isResolved` eller en nätverksenhets `siteId`, som upptäckten flyttar, skriver du själv i `spec.forProvider`. Providern skickar det för att skapa posten, och igen varje gång värdet i manifestet ändras, och låter en ändring som OneUptime gör däremellan vara. En lista som `labels` behåller de element som OneUptime har lagt till, får tillbaka ett element som står i manifestet men som någon har tagit bort, och förlorar ett element som du tar bort ur manifestet.
 
-`kubectl explain` säger det i beskrivningen av varje fält som en post startar med. En resurs vars `spec.forProvider` en tidigare version av providern fyllde med de här fälten slutar av sig själv att kämpa mot OneUptime, utan att du behöver redigera något.
+`kubectl explain` säger det i beskrivningen av varje fält som en post startar med eller som OneUptime också ändrar. En resurs vars `spec.forProvider` en tidigare version av providern fyllde med de här fälten slutar av sig själv att kämpa mot OneUptime, utan att du behöver redigera något.
+
+Providern sparar i resursens annotering `crossplane.oneuptime.com/last-applied` vad ett manifest senast satte i de fält som OneUptime också ändrar. I en lista som en tidigare version av providern fyllde, till exempel `labels`, blir ett element som du tar bort kvar i posten som OneUptimes eget; ett element som står i manifestet efter att du har ändrat listan för första gången är ditt och tas bort ur posten när du tar bort det.
 
 ## Ta bort en resurs
 

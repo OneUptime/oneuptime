@@ -166,12 +166,8 @@ const FILLED_IN_BY_THE_CREATE: ReadonlyArray<{ column: string; why: string }> =
       why: "Only the incoming-call webhook makes these items, each one Ringing, and the call provider's dial status moves it.",
     },
     {
-      column: "IncidentSla.incidentSlaRuleId",
-      why: "Only OneUptime makes an incident's SLA record, from the SLA rule that matches the incident (IncidentSlaService).",
-    },
-    {
       column: "IncidentSla.slaStartedAt",
-      why: "Only OneUptime makes an incident's SLA record, started when the incident was declared or reopened (IncidentSlaService).",
+      why: "IncidentSlaService.onBeforeCreate starts an SLA a person adds when its incident was declared; the SLA OneUptime starts for the rule an incident matches comes started.",
     },
     {
       column: "RunbookExecution.runbookNameSnapshot",
@@ -194,6 +190,267 @@ const FILLED_IN_BY_THE_CREATE: ReadonlyArray<{ column: string; why: string }> =
       why: "MessageQueueService.onBeforeCreate computes it from the broker and the destination on every create through the API.",
     },
   ];
+
+/*
+ * COLUMNS PEOPLE AND ONEUPTIME BOTH CHANGE (ServerOwned.Shared, #10052),
+ * each with what OneUptime changes it by. A person sets it, and the
+ * providers never take OneUptime's change for one to undo: Crossplane never
+ * copies one into spec.forProvider, sends a manifest's value only when it
+ * changes, and holds a list to the entries the manifest declares; a
+ * Terraform configuration that leaves one out keeps OneUptime's value.
+ *
+ * A model with label, on-call or privacy rules marks the column its rules
+ * change (the tests below derive it from the rule models), so a new one
+ * gets it right; the rest are named here.
+ */
+const SHARED_BY_RULES: ReadonlyArray<{
+  // A rule model's name ends with it: MonitorLabelRule changes Monitor.labels.
+  ruleSuffix: string;
+  column: string;
+  why: string;
+}> = [
+  {
+    ruleSuffix: "LabelRule",
+    column: "labels",
+    why: "A label rule adds its labels when the record is created and when a person runs the rule (RuleAddedLabels); ingest and agents add labels from oneuptime.label.* attributes too. They never take one off.",
+  },
+  {
+    ruleSuffix: "OnCallRule",
+    column: "onCallDutyPolicies",
+    why: "An on-call rule adds its policies when the record is created, and again when its severity, labels or owners change while it is open.",
+  },
+  {
+    ruleSuffix: "PrivacyRule",
+    column: "isPrivate",
+    why: "A privacy rule makes the record private when it is created and when a person runs the rule.",
+  },
+];
+
+const SHARED: ReadonlyArray<{ column: string; why: string }> = [
+  {
+    column: "Incident.postmortemNote",
+    why: "The AI writes a draft postmortem when the incident is resolved and the note is still empty (IncidentPostmortemRunner).",
+  },
+  {
+    column: "Incident.postmortemStatusId",
+    why: "OneUptime moves the postmortem to Draft on its first note, the AI's included, and to Completed when it is published (IncidentService).",
+  },
+  {
+    column: "AlertEpisode.title",
+    why: "Rewritten from the episode's title template, with the alert count, each time an alert joins or leaves it (AlertEpisodeService).",
+  },
+  {
+    column: "AlertEpisode.description",
+    why: "Rewritten from the episode's description template, with the alert count, each time an alert joins or leaves it (AlertEpisodeService).",
+  },
+  {
+    column: "AlertEpisode.alertSeverityId",
+    why: "Raised by grouping when a more severe alert joins the episode (AlertEpisodeService).",
+  },
+  {
+    column: "IncidentEpisode.title",
+    why: "Rewritten from the episode's title template, with the incident count, each time an incident joins or leaves it (IncidentEpisodeService).",
+  },
+  {
+    column: "IncidentEpisode.description",
+    why: "Rewritten from the episode's description template, with the incident count, each time an incident joins or leaves it (IncidentEpisodeService).",
+  },
+  {
+    column: "IncidentEpisode.incidentSeverityId",
+    why: "Raised by grouping when a more severe incident joins the episode (IncidentEpisodeService).",
+  },
+  {
+    column: "Alert.customFields",
+    why: "A custom field mapped from the monitor's is copied into the alert when it is written, and again when the monitor's changes (CustomFieldMappingService).",
+  },
+  {
+    column: "Incident.customFields",
+    why: "A custom field mapped from the monitor's is copied into the incident when it is written, and again when the monitor's changes (CustomFieldMappingService).",
+  },
+  {
+    column: "ScheduledMaintenance.customFields",
+    why: "A custom field mapped from the monitor's is copied into the event when it is written, and again when the monitor's changes (CustomFieldMappingService).",
+  },
+  {
+    column: "ServiceLevelObjective.monitors",
+    why: "An SLO's monitor rules attach the monitors they match and detach the ones they attached, as monitors are created, changed and labelled (ServiceLevelObjectiveMonitorRuleEngineService).",
+  },
+  {
+    column: "MetricType.description",
+    why: "Overwritten whenever the telemetry that sends the metric declares another description (Telemetry ingest).",
+  },
+  {
+    column: "MetricType.unit",
+    why: "Overwritten whenever the telemetry that sends the metric declares another unit (Telemetry ingest).",
+  },
+  {
+    column: "MetricType.services",
+    why: "Ingest attaches each service that sends the metric (Telemetry ingest).",
+  },
+  {
+    column: "Monitor.dependsOnMonitors",
+    why: "A monitor made from an OpenStack template gets its parents, and is added to the parents of its existing children (OpenStackMonitorDependencies).",
+  },
+  {
+    column: "NetworkDevice.siteId",
+    why: "Site assignment rules place a device when it is created, at each poll of a device with no site, and again when its names change, which can move a device a person placed (NetworkDeviceService).",
+  },
+  {
+    column: "NetworkDevice.macAddress",
+    why: "ARP learning fills an empty MAC address and corrects one it learned itself (NetworkDeviceMacLearningUtil).",
+  },
+  {
+    column: "NetworkEndpoint.siteId",
+    why: "Each walk that moves an endpoint's attachment gives it the site of the device it is attached to (NetworkEndpointService).",
+  },
+  {
+    column: "CloudResource.isArchived",
+    why: "The stale sweep archives a resource no longer seen and restores one seen again, and a connection sync archives resources missing from a fully listed account (CloudResourceService, CloudConnectionResourceSync).",
+  },
+  {
+    column: "DatabaseServer.isArchived",
+    why: "A discovered server nobody touched is archived when it goes stale, and restored when it is seen again (DatabaseServerService).",
+  },
+  {
+    column: "MessageQueue.isArchived",
+    why: "A discovered queue nobody touched is archived when it goes stale, and restored when it is seen again (MessageQueueService).",
+  },
+  {
+    column: "InventoryItem.isArchived",
+    why: "The inventory mirror archives an item whose entity is gone, and device management archives a removed device's item and restores it when the device returns (InventoryEntityRegistry, ManagedDeviceInventory).",
+  },
+  {
+    column: "Host.hostIdentifier",
+    why: "Ingest writes the identifier in lower case when a host reports in, whatever case it was given in (HostService).",
+  },
+  {
+    column: "DockerHost.hostIdentifier",
+    why: "Ingest writes the identifier in lower case when a host reports in, whatever case it was given in (DockerHostService).",
+  },
+  {
+    column: "PodmanHost.hostIdentifier",
+    why: "Ingest writes the identifier in lower case when a host reports in, whatever case it was given in (PodmanHostService).",
+  },
+  {
+    column: "DataStore.name",
+    why: "Data security discovery writes the name it finds the store under on every run (DataSecurityDiscovery).",
+  },
+  {
+    column: "DataStore.environment",
+    why: "Data security discovery fills in the environment while it is still Unknown, the default (DataSecurityDiscovery).",
+  },
+  {
+    column: "TelemetryException.isResolved",
+    why: "Ingest reopens an exception that happens again, a merged AI fix resolves it, and the production check of a fix resolves or reopens it (Exception ingest, SyncPullRequestStates, FixProductionVerifier).",
+  },
+  {
+    column: "TelemetryException.isArchived",
+    why: "AI triage archives an exception it finds expected, when the project opted in (InsightTriageRunner).",
+  },
+  {
+    column: "TelemetryException.resolvedInReleaseAfter",
+    why: "Cleared when ingest reopens the exception (Exception ingest).",
+  },
+  {
+    column: "Host.collectorConfigId",
+    why: "The host agent's poll picks the first matching collector config again, unless the host is pinned to one (HostCollectorAgent).",
+  },
+  {
+    column: "Host.isCollectorConfigPinned",
+    why: "Cleared when the config the host is pinned to is deleted (HostCollectorAgent).",
+  },
+  {
+    column: "KubernetesCluster.aiAccessRunnerId",
+    why: "Set when the cluster's in-cluster runner registers (KubernetesClusterAiAccessService).",
+  },
+  {
+    column: "TelemetryIngestionKey.isEnabled",
+    why: "A Vercel uninstall or key rotation switches off the key OneUptime provisioned for that Vercel resource (VercelMarketplaceResources).",
+  },
+  {
+    column: "TelemetryIngestionKey.expiresAt",
+    why: "A Vercel key rotation sets when the key OneUptime provisioned for that Vercel resource stops working (VercelMarketplaceResources).",
+  },
+  {
+    column: "DataSecurityIssue.status",
+    why: "The reconciler reopens a resolved issue and an expired acceptance, and resolves an issue that no longer fails (DataSecurityIssueReconciler).",
+  },
+  {
+    column: "DataSecurityIssue.acceptedReason",
+    why: "Cleared by the reconciler when an acceptance expires and the issue reopens (DataSecurityIssueReconciler).",
+  },
+  {
+    column: "DataSecurityIssue.acceptedUntil",
+    why: "Cleared by the reconciler when an acceptance expires and the issue reopens (DataSecurityIssueReconciler).",
+  },
+  ...[
+    "KubernetesCluster",
+    "Host",
+    "DockerHost",
+    "PodmanHost",
+    "DockerSwarmCluster",
+    "ProxmoxCluster",
+    "CephCluster",
+    "VMwareVCenter",
+    "OpenStackCloud",
+    "DatabaseServer",
+    "CloudAccount",
+  ].flatMap((table: string): Array<{ column: string; why: string }> => {
+    return [
+      {
+        column: `${table}.isAiInvestigationEnabled`,
+        why: "The AI agent's registration and every report it sends set it: a default on its first connection, and the value its Helm chart is configured with after (ResourceAiAgentService, KubernetesAiAgentService).",
+      },
+      {
+        column: `${table}.aiRemediationMode`,
+        why: "The AI agent's registration and every report it sends set it: a default on its first connection, and the value its Helm chart is configured with after (ResourceAiAgentService, KubernetesAiAgentService).",
+      },
+    ];
+  }),
+];
+
+/*
+ * Columns OneUptime changes on its own that stay a person's alone, each
+ * with why: marked shared, a configuration's value would no longer hold.
+ */
+const NOT_SHARED: ReadonlyArray<{ column: string; why: string }> = [
+  {
+    column: "Monitor.disableActiveMonitoring",
+    why: "OneUptime pauses only the monitors a disabled network alert policy owns, which OneUptime made itself. A person's pause stays the person's.",
+  },
+  {
+    column: "NetworkDevice.name",
+    why: "Auto-import renames only a device discovery named; a name a person gave, a create through the API included, is never changed.",
+  },
+  {
+    column: "DatabaseServer.name",
+    why: "Discovery renames only a server that still has the name it generated.",
+  },
+  {
+    column: "InventoryItem.displayName",
+    why: "Ingest, the mirror and device management rename only the items they made, under names they generated.",
+  },
+  {
+    column: "NetworkDevice.probeId",
+    why: "A site's default probe only fills in a device that has none: a probe a person gave is never changed.",
+  },
+  {
+    column: "NetworkDevice.snmpOids",
+    why: "A poll seeds the vendor's template only into an empty list, while the device applies vendor templates.",
+  },
+  {
+    column: "DataAsset.description",
+    why: "dbt ingest only fills in an empty description.",
+  },
+  {
+    column: "Runner.key",
+    why: "A secret: only a runner OneUptime names for its cluster gets a new key when it registers, and no record of what a manifest said may hold a secret.",
+  },
+  {
+    column: "MonitorLabelRule.isEnabled",
+    why: "Every rule's switch: OneUptime switches a rule off only as a safety stop, when a delete empties a list the rule is limited to, and refuses to switch it on until the list holds a record again. A configuration that switches it on is told so, which is what it needs to hear.",
+  },
+];
 
 // Names that say OneUptime keeps the value.
 const KEPT_BY_ONEUPTIME_NAMES: ReadonlyArray<RegExp> = [
@@ -241,12 +498,14 @@ describe("columns OneUptime keeps once a record exists", () => {
       ServerOwned.Always,
     );
     // What a person sets is the person's.
-    for (const column of ["name", "monitorType", "monitorSteps", "labels"]) {
+    for (const column of ["name", "monitorType", "monitorSteps"]) {
       expect([column, columns[column]?.serverOwned]).toEqual([
         column,
         undefined,
       ]);
     }
+    // Its labels are a person's and a label rule's both (#10052).
+    expect(columns["labels"]?.serverOwned).toBe(ServerOwned.Shared);
   });
 
   /*
@@ -485,6 +744,193 @@ describe("columns OneUptime keeps once a record exists", () => {
       expect([entry.column, Boolean(attribute), entry.why.length > 40]).toEqual(
         [entry.column, true, true],
       );
+    }
+  });
+});
+
+// The model of a table, by its table name.
+function modelOfTable(table: string): ModelType | undefined {
+  return (AllModelTypes as Array<ModelType>).find(
+    (candidate: ModelType): boolean => {
+      return new candidate().tableName === table;
+    },
+  );
+}
+
+/*
+ * The columns the rules change: for each rule model whose name ends with a
+ * suffix of SHARED_BY_RULES, the column of the model it is a rule of.
+ */
+function getSharedByRules(): Array<string> {
+  const columns: Array<string> = [];
+
+  for (const modelType of AllModelTypes as Array<ModelType>) {
+    const table: string = new modelType().tableName || modelType.name;
+
+    for (const entry of SHARED_BY_RULES) {
+      if (!table.endsWith(entry.ruleSuffix)) {
+        continue;
+      }
+
+      const target: string = table.slice(0, -entry.ruleSuffix.length);
+      const targetType: ModelType | undefined = modelOfTable(target);
+
+      if (targetType && getTableColumns(new targetType())[entry.column]) {
+        columns.push(`${target}.${entry.column}`);
+      }
+    }
+  }
+
+  return Array.from(new Set(columns)).sort();
+}
+
+const SHARED_DECLARED: Array<Column> = DECLARED.filter(
+  (column: Column): boolean => {
+    return column.metadata.serverOwned === ServerOwned.Shared;
+  },
+);
+
+describe("columns people and OneUptime both change", () => {
+  test("are the ones label, on-call and privacy rules change, and the ones listed with why", () => {
+    const expected: Array<string> = Array.from(
+      new Set<string>([
+        ...getSharedByRules(),
+        ...SHARED.map((entry: { column: string }): string => {
+          return entry.column;
+        }),
+      ]),
+    ).sort();
+
+    expect(SHARED_DECLARED.map(nameOf).sort()).toEqual(expected);
+    // Every model a label rule labels, and every one an on-call or privacy rule acts on.
+    expect(getSharedByRules().length).toBeGreaterThan(40);
+    for (const entry of [...SHARED, ...SHARED_BY_RULES]) {
+      expect([entry.column, entry.why.length > 40]).toEqual([
+        entry.column,
+        true,
+      ]);
+    }
+    expect(
+      new Set(
+        SHARED.map((entry: { column: string }): string => {
+          return entry.column;
+        }),
+      ).size,
+    ).toBe(SHARED.length);
+  });
+
+  test("a monitor's labels and an exception's resolution are shared, and a monitor's name is not", () => {
+    const monitor: Dictionary<TableColumnMetadata> = getTableColumns(
+      new Monitor(),
+    );
+
+    expect(monitor["labels"]?.serverOwned).toBe(ServerOwned.Shared);
+    expect(monitor["name"]?.serverOwned).toBe(undefined);
+    for (const column of [
+      "TelemetryException.isResolved",
+      "TelemetryException.isArchived",
+      "TelemetryException.resolvedInReleaseAfter",
+      "NetworkDevice.siteId",
+      "NetworkDevice.macAddress",
+      "NetworkEndpoint.siteId",
+      "Incident.postmortemNote",
+      "Incident.postmortemStatusId",
+      "IncidentEpisode.incidentSeverityId",
+      "Alert.customFields",
+    ]) {
+      expect([
+        column,
+        SHARED_DECLARED.some((declared: Column): boolean => {
+          return nameOf(declared) === column;
+        }),
+      ]).toEqual([column, true]);
+    }
+  });
+
+  test("a person may write each one: a create or an update list, and no value OneUptime computes or keeps secret", () => {
+    const broken: Array<string> = [];
+
+    for (const column of SHARED_DECLARED) {
+      const writable: boolean =
+        (column.access?.create || []).length > 0 ||
+        (column.access?.update || []).length > 0;
+
+      if (!writable) {
+        broken.push(`${nameOf(column)}: nobody may write it - Always, then`);
+      }
+      if (column.metadata.computed) {
+        broken.push(`${nameOf(column)}: computed, so nobody writes it`);
+      }
+      /*
+       * Crossplane keeps what a manifest last applied of these in an
+       * annotation anyone who may read the resource reads.
+       */
+      if (
+        column.metadata.secret ||
+        column.metadata.encrypted ||
+        column.metadata.hashed ||
+        column.metadata.presentedKey
+      ) {
+        broken.push(`${nameOf(column)}: a secret`);
+      }
+    }
+
+    expect(broken).toEqual([]);
+  });
+
+  test("the spec keeps each one in a request schema, for a person to write", () => {
+    const missing: Array<string> = [];
+
+    for (const column of SHARED_DECLARED) {
+      if (
+        column.metadata.hideColumnInDocumentation ||
+        !isModelInPublicApi(column.modelType)
+      ) {
+        continue;
+      }
+
+      const created: boolean = Boolean(
+        schemaProperty(
+          ModelSchema.getCreateModelSchema({ modelType: column.modelType }),
+          column.name,
+        ),
+      );
+      const updated: boolean = Boolean(
+        schemaProperty(
+          ModelSchema.getUpdateModelSchema({ modelType: column.modelType }),
+          column.name,
+        ),
+      );
+
+      if (!created && !updated) {
+        missing.push(nameOf(column));
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  test("each one left a person's alone is a column OneUptime changes, listed once, with why", () => {
+    const names: Array<string> = NOT_SHARED.map(
+      (entry: { column: string }): string => {
+        return entry.column;
+      },
+    );
+
+    expect(new Set(names).size).toBe(names.length);
+    for (const entry of NOT_SHARED) {
+      const [table, columnName] = entry.column.split(".") as [string, string];
+      const modelType: ModelType | undefined = modelOfTable(table);
+      const metadata: TableColumnMetadata | undefined = modelType
+        ? getTableColumns(new modelType())[columnName]
+        : undefined;
+
+      expect([
+        entry.column,
+        Boolean(metadata),
+        metadata?.serverOwned,
+        entry.why.length > 40,
+      ]).toEqual([entry.column, true, undefined, true]);
     }
   });
 });

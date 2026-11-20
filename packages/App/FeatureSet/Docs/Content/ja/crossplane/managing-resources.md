@@ -32,7 +32,7 @@ kind のフィールドは Terraform リソースの引数を camelCase にし�
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` には、OneUptime にあるとおりのレコードが `id` とともに表示されます。省略したフィールドを OneUptime が既定値などで埋めた場合、その値はレコードの作成後に `spec.forProvider` へコピーされます。そのため、次のチェックでは変更するものが見つかりません。ただし、OneUptime 自身が最新に保つフィールドがコピーされることはありません。[OneUptime が最新に保つフィールド](#oneuptime-が最新に保つフィールド) を参照してください。
+`status.atProvider` には、OneUptime にあるとおりのレコードが `id` とともに表示されます。省略したフィールドを OneUptime が既定値などで埋めた場合、その値はレコードの作成後に `spec.forProvider` へコピーされます。そのため、次のチェックでは変更するものが見つかりません。ただし、OneUptime 自身が最新に保つフィールドや、OneUptime も変更するフィールドがコピーされることはありません。[OneUptime が最新に保つフィールド](#oneuptime-が最新に保つフィールド) を参照してください。
 
 ## ほかのリソースを参照する
 
@@ -104,7 +104,7 @@ kubectl -n team-a get secret collector-telemetry-key -o jsonpath='{.data.attribu
 
 ## Kubernetes の外で行われた変更
 
-プロバイダーは 10 分ごとに各リソースをそのレコードと照らし合わせ、誰かが OneUptime で変更したものを元に戻します。より頻繁にチェックするには、`--poll` を指定したランタイム構成をプロバイダーに渡します。
+プロバイダーは 10 分ごとに各リソースをそのレコードと照らし合わせ、誰かが OneUptime で変更したものを元に戻します。ただし、OneUptime も変更するフィールドは元に戻しません (後述)。より頻繁にチェックするには、`--poll` を指定したランタイム構成をプロバイダーに渡します。
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ spec:
 
 ### OneUptime が最新に保つフィールド
 
-一部のフィールドは OneUptime が最新に保つもので、プロバイダーはそれらを OneUptime に任せます。プロバイダーがそれらを `spec.forProvider` にコピーすることも、元に戻すこともありません。
+一部のフィールドは OneUptime が最新に保つもの、または OneUptime も変更するもので、プロバイダーは OneUptime による変更をそのままにします。プロバイダーがこれらのフィールドを `spec.forProvider` にコピーすることも、元に戻すこともありません。
 
 - テレメトリモニターが最後に実行された日時 (`telemetryMonitorLastMonitorAt`) や Kubernetes クラスターのノード数 (`nodeCount`) のように、OneUptime だけが書き込むフィールドは、`status.atProvider` にだけ表示されます。
 - モニターの `currentMonitorStatusId` やインシデントの `currentIncidentStateId` のように、レコードの初期値を指定できるフィールドは、`spec.initProvider` または `spec.forProvider` に書いてレコードの作成に使えます。その後は、モニターのチェックがそのステータスを変えるように OneUptime がその値を変えていき、現在の値は `status.atProvider` に表示されます。
+- ラベルルールがラベルを追加するレコードの `labels`、例外の `isResolved`、検出によって移動するネットワークデバイスの `siteId` のように、自分と OneUptime の両方が変更するフィールドは、自分で `spec.forProvider` に書きます。プロバイダーは、レコードの作成時と、マニフェストの値が変わるたびにその値を送信し、その間に OneUptime が加えた変更はそのままにします。`labels` のようなリストでは、OneUptime が追加したエントリは残り、マニフェストにあるのに誰かが外したエントリは戻り、マニフェストから取り除いたエントリはなくなります。
 
-`kubectl explain` は、初期値を指定できる各フィールドの説明でそのことを示します。以前のバージョンのプロバイダーがこれらのフィールドを `spec.forProvider` に書き込んだリソースは、何も編集しなくても、自動的に OneUptime と競合しなくなります。
+`kubectl explain` は、初期値を指定できる各フィールドと、OneUptime も変更する各フィールドの説明でそのことを示します。以前のバージョンのプロバイダーがこれらのフィールドを `spec.forProvider` に書き込んだリソースは、何も編集しなくても、自動的に OneUptime と競合しなくなります。
+
+プロバイダーは、OneUptime も変更するフィールドについてマニフェストが最後に適用した内容を、リソースの `crossplane.oneuptime.com/last-applied` アノテーションに保存します。`labels` のように、以前のバージョンのプロバイダーが書き込んだリストでは、取り除いたエントリは OneUptime のものとしてレコードに残ります。リストを初めて変更した後にマニフェストにあるエントリは自分のものになり、取り除くとレコードから外されます。
 
 ## リソースを削除する
 

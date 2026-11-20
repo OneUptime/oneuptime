@@ -1827,15 +1827,27 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
       "the legend under the chart says which axis each series is drawn against",
     );
 
-    // A third kind: on neither, drawn against the left axis, and said.
+    /*
+     * A third kind: on neither, drawn to a scale of its own with no axis
+     * (#10080), its values in the legend and the tooltip, and said.
+     */
     expect(axes.readings[2]).toMatchObject({
-      axis: OverlayAxis.First,
-      fit: OverlayUnitFit.Different,
+      axis: OverlayAxis.OwnScale,
+      fit: OverlayUnitFit.Same,
+      ownScale: 0,
     });
+    expect(axes.ownScaleLeadIndexes).toEqual([2]);
     expect(charts).toContain("OVERLAY_UNIT_MISMATCH_TEST_ID");
+    expect(charts).toContain('translator.translateText("Own scale")');
+    expect(charts).toContain(
+      "so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.",
+    );
     expect(queryConfig).toContain("METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID");
+    expect(queryConfig).toContain(
+      "so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.",
+    );
     expect(page).toContain(
-      "Only a third kind of unit fits neither axis: it is drawn against the left axis, and the chart and the switch both say so.",
+      "Only a third kind of unit fits neither axis: it is drawn to a scale of its own, with no axis, and the chart and the switch both say so. Read its values in the legend and the tooltip.",
     );
   });
 

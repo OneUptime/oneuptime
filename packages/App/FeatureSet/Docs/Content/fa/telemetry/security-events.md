@@ -191,8 +191,8 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | ورودهای SSH، sudo | ژورنال یا لاگ احراز هویت یک ماشین Linux، با [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | رویدادهای Windows | گیرندهٔ `windowseventlog` در collector روی ماشین، یا یک بازارسال‌کننده که هر رویداد را به‌صورت JSON می‌نویسد، مانند NXLog یا Winlogbeat. یک [میزبان](/docs/telemetry/hosts) افزوده‌شده به OneUptime هر جا Sysmon، Microsoft Defender و PowerShell داشته باشد آن‌ها را هم می‌خواند |
 | AWS CloudTrail | یک trail که به CloudWatch Logs تحویل داده می‌شود و گیرندهٔ `awscloudwatch` در collector آن را می‌خواند، یا برای حسابی که زیر **ابر** متصل شده، [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
-| لاگ‌های ممیزی Google Cloud | یک log sink به Pub/Sub، که گیرندهٔ `googlecloudpubsub` در collector آن را با `encoding: raw_text` می‌خواند، یا برای پروژه‌ای که زیر **ابر** متصل شده، [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
-| لاگ‌های فعالیت Azure و Entra ID | یک تنظیم تشخیصی که به یک Event Hub جریان می‌دهد و گیرندهٔ `azureeventhub` در collector آن را با `format: raw` می‌خواند، یا برای Activity Log اشتراکی که زیر **ابر** متصل شده، [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
+| لاگ‌های ممیزی Google Cloud | یک log sink به Pub/Sub، که گیرندهٔ `googlecloudpubsub` در collector آن را با `encoding: raw_text` می‌خواند، یا برای پروژه‌ای که زیر **ابر** متصل شده، [جریان](/docs/telemetry/cloud-streaming-google-cloud) آن یا [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
+| لاگ‌های فعالیت Azure و Entra ID | یک تنظیم تشخیصی که به یک Event Hub جریان می‌دهد و گیرندهٔ `azureeventhub` در collector آن را با `format: raw` می‌خواند، یا به هاب رویداد [جریان](/docs/telemetry/cloud-streaming-azure) یک اشتراک متصل، یا برای Activity Log اشتراکی که زیر **ابر** متصل شده، [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
 | ردّ ممیزی OpenStack | اعلان‌ها و فیلتر ممیزی یک ابر که با `driver = log` به لاگ‌هایش فرستاده می‌شود و [پروفایل لاگ](/docs/telemetry/openstack#چه-کسی-چه-کرد) عامل آن را می‌خواند |
 | CEF، LEEF | syslog محصول، که [rsyslog](/docs/telemetry/syslog) آن را بازپخش می‌کند |
 | Palo Alto Networks، FortiGate، Cisco ASA | syslog خود دیوار آتش، که [rsyslog](/docs/telemetry/syslog) آن را بازپخش می‌کند |
@@ -203,7 +203,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 تهدیدی که یک محصول امنیتی در لاگ‌های شما می‌نویسد، مانند یک یافتهٔ CEF یا LEEF یا تهدیدی از Palo Alto Networks، FortiGate یا Cisco ASA، همان‌طور که هشدار یک محصول متصل این کار را می‌کند، یک [پرونده](/docs/telemetry/security-cases) باز می‌کند و ریسک کاربر، میزبان یا نشانی‌ای را که نام می‌برد بالا می‌برد. **باز کردن پرونده از** روی **لاگ‌های شما** تعیین می‌کند از کدام شدت: **بالا و بالاتر**، مگر اینکه شدت دیگری برگزینید، یا **هرگز**. ورودها و اتصال‌های مسدودشدهٔ محصول رویداد می‌مانند تا قاعده‌های شما آن‌ها را بخوانند.
 
-رکوردی که از دو راه به OneUptime می‌رسد فقط یک‌بار ذخیره می‌شود: ورودی در Microsoft Entra ID که اتصالش آن را می‌خواند و Azure هم آن را به لاگ‌های شما صادر می‌کند، یا رکورد CloudTrailی که هم در لاگ‌های شما و هم در لاگ ممیزی یک حساب AWS متصل هست.
+رکوردی که از دو راه به OneUptime می‌رسد فقط یک‌بار ذخیره می‌شود: ورودی در Microsoft Entra ID که اتصالش آن را می‌خواند و Azure هم آن را به لاگ‌های شما صادر می‌کند، رکورد CloudTrailی که هم در لاگ‌های شما و هم در لاگ ممیزی یک حساب AWS متصل هست، یا رکورد ممیزی‌ای که جریان یک حساب ابری می‌فرستد و **لاگ‌های ممیزی ابر** هم آن را می‌خواند.
 
 ### خواندن لاگ‌های ممیزی حساب‌های ابری شما
 

@@ -52,6 +52,7 @@ import {
 } from "Common/Utils/Metrics/RetiredCloudMetricMoves";
 import { GCP_OPS_AGENT_ASK_EVERY_MS } from "Common/Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CLOUD_MAX_ADDED_METRICS_PER_CONNECTION,
   CLOUD_MAX_ADDED_METRICS_PER_RESOURCE,
 } from "Common/Types/Cloud/CloudAddedMetrics";
@@ -1025,6 +1026,13 @@ describe("Connect a Cloud Account", () => {
     );
     expect(paragraph).toContain(
       "Project Owners and Project Admins can add and remove them",
+    );
+    // A split's cap (#9808), and what Remove says first (#9807).
+    expect(paragraph).toContain(
+      `as a series for each value, up to ${CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES} for each resource`,
+    );
+    expect(paragraph).toContain(
+      "**Remove** first names the monitors, dashboard widgets, SLOs and recording rules that read the metric",
     );
 
     // The tab, the card and its button, as the Dashboard names them.

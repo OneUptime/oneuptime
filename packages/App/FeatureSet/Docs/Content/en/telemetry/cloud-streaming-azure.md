@@ -83,6 +83,8 @@ A Service Bus or Event Hubs namespace streams no metrics. The reads read its key
 
 A log is filed under its resource by the resource's ARM ID, carried as `cloud.resource_id`, and keeps its category, operation, result and properties as attributes, such as `azure.category`.
 
+An Activity Log record of the `Administrative`, `Security` or `Policy` category, and a Microsoft Entra ID sign-in, audit or risk record, arrives whole, as its log's body, even one about a resource group, a subscription or the tenant rather than a resource. With [Find security events in your logs](/docs/telemetry/security-events#find-security-events-in-your-logs) on, each is read as a security event, as one from a log pipeline is, and stored once however many ways it reaches OneUptime. The command sets up resource logs alone: a subscription's Activity Log and Microsoft Entra ID's logs reach the stream through a diagnostic setting of their own that sends them to one of its event hubs.
+
 Virtual machines, scale sets, disks, network interfaces, virtual networks, private endpoints, NAT gateways, DNS zones and App Service plans send no resource logs of their own, so their pages have no **Logs** tab. A storage account's logs are its services', and a container app's are its environment's.
 
 ## What the command creates

@@ -214,6 +214,7 @@ export default class IncidentEpisode extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this incident episode",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: false,
@@ -256,6 +257,7 @@ export default class IncidentEpisode extends BaseModel {
     title: "Description",
     description:
       "Description of this incident episode. This is in markdown format.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,
@@ -504,6 +506,7 @@ export default class IncidentEpisode extends BaseModel {
     required: false,
     title: "Incident Severity ID",
     description: "Incident Severity ID",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -915,6 +918,7 @@ export default class IncidentEpisode extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "On-Call Policies",
     description: "List of on-call policies to execute for this episode.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1139,6 +1143,7 @@ export default class IncidentEpisode extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1803,6 +1808,7 @@ export default class IncidentEpisode extends BaseModel {
     description:
       "If true, this incident episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,

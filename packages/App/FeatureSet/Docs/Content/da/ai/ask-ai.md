@@ -30,7 +30,7 @@ I tilstanden **Skrivebeskyttet** tilbydes modellen aldrig handlingerne, så samt
 
 Spørg AI svarer også på spørgsmål om selve OneUptime: "Hvordan får jeg en sms, når mit site er nede?", "Hvad er en episode?", "Hvor tilføjer jeg et ekstra telefonnummer?". Svarene kommer fra denne dokumentation, den kopi din OneUptime selv leverer, så det virker uden internetadgang og sender intet nye steder hen. Den læser en side på dit sprog, når siden er oversat, angiver side og afsnit for hvert trin og siger, at dokumentationen ikke dækker noget, i stedet for at gætte.
 
-Et svar på "hvordan gør jeg" slutter med en knap, der åbner den side i dit projekt, hvor du gør det, fx **Opret monitor** eller **Notifikationsmetoder**. Den åbner kun sider, OneUptime har: dem, Søg (`Ctrl` + `K`) finder.
+Et svar på "hvordan gør jeg" slutter med en knap, der åbner den side i dit projekt, hvor du gør det, fx **Opret monitor** eller **Notifikationsmetoder**. Den åbner kun sider, OneUptime har: dem, Søg (`Ctrl` + `K`) finder. Spørger du om én post, som en statusside, åbner den postens egen side, som dens **Brugerdefinerede domæner**, og kun for en post, du må åbne.
 
 ## Åbn Spørg AI
 
@@ -60,7 +60,7 @@ Spørg AI læser dit projekt med dine egne tilladelser, så den ser det, du må 
 
 ## Sidekontekst
 
-Spørg AI ved, hvilken side du åbnede den fra. På en hændelsesside betyder "hvorfor skete det?" netop den hændelse: indtastningsfeltet viser en chip med sidens emne, og de spørgsmål, den foreslår, er sidens egne. Fjern chippen for at spørge om hele projektet i stedet, og tilføj den igen på samme måde. Åbn Spørg AI på en anden side, så følger konteksten med. Samtalen husker også sit første emne på serveren, så et opfølgende spørgsmål dage senere stadig forstår "denne hændelse".
+Spørg AI ved, hvilken side du åbnede den fra. På en hændelsesside betyder "hvorfor skete det?" netop den hændelse: indtastningsfeltet viser en chip med sidens emne, og de spørgsmål, den foreslår, er sidens egne. Fjern chippen for at spørge om hele projektet i stedet, og tilføj den igen på samme måde. Åbn Spørg AI på en anden side, så følger konteksten med. Samtalen husker også sit første emne på serveren, så et opfølgende spørgsmål dage senere stadig forstår "denne hændelse". Spørg AI kender også de sider, hvor du sætter et projekt op: **Hjem**, **Projektindstillinger**, **Brugerindstillinger**, **Vagt**, **Statussider** og de formularer, der opretter noget, så "hvordan tilføjer jeg en her?" besvares for den side, du er på.
 
 På en hændelse, en advarsel, en monitor eller en vedligeholdelseshændelse følger spørgsmålene også, hvor den post står, læst hver gang Spørg AI åbnes på den. En løst hændelse spørger, hvordan responsen gik, og hvad der ville forhindre, at den sker igen, en løst advarsel, om den var et reelt problem, og hvor ofte advarsler som den bliver udløst, og en monitor, der ikke er i drift, spørger hvorfor. En vedligeholdelseshændelse, der ikke er startet, spørger, om dens monitorer er sunde, før den starter, og en, der er slut, om de er tilbage til normal.
 
@@ -147,7 +147,7 @@ Spørg AI tæller med i projektets egne daglige AI-grænser, når projektet sæt
 ## Fejlfinding
 
 :::details Spørg AI siger, at AI ikke er tilgængelig
-Spørg AI siger hvorfor, før du skriver: projektets abonnement omfatter ikke AI, **Aktivér AI** er slået fra, eller projektet har ingen LLM-udbyder. Hver besked linker til den side, hvor det ændres.
+Spørg AI siger hvorfor, før du skriver: projektets abonnement omfatter ikke AI, **Aktivér AI** er slået fra, eller projektet har ingen LLM-udbyder. Hver besked linker til den side, hvor det ændres. Over meddelelsen søger Spørg AI alligevel i denne dokumentation efter dit spørgsmål. Et svar, der mislykkes, ved en daglig grænse eller fordi udbyderen ikke svarer, viser også siderne i dokumentationen om spørgsmålet nedenunder.
 :::
 
 :::details En handling blev afvist

@@ -30,7 +30,7 @@ I läget **Skrivskyddad** erbjuds modellen aldrig åtgärderna, så samtalet bar
 
 Fråga AI svarar också på frågor om OneUptime självt: ”Hur får jag ett sms när min webbplats ligger nere?”, ”Vad är en episod?”, ”Var lägger jag till ett andra telefonnummer?”. Svaren kommer från den här dokumentationen, kopian som din OneUptime själv levererar, så det fungerar utan internetåtkomst och skickar inget till nya ställen. Den läser en sida på ditt språk när sidan är översatt, anger sida och avsnitt för varje steg och säger att dokumentationen inte täcker något i stället för att gissa.
 
-Ett svar på ”hur gör jag” slutar med en knapp som öppnar sidan i ditt projekt där du gör det, till exempel **Skapa monitor** eller **Aviseringsmetoder**. Den öppnar bara sidor som OneUptime har: de som Sök (`Ctrl` + `K`) hittar.
+Ett svar på ”hur gör jag” slutar med en knapp som öppnar sidan i ditt projekt där du gör det, till exempel **Skapa monitor** eller **Aviseringsmetoder**. Den öppnar bara sidor som OneUptime har: de som Sök (`Ctrl` + `K`) hittar. Frågar du om en enda post, till exempel en statussida, öppnar den postens egen sida, till exempel dess **Anpassade domäner**, och bara för en post du får öppna.
 
 ## Öppna Fråga AI
 
@@ -60,7 +60,7 @@ Fråga AI läser ditt projekt med dina egna behörigheter, så den ser det du f�
 
 ## Sidkontext
 
-Fråga AI vet vilken sida du öppnade den från. På en incidentsida betyder "varför hände det här?" just den incidenten: inmatningsfältet visar en bricka med sidans ämne, och frågorna den föreslår är sidans egna. Ta bort brickan för att fråga om hela projektet, och lägg till den igen på samma sätt. Öppna Fråga AI på en annan sida så följer kontexten med. Samtalet minns också sitt första ämne på servern, så en följdfråga dagar senare förstår fortfarande "den här incidenten".
+Fråga AI vet vilken sida du öppnade den från. På en incidentsida betyder "varför hände det här?" just den incidenten: inmatningsfältet visar en bricka med sidans ämne, och frågorna den föreslår är sidans egna. Ta bort brickan för att fråga om hela projektet, och lägg till den igen på samma sätt. Öppna Fråga AI på en annan sida så följer kontexten med. Samtalet minns också sitt första ämne på servern, så en följdfråga dagar senare förstår fortfarande "den här incidenten". Fråga AI känner också till sidorna där du ställer in ett projekt: **Hem**, **Projektinställningar**, **Användarinställningar**, **Jour**, **Statussidor** och formulären som skapar något, så att ”hur lägger jag till en här?” besvaras för sidan du är på.
 
 På en incident, ett larm, en monitor eller en underhållshändelse följer frågorna också var den posten står, läst varje gång Fråga AI öppnas på den. En löst incident frågar hur insatsen gick och vad som skulle hindra att den händer igen, ett löst larm om det var ett verkligt problem och hur ofta larm som det utlöses, och en monitor som inte är i drift frågar varför. En underhållshändelse som inte har börjat frågar om dess monitorer är friska innan den börjar, och en som är slut om de är tillbaka till det normala.
 
@@ -147,7 +147,7 @@ Fråga AI räknas in i projektets egna dagliga AI-gränser när projektet sätte
 ## Felsökning
 
 :::details Fråga AI säger att AI inte är tillgängligt
-Fråga AI säger varför innan du skriver: projektets plan omfattar inte AI, **Aktivera AI** är avstängt, eller projektet har ingen LLM-leverantör. Varje meddelande länkar till sidan där det ändras.
+Fråga AI säger varför innan du skriver: projektets plan omfattar inte AI, **Aktivera AI** är avstängt, eller projektet har ingen LLM-leverantör. Varje meddelande länkar till sidan där det ändras. Ovanför meddelandet söker Fråga AI ändå efter din fråga i den här dokumentationen. Ett svar som misslyckas, vid en daglig gräns eller när leverantören inte svarar, visar också dokumentationens sidor om frågan under sig.
 :::
 
 :::details En åtgärd avvisades

@@ -2,12 +2,19 @@ import { describe, expect, test } from "@jest/globals";
 import {
   DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
   DeviceManagementConfig,
+  getDeviceManagementConnectionAddress,
   getEsperApiBaseUrl,
   getEsperConsoleUrl,
+  getIntuneCloudHosts,
+  getIntuneTokenUrl,
   readDeviceManagementConfig,
   readDeviceManagementReadInterval,
   readEsperApiKey,
   readEsperTenant,
+  readIntuneClientId,
+  readIntuneClientSecret,
+  readIntuneCloud,
+  readIntuneTenant,
   toDeviceManagementConfigJson,
   validateDeviceManagementConfig,
 } from "../../../Types/DeviceManagement/DeviceManagementConnectionSettings";
@@ -22,8 +29,10 @@ import {
   readDeviceManagementReadSummary,
 } from "../../../Types/DeviceManagement/DeviceManagementReadSummary";
 import DeviceManagementProvider, {
+  getDeviceManagementProviderShortTitle,
   getDeviceManagementProviderTitle,
   isDeviceManagementProvider,
+  readDeviceManagementProvider,
 } from "../../../Types/DeviceManagement/DeviceManagementProvider";
 import {
   EsperDeviceState,
@@ -38,6 +47,9 @@ import {
   ESPER_DEVICE_NAME_PLACEHOLDER,
   ESPER_SERIAL_NUMBER_PLACEHOLDER,
   getManagedDeviceHostName,
+  getManagedDeviceUniqueHostName,
+  getManagedDeviceUniqueName,
+  getSharedManagedDeviceNames,
   getUsableSerialNumber,
   isManagedDeviceHostMatch,
 } from "../../../Types/DeviceManagement/ManagedDeviceIdentity";
@@ -176,12 +188,174 @@ describe("the settings", () => {
 });
 
 describe("the service", () => {
-  test("Esper, by its own name in every language", () => {
+  test("Esper and Microsoft Intune, by their own names in every language", () => {
     expect(isDeviceManagementProvider("esper")).toBe(true);
-    expect(isDeviceManagementProvider("intune")).toBe(false);
+    expect(isDeviceManagementProvider("intune")).toBe(true);
+    expect(isDeviceManagementProvider("soti")).toBe(false);
     expect(
       getDeviceManagementProviderTitle(DeviceManagementProvider.Esper),
     ).toBe("Esper");
+    expect(
+      getDeviceManagementProviderTitle(DeviceManagementProvider.Intune),
+    ).toBe("Microsoft Intune");
+    expect(
+      getDeviceManagementProviderShortTitle(DeviceManagementProvider.Intune),
+    ).toBe("Intune");
+    // A connection made before there was a choice is Esper's.
+    expect(readDeviceManagementProvider(undefined)).toBe(
+      DeviceManagementProvider.Esper,
+    );
+  });
+});
+
+/*
+ * #9837: an Intune connection's tenant is its directory ID or a domain of
+ * it, its app registration's client ID a GUID, its cloud one of four.
+ */
+describe("an Intune connection's settings", () => {
+  const TENANT_ID: string = "72f988bf-86f1-41af-91ab-2d7cd011db47";
+  const CLIENT_ID: string = "6731de76-14a6-49ae-97bc-6eba6914391e";
+
+  test("the tenant: a directory ID or a domain, as people copy them", () => {
+    expect(readIntuneTenant(` ${TENANT_ID.toUpperCase()} `)).toBe(TENANT_ID);
+    expect(readIntuneTenant(`{${TENANT_ID}}`)).toBe(TENANT_ID);
+    expect(readIntuneTenant("Contoso.OnMicrosoft.com.")).toBe(
+      "contoso.onmicrosoft.com",
+    );
+    expect(readIntuneTenant("")).toBe("");
+
+    // No one tenant, or not a tenant at all: refused, never a path segment.
+    for (const value of [
+      "common",
+      "organizations",
+      "contoso",
+      "https://login.microsoftonline.com/contoso.onmicrosoft.com",
+      "contoso.onmicrosoft.com/../x",
+      "contoso .com",
+      42,
+    ]) {
+      expect(() => {
+        return readIntuneTenant(value);
+      }).toThrow(/Enter your tenant ID/);
+    }
+  });
+
+  test("the client ID is a GUID; the cloud one of four, the commercial one by default", () => {
+    expect(readIntuneClientId(CLIENT_ID.toUpperCase())).toBe(CLIENT_ID);
+    expect(() => {
+      return readIntuneClientId("6731de76-14a6-49ae-97bc");
+    }).toThrow(/Application \(client\) ID/);
+    expect(readIntuneCloud(undefined)).toBe("public");
+    expect(readIntuneCloud("usgov")).toBe("usgov");
+    expect(() => {
+      return readIntuneCloud("china");
+    }).toThrow("Cloud must be one of public, gcc, usgov, dod.");
+  });
+
+  test("each cloud signs in and reads at Microsoft's hosts for it", () => {
+    expect(getIntuneCloudHosts("public")).toEqual({
+      loginHost: "https://login.microsoftonline.com",
+      graphHost: "https://graph.microsoft.com",
+    });
+    expect(getIntuneCloudHosts("gcc")).toEqual(getIntuneCloudHosts("public"));
+    expect(getIntuneCloudHosts("usgov")).toEqual({
+      loginHost: "https://login.microsoftonline.us",
+      graphHost: "https://graph.microsoft.us",
+    });
+    expect(getIntuneCloudHosts("dod").graphHost).toBe(
+      "https://dod-graph.microsoft.us",
+    );
+    expect(getIntuneCloudHosts("anything else")).toEqual(
+      getIntuneCloudHosts("public"),
+    );
+    expect(
+      getIntuneTokenUrl({ cloud: "usgov", tenant: "contoso.onmicrosoft.us" }),
+    ).toBe(
+      "https://login.microsoftonline.us/contoso.onmicrosoft.us/oauth2/v2.0/token",
+    );
+  });
+
+  test("the client secret: its value, never its ID", () => {
+    expect(
+      readIntuneClientSecret(" Xq48Q~Zk1Lm9vN0pQrStUvWxYz.AbCdEfGhIjK-L "),
+    ).toBe("Xq48Q~Zk1Lm9vN0pQrStUvWxYz.AbCdEfGhIjK-L");
+    expect(() => {
+      return readIntuneClientSecret("3f2b8c1d-4e5f-4a6b-8c7d-9e0f1a2b3c4d");
+    }).toThrow(/This is the client secret's ID/);
+    expect(() => {
+      return readIntuneClientSecret("has a space in it 0123456789");
+    }).toThrow(/This is not a client secret/);
+    expect(() => {
+      return readIntuneClientSecret("");
+    }).toThrow(/Enter the client secret's value/);
+  });
+
+  test("stored and read back as the service's, checked as it is saved", () => {
+    const config: DeviceManagementConfig = validateDeviceManagementConfig(
+      { tenant: TENANT_ID, clientId: CLIENT_ID, readIntervalInMinutes: 30 },
+      { requireTenant: true, provider: DeviceManagementProvider.Intune },
+    );
+
+    expect(toDeviceManagementConfigJson(config)).toEqual({
+      tenant: TENANT_ID,
+      clientId: CLIENT_ID,
+      cloud: "public",
+      readIntervalInMinutes: 30,
+    });
+    expect(
+      readDeviceManagementConfig(
+        toDeviceManagementConfigJson(config),
+        DeviceManagementProvider.Intune,
+      ),
+    ).toEqual(config);
+    // What is stored is never trusted: a client ID that is not one reads "".
+    expect(
+      readDeviceManagementConfig(
+        { tenant: TENANT_ID, clientId: "x" },
+        DeviceManagementProvider.Intune,
+      ).clientId,
+    ).toBe("");
+    expect(() => {
+      return validateDeviceManagementConfig(
+        { tenant: TENANT_ID },
+        { requireTenant: true, provider: DeviceManagementProvider.Intune },
+      );
+    }).toThrow(/Application \(client\) ID/);
+    // An Esper connection's config stays as it was stored.
+    expect(
+      toDeviceManagementConfigJson(
+        readDeviceManagementConfig({ tenant: "acme" }),
+      ),
+    ).toEqual({ tenant: "acme", readIntervalInMinutes: 15 });
+  });
+
+  test("what a connection reads, in a line", () => {
+    expect(
+      getDeviceManagementConnectionAddress({
+        provider: DeviceManagementProvider.Intune,
+        config: {
+          tenant: TENANT_ID,
+          cloud: "public",
+          readIntervalInMinutes: 15,
+        },
+      }),
+    ).toBe(TENANT_ID);
+    expect(
+      getDeviceManagementConnectionAddress({
+        provider: DeviceManagementProvider.Intune,
+        config: {
+          tenant: TENANT_ID,
+          cloud: "usgov",
+          readIntervalInMinutes: 15,
+        },
+      }),
+    ).toBe(`${TENANT_ID} (Microsoft 365 GCC High)`);
+    expect(
+      getDeviceManagementConnectionAddress({
+        provider: DeviceManagementProvider.Esper,
+        config: { tenant: "acme", readIntervalInMinutes: 15 },
+      }),
+    ).toBe("acme.esper.cloud");
   });
 });
 
@@ -438,5 +612,51 @@ describe("the identity contract", () => {
   test("the ways a host is found", () => {
     expect(isManagedDeviceHostMatch("serial-number")).toBe(true);
     expect(isManagedDeviceHostMatch("mac")).toBe(false);
+  });
+
+  // #9837: Intune names every iPhone nobody renamed "iPhone".
+  test("a name two devices share names neither: each goes by its serial number, or its ID", () => {
+    const first: {
+      deviceName: string;
+      serialNumber: string;
+      providerDeviceId: string;
+    } = {
+      deviceName: "iPhone",
+      serialNumber: "F2LXK1AAAAAA",
+      providerDeviceId: "a",
+    };
+    const second: {
+      deviceName: string;
+      serialNumber: string;
+      providerDeviceId: string;
+    } = { deviceName: " IPHONE ", serialNumber: "", providerDeviceId: "b-id" };
+    const kiosk: {
+      deviceName: string;
+      serialNumber: string;
+      providerDeviceId: string;
+    } = {
+      deviceName: "Kiosk 7",
+      serialNumber: "R9KT30ABC12",
+      providerDeviceId: "c",
+    };
+    const shared: Set<string> = getSharedManagedDeviceNames([
+      first,
+      second,
+      kiosk,
+    ]);
+
+    expect(Array.from(shared)).toEqual(["iphone"]);
+    expect(getManagedDeviceUniqueHostName(first, shared)).toBe("F2LXK1AAAAAA");
+    expect(getManagedDeviceUniqueHostName(second, shared)).toBe("b-id");
+    expect(getManagedDeviceUniqueHostName(kiosk, shared)).toBe("Kiosk 7");
+    // Where it must be told apart - a monitor's series - its name says which.
+    expect(getManagedDeviceUniqueName(first, shared)).toBe(
+      "iPhone (F2LXK1AAAAAA)",
+    );
+    expect(getManagedDeviceUniqueName(kiosk, shared)).toBe("Kiosk 7");
+    // Its own name back once no other device has it.
+    expect(getManagedDeviceUniqueHostName(first, new Set<string>())).toBe(
+      "iPhone",
+    );
   });
 });

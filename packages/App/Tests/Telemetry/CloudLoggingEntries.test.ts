@@ -235,13 +235,24 @@ describe("the entry's body", () => {
     expect(recordAttributes(whole)["gcp.json_payload.event"]).toBeUndefined();
   });
 
-  test("an audit log is its method on its resource, with who and from where", () => {
+  /*
+   * #10032: an audit log keeps its entry whole as its body, as a raw
+   * pipeline delivers it, so Your logs reads it as a security event; its
+   * method, its resource and who called it stay attributes.
+   */
+  test("an audit log is its entry whole, with its method, its resource, who and from where beside it", () => {
     const record: JSONObject = recordOf(build(auditLogEntry()).resourceLogs);
     const attributes: Record<string, JSONObject> = recordAttributes(record);
 
-    expect((record["body"] as JSONObject)["stringValue"]).toBe(
-      `cloudsql.instances.update projects/${PROJECT}/instances/orders-db`,
-    );
+    expect(
+      JSON.parse((record["body"] as JSONObject)["stringValue"] as string),
+    ).toEqual(auditLogEntry());
+    expect(attributes["gcp.audit.method_name"]).toEqual({
+      stringValue: "cloudsql.instances.update",
+    });
+    expect(attributes["gcp.audit.resource_name"]).toEqual({
+      stringValue: `projects/${PROJECT}/instances/orders-db`,
+    });
     expect(attributes["enduser.id"]).toEqual({ stringValue: "alice@acme.com" });
     expect(attributes["client.address"]).toEqual({
       stringValue: "198.51.100.4",

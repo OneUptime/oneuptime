@@ -1813,6 +1813,7 @@ export default class Incident extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "On-Call Policies",
     description: "List of on-call policies affected by this incident.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1867,6 +1868,7 @@ export default class Incident extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -2477,6 +2479,7 @@ export default class Incident extends BaseModel {
     title: "Custom Fields",
     description:
       "The incident's custom field values, keyed by each incident custom field's name. When a user or an API key creates or updates an incident, each value it sets or changes must fit its field - a number for a Number field, true or false for a Boolean, one of the options for a Dropdown, and so on - or the request is refused. Values left as they were, keys that are not the name of a field and empty values are not checked. Required on Create is not enforced here: it applies to the dashboard's Declare Incident form only.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.JSON,
@@ -2666,6 +2669,7 @@ export default class Incident extends BaseModel {
     isDefaultValueColumn: false,
     title: "Postmortem Note",
     description: "Document the postmortem summary for this incident.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Markdown,
@@ -2945,6 +2949,7 @@ export default class Incident extends BaseModel {
     description:
       "ID of the incident's postmortem status. Left out on create, the postmortem starts in the project's not started status - or its draft status when the incident is created with a postmortem note, its completed status when that note is published on a status page.",
     example: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -3767,6 +3772,7 @@ export default class Incident extends BaseModel {
     description:
       "If true, this incident is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners. Private incidents are hidden from status pages.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
