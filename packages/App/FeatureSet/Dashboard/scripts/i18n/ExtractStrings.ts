@@ -156,6 +156,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
   /*
+   * What each OneUptime AI feature of Data Security sends, never sends and
+   * keeps (#10365): Data Security > Settings > OneUptime AI draws the
+   * catalog, and the server and the guard read the same file. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataSecurityAiFeatures.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
