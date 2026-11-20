@@ -90,8 +90,12 @@ export function blockAddedMarkdown(data: {
     ? FeedMarkdown.empty()
     : mdText` Nothing enforces the blocklist yet, so it is not blocked anywhere: connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list.`;
 
-  return mdText`${line}${reason}${enforcement}`;
+  // The reason last: it is someone's words, which need not end a sentence.
+  return mdText`${line}${enforcement}${reason}`;
 }
+
+// What ends a sentence: a full stop, a question or an exclamation mark, an ellipsis.
+const SENTENCE_END: RegExp = /[.!?\u2026]$/;
 
 export function blockLiftedMarkdown(data: {
   value: string;
@@ -103,9 +107,15 @@ export function blockLiftedMarkdown(data: {
     ? mdText`: ${FeedMarkdown.textInLine(data.reason)}`
     : FeedMarkdown.empty();
 
+  // A reason that ends its own sentence takes no second full stop.
+  const end: MarkdownText =
+    data.reason && SENTENCE_END.test(data.reason.trim())
+      ? FeedMarkdown.empty()
+      : mdText`.`;
+
   return data.isByPerson
-    ? mdText`✅ Lifted the block on ${value}${reason}.`
-    : mdText`✅ The block on ${value} was lifted${reason}.`;
+    ? mdText`✅ Lifted the block on ${value}${reason}${end}`
+    : mdText`✅ The block on ${value} was lifted${reason}${end}`;
 }
 
 export function blockExtendedMarkdown(data: {

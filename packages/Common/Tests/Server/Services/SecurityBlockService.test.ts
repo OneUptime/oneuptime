@@ -344,9 +344,10 @@ describe("SecurityBlockService", () => {
           userId: props.userId,
         }),
       );
-      expect(feedLines()[0]).toContain("Blocked `35.205.11.131` for 7 days.");
-      expect(feedLines()[0]).toContain("Reason: Brute force against /login");
-      expect(feedLines()[0]).toContain("Nothing enforces the blocklist yet");
+      // The reason last: someone's words, which need not end a sentence.
+      expect(feedLines()).toEqual([
+        "🚫 Blocked `35.205.11.131` for 7 days. Nothing enforces the blocklist yet, so it is not blocked anywhere: connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list. Reason: Brute force against /login",
+      ]);
     });
 
     test("with a destination, the timeline line does not say nothing enforces it", async () => {
@@ -858,6 +859,19 @@ describe("SecurityBlockService", () => {
       expect(String(table.get(BLOCK_ID)!["liftedByUserId"])).toBe(
         props.userId!.toString(),
       );
+    });
+
+    test("a reason that ends its own sentence takes no second full stop", async () => {
+      await SecurityBlockService.lift({
+        projectId: PROJECT_ID,
+        securityBlockId: new ObjectID(BLOCK_ID),
+        reason: "It was our own VPN!",
+        props: member(SECURITY_MEMBER),
+      });
+
+      expect(feedLines()).toEqual([
+        "✅ Lifted the block on `35.205.11.131`: It was our own VPN!",
+      ]);
     });
 
     test("OneUptime's own lift names nobody", async () => {
