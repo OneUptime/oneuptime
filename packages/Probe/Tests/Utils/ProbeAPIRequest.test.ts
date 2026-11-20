@@ -5,9 +5,14 @@ process.env["PROBE_ID"] = "11111111-2222-3333-4444-555555555555";
 
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import URL from "Common/Types/API/URL";
+import Dictionary from "Common/Types/Dictionary";
+import { JSONObject } from "Common/Types/JSON";
 import { RequestOptions } from "Common/Utils/API";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import ProbeCapability from "Common/Types/Probe/ProbeCapability";
+import ProbeKeyHeaders from "Common/Types/Probe/ProbeKeyHeaders";
+import ProbeReportOpening from "Common/Server/Utils/Probe/ProbeReportOpening";
+import http from "http";
 
 /*
  * Every control-plane request the probe sends (alive heartbeat, list
@@ -99,6 +104,70 @@ describe("getDefaultRequestBody", () => {
     expect(
       ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"],
     ).toContain(ProbeCapability.TotpCodes);
+  });
+
+  /*
+   * #10222: OneUptime reads the key and id off the start of a collection
+   * from a probe that does not send them in headers too, before it parses
+   * the rest (ProbeReportOpening). Every release writes them first.
+   */
+  test("opens with the key, then the id, so a server can read them before the rest", () => {
+    const body: JSONObject = ProbeAPIRequest.getDefaultRequestBody();
+
+    expect(Object.keys(body).slice(0, 2)).toEqual(["probeKey", "probeId"]);
+    expect(
+      ProbeReportOpening.read(
+        Buffer.from(JSON.stringify({ ...body, status: "Succeeded" })),
+      ),
+    ).toEqual({
+      probeId: "11111111-2222-3333-4444-555555555555",
+      probeKey: "test-probe-key",
+    });
+  });
+});
+
+/*
+ * A vCenter's or an OpenStack cloud's collection carries the probe's id and
+ * key in headers as well (#10222), so OneUptime checks the key before it
+ * reads a byte of the report.
+ */
+describe("getProbeKeyHeaders", () => {
+  test("names this probe: its id and key from the environment", () => {
+    expect(ProbeAPIRequest.getProbeKeyHeaders()).toEqual({
+      "x-oneuptime-probe-id": "11111111-2222-3333-4444-555555555555",
+      "x-oneuptime-probe-key": "test-probe-key",
+    });
+  });
+
+  test("carries a key an operator typed, whatever its characters, as a value HTTP can send", () => {
+    const typed: string = " pr0be (key)! clé 東京 🚀 ";
+
+    jest.isolateModules(() => {
+      const previous: string | undefined = process.env["PROBE_KEY"];
+      process.env["PROBE_KEY"] = typed;
+
+      try {
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+        const fresh: typeof import("../../Utils/ProbeAPIRequest") = require("../../Utils/ProbeAPIRequest");
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+        const headers: Dictionary<string> =
+          fresh.default.getProbeKeyHeaders();
+
+        for (const [name, value] of Object.entries(headers)) {
+          expect(() => {
+            http.validateHeaderValue(name, value);
+          }).not.toThrow();
+        }
+
+        expect(ProbeKeyHeaders.read(headers)).toEqual({
+          probeId: "11111111-2222-3333-4444-555555555555",
+          probeKey: typed,
+        });
+      } finally {
+        process.env["PROBE_KEY"] = previous;
+      }
+    });
   });
 });
 
