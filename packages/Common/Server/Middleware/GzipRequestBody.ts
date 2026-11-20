@@ -1,4 +1,5 @@
 import ServerException from "../../Types/Exception/ServerException";
+import { JsonElementTally } from "../../Utils/JsonElementCount";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -7,16 +8,23 @@ import {
   headerValueToString,
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
+import {
+  LARGE_REQUEST_BODY_BYTES,
+  LARGE_REQUEST_BODY_LIMIT,
+  RequestBodyLimit,
+} from "../Utils/RequestBodyLimit";
+import { createTooManyJsonValuesError } from "../Utils/RequestBodyRefusal";
 import Response from "../Utils/Response";
 import zlib from "zlib";
 
 /*
  * Ceilings for the global `Content-Encoding: gzip` request path.
  *
- * Both are 50 MiB, which is exactly what body-parser is given for the
- * identity path (`jsonBodyParserOptions.limit` / `urlEncodedBodyParserOptions.limit`,
- * and `bytes("50mb")` is 1024-based too). Announcing gzip must not buy a
- * caller more room than sending the same body uncompressed.
+ * A route's are its RequestBodyLimit's bytes, which is exactly what
+ * body-parser is given for the same route's identity path (StartServer's
+ * parsers). Announcing gzip must not buy a caller more room than sending
+ * the same body uncompressed. These two are the most any route takes, the
+ * large routes' 50 MiB, and what a caller with no route limit gets.
  *
  * They are two constants because they bound two different things and
  * neither alone is sufficient:
@@ -28,8 +36,30 @@ import zlib from "zlib";
  *     inflates to 134,217,728 bytes (1,029x, measured), so the compressed
  *     cap on its own leaves ~50 GB of expansion on the table.
  */
-export const MAX_COMPRESSED_REQUEST_BODY_BYTES: number = 50 * 1024 * 1024;
-export const MAX_DECOMPRESSED_REQUEST_BODY_BYTES: number = 50 * 1024 * 1024;
+export const MAX_COMPRESSED_REQUEST_BODY_BYTES: number =
+  LARGE_REQUEST_BODY_BYTES;
+export const MAX_DECOMPRESSED_REQUEST_BODY_BYTES: number =
+  LARGE_REQUEST_BODY_BYTES;
+
+/*
+ * Whether a body is JSON by its Content-Type: application/json, or a +json
+ * type (application/cloudevents+json). Its values are counted as it
+ * inflates. Any other body is handed on as its bytes, uncounted: a route
+ * that parses one as JSON counts it first (RequestBodyJson).
+ */
+export const isJsonContentType: (contentType: string | undefined) => boolean =
+  (contentType: string | undefined): boolean => {
+    if (!contentType) {
+      return false;
+    }
+
+    const mediaType: string = contentType.split(";")[0]!.trim().toLowerCase();
+
+    return (
+      mediaType === "application/json" ||
+      (mediaType.startsWith("application/") && mediaType.endsWith("+json"))
+    );
+  };
 
 /*
  * Inflate a `Content-Encoding: gzip` request body under hard limits, and
@@ -54,13 +84,29 @@ export const MAX_DECOMPRESSED_REQUEST_BODY_BYTES: number = 50 * 1024 * 1024;
  *      emits 128 MiB. Verified against Node 24. Setting it here would read
  *      as protection while providing none, so the running total below is
  *      what actually enforces the ceiling.
+ *
+ * A JSON body's values are counted too, a chunk at a time as it inflates
+ * (#10183): 50 KB of gzip inflates to 50 MiB of "[]," - 17 million empty
+ * arrays to JSON.parse - and is refused once the route's limit is passed,
+ * after its first few megabytes, before the rest is inflated or kept.
  */
 export default class GzipRequestBodyMiddleware {
+  /*
+   * `limit` is the route's (StartServer passes it); with none, the
+   * request's own, else the most any route takes.
+   */
   public static parseBody(
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
+    limit?: RequestBodyLimit | undefined,
   ): void {
+    const bodyLimit: RequestBodyLimit =
+      limit ||
+      (req as OneUptimeRequest).requestBodyLimit ||
+      LARGE_REQUEST_BODY_LIMIT;
+    const maxBytes: number = bodyLimit.bytes;
+
     /*
      * Cheap pre-check before a byte is read. Content-Length is advisory (a
      * chunked request carries none) but when it is present and already over
@@ -73,20 +119,24 @@ export default class GzipRequestBodyMiddleware {
     if (contentLengthHeader) {
       const declaredLength: number = parseInt(contentLengthHeader, 10);
 
-      if (
-        !isNaN(declaredLength) &&
-        declaredLength > MAX_COMPRESSED_REQUEST_BODY_BYTES
-      ) {
+      if (!isNaN(declaredLength) && declaredLength > maxBytes) {
         GzipRequestBodyMiddleware.rejectTooLarge(
           req,
           res,
           "compressed",
           declaredLength,
-          MAX_COMPRESSED_REQUEST_BODY_BYTES,
+          maxBytes,
         );
         return;
       }
     }
+
+    // A JSON body's values, counted as it inflates.
+    const tally: JsonElementTally | null = isJsonContentType(
+      headerValueToString(req.headers["content-type"]),
+    )
+      ? new JsonElementTally(bodyLimit)
+      : null;
 
     const inflate: zlib.Gunzip = zlib.createGunzip();
 
@@ -151,7 +201,7 @@ export default class GzipRequestBodyMiddleware {
 
       compressedBytes += asBuffer.length;
 
-      if (compressedBytes > MAX_COMPRESSED_REQUEST_BODY_BYTES) {
+      if (compressedBytes > maxBytes) {
         settle((): void => {
           stopReading();
           GzipRequestBodyMiddleware.rejectTooLarge(
@@ -159,7 +209,7 @@ export default class GzipRequestBodyMiddleware {
             res,
             "compressed",
             compressedBytes,
-            MAX_COMPRESSED_REQUEST_BODY_BYTES,
+            maxBytes,
           );
         });
         return;
@@ -235,7 +285,7 @@ export default class GzipRequestBodyMiddleware {
     inflate.on("data", (chunk: Buffer): void => {
       decompressedBytes += chunk.length;
 
-      if (decompressedBytes > MAX_DECOMPRESSED_REQUEST_BODY_BYTES) {
+      if (decompressedBytes > maxBytes) {
         settle((): void => {
           stopReading();
           GzipRequestBodyMiddleware.rejectTooLarge(
@@ -243,8 +293,21 @@ export default class GzipRequestBodyMiddleware {
             res,
             "decompressed",
             decompressedBytes,
-            MAX_DECOMPRESSED_REQUEST_BODY_BYTES,
+            maxBytes,
           );
+        });
+        return;
+      }
+
+      /*
+       * More values than the route reads: refused now, with the rest of the
+       * body neither inflated nor kept, as expressErrorHandler answers the
+       * same body sent uncompressed.
+       */
+      if (tally && !tally.add(chunk)) {
+        settle((): void => {
+          stopReading();
+          next(createTooManyJsonValuesError(tally.getCount(), bodyLimit));
         });
         return;
       }

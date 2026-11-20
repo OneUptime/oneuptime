@@ -712,9 +712,12 @@ describe("StartServer routes the gzip branch through this middleware", () => {
     "utf-8",
   );
 
-  test("the gzip branch calls GzipRequestBodyMiddleware.parseBody", () => {
+  test("the gzip branch calls GzipRequestBodyMiddleware.parseBody, with the route's limit", () => {
     expect(startServerSource).toContain(
-      "GzipRequestBodyMiddleware.parseBody(req, res, next)",
+      "GzipRequestBodyMiddleware.parseBody(req, res, next, limit)",
+    );
+    expect(startServerSource).toContain(
+      "const limit: RequestBodyLimit = getRequestBodyLimit(req.path);",
     );
   });
 
