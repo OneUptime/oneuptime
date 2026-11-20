@@ -147,6 +147,42 @@ export class MonitorStepMetricMonitorUtil {
   }
 
   /*
+   * The expression a view config is a PromQL step's of
+   * (getPromQLViewConfig), or null for any other: what an incident or alert
+   * a PromQL step opened keeps of its check (issue #10227), so its card
+   * charts the expression instead of a query that names no metric.
+   */
+  public static getPromQLQueryOfViewConfig(
+    viewConfig: MetricsViewConfig | undefined | null,
+  ): string | null {
+    const queryConfigs: Array<MetricQueryConfigData> = Array.isArray(
+      viewConfig?.queryConfigs,
+    )
+      ? viewConfig!.queryConfigs
+      : [];
+
+    if (queryConfigs.length !== 1) {
+      return null;
+    }
+
+    const queryConfig: MetricQueryConfigData | undefined = queryConfigs[0];
+    const query: unknown = queryConfig?.metricAliasData?.title;
+
+    if (
+      !queryConfig ||
+      queryConfig.id !== PROMQL_METRIC_ALIAS ||
+      queryConfig.metricAliasData?.metricVariable !== PROMQL_METRIC_ALIAS ||
+      queryConfig.metricQueryData?.filterData?.metricName ||
+      typeof query !== "string" ||
+      !query.trim()
+    ) {
+      return null;
+    }
+
+    return query.trim();
+  }
+
+  /*
    * The queries the step is judged with: a PromQL step's expression
    * (getPromQLViewConfig), else the builder's (getMetricViewConfig). The
    * builder's own editor, and anything that writes the step back, reads

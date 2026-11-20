@@ -60502,5 +60502,7 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "Det här formuläret ber inte sina besökare logga in, så de här inställningarna gör ingenting förrän du slår på ”Bara personer som loggar in” på dess sida Dela.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "Besökare som inte är privata användare av det här formuläret, och som din enkla inloggning inte släpper in, kan inte längre öppna eller skicka det.",
   "Who Can Open This Form": "Vem som kan öppna det här formuläret",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Bara formulärets privata användare och de personer som din enkla inloggning släpper in kan öppna och skicka det. Alla andra ombeds logga in."
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Bara formulärets privata användare och de personer som din enkla inloggning släpper in kan öppna och skicka det. Alla andra ombeds logga in.",
+  "Showing the first {{count}} series this expression returns.": "Visar de första {{count}} serierna som det här uttrycket returnerar.",
+  "Showing the first {{count}} series this expression returns._one": "Visar den första serien som det här uttrycket returnerar ({{count}})."
 }

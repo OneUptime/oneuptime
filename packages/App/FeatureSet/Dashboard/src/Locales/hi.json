@@ -60502,5 +60502,7 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "यह फ़ॉर्म अपने आगंतुकों से साइन इन करने को नहीं कहता, इसलिए जब तक आप इसके साझा करें पेज पर \"केवल साइन इन करने वाले लोग\" चालू नहीं करते, ये सेटिंग कुछ नहीं करतीं।",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "जो आगंतुक इस फ़ॉर्म के निजी उपयोगकर्ता नहीं हैं, और जिन्हें आपका सिंगल साइन-ऑन अंदर नहीं आने देता, वे अब इसे न खोल पाएँगे न भेज पाएँगे।",
   "Who Can Open This Form": "यह फ़ॉर्म कौन खोल सकता है",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "केवल फ़ॉर्म के निजी उपयोगकर्ता, और वे लोग जिन्हें आपका सिंगल साइन-ऑन अंदर आने देता है, इसे खोलकर भेज सकते हैं। बाकी सभी से साइन इन करने को कहा जाता है।"
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "केवल फ़ॉर्म के निजी उपयोगकर्ता, और वे लोग जिन्हें आपका सिंगल साइन-ऑन अंदर आने देता है, इसे खोलकर भेज सकते हैं। बाकी सभी से साइन इन करने को कहा जाता है।",
+  "Showing the first {{count}} series this expression returns.": "यह एक्सप्रेशन जो सीरीज़ लौटाता है, उनमें से पहली {{count}} दिखाई जा रही हैं।",
+  "Showing the first {{count}} series this expression returns._one": "यह एक्सप्रेशन जो सीरीज़ लौटाता है, उनमें से पहली {{count}} दिखाई जा रही है।"
 }

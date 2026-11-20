@@ -60502,5 +60502,7 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "Questo modulo non chiede ai visitatori di accedere, quindi queste impostazioni non hanno effetto finché non attivi «Solo chi accede» nella sua pagina Condividi.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "I visitatori che non sono utenti privati di questo modulo, e che il tuo single sign-on non ammette, non possono più aprirlo né inviarlo.",
   "Who Can Open This Form": "Chi può aprire questo modulo",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Solo gli utenti privati del modulo e le persone ammesse dal tuo single sign-on possono aprirlo e inviarlo. A tutti gli altri viene chiesto di accedere."
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Solo gli utenti privati del modulo e le persone ammesse dal tuo single sign-on possono aprirlo e inviarlo. A tutti gli altri viene chiesto di accedere.",
+  "Showing the first {{count}} series this expression returns.": "Vengono mostrate le prime {{count}} serie restituite da questa espressione.",
+  "Showing the first {{count}} series this expression returns._one": "Viene mostrata la prima serie restituita da questa espressione ({{count}})."
 }

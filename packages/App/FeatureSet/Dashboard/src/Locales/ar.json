@@ -60502,5 +60502,7 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "لا يطلب هذا النموذج من زواره تسجيل الدخول، لذا لا تفعل هذه الإعدادات شيئًا حتى تشغّل «الأشخاص الذين يسجّلون الدخول فقط» في صفحة «مشاركة» الخاصة به.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "لن يتمكن الزوار الذين ليسوا مستخدمين خاصين لهذا النموذج، ولا يسمح لهم تسجيل الدخول الموحّد لديك، من فتحه أو إرساله بعد الآن.",
   "Who Can Open This Form": "من يمكنه فتح هذا النموذج",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "لا يستطيع فتح النموذج وإرساله إلا مستخدموه الخاصون والأشخاص الذين يسمح لهم تسجيل الدخول الموحّد لديك. ويُطلب من الجميع غيرهم تسجيل الدخول."
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "لا يستطيع فتح النموذج وإرساله إلا مستخدموه الخاصون والأشخاص الذين يسمح لهم تسجيل الدخول الموحّد لديك. ويُطلب من الجميع غيرهم تسجيل الدخول.",
+  "Showing the first {{count}} series this expression returns.": "تُعرض أول {{count}} من السلاسل التي يعيدها هذا التعبير.",
+  "Showing the first {{count}} series this expression returns._one": "تُعرض أول {{count}} سلسلة يعيدها هذا التعبير."
 }

@@ -60502,5 +60502,7 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "Ce formulaire ne demande pas à ses visiteurs de se connecter : ces paramètres ne font donc rien tant que vous n'activez pas « Uniquement les personnes qui se connectent » sur sa page Partager.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "Les visiteurs qui ne sont pas des utilisateurs privés de ce formulaire, et que votre authentification unique n'admet pas, ne peuvent plus l'ouvrir ni l'envoyer.",
   "Who Can Open This Form": "Qui peut ouvrir ce formulaire",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Seuls les utilisateurs privés du formulaire et les personnes admises par votre authentification unique peuvent l'ouvrir et l'envoyer. Tous les autres sont invités à se connecter."
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Seuls les utilisateurs privés du formulaire et les personnes admises par votre authentification unique peuvent l'ouvrir et l'envoyer. Tous les autres sont invités à se connecter.",
+  "Showing the first {{count}} series this expression returns.": "Affichage des {{count}} premières séries renvoyées par cette expression.",
+  "Showing the first {{count}} series this expression returns._one": "Affichage de la première série renvoyée par cette expression ({{count}})."
 }

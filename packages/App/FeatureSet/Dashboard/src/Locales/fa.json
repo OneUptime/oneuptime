@@ -60502,5 +60502,7 @@
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "این فرم از بازدیدکنندگانش نمی‌خواهد وارد شوند، پس این تنظیمات تا وقتی «فقط افرادی که وارد می‌شوند» را در صفحهٔ «اشتراک‌گذاری» آن روشن نکنید کاری انجام نمی‌دهند.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "بازدیدکنندگانی که کاربر خصوصی این فرم نیستند و ورود یکپارچهٔ شما راهشان نمی‌دهد، دیگر نمی‌توانند آن را باز کنند یا بفرستند.",
   "Who Can Open This Form": "چه کسی می‌تواند این فرم را باز کند",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "فقط کاربران خصوصی فرم و افرادی که ورود یکپارچهٔ شما راهشان می‌دهد می‌توانند آن را باز کنند و بفرستند. از همهٔ افراد دیگر خواسته می‌شود وارد شوند."
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "فقط کاربران خصوصی فرم و افرادی که ورود یکپارچهٔ شما راهشان می‌دهد می‌توانند آن را باز کنند و بفرستند. از همهٔ افراد دیگر خواسته می‌شود وارد شوند.",
+  "Showing the first {{count}} series this expression returns.": "{{count}} سری اولی که این عبارت برمی‌گرداند نمایش داده می‌شود.",
+  "Showing the first {{count}} series this expression returns._one": "{{count}} سری اولی که این عبارت برمی‌گرداند نمایش داده می‌شود."
 }
