@@ -2713,12 +2713,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["run history", "soar runs"],
           },
           {
+            page: PageMap.SECURITY_BLOCKLIST,
+            title: "Blocklist",
+            icon: IconProp.NoSymbol,
+            keywords: [
+              "block an ip address",
+              "blocked addresses",
+              "ip blocklist",
+              "deny list",
+              "lift a block",
+            ],
+          },
+          {
             page: PageMap.SECURITY_PROTECTED_ENTITIES,
             title: "Protected Entities",
             icon: IconProp.Lock,
             keywords: [
               "protected users",
               "protected hosts",
+              "protected addresses",
               "containment exclusions",
               "break-glass accounts",
             ],
