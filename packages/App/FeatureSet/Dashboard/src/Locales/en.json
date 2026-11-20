@@ -59715,5 +59715,21 @@
   "New Email Link Expires": "New Email Link Expires",
   "Send Link Again": "Send Link Again",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.",
-  "We emailed the new address again.": "We emailed the new address again."
+  "We emailed the new address again.": "We emailed the new address again.",
+  "Created by **{{pager}}** from {{workspace}} to page people.": "Created by **{{pager}}** from {{workspace}} to page people.",
+  "Created by workflow **{{workflow}}** to page people.": "Created by workflow **{{workflow}}** to page people.",
+  "Created by {{user}}": "Created by {{user}}",
+  "Created from {{workspace}} to page people.": "Created from {{workspace}} to page people.",
+  "Declared by OneUptime AI.": "Declared by OneUptime AI.",
+  "Declared by {{handle}} in Slack.": "Declared by {{handle}} in Slack.",
+  "Declared by {{user}}": "Declared by {{user}}",
+  "Declared from Microsoft Teams.": "Declared from Microsoft Teams.",
+  "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".": "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".",
+  "Incoming request matched grouping key {{key}}.": "Incoming request matched grouping key {{key}}.",
+  "Network site **{{site}}** rolled up to **{{status}}**.": "Network site **{{site}}** rolled up to **{{status}}**.",
+  "Sigma detection rule \"{{rule}}\" matched security events.": "Sigma detection rule \"{{rule}}\" matched security events.",
+  "The Data Security check \"{{check}}\" failed on {{store}}.": "The Data Security check \"{{check}}\" failed on {{store}}.",
+  "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.",
+  "Threat intel feed \"{{feed}}\" indicator matched security events.": "Threat intel feed \"{{feed}}\" indicator matched security events.",
+  "What cost the most this month: {{services}}.": "What cost the most this month: {{services}}."
 }

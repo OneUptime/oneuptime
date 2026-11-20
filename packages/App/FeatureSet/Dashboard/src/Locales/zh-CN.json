@@ -59715,5 +59715,21 @@
   "New Email Link Expires": "新电子邮件地址链接的过期时间",
   "Send Link Again": "重新发送链接",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "我们发送到 {{email}} 的链接已过期，因此您的电子邮件地址没有更改。请发送新链接以完成更改，或取消此更改。",
-  "We emailed the new address again.": "我们已再次向新地址发送了电子邮件。"
+  "We emailed the new address again.": "我们已再次向新地址发送了电子邮件。",
+  "Created by **{{pager}}** from {{workspace}} to page people.": "由 **{{pager}}** 从 {{workspace}} 创建，用于呼叫相关人员。",
+  "Created by workflow **{{workflow}}** to page people.": "由工作流 **{{workflow}}** 创建，用于呼叫相关人员。",
+  "Created by {{user}}": "由 {{user}} 创建",
+  "Created from {{workspace}} to page people.": "从 {{workspace}} 创建，用于呼叫相关人员。",
+  "Declared by OneUptime AI.": "由 OneUptime AI 声明。",
+  "Declared by {{handle}} in Slack.": "由 {{handle}} 在 Slack 中声明。",
+  "Declared by {{user}}": "由 {{user}} 声明",
+  "Declared from Microsoft Teams.": "从 Microsoft Teams 声明。",
+  "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".": "错误预算消耗速率违反了 SLO“{{slo}}”的规则“{{rule}}”。",
+  "Incoming request matched grouping key {{key}}.": "传入请求匹配了分组键 {{key}}。",
+  "Network site **{{site}}** rolled up to **{{status}}**.": "网络站点 **{{site}}** 的健康汇总变为 **{{status}}**。",
+  "Sigma detection rule \"{{rule}}\" matched security events.": "Sigma 检测规则“{{rule}}”匹配了安全事件。",
+  "The Data Security check \"{{check}}\" failed on {{store}}.": "数据安全检查“{{check}}”在 {{store}} 上失败。",
+  "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "SLO“{{slo}}”剩余的错误预算已不高于 {{threshold}}，即其错误预算策略的“{{tier}}”级别。",
+  "Threat intel feed \"{{feed}}\" indicator matched security events.": "威胁情报源“{{feed}}”的指标匹配了安全事件。",
+  "What cost the most this month: {{services}}.": "本月成本最高的项：{{services}}。"
 }

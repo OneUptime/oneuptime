@@ -59715,5 +59715,21 @@
   "New Email Link Expires": "नए ईमेल पते के लिंक की समय-सीमा",
   "Send Link Again": "लिंक फिर से भेजें",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "हमने {{email}} पर जो लिंक भेजा था उसकी समय-सीमा समाप्त हो गई है, इसलिए आपका ईमेल पता नहीं बदला है। बदलाव पूरा करने के लिए नया लिंक भेजें, या इसे रद्द करें।",
-  "We emailed the new address again.": "हमने नए पते पर फिर से ईमेल भेजा है।"
+  "We emailed the new address again.": "हमने नए पते पर फिर से ईमेल भेजा है।",
+  "Created by **{{pager}}** from {{workspace}} to page people.": "लोगों को पेज करने के लिए **{{pager}}** ने {{workspace}} से बनाया।",
+  "Created by workflow **{{workflow}}** to page people.": "लोगों को पेज करने के लिए वर्कफ़्लो **{{workflow}}** ने बनाया।",
+  "Created by {{user}}": "{{user}} द्वारा बनाया गया",
+  "Created from {{workspace}} to page people.": "लोगों को पेज करने के लिए {{workspace}} से बनाया गया।",
+  "Declared by OneUptime AI.": "OneUptime AI द्वारा घोषित।",
+  "Declared by {{handle}} in Slack.": "{{handle}} द्वारा Slack में घोषित।",
+  "Declared by {{user}}": "{{user}} द्वारा घोषित",
+  "Declared from Microsoft Teams.": "Microsoft Teams से घोषित।",
+  "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".": "एरर बजट की बर्न रेट ने SLO \"{{slo}}\" के \"{{rule}}\" नियम का उल्लंघन किया।",
+  "Incoming request matched grouping key {{key}}.": "एक इनकमिंग अनुरोध समूह कुंजी {{key}} से मेल खाया।",
+  "Network site **{{site}}** rolled up to **{{status}}**.": "नेटवर्क साइट **{{site}}** की रोलअप स्थिति **{{status}}** हो गई।",
+  "Sigma detection rule \"{{rule}}\" matched security events.": "Sigma डिटेक्शन नियम \"{{rule}}\" सुरक्षा इवेंट से मेल खाया।",
+  "The Data Security check \"{{check}}\" failed on {{store}}.": "डेटा सुरक्षा की जांच \"{{check}}\" {{store}} पर विफल रही।",
+  "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "SLO \"{{slo}}\" का बचा हुआ एरर बजट {{threshold}} या उससे कम है, जो उसकी एरर बजट नीति का \"{{tier}}\" स्तर है।",
+  "Threat intel feed \"{{feed}}\" indicator matched security events.": "थ्रेट इंटेल फ़ीड \"{{feed}}\" का एक संकेतक सुरक्षा इवेंट से मेल खाया।",
+  "What cost the most this month: {{services}}.": "इस महीने सबसे ज़्यादा लागत किसकी रही: {{services}}।"
 }

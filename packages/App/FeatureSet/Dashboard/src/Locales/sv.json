@@ -59715,5 +59715,21 @@
   "New Email Link Expires": "Utgång för länk till ny e-postadress",
   "Send Link Again": "Skicka länken igen",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Länken vi mejlade till {{email}} har gått ut, så din e-postadress har inte ändrats. Skicka en ny länk för att slutföra bytet, eller avbryt det.",
-  "We emailed the new address again.": "Vi har mejlat den nya adressen igen."
+  "We emailed the new address again.": "Vi har mejlat den nya adressen igen.",
+  "Created by **{{pager}}** from {{workspace}} to page people.": "Skapad av **{{pager}}** från {{workspace}} för att larma personer.",
+  "Created by workflow **{{workflow}}** to page people.": "Skapad av arbetsflödet **{{workflow}}** för att larma personer.",
+  "Created by {{user}}": "Skapad av {{user}}",
+  "Created from {{workspace}} to page people.": "Skapad från {{workspace}} för att larma personer.",
+  "Declared by OneUptime AI.": "Deklarerad av OneUptime AI.",
+  "Declared by {{handle}} in Slack.": "Deklarerad av {{handle}} i Slack.",
+  "Declared by {{user}}": "Deklarerad av {{user}}",
+  "Declared from Microsoft Teams.": "Deklarerad från Microsoft Teams.",
+  "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".": "Felbudgetens förbrukningstakt överskred regeln ”{{rule}}” för SLO:n ”{{slo}}”.",
+  "Incoming request matched grouping key {{key}}.": "En inkommande begäran matchade grupperingsnyckeln {{key}}.",
+  "Network site **{{site}}** rolled up to **{{status}}**.": "Den sammanställda statusen för nätverksplatsen **{{site}}** är nu **{{status}}**.",
+  "Sigma detection rule \"{{rule}}\" matched security events.": "Sigma-detektionsregeln ”{{rule}}” matchade säkerhetshändelser.",
+  "The Data Security check \"{{check}}\" failed on {{store}}.": "Kontrollen ”{{check}}” i Datasäkerhet misslyckades för {{store}}.",
+  "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "Den återstående felbudgeten för SLO:n ”{{slo}}” är {{threshold}} eller lägre, nivån ”{{tier}}” i dess felbudgetpolicy.",
+  "Threat intel feed \"{{feed}}\" indicator matched security events.": "En indikator från flödet med hotinformation ”{{feed}}” matchade säkerhetshändelser.",
+  "What cost the most this month: {{services}}.": "Vad som kostade mest den här månaden: {{services}}."
 }

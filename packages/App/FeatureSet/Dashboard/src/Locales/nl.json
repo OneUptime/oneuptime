@@ -59715,5 +59715,21 @@
   "New Email Link Expires": "Vervaldatum link nieuw e-mailadres",
   "Send Link Again": "Link opnieuw versturen",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "De link die we naar {{email}} hebben gestuurd is verlopen, dus uw e-mailadres is niet gewijzigd. Verstuur een nieuwe link om de wijziging af te ronden, of annuleer de wijziging.",
-  "We emailed the new address again.": "We hebben het nieuwe adres opnieuw een e-mail gestuurd."
+  "We emailed the new address again.": "We hebben het nieuwe adres opnieuw een e-mail gestuurd.",
+  "Created by **{{pager}}** from {{workspace}} to page people.": "Aangemaakt door **{{pager}}** vanuit {{workspace}} om mensen op te roepen.",
+  "Created by workflow **{{workflow}}** to page people.": "Aangemaakt door workflow **{{workflow}}** om mensen op te roepen.",
+  "Created by {{user}}": "Aangemaakt door {{user}}",
+  "Created from {{workspace}} to page people.": "Aangemaakt vanuit {{workspace}} om mensen op te roepen.",
+  "Declared by OneUptime AI.": "Gemeld door OneUptime AI.",
+  "Declared by {{handle}} in Slack.": "Gemeld door {{handle}} in Slack.",
+  "Declared by {{user}}": "Gemeld door {{user}}",
+  "Declared from Microsoft Teams.": "Gemeld vanuit Microsoft Teams.",
+  "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".": "De verbruikssnelheid van het foutbudget heeft regel \"{{rule}}\" van SLO \"{{slo}}\" overschreden.",
+  "Incoming request matched grouping key {{key}}.": "Een inkomende aanvraag kwam overeen met groeperingssleutel {{key}}.",
+  "Network site **{{site}}** rolled up to **{{status}}**.": "De samengevoegde status van netwerklocatie **{{site}}** is nu **{{status}}**.",
+  "Sigma detection rule \"{{rule}}\" matched security events.": "Sigma-detectieregel \"{{rule}}\" kwam overeen met beveiligingsgebeurtenissen.",
+  "The Data Security check \"{{check}}\" failed on {{store}}.": "De controle \"{{check}}\" van Gegevensbeveiliging is mislukt voor {{store}}.",
+  "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "Het resterende foutbudget van SLO \"{{slo}}\" is {{threshold}} of lager, het niveau \"{{tier}}\" van zijn foutbudgetbeleid.",
+  "Threat intel feed \"{{feed}}\" indicator matched security events.": "Een indicator van de feed met dreigingsinformatie \"{{feed}}\" kwam overeen met beveiligingsgebeurtenissen.",
+  "What cost the most this month: {{services}}.": "Wat deze maand het meest kostte: {{services}}."
 }

@@ -59715,5 +59715,21 @@
   "New Email Link Expires": "Caducidad del enlace de la nueva dirección de correo electrónico",
   "Send Link Again": "Volver a enviar el enlace",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "El enlace que enviamos a {{email}} caducó, así que tu dirección de correo electrónico no ha cambiado. Envía un enlace nuevo para terminar el cambio, o cancélalo.",
-  "We emailed the new address again.": "Volvimos a enviar un correo a la nueva dirección."
+  "We emailed the new address again.": "Volvimos a enviar un correo a la nueva dirección.",
+  "Created by **{{pager}}** from {{workspace}} to page people.": "Creada por **{{pager}}** desde {{workspace}} para avisar a personas.",
+  "Created by workflow **{{workflow}}** to page people.": "Creada por el flujo de trabajo **{{workflow}}** para avisar a personas.",
+  "Created by {{user}}": "Creada por {{user}}",
+  "Created from {{workspace}} to page people.": "Creada desde {{workspace}} para avisar a personas.",
+  "Declared by OneUptime AI.": "Declarado por OneUptime AI.",
+  "Declared by {{handle}} in Slack.": "Declarado por {{handle}} en Slack.",
+  "Declared by {{user}}": "Declarado por {{user}}",
+  "Declared from Microsoft Teams.": "Declarado desde Microsoft Teams.",
+  "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".": "La tasa de consumo del presupuesto de errores superó la regla «{{rule}}» del SLO «{{slo}}».",
+  "Incoming request matched grouping key {{key}}.": "Una solicitud entrante coincidió con la clave de agrupación {{key}}.",
+  "Network site **{{site}}** rolled up to **{{status}}**.": "El estado resumido del sitio de red **{{site}}** pasó a ser **{{status}}**.",
+  "Sigma detection rule \"{{rule}}\" matched security events.": "La regla de detección Sigma «{{rule}}» coincidió con eventos de seguridad.",
+  "The Data Security check \"{{check}}\" failed on {{store}}.": "La comprobación «{{check}}» de Seguridad de datos falló en {{store}}.",
+  "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "El presupuesto de errores restante del SLO «{{slo}}» está en {{threshold}} o por debajo, el nivel «{{tier}}» de su política de presupuesto de errores.",
+  "Threat intel feed \"{{feed}}\" indicator matched security events.": "Un indicador del feed de inteligencia de amenazas «{{feed}}» coincidió con eventos de seguridad.",
+  "What cost the most this month: {{services}}.": "Lo que más costó este mes: {{services}}."
 }

@@ -59715,5 +59715,21 @@
   "New Email Link Expires": "زمان انقضای پیوند نشانی ایمیل جدید",
   "Send Link Again": "ارسال دوباره پیوند",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "پیوندی که به {{email}} ایمیل کردیم منقضی شده است، بنابراین نشانی ایمیل شما تغییر نکرده است. برای کامل کردن تغییر یک پیوند جدید بفرستید، یا تغییر را لغو کنید.",
-  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم."
+  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم.",
+  "Created by **{{pager}}** from {{workspace}} to page people.": "توسط **{{pager}}** از {{workspace}} برای فراخواندن افراد ساخته شد.",
+  "Created by workflow **{{workflow}}** to page people.": "توسط گردش کاری **{{workflow}}** برای فراخواندن افراد ساخته شد.",
+  "Created by {{user}}": "ساخته‌شده توسط {{user}}",
+  "Created from {{workspace}} to page people.": "از {{workspace}} برای فراخواندن افراد ساخته شد.",
+  "Declared by OneUptime AI.": "اعلام‌شده توسط OneUptime AI.",
+  "Declared by {{handle}} in Slack.": "اعلام‌شده توسط {{handle}} در Slack.",
+  "Declared by {{user}}": "اعلام‌شده توسط {{user}}",
+  "Declared from Microsoft Teams.": "اعلام‌شده از Microsoft Teams.",
+  "Error budget burn rate breached the \"{{rule}}\" rule of SLO \"{{slo}}\".": "نرخ مصرف بودجه خطا از قاعده «{{rule}}» در SLO «{{slo}}» فراتر رفت.",
+  "Incoming request matched grouping key {{key}}.": "یک درخواست ورودی با کلید گروه‌بندی {{key}} مطابقت داشت.",
+  "Network site **{{site}}** rolled up to **{{status}}**.": "وضعیت تجمیعی سایت شبکه **{{site}}** به **{{status}}** رسید.",
+  "Sigma detection rule \"{{rule}}\" matched security events.": "قاعده تشخیص Sigma «{{rule}}» با رویدادهای امنیتی مطابقت داشت.",
+  "The Data Security check \"{{check}}\" failed on {{store}}.": "بررسی «{{check}}» امنیت داده روی {{store}} ناموفق بود.",
+  "The error budget left of SLO \"{{slo}}\" is at or below {{threshold}}, the \"{{tier}}\" tier of its error budget policy.": "بودجه خطای باقی‌مانده SLO «{{slo}}» به {{threshold}} یا کمتر رسیده است، یعنی سطح «{{tier}}» در سیاست بودجه خطای آن.",
+  "Threat intel feed \"{{feed}}\" indicator matched security events.": "یک شاخص از فید اطلاعات تهدید «{{feed}}» با رویدادهای امنیتی مطابقت داشت.",
+  "What cost the most this month: {{services}}.": "بیشترین هزینه‌های این ماه: {{services}}."
 }
