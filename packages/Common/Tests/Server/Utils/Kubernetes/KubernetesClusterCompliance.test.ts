@@ -2,11 +2,14 @@ import KubernetesClusterCompliance, {
   KUBERNETES_TEMPLATE_KINDS,
   KubernetesComplianceObjectRow,
   KubernetesCompliancePodRow,
+  KubernetesNodeBenchmarkPodRow,
   MAX_COMPLIANCE_PODS,
   MAX_COMPLIANCE_WORKLOADS,
   getAcceptancesInForce,
+  getAgentComponentsByWorkload,
   getCronJobsByJob,
   getObjectsOnCluster,
+  getOneUptimeAgentNamespaces,
   getUnownedReplicaSets,
   isAcceptanceSetting,
   isManagedControlPlane,
@@ -14,6 +17,7 @@ import KubernetesClusterCompliance, {
   summarizeNamespaces,
   toCompliancePod,
   toComplianceTemplates,
+  toNodeBenchmarkRuns,
   toPolicySnapshot,
 } from "../../../../Server/Utils/Kubernetes/KubernetesClusterCompliance";
 import DataSecurityComplianceSettingService from "../../../../Server/Services/DataSecurityComplianceSettingService";
@@ -27,10 +31,20 @@ import { JSONObject } from "../../../../Types/JSON";
 import { KubernetesObjectRef } from "../../../../Types/Kubernetes/KubernetesHealth";
 import { readPodSecurity } from "../../../../Types/Kubernetes/KubernetesPodSecurity";
 import {
+  KubernetesNodeBenchmarkBlock,
+  readNodeBenchmarkMessage,
+} from "../../../../Types/Kubernetes/KubernetesNodeBenchmark";
+import { OneUptimeAgentComponent } from "../../../../Types/Kubernetes/Compliance/KubernetesAgentWorkloads";
+import {
+  CONTROL_PLANE_CIS_1_12,
+  WORKER_CIS_1_12,
+} from "../../../Types/Kubernetes/Compliance/KubeBenchFixtures";
+import {
   KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
   KubernetesComplianceResponse,
 } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
+import { KubernetesComplianceFinding } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceFinding";
 import { KubernetesComplianceRequirementResult } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceScoring";
 import { KubernetesComplianceFramework } from "../../../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import {
@@ -585,8 +599,9 @@ describe("reading a cluster's compliance", () => {
     pods: Array<KubernetesCompliancePodRow>;
     jobs: Array<KubernetesComplianceObjectRow>;
     namespaces: Array<KubernetesComplianceObjectRow>;
-    nodes: Array<{ kubeletVersion: string | null }>;
+    nodes: Array<{ name?: string | null; kubeletVersion: string | null }>;
     policies: Array<KubernetesComplianceObjectRow>;
+    nodeBenchmarks: Array<KubernetesNodeBenchmarkPodRow>;
   };
   let settings: Array<DataSecurityComplianceSetting>;
   let findBy: jest.SpyInstance;
@@ -615,6 +630,7 @@ describe("reading a cluster's compliance", () => {
         { kubeletVersion: "v1.32.9-eks-b" },
       ],
       policies: [],
+      nodeBenchmarks: [],
     };
     settings = [];
 
@@ -625,6 +641,11 @@ describe("reading a cluster's compliance", () => {
           parameters: Array<unknown>,
         ): Promise<Array<unknown>> => {
           queries.push({ sql, parameters });
+
+          // kube-bench's runs (#9873): the pods that hold what it found.
+          if (sql.includes(`'nodeBenchmark'`)) {
+            return rows.nodeBenchmarks;
+          }
 
           if (sql.includes(`"kind" = 'Pod'`)) {
             return rows.pods;
@@ -687,7 +708,8 @@ describe("reading a cluster's compliance", () => {
   test("reads only that cluster of that project, each read bounded", async () => {
     await read();
 
-    expect(queries).toHaveLength(5);
+    // Pods, workloads, namespaces, nodes, kube-bench's runs and policy objects.
+    expect(queries).toHaveLength(6);
     for (const query of queries) {
       expect(query.parameters.slice(0, 2)).toEqual([
         PROJECT_ID.toString(),
@@ -1055,5 +1077,421 @@ describe("reading a cluster's compliance", () => {
     expect(response.isTruncated).toBe(true);
     expect(response.podCount).toBe(MAX_COMPLIANCE_PODS);
     expect(response.isManagedControlPlane).toBe(false);
+  });
+
+  // The agent's own workloads (#9929), and its kube-bench runs (#9873).
+  function agentWorkload(
+    kind: string,
+    name: string,
+    component: string,
+    namespace: string = "oneuptime-agent",
+  ): KubernetesComplianceObjectRow {
+    return {
+      kind,
+      namespaceKey: namespace,
+      name,
+      labels: {
+        "app.kubernetes.io/part-of": "oneuptime",
+        "helm.sh/chart": "kubernetes-agent-17.1.0",
+        component,
+      },
+      ownerReferences: null,
+      security: null,
+    };
+  }
+
+  function kubeBenchRun(
+    namespace: string,
+    name: string,
+    nodeName: string | null,
+    message: string,
+  ): KubernetesNodeBenchmarkPodRow {
+    const block: KubernetesNodeBenchmarkBlock | null = readNodeBenchmarkMessage(
+      message,
+      "2026-11-19T22:41:07Z",
+    );
+
+    return {
+      namespaceKey: namespace,
+      name,
+      nodeName,
+      nodeBenchmark: JSON.parse(JSON.stringify(block)),
+    };
+  }
+
+  test("reads kube-bench's runs from the agent's own namespace alone, and scores the node controls by node", async () => {
+    rows.jobs = [
+      agentWorkload("Deployment", "kubernetes-agent", "metrics-collector"),
+      agentWorkload(
+        "CronJob",
+        "kubernetes-agent-kube-bench-workers",
+        "node-benchmark",
+      ),
+      // A CronJob dressed as kube-bench in a tenant's namespace makes it no agent's.
+      agentWorkload("CronJob", "fake-kube-bench", "node-benchmark", "tenant"),
+    ];
+    rows.nodes = [
+      { name: "kind-control-plane", kubeletVersion: "v1.33.2" },
+      { name: "kind-worker", kubeletVersion: "v1.33.2" },
+    ];
+    rows.nodeBenchmarks = [
+      kubeBenchRun(
+        "oneuptime-agent",
+        "kubernetes-agent-kube-bench-control-plane-x1",
+        "kind-control-plane",
+        CONTROL_PLANE_CIS_1_12,
+      ),
+      kubeBenchRun(
+        "oneuptime-agent",
+        "kubernetes-agent-kube-bench-workers-x1",
+        "kind-worker",
+        WORKER_CIS_1_12,
+      ),
+      // Forged: every check passing, from outside the agent's namespace.
+      kubeBenchRun(
+        "tenant",
+        "fake-kube-bench-x1",
+        "kind-worker",
+        '{"oneuptimeNodeBenchmark":1,"benchmark":"cis-1.12","targets":"node","pass":"4.1.1 4.1.9","fail":"","warn":"","manual":""}',
+      ),
+      // On no node: not a run.
+      kubeBenchRun(
+        "oneuptime-agent",
+        "kubernetes-agent-kube-bench-workers-pending",
+        null,
+        WORKER_CIS_1_12,
+      ),
+    ];
+
+    const response: KubernetesComplianceResponse = await read(null);
+    const cis: KubernetesComplianceFrameworkResponse = frameworkOf(
+      response,
+      KubernetesComplianceFramework.CisKubernetes,
+    );
+    const kubeletService: KubernetesComplianceRequirementResult | undefined =
+      cis.requirements.find((row: KubernetesComplianceRequirementResult) => {
+        return row.requirement === "4.1.1";
+      });
+
+    expect(
+      queries.find((query: { sql: string }) => {
+        return query.sql.includes(`'nodeBenchmark'`);
+      })?.sql,
+    ).toContain(`"spec"->'nodeBenchmark' IS NOT NULL`);
+    expect(response.nodeBenchmark?.benchmark).toBe("cis-1.12");
+    expect(
+      response.nodeBenchmark?.nodes.map(
+        (node: { node: string; isControlPlane: boolean }) => {
+          return [node.node, node.isControlPlane];
+        },
+      ),
+    ).toEqual([
+      ["kind-control-plane", true],
+      ["kind-worker", false],
+    ]);
+    expect(kubeletService?.status).toBe(ComplianceRequirementStatus.Failing);
+    expect(
+      kubeletService?.findings.map((finding: { object: { name: string } }) => {
+        return finding.object.name;
+      }),
+    ).toEqual(["kind-control-plane", "kind-worker"]);
+    expect(cis.requirements).toHaveLength(27 + 65);
+  });
+
+  test("with no kube-bench run, says none, and scores the CIS benchmark from the API alone", async () => {
+    const response: KubernetesComplianceResponse = await read();
+
+    expect(response.nodeBenchmark).toBeNull();
+    expect(
+      frameworkOf(response, KubernetesComplianceFramework.CisKubernetes)
+        .requirements,
+    ).toHaveLength(27);
+    // The NSA/CISA guide is scored with the others.
+    expect(
+      frameworkOf(response, KubernetesComplianceFramework.NsaCisaHardening)
+        .requirements.length,
+    ).toBeGreaterThan(0);
+  });
+
+  function nodeAcceptance(
+    id: string,
+    node: string,
+    note: string,
+  ): DataSecurityComplianceSetting {
+    const accepted: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting();
+    accepted._id = id;
+    accepted.framework = KubernetesComplianceFramework.CisKubernetes;
+    accepted.requirement = "4.1.1";
+    accepted.objectKind = "Node";
+    accepted.objectName = node;
+    accepted.isEnabled = false;
+    accepted.note = note;
+    return accepted;
+  }
+
+  test("a node's accepted finding is listed, on the cluster while its node is", async () => {
+    rows.nodes = [{ name: "kind-worker", kubeletVersion: "v1.33.2" }];
+    settings = [
+      nodeAcceptance(
+        "33333333-3333-4333-8333-333333333333",
+        "kind-worker",
+        "The kind node image ships the kubelet's drop-in this way.",
+      ),
+      nodeAcceptance(
+        "44444444-4444-4444-8444-444444444444",
+        "deleted-node",
+        "Gone.",
+      ),
+    ];
+
+    const acceptances: Array<KubernetesComplianceAcceptanceEntry> =
+      frameworkOf(await read(null), KubernetesComplianceFramework.CisKubernetes)
+        .acceptances || [];
+
+    expect(
+      acceptances.map((entry: KubernetesComplianceAcceptanceEntry) => {
+        return [entry.object, entry.isOnCluster];
+      }),
+    ).toEqual([
+      [{ kind: "Node", namespace: "", name: "kind-worker" }, true],
+      [{ kind: "Node", namespace: "", name: "deleted-node" }, false],
+    ]);
+  });
+
+  test("the agent's own workloads' findings say which of its components they are", async () => {
+    rows.jobs = [
+      agentWorkload("DaemonSet", "kubernetes-agent-ebpf", "ebpf-instrument"),
+    ];
+    rows.pods = [
+      podRow("oneuptime-agent", "kubernetes-agent-ebpf-x1", {
+        owners: [{ kind: "DaemonSet", name: "kubernetes-agent-ebpf" }],
+        spec: {
+          hostPID: true,
+          containers: [
+            { name: "ebpf-instrument", securityContext: { privileged: true } },
+          ],
+        },
+      }),
+      podRow("kube-system", "cilium-x1", {
+        owners: [{ kind: "DaemonSet", name: "cilium" }],
+        spec: {
+          containers: [
+            { name: "agent", securityContext: { privileged: true } },
+          ],
+        },
+      }),
+    ];
+
+    const baseline: KubernetesComplianceFrameworkResponse = frameworkOf(
+      await read(null),
+      KubernetesComplianceFramework.PssBaseline,
+    );
+    const privileged: KubernetesComplianceRequirementResult | undefined =
+      baseline.requirements.find(
+        (row: KubernetesComplianceRequirementResult) => {
+          return row.requirement === "Privileged Containers";
+        },
+      );
+
+    expect(
+      privileged?.findings.map((finding: KubernetesComplianceFinding) => {
+        return [finding.object.name, finding.oneUptimeAgent?.component];
+      }),
+    ).toEqual([
+      ["cilium", undefined],
+      ["kubernetes-agent-ebpf", OneUptimeAgentComponent.Ebpf],
+    ]);
+  });
+});
+
+describe("the OneUptime agent's own workloads and kube-bench's runs, read from the inventory", () => {
+  const AGENT_LABELS: JSONObject = {
+    "app.kubernetes.io/part-of": "oneuptime",
+    "helm.sh/chart": "kubernetes-agent-17.1.0",
+  };
+
+  function workload(
+    kind: string,
+    namespace: string,
+    name: string,
+    labels: JSONObject | null,
+  ): KubernetesComplianceObjectRow {
+    return {
+      kind,
+      namespaceKey: namespace,
+      name,
+      labels,
+      ownerReferences: null,
+    };
+  }
+
+  test("each workload the chart made, by key, as the component it is", () => {
+    expect(
+      Array.from(
+        getAgentComponentsByWorkload([
+          workload("DaemonSet", "oneuptime-agent", "agent-logs", {
+            ...AGENT_LABELS,
+            component: "log-collector",
+          }),
+          workload("Deployment", "oneuptime-agent", "agent-logs-api", {
+            ...AGENT_LABELS,
+            component: "log-collector",
+          }),
+          workload("CronJob", "oneuptime-agent", "agent-kube-bench-workers", {
+            ...AGENT_LABELS,
+            component: "node-benchmark",
+          }),
+          workload("DaemonSet", "kube-system", "fluent-bit", {
+            component: "log-collector",
+          }),
+          workload("Deployment", "web", "nginx", null),
+        ]).entries(),
+      ),
+    ).toEqual([
+      [
+        "DaemonSet|oneuptime-agent|agent-logs",
+        OneUptimeAgentComponent.NodeCollector,
+      ],
+      [
+        "Deployment|oneuptime-agent|agent-logs-api",
+        OneUptimeAgentComponent.Other,
+      ],
+      [
+        "CronJob|oneuptime-agent|agent-kube-bench-workers",
+        OneUptimeAgentComponent.NodeBenchmark,
+      ],
+    ]);
+  });
+
+  test("the agent's namespaces are those of its workloads but kube-bench's own CronJobs", () => {
+    expect(
+      Array.from(
+        getOneUptimeAgentNamespaces([
+          workload("Deployment", "oneuptime-agent", "agent", {
+            ...AGENT_LABELS,
+            component: "metrics-collector",
+          }),
+          workload("CronJob", "tenant", "fake", {
+            ...AGENT_LABELS,
+            component: "node-benchmark",
+          }),
+          workload("Deployment", "web", "nginx", null),
+        ]),
+      ),
+    ).toEqual(["oneuptime-agent"]);
+  });
+
+  test("a run is the pod's node and what it found; one outside the agent's namespace, on no node, or with no block is none", () => {
+    const block: KubernetesNodeBenchmarkBlock | null = readNodeBenchmarkMessage(
+      WORKER_CIS_1_12,
+      "2026-11-19T22:41:05Z",
+    );
+    const stored: unknown = JSON.parse(JSON.stringify(block));
+
+    expect(
+      toNodeBenchmarkRuns(
+        [
+          {
+            namespaceKey: "oneuptime-agent",
+            name: "kube-bench-x1",
+            nodeName: "kind-worker",
+            nodeBenchmark: stored,
+          },
+          {
+            namespaceKey: "tenant",
+            name: "kube-bench-x2",
+            nodeName: "kind-worker",
+            nodeBenchmark: stored,
+          },
+          {
+            namespaceKey: "oneuptime-agent",
+            name: "kube-bench-x3",
+            nodeName: null,
+            nodeBenchmark: stored,
+          },
+          {
+            namespaceKey: "oneuptime-agent",
+            name: "kube-bench-x4",
+            nodeName: "kind-worker",
+            nodeBenchmark: { version: 99 },
+          },
+        ],
+        new Set<string>(["oneuptime-agent"]),
+      ),
+    ).toEqual([
+      {
+        node: "kind-worker",
+        pod: { namespace: "oneuptime-agent", name: "kube-bench-x1" },
+        result: block,
+      },
+    ]);
+    expect(toNodeBenchmarkRuns([], new Set<string>())).toEqual([]);
+  });
+
+  test("a pod says the component of its workload, or - its workload not read yet - of its own labels", () => {
+    const components: Map<string, OneUptimeAgentComponent> = new Map([
+      ["DaemonSet|oneuptime-agent|agent-ebpf", OneUptimeAgentComponent.Ebpf],
+    ]);
+    const owned: KubernetesCompliancePod | null = toCompliancePod(
+      podRow("oneuptime-agent", "agent-ebpf-x1", {
+        owners: [{ kind: "DaemonSet", name: "agent-ebpf" }],
+      }),
+      new Map(),
+      new Set<string>(),
+      components,
+    );
+    const labelled: KubernetesCompliancePod | null = toCompliancePod(
+      podRow("oneuptime-agent", "agent-kube-bench-x1", {
+        owners: [{ kind: "Job", name: "agent-kube-bench-now" }],
+        labels: { ...AGENT_LABELS, component: "node-benchmark" },
+      }),
+      new Map(),
+      new Set<string>(),
+      components,
+    );
+    const theirs: KubernetesCompliancePod | null = toCompliancePod(
+      podRow("web", "nginx-x1", {
+        owners: [{ kind: "DaemonSet", name: "nginx" }],
+      }),
+      new Map(),
+      new Set<string>(),
+      components,
+    );
+
+    expect(owned?.agentComponent).toBe(OneUptimeAgentComponent.Ebpf);
+    expect(labelled?.agentComponent).toBe(
+      OneUptimeAgentComponent.NodeBenchmark,
+    );
+    expect(theirs?.agentComponent).toBeUndefined();
+    expect(Object.keys(theirs || {})).not.toContain("agentComponent");
+  });
+
+  test("a template of the agent's workload says its component; another's says none", () => {
+    expect(
+      toComplianceTemplates([
+        workload("CronJob", "oneuptime-agent", "agent-kube-bench-workers", {
+          ...AGENT_LABELS,
+          component: "node-benchmark",
+        }),
+        workload("CronJob", "web", "report", { app: "report" }),
+      ]).map((template: KubernetesComplianceTemplate) => {
+        return [template.workload.name, template.agentComponent];
+      }),
+    ).toEqual([
+      ["agent-kube-bench-workers", OneUptimeAgentComponent.NodeBenchmark],
+      ["report", undefined],
+    ]);
+  });
+
+  test("a node is on the cluster while the inventory holds it", () => {
+    const onCluster: Set<string> = getObjectsOnCluster({
+      pods: [],
+      rows: [
+        { kind: "Node", namespaceKey: null, name: "kind-worker", labels: null },
+      ],
+    });
+
+    expect(onCluster.has("Node||kind-worker")).toBe(true);
   });
 });
