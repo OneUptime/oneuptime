@@ -55,6 +55,7 @@ import {
   CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CLOUD_MAX_ADDED_METRICS_PER_CONNECTION,
   CLOUD_MAX_ADDED_METRICS_PER_RESOURCE,
+  GCP_SPLIT_LEARN_EVERY_MINUTES,
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import { CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION } from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
@@ -226,6 +227,7 @@ const SOURCES: Record<string, string> = {
   gcpCommitments: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
   cliReadme: "packages/CLI/README.md",
   moreMetrics: `${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics.tsx`,
+  removeMetric: `${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudRemoveMetricModal.tsx`,
   resourceSideMenu: `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`,
   monitorActivity: `${DASHBOARD}/Components/Monitor/Overview/MonitorActivityCard.tsx`,
   dataMigrations: "packages/App/FeatureSet/Workers/DataMigrations/Index.ts",
@@ -1033,6 +1035,18 @@ describe("Connect a Cloud Account", () => {
     );
     expect(paragraph).toContain(
       "**Remove** first names the monitors, dashboard widgets, SLOs and recording rules that read the metric",
+    );
+    // A Google Cloud split read for its busiest values alone, learned every hour (#10076).
+    expect(GCP_SPLIT_LEARN_EVERY_MINUTES).toBe(60);
+    expect(paragraph).toContain(
+      `On Google Cloud, which bills every time series a read returns, OneUptime asks only for each resource's ${CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES} busiest values, and checks every hour which they are.`,
+    );
+    // A type's addition kept for the resources its readers read (#10078).
+    expect(paragraph).toContain(
+      "For a metric added for every resource of its type, **Remove** can instead keep it for just the resources they read, so the rest stop costing anything.",
+    );
+    expect(source("removeMetric")).toContain(
+      'translationKey("Keep for These Resources")',
     );
 
     // The tab, the card and its button, as the Dashboard names them.
