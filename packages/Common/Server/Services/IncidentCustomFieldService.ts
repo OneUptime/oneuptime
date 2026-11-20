@@ -122,6 +122,15 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: carryForward };
   }
 
+  /*
+   * A rename onto another field's name is refused by prepareRename, in its
+   * own words, before the values move: the generic check of an update
+   * leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,

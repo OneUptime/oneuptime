@@ -1030,5 +1030,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     return { updateBy, carryForward };
   }
+
+  /*
+   * A rename onto another variable's name, among the project's globals or
+   * the workflow's own, is refused by onBeforeUpdate above, in its own
+   * words: the generic check of an update leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
+  }
 }
 export default new Service();

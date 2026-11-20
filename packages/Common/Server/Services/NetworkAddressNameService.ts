@@ -169,6 +169,15 @@ export class Service extends DatabaseService<Model> {
 
     return { updateBy, carryForward: null };
   }
+
+  /*
+   * An address moved onto one the project already named is refused above,
+   * with the name it has: the generic check of an update leaves the
+   * address out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["address"];
+  }
 }
 
 export default new Service();
