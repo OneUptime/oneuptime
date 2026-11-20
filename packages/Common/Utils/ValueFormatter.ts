@@ -43,15 +43,24 @@ export interface ValueFormatterOptions {
   unitName?: ((unit: string) => string) | undefined;
   /*
    * The step between the ticks of the value axis the value is written on,
-   * in the value's unit (issue #10079). Given, the value is written with
-   * as many figures after the point as that step needs in the unit it is
-   * written in, and keeps them all: "17.205 GB" on an axis stepping 5 MB
-   * at a time, "17.200 GB" beside it. A chart hands it only to an axis
-   * whose ticks would otherwise all read alike ("17.2 GB" five times), and
-   * to the tooltip that writes its values. Left out, a value is written as
-   * it always was.
+   * in the value's unit (issues #10079, #10117). Given, the value is
+   * written with as many figures after the point as that step needs in the
+   * unit it is written in, and keeps them all: "17.205 GB" on an axis
+   * stepping 5 MB at a time, "17.200 GB" beside it, "25%" on one stepping
+   * a quarter. A span of time is written in the units of time the step
+   * needs: "1 h 30 min" on an axis stepping a quarter of an hour, never
+   * "1.5000 hours" (issue #10118). A chart hands it to every value axis it
+   * steps, and to the tooltip of one whose ticks its own figures cannot
+   * tell apart. Left out, a value is written as it always was.
    */
   step?: number | undefined;
+  /*
+   * The size of the largest tick of the axis the value is written on, in
+   * the value's unit (ValueAxisPrecision's largestTick): a span of time is
+   * written in the units that tick needs, so every tick of an axis reads
+   * alike - "0:59:59" beside "1:00:00". Read only with a step.
+   */
+  largestTick?: number | undefined;
 }
 
 type UnitThreshold = {
@@ -102,6 +111,38 @@ const nanosecondUnits: Array<UnitThreshold> = [
   { threshold: 1e3, unit: "µs", divisor: 1e3 },
   { threshold: 0, unit: "ns", divisor: 1 },
 ];
+
+/*
+ * The seconds one value of a unit of time stands for: the units a duration
+ * axis steps and writes in natural units of time (issue #10118). A rate
+ * ("ms/s") is no span of time.
+ */
+const durationUnitInSecondsMap: Record<string, number> = {
+  d: 86400,
+  day: 86400,
+  days: 86400,
+  h: 3600,
+  hr: 3600,
+  hour: 3600,
+  hours: 3600,
+  min: 60,
+  minute: 60,
+  minutes: 60,
+  s: 1,
+  sec: 1,
+  second: 1,
+  seconds: 1,
+  ms: 0.001,
+  millisecond: 0.001,
+  milliseconds: 0.001,
+  us: 0.000001,
+  µs: 0.000001,
+  microsecond: 0.000001,
+  microseconds: 0.000001,
+  ns: 0.000000001,
+  nanosecond: 0.000000001,
+  nanoseconds: 0.000000001,
+};
 
 // Maps common metric unit strings to their scaling table
 const unitTableMap: Record<string, Array<UnitThreshold>> = {
@@ -770,19 +811,27 @@ function readWrittenNumber(text: string): {
  * is one no line breaks at: DateLanguage asks Intl for the amount and
  * holds its unit to its number (getUnitAmountParts, #8456). Null where
  * there is nothing to rewrite - English, a word that is not a span of time,
- * a number it cannot read - and the English stands.
+ * a number it cannot read - and the English stands. `display` names the
+ * unit as the language shortens it ("Std.") where the word would be too
+ * long, as on a duration axis's tick (issue #10118).
  */
 function writeTimeWordInLanguage(
   written: string,
   timeWord: string,
   language: string | undefined,
+  display?: "long" | "short",
 ): { word: string; gap: string; isBefore: boolean } | null {
-  const timeUnit: { unit: string; display: "long" | "short" } | undefined =
+  const timeWordUnit: { unit: string; display: "long" | "short" } | undefined =
     TIME_UNIT_WORDS[timeWord];
 
-  if (!timeUnit || isEnglishDateLanguage(language)) {
+  if (!timeWordUnit || isEnglishDateLanguage(language)) {
     return null;
   }
+
+  const timeUnit: { unit: string; display: "long" | "short" } = {
+    unit: timeWordUnit.unit,
+    display: display || timeWordUnit.display,
+  };
 
   const read: { number: number; decimals: number; isScaled: boolean } | null =
     readWrittenNumber(written);
@@ -969,6 +1018,370 @@ function writeNumberInLanguage(
           .join("")
       : `${value}${scaleLetter}`,
   };
+}
+
+/*
+ * A SPAN OF TIME ON AN AXIS THAT HANDS ITS STEP OVER (issue #10118).
+ *
+ * A duration axis steps in natural units of time (ValueAxisTicks'
+ * DURATION_STEPS_IN_SECONDS), and each of its ticks is written in them,
+ * never in a decimal fraction of the unit its size picks: an axis stepping
+ * a second near an hour and a half read "1.5000 hours", "1.5003 hours",
+ * "1.5006 hours", which nobody reads an hour as.
+ *
+ *   - Under a minute, a value is scaled as the formatter always scales one:
+ *     "45 sec", "1.25 sec", "250 ms", with the figures the step needs.
+ *   - From a minute, it is written in the units from its largest down to
+ *     the step's, each by the language's short name, a unit that is zero
+ *     left out: "1 h 30 min", "45 min", "2 d 12 h", "1 min 30 sec".
+ *     English writes "d", "h", "min" and "sec", as its compact durations
+ *     ("4 h 24 min") and this formatter's seconds do.
+ *   - Where that takes three units or more - a second's step near an
+ *     hour, a minute's near a day - as a clock: "1:30:02", "12 d 05:30".
+ *     Its figures, its separator and its decimal sign are the language's:
+ *     "۱:۳۰:۰۲" in Persian, "1.30.02" in Danish.
+ *
+ * Every tick of an axis is written in the units its largest tick needs
+ * (largestTick), so no axis mixes "59 min 59 sec" with "1:00:00". Every
+ * space in a tick is a no-break one: a tick never breaks over two lines.
+ */
+
+interface DurationAxisUnit {
+  // Its name in the threshold tables and TIME_UNIT_WORDS: "hours", "min".
+  timeWord: string;
+  seconds: number;
+  // How English writes it on an axis.
+  english: string;
+}
+
+const DURATION_AXIS_UNITS: ReadonlyArray<DurationAxisUnit> = [
+  { timeWord: "days", seconds: 86400, english: "d" },
+  { timeWord: "hours", seconds: 3600, english: "h" },
+  { timeWord: "min", seconds: 60, english: "min" },
+  { timeWord: "sec", seconds: 1, english: "sec" },
+];
+
+const SECOND_UNIT_INDEX: number = DURATION_AXIS_UNITS.length - 1;
+
+// A clock's seconds are written to at most this many figures after the point.
+const MOST_CLOCK_DECIMALS: number = 9;
+
+/*
+ * `count` of `unit`, with `decimals` figures after the point, as the
+ * language writes it on an axis: "30 min" and "1.5 sec" in English, "30
+ * Min." in German, "۳۰ دقیقه" in Persian, "30 د" in Arabic. A language
+ * Intl cannot write the unit in keeps English's symbol, beside its own
+ * figure.
+ */
+function writeDurationPart(
+  count: number,
+  decimals: number,
+  unit: DurationAxisUnit,
+  language: string | undefined,
+): string {
+  const written: string = toFixedFigures(count, decimals);
+
+  if (isEnglishDateLanguage(language)) {
+    return `${written}${NO_BREAK_SPACE}${unit.english}`;
+  }
+
+  const figure: string =
+    writeNumberInLanguage(written, false, language)?.value || written;
+  const timeWord: { word: string; gap: string; isBefore: boolean } | null =
+    writeTimeWordInLanguage(written, unit.timeWord, language, "short");
+
+  if (!timeWord) {
+    return `${figure}${NO_BREAK_SPACE}${unit.english}`;
+  }
+
+  const gap: string = timeWord.gap ? NO_BREAK_SPACE : "";
+
+  return timeWord.isBefore
+    ? `${timeWord.word}${gap}${figure}`
+    : `${figure}${gap}${timeWord.word}`;
+}
+
+// One Intl format per language, figures and decimals: a clock's figures.
+const clockFigureFormats: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+/*
+ * A clock's figure: `value` with at least `integerDigits` digits before
+ * the point and `decimals` after it, in the language's digits and decimal
+ * sign - "05", "02.5", "۰۵", "02,5".
+ */
+function writeClockFigure(
+  value: number,
+  integerDigits: number,
+  decimals: number,
+  language: string | undefined,
+): string {
+  if (!isEnglishDateLanguage(language)) {
+    const key: string = [(language || "").trim(), integerDigits, decimals].join(
+      "|",
+    );
+
+    if (!clockFigureFormats.has(key)) {
+      let format: Intl.NumberFormat | null = null;
+
+      try {
+        format = new Intl.NumberFormat(getNumberLocale(language), {
+          minimumIntegerDigits: integerDigits,
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+          useGrouping: false,
+        });
+      } catch {
+        format = null;
+      }
+
+      clockFigureFormats.set(key, format);
+    }
+
+    const format: Intl.NumberFormat | null =
+      clockFigureFormats.get(key) || null;
+
+    if (format) {
+      return format.format(value);
+    }
+  }
+
+  const [whole, fraction] = value.toFixed(decimals).split(".");
+
+  return `${(whole || "0").padStart(integerDigits, "0")}${fraction ? `.${fraction}` : ""}`;
+}
+
+const clockSeparators: Map<string, string> = new Map<string, string>();
+
+/*
+ * What the language sets between a clock's hours and minutes: ":" in
+ * English and Persian, "." in Danish, as its times of day are written.
+ */
+function getClockSeparator(language: string | undefined): string {
+  const key: string = (language || "").trim();
+
+  if (isEnglishDateLanguage(key)) {
+    return ":";
+  }
+
+  if (!clockSeparators.has(key)) {
+    let separator: string = ":";
+
+    try {
+      const parts: Array<Intl.DateTimeFormatPart> = new Intl.DateTimeFormat(
+        getNumberLocale(key),
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          timeZone: "UTC",
+        },
+      ).formatToParts(new Date(Date.UTC(2000, 0, 1, 13, 30)));
+      const hourAt: number = parts.findIndex(
+        (part: Intl.DateTimeFormatPart): boolean => {
+          return part.type === "hour";
+        },
+      );
+      const between: Intl.DateTimeFormatPart | undefined = parts[hourAt + 1];
+
+      if (
+        hourAt >= 0 &&
+        between &&
+        between.type === "literal" &&
+        between.value.trim()
+      ) {
+        separator = between.value.trim();
+      }
+    } catch {
+      separator = ":";
+    }
+
+    clockSeparators.set(key, separator);
+  }
+
+  return clockSeparators.get(key) || ":";
+}
+
+// What the language writes before a negative figure: "-", or Persian's marked minus.
+function getMinusSign(language: string | undefined): string {
+  const minusOne: string | undefined = writeNumberInLanguage(
+    "-1",
+    false,
+    language,
+  )?.value;
+  const one: string | undefined = writeNumberInLanguage(
+    "1",
+    false,
+    language,
+  )?.value;
+
+  if (minusOne && one && minusOne.endsWith(one)) {
+    return minusOne.slice(0, minusOne.length - one.length) || "-";
+  }
+
+  return "-";
+}
+
+/*
+ * A span of `seconds` on an axis stepping `stepInSeconds` at a time whose
+ * largest tick is `largestInSeconds`, a minute or more: in units, or as a
+ * clock where that takes three units or more. Null for a step no clock
+ * writes, and the value is scaled as it always was.
+ */
+function writeDurationInUnits(input: {
+  seconds: number;
+  stepInSeconds: number;
+  largestInSeconds: number;
+  language: string | undefined;
+}): string | null {
+  const step: number = Math.abs(input.stepInSeconds);
+
+  // The step's unit: the largest unit of time it is a whole number of.
+  let stepUnitIndex: number = SECOND_UNIT_INDEX;
+
+  for (let index: number = 0; index < DURATION_AXIS_UNITS.length; index++) {
+    const ratio: number =
+      step / (DURATION_AXIS_UNITS[index] as DurationAxisUnit).seconds;
+
+    if (ratio >= 1 - 1e-9 && Math.abs(ratio - Math.round(ratio)) < 1e-6) {
+      stepUnitIndex = index;
+      break;
+    }
+  }
+
+  const decimals: number =
+    stepUnitIndex === SECOND_UNIT_INDEX ? getDecimalsForStep(step) ?? 0 : 0;
+
+  if (decimals > MOST_CLOCK_DECIMALS) {
+    return null;
+  }
+
+  // What one of the value's last figure stands for, in seconds.
+  const resolution: number =
+    stepUnitIndex === SECOND_UNIT_INDEX
+      ? Math.pow(10, -decimals)
+      : (DURATION_AXIS_UNITS[stepUnitIndex] as DurationAxisUnit).seconds;
+  const count: number = Math.round(Math.abs(input.seconds) / resolution);
+
+  if (!Number.isSafeInteger(count)) {
+    return null;
+  }
+
+  // The value in each unit, from days down to the step's.
+  const amounts: Array<number> = [];
+  let rest: number = count;
+
+  for (let index: number = 0; index <= stepUnitIndex; index++) {
+    if (index === stepUnitIndex) {
+      amounts.push(
+        index === SECOND_UNIT_INDEX
+          ? Number((rest * resolution).toFixed(decimals))
+          : rest,
+      );
+      break;
+    }
+
+    const size: number = Math.round(
+      (DURATION_AXIS_UNITS[index] as DurationAxisUnit).seconds / resolution,
+    );
+    const amount: number = Math.floor(rest / size);
+
+    amounts.push(amount);
+    rest -= amount * size;
+  }
+
+  const topUnitIndex: number =
+    input.largestInSeconds >= 86400
+      ? 0
+      : input.largestInSeconds >= 3600
+        ? 1
+        : 2;
+  const minus: string =
+    input.seconds < 0 && count > 0 ? getMinusSign(input.language) : "";
+
+  // Three units or more: a clock, its days in front ("12 d 05:30").
+  if (stepUnitIndex - topUnitIndex + 1 >= 3) {
+    const figures: Array<string> = [];
+    const hasDays: boolean = topUnitIndex === 0;
+
+    for (let index: number = 1; index <= stepUnitIndex; index++) {
+      figures.push(
+        writeClockFigure(
+          amounts[index] || 0,
+          index === 1 && !hasDays ? 1 : 2,
+          index === SECOND_UNIT_INDEX ? decimals : 0,
+          input.language,
+        ),
+      );
+    }
+
+    const clock: string = figures.join(getClockSeparator(input.language));
+
+    return hasDays
+      ? `${minus}${writeDurationPart(
+          amounts[0] || 0,
+          0,
+          DURATION_AXIS_UNITS[0] as DurationAxisUnit,
+          input.language,
+        )}${NO_BREAK_SPACE}${clock}`
+      : `${minus}${clock}`;
+  }
+
+  // In units, those that are zero left out: "1 h 30 min", "45 min".
+  const parts: Array<string> = [];
+
+  amounts.forEach((amount: number, index: number): void => {
+    if (amount !== 0) {
+      parts.push(
+        writeDurationPart(
+          amount,
+          index === SECOND_UNIT_INDEX ? decimals : 0,
+          DURATION_AXIS_UNITS[index] as DurationAxisUnit,
+          input.language,
+        ),
+      );
+    }
+  });
+
+  if (parts.length === 0) {
+    parts.push(
+      writeDurationPart(
+        0,
+        stepUnitIndex === SECOND_UNIT_INDEX ? decimals : 0,
+        DURATION_AXIS_UNITS[stepUnitIndex] as DurationAxisUnit,
+        input.language,
+      ),
+    );
+  }
+
+  return `${minus}${parts.join(NO_BREAK_SPACE)}`;
+}
+
+/*
+ * A span of time under a minute, scaled as the seconds table scales it,
+ * with the figures the step needs: "45 sec", "1.25 sec", "250 ms". A zero
+ * is written in the unit the step is: "0 ms" beside "250 ms", not "0.00
+ * sec".
+ */
+function scaleDurationUnderAMinute(
+  seconds: number,
+  stepInSeconds: number,
+): ScaledValue {
+  if (seconds === 0) {
+    const stepUnit: UnitThreshold =
+      secondUnits.find((threshold: UnitThreshold): boolean => {
+        return Math.abs(stepInSeconds) >= threshold.threshold;
+      }) || (secondUnits[secondUnits.length - 1] as UnitThreshold);
+
+    return {
+      value: formatNumber(0, stepIn(stepInSeconds, stepUnit.divisor)),
+      unit: stepUnit.unit,
+    };
+  }
+
+  return formatWithThresholds(seconds, secondUnits, stepInSeconds);
 }
 
 /*
@@ -1175,6 +1588,50 @@ function formatValueParts(
   }
 
   const normalizedUnit: string = normalizeUnit(unit);
+
+  /*
+   * A span of time on an axis that hands its step over: in the natural
+   * units of time the step needs, "1 h 30 min", never "1.5000 hours"
+   * (issue #10118).
+   */
+  const durationUnitInSeconds: number | undefined =
+    durationUnitInSecondsMap[normalizedUnit];
+
+  if (step !== undefined && durationUnitInSeconds !== undefined) {
+    const seconds: number = value * durationUnitInSeconds;
+    const stepInSeconds: number = step * durationUnitInSeconds;
+    const largestTick: number | undefined = options?.largestTick;
+    const largestInSeconds: number = Math.max(
+      Math.abs(seconds),
+      typeof largestTick === "number" && Number.isFinite(largestTick)
+        ? Math.abs(largestTick) * durationUnitInSeconds
+        : 0,
+    );
+
+    if (largestInSeconds >= 60) {
+      const written: string | null = writeDurationInUnits({
+        seconds: seconds,
+        stepInSeconds: stepInSeconds,
+        largestInSeconds: largestInSeconds,
+        language: options?.language,
+      });
+
+      if (written !== null) {
+        return { value: written, unit: "", formatted: written };
+      }
+    }
+
+    const scaled: ScaledValue = scaleDurationUnderAMinute(
+      seconds,
+      stepInSeconds,
+    );
+
+    return build(
+      scaled.value,
+      unitStyle === "compact" ? compactThresholdUnit(scaled.unit) : scaled.unit,
+    );
+  }
+
   const thresholds: Array<UnitThreshold> | undefined =
     unitTableMap[normalizedUnit];
 
@@ -1316,6 +1773,19 @@ export default class ValueFormatter {
     step: number | undefined,
   ): number | undefined {
     return getDecimalsForStep(step);
+  }
+
+  /*
+   * The seconds one value of `unit` stands for, when it is a span of time
+   * ("s" is 1, "ms" 0.001, "min" 60): what a chart hands a value axis in
+   * that unit, so it steps in natural units of time (YAxisOptions'
+   * durationUnitInSeconds, issue #10118). Undefined for any other unit, a
+   * rate of time ("ms/s") among them.
+   */
+  public static getDurationUnitInSeconds(
+    unit: string | undefined,
+  ): number | undefined {
+    return durationUnitInSecondsMap[normalizeUnit(unit || "")];
   }
 
   /*
