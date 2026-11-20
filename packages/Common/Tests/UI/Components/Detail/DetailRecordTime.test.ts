@@ -293,23 +293,23 @@ describe("how the line writes a time", () => {
   });
 
   test("as the row it replaces did: the date and time in the reader's zone", () => {
-    expect(getRecordTimeText(CREATED)).toBe("Sep 30 2026, 14:25 BST");
+    expect(getRecordTimeText(CREATED)).toBe("Sep 30, 2026, 14:25 BST");
     expect(getRecordTimeText(CREATED)).toBe(
       OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(CREATED),
     );
   });
 
   test("hovering gives it to the second", () => {
-    expect(getRecordTimeFullText(CREATED)).toBe("Sep 30 2026, 14:25:13 BST");
+    expect(getRecordTimeFullText(CREATED)).toBe("Sep 30, 2026, 14:25:13 BST");
   });
 
   test("in the time zone the reader picked, the date included", () => {
     OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
-    expect(getRecordTimeText(CREATED)).toBe("Sep 30 2026, 09:25 EDT");
+    expect(getRecordTimeText(CREATED)).toBe("Sep 30, 2026, 09:25 EDT");
 
     OneUptimeDate.setUserTimezone(Timezone.AsiaKolkata);
     expect(getRecordTimeText(new Date("2026-09-30T23:45:00.000Z"))).toBe(
-      "Oct 01 2026, 05:15 IST",
+      "Oct 1, 2026, 05:15 IST",
     );
   });
 
@@ -318,7 +318,7 @@ describe("how the line writes a time", () => {
       .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
       .mockReturnValue(true);
 
-    expect(getRecordTimeText(CREATED)).toBe("Sep 30 2026, 02:25 PM BST");
-    expect(getRecordTimeFullText(CREATED)).toBe("Sep 30 2026, 02:25:13 PM BST");
+    expect(getRecordTimeText(CREATED)).toBe("Sep 30, 2026, 2:25 PM BST");
+    expect(getRecordTimeFullText(CREATED)).toBe("Sep 30, 2026, 2:25:13 PM BST");
   });
 });

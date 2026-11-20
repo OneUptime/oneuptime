@@ -200,7 +200,7 @@ describe("getEmptyMessageWithTimeRange", () => {
       pin(true);
 
       expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
-        "Time range: Mar 1, 2:30 PM – Mar 1, 6:45 PM. Try adjusting filters or expanding the time range.",
+        "Time range: Mar 1, 2:30 PM – 6:45 PM. Try adjusting filters or expanding the time range.",
       );
     });
 
@@ -212,7 +212,7 @@ describe("getEmptyMessageWithTimeRange", () => {
       );
 
       expect(message).toBe(
-        "Time range: Mar 1, 14:30 – Mar 1, 18:45. Try adjusting filters or expanding the time range.",
+        "Time range: Mar 1, 14:30 – 18:45. Try adjusting filters or expanding the time range.",
       );
       expect(message).not.toMatch(/AM|PM/);
     });
@@ -248,15 +248,20 @@ describe("getEmptyMessageWithTimeRange", () => {
       pin(true);
       OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
 
-      const start: string = OneUptimeDate.getDateAsLocalShortDateTimeString(
-        AFTERNOON.startValue,
-      );
-      const end: string = OneUptimeDate.getDateAsLocalShortDateTimeString(
-        AFTERNOON.endValue,
-      );
+      // A window within one day names its day once (#7281).
+      const ends: { start: string; end: string } =
+        OneUptimeDate.getLocalDateTimeRangeEnds({
+          start: AFTERNOON.startValue,
+          end: AFTERNOON.endValue,
+          style: "short",
+        });
 
+      expect(ends.end).not.toContain("Mar");
       expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toContain(
-        `${start} – ${end}`,
+        `${ends.start} – ${ends.end}`,
+      );
+      expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toContain(
+        spaced(getTimeRangeButtonLabel(CUSTOM_AFTERNOON)),
       );
     });
 
@@ -276,12 +281,13 @@ describe("getEmptyMessageWithTimeRange", () => {
       const start: string = ["Mar", "1,", "2:30", "PM", "–"].join(
         NO_BREAK_SPACE,
       );
-      const end: string = ["Mar", "1,", "6:45", "PM."].join(NO_BREAK_SPACE);
+      // Within one day, the end is its time alone (#7281).
+      const end: string = ["6:45", "PM."].join(NO_BREAK_SPACE);
 
       expect(written).toContain(`Time range: ${start} ${end} Try adjusting`);
       // A negative control: spaces a reader cannot tell apart, all but one no-break.
-      expect(spaced(written)).toContain("Mar 1, 2:30 PM – Mar 1, 6:45 PM.");
-      expect(written).not.toContain("Mar 1, 2:30 PM – Mar 1, 6:45 PM.");
+      expect(spaced(written)).toContain("Mar 1, 2:30 PM – 6:45 PM.");
+      expect(written).not.toContain("Mar 1, 2:30 PM – 6:45 PM.");
     });
   });
 
@@ -389,7 +395,7 @@ describe("getEmptyMessageWithTimeRange", () => {
       pin(false);
 
       expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON, NOW))).toBe(
-        "Time range: Mar 1, 2024, 14:30 – Mar 1, 2024, 18:45. Try adjusting filters or expanding the time range.",
+        "Time range: Mar 1, 2024, 14:30 – 18:45. Try adjusting filters or expanding the time range.",
       );
     });
 
@@ -404,7 +410,7 @@ describe("getEmptyMessageWithTimeRange", () => {
           ),
         ),
       ).toBe(
-        "Time range: Mar 1, 14:30 – Mar 1, 18:45. Try adjusting filters or expanding the time range.",
+        "Time range: Mar 1, 14:30 – 18:45. Try adjusting filters or expanding the time range.",
       );
     });
 
@@ -459,7 +465,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
     pin(false);
 
     expect(readIn("de", getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
-      "Zeitraum: 1. März, 14:30 – 1. März, 18:45. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+      "Zeitraum: 1. März, 14:30 – 18:45. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
     );
   });
 
@@ -467,7 +473,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
     pin(true);
 
     expect(readIn("de", getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
-      "Zeitraum: 1. März, 2:30 PM – 1. März, 6:45 PM. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+      "Zeitraum: 1. März, 2:30 PM – 6:45 PM. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
     );
   });
 
@@ -544,7 +550,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
     );
 
     expect(spaced(withoutIsolateMarks(drawn))).toBe(
-      "النطاق الزمني: 1 مارس، 2:30 م – 1 مارس، 6:45 م. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
+      "النطاق الزمني: 1 مارس، 2:30 م – 6:45 م. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
     );
     expect(drawn).toContain(isolated(getTimeRangeWindowAsWritten("ar")));
     expect(drawn).not.toContain("02:30");
@@ -554,7 +560,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
     pin(false);
 
     expect(readIn("ja", getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
-      "時間範囲: 3月1日 14:30 – 3月1日 18:45。フィルターを調整するか、時間範囲を広げてみてください。",
+      "時間範囲: 3月1日 14:30 – 18:45。フィルターを調整するか、時間範囲を広げてみてください。",
     );
   });
 
@@ -580,7 +586,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
       pin(true);
 
       expect(readIn("es", getEmptyMessageWithTimeRange(MORNING))).toBe(
-        "Intervalo de tiempo: 1 mar, 5:14 a. m. – 1 mar, 9:49 a. m. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
+        "Intervalo de tiempo: 1 mar, 5:14 a. m. – 9:49 a. m. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
       );
     });
 
@@ -588,10 +594,10 @@ describe("the sentence in the reader's language (issue #7280)", () => {
       pin(true);
 
       expect(readIn("nl", getEmptyMessageWithTimeRange(MORNING))).toBe(
-        "Periode: 1 mrt, 5:14 a.m. – 1 mrt, 9:49 a.m. Pas de filters aan of kies een ruimere periode.",
+        "Periode: 1 mrt, 5:14 a.m. – 9:49 a.m. Pas de filters aan of kies een ruimere periode.",
       );
       expect(readIn("no", getEmptyMessageWithTimeRange(MORNING))).toBe(
-        "Tidsrom: 1. mars, 5:14 a.m. – 1. mars, 9:49 a.m. Prøv å justere filtrene eller utvide tidsrommet.",
+        "Tidsrom: 1. mars, 5:14 a.m. – 9:49 a.m. Prøv å justere filtrene eller utvide tidsrommet.",
       );
     });
 
@@ -605,7 +611,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
       const read: string = spaced(withoutIsolateMarks(drawn));
 
       expect(read).toBe(
-        `بازهٔ زمانی: ۱ مارس، ۵:۱۴ ق.ظ. – ۱ مارس، ۹:۴۹ ق.ظ. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ${ZERO_WIDTH_NON_JOINER}تر کنید.`,
+        `بازهٔ زمانی: ۱ مارس، ۵:۱۴ ق.ظ. – ۹:۴۹ ق.ظ. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ${ZERO_WIDTH_NON_JOINER}تر کنید.`,
       );
       expect(read).not.toMatch(DOUBLE_FULL_STOP);
       // The window keeps its own letters; the sentence's full stop follows it.
@@ -629,7 +635,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
           writeLogsEmptyMessage(getEmptyMessageWithTimeRange(MORNING), goesOn),
         ),
       ).toBe(
-        "Intervalo de tiempo: 1 mar, 5:14 a. m. – 1 mar, 9:49 a. m. (prueba a ampliarlo)",
+        "Intervalo de tiempo: 1 mar, 5:14 a. m. – 9:49 a. m. (prueba a ampliarlo)",
       );
     });
 
@@ -748,7 +754,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
     );
 
     expect(read).toBe(
-      "Time range: Mar 1, 14:30 – Mar 1, 18:45. Try adjusting filters or expanding the time range.",
+      "Time range: Mar 1, 14:30 – 18:45. Try adjusting filters or expanding the time range.",
     );
     expect(read).not.toContain("März");
 
@@ -774,7 +780,7 @@ describe("the sentence in the reader's language (issue #7280)", () => {
     );
 
     expect(spaced(drawn)).toBe(
-      "Time range: Mar 1, 2:30 PM – Mar 1, 6:45 PM. Try adjusting filters or expanding the time range.",
+      "Time range: Mar 1, 2:30 PM – 6:45 PM. Try adjusting filters or expanding the time range.",
     );
     expect(drawn).toBe(withoutIsolateMarks(drawn));
   });

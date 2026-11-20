@@ -144,7 +144,7 @@ describe("a date and time filter's chip", () => {
         seconds: false,
       });
       expect(text).toContain(clock);
-      expect(text).toContain("Nov 13 2026");
+      expect(text).toContain("Nov 13, 2026");
     },
   );
 
@@ -153,16 +153,16 @@ describe("a date and time filter's chip", () => {
       startsAt: new GreaterThan(WITH_SECONDS),
     } as FilterData<Row>);
 
-    expect(chipText("Starts")).toBe("Starts is after Nov 13 2026, 11:15 EST");
+    expect(chipText("Starts")).toBe("Starts is after Nov 13, 2026, 11:15 EST");
   });
 
-  test("is between: both ends to the minute", () => {
+  test("is between: both ends to the minute, the day and the zone said once (#7721)", () => {
     renderFilters("en", {
       startsAt: new InBetween(WITH_SECONDS, LATER_WITH_SECONDS),
     } as FilterData<Row>);
 
     expect(chipText("Starts")).toBe(
-      "Starts is between Nov 13 2026, 11:15 EST and Nov 13 2026, 12:40 EST",
+      "Starts is between Nov 13, 2026, 11:15 and 12:40 EST",
     );
   });
 
@@ -171,7 +171,7 @@ describe("a date and time filter's chip", () => {
       startsAt: new InBetween(ON_THE_MINUTE, WITH_SECONDS),
     } as FilterData<Row>);
 
-    expect(chipText("Starts")).toBe("Starts is Nov 13 2026, 11:15 EST");
+    expect(chipText("Starts")).toBe("Starts is Nov 13, 2026, 11:15 EST");
   });
 
   test("on a 12-hour clock too", () => {
@@ -184,7 +184,7 @@ describe("a date and time filter's chip", () => {
     } as FilterData<Row>);
 
     expect(chipText("Starts")).toBe(
-      "Starts is after Nov 13 2026, 11:15 AM EST",
+      "Starts is after Nov 13, 2026, 11:15 AM EST",
     );
   });
 

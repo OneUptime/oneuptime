@@ -142,12 +142,21 @@ export function formatTimeLabel(
     options = { month: "short", day: "numeric" };
   }
 
-  // The wall clock from OneUptime's own zone data, as every date (#10038).
-  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
-    locale: getReaderDateLocale(),
-    timezones: [timeZone],
-    options: options,
-  });
+  /*
+   * The wall clock from OneUptime's own zone data, as every date (#10038);
+   * for a zone no data knows, the browser's own clock rather than none.
+   */
+  const format: ReaderDateTimeFormat | null =
+    getDateTimeFormat({
+      locale: getReaderDateLocale(),
+      timezones: [timeZone],
+      options: options,
+    }) ||
+    getDateTimeFormat({
+      locale: getReaderDateLocale(),
+      timezones: [],
+      options: options,
+    });
 
   return format
     ? format.format(date)
