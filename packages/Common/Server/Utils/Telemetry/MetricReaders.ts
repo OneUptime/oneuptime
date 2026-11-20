@@ -974,12 +974,16 @@ function mergeOutputs(
         if (same) {
           same.parts.push(...reader.parts);
           same.widgets.push(...reader.widgets);
-        } else {
+        } else if (kind === MetricReaderKind.Dashboard) {
+          // A copy, to take the widgets of the others: the reader as found is left as it was.
           merged.readers[kind].push({
             ...reader,
             parts: [...reader.parts],
             widgets: [...reader.widgets],
           });
+        } else {
+          // The reader as found: a rule's output is looked up by it.
+          merged.readers[kind].push(reader);
         }
       }
     }
