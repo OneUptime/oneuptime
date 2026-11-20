@@ -20,10 +20,11 @@ import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
  * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE),
  * a phone number's line (SubscriberContactSql.onPhoneLine), a name as it
  * reads (QueryHelper.findWithSameName), and a column
- * naming a private incident, alert or episode (PrivateRecordReadFilter),
- * answered from the private records a test says there are
- * (setPrivateRecords). A condition it does not understand fails the test
- * loudly instead of matching quietly.
+ * naming a private incident, alert or episode - as a read is held to it
+ * (PrivateRecordReadFilter), and as a write of one of its parts is
+ * (PrivateRecordPermission.getReachableCondition) - answered from the
+ * private records a test says there are (setPrivateRecords). A condition
+ * it does not understand fails the test loudly instead of matching quietly.
  *
  * Rows are plain objects; every value is compared as text, ids case
  * insensitively.
@@ -284,6 +285,50 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
       : null;
 
     return readerId !== null && seenBy.has(readerId);
+  }
+
+  /*
+   * The records an update or a delete of a private record's part may
+   * reach (PrivateRecordPermission.getReachableCondition): no record when
+   * the part may name none, one that is not private, or one the writer
+   * owns - in person, or through one of the teams the condition names -
+   * answered from the private records a test says there are
+   * (setPrivateRecords).
+   */
+  match = sql.match(
+    /^\((c IS NULL OR )?c IN \(SELECT r\."_id" FROM "(\w+)" r WHERE r\."deletedAt" IS NULL AND \(r\."isPrivate" IS NULL OR r\."isPrivate" = FALSE([\s\S]*)\)\)\)$/,
+  );
+  if (match) {
+    if (storedText === null) {
+      return Boolean(match[1]);
+    }
+
+    const seenBy: Set<string> | undefined = privateRecords
+      .get(match[2]!)
+      ?.get(storedText);
+
+    if (!seenBy) {
+      return true;
+    }
+
+    // Whom the condition reaches: the writer, and the teams it names.
+    const reached: Array<string> = [];
+
+    for (const named of match[3]!.matchAll(/:(?:\.\.\.)?(\w+)/g)) {
+      const value: unknown = parameters[named[1]!];
+
+      for (const id of Array.isArray(value) ? value : [value]) {
+        const text: string | null = normalize(id);
+
+        if (text) {
+          reached.push(text);
+        }
+      }
+    }
+
+    return reached.some((id: string): boolean => {
+      return seenBy.has(id);
+    });
   }
 
   throw new Error(`InMemoryRepository: unknown SQL condition "${sql}"`);
