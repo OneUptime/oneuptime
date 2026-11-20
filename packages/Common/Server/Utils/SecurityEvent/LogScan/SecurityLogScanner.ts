@@ -35,6 +35,7 @@ import {
   NO_TRUSTED_PROXIES,
   TrustedProxies,
 } from "../../../../Utils/SecurityEvent/ClientAddressTrust";
+import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
@@ -549,8 +550,18 @@ export default class SecurityLogScanner {
     });
 
     /*
-     * A client address a scrub rule hid - in the line, or in the trace it
-     * was followed into - names the project's rule that did (#10397).
+     * A client address a Hash rule hid - in the line's client field, or in
+     * the trace it was followed into - names the address behind its token,
+     * when Security Events' address vault holds it (#10395).
+     */
+    await SecurityAddressVaultLookup.nameHashedAddresses({
+      projectId: data.projectId,
+      events: data.events,
+    });
+
+    /*
+     * A client address a scrub rule hid that is still hidden names the
+     * project's rule that did (#10397).
      */
     await ScrubbedClientAddresses.nameScrubRules({
       projectId: data.projectId,

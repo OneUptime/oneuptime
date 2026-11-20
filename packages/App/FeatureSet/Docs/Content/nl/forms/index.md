@@ -93,8 +93,10 @@ Kopieer onder **Delen** de link en stuur hem naar de mensen die het formulier mo
 | **Bouwen** | Naam en beschrijving van het formulier, de **Huisstijl** (logo en favicon, ingeklapt) en de editor: de vragen, het vragenpalet en **Voorbeeld**. |
 | **Sjablonen** | Benoemde sets antwoorden waarmee men het formulier kan beginnen, hoe elk sjabloon de vragen stelt, het sjabloon waarmee het formulier opent en de eigen link van elk sjabloon. |
 | **Bij verzenden** | Wat elke inzending aanmaakt en hoe elk veld ervan wordt ingevuld. **Instellingen bewerken** wijzigt de standaardwaarden en wat altijd geldt. |
-| **Delen** | **Accepteert inzendingen**, de **Deellink**, het bericht na het verzenden en, onder **Meer instellingen**, de **IP-toelatingslijst**. |
+| **Delen** | **Accepteert inzendingen**, de **Deellink**, **Wie dit formulier kan openen**, het bericht na het verzenden en, onder **Meer instellingen**, de **IP-toelatingslijst**. |
 | **Aangepaste domeinen** | De eigen domeinen van het formulier, zoals `report.acme.com`, met hun DNS-records en certificaten. Zie [Aangepaste domeinen](/docs/forms/sharing-and-security#aangepaste-domeinen). |
+| **Privégebruikers** | De mensen die mogen inloggen om het formulier te openen, als alleen mensen die inloggen het kunnen openen. Zie [Alleen mensen die inloggen](/docs/forms/sharing-and-security#alleen-mensen-die-inloggen). |
+| **Single Sign-On** | De SAML- en OpenID Connect-identiteitsproviders die mensen bij het formulier aanmelden, en **SSO vereisen om aan te melden**. |
 | **Inzendingen** | Elke inzending via het formulier, de nieuwste eerst, met de antwoorden en wat ze heeft aangemaakt. |
 | **Formulier dupliceren** | Onder **Geavanceerd**: een kopie van het formulier, voor u benoemd, met de vragen, sjablonen, instellingen onder Bij verzenden, huisstijl, bedankbericht en IP-toelatingslijst, en een eigen link. De kopie staat eerst uit en opent in haar editor. |
 | **Auditlogboeken** | Onder **Geavanceerd**: elke wijziging aan het formulier, de aangepaste domeinen en de inzendingen, wie die maakte en wanneer. |
@@ -262,6 +264,8 @@ Formulieren hebben de gegenereerde workflowcomponenten: **Bij aanmaken: Formulie
 ### De eigen eindpunten van de openbare pagina
 
 De openbare pagina praat met twee routes die geen API-sleutel nodig hebben: `GET /api/form/public/<shareKey>`, die naam, beschrijving en vragen van het formulier teruggeeft (en, als die er zijn, het logo, de alternatieve tekst van het logo en de favicon, de afbeeldingen als base64, en de sjablonen, met hun antwoorden op de vragen die de pagina stelt), en `POST /api/form/public/<shareKey>/submit`, die het formulier verzendt en in `templateId` het sjabloon noemt waarmee de inzender begon. Het zijn de eigen eindpunten van de pagina, geen API om op te bouwen: elke aanroep gaat langs de beveiliging van het formulier (zie [Delen & beveiliging](/docs/forms/sharing-and-security)), en ze veranderen mee met de pagina. Gebruik `POST /api/incident` met een API-sleutel om incidenten vanuit uw eigen code aan te maken: zie [Een incident melden](/docs/incidents/declaring-incidents). Op een [aangepast domein](/docs/forms/sharing-and-security#aangepaste-domeinen) van een formulier gebruikt de pagina in plaats daarvan `GET /api/form/custom-domain` en `POST /api/form/custom-domain/submit` op dat domein, die geen sleutel bevatten: het domein wijst het formulier aan.
+
+Bij een formulier dat alleen mensen die inloggen kunnen openen, antwoorden deze routes `401` aan iedereen die niet als een van zijn privégebruikers is ingelogd. De pagina leest eerst `GET /api/form/public/<shareKey>/sign-in-state`, of `GET /api/form/custom-domain/sign-in-state` op een aangepast domein, dat alleen zegt of het formulier zijn bezoekers vraagt in te loggen en, als het dat doet, zijn ID, zijn naam en wie er is ingelogd.
 
 ## Waar uw incidentformulieren zijn gebleven
 

@@ -180,11 +180,22 @@ export interface TerraformPersonEmail {
  * requires is given by user ID or by email address, so neither attribute
  * is required on its own - the API reference still badges the column
  * Required (getColumnsRequiredOnCreate), as the API requires it.
+ *
+ * A permission (a team's, an API key's, a custom role's) is required by the
+ * API too, and optional in the provider all the same: the spec documented
+ * it as an object that a create could leave out until #10300, so the
+ * provider has always had it optional, and a configuration or a Crossplane
+ * manifest that takes over a row by its ID without saying its permission
+ * keeps the row's (OpenAPIParser.generateResourceSchema).
  */
 export function isRequiredInTerraform(
   descriptor: TerraformAttributeDescriptor,
 ): boolean {
-  return descriptor.isRequired && !descriptor.personEmail;
+  return (
+    descriptor.isRequired &&
+    !descriptor.personEmail &&
+    descriptor.columnType !== TableColumnType.Permission
+  );
 }
 
 /*
@@ -421,7 +432,6 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.Array:
       return TerraformValueKind.StringSet;
     case TableColumnType.JSON:
-    case TableColumnType.Permission:
       return TerraformValueKind.Json;
     case TableColumnType.MonitorSteps:
       return TerraformValueKind.MonitorSteps;
@@ -429,6 +439,11 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.Buffer:
     case TableColumnType.Entity:
       return TerraformValueKind.Unsupported;
+    /*
+     * Text, and the values written as text: a permission's key, such as
+     * IncidentMember, among them, as the spec documents it since #10300
+     * (ModelSchema.getPermissionOpenApi).
+     */
     case TableColumnType.ObjectID:
     case TableColumnType.ShortText:
     case TableColumnType.LongText:
@@ -455,6 +470,7 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.CustomFieldType:
     case TableColumnType.HashedString:
     case TableColumnType.Password:
+    case TableColumnType.Permission:
       return TerraformValueKind.String;
     default:
       return TerraformValueKind.Unsupported;
@@ -585,7 +601,6 @@ function isColumnInWriteSchema(data: {
  */
 const COLUMN_TYPES_WITH_ANY_SCHEMA: ReadonlyArray<TableColumnType> = [
   TableColumnType.JSON,
-  TableColumnType.Permission,
   TableColumnType.File,
   TableColumnType.Buffer,
 ];

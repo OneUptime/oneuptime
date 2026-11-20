@@ -288,6 +288,29 @@
     "templateNone": "Keine Vorlage",
     "uploadingFiles": "Ihre Dateien werden hochgeladen…"
   },
+  "formSignIn": {
+    "prompt": "Melden Sie sich an, um dieses Formular zu öffnen.",
+    "ssoOnlyPrompt": "Melden Sie sich mit dem Single Sign-On Ihrer Organisation an, um dieses Formular zu öffnen.",
+    "noWayIn": "Für dieses Formular ist noch keine Anmeldung eingerichtet. Fragen Sie die Person, die es mit Ihnen geteilt hat.",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "signIn": "Anmelden",
+    "or": "oder",
+    "signInWithProvider": "Mit {{provider}} anmelden",
+    "forgotTitle": "Passwort vergessen?",
+    "forgotPrompt": "Geben Sie Ihre E-Mail-Adresse ein, und wir senden Ihnen einen Link, mit dem Sie ein neues Passwort wählen.",
+    "sendLink": "Link senden",
+    "forgotSent": "Wenn sich diese Adresse bei diesem Formular anmelden kann, ist ein Link zum Wählen eines neuen Passworts unterwegs. Der Link ist 24 Stunden gültig.",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "resetTitle": "Neues Passwort wählen",
+    "resetPrompt": "Geben Sie das Passwort ein, mit dem Sie sich bei diesem Formular anmelden.",
+    "newPassword": "Neues Passwort",
+    "savePassword": "Passwort speichern",
+    "resetDone": "Ihr Passwort ist gespeichert. Melden Sie sich damit an, um das Formular zu öffnen.",
+    "signedInAs": "Angemeldet als {{email}}",
+    "signOut": "Abmelden"
+  },
   "errors": {
     "forbidden": {
       "title": "Verboten",

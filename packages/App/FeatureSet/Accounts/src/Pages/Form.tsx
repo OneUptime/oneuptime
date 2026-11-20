@@ -12,6 +12,21 @@ import {
   submitPublicForm,
   submitPublicFormOnCustomDomain,
 } from "../Utils/Form";
+import FormSignInView from "../Components/FormSignIn/FormSignInView";
+import {
+  FormSignInTarget,
+  describeFormSignInError,
+  exchangeFormLoginCode,
+  loadFormSignInState,
+  renewFormSession,
+  signOutOfForm,
+} from "../Utils/FormSignIn";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import {
+  FORM_LOGIN_CODE_PARAMETER,
+  FORM_RESET_PASSWORD_PARAMETER,
+  FormSignInState,
+} from "Common/Types/Form/FormPrivateUserSignIn";
 import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import { isKnownFormMessage } from "../Utils/FormMessage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -174,6 +189,56 @@ export interface FormPageProps {
   isOnCustomDomain?: boolean | undefined;
 }
 
+/*
+ * A form that asks its visitors to sign in (#10249), as its sign-in state
+ * says: which form the sign-in routes are for, its name, who is signed in
+ * on this host - null until somebody is - and, opened from an invitation
+ * or a reset link, its token; or what went wrong exchanging a single
+ * sign-on code.
+ */
+interface FormPageSignIn {
+  target: FormSignInTarget;
+  name: string;
+  signedInAs: string | null;
+  resetToken: string | null;
+  error: string | null;
+}
+
+/*
+ * A parameter the page was opened with, taken out of the address - with
+ * replaceState, so neither Back nor a bookmark keeps it - or null.
+ */
+const takeAddressParameter: (name: string) => string | null = (
+  name: string,
+): string | null => {
+  try {
+    const address: globalThis.URL = new globalThis.URL(window.location.href);
+    const value: string | null = address.searchParams.get(name);
+
+    if (value === null) {
+      return null;
+    }
+
+    address.searchParams.delete(name);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${address.pathname}${address.search}${address.hash}`,
+    );
+
+    return value || null;
+  } catch {
+    return null;
+  }
+};
+
+// The answer a form gives a visitor it asks to sign in, until they have.
+const isSignInRequiredAnswer: (error: unknown) => boolean = (
+  error: unknown,
+): boolean => {
+  return error instanceof HTTPErrorResponse && error.statusCode === 401;
+};
+
 const FormPage: (props: FormPageProps) => JSX.Element = (
   props: FormPageProps,
 ) => {
@@ -189,6 +254,9 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
 
   const [form, setForm] = useState<PublicForm | null>(null);
   const [loadFailure, setLoadFailure] = useState<FormFailure | null>(null);
+
+  // A form that asks its visitors to sign in (#10249); null for one that does not.
+  const [signIn, setSignIn] = useState<FormPageSignIn | null>(null);
 
   // Bumped by "Try again" on a form that could not be loaded.
   const [loadAttempt, setLoadAttempt] = useState<number>(0);
@@ -275,9 +343,83 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
     setForm(null);
     setLoadFailure(null);
 
-    (shareKey ? loadPublicForm(shareKey) : loadPublicFormOnCustomDomain())
-      .then((loadedForm: PublicForm) => {
+    /*
+     * The form's sign-in first (#10249): on a form that asks its visitors
+     * to sign in, single sign-on's code is exchanged, a link's reset token
+     * is taken, and a session whose access token ran out is renewed -
+     * before the form is read, which it is only for somebody signed in.
+     */
+    // Whether the form asks its visitors to sign in, once its state is read.
+    let requiresSignIn: boolean = false;
+
+    const prepareSignIn: () => Promise<boolean> =
+      async (): Promise<boolean> => {
+        const state: FormSignInState = await loadFormSignInState(shareKey);
+
+        if (!state.requireSignIn || !state.formId) {
+          if (isCurrent) {
+            setSignIn(null);
+          }
+          return true;
+        }
+
+        requiresSignIn = true;
+
+        const target: FormSignInTarget = {
+          formId: state.formId,
+          isOnCustomDomain: isOnCustomDomain,
+        };
+
+        let error: string | null = null;
+        let signedInAs: string | null = state.signedInAs || null;
+
+        const loginCode: string | null = takeAddressParameter(
+          FORM_LOGIN_CODE_PARAMETER,
+        );
+
+        if (loginCode) {
+          try {
+            await exchangeFormLoginCode(target, loginCode);
+            signedInAs =
+              (await loadFormSignInState(shareKey)).signedInAs || null;
+          } catch (err) {
+            error = describeFormSignInError(err);
+          }
+        }
+
+        const resetToken: string | null = takeAddressParameter(
+          FORM_RESET_PASSWORD_PARAMETER,
+        );
+
+        if (!signedInAs && !resetToken) {
+          signedInAs = await renewFormSession(target);
+        }
+
         if (isCurrent) {
+          setSignIn({
+            target: target,
+            name: state.name || "",
+            signedInAs: resetToken ? null : signedInAs,
+            resetToken: resetToken,
+            error: error,
+          });
+        }
+
+        return Boolean(signedInAs) && !resetToken;
+      };
+
+    prepareSignIn()
+      .then((mayRead: boolean) => {
+        if (!mayRead) {
+          return null;
+        }
+
+        return shareKey
+          ? loadPublicForm(shareKey)
+          : loadPublicFormOnCustomDomain();
+      })
+      .then((loadedForm: PublicForm | null) => {
+        if (isCurrent && loadedForm) {
           const startTemplate: PublicFormTemplate | undefined =
             getPublicFormStartTemplate({
               form: loadedForm,
@@ -291,9 +433,21 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
         }
       })
       .catch((error: unknown) => {
-        if (isCurrent) {
-          setLoadFailure(getFormFailure(error));
+        if (!isCurrent) {
+          return;
         }
+
+        // A session that ended between the sign-in state and the read: sign in.
+        if (requiresSignIn && isSignInRequiredAnswer(error)) {
+          setSignIn((previous: FormPageSignIn | null) => {
+            return previous
+              ? { ...previous, signedInAs: null, error: null }
+              : previous;
+          });
+          return;
+        }
+
+        setLoadFailure(getFormFailure(error));
       });
 
     return () => {
@@ -502,9 +656,34 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
           }
         : undefined;
 
-      const submitted: PublicFormSubmissionResult = shareKey
-        ? await submitPublicForm(shareKey, request, onProgress)
-        : await submitPublicFormOnCustomDomain(request, onProgress);
+      const send: () => Promise<PublicFormSubmissionResult> =
+        async (): Promise<PublicFormSubmissionResult> => {
+          return shareKey
+            ? await submitPublicForm(shareKey, request, onProgress)
+            : await submitPublicFormOnCustomDomain(request, onProgress);
+        };
+
+      let submitted: PublicFormSubmissionResult;
+
+      try {
+        submitted = await send();
+      } catch (firstError: unknown) {
+        /*
+         * A form that asks its visitors to sign in (#10249), whose access
+         * token ran out while its visitor answered: renewed once, and sent
+         * again; without a session the visitor is asked to sign in.
+         */
+        if (!signIn || !isSignInRequiredAnswer(firstError)) {
+          throw firstError;
+        }
+
+        if (!(await renewFormSession(signIn.target))) {
+          setSignIn({ ...signIn, signedInAs: null, error: null });
+          throw firstError;
+        }
+
+        submitted = await send();
+      }
 
       setResult(submitted);
 
@@ -537,6 +716,31 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
       return instance + 1;
     });
   };
+
+  /*
+   * A form that asks its visitors to sign in, and nobody has on this host
+   * (#10249): its sign-in, titled with its name - nothing else of the form.
+   */
+  if (signIn && !signIn.signedInAs && !loadFailure) {
+    return (
+      <PageShell
+        heading={signIn.name}
+        isNarrow={true}
+        isOnCustomDomain={isOnCustomDomain}
+      >
+        <FormSignInView
+          target={signIn.target}
+          resetToken={signIn.resetToken}
+          initialError={signIn.error}
+          onSignedIn={() => {
+            setLoadAttempt((attempt: number): number => {
+              return attempt + 1;
+            });
+          }}
+        />
+      </PageShell>
+    );
+  }
 
   if (loadFailure) {
     const failure: { message: string; retryAfter: string | null } =
@@ -683,6 +887,38 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
       logoAltText={form.logoAltText}
       isOnCustomDomain={isOnCustomDomain}
     >
+      {signIn && signIn.signedInAs ? (
+        <div
+          className="mb-6 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4 text-sm text-gray-600"
+          data-testid="form-signed-in-as"
+        >
+          <span className="[overflow-wrap:anywhere]">
+            {t("formSignIn.signedInAs", { email: signIn.signedInAs })}
+          </span>
+          <button
+            type="button"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+            data-testid="form-sign-out"
+            onClick={() => {
+              const target: FormSignInTarget = signIn.target;
+
+              void signOutOfForm(target).then(() => {
+                setForm(null);
+                setSignIn({
+                  ...signIn,
+                  signedInAs: null,
+                  resetToken: null,
+                  error: null,
+                });
+              });
+            }}
+          >
+            {t("formSignIn.signOut")}
+          </button>
+        </div>
+      ) : (
+        <></>
+      )}
       {form.description ? (
         <div
           className="mb-6 border-b border-gray-100 pb-6 text-sm text-gray-700"

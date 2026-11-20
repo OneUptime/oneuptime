@@ -25,8 +25,10 @@ import {
   readClientAddressTrust,
 } from "./ClientAddressTrust";
 import {
+  HiddenClientAddress,
   ScrubbedAddressPlace,
   clearClientAddressScrubbed,
+  isAddressVaultToken,
   markClientAddressScrubbed,
   readHiddenClientAddress,
 } from "./ScrubbedAddress";
@@ -190,20 +192,30 @@ export function applyRequestAssessment(
   /*
    * The trace's span holds what a trace scrub rule left of the client's
    * verified address (#10397): an event that names no address, nor says
-   * why, says that. One that already says a log rule hid it keeps saying so.
+   * why, says that. One that already says a log rule hid it keeps saying
+   * so - unless the log's rule left nothing to look up and the trace's Hash
+   * rule left a token Security Events' address vault can name (#10395): the
+   * token is what may still name the address, so it is the one the event
+   * keeps. A token only the request claimed is never one (#10416): the
+   * trace's verified address is the only one read here.
    */
-  if (
-    !event.principalIp &&
-    !readHiddenClientAddress(event) &&
-    client.scrubbed
-  ) {
-    markClientAddressScrubbed(attributes, {
-      scrubbed: client.scrubbed,
-      place: ScrubbedAddressPlace.SpanAttributes,
-    });
+  if (!event.principalIp && client.scrubbed) {
+    const hidden: HiddenClientAddress | null = readHiddenClientAddress(event);
 
-    if (client.trust) {
-      attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] = client.trust;
+    if (
+      !hidden ||
+      (isAddressVaultToken(client.scrubbed) && !isAddressVaultToken(hidden))
+    ) {
+      clearClientAddressScrubbed(attributes);
+      markClientAddressScrubbed(attributes, {
+        scrubbed: client.scrubbed,
+        place: ScrubbedAddressPlace.SpanAttributes,
+      });
+
+      if (client.trust) {
+        attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] =
+          client.trust;
+      }
     }
   }
 
