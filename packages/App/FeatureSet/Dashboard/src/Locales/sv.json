@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Skapa en mobil intagningsnyckel för telemetri. Den kan säkert följa med i din app: den skickar bara spår, loggar och mätvärden från appen den är fäst vid.",
   "Includes records where these {{count}} addresses were hashed.": "Omfattar poster där dessa {{count}} adresser hashades.",
   "Includes records where these {{count}} addresses were hashed._one": "Omfattar poster där den här adressen hashades.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Äldre poster vars token har 8 tecken, som {{example}}, kan inte kopplas till en adress."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Äldre poster vars token har 8 tecken, som {{example}}, kan inte kopplas till en adress.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "Övervakar kanske inte den här tjänsten: dess PromQL-fråga filtrerar också på {{labels}}, vilket den här sidan inte kan kontrollera.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Övervakar kanske inte den här tjänsten: dess PromQL-fråga kan utelämna några av serierna den läser, vilket den här sidan inte kan kontrollera.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "Övervakar kanske inte den här enheten: dess PromQL-fråga filtrerar också på {{labels}}, vilket den här sidan inte kan kontrollera.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Övervakar kanske inte den här enheten: dess PromQL-fråga kan utelämna några av serierna den läser, vilket den här sidan inte kan kontrollera."
 }

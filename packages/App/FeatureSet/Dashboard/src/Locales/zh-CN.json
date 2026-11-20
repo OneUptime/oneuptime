@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "创建移动端遥测摄取密钥。它可以安全地随您的应用分发：它只发送其所固定的应用的追踪、日志和指标。",
   "Includes records where these {{count}} addresses were hashed.": "包含这 {{count}} 个地址被哈希处理的记录。",
   "Includes records where these {{count}} addresses were hashed._one": "包含此地址被哈希处理的记录。",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "令牌为 8 个字符的较早记录（例如 {{example}}）无法与地址匹配。"
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "令牌为 8 个字符的较早记录（例如 {{example}}）无法与地址匹配。",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "可能未监视此服务：其 PromQL 查询还按 {{labels}} 筛选，此页面无法核实。",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "可能未监视此服务：其 PromQL 查询可能会排除它读取的部分序列，此页面无法核实。",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "可能未监视此单元：其 PromQL 查询还按 {{labels}} 筛选，此页面无法核实。",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "可能未监视此单元：其 PromQL 查询可能会排除它读取的部分序列，此页面无法核实。"
 }

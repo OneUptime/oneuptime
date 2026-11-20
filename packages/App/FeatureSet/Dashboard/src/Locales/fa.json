@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "یک کلید دریافت داده موبایل برای تله‌متری بسازید. منتشر کردنش همراه اپ امن است: فقط ترِیس‌ها، لاگ‌ها و متریک‌های اپی را می‌فرستد که به آن سنجاق شده است.",
   "Includes records where these {{count}} addresses were hashed.": "شامل رکوردهایی است که این {{count}} نشانی در آن‌ها درهم‌سازی شده‌اند.",
   "Includes records where these {{count}} addresses were hashed._one": "شامل رکوردهایی است که این نشانی در آن‌ها درهم‌سازی شده است.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "رکوردهای قدیمی‌تر که توکن آن‌ها ۸ نویسه دارد، مانند {{example}}، را نمی‌توان با یک نشانی تطبیق داد."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "رکوردهای قدیمی‌تر که توکن آن‌ها ۸ نویسه دارد، مانند {{example}}، را نمی‌توان با یک نشانی تطبیق داد.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "شاید این سرویس را زیر نظر نداشته باشد: عبارت PromQL آن بر اساس {{labels}} هم فیلتر می‌کند و این صفحه نمی‌تواند این را بررسی کند.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "شاید این سرویس را زیر نظر نداشته باشد: عبارت PromQL آن ممکن است برخی از سری‌هایی را که می‌خواند کنار بگذارد و این صفحه نمی‌تواند این را بررسی کند.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "شاید این واحد را زیر نظر نداشته باشد: عبارت PromQL آن بر اساس {{labels}} هم فیلتر می‌کند و این صفحه نمی‌تواند این را بررسی کند.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "شاید این واحد را زیر نظر نداشته باشد: عبارت PromQL آن ممکن است برخی از سری‌هایی را که می‌خواند کنار بگذارد و این صفحه نمی‌تواند این را بررسی کند."
 }

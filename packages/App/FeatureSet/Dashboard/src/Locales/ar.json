@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "أنشئ مفتاح استيعاب للقياس عن بُعد خاصًا بالهاتف المحمول. شحنه داخل تطبيقك آمن: فهو لا يرسل إلا تتبعات التطبيق المثبّت عليه وسجلاته ومقاييسه.",
   "Includes records where these {{count}} addresses were hashed.": "يتضمن السجلات التي استُبدلت فيها هذه العناوين ({{count}}) بقيمة تجزئة.",
   "Includes records where these {{count}} addresses were hashed._one": "يتضمن السجلات التي استُبدل فيها هذا العنوان بقيمة تجزئة.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "لا يمكن مطابقة السجلات الأقدم التي يتكون رمزها من 8 أحرف، مثل {{example}}، مع عنوان."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "لا يمكن مطابقة السجلات الأقدم التي يتكون رمزها من 8 أحرف، مثل {{example}}، مع عنوان.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "قد لا تراقب هذه الخدمة: يصفّي تعبير PromQL الخاص بها أيضًا حسب {{labels}}، ولا تستطيع هذه الصفحة التحقق من ذلك.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "قد لا تراقب هذه الخدمة: قد يستبعد تعبير PromQL الخاص بها بعض السلاسل التي يقرؤها، ولا تستطيع هذه الصفحة التحقق من ذلك.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "قد لا تراقب هذه الوحدة: يصفّي تعبير PromQL الخاص بها أيضًا حسب {{labels}}، ولا تستطيع هذه الصفحة التحقق من ذلك.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "قد لا تراقب هذه الوحدة: قد يستبعد تعبير PromQL الخاص بها بعض السلاسل التي يقرؤها، ولا تستطيع هذه الصفحة التحقق من ذلك."
 }

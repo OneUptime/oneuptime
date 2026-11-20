@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "モバイル用のテレメトリ取り込みキーを作成します。アプリに安全に同梱できます: 固定されたアプリのトレース、ログ、メトリクスだけを送ります。",
   "Includes records where these {{count}} addresses were hashed.": "この {{count}} 件のアドレスがハッシュ化されたレコードを含みます。",
   "Includes records where these {{count}} addresses were hashed._one": "このアドレスがハッシュ化されたレコードを含みます。",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "トークンが 8 文字の古いレコード ({{example}} など) は、アドレスと照合できません。"
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "トークンが 8 文字の古いレコード ({{example}} など) は、アドレスと照合できません。",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "このサービスを監視していない可能性があります。PromQL クエリが {{labels}} でも絞り込んでおり、このページではそれを確認できません。",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "このサービスを監視していない可能性があります。PromQL クエリが読み取る系列の一部を除外することがあり、このページではそれを確認できません。",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "このユニットを監視していない可能性があります。PromQL クエリが {{labels}} でも絞り込んでおり、このページではそれを確認できません。",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "このユニットを監視していない可能性があります。PromQL クエリが読み取る系列の一部を除外することがあり、このページではそれを確認できません。"
 }

@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Crie uma chave de ingestão de telemetria para celular. Ela pode ir com segurança dentro do seu app: só envia os traços, registros e métricas do app ao qual está fixada.",
   "Includes records where these {{count}} addresses were hashed.": "Inclui registros em que estes {{count}} endereços foram transformados em hash.",
   "Includes records where these {{count}} addresses were hashed._one": "Inclui registros em que este endereço foi transformado em hash.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Registros mais antigos cujo token tem 8 caracteres, como {{example}}, não podem ser associados a um endereço."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Registros mais antigos cujo token tem 8 caracteres, como {{example}}, não podem ser associados a um endereço.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "Pode não vigiar este serviço: sua consulta PromQL também filtra por {{labels}}, o que esta página não consegue verificar.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Pode não vigiar este serviço: sua consulta PromQL pode deixar de fora algumas das séries que lê, o que esta página não consegue verificar.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "Pode não vigiar esta unidade: sua consulta PromQL também filtra por {{labels}}, o que esta página não consegue verificar.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Pode não vigiar esta unidade: sua consulta PromQL pode deixar de fora algumas das séries que lê, o que esta página não consegue verificar."
 }

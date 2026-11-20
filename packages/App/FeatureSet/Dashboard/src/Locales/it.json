@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Crea una chiave di acquisizione della telemetria mobile. Puoi distribuirla in sicurezza nella tua app: invia solo le tracce, i log e le metriche dell'app a cui è fissata.",
   "Includes records where these {{count}} addresses were hashed.": "Include i record in cui questi {{count}} indirizzi sono stati sottoposti ad hashing.",
   "Includes records where these {{count}} addresses were hashed._one": "Include i record in cui questo indirizzo è stato sottoposto ad hashing.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "I record più vecchi il cui token ha 8 caratteri, come {{example}}, non possono essere associati a un indirizzo."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "I record più vecchi il cui token ha 8 caratteri, come {{example}}, non possono essere associati a un indirizzo.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "Potrebbe non controllare questo servizio: la sua query PromQL filtra anche per {{labels}}, cosa che questa pagina non può verificare.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Potrebbe non controllare questo servizio: la sua query PromQL può escludere alcune delle serie che legge, cosa che questa pagina non può verificare.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "Potrebbe non controllare questa unità: la sua query PromQL filtra anche per {{labels}}, cosa che questa pagina non può verificare.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Potrebbe non controllare questa unità: la sua query PromQL può escludere alcune delle serie che legge, cosa che questa pagina non può verificare."
 }

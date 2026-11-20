@@ -61052,5 +61052,9 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Crea una clave de ingesta de telemetría móvil. Puedes incluirla en tu app con seguridad: solo envía las trazas, registros y métricas de la app a la que está fijada.",
   "Includes records where these {{count}} addresses were hashed.": "Incluye registros en los que estas {{count}} direcciones se convirtieron en hash.",
   "Includes records where these {{count}} addresses were hashed._one": "Incluye registros en los que esta dirección se convirtió en hash.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Los registros más antiguos cuyo token tiene 8 caracteres, como {{example}}, no se pueden asociar a una dirección."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Los registros más antiguos cuyo token tiene 8 caracteres, como {{example}}, no se pueden asociar a una dirección.",
+  "May not watch this service: its PromQL expression also filters by {{labels}}, which this page can't check.": "Puede que no vigile este servicio: su consulta PromQL también filtra por {{labels}}, algo que esta página no puede comprobar.",
+  "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Puede que no vigile este servicio: su consulta PromQL puede dejar fuera algunas de las series que lee, algo que esta página no puede comprobar.",
+  "May not watch this unit: its PromQL expression also filters by {{labels}}, which this page can't check.": "Puede que no vigile esta unidad: su consulta PromQL también filtra por {{labels}}, algo que esta página no puede comprobar.",
+  "May not watch this unit: its PromQL expression can leave some of the series it reads out, which this page can't check.": "Puede que no vigile esta unidad: su consulta PromQL puede dejar fuera algunas de las series que lee, algo que esta página no puede comprobar."
 }
