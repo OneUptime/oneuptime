@@ -18,7 +18,9 @@ import ProbeService from "../../Services/ProbeService";
 import SecurityProtectedEntityService from "../../Services/SecurityProtectedEntityService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
-import DnsResolutionCache from "../Monitor/DnsResolutionCache";
+import DnsResolutionCache, {
+  DnsResolution,
+} from "../Monitor/DnsResolutionCache";
 import NetworkAddressNamesUtil from "../NetworkFlow/NetworkAddressNames";
 import CallerPermission from "../Permission/CallerPermission";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -87,6 +89,16 @@ export const LOAD_BALANCERS_RESOLVED_PER_CHECK: number = 200;
 
 // How many DNS names are resolved at once.
 const DNS_NAMES_RESOLVED_AT_ONCE: number = 10;
+
+// What a probe's read selects: its name and the address it checks in from.
+const PROBE_SELECT: { _id: true; name: true; egressIpAddress: true } = {
+  _id: true,
+  name: true,
+  egressIpAddress: true,
+};
+
+// How long a load balancer's name that could not be resolved waits to be asked again.
+export const DNS_FAILURE_RETRY_IN_MS: number = 30 * 1000;
 
 /*
  * The cloud resource types listed by a DNS name and no address: AWS's
@@ -269,8 +281,14 @@ const PROTECTION_RECORD_MODELS: Partial<
 };
 
 export default class SecurityProtectedAddresses {
-  // Load balancers' DNS names, resolved at most every five minutes.
-  private static dnsCache: DnsResolutionCache = new DnsResolutionCache();
+  /*
+   * Load balancers' DNS names, resolved at most every five minutes; a
+   * lookup that failed is tried again after half a minute, since until it
+   * answers no block is made.
+   */
+  private static dnsCache: DnsResolutionCache = new DnsResolutionCache({
+    failureTtlInMs: DNS_FAILURE_RETRY_IN_MS,
+  });
 
   // For tests: how load balancers' names are resolved.
   public static setDnsCacheForTests(cache: DnsResolutionCache): void {
@@ -473,8 +491,13 @@ export default class SecurityProtectedAddresses {
       };
     });
 
+    // The project's probes and OneUptime's: two sources, each listed and counted apart.
     await add(SecurityProtectedAddressSource.Probe, () => {
-      return this.readProbes(data.projectId, scan);
+      return this.readProjectProbes(data.projectId, scan);
+    });
+
+    await add(SecurityProtectedAddressSource.GlobalProbe, () => {
+      return this.readGlobalProbes(scan);
     });
 
     await add(SecurityProtectedAddressSource.AddressName, () => {
@@ -491,56 +514,7 @@ export default class SecurityProtectedAddresses {
       return this.readEdges(data.projectId);
     });
 
-    /*
-     * A probe of the project's and one of OneUptime's read as two sources
-     * above; the page lists a source once, with every address it gave.
-     */
-    return SecurityProtectedAddresses.mergeGroups(groups);
-  }
-
-  /*
-   * One group per source a protection names, in the order the sources were
-   * read: the probes' read gives the project's probes and OneUptime's, so
-   * it is two groups on the page.
-   */
-  private static mergeGroups(
-    groups: Array<SecurityProtectedAddressGroup>,
-  ): Array<SecurityProtectedAddressGroup> {
-    const bySource: Map<
-      SecurityProtectedAddressSource,
-      SecurityProtectedAddressGroup
-    > = new Map();
-
-    const groupFor: (
-      source: SecurityProtectedAddressSource,
-      read: SecurityProtectedAddressGroup,
-    ) => SecurityProtectedAddressGroup = (
-      source: SecurityProtectedAddressSource,
-      read: SecurityProtectedAddressGroup,
-    ): SecurityProtectedAddressGroup => {
-      let group: SecurityProtectedAddressGroup | undefined =
-        bySource.get(source);
-
-      if (!group) {
-        group = { source, protections: [], hasMore: false, isRead: true };
-        bySource.set(source, group);
-      }
-
-      group.hasMore = group.hasMore || read.hasMore;
-      group.isRead = group.isRead && read.isRead;
-
-      return group;
-    };
-
-    for (const read of groups) {
-      groupFor(read.source, read);
-
-      for (const protection of read.protections) {
-        groupFor(protection.source, read).protections.push(protection);
-      }
-    }
-
-    return Array.from(bySource.values());
+    return groups;
   }
 
   // ---------- The sources ----------
@@ -607,72 +581,87 @@ export default class SecurityProtectedAddresses {
   /*
    * The addresses the project's probes check in from, and OneUptime's own
    * probes': a check of the project's site from one of them must never be
-   * turned away.
+   * turned away. Each is a source of its own on the page.
    */
   public static async readProbes(
     projectId: ObjectID,
     scan: SourceScan,
   ): Promise<SourceReading> {
-    const select: {
-      _id: true;
-      name: true;
-      egressIpAddress: true;
-    } = { _id: true, name: true, egressIpAddress: true };
+    const [own, global]: [SourceReading, SourceReading] = await Promise.all([
+      this.readProjectProbes(projectId, scan),
+      this.readGlobalProbes(scan),
+    ]);
 
-    const [own, global]: [Array<Probe>, Array<Probe>] = await Promise.all([
-      ProbeService.findBy({
+    return {
+      protections: [...own.protections, ...global.protections],
+      isComplete: own.isComplete && global.isComplete,
+    };
+  }
+
+  // The project's own probes, by the address each checks in from.
+  public static async readProjectProbes(
+    projectId: ObjectID,
+    scan: SourceScan,
+  ): Promise<SourceReading> {
+    const read: { rows: Array<Probe>; isComplete: boolean } = keepRead(
+      await ProbeService.findBy({
         query: { projectId, egressIpAddress: textFilter(scan) as never },
-        select,
+        select: PROBE_SELECT,
         skip: 0,
         limit: readLimit(scan),
         props: scan.props,
       }),
-      // OneUptime's own probes belong to no project: read as OneUptime, as the IP addresses page lists them.
-      ProbeService.findBy({
-        query: {
-          isGlobalProbe: true,
-          egressIpAddress: textFilter(scan) as never,
-        },
-        select,
-        skip: 0,
-        limit: readLimit(scan),
-        props: ROOT,
-      }),
-    ]);
-
-    const ownRead: { rows: Array<Probe>; isComplete: boolean } = keepRead(
-      own,
-      scan,
-    );
-    const globalRead: { rows: Array<Probe>; isComplete: boolean } = keepRead(
-      global,
       scan,
     );
 
     return {
-      protections: [
-        ...ownRead.rows.flatMap(
-          (probe: Probe): Array<SecurityAddressProtection> => {
-            return protectionsOf({
-              values: [probe.egressIpAddress],
-              source: SecurityProtectedAddressSource.Probe,
-              name: probe.name || "",
-              recordId: probe.id?.toString(),
-            });
-          },
-        ),
-        ...globalRead.rows.flatMap(
-          (probe: Probe): Array<SecurityAddressProtection> => {
-            return protectionsOf({
-              values: [probe.egressIpAddress],
-              source: SecurityProtectedAddressSource.GlobalProbe,
-              name: probe.name || "",
-              recordId: probe.id?.toString(),
-            });
-          },
-        ),
-      ],
-      isComplete: ownRead.isComplete && globalRead.isComplete,
+      protections: read.rows.flatMap(
+        (probe: Probe): Array<SecurityAddressProtection> => {
+          return protectionsOf({
+            values: [probe.egressIpAddress],
+            source: SecurityProtectedAddressSource.Probe,
+            name: probe.name || "",
+            recordId: probe.id?.toString(),
+          });
+        },
+      ),
+      isComplete: read.isComplete,
+    };
+  }
+
+  /*
+   * OneUptime's own probes, which belong to no project: read as OneUptime,
+   * as the IP addresses page lists them, whoever asks.
+   */
+  public static async readGlobalProbes(
+    scan: SourceScan,
+  ): Promise<SourceReading> {
+    const read: { rows: Array<Probe>; isComplete: boolean } = keepRead(
+      await ProbeService.findBy({
+        query: {
+          isGlobalProbe: true,
+          egressIpAddress: textFilter(scan) as never,
+        },
+        select: PROBE_SELECT,
+        skip: 0,
+        limit: readLimit(scan),
+        props: ROOT,
+      }),
+      scan,
+    );
+
+    return {
+      protections: read.rows.flatMap(
+        (probe: Probe): Array<SecurityAddressProtection> => {
+          return protectionsOf({
+            values: [probe.egressIpAddress],
+            source: SecurityProtectedAddressSource.GlobalProbe,
+            name: probe.name || "",
+            recordId: probe.id?.toString(),
+          });
+        },
+      ),
+      isComplete: read.isComplete,
     };
   }
 
@@ -952,8 +941,10 @@ export default class SecurityProtectedAddresses {
 
   /*
    * Load balancers, which AWS lists by a DNS name: the addresses each name
-   * resolves to now. A name that does not resolve protects nothing it does
-   * not answer with, and is resolved again within five minutes.
+   * resolves to now, again within five minutes. A name that exists nowhere
+   * protects nothing; one whose lookup failed - timed out, or the resolver
+   * could not answer - leaves the reading incomplete, so no block is made
+   * until it answers: its addresses may be any.
    */
   public static async readLoadBalancers(
     projectId: ObjectID,
@@ -984,6 +975,7 @@ export default class SecurityProtectedAddresses {
     );
 
     const protections: Array<SecurityAddressProtection> = [];
+    let isEveryNameResolved: boolean = true;
 
     for (
       let index: number = 0;
@@ -995,46 +987,63 @@ export default class SecurityProtectedAddresses {
         index + DNS_NAMES_RESOLVED_AT_ONCE,
       );
 
-      const resolved: Array<Array<SecurityAddressProtection>> =
-        await Promise.all(
-          batch.map(
-            async (
-              balancer: CloudResource,
-            ): Promise<Array<SecurityAddressProtection>> => {
-              const names: Array<string> = readCloudEndpoints(
-                balancer.cloudEndpoints,
-              ).filter((endpoint: string): boolean => {
-                return !NetworkAddressBlockUtil.readAddress(endpoint);
-              });
+      const resolved: Array<SourceReading> = await Promise.all(
+        batch.map((balancer: CloudResource): Promise<SourceReading> => {
+          return this.resolveLoadBalancer(balancer);
+        }),
+      );
 
-              const addresses: Array<string> = [];
-
-              for (const name of names) {
-                addresses.push(...(await this.dnsCache.resolve(name)));
-              }
-
-              return protectionsOf({
-                values: addresses,
-                source: SecurityProtectedAddressSource.CloudResource,
-                name: balancer.name || "",
-                recordId: balancer.id?.toString(),
-                kind:
-                  getCloudResourceTypeLabel(
-                    balancer.cloudProvider,
-                    balancer.cloudResourceType,
-                  ) || undefined,
-                where: balancer.cloudConnection?.name || undefined,
-              });
-            },
-          ),
-        );
-
-      protections.push(...resolved.flat());
+      for (const reading of resolved) {
+        protections.push(...reading.protections);
+        isEveryNameResolved = isEveryNameResolved && reading.isComplete;
+      }
     }
 
     return {
       protections,
-      isComplete: rows.length <= LOAD_BALANCERS_RESOLVED_PER_CHECK,
+      isComplete:
+        isEveryNameResolved && rows.length <= LOAD_BALANCERS_RESOLVED_PER_CHECK,
+    };
+  }
+
+  /*
+   * One load balancer's addresses, from the DNS names it is listed by (an
+   * endpoint that is an address is read as one elsewhere): complete only
+   * when every name was looked up.
+   */
+  private static async resolveLoadBalancer(
+    balancer: CloudResource,
+  ): Promise<SourceReading> {
+    const names: Array<string> = readCloudEndpoints(
+      balancer.cloudEndpoints,
+    ).filter((endpoint: string): boolean => {
+      return !NetworkAddressBlockUtil.readAddress(endpoint);
+    });
+
+    const addresses: Array<string> = [];
+    let isComplete: boolean = true;
+
+    for (const name of names) {
+      const resolution: DnsResolution = await this.dnsCache.lookup(name);
+
+      isComplete = isComplete && resolution.isResolved;
+      addresses.push(...resolution.addresses);
+    }
+
+    return {
+      protections: protectionsOf({
+        values: addresses,
+        source: SecurityProtectedAddressSource.CloudResource,
+        name: balancer.name || "",
+        recordId: balancer.id?.toString(),
+        kind:
+          getCloudResourceTypeLabel(
+            balancer.cloudProvider,
+            balancer.cloudResourceType,
+          ) || undefined,
+        where: balancer.cloudConnection?.name || undefined,
+      }),
+      isComplete,
     };
   }
 
