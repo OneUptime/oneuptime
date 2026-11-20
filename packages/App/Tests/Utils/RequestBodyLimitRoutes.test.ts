@@ -17,6 +17,11 @@ import getRequestBodyLimit, {
 } from "Common/Server/Utils/RequestBodyLimit";
 import { TELEMETRY_WRITER_INSERT_ROUTE } from "Common/Server/Utils/Telemetry/TelemetryWriterClient";
 import {
+  isCloudStreamPath,
+  isVercelLogDrainPath,
+} from "Common/Server/Utils/StartServer";
+import { isCompatibleIngestPath } from "Common/Types/Telemetry/CompatibleIngest";
+import {
   DATA_SECURITY_PROBE_RESULT_ROUTE,
   DATA_SECURITY_PROBE_WORK_ROUTE,
 } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
@@ -192,6 +197,7 @@ describe("the paths the App's own clients send large bodies to", () => {
         ...under(TELEMETRY_ROUTE_PREFIXES, "/openlineage/api/v1/lineage"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/dbt/v1/artifacts"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/source-maps/v1/upload"),
+        ...under(TELEMETRY_ROUTE_PREFIXES, "/dsyms/v1/upload"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/pyroscope/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/android-agent/v1/log-sessions"),
@@ -278,6 +284,72 @@ describe("the paths the App's own clients send large bodies to", () => {
         registers: true,
       });
     }
+  });
+
+  /*
+   * A telemetry route a body comes in by - a collector's, an agent's, CI's -
+   * is mounted on TELEMETRY_PREFIXES. Each one StartServer reads the body of
+   * takes a large route's limit; the rest read their own (OTLP, session
+   * replay, the compatible endpoints, the Vercel log drain, the cloud
+   * streams). A route added there without either fails here.
+   */
+  test("every telemetry route that takes a body StartServer reads is a large one", () => {
+    const telemetryIndex: string = readSource("FeatureSet/Telemetry/Index.ts");
+    const mounted: Array<string> = Array.from(
+      telemetryIndex.matchAll(/app\.use\(TELEMETRY_PREFIXES, (\w+)\);/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(mounted.length).toBeGreaterThan(20);
+
+    const checked: Array<string> = [];
+
+    for (const name of mounted) {
+      const imported: RegExpMatchArray | null = telemetryIndex.match(
+        new RegExp(`import ${name} from "\\./API/([\\w/]+)";`),
+      );
+
+      expect({ name, imported: Boolean(imported) }).toEqual({
+        name,
+        imported: true,
+      });
+
+      const source: string = readSource(
+        `FeatureSet/Telemetry/API/${imported![1]}.ts`,
+      );
+
+      for (const match of source.matchAll(
+        /\.(?:post|put|patch)\(\s*"([^"]+)"/g,
+      )) {
+        const route: string = match[1]!;
+
+        for (const prefix of TELEMETRY_ROUTE_PREFIXES) {
+          const path: string = `${prefix}${route}`;
+          const readsItsOwnBody: boolean =
+            path.includes("/otlp/v1/") ||
+            path.includes("/session-replay/v1/") ||
+            isVercelLogDrainPath(path) ||
+            isCloudStreamPath(path) ||
+            isCompatibleIngestPath(path);
+
+          if (!readsItsOwnBody) {
+            expect({
+              path,
+              bytes: getRequestBodyLimit(path).bytes,
+            }).toEqual({ path, bytes: LARGE_REQUEST_BODY_LIMIT.bytes });
+            checked.push(path);
+          }
+        }
+      }
+    }
+
+    expect(checked).toEqual(
+      expect.arrayContaining([
+        "/dsyms/v1/upload",
+        "/telemetry/fluentd/v1/logs",
+      ]),
+    );
   });
 
   test("an ordinary route of the API takes the ordinary limit", () => {

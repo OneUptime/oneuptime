@@ -173,6 +173,8 @@ const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = [
   "/opamp/*",
   "/pyroscope/*",
   "/source-maps/*",
+  // An iOS app's symbol tables, as JSON from the CLI: a few MB for a large app.
+  "/dsyms/*",
   "/fivetran/*",
   "/airbyte/*",
 ];
@@ -225,7 +227,7 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<LargeRequestBodyRoute> = [
     paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_INGEST_PATHS),
     limit: LARGE_REQUEST_BODY_LIMIT,
     reason:
-      "Batches of logs, events, profiles, source maps and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
+      "Batches of logs, events, profiles, source maps, dSYMs and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
   },
   {
     paths: ["/workflow/*", "/api/huntress/webhook/*"],
