@@ -579,9 +579,48 @@ export const writeInDateDisplayLanguage: (
 export interface ReaderDateTimeFormat {
   format: (date: Date) => string;
   formatToParts: (date: Date) => Array<Intl.DateTimeFormatPart>;
+  /*
+   * Two days as one range, what they share said once: "14.–20. Sept.
+   * 2026", "2026年9月14日～20日". Null where the engine has no
+   * formatRange. For days only: Intl writes a range of times in shapes of
+   * its own (OneUptimeDate.getLocalDateTimeRangeEnds writes those).
+   */
+  formatRange: (start: Date, end: Date) => string | null;
   // Intl's own, with the zone the wall clock is read in.
   resolvedOptions: () => Intl.ResolvedDateTimeFormatOptions;
 }
+
+/*
+ * Intl.DateTimeFormat's formatRange, typed structurally: Common compiles
+ * against a library older than ES2021, which declares it, while every
+ * browser OneUptime supports has it.
+ */
+interface IntlRangeFormat {
+  formatRange?: ((start: Date, end: Date) => string) | undefined;
+}
+
+// `format`'s formatRange of two dates, or null where the engine has none.
+const formatRangeWith: (
+  format: Intl.DateTimeFormat,
+  start: Date,
+  end: Date,
+) => string | null = (
+  format: Intl.DateTimeFormat,
+  start: Date,
+  end: Date,
+): string | null => {
+  const ranged: IntlRangeFormat = format as unknown as IntlRangeFormat;
+
+  if (typeof ranged.formatRange !== "function") {
+    return null;
+  }
+
+  try {
+    return ranged.formatRange.call(format, start, end);
+  } catch {
+    return null;
+  }
+};
 
 const MILLISECONDS_IN_MINUTE: number = 60 * 1000;
 
@@ -694,6 +733,9 @@ const fromIntlFormat: (format: Intl.DateTimeFormat) => ReaderDateTimeFormat = (
     },
     formatToParts: (date: Date): Array<Intl.DateTimeFormatPart> => {
       return format.formatToParts(date);
+    },
+    formatRange: (start: Date, end: Date): string | null => {
+      return formatRangeWith(format, start, end);
     },
     resolvedOptions: (): Intl.ResolvedDateTimeFormatOptions => {
       return format.resolvedOptions();
@@ -809,6 +851,13 @@ export const getDateTimeFormat: (data: {
         : utcFormat.format(getWallClockAtUtc(date, zone));
     },
     formatToParts: formatToParts,
+    formatRange: (start: Date, end: Date): string | null => {
+      return formatRangeWith(
+        utcFormat,
+        getWallClockAtUtc(start, zone),
+        getWallClockAtUtc(end, zone),
+      );
+    },
     resolvedOptions: (): Intl.ResolvedDateTimeFormatOptions => {
       return {
         ...utcFormat.resolvedOptions(),

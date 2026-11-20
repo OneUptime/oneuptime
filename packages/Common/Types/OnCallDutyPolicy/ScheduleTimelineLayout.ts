@@ -1,4 +1,6 @@
 import OneUptimeDate from "../Date";
+import { getDateDisplayLanguage } from "../DateLanguage";
+import { joinWithArrowsOn } from "../DirectionArrow";
 import { createTranslator, DEFAULT_LANGUAGE, Translator } from "../Translator";
 import { formatCompactDuration } from "../../Utils/Milliseconds";
 import moment from "moment-timezone";
@@ -209,30 +211,26 @@ export default class ScheduleTimelineLayout {
 
   /*
    * "September 14 – 20, 2026", "Sep 28 – Oct 4, 2026",
-   * "Dec 28, 2026 – Jan 3, 2027" or "September 2026".
+   * "Dec 28, 2026 – Jan 3, 2027" or "September 2026" - in the reader's
+   * language, as OneUptimeDate writes a run of days and a month: "14.–20.
+   * Sept. 2026", "September 2026". It was English on every page.
    */
   public static getRangeLabel(range: TimelineRange): string {
-    const first: moment.Moment = moment.tz(range.start, range.timezone);
-
     if (range.mode === TimelineViewMode.Month) {
-      return first.format("MMMM YYYY");
+      return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: range.start,
+        format: "MMMM YYYY",
+        timezone: range.timezone,
+      });
     }
 
     const lastDay: TimelineDay | undefined = range.days[range.days.length - 1];
-    const last: moment.Moment = moment.tz(
-      lastDay ? lastDay.start : range.start,
-      range.timezone,
-    );
 
-    if (first.year() !== last.year()) {
-      return `${first.format("MMM D, YYYY")} – ${last.format("MMM D, YYYY")}`;
-    }
-
-    if (first.month() !== last.month()) {
-      return `${first.format("MMM D")} – ${last.format("MMM D, YYYY")}`;
-    }
-
-    return `${first.format("MMMM D")} – ${last.format("D, YYYY")}`;
+    return OneUptimeDate.getDayRangeInTimezoneString({
+      start: range.start,
+      end: lastDay ? lastDay.start : range.start,
+      timezone: range.timezone,
+    });
   }
 
   // "YYYY-MM-DD" of the day containing `date` in `timezone`.
@@ -416,6 +414,11 @@ export default class ScheduleTimelineLayout {
    * "Mon, Sep 14, 09:00 → Mon, Sep 21, 09:00", or
    * "Mon, Sep 14, 09:00 – 17:00" when both ends are on the same day. The end
    * is exclusive, so a shift ending at midnight reads "→ Tue, 00:00".
+   *
+   * In the reader's language, as OneUptimeDate writes a moment in a zone:
+   * "Mo., 14. Sept., 09:00 – 17:00". It was English on every page. The
+   * arrow points the way the line is read ("←" on a page read from the
+   * right, joinWithArrowsOn).
    */
   public static formatInterval(data: {
     start: Date;
@@ -425,26 +428,36 @@ export default class ScheduleTimelineLayout {
   }): string {
     const use12HourFormat: boolean =
       data.use12HourFormat ?? OneUptimeDate.getUserPrefers12HourFormat();
-    const timeFormat: string = use12HourFormat ? "h:mm A" : "HH:mm";
-    const dateFormat: string = "ddd, MMM D";
-
     const start: moment.Moment = moment.tz(data.start, data.timezone);
     const end: moment.Moment = moment.tz(data.end, data.timezone);
 
-    const startText: string = `${start.format(dateFormat)}, ${start.format(
-      timeFormat,
-    )}`;
+    const writeMoment: (date: Date, hideYear: boolean) => string = (
+      date: Date,
+      hideYear: boolean,
+    ): string => {
+      return OneUptimeDate.getDateAsFormattedStringInTimezone({
+        date: date,
+        timezone: data.timezone,
+        showWeekday: true,
+        use12HourFormat: use12HourFormat,
+        hideYear: hideYear,
+        hideZone: true,
+      });
+    };
+
+    const startText: string = writeMoment(data.start, true);
 
     if (start.format("YYYY-MM-DD") === end.format("YYYY-MM-DD")) {
-      return `${startText} – ${end.format(timeFormat)}`;
+      return `${startText} – ${OneUptimeDate.getTimeStringInTimezone(
+        data.end,
+        { timezone: data.timezone, use12HourFormat: use12HourFormat },
+      )}`;
     }
 
-    const sameYear: boolean = start.year() === end.year();
-    const endDateFormat: string = sameYear ? dateFormat : "ddd, MMM D, YYYY";
-
-    return `${startText} → ${end.format(endDateFormat)}, ${end.format(
-      timeFormat,
-    )}`;
+    return joinWithArrowsOn(
+      [startText, writeMoment(data.end, start.year() === end.year())],
+      getDateDisplayLanguage(),
+    );
   }
 
   /*

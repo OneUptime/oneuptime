@@ -9,6 +9,7 @@ import TimezoneAlias from "./TimezoneAlias";
 import { refusedValue } from "../Utils/RefusedValue";
 import {
   DateTextShape,
+  DayNameContext,
   DurationTextPart,
   ReaderDateTimeFormat,
   formatDateText,
@@ -23,6 +24,7 @@ import {
   writeClockInLocale,
   writeDigitsInLocale,
   writeInDateDisplayLanguage,
+  writeStandAloneDayName,
 } from "./DateLanguage";
 import { NO_BREAK_SPACE, withDurationWordsHeld } from "./NoBreakSpaces";
 import { Translator } from "./Translator";
@@ -1035,13 +1037,132 @@ export default class OneUptimeDate {
       return this.getLocalHourAndMinuteFromDate(date);
     }
 
+    return this.getTimeStringInTimezone(date, { timezone });
+  }
+
+  /*
+   * The wall clock `date` reads at in `timezone` - a schedule's, a
+   * rotation's - in the reader's language and on the clock asked for (the
+   * reader's when left out): "17:00", "5:00 PM", "17.00" in Danish,
+   * "오후 5:00" in Korean.
+   */
+  public static getTimeStringInTimezone(
+    date: Date | string,
+    options: {
+      timezone: string;
+      use12HourFormat?: boolean | undefined;
+      includeSeconds?: boolean | undefined;
+    },
+  ): string {
     return this.writeTimeOfDay({
-      date: date,
-      timezone: timezone,
+      date: this.fromString(date),
+      timezone: options.timezone,
       includeMinutes: true,
-      includeSeconds: false,
-      use12HourFormat: this.getUserPrefers12HourFormat(),
+      includeSeconds: Boolean(options.includeSeconds),
+      use12HourFormat:
+        options.use12HourFormat ?? this.getUserPrefers12HourFormat(),
     });
+  }
+
+  /*
+   * THE DAY OF THE WEEK `date` FALLS ON, BY ITS NAME (#7660).
+   *
+   * In `timezone` (the reader's when left out) and in the reader's
+   * language: "Monday", "Mon", "M" in English, as moment writes them; Intl's
+   * words in any other language, cased as that language writes a day's
+   * name standing alone or in a menu (DateLanguage's
+   * writeStandAloneDayName): "Lun" over a Spanish column, "man." over a
+   * Danish one. A narrow name keeps Intl's case: CLDR's capitals are for
+   * every width but the narrow one.
+   */
+  public static getDayOfWeekName(
+    date: Date | string,
+    options: {
+      width: "long" | "short" | "narrow";
+      context: DayNameContext;
+      timezone?: string | undefined;
+    },
+  ): string {
+    const instant: Date = this.fromString(date);
+    const timezone: string = (
+      options.timezone || this.getCurrentTimezone()
+    ).toString();
+    const zoned: () => moment.Moment = (): moment.Moment => {
+      return moment(instant).tz(timezone);
+    };
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        if (options.width === "narrow") {
+          return zoned().format("dd").charAt(0);
+        }
+
+        return zoned().format(options.width === "long" ? "dddd" : "ddd");
+      },
+      (language: string, locale: string): string | null => {
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getTimezoneNames(timezone),
+          options: { weekday: options.width },
+        });
+
+        if (!format) {
+          return null;
+        }
+
+        const name: string = format.format(instant);
+
+        return options.width === "narrow"
+          ? name
+          : writeStandAloneDayName({
+              name: name,
+              language: language,
+              context: options.context,
+            });
+      },
+    );
+  }
+
+  /*
+   * A run of days in `timezone`, as a calendar's title names it: "September
+   * 14 – 20, 2026", "Sep 28 – Oct 4, 2026", "Dec 28, 2026 – Jan 3, 2027"
+   * in English, as moment writes them; in another language as Intl writes
+   * a range of days, what the two share said once: "14.–20. Sept. 2026",
+   * "2026年9月14日～20日". Each end is the day it falls on in the zone.
+   */
+  public static getDayRangeInTimezoneString(data: {
+    start: Date | string;
+    end: Date | string;
+    timezone: string;
+  }): string {
+    const start: Date = this.fromString(data.start);
+    const end: Date = this.fromString(data.end);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        const first: moment.Moment = moment(start).tz(data.timezone);
+        const last: moment.Moment = moment(end).tz(data.timezone);
+
+        if (first.year() !== last.year()) {
+          return `${first.format("MMM D, YYYY")} – ${last.format("MMM D, YYYY")}`;
+        }
+
+        if (first.month() !== last.month()) {
+          return `${first.format("MMM D")} – ${last.format("MMM D, YYYY")}`;
+        }
+
+        return `${first.format("MMMM D")} – ${last.format("D, YYYY")}`;
+      },
+      (_language: string, locale: string): string | null => {
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getTimezoneNames(data.timezone),
+          options: { year: "numeric", month: "short", day: "numeric" },
+        });
+
+        return format ? format.formatRange(start, end) : null;
+      },
+    );
   }
 
   /**
