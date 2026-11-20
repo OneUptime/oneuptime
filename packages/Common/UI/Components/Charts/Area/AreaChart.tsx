@@ -28,6 +28,7 @@ import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import XAxisType from "../Types/XAxis/XAxisType";
 import { getTimeAxisTickInterval } from "../Utils/TimeAxisTicks";
+import { LegendGrowth, useLegendGrowth } from "../Utils/UseLegendGrowth";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
 import Dictionary from "../../../../Types/Dictionary";
@@ -105,6 +106,16 @@ export interface ComponentProps {
    */
   ghostSeriesNames?: Array<string> | undefined;
   showLegend?: boolean | undefined;
+  /*
+   * A chart drawn at a fixed heightInPx keeps its plot that tall when its
+   * legend wraps onto more lines than one: it grows by those lines, instead
+   * of taking them from the plot (UseLegendGrowth, issues #6562, #7125).
+   * Three long series names on a phone took a 176px card chart's plot from
+   * 78px down to 30px (Product Analytics' Active users). false keeps the
+   * height heightInPx gives, the legend's lines coming out of it: for a
+   * chart that has to fit a box of its own size (a dashboard widget).
+   */
+  growsWhenLegendWraps?: boolean | undefined;
   /**
    * Render a shaded "expected range" band underneath the plotted lines.
    * The caller passes two series in `data` carrying the lower and upper
@@ -149,6 +160,12 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
   props: AreaInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
+  // Taller by the legend's extra lines, unless it must fit its box.
+  const legendGrowth: LegendGrowth = useLegendGrowth({
+    heightInPx: props.heightInPx,
+    growsWhenLegendWraps: props.growsWhenLegendWraps,
+    showLegend: props.showLegend,
+  });
 
   /*
    * Drag-to-zoom: the host's own handlers, or else the enclosing page's
@@ -292,13 +309,20 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
        * navbar on half-scrolled charts.
        */
       className="relative isolate flex flex-1"
-      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+      style={
+        legendGrowth.chartHeightInPx
+          ? { height: `${legendGrowth.chartHeightInPx}px` }
+          : undefined
+      }
     >
       <AreaChart
         data={records}
         tickGap={30}
         // A day axis labels its first and last day (TimeAxisTicks, #7126).
         intervalType={getTimeAxisTickInterval(props.xAxis)}
+        onLegendExtraRowsHeightChange={
+          legendGrowth.onLegendExtraRowsHeightChange
+        }
         index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
         colors={

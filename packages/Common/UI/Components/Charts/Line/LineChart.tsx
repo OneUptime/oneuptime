@@ -31,6 +31,7 @@ import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import XAxisType from "../Types/XAxis/XAxisType";
 import { getTimeAxisTickInterval } from "../Utils/TimeAxisTicks";
+import { LegendGrowth, useLegendGrowth } from "../Utils/UseLegendGrowth";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
 import Dictionary from "../../../../Types/Dictionary";
@@ -141,11 +142,12 @@ export interface ComponentProps {
    */
   connectNulls?: boolean | undefined;
   /*
-   * true keeps the plot as tall as heightInPx gives it when the legend
-   * wraps onto more lines than one: the chart grows by those lines, instead
-   * of taking them from the plot. Three long series names on a phone took a
-   * 176px card chart's plot from 78px down to 30px (Product Analytics'
-   * Active users). Unset, the legend's lines come out of heightInPx, for a
+   * A chart drawn at a fixed heightInPx keeps its plot that tall when its
+   * legend wraps onto more lines than one: it grows by those lines, instead
+   * of taking them from the plot (UseLegendGrowth, issues #6562, #7125).
+   * Three long series names on a phone took a 176px card chart's plot from
+   * 78px down to 30px (Product Analytics' Active users). false keeps the
+   * height heightInPx gives, the legend's lines coming out of it: for a
    * chart that has to fit a box of its own size (a dashboard widget).
    */
   growsWhenLegendWraps?: boolean | undefined;
@@ -178,18 +180,13 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   props: LineInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
-  /*
-   * How much taller than one line the legend is, as the chart last measured
-   * it: the height the chart grows by when growsWhenLegendWraps is on.
-   */
-  const [legendExtraRowsHeight, setLegendExtraRowsHeight] =
-    React.useState<number>(0);
-  const isGrownByLegend: boolean = Boolean(
-    props.growsWhenLegendWraps && props.showLegend !== false,
-  );
-  const chartHeightInPx: number | undefined = props.heightInPx
-    ? props.heightInPx + (isGrownByLegend ? legendExtraRowsHeight : 0)
-    : undefined;
+  // Taller by the legend's extra lines, unless it must fit its box.
+  const legendGrowth: LegendGrowth = useLegendGrowth({
+    heightInPx: props.heightInPx,
+    growsWhenLegendWraps: props.growsWhenLegendWraps,
+    showLegend: props.showLegend,
+  });
+  const chartHeightInPx: number | undefined = legendGrowth.chartHeightInPx;
 
   /*
    * Drag-to-zoom: the host's own handlers, or else the enclosing page's
@@ -404,7 +401,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         // The legend under the plot follows the time axis's labels closely.
         isFollowedByLegend={hasLabelLegend}
         onLegendExtraRowsHeightChange={
-          isGrownByLegend ? setLegendExtraRowsHeight : undefined
+          legendGrowth.onLegendExtraRowsHeightChange
         }
         secondYAxis={valueAxes.secondYAxis}
         ownScales={valueAxes.ownScales}

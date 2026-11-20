@@ -1,4 +1,5 @@
 /** @timezone UTC */
+// UX rule: Docs/ux/README.md#numbers-dates-and-plurals
 
 import "@testing-library/jest-dom";
 import {
