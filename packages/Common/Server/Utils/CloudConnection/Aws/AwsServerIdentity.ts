@@ -48,6 +48,12 @@ import {
  * with the project's external id, so the user, its key or the role can be
  * rotated without customers changing anything. The account id is asked of
  * AWS (sts:GetCallerIdentity) once an hour, not configured.
+ *
+ * Whatever the identity may assume, a role is signed in to only once it is
+ * known to require the project's external id (AwsSts.assumeRole, #10405):
+ * a role in this identity's own account is held to that like any other, so
+ * only someone who can change that account's IAM decides which project, if
+ * any, may read it.
  */
 
 const IDENTITY_CACHE_MS: number = 60 * 60 * 1000;

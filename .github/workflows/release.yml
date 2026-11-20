@@ -1542,8 +1542,9 @@ jobs:
       CI_PIPELINE_ID: ${{github.run_number}}
       # Go's soft memory limit, for every compile of the provider here: the
       # generation, go vet and go test, and GoReleaser's 19 cross-compiles.
-      # Without it one compile alone took ~15 GB of the runner's 16
-      # (Scripts/TerraformProvider/Core/GoCommand.ts).
+      # A guard rail: as one package, one compile of the provider alone took
+      # ~15 GB of the runner's 16 without it; split into packages, a compile
+      # holds under 1 GiB (Scripts/TerraformProvider/Core/GoCommand.ts).
       GOMEMLIMIT: 10GiB
       GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
       GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -1561,11 +1562,14 @@ jobs:
           node-version: '26'
           cache: 'npm'
 
+      # No Go cache: setup-go keys it on a go.sum the repository does not have
+      # at its root, so it restored nothing (terraform-provider-generation.yml
+      # says more).
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
-          cache: true
+          cache: false
 
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v6.1.0
@@ -1583,7 +1587,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing Terraform provider version: $VERSION"
 
-      # Generation runs Scripts/TerraformProvider through the root's ts-node,
+      # The publish script generates the provider through the root's ts-node,
       # against Common's sources: it needs all three.
       - name: Install root dependencies
         uses: ./.github/actions/npm-install
@@ -1597,19 +1601,6 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: Scripts
-
-      # Defense in depth: generate and check the provider here too, so a broken
-      # generation fails this job before the publish script pushes anything.
-      - name: Generate Terraform provider
-        run: npm run generate-terraform-provider
-
-      - name: Vet generated provider
-        working-directory: ./Terraform/terraform-provider-oneuptime
-        run: go vet ./...
-
-      - name: Test generated provider
-        working-directory: ./Terraform/terraform-provider-oneuptime
-        run: go test ./...
 
       - name: Import GPG key
         run: |
@@ -1641,6 +1632,12 @@ jobs:
           gpg --export-secret-keys > ~/.gnupg/secring.gpg
           echo "GPG key imported and verified"
 
+      # The script generates the provider, then vets and tests the tree it
+      # publishes, and builds and signs every asset, all before it pushes
+      # anything (Scripts/TerraformProvider/publish-terraform-provider.sh), so
+      # a broken generation stops it there. The job used to generate, vet and
+      # test once more first, the same work twice
+      # (Tests/Ops/TerraformProviderPublishOnce.test.js).
       - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
@@ -1668,8 +1665,9 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       # Go's soft memory limit: both generations, the test and both
-      # platforms' builds compile the Terraform provider, and without it one
-      # compile alone took ~15 GB of the runner's 16
+      # platforms' builds compile the Terraform provider. A guard rail: as
+      # one package, one compile of it alone took ~15 GB of the runner's 16
+      # without it; split into packages, a compile holds under 1 GiB
       # (Scripts/TerraformProvider/Core/GoCommand.ts).
       GOMEMLIMIT: 10GiB
     permissions:

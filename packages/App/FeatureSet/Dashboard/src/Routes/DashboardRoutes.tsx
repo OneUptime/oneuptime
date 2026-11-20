@@ -23,6 +23,8 @@ import DashboardViewSharing from "../Pages/Dashboards/View/Sharing";
 import DashboardViewBranding from "../Pages/Dashboards/View/Branding";
 
 import DashboardViewCustomDomains from "../Pages/Dashboards/View/CustomDomains";
+import DashboardViewPrivateUsers from "../Pages/Dashboards/View/PrivateUsers";
+import DashboardViewSingleSignOn from "../Pages/Dashboards/View/SingleSignOn";
 
 import DashboardViewOwners from "../Pages/Dashboards/View/Owners";
 
@@ -287,6 +289,34 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DASHBOARD_VIEW_PRIVATE_USERS,
+          )}
+          element={
+            <DashboardViewPrivateUsers
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARD_VIEW_PRIVATE_USERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON,
+          )}
+          element={
+            <DashboardViewSingleSignOn
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON] as Route
               }
             />
           }

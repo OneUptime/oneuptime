@@ -560,18 +560,26 @@ describe("testConnection", () => {
 
     expect(result.status).toBe("pass");
 
-    const assume: { body: URLSearchParams; request: DataSourceHttpRequest } =
-      fake.stsCalls.find((call: { action: string }): boolean => {
-        return call.action === "AssumeRole";
-      })!;
+    // First the check that the role requires the external id, then the sign-in.
+    const [check, assume]: Array<{
+      body: URLSearchParams;
+      request: DataSourceHttpRequest;
+    }> = fake.stsCalls.filter((call: { action: string }): boolean => {
+      return call.action === "AssumeRole";
+    });
 
-    expect(assume.body.get("RoleArn")).toBe(ROLE_ARN);
-    expect(assume.body.get("ExternalId")).toBe(
+    expect(check!.body.get("RoleArn")).toBe(ROLE_ARN);
+    expect(check!.body.get("ExternalId")).toMatch(/^oneuptime-[0-9a-f]{32}$/);
+    expect(check!.body.get("ExternalId")).not.toBe(
       getAwsExternalIdForProject(PROJECT),
     );
-    expect(assume.body.get("DurationSeconds")).toBe("3600");
+    expect(assume!.body.get("RoleArn")).toBe(ROLE_ARN);
+    expect(assume!.body.get("ExternalId")).toBe(
+      getAwsExternalIdForProject(PROJECT),
+    );
+    expect(assume!.body.get("DurationSeconds")).toBe("3600");
     expect(
-      (assume.request.headers as Record<string, string>)["Authorization"],
+      (assume!.request.headers as Record<string, string>)["Authorization"],
     ).toContain("Credential=AKIAONEUPTIMESERVER1/");
 
     // Every call after it is signed with the role's session.
@@ -620,22 +628,32 @@ describe("testConnection", () => {
       "pod-identity-agent-token",
     );
 
-    const assume: { body: URLSearchParams; request: DataSourceHttpRequest } =
-      fake.stsCalls.find((call: { action: string }): boolean => {
-        return call.action === "AssumeRole";
-      })!;
-    const headers: Record<string, string> = assume.request.headers as Record<
-      string,
-      string
-    >;
+    // The check and the sign-in are both the server's own role's calls.
+    const signIns: Array<{
+      body: URLSearchParams;
+      request: DataSourceHttpRequest;
+    }> = fake.stsCalls.filter((call: { action: string }): boolean => {
+      return call.action === "AssumeRole";
+    });
 
-    expect(assume.body.get("ExternalId")).toBe(
-      getAwsExternalIdForProject(PROJECT),
-    );
-    expect(headers["Authorization"]).toContain(
-      "Credential=ASIAPODIDENTITYROLE1/",
-    );
-    expect(headers["X-Amz-Security-Token"]).toBe(POD_IDENTITY_SESSION_TOKEN);
+    expect(
+      signIns.map((call: { body: URLSearchParams }): string => {
+        return call.body.get("ExternalId") || "";
+      })[1],
+    ).toBe(getAwsExternalIdForProject(PROJECT));
+    expect(signIns).toHaveLength(2);
+
+    for (const signIn of signIns) {
+      const headers: Record<string, string> = signIn.request.headers as Record<
+        string,
+        string
+      >;
+
+      expect(headers["Authorization"]).toContain(
+        "Credential=ASIAPODIDENTITYROLE1/",
+      );
+      expect(headers["X-Amz-Security-Token"]).toBe(POD_IDENTITY_SESSION_TOKEN);
+    }
   });
 
   test("a Cloud Connect key, when set, wins over the server's own role: nothing changes for installations that set one", async () => {
@@ -798,6 +816,15 @@ describe("testConnection", () => {
     expect(result.status).toBe("fail");
     expect(result.failureKind).toBe(CloudConnectionFailureKind.Permission);
     expect(result.message).toContain("run the setup command again");
+    // AWS's answer names OneUptime's own identity: the project never reads it.
+    for (const detail of [
+      "999988887777",
+      "user/oneuptime",
+      "is not authorized",
+      "HTTP 403",
+    ]) {
+      expect(result.message).not.toContain(detail);
+    }
   });
 });
 
@@ -1205,7 +1232,7 @@ describe("read", () => {
     expect(fake.cloudWatchCalls).toHaveLength(0);
   });
 
-  test("a role is assumed once and its session reused by the next read", async () => {
+  test("a role is checked and assumed once, and its session reused by the next read", async () => {
     giveOneUptimeAnAwsIdentity();
     const fake: FakeAws = createFakeAws({
       regions: { "us-east-1": { metrics: ec2("i-0aaa", [10]) } },
@@ -1226,11 +1253,18 @@ describe("read", () => {
       },
     });
 
+    // The check (an external id no project has), then the sign-in: neither again.
     expect(
-      fake.stsCalls.filter((call: { action: string }): boolean => {
-        return call.action === "AssumeRole";
-      }),
-    ).toHaveLength(1);
+      fake.stsCalls
+        .filter((call: { action: string }): boolean => {
+          return call.action === "AssumeRole";
+        })
+        .map((call: { body: URLSearchParams }): boolean => {
+          return (
+            call.body.get("ExternalId") === getAwsExternalIdForProject(PROJECT)
+          );
+        }),
+    ).toEqual([false, true]);
   });
 
   /*

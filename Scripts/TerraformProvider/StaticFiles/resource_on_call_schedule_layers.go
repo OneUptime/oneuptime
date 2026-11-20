@@ -136,7 +136,7 @@ func (r *OnCallScheduleLayersResource) Schema(ctx context.Context, req resource.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
-				Validators: recordIDValidators(scheduleLayersScheduleType),
+				Validators: RecordIDValidators(scheduleLayersScheduleType),
 			},
 			"layers": schema.ListNestedAttribute{
 				MarkdownDescription: "Layers of the schedule, the highest priority first: the layer on top is the one that pages while someone in it is on call. Each layer once. The layers listed take the places they have in the schedule between them, in this order.",
@@ -149,13 +149,13 @@ func (r *OnCallScheduleLayersResource) Schema(ctx context.Context, req resource.
 						"layer_id": schema.StringAttribute{
 							MarkdownDescription: "ID of the `" + scheduleLayersLayerType + "`: a layer of this schedule.",
 							Required:            true,
-							Validators:          recordIDValidators(scheduleLayersLayerType),
+							Validators:          RecordIDValidators(scheduleLayersLayerType),
 						},
 						"user_ids": schema.ListAttribute{
 							MarkdownDescription: "User IDs of the people who take turns in the layer, in turn order: `[]` for nobody. Someone in the project, or invited to it - `oneuptime_team_member`'s `user_id`, or `data.oneuptime_user`'s `id` for someone named by email address.",
 							Required:            true,
 							ElementType:         types.StringType,
-							Validators:          recordIDListValidators(personResourceType),
+							Validators:          RecordIDListValidators(personResourceType),
 						},
 					},
 				},
