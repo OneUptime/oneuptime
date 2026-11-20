@@ -29,6 +29,8 @@ import React, {
   useState,
 } from "react";
 import {
+  getSloMetricKindHint,
+  loadSloMetricPointType,
   loadSloMetricTypes,
   readSloMetricConfigInForm,
   setSloMetricPartElement,
@@ -37,6 +39,8 @@ import {
   SLO_METRIC_UNIT_TEMPLATE,
   SloMetricPartElement,
 } from "./SloMetricQueryFields";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 /*
  * The controls of a Metric SLO's metric fields (SloMetricQueryFields, #8445):
@@ -81,6 +85,8 @@ const useSloMetricTypes: () => Array<MetricType> | null =
 
 interface SloMetricNamePickerProps {
   value: string;
+  // The kind of events the form counts it as, for what is said under it.
+  kind?: SloMetricKind | undefined;
   onChange: (metricName: string) => void;
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
@@ -128,28 +134,99 @@ export const SloMetricNamePicker: FunctionComponent<
   );
 
   return (
-    <Dropdown
-      options={options}
-      value={selected}
-      onChange={(value: DropdownValue | Array<DropdownValue> | null): void => {
-        props.onChange(
-          typeof value === "string"
-            ? value.slice(0, SLO_METRIC_NAME_MAX_LENGTH)
-            : "",
-        );
-      }}
-      isCreatable={true}
-      isClearable={true}
-      isLoading={metricTypes === null}
-      placeholder={translator.translateText(
-        SLO_METRIC_FIELD_PLACEHOLDERS[SloMetricQueryPart.MetricName],
-      )}
-      isPlaceholderTranslated={true}
-      error={props.error}
-      ariaLabelledby={props.ariaLabelledby}
-      ariaDescribedby={props.ariaDescribedby}
-      dataTestId="slo-metric-name"
-    />
+    <div>
+      <Dropdown
+        options={options}
+        value={selected}
+        onChange={(
+          value: DropdownValue | Array<DropdownValue> | null,
+        ): void => {
+          props.onChange(
+            typeof value === "string"
+              ? value.slice(0, SLO_METRIC_NAME_MAX_LENGTH)
+              : "",
+          );
+        }}
+        isCreatable={true}
+        isClearable={true}
+        isLoading={metricTypes === null}
+        placeholder={translator.translateText(
+          SLO_METRIC_FIELD_PLACEHOLDERS[SloMetricQueryPart.MetricName],
+        )}
+        isPlaceholderTranslated={true}
+        error={props.error}
+        ariaLabelledby={props.ariaLabelledby}
+        ariaDescribedby={props.ariaDescribedby}
+        dataTestId="slo-metric-name"
+      />
+      <SloMetricKindHint metricName={props.value} kind={props.kind} />
+    </div>
+  );
+};
+
+interface SloMetricKindHintProps {
+  metricName: string;
+  // The kind of events the form counts it as, once one is chosen.
+  kind?: SloMetricKind | undefined;
+}
+
+export const SLO_METRIC_GAUGE_HINT_TEST_ID: string = "slo-metric-gauge";
+
+/*
+ * What the picked metric is, when it is a kind of metric an SLO cannot
+ * count (#10027): a gauge - every cloud metric OneUptime reads is one - is
+ * a level read now and then, with no events in it, and an SLO on one would
+ * wait for its events for ever. Said under the picker as the metric is
+ * picked, from its newest point; nothing for a counter, a histogram, or a
+ * metric with no point yet.
+ */
+export const SloMetricKindHint: FunctionComponent<SloMetricKindHintProps> = (
+  props: SloMetricKindHintProps,
+): ReactElement | null => {
+  const translator: Translator = useTranslator();
+  const [pointType, setPointType] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    setPointType(null);
+
+    if (!props.metricName.trim()) {
+      return;
+    }
+
+    loadSloMetricPointType(props.metricName)
+      .then((loaded: string | null): void => {
+        if (isCurrent) {
+          setPointType(loaded);
+        }
+      })
+      .catch((): void => {
+        // Not known: nothing is said.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [props.metricName]);
+
+  const hint: string | null = getSloMetricKindHint(pointType, props.kind);
+
+  if (!hint) {
+    return null;
+  }
+
+  return (
+    <p
+      className="mt-1.5 flex items-start gap-1.5 text-sm text-amber-700"
+      data-testid={SLO_METRIC_GAUGE_HINT_TEST_ID}
+    >
+      <Icon
+        icon={IconProp.Alert}
+        className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
+      />
+      <span className="min-w-0">{translator.translateText(hint) || hint}</span>
+    </p>
   );
 };
 
@@ -308,6 +385,7 @@ export const drawSloMetricPart: SloMetricPartElement = (
       return (
         <SloMetricNamePicker
           value={String(readSloMetricConfigInForm(values).metricName || "")}
+          kind={readSloMetricConfigInForm(values).kind}
           onChange={(metricName: string): void => {
             props.onChange?.(metricName);
           }}

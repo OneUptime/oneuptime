@@ -625,7 +625,16 @@ export interface ValueWidgetViewProps {
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   // Double-click on the sparkline. Set only while there is a zoom to undo.
   onTimeRangeReset?: (() => void) | undefined;
+  /*
+   * A mark sits in the tile's top corner (a deprecated metric's,
+   * RetiredCloudMetricBadge): the title row keeps clear of both corners,
+   * so a long title never runs under it and stays centred.
+   */
+  hasCornerMark?: boolean | undefined;
 }
+
+// Room a title row leaves at each end for a mark in the tile's corner.
+const CORNER_MARK_ROOM_CLASS_NAME: string = "px-7";
 
 /*
  * The widget's root in each of its states, with the state it is in, so a
@@ -1476,7 +1485,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
       {layout.stackMode === ValueWidgetStackMode.Compact &&
         (layout.showTitle || layout.showStatusRow) && (
           <div
-            className="w-full shrink-0 overflow-hidden flex items-center justify-center gap-2"
+            className={`w-full shrink-0 overflow-hidden flex items-center justify-center gap-2 ${
+              props.hasCornerMark ? CORNER_MARK_ROOM_CLASS_NAME : ""
+            }`}
             style={{
               height: `${layout.headerRowHeightInPx}px`,
               fontSize: `${layout.statusFontSizeInPx}px`,
@@ -1490,7 +1501,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
       {/* Title */}
       {layout.stackMode === ValueWidgetStackMode.Column && layout.showTitle && (
         <div
-          className="w-full shrink-0 overflow-hidden flex items-center justify-center"
+          className={`w-full shrink-0 overflow-hidden flex items-center justify-center ${
+            props.hasCornerMark ? CORNER_MARK_ROOM_CLASS_NAME : ""
+          }`}
           style={{ height: `${layout.titleRowHeightInPx}px` }}
         >
           {titleElement}
