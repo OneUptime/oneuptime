@@ -5077,6 +5077,40 @@ describe("a responder who is no longer a member of the project", () => {
     expect(JSON.stringify(summary)).not.toContain("Grace Hopper");
   });
 
+  /*
+   * ...and by the address they were invited at, never the one their account
+   * has moved to since (#10175): both where the name falls back to it and
+   * in the row's own email.
+   */
+  test("somebody invited whose account has moved is shown by the address invited, never the new one", async () => {
+    invitedUserIds = [USER_B_ID];
+
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            USER_B_ID.toString().toLowerCase(),
+            { inviteeName: null, inviteeEmail: "grace.old@corp.example.com" },
+          ],
+        ]),
+      );
+
+    const summary: ReadinessSummary = await policySummary();
+    const invited: UserReadiness = readinessOf(summary, USER_B_ID);
+
+    expect(invited.userName).toBe("grace.old@corp.example.com");
+    expect(invited.userEmail).toBe("grace.old@corp.example.com");
+    // The account's own address, and name, are nowhere in what the project reads.
+    expect(JSON.stringify(summary)).not.toContain("grace@corp.example.com");
+    expect(JSON.stringify(summary)).not.toContain("Grace Hopper");
+
+    // A member keeps their own.
+    expect(readinessOf(summary, USER_A_ID).userEmail).not.toBe(
+      "grace.old@corp.example.com",
+    );
+  });
+
   test("everybody a member: one read, and nobody is asked about invitations", async () => {
     membershipRows = [
       teamMemberRow(USER_A_ID, TEAM_ID),

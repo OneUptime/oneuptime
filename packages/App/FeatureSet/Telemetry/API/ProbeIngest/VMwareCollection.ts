@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import { PROBE_COLLECTION_MIDDLEWARES } from "../../Middleware/ProbeCollectionRequest";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import { ProbeExpressRequest } from "../../Types/Request";
@@ -14,7 +15,6 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import RequestBodyJson from "Common/Server/Utils/RequestBodyJson";
 import { VMwareCollectionReportOutcome } from "Common/Server/Utils/VMware/VMwareProbeCollectionStore";
 import VMwareProbeMetrics, {
   VMwareProbeMetricsPayload,
@@ -84,42 +84,6 @@ export function readRunningVMwareVCenterIds(value: unknown): Array<string> {
       return id.trim();
     })
     .slice(0, MAX_RUNNING_IDS_PER_REQUEST);
-}
-
-/*
- * A probe sends a collection gzip-compressed: its metrics are several
- * megabytes of JSON for a large vCenter, and compress tenfold. The server's
- * gzip body reader (GzipRequestBody - bounded, 50 MiB inflated) leaves the
- * inflated bytes in req.body; this reads them as the JSON they are, before
- * the probe is authenticated from them. A plain JSON body passes untouched.
- * The bytes are counted first (RequestBodyJson), whatever their Content-Type
- * said, so a body with more values than the route reads is refused with 413
- * before it is parsed.
- */
-export function parseInflatedJsonBody(
-  req: ProbeExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-): void {
-  const body: unknown = req.body;
-
-  if (Buffer.isBuffer(body) || body instanceof Uint8Array) {
-    try {
-      req.body = RequestBodyJson.parse(body, RequestBodyJson.getLimit(req));
-    } catch (err) {
-      if (RequestBodyJson.isTooManyValuesError(err)) {
-        return next(err);
-      }
-
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("The collection report is not JSON."),
-      );
-    }
-  }
-
-  return next();
 }
 
 /*
@@ -198,10 +162,15 @@ router.post(
   },
 );
 
+/*
+ * A probe sends a collection gzip-compressed: its metrics are megabytes of
+ * JSON for a large vCenter, and compress tenfold. Its key is checked before
+ * the report is parsed, and the report parsed whole only for a probe whose
+ * key is right (ProbeCollectionRequest).
+ */
 router.post(
   "/probe/vmware/collection",
-  parseInflatedJsonBody,
-  ProbeAuthorization.isAuthorizedServiceMiddleware,
+  ...PROBE_COLLECTION_MIDDLEWARES,
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,

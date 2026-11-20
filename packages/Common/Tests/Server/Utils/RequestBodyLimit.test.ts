@@ -5,8 +5,10 @@ import getRequestBodyLimit, {
   LARGE_REQUEST_BODY_ROUTES,
   LargeRequestBodyRoute,
   ORDINARY_REQUEST_BODY_LIMIT,
+  PROBE_INGEST_ROUTE_PREFIXES,
   REPORT_REQUEST_BODY_LIMIT,
   RequestBodyLimit,
+  readsBodyAfterAuthentication,
 } from "../../../Server/Utils/RequestBodyLimit";
 import { COMPATIBLE_JSON_MAX_VALUES } from "../../../Types/Telemetry/CompatibleIngest";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -180,6 +182,97 @@ describe("the large routes", () => {
     expect(getRequestBodyLimit("/probe/vmware/work")).toBe(
       LARGE_REQUEST_BODY_LIMIT,
     );
+  });
+});
+
+/*
+ * THE ROUTES THAT READ THEIR BODY ONLY ONCE THEY KNOW WHO SENT IT (#10222).
+ *
+ * Eight million JSON values cost JSON.parse 1.4 s and 490 MiB of heap, and
+ * StartServer reads a body before routing, before any key is checked. So
+ * the routes that take that many read the body themselves and check their
+ * caller's key before they parse it: StartServer leaves it unread. Matched as
+ * the limit is, so a path the router answers can never be parsed by
+ * StartServer.
+ */
+describe("the routes that parse their body only after their caller's key is checked", () => {
+  const collections: Array<string> = PROBE_INGEST_ROUTE_PREFIXES.flatMap(
+    (prefix: string): Array<string> => {
+      return [
+        `${prefix}/probe/vmware/collection`,
+        `${prefix}/probe/openstack/collection`,
+      ];
+    },
+  );
+
+  test("are a probe's collections, under every prefix, and a forwarding pod's rows", () => {
+    expect(collections).toHaveLength(6);
+
+    for (const path of [...collections, "/telemetry-writer/insert"]) {
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: true });
+      // What they take once the key is right.
+      expect(getRequestBodyLimit(path)).toBe(REPORT_REQUEST_BODY_LIMIT);
+    }
+  });
+
+  test("are matched as the routers match: in any case, with a trailing slash or not", () => {
+    for (const path of [
+      "/Probe-Ingest/Probe/VMware/Collection",
+      "/probe-ingest/probe/vmware/collection/",
+      "/INGESTOR/PROBE/OPENSTACK/COLLECTION/",
+      "/Probe/OpenStack/Collection",
+      "/Telemetry-Writer/Insert/",
+    ]) {
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: true });
+    }
+  });
+
+  test("are the only ones: every other route, a probe's other routes among them, is read by StartServer", () => {
+    for (const path of [
+      "/probe-ingest/probe/vmware/work",
+      "/probe-ingest/probe/vmware/test",
+      "/probe/openstack/work",
+      "/probe-ingest/probe/response/ingest",
+      "/probe-ingest/alive",
+      "/probe-ingest/probe/vmware/collection/extra",
+      "/telemetry-writer/insert/extra",
+      "/telemetry-writer",
+      "/api/file",
+      "/api/monitor/get-list",
+      "/fluentd/v1/logs",
+      "/",
+      "",
+    ]) {
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: false });
+    }
+
+    const listed: Array<LargeRequestBodyRoute> =
+      LARGE_REQUEST_BODY_ROUTES.filter(
+        (route: LargeRequestBodyRoute): boolean => {
+          return Boolean(route.readsBodyAfterAuthentication);
+        },
+      );
+
+    expect(
+      listed.flatMap((route: LargeRequestBodyRoute): ReadonlyArray<string> => {
+        return route.paths;
+      }),
+    ).toEqual([...collections, "/telemetry-writer/insert"]);
+
+    // Each says why, and how its caller is known first.
+    for (const route of listed) {
+      expect(route.limit).toBe(REPORT_REQUEST_BODY_LIMIT);
+      expect(route.reason).toMatch(/key/);
+    }
   });
 });
 
