@@ -54,11 +54,16 @@ const TEAM_SENDERS: Array<TeamSender> = [
     givesBackIn: "onCreateError",
   },
   {
-    // Asked before the invitee's account is made, and before the email.
+    /*
+     * Asked before the invitee's account is made. The email goes once the
+     * membership is made, after the request (sendPlannedInvitation, #10180),
+     * and a create that fails before gives the count back.
+     */
     file: TEAM_MEMBER_SERVICE,
     asksIn: "onBeforeCreate",
     kind: TeamMessageKind.Invitation,
-    after: ["UserService.createByEmail(", "MailService.sendMail("],
+    after: ["UserService.createByEmail("],
+    givesBackIn: "onCreateError",
   },
   {
     /*
@@ -228,6 +233,73 @@ describe("every sender of the team's messages asks first, for its own kind", () 
       expect(code).toContain("isSending");
     },
   );
+
+  /*
+   * A membership's invitation is the team member service's: asked in the
+   * request, sent once the membership is made, after the request (#10180) -
+   * so the request does the same work whatever account the address has.
+   */
+  test("the team member service sends a new invitation only once the membership is made, and marks it as sending first", () => {
+    const beforeCreate: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "onBeforeCreate",
+    );
+
+    // Nothing of the email in the request: no build, no token, no send.
+    for (const call of [
+      "MailService.sendMail(",
+      "this.buildInvitationEmail(",
+      "UserRegistrationToken.",
+      "EmailVerificationTokenService.",
+    ]) {
+      expect([call, beforeCreate.includes(call)]).toEqual([call, false]);
+    }
+
+    // The project's window for the person is asked before the count.
+    const window: number = beforeCreate.indexOf("InvitationEmailWindow.claim(");
+    expect(window).toBeGreaterThan(-1);
+    expect(window).toBeLessThan(beforeCreate.indexOf(ASKS));
+
+    // Once the membership is made, as the last thing its create does.
+    const onCreateSuccess: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "onCreateSuccess",
+    );
+    const startsAt: number = onCreateSuccess.indexOf(
+      "this.startPlannedInvitation(onCreate, createdItem);",
+    );
+
+    expect(startsAt).toBeGreaterThan(-1);
+    expect(
+      onCreateSuccess
+        .slice(startsAt)
+        .replace("this.startPlannedInvitation(onCreate, createdItem);", "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    ).toBe("return createdItem; }");
+
+    const starts: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "startPlannedInvitation",
+    );
+    const marked: number = starts.indexOf("isSending = true");
+    const started: number = starts.indexOf(
+      "this.sendPlannedInvitationInBackground(",
+    );
+
+    expect(marked).toBeGreaterThan(-1);
+    expect(started).toBeGreaterThan(marked);
+
+    // And the email is built and sent there.
+    const sends: string = methodCode(
+      TEAM_MEMBER_SERVICE,
+      "sendPlannedInvitation",
+    );
+
+    expect(sends).toContain("this.buildInvitationEmail(");
+    expect(sends).toContain("MailService.sendMail(");
+    expect(sends).toContain(".giveBack()");
+  });
 
   test("the subscriber service and the private user service mark their creates as sending as onCreateSuccess starts", () => {
     for (const file of [SUBSCRIBER_SERVICE, PRIVATE_USER_SERVICE]) {

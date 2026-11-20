@@ -9,6 +9,7 @@ import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService, {
+  TeamMemberCreateCarryForward,
   TeamMemberService as TeamMemberServiceClass,
 } from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
@@ -29,6 +30,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { callTeamMemberHook } from "../TestingUtils/TeamMemberInvitations";
 
 /*
  * THE NAME AN INVITATION GIVES (#9745).
@@ -62,21 +64,17 @@ let createUserSpy: jest.SpyInstance;
 let updateUserSpy: jest.SpyInstance;
 let sendMailSpy: jest.SpyInstance;
 
-// Calls a protected hook without widening the service's public surface.
+/*
+ * Calls a protected hook without widening the service's public surface -
+ * a membership's onBeforeCreate with the invitation it plans, which its
+ * create sends once the membership is made (runInvitationHooks, #10180).
+ */
 function callHook(
   service: unknown,
   name: string,
   ...args: Array<unknown>
 ): Promise<unknown> {
-  const hooks: Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  > = service as Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  >;
-
-  return hooks[name]!.apply(service, args);
+  return callTeamMemberHook(service, name, ...args);
 }
 
 // An invitation by address, as the invite forms send it.
@@ -354,18 +352,30 @@ describe("the invitation goes on alike, whoever the address belongs to", () => {
     async (_case: string, account: (() => User) | null) => {
       findUserSpy.mockResolvedValue(account ? account() : null);
 
-      const result: { createBy: CreateBy<TeamMember>; carryForward: null } =
-        (await callHook(
-          TeamMemberService,
-          "onBeforeCreate",
-          inviteBy("Grace"),
-        )) as { createBy: CreateBy<TeamMember>; carryForward: null };
+      const result: {
+        createBy: CreateBy<TeamMember>;
+        carryForward: TeamMemberCreateCarryForward;
+      } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy("Grace"),
+      )) as {
+        createBy: CreateBy<TeamMember>;
+        carryForward: TeamMemberCreateCarryForward;
+      };
 
-      expect(result.carryForward).toBeNull();
+      // One invitation planned for the account, to the address, alike.
+      expect(result.carryForward.invitation?.user.id?.toString()).toBe(
+        USER_ID.toString(),
+      );
+      expect(result.carryForward.invitation?.email?.toString()).toBe(
+        "grace@company.com",
+      );
+      expect(result.carryForward.invitation?.isAccepted).toBe(false);
       expect(result.createBy.data.userId?.toString()).toBe(USER_ID.toString());
       expect(result.createBy.data.hasAcceptedInvitation).toBe(false);
 
-      // Not waited for, but asked for before the hook returns.
+      // Not waited for: sent once the membership is made (#10180).
       expect(sendMailSpy).toHaveBeenCalledTimes(1);
       expect(
         (

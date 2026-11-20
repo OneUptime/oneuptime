@@ -114,13 +114,15 @@ export class Service extends ProjectReferencesService<Model> {
    * A private user the team adds - on the dashboard, with an API key, by a
    * workflow or by SCIM - is emailed an invitation to the status page, from
    * this installation's mail server unless the page has its own. Each
-   * invited address is counted (PublicMessageRateLimit.assertTeamMaySend,
-   * with the invitations to projects), so one address is sent a bounded
-   * number of invitations an hour, whichever project sends them: past its
-   * limit the create is refused with 429, before anything is written. The team is never counted, so adding many readers
-   * at once goes on. Only an invitation that is sent counts: a user who
-   * signs in with SSO, or one of a page that takes only SSO, is sent none
-   * (onCreateSuccess).
+   * invited address is counted in the page's project, with the project's
+   * own invitations (PublicMessageRateLimit.assertTeamMaySend, #10179), so
+   * the project sends one address a bounded number of invitations an hour:
+   * past its limit the create is refused with 429, before anything is
+   * written - and past the cap on every project's invitations to the
+   * address together, with a 503 that names nobody else's. The team is
+   * never counted, so adding many readers at once goes on. Only an
+   * invitation that is sent counts: a user who signs in with SSO, or one of
+   * a page that takes only SSO, is sent none (onCreateSuccess).
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -147,6 +149,7 @@ export class Service extends ProjectReferencesService<Model> {
       id: statusPageId,
       select: {
         _id: true,
+        projectId: true,
         requireSsoForLogin: true,
       },
       props: {
@@ -155,13 +158,14 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    if (!statusPage || statusPage.requireSsoForLogin) {
+    if (!statusPage || statusPage.requireSsoForLogin || !statusPage.projectId) {
       return;
     }
 
     carryForward.invitationPermit =
       await PublicMessageRateLimit.assertTeamMaySend({
         kind: TeamMessageKind.Invitation,
+        projectId: statusPage.projectId,
         contacts: [PublicMessageRateLimit.forEmail(user.email)],
       });
   }
