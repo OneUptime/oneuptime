@@ -444,10 +444,10 @@ export default class ScheduleTimelineLayout {
     const startText: string = writeMoment(data.start, true);
 
     if (start.format("YYYY-MM-DD") === end.format("YYYY-MM-DD")) {
-      return `${startText} – ${OneUptimeDate.getTimeStringInTimezone(
-        data.end,
-        { timezone: data.timezone, use12HourFormat: use12HourFormat },
-      )}`;
+      return `${startText} – ${OneUptimeDate.getTimeStringInTimezone(data.end, {
+        timezone: data.timezone,
+        use12HourFormat: use12HourFormat,
+      })}`;
     }
 
     return joinWithArrowsOn(

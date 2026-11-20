@@ -980,7 +980,7 @@ test.describe("a hunt's Run History", () => {
     await expect(runRow(page, 1)).not.toContainText("UTC");
     await expect(runRow(page, 1).locator("time").first()).toHaveAttribute(
       "title",
-      "Oct 14 2026, 10:00 AM UTC",
+      "Oct 14, 2026, 10:00 AM UTC",
     );
     await expect(runRow(page, 2)).toContainText("Nothing found");
     await expect(runRow(page, 3)).toContainText("1 event");

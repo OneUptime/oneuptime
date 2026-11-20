@@ -412,7 +412,7 @@ test.describe("the calendar's own page", () => {
     // In the browser's zone, UTC, named as it is (#8475).
     await expect(
       row.getByTestId("scheduled-maintenance-shows-from"),
-    ).toHaveText("Shows from Oct 18 2026, 09:00 UTC");
+    ).toHaveText("Shows from Oct 18, 2026, 09:00 UTC");
     await expect(
       page.getByTestId("scheduled-maintenance-shows-from"),
     ).toHaveCount(1);

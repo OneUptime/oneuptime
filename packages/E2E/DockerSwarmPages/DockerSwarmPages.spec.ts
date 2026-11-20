@@ -933,7 +933,7 @@ test.describe("the Overview's name on a phone", () => {
  * ---------------------------------------------------------------------------
  */
 
-// A hovered point's time, as the row writes it: "Oct 26 2026, 14:37 GMT".
+// A hovered point's time, as the row writes it: "Oct 26, 2026, 14:37 GMT".
 const TIME_OF_DAY: RegExp = /\d{2}:\d{2}/;
 
 // A task's image, exactly.
