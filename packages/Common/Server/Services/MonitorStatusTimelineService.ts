@@ -52,6 +52,7 @@ import {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import UptimeDayGrid from "../../Utils/Uptime/UptimeDayGrid";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -345,6 +346,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       return empty;
     }
 
+    // The visitor's midnights, with OneUptime's tz data (issue #10039).
+    const dayGrid: Array<string> = UptimeDayGrid.getDatabaseParameter({
+      startDate: data.startDate,
+      endDate: data.endDate,
+      timezone: data.timezone || "UTC",
+    });
+
     const rows: Array<UptimeDailyAggregateRow> =
       await this.getRepository().manager.query(
         Service.getDailyUptimeAggregateSql(),
@@ -354,7 +362,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
           }),
           data.startDate,
           data.endDate,
-          data.timezone || "UTC",
+          dayGrid,
         ],
       );
 
@@ -365,7 +373,11 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * The statement getDailyUptimeAggregate runs. Public so its shape can be
    * pinned without a database.
    *
-   * Parameters: $1 uuid[] the monitors, $2 and $3 the window, $4 the zone.
+   * Parameters: $1 uuid[] the monitors, $2 and $3 the window, $4
+   * timestamptz[] the day grid: the visitor's local midnights over the
+   * window, worked out with OneUptime's own tz data (UptimeDayGrid, issue
+   * #10039). No zone reaches the statement, so Postgres converts nothing by
+   * zone and its own zoneinfo, however old, decides no day.
    *
    * The rows, and where each one starts and ends, are getTimelineSourceCtes'
    * (the overlap predicate is preserved verbatim from the row fetch this
@@ -393,10 +405,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     return `
       WITH params AS (
         SELECT $2::timestamptz AS win_start,
-               LEAST($3::timestamptz, now()) AS eff_end,
-               $4::text AS tz
+               LEAST($3::timestamptz, now()) AS eff_end
       ),
-      ${Service.getDayGridCte()},
+      ${Service.getDayGridCte({ parameter: "$4" })},
       mons AS (
         SELECT DISTINCT UNNEST($1::uuid[]) AS monitor_id
       ),
@@ -458,26 +469,29 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
 
   /*
    * THE DAY GRID: the local midnights of every day of the window, in order,
-   * as one array (`grid.starts`), and one midnight past the last day, so
-   * starts[i] to starts[i + 1] is day i. Worked out once per statement, so a
+   * as one array (`grid.starts`), and a midnight past the last day, so
+   * starts[i] to starts[i + 1] is day i. Bound once per statement, so a
    * period finds its days with width_bucket instead of converting its own
-   * start and end to the zone. Reads params' win_start, eff_end and tz.
+   * start and end to the zone. `parameter` is the statement's placeholder
+   * for it (`$4`), a timestamptz[].
    *
-   * A local midnight is a local calendar day converted to a UTC instant (`d
-   * AT TIME ZONE tz`), so a DST day is genuinely 23 or 25 hours, and a zone
-   * whose clocks change at midnight (America/Santiago) starts that day at
-   * the first instant it has. Every statement that cuts days cuts them on
-   * this grid, so a monitor group's bars line up with every monitor's.
+   * The midnights are worked out before the statement runs, with
+   * OneUptime's own tz data (UptimeDayGrid.getMidnights, moment-timezone),
+   * not by Postgres (issue #10039). `d AT TIME ZONE tz` read the database
+   * server's zoneinfo, which OneUptime does not control: a node that kept an
+   * old postgres image started a Vancouver visitor's day an hour late from
+   * 2026-11-01, while the bars' labels, the window and the status page's
+   * cache keys, all moment's, had it right.
+   *
+   * A local midnight is the first instant of a local calendar day, so a DST
+   * day is genuinely 23 or 25 hours, and a zone whose clocks change at
+   * midnight (America/Santiago) starts that day at the first instant it
+   * has. Every statement that cuts days cuts them on this grid, so a monitor
+   * group's bars line up with every monitor's.
    */
-  public static getDayGridCte(): string {
+  public static getDayGridCte(data: { parameter: string }): string {
     return `grid AS (
-        SELECT array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts
-        FROM params p,
-             generate_series(
-               date_trunc('day', p.win_start AT TIME ZONE p.tz),
-               date_trunc('day', p.eff_end AT TIME ZONE p.tz) + interval '1 day',
-               interval '1 day'
-             ) AS d
+        SELECT ${data.parameter}::timestamptz[] AS starts
       )`;
   }
 
@@ -847,13 +861,20 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       levelCount: rankedMonitorStatusIds.length,
     });
 
+    // The visitor's midnights, with OneUptime's tz data (issue #10039).
+    const dayGrid: Array<string> = UptimeDayGrid.getDatabaseParameter({
+      startDate: data.startDate,
+      endDate: data.endDate,
+      timezone: timezone,
+    });
+
     const rows: Array<MonitorGroupDailyUptimeRow> =
       await this.getRepository().manager.query(sql, [
         groupKeys,
         memberMonitorIds,
         data.startDate,
         data.endDate,
-        timezone,
+        dayGrid,
         rankedMonitorStatusIds,
         data.monitorGroups.length,
       ]);
@@ -877,15 +898,16 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *
    * Parameters: $1 int[] and $2 uuid[], each group's number (its place in
    * the request, from 1) beside one of its monitors; $3 and $4 the window;
-   * $5 the zone; $6 uuid[] the ranked statuses, the worst last; $7 how many
-   * groups there are.
+   * $5 timestamptz[] the day grid, the visitor's local midnights worked out
+   * with OneUptime's tz data (UptimeDayGrid, issue #10039); $6 uuid[] the
+   * ranked statuses, the worst last; $7 how many groups there are.
    *
    * Only integers go into its text - one column per level - never an id or
-   * a name: those are all parameters.
+   * a name: those are all parameters. No zone reaches it at all.
    *
-   * THE DAY GRID. The local midnights of the window's days are worked out
-   * once into one array (getDayGridCte, which the aggregate cuts its days on
-   * too), and each period finds its first and last day in it with
+   * THE DAY GRID. The local midnights of the window's days are bound as one
+   * array (getDayGridCte, which the aggregate cuts its days on too), and
+   * each period finds its first and last day in it with
    * width_bucket, a binary search. A period inside one day - nearly every
    * row of a flapping monitor - is one segment, with no per-row zone
    * conversion and no generate_series; only a period that crosses midnight
@@ -939,10 +961,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     return `
       WITH params AS (
         SELECT $3::timestamptz AS win_start,
-               LEAST($4::timestamptz, now()) AS eff_end,
-               $5::text AS tz
+               LEAST($4::timestamptz, now()) AS eff_end
       ),
-      ${Service.getDayGridCte()},
+      ${Service.getDayGridCte({ parameter: "$5" })},
       members AS (
         SELECT DISTINCT m.group_key, m.monitor_id
         FROM UNNEST($1::int[], $2::uuid[]) AS m(group_key, monitor_id)

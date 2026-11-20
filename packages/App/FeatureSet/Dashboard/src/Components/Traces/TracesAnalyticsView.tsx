@@ -28,6 +28,13 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
+import Timezone from "Common/Types/Timezone";
+import {
+  formatHistogramTick,
+  getHistogramRequestTimezone,
+  isDayBar,
+  readHistogramBucketTimezone,
+} from "Common/UI/Components/Charts/Utils/HistogramDayBars";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useResizableColumns, {
@@ -380,6 +387,13 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
   const [timeseriesBucketMs, setTimeseriesBucketMs] = useState<
     number | undefined
   >(undefined);
+  /*
+   * The zone the server cut the rows' day buckets in (bucketTimezone,
+   * #7923), kept with them: a click on a day bar zooms to its next midnight.
+   */
+  const [timeseriesBucketTimezone, setTimeseriesBucketTimezone] = useState<
+    Timezone | undefined
+  >(undefined);
   const [topListData, setTopListData] = useState<Array<TopItem>>([]);
   const [tableData, setTableData] = useState<Array<TableRow>>([]);
 
@@ -544,11 +558,15 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           endTime,
         );
 
+        // A bucket of a day starts at the reader's midnight (#7923).
+        const timezone: Timezone | undefined = getHistogramRequestTimezone();
+
         const requestData: JSONObject = {
           ...props.baseFilters,
           chartType,
           metric,
           bucketSizeInMinutes: bucketSizeInMinutes,
+          ...(timezone ? { timezone: timezone } : {}),
           limit,
         };
 
@@ -580,6 +598,9 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         if (chartType === "timeseries") {
           setTimeseriesData(data as Array<TimeseriesRow>);
           setTimeseriesBucketMs(bucketSizeInMinutes * 60 * 1000);
+          setTimeseriesBucketTimezone(
+            readHistogramBucketTimezone(response.data["bucketTimezone"]),
+          );
         } else if (chartType === "toplist") {
           setTopListData(data as Array<TopItem>);
         } else {
@@ -591,6 +612,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         }
         setTimeseriesData([]);
         setTimeseriesBucketMs(undefined);
+        setTimeseriesBucketTimezone(undefined);
         setTopListData([]);
         setTableData([]);
         setError(API.getFriendlyMessage(err));
@@ -673,7 +695,21 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     onTimeRangeSelect: zoomHandlers.onTimeRangeSelect,
     onZoomOut: zoomHandlers.onTimeRangeReset,
     bucketIntervalMs: timeseriesBucketMs,
+    bucketTimezone: timeseriesBucketTimezone,
   });
+
+  /*
+   * One function while the bars' width stays: the axis keeps its bars, as a
+   * press waiting to become a click needs (#7923). A day bar names its day,
+   * a shorter one its time.
+   */
+  const formatXAxisTick: (time: string) => string = useMemo(() => {
+    return (time: string): string => {
+      return isDayBar(timeseriesBucketMs)
+        ? formatHistogramTick(time, { bucketIntervalMs: timeseriesBucketMs })
+        : formatTickTime(time);
+    };
+  }, [timeseriesBucketMs]);
 
   const canZoom: boolean = Boolean(zoomHandlers.onTimeRangeSelect);
 
@@ -1021,7 +1057,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         />
         <XAxis
           dataKey="time"
-          tickFormatter={formatTickTime}
+          tickFormatter={formatXAxisTick}
           tick={{ fontSize: 11, fill: "var(--ou-chart-tick, #94a3b8)" }}
           axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
           tickLine={false}

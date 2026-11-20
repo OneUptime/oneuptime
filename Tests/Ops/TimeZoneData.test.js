@@ -22,7 +22,9 @@
  *     exactly its title counts;
  *   - the copies read are every Node.js base image the Dockerfile
  *     templates build from, the moment-timezone the Common lockfile pins,
- *     and docker-compose.base.yml's ClickHouse and Postgres.
+ *     and docker-compose.base.yml's ClickHouse - not its Postgres, which
+ *     cuts nothing in a zone (a status page's days reach it as instants,
+ *     #10039).
  *
  * And the workflow around them: weekly and by hand, the report on main
  * only and the only job that may write issues. Nothing here reaches the
@@ -43,7 +45,6 @@ const {
   nodeImagesFromDockerfiles,
   parseRelease,
   readIanaRelease,
-  releaseFromTzdataZi,
   sourcesToRead,
 } = require("../../Scripts/TimeZoneData/CheckTimeZoneData.js");
 const {
@@ -166,13 +167,6 @@ describe("tz database releases", () => {
       return readIanaRelease("2027a", NEWS);
     }).toThrow("IANA's NEWS has no line for release 2027a.");
   });
-
-  test("zoneinfo's tzdata.zi names its release on its first line", () => {
-    expect(releaseFromTzdataZi("# version 2026f")).toBe("2026f");
-    expect(releaseFromTzdataZi("#version 2024b\n")).toBe("2024b");
-    expect(releaseFromTzdataZi("head: cannot open")).toBeNull();
-    expect(releaseFromTzdataZi("")).toBeNull();
-  });
 });
 
 describe("what the check reads", () => {
@@ -238,7 +232,7 @@ describe("what the check reads", () => {
     }).toThrow("no service missing");
   });
 
-  test("the copies are moment-timezone, every Node.js base image, and Compose's ClickHouse and Postgres", () => {
+  test("the copies are moment-timezone, every Node.js base image, and Compose's ClickHouse - not its Postgres", () => {
     const sources = sourcesToRead();
     const names = sources.map((candidate) => {
       return candidate.name;
@@ -252,9 +246,16 @@ describe("what the check reads", () => {
     expect(names).toContain(
       `ClickHouse ${composeImage(compose, "clickhouse").split(":").pop()}`,
     );
-    expect(names).toContain(
-      `Postgres ${composeImage(compose, "postgres").split(":").pop()}`,
-    );
+    /*
+     * Postgres cuts no day in a zone: a status page's days reach it as
+     * instants worked out with moment's data (#10039), so its zoneinfo is no
+     * copy to keep current.
+     */
+    expect(
+      names.some((name) => {
+        return name.startsWith("Postgres");
+      }),
+    ).toBe(false);
 
     // Every image the App, Probe, Runner and Nginx images start from.
     for (const template of [

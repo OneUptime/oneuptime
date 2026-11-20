@@ -3,6 +3,7 @@ import {
   UptimeDailyAggregateRow,
 } from "../../../Server/Services/MonitorStatusTimelineService";
 import ObjectID from "../../../Types/ObjectID";
+import UptimeDayGrid from "../../../Utils/Uptime/UptimeDayGrid";
 import {
   MonitorUptimeDailyAggregate,
   UptimeDailyAggregate,
@@ -470,9 +471,14 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
 
     const sql: string = flatten(stub.calls[0]!.sql);
 
-    // The grid, the same text as the group's: one array of local midnights.
+    /*
+     * The grid, the same text as the group's: one array of local midnights,
+     * bound as a parameter ($4 here, $5 in the group's statement).
+     */
     expect(sql).toContain(
-      flatten(MonitorStatusTimelineServiceType.getDayGridCte()),
+      flatten(
+        MonitorStatusTimelineServiceType.getDayGridCte({ parameter: "$4" }),
+      ),
     );
     expect(
       flatten(
@@ -480,10 +486,12 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
           { levelCount: 2 },
         ),
       ),
-    ).toContain(flatten(MonitorStatusTimelineServiceType.getDayGridCte()));
-    expect(sql).toContain(
-      "array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts",
+    ).toContain(
+      flatten(
+        MonitorStatusTimelineServiceType.getDayGridCte({ parameter: "$5" }),
+      ),
     );
+    expect(sql).toContain("grid AS ( SELECT $4::timestamptz[] AS starts )");
 
     expect(sql).toContain("width_bucket(src.s, g.starts) AS first_day");
     expect(sql).toContain(
@@ -522,7 +530,13 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
     expect(sql).toContain("SELECT DISTINCT UNNEST($1::uuid[]) AS monitor_id");
   });
 
-  test("the requested zone is bound as $4, which is the zone the SQL cuts days in", async () => {
+  /*
+   * Issue #10039: the requested zone's midnights are worked out with
+   * OneUptime's own tz data (UptimeDayGrid) and bound as $4, a
+   * timestamptz[]; the zone itself never reaches Postgres, whose zoneinfo
+   * OneUptime does not control.
+   */
+  test("the requested zone's midnights are bound as $4, and the zone itself is not", async () => {
     const stub: StubbedService = stubService();
 
     await stub.service.getDailyUptimeAggregate({
@@ -534,12 +548,31 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
 
     const call: CapturedQuery = stub.calls[0]!;
 
-    expect(flatten(call.sql)).toContain("$4::text AS tz");
+    expect(flatten(call.sql)).toContain("$4::timestamptz[] AS starts");
+    expect(call.sql).not.toContain("AT TIME ZONE");
+    expect(call.sql).not.toContain("AS tz");
     expect(call.params).toHaveLength(4);
     expect(call.params[0]).toEqual([MONITOR_A, MONITOR_B]);
     expect(call.params[1]).toBe(WINDOW_START);
     expect(call.params[2]).toBe(WINDOW_END);
-    expect(call.params[3]).toBe("Asia/Tokyo");
+    expect(call.params).not.toContain("Asia/Tokyo");
+    expect(call.params[3]).toEqual(
+      UptimeDayGrid.getDatabaseParameter({
+        startDate: WINDOW_START,
+        endDate: WINDOW_END,
+        timezone: "Asia/Tokyo",
+      }),
+    );
+
+    // Tokyo's midnights are 15:00 UTC, from the day the window starts in.
+    const grid: Array<string> = call.params[3] as Array<string>;
+
+    expect(grid[0]).toBe("2026-07-23T15:00:00.000Z");
+    for (const midnight of grid) {
+      expect(midnight.slice(11)).toBe("15:00:00.000Z");
+    }
+    // To the midnight that ends the window's last day, and one day on.
+    expect(grid[grid.length - 1]).toBe("2026-09-23T15:00:00.000Z");
   });
 
   test.each([
@@ -560,7 +593,13 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
           timezone: timezone,
         });
 
-      expect(stub.calls[0]!.params[3]).toBe("UTC");
+      const grid: Array<string> = stub.calls[0]!.params[3] as Array<string>;
+
+      // UTC's midnights, from the day the window starts in.
+      expect(grid[0]).toBe("2026-07-24T00:00:00.000Z");
+      for (const midnight of grid) {
+        expect(midnight.slice(11)).toBe("00:00:00.000Z");
+      }
       expect(result.timezone).toBe("UTC");
     },
   );

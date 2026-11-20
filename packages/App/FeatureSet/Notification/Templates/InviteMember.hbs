@@ -33,91 +33,101 @@
   Sign in with SSO page for someone signed up already.
 --}}
 
+{{!--
+  In the invitee's language (#9897): the one their account picked, else the
+  inviter's, else English (TeamMemberService.buildInvitationEmail, and
+  Common/Types/Team/InvitationEmailWords for why). Every sentence is looked
+  up whole by its English (tt, t), with the project's name, who invited
+  them and the product as values put in as written - escaped by the slot
+  they go in, and set apart to read their own way in an email read from the
+  right (ServerTranslation). The link's label is LinkBlock's own.
+--}}
+
 {{#ifCond isInvitationAccepted "true"}}
 
-{{> EmailTitle title=(concat "You've Been Added to " projectName) }}
+{{> EmailTitle title=(tt "You've Been Added to {{project}}" project=projectName) }}
 
 {{#ifCond isSsoSignIn "true"}}
 {{#if inviterLabel}}
-{{> InfoBlock plainInfo=(concat inviterLabel " added you to " projectName " on " (brandName) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{> InfoBlock plainInfo=(tt "{{inviter}} added you to {{project}} on {{product}}. It signs you in with your organization's single sign-on (SSO), so there is no password to create." inviter=inviterLabel project=projectName product=(brandName))}}
 {{else}}
-{{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{> InfoBlock plainInfo=(tt "You've been added to a project on {{product}}. It signs you in with your organization's single sign-on (SSO), so there is no password to create." product=(brandName))}}
 {{/if}}
 
-{{> ButtonBlock buttonUrl=ssoSignInLink buttonText="Sign In with SSO"}}
+{{> ButtonBlock buttonUrl=ssoSignInLink buttonText=(t "Sign In with SSO")}}
 
 {{> VerticalSpace this}}
 
-{{> LinkBlock linkUrl=ssoSignInLink linkLabel="Or copy and paste this link into your browser:"}}
+{{> LinkBlock linkUrl=ssoSignInLink}}
 {{else}}
 {{#ifCond isNewUser "true"}}
 {{#if inviterLabel}}
-{{> InfoBlock plainInfo=(concat inviterLabel " added you to " projectName " on " (brandName) ". Create your account to get started - your access is already waiting for you.")}}
+{{> InfoBlock plainInfo=(tt "{{inviter}} added you to {{project}} on {{product}}. Create your account to get started - your access is already waiting for you." inviter=inviterLabel project=projectName product=(brandName))}}
 {{else}}
-{{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". Create your account to get started - your access is already waiting for you.")}}
+{{> InfoBlock plainInfo=(tt "You've been added to a project on {{product}}. Create your account to get started - your access is already waiting for you." product=(brandName))}}
 {{/if}}
 
-{{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
+{{> ButtonBlock buttonUrl=registerLink buttonText=(t "Create Your Account")}}
 
 {{> VerticalSpace this}}
 
-{{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
+{{> LinkBlock linkUrl=registerLink}}
 {{else}}
 {{#if inviterLabel}}
-{{> InfoBlock plainInfo=(concat inviterLabel " added you to " projectName " on " (brandName) ". Sign in to get started - there is nothing for you to accept.")}}
+{{> InfoBlock plainInfo=(tt "{{inviter}} added you to {{project}} on {{product}}. Sign in to get started - there is nothing for you to accept." inviter=inviterLabel project=projectName product=(brandName))}}
 {{else}}
-{{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". Sign in to get started - there is nothing for you to accept.")}}
+{{> InfoBlock plainInfo=(tt "You've been added to a project on {{product}}. Sign in to get started - there is nothing for you to accept." product=(brandName))}}
 {{/if}}
 
-{{> ButtonBlock buttonUrl=signInLink buttonText=(concat "Sign In to " (brandName))}}
+{{> ButtonBlock buttonUrl=signInLink buttonText=(tt "Sign In to {{product}}" product=(brandName))}}
 
 {{> VerticalSpace this}}
 
-{{> LinkBlock linkUrl=signInLink linkLabel="Or copy and paste this link into your browser:"}}
+{{> LinkBlock linkUrl=signInLink}}
 {{/ifCond}}
 {{/ifCond}}
 
 {{else}}
 
-{{> EmailTitle title=(concat "You're Invited to " projectName) }}
+{{> EmailTitle title=(tt "You're Invited to {{project}}" project=projectName) }}
 
 {{#ifCond isSsoSignIn "true"}}
 {{#if inviterLabel}}
-{{> InfoBlock plainInfo=(concat inviterLabel " invited you to join " projectName " on " (brandName) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{> InfoBlock plainInfo=(tt "{{inviter}} invited you to join {{project}} on {{product}}. It signs you in with your organization's single sign-on (SSO), so there is no password to create." inviter=inviterLabel project=projectName product=(brandName))}}
 {{else}}
-{{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". It signs you in with your organization's single sign-on (SSO), so there is no password to create.")}}
+{{> InfoBlock plainInfo=(tt "You've been invited to join a project on {{product}}. It signs you in with your organization's single sign-on (SSO), so there is no password to create." product=(brandName))}}
 {{/if}}
 
-{{> ButtonBlock buttonUrl=ssoSignInLink buttonText="Sign In with SSO"}}
+{{> ButtonBlock buttonUrl=ssoSignInLink buttonText=(t "Sign In with SSO")}}
 
 {{> VerticalSpace this}}
 
-{{> LinkBlock linkUrl=ssoSignInLink linkLabel="Or copy and paste this link into your browser:"}}
+{{> LinkBlock linkUrl=ssoSignInLink}}
 {{else}}
 {{#ifCond isNewUser "true"}}
 {{#if inviterLabel}}
-{{> InfoBlock plainInfo=(concat inviterLabel " invited you to join " projectName " on " (brandName) ". Create your account to get started.")}}
+{{> InfoBlock plainInfo=(tt "{{inviter}} invited you to join {{project}} on {{product}}. Create your account to get started." inviter=inviterLabel project=projectName product=(brandName))}}
 {{else}}
-{{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". Create your account to get started.")}}
+{{> InfoBlock plainInfo=(tt "You've been invited to join a project on {{product}}. Create your account to get started." product=(brandName))}}
 {{/if}}
 
-{{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
+{{> ButtonBlock buttonUrl=registerLink buttonText=(t "Create Your Account")}}
 
 {{> VerticalSpace this}}
 
-{{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
+{{> LinkBlock linkUrl=registerLink}}
 {{else}}
 {{#if inviterLabel}}
-{{> InfoBlock plainInfo=(concat inviterLabel " invited you to join " projectName " on " (brandName) ". Sign in to view and manage your invitations.")}}
+{{> InfoBlock plainInfo=(tt "{{inviter}} invited you to join {{project}} on {{product}}. Sign in to view and manage your invitations." inviter=inviterLabel project=projectName product=(brandName))}}
 {{else}}
-{{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". Sign in to view and manage your invitations.")}}
+{{> InfoBlock plainInfo=(tt "You've been invited to join a project on {{product}}. Sign in to view and manage your invitations." product=(brandName))}}
 {{/if}}
 
-{{> ButtonBlock buttonUrl=signInLink buttonText=(concat "Sign In to " (brandName))}}
+{{> ButtonBlock buttonUrl=signInLink buttonText=(tt "Sign In to {{product}}" product=(brandName))}}
 
 {{> VerticalSpace this}}
 
-{{> LinkBlock linkUrl=signInLink linkLabel="Or copy and paste this link into your browser:"}}
+{{> LinkBlock linkUrl=signInLink}}
 {{/ifCond}}
 {{/ifCond}}
 

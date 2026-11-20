@@ -6,6 +6,11 @@ const crypto = require("crypto");
 const fs = require("fs");
 const { spawnSync } = require("child_process");
 const { ok, warn } = require("./StartOutput");
+/*
+ * config.env's settings and the KEY of a line, as every step of npm start
+ * reads them, and as WithConfig.sh hands them to Compose.
+ */
+const { assignedKeyOf, readSettings } = require("./ReplacePlaceholderSecrets");
 
 /*
  * WHY
@@ -99,20 +104,6 @@ const DATABASE_STATE_COMMAND = [
 // A first start may pull the PostgreSQL image here.
 const DATABASE_STATE_TIMEOUT_MS = 10 * 60 * 1000;
 
-const isCommentLine = (line) => {
-  const trimmed = line.trim();
-  return trimmed.startsWith("#") || trimmed.startsWith("//");
-};
-
-// The KEY of a KEY=value line (surrounding whitespace ignored), or null.
-const assignedKeyOf = (line) => {
-  if (isCommentLine(line) || !line.includes("=")) {
-    return null;
-  }
-
-  return line.split("=")[0].trim();
-};
-
 // The value of a KEY=value line, without surrounding whitespace or quotes.
 const unquotedValueOf = (line) => {
   const value = line.slice(line.indexOf("=") + 1).trim();
@@ -136,25 +127,6 @@ const isShippedValue = (value) => {
   const trimmed = value.trim();
 
   return trimmed === SHIPPED_FALLBACK || trimmed.includes(PLACEHOLDER_MARK);
-};
-
-/*
- * config.env's settings, as `npm start` exports them: comments skipped,
- * surrounding quotes removed, and the last assignment of a name wins.
- */
-const readSettings = (contents) => {
-  const settings = new Map();
-
-  for (const rawLine of contents.split("\n")) {
-    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
-    const key = assignedKeyOf(line);
-
-    if (key) {
-      settings.set(key, unquotedValueOf(line));
-    }
-  }
-
-  return settings;
 };
 
 // 256 bits from the CSPRNG as 64 hex characters: safe unquoted in config.env,

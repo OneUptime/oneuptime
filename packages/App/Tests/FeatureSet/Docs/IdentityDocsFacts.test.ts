@@ -85,6 +85,11 @@ const SOURCES: Record<string, string> = {
   ssoGate: `${IDENTITY}/Utils/ProjectSsoSignInGate.ts`,
   ssoIdentityBinding: `${IDENTITY}/Utils/ProjectSsoIdentityBinding.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
+  // The invitation's link as the mailbox's confirmation, and its page (#9898).
+  signUpInvitation: `${IDENTITY}/Utils/SignUpInvitation.ts`,
+  authenticationApi: `${IDENTITY}/API/Authentication.ts`,
+  invitedSsoSignIn:
+    "packages/App/FeatureSet/Accounts/src/Components/InvitedSsoSignIn/InvitedSsoSignIn.tsx",
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
   // On the SSO page, under its SAML providers.
   projectOidcProviders: `${DASHBOARD}/Components/Sso/ProjectOidcProviders.tsx`,
@@ -555,6 +560,30 @@ describe("the SSO guide", () => {
     );
     expect(english(SSO)).toContain(
       "This happens once per project, and again if they leave the project and come back.",
+    );
+  });
+
+  it("says someone invited with no account yet signs in straight away from the page their invitation opens, its link the proof of the mailbox (#9898)", () => {
+    const confirmation: string = readSource("signUpInvitation");
+
+    // On OneUptime Cloud only, for an account the link can still claim.
+    expect(confirmation).toMatch(
+      /confirmSsoSignInOrSayWhyNot[\s\S]*?if \(!ProjectSsoSignInConfirmation\.isRequired\(\)\) \{[\s\S]*?UserRegistrationToken\.isRegistrationTokenLive\([\s\S]*?if \(!user\?\.id \|\| user\.password\) \{/,
+    );
+    // The link spent, the invitation accepted, the consent recorded: the gate's two halves.
+    expect(confirmation).toMatch(
+      /UserRegistrationToken\.consumeRegistrationToken\([\s\S]*?acceptForClaimedAccount\([\s\S]*?isEmailVerified: true[\s\S]*?UserProjectSsoConsentService\.recordConsent\(/,
+    );
+    expect(readSource("authenticationApi")).toMatch(
+      /SIGN_UP_INVITATION_SSO_ROUTE,\s*signUpInvitationRateLimit,[\s\S]*?SignUpInvitationUtil\.confirmSsoSignIn\(/,
+    );
+    // The page the invitation opens says so before it starts the provider's sign-in.
+    expect(readSource("invitedSsoSignIn")).toMatch(
+      /await confirmSignUpInvitationSsoSignIn\([\s\S]*?Navigation\.navigate\(/,
+    );
+
+    expect(english(SSO)).toContain(
+      "Someone you invite who has no OneUptime account yet gets no such email: picking one of the project's providers on the page their invitation opens signs them in straight away, because their invitation's link has already proved the mailbox is theirs.",
     );
   });
 

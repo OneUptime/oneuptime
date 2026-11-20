@@ -221,8 +221,15 @@ describe("the dashboard's view of the provider", () => {
     const member: Map<string, TerraformAttributeDescriptor> =
       attributes(TeamMember);
 
-    // project_id is the API key's, filled in by the server.
+    /*
+     * project_id is the API key's, filled in by the server. invitee_name
+     * is the inviter's, never the invitee's: the name the project shows for
+     * someone it invites until they accept (TeamMember.inviteeName, #9823),
+     * which the dashboard's Invite takes in its optional Name and the API
+     * takes as a create's inviteeName (TeamMemberService.onBeforeCreate).
+     */
     expect([...member.keys()].sort()).toEqual([
+      "invitee_name",
       "project_id",
       "team_id",
       "user_id",
@@ -236,6 +243,28 @@ describe("the dashboard's view of the provider", () => {
     expect(isRequiredInTerraform(member.get("user_id")!)).toBe(false);
     expect(isRequiredInTerraform(member.get("team_id")!)).toBe(true);
     expect(member.get("team_id")!.personEmail).toBeUndefined();
+  });
+
+  test("a team member's invitee_name: what the inviter typed, given with the invitation and never required", () => {
+    const inviteeName: TerraformAttributeDescriptor =
+      attributes(TeamMember).get("invitee_name")!;
+
+    expect(inviteeName.columnName).toBe("inviteeName");
+    // Given with the invitation, as the Invite form's Name is: no update writes it.
+    expect(inviteeName.inCreateSchema).toBe(true);
+    expect(inviteeName.inUpdateSchema).toBe(false);
+    expect(isRequiredInTerraform(inviteeName)).toBe(false);
+    // The inviter's words: not the server's, and not the invitee's to decide.
+    expect(inviteeName.isServerManaged).toBe(false);
+    expect(isDecidedByThePersonInvited("TeamMember", "inviteeName")).toBe(
+      false,
+    );
+    expect(isDecidedBySomeoneElse("TeamMember", "inviteeName")).toBe(false);
+    // A name, never a person to find or invite by address.
+    expect(inviteeName.personEmail).toBeUndefined();
+    expect(inviteeName.description).toBe(
+      "The name typed when the person was invited, shown in place of their own until they accept.",
+    );
   });
 
   test("the API reference still badges the person Required, as the API requires them", () => {
