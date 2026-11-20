@@ -309,8 +309,12 @@ describe("ee identity routers", () => {
       }),
     );
 
-    // The core SSO routes this compares against are really there (20 of them).
-    expect(coreSsoRoutes.size).toBe(20);
+    /*
+     * The core SSO routes this compares against are really there (25 of
+     * them, with the SAML Single Logout URLs and the signing certificate
+     * #9603 added).
+     */
+    expect(coreSsoRoutes.size).toBe(25);
 
     for (const entry of IDENTITY_ROUTERS) {
       for (const route of getRoutes(entry.router)) {

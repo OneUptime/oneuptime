@@ -51,6 +51,8 @@ export interface LlmTileProps {
   hintRoute?: Route | undefined;
   // What the hint's link opens, in English: its tooltip and its name.
   hintRouteTitle?: string | undefined;
+  // The hintRouteTitle is in the reader's words already, drawn as given (Link's isTitleTranslated).
+  isHintRouteTitleTranslated?: boolean | undefined;
   icon: IconProp;
   iconClassName: string;
   iconTileClassName: string;
@@ -105,6 +107,7 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
               dataTestId={`${props.dataTestId}-hint`}
               // Looked up by the link, in the reader's language.
               title={props.hintRouteTitle}
+              isTitleTranslated={props.isHintRouteTitleTranslated}
               className="inline-flex items-center gap-0.5 rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11"
             >
               <>

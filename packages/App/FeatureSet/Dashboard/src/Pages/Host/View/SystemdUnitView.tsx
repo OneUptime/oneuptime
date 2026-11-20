@@ -972,6 +972,7 @@ const HostSystemdUnitView: FunctionComponent<
                   },
                 )
           }
+          isSublabelTranslated={true}
           percent={availability.percent}
           barClassName={
             availability.percent === null
@@ -1005,6 +1006,7 @@ const HostSystemdUnitView: FunctionComponent<
                 )
               : "in selected range"
           }
+          isSublabelTranslated={Boolean(truncatedFrom)}
         />
       </div>
     );

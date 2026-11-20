@@ -726,6 +726,27 @@ const TELEMETRY_INGEST_ADDRESSES = [
     ],
   },
 
+  /*
+   * The Android device agent: the log sessions waiting for its device, asked
+   * beside OTLP (#9806).
+   */
+  {
+    method: "POST",
+    route: "/android-agent/v1/log-sessions",
+    addresses: [
+      {
+        address: "/telemetry/android-agent/v1/log-sessions",
+        handedOutBy: [
+          {
+            file: "agents/AndroidAgent/app/src/main/java/com/oneuptime/androidagent/logsession/LogSessionClient.kt",
+            contains:
+              'const val PATH: String = "/telemetry/android-agent/v1/log-sessions"',
+          },
+        ],
+      },
+    ],
+  },
+
   // Session replay and product analytics, from the browser and mobile recorders.
   ...[
     ["POST", "/session-replay/v1/chunk", "CHUNK_PATH"],

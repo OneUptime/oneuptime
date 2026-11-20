@@ -114,7 +114,7 @@ const PendingEmailChange: FunctionComponent<ComponentProps> = (
             }
           />
           <Button
-            title={translator.translateText(PENDING_EMAIL_CHANGE_COPY.cancel)}
+            title={PENDING_EMAIL_CHANGE_COPY.cancel}
             buttonStyle={ButtonStyleType.NORMAL}
             isLoading={isCancelling}
             disabled={isCancelling}
