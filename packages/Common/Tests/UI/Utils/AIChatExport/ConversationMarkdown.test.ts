@@ -24,6 +24,7 @@ import AIChatMessageRole from "../../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../../Types/AI/AIChatMessageStatus";
 import {
   AIChatCitation,
+  AIChatResourceCardOrigin,
   AIChatToolAction,
   AIChatToolActionStatus,
   AIChatWidget,
@@ -769,6 +770,79 @@ describe("convertConversationToMarkdown", () => {
       expect(titleIndex).toBeLessThan(youIndex);
       expect(youIndex).toBeLessThan(aiIndex);
       expect(aiIndex).toBeLessThan(footerIndex);
+    });
+  });
+
+  /*
+   * Issue #7395: the document's outline lists each card once, by what it is:
+   * a read's card by its name, never "Monitor payments-api" over the same
+   * kind and name again; a write's card by what was done.
+   */
+  describe("the cards' headings", () => {
+    test("several read cards and a write's: one heading each, the reads by name", () => {
+      const readCard: (
+        id: string,
+        kind: string,
+        name: string,
+        line: string,
+      ) => AIChatWidget = (
+        id: string,
+        kind: string,
+        name: string,
+        line: string,
+      ): AIChatWidget => {
+        return {
+          id,
+          type: AIChatWidgetType.ResourceCard,
+          title: `${kind} ${name}`,
+          data: {
+            resourceType: kind,
+            heading: name,
+            subheading: line,
+            fields: [],
+            origin: AIChatResourceCardOrigin.Read,
+          },
+        };
+      };
+
+      const doc: string = convert([
+        makeMessage({
+          id: "a1",
+          role: AIChatMessageRole.Assistant,
+          status: AIChatMessageStatus.Completed,
+          content: "Here is where things stand.",
+          widgets: [
+            readCard("W1", "Monitor", "payments-api", "Degraded"),
+            readCard("W2", "SLO", "Checkout availability", "Breaching"),
+            readCard("W3", "On-call policy", "Primary", "2 levels"),
+            {
+              id: "W4",
+              type: AIChatWidgetType.ResourceCard,
+              title: "Alert created",
+              data: {
+                resourceType: "Alert",
+                heading: "ALT-12 · High memory usage on test01",
+                fields: [],
+                origin: AIChatResourceCardOrigin.Write,
+              },
+            },
+          ],
+        }),
+      ]);
+
+      expect(doc.match(/^#### .*$/gm)).toEqual([
+        "#### payments-api",
+        "#### Checkout availability",
+        "#### Primary",
+        "#### Alert created",
+      ]);
+      for (const name of ["payments-api", "Checkout availability", "Primary"]) {
+        expect(occurrences(doc, name)).toBe(1);
+      }
+      expect(doc).not.toContain("Monitor payments-api");
+      expect(doc).toContain("_MONITOR_ · Degraded");
+      expect(doc).toContain("_SLO_ · Breaching");
+      expect(doc).toContain("_ON-CALL POLICY_ · 2 levels");
     });
   });
 });

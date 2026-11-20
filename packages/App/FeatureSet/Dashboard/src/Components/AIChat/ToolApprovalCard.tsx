@@ -37,6 +37,7 @@ import {
   getToolActionDescription,
   getToolActionLeavesOutLists,
   getToolActionNamedArguments,
+  getToolActionReason,
   getToolActionShownValues,
   getToolActionTitle,
   getToolActionTitleLabel,
@@ -196,6 +197,11 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
               action,
               translator,
             );
+            // Why Auto-run held a code change back (issue #6982); null for every other row.
+            const reason: DrawnActionSentence | null = getToolActionReason(
+              action,
+              translator,
+            );
             return (
               <div
                 key={action.id}
@@ -217,12 +223,34 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                  * start of an English title. Its first line sits level
                  * with the chip.
                  */}
-                <span
-                  data-testid="tool-approval-history-title"
-                  className="line-clamp-3 min-w-0 flex-1 break-words text-xs leading-5 text-gray-700"
-                >
-                  <ToolActionSentence sentence={title} />
-                </span>
+                {reason ? (
+                  /*
+                   * A code change Auto-run did not make says why under its
+                   * title, in the reader's language, as its approval card
+                   * would have - the row alone said only "Skipped".
+                   */
+                  <div className="min-w-0 flex-1">
+                    <span
+                      data-testid="tool-approval-history-title"
+                      className="line-clamp-3 block break-words text-xs leading-5 text-gray-700"
+                    >
+                      <ToolActionSentence sentence={title} />
+                    </span>
+                    <p
+                      data-testid="tool-approval-history-reason"
+                      className="mt-0.5 break-words text-xs leading-[1.125rem] text-gray-500"
+                    >
+                      <ToolActionSentence sentence={reason} />
+                    </p>
+                  </div>
+                ) : (
+                  <span
+                    data-testid="tool-approval-history-title"
+                    className="line-clamp-3 min-w-0 flex-1 break-words text-xs leading-5 text-gray-700"
+                  >
+                    <ToolActionSentence sentence={title} />
+                  </span>
+                )}
               </div>
             );
           })}
