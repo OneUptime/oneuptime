@@ -1,4 +1,3 @@
-import GzipRequestBodyMiddleware from "Common/Server/Middleware/GzipRequestBody";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -14,6 +13,7 @@ import getRequestBodyLimit, {
   RequestBodyLimit,
   SERVER_MONITOR_ROUTE_PREFIXES,
   TELEMETRY_ROUTE_PREFIXES,
+  readsBodyAfterAuthentication,
 } from "Common/Server/Utils/RequestBodyLimit";
 import { TELEMETRY_WRITER_INSERT_ROUTE } from "Common/Server/Utils/Telemetry/TelemetryWriterClient";
 import {
@@ -31,8 +31,14 @@ import {
 } from "Common/Server/Utils/DataObservability/DataObservabilityProbeCollect";
 import { HUNTRESS_WEBHOOK_ROUTE } from "Common/Types/Huntress/HuntressWebhook";
 import { FileRoute } from "Common/ServiceRoute";
-import { parseInflatedJsonBody as parseVMwareCollection } from "../../FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection";
-import { parseInflatedJsonBody as parseOpenStackCollection } from "../../FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  getCollectionParseLimit,
+  parseCollectionBody,
+  readCollectionBody,
+} from "../../FeatureSet/Telemetry/Middleware/ProbeCollectionRequest";
+import { ProbeExpressRequest } from "../../FeatureSet/Telemetry/Types/Request";
 import { describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -331,7 +337,8 @@ describe("the paths the App's own clients send large bodies to", () => {
             path.includes("/session-replay/v1/") ||
             isVercelLogDrainPath(path) ||
             isCloudStreamPath(path) ||
-            isCompatibleIngestPath(path);
+            isCompatibleIngestPath(path) ||
+            readsBodyAfterAuthentication(path);
 
           if (!readsItsOwnBody) {
             expect({
@@ -371,10 +378,12 @@ describe("the paths the App's own clients send large bodies to", () => {
 });
 
 /*
- * A probe's collection reaches the route as the bytes the gzip reader
- * inflated, whatever its Content-Type said - one that is not JSON's is not
- * counted as it inflates - and is parsed before the probe is authenticated
- * from it. It is counted before it is parsed.
+ * A probe's collection is read by its route, once the route has checked the
+ * key in its headers (#10222), as the bytes the gzip reader inflated,
+ * whatever its Content-Type said - one that is not JSON's is not counted as
+ * it inflates. It is counted before it is parsed: up to a collection's
+ * 8,000,000 values for a probe whose key is right, and up to a large route's
+ * 1,000,000 for one whose probe is not known by then.
  */
 describe("a collection is counted before it is parsed", () => {
   function gzipRequest(body: Buffer, contentType: string): ExpressRequest {
@@ -417,58 +426,49 @@ describe("a collection is counted before it is parsed", () => {
     `[${"[],".repeat(Math.floor((20 * 1024 * 1024) / 3))}[]]`,
   );
 
-  test.each([
-    ["a vCenter's", parseVMwareCollection],
-    ["an OpenStack cloud's", parseOpenStackCollection],
-  ])(
-    "%s, of 20 MiB of empty arrays sent as text/plain, is refused 413 and never parsed",
-    async (_what: string, parse: unknown) => {
-      const req: ExpressRequest = gzipRequest(
-        zlib.gzipSync(bomb),
-        "text/plain",
+  test("of 20 MiB of empty arrays sent as text/plain, whose probe is not known, is refused 413 and never parsed", async () => {
+    const req: ExpressRequest = gzipRequest(zlib.gzipSync(bomb), "text/plain");
+
+    // The route's own reader: not JSON's type, so not counted as it inflates.
+    expect(await run(readCollectionBody, req)).toBeUndefined();
+    expect(Buffer.isBuffer((req as unknown as { body: unknown }).body)).toBe(
+      true,
+    );
+
+    const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    try {
+      const error: unknown = await run(
+        parseCollectionBody as (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => void,
+        req,
       );
 
-      // As StartServer holds the route: a report's limit.
-      (
-        req as unknown as { requestBodyLimit: RequestBodyLimit }
-      ).requestBodyLimit = {
-        ...REPORT_REQUEST_BODY_LIMIT,
-        values: 1000000,
-        objectsArraysAndStrings: 1000000,
-      };
+      // Under a large route's 1,000,000, not a collection's 8,000,000.
+      expect(error).toMatchObject({
+        type: "entity.too.many.values",
+        status: 413,
+        expose: true,
+        limit: LARGE_REQUEST_BODY_LIMIT.values,
+      });
+      expect(jsonParse).not.toHaveBeenCalled();
+    } finally {
+      jsonParse.mockRestore();
+    }
+  }, 60000);
 
-      expect(
-        await run(GzipRequestBodyMiddleware.parseBody, req),
-      ).toBeUndefined();
-      expect(Buffer.isBuffer((req as unknown as { body: unknown }).body)).toBe(
-        true,
-      );
+  test("is held to a collection's 8,000,000 values once its probe is known, and to a large route's 1,000,000 until then", () => {
+    const unknown: ProbeExpressRequest = {} as ProbeExpressRequest;
+    const known: ProbeExpressRequest = {
+      probe: new Probe(new ObjectID("11111111-1111-4111-8111-111111111111")),
+    } as ProbeExpressRequest;
 
-      const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(
-        JSON,
-        "parse",
-      );
-
-      try {
-        const error: unknown = await run(
-          parse as (
-            req: ExpressRequest,
-            res: ExpressResponse,
-            next: NextFunction,
-          ) => void,
-          req,
-        );
-
-        expect(error).toMatchObject({
-          type: "entity.too.many.values",
-          status: 413,
-          expose: true,
-        });
-        expect(jsonParse).not.toHaveBeenCalled();
-      } finally {
-        jsonParse.mockRestore();
-      }
-    },
-    60000,
-  );
+    expect(getCollectionParseLimit(unknown)).toBe(LARGE_REQUEST_BODY_LIMIT);
+    expect(getCollectionParseLimit(known)).toBe(REPORT_REQUEST_BODY_LIMIT);
+    expect(REPORT_REQUEST_BODY_LIMIT.values).toBe(8000000);
+    expect(LARGE_REQUEST_BODY_LIMIT.values).toBe(1000000);
+  });
 });

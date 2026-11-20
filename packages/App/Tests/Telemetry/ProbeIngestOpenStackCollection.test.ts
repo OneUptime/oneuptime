@@ -137,6 +137,8 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
     __esModule: true,
     default: {
       isAuthorizedServiceMiddleware: jest.fn(),
+      isAuthorizedFromHeadersMiddleware: jest.fn(),
+      isAuthorizedFromReportOpeningMiddleware: jest.fn(),
     },
   };
 });
@@ -163,9 +165,12 @@ import OpenStackCollectionRouter, {
   OpenStackProbeWorkStore,
   createOpenStackCollectionRouter,
   getCollectionClaimLimit,
-  parseInflatedJsonBody,
   readRunningOpenStackCloudIds,
 } from "../../FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection";
+import {
+  parseCollectionBody,
+  readCollectionBody,
+} from "../../FeatureSet/Telemetry/Middleware/ProbeCollectionRequest";
 
 const clouds: {
   claimForCollection: jest.Mock;
@@ -426,9 +431,18 @@ describe("wiring", () => {
     },
   );
 
-  test("a compressed collection report is read as JSON before the probe is authenticated from it", () => {
+  /*
+   * #10222: the key is checked before the report is parsed - from the headers before a
+   * byte is read, then from the start of an older probe's report - and only a report whose
+   * probe is still not known is parsed under a large route's limit and authenticated from
+   * its body.
+   */
+  test("a collection's key is checked before its report is parsed", () => {
     expect(router.routes.get(COLLECTION_URI)?.middlewares).toEqual([
-      parseInflatedJsonBody,
+      ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
+      readCollectionBody,
+      ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
+      parseCollectionBody,
       ProbeAuthorization.isAuthorizedServiceMiddleware,
     ]);
   });
@@ -1047,8 +1061,8 @@ describe("a report as it arrives", () => {
     const req: { body: unknown } = { body: body };
     const next: NextSpy = jest.fn();
 
-    parseInflatedJsonBody(
-      req as unknown as Parameters<typeof parseInflatedJsonBody>[0],
+    parseCollectionBody(
+      req as unknown as Parameters<typeof parseCollectionBody>[0],
       mockResponse,
       next as unknown as NextFunction,
     );
