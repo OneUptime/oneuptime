@@ -1050,15 +1050,16 @@ interface DurationAxisUnit {
   // Its name in the threshold tables and TIME_UNIT_WORDS: "hours", "min".
   timeWord: string;
   seconds: number;
-  // How English writes it on an axis.
+  // How English writes it on an axis, and on a compact one (a value tile's).
   english: string;
+  compactEnglish: string;
 }
 
 const DURATION_AXIS_UNITS: ReadonlyArray<DurationAxisUnit> = [
-  { timeWord: "days", seconds: 86400, english: "d" },
-  { timeWord: "hours", seconds: 3600, english: "h" },
-  { timeWord: "min", seconds: 60, english: "min" },
-  { timeWord: "sec", seconds: 1, english: "sec" },
+  { timeWord: "days", seconds: 86400, english: "d", compactEnglish: "d" },
+  { timeWord: "hours", seconds: 3600, english: "h", compactEnglish: "h" },
+  { timeWord: "min", seconds: 60, english: "min", compactEnglish: "min" },
+  { timeWord: "sec", seconds: 1, english: "sec", compactEnglish: "s" },
 ];
 
 const SECOND_UNIT_INDEX: number = DURATION_AXIS_UNITS.length - 1;
@@ -1071,22 +1072,28 @@ const MOST_CLOCK_DECIMALS: number = 9;
  * language writes it on an axis: "30 min" and "1.5 sec" in English, "30
  * Min." in German, "۳۰ دقیقه" in Persian, "30 د" in Arabic. A language
  * Intl cannot write the unit in keeps English's symbol, beside its own
- * figure.
+ * figure. The compact style names a unit by its symbol in every language,
+ * as a value tile does ("30 min", "1.5 s"), with the language's figure.
  */
 function writeDurationPart(
   count: number,
   decimals: number,
   unit: DurationAxisUnit,
   language: string | undefined,
+  isCompact: boolean,
 ): string {
   const written: string = toFixedFigures(count, decimals);
+  const figure: string =
+    writeNumberInLanguage(written, false, language)?.value || written;
+
+  if (isCompact) {
+    return `${figure}${NO_BREAK_SPACE}${unit.compactEnglish}`;
+  }
 
   if (isEnglishDateLanguage(language)) {
     return `${written}${NO_BREAK_SPACE}${unit.english}`;
   }
 
-  const figure: string =
-    writeNumberInLanguage(written, false, language)?.value || written;
   const timeWord: { word: string; gap: string; isBefore: boolean } | null =
     writeTimeWordInLanguage(written, unit.timeWord, language, "short");
 
@@ -1235,6 +1242,7 @@ function writeDurationInUnits(input: {
   stepInSeconds: number;
   largestInSeconds: number;
   language: string | undefined;
+  isCompact: boolean;
 }): string | null {
   const step: number = Math.abs(input.stepInSeconds);
 
@@ -1325,6 +1333,7 @@ function writeDurationInUnits(input: {
           0,
           DURATION_AXIS_UNITS[0] as DurationAxisUnit,
           input.language,
+          input.isCompact,
         )}${NO_BREAK_SPACE}${clock}`
       : `${minus}${clock}`;
   }
@@ -1340,6 +1349,7 @@ function writeDurationInUnits(input: {
           index === SECOND_UNIT_INDEX ? decimals : 0,
           DURATION_AXIS_UNITS[index] as DurationAxisUnit,
           input.language,
+          input.isCompact,
         ),
       );
     }
@@ -1352,6 +1362,7 @@ function writeDurationInUnits(input: {
         stepUnitIndex === SECOND_UNIT_INDEX ? decimals : 0,
         DURATION_AXIS_UNITS[stepUnitIndex] as DurationAxisUnit,
         input.language,
+        input.isCompact,
       ),
     );
   }
@@ -1614,6 +1625,7 @@ function formatValueParts(
         stepInSeconds: stepInSeconds,
         largestInSeconds: largestInSeconds,
         language: options?.language,
+        isCompact: unitStyle === "compact",
       });
 
       if (written !== null) {

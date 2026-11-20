@@ -421,6 +421,46 @@ describe("formatValueInParts and formatValueCompact with a step write the same u
       }).formatted,
     ).toBe("1:30:01");
   });
+
+  test("the compact style writes a second as a value tile does: s", () => {
+    expect(
+      ValueFormatter.formatValueCompact(90, "s", {
+        step: 30,
+        largestTick: 120,
+      }).formatted,
+    ).toBe(nb("1 min 30 s"));
+    expect(
+      ValueFormatter.formatValueCompact(45, "s", {
+        step: 15,
+        largestTick: 45,
+      }).formatted,
+    ).toBe(nb("45 s"));
+    // The readable style, a chart's, keeps "sec".
+    expect(tick(90, 30, 120)).toBe(nb("1 min 30 sec"));
+    // Compact, every language names a unit by its symbol, in its own figures.
+    expect(
+      ValueFormatter.formatValueCompact(90, "s", {
+        step: 30,
+        largestTick: 120,
+        language: "de",
+      }).formatted,
+    ).toBe(nb("1 min 30 s"));
+    expect(
+      ValueFormatter.formatValueCompact(5400, "s", {
+        step: 1800,
+        largestTick: 7200,
+        language: "fa",
+      }).formatted,
+    ).toBe(nb("۱ h ۳۰ min"));
+    // And a value under a minute, as a value tile writes one.
+    expect(
+      ValueFormatter.formatValueCompact(45, "s", {
+        step: 15,
+        largestTick: 45,
+        language: "de",
+      }).formatted,
+    ).toBe(nb("45 s"));
+  });
 });
 
 /*
