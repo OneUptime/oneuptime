@@ -52,6 +52,16 @@ export const ADDED_METRIC_RIDES_ALONG: string = translationKey(
   "No extra cost: it is read in the call that already reads the key metrics.",
 );
 
+/*
+ * A Google Cloud split its connection's reads found PromQL cannot rank
+ * (#10164): its busiest values are found each hour from a list of every
+ * value, which Google bills whole - said where it is added, and on its row
+ * once added.
+ */
+export const GCP_SPLIT_LEARNED_FROM_EVERY_VALUE: string = translationKey(
+  "Google Cloud cannot rank this metric's values, so finding the busiest each hour reads every value, and Google Cloud bills them all.",
+);
+
 export function getCloudAddedMetricCostWords(data: {
   provider: CloudProvider | string;
   resources: number;
@@ -62,6 +72,11 @@ export function getCloudAddedMetricCostWords(data: {
   // Split by a dimension (#9808): each resource's series, one a value.
   isSplit?: boolean | undefined;
   seriesPerResource?: number | undefined;
+  /*
+   * Google Cloud: a split PromQL cannot rank (#10164), whose hourly
+   * learning reads every value - this many a resource, as its reads found.
+   */
+  gcpLearnedValuesPerResource?: number | undefined;
 }): CloudTemplate {
   const provider: CloudProvider = String(
     data.provider,
@@ -75,6 +90,7 @@ export function getCloudAddedMetricCostWords(data: {
     azureHasFiveMinuteCall: data.azureHasFiveMinuteCall,
     isSplit: data.isSplit,
     seriesPerResource: data.seriesPerResource,
+    gcpLearnedValuesPerResource: data.gcpLearnedValuesPerResource,
   });
 
   if (estimate.ridesInExistingCall) {
