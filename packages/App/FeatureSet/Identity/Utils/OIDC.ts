@@ -15,6 +15,17 @@ import net, { LookupFunction } from "net";
 const OIDC_EGRESS_LABEL: string = "OIDC provider";
 
 /*
+ * Google's issuer, and what Sign In Again asks it for: when the person
+ * signed in (generateAuthorizationUrl), as Continue with Google does
+ * (Common/Server/Utils/GoogleSignIn/GoogleSignInClient).
+ */
+const GOOGLE_ISSUER_HOSTNAME: string = "accounts.google.com";
+
+const GOOGLE_AUTH_TIME_CLAIMS_REQUEST: string = JSON.stringify({
+  id_token: { auth_time: { essential: true } },
+});
+
+/*
  * Put the egress guard on every socket openid-client opens.
  *
  * Validating discoveryURL on its own would be theatre: Issuer.discover fetches
@@ -154,6 +165,15 @@ export default class OIDCUtil {
    * which also makes the ID token say when they authenticated (auth_time,
    * OpenID Connect Core 3.1.2.1) - OneUptime checks that time itself
    * (Utils/SignInAgain), so a provider that ignores both proves nothing.
+   *
+   * Google (Google Workspace as a provider, #10332) takes neither: its
+   * prompt is none, consent or select_account, and it documents no
+   * max_age. It sends auth_time only when the request asks for it with the
+   * claims parameter and the OAuth client has Session age claims on
+   * (developers.google.com/identity/openid-connect/openid-connect), so
+   * without asking, its Sign In Again could never confirm anyone. Asked of
+   * Google alone (isGoogleIssuer): the parameter is optional in OpenID
+   * Connect, and another provider might refuse it.
    */
   public static generateAuthorizationUrl(data: {
     client: Client;
@@ -170,9 +190,33 @@ export default class OIDCUtil {
       code_challenge: data.codeChallenge,
       code_challenge_method: "S256",
       ...(data.isSignInAgain ? { prompt: "login", max_age: 0 } : {}),
+      ...(data.isSignInAgain && OIDCUtil.isGoogleIssuer(data.client)
+        ? { claims: GOOGLE_AUTH_TIME_CLAIMS_REQUEST }
+        : {}),
     });
 
     return URL.fromString(url);
+  }
+
+  // Whether the provider is Google: its issuer, https://accounts.google.com.
+  public static isGoogleIssuer(client: Client): boolean {
+    const issuer: unknown = (
+      client as unknown as { issuer?: { issuer?: unknown } }
+    ).issuer?.issuer;
+
+    if (typeof issuer !== "string") {
+      return false;
+    }
+
+    try {
+      const hostname: string = new globalThis.URL(
+        issuer.includes("://") ? issuer : `https://${issuer}`,
+      ).hostname.toLowerCase();
+
+      return hostname === GOOGLE_ISSUER_HOSTNAME;
+    } catch {
+      return false;
+    }
   }
 
   public static generateState(): string {

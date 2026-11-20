@@ -51,7 +51,8 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
 | **Aprovações** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
 | **Execuções** | Playbooks | O que cada playbook fez, etapa por etapa |
-| **Entidades protegidas** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
+| **Lista de bloqueio** | Playbooks | Os endereços que seu projeto bloqueia, até quando e onde cada bloqueio é aplicado |
+| **Entidades protegidas** | Playbooks | Os usuários, hosts e endereços aos quais nenhum playbook aplica contenção e que nenhum bloqueio afeta |
 | **Configurações** | IA | Se o OneUptime AI classifica cada caso novo |
 | **Conexões** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
 | **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
@@ -72,8 +73,8 @@ Os dados de segurança só são lidos pelos papéis Proprietário do projeto e A
 | Papel | O que pode fazer |
 | --- | --- |
 | Administrador de segurança | Tudo: eventos, casos, playbooks, regras de detecção, feeds de inteligência de ameaças e conexões |
-| Membro de segurança | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
-| Visualizador de segurança | Ler eventos, casos, playbooks, regras, feeds, indicadores e conexões |
+| Membro de segurança | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, bloquear endereços, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
+| Visualizador de segurança | Ler eventos, casos, playbooks, a lista de bloqueio, regras, feeds, indicadores e conexões |
 
 ## Enviar eventos de segurança
 

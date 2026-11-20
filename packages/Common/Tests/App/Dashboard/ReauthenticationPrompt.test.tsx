@@ -1113,6 +1113,241 @@ describe("Sign In Again through the session's own provider (#10217)", () => {
   );
 });
 
+/*
+ * SIGN IN WITH VERCEL CAN NEVER CONFIRM IT'S YOU (#10331): OneUptime cannot
+ * ask Vercel to have the person sign in again, and Vercel does not say when
+ * they signed in. So the prompt says so before they try, and offers what
+ * does confirm: an emailed sign-in link where the server allows one, else
+ * a password of their own, which Forgot password? on the sign-in page sets.
+ * Never a way back through Vercel, which would sign them straight back in
+ * and confirm nothing.
+ */
+describe("Sign in with Vercel, which cannot confirm it's you (#10331)", () => {
+  let remember: SpyInstance<typeof SessionEndReturn.rememberCurrentPage>;
+  let logout: SpyInstance<typeof UserUtil.logout>;
+  let navigate: SpyInstance<typeof Navigation.navigate>;
+
+  function vercel(canUseSignInLink: boolean): ReauthenticationSignInAgain {
+    return {
+      route: null,
+      provider: SignInAgainProvider.Vercel,
+      providerName: "Vercel",
+      refusal: null,
+      canUseSignInLink: canUseSignInLink,
+    };
+  }
+
+  beforeEach(() => {
+    methods = {
+      password: false,
+      secondStep: null,
+      passkey: false,
+      signInAgain: true,
+    };
+
+    remember = jest
+      .spyOn(SessionEndReturn, "rememberCurrentPage")
+      .mockReturnValue(true);
+    logout = jest.spyOn(UserUtil, "logout").mockResolvedValue(null);
+    navigate = jest.spyOn(Navigation, "navigate").mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    await inLanguage("en");
+  });
+
+  function submitButton(): HTMLElement {
+    return within(dialog()).getByTestId("modal-footer-submit-button");
+  }
+
+  test("says at once that Vercel cannot confirm it's you, and why - before anything is tried", async () => {
+    signInAgain = vercel(true);
+
+    await openPrompt();
+
+    expect(
+      readText(screen.getByTestId("reauthentication-sign-in-again-reason")),
+    ).toBe(
+      "You signed in with Vercel, which cannot confirm it's you: Vercel cannot be asked to have you sign in again, and does not say when you signed in.",
+    );
+  });
+
+  test("where a sign-in link can sign them in: one way, Sign In Another Way, to the sign-in page", async () => {
+    signInAgain = vercel(true);
+
+    const { answer } = await openPrompt();
+
+    expect(
+      readText(screen.getByTestId("reauthentication-sign-in-again-hint")),
+    ).toBe(
+      "Choose Sign In Another Way, and sign in with a link emailed to you instead.",
+    );
+    // Said once, as the way: never "also".
+    expect(
+      screen.queryByTestId("reauthentication-sign-in-again-link"),
+    ).toBeNull();
+    expect(readText(submitButton())).toBe(
+      REAUTHENTICATION_PROMPT_COPY.signInAnotherWay,
+    );
+    // One button for it, not two.
+    expect(
+      screen.queryByTestId("reauthentication-sign-in-another-way"),
+    ).toBeNull();
+
+    await pressConfirm();
+
+    await expect(answer).resolves.toBe(false);
+    expect(remember).toHaveBeenCalledWith(USER_ID.toString());
+    expect(logout).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(ACCOUNTS_URL);
+  });
+
+  test("where none can: a password of their own, which Forgot password? sets, and Sign In Again to the sign-in page", async () => {
+    signInAgain = vercel(false);
+
+    const { answer } = await openPrompt();
+
+    expect(
+      readText(screen.getByTestId("reauthentication-sign-in-again-hint")),
+    ).toBe(
+      "Set a password with Forgot password? on the sign-in page, then confirm it's you with it instead.",
+    );
+    expect(readText(submitButton())).toBe(
+      REAUTHENTICATION_PROMPT_COPY.signInAgainTitle,
+    );
+    expect(
+      screen.queryByTestId("reauthentication-sign-in-another-way"),
+    ).toBeNull();
+
+    await pressConfirm();
+
+    await expect(answer).resolves.toBe(false);
+    expect(navigate).toHaveBeenCalledWith(ACCOUNTS_URL);
+  });
+
+  test("never sends the browser back through Vercel, nor asks a Sign In Again of it", async () => {
+    signInAgain = vercel(true);
+
+    await openPrompt();
+    await pressConfirm();
+
+    for (const call of navigate.mock.calls) {
+      expect(String(call[0])).not.toContain(REAUTHENTICATE_QUERY_PARAM);
+      expect(String(call[0]).toLowerCase()).not.toContain("vercel");
+    }
+  });
+
+  test("an account that confirms in place is asked for its password, whatever it signed in with", async () => {
+    methods = PASSWORD_ONLY;
+    signInAgain = null;
+
+    await openPrompt();
+
+    expect(
+      screen.queryByTestId("reauthentication-sign-in-again-notice"),
+    ).toBeNull();
+    expect(screen.getByTestId("reauthentication-password")).toBeVisible();
+  });
+
+  test.each([
+    [
+      "Persian",
+      "fa",
+      (): Record<string, string> => {
+        return FA;
+      },
+    ],
+    [
+      "Arabic",
+      "ar",
+      (): Record<string, string> => {
+        return AR;
+      },
+    ],
+    [
+      "Persian, in the Admin Dashboard",
+      "adminfa",
+      (): Record<string, string> => {
+        return ADMIN_FA;
+      },
+    ],
+    [
+      "Arabic, in the Admin Dashboard",
+      "adminar",
+      (): Record<string, string> => {
+        return ADMIN_AR;
+      },
+    ],
+  ] as Array<[string, string, () => Record<string, string>]>)(
+    "in %s: why, and what does instead, with Vercel's name as it is",
+    async (
+      _name: string,
+      language: string,
+      words: () => Record<string, string>,
+    ) => {
+      for (const key of [
+        REAUTHENTICATION_PROMPT_COPY.signInAgainVercel,
+        REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithLink,
+        REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithoutLink,
+      ]) {
+        expect(words()[key]).toBeTruthy();
+        expect(words()[key]).not.toBe(key);
+        // Vercel's own name stays as it is written.
+        expect(words()[key]).not.toMatch(/You signed in|Choose Sign In/);
+      }
+
+      expect(words()[REAUTHENTICATION_PROMPT_COPY.signInAgainVercel]).toContain(
+        "Vercel",
+      );
+
+      for (const canUseSignInLink of [true, false]) {
+        signInAgain = vercel(canUseSignInLink);
+        await inLanguage(language);
+        await openPrompt();
+
+        expect(
+          readText(screen.getByTestId("reauthentication-sign-in-again-reason")),
+        ).toBe(
+          withoutIsolateMarks(
+            words()[REAUTHENTICATION_PROMPT_COPY.signInAgainVercel]!,
+          )
+            .replace(/\s+/g, " ")
+            .trim(),
+        );
+        expect(
+          readText(screen.getByTestId("reauthentication-sign-in-again-hint")),
+        ).toBe(
+          withoutIsolateMarks(
+            words()[
+              canUseSignInLink
+                ? REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithLink
+                : REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithoutLink
+            ]!,
+          )
+            .replace(/\s+/g, " ")
+            .trim(),
+        );
+        expect(readText(submitButton())).toBe(
+          withoutIsolateMarks(
+            words()[
+              canUseSignInLink
+                ? REAUTHENTICATION_PROMPT_COPY.signInAnotherWay
+                : REAUTHENTICATION_PROMPT_COPY.signInAgainTitle
+            ]!,
+          ),
+        );
+
+        await act(async (): Promise<void> => {
+          fireEvent.click(
+            within(dialog()).getByTestId("modal-footer-close-button"),
+          );
+        });
+        await inLanguage("en");
+      }
+    },
+  );
+});
+
 describe("in the Admin Dashboard, in its own words (#10216)", () => {
   afterEach(async () => {
     await inLanguage("en");
@@ -1183,6 +1418,10 @@ describe("in the Admin Dashboard, in its own words (#10216)", () => {
             ReauthenticationPurpose.AdminChange
           ],
         ),
+        // Sign in with Vercel's notice (#10331).
+        REAUTHENTICATION_PROMPT_COPY.signInAgainVercel,
+        REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithLink,
+        REAUTHENTICATION_PROMPT_COPY.signInAgainVercelWithoutLink,
       ]) {
         expect({ language: language, key: key, words: admin[key] }).toEqual({
           language: language,

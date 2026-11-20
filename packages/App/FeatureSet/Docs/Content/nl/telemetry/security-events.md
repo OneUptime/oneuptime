@@ -51,7 +51,8 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
-| **Beschermde entiteiten** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
+| **Blokkeerlijst** | Playbooks | De adressen die je project blokkeert, tot wanneer, en waar elke blokkering wordt toegepast |
+| **Beschermde entiteiten** | Playbooks | De gebruikers, hosts en adressen die geen enkel playbook inperkt en geen blokkering raakt |
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Verbindingen** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
@@ -72,8 +73,8 @@ Beveiligingsgegevens zijn alleen leesbaar voor de rollen Projecteigenaar en Proj
 | Rol | Wat hij kan doen |
 | --- | --- |
 | Beveiligingsbeheerder | Alles: gebeurtenissen, zaken, playbooks, detectieregels, threat-intelfeeds en verbindingen |
-| Beveiligingslid | Gebeurtenissen en threat intel lezen, zaken afhandelen, playbooks uitvoeren en hun stappen goedkeuren, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen playbooks of verbindingen instellen en geen beveiligingsgegevens verwijderen. |
-| Beveiligingskijker | Gebeurtenissen, zaken, playbooks, regels, feeds, indicatoren en verbindingen lezen |
+| Beveiligingslid | Gebeurtenissen en threat intel lezen, zaken afhandelen, playbooks uitvoeren en hun stappen goedkeuren, adressen blokkeren, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen playbooks of verbindingen instellen en geen beveiligingsgegevens verwijderen. |
+| Beveiligingskijker | Gebeurtenissen, zaken, playbooks, de blokkeerlijst, regels, feeds, indicatoren en verbindingen lezen |
 
 ## Beveiligingsgebeurtenissen sturen
 

@@ -150,6 +150,27 @@ export enum SignInAgainProvider {
   SingleSignOn = "SingleSignOn",
   Google = "Google",
   Microsoft = "Microsoft",
+  /*
+   * Sign in with Vercel (#10331), which can never confirm it's someone. It
+   * is the Vercel Marketplace integration's single sign-on, which Vercel
+   * starts ("Vercel initiated SSO", or the "Provider initiated SSO" URL
+   * https://vercel.com/sso/integrations/{URLSlug}/{installationId}): it
+   * takes no prompt=login and no max_age (Vercel documents only its
+   * context parameters, and its OpenID configuration at
+   * https://marketplace.vercel.com/.well-known/openid-configuration lists
+   * no prompt values), and the ID token it answers with says nothing of
+   * when the person signed in - its claims are iss, sub, aud, type,
+   * account_id, installation_id and the user's own, with
+   * "additionalProperties": false and no auth_time (the user OIDC token's
+   * claims schema, Marketplace Partner API Reference); its iat is when the
+   * token was issued. So nothing can tell a person who signed in to Vercel
+   * just now from a Vercel session remembered for weeks. Vercel's separate
+   * "Sign in with Vercel" apps take prompt=login, but their ID token has no
+   * auth_time either, so OneUptime could not check that Vercel asked. The
+   * prompt says so, and offers what does confirm: an emailed sign-in link,
+   * or a password.
+   */
+  Vercel = "Vercel",
   // A sign-in link, or a sign-in OneUptime cannot send back by itself.
   SignInPage = "SignInPage",
 }

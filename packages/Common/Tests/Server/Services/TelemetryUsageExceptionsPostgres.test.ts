@@ -80,9 +80,10 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  *     staged again when billing is turned on;
  *   - adding into a row keeps the part only while both sides have one;
  *   - over a range that mixes days counted before and after, every GB and
- *     every cent is counted once: Traces and Exceptions together are what
- *     billing charges for traces, and an old day's exceptions stay inside
- *     Traces.
+ *     every cent is counted once: Traces, Logs and Exceptions together are
+ *     what billing charges for traces and logs, an old day's exceptions stay
+ *     inside Traces, the exceptions found in logs come out of Logs (issue
+ *     #6590), and a part on any other product's row is never read.
  *
  * Opt in with RUN_POSTGRES_TELEMETRY_USAGE_EXCEPTIONS_TESTS=true against a
  * database the registered migrations have been applied to:
@@ -752,7 +753,10 @@ describePostgres(
             exceptions: null,
             cost: "0.2",
           },
-          // A part on another product's row is never read.
+          /*
+           * Exceptions found in a host's logs are billed with its Logs
+           * (issue #6590): 0.6 GB of log records and 0.4 GB of exceptions.
+           */
           {
             projectId: ALPHA,
             day: "2026-10-02",
@@ -762,6 +766,17 @@ describePostgres(
             gigabytes: "1",
             exceptions: "0.4",
             cost: "0.1",
+          },
+          // A part on a product no exception is found in is never read.
+          {
+            projectId: ALPHA,
+            day: "2026-10-02",
+            productType: ProductType.Metrics,
+            primaryEntityId: HOST_ID,
+            primaryEntityType: ServiceType.Host,
+            gigabytes: "0.5",
+            exceptions: "0.4",
+            cost: "0.05",
           },
           // Oct 3: a host whose traces were all exceptions...
           {
@@ -888,10 +903,12 @@ describePostgres(
             day: "2026-10-02",
             byProduct: {
               [ProductType.Traces]: 1,
-              [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 0.5,
-              [ProductType.Logs]: 3,
+              // 0.5 GB found in spans, and 0.4 GB in the host's logs.
+              [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 0.9,
+              [ProductType.Logs]: 2.6,
+              [ProductType.Metrics]: 0.5,
             },
-            total: 4.5,
+            total: 5,
           },
           {
             day: "2026-10-03",
@@ -918,48 +935,65 @@ describePostgres(
 
         expect(gigabytesOf(summary.byProduct)).toEqual({
           [ProductType.Traces]: 6,
-          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 1.75,
-          [ProductType.Logs]: 3,
+          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 2.15,
+          [ProductType.Logs]: 2.6,
+          [ProductType.Metrics]: 0.5,
         });
-        expect(summary.total.dataIngestedInGB).toBeCloseTo(10.75, 10);
+        expect(summary.total.dataIngestedInGB).toBeCloseTo(11.25, 10);
         expect(summary.total.dataIngestedInGB).toBeCloseTo(
           Number(held[0]!.gigabytes),
           10,
         );
-        expect(summary.total.totalCostInUSD).toBeCloseTo(1.075, 10);
+        expect(summary.total.totalCostInUSD).toBeCloseTo(1.125, 10);
         expect(summary.total.totalCostInUSD).toBeCloseTo(
           Number(held[0]!.cost),
           10,
         );
 
-        // The exceptions' cost is their share of the traces rows' cost.
+        /*
+         * The exceptions' cost is their share of the cost of the rows they
+         * were found in: 0.175 of the traces rows', 0.04 of the logs rows'.
+         */
         expect(
           summary.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!.totalCostInUSD,
-        ).toBeCloseTo(0.175, 10);
+        ).toBeCloseTo(0.215, 10);
         expect(
           summary.byProduct[ProductType.Traces]!.totalCostInUSD,
         ).toBeCloseTo(0.6, 10);
+        expect(summary.byProduct[ProductType.Logs]!.totalCostInUSD).toBeCloseTo(
+          0.26,
+          10,
+        );
+        expect(
+          summary.byProduct[ProductType.Metrics]!.totalCostInUSD,
+        ).toBeCloseTo(0.05, 10);
       });
 
-      test("Traces and Exceptions together cost what billing charges for traces", async () => {
+      test("Traces, Logs and Exceptions together cost what billing charges for traces and logs", async () => {
         const summary: TelemetryUsageSummary = await readAlpha(true);
 
-        const charged: Array<TelemetryUsageBilling> =
-          await TelemetryUsageBillingService.getUnreportedUsageBilling({
-            projectId: ALPHA,
-            productType: ProductType.Traces,
-          });
-        // The range's traces rows: the one after it is billed on its own day.
-        const chargedInRange: number = charged
-          .map((row: TelemetryUsageBilling): number => {
-            return Number(row.totalCostInUSD!.value);
-          })
-          .reduce((sum: number, cost: number): number => {
-            return sum + cost;
-          }, 0);
+        let chargedInRange: number = 0;
 
+        for (const productType of [ProductType.Traces, ProductType.Logs]) {
+          const charged: Array<TelemetryUsageBilling> =
+            await TelemetryUsageBillingService.getUnreportedUsageBilling({
+              projectId: ALPHA,
+              productType: productType,
+            });
+
+          chargedInRange += charged
+            .map((row: TelemetryUsageBilling): number => {
+              return Number(row.totalCostInUSD!.value);
+            })
+            .reduce((sum: number, cost: number): number => {
+              return sum + cost;
+            }, 0);
+        }
+
+        // The range's rows: the traces row after it is billed on its own day.
         expect(chargedInRange - 0.7).toBeCloseTo(
           summary.byProduct[ProductType.Traces]!.totalCostInUSD! +
+            summary.byProduct[ProductType.Logs]!.totalCostInUSD! +
             summary.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!
               .totalCostInUSD!,
           10,
@@ -997,12 +1031,16 @@ describePostgres(
           },
           {
             id: HOST_ID,
-            // All its traces were exceptions; its logs' stray part is ignored.
+            /*
+             * All its traces were exceptions, 0.4 GB of its logs were too,
+             * and its metrics' stray part is ignored.
+             */
             byProduct: {
-              [ProductType.Logs]: 1,
-              [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 0.25,
+              [ProductType.Logs]: 0.6,
+              [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 0.65,
+              [ProductType.Metrics]: 0.5,
             },
-            total: 1.25,
+            total: 1.75,
           },
         ]);
       });
@@ -1052,10 +1090,11 @@ describePostgres(
             name: "Alpha",
             byProduct: {
               [ProductType.Traces]: 6,
-              [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 1.75,
-              [ProductType.Logs]: 3,
+              [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 2.15,
+              [ProductType.Logs]: 2.6,
+              [ProductType.Metrics]: 0.5,
             },
-            total: 10.75,
+            total: 11.25,
           },
           {
             name: "Beta",
@@ -1068,11 +1107,12 @@ describePostgres(
         ]);
         expect(gigabytesOf(page.byProduct)).toEqual({
           [ProductType.Traces]: 6.5,
-          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 3.25,
-          [ProductType.Logs]: 3,
+          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: 3.65,
+          [ProductType.Logs]: 2.6,
+          [ProductType.Metrics]: 0.5,
         });
-        expect(page.total.dataIngestedInGB).toBeCloseTo(12.75, 10);
-        expect(page.total.totalCostInUSD).toBeCloseTo(1.275, 10);
+        expect(page.total.dataIngestedInGB).toBeCloseTo(13.25, 10);
+        expect(page.total.totalCostInUSD).toBeCloseTo(1.325, 10);
 
         expect(
           (await read(ProductType.Traces, "asc")).projects.map(

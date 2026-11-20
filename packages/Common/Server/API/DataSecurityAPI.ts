@@ -59,31 +59,23 @@ import DataSecurityIssueFeedService from "../Services/DataSecurityIssueFeedServi
 import DataSecurityIssueService from "../Services/DataSecurityIssueService";
 import DataSecuritySettingService from "../Services/DataSecuritySettingService";
 import { getDataStoreScanNowRefusalSentence } from "../../Utils/DataSecurity/DataStoreContentScanSchedule";
-import AIService, {
-  AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
-} from "../Services/AIService";
 import AiContextReader from "../Utils/AI/AiContext/AiContextReader";
-import { withAiContext } from "../Utils/AI/AiContext/AiContextPrompt";
 import { AiContextActivity } from "../../Types/AI/AiContext";
+import DataSecurityAiCall from "../Utils/AI/DataSecurity/DataSecurityAiCall";
+import { DataSecurityAiCodeRequest } from "../Utils/AI/DataSecurity/DataSecurityAiInput";
+import DataSecurityAiReads from "../Utils/AI/DataSecurity/DataSecurityAiReads";
+import DataSecurityAiSettings from "../Utils/AI/DataSecurity/DataSecurityAiSettings";
 import DataSecurityCodeTask, {
   DataSecurityFixCode,
 } from "../Utils/AI/DataSecurity/DataSecurityCodeTask";
 import ProjectDataTypeNames from "../Utils/DataSecurity/ProjectDataTypeNames";
 import {
-  DataSecurityFindingForAi,
-  MAX_ISSUE_FINDINGS_FOR_AI,
   buildDataSecurityFixRequest,
-  describeDataSecurityIssueForAi,
-  getDataSecurityExplainSystemPrompt,
+  buildExplainIssuePrompt,
+  DATA_SECURITY_EXPLAIN_MAX_TOKENS,
+  DATA_SECURITY_EXPLAIN_TEMPERATURE,
 } from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
-import QueryHelper from "../Types/Database/QueryHelper";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import {
-  FINDING_FRESHNESS_IN_DAYS,
-  getTelemetryCheckIdOfDataType,
-  isTelemetryFindingCheck,
-  isUnscrubbedTelemetryFinding,
-} from "../../Types/DataSecurity/DataSecurityCheckCatalog";
+import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
@@ -169,7 +161,12 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    AI is for anyone who may change the issue, in a repository they may
  *    change in Code, under every check a task in Code is asked
  *    (DataSecurityCodeTask, #10362). Each names a data type as the project
- *    does (ProjectDataTypeNames, #10363);
+ *    does (ProjectDataTypeNames, #10363), and builds what it sends through
+ *    DataSecurityAiInput, the one way a Data Security prompt is made
+ *    (#10365);
+ *  - What OneUptime AI sees, for Settings > OneUptime AI: the model each
+ *    feature runs on and the exact input one issue would send, each to who
+ *    may read it (DataSecurityAiSettings);
  *  - Block public access and Revoke sharing on a cloud store, for anyone
  *    who may edit it, through the store's cloud connection and only when
  *    its "Data security response" setting is on (DataSecurityResponse) -
@@ -624,10 +621,10 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const issue: DataSecurityIssue = await DataSecurityAPI.readIssue(
+        const issue: DataSecurityIssue = await DataSecurityAiReads.readIssue({
           projectId,
-          req,
-        );
+          issueId: DataSecurityAPI.readId(req),
+        });
         /*
          * The project's AI context first: the team's notes on its systems -
          * how its stores are managed, in which repository - so the steps to
@@ -636,40 +633,28 @@ export default class DataSecurityAPI extends BaseAPI<
         const aiContext: AiContextActivity | null = await AiContextReader.read({
           projectId,
         });
-        const findings: Array<DataSecurityFindingForAi> =
-          await DataSecurityAPI.readFindingsForAi(projectId, issue);
-        const response: { content: string } =
-          await AIService.executeWithLogging({
-            projectId,
-            userId: props.userId || undefined,
-            feature: AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
-            /*
-             * Neither the issue nor the explanation in the AI Logs: every
-             * Project Member and Viewer reads them, and which store holds
-             * card numbers, and how it is exposed, is the issue's to tell
-             * (#10361). Nor a provider's error, which can quote the prompt.
-             */
-            storeContentPreviews: false,
-            storeErrorDetails: false,
-            messages: [
-              {
-                role: "system",
-                content: withAiContext(
-                  getDataSecurityExplainSystemPrompt(issue.checkId),
-                  aiContext,
-                ),
-              },
-              {
-                role: "user",
-                content: DataSecurityAPI.describeIssue(
-                  issue,
-                  findings,
-                  await ProjectDataTypeNames.read({ projectId }),
-                ),
-              },
-            ],
-            maxTokens: 900,
-          });
+        /*
+         * The issue as DataSecurityAiInput builds it (#10365), asked through
+         * the one Data Security call: neither the issue nor the explanation
+         * in the AI Logs, which every Project Member and Viewer reads - which
+         * store holds card numbers, and how it is exposed, is the issue's
+         * to tell (#10361) - nor a provider's error, which can quote it.
+         */
+        const response: { content: string } = await DataSecurityAiCall.ask({
+          projectId,
+          userId: props.userId || undefined,
+          prompt: buildExplainIssuePrompt({
+            issue,
+            findings: await DataSecurityAiReads.readPlaces({
+              projectId,
+              issue,
+            }),
+            dataTypeNamer: await ProjectDataTypeNames.read({ projectId }),
+            aiContext,
+          }),
+          maxTokens: DATA_SECURITY_EXPLAIN_MAX_TOKENS,
+          temperature: DATA_SECURITY_EXPLAIN_TEMPERATURE,
+        });
 
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
           projectId,
@@ -689,6 +674,36 @@ export default class DataSecurityAPI extends BaseAPI<
     );
 
     /*
+     * What OneUptime AI sees (Settings > OneUptime AI, #10365): whether AI
+     * is on, the model each feature runs on - to who may read the project's
+     * LLM providers - and the exact input one issue would send, to who may
+     * read that issue. Every part is read with the caller's own props; a
+     * read, so it answers while Data Security is off on the server too.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.aiInput,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const issueId: unknown = body["issueId"];
+
+        return (await DataSecurityAiSettings.read({
+          projectId,
+          props,
+          withExample: body["withExample"] === true,
+          issueId:
+            typeof issueId === "string" && ObjectID.isValidUUID(issueId)
+              ? new ObjectID(issueId)
+              : undefined,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
      * A pull request that fixes the issue, asked of OneUptime AI as the
      * person who asked: in a repository they may change in Code, and only
      * when AI can work there now (DataSecurityCodeTask). A Code task, so it
@@ -702,10 +717,10 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const issue: DataSecurityIssue = await DataSecurityAPI.readIssue(
+        const issue: DataSecurityIssue = await DataSecurityAiReads.readIssue({
           projectId,
-          req,
-        );
+          issueId: DataSecurityAPI.readId(req),
+        });
         const body: JSONObject = (req.body || {}) as JSONObject;
 
         return (await DataSecurityCodeTask.requestFix({
@@ -717,10 +732,11 @@ export default class DataSecurityAPI extends BaseAPI<
             ? DataSecurityFixCode.Service
             : DataSecurityFixCode.Infrastructure,
           requestedRepositoryId: body["codeRepositoryId"],
-          buildMessage: async (): Promise<string> => {
+          // The request as DataSecurityAiInput builds it (#10365).
+          buildMessage: async (): Promise<DataSecurityAiCodeRequest> => {
             return buildDataSecurityFixRequest(
               issue,
-              await DataSecurityAPI.readFindingsForAi(projectId, issue),
+              await DataSecurityAiReads.readPlaces({ projectId, issue }),
               await ProjectDataTypeNames.read({ projectId }),
             );
           },
@@ -945,39 +961,6 @@ export default class DataSecurityAPI extends BaseAPI<
     return issue.id;
   }
 
-  private static async readIssue(
-    projectId: ObjectID,
-    req: ExpressRequest,
-  ): Promise<DataSecurityIssue> {
-    const issue: DataSecurityIssue | null =
-      await DataSecurityIssueService.findOneBy({
-        query: { _id: this.readId(req), projectId },
-        select: {
-          _id: true,
-          checkId: true,
-          title: true,
-          evidence: true,
-          severity: true,
-          dataTypeIds: true,
-          dataStoreId: true,
-          dataStore: {
-            name: true,
-            kind: true,
-            region: true,
-            sensitivity: true,
-            providerResourceId: true,
-          },
-        },
-        props: { isRoot: true },
-      });
-
-    if (!issue?.id) {
-      throw new BadDataException("Issue not found.");
-    }
-
-    return issue;
-  }
-
   /*
    * The records a telemetry finding's data was seen in - the very ones the
    * last scan found it in, when the finding kept them - for a reader who
@@ -1119,88 +1102,6 @@ export default class DataSecurityAPI extends BaseAPI<
 
       throw error;
     }
-  }
-
-  /*
-   * The issue in words for OneUptime AI: no samples, only what a check saw,
-   * each data type by the project's name for it (ProjectDataTypeNames).
-   */
-  public static describeIssue(
-    issue: DataSecurityIssue,
-    findings: ReadonlyArray<DataSecurityFindingForAi> = [],
-    dataTypeNamer: DataTypeNamer = DataTypeNamer.withoutCustomTypes(),
-  ): string {
-    return describeDataSecurityIssueForAi(
-      issue,
-      undefined,
-      findings,
-      dataTypeNamer,
-    );
-  }
-
-  /*
-   * Where a telemetry issue's data sits, for OneUptime AI: the findings its
-   * check counts (isUnscrubbedTelemetryFinding) - each data type and its
-   * location, never a sample - the most matched first. None for any other
-   * issue.
-   */
-  public static async readFindingsForAi(
-    projectId: ObjectID,
-    issue: DataSecurityIssue,
-  ): Promise<Array<DataSecurityFindingForAi>> {
-    if (!isTelemetryFindingCheck(issue.checkId) || !issue.dataStoreId) {
-      return [];
-    }
-
-    const findings: Array<DataStoreFinding> =
-      await DataStoreFindingService.findBy({
-        query: {
-          projectId,
-          dataStoreId: issue.dataStoreId,
-          isSuppressed: false,
-          isScrubbed: false,
-          lastSeenAt: QueryHelper.greaterThanEqualTo(
-            // A length of time, the same on every server (issue #8236).
-            OneUptimeDate.addRemoveDurationInDays(
-              OneUptimeDate.getCurrentDate(),
-              -FINDING_FRESHNESS_IN_DAYS,
-            ),
-          ),
-        },
-        select: {
-          dataTypeId: true,
-          dataTypeName: true,
-          location: true,
-          locationKind: true,
-          confidence: true,
-          matchCount: true,
-          isConfirmed: true,
-          isAiSuggested: true,
-          isScrubbed: true,
-        },
-        sort: { matchCount: SortOrder.Descending },
-        skip: 0,
-        limit: 100,
-        props: { isRoot: true },
-      });
-
-    return findings
-      .filter((finding: DataStoreFinding): boolean => {
-        return (
-          isUnscrubbedTelemetryFinding(finding) &&
-          getTelemetryCheckIdOfDataType(finding.dataTypeId || "") ===
-            issue.checkId
-        );
-      })
-      .slice(0, MAX_ISSUE_FINDINGS_FOR_AI)
-      .map((finding: DataStoreFinding): DataSecurityFindingForAi => {
-        return {
-          dataTypeId: finding.dataTypeId,
-          dataTypeName: finding.dataTypeName,
-          location: finding.location,
-          locationKind: finding.locationKind,
-        };
-      });
   }
 
   public static async getOverview(

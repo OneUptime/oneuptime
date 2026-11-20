@@ -32,6 +32,7 @@ import {
   RISKIEST_ENTITIES_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskCopy";
 import { SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT } from "Common/Types/SecurityCase/SecurityEntityRisk";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import { ARCHIVABLE_VALUE_COPY } from "../../../FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
 import {
   STATE_SETTINGS_COPY,
@@ -79,6 +80,26 @@ import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus"
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
+import { SECURITY_BLOCK_ADMIN_PERMISSIONS } from "Common/Server/Services/SecurityBlockService";
+import {
+  SECURITY_BLOCK_DEFAULT_DURATION,
+  SECURITY_BLOCK_EXPIRING_DURATIONS,
+  SECURITY_BLOCK_LARGEST_IPV4_PREFIX,
+  SECURITY_BLOCK_LARGEST_IPV6_PREFIX,
+  SECURITY_BLOCK_WIDEST_IPV4_PREFIX,
+  SECURITY_BLOCK_WIDEST_IPV6_PREFIX,
+  SecurityBlockDuration,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
+import { SecurityProtectedAddressSource } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  ENFORCED_AT_COLUMN_TITLE,
+  EXTEND_ACTION,
+  LIFT_ACTION,
+  LIFT_SELECTED_TITLE,
+  NOTHING_ENFORCES_TITLE,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCopy";
+import { AUTOMATIC_PROTECTIONS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ProtectedEntities/AutomaticProtectionsCopy";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import {
   RESPONSE_TARGETS_COPY,
@@ -197,7 +218,11 @@ import {
   assertSecurityPlaybookStepConditions,
   parseSecurityPlaybookSteps,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
-import { matchesProtectedEntityPattern } from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";
+import {
+  PROTECTED_ENTITY_TYPES,
+  findProtectingRule,
+  matchesProtectedEntityPattern,
+} from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";
 import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
 import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
@@ -1849,8 +1874,25 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toContain("Protected Entities");
     expect(page).toContain(
-      "**Protected Entities**, under **Playbooks** in the menu, lists the users and hosts no playbook contains",
+      "**Protected Entities**, under **Playbooks** in the menu, lists the users, hosts and IP addresses no playbook contains and the blocklist never blocks",
     );
+    expect(PROTECTED_ENTITY_TYPES).toEqual([
+      SecurityEntityType.User,
+      SecurityEntityType.Host,
+      SecurityEntityType.IpAddress,
+    ]);
+    expect(page).toContain(
+      "An address entry is an address or a range, such as `203.0.113.0/24`, which protects every address in it.",
+    );
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.IpAddress,
+        value: "203.0.113.77",
+        rules: [
+          { type: SecurityEntityType.IpAddress, value: "203.0.113.0/24" },
+        ],
+      }),
+    ).toBeDefined();
     expect(page).toContain(
       "A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account.",
     );
@@ -1861,6 +1903,90 @@ describe("Security Cases and Playbooks docs", () => {
     );
     expect(new SecurityProtectedEntity().getCreatePermissions()).not.toContain(
       Permission.SecurityMember,
+    );
+  });
+
+  it("says what the blocklist blocks, for how long, and who may keep a block or block a wide range", () => {
+    const blocklist: string = flat(section(page, "Blocklist"));
+    const playbooks: SecurityEventsMenuSection | undefined =
+      SECURITY_EVENTS_MENU.find((menu: SecurityEventsMenuSection): boolean => {
+        return menu.title === "Playbooks";
+      });
+
+    expect(
+      playbooks?.items.map((item: SecurityEventsMenuItem): string => {
+        return item.title;
+      }),
+    ).toContain("Blocklist");
+    expect(blocklist).toContain(
+      "**Blocklist**, under **Playbooks** in the menu, lists the IP addresses and ranges your project blocks",
+    );
+
+    // Every block expires: a day unless chosen otherwise.
+    expect(SECURITY_BLOCK_DEFAULT_DURATION).toBe(SecurityBlockDuration.OneDay);
+    expect(SECURITY_BLOCK_EXPIRING_DURATIONS).toEqual([
+      SecurityBlockDuration.OneHour,
+      SecurityBlockDuration.OneDay,
+      SecurityBlockDuration.SevenDays,
+      SecurityBlockDuration.ThirtyDays,
+    ]);
+    expect(blocklist).toContain(
+      "**Block Address** blocks an address or a range for 24 hours unless you choose 1 hour, 7 days or 30 days.",
+    );
+
+    // Who may keep one until it is lifted, or block a wide range, and how wide nobody goes.
+    expect([...SECURITY_BLOCK_ADMIN_PERMISSIONS].sort()).toEqual(
+      [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.SecurityAdmin,
+      ].sort(),
+    );
+    expect(SECURITY_BLOCK_LARGEST_IPV4_PREFIX).toBe(24);
+    expect(SECURITY_BLOCK_LARGEST_IPV6_PREFIX).toBe(48);
+    expect(SECURITY_BLOCK_WIDEST_IPV4_PREFIX).toBe(8);
+    expect(SECURITY_BLOCK_WIDEST_IPV6_PREFIX).toBe(16);
+    expect(blocklist).toContain(
+      "Only a Security Admin, a Project Admin or a Project Owner can keep a block until someone lifts it, or block a range wider than a /24 (a /48 for IPv6), and no one blocks a range wider than a /8 (a /16 for IPv6).",
+    );
+
+    // The row actions, and the bulk lift.
+    expect([LIFT_ACTION, EXTEND_ACTION]).toEqual(["Lift", "Extend"]);
+    expect(LIFT_SELECTED_TITLE).toBe("Lift Blocks");
+    expect(blocklist).toContain(
+      "**Lift** ends a block, on one row or several at once, and **Extend** moves its end.",
+    );
+
+    // What protects an address, each a source the check reads.
+    expect(Object.values(SecurityProtectedAddressSource).sort()).toEqual(
+      [
+        SecurityProtectedAddressSource.ProtectedEntity,
+        SecurityProtectedAddressSource.LocalRange,
+        SecurityProtectedAddressSource.Host,
+        SecurityProtectedAddressSource.KubernetesNode,
+        SecurityProtectedAddressSource.CloudResource,
+        SecurityProtectedAddressSource.NetworkDevice,
+        SecurityProtectedAddressSource.NetworkEndpoint,
+        SecurityProtectedAddressSource.AddressName,
+        SecurityProtectedAddressSource.Probe,
+        SecurityProtectedAddressSource.GlobalProbe,
+        SecurityProtectedAddressSource.OneUptimeCloud,
+        SecurityProtectedAddressSource.Edge,
+      ].sort(),
+    );
+    expect(blocklist).toContain(
+      "Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app.",
+    );
+    expect(AUTOMATIC_PROTECTIONS_TITLE).toBe("Protected Automatically");
+    expect(blocklist).toContain(
+      "**Protected Entities** lists them under **Protected Automatically**.",
+    );
+
+    // Where each block is enforced, and the page while nothing enforces it.
+    expect(ENFORCED_AT_COLUMN_TITLE).toBe("Enforced At");
+    expect(NOTHING_ENFORCES_TITLE).toBe("Nothing enforces these blocks yet.");
+    expect(blocklist).toContain(
+      "While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing.",
     );
   });
 
@@ -2095,7 +2221,24 @@ describe("Security Cases and Playbooks docs", () => {
     );
     // The app opens the case's own screen from them.
     expect(handlers).toMatch(
-      /case "security-case": \/\*.{0,600}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId \},/,
+      /case "security-case": \/\*.{0,800}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId, /,
+    );
+    /*
+     * An approval's push names its run: the screen opens on that approval,
+     * with its evidence, or says what became of it (#10341).
+     */
+    expect(
+      flat(source("Common/Server/Utils/PushNotificationUtil.ts")),
+    ).toContain("...(params.runId ? { runId: params.runId } : {}),");
+    expect(handlers).toContain(
+      '...(typeof data.runId === "string" && isUuid(data.runId) ? { runId: data.runId } : {}),',
+    );
+    expect(caseScreen).toContain(
+      "<PlaybookApprovalDecidedNotice readout={decidedApproval} />",
+    );
+    expect(approval).toContain('testID="playbook-approval-evidence"');
+    expect(englishPage()).toContain(
+      "A push about a step waiting for your approval opens on that approval, with its evidence; when somebody decided it since, the case says who, when and how the step went.",
     );
     // Where the waiting step is decided, the case taken on and closed.
     expect(approval).toContain('label="Approve"');
@@ -2303,6 +2446,7 @@ describe("Security Cases and Playbooks docs", () => {
       [new SecurityPlaybook(), "/security-playbook"],
       [new SecurityPlaybookRun(), "/security-playbook-run"],
       [new SecurityProtectedEntity(), "/security-protected-entity"],
+      [new SecurityBlock(), "/security-block"],
       [new SecurityCasePriority(), "/security-case-priority"],
       [new SecurityCaseStatus(), "/security-case-status"],
       [new SecurityCaseTask(), "/security-case-task"],

@@ -156,11 +156,11 @@ Vissa ändringar ber dig först bekräfta att det är du, även om du är inlogg
 - stänger av tvåfaktorsautentisering;
 - tar bort ditt konto.
 
-Dialogrutan **Bekräfta att det är du** ber om ditt lösenord och, medan tvåfaktorsautentisering är aktiverad, om ditt andra steg: en kod från din autentiseringsapp, din säkerhetsnyckel eller en av dina reservkoder. Med en passnyckel klickar du i stället på **Använd en passnyckel**. Om du bara loggar in med enkel inloggning, Google eller Microsoft klickar du på **Logga in igen**: OneUptime får din identitetsleverantör att be dig logga in igen och tar sedan tillbaka dig till sidan. Därefter genomförs ändringen.
+Dialogrutan **Bekräfta att det är du** ber om ditt lösenord och, medan tvåfaktorsautentisering är aktiverad, om ditt andra steg: en kod från din autentiseringsapp, din säkerhetsnyckel eller en av dina reservkoder. Med en passnyckel klickar du i stället på **Använd en passnyckel**. Om du bara loggar in med enkel inloggning, Google eller Microsoft klickar du på **Logga in igen**: OneUptime får din identitetsleverantör att be dig logga in igen och tar sedan tillbaka dig till sidan. Därefter genomförs ändringen. Om du bara loggar in med Vercel, som inte kan bekräfta att det är du, väljer du i stället **Logga in på ett annat sätt** och loggar in med en länk som skickas till din e-post.
 
 När du har bekräftat blir du inte tillfrågad igen på 10 minuter i den webbläsaren. Fem felaktiga försök loggar ut den webbläsaren, men låser aldrig ditt konto: logga in igen och försök en gång till. OneUptime skickar ett e-postmeddelande till dig när det händer, och varje gång en reservkod bekräftar att det är du.
 
-På en självhostad server bekräftar huvudadministratörer på samma sätt att det är de innan de ändrar hur någon annan loggar in, gör någon till huvudadministratör, ändrar serverns leverantörer för enkel inloggning eller e-postinställningar, eller skapar en master-API-nyckel. Master-API-nyckeln kan inte göra dessa ändringar.
+På en självhostad server bekräftar huvudadministratörer på samma sätt att det är de innan de ändrar hur någon annan loggar in, tar bort någon annans konto, gör någon till huvudadministratör, ändrar serverns leverantörer för enkel inloggning eller e-postinställningar, eller skapar en master-API-nyckel eller slår på den igen. Master-API-nyckeln kan inte göra dessa ändringar.
 
 Att logga in igen räknas bara när din identitetsleverantör säger att du loggade in efter att OneUptime skickade dig dit. Om leverantören loggar in dig med en session den redan har, utan att be om ditt lösenord, bekräftar det ingenting: logga först ut från leverantören och klicka sedan på **Logga in igen**. Där din server låter dig logga in med en länk via e-post gör **Logga in på ett annat sätt** det i stället. Vad OneUptime ber varje leverantör om, och vad en administratör kan ändra när en ny inloggning inte bekräftar något:
 
@@ -170,6 +170,9 @@ Att logga in igen räknas bara när din identitetsleverantör säger att du logg
 | OpenID Connect | `prompt=login` och `max_age=0`, och när du loggade in (`auth_time`) | Låt leverantören skicka `auth_time`. I Microsoft Entra ID lägger du till det i ID-token som ett valfritt anspråk. |
 | Google | När du loggade in (`auth_time`). Google kan inte ombes att låta dig logga in igen. | Aktivera Session age claims för serverns Google-inloggningsapp, som måste vara publicerad och verifierad. |
 | Microsoft | `prompt=login` och `max_age=0`, och när du loggade in (`auth_time`) | Lägg till `auth_time` i ID-token för serverns Microsoft-inloggningsapp som ett valfritt anspråk. |
+| Vercel | Inget: Vercel kan inte ombes att låta dig logga in igen, och anger inte när du loggade in. | Det bekräftar aldrig. Välj **Logga in på ett annat sätt** och logga in med en länk som skickas till din e-post, eller skapa ett lösenord med **Glömt lösenord?** och bekräfta med det. |
+
+Vad du ska ställa in i Okta, Microsoft Entra ID, Keycloak och Google Workspace står på sidan [SSO](/docs/identity/sso#logga-in-igen-för-att-bekräfta-att-det-är-du).
 
 ## Dina projekt
 
