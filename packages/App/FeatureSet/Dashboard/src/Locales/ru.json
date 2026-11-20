@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "Ваши права не распространяются на это событие обслуживания.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Затраты ваших аккаунтов читаются по очереди, так быстро, как позволяет их облако.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Ваше облако ограничивает скорость чтения затрат, поэтому эти затраты будут прочитаны следующими, примерно {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ваше облако ограничивает скорость чтения затрат, поэтому эти затраты будут прочитаны при следующем чтении подключения."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ваше облако ограничивает скорость чтения затрат, поэтому эти затраты будут прочитаны при следующем чтении подключения.",
+  "Couldn't load how this resource's metrics were collected.": "Не удалось загрузить сведения о том, как собирались метрики этого ресурса.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Облако ответило, что не предоставляет эту метрику для этого ресурса, поэтому подключение не запрашивает её в течение суток.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "При последнем чтении облако было слишком загружено, чтобы ответить. Следующее чтение запросит снова.",
+  "Its metrics are read for the first time at its connection's next read.": "Метрики будут впервые прочитаны при следующем чтении подключения.",
+  "Its metrics could not be read at its connection's last read.": "При последнем чтении подключения не удалось прочитать метрики.",
+  "Its metrics have not been read since {{time}}.": "Метрики не читались с {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Метрики прочитаны {{time}}, но {{count}} из них прочитать не удалось.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Метрики прочитаны {{time}}, но одну из них прочитать не удалось.",
+  "Its metrics were read {{time}}.": "Метрики прочитаны {{time}}.",
+  "Not read since {{time}}.": "Не читалась с {{time}}."
 }

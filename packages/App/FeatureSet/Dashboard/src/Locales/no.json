@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "Tillatelsene dine når ikke denne vedlikeholdshendelsen.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Kostnadene til kontoene dine leses etter tur, så raskt som skyen deres tillater.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses som de neste, rundt {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses ved tilkoblingens neste lesing."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses ved tilkoblingens neste lesing.",
+  "Couldn't load how this resource's metrics were collected.": "Kunne ikke laste inn hvordan målingene for denne ressursen ble samlet inn.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Skyen svarte at den ikke leverer denne målingen for denne ressursen, så tilkoblingen slutter å be om den i ett døgn.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Skyen var for opptatt til å svare ved forrige lesing. Neste lesing spør igjen.",
+  "Its metrics are read for the first time at its connection's next read.": "Målingene leses for første gang ved tilkoblingens neste lesing.",
+  "Its metrics could not be read at its connection's last read.": "Målingene kunne ikke leses ved tilkoblingens forrige lesing.",
+  "Its metrics have not been read since {{time}}.": "Målingene har ikke blitt lest siden {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Målingene ble lest {{time}}, men {{count}} av dem kunne ikke leses.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Målingene ble lest {{time}}, men én av dem kunne ikke leses.",
+  "Its metrics were read {{time}}.": "Målingene ble lest {{time}}.",
+  "Not read since {{time}}.": "Ikke lest siden {{time}}."
 }

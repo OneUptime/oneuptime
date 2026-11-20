@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "Uw rechten gelden niet voor deze onderhoudsgebeurtenis.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "De kosten van uw accounts worden om de beurt gelezen, zo snel als hun cloud toestaat.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden hierna gelezen, rond {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden gelezen bij de volgende leesactie van de koppeling."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden gelezen bij de volgende leesactie van de koppeling.",
+  "Couldn't load how this resource's metrics were collected.": "Kon niet laden hoe de metrieken van deze resource zijn verzameld.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "De cloud antwoordde dat deze metriek voor deze resource niet wordt geleverd, dus de koppeling vraagt er een dag lang niet meer om.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "De cloud was bij de laatste leesbeurt te druk om te antwoorden. De volgende leesbeurt vraagt het opnieuw.",
+  "Its metrics are read for the first time at its connection's next read.": "De metrieken worden bij de volgende leesbeurt van de koppeling voor het eerst gelezen.",
+  "Its metrics could not be read at its connection's last read.": "De metrieken konden bij de laatste leesbeurt van de koppeling niet worden gelezen.",
+  "Its metrics have not been read since {{time}}.": "De metrieken zijn sinds {{time}} niet gelezen.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "De metrieken zijn {{time}} gelezen, maar {{count}} ervan konden niet worden gelezen.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "De metrieken zijn {{time}} gelezen, maar één ervan kon niet worden gelezen.",
+  "Its metrics were read {{time}}.": "De metrieken zijn {{time}} gelezen.",
+  "Not read since {{time}}.": "Niet gelezen sinds {{time}}."
 }

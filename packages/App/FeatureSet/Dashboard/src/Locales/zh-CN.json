@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "您的权限不涵盖此维护事件。",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "您的账户成本按顺序读取，速度以其云允许的为准。",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "您的云限制了读取成本的速度，因此这些成本排在下一轮，约于{{time}}读取。",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "您的云限制了读取成本的速度，因此这些成本将在连接的下一次读取时读取。"
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "您的云限制了读取成本的速度，因此这些成本将在连接的下一次读取时读取。",
+  "Couldn't load how this resource's metrics were collected.": "无法加载此资源指标的收集情况。",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "其云回复不为此资源提供此指标，因此其连接在一天内不再请求它。",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "上次读取时其云过于繁忙，未能响应。下次读取会再次请求。",
+  "Its metrics are read for the first time at its connection's next read.": "其指标将在其连接下次读取时首次读取。",
+  "Its metrics could not be read at its connection's last read.": "其连接上次读取时未能读取其指标。",
+  "Its metrics have not been read since {{time}}.": "自 {{time}} 起未读取其指标。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "其指标已于 {{time}} 读取，但其中 {{count}} 个未能读取。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "其指标已于 {{time}} 读取，但其中 1 个未能读取。",
+  "Its metrics were read {{time}}.": "其指标已于 {{time}} 读取。",
+  "Not read since {{time}}.": "自 {{time}} 起未读取。"
 }

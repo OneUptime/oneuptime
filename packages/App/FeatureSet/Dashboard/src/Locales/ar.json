@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "أذوناتك لا تشمل حدث الصيانة هذا.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "تُقرأ تكاليف حساباتك بالتناوب، بالسرعة التي تسمح بها سحابتها.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف تاليًا، نحو {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف مع القراءة التالية للاتصال."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف مع القراءة التالية للاتصال.",
+  "Couldn't load how this resource's metrics were collected.": "تعذّر تحميل كيفية جمع مقاييس هذا المورد.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "أجابت سحابته بأنها لا تقدّم هذا المقياس لهذا المورد، لذا يتوقف اتصاله عن طلبه لمدة يوم.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "كانت سحابته مشغولة جدًا عن الإجابة عنه في آخر قراءة. تطلبه القراءة التالية مرة أخرى.",
+  "Its metrics are read for the first time at its connection's next read.": "تُقرأ مقاييسه لأول مرة في القراءة التالية لاتصاله.",
+  "Its metrics could not be read at its connection's last read.": "تعذّرت قراءة مقاييسه في آخر قراءة لاتصاله.",
+  "Its metrics have not been read since {{time}}.": "لم تُقرأ مقاييسه منذ {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "قُرئت مقاييسه {{time}}، لكن تعذّرت قراءة {{count}} منها.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "قُرئت مقاييسه {{time}}، لكن تعذّرت قراءة واحد منها.",
+  "Its metrics were read {{time}}.": "قُرئت مقاييسه {{time}}.",
+  "Not read since {{time}}.": "لم يُقرأ منذ {{time}}."
 }

@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "مجوزهای شما به این رویداد تعمیر و نگهداری نمی‌رسد.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "هزینه‌های حساب‌های شما به نوبت خوانده می‌شوند، به همان سرعتی که ابرشان اجازه می‌دهد.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در نوبت بعد، حدود {{time}} خوانده می‌شوند.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در خواندن بعدی اتصال خوانده می‌شوند."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در خواندن بعدی اتصال خوانده می‌شوند.",
+  "Couldn't load how this resource's metrics were collected.": "بارگیری چگونگی جمع‌آوری متریک‌های این منبع ممکن نشد.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "ابرش پاسخ داد که این متریک را برای این منبع ارائه نمی‌کند، بنابراین اتصالش تا یک روز آن را درخواست نمی‌کند.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "ابرش در آخرین خواندن آن‌قدر مشغول بود که نتوانست پاسخ دهد. خواندن بعدی دوباره آن را درخواست می‌کند.",
+  "Its metrics are read for the first time at its connection's next read.": "متریک‌هایش در خواندن بعدی اتصالش برای نخستین بار خوانده می‌شوند.",
+  "Its metrics could not be read at its connection's last read.": "متریک‌هایش در آخرین خواندن اتصالش خوانده نشدند.",
+  "Its metrics have not been read since {{time}}.": "متریک‌هایش از {{time}} خوانده نشده‌اند.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "متریک‌هایش {{time}} خوانده شدند، اما {{count}} مورد از آن‌ها خوانده نشد.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "متریک‌هایش {{time}} خوانده شدند، اما یکی از آن‌ها خوانده نشد.",
+  "Its metrics were read {{time}}.": "متریک‌هایش {{time}} خوانده شدند.",
+  "Not read since {{time}}.": "از {{time}} خوانده نشده است."
 }

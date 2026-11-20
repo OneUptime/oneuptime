@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "Tus permisos no llegan a este evento de mantenimiento.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Los costos de tus cuentas se leen por turnos, tan rápido como lo permite su nube.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Tu nube limita la rapidez con la que se pueden leer los costos, así que estos se leen a continuación, hacia el {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Tu nube limita la rapidez con la que se pueden leer los costos, así que estos se leen en la próxima lectura de la conexión."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Tu nube limita la rapidez con la que se pueden leer los costos, así que estos se leen en la próxima lectura de la conexión.",
+  "Couldn't load how this resource's metrics were collected.": "No se pudo cargar cómo se recopilaron las métricas de este recurso.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Su nube respondió que no ofrece esta métrica para este recurso, así que su conexión deja de pedirla durante un día.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Su nube estaba demasiado ocupada para responder en la última lectura. La próxima lectura la vuelve a pedir.",
+  "Its metrics are read for the first time at its connection's next read.": "Sus métricas se leen por primera vez en la próxima lectura de su conexión.",
+  "Its metrics could not be read at its connection's last read.": "Sus métricas no se pudieron leer en la última lectura de su conexión.",
+  "Its metrics have not been read since {{time}}.": "Sus métricas no se leen desde el {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Sus métricas se leyeron {{time}}, pero {{count}} de ellas no se pudieron leer.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Sus métricas se leyeron {{time}}, pero una de ellas no se pudo leer.",
+  "Its metrics were read {{time}}.": "Sus métricas se leyeron {{time}}.",
+  "Not read since {{time}}.": "Sin leer desde el {{time}}."
 }

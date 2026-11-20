@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "आपकी अनुमतियां इस रखरखाव इवेंट तक नहीं पहुंचतीं।",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "आपके खातों की लागत बारी-बारी से पढ़ी जाती है, उतनी तेज़ी से जितनी उनका क्लाउड अनुमति देता है।",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये आगे, लगभग {{time}} पर पढ़ी जाएँगी।",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये कनेक्शन की अगली रीडिंग में पढ़ी जाएँगी।"
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये कनेक्शन की अगली रीडिंग में पढ़ी जाएँगी।",
+  "Couldn't load how this resource's metrics were collected.": "यह लोड नहीं हो सका कि इस संसाधन के मेट्रिक्स कैसे एकत्र किए गए।",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "इसके क्लाउड ने जवाब दिया कि वह इस संसाधन के लिए यह मेट्रिक नहीं देता, इसलिए इसका कनेक्शन एक दिन तक इसे नहीं माँगता।",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "पिछली रीडिंग में इसका क्लाउड जवाब देने के लिए बहुत व्यस्त था। अगली रीडिंग इसे फिर से माँगती है।",
+  "Its metrics are read for the first time at its connection's next read.": "इसके मेट्रिक्स इसके कनेक्शन की अगली रीडिंग में पहली बार पढ़े जाएँगे।",
+  "Its metrics could not be read at its connection's last read.": "इसके कनेक्शन की पिछली रीडिंग में इसके मेट्रिक्स नहीं पढ़े जा सके।",
+  "Its metrics have not been read since {{time}}.": "{{time}} से इसके मेट्रिक्स नहीं पढ़े गए हैं।",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "इसके मेट्रिक्स {{time}} पढ़े गए, लेकिन उनमें से {{count}} नहीं पढ़े जा सके।",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "इसके मेट्रिक्स {{time}} पढ़े गए, लेकिन उनमें से एक नहीं पढ़ा जा सका।",
+  "Its metrics were read {{time}}.": "इसके मेट्रिक्स {{time}} पढ़े गए।",
+  "Not read since {{time}}.": "{{time}} से नहीं पढ़ा गया।"
 }

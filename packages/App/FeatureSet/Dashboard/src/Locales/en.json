@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "Your permissions do not reach this maintenance event.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Your accounts' costs are read in turn, as fast as their cloud allows.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Your cloud limits how fast costs can be read, so these are read with the connection's next read."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Your cloud limits how fast costs can be read, so these are read with the connection's next read.",
+  "Couldn't load how this resource's metrics were collected.": "Couldn't load how this resource's metrics were collected.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Its cloud was too busy to answer for it at the last read. The next read asks again.",
+  "Its metrics are read for the first time at its connection's next read.": "Its metrics are read for the first time at its connection's next read.",
+  "Its metrics could not be read at its connection's last read.": "Its metrics could not be read at its connection's last read.",
+  "Its metrics have not been read since {{time}}.": "Its metrics have not been read since {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Its metrics were read {{time}}, but {{count}} of them could not be.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Its metrics were read {{time}}, but one of them could not be.",
+  "Its metrics were read {{time}}.": "Its metrics were read {{time}}.",
+  "Not read since {{time}}.": "Not read since {{time}}."
 }

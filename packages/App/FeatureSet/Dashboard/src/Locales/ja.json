@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "あなたの権限はこのメンテナンスイベントには及びません。",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "アカウントのコストは、クラウドが許す速さで順番に読み取られます。",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "クラウドがコストを読み取る速さを制限しているため、これらは次の順番として{{time}}頃に読み取られます。",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "クラウドがコストを読み取る速さを制限しているため、これらは接続の次回の読み取りで読み取られます。"
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "クラウドがコストを読み取る速さを制限しているため、これらは接続の次回の読み取りで読み取られます。",
+  "Couldn't load how this resource's metrics were collected.": "このリソースのメトリクスの収集状況を読み込めませんでした。",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "クラウドがこのリソースではこのメトリクスを提供していないと応答したため、接続は 1 日間このメトリクスを要求しません。",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "前回の読み取り時、クラウドが混雑していて応答できませんでした。次回の読み取りで再度要求します。",
+  "Its metrics are read for the first time at its connection's next read.": "メトリクスは接続の次回の読み取りで初めて読み取られます。",
+  "Its metrics could not be read at its connection's last read.": "接続の前回の読み取りでメトリクスを読み取れませんでした。",
+  "Its metrics have not been read since {{time}}.": "{{time}} 以降、メトリクスは読み取られていません。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "メトリクスは {{time}} に読み取られましたが、そのうち {{count}} 件は読み取れませんでした。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "メトリクスは {{time}} に読み取られましたが、そのうち 1 件は読み取れませんでした。",
+  "Its metrics were read {{time}}.": "メトリクスは {{time}} に読み取られました。",
+  "Not read since {{time}}.": "{{time}} 以降、読み取られていません。"
 }

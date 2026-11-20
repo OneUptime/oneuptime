@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "Dina behörigheter når inte den här underhållshändelsen.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Dina kontons kostnader läses i tur och ordning, så snabbt som deras moln tillåter.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Ditt moln begränsar hur snabbt kostnader kan läsas, så dessa läses härnäst, runt {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ditt moln begränsar hur snabbt kostnader kan läsas, så dessa läses vid anslutningens nästa läsning."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ditt moln begränsar hur snabbt kostnader kan läsas, så dessa läses vid anslutningens nästa läsning.",
+  "Couldn't load how this resource's metrics were collected.": "Det gick inte att läsa in hur den här resursens mätvärden samlades in.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Molnet svarade att det inte levererar det här mätvärdet för den här resursen, så anslutningen slutar fråga efter det i ett dygn.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Molnet var för upptaget för att svara vid den senaste läsningen. Nästa läsning frågar igen.",
+  "Its metrics are read for the first time at its connection's next read.": "Mätvärdena läses för första gången vid anslutningens nästa läsning.",
+  "Its metrics could not be read at its connection's last read.": "Mätvärdena kunde inte läsas vid anslutningens senaste läsning.",
+  "Its metrics have not been read since {{time}}.": "Mätvärdena har inte lästs sedan {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Mätvärdena lästes {{time}}, men {{count}} av dem kunde inte läsas.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Mätvärdena lästes {{time}}, men ett av dem kunde inte läsas.",
+  "Its metrics were read {{time}}.": "Mätvärdena lästes {{time}}.",
+  "Not read since {{time}}.": "Inte läst sedan {{time}}."
 }

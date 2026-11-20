@@ -60219,5 +60219,15 @@
   "Your permissions do not reach this maintenance event.": "권한이 이 유지 관리 이벤트에는 미치지 않습니다.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "계정 비용은 클라우드가 허용하는 속도로 차례대로 읽습니다.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 다음 차례로 {{time}}쯤 읽습니다.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다.",
+  "Couldn't load how this resource's metrics were collected.": "이 리소스의 메트릭 수집 상태를 불러오지 못했습니다.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "클라우드가 이 리소스에 대해 이 메트릭을 제공하지 않는다고 응답했으므로, 연결은 하루 동안 이 메트릭을 요청하지 않습니다.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "지난 읽기 때 클라우드가 너무 바빠서 응답하지 못했습니다. 다음 읽기에서 다시 요청합니다.",
+  "Its metrics are read for the first time at its connection's next read.": "메트릭은 연결의 다음 읽기에서 처음 읽힙니다.",
+  "Its metrics could not be read at its connection's last read.": "연결의 지난 읽기에서 메트릭을 읽지 못했습니다.",
+  "Its metrics have not been read since {{time}}.": "{{time}} 이후로 메트릭을 읽지 못했습니다.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "메트릭을 {{time}}에 읽었지만, 그중 {{count}}개는 읽지 못했습니다.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "메트릭을 {{time}}에 읽었지만, 그중 1개는 읽지 못했습니다.",
+  "Its metrics were read {{time}}.": "메트릭을 {{time}}에 읽었습니다.",
+  "Not read since {{time}}.": "{{time}} 이후로 읽지 못했습니다."
 }
