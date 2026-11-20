@@ -60465,5 +60465,17 @@
   "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "Führen Sie dies in Azure Cloud Shell als jemand aus, der Rollen in der Stammverwaltungsgruppe des Mandanten zuweisen darf. Es erstellt eine App mit dem unten aufgeführten Zugriff auf jedes Abonnement und gibt ihre Details aus.",
   "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "Führen Sie dies in Azure Cloud Shell aus. Es erstellt eine App mit dem unten aufgeführten Zugriff und gibt ihre Details aus.",
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "Führen Sie dies in Cloud Shell im zu überwachenden Projekt aus. Es erstellt ein Dienstkonto mit dem unten aufgeführten Zugriff und gibt seinen Schlüssel aus.",
-  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "Führen Sie dies in Google Cloud Shell in einem Projekt Ihrer Organisation aus, als jemand, der Rollen für die Organisation vergeben darf. Es erstellt ein Dienstkonto mit dem unten aufgeführten Zugriff auf jedes Projekt und gibt seinen Schlüssel aus."
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "Führen Sie dies in Google Cloud Shell in einem Projekt Ihrer Organisation aus, als jemand, der Rollen für die Organisation vergeben darf. Es erstellt ein Dienstkonto mit dem unten aufgeführten Zugriff auf jedes Projekt und gibt seinen Schlüssel aus.",
+  "A scrub rule hid it from every event of this case.": "Eine Bereinigungsregel hat sie in jedem Ereignis dieses Falls verborgen.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Die Adresse, von der diese Anfragen kamen, in den Protokollen Ihres Load Balancers oder Ihrer Firewall finden und dort blockieren.",
+  "From an address a scrub rule hid": "Von einer Adresse, die eine Bereinigungsregel verborgen hat",
+  "Hidden by a scrub rule": "Von einer Bereinigungsregel verborgen",
+  "Hidden by the scrub rule {{rule}}": "Von der Bereinigungsregel {{rule}} verborgen",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "IP-Adressen werden aus Ihren Protokollen bereinigt, daher kann Sicherheitsereignisse Ihnen nicht sagen, welche Adresse Sie blockieren sollten.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "IP-Adressen werden aus Ihren Traces bereinigt, daher kann Sicherheitsereignisse Ihnen nicht sagen, welche Adresse Sie blockieren sollten.",
+  "Open Scrub Rules": "Scrub-Regeln öffnen",
+  "Show events whose address a scrub rule hid": "Ereignisse anzeigen, deren Adresse eine Bereinigungsregel verborgen hat",
+  "The scrub rule {{rule}} hid it from every event of this case.": "Die Bereinigungsregel {{rule}} hat sie in jedem Ereignis dieses Falls verborgen.",
+  "The scrub rule {{rule}} masks them.": "Die Bereinigungsregel {{rule}} maskiert sie.",
+  "The scrub rule {{rule}} redacts them.": "Die Bereinigungsregel {{rule}} schwärzt sie."
 }

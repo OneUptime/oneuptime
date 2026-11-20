@@ -60465,5 +60465,17 @@
   "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "Exécutez ceci dans Azure Cloud Shell en tant que personne autorisée à attribuer des rôles sur le groupe d'administration racine du locataire. Cela crée une application dotée de l'accès ci-dessous sur chaque abonnement, et affiche ses détails.",
   "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "Exécutez ceci dans Azure Cloud Shell. Cela crée une application dotée de l'accès ci-dessous, et affiche ses détails.",
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "Exécutez ceci dans Cloud Shell, dans le projet à surveiller. Cela crée un compte de service doté de l'accès ci-dessous, et affiche sa clé.",
-  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "Exécutez ceci dans Google Cloud Shell, dans un projet de votre organisation, en tant que personne autorisée à y attribuer des rôles. Cela crée un compte de service doté de l'accès ci-dessous sur chaque projet, et affiche sa clé."
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "Exécutez ceci dans Google Cloud Shell, dans un projet de votre organisation, en tant que personne autorisée à y attribuer des rôles. Cela crée un compte de service doté de l'accès ci-dessous sur chaque projet, et affiche sa clé.",
+  "A scrub rule hid it from every event of this case.": "Une règle de nettoyage l'a masquée dans chaque événement de ce dossier.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Trouver l'adresse d'où venaient ces requêtes dans les journaux de votre équilibreur de charge ou de votre pare-feu, et la bloquer là.",
+  "From an address a scrub rule hid": "D'une adresse masquée par une règle de nettoyage",
+  "Hidden by a scrub rule": "Masquée par une règle de nettoyage",
+  "Hidden by the scrub rule {{rule}}": "Masquée par la règle de nettoyage {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "Les adresses IP sont masquées dans vos journaux, donc Événements de sécurité ne peut pas vous indiquer quelle adresse bloquer.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "Les adresses IP sont masquées dans vos traces, donc Événements de sécurité ne peut pas vous indiquer quelle adresse bloquer.",
+  "Open Scrub Rules": "Ouvrir les règles de masquage",
+  "Show events whose address a scrub rule hid": "Afficher les événements dont une règle de nettoyage a masqué l'adresse",
+  "The scrub rule {{rule}} hid it from every event of this case.": "La règle de nettoyage {{rule}} l'a masquée dans chaque événement de ce dossier.",
+  "The scrub rule {{rule}} masks them.": "La règle de nettoyage {{rule}} les masque.",
+  "The scrub rule {{rule}} redacts them.": "La règle de nettoyage {{rule}} les caviarde."
 }

@@ -60465,5 +60465,17 @@
   "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "請以可以在租用戶根管理群組上指派角色的身分在 Azure Cloud Shell 中執行此指令。它會建立一個對每個訂用帳戶都具有下方所列存取權限的應用程式，並輸出其詳細資料。",
   "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "在 Azure Cloud Shell 中執行此指令。它會建立一個具有下方所列存取權限的應用程式，並輸出其詳細資料。",
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "在要監控的專案中，於 Cloud Shell 執行此指令。它會建立一個具有下方所列存取權限的服務帳戶，並輸出其金鑰。",
-  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "請以可以在組織上授予角色的身分，在組織的某個專案中於 Google Cloud Shell 執行此指令。它會建立一個對每個專案都具有下方所列存取權限的服務帳戶，並輸出其金鑰。"
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "請以可以在組織上授予角色的身分，在組織的某個專案中於 Google Cloud Shell 執行此指令。它會建立一個對每個專案都具有下方所列存取權限的服務帳戶，並輸出其金鑰。",
+  "A scrub rule hid it from every event of this case.": "清除規則在此案例的每個事件中都隱藏了該位址。",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "在負載平衡器或防火牆的日誌中找到這些請求的來源位址，並在那裡封鎖它。",
+  "From an address a scrub rule hid": "來自被清除規則隱藏的位址",
+  "Hidden by a scrub rule": "已被清除規則隱藏",
+  "Hidden by the scrub rule {{rule}}": "已被清除規則 {{rule}} 隱藏",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "你的日誌中的 IP 位址已被清除，因此安全事件無法告訴你應封鎖哪個位址。",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "你的追蹤中的 IP 位址已被清除，因此安全事件無法告訴你應封鎖哪個位址。",
+  "Open Scrub Rules": "開啟清理規則",
+  "Show events whose address a scrub rule hid": "顯示位址被清除規則隱藏的事件",
+  "The scrub rule {{rule}} hid it from every event of this case.": "清除規則 {{rule}} 在此案例的每個事件中都隱藏了該位址。",
+  "The scrub rule {{rule}} masks them.": "清除規則 {{rule}} 會將其遮罩。",
+  "The scrub rule {{rule}} redacts them.": "清除規則 {{rule}} 會將其編修。"
 }
