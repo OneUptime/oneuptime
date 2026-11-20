@@ -29,6 +29,7 @@ import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../../Server/Utils/Logger";
 import {
+  ManagedDeviceReadingRowInput,
   buildManagedDeviceCheckInRow,
   buildManagedDeviceSecurityPatchRow,
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceCheckInMetrics";
@@ -150,14 +151,7 @@ function rowsOfARead(data: {
   const rows: Array<JSONObject> = [];
 
   for (const reading of readings) {
-    const input: {
-      projectId: ObjectID;
-      connectionId: ObjectID;
-      provider: string;
-      reading: ManagedDeviceCheckInReading;
-      asOf: Date;
-      retentionDate: Date;
-    } = {
+    const input: ManagedDeviceReadingRowInput = {
       projectId: PROJECT,
       connectionId: CONNECTION,
       provider: "esper",

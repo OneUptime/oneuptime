@@ -142,15 +142,20 @@ function buildManagedDeviceReadingRow(data: {
   } as JSONObject;
 }
 
-// One reading's check-in row: the minutes since the device checked in. Pure.
-export function buildManagedDeviceCheckInRow(data: {
+// What a reading's rows are built from: one device, at one read.
+export interface ManagedDeviceReadingRowInput {
   projectId: ObjectID;
   connectionId: ObjectID;
   provider: string;
   reading: ManagedDeviceCheckInReading;
   asOf: Date;
   retentionDate: Date;
-}): JSONObject {
+}
+
+// One reading's check-in row: the minutes since the device checked in. Pure.
+export function buildManagedDeviceCheckInRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject {
   return buildManagedDeviceReadingRow({
     projectId: data.projectId,
     connectionId: data.connectionId,
@@ -172,14 +177,9 @@ export function buildManagedDeviceCheckInRow(data: {
  * patch level, with the level on it. Undefined for a reading with no patch:
  * a device that is not Android, or whose level is no date. Pure.
  */
-export function buildManagedDeviceSecurityPatchRow(data: {
-  projectId: ObjectID;
-  connectionId: ObjectID;
-  provider: string;
-  reading: ManagedDeviceCheckInReading;
-  asOf: Date;
-  retentionDate: Date;
-}): JSONObject | undefined {
+export function buildManagedDeviceSecurityPatchRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject | undefined {
   const attributes: Dictionary<string> | undefined =
     getManagedDeviceSecurityPatchAttributes({
       reading: data.reading,
@@ -252,14 +252,7 @@ export default class ManagedDeviceCheckInMetrics {
     let securityPatchReadingCount: number = 0;
 
     for (const reading of readings) {
-      const row: {
-        projectId: ObjectID;
-        connectionId: ObjectID;
-        provider: string;
-        reading: ManagedDeviceCheckInReading;
-        asOf: Date;
-        retentionDate: Date;
-      } = {
+      const row: ManagedDeviceReadingRowInput = {
         projectId: data.projectId,
         connectionId: data.connectionId,
         provider: data.provider,

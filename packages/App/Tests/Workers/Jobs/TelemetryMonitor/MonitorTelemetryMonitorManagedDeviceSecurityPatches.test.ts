@@ -65,6 +65,7 @@ import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import HostService from "Common/Server/Services/HostService";
 import {
+  ManagedDeviceReadingRowInput,
   buildManagedDeviceCheckInRow,
   buildManagedDeviceSecurityPatchRow,
 } from "Common/Server/Utils/DeviceManagement/ManagedDeviceCheckInMetrics";
@@ -139,14 +140,7 @@ function rowsOfARead(data: {
     });
 
   return readings.flatMap((reading: ManagedDeviceCheckInReading) => {
-    const input: {
-      projectId: ObjectID;
-      connectionId: ObjectID;
-      provider: string;
-      reading: ManagedDeviceCheckInReading;
-      asOf: Date;
-      retentionDate: Date;
-    } = {
+    const input: ManagedDeviceReadingRowInput = {
       projectId,
       connectionId: CONNECTION_ID,
       provider: "esper",
