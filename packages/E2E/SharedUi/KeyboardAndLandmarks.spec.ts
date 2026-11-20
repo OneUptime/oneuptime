@@ -7,6 +7,11 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import {
+  AxeViolation,
+  axeViolations,
+  expectNoAxeViolations,
+} from "../SuiteHelpers/Axe";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -28,6 +33,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  *     (#6922).
  *   - A secret's "Click to reveal" is a button found by its words, and the
  *     secret by its test id: no made-up role on either (#7964).
+ *   - axe's rules hold all of it, light and dark, at 1280 and 390: the
+ *     chrome with its side menu open, the saved views' menu open and a
+ *     confirmation open (SuiteHelpers/Axe, #10297).
  */
 
 const PORT: string = process.env["SHARED_UI_FIXTURE_PORT"] || "4329";
@@ -482,3 +490,72 @@ test("a secret's reveal is a button found by its words, and the revealed secret 
   ).toBe(0);
   await expectNoSidewaysScroll(page);
 });
+
+/*
+ * What axe found broken on main when its rules were added here (#10297),
+ * kept by name rather than left out, so it is fixed rather than forgotten:
+ * a new break fails, and so does this one's fix until it is taken off.
+ *
+ * SideMenu (Common/UI/Components/SideMenu/SideMenu.tsx) draws its panel on
+ * a laptop as <aside role="navigation">, a role an aside may not take
+ * (aria-allowed-role). A <nav> for the panel, or a <nav> inside the aside,
+ * keeps the landmark and its name. On a phone the panel is drawn apart and
+ * breaks no rule.
+ */
+const FOUND_ON_MAIN_AT_A_LAPTOPS_WIDTH: Array<
+  Pick<AxeViolation, "rule" | "targets">
+> = [{ rule: "aria-allowed-role", targets: ["aside"] }];
+
+for (const width of WIDTHS) {
+  for (const theme of ["light", "dark"] as Array<Theme>) {
+    test(`at ${width}px (${theme}) axe finds no broken rule in the chrome, the saved views' menu or a confirmation, but the side menu's known one`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, { width: width, theme: theme });
+
+      if (width < 768) {
+        // On a phone the side menu's panel is drawn only once opened.
+        await page.getByTestId("mobile-sidemenu-toggle").click();
+        await expect(
+          page.getByRole("navigation", { name: "Pages in this section" }),
+        ).toBeVisible();
+      }
+
+      const found: Array<AxeViolation> = await axeViolations(page, {
+        include: ['[data-testid="section-a11y"]'],
+      });
+
+      expect(
+        found.map(
+          (violation: AxeViolation): Pick<AxeViolation, "rule" | "targets"> => {
+            return { rule: violation.rule, targets: violation.targets };
+          },
+        ),
+        `the top bar, the trail and the side menu at ${width}px (${theme})`,
+      ).toEqual(width < 768 ? [] : FOUND_ON_MAIN_AT_A_LAPTOPS_WIDTH);
+
+      if (width < 768) {
+        // The open panel covers the page: start again with it closed.
+        await open(page, { width: width, theme: theme });
+      }
+
+      await savedViewsButton(page).click();
+      await expect(page.getByRole("menu")).toBeVisible();
+      await expectNoAxeViolations(page, {
+        include: ['[role="menu"]'],
+        message: `the saved views' menu at ${width}px (${theme})`,
+      });
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("menu")).toHaveCount(0);
+
+      await page.getByTestId("a11y-open-confirmation").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expectNoAxeViolations(page, {
+        include: ['[role="dialog"]'],
+        message: `a confirmation at ${width}px (${theme})`,
+      });
+    });
+  }
+}
