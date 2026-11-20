@@ -457,7 +457,7 @@ const AskAiPanelSurface: FunctionComponent<PanelProps> = (
         value={chat.permissionMode}
         onChange={chat.setPermissionMode}
         disabled={chat.isWorking}
-        menuAlign="left"
+        menuAlign="start"
       />
     </>
   );
