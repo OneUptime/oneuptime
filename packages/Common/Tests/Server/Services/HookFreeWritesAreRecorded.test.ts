@@ -159,6 +159,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
     },
+  // The open cases' first check of their Response Plan's steps, scheduled (#10340).
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillSecurityCaseNextStepCheckAt.ts":
+    {
+      "(module) SecurityCase": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/DataMigrations/MoveGoogleSecOpsConnectionsToSecurityEventConnections.ts":
     {
       "MoveGoogleSecOpsConnectionsToSecurityEventConnections.moveConnection SecurityEventConnection":
@@ -643,6 +648,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
     "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,
   },
+  // When a case's Response Plan steps are next checked, and the lease on it (#10340).
+  "packages/Common/Server/Utils/SecurityCase/StepChecks/SecurityCaseStepCheckRunner.ts":
+    {
+      "SecurityCaseStepCheckRunner.checkCase SecurityCase": Why.Bookkeeping,
+    },
+  "packages/Common/Server/Utils/SecurityCase/StepChecks/SecurityCaseStepChecks.ts":
+    {
+      "SecurityCaseStepChecks.requestCheck SecurityCase": Why.Bookkeeping,
+    },
   "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntScheduler.ts": {
     "SecurityHuntScheduler.record SecurityHunt": Why.Bookkeeping,
   },
