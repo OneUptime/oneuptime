@@ -59592,5 +59592,13 @@
   "This status was changed when the alert was updated.": "此狀態是在更新警示時變更的。",
   "This status was changed when the incident was updated.": "此狀態是在更新事件時變更的。",
   "{{user}} turned off monitoring for the monitor **{{monitor}}**. This alert was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved now. If monitoring is turned back on while the problem is still there, a new alert is opened.": "{{user}} 關閉了監測器 **{{monitor}}** 的監測。此警示設定為在監測器恢復後自動解決，而監測關閉期間沒有任何東西會檢查此監測器，因此它現已被解決。如果在問題仍然存在時重新開啟監測，將建立新警示。",
-  "{{user}} turned off monitoring for the monitor **{{monitor}}**. This incident was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved now. If monitoring is turned back on while the problem is still there, a new incident is opened.": "{{user}} 關閉了監測器 **{{monitor}}** 的監測。此事件設定為在監測器恢復後自動解決，而監測關閉期間沒有任何東西會檢查此監測器，因此它現已被解決。如果在問題仍然存在時重新開啟監測，將建立新事件。"
+  "{{user}} turned off monitoring for the monitor **{{monitor}}**. This incident was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved now. If monitoring is turned back on while the problem is still there, a new incident is opened.": "{{user}} 關閉了監測器 **{{monitor}}** 的監測。此事件設定為在監測器恢復後自動解決，而監測關閉期間沒有任何東西會檢查此監測器，因此它現已被解決。如果在問題仍然存在時重新開啟監測，將建立新事件。",
+  "Is Cost Adjustment": "是否為成本調整",
+  "Memory Peaks From": "記憶體峰值來源",
+  "Prices: reconciled with your {{provider}} bill": "價格：已依你的 {{provider}} 帳單核對",
+  "Prices: reconciled with your {{provider}} bill up to {{time}}, then list prices": "價格：截至 {{time}} 已依你的 {{provider}} 帳單核對，之後為牌價",
+  "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:": "此叢集執行著自己的 {{engine}}（{{service}}），成本代理讀取的就是它。由於代理找不到你的 {{engine}} 讀取的 Prometheus，記憶體規格調整仍從隨附的 Prometheus 讀取峰值。若要停止執行兩者，請在同一次升級中指定一個收集 cAdvisor 的 Prometheus：",
+  "Without another Prometheus, keep the bundled engine: memory recommendations need it.": "沒有其他 Prometheus 時，請保留隨附的引擎：記憶體建議需要它。",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約兩天後，依你實際支付的金額核對其價格，OneUptime 會逐一納入已核對的小時。在此之前，之後的小時以雲端的公開牌價計算。",
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約兩天後，依你實際支付的金額核對其價格。尚無已核對的小時送達 OneUptime：這些是雲端的公開牌價。"
 }

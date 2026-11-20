@@ -451,6 +451,7 @@ describe("fetchKubernetesCostOverview reads how the cluster is priced", () => {
       bundledEngineUnused: false,
       pricingSource: "list-prices",
       pricingProvider: "AWS",
+      memoryPeaksFrom: "",
     });
 
     const request: any = mockGetList.mock.calls[0]![0];
