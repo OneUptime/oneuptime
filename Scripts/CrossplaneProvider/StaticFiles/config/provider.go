@@ -101,6 +101,9 @@ func ResourceDefaults() ujconfig.ResourceOption {
 	return func(r *ujconfig.Resource) {
 		r.ShortGroup = ShortGroup
 		r.Kind = kinds.Of(r.Name)
+		// The plural of its CRD, when controller-gen would give it another
+		// kind's (internal/kinds); "" keeps controller-gen's.
+		r.Path = kinds.Path(r.Kind)
 		r.Version = Version
 		r.ExternalName = ujconfig.IdentifierFromProvider
 		// The configuration's id once there is a record (lateinit.go).
@@ -132,6 +135,17 @@ func ResourceDefaults() ujconfig.ResourceOption {
 			r.MetaResource.ArgumentDocs = nil
 		}
 	}
+}
+
+// CRDs returns the names of each managed resource's CRD, by the resource's
+// Terraform name, as controller-gen names it from the resource's kind and
+// path.
+func CRDs(pc *ujconfig.Provider) map[string]kinds.CRD {
+	crds := make(map[string]kinds.CRD, len(pc.Resources))
+	for terraformName, r := range pc.Resources {
+		crds[terraformName] = kinds.CRDOf(r.Kind, r.Path)
+	}
+	return crds
 }
 
 // References returns, for each resource, the fields that hold the IDs of
