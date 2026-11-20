@@ -16,6 +16,8 @@ import {
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
+import HashedAddressSearch from "../Utils/Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../Types/Telemetry/HashedAddressSearch";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import Includes from "../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../Types/JSON";
@@ -76,6 +78,23 @@ export class ExceptionInstanceService extends AnalyticsDatabaseService<Exception
     countBy: CountBy<ExceptionInstance>,
   ): Promise<CountBy<ExceptionInstance>> {
     return { ...countBy, query: readsOriginalOccurrences(countBy.query) };
+  }
+
+  /*
+   * A search for an IP address also finds the occurrences whose address an
+   * IP Address rule hashed, by the project's token for it (#10418): every
+   * read of occurrences takes it (AnalyticsDatabaseService.bindReadQuery) -
+   * the exceptions explorer's attribute filters too, which it reads here.
+   */
+  protected override async bindReadQuery(data: {
+    query: Query<ExceptionInstance>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Query<ExceptionInstance>> {
+    return await HashedAddressSearch.bindQuery({
+      query: data.query,
+      props: data.props,
+      signal: HashedAddressSignal.Exceptions,
+    });
   }
 
   /*

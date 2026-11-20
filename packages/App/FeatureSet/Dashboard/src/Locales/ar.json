@@ -60971,5 +60971,8 @@
   "Web Vitals aren't set up": "Web Vitals غير مُعدّة",
   "storefront-mobile": "storefront-mobile",
   "{{limit}} requests per minute (default for a mobile key)": "{{limit}} طلب في الدقيقة (الافتراضي لمفتاح الهاتف المحمول)",
-  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "أنشئ مفتاح استيعاب للقياس عن بُعد خاصًا بالهاتف المحمول. شحنه داخل تطبيقك آمن: فهو لا يرسل إلا تتبعات التطبيق المثبّت عليه وسجلاته ومقاييسه."
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "أنشئ مفتاح استيعاب للقياس عن بُعد خاصًا بالهاتف المحمول. شحنه داخل تطبيقك آمن: فهو لا يرسل إلا تتبعات التطبيق المثبّت عليه وسجلاته ومقاييسه.",
+  "Includes records where these {{count}} addresses were hashed.": "يتضمن السجلات التي استُبدلت فيها هذه العناوين ({{count}}) بقيمة تجزئة.",
+  "Includes records where these {{count}} addresses were hashed._one": "يتضمن السجلات التي استُبدل فيها هذا العنوان بقيمة تجزئة.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "لا يمكن مطابقة السجلات الأقدم التي يتكون رمزها من 8 أحرف، مثل {{example}}، مع عنوان."
 }

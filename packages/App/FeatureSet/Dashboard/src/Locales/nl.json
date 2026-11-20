@@ -60971,5 +60971,8 @@
   "Web Vitals aren't set up": "Web Vitals zijn niet ingesteld",
   "storefront-mobile": "storefront-mobile",
   "{{limit}} requests per minute (default for a mobile key)": "{{limit}} verzoeken per minuut (standaard voor een mobiele sleutel)",
-  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Maak een mobiele ingestiesleutel voor telemetrie. Je kunt hem veilig in je app meeleveren: hij verstuurt alleen de traces, logboeken en metrieken van de app waaraan hij is vastgezet."
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Maak een mobiele ingestiesleutel voor telemetrie. Je kunt hem veilig in je app meeleveren: hij verstuurt alleen de traces, logboeken en metrieken van de app waaraan hij is vastgezet.",
+  "Includes records where these {{count}} addresses were hashed.": "Bevat records waarin deze {{count}} adressen zijn gehasht.",
+  "Includes records where these {{count}} addresses were hashed._one": "Bevat records waarin dit adres is gehasht.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Oudere records waarvan het token 8 tekens heeft, zoals {{example}}, kunnen niet aan een adres worden gekoppeld."
 }

@@ -60971,5 +60971,8 @@
   "Web Vitals aren't set up": "Web Vitals सेट अप नहीं हैं",
   "storefront-mobile": "storefront-mobile",
   "{{limit}} requests per minute (default for a mobile key)": "प्रति मिनट {{limit}} अनुरोध (मोबाइल कुंजी का डिफ़ॉल्ट)",
-  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "मोबाइल टेलीमेट्री इंजेशन कुंजी बनाएँ। इसे आपके ऐप के अंदर सुरक्षित रूप से भेजा जा सकता है: यह केवल उसी ऐप के ट्रेस, लॉग और मेट्रिक्स भेजती है जिस पर यह पिन है।"
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "मोबाइल टेलीमेट्री इंजेशन कुंजी बनाएँ। इसे आपके ऐप के अंदर सुरक्षित रूप से भेजा जा सकता है: यह केवल उसी ऐप के ट्रेस, लॉग और मेट्रिक्स भेजती है जिस पर यह पिन है।",
+  "Includes records where these {{count}} addresses were hashed.": "इसमें वे रिकॉर्ड शामिल हैं जिनमें ये {{count}} पते हैश किए गए थे।",
+  "Includes records where these {{count}} addresses were hashed._one": "इसमें वे रिकॉर्ड शामिल हैं जिनमें यह पता हैश किया गया था।",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "8 वर्णों के टोकन वाले पुराने रिकॉर्ड, जैसे {{example}}, किसी पते से मिलाए नहीं जा सकते।"
 }

@@ -60971,5 +60971,8 @@
   "Web Vitals aren't set up": "Web Vitals не настроены",
   "storefront-mobile": "storefront-mobile",
   "{{limit}} requests per minute (default for a mobile key)": "{{limit}} запросов в минуту (по умолчанию для мобильного ключа)",
-  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Создайте мобильный ключ приёма телеметрии. Его можно безопасно поставлять в приложении: он отправляет только трассировки, журналы и метрики приложения, за которым закреплён."
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Создайте мобильный ключ приёма телеметрии. Его можно безопасно поставлять в приложении: он отправляет только трассировки, журналы и метрики приложения, за которым закреплён.",
+  "Includes records where these {{count}} addresses were hashed.": "Включает записи, в которых были хешированы эти адреса ({{count}}).",
+  "Includes records where these {{count}} addresses were hashed._one": "Включает записи, в которых был хеширован этот адрес.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Более старые записи с токеном из 8 символов, например {{example}}, нельзя сопоставить с адресом."
 }

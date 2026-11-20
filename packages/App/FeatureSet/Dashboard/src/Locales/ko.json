@@ -60971,5 +60971,8 @@
   "Web Vitals aren't set up": "Web Vitals가 설정되지 않았습니다",
   "storefront-mobile": "storefront-mobile",
   "{{limit}} requests per minute (default for a mobile key)": "분당 {{limit}}개 요청(모바일 키의 기본값)",
-  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "모바일 텔레메트리 수집 키를 만듭니다. 앱 안에 안전하게 포함할 수 있습니다. 고정된 앱의 트레이스, 로그, 메트릭만 보냅니다."
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "모바일 텔레메트리 수집 키를 만듭니다. 앱 안에 안전하게 포함할 수 있습니다. 고정된 앱의 트레이스, 로그, 메트릭만 보냅니다.",
+  "Includes records where these {{count}} addresses were hashed.": "이 {{count}}개 주소가 해싱된 레코드를 포함합니다.",
+  "Includes records where these {{count}} addresses were hashed._one": "이 주소가 해싱된 레코드를 포함합니다.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "토큰이 8자인 이전 레코드(예: {{example}})는 주소와 연결할 수 없습니다."
 }

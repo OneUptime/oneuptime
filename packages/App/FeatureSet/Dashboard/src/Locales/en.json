@@ -60971,5 +60971,8 @@
   "Web Vitals aren't set up": "Web Vitals aren't set up",
   "storefront-mobile": "storefront-mobile",
   "{{limit}} requests per minute (default for a mobile key)": "{{limit}} requests per minute (default for a mobile key)",
-  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to."
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.",
+  "Includes records where these {{count}} addresses were hashed.": "Includes records where these {{count}} addresses were hashed.",
+  "Includes records where these {{count}} addresses were hashed._one": "Includes records where this address was hashed.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address."
 }

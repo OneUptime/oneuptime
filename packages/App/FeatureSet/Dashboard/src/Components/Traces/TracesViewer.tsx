@@ -59,6 +59,11 @@ import {
   isResourceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
+import {
+  HashedAddressSignal,
+  getHashedAddressSearchTexts,
+} from "Common/Types/Telemetry/HashedAddressSearch";
+import useHashedAddressSearch from "../Telemetry/HashedAddressSearch";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useAttributeValueSuggestions, {
@@ -1501,6 +1506,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     submittedSearch,
     spanType,
   ]);
+
+  /*
+   * The addresses the search also matched by the project's IP Address Hash
+   * token (#10418): the texts the list's query compares on a span's name,
+   * status message and attributes, asked about only when one holds an
+   * address. The list says so above its results.
+   */
+  const hashedAddresses: Array<string> = useHashedAddressSearch({
+    signal: HashedAddressSignal.Traces,
+    texts: getHashedAddressSearchTexts(baseQuery, HashedAddressSignal.Traces),
+  });
 
   const listSelect: Select<Span> = useMemo(() => {
     return {
@@ -3674,6 +3690,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       items={spans}
       isLoading={isLoading}
       error={listError || error || undefined}
+      hashedAddresses={hashedAddresses}
       onRefresh={() => {
         void fetchSpans();
         void fetchHistogramAndFacets();
