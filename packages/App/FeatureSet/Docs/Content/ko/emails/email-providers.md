@@ -64,7 +64,7 @@ AWS의 자체 호스팅 설치는 키 없이 같은 정책으로 [서버의 IAM 
 
 ### 서버의 IAM 역할로 로그인
 
-AWS의 자체 호스팅 설치는 AWS가 서버에 부여하는 IAM 역할로 자체 메일을 보낼 수 있으며, OneUptime에는 액세스 키가 저장되지 않습니다. AWS가 발급하는 자격 증명은 몇 시간 안에 만료되며, OneUptime은 만료되기 전에 새 자격 증명을 가져옵니다. 이는 서버 자체의 메일에만 해당합니다. 프로젝트의 Amazon SES 구성은 항상 액세스 키로 로그인합니다. 서버의 역할은 프로젝트가 아니라 서버 자체의 AWS ID이기 때문입니다.
+자체 호스팅 설치는 IAM 역할로 자체 메일을 보낼 수 있으며, OneUptime에는 액세스 키가 저장되지 않습니다. AWS에서는 AWS가 서버에 부여하는 역할이고, 그 밖의 곳에서는 IAM Roles Anywhere로 로그인하는 역할입니다. 자격 증명은 몇 시간 안에 만료되며, OneUptime은 만료되기 전에 새 자격 증명을 가져옵니다. 이는 서버 자체의 메일에만 해당합니다. 프로젝트의 Amazon SES 구성은 항상 액세스 키로 로그인합니다. 서버의 역할은 프로젝트가 아니라 서버 자체의 AWS ID이기 때문입니다.
 
 역할에 위의 정책을 부여한 다음, OneUptime을 그 역할로 실행합니다.
 
@@ -88,11 +88,32 @@ EKS Pod Identity를 사용하는 경우, 대신 역할과 그 서비스 계정 �
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+AWS 밖, 즉 자체 서버나 다른 클라우드에서는 서버가 IAM Roles Anywhere를 통해 역할로 로그인합니다. IAM Roles Anywhere는 X.509 인증서를 역할의 자격 증명으로 교환해 줍니다. IAM Roles Anywhere에서 인증 기관의 트러스트 앵커와 역할의 프로필을 만듭니다. 그런 다음 AWS의 자격 증명 도우미 `aws_signing_helper`를 인증서, 그 개인 키, 그리고 프로필이 도우미를 `credential_process`로 실행하는 AWS 구성 파일과 함께 한 폴더에 둡니다.
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Docker Compose에서는 `docker-compose.yml` 옆의 `docker-compose.override.yml`에서 폴더를 읽기 전용으로 마운트하고 파일과 프로필을 지정합니다.
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Helm 차트에서는 `extraVolumes`와 `extraVolumeMounts`로 구성, 인증서, 그 키를 Secret에서 마운트하고, `extraEnv`로 `AWS_CONFIG_FILE`과 `AWS_PROFILE`을 설정하며, 도우미는 OneUptime 이미지를 기반으로 만든 이미지에 넣습니다. Secret에는 최대 1 MB만 들어갑니다. OneUptime은 도우미를 셸 없이, 전체 경로로, 최대 30초 동안, 그리고 자신이 바꿀 수 없는 구성 파일에서만 실행합니다. 쓸 수 있는 구성 파일은 거부됩니다.
 :::
 
 그런 다음 Admin Dashboard에서 **Amazon SES 편집** 을 클릭하고, **인증 유형** 으로 **이 서버의 IAM 역할** 을 선택한 뒤 **지역** 을 입력합니다. 저장하면 이전에 저장된 액세스 키는 삭제됩니다.
 
-OneUptime은 AWS SDK와 같은 곳에서 다음 순서로 서버의 자격 증명을 찾습니다: 환경의 `AWS_ACCESS_KEY_ID` 와 `AWS_SECRET_ACCESS_KEY`, 웹 ID 토큰 (`AWS_ROLE_ARN` 과 `AWS_WEB_IDENTITY_TOKEN_FILE`), Amazon ECS 및 EKS Pod Identity의 컨테이너 자격 증명 엔드포인트, 마지막으로 EC2의 인스턴스 메타데이터 서비스 (IMDSv2).
+OneUptime은 AWS SDK와 같은 곳에서 다음 순서로 서버의 자격 증명을 찾습니다: 환경의 `AWS_ACCESS_KEY_ID` 와 `AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`, `AWS_CONFIG_FILE` 또는 `AWS_SHARED_CREDENTIALS_FILE`이 지정하는 AWS 프로필(그 키 또는 그 `credential_process`), 웹 ID 토큰 (`AWS_ROLE_ARN` 과 `AWS_WEB_IDENTITY_TOKEN_FILE`), Amazon ECS 및 EKS Pod Identity의 컨테이너 자격 증명 엔드포인트, 마지막으로 EC2의 인스턴스 메타데이터 서비스 (IMDSv2). 이 세 가지 중 아무것도 설정되지 않으면 OneUptime은 AWS 구성 파일을 읽지 않습니다.
 
 ## SendGrid
 
