@@ -360,11 +360,17 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           onKeyDown={handleButtonKeyDown}
         >
           {!hasLabel && <span className="sr-only">{props.name}</span>}
+          {/*
+           * The picture is the button's look; its words name it (the span
+           * above, or its title). Its alt was the name again, so the profile
+           * button - and the menu it names - read "User Profile User
+           * Profile" to a screen reader.
+           */}
           {props.iconImageUrl && (
             <Image
               className="h-7 w-7 rounded-md object-cover"
               imageUrl={props.iconImageUrl}
-              alt={props.name}
+              alt=""
             />
           )}
           {props.icon && (

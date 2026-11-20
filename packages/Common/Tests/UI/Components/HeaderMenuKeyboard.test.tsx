@@ -440,6 +440,33 @@ describe("the menus are menus a screen reader can walk", () => {
   });
 });
 
+describe("a button drawn as a picture", () => {
+  /*
+   * The profile button is the person's picture. Its words were said twice,
+   * once by its hidden text and once by the picture's alt, so a screen
+   * reader read the button - and the menu named by it - as "User Profile
+   * User Profile".
+   */
+  test("is named once, and so is the menu it opens", () => {
+    render(
+      <HeaderIconDropdownButton
+        iconImageUrl="/dashboard/user-profile-picture.png"
+        name="User Profile"
+        showDropdown={true}
+      >
+        <IconDropdownMenu>
+          <IconDropdownItem title="Profile" onClick={() => {}} />
+        </IconDropdownMenu>
+      </HeaderIconDropdownButton>,
+    );
+
+    expect(screen.getByRole("button")).toHaveAccessibleName("User Profile");
+    expect(screen.getByRole("menu")).toHaveAccessibleName("User Profile");
+    // The picture is the button's look: no name of its own.
+    expect(document.querySelector("img")).toHaveAttribute("alt", "");
+  });
+});
+
 describe("opening a menu puts the focus in it", () => {
   test("a click opens it on its first row", () => {
     renderHeader();
