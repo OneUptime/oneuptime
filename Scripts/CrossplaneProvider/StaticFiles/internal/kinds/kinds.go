@@ -77,7 +77,9 @@ type CRD struct {
 // CRDOf returns the names controller-gen gives the CRD of a kind, with the
 // path of its +kubebuilder:resource marker ("" for none): the path as its
 // plural, or else the kind's plural as flect makes it, in lower case, and
-// the kind in lower case as its singular.
+// the kind in lower case as its singular. flect is what controller-gen
+// pluralizes with, at the one version go.mod has for both, and
+// config/crds_test.go holds these names to the CRDs it writes.
 func CRDOf(kind, path string) CRD {
 	plural := path
 	if plural == "" {
