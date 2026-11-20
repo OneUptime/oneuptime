@@ -4,6 +4,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import { DataSecurityMetricUser } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
 import ObjectID from "../../../../Types/ObjectID";
+import StoredDashboardViewConfig from "../../../../Utils/Dashboard/StoredDashboardViewConfig";
 import DashboardService from "../../../Services/DashboardService";
 import MonitorService from "../../../Services/MonitorService";
 import logger from "../../Logger";
@@ -240,7 +241,11 @@ export async function findMetricUsers(data: {
     users.dashboards = usersOf(
       dashboards,
       (dashboard: Dashboard): unknown => {
-        return dashboard.dashboardViewConfig;
+        /*
+         * As every board reads it (#4571), so a widget stored as JSON text,
+         * or with its arguments as JSON text, has its queries walked too.
+         */
+        return StoredDashboardViewConfig.read(dashboard.dashboardViewConfig);
       },
       data,
     );

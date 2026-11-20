@@ -142,8 +142,11 @@ describe("the CMDB page documents the asset details (issue #4569)", () => {
       ...INVENTORY_ASSET_FIELDS,
       ...INVENTORY_ASSET_OPTIONAL_FIELDS,
     ]) {
-      if (field === InventoryAssetField.Architecture) {
-        // A host's fact only.
+      if (
+        field === InventoryAssetField.Architecture ||
+        field === InventoryAssetField.SecurityPatch
+      ) {
+        // A host's fact only: its architecture, an Android device's patch level.
         continue;
       }
       expect(keys).toContain(INVENTORY_ASSET_ATTRIBUTE_KEYS[field]);

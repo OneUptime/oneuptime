@@ -684,6 +684,41 @@ describe("what dropping would do, before it is asked for", () => {
     );
   });
 
+  test("a dashboard is read as every board reads it, so one stored in the API's envelope with its widget as JSON text is named too (#4571)", async () => {
+    const growth: Dashboard = dashboardOf("Growth", "unused");
+
+    (
+      growth as unknown as { dashboardViewConfig: unknown }
+    ).dashboardViewConfig = {
+      _type: "DashboardViewConfig",
+      value: {
+        components: [
+          JSON.stringify({
+            arguments: {
+              metricQueryConfig: {
+                metricQueryData: {
+                  filterData: {
+                    metricName: "signups.kim.lee@acme-corp.com.count",
+                  },
+                },
+              },
+            },
+          }),
+        ],
+      },
+    };
+    jest
+      .spyOn(DashboardService, "findBy")
+      .mockResolvedValue([
+        growth,
+        dashboardOf("Latency", "http.server.duration"),
+      ] as never);
+
+    expect((await impactOf()).dashboards).toEqual([
+      { id: expect.any(String), name: "Growth" },
+    ]);
+  });
+
   test("a rule that already drops them is named; a finding that cannot be dropped says why and reads nothing", async () => {
     jest.spyOn(MetricPipelineRuleService, "findBy").mockResolvedValue([
       savedRule({

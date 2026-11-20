@@ -558,6 +558,80 @@ describe("what a dashboard holds besides", () => {
   });
 });
 
+/*
+ * A config is read as every board reads it (StoredDashboardViewConfig,
+ * #4571): the API, Terraform and scripts store what they are sent, so a
+ * chart the board draws is found - and kept read - and moved on the config
+ * handed in, whatever shape it was stored in.
+ */
+describe("a dashboard stored in another shape a board reads", () => {
+  function publishChart(): JSONObject {
+    return component("Chart", {
+      metricQueryConfigs: [
+        query({ metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC }),
+      ],
+    });
+  }
+
+  function metricNameOf(args: JSONObject): unknown {
+    return (
+      (
+        (args["metricQueryConfigs"] as Array<JSONObject>)[0]![
+          "metricQueryData"
+        ] as JSONObject
+      )["filterData"] as JSONObject
+    )["metricName"];
+  }
+
+  test("in the envelopes the API reference documented, the config's as an object or as JSON text", () => {
+    const stored: JSONObject = {
+      components: [{ _type: "DashboardComponent", value: publishChart() }],
+    };
+
+    for (const value of [stored, JSON.stringify(stored)]) {
+      const viewConfig: JSONObject = { _type: "DashboardViewConfig", value };
+      const before: string = JSON.stringify(viewConfig);
+
+      expect(findRetiredCloudMetricQueriesOfDashboard(viewConfig)).toHaveLength(
+        1,
+      );
+      // Finding changes nothing.
+      expect(JSON.stringify(viewConfig)).toBe(before);
+
+      expect(move(viewConfig).moved).toHaveLength(1);
+      expect(viewConfig["_type"]).toBe("DashboardViewConfig");
+      expect(metricNameOf(argsOf(viewConfig["value"] as JSONObject))).toBe(
+        PUBSUB_MESSAGES_PUBLISHED_METRIC,
+      );
+    }
+  });
+
+  test("a widget, or a widget's arguments, written as JSON text: moved as the objects they say", () => {
+    const textArguments: JSONObject = {
+      ...publishChart(),
+      arguments: JSON.stringify(publishChart()["arguments"]),
+    };
+    const viewConfig: JSONObject = {
+      _type: "DashboardViewConfig",
+      components: [JSON.stringify(publishChart()), textArguments],
+    };
+    const before: string = JSON.stringify(viewConfig);
+
+    expect(findRetiredCloudMetricQueriesOfDashboard(viewConfig)).toHaveLength(
+      2,
+    );
+    expect(JSON.stringify(viewConfig)).toBe(before);
+
+    expect(move(viewConfig).moved).toHaveLength(2);
+    expect(metricNameOf(argsOf(viewConfig, 0))).toBe(
+      PUBSUB_MESSAGES_PUBLISHED_METRIC,
+    );
+    expect(metricNameOf(argsOf(viewConfig, 1))).toBe(
+      PUBSUB_MESSAGES_PUBLISHED_METRIC,
+    );
+  });
+});
+
 describe("an SLO of a deprecated metric", () => {
   test("a counter of the publish operations counts the messages published", () => {
     const config: JSONObject = {
