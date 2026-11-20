@@ -3,6 +3,7 @@ import { getPlanNeededToComeBack } from "Common/Types/Billing/PlanGatedChoice";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
   DASHBOARD_MASTER_PASSWORD_COLUMN,
+  DASHBOARD_REQUIRE_SIGN_IN_COLUMN,
   DashboardAccess,
   DashboardAccessColumn,
   DashboardAccessState,
@@ -16,8 +17,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Who can view a dashboard, on Dashboards -> a dashboard -> Sharing (and
- * ⋯ -> Share on the dashboard itself): one choice of three
- * (Common/Types/Dashboard/DashboardAccess).
+ * ⋯ -> Share on the dashboard itself): one choice of four
+ * (Common/Types/Dashboard/DashboardAccess) - the fourth, Only people who
+ * sign in, added for #10250, with the dashboard's Private Users and Single
+ * Sign-On pages one click away under it.
  *
  * It used to be "Authentication", folded away under Advanced, with three
  * cards for one question: an "Is Visible to Public" switch behind an Edit
@@ -77,6 +80,12 @@ export const DASHBOARD_ACCESS_CHOICE_COPY: Record<
       "Visitors open the link, then enter one password that you share with them. Nobody needs an account.",
     ),
   },
+  [DashboardAccess.SignIn]: {
+    title: translationKey("Only people who sign in"),
+    description: translationKey(
+      "Visitors sign in on the link first: the private users you invite, and the people your single sign-on lets in.",
+    ),
+  },
 };
 
 // What the dialog says before a choice is saved.
@@ -110,6 +119,13 @@ export const DASHBOARD_ACCESS_CONFIRMATION_COPY: Record<
       "Anyone with the link and the password will see this dashboard and every widget on it.",
     ),
     submitButtonText: translationKey("Require Password"),
+  },
+  [DashboardAccess.SignIn]: {
+    title: translationKey("Ask visitors to sign in?"),
+    description: translationKey(
+      "Only this dashboard's private users and the people your single sign-on lets in will see it, once they sign in. Everyone else is asked to sign in, on the public link and every custom domain.",
+    ),
+    submitButtonText: translationKey("Require Sign In"),
   },
 };
 
@@ -186,6 +202,10 @@ export const DashboardSharingCopy: {
   ipAllowlistDescription: string;
   ipAllowlistEmpty: string;
   ipAllowlistNoAddress: string;
+  // Under Only people who sign in, while it is the choice.
+  signInManage: string;
+  privateUsers: string;
+  singleSignOn: string;
 } = {
   cardTitle: translationKey("Who can view this dashboard"),
   cardDescription: translationKey(
@@ -227,6 +247,11 @@ export const DashboardSharingCopy: {
   ipAllowlistNoAddress: translationKey(
     "The list holds no address, so no IP address can open the public link.",
   ),
+  signInManage: translationKey(
+    "Invite the people who can sign in, or let your single sign-on sign them in.",
+  ),
+  privateUsers: translationKey("Private Users"),
+  singleSignOn: translationKey("Single Sign-On"),
 };
 
 /*
@@ -237,6 +262,7 @@ export const DASHBOARD_ACCESS_GATED_COLUMNS: ReadonlyArray<string> = [
   "isPublicDashboard",
   "enableMasterPassword",
   DASHBOARD_MASTER_PASSWORD_COLUMN,
+  DASHBOARD_REQUIRE_SIGN_IN_COLUMN,
 ];
 
 /*
@@ -255,6 +281,9 @@ export const DASHBOARD_SHARING_SET_PASSWORD_TEST_ID: string =
   "dashboard-sharing-set-password";
 export const DASHBOARD_SHARING_CHANGE_PASSWORD_TEST_ID: string =
   "dashboard-sharing-change-password";
+// Under Only people who sign in: the ways to who signs in.
+export const DASHBOARD_SHARING_SIGN_IN_TEST_ID: string =
+  "dashboard-sharing-sign-in";
 export const DASHBOARD_SHARING_ADVANCED_SECTION_TEST_ID: string =
   "dashboard-sharing-advanced";
 // The dialog's sentence when a move leaves a choice the plan does not include.
@@ -392,15 +421,18 @@ export const getDashboardAccessSelect: () => {
   isPublicDashboard: true;
   enableMasterPassword: true;
   masterPassword: true;
+  requireSignIn: true;
 } = (): {
   isPublicDashboard: true;
   enableMasterPassword: true;
   masterPassword: true;
+  requireSignIn: true;
 } => {
   return {
     isPublicDashboard: true,
     enableMasterPassword: true,
     masterPassword: true,
+    requireSignIn: true,
   };
 };
 
@@ -412,6 +444,7 @@ export const getDashboardAccessState: (
     isPublicDashboard: dashboard.isPublicDashboard,
     enableMasterPassword: dashboard.enableMasterPassword,
     hasMasterPassword: Boolean(dashboard.masterPassword),
+    requireSignIn: dashboard.requireSignIn,
   };
 };
 

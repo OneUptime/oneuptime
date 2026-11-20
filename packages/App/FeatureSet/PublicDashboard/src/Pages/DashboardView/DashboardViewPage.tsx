@@ -38,6 +38,9 @@ import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
+import DashboardSignOutButton, {
+  DashboardSignedInVisitor,
+} from "./DashboardSignedIn";
 import { VariableValueChange } from "Common/UI/Components/Dashboard/DashboardVariableControl";
 import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metrics";
 import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
@@ -65,6 +68,11 @@ import {
 export interface ComponentProps {
   dashboardId: ObjectID;
   onLoadComplete?: (() => void) | undefined;
+  /*
+   * Who is signed in, on a dashboard that asks its visitors to sign in
+   * (#10250): the toolbar then offers Sign Out.
+   */
+  signedIn?: DashboardSignedInVisitor | null | undefined;
 }
 
 /*
@@ -504,6 +512,12 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                * on every public dashboard, unless its link names a theme.
                */}
               <ThemeMenu />
+
+              {props.signedIn ? (
+                <DashboardSignOutButton signedIn={props.signedIn} />
+              ) : (
+                <></>
+              )}
 
               <Button
                 icon={IconProp.Expand}
