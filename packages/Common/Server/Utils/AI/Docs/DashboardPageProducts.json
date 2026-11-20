@@ -87,6 +87,9 @@
   "/dashboard/:projectId/monitors/developer/terraform": [
     "monitors"
   ],
+  "/dashboard/:projectId/monitors/developer/crossplane": [
+    "monitors"
+  ],
   "/dashboard/:projectId/monitors/developer/api": [
     "monitors"
   ],
@@ -204,6 +207,9 @@
   "/dashboard/:projectId/incidents/developer/terraform": [
     "incidents"
   ],
+  "/dashboard/:projectId/incidents/developer/crossplane": [
+    "incidents"
+  ],
   "/dashboard/:projectId/incidents/developer/api": [
     "incidents"
   ],
@@ -258,6 +264,9 @@
   "/dashboard/:projectId/alerts/settings/reminder-rules": [
     "alerts"
   ],
+  "/dashboard/:projectId/alerts/settings/rules-audit-logs": [
+    "alerts"
+  ],
   "/dashboard/:projectId/alerts/settings/state": [
     "alerts"
   ],
@@ -292,6 +301,9 @@
     "alerts"
   ],
   "/dashboard/:projectId/alerts/developer/terraform": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/developer/crossplane": [
     "alerts"
   ],
   "/dashboard/:projectId/alerts/developer/api": [
@@ -351,6 +363,9 @@
   "/dashboard/:projectId/on-call-duty/policies/developer/terraform": [
     "on-call"
   ],
+  "/dashboard/:projectId/on-call-duty/policies/developer/crossplane": [
+    "on-call"
+  ],
   "/dashboard/:projectId/on-call-duty/policies/developer/api": [
     "on-call"
   ],
@@ -385,6 +400,9 @@
     "status-pages"
   ],
   "/dashboard/:projectId/status-pages/developer/terraform": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/developer/crossplane": [
     "status-pages"
   ],
   "/dashboard/:projectId/status-pages/developer/api": [
@@ -453,6 +471,9 @@
   "/dashboard/:projectId/scheduled-maintenance-events/developer/terraform": [
     "scheduled-maintenance"
   ],
+  "/dashboard/:projectId/scheduled-maintenance-events/developer/crossplane": [
+    "scheduled-maintenance"
+  ],
   "/dashboard/:projectId/scheduled-maintenance-events/developer/api": [
     "scheduled-maintenance"
   ],
@@ -484,6 +505,9 @@
     "slos"
   ],
   "/dashboard/:projectId/slos/developer/terraform": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/developer/crossplane": [
     "slos"
   ],
   "/dashboard/:projectId/slos/developer/api": [
@@ -867,6 +891,9 @@
   "/dashboard/:projectId/code/developer/terraform": [
     "code"
   ],
+  "/dashboard/:projectId/code/developer/crossplane": [
+    "code"
+  ],
   "/dashboard/:projectId/code/developer/api": [
     "code"
   ],
@@ -900,6 +927,9 @@
   "/dashboard/:projectId/inventory/items/developer/terraform": [
     "inventory"
   ],
+  "/dashboard/:projectId/inventory/items/developer/crossplane": [
+    "inventory"
+  ],
   "/dashboard/:projectId/inventory/items/developer/api": [
     "inventory"
   ],
@@ -930,6 +960,9 @@
   "/dashboard/:projectId/service/developer/terraform": [
     "services"
   ],
+  "/dashboard/:projectId/service/developer/crossplane": [
+    "services"
+  ],
   "/dashboard/:projectId/service/developer/api": [
     "services"
   ],
@@ -955,6 +988,9 @@
     "databases"
   ],
   "/dashboard/:projectId/databases/developer/terraform": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/developer/crossplane": [
     "databases"
   ],
   "/dashboard/:projectId/databases/developer/api": [
@@ -987,6 +1023,9 @@
   "/dashboard/:projectId/queues/developer/terraform": [
     "queues"
   ],
+  "/dashboard/:projectId/queues/developer/crossplane": [
+    "queues"
+  ],
   "/dashboard/:projectId/queues/developer/api": [
     "queues"
   ],
@@ -1012,6 +1051,9 @@
     "rum"
   ],
   "/dashboard/:projectId/rum/developer/terraform": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/developer/crossplane": [
     "rum"
   ],
   "/dashboard/:projectId/rum/developer/api": [
@@ -1042,6 +1084,9 @@
     "hosts"
   ],
   "/dashboard/:projectId/host/developer/terraform": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/developer/crossplane": [
     "hosts"
   ],
   "/dashboard/:projectId/host/developer/api": [
@@ -1077,6 +1122,9 @@
   "/dashboard/:projectId/kubernetes/developer/terraform": [
     "kubernetes"
   ],
+  "/dashboard/:projectId/kubernetes/developer/crossplane": [
+    "kubernetes"
+  ],
   "/dashboard/:projectId/kubernetes/developer/api": [
     "kubernetes"
   ],
@@ -1102,6 +1150,9 @@
     "docker"
   ],
   "/dashboard/:projectId/docker/developer/terraform": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/developer/crossplane": [
     "docker"
   ],
   "/dashboard/:projectId/docker/developer/api": [
@@ -1131,6 +1182,9 @@
   "/dashboard/:projectId/docker-swarm/developer/terraform": [
     "docker-swarm"
   ],
+  "/dashboard/:projectId/docker-swarm/developer/crossplane": [
+    "docker-swarm"
+  ],
   "/dashboard/:projectId/docker-swarm/developer/api": [
     "docker-swarm"
   ],
@@ -1158,6 +1212,9 @@
   "/dashboard/:projectId/podman/developer/terraform": [
     "podman"
   ],
+  "/dashboard/:projectId/podman/developer/crossplane": [
+    "podman"
+  ],
   "/dashboard/:projectId/podman/developer/api": [
     "podman"
   ],
@@ -1180,6 +1237,9 @@
     "serverless"
   ],
   "/dashboard/:projectId/serverless/developer/terraform": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/developer/crossplane": [
     "serverless"
   ],
   "/dashboard/:projectId/serverless/developer/api": [
@@ -1210,6 +1270,9 @@
     "app-platforms"
   ],
   "/dashboard/:projectId/app-platforms/environments/developer/terraform": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/environments/developer/crossplane": [
     "app-platforms"
   ],
   "/dashboard/:projectId/app-platforms/environments/developer/api": [
@@ -1254,6 +1317,9 @@
   "/dashboard/:projectId/cloud/resources/developer/terraform": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/resources/developer/crossplane": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/resources/developer/api": [
     "cloud"
   ],
@@ -1279,6 +1345,9 @@
     "proxmox"
   ],
   "/dashboard/:projectId/proxmox/developer/terraform": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/developer/crossplane": [
     "proxmox"
   ],
   "/dashboard/:projectId/proxmox/developer/api": [
@@ -1308,6 +1377,9 @@
   "/dashboard/:projectId/openstack/developer/terraform": [
     "openstack"
   ],
+  "/dashboard/:projectId/openstack/developer/crossplane": [
+    "openstack"
+  ],
   "/dashboard/:projectId/openstack/developer/api": [
     "openstack"
   ],
@@ -1333,6 +1405,9 @@
     "vmware"
   ],
   "/dashboard/:projectId/vmware/developer/terraform": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/developer/crossplane": [
     "vmware"
   ],
   "/dashboard/:projectId/vmware/developer/api": [
@@ -1362,6 +1437,9 @@
   "/dashboard/:projectId/ceph/developer/terraform": [
     "ceph"
   ],
+  "/dashboard/:projectId/ceph/developer/crossplane": [
+    "ceph"
+  ],
   "/dashboard/:projectId/ceph/developer/api": [
     "ceph"
   ],
@@ -1387,6 +1465,9 @@
     "storage-arrays"
   ],
   "/dashboard/:projectId/storage-arrays/developer/terraform": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/developer/crossplane": [
     "storage-arrays"
   ],
   "/dashboard/:projectId/storage-arrays/developer/api": [
@@ -1479,6 +1560,9 @@
   "/dashboard/:projectId/network-devices/developer/terraform": [
     "network"
   ],
+  "/dashboard/:projectId/network-devices/developer/crossplane": [
+    "network"
+  ],
   "/dashboard/:projectId/network-devices/developer/api": [
     "network"
   ],
@@ -1504,6 +1588,9 @@
     "iot"
   ],
   "/dashboard/:projectId/iot/developer/terraform": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/developer/crossplane": [
     "iot"
   ],
   "/dashboard/:projectId/iot/developer/api": [
@@ -1533,6 +1620,9 @@
   "/dashboard/:projectId/dashboards/developer/terraform": [
     "dashboards"
   ],
+  "/dashboard/:projectId/dashboards/developer/crossplane": [
+    "dashboards"
+  ],
   "/dashboard/:projectId/dashboards/developer/api": [
     "dashboards"
   ],
@@ -1558,6 +1648,9 @@
     "workflows"
   ],
   "/dashboard/:projectId/workflows/developer/terraform": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/developer/crossplane": [
     "workflows"
   ],
   "/dashboard/:projectId/workflows/developer/api": [
@@ -1590,6 +1683,9 @@
   "/dashboard/:projectId/runbooks/developer/terraform": [
     "runbooks"
   ],
+  "/dashboard/:projectId/runbooks/developer/crossplane": [
+    "runbooks"
+  ],
   "/dashboard/:projectId/runbooks/developer/api": [
     "runbooks"
   ],
@@ -1606,6 +1702,9 @@
     "forms"
   ],
   "/dashboard/:projectId/forms/developer/terraform": [
+    "forms"
+  ],
+  "/dashboard/:projectId/forms/developer/crossplane": [
     "forms"
   ],
   "/dashboard/:projectId/forms/developer/api": [
