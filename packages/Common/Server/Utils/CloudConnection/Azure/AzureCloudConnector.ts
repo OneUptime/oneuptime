@@ -80,14 +80,17 @@ import {
   CloudSavingsResult,
   getCloudSecretValues,
   keepsAuditRecords,
+  orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
 import {
+  AZURE_COST_MAX_PAGES,
   describeAzureCostFailure,
   readAzureAdvisor,
   readAzureCosts,
 } from "./AzureCosts";
 import { readAzureCommitments } from "./AzureCommitments";
+import { AzureCostReader, AzureCostThrottled } from "./AzureCostManagement";
 import {
   CloudCostState,
   getCloudCostResourceKey,
@@ -752,6 +755,23 @@ export function getAzureSecretExpiryWarning(data: {
       0,
       10,
     )}. Run the setup command again and paste what it prints before then, or reading stops.`;
+}
+
+/*
+ * A subscription whose costs wait their turn: Cost Management's limits put
+ * the read off - or the read's own limit stopped before it - and it may be
+ * read from retryAt.
+ */
+export function getAzureQueuedCostOutcome(
+  subscriptionId: string,
+  retryAt: Date,
+): CloudCostAccountOutcome {
+  return {
+    accountId: subscriptionId,
+    state: CloudCostState.Queued,
+    message: `Azure Cost Management limits how fast the tenant's costs are read: these are read from ${retryAt.toISOString()}.`,
+    retryAt: retryAt.toISOString(),
+  };
 }
 
 /*
@@ -1573,11 +1593,29 @@ export default class AzureCloudConnector implements CloudConnector {
     return subscriptionIds.slice(0, AZURE_MAX_SUBSCRIPTIONS);
   }
 
+  // The paced Cost Management queries of one read (AzureCostManagement).
+  private costReader(
+    arm: AzureArm,
+    options: CloudConnectorCallOptions & { budget: CloudReadBudget },
+  ): AzureCostReader {
+    return new AzureCostReader({
+      arm,
+      budget: options.budget,
+      now: options.now,
+      sleep: options.sleep,
+    });
+  }
+
   /*
    * What each subscription costs per day, by resource and service, from
-   * Cost Management (AzureCosts), side by side. A resource's Region is the
-   * one OneUptime holds for it. A subscription that cannot be read says
-   * why; the others are read.
+   * Cost Management (AzureCosts), one subscription after another at the
+   * pace the tenant's quotas allow (AzureCostManagement): the least
+   * recently read first, so a read that stops part way reaches the others
+   * next, and one never read in full over a first read's days. A
+   * subscription Cost Management's limits put off - and every one after
+   * it - is queued, with when it may be read; one that cannot be read says
+   * why, and the others are read. A resource's Region is the one OneUptime
+   * holds for it.
    */
   public async readCosts(
     settings: CloudConnectionSettings,
@@ -1585,11 +1623,26 @@ export default class AzureCloudConnector implements CloudConnector {
   ): Promise<CloudCostsResult> {
     try {
       const arm: AzureArm = this.arm(settings, options, options.budget);
-      const subscriptionIds: Array<string> = await this.getCostSubscriptions(
-        arm,
-        settings,
-        options.state,
-      );
+      const costs: AzureCostReader = this.costReader(arm, options);
+      const readAt: Record<string, string> =
+        options.state.costAccountsReadAt || {};
+      const only: Set<string> | null = options.accounts
+        ? new Set<string>(
+            options.accounts.map((accountId: string): string => {
+              return accountId.trim().toLowerCase();
+            }),
+          )
+        : null;
+      const subscriptionIds: Array<string> = orderLeastRecentlyRead({
+        accounts: (
+          await this.getCostSubscriptions(arm, settings, options.state)
+        ).filter((subscriptionId: string): boolean => {
+          return !only || only.has(subscriptionId.toLowerCase());
+        }),
+        readAt: (subscriptionId: string): string | undefined => {
+          return readAt[subscriptionId.toLowerCase()];
+        },
+      });
       const regionsByResource: Map<string, string> = new Map();
 
       for (const resource of options.knownResources || []) {
@@ -1601,92 +1654,117 @@ export default class AzureCloudConnector implements CloudConnector {
         }
       }
 
-      const outcomes: Array<
-        Settled<{ records: CloudCostsResult["records"]; complete: boolean }>
-      > = await mapWithConcurrency(
-        subscriptionIds,
-        // Cost Management is quick to throttle: two at a time.
-        2,
-        async (
-          subscriptionId: string,
-        ): Promise<{
-          records: CloudCostsResult["records"];
-          complete: boolean;
-        }> => {
-          return await readAzureCosts({
-            arm,
-            subscriptionId,
-            start: options.start,
-            end: options.end,
-            regionsByResource,
-          });
-        },
-      );
-
       const result: CloudCostsResult = {
         records: [],
         accounts: [],
         warnings: [],
         complete: true,
       };
+      // When the subscriptions not reached may be read: set once one is put off.
+      let putOffUntil: Date | null = null;
+      let queued: number = 0;
 
-      outcomes.forEach(
-        (
-          outcome: Settled<{
+      for (const subscriptionId of subscriptionIds) {
+        if (putOffUntil) {
+          result.accounts.push(
+            getAzureQueuedCostOutcome(subscriptionId, putOffUntil),
+          );
+          queued++;
+          continue;
+        }
+
+        // One the connection has never read in full goes back as far as a first read.
+        const window: { start: Date; end: Date } =
+          options.firstReadWindow && !readAt[subscriptionId.toLowerCase()]
+            ? options.firstReadWindow
+            : { start: options.start, end: options.end };
+
+        try {
+          const read: {
             records: CloudCostsResult["records"];
             complete: boolean;
-          }>,
-          index: number,
-        ): void => {
-          const subscriptionId: string = subscriptionIds[index]!;
+          } = await readAzureCosts({
+            costs,
+            subscriptionId,
+            start: window.start,
+            end: window.end,
+            regionsByResource,
+          });
 
-          if (outcome.ok && outcome.value.complete) {
-            result.records.push(...outcome.value.records);
+          if (read.complete) {
+            result.records.push(...read.records);
             result.accounts.push({
               accountId: subscriptionId,
               state: CloudCostState.Reading,
+              ...(window.start.getTime() !== options.start.getTime() ||
+              window.end.getTime() !== options.end.getTime()
+                ? { window }
+                : {}),
             });
-            return;
+            continue;
           }
 
-          if (!outcome.ok) {
-            const failure: unknown = explainExpiredAzureSecret(outcome.error);
+          const message: string = `The subscription's costs had more than ${AZURE_COST_MAX_PAGES} pages, more than one read takes: it keeps the costs it had.`;
 
-            if (
-              failure instanceof LlmProviderError &&
-              failure.kind === CloudConnectionFailureKind.Authentication
-            ) {
-              throw failure;
-            }
+          result.accounts.push({
+            accountId: subscriptionId,
+            state: CloudCostState.Failed,
+            message,
+          });
+          result.warnings.push(message);
+          result.complete = false;
+        } catch (error) {
+          if (
+            error instanceof AzureCostThrottled ||
+            error instanceof CloudReadBudgetSpent
+          ) {
+            /*
+             * Cost Management's limits put it off until their time; the
+             * read's own limit, until the next read.
+             */
+            putOffUntil =
+              error instanceof AzureCostThrottled
+                ? error.retryAt
+                : new Date(costs.clock.nowMs());
+            result.accounts.push(
+              getAzureQueuedCostOutcome(subscriptionId, putOffUntil),
+            );
+            queued++;
+            continue;
+          }
+
+          const failure: unknown = explainExpiredAzureSecret(error);
+
+          if (
+            failure instanceof LlmProviderError &&
+            failure.kind === CloudConnectionFailureKind.Authentication
+          ) {
+            throw failure;
           }
 
           const described: { state: CloudCostState; message: string } =
-            outcome.ok
-              ? {
-                  state: CloudCostState.Failed,
-                  message:
-                    "The subscription's costs had more pages than one read takes: they are read again shortly.",
-                }
-              : outcome.error instanceof CloudReadBudgetSpent
-                ? {
-                    state: CloudCostState.Failed,
-                    message:
-                      "The read reached its limit before these costs: they are read again shortly.",
-                  }
-                : describeAzureCostFailure({
-                    error: outcome.error,
-                    what: "costs",
-                  });
+            describeAzureCostFailure({ error, what: "costs" });
 
           result.accounts.push({
             accountId: subscriptionId,
             state: described.state,
             message: described.message,
-          } as CloudCostAccountOutcome);
+          });
           result.warnings.push(described.message);
           result.complete = false;
-        },
-      );
+        }
+      }
+
+      if (queued > 0 && putOffUntil) {
+        result.complete = false;
+        result.warnings.push(
+          `Azure Cost Management limits how fast a tenant's costs are read: ${queued} ${
+            queued === 1
+              ? "subscription's costs are"
+              : "subscriptions' costs are"
+          } read from ${putOffUntil.toISOString()}, at the first read after it.`,
+        );
+      }
 
       return result;
     } catch (error) {
@@ -1789,45 +1867,76 @@ export default class AzureCloudConnector implements CloudConnector {
         },
       );
 
-      // Cost Management is quick to throttle: two subscriptions at a time.
-      const now: Date = options.now ? options.now() : new Date();
-      const commitments: Array<Settled<CloudCommitmentSummary>> =
-        await mapWithConcurrency(
-          subscriptionIds,
-          2,
-          async (subscriptionId: string): Promise<CloudCommitmentSummary> => {
-            return await readAzureCommitments({ arm, subscriptionId, now });
-          },
-        );
-
-      result.commitments = [];
-
-      commitments.forEach(
-        (outcome: Settled<CloudCommitmentSummary>, index: number): void => {
-          if (!outcome.ok) {
-            const failure: unknown = explainExpiredAzureSecret(outcome.error);
-
-            if (
-              failure instanceof LlmProviderError &&
-              failure.kind === CloudConnectionFailureKind.Authentication
-            ) {
-              throw failure;
-            }
-
-            return;
-          }
-
-          result.commitments!.push({
-            accountId: subscriptionIds[index]!,
-            summary: outcome.value,
-          });
-        },
-      );
+      result.commitments = await this.readCommitments({
+        arm,
+        options,
+        subscriptionIds,
+      });
 
       return result;
     } catch (error) {
       throw explainExpiredAzureSecret(error);
     }
+  }
+
+  /*
+   * Each subscription's reservations and savings plans, from Cost
+   * Management (AzureCommitments): one subscription after another at the
+   * pace the tenant's quotas allow, the least recently read first. Once
+   * Cost Management's limits - or the read's own - put one off, the rest
+   * keep the figures they had and are read first next time. A subscription
+   * that cannot be read says why.
+   */
+  private async readCommitments(data: {
+    arm: AzureArm;
+    options: CloudSavingsOptions;
+    subscriptionIds: Array<string>;
+  }): Promise<Array<{ accountId: string; summary: CloudCommitmentSummary }>> {
+    const costs: AzureCostReader = this.costReader(data.arm, data.options);
+    const now: Date = data.options.now ? data.options.now() : new Date();
+    const readAt: Record<string, string> =
+      data.options.state.azureCommitmentsReadAt || {};
+    const commitments: Array<{
+      accountId: string;
+      summary: CloudCommitmentSummary;
+    }> = [];
+
+    for (const subscriptionId of orderLeastRecentlyRead({
+      accounts: data.subscriptionIds,
+      readAt: (subscriptionId: string): string | undefined => {
+        return readAt[subscriptionId.toLowerCase()];
+      },
+    })) {
+      try {
+        commitments.push({
+          accountId: subscriptionId,
+          summary: await readAzureCommitments({ costs, subscriptionId, now }),
+        });
+        readAt[subscriptionId.toLowerCase()] = now.toISOString();
+      } catch (error) {
+        if (
+          error instanceof AzureCostThrottled ||
+          error instanceof CloudReadBudgetSpent
+        ) {
+          break;
+        }
+
+        throw explainExpiredAzureSecret(error);
+      }
+    }
+
+    data.options.state.azureCommitmentsReadAt = Object.fromEntries(
+      data.subscriptionIds
+        .map((subscriptionId: string): [string, string | undefined] => {
+          const key: string = subscriptionId.toLowerCase();
+          return [key, readAt[key]];
+        })
+        .filter((entry: [string, string | undefined]): boolean => {
+          return Boolean(entry[1]);
+        }),
+    ) as Record<string, string>;
+
+    return commitments;
   }
 
   /*
