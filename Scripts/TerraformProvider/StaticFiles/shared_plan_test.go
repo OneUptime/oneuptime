@@ -10,12 +10,16 @@ package provider
  *
  *   - Left out of the configuration, the monitor keeps every label it has,
  *     under Terraform and under Crossplane.
- *   - Under Terraform, configured labels are the configuration's: the plan
- *     shows the rule's label going, as Terraform shows any change.
+ *   - Under Terraform, configured labels are the configuration's own
+ *     entries (#10134, entries.go): the rule's label stays, and the plan
+ *     never shows it going; entries_plan_test.go has the rest, and
+ *     exclusive_lists, which holds them as earlier versions did.
  *   - Under Crossplane, the manifest's labels are held entry by entry: the
  *     rule's label stays, a label the manifest adds is added beside it, and
  *     one taken out of the manifest goes - by what the manifest last
- *     applied, which the Crossplane provider hands over (LastApplied).
+ *     applied, which the Crossplane provider hands over (LastApplied). An
+ *     update sends the labels it adds and takes off, not the whole list
+ *     (#10135).
  */
 
 import (
@@ -165,14 +169,14 @@ func TestUnderTerraformAMonitorThatLeavesItsLabelsOutKeepsTheRulesLabels(t *test
 	tf.requireNoChanges(state, labelledMonitor(tf))
 }
 
-func TestUnderTerraformConfiguredLabelsAreTheConfigurations(t *testing.T) {
+func TestUnderTerraformConfiguredLabelsAreTheConfigurationsOwnEntries(t *testing.T) {
 	runUnderTerraform(t)
 	api, state, id := createLabelled(t, labelProduction)
 	tf := sharedTerraform(t, api, nil)
 	state = tf.refresh(state)
 	config := labelledMonitor(tf, labelProduction)
 
-	// The plan says it: the rule's label goes, and nothing is replaced.
+	// The plan holds the configuration's label, and the rule's is no change.
 	planned, response := tf.plan(state, config)
 	if len(response.RequiresReplace) != 0 {
 		t.Fatalf("the plan replaces the monitor for %v", response.RequiresReplace)
@@ -180,9 +184,9 @@ func TestUnderTerraformConfiguredLabelsAreTheConfigurations(t *testing.T) {
 	if got := strings.Join(idsIn(t, attributesOf(t, planned)["labels"]), ","); got != labelProduction {
 		t.Fatalf("the plan keeps labels %s, want the configuration's %s", got, labelProduction)
 	}
-	tf.apply(state, config)
-	if got := labelIDsOf(t, tf.api, id); got != labelProduction {
-		t.Fatalf("the monitor has %s, want the configuration's %s", got, labelProduction)
+	tf.requireNoChanges(state, config)
+	if got := labelIDsOf(t, tf.api, id); got != joinedIDs(labelProduction, labelByRule) {
+		t.Fatalf("the monitor has %s, want the configuration's label and the rule's", got)
 	}
 }
 
@@ -221,8 +225,12 @@ func TestUnderCrossplaneALabelTheManifestAddsJoinsTheRules(t *testing.T) {
 	if len(tf.api.updates) != 1 {
 		t.Fatalf("%d updates, want 1", len(tf.api.updates))
 	}
-	if sent, ok := sentLabels(tf.api.updates[0]); !ok || sent != joinedIDs(labelProduction, labelTeamA, labelByRule) {
-		t.Fatalf("the update sent labels %s, want the manifest's beside the rule's", sent)
+	// The label the manifest adds, alone: never the whole list (#10135).
+	if sent, ok := sentLabels(tf.api.updates[0]); ok {
+		t.Fatalf("the update sent the labels whole: %s", sent)
+	}
+	if added, removed := sentEntries(tf.api.updateBodies[0], "labels"); added != labelTeamA || removed != "" {
+		t.Fatalf("the update added %q and took off %q, want %s added alone", added, removed, labelTeamA)
 	}
 	if got := labelIDsOf(t, tf.api, id); got != joinedIDs(labelProduction, labelTeamA, labelByRule) {
 		t.Fatalf("the monitor has %s", got)
