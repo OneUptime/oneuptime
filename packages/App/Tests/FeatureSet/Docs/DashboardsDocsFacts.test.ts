@@ -3745,7 +3745,11 @@ describe("Dashboard Configuration & Permissions, against the models", () => {
     expect(
       PublicDashboardAccessPolicy.decide({
         dashboard: archived,
-        visitor: { clientIp: undefined, hasUnlockCookie: false },
+        visitor: {
+          clientIp: undefined,
+          hasUnlockCookie: false,
+          hasSignedInSession: false,
+        },
       }).access,
     ).toBe(PublicDashboardAccess.NotFound);
     // The setting stays as it was, for unarchiving to put back.

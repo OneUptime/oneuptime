@@ -89,6 +89,7 @@ import { PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE } from "Common/Server/Utils/Dashboar
 import JSONWebToken, {
   DashboardPrivateUserSessionClaims,
 } from "Common/Server/Utils/JsonWebToken";
+import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import PublicMessageRateLimit, {
   PublicMessageKind,
@@ -565,9 +566,18 @@ describe("signing in with a password", () => {
     expect(claims.dashboardId.toString()).toBe(DASHBOARD_ID.toString());
     expect(claims.userId.toString()).toBe(PRIVATE_USER_ID.toString());
     expect(claims.sessionId.toString()).toBe(SESSION_ID.toString());
-    expect(() => {
-      return JSONWebToken.decode(cookieValueOf(result, TOKEN_COOKIE)!);
-    }).toThrow();
+    // JSONWebToken.decode reads no dashboard session, even asked for one by name.
+    for (const purpose of [
+      JsonWebTokenPurpose.UserSession,
+      JsonWebTokenPurpose.DashboardPrivateUserSession,
+    ]) {
+      expect(() => {
+        return JSONWebToken.decode(
+          cookieValueOf(result, TOKEN_COOKIE)!,
+          purpose,
+        );
+      }).toThrow();
+    }
     expect(() => {
       return JSONWebToken.decodeDashboardPrivateUserSessionToSignOut(
         cookieValueOf(result, TOKEN_COOKIE)!,

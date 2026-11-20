@@ -16,6 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -1119,7 +1120,7 @@ describe("only people who sign in (#10250)", () => {
   test("while it is the choice, its Private Users and Single Sign-On are one click away", async () => {
     stored = { ...SIGN_IN_DASHBOARD };
 
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {
         return undefined;
