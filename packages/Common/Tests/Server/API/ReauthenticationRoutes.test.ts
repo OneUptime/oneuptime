@@ -56,6 +56,8 @@ import {
   REAUTHENTICATION_MESSAGES,
   REAUTHENTICATION_WINDOW_IN_MINUTES,
   ReauthenticationWebAuthnKind,
+  SignInAgainProvider,
+  SignInAgainRefusal,
 } from "../../../Types/Accounts/Reauthentication";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
@@ -70,7 +72,9 @@ import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
 import {
   PASSKEY_ONLY_ACCOUNT,
   PASSWORD_ACCOUNT,
+  REAUTH_PROJECT_ID,
   REAUTH_SESSION_ID,
+  REAUTH_SSO_PROVIDER_ID,
   REAUTH_USER_ID,
   RIGHT_CODE,
   RIGHT_PASSWORD,
@@ -233,17 +237,49 @@ describe("GET /user/reauthentication: where the session stands", () => {
         passkey: false,
         signInAgain: false,
       },
+      signInAgain: null,
     });
     expect(Response.setNoCacheHeaders).toHaveBeenCalled();
   });
 
-  test("an account that signs in with single sign-on only is offered Sign In Again", async () => {
+  test("an account that signs in with single sign-on only is offered Sign In Again, through its own provider (#10217)", async () => {
     account = SSO_ONLY_ACCOUNT;
 
     const answer: Answer = await call("get", STATUS_ROUTE, requestFor());
 
     expect((answer.body!["methods"] as JSONObject)["signInAgain"]).toBe(true);
     expect(answer.body!["isConfirmed"]).toBe(false);
+    expect(answer.body!["signInAgain"]).toEqual({
+      route: `/sso/${REAUTH_PROJECT_ID.toString()}/${REAUTH_SSO_PROVIDER_ID.toString()}`,
+      provider: SignInAgainProvider.SingleSignOn,
+      providerName: "Okta",
+      refusal: null,
+      canUseSignInLink: true,
+    });
+  });
+
+  test("a Sign In Again its provider answered with a session it had is said, and confirms nothing (#10217)", async () => {
+    account = {
+      ...SSO_ONLY_ACCOUNT,
+      signedInWith: "ReusedSession",
+      signedInMinutesAgo: 1,
+    };
+
+    const answer: Answer = await call("get", STATUS_ROUTE, requestFor());
+
+    expect(answer.body!["isConfirmed"]).toBe(false);
+    expect((answer.body!["signInAgain"] as JSONObject)["refusal"]).toBe(
+      SignInAgainRefusal.ReusedSession,
+    );
+  });
+
+  test("a Sign In Again its provider confirmed a minute ago confirms the session (#10217)", async () => {
+    account = { ...SSO_ONLY_ACCOUNT, signedInMinutesAgo: 1 };
+
+    const answer: Answer = await call("get", STATUS_ROUTE, requestFor());
+
+    expect(answer.body!["isConfirmed"]).toBe(true);
+    expect((answer.body!["signInAgain"] as JSONObject)["refusal"]).toBeNull();
   });
 
   test("a request with no session - an MCP client - is refused", async () => {

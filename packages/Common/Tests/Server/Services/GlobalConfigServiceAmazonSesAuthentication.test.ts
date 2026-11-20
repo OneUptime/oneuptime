@@ -9,7 +9,24 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import AmazonSesAuthenticationType from "../../../Types/Email/AmazonSesAuthenticationType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { describe, expect, test } from "@jest/globals";
+import {
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+
+/*
+ * A change to the server's email settings waits until the session confirms it's its
+ * person's (Confirm It's You, #10216): every session here has confirmed.
+ * The check itself, through the same hooks and routes, is pinned by
+ * Tests/Server/Services/AdminReauthenticationGates.test.ts and
+ * Tests/Server/API/AdminReauthenticationRoutes.test.ts.
+ */
+beforeEach(() => {
+  confirmEverySession();
+});
 
 /*
  * HOW THE SERVER'S OWN AMAZON SES SIGNS IN, AS GLOBALCONFIG TAKES IT

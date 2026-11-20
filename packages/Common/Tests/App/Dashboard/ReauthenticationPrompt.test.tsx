@@ -24,7 +24,7 @@ import { initReactI18next } from "react-i18next";
 import * as React from "react";
 import ReauthenticationPrompt, {
   REAUTHENTICATION_PROMPT_COPY,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Reauthentication/ReauthenticationPrompt";
+} from "../../../UI/Components/Reauthentication/ReauthenticationPrompt";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";

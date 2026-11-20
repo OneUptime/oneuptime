@@ -5,6 +5,8 @@ import UserSessionService from "../../../Server/Services/UserSessionService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import SsoRequiredSignIn from "../../../Server/Utils/SsoRequiredSignIn";
 import IdentityRateLimit, {
   IdentityRateLimitOutcome,
 } from "../../../Server/Middleware/IdentityRateLimit";
@@ -16,6 +18,12 @@ import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
 import Email from "../../../Types/Email";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
+import { SignInAgainRefusal } from "../../../Types/Accounts/Reauthentication";
+import {
+  SessionSignIn,
+  SignInMethod,
+  toSessionSignInInfo,
+} from "../../../Types/UserSession/SessionSignIn";
 
 /*
  * STAND-INS FOR CONFIRM IT'S YOU (#10155, Server/Utils/Reauthentication):
@@ -44,6 +52,55 @@ export const REAUTH_EMAIL: string = "river@example.com";
 
 export const MINUTE_IN_MS: number = 60 * 1000;
 
+export const REAUTH_PROJECT_ID: ObjectID = new ObjectID(
+  "eeeeeeee-5555-4555-8555-eeeeeeeeeeee",
+);
+export const REAUTH_SSO_PROVIDER_ID: ObjectID = new ObjectID(
+  "ffffffff-6666-4666-8666-ffffffffffff",
+);
+
+/*
+ * How the session signed in (#10217): with a password; a Sign In Again
+ * its identity provider said it authenticated after it was asked to; one
+ * that reused the provider's session; a single sign-on that Sign In Again
+ * did not start; a sign-in link.
+ */
+export type StandInSignIn =
+  | "Password"
+  | "SignInAgain"
+  | "ReusedSession"
+  | "SingleSignOn"
+  | "SignInLink";
+
+// What the session's additionalInfo keeps of such a sign-in, made at `at`.
+export function standInSessionSignIn(
+  signIn: StandInSignIn,
+  at: Date,
+): SessionSignIn {
+  const okta: SessionSignIn = {
+    method: SignInMethod.Saml,
+    ssoProviderName: "Okta",
+    ssoProjectId: REAUTH_PROJECT_ID,
+    ssoProviderId: REAUTH_SSO_PROVIDER_ID,
+  };
+
+  switch (signIn) {
+    case "Password":
+      return { method: SignInMethod.Password };
+    case "SignInAgain":
+      return { ...okta, signInAgain: { reauthenticatedAt: at } };
+    case "ReusedSession":
+      return {
+        ...okta,
+        signInAgain: { refusal: SignInAgainRefusal.ReusedSession },
+      };
+    case "SingleSignOn":
+      return okta;
+    case "SignInLink":
+      return { method: SignInMethod.SignInLink };
+  }
+}
+
 // What an account has, for the stubs to answer with.
 export interface StandInAccount {
   hasPassword: boolean;
@@ -54,6 +111,8 @@ export interface StandInAccount {
   unusedBackupCodes: number;
   // When the session signed in, minutes ago.
   signedInMinutesAgo: number;
+  // And how (#10217).
+  signedInWith: StandInSignIn;
   isSessionRevoked: boolean;
   sessionUserId: ObjectID;
   isMasterAdmin: boolean;
@@ -66,6 +125,7 @@ export const PASSWORD_ACCOUNT: StandInAccount = {
   keys: [],
   unusedBackupCodes: 0,
   signedInMinutesAgo: 120,
+  signedInWith: "Password",
   isSessionRevoked: false,
   sessionUserId: REAUTH_USER_ID,
   isMasterAdmin: false,
@@ -79,10 +139,14 @@ export const TWO_FACTOR_ACCOUNT: StandInAccount = {
   unusedBackupCodes: 8,
 };
 
-// Single sign-on, Google or Microsoft only: no password, no passkey.
+/*
+ * Single sign-on, Google or Microsoft only: no password, no passkey. Its
+ * session signed in with a Sign In Again its provider confirmed.
+ */
 export const SSO_ONLY_ACCOUNT: StandInAccount = {
   ...PASSWORD_ACCOUNT,
   hasPassword: false,
+  signedInWith: "SignInAgain",
 };
 
 export const PASSKEY_ONLY_ACCOUNT: StandInAccount = {
@@ -268,8 +332,20 @@ export function standInAccount(
         Date.now() -
           (isTheSession ? account.signedInMinutesAgo : 120) * MINUTE_IN_MS,
       );
+      session.additionalInfo = toSessionSignInInfo({
+        signIn: standInSessionSignIn(
+          isTheSession ? account.signedInWith : "Password",
+          session.createdAt,
+        ),
+      });
       return session;
     }) as never);
+
+  // The server lets sign-in links sign people in (#10217's fallback).
+  jest.spyOn(SsoRequiredSignIn, "isSsoRequired").mockResolvedValue(false);
+  jest
+    .spyOn(GlobalConfigService, "getMagicLinkLoginTurnedOff")
+    .mockResolvedValue(false);
 
   jest.spyOn(TotpAuth, "verifyToken").mockImplementation(((data: {
     token: string;

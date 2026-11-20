@@ -44,6 +44,7 @@ import http from "http";
 import jwt from "jsonwebtoken";
 import { AddressInfo } from "net";
 
+
 /*
  * The same refusal as Tests/Server/Middleware/TokensSignedWithAShippedSecret,
  * over HTTP, on the routes a stranger with such a token would go for.
@@ -216,6 +217,17 @@ async function boot(
     .mockResolvedValue(true as never);
   // The master admin a genuine session names is one still.
   jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true as never);
+  /*
+   * And has confirmed it's them, as Set Password asks first (#10216), on
+   * this server's own copy of the check: the check itself is
+   * AdminReauthenticationRoutes.test.ts.
+   */
+  const Reauthentication: AnyClass = (
+    await import("../../../Server/Utils/Reauthentication/Reauthentication")
+  ).default;
+  jest
+    .spyOn(Reauthentication, "assertConfirmed")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserService, "updateLastActive")
     .mockResolvedValue(undefined as never);
