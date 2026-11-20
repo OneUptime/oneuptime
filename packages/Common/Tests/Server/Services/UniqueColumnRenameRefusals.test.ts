@@ -99,15 +99,16 @@ jest.mock("../../../Server/Utils/Logger");
  *     with spaces around it, though a twin shares it: written;
  *   - a kind whose service holds its name itself (the resources telemetry
  *     is matched to by name, incident custom fields, runbook and workflow
- *     variables, watchlists) refuses it once, in its own words, with the
- *     code.
+ *     variables, watchlists, labels) refuses it once, in its own words,
+ *     with the code.
  *
  * Records that already share a name - from before this rule - stay as they
  * are: each can still be edited and renamed apart, never onto another's
  * name. One update that would give several records of one scope one name
  * is refused, with no code. OneUptime's own writes are trusted. The other
  * columns a model holds unique (an SSO provider's sign-on URL, a project
- * domain, an API key's permission) are held to the same rule.
+ * domain, an API key's permission) are held to the same rule, with the
+ * codes of a taken value and the field (#10319).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
