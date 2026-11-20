@@ -177,7 +177,9 @@ function useBulkRelationActions<T extends BaseModel>(
       concurrency: 1,
       step: async (item: T): Promise<BulkItemOutcome> => {
         if (!item.id) {
-          throw new BadDataException("Item ID not found");
+          throw new BadDataException(
+            "This row has no ID, so it could not be changed. Reload the page and try again.",
+          );
         }
 
         /*
