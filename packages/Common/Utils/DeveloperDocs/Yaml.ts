@@ -460,6 +460,16 @@ function printMap(node: YamlMapNode, indent: string): Array<string> {
 
     if (inline !== null) {
       lines.push(withComment(`${key} ${inline}`, entry.comment));
+
+      // A map with no entries still says what its comments say, under it.
+      if (entry.value.kind === "map") {
+        for (const inner of entry.value.entries) {
+          if (inner.kind === "comment") {
+            lines.push(...commentLines(inner.text, `${indent}${INDENT}`));
+          }
+        }
+      }
+
       continue;
     }
 

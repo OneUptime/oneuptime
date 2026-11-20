@@ -528,6 +528,13 @@ export interface TerraformRecordBody {
   attributes: Array<TerraformRecordAttribute>;
   variables: TerraformVariableCollector;
   omittedSecrets: Array<TerraformOmittedAttribute>;
+  /*
+   * The attributes the record has a value of that are left to OneUptime,
+   * because it changes them too (ServerOwned.Shared): the labels a label
+   * rule adds. Left out, the provider keeps OneUptime's value; the
+   * Crossplane page names them, so nobody wonders where they went.
+   */
+  omittedShared: Array<TerraformAttributeDescriptor>;
 }
 
 /*
@@ -571,6 +578,7 @@ export function getTerraformRecordBody(data: {
     new TerraformVariableCollector();
   const attributes: Array<TerraformRecordAttribute> = [];
   const omittedSecrets: Array<TerraformOmittedAttribute> = [];
+  const omittedShared: Array<TerraformAttributeDescriptor> = [];
 
   for (const descriptor of orderAttributes(descriptors, nameColumn)) {
     const value: unknown = data.json[descriptor.columnName];
@@ -619,6 +627,10 @@ export function getTerraformRecordBody(data: {
     }
 
     if (!descriptor.isRequired && descriptor.isServerManaged) {
+      if (descriptor.isChangedByOneUptimeToo) {
+        omittedShared.push(descriptor);
+      }
+
       continue;
     }
 
@@ -665,6 +677,7 @@ export function getTerraformRecordBody(data: {
     attributes,
     variables,
     omittedSecrets,
+    omittedShared,
   };
 }
 

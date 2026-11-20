@@ -5,7 +5,9 @@ import path from "path";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
 import Models from "../../../Models/DatabaseModels/Index";
@@ -13,6 +15,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import Dictionary from "../../../Types/Dictionary";
+import ServerOwned from "../../../Types/Database/ServerOwned";
 import {
   getTableColumns,
   TableColumnMetadata,
@@ -29,6 +32,7 @@ import {
   CROSSPLANE_PACKAGE_REPOSITORY,
   CrossplaneCreateExample,
   CrossplaneRecordManifest,
+  CrossplaneSharedField,
   getCrossplaneApiKeySecretCommands,
   getCrossplaneConnectionSecretReadCommand,
   getCrossplaneCreateExample,
@@ -72,7 +76,8 @@ import { getCrossplaneProviderVersion } from "../../../../App/FeatureSet/Docs/Ut
  * them, read back as the values they were - and they never fight OneUptime.
  * A record's manifest takes it over by its ID and sets the fields its
  * Terraform configuration sets; nothing OneUptime keeps is under
- * spec.forProvider (#9985); no secret is in any of them.
+ * spec.forProvider (#9985), and what OneUptime changes too is left to it
+ * unless the record needs it (#10052); no secret is in any of them.
  */
 
 type YamlObject = Record<string, unknown>;
@@ -443,7 +448,7 @@ describe("a record's manifest", () => {
     const account: CloudAccount = new CloudAccount();
     account._id = "2a2b3c4d-1234-4b2c-9d8e-0123456789ab";
     account.name = "Production";
-    account.provider = "aws" as CloudAccount["provider"];
+    account.provider = CloudProvider.AWS;
     account.accountId = "123456789012";
 
     const fields: YamlObject = forProvider(
@@ -545,8 +550,25 @@ describe("a record's manifest", () => {
     }
   });
 
-  test("no record is ever written with a field OneUptime keeps under forProvider, for any kind", () => {
+  /*
+   * Every kind, with a value in every column OneUptime keeps or changes too
+   * (TableColumnMetadata.serverOwned), each by what its kind means:
+   *
+   *   - always: only OneUptime writes it, so no manifest has it at all;
+   *   - after-create: under initProvider when the record needs it, never
+   *     under forProvider, where the provider would put it back;
+   *   - shared: left to OneUptime, and named in a comment, unless the record
+   *     needs it: then under forProvider, with a comment that OneUptime
+   *     changes it too.
+   */
+  test("each kind of field OneUptime keeps, or changes too, is written as it means, for every kind", () => {
     const problems: Array<string> = [];
+    const seen: Dictionary<number> = {
+      always: 0,
+      afterCreate: 0,
+      sharedWritten: 0,
+      sharedLeftOut: 0,
+    };
 
     for (const modelType of Models as Array<DatabaseBaseModelType>) {
       if (!getCrossplaneKindOf(modelType)) {
@@ -565,29 +587,148 @@ describe("a record's manifest", () => {
         },
       );
 
-      // Every column OneUptime keeps, with a value.
+      // Every column OneUptime keeps or changes too, with a value.
       for (const column of serverOwned) {
         json[column] = "6b1d0e2a-1234-4b2c-9d8e-0123456789ab";
       }
 
       const manifest: CrossplaneRecordManifest | null =
         getCrossplaneRecordManifest({ modelType, json });
-      const fields: YamlObject = manifest ? forProvider(manifest.yaml) : {};
+
+      if (!manifest) {
+        continue;
+      }
+
+      const fields: YamlObject = forProvider(manifest.yaml);
+      const initProvider: YamlObject =
+        (spec(manifest.yaml)["initProvider"] as YamlObject) || {};
+      const sharedWritten: Array<string> = manifest.sharedFields.map(
+        (shared: CrossplaneSharedField): string => {
+          return shared.field;
+        },
+      );
+      const required: Set<string> = new Set(
+        getTerraformAttributes(modelType)
+          .filter((descriptor: TerraformAttributeDescriptor): boolean => {
+            return descriptor.isRequired;
+          })
+          .map((descriptor: TerraformAttributeDescriptor): string => {
+            return descriptor.columnName;
+          }),
+      );
 
       for (const column of serverOwned) {
         const field: string = getCrossplaneFieldName(
           getProviderAttributeName(toTerraformSnakeCase(column)),
         );
+        const where: string = `${modelType.name}.${column} (${field})`;
+        const kind: ServerOwned | undefined = columns[column]?.serverOwned;
 
-        if (field in fields) {
-          problems.push(`${modelType.name}.${column} (${field})`);
+        if (kind === ServerOwned.Always) {
+          seen["always"]!++;
+          if (field in fields || field in initProvider) {
+            problems.push(`${where}: only OneUptime writes it`);
+          }
+        } else if (kind === ServerOwned.AfterCreate) {
+          seen["afterCreate"]!++;
+          if (field in fields) {
+            problems.push(`${where}: under forProvider`);
+          }
+        } else if (kind === ServerOwned.Shared) {
+          if (field in initProvider) {
+            problems.push(`${where}: under initProvider`);
+          }
+          if (required.has(column)) {
+            seen["sharedWritten"]!++;
+            if (!(field in fields) || !sharedWritten.includes(field)) {
+              problems.push(`${where}: needed, and not written as shared`);
+            }
+          } else if (field in fields) {
+            problems.push(`${where}: written, and OneUptime changes it too`);
+          } else if (manifest.leftOutShared.includes(field)) {
+            seen["sharedLeftOut"]!++;
+          }
+        } else {
+          problems.push(`${where}: serverOwned is ${String(kind)}`);
         }
+      }
+
+      // The comments say what the manifest does with them.
+      if (
+        sharedWritten.length > 0 !==
+        manifest.yaml.includes("# OneUptime changes")
+      ) {
+        problems.push(`${modelType.name}: comment on what it writes`);
+      }
+      if (
+        manifest.leftOutShared.length > 0 !==
+        manifest.yaml.includes("# Left to OneUptime, which changes")
+      ) {
+        problems.push(`${modelType.name}: comment on what it leaves out`);
       }
     }
 
     expect(problems).toEqual([]);
+    // Each kind of field was there to check.
+    expect(seen["always"]).toBeGreaterThan(10);
+    expect(seen["afterCreate"]).toBeGreaterThan(0);
+    // An episode's title, a host's identifier: shared, and needed.
+    expect(seen["sharedWritten"]).toBeGreaterThanOrEqual(6);
+    expect(seen["sharedLeftOut"]).toBeGreaterThan(20);
+  });
+
+  test("an episode's settings OneUptime changes too are left to it, but for the title it needs", () => {
+    const manifest: CrossplaneRecordManifest = getCrossplaneRecordManifest({
+      modelType: AlertEpisode,
+      json: {
+        _id: "5a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+        title: "Disk full",
+        description: "All disks on the database servers.",
+        labels: [{ _id: fixtureRecordId("Label", "production") }],
+      },
+    })!;
+
+    expect(forProvider(manifest.yaml)).toEqual({ title: "Disk full" });
+    expect(manifest.sharedFields).toEqual([{ field: "title", isList: false }]);
+    expect(manifest.leftOutShared).toEqual(["description", "labels"]);
+    expect(manifest.yaml).toContain(
+      [
+        "    title: Disk full",
+        "    # OneUptime changes title too. The provider sends it when you change it here,",
+        "    # and keeps OneUptime's changes in between.",
+        "    # Left to OneUptime, which changes them too: description and labels.",
+        "    # The provider leaves them as they are. Write one here to manage it from this manifest.",
+      ].join("\n"),
+    );
+  });
+
+  test("an incident's labels are left to OneUptime, whose label rules add to them", () => {
+    const manifest: CrossplaneRecordManifest = getCrossplaneRecordManifest({
+      modelType: Incident,
+      json: {
+        _id: "7a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+        title: "Checkout is down",
+        incidentSeverityId: CRITICAL,
+        labels: [{ _id: fixtureRecordId("Label", "production") }],
+      },
+    })!;
+
+    expect(forProvider(manifest.yaml)["labels"]).toBeUndefined();
+    expect(manifest.sharedFields).toEqual([]);
+    expect(manifest.leftOutShared).toEqual(["labels"]);
+    expect(manifest.yaml).toContain(
+      "    # Left to OneUptime, which changes it too: labels.\n    # The provider leaves it as it is. Write it here to manage it from this manifest.",
+    );
+    expect(manifest.yaml).not.toContain("# OneUptime changes");
   });
 });
+
+// A row of a field OneUptime changes too ends by saying so.
+const SAYS_ONEUPTIME_CHANGES_IT_TOO: RegExp =
+  /OneUptime may (change|add to) it too\.$/;
+
+// The comment a manifest writes about the fields OneUptime changes too.
+const SHARED_FIELDS_COMMENT: RegExp = /# OneUptime (changes|adds to)/;
 
 function project(): DeveloperDocsExampleContext {
   return { live: getFixtureLiveData() };
@@ -665,8 +806,15 @@ describe("a new resource's manifest", () => {
     );
   });
 
-  test("every kind's example reads back as YAML, with no field OneUptime keeps under forProvider", () => {
+  /*
+   * Every kind's example, by each kind of field OneUptime keeps or changes
+   * too: never one only OneUptime writes, never under forProvider one a
+   * record starts with, and one people set and OneUptime changes too only
+   * with a comment and a row that say OneUptime changes it too.
+   */
+  test("every kind's example reads back as YAML, and writes each field OneUptime keeps, or changes too, as it means", () => {
     const problems: Array<string> = [];
+    let sharedSeen: number = 0;
 
     for (const modelType of Models as Array<DatabaseBaseModelType>) {
       if (!getCrossplaneKindOf(modelType)) {
@@ -681,25 +829,106 @@ describe("a new resource's manifest", () => {
       }
 
       const fields: YamlObject = forProvider(example.yaml);
+      const initProvider: YamlObject =
+        (spec(example.yaml)["initProvider"] as YamlObject) || {};
       const columns: Dictionary<TableColumnMetadata> = getTableColumns(
         new modelType(),
+      );
+      const shared: Array<string> = example.sharedFields.map(
+        (field: CrossplaneSharedField): string => {
+          return field.field;
+        },
       );
 
       for (const descriptor of getTerraformAttributes(modelType)) {
         const field: string = getCrossplaneFieldOf(descriptor);
+        const where: string = `${modelType.name}.${field}`;
+        const kind: ServerOwned | undefined =
+          columns[descriptor.columnName]?.serverOwned;
+        const isWritten: boolean = field in fields || field in initProvider;
 
-        if (columns[descriptor.columnName]?.serverOwned && field in fields) {
-          problems.push(`${modelType.name}.${field}`);
+        if (kind === ServerOwned.Always && isWritten) {
+          problems.push(`${where}: only OneUptime writes it`);
+        }
+
+        if (kind === ServerOwned.AfterCreate && field in fields) {
+          problems.push(`${where}: under forProvider`);
+        }
+
+        if (kind === ServerOwned.Shared && isWritten) {
+          sharedSeen++;
+          const row: { name: string; about: string } | undefined =
+            example.rows.find((candidate: { name: string }): boolean => {
+              return candidate.name === field;
+            });
+
+          if (!shared.includes(field) || field in initProvider) {
+            problems.push(`${where}: not written as shared`);
+          }
+          if (row && !SAYS_ONEUPTIME_CHANGES_IT_TOO.test(row.about)) {
+            problems.push(`${where}: its row does not say so`);
+          }
+        }
+
+        if (kind !== ServerOwned.Shared && shared.includes(field)) {
+          problems.push(`${where}: called shared`);
         }
 
         // No secret is ever a value: a Secret is named instead.
         if (isCrossplaneSecretField(modelType, descriptor) && field in fields) {
-          problems.push(`${modelType.name}.${field} is a secret`);
+          problems.push(`${where} is a secret`);
         }
+      }
+
+      if (shared.length > 0 !== SHARED_FIELDS_COMMENT.test(example.yaml)) {
+        problems.push(`${modelType.name}: comment on what it writes`);
       }
     }
 
     expect(problems).toEqual([]);
+    expect(sharedSeen).toBeGreaterThan(10);
+  });
+
+  test("a new monitor's labels: OneUptime adds to them too, and the provider keeps what it adds", () => {
+    const example: CrossplaneCreateExample = getCrossplaneCreateExample({
+      modelType: Monitor,
+      context: project(),
+    })!;
+
+    expect(forProvider(example.yaml)["labels"]).toEqual([
+      fixtureRecordId("Label", "production"),
+    ]);
+    expect(example.sharedFields).toEqual([{ field: "labels", isList: true }]);
+    expect(example.yaml).toContain(
+      "    # OneUptime adds to labels too. The provider removes only the entries you take out here.\n",
+    );
+    expect(
+      example.rows.find((row: { name: string }): boolean => {
+        return row.name === "labels";
+      }),
+    ).toEqual({
+      name: "labels",
+      about: "Labels to find and filter it by. OneUptime may add to it too.",
+      required: false,
+    });
+  });
+
+  test("a new episode: its title is needed, and OneUptime changes it too", () => {
+    const example: CrossplaneCreateExample = getCrossplaneCreateExample({
+      modelType: AlertEpisode,
+      context: project(),
+    })!;
+    const title: { required: boolean; about: string } | undefined =
+      example.rows.find((row: { name: string }): boolean => {
+        return row.name === "title";
+      });
+
+    expect(forProvider(example.yaml)["title"]).toEqual(expect.any(String));
+    expect(title?.required).toBe(true);
+    expect(title?.about).toMatch(/ OneUptime may change it too\.$/);
+    expect(example.yaml).toContain(
+      "    # OneUptime changes these too: title, description and alertSeverityId.\n    # The provider sends each when you change it here, and keeps OneUptime's changes in between.\n",
+    );
   });
 });
 

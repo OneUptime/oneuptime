@@ -49,7 +49,10 @@ import {
  *     arguments), and the ones OneUptime makes, which the provider writes
  *     to the connection Secret (its sensitive read-only attributes);
  *   - a value a record starts with (after-create), which a manifest gives
- *     under spec.initProvider, and none of what only OneUptime writes.
+ *     under spec.initProvider, and none of what only OneUptime writes
+ *     (always);
+ *   - the values people set and OneUptime changes too (shared, #10052),
+ *     which a manifest names as such, and a record's leaves to OneUptime.
  *
  * A change to the models, ModelSchema, the parser or the Crossplane
  * generator that would make the page's manifests wrong fails here first.
@@ -112,7 +115,7 @@ describe("the dashboard's view of each kind is the Crossplane provider's", () =>
   });
 
   test.each(modelsWithKinds())(
-    "%s: references, secrets and what OneUptime keeps",
+    "%s: references, secrets, and what OneUptime keeps or changes too",
     (_name: string, modelType: DatabaseBaseModelType) => {
       const typeName: string = getTerraformTypeName(modelType) as string;
       const resource: TerraformResource = resourceOf(modelType);
@@ -212,6 +215,24 @@ describe("the dashboard's view of each kind is the Crossplane provider's", () =>
           .sort(),
       );
 
+      // What people set and OneUptime changes too: a field of the kind.
+      expect(
+        descriptors
+          .filter((descriptor: TerraformAttributeDescriptor): boolean => {
+            return descriptor.isChangedByOneUptimeToo;
+          })
+          .map((descriptor: TerraformAttributeDescriptor): string => {
+            return getProviderAttributeName(descriptor.attributeName);
+          })
+          .sort(),
+      ).toEqual(
+        Object.keys(owned)
+          .filter((field: string): boolean => {
+            return owned[field] === "shared";
+          })
+          .sort(),
+      );
+
       for (const field of Object.keys(owned)) {
         if (owned[field] !== "always") {
           continue;
@@ -230,6 +251,18 @@ describe("the dashboard's view of each kind is the Crossplane provider's", () =>
       }
     },
   );
+
+  test("each kind of field OneUptime keeps, or changes too, is on some kind", () => {
+    const kinds: Array<string> = Object.values(serverOwned).flatMap(
+      (fields: Record<string, string>): Array<string> => {
+        return Object.values(fields);
+      },
+    );
+
+    expect(new Set(kinds)).toEqual(
+      new Set(["always", "after-create", "shared"]),
+    );
+  });
 
   test("the sweep checks the kinds people manage, and the ones with secrets", () => {
     const checked: Array<string> = modelsWithKinds().map(

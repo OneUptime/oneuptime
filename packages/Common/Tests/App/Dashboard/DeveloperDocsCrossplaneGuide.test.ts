@@ -276,6 +276,44 @@ describe("a record's Crossplane page", () => {
     );
   });
 
+  /*
+   * Each kind of field OneUptime keeps, or changes too
+   * (TableColumnMetadata.serverOwned): its state, which only OneUptime moves
+   * once it exists, is never in the manifest; its labels, which a label rule
+   * adds to (shared, #10052), are left to OneUptime, and the manifest says
+   * so where it would have written them.
+   */
+  test("leaves what OneUptime changes too to OneUptime, and says so", () => {
+    const page: DeveloperDocsGuide = crossplane({
+      record: {
+        id: INCIDENT_ID,
+        displayName: "Checkout requests are failing",
+        json: {
+          ...incidentJson(),
+          labels: [
+            {
+              _type: "ObjectID",
+              value: fixtureRecordId("Label", "production"),
+            },
+          ],
+        },
+      },
+    });
+    const markdown: string = page.steps[1]?.markdown || "";
+    const [manifest] = yamlDocuments(markdown);
+    const spec: Record<string, unknown> = manifest!["spec"] as Record<
+      string,
+      unknown
+    >;
+
+    expect(spec["forProvider"]).not.toHaveProperty("labels");
+    expect(spec["initProvider"]).toBeUndefined();
+    expect(JSON.stringify(spec)).not.toContain("currentIncidentStateId");
+    expect(markdown).toContain(
+      "    # Left to OneUptime, which changes it too: labels.\n    # The provider leaves it as it is. Write it here to manage it from this manifest.",
+    );
+  });
+
   test("applying it says what happens, deletion included", () => {
     const markdown: string = guide.steps[2]?.markdown || "";
 
@@ -381,6 +419,25 @@ describe("a list's Crossplane page", () => {
     expect(step.markdown).toContain("- `incidentSeverityId` (required):");
     expect(step.markdown).toContain(
       `kubectl apply -f ${(manifest!["metadata"] as Record<string, string>)["name"]}.yaml`,
+    );
+  });
+
+  // Labels a label rule adds to (shared, #10052): optional, and OneUptime's too.
+  test("a new incident's labels are optional, and say OneUptime adds to them too", () => {
+    const step: DeveloperDocsStep = guide.steps[1]!;
+    const [manifest] = yamlDocuments(step.markdown || "");
+    const forProvider: Record<string, unknown> = (
+      manifest!["spec"] as Record<string, unknown>
+    )["forProvider"] as Record<string, unknown>;
+
+    expect(forProvider["labels"]).toEqual([
+      fixtureRecordId("Label", "production"),
+    ]);
+    expect(step.markdown).toContain(
+      "# OneUptime adds to labels too. The provider removes only the entries you take out here.",
+    );
+    expect(step.markdown).toMatch(
+      /^- `labels`: [^\n]+ OneUptime may add to it too\.$/m,
     );
   });
 

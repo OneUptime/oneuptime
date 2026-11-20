@@ -426,6 +426,26 @@ describe("layout", () => {
     });
   });
 
+  // A manifest that writes no field still says what it left out, and why.
+  test("keeps an empty map's comments, under its {}", () => {
+    const written: string = printYaml(
+      Yaml.map([
+        Yaml.entry(
+          "forProvider",
+          Yaml.map([
+            Yaml.comment("Left to OneUptime: labels.\nWrite it here."),
+          ]),
+        ),
+        Yaml.entry("kind", Yaml.string("Label")),
+      ]),
+    );
+
+    expect(written).toBe(
+      "forProvider: {}\n  # Left to OneUptime: labels.\n  # Write it here.\nkind: Label\n",
+    );
+    expect(yaml.load(written)).toEqual({ forProvider: {}, kind: "Label" });
+  });
+
   test("separates documents with ---", () => {
     const written: string = printYamlDocuments([
       Yaml.map([Yaml.entry("kind", Yaml.string("Label"))]),

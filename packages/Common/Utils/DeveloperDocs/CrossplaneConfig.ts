@@ -82,6 +82,16 @@ import {
  *   - a value a record starts with and OneUptime then moves on
  *     (ServerOwned.AfterCreate) under spec.initProvider, never forProvider:
  *     the provider creates a record with it and never puts it back (#9985);
+ *   - a value only OneUptime writes (ServerOwned.Always) never: the kind
+ *     has it in status.atProvider alone;
+ *   - a value people set and OneUptime changes too (ServerOwned.Shared,
+ *     #10052), such as the labels a label rule adds, is left to OneUptime
+ *     in a record's manifest unless the record needs it, as its Terraform
+ *     configuration leaves it, and a comment names what was left out. Where
+ *     a manifest writes one - a field the record needs, or a new resource's
+ *     example - a comment says OneUptime changes it too: the provider sends
+ *     the manifest's value when it changes and keeps OneUptime's changes in
+ *     between, and of a list it removes only the entries the manifest drops;
  *   - a secret never: one the record needs is read from a Secret of the
  *     namespace (`<field>SecretRef`), and any other is left to OneUptime. A
  *     field with a secret inside that no Secret can stand for (a request
@@ -671,6 +681,32 @@ interface CrossplaneSpecFields {
   secret: CrossplaneManifestSecret | null;
   // Fields left out because a secret no Secret can stand for is in them.
   leftOutForSecrets: Array<string>;
+  // The fields written that OneUptime changes too (ServerOwned.Shared).
+  shared: Array<CrossplaneSharedField>;
+}
+
+// A field people set and OneUptime changes too (ServerOwned.Shared).
+export interface CrossplaneSharedField {
+  // As the kind names it: labels, alertSeverityId.
+  field: string;
+  /*
+   * A list of IDs or names, which the provider holds to the entries the
+   * manifest declares: one OneUptime adds stays.
+   */
+  isList: boolean;
+}
+
+function sharedFieldOf(
+  descriptor: TerraformAttributeDescriptor,
+): CrossplaneSharedField {
+  return {
+    field: getCrossplaneFieldName(
+      getProviderAttributeName(descriptor.attributeName),
+    ),
+    isList:
+      descriptor.kind === TerraformValueKind.IdSet ||
+      descriptor.kind === TerraformValueKind.StringSet,
+  };
 }
 
 function specFields(data: {
@@ -694,6 +730,7 @@ function specFields(data: {
     initProvider: [],
     secret: null,
     leftOutForSecrets: [],
+    shared: [],
   };
 
   for (const attribute of data.attributes) {
@@ -717,6 +754,10 @@ function specFields(data: {
       fields.initProvider.push(entry);
     } else {
       fields.forProvider.push(entry);
+    }
+
+    if (attribute.descriptor?.isChangedByOneUptimeToo) {
+      fields.shared.push(sharedFieldOf(attribute.descriptor));
     }
   }
 
@@ -860,6 +901,83 @@ function leftOutComments(data: {
   return comments;
 }
 
+// "a", "a and b", "a, b and c".
+function listOfNames(names: Array<string>): string {
+  return names.length > 1
+    ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+    : names.join("");
+}
+
+/*
+ * The comment lines about the fields OneUptime changes too
+ * (ServerOwned.Shared): the ones the manifest writes, whose value the
+ * provider sends when the manifest's changes and not otherwise, and the
+ * ones it leaves to OneUptime.
+ */
+function sharedComments(data: {
+  written: Array<CrossplaneSharedField>;
+  leftOut: Array<string>;
+}): Array<YamlCommentLine> {
+  const comments: Array<YamlCommentLine> = [];
+  const fieldsOf: (lists: boolean) => Array<string> = (
+    lists: boolean,
+  ): Array<string> => {
+    return data.written
+      .filter((shared: CrossplaneSharedField): boolean => {
+        return shared.isList === lists;
+      })
+      .map((shared: CrossplaneSharedField): string => {
+        return shared.field;
+      });
+  };
+  const values: Array<string> = fieldsOf(false);
+  const lists: Array<string> = fieldsOf(true);
+
+  if (values.length === 1) {
+    comments.push(
+      Yaml.comment(
+        `OneUptime changes ${values[0]} too. The provider sends it when you change it here,\nand keeps OneUptime's changes in between.`,
+      ),
+    );
+  } else if (values.length > 1) {
+    comments.push(
+      Yaml.comment(
+        `OneUptime changes these too: ${listOfNames(values)}.\nThe provider sends each when you change it here, and keeps OneUptime's changes in between.`,
+      ),
+    );
+  }
+
+  if (lists.length === 1) {
+    comments.push(
+      Yaml.comment(
+        `OneUptime adds to ${lists[0]} too. The provider removes only the entries you take out here.`,
+      ),
+    );
+  } else if (lists.length > 1) {
+    comments.push(
+      Yaml.comment(
+        `OneUptime adds to these too: ${listOfNames(lists)}.\nThe provider removes only the entries you take out here.`,
+      ),
+    );
+  }
+
+  if (data.leftOut.length === 1) {
+    comments.push(
+      Yaml.comment(
+        `Left to OneUptime, which changes it too: ${data.leftOut[0]}.\nThe provider leaves it as it is. Write it here to manage it from this manifest.`,
+      ),
+    );
+  } else if (data.leftOut.length > 1) {
+    comments.push(
+      Yaml.comment(
+        `Left to OneUptime, which changes them too: ${listOfNames(data.leftOut)}.\nThe provider leaves them as they are. Write one here to manage it from this manifest.`,
+      ),
+    );
+  }
+
+  return comments;
+}
+
 // A record's monitor type, for a monitor's connection Secret.
 function monitorTypeOf(json: Dictionary<unknown>): string | null {
   const value: unknown = json["monitorType"];
@@ -881,6 +999,10 @@ export interface CrossplaneRecordManifest {
   omittedSecrets: Array<string>;
   // Fields left out because a secret is inside them.
   leftOutForSecrets: Array<string>;
+  // The fields it writes that OneUptime changes too: the ones the record needs.
+  sharedFields: Array<CrossplaneSharedField>;
+  // The ones it leaves to OneUptime, which the record has a value of.
+  leftOutShared: Array<string>;
   // The Secret the provider writes the values OneUptime made to.
   connectionSecret: CrossplaneConnectionSecret | null;
   // `kubectl -n oneuptime get monitor.crossplane.oneuptime.com checkout-api`.
@@ -935,6 +1057,11 @@ export function getCrossplaneRecordManifest(data: {
       );
     },
   );
+  const leftOutShared: Array<string> = record.omittedShared.map(
+    (descriptor: TerraformAttributeDescriptor): string => {
+      return sharedFieldOf(descriptor).field;
+    },
+  );
   const connectionKeys: Array<string> = connectionKeysFor(
     data.modelType,
     monitorTypeOf(data.json),
@@ -956,10 +1083,12 @@ export function getCrossplaneRecordManifest(data: {
         initProvider: fields.initProvider,
         forProvider: [
           ...fields.forProvider,
+          ...sharedComments({ written: fields.shared, leftOut: [] }),
           ...leftOutComments({
             omittedSecrets,
             leftOutForSecrets: fields.leftOutForSecrets,
           }),
+          ...sharedComments({ written: [], leftOut: leftOutShared }),
         ],
       }),
     ]),
@@ -975,6 +1104,8 @@ export function getCrossplaneRecordManifest(data: {
     secret: fields.secret,
     omittedSecrets,
     leftOutForSecrets: fields.leftOutForSecrets,
+    sharedFields: fields.shared,
+    leftOutShared,
     connectionSecret,
     getCommand: getCrossplaneGetCommand(kind, objectName),
   };
@@ -988,6 +1119,8 @@ export interface CrossplaneCreateExample {
   rows: Array<DeveloperDocsFieldRow>;
   secret: CrossplaneManifestSecret | null;
   leftOutForSecrets: Array<string>;
+  // The fields it writes that OneUptime changes too.
+  sharedFields: Array<CrossplaneSharedField>;
   connectionSecret: CrossplaneConnectionSecret | null;
   // The example's IDs written as references instead, by Kubernetes name.
   referencesYaml: string | null;
@@ -1171,6 +1304,7 @@ export function getCrossplaneCreateExample(data: {
         initProvider: fields.initProvider,
         forProvider: [
           ...fields.forProvider,
+          ...sharedComments({ written: fields.shared, leftOut: [] }),
           ...leftOutComments({
             omittedSecrets: [],
             leftOutForSecrets: fields.leftOutForSecrets,
@@ -1182,6 +1316,10 @@ export function getCrossplaneCreateExample(data: {
       (row: DeveloperDocsFieldRow): DeveloperDocsFieldRow => {
         const descriptor: TerraformAttributeDescriptor | undefined =
           byAttribute[row.name];
+        const shared: CrossplaneSharedField | null =
+          descriptor?.isChangedByOneUptimeToo
+            ? sharedFieldOf(descriptor)
+            : null;
 
         return {
           ...row,
@@ -1189,11 +1327,16 @@ export function getCrossplaneCreateExample(data: {
             descriptor && isCrossplaneSecretField(data.modelType, descriptor)
               ? getCrossplaneSecretFieldOf(descriptor)
               : getCrossplaneFieldName(getProviderAttributeName(row.name)),
+          // A field OneUptime changes too says so, as the manifest does.
+          about: shared
+            ? `${row.about} ${shared.isList ? "OneUptime may add to it too." : "OneUptime may change it too."}`
+            : row.about,
         };
       },
     ),
     secret: fields.secret,
     leftOutForSecrets: fields.leftOutForSecrets,
+    sharedFields: fields.shared,
     connectionSecret,
     referencesYaml: referencesYaml({ modelType: data.modelType, attributes }),
     isPlaceholder: block.isPlaceholder,

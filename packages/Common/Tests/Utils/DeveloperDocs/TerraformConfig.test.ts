@@ -3,6 +3,7 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -892,7 +893,7 @@ describe("attributes named like a Terraform meta-argument", () => {
     const account: CloudAccount = new CloudAccount();
     account._id = "2a2b3c4d-1234-4b2c-9d8e-0123456789ab";
     account.name = "Production";
-    account.provider = "aws" as CloudAccount["provider"];
+    account.provider = CloudProvider.AWS;
     account.accountId = "123456789012";
 
     const config: TerraformResourceConfig = configFor(account, CloudAccount);
