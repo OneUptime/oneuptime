@@ -83,7 +83,7 @@ export const STILL_DRAWN_IN_PLACE: Record<
     {
       count: 1,
       reason:
-        "A network site search's suggestions, under its search in the sites page's header, which no box clips: a field's popup (isFieldPopup) to move (#10162).",
+        "A network site search's suggestions, under its search on the network map and the topology explorer, where no box around it clips: a field's popup (isFieldPopup) to move (#10162).",
     },
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView.tsx":
     {
@@ -97,17 +97,11 @@ export const STILL_DRAWN_IN_PLACE: Record<
       reason:
         "The owner filter chips' panels (FilterChipButton), opened from a list's filter row above its card, which nothing clips; shared by every owner chip, so moved with all of them (#10162).",
     },
-  "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayControls.tsx":
-    {
-      count: 1,
-      reason:
-        "The player's speed menu, opened upwards from the transport bar inside the player, which has the room above it. To move with the player's other menus (#10162).",
-    },
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTabSwitcher.tsx":
     {
       count: 1,
       reason:
-        "The player's tab picker, placed by its own alignment (getDropdownAlignmentClassName) in the player's header, which no box clips. To move with the player's other menus (#10162).",
+        "The player's tab picker, in the player's header, which no box clips: placed by the shared useDropdownPlacement, which slides it onto a phone's screen, with a search and a list whose keys are its own. To move (#10162).",
     },
   "packages/App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowScopeFilter.tsx":
     {
@@ -634,6 +628,7 @@ describe("a popup is drawn on the tooltip layer", () => {
       "packages/App/FeatureSet/Dashboard/src/Components/AIChat/ProviderPicker.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/Code/CodePicker.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessionsMenu.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayControls.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchBar.tsx",
       "packages/Common/UI/Components/TelemetryViewer/components/TelemetrySearchSuggestions.tsx",
       "packages/Common/UI/Components/TelemetryViewer/components/TelemetrySearchHelp.tsx",
