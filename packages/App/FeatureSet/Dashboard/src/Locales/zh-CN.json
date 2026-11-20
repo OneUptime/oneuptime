@@ -59592,5 +59592,6 @@
   "This status was changed when the alert was updated.": "此状态是在更新警报时更改的。",
   "This status was changed when the incident was updated.": "此状态是在更新事件时更改的。",
   "{{user}} turned off monitoring for the monitor **{{monitor}}**. This alert was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved now. If monitoring is turned back on while the problem is still there, a new alert is opened.": "{{user}} 关闭了监视器 **{{monitor}}** 的监控。此警报设置为在监视器恢复后自动解决，而监控关闭期间没有任何东西会检查此监视器，因此它现已被解决。如果在问题仍然存在时重新打开监控，将创建新警报。",
-  "{{user}} turned off monitoring for the monitor **{{monitor}}**. This incident was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved now. If monitoring is turned back on while the problem is still there, a new incident is opened.": "{{user}} 关闭了监视器 **{{monitor}}** 的监控。此事件设置为在监视器恢复后自动解决，而监控关闭期间没有任何东西会检查此监视器，因此它现已被解决。如果在问题仍然存在时重新打开监控，将创建新事件。"
+  "{{user}} turned off monitoring for the monitor **{{monitor}}**. This incident was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved now. If monitoring is turned back on while the problem is still there, a new incident is opened.": "{{user}} 关闭了监视器 **{{monitor}}** 的监控。此事件设置为在监视器恢复后自动解决，而监控关闭期间没有任何东西会检查此监视器，因此它现已被解决。如果在问题仍然存在时重新打开监控，将创建新事件。",
+  "Copy link to selected log": "Copy link to selected log"
 }

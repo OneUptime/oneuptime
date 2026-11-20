@@ -63,7 +63,7 @@ Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen: een 
 Klik op een rij. De details openen naast de lijst.
 :::
 
-Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken. Een link naar één logregel, zoals **Logboekregel bekijken** bij een beveiligingsgebeurtenis, opent die regel boven de lijst, gelezen met uw eigen machtigingen. **Link kopiëren** in de details van een regel kopieert zo'n link, met de lijst waaruit u hem kopieerde eronder, over hetzelfde tijdsbereik.
+Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken. Een link naar één logregel, zoals **Logboekregel bekijken** bij een beveiligingsgebeurtenis, opent die regel boven de lijst, gelezen met uw eigen machtigingen. **Link kopiëren** in de details van een regel kopieert zo'n link, met de lijst waaruit u hem kopieerde eronder, over hetzelfde tijdsbereik. Ook elke rij van de lijst heeft **Link kopiëren**, naast het bericht, zodat u de link van een regel kopieert zonder hem te openen.
 
 ## Een logboek lezen
 
@@ -194,6 +194,7 @@ Druk in de Kijker op `?` om ze te zien.
 | --- | --- |
 | `j` / `k` | Naar het volgende of vorige logboek gaan. |
 | Enter | Het geselecteerde logboek openen of sluiten. |
+| `l` | Een link naar het geselecteerde logboek kopiëren. |
 | Esc | Het detailpaneel sluiten. |
 | `/` | Naar het zoekvak springen. |
 | ⌘ + Enter of Ctrl + Enter | De zoekopdracht toepassen. |
