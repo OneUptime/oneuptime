@@ -85,6 +85,11 @@ export const FILE_REQUEST_BODY_LIMIT: RequestBodyLimit = {
  * OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES), about 8 bytes a value: some six
  * million values. A forwarding pod's ClickHouse rows are up to 30 MB a
  * request (TELEMETRY_WRITER_MAX_BODY_BYTES), about 13 bytes a value.
+ *
+ * Eight million values take JSON.parse about 1.4 s and 490 MiB of heap
+ * (Node 26), so only a caller whose key was checked first is held to this
+ * (#10222): the routes that take it read their bodies themselves, after
+ * that (readsBodyAfterAuthentication).
  */
 export const REPORT_REQUEST_BODY_LIMIT: RequestBodyLimit = {
   bytes: LARGE_REQUEST_BODY_BYTES,
@@ -100,6 +105,13 @@ export interface LargeRequestBodyRoute {
    */
   paths: ReadonlyArray<string>;
   limit: RequestBodyLimit;
+  /*
+   * Set for a route that checks its caller's key before it reads the body
+   * (#10222): StartServer leaves the body unread, and the route reads it,
+   * held to `limit`, once it knows who sent it
+   * (Middleware/RequestBodyAfterAuthentication).
+   */
+  readsBodyAfterAuthentication?: boolean;
   // Why this route takes more than an ordinary one.
   reason: string;
 }
@@ -187,16 +199,21 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<LargeRequestBodyRoute> = [
       "A file the Dashboard uploads - an attachment, an image in a note, a logo - travels as JSON, one number for each of its bytes. The Dashboard takes files of up to 10 MB: 36 MB of JSON.",
   },
   {
-    paths: [
-      ...under(PROBE_INGEST_ROUTE_PREFIXES, [
-        "/probe/vmware/collection",
-        "/probe/openstack/collection",
-      ]),
-      "/telemetry-writer/insert",
-    ],
+    paths: under(PROBE_INGEST_ROUTE_PREFIXES, [
+      "/probe/vmware/collection",
+      "/probe/openstack/collection",
+    ]),
     limit: REPORT_REQUEST_BODY_LIMIT,
+    readsBodyAfterAuthentication: true,
     reason:
-      "A probe's collection of a vCenter or an OpenStack cloud is up to 48 MiB of OTLP metrics, and a forwarding pod's ClickHouse rows up to 30 MB a request: millions of values. A refused collection is lost, and so are refused rows.",
+      "A probe's collection of a vCenter or an OpenStack cloud is up to 48 MiB of OTLP metrics: millions of values, and a refused collection is lost. The probe's key is checked first, from its headers or from the start of its report, and a collection whose probe is not known by then is parsed only up to a large route's 1,000,000 values.",
+  },
+  {
+    paths: ["/telemetry-writer/insert"],
+    limit: REPORT_REQUEST_BODY_LIMIT,
+    readsBodyAfterAuthentication: true,
+    reason:
+      "A forwarding pod's ClickHouse rows are up to 30 MB a request: millions of values, and refused rows are lost. The cluster key, in a header, is checked before the body is read.",
   },
   {
     paths: ["/probe-ingest/*", "/ingestor/*", "/probe/*"],
@@ -304,6 +321,7 @@ interface CompiledPattern {
   // A last segment "*": the path and everything under it.
   isPrefix: boolean;
   limit: RequestBodyLimit;
+  readsBodyAfterAuthentication: boolean;
   // The more literal segments, the more specific: it wins.
   specificity: number;
 }
@@ -346,6 +364,9 @@ const compile: (
         segments: segments,
         isPrefix: isPrefix,
         limit: route.limit,
+        readsBodyAfterAuthentication: Boolean(
+          route.readsBodyAfterAuthentication,
+        ),
         // An exact path wins over a prefix of as many segments.
         specificity: literalSegments * 2 + (isPrefix ? 0 : 1),
       };
@@ -381,10 +402,10 @@ const matches: (
   });
 };
 
-// The limit a request's body is held to: by its path, before routing.
-export const getRequestBodyLimit: (path: string) => RequestBodyLimit = (
+// The most specific listed path a request's path is, or null for none.
+const findPattern: (path: string) => CompiledPattern | null = (
   path: string,
-): RequestBodyLimit => {
+): CompiledPattern | null => {
   const segments: Array<string> = segmentsOf(path || "");
 
   let best: CompiledPattern | null = null;
@@ -399,7 +420,29 @@ export const getRequestBodyLimit: (path: string) => RequestBodyLimit = (
     }
   }
 
-  return best ? best.limit : ORDINARY_REQUEST_BODY_LIMIT;
+  return best;
+};
+
+// The limit a request's body is held to: by its path, before routing.
+export const getRequestBodyLimit: (path: string) => RequestBodyLimit = (
+  path: string,
+): RequestBodyLimit => {
+  const pattern: CompiledPattern | null = findPattern(path);
+
+  return pattern ? pattern.limit : ORDINARY_REQUEST_BODY_LIMIT;
+};
+
+/*
+ * Whether a request's route reads the body itself, once it has checked who
+ * sent it (LargeRequestBodyRoute.readsBodyAfterAuthentication), so
+ * StartServer leaves the body unread. Matched as getRequestBodyLimit
+ * matches: in any case, with or without a trailing slash, under every
+ * prefix the route's router is mounted on.
+ */
+export const readsBodyAfterAuthentication: (path: string) => boolean = (
+  path: string,
+): boolean => {
+  return Boolean(findPattern(path)?.readsBodyAfterAuthentication);
 };
 
 export default getRequestBodyLimit;
