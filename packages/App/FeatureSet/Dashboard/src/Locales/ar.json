@@ -60816,5 +60816,6 @@
   "Who may read this project's LLM providers sees which one it is.": "من يُسمح له بقراءة موفّري LLM في هذا المشروع يرى أيّها هو.",
   "Your project's": "خاص بمشروعك",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "يأتي سياق الذكاء الاصطناعي لمشروعك أولًا في رسالة النظام: {{count}} من الأحرف، ويُضبط في إعدادات المشروع ← الذكاء الاصطناعي ← ميزات الذكاء الاصطناعي.",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "يأتي سياق الذكاء الاصطناعي لمشروعك أولًا في رسالة النظام: {{count}} حرف، ويُضبط في إعدادات المشروع ← الذكاء الاصطناعي ← ميزات الذكاء الاصطناعي."
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "يأتي سياق الذكاء الاصطناعي لمشروعك أولًا في رسالة النظام: {{count}} حرف، ويُضبط في إعدادات المشروع ← الذكاء الاصطناعي ← ميزات الذكاء الاصطناعي.",
+  "App Service key": "مفتاح App Service"
 }

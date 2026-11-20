@@ -60816,5 +60816,6 @@
   "Who may read this project's LLM providers sees which one it is.": "Chi può leggere i provider LLM di questo progetto vede quale è.",
   "Your project's": "Del tuo progetto",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "Il contesto IA del tuo progetto viene per primo nel messaggio di sistema: {{count}} caratteri, impostato in Impostazioni del progetto → IA → Funzionalità IA.",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Il contesto IA del tuo progetto viene per primo nel messaggio di sistema: {{count}} carattere, impostato in Impostazioni del progetto → IA → Funzionalità IA."
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Il contesto IA del tuo progetto viene per primo nel messaggio di sistema: {{count}} carattere, impostato in Impostazioni del progetto → IA → Funzionalità IA.",
+  "App Service key": "Chiave App Service"
 }

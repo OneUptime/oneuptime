@@ -60816,5 +60816,6 @@
   "Who may read this project's LLM providers sees which one it is.": "کسی که اجازهٔ خواندن ارائه‌دهندگان LLM این پروژه را دارد، می‌بیند کدام است.",
   "Your project's": "متعلق به پروژهٔ شما",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "زمینهٔ هوش مصنوعی پروژهٔ شما در ابتدای پیام سیستمی می‌آید: {{count}} نویسه، که در «تنظیمات پروژه ← هوش مصنوعی ← قابلیت‌های هوش مصنوعی» تنظیم می‌شود.",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "زمینهٔ هوش مصنوعی پروژهٔ شما در ابتدای پیام سیستمی می‌آید: {{count}} نویسه، که در «تنظیمات پروژه ← هوش مصنوعی ← قابلیت‌های هوش مصنوعی» تنظیم می‌شود."
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "زمینهٔ هوش مصنوعی پروژهٔ شما در ابتدای پیام سیستمی می‌آید: {{count}} نویسه، که در «تنظیمات پروژه ← هوش مصنوعی ← قابلیت‌های هوش مصنوعی» تنظیم می‌شود.",
+  "App Service key": "کلید App Service"
 }

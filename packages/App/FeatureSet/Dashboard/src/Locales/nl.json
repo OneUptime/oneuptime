@@ -60816,5 +60816,6 @@
   "Who may read this project's LLM providers sees which one it is.": "Wie de LLM-providers van dit project mag lezen, ziet welke het is.",
   "Your project's": "Van uw project",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "De AI-context van uw project staat als eerste in het systeembericht: {{count}} tekens, ingesteld onder Projectinstellingen → AI → AI-functies.",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "De AI-context van uw project staat als eerste in het systeembericht: {{count}} teken, ingesteld onder Projectinstellingen → AI → AI-functies."
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "De AI-context van uw project staat als eerste in het systeembericht: {{count}} teken, ingesteld onder Projectinstellingen → AI → AI-functies.",
+  "App Service key": "App Service-sleutel"
 }
