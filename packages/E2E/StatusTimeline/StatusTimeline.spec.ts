@@ -793,10 +793,14 @@ test.describe("a monitor's Status Timeline", () => {
     await expect(dialog).toContainText(
       "Response status code is 503, which is not 200.",
     );
+    /*
+     * The cause, and the check the change kept: its findings are worded
+     * in the reader's language from it (StatusChangeCauseWording, #9752).
+     */
     expect((await fixture(page)).itemRequests).toContainEqual({
       tableName: "MonitorStatusTimeline",
       id: OFFLINE_38_SECONDS,
-      selectKeys: ["rootCause"],
+      selectKeys: ["rootCause", "statusChangeLog"],
     });
   });
 

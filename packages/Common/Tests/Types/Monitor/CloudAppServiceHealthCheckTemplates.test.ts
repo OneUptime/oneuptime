@@ -36,6 +36,7 @@ import {
   getAppServiceHealthCheckCommand,
   getCloudAlertTemplate,
   getCloudAlertTemplatesFor,
+  getCloudAlertWindow,
   isCloudFiveMinuteMetricTemplate,
 } from "../../../Types/Monitor/CloudAlertTemplates";
 import {
@@ -252,14 +253,22 @@ describe("the templates", () => {
    * monitor (every five minutes) finds a point in its 30 minutes, where 15
    * found none at some of them, and every point a read brings after the
    * first (which brings an hour of history) is judged. Read every 30 or 60
-   * minutes, a window can be empty between two reads - the monitor's state
-   * then stays as it is, as a metric monitor ignores a window with no data
-   * - and a read's oldest points may be past the window by the time they
-   * come; still, every read's newest point is judged.
+   * minutes, 30 minutes would be empty between two reads - the monitor's
+   * state then stays as it is, as a metric monitor ignores a window with no
+   * data - and a read's oldest points would be past the window by the time
+   * they come: the window its interval gives it (getCloudAlertWindow,
+   * #10028), the past hour or 2 hours, judges them all and is never empty.
    */
   test.each(CLOUD_CONNECTION_READ_INTERVALS)(
-    "read every %i minutes, what each read brings is judged, and every evaluation finds a point at 15 minutes or more often",
+    "read every %i minutes, what each read brings is judged, and every evaluation finds a point in the window its interval gives",
     (intervalInMinutes: number) => {
+      const windowMinutes: number =
+        RollingTimeUtil.getWindowInMs(
+          getCloudAlertWindow({
+            template: template(FAILING_ID),
+            readIntervalInMinutes: intervalInMinutes,
+          }),
+        ) / MINUTE_MS;
       const start: number = Date.parse("2026-11-19T08:02:30.000Z");
       const runEnd: number = start + 6 * 60 * MINUTE_MS;
       const cursors: Record<string, string> = {};
@@ -269,6 +278,7 @@ describe("the templates", () => {
       const judged: Set<number> = new Set<number>();
       let emptyAt15: number = 0;
       let emptyAt30: number = 0;
+      let emptyInItsWindow: number = 0;
 
       for (let at: number = start; at < runEnd; at += MINUTE_MS) {
         // The connection reads at its interval.
@@ -311,31 +321,33 @@ describe("the templates", () => {
           });
         };
 
-        for (const point of inWindow(30)) {
+        for (const point of inWindow(windowMinutes)) {
           judged.add(point);
         }
 
         emptyAt15 += inWindow(15).length > 0 ? 0 : 1;
         emptyAt30 += inWindow(30).length > 0 ? 0 : 1;
+        emptyInItsWindow += inWindow(windowMinutes).length > 0 ? 0 : 1;
       }
 
       expect(batches.length).toBeGreaterThan(3);
 
       for (const batch of batches) {
-        expect(judged.has(Math.max(...batch))).toBe(true);
-
-        if (intervalInMinutes <= 15) {
-          expect(
-            batch.filter((point: number): boolean => {
-              return !judged.has(point);
-            }),
-          ).toEqual([]);
-        }
+        expect(
+          batch.filter((point: number): boolean => {
+            return !judged.has(point);
+          }),
+        ).toEqual([]);
       }
+
+      expect(emptyInItsWindow).toBe(0);
 
       if (intervalInMinutes <= 15) {
         expect(emptyAt30).toBe(0);
         expect(emptyAt15).toBeGreaterThan(0);
+      } else {
+        // What 30 minutes did, read this seldom.
+        expect(emptyAt30).toBeGreaterThan(0);
       }
     },
   );

@@ -28,7 +28,10 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
-import { assignIncidentEpisodeRole } from "../../Utils/EventRoleAssignment";
+import {
+  assignIncidentEpisodeRole,
+  reassignIncidentEpisodeRole,
+} from "../../Utils/EventRoleAssignment";
 import PermissionGate, {
   ModelAction,
   PermissionGateOptions,
@@ -37,17 +40,15 @@ import {
   usePrivateRecordGate,
   withPrivateRecordGateOptions,
 } from "Common/UI/Utils/PrivateRecordScope";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-
 /*
- * Why a reader who may not give or take off the episode's roles finds
- * Assign, Add More, Reassign and Remove locked: in the words of what they
- * pressed, not the member table's. The permissions that would allow it
- * follow.
+ * Why a reader who may not change the episode's roles finds Assign, Add
+ * More, Reassign and Remove locked, in the words of what they pressed, and
+ * the gate Reassign asks: the header asks the same (EventRoleGates).
  */
-export const EPISODE_ROLES_LOCKED_SENTENCE: string = translationKey(
-  "You do not have permission to change this episode's roles.",
-);
+import {
+  EPISODE_ROLES_LOCKED_SENTENCE,
+  getEpisodeRoleReassignGate,
+} from "../../Utils/EventRoleGates";
 
 export interface ComponentProps {
   incidentEpisodeId: ObjectID;
@@ -303,6 +304,29 @@ const IncidentEpisodeMemberRoleAssignment: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * Reassign: the role's row names the person picked - one change, which
+   * the server carries into each of the episode's incidents.
+   */
+  const handleReassignMember: (
+    member: AssignedMember,
+    newUserId: ObjectID,
+  ) => Promise<void> = async (
+    member: AssignedMember,
+    newUserId: ObjectID,
+  ): Promise<void> => {
+    await reassignIncidentEpisodeRole({
+      memberId: member.memberId,
+      userId: newUserId,
+    });
+
+    await fetchData();
+
+    if (props.onMemberChange) {
+      await props.onMemberChange();
+    }
+  };
+
   const card: ReactElement = (
     <MemberRoleAssignment
       title="Episode Roles"
@@ -314,13 +338,16 @@ const IncidentEpisodeMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       error={error}
       onAssignMember={handleAssignMember}
       onUnassignMember={handleUnassignMember}
+      onReassignMember={handleReassignMember}
       onRefresh={fetchData}
       emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
       /*
        * A role given is a new row of the episode's role members, a role
-       * taken off one removed: the header's Assign asks the same.
+       * taken off one removed, and a role handed on that row naming
+       * someone else (#10191). The header asks the same of its Assign and
+       * of its commander's name.
        */
       assignGate={PermissionGate.check(
         new IncidentEpisodeRoleMember(),
@@ -337,6 +364,9 @@ const IncidentEpisodeMemberRoleAssignment: FunctionComponent<ComponentProps> = (
           { sentence: EPISODE_ROLES_LOCKED_SENTENCE },
           privateRecordGate(new IncidentEpisodeRoleMember()),
         ),
+      )}
+      reassignGate={getEpisodeRoleReassignGate(
+        privateRecordGate(new IncidentEpisodeRoleMember()),
       )}
     />
   );

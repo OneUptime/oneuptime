@@ -16,6 +16,8 @@ import {
   ManagedDeviceCheckInOutcome,
   ManagedDeviceCheckInRecordInput,
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceCheckInMetrics";
+import { DeviceManagementConnectionReadRecord } from "../../../../Server/Utils/DeviceManagement/DeviceManagementConnectionReadMetrics";
+import { DeviceManagementConnectionReadOutcome } from "../../../../Types/DeviceManagement/DeviceManagementConnectionReading";
 import WorkspaceOneConnector, {
   WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ,
 } from "../../../../Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneConnector";
@@ -93,6 +95,7 @@ let clock: TestClock;
 let db: FakeDeviceManagementDb;
 let connection: DeviceManagementConnection;
 let checkInRecords: Array<ManagedDeviceCheckInRecordInput> = [];
+let connectionReadings: Array<DeviceManagementConnectionReadRecord> = [];
 
 function dependencies(
   transport: DeviceManagementTransport,
@@ -111,7 +114,20 @@ function dependencies(
       data: ManagedDeviceCheckInRecordInput,
     ): Promise<ManagedDeviceCheckInOutcome> => {
       checkInRecords.push(data);
-      return { readingCount: 0, hostCount: 0, securityPatchReadingCount: 0 };
+      return {
+        readingCount: 0,
+        hostCount: 0,
+        securityPatchReadingCount: 0,
+        batteryReadingCount: 0,
+        storageReadingCount: 0,
+      };
+    },
+    // The connection's own readings (#10006): ClickHouse is not played here.
+    recordConnectionReadings: async (
+      records: ReadonlyArray<DeviceManagementConnectionReadRecord>,
+    ): Promise<number> => {
+      connectionReadings.push(...records);
+      return records.length;
     },
   };
 }
@@ -202,6 +218,7 @@ beforeEach(() => {
   connection.pullState = {};
   db = installFakeDeviceManagementDb(connection);
   checkInRecords = [];
+  connectionReadings = [];
 });
 
 afterEach(() => {
@@ -503,6 +520,37 @@ describe("a Workspace ONE UEM connection", () => {
     );
   });
 
+  // #10006: the connection's own reading, for its alert.
+  test("every read writes the connection's own reading: 0 once it reads, and why when its sign-in is refused", async () => {
+    connection.lastSuccessfulPullAt = new Date(START.getTime() - 40 * MINUTE);
+
+    await run(api.transport);
+
+    expect(connectionReadings).toHaveLength(1);
+    expect(connectionReadings[0]!.reading).toMatchObject({
+      provider: DeviceManagementProvider.WorkspaceOne,
+      outcome: DeviceManagementConnectionReadOutcome.Success,
+    });
+
+    connection.secrets = JSON.stringify({
+      clientSecret: "WRONGSECRET0000000000000000000000",
+    });
+    clock.advance(16 * MINUTE);
+    await run(api.transport);
+
+    expect(connectionReadings).toHaveLength(2);
+    expect(connectionReadings[1]!.reading).toMatchObject({
+      provider: DeviceManagementProvider.WorkspaceOne,
+      outcome: DeviceManagementConnectionReadOutcome.Failed,
+      failureKind: LlmConnectionFailureKind.Authentication,
+      lastSuccessfulReadAt: connection.lastSuccessfulPullAt,
+    });
+    expect(String(connectionReadings[1]!.reading.lastError)).toContain(
+      "invalid_client",
+    );
+    expect(JSON.stringify(connectionReadings)).not.toContain("WRONGSECRET");
+  });
+
   test("a server the egress guard refuses: nothing is read from it, and the read says so", async () => {
     const guard: EgressGuardedTransport = createEgressGuardedTransport({
       inner: api.transport,
@@ -652,6 +700,20 @@ describe("a SOTI MobiControl connection", () => {
     expect(String(lastRecord()["lastError"])).toContain("invalid_grant");
     expect(JSON.stringify(db.recorded)).not.toContain("not the password");
     expect(JSON.stringify(db.recorded)).not.toContain(SOTI_CLIENT_SECRET);
+
+    // #10006: the connection's own reading says it failed, and why, without the password.
+    expect(connectionReadings).toHaveLength(1);
+    expect(connectionReadings[0]!.reading).toMatchObject({
+      provider: DeviceManagementProvider.Soti,
+      outcome: DeviceManagementConnectionReadOutcome.Failed,
+      lastError: lastRecord()["lastError"],
+    });
+    expect(JSON.stringify(connectionReadings)).not.toContain(
+      "not the password",
+    );
+    expect(JSON.stringify(connectionReadings)).not.toContain(
+      SOTI_CLIENT_SECRET,
+    );
   });
 
   test("a server on a private network, on OneUptime Cloud: refused before the sign-in, nothing read", async () => {

@@ -3,6 +3,7 @@ import {
   DataSecurityMetricUser,
   DataSecurityMetricUserWidget,
 } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
+import { MetricOutputReaders } from "../../../../Types/Metrics/MetricOutputReaders";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   findMetricReaders,
@@ -24,7 +25,9 @@ import {
  * metrics whose names hold a finding's data, it says which ones would - the
  * project's records that read metrics, found by the shared lookup
  * (Telemetry/MetricReaders), here asked which read a name the drop rule
- * drops, of its service.
+ * drops, of its service. A recording rule among them no longer gets those
+ * metrics for its output metric, so what reads that output is named under
+ * it, and on down the chain (#10085).
  */
 
 // The walk Drop This Metric has read monitors and dashboards with since #9757.
@@ -64,6 +67,8 @@ export interface MetricUsers {
   dashboardsHidden: number;
   slosHidden: number;
   recordingRulesHidden: number;
+  // What reads the output metrics of the recording rules they may not read (#10085).
+  recordingRulesHiddenOutputReaders?: MetricOutputReaders | undefined;
 }
 
 function toUser(reader: MetricReader): DataSecurityMetricUser {
@@ -79,6 +84,10 @@ function toUser(reader: MetricReader): DataSecurityMetricUser {
 
   if (reader.outputMetricName !== undefined) {
     user.outputMetricName = reader.outputMetricName;
+  }
+
+  if (reader.outputReaders) {
+    user.outputReaders = reader.outputReaders;
   }
 
   return user;
@@ -105,6 +114,8 @@ export async function findMetricUsers(data: {
       return isReferenceDropped(reference, data);
     },
     props: data.props,
+    // A recording rule it empties stops its output metric too: what reads that is named (#10085).
+    followsOutputMetrics: true,
   });
   const monitors: MetricReadersOfKind = readers[MetricReaderKind.Monitor];
   const dashboards: MetricReadersOfKind = readers[MetricReaderKind.Dashboard];
@@ -113,7 +124,7 @@ export async function findMetricUsers(data: {
   const recordingRules: MetricReadersOfKind =
     readers[MetricReaderKind.MetricRecordingRule];
 
-  return {
+  const users: MetricUsers = {
     monitors: usersOf(monitors),
     dashboards: usersOf(dashboards),
     slos: usersOf(slos),
@@ -127,4 +138,11 @@ export async function findMetricUsers(data: {
     slosHidden: slos.hiddenCount,
     recordingRulesHidden: recordingRules.hiddenCount,
   };
+
+  if (recordingRules.hiddenOutputReaders) {
+    users.recordingRulesHiddenOutputReaders =
+      recordingRules.hiddenOutputReaders;
+  }
+
+  return users;
 }

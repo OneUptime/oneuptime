@@ -138,9 +138,17 @@ En enhed, der fjernes fra Esper, markeres som **Fjernet**, og dens element arkiv
 
 Under **Administrerede enheder** klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Esper Android Device Stopped Checking In** og **Esper Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-enhed, der ikke har tjekket ind hos Esper i mere end en time, den anden for hver Apple-enhed efter mere end et døgn, hver opkaldt efter enheden og løst, så snart den tjekker ind igen.
 
-Hver læsning af forbindelsen registrerer som metrikken `oneuptime.managed_device.check_in.age`, hvor mange minutter siden hver enhed sidst tjekkede ind, og monitoren tjekker hver enheds seneste værdi hvert 5. minut. En enhed, der også kører Android Agent, overlades til **Host Stopped Reporting**, så den aldrig advarer to gange, og en enhed, der er fjernet fra Esper, løser sin advarsel. En læsning, der fejler, registrerer intet, så ingen advarsel åbnes eller løses før den næste. Hæv monitorens tærskel for en flåde, der slukkes om natten.
+Hver læsning af forbindelsen registrerer som metrikken `oneuptime.managed_device.check_in.age`, hvor mange minutter siden hver enhed sidst tjekkede ind, og monitoren tjekker hver enheds seneste værdi hvert 5. minut. En enhed, der også kører Android Agent, overlades til **Host Stopped Reporting**, så den aldrig advarer to gange, og en enhed, der er fjernet fra Esper, løser sin advarsel. En læsning, der fejler, registrerer intet om enhederne, så ingen af deres advarsler åbnes eller løses, før en læsning lykkes igen. Hæv monitorens tærskel for en flåde, der slukkes om natten.
 
 Opret også **Esper Security Patch Out of Date**, så åbner hver Android-enhed, hvis sikkerhedspatchniveau ifølge Esper er mere end 90 dage gammelt, sin egen advarsel, som løses, når enheden er opdateret. Hver læsning registrerer som metrikken `oneuptime.managed_device.security_patch.age`, hvor mange dage gammelt hver Android-enheds patchniveau er. En enhed, der kører Android Agent, overlades til sin værts **Security Patch Out of Date**, så den aldrig advarer to gange.
+
+Opret også **Esper Low Battery** og **Esper Storage Nearly Full**: hver enhed, hvis batteri ifølge Espers seneste læsning er under 20 %, åbner sin egen advarsel, og det samme gør hver enhed, hvis lagerplads er mere end 90 % fuld, og hver advarsel løses, når enheden er opladet eller har plads igen. Hver læsning registrerer begge dele som metrikkerne `oneuptime.managed_device.battery.level` og `oneuptime.managed_device.storage.used`. En enhed, der kører Android Agent, overlades til sin værts **Low Battery** og **Storage Nearly Full**, som advarer ved de samme niveauer, så den aldrig advarer to gange.
+
+En enheds advarsler står også på dens element: enhedens kort **Esper** viser de hændelser og advarsler, der er åbne om den, hver med et link til sin side, og siderne **Advarsler** og **Hændelser** for en enhed, som Android Agent ikke rapporterer, viser hver eneste, som dens forbindelses monitorer har rejst om den.
+
+### Få en advarsel, når forbindelsen ikke længere læses
+
+Opret **Esper Connection Stopped Reading**, så åbner forbindelsen sin egen advarsel, så snart ingen læsning af den er lykkedes i så lang tid, som dens række venter, før dens **Status** viser **Forældet**: tre af dens læseintervaller og ti minutter mere, og aldrig under en halv time, altså 55 minutter ved standardintervallet på 15. Dens første fejlfindingstrin viser forbindelsens seneste værdier, hver med den fejl, dens læsning fejlede med, og den første læsning, der lykkes, løser den. Hver læsning, og hver læsning, forbindelsen bliver forfalden til, registrerer som metrikken `oneuptime.managed_device.connection.read.age`, hvor mange minutter der er gået, siden en lykkedes. Monitoren venter så længe, som forbindelsens læseinterval angiver, når du opretter den, og en forbindelse, der er slået fra, registrerer intet, så en åben advarsel forbliver åben, indtil du løser den.
 
 ## Importer enheder fra Microsoft Intune
 
@@ -168,7 +176,7 @@ En enhed tjekker ind hos Intune cirka hver ottende time, og dens seneste check-i
 
 Intune navngiver en enhed det, dens ejer kaldte den, så to enheder kan have samme navn: alle iPhones, som ingen har omdøbt, hedder `iPhone`. Et navn, som to enheder i en forbindelse deler, tilhører ingen af dem i inventaret: hver navngives i stedet efter sit serienummer og får sit navn tilbage, så snart ingen anden enhed har det.
 
-For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Intune Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Intune i mere end et døgn, opkaldt efter enheden. En bærbar, der er slukket en weekend, ser ens ud, så hæv monitorens tærskel, hvis et døgn er for kort tid for dine. **Intune Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon.
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Intune Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Intune i mere end et døgn, opkaldt efter enheden. En bærbar, der er slukket en weekend, ser ens ud, så hæv monitorens tærskel, hvis et døgn er for kort tid for dine. **Intune Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon. **Intune Storage Nearly Full** og **Intune Connection Stopped Reading** advarer ligesom Espers skabeloner. Der tilbydes ingen batteriadvarsel, da Intunes liste over enheder ikke har noget batteriniveau.
 
 ## Importer enheder fra Workspace ONE UEM
 
@@ -194,7 +202,7 @@ En enhed rapporterer til Workspace ONE efter sin egen tidsplan, en iPhone med ti
 
 En app eller Android Agent, der sender telemetri fra en enhed, bliver ét element sammen med enheden via dens serienummer: sæt Android Agents indstilling `device_serial` til opslagsværdien `{DeviceSerialNumber}` i dens administrerede konfiguration.
 
-For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Workspace ONE Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har rapporteret til Workspace ONE i mere end et døgn, opkaldt efter enheden. **Workspace ONE Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon.
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Workspace ONE Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har rapporteret til Workspace ONE i mere end et døgn, opkaldt efter enheden. **Workspace ONE Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon. **Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full** og **Workspace ONE Connection Stopped Reading** advarer ligesom Espers skabeloner.
 
 ## Importer enheder fra SOTI MobiControl
 
@@ -218,7 +226,7 @@ En MobiControl-agent holder en aktiv forbindelse til sin server, så en enhed, h
 
 En app eller Android Agent, der sender telemetri fra en enhed, bliver ét element sammen med enheden via dens serienummer: sæt Android Agents indstilling `device_serial` til makroen `%SERIALNUM%` i dens administrerede konfiguration.
 
-For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **SOTI Device Stopped Checking In** og **SOTI Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-, Windows- eller Linux-enhed, hvis agent ikke har været forbundet i mere end en time, og den anden for hver Apple-enhed, der ikke har tjekket ind i mere end et døgn, hver opkaldt efter enheden. **SOTI Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon.
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **SOTI Device Stopped Checking In** og **SOTI Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-, Windows- eller Linux-enhed, hvis agent ikke har været forbundet i mere end en time, og den anden for hver Apple-enhed, der ikke har tjekket ind i mere end et døgn, hver opkaldt efter enheden. **SOTI Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon. **SOTI Low Battery**, **SOTI Storage Nearly Full** og **SOTI Connection Stopped Reading** advarer ligesom Espers skabeloner.
 
 ## Tilføj noget manuelt
 

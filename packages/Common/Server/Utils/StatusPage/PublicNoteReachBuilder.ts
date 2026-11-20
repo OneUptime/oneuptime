@@ -3,7 +3,6 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "../../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
-import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -14,9 +13,6 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import ScheduledMaintenancePublication, {
-  ScheduledMaintenancePublicationState,
-} from "../../../Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import PublicNoteReach, {
   PublicNoteNothingSentReason,
   PublicNoteReachEvent,
@@ -31,12 +27,11 @@ import IncidentEpisodeService from "../../Services/IncidentEpisodeService";
 import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
 import IncidentService from "../../Services/IncidentService";
 import ScheduledMaintenancePublicNoteService from "../../Services/ScheduledMaintenancePublicNoteService";
-import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
-import StatusPageSubscriberService from "../../Services/StatusPageSubscriberService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
+import ScheduledMaintenancePublicNoteReach from "../ScheduledMaintenance/ScheduledMaintenancePublicNoteReach";
 import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "./IncidentStatusPageScope";
@@ -63,7 +58,11 @@ import SubscriberNotificationPreviewBuilder from "./SubscriberNotificationPrevie
  *     pages that show episodes, as its note job sends;
  *   - a maintenance event on the status pages picked on it, once it is
  *     visible and published, on the pages that show maintenance events, as
- *     its note job sends.
+ *     its note job sends - worked out with the event's own utilities
+ *     (Utils/ScheduledMaintenance/ScheduledMaintenancePublicNoteReach),
+ *     which read it as its team does, unpublished included: the code that
+ *     serves status pages, here, reads a maintenance event only once it is
+ *     shown (ScheduledMaintenancePublicationOneRule).
  *
  * Every page the event reaches counts, a page the caller cannot read
  * included, so the answer is true whoever asks. It names no page: it is one
@@ -341,7 +340,8 @@ export default class PublicNoteReachBuilder {
       case PublicNoteReachEvent.IncidentEpisode:
         return this.buildForIncidentEpisode(data);
       case PublicNoteReachEvent.ScheduledMaintenance:
-        return this.buildForScheduledMaintenance(data);
+        // Read as its team reads it, with the event's own utilities.
+        return ScheduledMaintenancePublicNoteReach.build(data);
     }
   }
 
@@ -507,120 +507,6 @@ export default class PublicNoteReachBuilder {
         statusPages: resolved.statusPages,
         showsEvent: (statusPage: StatusPage): boolean => {
           return Boolean(statusPage.showEpisodesOnStatusPage);
-        },
-      }),
-    };
-  }
-
-  /*
-   * A maintenance event, as its note job sends
-   * (ScheduledMaintenancePublicNote's SendNotificationToSubscribers): hidden
-   * from status pages, or not published on them yet
-   * (ScheduledMaintenancePublication), then the status pages picked on it
-   * that show maintenance events. It reaches no page through its monitors:
-   * on none, it is still on the pages picked.
-   */
-  private static async buildForScheduledMaintenance(data: {
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-    eventId: ObjectID;
-  }): Promise<PublicNoteReachResult> {
-    const readable: ScheduledMaintenance | null =
-      await ScheduledMaintenanceService.findOneBy({
-        query: {
-          _id: data.eventId,
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-        },
-        props: data.props,
-      });
-
-    if (!readable) {
-      throw new NotFoundException("Maintenance event not found.");
-    }
-
-    await this.assertCallerMayWriteNotesOn({
-      projectId: data.projectId,
-      props: data.props,
-      event: PublicNoteReachEvent.ScheduledMaintenance,
-      eventId: data.eventId,
-    });
-
-    /*
-     * Read as root, now that the caller has been shown to read the event:
-     * its switch, its publish time and the pages picked on it are its own,
-     * and only decide the one reason answered.
-     */
-    const event: ScheduledMaintenance | null =
-      await ScheduledMaintenanceService.findOneBy({
-        query: {
-          _id: data.eventId,
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-          isVisibleOnStatusPage: true,
-          publishOnStatusPageAt: true,
-          statusPages: {
-            _id: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    // Deleted since the caller's read.
-    if (!event) {
-      throw new NotFoundException("Maintenance event not found.");
-    }
-
-    const publication: ScheduledMaintenancePublicationState =
-      ScheduledMaintenancePublication.getState(event);
-
-    if (publication === ScheduledMaintenancePublicationState.Hidden) {
-      return {
-        nothingSentReason: PublicNoteNothingSentReason.HiddenFromStatusPages,
-      };
-    }
-
-    if (publication === ScheduledMaintenancePublicationState.Scheduled) {
-      return {
-        nothingSentReason: PublicNoteNothingSentReason.NotPublishedYet,
-      };
-    }
-
-    const statusPageIds: Array<ObjectID> = [];
-
-    for (const statusPage of event.statusPages || []) {
-      const id: string = (statusPage._id || statusPage.id?.toString() || "")
-        .toString()
-        .trim();
-
-      if (id && ObjectID.isValidUUID(id)) {
-        statusPageIds.push(new ObjectID(id));
-      }
-    }
-
-    /*
-     * As the job loads them: an archived page, or one of a blocked project,
-     * sends nothing and shows nothing, and is left out here.
-     */
-    const statusPages: Array<StatusPage> =
-      statusPageIds.length > 0
-        ? await StatusPageSubscriberService.getStatusPagesToSendNotification(
-            statusPageIds,
-          )
-        : [];
-
-    return {
-      nothingSentReason: this.getStatusPagesReason({
-        projectId: data.projectId,
-        statusPages: statusPages,
-        showsEvent: (statusPage: StatusPage): boolean => {
-          return Boolean(statusPage.showScheduledMaintenanceEventsOnStatusPage);
         },
       }),
     };

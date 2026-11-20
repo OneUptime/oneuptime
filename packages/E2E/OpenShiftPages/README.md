@@ -32,7 +32,9 @@ a list view could get wrong:
   whose pod's warning must never show on `legacy-web`'s page;
 - a pod of `legacy-web`, owned by the ReplicationController of rollout 7;
 - a dozen ClusterOperators and the ClusterVersion, for the Overview's OpenShift
-  card, which `health` below turns unhealthy.
+  card, which `health` below turns unhealthy;
+- no cost from the cluster yet: the Overview's Cost card reads the cost agent's
+  allocations, finds none, and says how to turn cost monitoring on.
 
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).
@@ -41,12 +43,12 @@ Any route not listed above renders a "Not modelled" stub
 
 Query parameters on any page:
 
-| Parameter | Values                                                                                       |
-| --------- | -------------------------------------------------------------------------------------------- |
-| `cluster` | `openshift` (default), `plain`: an EKS cluster, with none of OpenShift's objects             |
-| `health`  | `healthy` (default), `degraded`, `down` (an operator not Available), `updating`, `failing`    |
-| `lang`    | `de` reads the German locale file                                                            |
-| `theme`   | `dark` adds `html.dark`                                                                      |
+| Parameter | Values                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------ |
+| `cluster` | `openshift` (default), `plain`: an EKS cluster, with none of OpenShift's objects           |
+| `health`  | `healthy` (default), `degraded`, `down` (an operator not Available), `updating`, `failing` |
+| `lang`    | `de` reads the German locale file                                                          |
+| `theme`   | `dark` adds `html.dark`                                                                    |
 
 Every read is recorded on `window.__openShiftPagesFixture`. The spec asserts its
 `unhandled` list is empty, so a page cannot quietly start asking for something

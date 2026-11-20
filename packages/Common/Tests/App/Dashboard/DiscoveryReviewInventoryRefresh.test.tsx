@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -374,7 +375,17 @@ describe("Discovery review refreshes registration from current inventory", () =>
       screen.getByRole("button", { name: "Import more devices" }),
     );
 
-    expect(checkbox("10.0.0.1")).toBeDisabled();
+    /*
+     * Imported with Status only, it reads as added and is not ticked again -
+     * but it has no monitor, so it can still be picked to get one (#9544).
+     */
+    expect(checkbox("10.0.0.1")).not.toBeChecked();
+    expect(checkbox("10.0.0.1")).toBeEnabled();
+    expect(
+      within(screen.getByTestId("discovered-host-row-10.0.0.1")).getByText(
+        "Already added",
+      ),
+    ).toBeInTheDocument();
     expect(checkbox("10.0.0.2")).toBeEnabled();
     expect(checkbox("10.0.0.2")).toBeChecked();
 

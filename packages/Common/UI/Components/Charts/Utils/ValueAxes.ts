@@ -134,6 +134,7 @@ export function getChartValueAxes(input: {
         typeof second.options.min === "number" ? second.options.min : undefined,
       maxValue:
         typeof second.options.max === "number" ? second.options.max : undefined,
+      durationUnitInSeconds: second.options.durationUnitInSeconds,
     },
     ownScales: ownScales,
   };

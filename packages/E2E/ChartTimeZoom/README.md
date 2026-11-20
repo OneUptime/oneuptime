@@ -55,7 +55,9 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   16 GiB workers (`worker-1..3`, also `KubernetesResource` Node rows with their
   allocatable), seven pods across `shop`, `search`, `data`, `ingress-nginx` and
   `batch`, the inventory summary behind the counts (24 pods, 6 namespaces, ...),
-  and two warning events (`Log`, k8sobjects shape).
+  and two warning events (`Log`, k8sobjects shape). It has sent no cost yet: the
+  cost agent's allocations (`KubernetesCostAllocation`) are an empty table, so
+  the Overview's Cost card says how to turn cost monitoring on.
 - **Host** `62000000-0000-4000-8000-000000000001`, `api-gateway-01`, Ubuntu,
   4 cores, 16 GiB, two mounts (`/`, `/boot/efi`), two NICs.
 - **Telemetry is generated, not stored.** Every `Metric` aggregate is answered from a
@@ -68,6 +70,9 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   into: worker-2's batch job and the host's gateway both peak at 11:43.
 - Network counters are cumulative and monotonic (the pages turn them into rates);
   heartbeats are one a minute, so availability reads 100%.
+- Two spans of time on the host, in seconds (#10118): `batch.job.duration`, the
+  gateway's nightly batch job, an hour and a half give or take two seconds, and
+  `system.uptime`, twelve days and five hours at 11:30, counting up a second a second.
 - `MetricType` rows give the native units (CPU in cores, `{cpu}`, so the Insights
   CPU% transform sees cores).
 - **The explorers' services, spans and logs.** Four `Service` rows (`checkout-api`,
@@ -312,7 +317,8 @@ hovers it for "A newer agent is available: 14.0.14", opens the upgrade dialog, r
 the chart's upgrade command, closes it with the keyboard and checks the focus comes
 back. Without `?appVersion` the same version reads as plain text. At a phone's width
 the dialog fits the screen. The Host Overview's collector reports `0.154.0`, older than
-the `0.161.0` the host guide pins, so its Agent Version carries the sign without any
+the release the host guide pins (`HOST_COLLECTOR_VERSION` in `AgentKind.ts`, which the
+spec reads: `0.165.0`), so its Agent Version carries the sign without any
 `?appVersion`: the spec opens the host upgrade, checks the four Linux tabs (the fixture
 host reports `os.type` linux), the link to the host's setup guide for the config, and
 the Docker and Debian commands.
@@ -601,12 +607,12 @@ draws nothing, as on every other spec here. The Docker and Podman hosts are read
 only (`CONTAINER_HOSTS` in the fixture), so the explorers' resource lists stay as their specs
 know them; their containers' CPU, memory, network and processes are series like the host's.
 It covers: no card in a project that uses no Security Events; the host's open cases, each
-opening its case, the rest counted; its events opening Security Events on what names it this
-week; its findings and risk; a quiet host's one line; the cluster's card; the Docker host's
-card, asked about as a Docker host; the Podman host's tiles that say none; and the card whole
-at 1280 and 390 in both themes, with nothing scrolling sideways. Its screenshots are
-`host-security-card-*`, `cluster-security-card-1280`, `docker-host-security-card-*` and
-`podman-host-security-card-1280`.
+opening its case, the rest counted; its events opening its own Security Events page, beside its
+Logs, on this week (the Docker and Podman hosts' too); its findings and risk; a quiet host's
+one line; the cluster's card; the Docker host's card, asked about as a Docker host; the Podman
+host's tiles that say none; and the card whole at 1280 and 390 in both themes, with nothing
+scrolling sideways. Its screenshots are `host-security-card-*`, `cluster-security-card-1280`,
+`docker-host-security-card-*` and `podman-host-security-card-1280`.
 
 The fixture draws its pages in Inter, as production does (`server.js` serves
 `InterVariable.woff2` with index.ejs's universal rule; `Tests/Ops/E2EFixtureFonts`).
@@ -644,6 +650,25 @@ own: two value axes, never a third, the percent axis kept at or under 100% (the 
 pulled it up to thousands), the processes' line spread over the plot, its chip saying "Own
 scale" beside an "Own scale: …" badge, and the chart's note saying it has no axis
 (`metric-explorer-own-scale-*-synthetic.png`).
+
+## Metric explorer: every value axis steps evenly, in round steps of its unit
+
+`MetricExplorerAxisSteps.spec.ts` (10 tests, same fixture and command) pins #10117 and
+#10118, at 1280px and 390px. The nodes' memory overlaid on CPU utilization read "7.57 GB",
+"7.65 GB", "7.74 GB" on its right axis: recharts' 85 MB steps, written to three figures.
+Each axis now steps evenly, by a round step (1, 2, 2.5 or 5 times a power of ten) of the
+unit each tick is written in, each tick written with the figures that step needs and no
+more, drawn evenly, inside the card on its side of the plot; the blank space above the
+lines is recorded on the test and kept under half the plot
+(`metric-explorer-round-steps-*-synthetic.png`). The batch job's axis, which read "1.5000
+hours", "1.5003 hours", is a clock a second a tick ("1:29:58" to "1:30:02"), on the right
+of a percent chart too (`metric-explorer-duration-axis-*-synthetic.png`), and the host's
+uptime reads "12 d 05:00" onwards, ten minutes a tick
+(`metric-explorer-uptime-axis-*-synthetic.png`). A short card takes only the ticks its plot
+has room for, one every 20px: the cluster Overview's network card, an 82px plot, read
+"250 KB/s", "750 KB/s", "1.25 MB/s" when recharts hid every other label of six ticks, and
+now draws every tick it steps, from "0 B/s". The fixture does not model that Overview's Cost
+card yet, so this test leaves its `KubernetesCostAllocationV1` reads alone.
 
 ## Logs explorer: Copy Link on a log row
 

@@ -14,6 +14,7 @@ import AIConversationMessageService from "../../../Server/Services/AIConversatio
 import AIInsightService from "../../../Server/Services/AIInsightService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import HostLogSessionService from "../../../Server/Services/HostLogSessionService";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import { OnFind } from "../../../Server/Types/Database/Hooks";
 import OwnedScopePermission from "../../../Server/Types/Database/Permissions/OwnedScopePermission";
@@ -194,6 +195,8 @@ const SERVICES: Array<DatabaseService<BaseModel>> = [
   AIInsightService,
   MonitorService,
   ScheduledMaintenanceService,
+  // An Android device moving a log session on shows on its host's Logs page at once (#9806).
+  HostLogSessionService,
 ] as unknown as Array<DatabaseService<BaseModel>>;
 
 const SERVICE_CASES: Array<[string, DatabaseService<BaseModel>]> = SERVICES.map(

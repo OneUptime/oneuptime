@@ -53,6 +53,16 @@ describe("an ILIKE pattern", () => {
   test("a value of several lines is searched whole", () => {
     expect(matchesLikePattern("%second%", "first\nsecond\nthird")).toBe(true);
   });
+
+  test("read as LIKE reads it, case counts: a site's subtree, by its path", () => {
+    const options: { isCaseSensitive: boolean } = { isCaseSensitive: true };
+
+    expect(matchesLikePattern("/abc/%", "/abc/def/", options)).toBe(true);
+    expect(matchesLikePattern("/abc/%", "/ABC/def/", options)).toBe(false);
+    expect(matchesLikePattern("/abc/%", "/abd/def/", options)).toBe(false);
+    // ILIKE, as before, when it is not asked for.
+    expect(matchesLikePattern("/abc/%", "/ABC/def/")).toBe(true);
+  });
 });
 
 describe("the two text searches", () => {

@@ -70,6 +70,7 @@ import {
   LARGE_REQUEST_BODY_LIMIT,
   RequestBodyLimit,
   getRequestBodyLimit,
+  readsBodyAfterAuthentication,
 } from "./RequestBodyLimit";
 import RequestBodyJson from "./RequestBodyJson";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
@@ -485,13 +486,20 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
    * Datadog, Sentry - Types/Telemetry/CompatibleIngest) read their own
    * bodies too: snappy protobuf, concatenated JSON objects and newline-
    * delimited envelopes are nothing a body parser here can read.
+   *
+   * So do the routes that take millions of values, a probe's collection
+   * and a forwarding pod's ClickHouse rows (#10222): each checks its
+   * caller's key before it parses the body (RequestBodyLimit,
+   * readsBodyAfterAuthentication), which a parser here, running before
+   * routing, could not wait for.
    */
   if (
     req.path.includes("/otlp/v1/") ||
     req.path.includes("/session-replay/v1/") ||
     isVercelLogDrainPath(req.path) ||
     isCloudStreamPath(req.path) ||
-    isCompatibleIngestPath(req.path)
+    isCompatibleIngestPath(req.path) ||
+    readsBodyAfterAuthentication(req.path)
   ) {
     return next();
   }
@@ -543,6 +551,7 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     isVercelLogDrainPath(req.path) ||
     isCloudStreamPath(req.path) ||
     isCompatibleIngestPath(req.path) ||
+    readsBodyAfterAuthentication(req.path) ||
     headerValueToString(req.headers["content-encoding"])?.includes("gzip")
   ) {
     next();

@@ -4,6 +4,10 @@ import { Green, Red, Yellow, Gray500 } from "../../../Types/BrandColors";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeLabel } from "../../../Types/Cloud/CloudResourceCatalog";
 import {
+  CloudConnectionDefinition,
+  getCloudConnectionDefinition,
+} from "../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
   CloudConnectionCostEstimate,
   estimateCloudConnectionCost,
 } from "../../../Types/CloudConnection/CloudConnectionCost";
@@ -34,6 +38,7 @@ import {
   getCloudCostWords,
   getCloudFailureWords,
   getCloudReadFailureWords,
+  getCloudReadIntervalRaisedWords,
   getCloudReadIntervalWords,
   getCloudRegionNames,
   getCloudTestWords,
@@ -564,5 +569,57 @@ describe("why the Credentials step cannot go on", () => {
     ).toBe(
       "Still missing: Client secret. Paste everything the command printed, or enter the values below.",
     );
+  });
+});
+
+/*
+ * #10028: a monitor made from a resource's Recommendations keeps the window
+ * it was made with when its connection's interval is raised; the form says
+ * so under the interval, and how to size one for the new interval.
+ */
+describe("raising how often a connection is read", () => {
+  const AWS: CloudConnectionDefinition = getCloudConnectionDefinition(
+    CloudProvider.AWS,
+  )!;
+
+  test("raised: the monitors made before keep their windows, and how to size one again", () => {
+    const words: CloudTemplate | undefined = getCloudReadIntervalRaisedWords({
+      definition: AWS,
+      savedValue: "10",
+      chosenValue: "60",
+    });
+
+    expect(words).toBeDefined();
+    expect(drawCloudTemplate(ENGLISH, words!)).toBe(
+      "Monitors already created from Recommendations keep the window they were made with. To size one for reads every 60 minutes, delete it and create it again from Recommendations.",
+    );
+  });
+
+  test("raised from its cloud's default when none was saved", () => {
+    expect(
+      getCloudReadIntervalRaisedWords({
+        definition: AWS,
+        savedValue: undefined,
+        chosenValue: "30",
+      })?.values,
+    ).toBeDefined();
+  });
+
+  test("kept, lowered, or a value it does not offer: nothing to say", () => {
+    for (const [savedValue, chosenValue] of [
+      ["10", "10"],
+      ["60", "15"],
+      [undefined, "10"],
+      ["30", "7"],
+      ["30", ""],
+    ] as Array<[string | undefined, string]>) {
+      expect(
+        getCloudReadIntervalRaisedWords({
+          definition: AWS,
+          savedValue,
+          chosenValue,
+        }),
+      ).toBeUndefined();
+    }
   });
 });

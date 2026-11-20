@@ -1,3 +1,8 @@
+import {
+  MetricOutputReaders,
+  readMetricOutputReaders,
+} from "../Metrics/MetricOutputReaders";
+
 /*
  * WHAT READS A METRIC ADDED TO A CLOUD CONNECTION, SAID BEFORE IT IS
  * REMOVED (#9807).
@@ -19,6 +24,11 @@
  * those alone and stop paying for the rest: unless a reader reads it of
  * every resource (a query that names none), or some records could not be
  * checked, or the connection would hold too many added metrics.
+ *
+ * A recording rule that reads it computes its output metric without it once
+ * it is removed, so what reads that output is named under the rule, and on
+ * down the chain (#10085, Metrics/MetricOutputReaders). Each widget carries
+ * the id the board draws it under, so its name links to it (#10084).
  */
 
 export enum CloudAddedMetricReaderKind {
@@ -30,6 +40,11 @@ export enum CloudAddedMetricReaderKind {
 
 // A dashboard's widget that reads it.
 export interface CloudAddedMetricReaderWidget {
+  /*
+   * The id the board draws it under, which a link opens the dashboard at
+   * (#10084); "" from an older answer, which named none.
+   */
+  id: string;
   // Its title, or "" when it has none.
   title: string;
   // Its kind ("Chart"), which names it when it has no title; "" when not known.
@@ -50,6 +65,11 @@ export interface CloudAddedMetricReader {
    * by a query that names none, so it cannot be kept for some alone.
    */
   readsEveryResource?: boolean | undefined;
+  /*
+   * A recording rule's: what reads the metric it writes, which no longer
+   * includes this one once it is removed - and on down the chain (#10085).
+   */
+  outputReaders?: MetricOutputReaders | undefined;
 }
 
 // Why a type's addition cannot be kept for the resources its readers read alone.
@@ -83,6 +103,12 @@ export interface CloudAddedMetricReaders {
     | undefined;
   // An addition for every resource of its type that something reads (#10078).
   keepFor?: CloudAddedMetricKeepFor | undefined;
+  /*
+   * What reads the output metrics of the recording rules the asker cannot
+   * open (#10085): named where they may open it, never which rules those
+   * are.
+   */
+  hiddenOutputReaders?: MetricOutputReaders | undefined;
 }
 
 function readText(value: unknown): string {
@@ -134,13 +160,20 @@ function readReader(value: unknown): CloudAddedMetricReader | null {
     reader.readsEveryResource = true;
   }
 
+  const outputReaders: MetricOutputReaders | undefined =
+    readMetricOutputReaders(raw["outputReaders"]);
+
+  if (outputReaders) {
+    reader.outputReaders = outputReaders;
+  }
+
   return reader;
 }
 
-// A widget as the answer names it: its title and kind, or - an older answer - its title alone.
+// A widget as the answer names it: its id, title and kind, or - an older answer - its title alone.
 function readWidget(value: unknown): CloudAddedMetricReaderWidget | null {
   if (typeof value === "string") {
-    return { title: value, type: "" };
+    return { id: "", title: value, type: "" };
   }
 
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -149,7 +182,11 @@ function readWidget(value: unknown): CloudAddedMetricReaderWidget | null {
 
   const raw: Record<string, unknown> = value as Record<string, unknown>;
 
-  return { title: readText(raw["title"]), type: readText(raw["type"]) };
+  return {
+    id: readText(raw["id"]),
+    title: readText(raw["title"]),
+    type: readText(raw["type"]),
+  };
 }
 
 function readCount(value: unknown): number {
@@ -270,6 +307,13 @@ export function readCloudAddedMetricReaders(
 
   if (keepFor) {
     answer.keepFor = keepFor;
+  }
+
+  const hiddenOutputReaders: MetricOutputReaders | undefined =
+    readMetricOutputReaders(raw["hiddenOutputReaders"]);
+
+  if (hiddenOutputReaders) {
+    answer.hiddenOutputReaders = hiddenOutputReaders;
   }
 
   return answer;

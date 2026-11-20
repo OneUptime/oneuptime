@@ -20,6 +20,10 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import PendingInviteeProfiles from "Common/Server/Utils/TeamMember/PendingInviteeProfiles";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import getRequestBodyLimit, {
@@ -351,6 +355,39 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(sentence).toContain(
       "a filter on a field you may not read is refused with a `422` that names it.",
     );
+  });
+
+  it("through a relation, a field only its own person may read is refused to everyone (#9895, #10176)", () => {
+    const sentence: string = lineStartingWith(
+      englishSection(API_REFERENCE, "### Filter, sort and page"),
+      "A field of a record the resource names is filtered under its relation:",
+    );
+
+    expect(sentence).toContain(
+      "Through a relation, a field only its own person may read, such as a user's time zone or their notification methods and on-call logs, is refused to everyone, in a filter and a sort alike, because the relation can name anyone's record.",
+    );
+
+    // A user's time zone, an SMS method's verification, an on-call log's status: only their person reads them.
+    for (const [model, column] of [
+      [new User(), "timezone"],
+      [new UserSMS(), "isVerified"],
+      [new UserOnCallLogTimeline(), "status"],
+    ] as Array<[BaseModel, string]>) {
+      expect(model.getColumnAccessControlFor(column)?.read).toEqual([
+        Permission.CurrentUser,
+      ]);
+      expect(
+        PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(model),
+      ).toEqual([Permission.CurrentUser]);
+    }
+
+    // The rule a filter and a sort through a relation are both held to.
+    expect(readRepoFile(QUERY_PERMISSION)).toContain(
+      "PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(",
+    );
+    expect(
+      readRepoFile("Common/Server/Types/Database/Permissions/SortValidator.ts"),
+    ).toContain("QueryPermission.canFilterOrOrderByRelatedColumn({");
   });
 
   it("filters by who owns a record under owners, as the API reads OwnedBy", () => {

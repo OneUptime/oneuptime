@@ -69,6 +69,27 @@ describe("an Intune device", () => {
     });
   });
 
+  // #10008: Graph's bytes, as Graph gives them, for how full it is.
+  test("keeps its whole and its free storage in bytes, and says no battery", () => {
+    const { device } = read(buildIntuneDevice());
+
+    expect(device.details["storageTotalBytes"]).toBe(255060049920);
+    expect(device.details["storageFreeBytes"]).toBe(141733920768);
+    expect(device.batteryLevel).toBeNull();
+  });
+
+  test("Graph's free space before the device said it - 0 - is no figure", () => {
+    const { device } = read(
+      buildIntuneDevice({
+        freeStorageSpaceInBytes: 0,
+        totalStorageSpaceInBytes: 0,
+      }),
+    );
+
+    expect(device.details["storageTotalBytes"]).toBeUndefined();
+    expect(device.details["storageFreeBytes"]).toBeUndefined();
+  });
+
   test("never reads its user: name, email, phone number", () => {
     const text: string = JSON.stringify(read(buildIntuneDevice()).device);
 

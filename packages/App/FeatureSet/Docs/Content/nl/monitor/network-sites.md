@@ -42,6 +42,8 @@ Locaties vormen een boom. Elke locatie heeft een **Locatietype** en optioneel ee
 
 Het type, de naam, de beschrijving, de ouder en de ligging van een locatie bewerk je op één plek: de kaart **Site Settings** op de pagina **Instellingen** van de locatie. Het overzicht van de locatie toont ze met een link **Bewerken in Instellingen**, en de lijst **Locaties** voegt locaties toe maar bewerkt ze niet.
 
+Locaties die niets bevatten, gaan in één stap: **Lege locaties verwijderen**, in het menu boven de lijst **Locaties**, toont elke locatie zonder apparaten (ook gearchiveerde), zonder locaties eronder en zonder endpoint, koppeling, regel of onderhoudsgebeurtenis die haar gebruikt. Het noemt de eerste tien en verwijdert na uw bevestiging precies de getoonde locaties: een locatie die intussen een apparaat krijgt, blijft bestaan. Het is voor wie locaties mag verwijderen.
+
 Elk apparaat hangt aan één locatie. De subboom van een locatie is de locatie zelf plus elke locatie eronder, en de apparaten van de subboom zijn waaruit haar gezondheid wordt samengevat, dus een regio zonder eigen apparaten heeft toch een status, omdat de units eronder die hebben.
 
 > [!NOTE]

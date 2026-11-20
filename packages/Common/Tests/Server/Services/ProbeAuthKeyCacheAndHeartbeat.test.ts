@@ -165,6 +165,65 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
     });
 
     /*
+     * The cached digest is compared with the presented key's in constant
+     * time (#10222), as the key itself is compared with the database's: how
+     * long the comparison takes says nothing of how much of it matched.
+     */
+    test("the cached digest is compared in constant time, and a different one is no match", async () => {
+      const timingSafeEqual: jest.SpyInstance = jest.spyOn(
+        crypto,
+        "timingSafeEqual",
+      );
+      const findOneBySpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "findOneBy")
+        .mockResolvedValue(null);
+
+      mockGetString.mockResolvedValue(sha256(PROBE_KEY));
+
+      expect(
+        await ProbeService.verifyProbeKey({
+          probeId: PROBE_ID,
+          probeKey: PROBE_KEY,
+        }),
+      ).toBe(true);
+      expect(timingSafeEqual).toHaveBeenCalledTimes(1);
+      expect(findOneBySpy).not.toHaveBeenCalled();
+
+      // A digest that differs in its last character only: no match, and the DB decides.
+      const almost: string = `${sha256(PROBE_KEY).slice(0, -1)}${
+        sha256(PROBE_KEY).endsWith("0") ? "1" : "0"
+      }`;
+      mockGetString.mockResolvedValue(almost);
+
+      expect(
+        await ProbeService.verifyProbeKey({
+          probeId: PROBE_ID,
+          probeKey: PROBE_KEY,
+        }),
+      ).toBe(false);
+      expect(findOneBySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a cached value that is no digest - the revocation sentinel - never matches", () => {
+      expect(
+        ProbeService.isSameKeyHash(
+          AUTH_CACHE_REVOKED_SENTINEL,
+          sha256(PROBE_KEY),
+        ),
+      ).toBe(false);
+      expect(ProbeService.isSameKeyHash("", sha256(PROBE_KEY))).toBe(false);
+      expect(
+        ProbeService.isSameKeyHash(sha256(PROBE_KEY), sha256(PROBE_KEY)),
+      ).toBe(true);
+      expect(
+        ProbeService.isSameKeyHash(
+          sha256(PROBE_KEY),
+          sha256(ROTATED_PROBE_KEY),
+        ),
+      ).toBe(false);
+    });
+
+    /*
      * Security invariant: the cache stores only a SHA-256 hex digest of the
      * key with a bounded TTL — a Redis dump must never contain a usable
      * probe credential.

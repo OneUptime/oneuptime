@@ -1,4 +1,5 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import { PROBE_COLLECTION_MIDDLEWARES } from "../../Middleware/ProbeCollectionRequest";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import { ProbeExpressRequest } from "../../Types/Request";
@@ -21,7 +22,6 @@ import OpenStackProbeLogs, {
   OpenStackProbeLogsPayload,
 } from "Common/Server/Utils/OpenStack/OpenStackProbeLogs";
 import Response from "Common/Server/Utils/Response";
-import RequestBodyJson from "Common/Server/Utils/RequestBodyJson";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -141,41 +141,6 @@ export function readRunningOpenStackCloudIds(value: unknown): Array<string> {
 }
 
 /*
- * A probe sends a collection gzip-compressed: its metrics are several megabytes of JSON
- * for a large cloud, and compress tenfold. The server's gzip body reader
- * (GzipRequestBody - bounded, 50 MiB inflated) leaves the inflated bytes in req.body; this
- * reads them as the JSON they are, before the probe is authenticated from them. A plain
- * JSON body passes untouched. The bytes are counted first (RequestBodyJson), whatever
- * their Content-Type said, so a body with more values than the route reads is refused
- * with 413 before it is parsed.
- */
-export function parseInflatedJsonBody(
-  req: ProbeExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-): void {
-  const body: unknown = req.body;
-
-  if (Buffer.isBuffer(body) || body instanceof Uint8Array) {
-    try {
-      req.body = RequestBodyJson.parse(body, RequestBodyJson.getLimit(req));
-    } catch (err) {
-      if (RequestBodyJson.isTooManyValuesError(err)) {
-        return next(err);
-      }
-
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("The collection report is not JSON."),
-      );
-    }
-  }
-
-  return next();
-}
-
-/*
  * How many new collections a probe may start: the free slots of the most a probe
  * collects at once.
  */
@@ -255,10 +220,15 @@ export function createOpenStackCollectionRouter(
     },
   );
 
+  /*
+   * A probe sends a collection gzip-compressed: its metrics are megabytes of JSON for a
+   * large cloud, and compress tenfold. Its key is checked before the report is parsed,
+   * and the report parsed whole only for a probe whose key is right
+   * (ProbeCollectionRequest).
+   */
   router.post(
     "/probe/openstack/collection",
-    parseInflatedJsonBody,
-    ProbeAuthorization.isAuthorizedServiceMiddleware,
+    ...PROBE_COLLECTION_MIDDLEWARES,
     async (
       req: ProbeExpressRequest,
       res: ExpressResponse,

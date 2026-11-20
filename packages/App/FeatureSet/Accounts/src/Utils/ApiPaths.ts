@@ -5,6 +5,7 @@ import {
   SIGN_UP_INVITATION_ROUTE,
   SIGN_UP_INVITATION_SSO_ROUTE,
 } from "Common/Types/Accounts/SignUpInvitation";
+import { INVITATION_SSO_SIGN_IN_ROUTE } from "Common/Types/Accounts/InvitationSsoSignIn";
 import {
   MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
@@ -46,6 +47,16 @@ export const SIGN_UP_INVITATION_API_URL: URL = URL.fromURL(
 export const SIGN_UP_INVITATION_SSO_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route(SIGN_UP_INVITATION_SSO_ROUTE));
+
+/*
+ * A project's SSO page opened from an invitation by someone who has signed
+ * up already, as they pick one of its providers (#10178): the invitation's
+ * single-use link, sent on OneUptime Cloud as the mailbox's confirmation of
+ * the project's sign-in.
+ */
+export const INVITATION_SSO_SIGN_IN_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(INVITATION_SSO_SIGN_IN_ROUTE));
 
 export const PASSKEY_LOGIN_OPTIONS_API_URL: URL = URL.fromURL(
   IDENTITY_URL,

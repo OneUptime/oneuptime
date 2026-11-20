@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 A list asks OneUptime for every field of each record that the key may read. `--fields` asks for the ones it names instead, and, after a dot, for a field of a related record, as in `currentIncidentState.name`. A table shows six fields; JSON shows them all (see [Output Formats](/docs/cli/output-formats)). `--all` reads every page, 100 records at a time, up to 100,000; `count` says how many there are.
 
-Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically. To list them in another order, give `--sort`.
+Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically. Records you put in order by dragging, such as incident states, are listed in that order. To list them in another order, give `--sort`.
 
 ### Filter a list
 

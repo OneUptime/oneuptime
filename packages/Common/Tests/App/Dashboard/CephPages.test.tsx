@@ -46,6 +46,8 @@ let mockInventoryReads: number = 0;
 let mockIncidents: Array<Record<string, unknown>> = [];
 let mockAlerts: Array<Record<string, unknown>> = [];
 let mockMetrics: Record<string, Array<Record<string, unknown>>> = {};
+// Metrics whose read fails, as a server that did not answer.
+let mockFailingMetrics: Set<string> = new Set<string>();
 
 function minutesAgo(minutes: number): Date {
   return new Date(Date.now() - minutes * 60 * 1000);
@@ -107,6 +109,9 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
     __esModule: true,
     default: {
       getList: (request: { query: { name: string } }): Promise<unknown> => {
+        if (mockFailingMetrics.has(request.query.name)) {
+          return Promise.reject(new Error("The server did not answer."));
+        }
         const data: Array<Record<string, unknown>> =
           mockMetrics[request.query.name] || [];
         return Promise.resolve({ data, count: data.length });
@@ -439,6 +444,7 @@ beforeEach(() => {
   mockInventoryReads = 0;
   mockIncidents = [];
   mockAlerts = [];
+  mockFailingMetrics = new Set<string>();
   troubledCluster();
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -679,25 +685,184 @@ describe("a Ceph cluster's Overview", () => {
     ).toBeNull();
   });
 
-  test("a Ceph that counts placement groups for the whole cluster only never says which pools: its legend stays words", async () => {
-    mockMetrics["ceph_pg_total"] = [
-      { time: minutesAgo(1), value: 224, attributes: {} },
-    ];
-    mockMetrics["ceph_pg_active"] = [
-      { time: minutesAgo(1), value: 224, attributes: {} },
-    ];
-    mockMetrics["ceph_pg_clean"] = [
-      { time: minutesAgo(1), value: 212, attributes: {} },
-    ];
-    mockMetrics["ceph_pg_degraded"] = [
-      { time: minutesAgo(1), value: 12, attributes: {} },
-    ];
-    mockMetrics["ceph_pg_undersized"] = [
-      { time: minutesAgo(1), value: 0, attributes: {} },
-    ];
+  /*
+   * A Luminous mgr, as it exports placement groups (#10016): every state
+   * once, for the whole cluster, with no pool_id, 0 for a state no group
+   * is in; and no ceph_health_detail. The scrape's target rides along as
+   * resource attributes, as OneUptime stores them.
+   */
+  function luminousCluster(counts: Record<string, number>): void {
+    mockMetrics = {};
+    for (const state of [
+      "total",
+      "active",
+      "clean",
+      "degraded",
+      "undersized",
+      "recovering",
+      "recovery_wait",
+      "recovery_toofull",
+      "recovery_unfound",
+      "backfilling",
+      "backfill_wait",
+      "backfill_toofull",
+      "backfill_unfound",
+      "remapped",
+      "stale",
+    ]) {
+      mockMetrics[`ceph_pg_${state}`] = [
+        {
+          time: minutesAgo(1),
+          value: counts[state] ?? 0,
+          attributes: {
+            "resource.ceph.cluster.name": "ceph-prod",
+            "resource.server.address": "ceph-mon-1",
+            "resource.server.port": "9283",
+          },
+        },
+      ];
+    }
+    mockCluster = { ...CLUSTER, cephVersion: "12.2.13" };
+  }
+
+  test("a Ceph that counts placement groups for the whole cluster only still says why: the cluster's reason, then its OSDs that are down", async () => {
+    luminousCluster({
+      total: 224,
+      active: 224,
+      clean: 212,
+      degraded: 12,
+      recovering: 4,
+      backfill_wait: 8,
+    });
     await openOverview();
 
-    expect(screen.getByText("Degraded PGs")).toBeInTheDocument();
+    const legend: HTMLElement = screen.getByRole("button", {
+      name: /Degraded PGs/,
+    });
+    // Undersized has none to open: it stays words.
+    expect(
+      screen.queryAllByTestId("stacked-progress-bar-legend-button"),
+    ).toHaveLength(1);
+
+    fireEvent.click(legend);
+    await settle();
+
+    const dialog: HTMLElement = screen.getByTestId("ceph-pg-degraded-dialog");
+    expect(
+      screen.getByText("12 degraded placement groups"),
+    ).toBeInTheDocument();
+    // What it cannot say, said plainly.
+    expect(
+      screen.getByText(
+        "A degraded placement group is missing a copy of some of its objects. This Ceph counts them for the whole cluster only, so which pools hold them is not known.",
+      ),
+    ).toBeInTheDocument();
+
+    const rows: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "ceph-pg-degraded-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["Cluster", "Osd:osd.3"]);
+
+    const clusterRow: HTMLElement = rows[0]!;
+    expect(clusterRow).toHaveTextContent("ceph-prod");
+    expect(
+      within(clusterRow).getAllByTestId("ceph-pg-degraded-dialog-reason")[0],
+    ).toHaveTextContent("12 placement groups degraded");
+    expect(
+      within(clusterRow).getByTestId("ceph-pg-degraded-dialog-fact"),
+    ).toHaveTextContent("Placement Groups:224");
+    expect(
+      within(clusterRow).getByTestId("ceph-pg-degraded-dialog-explanation"),
+    ).toHaveTextContent("Ceph is copying the missing data back.");
+    expect(
+      within(clusterRow).getByTestId("ceph-pg-degraded-dialog-message"),
+    ).toHaveTextContent("4 recovering, 8 backfill_wait");
+
+    // The OSD that is down: why it is listed, and a step from its page.
+    const osdRow: HTMLElement = rows[1]!;
+    expect(osdRow).toHaveTextContent("osd.3");
+    expect(
+      within(osdRow).getByTestId("ceph-pg-degraded-dialog-explanation"),
+    ).toHaveTextContent(
+      "Its placement groups are missing the copies it holds until it is back, or until Ceph copies them to other OSDs.",
+    );
+    expect(
+      within(osdRow).getByTestId("ceph-pg-degraded-dialog-view"),
+    ).toHaveAttribute("href", `${BASE}/osds/osd.3`);
+  });
+
+  test("on such a Ceph, Undersized opens the same way, its own count first", async () => {
+    luminousCluster({
+      total: 224,
+      active: 224,
+      clean: 208,
+      degraded: 12,
+      undersized: 4,
+      backfill_toofull: 2,
+    });
+    await openOverview();
+
+    fireEvent.click(screen.getByRole("button", { name: /Undersized PGs/ }));
+    await settle();
+
+    const dialog: HTMLElement = screen.getByTestId("ceph-pg-undersized-dialog");
+    expect(
+      screen.getByText(
+        "An undersized placement group has fewer copies than its pool keeps. This Ceph counts them for the whole cluster only, so which pools hold them is not known.",
+      ),
+    ).toBeInTheDocument();
+    const clusterRow: HTMLElement = within(dialog).getAllByTestId(
+      "ceph-pg-undersized-dialog-item",
+    )[0]!;
+    const reasons: Array<string> = within(clusterRow)
+      .getAllByTestId("ceph-pg-undersized-dialog-reason")
+      .map((reason: HTMLElement): string => {
+        return reason.textContent || "";
+      });
+    expect(reasons.slice(0, 2)).toEqual([
+      "4 placement groups undersized",
+      "12 placement groups degraded",
+    ]);
+    expect(
+      within(clusterRow).getByTestId("ceph-pg-undersized-dialog-explanation"),
+    ).toHaveTextContent(
+      "Ceph can't copy them back: an OSD it would copy to is too full.",
+    );
+  });
+
+  test("on such a Ceph, a reason that could not be read says so, and the OSDs that are down still show", async () => {
+    luminousCluster({ total: 224, active: 224, clean: 212, degraded: 12 });
+    mockFailingMetrics = new Set<string>(["ceph_pg_recovering"]);
+    await openOverview();
+
+    fireEvent.click(screen.getByRole("button", { name: /Degraded PGs/ }));
+    await settle();
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "ceph-pg-degraded-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["Cluster", "Osd:osd.3"]);
+    expect(
+      within(rows[0]!).getByTestId("ceph-pg-degraded-dialog-explanation"),
+    ).toHaveTextContent("Couldn't read what Ceph is doing about them.");
+    expect(
+      within(rows[0]!).queryByTestId("ceph-pg-degraded-dialog-message"),
+    ).toBeNull();
+  });
+
+  test("on such a Ceph, a disconnected cluster's placement groups still open nothing", async () => {
+    luminousCluster({ total: 224, active: 224, clean: 212, degraded: 12 });
+    mockCluster = { ...mockCluster, otelCollectorStatus: "disconnected" };
+    await openOverview();
+
     expect(
       screen.queryAllByTestId("stacked-progress-bar-legend-button"),
     ).toHaveLength(0);

@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Un elenco chiede a OneUptime ogni campo di ogni record che la chiave può leggere. `--fields` chiede invece quelli che nomina e, dopo un punto, un campo di un record collegato, come in `currentIncidentState.name`. Una tabella mostra sei campi; il JSON li mostra tutti (vedi [Formati di output](/docs/cli/output-formats)). `--all` legge ogni pagina, 100 record alla volta, fino a 100.000; `count` dice quanti sono.
 
-Le etichette sono elencate per nome anziché dalle più recenti: prima le etichette il cui nome inizia con un numero, nell'ordine di quel numero (`2. Team` prima di `10. Owner`), poi le altre in ordine alfabetico. Per elencarle in un altro ordine, indica `--sort`.
+Le etichette sono elencate per nome anziché dalle più recenti: prima le etichette il cui nome inizia con un numero, nell'ordine di quel numero (`2. Team` prima di `10. Owner`), poi le altre in ordine alfabetico. I record che ordini trascinandoli, come gli stati degli incidenti, sono elencati in quell'ordine. Per elencarli in un altro ordine, indica `--sort`.
 
 ### Filtrare un elenco
 

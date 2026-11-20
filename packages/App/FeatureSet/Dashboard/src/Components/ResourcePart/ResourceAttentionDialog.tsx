@@ -20,11 +20,12 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ResourceAttentionItem } from "./ResourceAttention";
 import {
-  ResourceAttentionCurrent,
-  ResourceAttentionItem,
-} from "./ResourceAttention";
+  ResourceAttentionDialogProps,
+  ResourceAttentionDialogRead,
+} from "./ResourceAttentionDialogProps";
 import ResourceAttentionRow from "./ResourceAttentionRow";
 
 /*
@@ -47,51 +48,9 @@ import ResourceAttentionRow from "./ResourceAttentionRow";
  * It is read and left: one way out, Close, and no primary action.
  */
 
-export interface ResourceAttentionDialogRead {
-  items: Array<ResourceAttentionItem>;
-  // More matched than one read lists: the most urgent are shown.
-  isTruncated?: boolean | undefined;
-}
-
-export interface ComponentProps {
-  /*
-   * In the reader's words already, a count in it: "3 failed pods". A page
-   * builds it with translatePlural, so it is never looked up again.
-   */
-  title: string;
-  // What the list is, in English - one fixed sentence, looked up here.
-  description?: string | undefined;
-  // The parts, when the page holds them; else `load` reads them on open.
-  items?: Array<ResourceAttentionItem> | undefined;
-  /*
-   * With `items`: more matched than the page holds, so the list says it
-   * shows the first of them (as a read that says so does).
-   */
-  isTruncated?: boolean | undefined;
-  /*
-   * What a list cut short says under it, in English, with the count shown:
-   * the first of them, the most urgent first, unless the list is in another
-   * order and says its own (the newest first).
-   */
-  truncatedMessage?: PluralTemplate | undefined;
-  load?: (() => Promise<ResourceAttentionDialogRead>) | undefined;
-  // What it says when nothing matches any more, in English.
-  emptyMessage: string;
-  // What failed while reading, in English: "Couldn't read the failed pods."
-  whatFailed?: string | undefined;
-  // Prefix of its test ids.
-  testId: string;
-  onClose: () => void;
-  // False when every row is the same kind of part (a list of pods).
-  showKind?: boolean | undefined;
-  /*
-   * The part whose page this is, when the list is about it and what it
-   * runs (its hero's status, pressed): its row reads "This node", as in
-   * its Needs attention card, with no View - that is the page the reader
-   * is on.
-   */
-  current?: ResourceAttentionCurrent | undefined;
-}
+// React-free, for App's tests (ResourceAttentionDialogProps); re-exported here.
+export type { ResourceAttentionDialogRead };
+export type ComponentProps = ResourceAttentionDialogProps;
 
 // The View link's look: the shared plain button, tinted indigo for View.
 export const RESOURCE_ATTENTION_VIEW_LINK_CLASS_NAME: string = `${OUTLINE_BUTTON_CLASS_NAME} ${

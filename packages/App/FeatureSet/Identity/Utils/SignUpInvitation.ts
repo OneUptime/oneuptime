@@ -59,7 +59,11 @@ export enum SignUpInvitationSsoOutcome {
   Confirmed = "confirmed",
   NotNeeded = "this server signs people in through a project's single sign-on without asking their mailbox",
   NotAsked = "the request did not name an address, a token and a project",
+  // The single-use link of someone who has signed up (#10178, InvitationSsoSignIn).
+  LinkNotAsked = "the request did not name a link's token, its signature and a project",
+  LinkNotSigned = "the link's signature is not the server's, for this project",
   LinkNotLive = "the link's token is not live for the address",
+  AccountMoved = "the account's address is no longer the one the link was sent to",
   NoAccountToClaim = "no account the link can claim: none at the address, or one that has signed up",
   Blocked = "the account is blocked",
   Administrator = "the account is a OneUptime administrator's",
@@ -345,6 +349,28 @@ export default class SignUpInvitationUtil {
     token: unknown;
     projectId: unknown;
   }): Promise<SignUpInvitationSsoOutcome> {
+    return await SignUpInvitationUtil.confirmAndLog({
+      projectId: data.projectId,
+      confirm: () => {
+        return SignUpInvitationUtil.confirmSsoSignInOrSayWhyNot(data);
+      },
+    });
+  }
+
+  /*
+   * Runs one of an invitation's links' confirmations and says, in the
+   * server's log only, what came of it - by project, never by address or
+   * token. Never throws.
+   */
+  public static async confirmAndLog(data: {
+    // The project the request named, as it named it.
+    projectId: unknown;
+    confirm: () => Promise<{
+      outcome: SignUpInvitationSsoOutcome;
+      userId?: ObjectID | undefined;
+      projectId?: ObjectID | undefined;
+    }>;
+  }): Promise<SignUpInvitationSsoOutcome> {
     let outcome: SignUpInvitationSsoOutcome = SignUpInvitationSsoOutcome.Failed;
     let confirmed: { userId: ObjectID; projectId: ObjectID } | null = null;
 
@@ -353,7 +379,7 @@ export default class SignUpInvitationUtil {
         outcome: SignUpInvitationSsoOutcome;
         userId?: ObjectID | undefined;
         projectId?: ObjectID | undefined;
-      } = await SignUpInvitationUtil.confirmSsoSignInOrSayWhyNot(data);
+      } = await data.confirm();
 
       outcome = result.outcome;
 
@@ -460,6 +486,57 @@ export default class SignUpInvitationUtil {
       return { outcome: SignUpInvitationSsoOutcome.NoAccountToClaim };
     }
 
+    return await SignUpInvitationUtil.confirmProjectSsoForAccount({
+      user: user,
+      projectId: projectId,
+      spendLink: async (): Promise<boolean> => {
+        return await UserRegistrationToken.consumeRegistrationToken({
+          token: token,
+          email: email,
+        });
+      },
+    });
+  }
+
+  /*
+   * WHAT BOTH OF AN INVITATION'S LINKS CONFIRM, once one has proved the
+   * invited mailbox (#9898, #10178): the sign-up page's registration token,
+   * for an account nobody has claimed, and the single-use link an invitation
+   * gives someone who has signed up (InvitationSsoSignIn). Every one of these
+   * is read before anything is written; otherwise nothing is written, and
+   * the link stays live:
+   *
+   *   - the account is not blocked, and is no OneUptime administrator's: a
+   *     project's provider never signs one in;
+   *   - an invitation into the project waits for it;
+   *   - single sign-on would manage their sign-in there (SsoManagedSignIn);
+   *   - the project has a provider of its own turned on, whose sign-ins the
+   *     consent is for: an instance-wide provider asks no mailbox.
+   *
+   * Then the link is spent first (`spendLink`), so of two requests racing on
+   * one link only the one whose spend removed it goes on: the invitations
+   * into the project are accepted, the address verified, the consent
+   * recorded and the person's permissions refreshed. With no invitation
+   * accepted - removed in the meantime - no consent is recorded.
+   */
+  public static async confirmProjectSsoForAccount(data: {
+    // Its id, and whether it is blocked, an administrator's or verified.
+    user: User;
+    projectId: ObjectID;
+    // Spends the link: false when another request spent it first.
+    spendLink: () => Promise<boolean>;
+  }): Promise<{
+    outcome: SignUpInvitationSsoOutcome;
+    userId?: ObjectID | undefined;
+    projectId?: ObjectID | undefined;
+  }> {
+    const user: User = data.user;
+    const projectId: ObjectID = data.projectId;
+
+    if (!user.id) {
+      return { outcome: SignUpInvitationSsoOutcome.NoAccountToClaim };
+    }
+
     if (user.isBlocked) {
       return { outcome: SignUpInvitationSsoOutcome.Blocked };
     }
@@ -513,14 +590,9 @@ export default class SignUpInvitationUtil {
 
     /*
      * Everything that can refuse has been read. Spent before anything is
-     * written: only the request whose spend removed the token goes on.
+     * written: only the request whose spend removed the link goes on.
      */
-    if (
-      !(await UserRegistrationToken.consumeRegistrationToken({
-        token: token,
-        email: email,
-      }))
-    ) {
+    if (!(await data.spendLink())) {
       return { outcome: SignUpInvitationSsoOutcome.LinkSpentMeanwhile };
     }
 
@@ -528,7 +600,7 @@ export default class SignUpInvitationUtil {
     const joined: ObjectID | null =
       await SignUpInvitationUtil.acceptForClaimedAccount({
         userId: userId,
-        projectId: projectIdText,
+        projectId: projectId.toString(),
       });
 
     /*

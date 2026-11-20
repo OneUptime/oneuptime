@@ -1,5 +1,10 @@
 import { getProjectSignInMethodsApiUrl } from "../Utils/ApiPaths";
 import { rememberSsoProvider } from "../Utils/RememberedSsoProvider";
+import { confirmInvitationSsoSignIn } from "../Utils/SignUpInvitation";
+import {
+  InvitationSsoSignInLink,
+  readInvitationSsoSignInLink,
+} from "Common/Types/Accounts/InvitationSsoSignIn";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -28,7 +33,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Params, useParams } from "react-router-dom";
+import { Location, Params, useLocation, useParams } from "react-router-dom";
 
 /*
  * A PROJECT'S SSO SIGN-IN LINK (/accounts/sso/<project id>, #9918).
@@ -56,6 +61,17 @@ import { Params, useParams } from "react-router-dom";
  * A project provider picked here is remembered on this device (#9986,
  * Utils/RememberedSsoProvider), so "Sign in with SSO" offers it first next
  * time: nobody has to keep the link.
+ *
+ * An invitation opens it too, for someone who has signed up already whose
+ * sign-in the project's single sign-on manages (#10178). On OneUptime Cloud
+ * that link carries a single-use link of the invitation's own
+ * (Common/Types/Accounts/InvitationSsoSignIn), which only their mailbox was
+ * sent: picking a provider first tells the server so
+ * (confirmInvitationSsoSignIn) - the confirmation the second email asked
+ * for - and only then starts its sign-in, so the provider signs them in the
+ * first time. Whatever the server says, or if it says nothing in time, the
+ * sign-in starts all the same, and the provider's answer asks the mailbox
+ * as it always did. Opened without one, nothing is sent.
  */
 
 // The test ids of the page's own parts, for its tests and the browser suite.
@@ -69,6 +85,14 @@ const LoginWithProjectSsoPage: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const params: Readonly<Params<string>> = useParams();
   const projectId: string = (params["projectId"] || "").trim();
+
+  // An invitation's single-use link, when the page was opened with one (#10178).
+  const location: Location = useLocation();
+  const [invitationLink] = useState<InvitationSsoSignInLink | null>(
+    (): InvitationSsoSignInLink | null => {
+      return readInvitationSsoSignInLink(location.search || "");
+    },
+  );
 
   // Null until read; empty when the link names no project.
   const [providers, setProviders] = useState<Array<SsoSignInProvider> | null>(
@@ -129,6 +153,24 @@ const LoginWithProjectSsoPage: FunctionComponent = (): ReactElement => {
   }
 
   /*
+   * The invitation's link said first, when the page was opened with one,
+   * then the provider's sign-in, whatever came of it (#10178).
+   */
+  const signInWith: (route: string) => Promise<void> = async (
+    route: string,
+  ): Promise<void> => {
+    if (invitationLink) {
+      await confirmInvitationSsoSignIn({
+        token: invitationLink.token,
+        signature: invitationLink.signature,
+        projectId: projectId,
+      });
+    }
+
+    Navigation.navigate(URL.fromURL(IDENTITY_URL).addRoute(new Route(route)));
+  };
+
+  /*
    * "Sign in with Okta", in the visitor's language, unless the admin wrote a
    * description of their own: then the provider's name, and the description
    * under it - as every sign-in page draws a provider.
@@ -163,9 +205,7 @@ const LoginWithProjectSsoPage: FunctionComponent = (): ReactElement => {
           rememberSsoProvider({ provider: provider, projectId: projectId });
 
           setIsLeaving(true);
-          Navigation.navigate(
-            URL.fromURL(IDENTITY_URL).addRoute(new Route(route)),
-          );
+          void signInWith(route);
         },
       };
     },
