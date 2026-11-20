@@ -693,16 +693,16 @@ export const getAuditLogWorkflowRanAs: (
     AuditLog,
     | "workflowRunAs"
     | "workflowRunAsCustomRoleName"
-    | "workflowRunAsGivenByName"
-    | "workflowRunAsGivenByApiKeyId"
+    | "workflowRunAsGiverName"
+    | "workflowRunAsGiverApiKeyId"
   >,
 ) => WorkflowRunRanAs | null = (
   entry: Pick<
     AuditLog,
     | "workflowRunAs"
     | "workflowRunAsCustomRoleName"
-    | "workflowRunAsGivenByName"
-    | "workflowRunAsGivenByApiKeyId"
+    | "workflowRunAsGiverName"
+    | "workflowRunAsGiverApiKeyId"
   >,
 ): WorkflowRunRanAs | null => {
   if (!entry.workflowRunAs) {
@@ -722,8 +722,8 @@ export const getAuditLogWorkflowRanAs: (
   return {
     runAs: runAs,
     roleName: entry.workflowRunAsCustomRoleName || null,
-    givenBy: entry.workflowRunAsGivenByName || null,
-    isGivenByApiKey: Boolean(entry.workflowRunAsGivenByApiKeyId),
+    givenBy: entry.workflowRunAsGiverName || null,
+    isGivenByApiKey: Boolean(entry.workflowRunAsGiverApiKeyId),
   };
 };
 
