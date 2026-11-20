@@ -463,8 +463,17 @@ export default class QueryHelper {
     );
   }
 
+  /*
+   * Contains, starts with, ends with and does not contain read what was
+   * typed literally: a `%` or `_` in it is escaped, as ClickHouse's
+   * compiler escapes it (Statement.serializeValue) and as searchAllWords
+   * and the search grammar's own wildcard (`*`, toLikePattern) do. They
+   * read them as LIKE wildcards before, so "100% full" also matched
+   * "100 is not full" in a Postgres list while the ClickHouse chart beside
+   * it matched it literally (#10545).
+   */
   public static search(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -539,7 +548,7 @@ export default class QueryHelper {
     entityPropertyNames: Array<string>,
     value: string,
   ): FindWhereProperty<any> {
-    const trimmed: string = value.toLowerCase().trim();
+    const trimmed: string = escapeLikePattern(value.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
 
     return Raw(
@@ -623,7 +632,7 @@ export default class QueryHelper {
   }
 
   public static notContains(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -636,7 +645,7 @@ export default class QueryHelper {
   }
 
   public static startsWith(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -649,7 +658,7 @@ export default class QueryHelper {
   }
 
   public static endsWith(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
