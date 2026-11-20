@@ -60751,5 +60751,6 @@
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升级规则已在呼叫值班计划“{{schedule}}”轮换中的下一个人，因此没有再次添加该计划。",
   "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "此升级规则已在呼叫团队“{{team}}”，因此没有再次添加该团队。",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升级规则已在呼叫值班计划“{{schedule}}”的当前值班者，因此没有再次添加该计划。",
-  "This escalation rule pages {{person}} already, so they were not added again.": "此升级规则已在呼叫 {{person}}，因此没有再次添加此人。"
+  "This escalation rule pages {{person}} already, so they were not added again.": "此升级规则已在呼叫 {{person}}，因此没有再次添加此人。",
+  "Invited, and paged once they join: {{names}}.": "已邀请，加入后才会被呼叫：{{names}}。"
 }

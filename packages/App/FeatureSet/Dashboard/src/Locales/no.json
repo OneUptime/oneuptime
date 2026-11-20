@@ -60751,5 +60751,6 @@
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Denne eskaleringsregelen tilkaller allerede neste person i rotasjonen i vaktplanen «{{schedule}}», så vaktplanen ble ikke lagt til på nytt.",
   "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "Denne eskaleringsregelen tilkaller allerede teamet «{{team}}», så det ble ikke lagt til på nytt.",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Denne eskaleringsregelen tilkaller allerede den som har vakt i vaktplanen «{{schedule}}», så vaktplanen ble ikke lagt til på nytt.",
-  "This escalation rule pages {{person}} already, so they were not added again.": "Denne eskaleringsregelen tilkaller allerede {{person}}, så personen ble ikke lagt til på nytt."
+  "This escalation rule pages {{person}} already, so they were not added again.": "Denne eskaleringsregelen tilkaller allerede {{person}}, så personen ble ikke lagt til på nytt.",
+  "Invited, and paged once they join: {{names}}.": "Invitert og tilkalt når de blir med: {{names}}."
 }

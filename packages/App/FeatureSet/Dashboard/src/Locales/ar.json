@@ -60751,5 +60751,6 @@
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "قاعدة التصعيد هذه تستدعي الشخص التالي في تناوب جدول المناوبة «{{schedule}}» بالفعل، لذا لم يُضَف الجدول مرة أخرى.",
   "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "قاعدة التصعيد هذه تستدعي الفريق «{{team}}» بالفعل، لذا لم يُضَف مرة أخرى.",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "قاعدة التصعيد هذه تستدعي المناوب الحالي في جدول المناوبة «{{schedule}}» بالفعل، لذا لم يُضَف الجدول مرة أخرى.",
-  "This escalation rule pages {{person}} already, so they were not added again.": "قاعدة التصعيد هذه تستدعي {{person}} بالفعل، لذا لم يُضَف مرة أخرى."
+  "This escalation rule pages {{person}} already, so they were not added again.": "قاعدة التصعيد هذه تستدعي {{person}} بالفعل، لذا لم يُضَف مرة أخرى.",
+  "Invited, and paged once they join: {{names}}.": "مدعوون، ويُستدعَون بعد انضمامهم: {{names}}."
 }

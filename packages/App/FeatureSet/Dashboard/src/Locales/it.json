@@ -60751,5 +60751,6 @@
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Questa regola di escalation chiama già la persona successiva nella rotazione della pianificazione di reperibilità «{{schedule}}», quindi la pianificazione non è stata aggiunta di nuovo.",
   "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "Questa regola di escalation chiama già il team «{{team}}», quindi non è stato aggiunto di nuovo.",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Questa regola di escalation chiama già chi è reperibile nella pianificazione di reperibilità «{{schedule}}», quindi la pianificazione non è stata aggiunta di nuovo.",
-  "This escalation rule pages {{person}} already, so they were not added again.": "Questa regola di escalation chiama già {{person}}, quindi questa persona non è stata aggiunta di nuovo."
+  "This escalation rule pages {{person}} already, so they were not added again.": "Questa regola di escalation chiama già {{person}}, quindi questa persona non è stata aggiunta di nuovo.",
+  "Invited, and paged once they join: {{names}}.": "Invitati, e chiamati quando si uniscono: {{names}}."
 }

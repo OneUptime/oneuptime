@@ -60751,5 +60751,6 @@
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.",
   "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "This escalation rule pages the team \"{{team}}\" already, so it was not added again.",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.",
-  "This escalation rule pages {{person}} already, so they were not added again.": "This escalation rule pages {{person}} already, so they were not added again."
+  "This escalation rule pages {{person}} already, so they were not added again.": "This escalation rule pages {{person}} already, so they were not added again.",
+  "Invited, and paged once they join: {{names}}.": "Invited, and paged once they join: {{names}}."
 }

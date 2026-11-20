@@ -60751,5 +60751,6 @@
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "यह एस्केलेशन नियम ऑन-कॉल अनुसूची \"{{schedule}}\" के रोटेशन में अगले व्यक्ति को पहले से पेज करता है, इसलिए अनुसूची को दोबारा नहीं जोड़ा गया।",
   "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "यह एस्केलेशन नियम टीम \"{{team}}\" को पहले से पेज करता है, इसलिए उसे दोबारा नहीं जोड़ा गया।",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "यह एस्केलेशन नियम ऑन-कॉल अनुसूची \"{{schedule}}\" में ड्यूटी पर मौजूद व्यक्ति को पहले से पेज करता है, इसलिए अनुसूची को दोबारा नहीं जोड़ा गया।",
-  "This escalation rule pages {{person}} already, so they were not added again.": "यह एस्केलेशन नियम {{person}} को पहले से पेज करता है, इसलिए उन्हें दोबारा नहीं जोड़ा गया।"
+  "This escalation rule pages {{person}} already, so they were not added again.": "यह एस्केलेशन नियम {{person}} को पहले से पेज करता है, इसलिए उन्हें दोबारा नहीं जोड़ा गया।",
+  "Invited, and paged once they join: {{names}}.": "आमंत्रित, और जुड़ने के बाद पेज किए जाएंगे: {{names}}।"
 }

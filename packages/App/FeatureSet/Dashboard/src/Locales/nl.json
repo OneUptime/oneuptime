@@ -60751,5 +60751,6 @@
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Deze escalatieregel roept al de volgende persoon in de rotatie van het bereikbaarheidsschema \"{{schedule}}\" op, dus het schema is niet opnieuw toegevoegd.",
   "This escalation rule pages the team \"{{team}}\" already, so it was not added again.": "Deze escalatieregel roept het team \"{{team}}\" al op, dus het is niet opnieuw toegevoegd.",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Deze escalatieregel roept al op wie er dienst heeft in het bereikbaarheidsschema \"{{schedule}}\", dus het schema is niet opnieuw toegevoegd.",
-  "This escalation rule pages {{person}} already, so they were not added again.": "Deze escalatieregel roept {{person}} al op, dus deze persoon is niet opnieuw toegevoegd."
+  "This escalation rule pages {{person}} already, so they were not added again.": "Deze escalatieregel roept {{person}} al op, dus deze persoon is niet opnieuw toegevoegd.",
+  "Invited, and paged once they join: {{names}}.": "Uitgenodigd, en opgeroepen zodra ze lid zijn: {{names}}."
 }
