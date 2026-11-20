@@ -104,7 +104,7 @@ Android lar en app lese andre appers logger bare med tillatelsen READ_LOGS, og b
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Med Esper kjører du kommandoen over **Secure Remote ADB**: Slå på ADB-tilgang for enheten, koble til med `espercli secureadb connect --device DEVICE_ID`, og kjør deretter kommandoen. Android starter agenten på nytt når tillatelsen gis, og agenten begynner å lese med en gang.
+Med Esper kjører du kommandoen over **Secure Remote ADB**: Slå på ADB-tilgang for enheten, koble til med `espercli secureadb connect --device DEVICE_ID`, og kjør deretter kommandoen. Android starter agenten på nytt når tillatelsen gis, og agenten begynner å lese med en gang. Kolonnen **MDM-ID** i inventaret har `DEVICE_ID` for hver enhet.
 
 Hva agenten da leser, avhenger av Android-versjonen:
 
@@ -126,7 +126,7 @@ Den første kommandoen gjelder Android 15 og nyere; brukstilgang kan også slås
 
 ### Gi dem på en hel flåte
 
-Hver rapport fra agenten sier hvilke av dem den fortsatt mangler. For å få en liste over enhetene som trenger dem, åpner du **Inventar**, deretter **Alle elementer**, og filtrerer på **Agenttillatelser**: **Mangler**. Slå på kolonnen **Agenttillatelser** for å se hva hver enhet mangler, og eksporter listen som CSV.
+Hver rapport fra agenten sier hvilke av dem den fortsatt mangler. For å få en liste over enhetene som trenger dem, åpner du **Inventar**, deretter **Alle elementer**, og filtrerer på **Agenttillatelser**: **Mangler**. Slå på kolonnen **Agenttillatelser** for å se hva hver enhet mangler, og eksporter listen som CSV. Slå også på kolonnen **MDM-ID**, så har eksporten Esper-ID-en til hver enhet, den `DEVICE_ID` som `espercli secureadb connect --device` tar.
 
 En enhetspolicy kan ikke gi disse: READ_LOGS og READ_DROPBOX_DATA er tillatelser som bare adb, systemet eller produsenten av enheten kan gi, og brukstilgang slås på av adb eller av personen ved enheten. Hva Esper tilbyr, og hvorfor ingenting av det gir dem:
 
@@ -204,7 +204,7 @@ En økt trenger READ_LOGS og `logcat_enabled`; uten dem står den på **Utilgjen
 
 Under **Verter** står enhetens OS som Android, med Androids logo.
 
-En enhet ligger etter med sikkerhetspatchene sine når sikkerhetspatchnivået er mer enn 90 dager gammelt. Google publiserer en sikkerhetsbulletin for Android hver måned, og Android Enterprise Recommended pålegger produsenten av en enhet å levere hver av dem innen 90 dager, så en enhet som ligger lenger etter, mangler rettelser som produsenten burde ha levert. I **Inventar** viser filteret **Sikkerhetspatchnivå** disse enhetene under **Utdatert**; malen **Security Patch Out of Date** gir et varsel for hver av dem.
+En enhet ligger etter med sikkerhetspatchene sine når sikkerhetspatchnivået er mer enn 90 dager gammelt. Google publiserer en sikkerhetsbulletin for Android hver måned, og Android Enterprise Recommended pålegger produsenten av en enhet å levere hver av dem innen 90 dager, så en enhet som ligger lenger etter, mangler rettelser som produsenten burde ha levert. I **Inventar** viser filteret **Sikkerhetspatchnivå** disse enhetene under **Utdatert**; malen **Security Patch Out of Date** gir et varsel for hver av dem. En Android-enhet som en MDM importerer, og som agenten ikke kjører på, får varselet fra den egne malen til tilkoblingen sin, for eksempel **Esper Security Patch Out of Date**, ut fra patchnivået MDM-en rapporterer; en enhet som agenten kjører på, overlates til denne malen, så den aldri varsler to ganger.
 
 Antall oppstarter den siste timen er målingen `android.boot.recent_count`, og en enhet som fortsetter å starte på nytt, logger en advarsel ved hver oppstart. Under **Verter** tilbys en Android-enhet egne varslingsmaler: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full og Security Patch Out of Date, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization, og High CPU Utilization når den rapporterer CPU-bruk. De første feilsøkingskommandoene i hvert varsel er adb-kommandoer. Se [Verts-monitor](/docs/monitor/host-monitor#android-enheter).
 

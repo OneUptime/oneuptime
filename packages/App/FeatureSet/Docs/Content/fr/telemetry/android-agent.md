@@ -104,7 +104,7 @@ Android ne permet à une application de lire les journaux des autres application
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Avec Esper, lancez cette commande via **Secure Remote ADB** : activez l'accès ADB pour l'appareil, connectez-vous avec `espercli secureadb connect --device DEVICE_ID`, puis lancez la commande. Android redémarre l'agent quand l'autorisation est accordée, et l'agent commence aussitôt à lire.
+Avec Esper, lancez cette commande via **Secure Remote ADB** : activez l'accès ADB pour l'appareil, connectez-vous avec `espercli secureadb connect --device DEVICE_ID`, puis lancez la commande. Android redémarre l'agent quand l'autorisation est accordée, et l'agent commence aussitôt à lire. La colonne **ID dans le gestionnaire d'appareils** de l'inventaire contient le `DEVICE_ID` de chaque appareil.
 
 Ce que l'agent lit ensuite dépend de la version d'Android :
 
@@ -126,7 +126,7 @@ La première commande concerne Android 15 et versions ultérieures ; l'accès au
 
 ### Les accorder sur tout le parc
 
-Chaque rapport de l'agent indique lesquelles de ces autorisations lui manquent encore. Pour lister les appareils qui en ont besoin, ouvrez **Inventaire**, puis **Tous les éléments**, et filtrez par **Autorisations de l'agent** : **Manquant**. Activez la colonne **Autorisations de l'agent** pour voir ce qui manque à chaque appareil, et exportez la liste en CSV.
+Chaque rapport de l'agent indique lesquelles de ces autorisations lui manquent encore. Pour lister les appareils qui en ont besoin, ouvrez **Inventaire**, puis **Tous les éléments**, et filtrez par **Autorisations de l'agent** : **Manquant**. Activez la colonne **Autorisations de l'agent** pour voir ce qui manque à chaque appareil, et exportez la liste en CSV. Activez aussi la colonne **ID dans le gestionnaire d'appareils**, et l'export contient l'ID Esper de chaque appareil, le `DEVICE_ID` qu'attend `espercli secureadb connect --device`.
 
 Une stratégie d'appareil ne peut pas les accorder : READ_LOGS et READ_DROPBOX_DATA sont des autorisations que seuls adb, le système ou le fabricant de l'appareil peuvent donner, et l'accès aux données d'utilisation est activé par adb ou par la personne devant l'appareil. Ce que propose Esper, et pourquoi rien de tout cela ne les accorde :
 
@@ -204,7 +204,7 @@ Une session a besoin de READ_LOGS et de `logcat_enabled` ; sans eux, elle indiqu
 
 Dans **Hôtes**, l'OS de l'appareil indique Android, avec le logo d'Android.
 
-Un appareil est en retard sur ses correctifs de sécurité quand son niveau de correctif de sécurité date de plus de 90 jours. Google publie chaque mois un bulletin de sécurité Android, et Android Enterprise Recommended impose au fabricant d'un appareil de livrer chacun d'eux sous 90 jours, si bien qu'il manque à un appareil plus en retard des corrections que son fabricant aurait dû livrer. Dans **Inventaire**, le filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour** ; le modèle **Security Patch Out of Date** déclenche une alerte pour chacun.
+Un appareil est en retard sur ses correctifs de sécurité quand son niveau de correctif de sécurité date de plus de 90 jours. Google publie chaque mois un bulletin de sécurité Android, et Android Enterprise Recommended impose au fabricant d'un appareil de livrer chacun d'eux sous 90 jours, si bien qu'il manque à un appareil plus en retard des corrections que son fabricant aurait dû livrer. Dans **Inventaire**, le filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour** ; le modèle **Security Patch Out of Date** déclenche une alerte pour chacun. Un appareil Android qu'un gestionnaire d'appareils importe et sur lequel l'agent ne tourne pas reçoit l'alerte du modèle de sa connexion, comme **Esper Security Patch Out of Date**, d'après le niveau de correctif que rapporte le gestionnaire d'appareils ; un appareil sur lequel l'agent tourne est laissé à ce modèle-ci, si bien qu'il n'alerte jamais deux fois.
 
 Les démarrages de l'appareil au cours de la dernière heure forment la métrique `android.boot.recent_count`, et un appareil qui redémarre sans cesse écrit un avertissement dans ses journaux à chaque démarrage. Dans **Hôtes**, un appareil Android se voit proposer ses propres modèles d'alerte : Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full et Security Patch Out of Date, avec Host Stopped Reporting, Host Restarted et High Memory Utilization, et High CPU Utilization dès qu'il signale son utilisation du processeur. Les premières commandes de débogage de chaque alerte sont des commandes adb. Voir [Surveillance des hôtes](/docs/monitor/host-monitor#appareils-android).
 

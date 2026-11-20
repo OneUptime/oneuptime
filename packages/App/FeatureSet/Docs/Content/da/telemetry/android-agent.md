@@ -104,7 +104,7 @@ Android lader kun en app læse andre apps' logs med tilladelsen READ_LOGS, og ku
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Med Esper kører du kommandoen over **Secure Remote ADB**: Slå ADB-adgang til for enheden, opret forbindelse med `espercli secureadb connect --device DEVICE_ID`, og kør derefter kommandoen. Android genstarter agenten, når tilladelsen gives, og agenten begynder at læse med det samme.
+Med Esper kører du kommandoen over **Secure Remote ADB**: Slå ADB-adgang til for enheden, opret forbindelse med `espercli secureadb connect --device DEVICE_ID`, og kør derefter kommandoen. Android genstarter agenten, når tilladelsen gives, og agenten begynder at læse med det samme. Kolonnen **MDM-ID** i inventaret rummer hver enheds `DEVICE_ID`.
 
 Hvad agenten derefter læser, afhænger af Android-versionen:
 
@@ -126,7 +126,7 @@ Den første kommando er til Android 15 og nyere; adgang til forbrugsdata kan ogs
 
 ### Giv dem på en hel flåde
 
-Hver rapport fra agenten fortæller, hvilke af dem den stadig mangler. For at få vist de enheder, der har brug for dem, skal du åbne **Inventar**, derefter **Alle elementer**, og filtrere efter **Agenttilladelser**: **Mangler**. Slå kolonnen **Agenttilladelser** til for at se, hvad hver enhed mangler, og eksporter listen som CSV.
+Hver rapport fra agenten fortæller, hvilke af dem den stadig mangler. For at få vist de enheder, der har brug for dem, skal du åbne **Inventar**, derefter **Alle elementer**, og filtrere efter **Agenttilladelser**: **Mangler**. Slå kolonnen **Agenttilladelser** til for at se, hvad hver enhed mangler, og eksporter listen som CSV. Slå også kolonnen **MDM-ID** til, så rummer eksporten hver enheds Esper-id, det `DEVICE_ID`, som `espercli secureadb connect --device` tager.
 
 En enhedspolitik kan ikke give disse: READ_LOGS og READ_DROPBOX_DATA er tilladelser, som kun adb, systemet eller enhedens producent kan give, og adgang til forbrugsdata slås til af adb eller af personen ved enheden. Hvad Esper tilbyder, og hvorfor intet af det giver dem:
 
@@ -204,7 +204,7 @@ En session kræver READ_LOGS og `logcat_enabled`; uden dem står den på **Ikke 
 
 I **Værter** står enhedens OS som Android, med Androids logo.
 
-En enhed er bagud med sine sikkerhedspatches, når dens sikkerhedspatchniveau er mere end 90 dage gammelt. Google udgiver en sikkerhedsbulletin for Android hver måned, og Android Enterprise Recommended forpligter en enheds producent til at levere hver af dem inden for 90 dage, så en enhed, der er længere bagud, mangler rettelser, som dens producent burde have leveret. I **Inventar** viser filteret **Sikkerhedspatchniveau** disse enheder under **Ikke opdateret**; skabelonen **Security Patch Out of Date** giver en advarsel for hver af dem.
+En enhed er bagud med sine sikkerhedspatches, når dens sikkerhedspatchniveau er mere end 90 dage gammelt. Google udgiver en sikkerhedsbulletin for Android hver måned, og Android Enterprise Recommended forpligter en enheds producent til at levere hver af dem inden for 90 dage, så en enhed, der er længere bagud, mangler rettelser, som dens producent burde have leveret. I **Inventar** viser filteret **Sikkerhedspatchniveau** disse enheder under **Ikke opdateret**; skabelonen **Security Patch Out of Date** giver en advarsel for hver af dem. En Android-enhed, som en MDM importerer, og som agenten ikke kører på, får advarslen fra sin forbindelses egen skabelon, fx **Esper Security Patch Out of Date**, ud fra det patchniveau, som MDM'en rapporterer; en enhed, som agenten kører på, overlades til denne skabelon, så den aldrig advarer to gange.
 
 Antallet af opstarter i den seneste time er metrikken `android.boot.recent_count`, og en enhed, der bliver ved med at genstarte, logger en advarsel ved hver opstart. I **Værter** tilbydes en Android-enhed sine egne advarselsskabeloner: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full og Security Patch Out of Date, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization, og High CPU Utilization, når den rapporterer CPU-forbrug. Hver advarsels første fejlfindingskommandoer er adb-kommandoer. Se [Værts-monitor](/docs/monitor/host-monitor#android-enheder).
 

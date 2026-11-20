@@ -59746,5 +59746,8 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "У приёмника journald в этой конфигурации нет операторов, поэтому её хосты отправляют каждую строку журнала целой записью, без юнита.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "У приёмника journald в этой конфигурации свои операторы, и ни один из них не относит строку журнала к её юниту.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "Приёмник journald OneUptime по умолчанию для Linux. Скопируйте его операторы в свой рядом со своими, чтобы каждая строка журнала относилась к своему юниту.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Они добавляются в каждый приёмник journald, где их нет, и больше ничего не меняется. После сохранения это новая версия, которую её хосты получат в течение минуты."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Они добавляются в каждый приёмник journald, где их нет, и больше ничего не меняется. После сохранения это новая версия, которую её хосты получат в течение минуты.",
+  "Device Manager ID": "ID в системе управления устройствами",
+  "{{count}} days old": "Давность: {{count}} дн.",
+  "{{count}} days old_one": "Давность: {{count}} день"
 }

@@ -74,13 +74,13 @@ Apri un elemento e il suo menu laterale ha la sua **Panoramica** (tipo, fonte e 
 
 ### Dettagli dell'asset
 
-Un host o un dispositivo di rete ha una scheda **Dettagli dell'asset** che li descrive entrambi allo stesso modo: hostname, indirizzo IP, indirizzo MAC, numero di serie, produttore, modello, versione del firmware, sistema operativo, versione del sistema operativo, tipo di dispositivo e posizione. La scheda di un dispositivo Android ha anche il suo livello patch di sicurezza, dall'Agent Android o dal suo gestore dei dispositivi. Un dato che nulla ha segnalato si legge **Sconosciuto**, e la scheda spiega perché accade e come si compilano quelli sconosciuti: un dispositivo che non li segnala via SNMP, un dispositivo non ancora letto, o un dispositivo Meraki la cui dashboard li contiene.
+Un host o un dispositivo di rete ha una scheda **Dettagli dell'asset** che li descrive entrambi allo stesso modo: hostname, indirizzo IP, indirizzo MAC, numero di serie, produttore, modello, versione del firmware, sistema operativo, versione del sistema operativo, tipo di dispositivo e posizione. La scheda di un dispositivo Android ha anche il suo livello patch di sicurezza, dall'Agent Android o dal suo gestore dei dispositivi. Dice anche se la patch è **Da aggiornare**, come la colonna **Livello patch di sicurezza**, e a quanti giorni fa risale. Un dato che nulla ha segnalato si legge **Sconosciuto**, e la scheda spiega perché accade e come si compilano quelli sconosciuti: un dispositivo che non li segnala via SNMP, un dispositivo non ancora letto, o un dispositivo Meraki la cui dashboard li contiene.
 
 - I dati di un host vengono dagli attributi di risorsa della sua telemetria: i suoi indirizzi IP e MAC, l'architettura e il sistema operativo fin da subito, e il numero di serie, la marca, il modello e il firmware una volta che li apponi.
 - I dati di un dispositivo di rete vengono dal suo polling SNMP, dal suo ruolo e dal suo sito. Ciò che il suo polling non ha letto viene dal rilevamento: l'ultima scansione del suo indirizzo, la tabella ARP di un router o la risoluzione DNS della sua sonda. Un dispositivo senza ENTITY-MIB, come un Meraki MX, ricava comunque marca, modello e sistema operativo dalla sua descrizione di sistema, e il suo indirizzo MAC dalle sue porte. Il suo indirizzo IP non viene mai mostrato come hostname.
 - Un dispositivo Meraki prende anche dalla dashboard di Meraki ciò che il suo polling lascia vuoto, tra cui numero di serie, modello e firmware, quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione.
 
-In **Tutti gli elementi** trovi i dispositivi Android su cui intervenire. Il filtro **Livello patch di sicurezza** elenca come **Da aggiornare** i dispositivi il cui livello patch di sicurezza ha più di 90 giorni, la stessa regola che applica l'avviso Security Patch Out of Date del [monitor host](/docs/monitor/host-monitor). Il filtro **Autorizzazioni dell'agente** elenca i dispositivi su cui all'[Agent Android](/docs/telemetry/android-agent) mancano ancora READ_LOGS, READ_DROPBOX_DATA o l'accesso ai dati di utilizzo. Ciascuno ha una colonna con lo stesso nome, nascosta finché non la attivi, e l'esportazione CSV la include.
+In **Tutti gli elementi** trovi i dispositivi Android su cui intervenire. Il filtro **Livello patch di sicurezza** elenca come **Da aggiornare** i dispositivi il cui livello patch di sicurezza ha più di 90 giorni, la stessa regola che applica l'avviso Security Patch Out of Date del [monitor host](/docs/monitor/host-monitor). Il filtro **Autorizzazioni dell'agente** elenca i dispositivi su cui all'[Agent Android](/docs/telemetry/android-agent) mancano ancora READ_LOGS, READ_DROPBOX_DATA o l'accesso ai dati di utilizzo. Ciascuno ha una colonna con lo stesso nome, nascosta finché non la attivi, e l'esportazione CSV la include. Accanto, la colonna **ID nel gestore dei dispositivi** contiene l'ID con cui il gestore dei dispositivi conosce un dispositivo, come l'ID Esper che `espercli secureadb connect --device` richiede.
 
 La scheda indica da dove viene ogni dato e quando. La fonte condivisa dalla maggior parte dei dati, come il collector di un host, il polling SNMP proprio di un dispositivo di rete o la scansione di rilevamento che lo ha letto, viene nominata una sola volta, sotto i dati. Qualsiasi altra fonte, come la tabella ARP di un router o un valore salvato sul dispositivo, viene nominata sotto il suo dato. Un valore salvato su un dispositivo di rete non viene mai sostituito da ciò che legge il rilevamento, e quando i due differiscono, la scheda li mostra entrambi.
 
@@ -115,6 +115,7 @@ Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, 
 | Modello, produttore, numero di serie, sistema operativo e la sua versione, build, e indirizzi IP e MAC | La scheda **Dettagli dell'asset** del dispositivo e le colonne di **Tutti gli elementi** |
 | Stato, ultimo contatto, gruppo, livello patch di sicurezza, IMEI, batteria, archiviazione e agente Esper | La scheda **Esper** del dispositivo e l'elenco **Dispositivi** di **Dispositivi gestiti** |
 | Le app e le loro versioni | L'elenco **App installate** del dispositivo |
+| Il suo ID dispositivo Esper | La colonna **ID nel gestore dei dispositivi** di **Tutti gli elementi** |
 
 ### Un dispositivo, non due
 
@@ -138,6 +139,8 @@ Un dispositivo rimosso da Esper viene contrassegnato come **Rimosso**, e il suo 
 In **Dispositivi gestiti**, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Esper Android Device Stopped Checking In** e **Esper Apple Device Stopped Checking In**. Il primo apre un avviso per ogni dispositivo Android che non contatta Esper da più di un'ora, il secondo per ogni dispositivo Apple dopo più di un giorno, ciascuno con il nome del dispositivo e risolto appena il dispositivo torna a comunicare.
 
 Ogni lettura della connessione registra quanti minuti fa ogni dispositivo ha contattato Esper l'ultima volta, come metrica `oneuptime.managed_device.check_in.age`, e il monitor controlla l'ultimo valore di ogni dispositivo ogni 5 minuti. Un dispositivo su cui gira anche l'Agent Android è lasciato a **Host Stopped Reporting**, così non genera mai due avvisi, e un dispositivo rimosso da Esper risolve il suo avviso. Una lettura che non riesce non registra nulla, quindi nessun avviso si apre né si risolve fino alla successiva. Per una flotta che viene spenta di notte, alza la soglia del monitor.
+
+Crea anche **Esper Security Patch Out of Date**: ogni dispositivo Android il cui livello patch di sicurezza, secondo Esper, risale a più di 90 giorni fa apre un proprio avviso, risolto quando il dispositivo viene aggiornato. Ogni lettura registra a quanti giorni fa risale il livello patch di ogni dispositivo Android, come metrica `oneuptime.managed_device.security_patch.age`. Un dispositivo su cui gira l'Agent Android è lasciato al **Security Patch Out of Date** del suo host, così non genera mai due avvisi.
 
 ## Importare dispositivi da Microsoft Intune
 
@@ -165,7 +168,7 @@ Un dispositivo contatta Intune circa ogni otto ore, e il suo ultimo contatto è 
 
 Intune dà a un dispositivo il nome che gli ha dato il suo proprietario, quindi due dispositivi possono avere lo stesso nome: ogni iPhone che nessuno ha rinominato si chiama `iPhone`. Un nome che hanno due dispositivi di una connessione non è di nessuno dei due nell'inventario: ciascuno prende invece il nome dal suo numero di serie, e riprende il suo nome appena nessun altro dispositivo lo ha.
 
-Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Intune Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non contatta Intune da più di un giorno, con il nome del dispositivo. Un portatile spento per un fine settimana appare allo stesso modo, quindi alza la soglia del monitor se un giorno è troppo poco per i tuoi.
+Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Intune Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non contatta Intune da più di un giorno, con il nome del dispositivo. Un portatile spento per un fine settimana appare allo stesso modo, quindi alza la soglia del monitor se un giorno è troppo poco per i tuoi. **Intune Security Patch Out of Date** genera un avviso per ogni dispositivo Android il cui livello patch di sicurezza risale a più di 90 giorni fa, come il modello di Esper.
 
 ## Importare dispositivi da Workspace ONE UEM
 
@@ -191,7 +194,7 @@ Un dispositivo comunica con Workspace ONE secondo una sua pianificazione, un iPh
 
 Un'app o l'Agent Android che invia telemetria da un dispositivo si unisce a esso in un unico elemento tramite il numero di serie del dispositivo: assegna all'impostazione `device_serial` dell'Agent Android il valore di ricerca `{DeviceSerialNumber}` nella sua configurazione gestita.
 
-Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Workspace ONE Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non comunica con Workspace ONE da più di un giorno, con il nome del dispositivo.
+Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Workspace ONE Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non comunica con Workspace ONE da più di un giorno, con il nome del dispositivo. **Workspace ONE Security Patch Out of Date** genera un avviso per ogni dispositivo Android il cui livello patch di sicurezza risale a più di 90 giorni fa, come il modello di Esper.
 
 ## Importare dispositivi da SOTI MobiControl
 
@@ -215,7 +218,7 @@ Un agent MobiControl mantiene una connessione permanente con il suo server, quin
 
 Un'app o l'Agent Android che invia telemetria da un dispositivo si unisce a esso in un unico elemento tramite il numero di serie del dispositivo: assegna all'impostazione `device_serial` dell'Agent Android la macro `%SERIALNUM%` nella sua configurazione gestita.
 
-Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **SOTI Device Stopped Checking In** e **SOTI Apple Device Stopped Checking In**. Il primo apre un avviso per ogni dispositivo Android, Windows o Linux il cui agent non è connesso da più di un'ora, e il secondo per ogni dispositivo Apple che non comunica da più di un giorno, ciascuno con il nome del dispositivo.
+Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **SOTI Device Stopped Checking In** e **SOTI Apple Device Stopped Checking In**. Il primo apre un avviso per ogni dispositivo Android, Windows o Linux il cui agent non è connesso da più di un'ora, e il secondo per ogni dispositivo Apple che non comunica da più di un giorno, ciascuno con il nome del dispositivo. **SOTI Security Patch Out of Date** genera un avviso per ogni dispositivo Android il cui livello patch di sicurezza risale a più di 90 giorni fa, come il modello di Esper.
 
 ## Aggiungere qualcosa a mano
 

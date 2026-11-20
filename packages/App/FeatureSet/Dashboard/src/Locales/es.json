@@ -59746,5 +59746,8 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "El receptor journald de esta configuración no tiene operadores, así que sus hosts envían cada línea del journal como una entrada entera, sin unidad.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "El receptor journald de esta configuración tiene operadores propios, y ninguno archiva una línea del journal bajo su unidad.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "El receptor journald predeterminado de OneUptime para Linux. Copia sus operadores en el tuyo, junto a los tuyos, para archivar cada línea del journal bajo su unidad.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Van bajo cada receptor journald que no los tiene, y nada más cambia. Guardada, es una versión nueva que sus hosts reciben en menos de un minuto."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Van bajo cada receptor journald que no los tiene, y nada más cambia. Guardada, es una versión nueva que sus hosts reciben en menos de un minuto.",
+  "Device Manager ID": "ID en el gestor de dispositivos",
+  "{{count}} days old": "{{count}} días de antigüedad",
+  "{{count}} days old_one": "{{count}} día de antigüedad"
 }

@@ -59746,5 +59746,8 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "لا يحتوي مستقبِل journald في هذا الإعداد على عوامل معالجة، لذا يرسل مضيفوه كل سطر من journal كإدخال كامل، بلا وحدة.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "لمستقبِل journald في هذا الإعداد عوامل معالجة خاصة به، ولا يضع أيٌّ منها سطر journal تحت وحدته.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "مستقبِل journald الافتراضي في OneUptime لنظام Linux. انسخ عوامل المعالجة الخاصة به إلى مستقبِلك، بجانب عواملك، ليُوضع كل سطر من journal تحت وحدته.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "تُضاف تحت كل مستقبِل journald لا يحتوي عليها، ولا يتغير شيء آخر. وبعد الحفظ يصبح إصدارًا جديدًا يصل إلى مضيفيه خلال دقيقة."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "تُضاف تحت كل مستقبِل journald لا يحتوي عليها، ولا يتغير شيء آخر. وبعد الحفظ يصبح إصدارًا جديدًا يصل إلى مضيفيه خلال دقيقة.",
+  "Device Manager ID": "المعرّف في خدمة إدارة الأجهزة",
+  "{{count}} days old": "العمر بالأيام: {{count}}",
+  "{{count}} days old_one": "العمر: {{count}} يوم"
 }

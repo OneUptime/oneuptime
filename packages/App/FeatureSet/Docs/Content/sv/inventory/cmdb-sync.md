@@ -171,6 +171,7 @@ Värdar och nätverksenheter beskrivs med samma uppgifter, sparade under samma n
 | Operativsystemets namn | `os.name` | Bara från SDK:er som rapporterar det: annars nämner `os.description` operativsystemet |
 | Enhetstyp | `device.type` | Valfritt: stämpla den på samma sätt (`Hypervisor`, `Workstation`) |
 | Plats | `device.location` | Valfritt: stämpla den på samma sätt (`Frankfurt DC, Rack B4`) |
+| Säkerhetspatchnivå | `android.os.security_patch` | På en Android-enhet: från Android-agenten eller dess MDM |
 
 Allt som är markerat med Ja kommer från collectorns processor `resourcedetection` och finns redan i den konfiguration som OneUptime genererar åt dig.
 

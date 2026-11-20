@@ -59746,5 +59746,8 @@
   "This config's journald receiver has no operators, so its hosts send each journal line as a whole entry, under no unit.": "Denne konfigurations journald-modtager har ingen operatorer, så dens værter sender hver journallinje som en hel post, uden enhed.",
   "This config's journald receiver has operators of its own, and none of them files a journal line under its unit.": "Denne konfigurations journald-modtager har sine egne operatorer, og ingen af dem placerer en journallinje under dens enhed.",
   "OneUptime's default journald receiver for Linux. Copy its operators into yours, beside your own, to file each journal line under its unit.": "OneUptimes standard-journald-modtager til Linux. Kopiér dens operatorer ind i din ved siden af dine egne for at placere hver journallinje under dens enhed.",
-  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "De kommer under hver journald-modtager, der ingen har, og intet andet ændres. Gemt bliver den en ny version, som dens værter får inden for et minut."
+  "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "De kommer under hver journald-modtager, der ingen har, og intet andet ændres. Gemt bliver den en ny version, som dens værter får inden for et minut.",
+  "Device Manager ID": "MDM-ID",
+  "{{count}} days old": "{{count}} dage gammel",
+  "{{count}} days old_one": "{{count}} dag gammel"
 }
