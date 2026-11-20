@@ -117,8 +117,17 @@ const useCloudAppAzure: (data: {
   }, [appKey, data.refreshToken]);
 
   const site: CloudResource | null = getCloudAppAzureSite(lookup);
-  const siteId: string = site?._id?.toString() || "";
   const siteResourceId: string = site?.providerResourceId || "";
+  /*
+   * Azure is asked through the site's connection, so only while one reads
+   * it and is on: otherwise the Setup check's connection row says why.
+   */
+  const asksAzure: boolean = Boolean(
+    lookup?.status === "read" &&
+      lookup.link.connection &&
+      lookup.link.connection.isEnabled !== false,
+  );
+  const siteId: string = asksAzure ? site?._id?.toString() || "" : "";
 
   useEffect(() => {
     if (!siteId) {
@@ -178,7 +187,7 @@ const useCloudAppAzure: (data: {
   return {
     lookup,
     site,
-    activity: site ? activity : undefined,
+    activity: siteId ? activity : undefined,
     diagnosticLogsLastReceivedAt: site
       ? diagnosticLogsLastReceivedAt
       : undefined,

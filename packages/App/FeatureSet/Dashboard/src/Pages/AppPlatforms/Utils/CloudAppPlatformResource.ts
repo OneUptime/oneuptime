@@ -474,6 +474,8 @@ export async function fetchCloudAppPlatformResource(
 export enum AppServiceMetric {
   Requests = "requests",
   ServerErrors = "http5xx",
+  // The 4xx answers (#10294): requests the app refused as the client's fault.
+  ClientErrors = "http4xx",
   ResponseTime = "httpresponsetime",
   CpuTime = "cputime",
   MemoryWorkingSet = "memoryworkingset",
@@ -485,6 +487,10 @@ export const APP_SERVICE_METRICS: Readonly<
   [AppServiceMetric.Requests]: { metricName: "Requests", aggregation: "total" },
   [AppServiceMetric.ServerErrors]: {
     metricName: "Http5xx",
+    aggregation: "total",
+  },
+  [AppServiceMetric.ClientErrors]: {
+    metricName: "Http4xx",
     aggregation: "total",
   },
   [AppServiceMetric.ResponseTime]: {
@@ -531,6 +537,8 @@ export interface AppServiceSeriesPoint {
 export interface AppServiceSeries {
   requests: Array<AppServiceSeriesPoint>;
   serverErrors: Array<AppServiceSeriesPoint>;
+  // The 4xx answers, drawn beside the requests and the 5xx ones.
+  clientErrors?: Array<AppServiceSeriesPoint> | undefined;
   // Seconds, as Azure Monitor reports HttpResponseTime.
   responseTimeSeconds: Array<AppServiceSeriesPoint>;
   // Seconds of CPU, as Azure Monitor reports CpuTime.
