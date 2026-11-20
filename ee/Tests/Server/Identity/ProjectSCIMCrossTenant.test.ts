@@ -157,6 +157,8 @@ interface FakeMembership {
   hasAcceptedInvitation: boolean;
   // miscDataProps.email: the create asked for the invitation email.
   invitationEmailRequestedFor: string | undefined;
+  // What the project calls a pending person: the name SCIM names them by (#9899).
+  inviteeName: string | null;
 }
 
 interface FakeTeam {
@@ -421,6 +423,7 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
           invitationEmailRequestedFor: args.miscDataProps?.["email"] as
             | string
             | undefined,
+          inviteeName: args.data.inviteeName?.trim() || null,
         };
 
         // TeamMemberService.onBeforeCreate's duplicate-invite guard.
@@ -446,6 +449,25 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
         world.memberships = world.memberships.filter((item: FakeMembership) => {
           return !matchesQuery(item, args.query);
         });
+      },
+      // What SCIM writes on a membership after it is made: its typed name (#9899).
+      updateBy: async (args: {
+        query: Record<string, unknown>;
+        data: { inviteeName?: string };
+      }): Promise<number> => {
+        const rows: Array<FakeMembership> = world.memberships.filter(
+          (item: FakeMembership) => {
+            return matchesQuery(item, args.query);
+          },
+        );
+
+        for (const row of rows) {
+          if (args.data.inviteeName !== undefined) {
+            row.inviteeName = args.data.inviteeName || null;
+          }
+        }
+
+        return rows.length;
       },
     },
   };
@@ -629,6 +651,7 @@ function seedMembership(data: {
     teamId: data.teamId,
     hasAcceptedInvitation: data.accepted,
     invitationEmailRequestedFor: undefined,
+    inviteeName: null,
   });
   return id;
 }
@@ -1535,7 +1558,7 @@ describe.each(deployments)(
  * ---------------------------------------------------------------------------
  */
 
-describe("on the hosted service, an existing account is invited, not added", () => {
+describe("on the hosted service, an account that has not joined the project is invited, not added - existing or new", () => {
   beforeEach(() => {
     setTestBillingEnabled(true);
   });
@@ -1617,7 +1640,12 @@ describe("on the hosted service, an existing account is invited, not added", () 
     expect(invitationEmailsFor(cast.stranger)).toEqual(["dave@example.com"]);
   });
 
-  test("an account SCIM creates is a member at once, and gets no invitation", async () => {
+  /*
+   * An account SCIM creates is invited too, as an account that existed is
+   * (#9899). It used to be added at once, so the Users list - Member or
+   * Invited - said which addresses already had an account.
+   */
+  test("an account SCIM creates is invited too, as one that existed is: pending memberships and one invitation email", async () => {
     const result: HttpResult = await send("POST", scimPath("Users"), {
       userName: "new.hire@acme.example",
     });
@@ -1627,10 +1655,11 @@ describe("on the hosted service, an existing account is invited, not added", () 
     expect(rows).toHaveLength(2);
     expect(
       rows.every((row: FakeMembership) => {
-        return row.hasAcceptedInvitation;
+        return row.hasAcceptedInvitation === false;
       }),
     ).toBe(true);
-    expect(invitationEmailsFor(newUserId)).toEqual([]);
+    // One invitation into the project, not one per team.
+    expect(invitationEmailsFor(newUserId)).toEqual(["new.hire@acme.example"]);
   });
 
   /*
