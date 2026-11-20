@@ -27,11 +27,14 @@ import {
   buildTraceCandidatesStatement,
 } from "../../../../Server/Utils/SecurityEvent/TelemetryScan/TelemetryScanStatements";
 import {
+  MAX_DETECTION_READ_PARAMETERS,
   MAX_DETECTION_READ_PARAMETER_BYTES,
+  assertDetectionReadFits,
   getParameterTextUrlBytes,
   getStatementParameterUrlBytes,
   getWatchlistValueUrlBytes,
 } from "../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { SECURITY_TELEMETRY_MAX_VALUES } from "../../../../Types/SecurityCase/SecurityConnection";
@@ -409,5 +412,35 @@ describe("the detection library's reads fit one request", () => {
     for (const { name, statement } of reads) {
       expectWithinBudget(name, statement);
     }
+  });
+
+  test("a rule of the person's own that lists more values than one read carries is refused before it is sent", () => {
+    /*
+     * A rule sends each value it lists as a parameter: the one read whose
+     * parameters grow with what a person writes. It is refused with what
+     * to do, at its save and before any run (assertDetectionReadFits).
+     */
+    const users: string = Array.from(
+      { length: 1200 },
+      (_value: unknown, index: number): string => {
+        return `      - user${index}`;
+      },
+    ).join("\n");
+    const [rule] = sigmaRulesOf(
+      SigmaRuleSetParser.parse(
+        `title: Listed users\ndetection:\n  s:\n    principalUser:\n${users}\n  condition: s\n`,
+      ),
+    );
+    const statement: Statement = SigmaClickhouseCompiler.compile(rule!);
+
+    expect(Object.keys(statement.query_params).length).toBeGreaterThan(
+      MAX_DETECTION_READ_PARAMETERS,
+    );
+    expect(MAX_DETECTION_READ_PARAMETERS).toBeLessThan(
+      CLICKHOUSE_MAX_REQUEST_FIELDS,
+    );
+    expect(() => {
+      assertDetectionReadFits(statement);
+    }).toThrow(BadDataException);
   });
 });
