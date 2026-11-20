@@ -960,7 +960,7 @@ describe("a filter or an order by a held column reads it, and is held to the rec
       const { sent, table } = await send(joiner, {
         query: {
           [joiner.relation]: {
-            [joiner.filterColumn]: joiner.joined[joiner.filterColumn],
+            [joiner.filterColumn]: String(joiner.joined[joiner.filterColumn]),
           },
         },
         select: { _id: true },
@@ -1000,7 +1000,7 @@ describe("a filter or an order by a held column reads it, and is held to the rec
       caller = callerWith(READS_DETECTION_RULES.permissions);
 
       const { sent } = await send(joiner, {
-        query: { threatIntelFeed: { listUrl: FEED["listUrl"] } },
+        query: { threatIntelFeed: { listUrl: String(FEED["listUrl"]) } },
         select: { _id: true },
       });
 
