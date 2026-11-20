@@ -1829,8 +1829,9 @@ test.describe("a cloud resource's pages", () => {
 
   /*
    * The way back from Security Events: a cloud resource is named by its own
-   * ID and by the names it answers on, and its card opens Security Events
-   * on the first of those names (?security=).
+   * ID and by the names it answers on; its card's events open its own
+   * Security Events page, and Open in Security Events the first of those
+   * names (?security=).
    */
   test("its Security card: the case naming the name it answers on, its week of events and findings, each opening Security Events on it", async ({
     page,
@@ -1866,18 +1867,24 @@ test.describe("a cloud resource's pages", () => {
     );
     expect(reads).toContainEqual({ kind: "CloudResource", id: WEB_ALB });
 
-    // Its week, opening the explorer on its ID and the name it answers on.
+    /*
+     * Its week, opening its own Security Events page, beside its Logs
+     * (#9779): the page reads what names its ID and the name it answers on
+     * itself, so the link searches for nothing.
+     */
     const events: Locator = card.getByTestId("resource-security-open");
     await expect(events).toHaveText("212");
-    const search: string = decodeURIComponent(
-      new URL(
-        (await events.getAttribute("href"))!,
-        "http://127.0.0.1",
-      ).searchParams.get("search") || "",
+    const week: URL = new URL(
+      (await events.getAttribute("href"))!,
+      "http://127.0.0.1",
     );
-    expect(search.startsWith("observable:(")).toBe(true);
-    expect(search).toContain("web-alb-1234567890.us-east-1.elb.amazonaws.com");
-    expect(search).toContain("loadbalancer/app/web-alb/50dc6c495c0c9188");
+    expect(week.pathname).toBe(`${RESOURCE_PATH}/${WEB_ALB}/security-events`);
+    expect(week.searchParams.get("range")).toBe("Custom");
+    expect(
+      new Date(week.searchParams.get("end")!).getTime() -
+        new Date(week.searchParams.get("start")!).getTime(),
+    ).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(week.searchParams.get("search")).toBeNull();
 
     const cases: Locator = card.getByTestId("resource-security-cases");
     await expect(cases.getByTestId("resource-security-case")).toHaveCount(1);

@@ -381,7 +381,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -609,7 +609,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -787,7 +787,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label

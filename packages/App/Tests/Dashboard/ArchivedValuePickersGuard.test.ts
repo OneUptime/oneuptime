@@ -81,6 +81,8 @@ const READS_EVERY_VALUE: Record<string, string> = {
     "reads labels by id, to show the ones records have",
   "Components/Monitor/MonitorSteps/MonitorSteps.tsx":
     "shows a monitor's saved criteria, whatever they name",
+  "Components/MonitorGroup/MonitorGroupStatusReason.ts":
+    "reads statuses by id, to say which ones a group's monitors are in and why",
   "Components/MonitorStatus/FetchMonitorStatuses.tsx":
     "reads statuses by id, to show the ones monitors are in",
   "Components/StatusPage/HistoryChartBarColorPreview.tsx":

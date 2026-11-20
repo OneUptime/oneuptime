@@ -79,6 +79,13 @@ export interface ComponentProps {
    * for a table that fills a page.
    */
   isCompact?: boolean | undefined;
+  /*
+   * All a card's body holds: the card pads it already, so it takes room
+   * above and below only and lines up with the card's title, as whatever
+   * else a card holds does (Docs/ux/README.md). A table's or a list's state
+   * keeps room of its own at its sides from sm up.
+   */
+  isCardBody?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -158,9 +165,9 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`flex flex-col items-center text-center sm:px-6 ${
-        props.isCompact ? "py-8" : "py-12"
-      }`}
+      className={`flex flex-col items-center text-center ${
+        props.isCardBody ? "" : "sm:px-6 "
+      }${props.isCompact ? "py-8" : "py-12"}`}
       data-testid={testId}
       data-empty-state-kind={props.kind}
     >

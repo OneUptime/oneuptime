@@ -1,11 +1,17 @@
 import CephResource from "Common/Models/DatabaseModels/CephResource";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import {
+/*
+ * Types alone: the Ceph OSD and Pool List widgets read this file, and no
+ * part of a widget may reach ResourceTable, whose rows open a resource's
+ * page, or GoldenMetricTile, whose attention dialog links to each part it
+ * lists (DashboardWidgetPreviewGuard).
+ */
+import type {
   InfrastructureResource,
   ResourceColumnTone,
   ResourceStatusReason,
 } from "../../../Components/Infrastructure/ResourceTable";
-import { GoldenMetricTileTone } from "../../../Components/Infrastructure/GoldenMetricTile";
+import type { GoldenMetricTileTone } from "../../../Components/Infrastructure/GoldenMetricTile";
 import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
   CEPH_OSD_FULL_PERCENT,

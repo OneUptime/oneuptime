@@ -42,6 +42,8 @@ Lokationer danner et træ. Hver lokation har en **Lokationstype** og eventuelt e
 
 En lokations type, navn, beskrivelse, forælder og placering redigeres ét sted: kortet **Site Settings** på lokationens side **Indstillinger**. Lokationens oversigt viser dem med et link **Rediger i Indstillinger**, og listen **Lokationer** tilføjer lokationer, men redigerer dem ikke.
 
+Lokationer, der ikke indeholder noget, forsvinder i ét trin: **Slet tomme lokationer** i menuen øverst på listen **Lokationer** viser hver lokation uden enheder (også arkiverede), uden lokationer under sig og uden endepunkt, link, regel eller vedligeholdelseshændelse, der bruger den. Den nævner de første ti og sletter, når du bekræfter, præcis de viste lokationer: En lokation, der imens får en enhed, bevares. Den er for alle, der må slette lokationer.
+
 Hver enhed knyttes til én lokation. En lokations undertræ er lokationen selv plus hver lokation under den, og undertræets enheder er det, dens tilstand opsummeres fra, så en region uden egne enheder stadig har en status, fordi enhederne under den har.
 
 > [!NOTE]

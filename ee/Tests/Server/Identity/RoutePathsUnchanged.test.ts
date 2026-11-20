@@ -128,6 +128,56 @@ const getRoutes: (router: ExpressRouter) => Array<PinnedRoute> = (
   return routes;
 };
 
+/*
+ * The core SSO routes (packages/App/FeatureSet/Identity/SsoRouters.ts) the
+ * collision check below compares the Enterprise Edition's routes against,
+ * so that it is known to compare against every one of them, and against
+ * nothing it does not mean to. They are pinned, with their reasons, next to
+ * the code (SsoRoutePathsUnchanged.test.ts); a route added there or taken
+ * away fails this list too, and has to say here why it is served.
+ */
+const CORE_SSO_ROUTES: Array<PinnedRoute> = [
+  // Project SAML: the sign-in start, the SSO page and the ACS URL identity providers post to.
+  ["GET", "/service-provider-login"],
+  ["GET", "/sso/:projectId/:projectSsoId"],
+  ["GET", "/idp-login/:projectId/:projectSsoId"],
+  ["POST", "/idp-login/:projectId/:projectSsoId"],
+  /*
+   * Single Logout (#9603, added by #9849 in 8580c7615fa): the Single
+   * Logout URL identity providers send sign-out requests and answers to,
+   * on the HTTP-Redirect and HTTP-POST bindings, and the certificate they
+   * check OneUptime's signed sign-out requests against.
+   */
+  ["GET", "/idp-logout/:projectId/:projectSsoId"],
+  ["POST", "/idp-logout/:projectId/:projectSsoId"],
+  ["GET", "/saml-signing-certificate"],
+  // Project OIDC: the sign-in start, the provider's page and the redirect URI.
+  ["GET", "/service-provider-login-oidc"],
+  ["GET", "/oidc/:projectId/:projectOidcId"],
+  ["GET", "/oidc-callback/:projectId/:projectOidcId"],
+  // Global SAML, for the whole instance: as a project's, with its ACS URL.
+  ["GET", "/global-sso/service-provider-login"],
+  ["GET", "/global-sso/:globalSsoId"],
+  ["GET", "/global-idp-login/:globalSsoId"],
+  ["POST", "/global-idp-login/:globalSsoId"],
+  // Global SAML's Single Logout URL (#9603, added by #9849 in 8580c7615fa), on both bindings.
+  ["GET", "/global-idp-logout/:globalSsoId"],
+  ["POST", "/global-idp-logout/:globalSsoId"],
+  // Global OIDC: the sign-in start, the provider's page and the redirect URI.
+  ["GET", "/global-oidc/service-provider-login"],
+  ["GET", "/global-oidc/:globalOidcId"],
+  ["GET", "/global-oidc-callback/:globalOidcId"],
+  // A status page's SAML: its SSO page and its ACS URL.
+  ["GET", "/status-page-sso/:statusPageId/:statusPageSsoId"],
+  ["POST", "/status-page-idp-login/:statusPageId/:statusPageSsoId"],
+  // A status page's OIDC: the provider's page and the redirect URI.
+  ["GET", "/status-page-oidc/:statusPageId/:statusPageOidcId"],
+  ["GET", "/status-page-oidc-callback/:statusPageId/:statusPageOidcId"],
+  // The page a project-SSO confirmation email links to, and its form.
+  ["GET", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
+  ["POST", "/sso-sign-in-confirmation/:kind/:projectId/:providerId"],
+];
+
 const SCIM_ROUTER_NAMES: Array<string> = ["SCIM", "StatusPageSCIM"];
 
 /*
@@ -309,8 +359,17 @@ describe("ee identity routers", () => {
       }),
     );
 
-    // The core SSO routes this compares against are really there (20 of them).
-    expect(coreSsoRoutes.size).toBe(20);
+    /*
+     * The core SSO routes this compares against are really there: every one
+     * of the 25 pinned above, each once, and no other.
+     */
+    expect([...coreSsoRoutes].sort()).toEqual(
+      CORE_SSO_ROUTES.map((route: PinnedRoute): string => {
+        return route.join(" ");
+      }).sort(),
+    );
+    expect(coreSsoRoutes.size).toBe(25);
+    expect(CORE_SSO_ROUTES).toHaveLength(25);
 
     for (const entry of IDENTITY_ROUTERS) {
       for (const route of getRoutes(entry.router)) {

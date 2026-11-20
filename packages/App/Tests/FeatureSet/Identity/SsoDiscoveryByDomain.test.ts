@@ -29,8 +29,8 @@ import Response from "Common/Server/Utils/Response";
 import Email from "Common/Types/Email";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import { getMetadataArgsStorage } from "typeorm";
-import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
+import { getMetadataArgsStorage } from "Common/node_modules/typeorm";
+import type { JoinTableMetadataArgs } from "Common/node_modules/typeorm/metadata-args/JoinTableMetadataArgs";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*

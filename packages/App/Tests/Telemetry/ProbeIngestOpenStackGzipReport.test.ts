@@ -1,11 +1,13 @@
-import GzipRequestBodyMiddleware from "Common/Server/Middleware/GzipRequestBody";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { JSONObject } from "Common/Types/JSON";
-import { parseInflatedJsonBody } from "../../FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection";
+import {
+  parseCollectionBody,
+  readCollectionBody,
+} from "../../FeatureSet/Telemetry/Middleware/ProbeCollectionRequest";
 import { PassThrough } from "stream";
 import zlib from "zlib";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -19,11 +21,15 @@ jest.mock("Common/Server/Services/OpenStackCloudConnectionTestService", () => {
   return { __esModule: true, default: {} };
 });
 
+jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
+  return { __esModule: true, default: {} };
+});
+
 /*
  * A probe posts a collection gzip-compressed: several megabytes of metrics for a large cloud.
- * The server's own gzip reader, mounted for every route and before routing, inflates it under
- * its limits into a Buffer, and the collection route reads that Buffer as the report it is:
- * the two, end to end, on the bytes a probe sends. Nothing about the route has to name it.
+ * The collection route reads it itself once it has checked the probe's key (#10222),
+ * inflating it under its limits into a Buffer, and reads that Buffer as the report it is:
+ * the two, end to end, on the bytes a probe sends.
  */
 
 function gzipRequest(body: Buffer): ExpressRequest {
@@ -111,9 +117,7 @@ describe("a gzip-compressed collection report", () => {
 
     const req: ExpressRequest = gzipRequest(compressed);
 
-    expect(
-      await runMiddleware(GzipRequestBodyMiddleware.parseBody, req),
-    ).toBeUndefined();
+    expect(await runMiddleware(readCollectionBody, req)).toBeUndefined();
 
     expect(Buffer.isBuffer((req as unknown as { body: unknown }).body)).toBe(
       true,
@@ -121,7 +125,7 @@ describe("a gzip-compressed collection report", () => {
 
     expect(
       await runMiddleware(
-        parseInflatedJsonBody as unknown as Parameters<typeof runMiddleware>[0],
+        parseCollectionBody as unknown as Parameters<typeof runMiddleware>[0],
         req,
       ),
     ).toBeUndefined();

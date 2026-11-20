@@ -26,7 +26,9 @@ and the server adds an incident and an alert on-call rule for it. The suite pins
 - a later policy (#7371): a project with a policy (`?policies=one`, and then only the list's own
   count runs) and one with an incident on-call rule and no policy (`?rules=incident`) are asked
   too, the switch off, so the dialog says before the policy is saved that a policy nothing
-  triggers pages nobody; left off nothing is sent, and turned on it asks for the two rules
+  triggers pages nobody; left off nothing is sent, and turned on it asks for the two rules.
+  The policy, Platform on-call, has two escalation rules - the Platform team, then Grace
+  Hopper - which the list's Paged First column reads (#9701)
 - when it is not asked: counts that fail (`?counts=fail`), and someone who may create a policy
   but not an on-call rule (`?role=member`, a Project Member); neither sends the switch
 - counts that answer late (`?counts=hold`): the switch joins the dialog already open, on

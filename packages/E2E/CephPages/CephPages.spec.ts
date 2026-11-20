@@ -543,8 +543,10 @@ test.describe("the OSDs list", () => {
      * "3 / 4 ms" read "ms 4 / 3" on a right-to-left page, and "1.5 TiB /
      * 3.8 TiB (38.0%)" lost its first number to the line's other end. The
      * latencies are written in Persian now, each held to its unit (#8788):
-     * they read right to left, each number before its unit; the sizes stay
-     * as written, left to right.
+     * they read right to left, each number before its unit. The disk's
+     * sizes are the shared Used and Free columns' now (#9646) - used under
+     * the bar, free and capacity folded under it - in Persian digits, each
+     * held to its unit: they read left to right, each number first.
      */
     const persianMilliseconds: (figure: string) => string = (
       figure: string,
@@ -559,10 +561,14 @@ test.describe("the OSDs list", () => {
         text: `${persianMilliseconds("۳")} / ${persianMilliseconds("۴")}`,
         direction: "rtl",
       },
-      { text: "1.5 TiB / 3.8 TiB (38.0%)", direction: "ltr" },
+      // Used, Free and Capacity.
+      { text: withUnit("۱٫۵", "TiB"), direction: "ltr" },
+      { text: withUnit("۲٫۴", "TiB"), direction: "ltr" },
+      { text: withUnit("۳٫۸", "TiB"), direction: "ltr" },
     ]) {
+      // A value's own isolate: the list's span, or the storage bar's bdi.
       const cell: Locator = rowNamed(page, "osd.0")
-        .locator('span[dir="auto"]')
+        .locator('span[dir="auto"], bdi')
         .filter({ hasText: figure.text })
         .first();
       await expect(cell).toBeVisible();

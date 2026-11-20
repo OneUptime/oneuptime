@@ -265,7 +265,6 @@ describe("readCloudTrailResourceIds: what a CloudTrail record lists and names", 
       wide[`field${index}`] = { deeper: [{ value: `v${index}` }] };
     }
 
-    // The fastest of up to three attempts: one timing on a busy runner is noisy.
     const read: FastestRun<Array<string>> = fastestRun({
       run: (): Array<string> => {
         return readCloudTrailResourceIds(
@@ -280,7 +279,6 @@ describe("readCloudTrailResourceIds: what a CloudTrail record lists and names", 
       limitInMs: 2000,
     });
 
-    // The instance 5,000 levels down is past the bound: nothing is named.
     expect(read.result).toEqual([]);
     expect(read.inMs).toBeLessThan(2000);
   });

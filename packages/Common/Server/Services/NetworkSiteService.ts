@@ -2379,6 +2379,77 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Which of `siteIds` have a site under them, deleted ones included: a
+   * deleted child still names its parent until the retention purge removes
+   * it, and a delete of the parent is refused until then (onBeforeDelete).
+   * Ids in lower case. Read as OneUptime: a child the caller may not read
+   * holds its parent all the same (NetworkSiteUsage).
+   */
+  @CaptureSpan()
+  public async findSiteIdsWithChildren(data: {
+    projectId: ObjectID;
+    siteIds: Array<string>;
+  }): Promise<Set<string>> {
+    const parents: Set<string> = new Set<string>();
+    const asked: Set<string> = new Set<string>(
+      data.siteIds.map((siteId: string): string => {
+        return siteId.toLowerCase();
+      }),
+    );
+    const askedList: Array<string> = Array.from(asked);
+
+    for (
+      let offset: number = 0;
+      offset < askedList.length;
+      offset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
+    ) {
+      const batch: Array<string> = askedList.slice(
+        offset,
+        offset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+      );
+      let skip: number = 0;
+
+      while (true) {
+        const children: Array<Model> = await this.findByWithDeleted({
+          query: {
+            projectId: data.projectId,
+            parentSiteId: QueryHelper.any(batch),
+          },
+          select: {
+            _id: true,
+            parentSiteId: true,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+          skip: skip,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const child of children) {
+          const parentId: string =
+            child.parentSiteId?.toString().toLowerCase() || "";
+
+          if (asked.has(parentId)) {
+            parents.add(parentId);
+          }
+        }
+
+        if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+          break;
+        }
+
+        skip += children.length;
+      }
+    }
+
+    return parents;
+  }
+
+  /*
    * Every site id in the subtrees rooted at `siteIds`, INCLUDING the roots
    * themselves.
    *

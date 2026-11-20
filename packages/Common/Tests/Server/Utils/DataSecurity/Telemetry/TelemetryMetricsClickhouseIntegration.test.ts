@@ -18,6 +18,7 @@ import {
   SQL,
   Statement,
 } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
+import TableColumnType from "../../../../../Types/AnalyticsDatabase/TableColumnType";
 import {
   ContentScanOptions,
   LocationFindings,
@@ -47,7 +48,6 @@ import {
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import LlmConversationPrivacy from "../../../../../Server/Utils/LlmObservability/LlmConversationPrivacy";
 import logger from "../../../../../Server/Utils/Logger";
-import TableColumnType from "../../../../../Types/AnalyticsDatabase/TableColumnType";
 import {
   DataSecurityFindingOccurrences,
   DataSecurityOccurrenceRecordKind,
@@ -222,16 +222,13 @@ function describeCost(cost: ReadCost): string {
 /*
  * The metrics' newest minutes read as the scan read them before #9756: the
  * first points of each, however many of them one series wrote. Written out
- * here to compare against, each metric's name, owner and minute bound as
- * parameters, as the scan binds them: a name is never spliced into the SQL.
+ * here to compare against, each metric's name bound as a parameter.
  */
 function firstPointsStatement(
   metrics: ReadonlyArray<MetricToRead>,
   perMetric: number,
 ): Statement {
-  const statement: Statement = new Statement();
-
-  statement.append(
+  const statement: Statement = new Statement().append(
     `SELECT primaryEntityId AS ownerId, toUnixTimestamp64Milli(toDateTime64(time, 3)) AS readRecordTime, substringUTF8(name, 1, 1024) AS readMetricName, arrayMap((k, v) -> tuple(substringUTF8(k, 1, 256), substringUTF8(v, 1, 4096)), arraySlice(mapKeys(attributes), 1, 128), arraySlice(mapValues(attributes), 1, 128)) AS readAttributes FROM ${getClickhouseDatabaseName()}.MetricItemV3 WHERE projectId = '${PROJECT_ID.toString()}' AND time >= now() - INTERVAL 1 HOUR AND time <= now() AND retentionDate >= now() AND (primaryEntityType = '' OR primaryEntityType = 'OpenTelemetry') AND (`,
   );
 
@@ -241,24 +238,16 @@ function firstPointsStatement(
     }
 
     statement.append(
-      SQL`(name = ${{
-        type: TableColumnType.Text,
-        value: metric.metricName,
-      }} AND primaryEntityId = ${{
-        type: TableColumnType.Text,
-        value: metric.ownerId,
-      }} AND time >= ${{
-        type: TableColumnType.DateTime64,
-        value: metric.newestMinute,
-      }})`,
+      SQL`(name = ${{ type: TableColumnType.Text, value: metric.metricName }}`,
+    );
+    statement.append(
+      ` AND primaryEntityId = '${metric.ownerId}' AND time >= toDateTime64(${metric.newestMinute.getTime() / 1000}, 9))`,
     );
   });
 
-  statement.append(
+  return statement.append(
     `) LIMIT ${perMetric} BY primaryEntityId, name LIMIT ${perMetric * metrics.length}`,
   );
-
-  return statement;
 }
 
 // How many series - different attributes - a read's rows of each metric hold.
