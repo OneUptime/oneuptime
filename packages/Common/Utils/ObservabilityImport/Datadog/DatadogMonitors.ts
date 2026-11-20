@@ -20,7 +20,12 @@ import {
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import { translationKey } from "../../../Types/Translator";
 import { toPromQLLabelName } from "../../PromQL/PromQLMetricNames";
-import { readImportWindow } from "../AlertImportCommon";
+import {
+  ALERT_TEXT_TEMPLATE_LEFT_OUT,
+  REMOVED_TEMPLATE,
+  readImportWindow,
+  tidyAlertText,
+} from "../AlertImportCommon";
 import {
   ImportObject,
   asObject,
@@ -97,10 +102,6 @@ export const MONITOR_EVALUATION_DELAY: string = translationKey(
   "Datadog waits {{seconds}} seconds for late data; OneUptime checks the latest minute.",
 );
 
-export const MONITOR_NOT_EQUAL: string = translationKey(
-  "Datadog compares with {{comparison}}; OneUptime's condition is not equal to.",
-);
-
 // Datadog's monitor types that read metrics.
 const METRIC_MONITOR_TYPES: ReadonlySet<string> = new Set<string>([
   "metric alert",
@@ -142,30 +143,88 @@ const WINDOW_UNIT_SECONDS: ReadonlyMap<string, number> = new Map<
 
 // "last_5m" in milliseconds; NaN for anything else.
 const readWindowMs: (window: string) => number = (window: string): number => {
-  const match: RegExpMatchArray | null = window.match(/^last_([0-9]+)([mhdw])$/);
+  const match: RegExpMatchArray | null = window.match(
+    /^last_([0-9]+)([mhdw])$/,
+  );
 
   if (!match) {
     return Number.NaN;
   }
 
-  return Number(match[1]) * (WINDOW_UNIT_SECONDS.get(match[2] || "") || 0) * 1000;
+  return (
+    Number(match[1]) * (WINDOW_UNIT_SECONDS.get(match[2] || "") || 0) * 1000
+  );
 };
 
 /*
- * A Datadog monitor's text: a group's tag ({{host.name}}) is OneUptime's
- * {{host}}, which a PromQL monitor's alert fills from its series;
- * conditional blocks keep their text ({{#is_alert}}...{{/is_alert}}), and
- * the value, the threshold and notification handles are left out.
+ * Datadog's conditional blocks that do not describe an open alert: their
+ * text is not the alert's. {{^is_warning}} - not warning - is.
+ */
+const NOT_ALERT_BLOCKS: ReadonlySet<string> = new Set<string>([
+  "is_warning",
+  "is_warning_recovery",
+  "is_recovery",
+  "is_alert_recovery",
+  "is_no_data",
+  "is_no_data_recovery",
+  "is_renotify",
+  "is_alert_to_warning",
+  "is_warning_to_alert",
+]);
+
+// A block's own tag: {{#is_alert}}, {{^is_warning}}, {{/is_alert}}.
+const BLOCK_TAG: RegExp = /^[#^/]/;
+
+// The text of a Datadog message as it reads for an open alert.
+const keepAlertBlocks: (text: string) => string = (text: string): string => {
+  let current: string = text;
+
+  // Blocks inside blocks: the outer is read first, then what it held.
+  for (let pass: number = 0; pass < 10; pass++) {
+    const next: string = current.replace(
+      /\{\{\s*([#^])\s*([A-Za-z_]+)[^{}]*\}\}([\s\S]*?)\{\{\s*\/\s*\2\s*\}\}/g,
+      (_match: string, sign: string, name: string, inner: string): string => {
+        const isAlert: boolean =
+          name === "is_alert" || !NOT_ALERT_BLOCKS.has(name);
+        const shown: boolean = sign === "#" ? isAlert : !isAlert;
+        return shown ? inner : "";
+      },
+    );
+
+    if (next === current) {
+      break;
+    }
+
+    current = next;
+  }
+
+  return current;
+};
+
+/*
+ * A Datadog monitor's text, as it reads for an open alert: a group's tag
+ * ({{host.name}}) is OneUptime's {{host}}, which a PromQL monitor's alert
+ * fills from its series; {{threshold}} and {{comparator}} are the
+ * monitor's own; the text of {{#is_alert}} blocks stays, and the text of
+ * blocks for a warning, a recovery or no data goes. The value and
+ * notification handles are left out, and said.
  */
 export const convertDatadogMessage: (data: {
   text: string;
   notes: Array<ImportNote>;
-}) => string = (data: { text: string; notes: Array<ImportNote> }): string => {
-  const handles: Array<string> = (data.text.match(/(^|\s)@[\w.+-]+/g) || []).map(
-    (handle: string): string => {
-      return handle.trim();
-    },
-  );
+  threshold?: number | undefined;
+  comparison?: string | undefined;
+}) => string = (data: {
+  text: string;
+  notes: Array<ImportNote>;
+  threshold?: number | undefined;
+  comparison?: string | undefined;
+}): string => {
+  const handles: Array<string> = (
+    data.text.match(/(^|\s)@[\w.+@-]+/g) || []
+  ).map((handle: string): string => {
+    return handle.trim();
+  });
 
   if (handles.length > 0) {
     data.notes.push({
@@ -175,24 +234,47 @@ export const convertDatadogMessage: (data: {
     });
   }
 
-  return data.text
+  let leftOut: boolean = false;
+
+  const converted: string = keepAlertBlocks(data.text)
     .replace(/\{\{([^{}]*)\}\}/g, (_match: string, inner: string): string => {
+      const name: string = inner.trim();
       // A group's tag is the series' label: {{host.name}} is {{host}}.
-      const tag: RegExpMatchArray | null = inner
-        .trim()
-        .match(/^([A-Za-z0-9_.-]+)\.name$/);
+      const tag: RegExpMatchArray | null = name.match(
+        /^([A-Za-z0-9_.-]+)\.name$/,
+      );
 
       if (tag) {
         return `{{${toPromQLLabelName(tag[1] || "")}}}`;
       }
 
-      // A block's tags, the value, the threshold: their text stays, they go.
-      return "";
+      if (name === "threshold" && data.threshold !== undefined) {
+        return String(data.threshold);
+      }
+
+      if (name === "comparator" && data.comparison) {
+        return data.comparison;
+      }
+
+      // A block left over, the value, the warning threshold: they go.
+      if (!BLOCK_TAG.test(name)) {
+        leftOut = true;
+      }
+
+      return REMOVED_TEMPLATE;
     })
-    .replace(/(^|\s)@[\w.+-]+/g, "$1")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    .replace(/(^|\s)@[\w.+@-]+/g, "$1")
+    // A link into Datadog's own app leads nowhere here: its words stay.
+    .replace(/\[([^\]]*)\]\(\/[^)]*\)/g, "$1");
+
+  if (leftOut) {
+    data.notes.push({
+      kind: ImportNoteKind.Info,
+      text: ALERT_TEXT_TEMPLATE_LEFT_OUT,
+    });
+  }
+
+  return tidyAlertText(converted);
 };
 
 export const getDatadogMonitorTargetKey: (itemKey: string) => string = (
@@ -330,14 +412,6 @@ const convertMonitor: (data: {
 
   const notes: Array<ImportNote> = [...converted.notes];
 
-  if (filterType === FilterType.NotEqualTo) {
-    notes.push({
-      kind: ImportNoteKind.Approximation,
-      text: MONITOR_NOT_EQUAL,
-      values: { comparison: query.comparison },
-    });
-  }
-
   const rollingTime: RollingTime = readImportWindow({
     ms: readWindowMs(query.window),
     sourceText: query.window,
@@ -368,7 +442,8 @@ const convertMonitor: (data: {
     });
   }
 
-  const notifiesNoData: boolean = booleanField(options, "notify_no_data") === true;
+  const notifiesNoData: boolean =
+    booleanField(options, "notify_no_data") === true;
 
   if (notifiesNoData) {
     notes.push({ kind: ImportNoteKind.Info, text: MONITOR_NO_DATA_ALERTS });
@@ -387,9 +462,16 @@ const convertMonitor: (data: {
   const message: string = convertDatadogMessage({
     text: textField(monitor, "message"),
     notes,
+    threshold: query.threshold,
+    comparison: query.comparison,
   });
   const title: string =
-    convertDatadogMessage({ text: name, notes: [] }) || name;
+    convertDatadogMessage({
+      text: name,
+      notes: [],
+      threshold: query.threshold,
+      comparison: query.comparison,
+    }) || name;
   const priority: number | undefined = numberField(monitor, "priority");
 
   return {

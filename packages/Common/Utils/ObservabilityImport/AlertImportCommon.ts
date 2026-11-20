@@ -73,9 +73,11 @@ export const readImportWindow: (data: {
   }
 
   const nearest: RollingTime =
-    WINDOWS.find((window: { rollingTime: RollingTime; ms: number }): boolean => {
-      return window.ms >= data.ms;
-    })?.rollingTime || WINDOWS[WINDOWS.length - 1]!.rollingTime;
+    WINDOWS.find(
+      (window: { rollingTime: RollingTime; ms: number }): boolean => {
+        return window.ms >= data.ms;
+      },
+    )?.rollingTime || WINDOWS[WINDOWS.length - 1]!.rollingTime;
 
   data.notes.push({
     kind: ImportNoteKind.Approximation,
@@ -116,18 +118,50 @@ const CRITICAL_WORDS: ReadonlySet<string> = new Set<string>([
   "1",
 ]);
 
-export const readImportSeverity: (label: string | undefined) => ImportedAlertSeverity =
-  (label: string | undefined): ImportedAlertSeverity => {
-    const value: string = (label || "").trim().toLowerCase();
+export const readImportSeverity: (
+  label: string | undefined,
+) => ImportedAlertSeverity = (
+  label: string | undefined,
+): ImportedAlertSeverity => {
+  const value: string = (label || "").trim().toLowerCase();
 
-    if (!value) {
-      return ImportedAlertSeverity.Critical;
-    }
+  if (!value) {
+    return ImportedAlertSeverity.Critical;
+  }
 
-    return CRITICAL_WORDS.has(value)
-      ? ImportedAlertSeverity.Critical
-      : ImportedAlertSeverity.Warning;
-  };
+  return CRITICAL_WORDS.has(value)
+    ? ImportedAlertSeverity.Critical
+    : ImportedAlertSeverity.Warning;
+};
+
+// What a template left out leaves in an alert's text, until it is tidied.
+export const REMOVED_TEMPLATE: string = "\uE000";
+
+/*
+ * The text around the templates left out, tidied: parentheses that held
+ * only the value ("(value {{ $value }})") go, and a sentence that ended in
+ * it ("... is {{ $value }}.", "... of {{value}}") ends before it.
+ */
+export const tidyAlertText: (text: string) => string = (
+  text: string,
+): string => {
+  return text
+    .replace(/\(\s*(?:[A-Za-z]+\s*[:=]?\s*)?\uE000\s*\)/g, REMOVED_TEMPLATE)
+    .replace(
+      /[ \t]*(?:\b(?:is|are|of|at|was|now)\b|=|:)?[ \t]*\uE000(?=[ \t]*(?:[.,;:!?]|\n|$))/g,
+      "",
+    )
+    .replace(/\uE000/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+([.,;:!?])/g, "$1")
+    .split("\n")
+    .map((line: string): string => {
+      return line.trimEnd();
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
 
 /*
  * An alert's text from a Prometheus or Grafana template: a series' label
@@ -143,32 +177,35 @@ export const convertAlertTemplate: (data: {
   const text: string = data.text || "";
   let leftOut: boolean = false;
 
+  /*
+   * A template and the unit written straight after it ({{ $value }}s,
+   * {{ $value }}%) go together: the unit says nothing without its value.
+   */
   const converted: string = text.replace(
-    /\{\{-?\s*([^{}]*?)\s*-?\}\}/g,
-    (_match: string, inner: string): string => {
+    /\{\{-?\s*([^{}]*?)\s*-?\}\}([A-Za-z%]{1,5}\b|%)?/g,
+    (_match: string, inner: string, unit: string | undefined): string => {
       const label: RegExpMatchArray | null =
         inner.match(/^\$labels\.([A-Za-z_][A-Za-z0-9_]*)$/) ||
         inner.match(/^\.Labels\.([A-Za-z_][A-Za-z0-9_]*)$/) ||
         inner.match(/^index\s+\$labels\s+"([^"]+)"$/);
 
       if (label) {
-        return `{{${toPromQLLabelName(label[1] || "")}}}`;
+        return `{{${toPromQLLabelName(label[1] || "")}}}${unit || ""}`;
       }
 
       leftOut = true;
-      return "";
+      return REMOVED_TEMPLATE;
     },
   );
 
   if (leftOut) {
-    data.notes.push({ kind: ImportNoteKind.Info, text: ALERT_TEXT_TEMPLATE_LEFT_OUT });
+    data.notes.push({
+      kind: ImportNoteKind.Info,
+      text: ALERT_TEXT_TEMPLATE_LEFT_OUT,
+    });
   }
 
-  return converted
-    .replace(/\(\s*\)/g, "")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\s+([.,:;])/g, "$1")
-    .trim();
+  return tidyAlertText(converted);
 };
 
 export interface ImportedComparison {
@@ -202,7 +239,10 @@ export const readPrometheusAlertExpression: (data: {
     };
   }
 
-  data.notes.push({ kind: ImportNoteKind.Info, text: RULE_FIRES_FOR_EVERY_SERIES });
+  data.notes.push({
+    kind: ImportNoteKind.Info,
+    text: RULE_FIRES_FOR_EVERY_SERIES,
+  });
 
   return {
     promQL: `(${data.expr.trim()}) * 0 + 1`,

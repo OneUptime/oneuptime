@@ -40,8 +40,12 @@ import {
  * aggregation: an average for a gauge, a sum with .as_count(), or what
  * .rollup() names), then combines the series (the space aggregation). The
  * PromQL does the same, in that order. Datadog's export does not say
- * whether a metric is a gauge or a count, so a query that does not say
- * (.as_count(), .rollup()) is read as a gauge, and its notes say so.
+ * whether a metric is a gauge or a count, so the preview asks the
+ * project's own metrics (knownMetricKinds): a count's points add up, a
+ * gauge's are averaged - .as_count() and .as_rate() leave a gauge as it
+ * is, as in Datadog. A metric the project has no data for yet is read as
+ * the query's words imply - a count with .as_count(), else a gauge - and
+ * its notes say so.
  *
  * In a monitor, each check reads one minute of points ([1m]) with the
  * function the monitor reduces its window with, so a 5-minute window of
@@ -92,7 +96,7 @@ export const DATADOG_TOP_PER_STEP: string = translationKey(
 );
 
 export const DATADOG_RATE_FUNCTION: string = translationKey(
-  "Datadog's {{function}}() is read as the per-second values a Datadog Agent sends, multiplied out.",
+  "Datadog's {{function}}() is read from each value per second, multiplied out: a count's points added up over each interval's seconds, a gauge's averaged.",
 );
 
 export const DATADOG_DIFF: string = translationKey(
@@ -112,6 +116,14 @@ export enum DatadogMetricKind {
   Count = "Count",
 }
 
+export const DATADOG_READ_AS_COUNT: string = translationKey(
+  "Datadog's export does not say whether {{metrics}} are counts, and the project has no data for them yet: with .as_count() they are read as counts, adding up their points in each interval.",
+);
+
+export const DATADOG_AS_COUNT_ON_GAUGE: string = translationKey(
+  "The project's data has {{metrics}} as gauges, which Datadog's .as_count() leaves as they are, so they are read as gauges. A DogStatsD count arrives as a rate per second: it shows per second here, where Datadog counted it per interval.",
+);
+
 export const DATADOG_AS_RATE: string = translationKey(
   "Datadog's .as_rate() is read as the per-second values a Datadog Agent sends.",
 );
@@ -124,15 +136,16 @@ export const DATADOG_CONVERTED_BY_AI: string = translationKey(
   "OneUptime AI converted this query. Check that it reads what you expect.",
 );
 
+// A distribution's percentile, as an aggregator: p50, p99.
+const PERCENTILE_AGGREGATOR: RegExp = /^p[0-9]+$/;
+
 // Datadog's space aggregators and the PromQL aggregation of each.
-const SPACE_AGGREGATORS: ReadonlyMap<string, string> = new Map<string, string>(
-  [
-    ["avg", "avg"],
-    ["sum", "sum"],
-    ["min", "min"],
-    ["max", "max"],
-  ],
-);
+const SPACE_AGGREGATORS: ReadonlyMap<string, string> = new Map<string, string>([
+  ["avg", "avg"],
+  ["sum", "sum"],
+  ["min", "min"],
+  ["max", "max"],
+]);
 
 // Datadog's rollup methods and the PromQL function of each.
 const ROLLUPS: ReadonlyMap<string, string> = new Map<string, string>([
@@ -264,7 +277,9 @@ interface Matcher {
   value: string;
 }
 
-const matcherText: (matcher: Matcher) => string = (matcher: Matcher): string => {
+const matcherText: (matcher: Matcher) => string = (
+  matcher: Matcher,
+): string => {
   return `${matcher.label}${matcher.operator}"${promQLString(matcher.value)}"`;
 };
 
@@ -365,7 +380,9 @@ const scopeMatchers: (data: {
           return scopeMatchers({ ...data, scope: scope.terms[0]!, negated });
         }
 
-        return fail(DATADOG_SCOPE_NOT_CONVERTED, { scope: describeScope(scope) });
+        return fail(DATADOG_SCOPE_NOT_CONVERTED, {
+          scope: describeScope(scope),
+        });
       }
 
       return scope.terms.flatMap((term: DatadogScope): Array<Matcher> => {
@@ -389,7 +406,9 @@ const scopeMatchers: (data: {
       }
 
       if (keys.size !== 1) {
-        return fail(DATADOG_SCOPE_NOT_CONVERTED, { scope: describeScope(scope) });
+        return fail(DATADOG_SCOPE_NOT_CONVERTED, {
+          scope: describeScope(scope),
+        });
       }
 
       return [
@@ -429,42 +448,50 @@ const describeScope: (scope: DatadogScope) => string = (
 };
 
 // The function and window a query reads each series' points with.
+interface TimeAggregation {
+  fn: string;
+  window: string;
+  // Seconds the result is divided by, for a count read per second.
+  perSeconds?: string | undefined;
+}
+
 const timeAggregation: (data: {
   methods: Array<DatadogMethod>;
   metric: string;
   options: DatadogConversionOptions;
   notes: Array<ImportNote>;
-}) => { fn: string; window: string } = (data: {
+  readPerSecond?: boolean | undefined;
+}) => TimeAggregation = (data: {
   methods: Array<DatadogMethod>;
   metric: string;
   options: DatadogConversionOptions;
   notes: Array<ImportNote>;
-}): { fn: string; window: string } => {
-  const isMonitor: boolean = data.options.context === DatadogQueryContext.Monitor;
+  readPerSecond?: boolean | undefined;
+}): TimeAggregation => {
+  const isMonitor: boolean =
+    data.options.context === DatadogQueryContext.Monitor;
   const window: string = isMonitor ? "1m" : "$__interval";
-  let fn: string | undefined = undefined;
+  let modifier: "as_count" | "as_rate" | undefined = undefined;
+  let rollupFn: string | undefined = undefined;
   let rollupWindow: string | undefined = undefined;
 
   for (const method of data.methods) {
     switch (method.name) {
       case "as_count":
-        fn = "sum_over_time";
-        break;
       case "as_rate":
-        fn = fn || "avg_over_time";
-        data.notes.push({ kind: ImportNoteKind.Approximation, text: DATADOG_AS_RATE });
+        modifier = method.name;
         break;
       case "rollup": {
-        const rollupFn: string | undefined = ROLLUPS.get(method.args[0] || "");
+        const named: string | undefined = ROLLUPS.get(method.args[0] || "");
         const seconds: number = Number(method.args[1]);
 
-        if (!rollupFn) {
+        if (!named) {
           fail(DATADOG_FUNCTION_NOT_CONVERTED, {
             function: `rollup(${method.args.join(", ")})`,
           });
         }
 
-        fn = rollupFn;
+        rollupFn = named;
 
         if (Number.isFinite(seconds) && seconds > 0 && !isMonitor) {
           rollupWindow = `${Math.round(seconds)}s`;
@@ -472,66 +499,143 @@ const timeAggregation: (data: {
         break;
       }
       case "fill":
-        data.notes.push({ kind: ImportNoteKind.Approximation, text: DATADOG_FILL_LEFT_OUT });
+        data.notes.push({
+          kind: ImportNoteKind.Approximation,
+          text: DATADOG_FILL_LEFT_OUT,
+        });
         break;
       case "weighted":
-        data.notes.push({ kind: ImportNoteKind.Approximation, text: DATADOG_WEIGHTED });
+        data.notes.push({
+          kind: ImportNoteKind.Approximation,
+          text: DATADOG_WEIGHTED,
+        });
         break;
       default:
         fail(DATADOG_FUNCTION_NOT_CONVERTED, { function: `.${method.name}` });
     }
   }
 
-  if (!fn) {
-    const kind: DatadogMetricKind | undefined =
-      data.options.knownMetricKinds?.get(data.metric);
+  const read: string = rollupWindow || window;
+  // per_second() reads a metric as .as_rate() does; its own note says so.
+  const saidByFunction: boolean = Boolean(data.readPerSecond && !modifier);
 
-    // A monitor reduces its window: each minute is read the same way.
-    const monitorFn: string | undefined = isMonitor
-      ? ROLLUPS.get(data.options.monitorTimeAggregation || "avg")
-      : undefined;
-
-    if (kind === DatadogMetricKind.Count) {
-      // A count's points add up, as Datadog reads a count.
-      fn = "sum_over_time";
-    } else {
-      fn = monitorFn || "avg_over_time";
-
-      if (kind !== DatadogMetricKind.Gauge && fn === "avg_over_time") {
-        data.notes.push({
-          kind: ImportNoteKind.Approximation,
-          text: DATADOG_READ_AS_GAUGE,
-          values: { metrics: data.metric },
-        });
-      }
-    }
+  if (saidByFunction) {
+    modifier = "as_rate";
   }
 
-  return { fn, window: rollupWindow || window };
+  // .rollup() names the function itself.
+  if (rollupFn) {
+    return { fn: rollupFn, window: read };
+  }
+
+  const kind: DatadogMetricKind | undefined =
+    data.options.knownMetricKinds?.get(data.metric);
+
+  // A monitor reduces its window: each minute is read the same way.
+  const gaugeFn: string =
+    (isMonitor
+      ? ROLLUPS.get(data.options.monitorTimeAggregation || "avg")
+      : undefined) || "avg_over_time";
+
+  const note: (text: string) => void = (text: string): void => {
+    data.notes.push({
+      kind: ImportNoteKind.Approximation,
+      text,
+      values: { metrics: data.metric },
+    });
+  };
+
+  /*
+   * A count's points add up, with or without .as_count(), and .as_rate()
+   * spreads them over the seconds of each interval: both as Datadog reads
+   * a count.
+   */
+  if (kind === DatadogMetricKind.Count) {
+    return modifier === "as_rate"
+      ? {
+          fn: "sum_over_time",
+          window: read,
+          perSeconds: isMonitor ? "60" : "($__interval_ms / 1000)",
+        }
+      : { fn: "sum_over_time", window: read };
+  }
+
+  /*
+   * A gauge's points are averaged; Datadog's .as_count() and .as_rate()
+   * leave a gauge as it is. What arrives as a gauge may also be a
+   * DogStatsD count, which the Agent sends as a rate per second: Datadog
+   * counts that per interval with .as_count(), so the note says it.
+   */
+  if (kind === DatadogMetricKind.Gauge) {
+    if (modifier === "as_count") {
+      note(DATADOG_AS_COUNT_ON_GAUGE);
+    }
+
+    return { fn: gaugeFn, window: read };
+  }
+
+  // Nothing says what the metric is: what the query's words imply, said.
+  if (modifier === "as_count") {
+    note(DATADOG_READ_AS_COUNT);
+    return { fn: "sum_over_time", window: read };
+  }
+
+  if (modifier === "as_rate") {
+    if (!saidByFunction) {
+      data.notes.push({
+        kind: ImportNoteKind.Approximation,
+        text: DATADOG_AS_RATE,
+      });
+    }
+
+    return { fn: gaugeFn, window: read };
+  }
+
+  if (gaugeFn === "avg_over_time") {
+    note(DATADOG_READ_AS_GAUGE);
+  }
+
+  return { fn: gaugeFn, window: read };
 };
 
+// Notes said once for every metric they name: "a.b, c.d are gauges".
+const NOTES_BY_METRICS: ReadonlySet<string> = new Set<string>([
+  DATADOG_READ_AS_GAUGE,
+  DATADOG_READ_AS_COUNT,
+  DATADOG_AS_COUNT_ON_GAUGE,
+]);
+
 /*
- * A widget's notes, one of each, the metrics read as gauges said together
- * in one: "system.cpu.idle, system.cpu.user are gauges or counts".
+ * A widget's notes, one of each, the metrics a note names said together in
+ * one: "system.cpu.idle, system.cpu.user are gauges or counts".
  */
 export const mergeDatadogNotes: (
   notes: ReadonlyArray<ImportNote>,
-) => Array<ImportNote> = (notes: ReadonlyArray<ImportNote>): Array<ImportNote> => {
-  const gaugeMetrics: Array<string> = [];
-  let gaugeNoteIndex: number = -1;
+) => Array<ImportNote> = (
+  notes: ReadonlyArray<ImportNote>,
+): Array<ImportNote> => {
+  const metricsByText: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+  const indexByText: Map<string, number> = new Map<string, number>();
   const merged: Array<ImportNote> = [];
   const said: Set<string> = new Set<string>();
 
   for (const note of notes) {
-    if (note.text === DATADOG_READ_AS_GAUGE) {
+    if (NOTES_BY_METRICS.has(note.text)) {
+      const metrics: Array<string> = metricsByText.get(note.text) || [];
+
       for (const metric of (note.values?.["metrics"] || "").split(", ")) {
-        if (metric && !gaugeMetrics.includes(metric)) {
-          gaugeMetrics.push(metric);
+        if (metric && !metrics.includes(metric)) {
+          metrics.push(metric);
         }
       }
 
-      if (gaugeNoteIndex === -1) {
-        gaugeNoteIndex = merged.length;
+      metricsByText.set(note.text, metrics);
+
+      if (!indexByText.has(note.text)) {
+        indexByText.set(note.text, merged.length);
         merged.push(note);
       }
 
@@ -548,11 +652,11 @@ export const mergeDatadogNotes: (
     merged.push(note);
   }
 
-  if (gaugeNoteIndex !== -1) {
-    merged[gaugeNoteIndex] = {
+  for (const [text, index] of indexByText) {
+    merged[index] = {
       kind: ImportNoteKind.Approximation,
-      text: DATADOG_READ_AS_GAUGE,
-      values: { metrics: gaugeMetrics.join(", ") },
+      text,
+      values: { metrics: (metricsByText.get(text) || []).join(", ") },
     };
   }
 
@@ -572,6 +676,8 @@ interface ConvertData {
   references: Set<string>;
   // A shift back in time every selector reads at: `offset 1h`.
   offset?: string | undefined;
+  // Read each metric per second, as per_second() reads it.
+  readPerSecond?: boolean | undefined;
 }
 
 const convertExpression: (data: ConvertData) => Converted = (
@@ -606,7 +712,7 @@ const convertExpression: (data: ConvertData) => Converted = (
     case DatadogExpressionKind.Query: {
       const aggregator: string = expression.aggregator || "avg";
 
-      if (/^p[0-9]+$/.test(aggregator)) {
+      if (PERCENTILE_AGGREGATOR.test(aggregator)) {
         return fail(DATADOG_PERCENTILE_NOT_CONVERTED, { aggregator });
       }
 
@@ -621,11 +727,12 @@ const convertExpression: (data: ConvertData) => Converted = (
         options: data.options,
         notes: data.notes,
       });
-      const time: { fn: string; window: string } = timeAggregation({
+      const time: TimeAggregation = timeAggregation({
         methods: expression.methods,
         metric: expression.metric,
         options: data.options,
         notes: data.notes,
+        readPerSecond: data.readPerSecond,
       });
       const selector: string = `${toPromQLMetricName(expression.metric)}${
         matchers.length > 0 ? `{${matchers.map(matcherText).join(",")}}` : ""
@@ -634,8 +741,10 @@ const convertExpression: (data: ConvertData) => Converted = (
       const by: string = groups.length > 0 ? ` by (${groups.join(", ")})` : "";
       const offset: string = data.offset ? ` offset ${data.offset}` : "";
 
+      const perSecond: string = time.perSeconds ? ` / ${time.perSeconds}` : "";
+
       return {
-        promQL: `${spaceFn}${by} (${time.fn}(${selector}[${time.window}]${offset}))`,
+        promQL: `${spaceFn}${by} (${time.fn}(${selector}[${time.window}]${offset})${perSecond})`,
         groups,
         isScalar: false,
       };
@@ -769,14 +878,6 @@ const convertCall: (
     return convertFirst(offset);
   }
 
-  const inner: Converted = convertFirst();
-
-  const same: string | undefined = SAME_FUNCTIONS.get(name);
-
-  if (same) {
-    return { ...inner, promQL: `${same}(${inner.promQL})` };
-  }
-
   const rate: number | undefined = RATE_FUNCTIONS.get(name);
 
   if (rate !== undefined) {
@@ -785,10 +886,29 @@ const convertCall: (
       text: DATADOG_RATE_FUNCTION,
       values: { function: name },
     });
+
+    // Each metric read per second, then written out per minute or hour.
+    const perSecond: Converted = convertExpression({
+      expression: first,
+      options: data.options,
+      notes: data.notes,
+      references: data.references,
+      offset: data.offset,
+      readPerSecond: true,
+    });
+
     return {
-      ...inner,
-      promQL: rate === 1 ? inner.promQL : `${rate} * (${inner.promQL})`,
+      ...perSecond,
+      promQL: rate === 1 ? perSecond.promQL : `${rate} * (${perSecond.promQL})`,
     };
+  }
+
+  const inner: Converted = convertFirst();
+
+  const same: string | undefined = SAME_FUNCTIONS.get(name);
+
+  if (same) {
+    return { ...inner, promQL: `${same}(${inner.promQL})` };
   }
 
   if (name === "diff" || name === "derivative") {
@@ -850,7 +970,10 @@ const convertCall: (
         : "desc"
       : textArg(call.args[3]) || (top[1] === "bottom" ? "asc" : "desc");
 
-    data.notes.push({ kind: ImportNoteKind.Approximation, text: DATADOG_TOP_PER_STEP });
+    data.notes.push({
+      kind: ImportNoteKind.Approximation,
+      text: DATADOG_TOP_PER_STEP,
+    });
 
     return {
       ...inner,
@@ -946,7 +1069,9 @@ export const convertDatadogQuery: (data: {
     return {
       status: ImportItemStatus.Approximate,
       promQL: data.aiQuery,
-      notes: [{ kind: ImportNoteKind.Approximation, text: DATADOG_CONVERTED_BY_AI }],
+      notes: [
+        { kind: ImportNoteKind.Approximation, text: DATADOG_CONVERTED_BY_AI },
+      ],
     };
   }
 
