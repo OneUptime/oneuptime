@@ -171,6 +171,7 @@ The [host table](#host-asset-attributes) and the [network device table](#network
 | Operating system name | `os.name` | Only from SDKs that report it: `os.description` names the OS otherwise |
 | Device type | `device.type` | Optional: stamp it the same way (`Hypervisor`, `Workstation`) |
 | Location | `device.location` | Optional: stamp it the same way (`Frankfurt DC, Rack B4`) |
+| Security patch level | `android.os.security_patch` | On an Android device: from the Android agent or its device manager |
 
 Everything marked Yes comes from the collector's `resourcedetection` processor, and is already in the configuration OneUptime generates for you.
 
