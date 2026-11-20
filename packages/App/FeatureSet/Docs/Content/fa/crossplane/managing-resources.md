@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-شناسهٔ رکورد در همان بلوک `import` است که صفحهٔ **توسعه‌دهنده** > **Terraform** آن در داشبورد می‌نویسد، و `oneuptime <resource> list` شناسه‌های یک نوع رکورد را با [OneUptime CLI](/docs/cli/resource-operations#فهرست-کردن-رکوردها) فهرست می‌کند. وقتی منبع آماده شد، `status.atProvider` رکورد را نشان می‌دهد. برای مدیریت آن از آن پس، فیلدهایش را در `spec.forProvider` بنویسید و `managementPolicies` را روی `["*"]` بگذارید.
+صفحهٔ **توسعه‌دهنده** > **Crossplane** رکورد در داشبورد این مانیفست را با شناسهٔ رکورد برای شما می‌نویسد، و مانیفستی هم که رکورد را با فیلدهایش همان‌طور که هست در اختیار می‌گیرد. `oneuptime <resource> list` شناسه‌های یک نوع رکورد را با [OneUptime CLI](/docs/cli/resource-operations#فهرست-کردن-رکوردها) فهرست می‌کند. وقتی منبع آماده شد، `status.atProvider` رکورد را نشان می‌دهد. برای مدیریت آن از آن پس، فیلدهایش را در `spec.forProvider` بنویسید و `managementPolicies` را روی `["*"]` بگذارید.
 
 ## رازها
 

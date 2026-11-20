@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-記錄的 ID 就在儀表板中該記錄的 **開發者 → Terraform** 頁面寫出的 `import` 區塊裡；用 [OneUptime CLI](/docs/cli/resource-operations#列出記錄) 執行 `oneuptime <resource> list`，可以列出某種記錄的 ID。資源就緒後，`status.atProvider` 會顯示該記錄。若要從此管理它，請在 `spec.forProvider` 中寫入它的欄位，並把 `managementPolicies` 設為 `["*"]`。
+儀表板中該記錄的 **開發者 → Crossplane** 頁面會為你寫出帶有記錄 ID 的這份清單，以及一份依欄位現狀接管該記錄的清單；用 [OneUptime CLI](/docs/cli/resource-operations#列出記錄) 執行 `oneuptime <resource> list`，可以列出某種記錄的 ID。資源就緒後，`status.atProvider` 會顯示該記錄。若要從此管理它，請在 `spec.forProvider` 中寫入它的欄位，並把 `managementPolicies` 設為 `["*"]`。
 
 ## 機密
 

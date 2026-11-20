@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-रिकॉर्ड की ID उस `import` ब्लॉक में है जो डैशबोर्ड में उसका **डेवलपर → Terraform** पेज लिखता है, और [OneUptime CLI](/docs/cli/resource-operations#रिकॉर्ड-सूचीबद्ध-करें) के साथ `oneuptime <resource> list` किसी एक तरह के रिकॉर्ड की ID सूचीबद्ध करता है। संसाधन तैयार होने पर `status.atProvider` रिकॉर्ड दिखाता है। उसके बाद से उसे प्रबंधित करने के लिए, उसके फ़ील्ड `spec.forProvider` में लिखें और `managementPolicies` को `["*"]` पर सेट करें।
+डैशबोर्ड में रिकॉर्ड का **डेवलपर → Crossplane** पेज आपके लिए रिकॉर्ड की ID के साथ यह मैनिफ़ेस्ट लिखता है, और एक ऐसा मैनिफ़ेस्ट भी जो रिकॉर्ड को उसके फ़ील्ड जैसे हैं वैसे ही अपना लेता है। [OneUptime CLI](/docs/cli/resource-operations#रिकॉर्ड-सूचीबद्ध-करें) के साथ `oneuptime <resource> list` किसी एक तरह के रिकॉर्ड की ID सूचीबद्ध करता है। संसाधन तैयार होने पर `status.atProvider` रिकॉर्ड दिखाता है। उसके बाद से उसे प्रबंधित करने के लिए, उसके फ़ील्ड `spec.forProvider` में लिखें और `managementPolicies` को `["*"]` पर सेट करें।
 
 ## सीक्रेट
 

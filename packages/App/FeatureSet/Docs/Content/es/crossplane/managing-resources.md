@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-El ID del registro está en el bloque `import` que escribe su página **Desarrolladores → Terraform** en el panel, y `oneuptime <resource> list` muestra los ID de un tipo de registro con la [CLI de OneUptime](/docs/cli/resource-operations#listar-registros). Cuando el recurso está listo, `status.atProvider` muestra el registro. Para gestionarlo a partir de entonces, escriba sus campos en `spec.forProvider` y establezca `managementPolicies` en `["*"]`.
+La página **Desarrolladores → Crossplane** del registro, en el panel, escribe este manifiesto por usted, con su ID, y otro que adopta el registro con sus campos tal como están. `oneuptime <resource> list` muestra los ID de un tipo de registro con la [CLI de OneUptime](/docs/cli/resource-operations#listar-registros). Cuando el recurso está listo, `status.atProvider` muestra el registro. Para gestionarlo a partir de entonces, escriba sus campos en `spec.forProvider` y establezca `managementPolicies` en `["*"]`.
 
 ## Secrets
 

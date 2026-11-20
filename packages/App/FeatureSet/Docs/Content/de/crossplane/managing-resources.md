@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-Die ID des Datensatzes steht im `import`-Block, den seine Seite **Entwickler → Terraform** im Dashboard schreibt, und `oneuptime <resource> list` listet mit der [OneUptime-CLI](/docs/cli/resource-operations#datensätze-auflisten) die IDs einer Art von Datensatz auf. Sobald die Ressource bereit ist, zeigt `status.atProvider` den Datensatz. Um ihn von da an zu verwalten, schreiben Sie seine Felder in `spec.forProvider` und setzen `managementPolicies` auf `["*"]`.
+Die Seite **Entwickler → Crossplane** des Datensatzes im Dashboard schreibt dieses Manifest für Sie, mit seiner ID, und eines, das den Datensatz mit seinen Feldern so übernimmt, wie sie sind. `oneuptime <resource> list` listet mit der [OneUptime-CLI](/docs/cli/resource-operations#datensätze-auflisten) die IDs einer Art von Datensatz auf. Sobald die Ressource bereit ist, zeigt `status.atProvider` den Datensatz. Um ihn von da an zu verwalten, schreiben Sie seine Felder in `spec.forProvider` und setzen `managementPolicies` auf `["*"]`.
 
 ## Secrets
 

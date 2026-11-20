@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-레코드의 ID는 대시보드에서 그 레코드의 **개발자 → Terraform** 페이지가 작성하는 `import` 블록에 있으며, [OneUptime CLI](/docs/cli/resource-operations#레코드-나열)의 `oneuptime <resource> list`로 한 종류의 레코드 ID를 나열할 수도 있습니다. 리소스가 준비되면 `status.atProvider`에 레코드가 표시됩니다. 그때부터 레코드를 관리하려면 필드를 `spec.forProvider`에 쓰고 `managementPolicies`를 `["*"]`로 설정하세요.
+대시보드에서 그 레코드의 **개발자 → Crossplane** 페이지가 레코드의 ID가 담긴 이 매니페스트와, 필드를 그대로 둔 채 레코드를 가져오는 매니페스트를 작성해 줍니다. [OneUptime CLI](/docs/cli/resource-operations#레코드-나열)의 `oneuptime <resource> list`로 한 종류의 레코드 ID를 나열할 수도 있습니다. 리소스가 준비되면 `status.atProvider`에 레코드가 표시됩니다. 그때부터 레코드를 관리하려면 필드를 `spec.forProvider`에 쓰고 `managementPolicies`를 `["*"]`로 설정하세요.
 
 ## 시크릿
 
