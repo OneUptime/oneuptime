@@ -238,11 +238,11 @@ const MonitorTemplatesView: FunctionComponent<
   /*
    * The monitors the Link dialog's picker starts with: none when it opens,
    * and the ones it could not link when some were linked and some were not
-   * (#7678), so Link tries those again. A new form key starts the picker
-   * over with them, the dialog staying open.
+   * (#7678), so Link tries those again. The dialog draws its form again
+   * once the linking is done (BasicFormModal draws none while it loads),
+   * starting from these, as a monitor group's Add Monitors does.
    */
   const [monitorIdsToRetry, setMonitorIdsToRetry] = useState<Array<string>>([]);
-  const [linkFormKey, setLinkFormKey] = useState<number>(0);
 
   /*
    * What the picker lists, searched on the server (#10399): the project's
@@ -612,9 +612,6 @@ const MonitorTemplatesView: FunctionComponent<
        * them out of its list from now on, as they are this template's.
        */
       setMonitorIdsToRetry(notLinkedIds);
-      setLinkFormKey((key: number): number => {
-        return key + 1;
-      });
       return;
     }
 
@@ -1493,7 +1490,6 @@ const MonitorTemplatesView: FunctionComponent<
             setMonitorIdsToRetry([]);
           }}
           onSubmit={onLinkSubmit}
-          formKey={`link-monitors-${linkFormKey}`}
           formProps={{
             initialValues: { monitorIds: monitorIdsToRetry },
             fields: [

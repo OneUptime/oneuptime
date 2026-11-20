@@ -78,7 +78,6 @@ interface CapturedFormModal {
   title: string;
   error?: string | undefined;
   onSubmit: (values: { monitorIds: Array<string> }) => Promise<void> | void;
-  formKey?: string | undefined;
   formProps?:
     | { initialValues?: { monitorIds?: Array<string> } | undefined }
     | undefined;
@@ -460,7 +459,6 @@ describe("Link Existing Monitors, when some monitors were linked and some were n
     });
 
     const refreshBefore: string | undefined = lastTable().refreshToggle;
-    const formKeyBefore: string | undefined = lastDialog().formKey;
 
     // Nothing is picked when the dialog opens.
     expect(lastDialog().formProps?.initialValues?.monitorIds).toEqual([]);
@@ -482,16 +480,15 @@ describe("Link Existing Monitors, when some monitors were linked and some were n
     expect(lastTable().refreshToggle).not.toBe(refreshBefore);
 
     /*
-     * The dialog stays open, its form started over with only the one not
+     * The dialog stays open, its form drawn again with only the one not
      * linked still picked: the two that were linked leave it, and the
      * server leaves them out of the picker's list from now on (#10399).
      */
     await waitFor(() => {
-      expect(lastDialog().formKey).not.toBe(formKeyBefore);
+      expect(lastDialog().formProps?.initialValues?.monitorIds).toEqual([
+        GONE_ID,
+      ]);
     });
-    expect(lastDialog().formProps?.initialValues?.monitorIds).toEqual([
-      GONE_ID,
-    ]);
     expect(await dialogError()).toContain("1 von 3");
   });
 

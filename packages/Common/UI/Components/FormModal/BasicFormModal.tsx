@@ -40,13 +40,6 @@ export interface ComponentProps<T extends GenericObject> {
   submitButtonStyleType?: undefined | ButtonStyleType;
   formProps: BasicFormComponentProps<T>;
   /*
-   * A new key starts the form over from formProps.initialValues, the dialog
-   * staying open as it is: a form reads its initial values once. Link
-   * Existing Monitors keeps picked only the monitors it could not link
-   * (#10399). Unset, the form is the one it opened with.
-   */
-  formKey?: string | undefined;
-  /*
    * A line under the title. An element for a sentence with a name in bold
    * (NamedSentence): the record the dialog is about, read apart from the
    * question.
@@ -153,7 +146,6 @@ const BasicFormModal: <T extends GenericObject>(
 
         {!isLoading && (
           <BasicForm
-            key={props.formKey}
             {...props.formProps}
             name={FormAnalyticsName.resolve(
               props.name,
