@@ -128,6 +128,12 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "DbtArtifacts",
   },
   {
+    // An iOS app's dSYMs, from a build: never a page's (#9922).
+    file: `${TELEMETRY_API_DIRECTORY}/DsymIngest.ts`,
+    routePath: "/dsyms/v1/upload",
+    surfaceMember: "Dsym",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/SyncWebhooksIngest.ts`,
     routePath: "/fivetran/v1/webhook/:ingestionKeyId",
     surfaceMember: "SyncWebhooks",

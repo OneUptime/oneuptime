@@ -84,6 +84,16 @@ export enum CheckOn {
    */
   SessionsWithExceptionsPercent = "Sessions With Exceptions (in %)",
   SessionCount = "Sessions",
+  /*
+   * The share of the window's installs a matching exception happened on,
+   * and those installs: the distinct install (app.installation.id, else
+   * device.id) of the spans of the monitor's services (#9924). Over a day,
+   * with a crash's filters, the user-perceived crash rate Android vitals
+   * judges and the Play Console shows. Stored in monitor criteria; never
+   * rename one.
+   */
+  InstallsWithExceptionsPercent = "Installs With Exceptions (in %)",
+  InstallCount = "Installs",
 
   // Profile monitors.
   ProfileCount = "Profile Count",

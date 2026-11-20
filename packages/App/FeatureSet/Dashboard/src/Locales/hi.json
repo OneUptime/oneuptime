@@ -59749,5 +59749,22 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "ये हर उस journald रिसीवर के नीचे जुड़ते हैं जिसमें कोई नहीं है, और कुछ और नहीं बदलता। सहेजने पर यह नया संस्करण बनता है, जो एक मिनट में इसके होस्ट तक पहुँचता है।",
   "Device Manager ID": "डिवाइस मैनेजर ID",
   "{{count}} days old": "{{count}} दिन पुराना",
-  "{{count}} days old_one": "{{count}} दिन पुराना"
+  "{{count}} days old_one": "{{count}} दिन पुराना",
+  "A share of installs": "इंस्टॉल का हिस्सा",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "जब {{window}} में उन इंस्टॉल का हिस्सा, जिन पर कोई मेल खाने वाला अपवाद हुआ, आपके दर्ज किए गए प्रतिशत {{comparison}} हो, तब अलर्ट करता है।",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "जब {{window}} में उन इंस्टॉल का हिस्सा, जिन पर कोई मेल खाने वाला अपवाद हुआ, {{count}}% {{comparison}} हो, तब अलर्ट करता है।",
+  "Binary Name": "बाइनरी का नाम",
+  "Binary UUID": "बाइनरी UUID",
+  "Duplicate Of": "इसका डुप्लिकेट",
+  "Installs": "इंस्टॉल",
+  "Installs With Exceptions (in %)": "अपवाद वाले इंस्टॉल (% में)",
+  "Installs with an exception (in %)": "किसी अपवाद वाले इंस्टॉल (% में)",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash और MetricKit दोनों ने इस क्रैश की रिपोर्ट दी। इसे एक बार गिना जाता है, इसी ऑकरेंस के रूप में।",
+  "Reported twice": "दो बार रिपोर्ट किया गया",
+  "Symbol Count": "सिंबल की संख्या",
+  "Symbols": "सिंबल",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "चार्ट दिखाता है कि कितने अपवाद हुए। नए अपवादों, फिर से आए अपवादों, सामान्य से ज़्यादा बढ़त या सेशन या इंस्टॉल के हिस्से के लिए यह नहीं बनाया जाता।",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "किसी iOS ऐप की बाइनरी के एक बिल्ड के फ़ंक्शन सिंबल, उसके dSYM से। इनसे ऐप के क्रैश और हैंग स्टैक के फ़्रेम उनके फ़ंक्शन से नामित होते हैं और फ़ंक्शन के अनुसार समूहित होते हैं। बाइनरी के UUID से किसी फ़्रेम से मिलाए जाते हैं।",
+  "dSYMs": "dSYM",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "चुनी गई सीमा के उन सेशन का हिस्सा जिन्हें किसी क्रैश ने खत्म नहीं किया। बार 99.5% से नीचे एम्बर और 99% से नीचे लाल हो जाता है। नीचे की पंक्ति इंस्टॉल का वही हिस्सा है, जो ऐप के उपयोगकर्ताओं का विकल्प है: वह app.installation.id जिसे OpenTelemetry Android सेट करता है, या iOS ऐप का device.id; जो ऐप इनमें से कोई नहीं भेजता, उसके लिए यह पंक्ति बताती है कि कितने सेशन क्रैश हुए।"
 }

@@ -59749,5 +59749,22 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Они добавляются в каждый приёмник journald, где их нет, и больше ничего не меняется. После сохранения это новая версия, которую её хосты получат в течение минуты.",
   "Device Manager ID": "ID в системе управления устройствами",
   "{{count}} days old": "Давность: {{count}} дн.",
-  "{{count}} days old_one": "Давность: {{count}} день"
+  "{{count}} days old_one": "Давность: {{count}} день",
+  "A share of installs": "Доля установок",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "Оповещает, когда доля установок с подходящим исключением (окно: {{window}}) {{comparison}} N%, где N — процент, который вы введёте.",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "Оповещает, когда доля установок с подходящим исключением (окно: {{window}}) {{comparison}} {{count}}%.",
+  "Binary Name": "Имя бинарного файла",
+  "Binary UUID": "UUID бинарного файла",
+  "Duplicate Of": "Дубликат",
+  "Installs": "Установки",
+  "Installs With Exceptions (in %)": "Установки с исключениями (в %)",
+  "Installs with an exception (in %)": "Установки с исключением (в %)",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "Об этом сбое сообщили и KSCrash, и MetricKit. Он учитывается один раз — как это возникновение.",
+  "Reported twice": "Сообщено дважды",
+  "Symbol Count": "Число символов",
+  "Symbols": "Символы",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "График показывает, сколько исключений произошло. Для новых исключений, вернувшихся исключений, роста выше обычного и доли сеансов или установок он не строится.",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "Символы функций одной сборки бинарного файла iOS-приложения из его dSYM. По ним кадры стеков сбоев и зависаний приложения называются по функциям и группируются по функции. Сопоставляются с кадром по UUID бинарного файла.",
+  "dSYMs": "dSYM",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "Доля сеансов за выбранный период, которые не завершились сбоем. Полоса становится жёлтой ниже 99,5% и красной ниже 99%. Строка ниже показывает ту же долю для установок, замену пользователям приложения: по app.installation.id, который задаёт OpenTelemetry Android, или по device.id приложения iOS; для приложения, которое не отправляет ни того ни другого, — сколько сеансов завершились сбоем."
 }

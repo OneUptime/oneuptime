@@ -59749,5 +59749,22 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "它们会加到每个没有 operator 的 journald 接收器下，其他部分保持不变。保存后成为新版本，其主机会在一分钟内收到。",
   "Device Manager ID": "设备管理服务 ID",
   "{{count}} days old": "已过 {{count}} 天",
-  "{{count}} days old_one": "已过 {{count}} 天"
+  "{{count}} days old_one": "已过 {{count}} 天",
+  "A share of installs": "安装占比",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "当 {{window}} 内出现匹配异常的安装占比 {{comparison}} 你输入的百分比时发出警报。",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "当 {{window}} 内出现匹配异常的安装占比 {{comparison}} {{count}}% 时发出警报。",
+  "Binary Name": "二进制文件名称",
+  "Binary UUID": "二进制文件 UUID",
+  "Duplicate Of": "重复自",
+  "Installs": "安装",
+  "Installs With Exceptions (in %)": "有异常的安装（%）",
+  "Installs with an exception (in %)": "出现异常的安装（%）",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash 和 MetricKit 都报告了这次崩溃。它只计一次，即这次发生。",
+  "Reported twice": "报告了两次",
+  "Symbol Count": "符号数",
+  "Symbols": "符号",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "图表显示发生了多少异常。对于新异常、再次出现的异常、高于平常的增长或会话、安装占比，不会绘制图表。",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "iOS 应用某个二进制文件一次构建的函数符号，取自其 dSYM。用于按函数为应用崩溃和卡顿堆栈中的帧命名，并按函数分组。通过二进制文件的 UUID 与帧匹配。",
+  "dSYMs": "dSYM",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "所选范围内未因崩溃而结束的会话所占比例。低于 99.5% 时条形变为琥珀色，低于 99% 时变为红色。下一行是按安装计算的同一比例，安装可以代表应用的用户：依据 OpenTelemetry Android 设置的 app.installation.id，或 iOS 应用的 device.id；对于两者都不发送的应用，则显示有多少会话崩溃。"
 }

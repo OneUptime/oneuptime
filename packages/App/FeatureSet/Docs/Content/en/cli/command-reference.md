@@ -6,7 +6,7 @@ Every command of the `oneuptime` CLI, with its arguments, options and defaults. 
 - [Global options](#global-options): The options every command takes.
 - [Login and contexts](#login-and-contexts): login and the context commands.
 - [Resource commands](#resource-commands): The operations, fields and actions of every resource.
-- [Other commands](#other-commands): deploy, dbt upload, data-checks apply, whoami, resources, version and help.
+- [Other commands](#other-commands): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version and help.
 :::
 
 ## The commands
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | No | The dbt project's name, needed only when no manifest is sent | The manifest's project |
 | `--ingestion-key <key>` | No | A telemetry ingestion key of the project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+Sends an iOS app's dSYMs after a build, from CI or an Xcode build phase, so the frames of its crashes and hangs in **Exceptions** are named by their functions and grouped by them from one release to the next. It reads each dSYM on your machine: a `.dSYM` bundle, a folder of them such as an archive's `dSYMs` folder, a zip of them as App Store Connect gives them, or a dSYM's DWARF file. It sends only each binary's UUID, architecture and function names, and writes with a telemetry ingestion key, not an API key. A binary stripped of its functions is left out with a warning. See [Upload your dSYMs](/docs/rum/mobile-setup#upload-your-dsyms).
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| Option | Required | What it is | Default |
+| --- | --- | --- | --- |
+| `--app <name>` | No | The app they are for, as its `service.name`, kept beside them | |
+| `--ingestion-key <key>` | No | A telemetry ingestion key of the project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 Makes the project's data checks match a YAML file, so they are kept in a repository and reviewed like code. A mistake anywhere in the file applies nothing and exits with an error. The file's format is in [Checks and Reconciliations](/docs/data-observability/checks).
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | The API key, when no `--api-key` flag gives one |
 | `ONEUPTIME_URL` | Your OneUptime's address, when no `--url` flag gives one |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | The telemetry ingestion key `oneuptime deploy` writes with, when no `--ingestion-key` flag gives one |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | The telemetry ingestion key `oneuptime deploy`, `oneuptime dbt upload` and `oneuptime dsym upload` write with, when no `--ingestion-key` flag gives one |
 | `NO_COLOR` | Set to any value, turns colors off |
 
 ## Files

@@ -178,6 +178,10 @@ const EXCEPTION_MEASURE_CHOICES: Array<{ value: CheckOn; label: string }> = [
     value: CheckOn.SessionsWithExceptionsPercent,
     label: TelemetryRuleCopy.exceptionMeasureSessions,
   },
+  {
+    value: CheckOn.InstallsWithExceptionsPercent,
+    label: TelemetryRuleCopy.exceptionMeasureInstalls,
+  },
 ];
 
 const ROLLING_TIME_OPTIONS: Array<DropdownOption> =

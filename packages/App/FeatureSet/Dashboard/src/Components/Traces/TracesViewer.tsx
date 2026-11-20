@@ -125,7 +125,7 @@ import {
   SpanQueryScope,
   SpanScopeChip,
   buildSpanQueryScope,
-  describeDurationBounds,
+  describeDurationBoundsInLanguage,
   describeNotCarriedFilter,
 } from "../../Utils/SpanQueryScope";
 import SpanUtil from "../../Utils/SpanUtil";
@@ -743,11 +743,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   /*
    * The host's stored span query, read once into every vocabulary the viewer
    * speaks. See Utils/SpanQueryScope — the single reading is what keeps the
-   * list, the histogram and the facet counts describing the same rows.
+   * list, the histogram and the facet counts describing the same rows. Its
+   * chips are worded in the reader's language; the translator is made anew
+   * on every render (useTranslator), so its language is what is watched.
    */
   const spanScope: SpanQueryScope = useMemo(() => {
-    return buildSpanQueryScope(props.spanQuery);
-  }, [spanQueryKey]);
+    return buildSpanQueryScope(props.spanQuery, translator);
+  }, [spanQueryKey, translator.language]);
 
   /*
    * The window the monitor evaluated over, as a picker value. Always CUSTOM
@@ -3039,15 +3041,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       });
 
       /*
-       * A duration floor reads "Duration: ≥ 5 s", its durations worded in
-       * the reader's language (its seed says milliseconds in English).
+       * A duration floor reads "Duration: ≥ 5.00 s", its durations worded
+       * in the reader's language as the scope words them, whatever the
+       * chip's facet config would make of its value.
        */
       if (chip.facetKey === DURATION_FACET_KEY && spanScope.duration) {
-        resolved.displayValue = describeDurationBounds(
+        resolved.displayValue = describeDurationBoundsInLanguage(
           spanScope.duration,
-          (milliseconds: number): string => {
-            return formatDurationMsInLanguage(milliseconds, translator);
-          },
+          translator,
         );
       }
 
