@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "هذا المتصفح لا يدعم مفاتيح المرور. استخدم متصفحًا مدعومًا أو سجّل الدخول بكلمة المرور.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "أُلغي تسجيل مفتاح المرور أو انتهت مهلته. حاول مرة أخرى عندما تكون مستعدًا.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "أداة المصادقة هذه مسجّلة بالفعل. اختر أداة مصادقة مختلفة أو استخدم مفتاح المرور الحالي.",
-  "Unable to complete passkey registration. Please try again.": "تعذّر إكمال تسجيل مفتاح المرور. حاول مرة أخرى."
+  "Unable to complete passkey registration. Please try again.": "تعذّر إكمال تسجيل مفتاح المرور. حاول مرة أخرى.",
+  "Same name as another team": "مطابق لاسم فريق آخر",
+  "Same name as another label": "مطابق لاسم تسمية أخرى",
+  "Same name as another policy": "مطابق لاسم سياسة أخرى",
+  "Same name as another schedule": "مطابق لاسم جدول آخر",
+  "Created {{date}}": "أُنشئ {{date}}"
 }

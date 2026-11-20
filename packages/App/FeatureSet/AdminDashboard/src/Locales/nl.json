@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "Deze browser ondersteunt geen passkeys. Gebruik een ondersteunde browser of meld u aan met uw wachtwoord.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "De registratie van de passkey is geannuleerd of verlopen. Probeer het opnieuw wanneer u klaar bent.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "Deze authenticator is al geregistreerd. Kies een andere authenticator of gebruik uw bestaande passkey.",
-  "Unable to complete passkey registration. Please try again.": "De registratie van de passkey kon niet worden voltooid. Probeer het opnieuw."
+  "Unable to complete passkey registration. Please try again.": "De registratie van de passkey kon niet worden voltooid. Probeer het opnieuw.",
+  "Same name as another team": "Zelfde naam als een ander team",
+  "Same name as another label": "Zelfde naam als een ander label",
+  "Same name as another policy": "Zelfde naam als een ander beleid",
+  "Same name as another schedule": "Zelfde naam als een ander schema",
+  "Created {{date}}": "Aangemaakt op {{date}}"
 }

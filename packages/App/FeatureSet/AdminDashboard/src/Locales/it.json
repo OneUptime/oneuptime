@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "Questo browser non supporta le passkey. Usa un browser supportato oppure accedi con la tua password.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "La registrazione della passkey è stata annullata o è scaduta. Riprova quando sei pronto.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "Questo autenticatore è già registrato. Scegli un altro autenticatore o usa la tua passkey esistente.",
-  "Unable to complete passkey registration. Please try again.": "Impossibile completare la registrazione della passkey. Riprova."
+  "Unable to complete passkey registration. Please try again.": "Impossibile completare la registrazione della passkey. Riprova.",
+  "Same name as another team": "Stesso nome di un altro team",
+  "Same name as another label": "Stesso nome di un'altra etichetta",
+  "Same name as another policy": "Stesso nome di un'altra policy",
+  "Same name as another schedule": "Stesso nome di un'altra pianificazione",
+  "Created {{date}}": "Creato il {{date}}"
 }

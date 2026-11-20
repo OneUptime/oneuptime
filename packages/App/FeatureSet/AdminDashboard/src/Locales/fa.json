@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "این مرورگر از کلیدهای عبور پشتیبانی نمی‌کند. از یک مرورگر پشتیبانی‌شده استفاده کنید یا با گذرواژه خود وارد شوید.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "ثبت کلید عبور لغو شد یا زمان آن تمام شد. هر وقت آماده بودید دوباره تلاش کنید.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "این احرازکننده قبلاً ثبت شده است. احرازکننده دیگری انتخاب کنید یا از کلید عبور فعلی خود استفاده کنید.",
-  "Unable to complete passkey registration. Please try again.": "ثبت کلید عبور کامل نشد. لطفاً دوباره تلاش کنید."
+  "Unable to complete passkey registration. Please try again.": "ثبت کلید عبور کامل نشد. لطفاً دوباره تلاش کنید.",
+  "Same name as another team": "هم‌نام با تیمی دیگر",
+  "Same name as another label": "هم‌نام با برچسبی دیگر",
+  "Same name as another policy": "هم‌نام با سیاستی دیگر",
+  "Same name as another schedule": "هم‌نام با زمان‌بندی دیگری",
+  "Created {{date}}": "ساخته‌شده در {{date}}"
 }

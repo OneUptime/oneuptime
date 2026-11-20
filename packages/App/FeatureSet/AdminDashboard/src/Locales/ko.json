@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "이 브라우저는 패스키를 지원하지 않습니다. 지원되는 브라우저를 사용하거나 비밀번호로 로그인하세요.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "패스키 등록이 취소되었거나 시간이 초과되었습니다. 준비되면 다시 시도하세요.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "이 인증기는 이미 등록되어 있습니다. 다른 인증기를 선택하거나 기존 패스키를 사용하세요.",
-  "Unable to complete passkey registration. Please try again.": "패스키 등록을 완료할 수 없습니다. 다시 시도하세요."
+  "Unable to complete passkey registration. Please try again.": "패스키 등록을 완료할 수 없습니다. 다시 시도하세요.",
+  "Same name as another team": "다른 팀과 같은 이름",
+  "Same name as another label": "다른 레이블과 같은 이름",
+  "Same name as another policy": "다른 정책과 같은 이름",
+  "Same name as another schedule": "다른 일정과 같은 이름",
+  "Created {{date}}": "{{date}}에 생성됨"
 }

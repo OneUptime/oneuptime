@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "Este navegador no admite llaves de acceso. Usa un navegador compatible o inicia sesión con tu contraseña.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "El registro de la llave de acceso se canceló o caducó. Inténtalo de nuevo cuando quieras.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "Este autenticador ya está registrado. Elige otro autenticador o usa tu llave de acceso existente.",
-  "Unable to complete passkey registration. Please try again.": "No se pudo completar el registro de la llave de acceso. Inténtalo de nuevo."
+  "Unable to complete passkey registration. Please try again.": "No se pudo completar el registro de la llave de acceso. Inténtalo de nuevo.",
+  "Same name as another team": "Mismo nombre que otro equipo",
+  "Same name as another label": "Mismo nombre que otra etiqueta",
+  "Same name as another policy": "Mismo nombre que otra política",
+  "Same name as another schedule": "Mismo nombre que otra programación",
+  "Created {{date}}": "Creado el {{date}}"
 }

@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "Ce navigateur ne prend pas en charge les clés d'accès. Utilisez un navigateur compatible ou connectez-vous avec votre mot de passe.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "L'enregistrement de la clé d'accès a été annulé ou a expiré. Réessayez quand vous serez prêt.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "Cet authentificateur est déjà enregistré. Choisissez un autre authentificateur ou utilisez votre clé d'accès existante.",
-  "Unable to complete passkey registration. Please try again.": "Impossible de terminer l'enregistrement de la clé d'accès. Veuillez réessayer."
+  "Unable to complete passkey registration. Please try again.": "Impossible de terminer l'enregistrement de la clé d'accès. Veuillez réessayer.",
+  "Same name as another team": "Même nom qu'une autre équipe",
+  "Same name as another label": "Même nom qu'une autre étiquette",
+  "Same name as another policy": "Même nom qu'une autre politique",
+  "Same name as another schedule": "Même nom qu'un autre planning",
+  "Created {{date}}": "Créé le {{date}}"
 }

@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "यह ब्राउज़र पासकी सपोर्ट नहीं करता। समर्थित ब्राउज़र इस्तेमाल करें या अपने पासवर्ड से साइन इन करें।",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "पासकी रजिस्ट्रेशन रद्द हो गया या समय समाप्त हो गया। तैयार होने पर फिर से कोशिश करें।",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "यह ऑथेंटिकेटर पहले से रजिस्टर है। कोई दूसरा ऑथेंटिकेटर चुनें या अपनी मौजूदा पासकी इस्तेमाल करें।",
-  "Unable to complete passkey registration. Please try again.": "पासकी रजिस्ट्रेशन पूरा नहीं हो सका। कृपया फिर से कोशिश करें।"
+  "Unable to complete passkey registration. Please try again.": "पासकी रजिस्ट्रेशन पूरा नहीं हो सका। कृपया फिर से कोशिश करें।",
+  "Same name as another team": "किसी दूसरी टीम जैसा नाम",
+  "Same name as another label": "किसी दूसरे लेबल जैसा नाम",
+  "Same name as another policy": "किसी दूसरी नीति जैसा नाम",
+  "Same name as another schedule": "किसी दूसरी अनुसूची जैसा नाम",
+  "Created {{date}}": "{{date}} को बनाया गया"
 }

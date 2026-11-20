@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "このブラウザはパスキーに対応していません。対応しているブラウザを使用するか、パスワードでサインインしてください。",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "パスキーの登録がキャンセルされたか、タイムアウトしました。準備ができたらもう一度お試しください。",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "この認証器は既に登録されています。別の認証器を選ぶか、既存のパスキーを使用してください。",
-  "Unable to complete passkey registration. Please try again.": "パスキーの登録を完了できませんでした。もう一度お試しください。"
+  "Unable to complete passkey registration. Please try again.": "パスキーの登録を完了できませんでした。もう一度お試しください。",
+  "Same name as another team": "他のチームと同じ名前",
+  "Same name as another label": "他のラベルと同じ名前",
+  "Same name as another policy": "他のポリシーと同じ名前",
+  "Same name as another schedule": "他のスケジュールと同じ名前",
+  "Created {{date}}": "{{date}} に作成"
 }

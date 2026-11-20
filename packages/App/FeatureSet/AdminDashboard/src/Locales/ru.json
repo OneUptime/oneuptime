@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "Этот браузер не поддерживает ключи доступа. Используйте поддерживаемый браузер или войдите с паролем.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "Регистрация ключа доступа отменена или истекло время ожидания. Повторите попытку, когда будете готовы.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "Этот аутентификатор уже зарегистрирован. Выберите другой аутентификатор или используйте существующий ключ доступа.",
-  "Unable to complete passkey registration. Please try again.": "Не удалось завершить регистрацию ключа доступа. Повторите попытку."
+  "Unable to complete passkey registration. Please try again.": "Не удалось завершить регистрацию ключа доступа. Повторите попытку.",
+  "Same name as another team": "Совпадает с названием другой команды",
+  "Same name as another label": "Совпадает с названием другой метки",
+  "Same name as another policy": "Совпадает с названием другой политики",
+  "Same name as another schedule": "Совпадает с названием другого расписания",
+  "Created {{date}}": "Создано {{date}}"
 }

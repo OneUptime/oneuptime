@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "This browser does not support passkeys. Use a supported browser or sign in with your password.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "Passkey registration was canceled or timed out. Try again when you are ready.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "This authenticator is already registered. Choose a different authenticator or use your existing passkey.",
-  "Unable to complete passkey registration. Please try again.": "Unable to complete passkey registration. Please try again."
+  "Unable to complete passkey registration. Please try again.": "Unable to complete passkey registration. Please try again.",
+  "Same name as another team": "Same name as another team",
+  "Same name as another label": "Same name as another label",
+  "Same name as another policy": "Same name as another policy",
+  "Same name as another schedule": "Same name as another schedule",
+  "Created {{date}}": "Created {{date}}"
 }

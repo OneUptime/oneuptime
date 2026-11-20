@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "Denne nettleseren støtter ikke passnøkler. Bruk en støttet nettleser, eller logg inn med passordet ditt.",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "Registreringen av passnøkkelen ble avbrutt eller tidsavbrutt. Prøv igjen når du er klar.",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "Denne autentiseringen er allerede registrert. Velg en annen autentisering, eller bruk den eksisterende passnøkkelen din.",
-  "Unable to complete passkey registration. Please try again.": "Registreringen av passnøkkelen kunne ikke fullføres. Prøv igjen."
+  "Unable to complete passkey registration. Please try again.": "Registreringen av passnøkkelen kunne ikke fullføres. Prøv igjen.",
+  "Same name as another team": "Samme navn som et annet team",
+  "Same name as another label": "Samme navn som en annen etikett",
+  "Same name as another policy": "Samme navn som en annen policy",
+  "Same name as another schedule": "Samme navn som en annen tidsplan",
+  "Created {{date}}": "Opprettet {{date}}"
 }

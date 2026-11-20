@@ -4408,5 +4408,10 @@
   "This browser does not support passkeys. Use a supported browser or sign in with your password.": "此瀏覽器不支援通行密鑰。請使用支援的瀏覽器，或使用密碼登入。",
   "Passkey registration was canceled or timed out. Try again when you are ready.": "通行密鑰註冊已取消或逾時。準備好後請再試一次。",
   "This authenticator is already registered. Choose a different authenticator or use your existing passkey.": "此驗證器已註冊。請選擇其他驗證器，或使用現有的通行密鑰。",
-  "Unable to complete passkey registration. Please try again.": "無法完成通行密鑰註冊。請再試一次。"
+  "Unable to complete passkey registration. Please try again.": "無法完成通行密鑰註冊。請再試一次。",
+  "Same name as another team": "與另一個團隊同名",
+  "Same name as another label": "與另一個標籤同名",
+  "Same name as another policy": "與另一個策略同名",
+  "Same name as another schedule": "與另一個排程同名",
+  "Created {{date}}": "建立於 {{date}}"
 }
