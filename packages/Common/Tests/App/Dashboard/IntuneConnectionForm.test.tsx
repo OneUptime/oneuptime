@@ -8,7 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, render } from "@testing-library/react";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import * as React from "react";
 
 /*
@@ -85,8 +85,8 @@ interface CapturedField {
   }>;
 }
 
-let createSpy: jest.SpiedFunction<typeof ModelAPI.create>;
-let updateSpy: jest.SpiedFunction<typeof ModelAPI.updateById>;
+let createSpy: SpyInstance<typeof ModelAPI.create>;
+let updateSpy: SpyInstance<typeof ModelAPI.updateById>;
 
 function passed(
   fields: Partial<DeviceManagementTestResult> = {},
@@ -182,10 +182,10 @@ beforeEach(() => {
   getJestSpyOn(Toast, "success").mockImplementation(() => {});
   createSpy = getJestSpyOn(ModelAPI, "create").mockResolvedValue(
     {} as never,
-  ) as unknown as jest.SpiedFunction<typeof ModelAPI.create>;
+  ) as unknown as SpyInstance<typeof ModelAPI.create>;
   updateSpy = getJestSpyOn(ModelAPI, "updateById").mockResolvedValue(
     {} as never,
-  ) as unknown as jest.SpiedFunction<typeof ModelAPI.updateById>;
+  ) as unknown as SpyInstance<typeof ModelAPI.updateById>;
 });
 
 afterEach(() => {
