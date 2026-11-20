@@ -395,6 +395,97 @@ describe("IoT fleet overview", () => {
   });
 });
 
+/*
+ * The Overview's choice (#9730), on every page that draws a device's state
+ * (#10014): while the fleet is disconnected, no device is called offline.
+ * One rule says whether the fleet reports (isIoTFleetConnected, in
+ * Utils/IoTFleetConnection), and one component draws a device's state
+ * with it (IoTDeviceStatus): the fleet disconnected, in grey, with what the
+ * device last reported and when. The rendered pages are in
+ * Common/Tests/App/Dashboard/IoTDisconnectedFleetDevices.test.tsx.
+ */
+describe("a disconnected fleet blames no device on any of its pages", () => {
+  const RULE_IMPORT: RegExp =
+    /import \{[^}]*\bisIoTFleetConnected\b[^}]*\} from "\.\.?\/(\.\.\/)?Utils\/IoTFleetConnection";/;
+
+  test.each([
+    PAGES["iotOverview"]!,
+    PAGES["iotDevices"]!,
+    PAGES["iotDeviceDetail"]!,
+    PAGES["iotFleets"]!,
+  ])("%s reads the fleet's connection by the one rule", (page: string) => {
+    const code: string = readCode(page);
+    expect(code).toMatch(RULE_IMPORT);
+    expect(code).not.toContain("export function isIoTFleetConnected");
+    expect(code).not.toContain('otelCollectorStatus === "connected"');
+  });
+
+  test("the Devices list reads the fleet before its rows, says so once, and draws each state with it", () => {
+    const code: string = readCode(PAGES["iotDevices"]!);
+
+    expect(code).toContain(
+      "await ModelAPI.getItem({ modelType: IoTFleet, id: modelId, select: { otelCollectorStatus: true, }, }),",
+    );
+    expect(code).toContain(
+      'if (isFleetLoading) { return <PageSkeleton shape="table" />; }',
+    );
+    expect(code).toContain(
+      "const isFleetConnected: boolean = isIoTFleetConnected( fleet?.otelCollectorStatus as string | undefined, );",
+    );
+    expect(code).toContain(
+      '{!isFleetConnected && ( <Alert className="mb-5" type={AlertType.WARNING} title={IOT_DEVICES_FLEET_DISCONNECTED_NOTICE} textOnRight={IOT_FLEET_DISCONNECTED_ACTION}',
+    );
+    expect(code).toContain(
+      "<IoTDeviceStatus isUp={item.isUp} isFleetConnected={isFleetConnected} lastSeenAt={item.lastSeenAt}",
+    );
+    // No state of its own, red or green, beside the shared one.
+    expect(code).not.toContain("StatusBadge");
+    expect(code).not.toContain('"Offline"');
+  });
+
+  test("a device's page reads its fleet's connection with its name, and says so the same way", () => {
+    const code: string = readCode(PAGES["iotDeviceDetail"]!);
+
+    expect(code).toContain(
+      "select: { name: true, otelCollectorStatus: true, },",
+    );
+    expect(code).toContain(
+      "<IoTDeviceStatus isUp={row.isUp} isFleetConnected={isFleetConnected} lastSeenAt={row.lastSeenAt}",
+    );
+    expect(code).toContain(
+      '{!isFleetConnected && ( <Alert className="mb-5" type={AlertType.WARNING} title={IOT_DEVICE_FLEET_DISCONNECTED_NOTICE}',
+    );
+    expect(code).not.toContain("StatusBadge");
+  });
+
+  test("the Fleets list counts a disconnected fleet's devices, never how many are online", () => {
+    const devices: string = segment(
+      readCode(PAGES["iotFleets"]!),
+      'title: "Devices"',
+      "title:",
+    );
+
+    expect(devices).toContain(
+      "const count: IoTFleetDeviceCount = getIoTFleetDeviceCount({ total: total, online: online, isFleetConnected: isIoTFleetConnected( item.otelCollectorStatus as string | undefined, ), });",
+    );
+    expect(devices).toContain(
+      ': translator.translatePlural( { one: "{{count}} device", other: "{{count}} devices" }, total, )}',
+    );
+  });
+
+  test("the side menu counts the fleet's devices, never the ones offline", () => {
+    const layout: string = readCode("Pages/IoT/View/Layout.tsx");
+
+    expect(layout).toContain(
+      'setResourceCounts({ devices: readNum("deviceCount"), });',
+    );
+    expect(layout).not.toContain("onlineDeviceCount");
+    expect(readCode("Pages/IoT/View/SideMenu.tsx")).toContain(
+      "badge={counts.devices} badgeType={BadgeType.NEUTRAL}",
+    );
+  });
+});
+
 describe("IoT device detail", () => {
   const code: string = readCode(PAGES["iotDeviceDetail"]!);
   const fields: string = summaryFieldsCode(code);

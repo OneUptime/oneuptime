@@ -115,10 +115,9 @@ import {
   getIoTAtRiskDevices,
   getIoTOfflineDeviceItems,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/IoTDeviceAttention";
-import {
-  getIoTOfflineDevicesPill,
-  isIoTFleetConnected,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Index";
+import { getIoTOfflineDevicesPill } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Index";
+// One rule for the Overview, the Devices list, a device's page and the Fleets list (#10014).
+import { isIoTFleetConnected } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/IoTFleetConnection";
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
