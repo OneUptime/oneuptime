@@ -1684,6 +1684,15 @@ describe("HTTP/2 turned off for HOST (#9973)", () => {
     },
   );
 
+  // No HOST, no certificate to serve it by: the ingress serves no HTTPS, and HOST's own check says so.
+  test("without a HOST, off says nothing", () => {
+    for (const host of [[], ["HOST="], ["HOST=  "]]) {
+      expect(
+        http2With(["PROVISION_SSL=true", "NGINX_HTTP2=off"].concat(host)),
+      ).toEqual([]);
+    }
+  });
+
   test("a config.env without NGINX_HTTP2, from before the setting, says nothing", () => {
     expect(
       http2With(["HOST=oneuptime.example.com", "PROVISION_SSL=true"]),

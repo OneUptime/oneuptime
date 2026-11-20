@@ -212,20 +212,21 @@ const http2SettingOf = (value) => {
  * so while it is off the doctor reminds of it, and so does npm start. No
  * fault: it is what the setting is for.
  *
- * Only with PROVISION_SSL, as the ingress reads it: otherwise the ingress
- * serves no HTTPS for HOST and speaks HTTP/1.1 alone, so the setting
- * changes nothing (its log says so). And a value it reads as neither on
- * nor off (NGINX_HTTP2=disabled) keeps HTTP/2 on, which whoever wrote it
- * did not mean, so it is worth a look.
+ * Only with PROVISION_SSL, as the ingress reads it, and a HOST to name the
+ * certificate by (run.sh's PRIMARY_DOMAIN, HOST without its port):
+ * otherwise the ingress serves no HTTPS for HOST and speaks HTTP/1.1 alone,
+ * so the setting changes nothing (its log says so). And a value it reads as
+ * neither on nor off (NGINX_HTTP2=disabled) keeps HTTP/2 on, which whoever
+ * wrote it did not mean, so it is worth a look.
  */
 const http2Findings = (settings) => {
-  if (!provisionsSsl(settings)) {
+  const host = splitHost(String(settings.get("HOST") || "").trim()).hostname;
+
+  if (!provisionsSsl(settings) || !host) {
     return [];
   }
 
   const value = String(settings.get("NGINX_HTTP2") || "").trim();
-  const host =
-    splitHost(String(settings.get("HOST") || "").trim()).hostname || "HOST";
   const setting = http2SettingOf(value);
 
   if (setting === "off") {
