@@ -50,6 +50,19 @@ enum AIChatPageContextType {
    */
   StatusPage = "StatusPage",
   OnCallPolicy = "OnCallPolicy",
+  /*
+   * One on-call schedule's pages, its Layers among them, one team's, one
+   * dashboard's, one runbook's, one SLO's, one incoming call policy's and
+   * one form's (#10104): "how do I add a layer to this schedule?" is about
+   * the one on screen, and ends at its own page.
+   */
+  OnCallSchedule = "OnCallSchedule",
+  Team = "Team",
+  Dashboard = "Dashboard",
+  Runbook = "Runbook",
+  Slo = "Slo",
+  IncomingCallPolicy = "IncomingCallPolicy",
+  Form = "Form",
 
   // Area pages — no id; the user is browsing a list or an explorer.
   IncidentsList = "IncidentsList",
@@ -156,6 +169,13 @@ const ENTITY_TYPES: Array<AIChatPageContextType> = [
   AIChatPageContextType.Workflow,
   AIChatPageContextType.StatusPage,
   AIChatPageContextType.OnCallPolicy,
+  AIChatPageContextType.OnCallSchedule,
+  AIChatPageContextType.Team,
+  AIChatPageContextType.Dashboard,
+  AIChatPageContextType.Runbook,
+  AIChatPageContextType.Slo,
+  AIChatPageContextType.IncomingCallPolicy,
+  AIChatPageContextType.Form,
 ];
 
 export class AIChatPageContextHelper {

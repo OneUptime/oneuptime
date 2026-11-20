@@ -326,6 +326,11 @@ function handleHelpTool(
             "Monitor a website or API address in one call, with the criteria the website guided setup gives it (signed in with OAuth)",
         },
         {
+          tool: "set_up_service_monitor",
+          description:
+            "One of the monitors the telemetry guided setup recommends for a service that sends telemetry: errors, slow_requests, exceptions or error_logs (signed in with OAuth)",
+        },
+        {
           tool: "who_is_told",
           description:
             "Who is paged and emailed when a monitor goes down, and what would stop them being reached",
@@ -360,9 +365,24 @@ function handleHelpTool(
           name: "Monitor a website, page me and show it on a status page",
           steps: [
             "1. Use set_up_website_monitoring with the address",
-            "2. Use set_up_paging in a project that pages nobody yet (who is paged, and how they asked to be reached)",
-            "3. Use publish_status_page with the monitor, or add_monitors_to_status_page for a page the project has",
-            "4. Use who_is_told with the monitor to check who is told when it goes down",
+            "2. Use set_up_paging in a project that pages nobody yet (who is paged, and how they asked to be reached), or add_to_on_call_policy to add people to a policy it has",
+            "3. Use set_how_to_reach_me for how pages reach the person, such as a text, then a call after five minutes",
+            "4. Use publish_status_page with the monitor, or add_monitors_to_status_page for a page the project has",
+            "5. Use who_is_told with the monitor to check who is told when it goes down",
+          ],
+        },
+        {
+          name: "Monitor a service that sends telemetry",
+          steps: [
+            "1. Use set_up_service_monitor once for each recommended monitor: errors, slow_requests, exceptions and error_logs",
+            "2. Each opens an alert for the team: who is told is the project's on-call rules for alerts",
+          ],
+        },
+        {
+          name: "Bring someone new on call",
+          steps: [
+            "1. Use invite_people with their email address: OneUptime emails them an invitation",
+            "2. Once they join, use add_to_on_call_policy to add them to a policy",
           ],
         },
         {

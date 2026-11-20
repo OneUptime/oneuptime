@@ -101,6 +101,10 @@ const SIGN_OUT_READERS: Record<string, Record<string, string>> = {
     "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
       "POST /status-page-identity-api/logout/<page> ends the session the page's sign-out cookie names when its refresh token matches none: a renewal whose answer was lost rotated it (issue #8671)",
   },
+  decodeDashboardPrivateUserSessionToSignOut: {
+    "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+      "POST /public-dashboard-api/private-user/logout/<dashboard> ends the session the dashboard's sign-out cookie names when its refresh token matches none: a renewal whose answer was lost rotated it (issue #10250)",
+  },
 };
 
 /*
@@ -112,12 +116,15 @@ const SIGN_OUT_READERS: Record<string, Record<string, string>> = {
 const SIGN_OUT_MINTERS: Record<string, Array<string>> = {
   signSessionSignOutToken: [COOKIE_MODULE],
   signStatusPageSessionSignOutToken: [COOKIE_MODULE],
+  // setDashboardPrivateUserCookie (#10250).
+  signDashboardPrivateUserSessionSignOutToken: [COOKIE_MODULE],
 };
 
 // The purposes of those cookies, which JSONWebToken.decode never reads.
 const SIGN_OUT_PURPOSES: Array<string> = [
   "UserSessionSignOut",
   "StatusPageSessionSignOut",
+  "DashboardPrivateUserSessionSignOut",
 ];
 
 // Where each kind of token is signed: the `purpose` handed to JSONWebToken.sign.
@@ -132,6 +139,12 @@ const SIGNERS: Record<string, Array<string>> = {
   UserSessionSignOut: [JSON_WEB_TOKEN_MODULE],
   // signStatusPageSessionSignOutToken.
   StatusPageSessionSignOut: [JSON_WEB_TOKEN_MODULE],
+  /*
+   * signDashboardPrivateUserSessionToken and its sign-out's (#10250), which
+   * CookieUtil.setDashboardPrivateUserCookie hands a browser.
+   */
+  DashboardPrivateUserSession: [JSON_WEB_TOKEN_MODULE],
+  DashboardPrivateUserSessionSignOut: [JSON_WEB_TOKEN_MODULE],
 };
 
 /*
@@ -163,6 +176,8 @@ const RAW_CLAIM_READERS: Record<string, string> = {
     "the state cookie of a project OIDC sign-in in flight, matched to the provider's answer",
   "packages/App/FeatureSet/Identity/API/StatusPageOIDC.ts":
     "the state cookie of a status page OIDC sign-in in flight, matched to the provider's answer",
+  "packages/App/FeatureSet/Identity/API/DashboardOIDC.ts":
+    "the state cookie of a dashboard OIDC sign-in in flight, matched to the provider's answer",
   "packages/App/FeatureSet/Identity/Utils/ProviderSignIn.ts":
     "the state cookie of a Sign in with Microsoft or Continue with Google in flight, matched to the provider's answer",
   "packages/App/FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation.ts":

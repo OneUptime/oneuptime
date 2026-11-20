@@ -182,7 +182,9 @@ I rilevatori degli SDK scrivono la piattaforma `azure.app_service`, con un punto
 
 **Rete:** App Service raggiunge Internet direttamente, a meno che sia attiva la **VNet integration** con **Route All**. In quel caso la VNet ha bisogno di un NAT gateway, o di una route verso un firewall che consenta TCP 443 verso l'host di OneUptime.
 
-**Cosa mostra la pagina dell'app:** richieste, tasso di errore e latenza vengono dalle tracce dell'app, quindi un'app che invia solo log o metriche lì mostra **Nessuna traccia ricevuta**, e la sua **Verifica della configurazione** dice cosa aggiungere. App Service non dà a un'app CPU né memoria proprie, e i suoi riquadri di CPU e memoria lo dicono. Collega la sottoscrizione in **Cloud → Collega**, e la **Panoramica** dell'app aggiunge una sezione **Azure Monitor**: richieste, errori del server, tempo di risposta, tempo di CPU e memoria del sito, come li misura Azure, qualunque cosa invii l'app.
+**Cosa mostra la pagina dell'app:** richieste, tasso di errore e latenza vengono dalle tracce dell'app, quindi un'app che invia solo log o metriche lì mostra **Nessuna traccia ricevuta**, e la sua **Verifica della configurazione** dice cosa aggiungere. App Service non dà a un'app CPU né memoria proprie, e i suoi riquadri di CPU e memoria lo dicono. Collega la sottoscrizione in **Cloud → Collega**, e la **Panoramica** dell'app aggiunge una sezione **Azure Monitor**: richieste, errori del server e del client, tempo di risposta, tempo di CPU e memoria del sito, come li misura Azure, qualunque cosa invii l'app. La sua scheda **Istanze** elenca poi le istanze su cui Azure la esegue, e la sua scheda **Revisioni** le distribuzioni che Azure conserva.
+
+La scheda **Configurazione** dell'app dà queste impostazioni come comandi di Azure Cloud Shell per .NET, Java, Node.js o Python, con il nome, il gruppo di risorse e la sottoscrizione dell'app in ogni comando. Per i log di console, HTTP e di piattaforma del sito stesso, scegli anche **Trasmetti metriche e log** nella riga della sottoscrizione in **Cloud → Collega**: compaiono nella scheda **Log** dell'app, sotto **Dalle impostazioni di diagnostica di Azure**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ I rilevatori di App Service per Node.js e .NET non impostano `cloud.account.id`.
 :::
 
 :::details Un'app App Service non mostra richieste né istanze
-Richieste, tasso di errore e latenza vengono dalle tracce, quindi un'app che invia solo log o metriche non ne ha: la sua **Verifica della configurazione** dice cosa aggiungere. Le istanze vengono da `azure.app_service.instance.id` o da `service.instance.id`, che impostano i rilevatori Azure: senza nessuno dei due, il riquadro **Istanze** mostra **Non segnalato**. Per vedere le richieste del sito qualunque cosa invii l'app, collega la sottoscrizione: la pagina dell'app aggiunge una sezione **Azure Monitor**.
+Richieste, tasso di errore e latenza vengono dalle tracce, quindi un'app che invia solo log o metriche non ne ha: la sua **Verifica della configurazione** dice cosa aggiungere, e la sua scheda **Configurazione** come. Le istanze vengono da `azure.app_service.instance.id` o da `service.instance.id`, che impostano i rilevatori Azure: senza nessuno dei due, il riquadro **Istanze** mostra **Non segnalato** finché la sottoscrizione non è collegata, poi conta le istanze che Azure esegue. Per vedere le richieste del sito qualunque cosa invii l'app, collega la sottoscrizione: la pagina dell'app aggiunge una sezione **Azure Monitor**.
+:::
+
+:::details Un'app App Service non ha numeri di Azure Monitor
+La riga **Connessione di Azure Monitor** della sua **Verifica della configurazione** dice perché. OneUptime collega l'app al suo sito tramite `cloud.resource_id`, che impostano i rilevatori di App Service, altrimenti tramite il suo `service.name` nella sottoscrizione indicata da `cloud.account.id`: dai all'app il nome del suo sito, oppure aggiungi `cloud.resource_id`. Una connessione Azure in **Cloud → Collega** deve leggere quella sottoscrizione, con il ruolo Monitoring Reader su di essa. Uno slot di distribuzione è una risorsa a sé, che OneUptime non legge ancora.
 :::
 
 :::details Una variabile di Container Instances modificata non ha effetto

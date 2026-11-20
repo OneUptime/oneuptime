@@ -61,6 +61,8 @@ Open een dashboard, en het eigen zijmenu ervan heeft deze pagina's. Elke sectie 
 | **Delen** | Wie het kan zien, de openbare link, en een IP-toelatingslijst onder Meer instellingen. |
 | **Huisstijl** | Paginatitel, beschrijving, logo, thema en favicon van het openbare dashboard. |
 | **Aangepaste domeinen** | Het openbare dashboard op je eigen domein hosten. |
+| **Privégebruikers** | De mensen die zich bij de openbare link mogen aanmelden, als alleen mensen die inloggen het kunnen zien. |
+| **Single Sign-On** | De SAML- en OpenID Connect-providers waarmee ze zich aanmelden, en **SSO vereisen om aan te melden**. |
 | **Instellingen** | Het dashboard dupliceren, exporteren of archiveren. |
 | **Eigenaren** | De gebruikers en teams die eigenaar zijn. |
 | **Auditlogboeken** | Elke wijziging aan het dashboard, en wie die heeft gemaakt. |

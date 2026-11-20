@@ -376,6 +376,7 @@ export const AI_ACTION_LINES: {
   monitorOpensIncident: string;
   monitorGoesOffline: string;
   monitorOwnerEmailed: string;
+  monitorBilledOnFreePlan: string;
   monitorNoLocations: string;
   probeAgreementSome: string;
   probeAgreementBoth: string;
@@ -460,6 +461,18 @@ export const AI_ACTION_LINES: {
   ),
   monitorOwnerEmailed: translationKey(
     "You own this monitor, so you are emailed when its status changes.",
+  ),
+  /*
+   * What a monitor the plan sets up adds to the bill (#9995), on each
+   * monitor's line - a website's, a service's recommended one - on
+   * OneUptime Cloud's Free plan, where every monitor that runs checks is
+   * billed as it is used: the price the website guided setup quotes there
+   * ({{price}}: formatPriceInUSD of ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+   * "$1"), by the same rule (isPayAsYouGoPriceQuoted). Never said on a plan
+   * that includes monitors, or on an install without billing.
+   */
+  monitorBilledOnFreePlan: translationKey(
+    "On the Free plan, this monitor is billed as you use it, at {{price}} a month.",
   ),
   // The project adds no probe to a new monitor: nothing would check it.
   monitorNoLocations: translationKey(

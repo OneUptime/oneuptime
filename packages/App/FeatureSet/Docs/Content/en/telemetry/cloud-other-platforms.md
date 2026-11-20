@@ -182,7 +182,9 @@ The SDK detectors spell the platform `azure.app_service`, with a dot; OneUptime 
 
 **Networking:** App Service reaches the internet directly unless **VNet integration** with **Route All** is on. Then the VNet needs a NAT gateway, or a route to a firewall that allows TCP 443 to the OneUptime host.
 
-**What the app's page shows:** requests, error rate and latency come from the app's traces, so an app that sends only logs or metrics reads **No traces received** there, and its **Setup check** says what to add. App Service gives an app no CPU or memory of its own, and its CPU and memory tiles say so. Connect the subscription under **Cloud → Connect**, and the app's **Overview** adds an **Azure Monitor** section: the site's requests, server errors, response time, CPU time and memory, as Azure measures them, whatever the app sends.
+**What the app's page shows:** requests, error rate and latency come from the app's traces, so an app that sends only logs or metrics reads **No traces received** there, and its **Setup check** says what to add. App Service gives an app no CPU or memory of its own, and its CPU and memory tiles say so. Connect the subscription under **Cloud → Connect**, and the app's **Overview** adds an **Azure Monitor** section: the site's requests, server and client errors, response time, CPU time and memory, as Azure measures them, whatever the app sends. Its **Instances** tab then lists the instances Azure runs it on, and its **Revisions** tab the deployments Azure keeps.
+
+The app's **Setup** tab gives these settings as Azure Cloud Shell commands for .NET, Java, Node.js or Python, with the app's own name, resource group and subscription in every command. For the site's own console, HTTP and platform logs too, choose **Stream metrics and logs** in the subscription's row under **Cloud → Connect**: they show on the app's **Logs** tab, under **From Azure diagnostic settings**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ The Node.js and .NET App Service detectors do not set `cloud.account.id`. Add th
 :::
 
 :::details An App Service app shows no requests or instances
-Requests, error rate and latency come from traces, so an app that sends only logs or metrics has none: its **Setup check** says what to add. Instances come from `azure.app_service.instance.id` or `service.instance.id`, which the Azure detectors set: without either, the **Instances** tile reads **Not reported**. To see the site's requests whatever the app sends, connect the subscription: the app's page adds an **Azure Monitor** section.
+Requests, error rate and latency come from traces, so an app that sends only logs or metrics has none: its **Setup check** says what to add, and its **Setup** tab how. Instances come from `azure.app_service.instance.id` or `service.instance.id`, which the Azure detectors set: without either, the **Instances** tile reads **Not reported** until the subscription is connected, and then counts the instances Azure runs. To see the site's requests whatever the app sends, connect the subscription: the app's page adds an **Azure Monitor** section.
+:::
+
+:::details An App Service app has no Azure Monitor numbers
+The **Azure Monitor connection** row of its **Setup check** says why. OneUptime ties the app to its site by `cloud.resource_id`, which the App Service detectors set, else by its `service.name` in the subscription `cloud.account.id` names: name the app as its site, or add `cloud.resource_id`. An Azure connection under **Cloud → Connect** must read that subscription, with the Monitoring Reader role on it. A deployment slot is a resource of its own, which OneUptime does not read yet.
 :::
 
 :::details A changed Container Instances variable has no effect

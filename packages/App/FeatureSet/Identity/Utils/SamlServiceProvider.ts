@@ -84,6 +84,25 @@ export default class SamlServiceProviders {
     };
   }
 
+  /*
+   * A dashboard's SAML provider (#10250), for the people who sign in to its
+   * public link: its own Entity ID and Reply URL, shown on the dashboard's
+   * Single Sign-On page (Dashboards/View/SingleSignOn) exactly so.
+   */
+  public static forDashboardSso(data: {
+    dashboardId: ObjectID | string;
+    dashboardSsoId: ObjectID | string;
+  }): SamlServiceProvider {
+    const dashboardId: string = data.dashboardId.toString();
+    const dashboardSsoId: string = data.dashboardSsoId.toString();
+
+    return {
+      entityId: `${SamlServiceProviders.getServerAddress()}/dashboard-sso/${dashboardId}/${dashboardSsoId}`,
+      replyUrl: `${SamlServiceProviders.getIdentityAddress()}/dashboard-idp-login/${dashboardId}/${dashboardSsoId}`,
+      serverAddress: SamlServiceProviders.getServerAddress(),
+    };
+  }
+
   public static forGlobalSso(data: {
     globalSsoId: ObjectID | string;
   }): SamlServiceProvider {
