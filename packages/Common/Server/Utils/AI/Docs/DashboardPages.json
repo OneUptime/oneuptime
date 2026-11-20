@@ -4679,6 +4679,22 @@
     "kind": "page"
   },
   {
+    "title": "Blocklist",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "block an ip address",
+      "blocked addresses",
+      "ip blocklist",
+      "deny list",
+      "lift a block"
+    ],
+    "path": "/dashboard/:projectId/security-events/blocklist",
+    "kind": "page"
+  },
+  {
     "title": "Protected Entities",
     "where": [
       "Security Events",
@@ -4687,6 +4703,7 @@
     "keywords": [
       "protected users",
       "protected hosts",
+      "protected addresses",
       "containment exclusions",
       "break-glass accounts"
     ],
@@ -5050,6 +5067,22 @@
       "sampling"
     ],
     "path": "/dashboard/:projectId/data-security/settings/scanning",
+    "kind": "page"
+  },
+  {
+    "title": "OneUptime AI",
+    "where": [
+      "Data Security",
+      "Settings"
+    ],
+    "keywords": [
+      "what ai sees",
+      "what is sent to ai",
+      "ai privacy",
+      "llm",
+      "model"
+    ],
+    "path": "/dashboard/:projectId/data-security/settings/ai",
     "kind": "page"
   },
   {

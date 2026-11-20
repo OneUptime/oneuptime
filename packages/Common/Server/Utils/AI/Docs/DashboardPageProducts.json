@@ -726,6 +726,9 @@
   "/dashboard/:projectId/security-events/playbook-runs/all": [
     "security-events"
   ],
+  "/dashboard/:projectId/security-events/blocklist": [
+    "security-events"
+  ],
   "/dashboard/:projectId/security-events/protected-entities": [
     "security-events"
   ],
@@ -802,6 +805,9 @@
     "data-security"
   ],
   "/dashboard/:projectId/data-security/settings/scanning": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/settings/ai": [
     "data-security"
   ],
   "/dashboard/:projectId/data-security/settings/owner-rules": [
