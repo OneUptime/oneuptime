@@ -60416,5 +60416,10 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Метрики прочитаны {{time}}, но {{count}} из них прочитать не удалось.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Метрики прочитаны {{time}}, но одну из них прочитать не удалось.",
   "Its metrics were read {{time}}.": "Метрики прочитаны {{time}}.",
-  "Not read since {{time}}.": "Не читалась с {{time}}."
+  "Not read since {{time}}.": "Не читалась с {{time}}.",
+  "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.": "Вставьте сертификат в формате PEM, от -----BEGIN CERTIFICATE----- до -----END CERTIFICATE-----.",
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.": "Пропускает проверку сертификатов для запроса этого шага, чтобы работали самоподписанные сертификаты, но любой на сетевом пути сможет прочитать или изменить запрос.",
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.": "Шаг доверяет только этому сертификату (PEM): сертификату ЦС, подписавшего сертификат сервера, или собственному сертификату сервера, если он самоподписанный.",
+  "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.": "Здесь есть закрытый ключ. Вставьте только сертификат: все, кто может читать этот runbook, могут читать его шаги.",
+  "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.": "Это длиннее, чем может быть сертификат ЦС. Вставьте только сертификат ЦС, подписавшего сертификат сервера."
 }

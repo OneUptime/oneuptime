@@ -60416,5 +60416,10 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Metrikkerne blev læst {{time}}, men {{count}} af dem kunne ikke læses.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Metrikkerne blev læst {{time}}, men én af dem kunne ikke læses.",
   "Its metrics were read {{time}}.": "Metrikkerne blev læst {{time}}.",
-  "Not read since {{time}}.": "Ikke læst siden {{time}}."
+  "Not read since {{time}}.": "Ikke læst siden {{time}}.",
+  "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.": "Indsæt et certifikat i PEM-format, fra -----BEGIN CERTIFICATE----- til -----END CERTIFICATE-----.",
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.": "Springer certifikatkontrollen over for dette trins anmodning, så selvsignerede certifikater virker, men alle på netværksstien kan læse eller ændre anmodningen.",
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.": "Trinnet stoler kun på dette certifikat (PEM): den CA's, der har signeret serverens certifikat, eller serverens eget, når det er selvsigneret.",
+  "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.": "Dette indeholder en privat nøgle. Indsæt kun certifikatet: alle, der må læse denne runbook, kan læse dens trin.",
+  "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.": "Dette er længere, end et CA-certifikat kan være. Indsæt kun certifikatet fra den CA, der har signeret serverens certifikat."
 }

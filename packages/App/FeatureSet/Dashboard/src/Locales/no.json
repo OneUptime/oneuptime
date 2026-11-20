@@ -60416,5 +60416,10 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Målingene ble lest {{time}}, men {{count}} av dem kunne ikke leses.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Målingene ble lest {{time}}, men én av dem kunne ikke leses.",
   "Its metrics were read {{time}}.": "Målingene ble lest {{time}}.",
-  "Not read since {{time}}.": "Ikke lest siden {{time}}."
+  "Not read since {{time}}.": "Ikke lest siden {{time}}.",
+  "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.": "Lim inn et sertifikat i PEM-format, fra -----BEGIN CERTIFICATE----- til -----END CERTIFICATE-----.",
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.": "Hopper over sertifikatkontrollen for forespørselen i dette trinnet, så selvsignerte sertifikater fungerer, men alle på nettverksstien kan lese eller endre forespørselen.",
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.": "Trinnet stoler bare på dette sertifikatet (PEM): sertifikatet til CA-en som signerte serverens sertifikat, eller serverens eget når det er selvsignert.",
+  "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.": "Dette inneholder en privat nøkkel. Lim inn bare sertifikatet: alle som kan lese denne runbooken, kan lese trinnene i den.",
+  "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.": "Dette er lengre enn et CA-sertifikat kan være. Lim inn bare sertifikatet til CA-en som signerte serverens sertifikat."
 }

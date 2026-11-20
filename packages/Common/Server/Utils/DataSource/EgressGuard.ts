@@ -134,6 +134,23 @@ export interface PinnedAgents {
 }
 
 /*
+ * How a request checks its target's certificate, for one request: the
+ * settings of a Runbook HTTP step (Types/Runbook/HttpStepCertificates).
+ * They go on the https agent built for that request alone, so they reach
+ * the TLS connection to the target and nothing else - never another
+ * request, never the global agent, never NODE_TLS_REJECT_UNAUTHORIZED, and
+ * never the connection to an https:// outbound proxy, which keeps the CAs
+ * the process trusts (createPinnedAgentsForNodeHttp). Unset, the target is
+ * checked as every request's is.
+ */
+export interface TargetTlsOptions {
+  // false: the target's certificate is not checked at all.
+  rejectUnauthorized?: boolean | undefined;
+  // The certificates (PEM) the target's chain must end at, and no others.
+  ca?: string | Array<string> | undefined;
+}
+
+/*
  * The agents of a client sent with Node's own http client that learns its
  * hosts as it goes (createGuardedAgentsForNodeHttp).
  */
@@ -1076,10 +1093,21 @@ export default class DataSourceEgressGuard {
    *   - with no proxy, or NO_PROXY naming the host, the agents dial the
    *     approved addresses only, as createPinnedAgents' do.
    *
+   * axios sends on these agents too when it is told not to proxy by itself
+   * (`proxy: false`), as a Runbook HTTP step does: axios's own tunnel hands
+   * the https agent's options to its connection to an https:// proxy, so a
+   * step's certificate settings would reach the proxy's connection as well.
+   * Node's tunnel keeps them to the target's.
+   *
+   * `tls` is how the target's certificate is checked (TargetTlsOptions):
+   * on the https agent only, so on the TLS connection to the target only,
+   * inside a proxy's tunnel too.
+   *
    * Destroy both once the request is over.
    */
   public static createPinnedAgentsForNodeHttp(
     target: PinnedTarget,
+    tls?: TargetTlsOptions | undefined,
   ): PinnedAgents {
     const lookup: EgressLookupFunction =
       this.createPinnedLookupForTarget(target);
@@ -1093,26 +1121,52 @@ export default class DataSourceEgressGuard {
       }),
       httpsAgent: new https.Agent({
         lookup: lookup as never,
+        ...this.getTargetTlsAgentOptions(tls),
         ...(proxy && isHttps ? { proxyEnv: { https_proxy: proxy.href } } : {}),
       }),
     };
   }
 
   /*
-   * assertUrlAllowedAndPin, for a request sent with Node's own http client:
-   * the agents go through the outbound proxy as axios's would
-   * (createPinnedAgentsForNodeHttp).
+   * The https agent's options for `tls`: only what it sets, so an unset
+   * TargetTlsOptions leaves the agent as every other request's.
+   */
+  private static getTargetTlsAgentOptions(
+    tls: TargetTlsOptions | undefined,
+  ): https.AgentOptions {
+    const options: https.AgentOptions = {};
+
+    if (tls?.rejectUnauthorized === false) {
+      options.rejectUnauthorized = false;
+    }
+
+    if (
+      tls?.ca !== undefined &&
+      (Array.isArray(tls.ca) ? tls.ca.length > 0 : tls.ca.trim() !== "")
+    ) {
+      options.ca = tls.ca;
+    }
+
+    return options;
+  }
+
+  /*
+   * assertUrlAllowedAndPin, for a request sent with Node's own http client,
+   * or with axios told not to proxy by itself: the agents go through the
+   * outbound proxy as axios's would, and check the target's certificate as
+   * `tls` says (createPinnedAgentsForNodeHttp).
    */
   public static async assertUrlAllowedAndPinForNodeHttp(
     urlString: string,
     options?: EgressGuardOptions,
+    tls?: TargetTlsOptions | undefined,
   ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
     const { url, addresses } = await this.assertUrlAllowed(urlString, options);
 
     return {
       url,
       addresses,
-      ...this.createPinnedAgentsForNodeHttp({ url, addresses }),
+      ...this.createPinnedAgentsForNodeHttp({ url, addresses }, tls),
     };
   }
 
