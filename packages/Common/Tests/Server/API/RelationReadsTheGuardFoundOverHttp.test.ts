@@ -47,6 +47,7 @@ import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
 import Route from "../../../Types/API/Route";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../../Types/BaseDatabase/Select";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { JSONObject } from "../../../Types/JSON";
@@ -435,7 +436,7 @@ describe("Settings > SSO's providers and notice: whether each domain is verified
       ]) {
         const read: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
           modelType: modelType,
-          query: { projectId: PROJECT_ID },
+          query: { projectId: PROJECT_ID } as Query<BaseModel>,
           limit: 10,
           skip: 0,
           select: select as Select<BaseModel>,
