@@ -71,6 +71,15 @@ import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import EncryptedColumnValue from "../Utils/Database/EncryptedColumnValue";
 import ColumnsOnlyOneUptimeWrites from "../Utils/Database/ColumnsOnlyOneUptimeWrites";
+import ListEntries, {
+  ListEntryWrite,
+  ListEntryWrites,
+} from "../Utils/Database/ListEntries";
+import {
+  ADD_TO_LIST_KEY,
+  ListChanges,
+  REMOVE_FROM_LIST_KEY,
+} from "../../Types/Database/ListChanges";
 import PresentedKey from "../Utils/PresentedKey/PresentedKey";
 import PresentedKeysAtRest from "../Utils/PresentedKey/PresentedKeysAtRest";
 import PasswordHash from "../Utils/PasswordHash";
@@ -479,6 +488,16 @@ interface CreatorOwnerRow {
   projectId: ObjectID;
 }
 
+/*
+ * An update's list changes made into a write of whole lists
+ * (getListWriteOfUpdate): the update's data with each list it changes, and
+ * the entries the row's write adds and takes off.
+ */
+interface ListWriteOfUpdate<TBaseModel extends BaseModel> {
+  data: PartialEntity<TBaseModel>;
+  writes: ListEntryWrites;
+}
+
 // One row's share of an update (see getRowWrite).
 interface RowWrite<TBaseModel extends BaseModel> {
   // The row as the read before the write found it.
@@ -681,6 +700,99 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return true;
       },
     );
+  }
+
+  /*
+   * ONE ROW'S UPDATE WHOSE LISTS CHANGE ENTRY BY ENTRY (listEntryWrites,
+   * #10135): the row's own columns, as every update's UPDATE writes them -
+   * its version moves on - and the entries each list adds and takes off
+   * (ListEntries.write), in one transaction. Answers what the UPDATE did: a
+   * row it did not reach (deleted since it was read, or moved past the
+   * version the query named) has no entry written either.
+   */
+  protected async updateRowWithListEntries(data: {
+    criteria: Dictionary<unknown>;
+    values: Dictionary<unknown>;
+    returnedColumns: Array<string>;
+    rowId: string;
+    writes: ListEntryWrites;
+  }): Promise<UpdateResult> {
+    return await this.executeTransaction(
+      async (manager: EntityManager): Promise<UpdateResult> => {
+        const repository: Repository<TBaseModel> =
+          manager.getRepository<TBaseModel>(this.modelType.name);
+
+        const result: UpdateResult =
+          data.returnedColumns.length > 0
+            ? await repository.update(
+                data.criteria as any,
+                data.values as any,
+                {
+                  returning: data.returnedColumns,
+                },
+              )
+            : await repository.update(data.criteria as any, data.values as any);
+
+        if (result.affected === 0) {
+          return result;
+        }
+
+        await ListEntries.write({
+          manager: manager,
+          modelType: this.modelType,
+          rowId: data.rowId,
+          writes: data.writes,
+        });
+
+        return result;
+      },
+    );
+  }
+
+  /*
+   * The entries of a row's lists changed entry by entry, after a save() of
+   * its other lists wrote the row (listEntryWrites, #10135), in a
+   * transaction of their own.
+   */
+  protected async writeListEntries(data: {
+    rowId: string;
+    writes: ListEntryWrites;
+  }): Promise<void> {
+    await this.executeTransaction(
+      async (manager: EntityManager): Promise<void> => {
+        await ListEntries.write({
+          manager: manager,
+          modelType: this.modelType,
+          rowId: data.rowId,
+          writes: data.writes,
+        });
+      },
+    );
+  }
+
+  /*
+   * The lists an update changes entry by entry whose whole list the write
+   * still holds as getListWriteOfUpdate worked it out (listEntryWrites): a
+   * hook that took a list out of the write, or wrote another one over it,
+   * has its own way, and that list is not written by its entries.
+   */
+  private getListEntryWritesToMake(
+    writes: ListEntryWrites | undefined,
+    data: PartialEntity<TBaseModel>,
+  ): ListEntryWrites {
+    const made: ListEntryWrites = {};
+
+    for (const [column, write] of Object.entries(writes || {})) {
+      const value: unknown = (data as Dictionary<unknown>)[column];
+
+      if (value === undefined || !ListEntries.isListAsWorkedOut(value, write)) {
+        continue;
+      }
+
+      made[column] = write;
+    }
+
+    return made;
   }
 
   public async executeTransaction<TResult>(
@@ -5406,13 +5518,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private decideUserAttributionOnCreate(
     data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
-  ): void {
+  ): Array<string> {
     const record: Record<string, unknown> = data as unknown as Record<
       string,
       unknown
     >;
 
     const isOwnWrite: boolean = this.isWriteOneUptimeMakesItself(props);
+    const cleared: Array<string> = [];
 
     for (const column of this.getUserAttributionColumns()) {
       if (record[column] === undefined) {
@@ -5426,8 +5539,67 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             CREATED_BY_USER_ID_COLUMN)
       ) {
         record[column] = undefined;
+        cleared.push(column);
       }
     }
+
+    // The ones the caller sent: a stamp OneUptime makes for itself is not.
+    return isOwnWrite ? [] : cleared;
+  }
+
+  /*
+   * The fields a create left out of what its caller sent because only
+   * OneUptime writes them, for the caller to be told (CreateBy
+   * .fieldsLeftOut, #10136): added to the list the caller gave, each once,
+   * in the order they were left out.
+   */
+  private static recordFieldsLeftOut<TModel extends BaseModel>(
+    createBy: CreateBy<TModel>,
+    fields: Array<string>,
+  ): void {
+    if (!createBy.fieldsLeftOut) {
+      return;
+    }
+
+    for (const field of fields) {
+      if (!createBy.fieldsLeftOut.includes(field)) {
+        createBy.fieldsLeftOut.push(field);
+      }
+    }
+  }
+
+  /*
+   * The server-set columns a create's caller gave a value that the check
+   * of them (ColumnPermission.checkComputedColumnsSentOnCreate) dropped: a
+   * value it clears is OneUptime's to fill in, and the create goes on
+   * without it.
+   */
+  private checkComputedColumnsRecordingLeftOut(
+    createBy: CreateBy<TBaseModel>,
+  ): Array<string> {
+    const given: Array<string> = ColumnPermissions.getComputedColumnsWithValue(
+      this.model,
+      createBy.data,
+    );
+
+    const sentByCaller: Array<string> =
+      ModelPermission.checkComputedColumnsSentOnCreate(
+        this.modelType,
+        createBy.data,
+        createBy.props,
+      );
+
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      given.filter((column: string): boolean => {
+        return (
+          (createBy.data as unknown as Dictionary<unknown>)[column] ===
+          undefined
+        );
+      }),
+    );
+
+    return sentByCaller;
   }
 
   /*
@@ -5453,19 +5625,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   protected takeOutWhatTheServerSetsOnCreate(
     createBy: CreateBy<TBaseModel>,
   ): void {
-    this.decideUserAttributionOnCreate(createBy.data, createBy.props);
-
-    ColumnsOnlyOneUptimeWrites.takeOut({
-      model: this.model,
-      record: createBy.data,
-      props: createBy.props,
-    });
-
-    ModelPermission.checkComputedColumnsSentOnCreate(
-      this.modelType,
-      createBy.data,
-      createBy.props,
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      this.decideUserAttributionOnCreate(createBy.data, createBy.props),
     );
+
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      ColumnsOnlyOneUptimeWrites.takeOut({
+        model: this.model,
+        record: createBy.data,
+        props: createBy.props,
+      }),
+    );
+
+    this.checkComputedColumnsRecordingLeftOut(createBy);
   }
 
   /*
@@ -7133,19 +7307,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
-    // Who did something to the record is OneUptime's to say. See the helper.
-    this.decideUserAttributionOnCreate(createBy.data, createBy.props);
+    /*
+     * Who did something to the record is OneUptime's to say. See the
+     * helper. What a create leaves out is named to its caller (#10136).
+     */
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      this.decideUserAttributionOnCreate(createBy.data, createBy.props),
+    );
 
     /*
      * And what only OneUptime writes is OneUptime's to write, under both
      * names of a reference: dropped from a create that does not run as
      * OneUptime itself (ColumnsOnlyOneUptimeWrites, #10053).
      */
-    ColumnsOnlyOneUptimeWrites.takeOut({
-      model: this.model,
-      record: createBy.data,
-      props: createBy.props,
-    });
+    DatabaseService.recordFieldsLeftOut(
+      createBy,
+      ColumnsOnlyOneUptimeWrites.takeOut({
+        model: this.model,
+        record: createBy.data,
+        props: createBy.props,
+      }),
+    );
 
     // One reference, one value, whichever name it is sent under. See the helper.
     this.assertRelationNamesAgree(createBy.data, createBy.props);
@@ -7160,11 +7343,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      */
     DatabaseService.computedColumnsSentOn.set(
       createBy,
-      ModelPermission.checkComputedColumnsSentOnCreate(
-        this.modelType,
-        createBy.data,
-        createBy.props,
-      ),
+      this.checkComputedColumnsRecordingLeftOut(createBy),
     );
 
     // Under a parent the caller may read, before any hook acts. See the helper.
@@ -11754,8 +11933,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             return metadata?.type === TableColumnType.EntityArray;
           }),
       );
+      /*
+       * The lists the update changes entry by entry (listEntryWrites,
+       * #10135), as the hooks left them: each row's write adds and takes
+       * off only their entries (updateRowWithListEntries), never saving the
+       * list whole. A list a hook wrote over is saved whole, as it asked.
+       */
+      const listEntryWrites: ListEntryWrites = this.getListEntryWritesToMake(
+        updateBy.listEntryWrites,
+        data,
+      );
+      const hasListEntryWrites: boolean =
+        Object.keys(listEntryWrites).length > 0;
       const hasRelationUpdates: boolean = dataKeys.some((key: string) => {
-        return relationColumnNames.has(key);
+        return relationColumnNames.has(key) && !listEntryWrites[key];
       });
 
       /*
@@ -11766,7 +11957,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const updateLimit: UpdateLimit | null =
         items.length > 0 ? await this.getUpdateLimit(beforeUpdateBy) : null;
 
-      if (updateLimit && hasRelationUpdates) {
+      if (updateLimit && (hasRelationUpdates || hasListEntryWrites)) {
         throw new ServerException(
           `An update of ${this.model.singularName} held to a rule in its project cannot write a list of related records.`,
         );
@@ -11887,6 +12078,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             delete savedItem[column];
           }
 
+          // A list changed entry by entry is written by its entries, below.
+          for (const column of Object.keys(listEntryWrites)) {
+            delete savedItem[column];
+          }
+
           // The row's write itself, in save()'s own transaction.
           const isSaved: boolean = await progress.write(
             true,
@@ -11911,6 +12107,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
            */
           if (!isSaved) {
             continue;
+          }
+
+          // The entries of the lists changed entry by entry (#10135).
+          if (hasListEntryWrites) {
+            await progress.write(true, async (): Promise<void> => {
+              await this.writeListEntries({
+                rowId: item._id!.toString(),
+                writes: listEntryWrites,
+              });
+            });
           }
 
           if (rowWriteSqlColumns.length > 0) {
@@ -11961,6 +12167,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }
         } else {
           const { _id, ...updateData } = updatedItem;
+
+          // A list changed entry by entry is written by its entries, below.
+          for (const column of Object.keys(listEntryWrites)) {
+            delete updateData[column];
+          }
           /*
            * The row, at the version the query named, if it named one (see
            * expectedVersion above).
@@ -11989,7 +12200,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           /*
            * The row's write itself: one UPDATE, committed on its own - or,
            * held to a rule (getUpdateLimit), in the transaction that decides
-           * it, which commits it with its COMMIT (updateWithinUpdateLimit).
+           * it, which commits it with its COMMIT (updateWithinUpdateLimit);
+           * or, with lists changed entry by entry, in one transaction with
+           * their entries (updateRowWithListEntries, #10135).
            */
           const updateResult: UpdateResult = updateLimit
             ? await progress.write(true, async (): Promise<UpdateResult> => {
@@ -12001,13 +12214,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                   returnedColumns: returnedColumns,
                 });
               })
-            : await progress.write(false, async (): Promise<UpdateResult> => {
-                return returnedColumns.length > 0
-                  ? await this.getRepository().update(criteria, values, {
-                      returning: returnedColumns,
-                    })
-                  : await this.getRepository().update(criteria, values);
-              });
+            : hasListEntryWrites
+              ? await progress.write(true, async (): Promise<UpdateResult> => {
+                  return await this.updateRowWithListEntries({
+                    criteria: criteria,
+                    values: values,
+                    returnedColumns: returnedColumns,
+                    rowId: String(_id),
+                    writes: listEntryWrites,
+                  });
+                })
+              : await progress.write(false, async (): Promise<UpdateResult> => {
+                  return returnedColumns.length > 0
+                    ? await this.getRepository().update(criteria, values, {
+                        returning: returnedColumns,
+                      })
+                    : await this.getRepository().update(criteria, values);
+                });
 
           /*
            * The row was hard-deleted between the find above and this write,
@@ -12611,6 +12834,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       throw new BadDataException("updateById.id is required");
     }
 
+    // Entries to add to its lists and take off them, as whole lists. See the helper.
+    const listWrite: ListWriteOfUpdate<TBaseModel> | null =
+      await this.getListWriteOfUpdate(updateById);
+    const data: PartialEntity<TBaseModel> = listWrite
+      ? listWrite.data
+      : updateById.data;
+
     await ModelPermission.checkUpdatePermissionByModel({
       modelType: this.modelType,
       fetchModelWithAccessControlIds: async () => {
@@ -12625,18 +12855,104 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * Below the table's update plan, a switch-off still passes: judged on
        * the columns the update writes, as _updateBy judges it.
        */
-      updateData: this.sanitizeUpdateData(updateById.data),
+      updateData: this.sanitizeUpdateData(data),
     });
 
     return await this.updateOneBy({
       query: {
         _id: updateById.id.toString() as any,
       },
-      data: updateById.data as any,
+      data: data as any,
       miscDataProps: updateById.miscDataProps,
       auditLogIncludeColumns: updateById.auditLogIncludeColumns,
+      ...(listWrite ? { listEntryWrites: listWrite.writes } : {}),
       props: updateById.props,
     });
+  }
+
+  /*
+   * AN UPDATE THAT ADDS ENTRIES TO A RECORD'S LISTS, OR TAKES THEM OFF
+   * (UpdateByID.listChanges, Types/Database/ListChanges, #10135), MADE INTO
+   * AN UPDATE OF THOSE LISTS: each list it changes goes into the update's
+   * `data` whole - the record's entries, read now, without the ones taken
+   * off, with the ones added - so every check and hook reads it as a write
+   * of the whole list. The row's write then adds and takes off only the
+   * entries that change (listEntryWrites, written by
+   * updateRowWithListEntries), so an entry added at the same moment stays.
+   *
+   * The record is read as OneUptime, within the caller's project only
+   * (getCallerProjectRowQuery): one that is not there, or not the
+   * caller's, gives no list, and the update then finds no row to write and
+   * says so, as for any record it cannot reach. Null for an update that
+   * changes no list this way.
+   */
+  private async getListWriteOfUpdate(
+    updateById: UpdateByID<TBaseModel>,
+  ): Promise<ListWriteOfUpdate<TBaseModel> | null> {
+    const changes: ListChanges | undefined = updateById.listChanges;
+
+    if (!changes || Object.keys(changes).length === 0) {
+      return null;
+    }
+
+    const listColumns: Array<string> = ListEntries.getListColumns(this.model);
+    const data: Record<string, unknown> = {
+      ...(this.sanitizeUpdateData(updateById.data) as Record<string, unknown>),
+    };
+
+    for (const column of Object.keys(changes)) {
+      if (!listColumns.includes(column)) {
+        throw new BadDataException(
+          `${this.model.singularName} has no list of related records called ${column}, so its entries cannot be added or taken off.`,
+        );
+      }
+
+      if (data[column] !== undefined) {
+        throw new BadDataException(
+          `${column} is both in data and in ${ADD_TO_LIST_KEY} or ${REMOVE_FROM_LIST_KEY}. Send the whole list in data, or the entries to add and take off in ${ADD_TO_LIST_KEY} and ${REMOVE_FROM_LIST_KEY}.`,
+        );
+      }
+    }
+
+    const writes: ListEntryWrites = {};
+    const query: Query<TBaseModel> | null = this.getCallerProjectRowQuery(
+      updateById.id,
+      updateById.props,
+    );
+
+    const select: Dictionary<unknown> = { _id: true };
+
+    for (const column of Object.keys(changes)) {
+      select[column] = { _id: true };
+    }
+
+    const row: TBaseModel | null = query
+      ? await this.findOneBy({
+          query: query,
+          select: select as Select<TBaseModel>,
+          props: { isRoot: true },
+        })
+      : null;
+
+    if (!row) {
+      return { data: data as PartialEntity<TBaseModel>, writes: writes };
+    }
+
+    for (const [column, change] of Object.entries(changes)) {
+      const write: ListEntryWrite = ListEntries.getWrite({
+        current: ListEntries.getIds(
+          (row as unknown as Dictionary<unknown>)[column],
+        ),
+        change: change,
+      });
+
+      writes[column] = write;
+      data[column] = write.list.map((id: string): JSONObject => {
+        return { _id: id };
+      });
+    }
+
+    return { data: data as PartialEntity<TBaseModel>, writes: writes };
   }
 
   /*
