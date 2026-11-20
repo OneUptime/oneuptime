@@ -59,9 +59,10 @@ const RULE_CASES: string = path.join(
   REPOSITORY_ROOT,
   "packages/MobileApp/src/__tests__/securityCaseRuleCases.json",
 );
+// Where a run's decisions are made, and refused (SELF_APPROVAL_REFUSED_MESSAGE).
 const RUN_API_SOURCE: string = path.join(
   REPOSITORY_ROOT,
-  "packages/Common/Server/API/SecurityPlaybookRunAPI.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookRunDecision.ts",
 );
 const REPORT_PARSER_SOURCE: string = path.join(
   REPOSITORY_ROOT,
@@ -721,6 +722,54 @@ describe("the app's words are the product's", () => {
 
     expect(sentence.length).toBeGreaterThan(20);
     expect(source.indexOf(JSON.stringify(sentence))).toBeGreaterThan(-1);
+  });
+
+  /*
+   * A target a containment step contained is released from the phone with
+   * the step's undo (#10341): the action the server pairs with it, asked
+   * about in the words the case's Playbook Runs page asks with.
+   */
+  test("every containment action is undone by the action the server pairs with it", () => {
+    expect(playbookApprovalModule["SECURITY_PLAYBOOK_UNDO_ACTIONS"]).toEqual(
+      Object.fromEntries(
+        SECURITY_PLAYBOOK_ACTIONS.filter(
+          (action: { undoes?: string | undefined }): boolean => {
+            return Boolean(action.undoes);
+          },
+        ).map((action: { type: string; undoes?: string | undefined }) => {
+          return [action.undoes, action.type];
+        }),
+      ),
+    );
+  });
+
+  test("an undo is asked about in the dashboard's words", () => {
+    const dashboardSource: string = fs.readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunSteps.tsx",
+      ),
+      "utf8",
+    );
+    const describePlaybookUndo: (contained: unknown) => string =
+      playbookApprovalModule["describePlaybookUndo"] as (
+        contained: unknown,
+      ) => string;
+    const asked: string = describePlaybookUndo({
+      stepNumber: 4,
+      target: { value: "__VALUE__" },
+    });
+
+    expect(asked).toContain("__VALUE__");
+    expect(
+      dashboardSource.indexOf(
+        JSON.stringify(
+          asked
+            .replace("__VALUE__", "{{value}}")
+            .replace("step 4", "step {{number}}"),
+        ),
+      ),
+    ).toBeGreaterThan(-1);
   });
 });
 

@@ -232,7 +232,9 @@ Each person chooses for themselves, under **User Settings → Notification Setti
 
 The choices follow the project's case priorities, under their own names: these are a new project's.
 
-WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.
+WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser. A push about a step waiting for your approval opens on that approval, with its evidence; when somebody decided it since, the case says who, when and how the step went.
+
+A step waiting for your approval reaches you in Slack or Microsoft Teams as a message you can approve from, and its email says what the step will do and why: see [Approve from Slack and Microsoft Teams](#approve-from-slack-and-microsoft-teams).
 
 ### Post to Slack, Microsoft Teams and Mattermost channels
 
@@ -375,9 +377,20 @@ The two data store steps act on the data stores the case is about, at most 10: t
 
 The eight steps that cut someone off wait for approval. Only a Security Admin can turn **Needs Approval** off for one, and OneUptime records who did. The approval lists the users or hosts the step would act on under **Act On**, every one ticked: untick any it should leave alone. Protected ones are not offered. Whoever started a run cannot approve its steps: someone else does, though they can still reject it.
 
+#### Approve from Slack and Microsoft Teams
+
+A step waiting for approval is a message with **Approve**, **Reject** and **Open Case**; when it acts on more than one user or host, it also lets you approve only some of them. It goes to the channels and chats of every Security Case rule whose **Updates** post **Approvals needed**, and to each approver who chose Slack or Microsoft Teams for **Playbook step waiting for my approval**, in the language on their account. It says what the step will do and through which connection, each user or host it acts on and why, the protected ones it leaves alone, who or what asked, the evidence behind the case (how far the requests behind it got, what threat intel knows, that nothing it acts on is protected) and whether it can be undone. The email asking for the approval says the same; its button opens the approval on the case and never decides anything, since mail scanners follow links.
+
+- Approving only some lists the users or hosts the step would act on, every one ticked: untick any it should leave alone. At least one stays, or reject the step instead.
+- Pressing a button decides as you, through the Slack or Microsoft Teams account you connected to OneUptime. Not connected yet, you are asked to connect, then press again. You need a role that can run playbooks, and to be able to see the case; whoever started the run cannot approve it, though they can reject it. A refusal says why: in Slack only you see it.
+- OneUptime checks every press came from Slack or Microsoft Teams, and decides once: a press repeated, sent again or on a message about another step decides nothing, and a press after somebody decided says who and when.
+- Once somebody decides, in Slack, in Microsoft Teams, on the case or in the app, every copy of the message says who approved or rejected it and when, then how the step went and what became of each user or host, with no buttons but **Open Case**. The decision is kept on the case's timeline, saying it came from Slack or Microsoft Teams, and in the project's audit log.
+
+Mattermost gets the approval as text, without buttons.
+
 #### Undo
 
-The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone. Every undo is kept on the case's timeline and in the project's audit log.
+The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone. Every undo is kept on the case's timeline and in the project's audit log. In the OneUptime On-Call app, the case lists what its playbooks contained, each of which can be undone from there.
 
 ### Blocklist
 
