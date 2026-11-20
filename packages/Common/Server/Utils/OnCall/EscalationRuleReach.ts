@@ -57,10 +57,10 @@ import ProjectMembership, {
  *
  * ONLY A MEMBER OF THE PROJECT IS PAGED (ProjectMembership). Someone only
  * invited may be named on a rule, or be in one of its teams or schedules,
- * and is paged once they join: until they accept, no path pages them, so
- * they are told nothing and logged as on call nowhere. Their logs start when
- * they join (openTimeLogsOfMember). Someone who left the project is paged by
- * nothing either.
+ * and is paged once they join: until they accept, no path pages them, so no
+ * row of the rule tells them anything or logs them as on call. Their logs
+ * start when they join (openTimeLogsOfMember). Someone who left the project
+ * is paged by nothing either.
  *
  * The next person in a schedule's rotation is paged by a rule that pages it
  * that way, as a backup: it keeps that person from hearing "removed" while
@@ -340,9 +340,12 @@ export default class EscalationRuleReach {
           onCallDutyPolicyEscalationRuleId: data.ruleId.toString(),
         } as LogAttributes,
       );
-      logger.error(error as Error, {
-        projectId: data.projectId.toString(),
-      } as LogAttributes);
+      logger.error(
+        error as Error,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
 
       return null;
     }
@@ -448,7 +451,10 @@ export default class EscalationRuleReach {
     );
 
     return data.paths.some((path: RulePath): boolean => {
-      if (path.rowId.toLowerCase() === rowId || !data.kinds.includes(path.kind)) {
+      if (
+        path.rowId.toLowerCase() === rowId ||
+        !data.kinds.includes(path.kind)
+      ) {
         return false;
       }
 
@@ -506,11 +512,18 @@ export default class EscalationRuleReach {
    */
   public static keepTimeLogsOpen(data: {
     projectId: ObjectID;
-    policyId: ObjectID;
+    // A log is kept by its policy too: none is kept for a row without one.
+    policyId: ObjectID | null;
     ruleId: ObjectID;
     userId: ObjectID;
     paths: ReadonlyArray<RulePath>;
   }): void {
+    const policyId: ObjectID | null = data.policyId;
+
+    if (!policyId) {
+      return;
+    }
+
     for (const path of data.paths) {
       if (path.kind === RulePathKind.NextInRotation) {
         continue;
@@ -518,7 +531,7 @@ export default class EscalationRuleReach {
 
       OnCallDutyPolicyTimeLogService.startTimeLogForUser({
         projectId: data.projectId,
-        onCallDutyPolicyId: data.policyId,
+        onCallDutyPolicyId: policyId,
         onCallDutyPolicyEscalationRuleId: data.ruleId,
         userId: data.userId,
         ...(path.kind === RulePathKind.Team && path.teamId

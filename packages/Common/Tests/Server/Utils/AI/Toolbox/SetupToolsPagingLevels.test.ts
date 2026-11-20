@@ -1586,10 +1586,7 @@ describe("someone invited earlier, before they accept", () => {
     expect(prepared.arguments["invitedEmails"]).toEqual([]);
 
     const refusal: SetupActionRefusal | null =
-      await AddToOnCallPolicyTool.checkBeforeApproval!(
-        prepared.arguments,
-        ctx,
-      );
+      await AddToOnCallPolicyTool.checkBeforeApproval!(prepared.arguments, ctx);
 
     expect(refusal?.toldModel).toContain(
       '"zed@acme.example" is no member or team of this project',
@@ -1703,10 +1700,7 @@ describe("someone invited earlier, before they accept", () => {
     expect(prepared.arguments["invitedEmails"]).toEqual([]);
 
     const refusal: SetupActionRefusal | null =
-      await AddToOnCallPolicyTool.checkBeforeApproval!(
-        prepared.arguments,
-        ctx,
-      );
+      await AddToOnCallPolicyTool.checkBeforeApproval!(prepared.arguments, ctx);
 
     expect(refusal?.toldModel).toContain('pages "cy@acme.example" already');
   });

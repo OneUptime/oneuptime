@@ -686,7 +686,6 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       if (paths.length > 0) {
         EscalationRuleReach.keepTimeLogsOpen({
           ...rule,
-          policyId: deletedItem.onCallDutyPolicy!.id!,
           userId: sendEmailToUserId,
           paths: paths,
         });
@@ -698,9 +697,11 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
       if (
         told.has(toldKey) ||
-        !(await EscalationRuleReach.readMembers([
-          { projectId: deletedItem.projectId, userId: sendEmailToUserId },
-        ])).isMember(deletedItem.projectId, sendEmailToUserId)
+        !(
+          await EscalationRuleReach.readMembers([
+            { projectId: deletedItem.projectId, userId: sendEmailToUserId },
+          ])
+        ).isMember(deletedItem.projectId, sendEmailToUserId)
       ) {
         continue;
       }

@@ -610,7 +610,6 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       if (paths.length > 0) {
         EscalationRuleReach.keepTimeLogsOpen({
           ...rule,
-          policyId: deletedItem.onCallDutyPolicy!.id!,
           userId: sendEmailToUserId,
           paths: paths,
         });

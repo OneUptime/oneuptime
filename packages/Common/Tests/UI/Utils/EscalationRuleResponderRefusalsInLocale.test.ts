@@ -58,7 +58,11 @@ const CASES: Array<Case> = [
     name: "a person",
     refusal: PERSON_ON_RULE_ALREADY_REFUSAL,
     message: getPersonOnRuleAlreadyRefusal({ rule: RULE, person: "Ana Lopez" }),
-    values: { rule: "Level 1", policy: "Payments on-call", person: "Ana Lopez" },
+    values: {
+      rule: "Level 1",
+      policy: "Payments on-call",
+      person: "Ana Lopez",
+    },
   },
   {
     name: "a person, on a rule that could not be read",
@@ -89,7 +93,11 @@ const CASES: Array<Case> = [
       schedule: "Primary",
       pagesNextInRotation: false,
     }),
-    values: { rule: "Level 1", policy: "Payments on-call", schedule: "Primary" },
+    values: {
+      rule: "Level 1",
+      policy: "Payments on-call",
+      schedule: "Primary",
+    },
   },
   {
     name: "whoever is on call in a schedule, on a rule that could not be read",
@@ -109,7 +117,11 @@ const CASES: Array<Case> = [
       schedule: "Primary",
       pagesNextInRotation: true,
     }),
-    values: { rule: "Level 1", policy: "Payments on-call", schedule: "Primary" },
+    values: {
+      rule: "Level 1",
+      policy: "Payments on-call",
+      schedule: "Primary",
+    },
   },
   {
     name: "the next person in a schedule's rotation, on a rule that could not be read",
@@ -125,9 +137,8 @@ const CASES: Array<Case> = [
 
 // The sentence in `language`, with the values put where its wording puts them.
 function wordedIn(language: string, kase: Case): string {
-  let sentence: string = readDashboardLocaleAsDrawn(language)[
-    kase.refusal.template
-  ]!;
+  let sentence: string =
+    readDashboardLocaleAsDrawn(language)[kase.refusal.template]!;
 
   for (const [name, value] of Object.entries(kase.values)) {
     sentence = sentence.split(`{{${name}}}`).join(value);
@@ -138,9 +149,11 @@ function wordedIn(language: string, kase: Case): string {
 
 describe("the server's words are as they were", () => {
   test("in English, word for word as the API, the CLI and Terraform read them", () => {
-    expect(CASES.map((kase: Case): string => {
-      return kase.message;
-    })).toEqual([
+    expect(
+      CASES.map((kase: Case): string => {
+        return kase.message;
+      }),
+    ).toEqual([
       'The escalation rule "Level 1" of the on-call policy "Payments on-call" pages Ana Lopez already, so they were not added again.',
       "This escalation rule pages ana@acme.example already, so they were not added again.",
       'The escalation rule "Level 1" of the on-call policy "Payments on-call" pages the team "Platform" already, so it was not added again.',
@@ -173,21 +186,22 @@ describe("the server's words are as they were", () => {
 
 describe("the Dashboard reads the names back out of the English", () => {
   test.each(CASES)("$name", (kase: Case) => {
-    expect(readRefusalValues(kase.refusal, kase.message)).toEqual(
-      kase.values,
-    );
+    expect(readRefusalValues(kase.refusal, kase.message)).toEqual(kase.values);
   });
 
-  test.each(CASES)("$name is read as that refusal and no other", (kase: Case) => {
-    const readAs: Array<RefusalWithValues> =
-      RESPONDER_ON_RULE_ALREADY_REFUSALS.filter(
-        (refusal: RefusalWithValues): boolean => {
-          return readRefusalValues(refusal, kase.message) !== null;
-        },
-      );
+  test.each(CASES)(
+    "$name is read as that refusal and no other",
+    (kase: Case) => {
+      const readAs: Array<RefusalWithValues> =
+        RESPONDER_ON_RULE_ALREADY_REFUSALS.filter(
+          (refusal: RefusalWithValues): boolean => {
+            return readRefusalValues(refusal, kase.message) !== null;
+          },
+        );
 
-    expect(readAs).toEqual([kase.refusal]);
-  });
+      expect(readAs).toEqual([kase.refusal]);
+    },
+  );
 
   test("names holding quotes and the sentence's own words read back whole", () => {
     const message: string = getTeamOnRuleAlreadyRefusal({
@@ -195,9 +209,7 @@ describe("the Dashboard reads the names back out of the English", () => {
       team: "Ops pages already",
     });
 
-    expect(
-      readRefusalValues(TEAM_ON_RULE_ALREADY_REFUSAL, message),
-    ).toEqual({
+    expect(readRefusalValues(TEAM_ON_RULE_ALREADY_REFUSAL, message)).toEqual({
       rule: 'Night "shift"',
       policy: "Payments, already",
       team: "Ops pages already",

@@ -40,8 +40,12 @@ export const OTHER_RULE_ID: ObjectID = new ObjectID(
 export const ANA: ObjectID = new ObjectID(
   "10464000-0000-4000-8000-0000000000a1",
 );
-export const BO: ObjectID = new ObjectID("10464000-0000-4000-8000-0000000000a2");
-export const CY: ObjectID = new ObjectID("10464000-0000-4000-8000-0000000000a3");
+export const BO: ObjectID = new ObjectID(
+  "10464000-0000-4000-8000-0000000000a2",
+);
+export const CY: ObjectID = new ObjectID(
+  "10464000-0000-4000-8000-0000000000a3",
+);
 // Invited to the project, and not joined yet.
 export const IVY: ObjectID = new ObjectID(
   "10464000-0000-4000-8000-0000000000a4",
@@ -103,9 +107,8 @@ export function readQueryValues(value: unknown): Array<string> | null {
     return null;
   }
 
-  const parameters: unknown = (
-    value as { objectLiteralParameters?: unknown }
-  ).objectLiteralParameters;
+  const parameters: unknown = (value as { objectLiteralParameters?: unknown })
+    .objectLiteralParameters;
 
   if (parameters && typeof parameters === "object") {
     for (const each of Object.values(parameters as Record<string, unknown>)) {
@@ -147,11 +150,18 @@ export default class ReachWorld {
   // Set to make every read of the rule's rows fail.
   public failReads: boolean = false;
 
-  public addMember(userId: ObjectID, teamId: ObjectID, accepted: boolean): void {
+  public addMember(
+    userId: ObjectID,
+    teamId: ObjectID,
+    accepted: boolean,
+  ): void {
     this.memberships.push({ userId, teamId, accepted });
   }
 
-  public namePerson(userId: ObjectID, ruleId: ObjectID = RULE_ID): WorldUserRow {
+  public namePerson(
+    userId: ObjectID,
+    ruleId: ObjectID = RULE_ID,
+  ): WorldUserRow {
     const row: WorldUserRow = { ...nextRowAt(), ruleId, userId };
     this.userRows.push(row);
     return row;
@@ -215,10 +225,7 @@ export default class ReachWorld {
   // Answers every read EscalationRuleReach and the services' hooks make here.
   public install(): void {
     jest
-      .spyOn(
-        OnCallDutyPolicyEscalationRuleUserService,
-        "findBy" as never,
-      )
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy" as never)
       .mockImplementation((async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<OnCallDutyPolicyEscalationRuleUser>> => {
@@ -251,10 +258,7 @@ export default class ReachWorld {
       }) as AnyFunction);
 
     jest
-      .spyOn(
-        OnCallDutyPolicyEscalationRuleTeamService,
-        "findBy" as never,
-      )
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy" as never)
       .mockImplementation((async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<OnCallDutyPolicyEscalationRuleTeam>> => {
@@ -287,10 +291,7 @@ export default class ReachWorld {
       }) as AnyFunction);
 
     jest
-      .spyOn(
-        OnCallDutyPolicyEscalationRuleScheduleService,
-        "findBy" as never,
-      )
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy" as never)
       .mockImplementation((async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<OnCallDutyPolicyEscalationRuleSchedule>> => {
@@ -386,20 +387,18 @@ export default class ReachWorld {
         });
     };
 
-    jest
-      .spyOn(TeamMemberService, "getUsersInTeam")
-      .mockImplementation((async (teamId: ObjectID): Promise<Array<User>> => {
-        return usersIn([teamId], false);
-      }) as AnyFunction);
+    jest.spyOn(TeamMemberService, "getUsersInTeam").mockImplementation((async (
+      teamId: ObjectID,
+    ): Promise<Array<User>> => {
+      return usersIn([teamId], false);
+    }) as AnyFunction);
 
-    jest
-      .spyOn(TeamMemberService, "getUsersInTeams")
-      .mockImplementation((async (
-        teamIds: Array<ObjectID>,
-        options?: { acceptedOnly?: boolean },
-      ): Promise<Array<User>> => {
-        return usersIn(teamIds, Boolean(options?.acceptedOnly));
-      }) as AnyFunction);
+    jest.spyOn(TeamMemberService, "getUsersInTeams").mockImplementation((async (
+      teamIds: Array<ObjectID>,
+      options?: { acceptedOnly?: boolean },
+    ): Promise<Array<User>> => {
+      return usersIn(teamIds, Boolean(options?.acceptedOnly));
+    }) as AnyFunction);
 
     jest
       .spyOn(ProjectMembership, "getMemberUserIds")
@@ -417,21 +416,19 @@ export default class ReachWorld {
         );
       }) as AnyFunction);
 
-    jest
-      .spyOn(ProjectMembership, "getMemberKeys")
-      .mockImplementation((async (
-        pairs: Array<ProjectUserPair>,
-      ): Promise<Set<string>> => {
-        return new Set<string>(
-          pairs
-            .filter((pair: ProjectUserPair): boolean => {
-              return this.isMember(pair.userId);
-            })
-            .map((pair: ProjectUserPair): string => {
-              return ProjectMembership.getKey(pair.projectId, pair.userId);
-            }),
-        );
-      }) as AnyFunction);
+    jest.spyOn(ProjectMembership, "getMemberKeys").mockImplementation((async (
+      pairs: Array<ProjectUserPair>,
+    ): Promise<Set<string>> => {
+      return new Set<string>(
+        pairs
+          .filter((pair: ProjectUserPair): boolean => {
+            return this.isMember(pair.userId);
+          })
+          .map((pair: ProjectUserPair): string => {
+            return ProjectMembership.getKey(pair.projectId, pair.userId);
+          }),
+      );
+    }) as AnyFunction);
 
     jest
       .spyOn(OnCallDutyPolicyScheduleService, "getCurrentUserIdInSchedule")

@@ -1499,10 +1499,8 @@ async function resolveResponders(
       return members.find((each: TeamMember): boolean => {
         return (
           Boolean(each.userId) &&
-          ((each.user?.name?.toString() || "").trim().toLowerCase() ===
-            lower ||
-            (each.user?.email?.toString() || "").trim().toLowerCase() ===
-              lower)
+          ((each.user?.name?.toString() || "").trim().toLowerCase() === lower ||
+            (each.user?.email?.toString() || "").trim().toLowerCase() === lower)
         );
       });
     };
@@ -1719,7 +1717,9 @@ async function readInvitedPeople(
           ? (each.user?.email?.toString() || "").trim().toLowerCase()
           : "";
 
-        return Boolean(each.userId) && (invitedAt === email || memberAt === email);
+        return (
+          Boolean(each.userId) && (invitedAt === email || memberAt === email)
+        );
       },
     );
     const userId: string = membership?.userId?.toString() || "";

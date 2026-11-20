@@ -88,7 +88,10 @@ let feed: Array<string>;
 let models: Map<string, BaseModel>;
 
 type Hooks = {
-  onCreateSuccess: (onCreate: unknown, createdItem: BaseModel) => Promise<unknown>;
+  onCreateSuccess: (
+    onCreate: unknown,
+    createdItem: BaseModel,
+  ) => Promise<unknown>;
   onBeforeDelete: (deleteBy: unknown) => Promise<unknown>;
   onDeleteSuccess: (
     onDelete: unknown,
@@ -142,7 +145,8 @@ function teamRowModel(row: WorldTeamRow): OnCallDutyPolicyEscalationRuleTeam {
     new OnCallDutyPolicyEscalationRuleTeam();
   const team: Team = new Team();
   team._id = row.teamId.toString();
-  team.name = row.teamId.toString() === PLATFORM.toString() ? "Platform" : "Payments";
+  team.name =
+    row.teamId.toString() === PLATFORM.toString() ? "Platform" : "Payments";
 
   model._id = row.id.toString();
   model.projectId = PROJECT_ID;
@@ -311,13 +315,14 @@ beforeEach(() => {
   for (const hooks of [userHooks, teamHooks, scheduleHooks]) {
     jest
       .spyOn(hooks as never, "findOneById" as never)
-      .mockImplementation((async (args: {
-        id: ObjectID;
-      }): Promise<BaseModel | null> => {
-        return models.get(args.id.toString()) || null;
-      }) as never);
+      .mockImplementation(readRowBack as never);
   }
 });
+
+// A row the hooks read back by id, as the world made it.
+async function readRowBack(args: { id: ObjectID }): Promise<BaseModel | null> {
+  return models.get(args.id.toString()) || null;
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -417,9 +422,14 @@ describe("named on the rule, and in one of its teams", () => {
 
   test("a team she joined after it was put on the rule: taken off by name, her team log opens now", async () => {
     // Platform is on the rule with Bo; Ana joins it later, as she is named.
-    world.memberships = world.memberships.filter((each: { userId: ObjectID; teamId: ObjectID }) => {
-      return !(each.userId.toString() === ANA.toString() && each.teamId.toString() === PLATFORM.toString());
-    });
+    world.memberships = world.memberships.filter(
+      (each: { userId: ObjectID; teamId: ObjectID }) => {
+        return !(
+          each.userId.toString() === ANA.toString() &&
+          each.teamId.toString() === PLATFORM.toString()
+        );
+      },
+    );
     await nameTeam(PLATFORM);
     const named: WorldUserRow = await namePerson(ANA);
     world.addMember(ANA, PLATFORM, true);

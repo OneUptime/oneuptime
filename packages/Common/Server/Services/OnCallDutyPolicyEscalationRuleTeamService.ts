@@ -154,34 +154,33 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       withSchedules: false,
     });
 
-    const usersInTeam: Array<{ userId: ObjectID; isNewToRule: boolean }> =
-      reach
-        ? EscalationRuleReach.getPagedByRow(reach, createdItemId).map(
-            (paged: {
-              userId: ObjectID;
-              paths: Array<RulePath>;
-            }): { userId: ObjectID; isNewToRule: boolean } => {
-              return {
-                userId: paged.userId,
-                isNewToRule: !EscalationRuleReach.wasPagedBefore({
-                  paths: paged.paths,
-                  rowId: createdItemId,
-                  kinds: LASTING_PATHS,
-                }),
-              };
-            },
-          )
-        : (
-            await TeamMemberService.getUsersInTeams([createdModel.teamId!], {
-              acceptedOnly: true,
-            })
-          )
-            .filter((user: User): boolean => {
-              return Boolean(user?.id);
-            })
-            .map((user: User): { userId: ObjectID; isNewToRule: boolean } => {
-              return { userId: user.id!, isNewToRule: true };
-            });
+    const usersInTeam: Array<{ userId: ObjectID; isNewToRule: boolean }> = reach
+      ? EscalationRuleReach.getPagedByRow(reach, createdItemId).map(
+          (paged: {
+            userId: ObjectID;
+            paths: Array<RulePath>;
+          }): { userId: ObjectID; isNewToRule: boolean } => {
+            return {
+              userId: paged.userId,
+              isNewToRule: !EscalationRuleReach.wasPagedBefore({
+                paths: paged.paths,
+                rowId: createdItemId,
+                kinds: LASTING_PATHS,
+              }),
+            };
+          },
+        )
+      : (
+          await TeamMemberService.getUsersInTeams([createdModel.teamId!], {
+            acceptedOnly: true,
+          })
+        )
+          .filter((user: User): boolean => {
+            return Boolean(user?.id);
+          })
+          .map((user: User): { userId: ObjectID; isNewToRule: boolean } => {
+            return { userId: user.id!, isNewToRule: true };
+          });
 
     for (const { userId: sendEmailToUserId, isNewToRule } of usersInTeam) {
       // add start log
@@ -501,7 +500,6 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
         if (paths.length > 0) {
           EscalationRuleReach.keepTimeLogsOpen({
             ...rule,
-            policyId: deletedItem.onCallDutyPolicy!.id!,
             userId: sendEmailToUserId,
             paths: paths,
           });
