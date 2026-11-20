@@ -650,7 +650,7 @@ scale" beside an "Own scale: …" badge, and the chart's note saying it has no a
 
 ## Metric explorer: every value axis steps evenly, in round steps of its unit
 
-`MetricExplorerAxisSteps.spec.ts` (8 tests, same fixture and command) pins #10117 and
+`MetricExplorerAxisSteps.spec.ts` (10 tests, same fixture and command) pins #10117 and
 #10118, at 1280px and 390px. The nodes' memory overlaid on CPU utilization read "7.57 GB",
 "7.65 GB", "7.74 GB" on its right axis: recharts' 85 MB steps, written to three figures.
 Each axis now steps evenly, by a round step (1, 2, 2.5 or 5 times a power of ten) of the
@@ -660,8 +660,12 @@ lines is recorded on the test and kept under half the plot
 (`metric-explorer-round-steps-*-synthetic.png`). The batch job's axis, which read "1.5000
 hours", "1.5003 hours", is a clock a second a tick ("1:29:58" to "1:30:02"), on the right
 of a percent chart too (`metric-explorer-duration-axis-*-synthetic.png`), and the host's
-uptime reads "12 d 05:00" to "12 d 05:30", ten minutes a tick
-(`metric-explorer-uptime-axis-*-synthetic.png`).
+uptime reads "12 d 05:00" onwards, ten minutes a tick
+(`metric-explorer-uptime-axis-*-synthetic.png`). A short card takes only the ticks its plot
+has room for, one every 20px: the cluster Overview's network card, an 82px plot, read
+"250 KB/s", "750 KB/s", "1.25 MB/s" when recharts hid every other label of six ticks, and
+now draws every tick it steps, from "0 B/s". The fixture does not model that Overview's Cost
+card yet, so this test leaves its `KubernetesCostAllocationV1` reads alone.
 
 ## Logs explorer: Copy Link on a log row
 
