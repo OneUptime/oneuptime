@@ -18,7 +18,7 @@ import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
   JsonValueBudget,
-} from "../Utils/Compatible/JsonElementCount";
+} from "Common/Utils/JsonElementCount";
 import SentryEnvelope, {
   ParsedSentryEnvelope,
   SentryEnvelopeError,

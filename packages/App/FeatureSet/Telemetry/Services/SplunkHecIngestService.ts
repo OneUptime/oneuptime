@@ -19,7 +19,7 @@ import CompatibleIngestFailureMapper, {
 import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
-} from "../Utils/Compatible/JsonElementCount";
+} from "Common/Utils/JsonElementCount";
 import SplunkHec, {
   HEC_HTTP_STATUS,
   HEC_RESPONSES,

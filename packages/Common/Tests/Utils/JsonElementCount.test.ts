@@ -3,7 +3,7 @@ import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
   JsonValueBudget,
-} from "../../../FeatureSet/Telemetry/Utils/Compatible/JsonElementCount";
+} from "../../Utils/JsonElementCount";
 
 /*
  * A JSON body's values, counted before it is parsed: the count the
