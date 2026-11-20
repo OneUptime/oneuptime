@@ -5,6 +5,7 @@ En formular er åben for alle, der har dens link, og hver indsendelse kan tilkal
 :::cards
 - [Del linket](#del-linket): Kopiér det, åbn det, og nulstil det, når det spreder sig for langt.
 - [Et link til hver skabelon](#et-link-til-hver-skabelon): Ét bogmærke pr. tilfælde, én formular bag dem alle.
+- [Kun personer, der logger ind](#kun-personer-der-logger-ind): Invitér de personer, der må åbne formularen, eller lad jeres identitetsudbyder logge dem ind med single sign-on.
 - [Brugerdefinerede domæner](#brugerdefinerede-domæner): Vis formularen på dit eget domæne, med et gratis certifikat.
 - [Hvad der beskytter en formular](#hvad-der-beskytter-en-formular): Hvert tjek, en anmodning passerer, i rækkefølge.
 - [Fejlfinding](#fejlfinding): Hvad hver besked på formularens side betyder, og hvad du skal gøre.
@@ -16,6 +17,7 @@ En formular er åben for alle, der har dens link, og hver indsendelse kan tilkal
 | --- | --- |
 | **Status** | **Modtager indsendelser** — om formularens link virker. |
 | **Delingslink** | Hver adresse, formularen svarer på, hver med **Kopiér link**, og **Nulstil link**. |
+| **Hvem der kan åbne denne formular** | **Kun personer, der logger ind** — om kun de personer, du vælger, kan åbne formularen, når de logger ind. |
 | **Efter indsendelse** | Den **Takkebesked**, folk ser, når de har indsendt, under nummeret på det, formularen oprettede. |
 | **Yderligere indstillinger** | **IP-tilladelsesliste**, sammenklappet, indtil du åbner den. |
 
@@ -28,6 +30,8 @@ Kortet **Delingslink** viser hver adresse, formularen svarer på: først dens [b
 - **Nulstil link** giver formularen et nyt link, efter at du har bekræftet. Det gamle link holder op med at virke med det samme og viser beskeden om, at formularen ikke er tilgængelig, så alle, du delte det med, skal have det nye. Brug det, når et link har spredt sig længere, end det burde. Formularens brugerdefinerede domæner indeholder ingen nøgle og bliver ved med at virke.
 
 Alle med linket kan åbne formularen og indsende den, uden en OneUptime-konto og uden at logge ind. At være logget ind ændrer intet: OneUptime ved kun, hvem der indsendte, ud fra det navn og den e-mail, der er indtastet i formularen. Så behandl linket som et telefonnummer til dit vagthold. Del det, hvor de folk, der skal bruge det, finder det — en intranetside, en support-runbook, en fastgjort chatbesked — og ikke på et offentligt websted, medmindre du vil have indsendelser fra hvem som helst.
+
+For at lade kun de personer, du vælger, åbne og indsende formularen skal du slå **Kun personer, der logger ind** til — se [Kun personer, der logger ind](#kun-personer-der-logger-ind).
 
 Linket indeholder en tilfældig nøgle for sig selv, ikke formularens ID. På en selvhostet installation serveres det fra din egen OneUptime-vært og virker kun på den adresse, `HTTP_PROTOCOL` og `HOST` konfigurerer: åbnet under et andet navn for serveren, eller på dens IP-adresse, afvises formularens anmodninger som kommende fra et andet websted.
 
@@ -48,6 +52,20 @@ For at holde op med at tage imod indsendelser uden at slette formularen skal du 
 Efter en indsendelse siger siden "Tak — dit svar er sendt." og giver nummeret på det, der blev oprettet, og derefter din **Takkebesked**, i Markdown. Brug den til at sige, hvad der sker nu, og hvor man skal henvende sig, når noget haster. Uden en viser siden kun standardbeskeden.
 
 Et billede i formularens beskrivelse eller takkebesked vises for alle, der åbner linket, så længe formularen står på **Modtager indsendelser**. Slå formularen fra, eller tag billedet ud, så er billedet privat igen, medmindre noget andet, alle ser, stadig indeholder det.
+
+## Kun personer, der logger ind
+
+Slå **Kun personer, der logger ind** til under **Hvem der kan åbne denne formular** på formularens side **Del** for at lade kun de personer, du vælger, åbne og indsende formularen. Når du slår det til, bliver du bedt om at bekræfte. Derefter møder hver besøgende først en login-side, på formularens link og på hvert brugerdefineret domæne. Den viser formularens navn og intet andet: hverken dens spørgsmål, dens skabeloner eller dens logo, eller hvem der må logge ind. Efter login viser formularen, hvem der er logget ind, med **Log ud** ved siden af.
+
+Åbn **Private brugere** i formularens sidemenu for at tilføje de personer, der må logge ind, via e-mail. Hver får en invitation på e-mail, hvis link lader dem vælge en adgangskode. Linket virker i 24 timer, og **Glemt adgangskode?** på login-siden sender et nyt. Tabellen viser, hvem der er **Tilmeldt**, hvis invitation er **Invitation sendt**, og hvornår hver især var **Sidst logget ind**. At fjerne nogen, eller en ny adgangskode, logger dem ud overalt ved deres næste anmodning.
+
+Åbn **Single sign-on** for at lade jeres identitetsudbyder logge personer ind, med SAML eller OpenID Connect. Hver udbyder viser de værdier, du skal indsætte i jeres identitetsudbyder. Alle, jeres identitetsudbyder lukker ind, bliver en privat bruger første gang, de logger ind. At slå en udbyder fra, eller slette den, logger alle ud, som den har logget ind. **Kræv SSO for at logge ind** slår login med adgangskode fra: alle logger så ind med single sign-on, og alle, der er logget ind med en adgangskode, logges ud ved deres næste anmodning.
+
+Et login varer, indtil det ikke har været brugt i 30 dage. Dets cookies sendes kun med formularens egne anmodninger, så intet andet websted kan åbne eller indsende formularen med dem eller logge nogen ud. Loginforsøg er begrænset for hver adresse og hver konto, og login-siden og siden til glemt adgangskode svarer det samme, uanset om en adresse må logge ind eller ej.
+
+En indsendelse nævner kun det navn og den e-mail, der er skrevet i formularen, som på enhver anden formular, ikke den private bruger, der sendte den. Et billede i formularens beskrivelse eller takkebesked forbliver offentligt på sin adresse, som ikke kan gættes, så længe formularen modtager indsendelser, som på en statusside, der beder sine besøgende om at logge ind: sådan indlæser de private brugeres browsere det.
+
+På OneUptime Cloud kræver single sign-on **Scale**-planen, og det gør **Kræv SSO for at logge ind** også. Gennem API'et er private brugere og single sign-on-udbydere selvstændige poster: `/form-private-user`, `/form-sso` og `/form-oidc`, hver med tilladelser opkaldt efter sig.
 
 ## Brugerdefinerede domæner
 
@@ -119,13 +137,14 @@ Hver anmodning passerer disse tjek, i denne rækkefølge:
 2. Den skal være inden for hastighedsgrænserne.
 3. Formularen skal findes, stå på **Modtager indsendelser** og høre til et projekt på en plan, der omfatter formularer.
 4. Den skal komme fra en adresse på **IP-tilladelsesliste**, når formularen har en.
-5. En indsendelse skal bestå captchaen, når instansen har captcha slået til.
-6. Hvert svar skal være inden for størrelsesgrænserne og passe til sit spørgsmål — se [Byg en formular](/docs/forms/building#størrelsesgrænser).
-7. Det, svarene og indstillingerne danner, skal kunne oprettes: en hændelse skal have en alvorlighed, en begivenhed en slutning efter sin start.
-8. En indsendelse skal passe inden for formularens timekvote — se [Hastighedsgrænser](#hastighedsgrænser).
-9. Dens filer skal passe inden for formularens timekvote for filer, lige før de gemmes.
+5. Den skal komme fra en af formularens private brugere, logget ind, når formularen er sat til **Kun personer, der logger ind** — se [Kun personer, der logger ind](#kun-personer-der-logger-ind).
+6. En indsendelse skal bestå captchaen, når instansen har captcha slået til.
+7. Hvert svar skal være inden for størrelsesgrænserne og passe til sit spørgsmål — se [Byg en formular](/docs/forms/building#størrelsesgrænser).
+8. Det, svarene og indstillingerne danner, skal kunne oprettes: en hændelse skal have en alvorlighed, en begivenhed en slutning efter sin start.
+9. En indsendelse skal passe inden for formularens timekvote — se [Hastighedsgrænser](#hastighedsgrænser).
+10. Dens filer skal passe inden for formularens timekvote for filer, lige før de gemmes.
 
-En formulars logo og favicon er en del af formularen: de sendes inde i det svar, der åbner den, i base64, først når den har bestået de første fire tjek, og aldrig fra en adresse for sig selv. Ingen kan hente dem uden formularen, og ingen fil kan hentes via sit id gennem en formular; selve filerne forbliver private. En formular viser kun billeder, der er uploadet i dens eget projekt: en fil fra et andet projekt afvises, når formularen gemmes, og sendes aldrig til dens side.
+En formulars logo og favicon er en del af formularen: de sendes inde i det svar, der åbner den, i base64, først når den har bestået de første fem tjek, og aldrig fra en adresse for sig selv. Ingen kan hente dem uden formularen, og ingen fil kan hentes via sit id gennem en formular; selve filerne forbliver private. En formular viser kun billeder, der er uploadet i dens eget projekt: en fil fra et andet projekt afvises, når formularen gemmes, og sendes aldrig til dens side.
 
 ### IP-tilladelsesliste
 

@@ -109,6 +109,7 @@ import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import { FORM_SIGN_IN_STATE_ROUTE } from "../../../Types/Form/FormPrivateUserSignIn";
 import {
   FORM_PAGE_HEADER,
   FORM_PAGE_HEADER_VALUE,
@@ -353,6 +354,9 @@ describe("FormAPI", () => {
           `GET ${CUSTOM_DOMAIN_READ_URI}`,
           `POST ${CUSTOM_DOMAIN_SUBMIT_URI}`,
           `GET ${CUSTOM_DOMAIN_CNAME_URI}`,
+          // A form's sign-in state, on its link and on its domain (#10249).
+          `GET ${READ_URI}${FORM_SIGN_IN_STATE_ROUTE}`,
+          `GET ${CUSTOM_DOMAIN_READ_URI}${FORM_SIGN_IN_STATE_ROUTE}`,
         ].sort(),
       );
       expect(inherited.length).toBeGreaterThan(0);
@@ -685,6 +689,7 @@ describe("FormAPI", () => {
       expect(getPublicForm).toHaveBeenCalledWith({
         shareKey: SHARE_KEY,
         clientIp: TRUSTED_IP,
+        formSession: expect.any(Function),
       });
     });
 
@@ -698,6 +703,7 @@ describe("FormAPI", () => {
       expect(getPublicForm).toHaveBeenCalledWith({
         shareKey: SHARE_KEY,
         clientIp: undefined,
+        formSession: expect.any(Function),
       });
     });
 
@@ -717,7 +723,8 @@ describe("FormAPI", () => {
 
     /*
      * Forms are anonymous. A signed-in visitor, a tenant header, a user type
-     * - none of it may change what the service is asked.
+     * - none of it may change what the service is asked: of the visitor it
+     * gets only a reader of the form's own sign-in cookie (#10249).
      */
     it("never tells the service who is calling", async () => {
       await runHandler(
@@ -735,6 +742,7 @@ describe("FormAPI", () => {
       expect(getPublicForm).toHaveBeenCalledWith({
         shareKey: SHARE_KEY,
         clientIp: TRUSTED_IP,
+        formSession: expect.any(Function),
       });
     });
   });
@@ -775,6 +783,7 @@ describe("FormAPI", () => {
         request: { data: answers, captchaToken: "captcha" },
         clientIp: TRUSTED_IP,
         captchaRemoteIp: TRUSTED_IP,
+        formSession: expect.any(Function),
       });
     });
 
@@ -797,6 +806,7 @@ describe("FormAPI", () => {
         request: { data: answers },
         clientIp: TRUSTED_IP,
         captchaRemoteIp: TRUSTED_IP,
+        formSession: expect.any(Function),
       });
     });
 
@@ -927,6 +937,7 @@ describe("FormAPI", () => {
         request: { data: answers },
         clientIp: TRUSTED_IP,
         captchaRemoteIp: TRUSTED_IP,
+        formSession: expect.any(Function),
       });
     });
   });

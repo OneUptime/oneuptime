@@ -93,8 +93,10 @@ Under **Del** kopierer du linket og sender det til dem, der skal bruge formulare
 | **Byg** | Formularens navn og beskrivelse, dens **Branding** (logo og favicon, foldet sammen) og editoren: dens spørgsmål, spørgsmålspaletten og **Forhåndsvisning**. |
 | **Skabeloner** | Navngivne sæt af svar, man kan starte formularen fra, hvordan hver stiller spørgsmålene, den formularen åbner med, og hver skabelons eget link. |
 | **Ved indsendelse** | Hvad hver indsendelse opretter, og hvordan hvert felt i den udfyldes. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder. |
-| **Del** | **Modtager indsendelser**, **Delingslink**, beskeden efter indsendelse og, under **Yderligere indstillinger**, **IP-tilladelsesliste**. |
+| **Del** | **Modtager indsendelser**, **Delingslink**, **Hvem der kan åbne denne formular**, beskeden efter indsendelse og, under **Yderligere indstillinger**, **IP-tilladelsesliste**. |
 | **Brugerdefinerede domæner** | Formularens egne domæner, som `report.acme.com`, med deres DNS-poster og certifikater. Se [Brugerdefinerede domæner](/docs/forms/sharing-and-security#brugerdefinerede-domæner). |
+| **Private brugere** | De personer, der må logge ind for at åbne formularen, når kun personer, der logger ind, kan åbne den. Se [Kun personer, der logger ind](/docs/forms/sharing-and-security#kun-personer-der-logger-ind). |
+| **Single sign-on** | De SAML- og OpenID Connect-identitetsudbydere, der logger personer ind på formularen, og **Kræv SSO for at logge ind**. |
 | **Indsendelser** | Hver indsendelse via formularen, nyeste først, med dens svar og det, den oprettede. |
 | **Duplikér formular** | Under **Avanceret**: en kopi af formularen, navngivet for dig, med dens spørgsmål, skabeloner, indstillinger under Ved indsendelse, branding, takkebesked og IP-tilladelsesliste og sit eget link. Kopien starter slået fra og åbner i sin editor. |
 | **Auditlogs** | Under **Avanceret**: hver ændring af formularen, dens brugerdefinerede domæner og dens indsendelser, hvem der lavede den, og hvornår. |
@@ -262,6 +264,8 @@ Formularer har de genererede arbejdsgangskomponenter: **Ved oprettelse: Formular
 ### Den offentlige sides egne endepunkter
 
 Den offentlige side taler med to ruter, der ikke kræver en API-nøgle: `GET /api/form/public/<shareKey>`, som returnerer formularens navn, beskrivelse og spørgsmål (og, når den har dem, dens logo, logoets alternative tekst og dens favicon, billederne som base64, samt dens skabeloner med deres svar på de spørgsmål, siden stiller), og `POST /api/form/public/<shareKey>/submit`, som indsender den og i `templateId` angiver den skabelon, indsenderen startede fra. Det er sidens egne endepunkter, ikke et API at bygge videre på: hvert kald går gennem formularens beskyttelse (se [Deling & sikkerhed](/docs/forms/sharing-and-security)), og de ændrer sig med siden. Brug `POST /api/incident` med en API-nøgle for at oprette hændelser fra din egen kode: se [Opret en hændelse](/docs/incidents/declaring-incidents). På en formulars [brugerdefinerede domæne](/docs/forms/sharing-and-security#brugerdefinerede-domæner) bruger siden i stedet `GET /api/form/custom-domain` og `POST /api/form/custom-domain/submit` på det domæne, som ikke nævner nogen nøgle: domænet udpeger formularen.
+
+På en formular, som kun personer, der logger ind, kan åbne, svarer disse ruter `401` til alle, der ikke er logget ind som en af dens private brugere. Siden læser først `GET /api/form/public/<shareKey>/sign-in-state`, eller `GET /api/form/custom-domain/sign-in-state` på et brugerdefineret domæne, som kun siger, om formularen beder sine besøgende om at logge ind, og i så fald dens id, dens navn og hvem der er logget ind.
 
 ## Hvor dine hændelsesformularer blev af
 

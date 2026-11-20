@@ -10,6 +10,8 @@ import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import DashboardPrivateUserAuthenticationAPI from "./API/DashboardPrivateUserAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
 import { DASHBOARD_PRIVATE_USER_API_ROUTE } from "Common/Types/Dashboard/DashboardPrivateUserSignIn";
+import FormPrivateUserAuthenticationAPI from "./API/FormPrivateUserAuthentication";
+import { FORM_PRIVATE_USER_API_ROUTE } from "Common/Types/Form/FormPrivateUserSignIn";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
@@ -99,6 +101,17 @@ const IdentityFeatureSet: FeatureSet = {
     app.use(
       `/api/dashboard${DASHBOARD_PRIVATE_USER_API_ROUTE}`,
       DashboardPrivateUserAuthenticationAPI,
+    );
+
+    /*
+     * A form's public link signs its private users in on the host it is
+     * served from (#10249): its page calls /api/form on OneUptime's address
+     * and on every custom domain of the form, so the router answers under
+     * it, beside the form's own public routes - and only there.
+     */
+    app.use(
+      `/api/form${FORM_PRIVATE_USER_API_ROUTE}`,
+      FormPrivateUserAuthenticationAPI,
     );
   },
 };
