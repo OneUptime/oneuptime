@@ -40,6 +40,11 @@ import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
 import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
+import {
+  STORE_DATA_TYPES_NOT_READ,
+  StoreDataTypesRead,
+  useStoreDataTypes,
+} from "../../../Components/DataSecurity/StoreDataTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useAiOffered from "../../../Utils/UseAiOffered";
@@ -75,6 +80,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -82,6 +88,7 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -255,6 +262,20 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const storeName: string = store?.name || "";
   const title: string =
     translator.translateText(check?.title || issue.title) || issue.title || "";
+
+  /*
+   * What the store holds: the data types the issue was assessed with, else
+   * the store's own, read from the store by its own read permissions -
+   * never through the issue's relation (StoreDataTypes.ts, #10238).
+   */
+  const ownDataTypeIds: Array<string> = readDataTypeIds(issue.dataTypeIds);
+  const storeDataTypes: StoreDataTypesRead = useStoreDataTypes({
+    storeId: storeId,
+    isNeeded: ownDataTypeIds.length === 0,
+    refreshToggle: view.refreshToggle,
+  });
+  const dataTypeIds: Array<string> =
+    ownDataTypeIds.length > 0 ? ownDataTypeIds : storeDataTypes.dataTypeIds;
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     new DataSecurityIssue(),
@@ -495,11 +516,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     }
   }
 
-  const dataTypeIds: Array<string> = readDataTypeIds(
-    issue.dataTypeIds && readDataTypeIds(issue.dataTypeIds).length > 0
-      ? issue.dataTypeIds
-      : store?.dataTypeIds,
-  );
   const requirements: Array<FrameworkRequirementRef> = readRequirements(
     issue,
     check,
@@ -779,18 +795,35 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 {translator.translateText(STORE_HOLDS_LABEL)}
               </dt>
-              <dd className="mt-1.5 flex flex-wrap items-center gap-2">
+              <dd
+                className="mt-1.5 flex flex-wrap items-center gap-2"
+                data-testid="data-security-issue-store-holds"
+              >
                 <SensitivityPill sensitivity={store?.sensitivity} />
-                <IssueDataTypeChips
-                  dataTypeIds={dataTypeIds}
-                  namer={namer}
-                  limit={8}
-                  emptyElement={
-                    <span className="text-sm text-gray-500">
-                      {translator.translateText(NO_DATA_TYPES)}
-                    </span>
-                  }
-                />
+                {storeDataTypes.isLoading ? (
+                  <InlineValueSkeleton widthClassName="w-32" />
+                ) : storeDataTypes.error && dataTypeIds.length === 0 ? (
+                  <span
+                    className="text-sm text-gray-600"
+                    data-testid="data-security-issue-store-data-types-error"
+                  >
+                    <ErrorSentence
+                      template={STORE_DATA_TYPES_NOT_READ}
+                      error={storeDataTypes.error}
+                    />
+                  </span>
+                ) : (
+                  <IssueDataTypeChips
+                    dataTypeIds={dataTypeIds}
+                    namer={namer}
+                    limit={8}
+                    emptyElement={
+                      <span className="text-sm text-gray-500">
+                        {translator.translateText(NO_DATA_TYPES)}
+                      </span>
+                    }
+                  />
+                )}
               </dd>
             </div>
             {store?.exposure ? (
