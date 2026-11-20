@@ -222,15 +222,37 @@ export function readTrustedProxyList(
   return list;
 }
 
+export enum TrustedProxyListProblemKind {
+  // Longer than MAX_TRUSTED_PROXIES_TEXT_LENGTH.
+  TooLong = "too-long",
+  // An entry that is neither an address nor a range.
+  NotAnAddress = "not-an-address",
+  // More than MAX_TRUSTED_PROXIES addresses and ranges.
+  TooMany = "too-many",
+}
+
+export type TrustedProxyListProblem =
+  | { kind: TrustedProxyListProblemKind.TooLong }
+  | {
+      kind: TrustedProxyListProblemKind.NotAnAddress;
+      // The first such entry, cut to 60 characters.
+      entry: string;
+    }
+  | { kind: TrustedProxyListProblemKind.TooMany; max: number };
+
+// The longest entry a problem quotes.
+const MAX_QUOTED_ENTRY_LENGTH: number = 60;
+
 /*
- * What is wrong with a Trusted Proxies text, in a sentence, or null when
- * nothing is: the server refuses to save it, and the form says it first.
+ * What is wrong with a Trusted Proxies text, or null when nothing is: the
+ * server refuses to save it, and the form says it first, in the reader's
+ * language (the Dashboard words each kind).
  */
-export function getTrustedProxyListError(
+export function getTrustedProxyListProblem(
   text: string | undefined | null,
-): string | null {
+): TrustedProxyListProblem | null {
   if ((text || "").length > MAX_TRUSTED_PROXIES_TEXT_LENGTH) {
-    return "Trusted Proxies is too long. Use ranges, such as 203.0.113.0/24, for a block of addresses.";
+    return { kind: TrustedProxyListProblemKind.TooLong };
   }
 
   const list: TrustedProxyList = readTrustedProxyList(text);
@@ -238,14 +260,47 @@ export function getTrustedProxyListError(
   if (list.invalid.length > 0) {
     const first: string = list.invalid[0]!;
 
-    return `"${first.length > 60 ? `${first.slice(0, 59)}…` : first}" is not an IP address or a range. Write an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.`;
+    return {
+      kind: TrustedProxyListProblemKind.NotAnAddress,
+      entry:
+        first.length > MAX_QUOTED_ENTRY_LENGTH
+          ? `${first.slice(0, MAX_QUOTED_ENTRY_LENGTH - 1)}…`
+          : first,
+    };
   }
 
   if (list.blocks.length > MAX_TRUSTED_PROXIES) {
-    return `Trusted Proxies can hold ${MAX_TRUSTED_PROXIES} addresses and ranges. Use ranges, such as 203.0.113.0/24, for a block of addresses.`;
+    return {
+      kind: TrustedProxyListProblemKind.TooMany,
+      max: MAX_TRUSTED_PROXIES,
+    };
   }
 
   return null;
+}
+
+/*
+ * The same problem in an English sentence, for the server's refusal
+ * (ProjectService.applySecurityTrustedProxyRules) and the API.
+ */
+export function getTrustedProxyListError(
+  text: string | undefined | null,
+): string | null {
+  const problem: TrustedProxyListProblem | null =
+    getTrustedProxyListProblem(text);
+
+  if (!problem) {
+    return null;
+  }
+
+  switch (problem.kind) {
+    case TrustedProxyListProblemKind.TooLong:
+      return "Trusted Proxies is too long. Use ranges, such as 203.0.113.0/24, for a block of addresses.";
+    case TrustedProxyListProblemKind.NotAnAddress:
+      return `"${problem.entry}" is not an IP address or a range. Write an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.`;
+    case TrustedProxyListProblemKind.TooMany:
+      return `Trusted Proxies can hold ${problem.max} addresses and ranges. Use ranges, such as 203.0.113.0/24, for a block of addresses.`;
+  }
 }
 
 export function toTrustedProxies(

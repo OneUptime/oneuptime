@@ -13,11 +13,14 @@ import {
   MAX_FORWARDED_HEADER_LENGTH,
   MAX_FORWARDED_RECORDED_LENGTH,
   MAX_TRUSTED_PROXIES,
+  MAX_TRUSTED_PROXIES_TEXT_LENGTH,
   NO_TRUSTED_PROXIES,
   TrustedProxies,
+  TrustedProxyListProblemKind,
   canNameResolvedClientAddress,
   clearClientAddressTrust,
   getTrustedProxyListError,
+  getTrustedProxyListProblem,
   isSameAddressSlot,
   isTrustedProxy,
   markClientAddressTrust,
@@ -601,6 +604,48 @@ describe("the project's trusted proxies", () => {
     expect(toTrustedProxies(many.join("\n")).blocks).toHaveLength(
       MAX_TRUSTED_PROXIES,
     );
+  });
+
+  test("name what is wrong, for the form to say in the reader's language", () => {
+    expect(getTrustedProxyListProblem("")).toBeNull();
+    expect(getTrustedProxyListProblem("203.0.113.0/24, 10.0.0.1")).toBeNull();
+    expect(getTrustedProxyListProblem("203.0.113.0/24\ncloudflare")).toEqual({
+      kind: TrustedProxyListProblemKind.NotAnAddress,
+      entry: "cloudflare",
+    });
+
+    // A long entry is quoted cut, never whole.
+    const long: string = `${"a".repeat(80)}.example`;
+
+    expect(getTrustedProxyListProblem(long)).toEqual({
+      kind: TrustedProxyListProblemKind.NotAnAddress,
+      entry: `${"a".repeat(59)}…`,
+    });
+
+    expect(
+      getTrustedProxyListProblem(
+        "10.0.0.1\n".repeat(MAX_TRUSTED_PROXIES_TEXT_LENGTH),
+      ),
+    ).toEqual({ kind: TrustedProxyListProblemKind.TooLong });
+    expect(
+      getTrustedProxyListError(
+        "10.0.0.1\n".repeat(MAX_TRUSTED_PROXIES_TEXT_LENGTH),
+      ),
+    ).toBe(
+      "Trusted Proxies is too long. Use ranges, such as 203.0.113.0/24, for a block of addresses.",
+    );
+
+    const many: string = Array.from(
+      { length: MAX_TRUSTED_PROXIES + 1 },
+      (_value: unknown, index: number): string => {
+        return `10.${Math.floor(index / 256)}.${index % 256}.1`;
+      },
+    ).join("\n");
+
+    expect(getTrustedProxyListProblem(many)).toEqual({
+      kind: TrustedProxyListProblemKind.TooMany,
+      max: MAX_TRUSTED_PROXIES,
+    });
   });
 });
 
