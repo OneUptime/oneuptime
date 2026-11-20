@@ -8,6 +8,7 @@ import SecurityLogFormat, {
   getSecurityLogFormatDefinition,
 } from "../../../Types/SecurityEvent/SecurityLogFormat";
 import { ENTRA_ID_PRODUCT_NAME } from "../../../Utils/SecurityEvent/Connectors/EntraIdNormalizer";
+import { AZURE_RESOURCE_LOG_PRODUCT_NAMES } from "../../../Utils/SecurityEvent/LogParsers/AzureResourceLogParser";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
 import SecurityEventDedupe from "./SecurityEventDedupe";
@@ -40,7 +41,14 @@ import SecurityEventDedupe from "./SecurityEventDedupe";
  * same record in the same second would slip past then.
  */
 
-// The products whose records more than one way stores, by the name they carry.
+/*
+ * The products whose records more than one way stores, by the name they
+ * carry - and an Azure resource's own audit log (#10110): a key vault's,
+ * a storage account's or Azure SQL's record arrives through the account's
+ * stream and a pipeline alike, or twice from an event hub that delivers
+ * at least once, and is known by an id made of what it says of itself
+ * (getAzureResourceLogRecordUid).
+ */
 export const SHARED_RECORD_PRODUCT_NAMES: ReadonlyArray<string> = [
   ENTRA_ID_PRODUCT_NAME,
   ...[
@@ -50,6 +58,7 @@ export const SHARED_RECORD_PRODUCT_NAMES: ReadonlyArray<string> = [
   ].map((format: SecurityLogFormat): string => {
     return getSecurityLogFormatDefinition(format)?.productName || "";
   }),
+  ...AZURE_RESOURCE_LOG_PRODUCT_NAMES,
 ].filter((name: string): boolean => {
   return name.length > 0;
 });
