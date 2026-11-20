@@ -620,10 +620,30 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
     expect(lineOf("Mask")).toBe(
       "Keeps a hint of it, such as j***@***.com or a card's last four digits.",
     );
+    // A token keyed per project, which no one can work back (#10394).
     expect(lineOf("Hash")).toBe(
-      "Replaces it with a short hash, so equal values still look alike.",
+      "Replaces it with a token unique to this project, so equal values still look alike and no one can work back to the value.",
     );
     expect(within(dialog()).queryByText(/Mask: partially hide/)).toBeNull();
+  });
+
+  test("the IP Address choice says which addresses it hides (#10393)", async () => {
+    const user: UserEvent = await renderPage(page.Page);
+    await screen.findByText(`Create New ${page.singularName}`);
+
+    await user.click(patternTypePicker());
+
+    const descriptions: Array<HTMLElement> = await screen.findAllByTestId(
+      "dropdown-option-description",
+    );
+
+    expect(
+      descriptions.map((description: HTMLElement): string => {
+        return (description.textContent || "").trim();
+      }),
+    ).toEqual([
+      "Public IPv4 and IPv6 addresses, not private, loopback or link-local ones.",
+    ]);
   });
 
   test("says Configured once a folded default is changed, and sends it", async () => {

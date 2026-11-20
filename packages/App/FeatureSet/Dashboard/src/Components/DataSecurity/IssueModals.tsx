@@ -7,11 +7,9 @@ import {
   getIssueName,
   readAcceptedUntil,
 } from "./IssueChanges";
-import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { DataSecurityFixRepository } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import OneUptimeDate from "Common/Types/Date";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -24,8 +22,6 @@ import {
   toPeoplePickerIds,
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import {
   PluralTemplate,
   Translator,
@@ -35,18 +31,17 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
   useRef,
   useState,
 } from "react";
 
 /*
  * The dialogs a data security issue is worked with: Accept Risk (why, and
- * until when), Assign (a person or a team) and, for Fix with AI in a
- * project with several repositories, which repository holds the store's
- * infrastructure code. For one issue each stays open while the change is
- * saved and says in place why it could not be; for several (Bulk Actions)
- * it hands what was picked to the run, whose progress dialog reports each.
+ * until when), Assign (a person or a team) and, for Fix with AI when the
+ * person may ask in several repositories, which repository holds the code
+ * to change. For one issue each stays open while the change is saved and
+ * says in place why it could not be; for several (Bulk Actions) it hands
+ * what was picked to the run, whose progress dialog reports each.
  */
 
 /*
@@ -299,73 +294,55 @@ export const AssignIssueModal: FunctionComponent<AssignIssueModalProps> = (
 };
 
 export interface IssueRepositoryModalProps {
+  /*
+   * The repositories to choose from: those the person may ask OneUptime AI
+   * to work in, as the server answered Fix with AI (#10362).
+   */
+  repositories: Array<DataSecurityFixRepository>;
+  // A telemetry issue is fixed in its service's code, any other in infrastructure code.
+  isTelemetry: boolean;
   onClose: () => void;
   onSubmit: (codeRepositoryId: ObjectID) => Promise<void>;
 }
 
+const PICK_INFRASTRUCTURE_REPOSITORY: string = translationKey(
+  "Pick the repository that holds this store's infrastructure code. OneUptime AI opens a pull request there.",
+);
+
+const PICK_SERVICE_REPOSITORY: string = translationKey(
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.",
+);
+
 /*
- * Fix with AI in a project with several repositories: which one holds the
- * store's infrastructure code. The project's repositories are read as the
- * dialog opens.
+ * Fix with AI when the person may ask in several repositories: which one
+ * holds the code to change. It offers only the repositories the server
+ * said they may ask OneUptime AI to work in - never one they could not
+ * start a task in from Code.
  */
 export const IssueRepositoryModal: FunctionComponent<
   IssueRepositoryModalProps
 > = (props: IssueRepositoryModalProps): ReactElement => {
-  const [options, setOptions] = useState<Array<DropdownOption>>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [readError, setReadError] = useState<string>("");
-
-  useEffect(() => {
-    let isCurrent: boolean = true;
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    ModelAPI.getList<CodeRepository>({
-      modelType: CodeRepository,
-      query: projectId ? { projectId: projectId } : {},
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { _id: true, name: true },
-      sort: { name: SortOrder.Ascending },
-    })
-      .then((result: ListResult<CodeRepository>) => {
-        if (!isCurrent) {
-          return;
-        }
-
-        setOptions(
-          result.data.map((repository: CodeRepository): DropdownOption => {
-            return {
-              value: repository._id?.toString() || "",
-              label: repository.name || repository._id?.toString() || "",
-              isUserContent: true,
-            };
-          }),
-        );
-        setIsLoading(false);
-      })
-      .catch((err: unknown) => {
-        if (!isCurrent) {
-          return;
-        }
-
-        setReadError(API.getFriendlyMessage(err));
-        setIsLoading(false);
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, []);
+  const options: Array<DropdownOption> = props.repositories.map(
+    (repository: DataSecurityFixRepository): DropdownOption => {
+      return {
+        value: repository.id,
+        label: repository.name || repository.id,
+        isUserContent: true,
+      };
+    },
+  );
 
   return (
     <IssueChangeModal
       title="Fix with AI"
-      description="Pick the repository that holds this store's infrastructure code. OneUptime AI opens a pull request there."
+      description={
+        props.isTelemetry
+          ? PICK_SERVICE_REPOSITORY
+          : PICK_INFRASTRUCTURE_REPOSITORY
+      }
       submitButtonText="Fix with AI"
       name="data-security-issue-fix-repository"
       initialValues={{}}
-      isLoading={isLoading}
-      error={readError || undefined}
       fields={[
         {
           field: { [REPOSITORY_KEY]: true },

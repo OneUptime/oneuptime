@@ -2,7 +2,9 @@ import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
+import OnCallDutyPolicyEscalationRuleResponderService, {
+  EscalationRuleResponder,
+} from "./OnCallDutyPolicyEscalationRuleResponderService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -32,10 +34,72 @@ import FeedMarkdown, {
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import {
+  ESCALATION_RULE_SCHEDULE_INDEX,
+  EscalationRuleNames,
+  getScheduleOnRuleAlreadyRefusal,
+} from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 
-export class Service extends OnCallDutyPolicyChildService<Model> {
+export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * One row per schedule on a rule for each way the rule pages it: whoever
+   * is on call in it, and the next person in its rotation, are two rows
+   * (EscalationRuleResponderOnce).
+   */
+  protected getResponderIndexName(): string {
+    return ESCALATION_RULE_SCHEDULE_INDEX;
+  }
+
+  protected readResponder(data: Model): EscalationRuleResponder | null {
+    const ruleId: ObjectID | null = this.readRuleId(data);
+    const scheduleId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      ["onCallDutyPolicyScheduleId", "onCallDutyPolicySchedule"],
+      "On-call schedule",
+    );
+
+    if (!ruleId || !scheduleId) {
+      return null;
+    }
+
+    return {
+      ruleId: ruleId,
+      columns: {
+        onCallDutyPolicyScheduleId: scheduleId,
+        // Left out, the column's own default: whoever is on call is paged.
+        pageNextInRotation: Boolean(data.pageNextInRotation),
+      },
+    };
+  }
+
+  // "... pages whoever is on call in the on-call schedule "Primary" already".
+  protected async getAlreadyOnRuleRefusal(data: {
+    responder: EscalationRuleResponder;
+    rule: EscalationRuleNames | null;
+    projectId: ObjectID | null;
+  }): Promise<string> {
+    const schedule: OnCallDutyPolicySchedule | null =
+      await OnCallDutyPolicyScheduleService.findOneById({
+        id: data.responder.columns["onCallDutyPolicyScheduleId"] as ObjectID,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return getScheduleOnRuleAlreadyRefusal({
+      rule: data.rule,
+      schedule: schedule?.name?.toString() || "",
+      pagesNextInRotation:
+        data.responder.columns["pageNextInRotation"] === true,
+    });
   }
 
   /**

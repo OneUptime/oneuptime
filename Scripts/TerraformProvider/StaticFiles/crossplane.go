@@ -42,12 +42,12 @@ func RunUnderCrossplane() {
 	underCrossplane.Store(true)
 }
 
-// keepLeftOutUnderCrossplane starts every resource's ModifyPlan, before the
+// KeepLeftOutUnderCrossplane starts every resource's ModifyPlan, before the
 // steps that work a value out of another (a person's ID from their email
 // address): under Crossplane, each optional attribute the configuration
 // leaves out of a record that exists plans the state's value, not its
 // default.
-func keepLeftOutUnderCrossplane(_ context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func KeepLeftOutUnderCrossplane(_ context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if !underCrossplane.Load() || req.State.Raw.IsNull() || resp.Plan.Raw.IsNull() {
 		return
 	}

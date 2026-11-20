@@ -120,6 +120,8 @@ import {
   getSystemdUnitJournalWindow,
   readSystemdUnitJournal,
 } from "../Utils/SystemdUnitJournal";
+import HostServiceMonitorsCard from "../../../Components/Host/HostServiceMonitorsCard";
+import { HostServiceKind } from "../../../Utils/HostServiceMonitorPrefill";
 
 const RECENT_LOGS_TITLE: string = translationKey("Recent logs");
 const RECENT_LOGS_DESCRIPTION: string = translationKey(
@@ -1273,10 +1275,32 @@ const HostSystemdUnitView: FunctionComponent<
    * double-click on it, or Reset zoom beside the hero's picker, puts the
    * range from before the zoom back.
    */
+  /*
+   * Issue #10296, as on a Windows service's page: under its state, the
+   * monitors that watch this unit on this host, and Create Monitor - a Host
+   * monitor of this unit, filled in, that opens an incident when it is not
+   * active.
+   */
+  const renderMonitors: () => ReactElement = (): ReactElement => {
+    if (!hostIdentifier) {
+      return <Fragment />;
+    }
+
+    return (
+      <HostServiceMonitorsCard
+        kind={HostServiceKind.SystemdUnit}
+        serviceName={unitName}
+        hostId={modelId}
+        hostIdentifier={hostIdentifier}
+      />
+    );
+  };
+
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryTiles()}
+      {renderMonitors()}
       {renderRecentLogs()}
       {renderStateChart()}
       {renderTransitions()}

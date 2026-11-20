@@ -28,6 +28,11 @@ The suite drives the pages the way a person does:
   and Save sends `requireApprovalBeforeRunning` - never the old
   `requireApproval`;
 - an HTTP request shows its body only for a method that sends one;
+- an HTTP request folds how it checks the server's certificate after its
+  headers: "Allow self-signed certificates", off, then the CA certificate,
+  which says under its box when it is not one; turned on, the CA certificate
+  goes, the folded line says "Allow self-signed certificates: On", and Save
+  sends it on that step alone - in German, dark, on a phone too (#10277);
 - a runbook a client still saves the old way (`?legacy=1`, the approval after
   a step) reads as it runs - the approval on the step it held back, one after
   the last step as "Approve the result" - and Save writes it the new way;

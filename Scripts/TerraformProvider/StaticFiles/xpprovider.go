@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 
 	internalprovider "github.com/oneuptime/terraform-provider-oneuptime/internal/provider"
+	// Every package of generated resources and data sources, which hand
+	// what they hold to internal/provider (its shards.go).
+	_ "github.com/oneuptime/terraform-provider-oneuptime/internal/provider/all"
 )
 
 // FrameworkProvider returns a new instance of the provider, as Terraform

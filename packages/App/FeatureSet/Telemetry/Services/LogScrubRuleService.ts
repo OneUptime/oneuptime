@@ -6,7 +6,6 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
-import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import {
@@ -23,7 +22,8 @@ import ScrubJsonTextUtil, {
 import ScrubJsonKeysUtil, {
   ScrubJsonKeysRule,
 } from "Common/Utils/Telemetry/ScrubJsonKeys";
-import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import ScrubIpAddress from "Common/Utils/Telemetry/ScrubIpAddress";
+import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
 import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { readOwnValue } from "Common/Utils/LookupTable";
 
@@ -52,7 +52,12 @@ const BUILT_IN_PATTERNS: Record<string, RegExp> = {
   [LogScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
   [LogScrubPatternType.PhoneNumber]:
     /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  [LogScrubPatternType.IPAddress]: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+  /*
+   * IP Address is not here: its matches are what Data Security's own
+   * detectors call an IP address - public IPv4 and IPv6 addresses, and
+   * documentation ones - and not private, loopback or link-local ones
+   * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
+   */
 };
 
 /*
@@ -95,6 +100,8 @@ export class LogScrubRuleService {
       },
       select: {
         _id: true,
+        // A Hash rule hashes with its project's own key (ScrubHashToken).
+        projectId: true,
         name: true,
         patternType: true,
         customRegex: true,
@@ -150,6 +157,11 @@ export class LogScrubRuleService {
       return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
+    // What Data Security calls an IP address, found by its own detectors.
+    if (patternType === LogScrubPatternType.IPAddress) {
+      return ScrubIpAddress.toScrubRegExp();
+    }
+
     /*
      * The saved rule's own word: a pattern type no table lists matches
      * nothing (a plain read answered "constructor" with a function).
@@ -166,73 +178,23 @@ export class LogScrubRuleService {
     return null;
   }
 
+  /*
+   * What a rule leaves of a match: one answer for the log, trace and session
+   * replay scrubbers (Common/Server/Utils/Telemetry/ScrubAction). A Hash rule
+   * makes its project's token (ScrubHashToken, #10394).
+   */
   private static applyScrubAction(
     match: string,
     action: string,
     patternType: string,
+    projectId?: ObjectID | string | null | undefined,
   ): string {
-    switch (action) {
-      case LogScrubAction.Redact:
-        return "[REDACTED]";
-
-      case LogScrubAction.Hash: {
-        const hash: string = crypto
-          .createHash("sha256")
-          .update(match)
-          .digest("hex")
-          .substring(0, 8);
-        return `[HASHED:${hash}]`;
-      }
-
-      case LogScrubAction.Mask:
-        return this.maskValue(match, patternType);
-
-      default:
-        return "[REDACTED]";
-    }
-  }
-
-  private static maskValue(value: string, patternType: string): string {
-    switch (patternType) {
-      case LogScrubPatternType.Email: {
-        const atIndex: number = value.indexOf("@");
-        if (atIndex > 0) {
-          const dotIndex: number = value.lastIndexOf(".");
-          if (dotIndex > atIndex) {
-            return value[0] + "***@***" + value.substring(dotIndex);
-          }
-        }
-        return "***@***.***";
-      }
-
-      case LogScrubPatternType.CreditCard: {
-        // Show last 4 digits only
-        const digits: string = value.replace(/[-\s]/g, "");
-        if (digits.length >= 4) {
-          return "****-****-****-" + digits.substring(digits.length - 4);
-        }
-        return "****-****-****-****";
-      }
-
-      case LogScrubPatternType.SSN:
-        return "***-**-" + value.substring(value.length - 4);
-
-      case LogScrubPatternType.PhoneNumber: {
-        // Show last 4 digits only
-        const phoneDigits: string = value.replace(/[^0-9]/g, "");
-        if (phoneDigits.length >= 4) {
-          return "***-***-" + phoneDigits.substring(phoneDigits.length - 4);
-        }
-        return "***-***-****";
-      }
-
-      case LogScrubPatternType.IPAddress:
-        return "***.***.***.***";
-
-      default:
-        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
-        return maskKeepingEnds(value);
-    }
+    return ScrubAction.apply({
+      match: match,
+      action: action,
+      patternType: patternType,
+      projectId: projectId,
+    });
   }
 
   /*
@@ -268,7 +230,12 @@ export class LogScrubRuleService {
           return regex.matchRanges(text);
         },
         replaceMatch: (match: string): string => {
-          return this.applyScrubAction(match, action, patternType);
+          return this.applyScrubAction(
+            match,
+            action,
+            patternType,
+            rule.projectId,
+          );
         },
         // A person may have written a custom pattern against stored escapes.
         readsAsWritten: patternType === LogScrubPatternType.Custom,
@@ -302,6 +269,7 @@ export class LogScrubRuleService {
           text,
           action,
           LogScrubPatternType.SensitiveKeys,
+          compiled.rule.projectId,
         );
       },
       allowance: allowance,
