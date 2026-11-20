@@ -59162,5 +59162,22 @@
   "It can show on its status pages at once.": "ممکن است بی‌درنگ در صفحات وضعیت آن نمایش داده شود.",
   "It can show on its status pages from {{time}}.": "ممکن است از {{time}} در صفحات وضعیت آن نمایش داده شود.",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "فقط این صفحات وضعیت می‌توانند رویدادهای این الگو را نمایش دهند یا به مشترکان خود اطلاع دهند. اگر هیچ صفحه‌ای انتخاب نشود، در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شوند.",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "فقط این صفحات وضعیت می‌توانند این رویداد را نمایش دهند یا به مشترکان خود اطلاع دهند. برخلاف حادثه، رویدادی که هیچ صفحه‌ای برایش انتخاب نشده در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود."
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "فقط این صفحات وضعیت می‌توانند این رویداد را نمایش دهند یا به مشترکان خود اطلاع دهند. برخلاف حادثه، رویدادی که هیچ صفحه‌ای برایش انتخاب نشده در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود.",
+  "Apply it": "اعمال آن",
+  "Connect Crossplane to OneUptime": "اتصال Crossplane به OneUptime",
+  "Crossplane": "Crossplane",
+  "Crossplane provider": "ارائه‌دهندهٔ Crossplane",
+  "Install the provider's package, and give it a project API key in a Secret of the namespace your resources live in.": "بستهٔ ارائه‌دهنده را نصب کنید و یک کلید API پروژه را در یک Secret در همان namespace که منابع شما در آن قرار دارند به آن بدهید.",
+  "Its settings as they are now. The external-name annotation tells the provider the {{singular}} already exists, so it takes the {{singular}} over instead of creating a copy. Comments name the records its IDs point at.": "تنظیمات آن همان‌طور که اکنون هست. حاشیه‌نویسی external-name به ارائه‌دهنده می‌گوید که این {{singular}} از قبل وجود دارد، بنابراین ارائه‌دهنده به‌جای ساختن نسخه‌ای تازه، همان {{singular}} را در اختیار می‌گیرد. توضیحات، رکوردهایی را که شناسه‌های آن به آن‌ها اشاره می‌کنند نام می‌برند.",
+  "Manage these resources from Kubernetes with the OneUptime Crossplane provider. The examples below are filled in from this project: create new ones, or bring in the ones you already have.": "این منابع را با ارائه‌دهندهٔ Crossplane در OneUptime از Kubernetes مدیریت کنید. نمونه‌های زیر با داده‌های همین پروژه پر شده‌اند: منابع تازه بسازید یا منابعی را که از قبل دارید وارد کنید.",
+  "Manage this resource from Kubernetes with the OneUptime Crossplane provider. The manifest below is written from its current settings, so the provider takes it over without changing anything.": "این منبع را با ارائه‌دهندهٔ Crossplane در OneUptime از Kubernetes مدیریت کنید. مانیفست زیر از تنظیمات فعلی آن نوشته شده است، بنابراین ارائه‌دهنده آن را بدون هیچ تغییری در اختیار می‌گیرد.",
+  "Managing resources": "مدیریت منابع",
+  "Refer to other resources by name": "ارجاع به منابع دیگر با نام",
+  "Names instead of IDs": "نام به‌جای شناسه",
+  "The Crossplane provider has no kind for {{plural}}.": "ارائه‌دهندهٔ Crossplane هیچ نوعی برای {{plural}} ندارد.",
+  "The Observe management policy": "سیاست مدیریت Observe",
+  "The fields most {{plural}} set, filled in from this project.": "فیلدهایی که بیشتر {{plural}} تنظیم می‌کنند، پرشده از داده‌های همین پروژه.",
+  "The fields most {{plural}} set.": "فیلدهایی که بیشتر {{plural}} تنظیم می‌کنند.",
+  "The provider finds the {{singular}} by its ID and changes nothing. From then on it keeps the {{singular}} the way the manifest says.": "ارائه‌دهنده این {{singular}} را با شناسه‌اش پیدا می‌کند و چیزی را تغییر نمی‌دهد. از آن پس آن {{singular}} را همان‌طور که مانیفست می‌گوید نگه می‌دارد.",
+  "The provider observes each one by its ID, and never changes or deletes it.": "ارائه‌دهنده هر یک را با شناسه‌اش می‌خواند و هرگز آن را تغییر نمی‌دهد یا حذف نمی‌کند."
 }

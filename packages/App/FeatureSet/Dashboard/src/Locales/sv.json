@@ -59162,5 +59162,22 @@
   "It can show on its status pages at once.": "Den kan visas direkt på sina statussidor.",
   "It can show on its status pages from {{time}}.": "Den kan visas på sina statussidor från {{time}}.",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Bara dessa statussidor kan visa händelser från den här mallen eller meddela sina prenumeranter. Utan val visas de inte på någon statussida.",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bara dessa statussidor kan visa den här händelsen eller meddela sina prenumeranter. Till skillnad från en incident visas en händelse utan val inte på någon statussida."
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bara dessa statussidor kan visa den här händelsen eller meddela sina prenumeranter. Till skillnad från en incident visas en händelse utan val inte på någon statussida.",
+  "Apply it": "Tillämpa det",
+  "Connect Crossplane to OneUptime": "Anslut Crossplane till OneUptime",
+  "Crossplane": "Crossplane",
+  "Crossplane provider": "Crossplane-provider",
+  "Install the provider's package, and give it a project API key in a Secret of the namespace your resources live in.": "Installera providerns paket och ge den en projekt-API-nyckel i en Secret i det namespace där dina resurser finns.",
+  "Its settings as they are now. The external-name annotation tells the provider the {{singular}} already exists, so it takes the {{singular}} over instead of creating a copy. Comments name the records its IDs point at.": "Inställningarna som de är nu. Annoteringen external-name talar om för providern att det här objektet ({{singular}}) redan finns, så den tar över objektet ({{singular}}) i stället för att skapa en kopia. Kommentarer namnger posterna som dess ID:n pekar på.",
+  "Manage these resources from Kubernetes with the OneUptime Crossplane provider. The examples below are filled in from this project: create new ones, or bring in the ones you already have.": "Hantera de här resurserna från Kubernetes med OneUptimes Crossplane-provider. Exemplen nedan är ifyllda med data från det här projektet: skapa nya eller ta in de som du redan har.",
+  "Manage this resource from Kubernetes with the OneUptime Crossplane provider. The manifest below is written from its current settings, so the provider takes it over without changing anything.": "Hantera den här resursen från Kubernetes med OneUptimes Crossplane-provider. Manifestet nedan är skrivet utifrån dess nuvarande inställningar, så providern tar över den utan att ändra något.",
+  "Managing resources": "Hantera resurser",
+  "Refer to other resources by name": "Hänvisa till andra resurser med namn",
+  "Names instead of IDs": "Namn i stället för ID:n",
+  "The Crossplane provider has no kind for {{plural}}.": "Crossplane-providern har ingen typ för {{plural}}.",
+  "The Observe management policy": "Hanteringspolicyn Observe",
+  "The fields most {{plural}} set, filled in from this project.": "De fält som de flesta {{plural}} anger, ifyllda med data från det här projektet.",
+  "The fields most {{plural}} set.": "De fält som de flesta {{plural}} anger.",
+  "The provider finds the {{singular}} by its ID and changes nothing. From then on it keeps the {{singular}} the way the manifest says.": "Providern hittar det här objektet ({{singular}}) via dess ID och ändrar ingenting. Från och med då håller den objektet ({{singular}}) som manifestet säger.",
+  "The provider observes each one by its ID, and never changes or deletes it.": "Providern läser var och en via dess ID och ändrar eller tar aldrig bort den."
 }

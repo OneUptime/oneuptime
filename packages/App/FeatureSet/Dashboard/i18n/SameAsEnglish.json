@@ -70,6 +70,7 @@
   "CoreDNS",
   "CronJob",
   "CronJobs",
+  "Crossplane",
   "Cursor",
   "DB.*maintenance",
   "DNS",

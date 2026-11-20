@@ -59162,5 +59162,22 @@
   "It can show on its status pages at once.": "Il peut s'afficher aussitôt sur ses pages de statut.",
   "It can show on its status pages from {{time}}.": "Il peut s'afficher sur ses pages de statut à partir du {{time}}.",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Seules ces pages de statut peuvent afficher les événements créés à partir de ce modèle ou notifier leurs abonnés. Sans sélection, ils ne s'affichent sur aucune page de statut.",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Seules ces pages de statut peuvent afficher cet événement ou notifier leurs abonnés. Contrairement à un incident, un événement sans page choisie ne s'affiche sur aucune."
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Seules ces pages de statut peuvent afficher cet événement ou notifier leurs abonnés. Contrairement à un incident, un événement sans page choisie ne s'affiche sur aucune.",
+  "Apply it": "L'appliquer",
+  "Connect Crossplane to OneUptime": "Connecter Crossplane à OneUptime",
+  "Crossplane": "Crossplane",
+  "Crossplane provider": "Fournisseur Crossplane",
+  "Install the provider's package, and give it a project API key in a Secret of the namespace your resources live in.": "Installez le package du fournisseur, puis donnez-lui une clé API de projet dans un Secret du namespace où se trouvent vos ressources.",
+  "Its settings as they are now. The external-name annotation tells the provider the {{singular}} already exists, so it takes the {{singular}} over instead of creating a copy. Comments name the records its IDs point at.": "Ses réglages tels qu'ils sont maintenant. L'annotation external-name indique au fournisseur que cet élément ({{singular}}) existe déjà : il reprend l'élément ({{singular}}) au lieu d'en créer une copie. Des commentaires nomment les enregistrements vers lesquels pointent ses ID.",
+  "Manage these resources from Kubernetes with the OneUptime Crossplane provider. The examples below are filled in from this project: create new ones, or bring in the ones you already have.": "Gérez ces ressources depuis Kubernetes avec le fournisseur Crossplane de OneUptime. Les exemples ci-dessous sont remplis avec les données de ce projet : créez-en de nouvelles ou reprenez celles que vous avez déjà.",
+  "Manage this resource from Kubernetes with the OneUptime Crossplane provider. The manifest below is written from its current settings, so the provider takes it over without changing anything.": "Gérez cette ressource depuis Kubernetes avec le fournisseur Crossplane de OneUptime. Le manifeste ci-dessous est généré à partir de ses réglages actuels : le fournisseur la reprend sans rien modifier.",
+  "Managing resources": "Gérer les ressources",
+  "Refer to other resources by name": "Faire référence à d'autres ressources par leur nom",
+  "Names instead of IDs": "Des noms plutôt que des ID",
+  "The Crossplane provider has no kind for {{plural}}.": "Le fournisseur Crossplane n'a aucun type de ressource pour les {{plural}}.",
+  "The Observe management policy": "La politique de gestion Observe",
+  "The fields most {{plural}} set, filled in from this project.": "Les champs que la plupart des {{plural}} définissent, remplis avec les données de ce projet.",
+  "The fields most {{plural}} set.": "Les champs que la plupart des {{plural}} définissent.",
+  "The provider finds the {{singular}} by its ID and changes nothing. From then on it keeps the {{singular}} the way the manifest says.": "Le fournisseur trouve cet élément ({{singular}}) par son ID et ne modifie rien. Il maintient ensuite l'élément ({{singular}}) tel que le décrit le manifeste.",
+  "The provider observes each one by its ID, and never changes or deletes it.": "Le fournisseur observe chacun par son ID, sans jamais le modifier ni le supprimer."
 }

@@ -6,7 +6,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
- * The Developer pages (Terraform, API, CLI, AI Assistants) as routes: which pages
+ * The Developer pages (Terraform, Crossplane, API, CLI, AI Assistants) as routes: which pages
  * have them, what they are called, where they live. RouteMap and the
  * breadcrumbs read this, so it imports no models: RouteMap is in the first
  * load of every dashboard page, and the resources' models are not: each
@@ -25,6 +25,7 @@ import { JSONObject } from "Common/Types/JSON";
 
 export enum DeveloperDocsPageType {
   Terraform = "terraform",
+  Crossplane = "crossplane",
   Api = "api",
   Cli = "cli",
   AiAssistants = "ai-assistants",
@@ -54,6 +55,15 @@ export const DEVELOPER_DOCS_PAGES: ReadonlyArray<DeveloperDocsPageDefinition> =
       title: "Terraform",
       // Terraform's own mark, as Slack's and GitHub's stand for theirs.
       icon: IconProp.Terraform,
+    },
+    /*
+     * Beside Terraform: the provider is made from it, and keeps a project
+     * as code the same way, from Kubernetes.
+     */
+    {
+      type: DeveloperDocsPageType.Crossplane,
+      title: "Crossplane",
+      icon: IconProp.Crossplane,
     },
     { type: DeveloperDocsPageType.Api, title: "API", icon: IconProp.Code },
     /*
@@ -614,7 +624,7 @@ export interface DeveloperDocsChildPage {
   scope: DeveloperDocsScope;
 }
 
-// The Developer pages under a page: four when it is a registered list or view page.
+// The Developer pages under a page: all five when it is a registered list or view page.
 export function getDeveloperDocsChildPages(
   parentPageKey: string,
 ): Array<DeveloperDocsChildPage> {
