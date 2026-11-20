@@ -1753,6 +1753,9 @@ describe("Forms docs: templates, hidden questions and Duplicate Form", () => {
       "**Share**",
       // The form's own domains, right after its link.
       "**Custom Domains**",
+      // Who may sign in, when only people who sign in can open it (#10249).
+      "**Private Users**",
+      "**Single Sign-On**",
       "**Submissions**",
       "**Duplicate Form**",
       // Who changed the form, its domains and its submissions.

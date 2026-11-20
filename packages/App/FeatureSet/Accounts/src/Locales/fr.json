@@ -288,6 +288,29 @@
     "templateNone": "Aucun modèle",
     "uploadingFiles": "Envoi de vos fichiers…"
   },
+  "formSignIn": {
+    "prompt": "Connectez-vous pour ouvrir ce formulaire.",
+    "ssoOnlyPrompt": "Connectez-vous avec l'authentification unique de votre organisation pour ouvrir ce formulaire.",
+    "noWayIn": "Aucun moyen de connexion n'est encore configuré pour ce formulaire. Demandez à la personne qui l'a partagé avec vous.",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "signIn": "Se connecter",
+    "or": "ou",
+    "signInWithProvider": "Se connecter avec {{provider}}",
+    "forgotTitle": "Mot de passe oublié ?",
+    "forgotPrompt": "Saisissez votre adresse e-mail et nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+    "sendLink": "Envoyer le lien",
+    "forgotSent": "Si cette adresse peut se connecter à ce formulaire, un lien pour choisir un nouveau mot de passe est en route. Le lien est valable 24 heures.",
+    "backToSignIn": "Retour à la connexion",
+    "resetTitle": "Choisir un nouveau mot de passe",
+    "resetPrompt": "Saisissez le mot de passe avec lequel vous vous connecterez à ce formulaire.",
+    "newPassword": "Nouveau mot de passe",
+    "savePassword": "Enregistrer le mot de passe",
+    "resetDone": "Votre mot de passe est enregistré. Connectez-vous avec lui pour ouvrir le formulaire.",
+    "signedInAs": "Connecté en tant que {{email}}",
+    "signOut": "Se déconnecter"
+  },
   "errors": {
     "forbidden": {
       "title": "Interdit",

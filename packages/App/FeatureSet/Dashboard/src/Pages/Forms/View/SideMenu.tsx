@@ -78,6 +78,30 @@ const FormViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Globe}
         />
+        {/*
+         * Who signs in to the form's link, when only people who sign in can
+         * open it (#10249).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Private Users",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.FORM_VIEW_PRIVATE_USERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.User}
+        />
+        <SideMenuItem
+          link={{
+            title: "Single Sign-On",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.FORM_VIEW_SINGLE_SIGN_ON] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
         <SideMenuItem
           link={{
             title: "Submissions",

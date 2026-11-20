@@ -2499,6 +2499,25 @@ enum Permission {
   EditFormDomain = "EditFormDomain",
   ReadFormDomain = "ReadFormDomain",
 
+  /*
+   * Form Private Users and Single Sign-On: who signs in on the public
+   * link of a form that asks its visitors to sign in (#10249).
+   */
+  CreateFormPrivateUser = "CreateFormPrivateUser",
+  DeleteFormPrivateUser = "DeleteFormPrivateUser",
+  EditFormPrivateUser = "EditFormPrivateUser",
+  ReadFormPrivateUser = "ReadFormPrivateUser",
+
+  CreateFormSSO = "CreateFormSSO",
+  DeleteFormSSO = "DeleteFormSSO",
+  EditFormSSO = "EditFormSSO",
+  ReadFormSSO = "ReadFormSSO",
+
+  CreateFormOIDC = "CreateFormOIDC",
+  DeleteFormOIDC = "DeleteFormOIDC",
+  EditFormOIDC = "EditFormOIDC",
+  ReadFormOIDC = "ReadFormOIDC",
+
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
   DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
@@ -19345,6 +19364,124 @@ export class PermissionHelper {
         title: "Read Form Domain",
         description:
           "This permission can read the domains of forms in this project, their DNS records and where each one is on its way to HTTPS.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form Private User permissions.
+      {
+        permission: Permission.CreateFormPrivateUser,
+        title: "Create Form Private User",
+        description:
+          "This permission can invite private users to forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormPrivateUser,
+        title: "Delete Form Private User",
+        description:
+          "This permission can remove private users from forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormPrivateUser,
+        title: "Edit Form Private User",
+        description:
+          "This permission can edit private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormPrivateUser,
+        title: "Read Form Private User",
+        description:
+          "This permission can read private users of forms of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form SSO (SAML) permissions.
+      {
+        permission: Permission.CreateFormSSO,
+        title: "Create Form SSO",
+        description: "This permission can create Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormSSO,
+        title: "Delete Form SSO",
+        description: "This permission can delete Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormSSO,
+        title: "Edit Form SSO",
+        description: "This permission can edit Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormSSO,
+        title: "Read Form SSO",
+        description: "This permission can read Form SSO in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+
+      // Form OIDC permissions.
+      {
+        permission: Permission.CreateFormOIDC,
+        title: "Create Form OIDC",
+        description: "This permission can create Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.DeleteFormOIDC,
+        title: "Delete Form OIDC",
+        description: "This permission can delete Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.EditFormOIDC,
+        title: "Edit Form OIDC",
+        description: "This permission can edit Form OIDC in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Form,
+      },
+      {
+        permission: Permission.ReadFormOIDC,
+        title: "Read Form OIDC",
+        description: "This permission can read Form OIDC in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
