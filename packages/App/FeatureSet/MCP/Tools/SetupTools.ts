@@ -214,7 +214,7 @@ export const SETUP_TOOL_DEFINITIONS: ReadonlyArray<SetupToolDefinition> = [
   {
     name: ADD_TO_ON_CALL_POLICY_TOOL_NAME,
     title: "Add To On-Call Policy",
-    description: `Add members and teams to an on-call policy the project has, as the on-call guided setup's "Who else is on call?" does: to one of its levels (level 1, paged at once, by default), or as a new level after its last, paged when nobody acknowledges within afterMinutes, which then sets how long the level before it waits. Someone a level pages already is left as they are: a second identical call adds nobody and makes no second level. Someone invited can be added once they join. In a project that pages nobody yet, use set_up_paging. ${AS_THE_PERSON}`,
+    description: `Add members and teams to an on-call policy the project has, as the on-call guided setup's "Who else is on call?" does: to one of its levels (level 1, paged at once, by default), or as a new level after its last, paged when nobody acknowledges within afterMinutes, which then sets how long the level before it waits. Someone a level pages already is left as they are: a second identical call adds nobody and makes no second level. Someone invited to the project who has not joined yet is added by the address they were invited at: they are paged once they join, and nothing reaches them before. In a project that pages nobody yet, use set_up_paging. ${AS_THE_PERSON}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -226,7 +226,8 @@ export const SETUP_TOOL_DEFINITIONS: ReadonlyArray<SetupToolDefinition> = [
         alsoPage: {
           type: "array",
           items: { type: "string" },
-          description: "Members to add, by name or email.",
+          description:
+            "Members to add, by name or email, and people invited who have not joined yet, by the address they were invited at.",
         },
         teams: {
           type: "array",
@@ -256,7 +257,7 @@ export const SETUP_TOOL_DEFINITIONS: ReadonlyArray<SetupToolDefinition> = [
   {
     name: INVITE_PEOPLE_TOOL_NAME,
     title: "Invite People",
-    description: `Invite people to the project by email, as Invite User on the Users page does: each joins the project's members team and is sent an email, in the name of the person signed in, inviting them to accept. An address in the project already, invited or a member, is not invited again: a second identical call sends no email. Up to 25 addresses a call. Someone invited is paged only once they join. ${AS_THE_PERSON}`,
+    description: `Invite people to the project by email, as Invite User on the Users page does: each joins the project's members team and is sent an email, in the name of the person signed in, inviting them to accept. An address in the project already, invited or a member, is not invited again: a second identical call sends no email. Up to 25 addresses a call. Someone invited is paged only once they join; add_to_on_call_policy adds them to a policy by their address before that. ${AS_THE_PERSON}`,
     inputSchema: {
       type: "object",
       properties: {
