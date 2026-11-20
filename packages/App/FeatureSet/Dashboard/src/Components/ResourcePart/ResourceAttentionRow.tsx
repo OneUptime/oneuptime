@@ -112,7 +112,7 @@ export function getResourceAttentionSinceText(
 ): string {
   return translator.translateTemplate(
     since.template,
-    { time: relativeTimeValue(since.at, now) },
+    { ...(since.values || {}), time: relativeTimeValue(since.at, now) },
     { setsValuesApart: true },
   );
 }

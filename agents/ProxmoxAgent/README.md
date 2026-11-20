@@ -124,6 +124,8 @@ There is no `pvesh` binary in it. OneUptime AI writes commands in `pvesh` gramma
 
 A fix names its node and guest (`/nodes/pve1/qemu/101/...`, never `localhost`). The agent follows the task a fix starts until it stops, so a guest that fails to start is reported as a failure, with the task's log. Allowlist entries on the AI agent page spell each command out in full, e.g. `pvesh create /nodes/pve1/qemu/101/status/reboot`: `*` stands for one whole word only, so write one entry per guest.
 
+**Who or what stopped a guest** — the exporter says a guest is stopped, never why. Every 5 minutes the AI agent also reads the task log of each stopped guest (`GET /nodes/{node}/tasks?vmid=...`, at most 100 guests a round, four at a time) and sends its last start, stop, shutdown, hibernation or restore to OneUptime as the `pve_guest_last_power_task` metric. A guest that should be running then says so on the cluster's Overview: "Stopped by alice@pve 2 hours ago", "Stopped through HA by bob@pve" for a stop HA ran on someone's request, "Last start failed" with Proxmox's own error, or that no Proxmox task stopped it — it was shut down from inside, or it crashed. It reads with the collector's PVEAuditor token when one is set, since `Sys.Audit` sees every user's tasks (a token of the AI agent's own sees only its own tasks without it), and it never writes. To read more or less often, add `ONEUPTIME_PROXMOX_GUEST_TASKS_INTERVAL_SECONDS` (in seconds, 60 at least; `0` turns it off) to the `oneuptime-proxmox-ai-agent` service's `environment:` in `docker-compose.yml`.
+
 ### The API token is the hard limit
 
 Whatever the policy allows, Proxmox VE lets the agent do only what its token may.
