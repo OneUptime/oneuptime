@@ -354,7 +354,8 @@ describeRuntime("npm start's status check, against the real ingress", () => {
   const app = `oneuptime-ops-status-check-app-${suffix}`;
   const ingress = `oneuptime-ops-status-check-ingress-${suffix}`;
   const settings = configExampleSettings();
-  const ipv6 = hasIpv6Loopback();
+  // Turned off below, and said, where Docker cannot publish on [::1].
+  let ipv6 = hasIpv6Loopback();
   const specific = specificAddress();
   let directory;
   let requestsFile;
@@ -501,18 +502,22 @@ describeRuntime("npm start's status check, against the real ingress", () => {
       throw new Error(`the stand-in App did not start: ${appStarted.output}`);
     }
 
-    const published = [
-      "-p",
-      `127.0.0.1:${ports.loopback}:${INGRESS_HTTP_PORT}`,
-      "-p",
-      `${specific}:${ports.specific}:${INGRESS_HTTP_PORT}`,
-      "-p",
-      `${ports.every}:${INGRESS_HTTP_PORT}`,
-    ];
+    const publishedOn = (withIpv6) => {
+      const published = [
+        "-p",
+        `127.0.0.1:${ports.loopback}:${INGRESS_HTTP_PORT}`,
+        "-p",
+        `${specific}:${ports.specific}:${INGRESS_HTTP_PORT}`,
+        "-p",
+        `${ports.every}:${INGRESS_HTTP_PORT}`,
+      ];
 
-    if (ipv6) {
-      published.push("-p", `[::1]:${ports.ipv6}:${INGRESS_HTTP_PORT}`);
-    }
+      if (withIpv6) {
+        published.push("-p", `[::1]:${ports.ipv6}:${INGRESS_HTTP_PORT}`);
+      }
+
+      return published;
+    };
 
     /*
      * As the ingress image's run.sh starts nginx: the template rendered by
@@ -520,43 +525,67 @@ describeRuntime("npm start's status check, against the real ingress", () => {
      * network answers on (run.sh reads it from /etc/resolv.conf), then
      * nginx with OneUptime's nginx.conf.
      */
-    const ingressStarted = docker([
-      "run",
-      "-d",
-      "--name",
-      ingress,
-      "--network",
-      network,
-      "-e",
-      `HOST=${HOST}`,
-      "-e",
-      `APP_PORT=${settings.get("APP_PORT")}`,
-      "-e",
-      `HOME_PORT=${settings.get("HOME_PORT")}`,
-      "-e",
-      `SERVER_APP_HOSTNAME=${settings.get("SERVER_APP_HOSTNAME") || "app"}`,
-      "-e",
-      "SERVER_HOME_HOSTNAME=home",
-      "-e",
-      `BILLING_ENABLED=${settings.get("BILLING_ENABLED")}`,
-      "-e",
-      "NGINX_RESOLVER=127.0.0.11",
-      "-e",
-      "NGINX_LISTEN_ADDRESS=",
-      "-e",
-      "NGINX_LISTEN_OPTIONS=",
-      "-v",
-      `${path.join(NGINX_DIRECTORY, "default.conf.template")}:/etc/nginx/templates/default.conf.template:ro`,
-      "-v",
-      `${path.join(NGINX_DIRECTORY, "envsubst-on-templates.sh")}:/etc/nginx/envsubst-on-templates.sh:ro`,
-      "-v",
-      `${path.join(NGINX_DIRECTORY, "nginx.conf")}:/etc/nginx/nginx.conf:ro`,
-      ...published,
-      nginxImage(),
-      "sh",
-      "-c",
-      "sh /etc/nginx/envsubst-on-templates.sh && exec nginx -g 'daemon off;'",
-    ]);
+    const startIngress = (withIpv6) => {
+      return docker([
+        "run",
+        "-d",
+        "--name",
+        ingress,
+        "--network",
+        network,
+        "-e",
+        `HOST=${HOST}`,
+        "-e",
+        `APP_PORT=${settings.get("APP_PORT")}`,
+        "-e",
+        `HOME_PORT=${settings.get("HOME_PORT")}`,
+        "-e",
+        `SERVER_APP_HOSTNAME=${settings.get("SERVER_APP_HOSTNAME") || "app"}`,
+        "-e",
+        "SERVER_HOME_HOSTNAME=home",
+        "-e",
+        `BILLING_ENABLED=${settings.get("BILLING_ENABLED")}`,
+        "-e",
+        "NGINX_RESOLVER=127.0.0.11",
+        "-e",
+        "NGINX_LISTEN_ADDRESS=",
+        "-e",
+        "NGINX_LISTEN_OPTIONS=",
+        "-v",
+        `${path.join(NGINX_DIRECTORY, "default.conf.template")}:/etc/nginx/templates/default.conf.template:ro`,
+        "-v",
+        `${path.join(NGINX_DIRECTORY, "envsubst-on-templates.sh")}:/etc/nginx/envsubst-on-templates.sh:ro`,
+        "-v",
+        `${path.join(NGINX_DIRECTORY, "nginx.conf")}:/etc/nginx/nginx.conf:ro`,
+        ...publishedOn(withIpv6),
+        nginxImage(),
+        "sh",
+        "-c",
+        "sh /etc/nginx/envsubst-on-templates.sh && exec nginx -g 'daemon off;'",
+      ]);
+    };
+
+    let ingressStarted = startIngress(ipv6);
+
+    /*
+     * A Docker that cannot publish on IPv6's loopback address (its daemon
+     * set up without IPv6, or without its userland proxy) refuses the whole
+     * container: start it without [::1], and say the [::1] forms are not run.
+     */
+    if (ingressStarted.status !== 0 && ipv6) {
+      docker(["rm", "-f", ingress]);
+
+      const withoutIpv6 = startIngress(false);
+
+      if (withoutIpv6.status === 0) {
+        console.log(
+          `Docker here cannot publish on [::1] (${ingressStarted.output.trim()}): the [::1] forms are not run.`,
+        );
+        ipv6 = false;
+      }
+
+      ingressStarted = withoutIpv6;
+    }
 
     if (ingressStarted.status !== 0) {
       throw new Error(`the ingress did not start: ${ingressStarted.output}`);
