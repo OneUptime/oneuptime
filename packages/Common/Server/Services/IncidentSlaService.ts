@@ -76,8 +76,8 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     // The incident and the rule are the project's first (ProjectReferencesService).
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
-    const sla: Model = onCreate.createBy.data;
+    await super.onBeforeCreate(createBy);
+    const sla: Model = createBy.data;
     const record: Record<string, unknown> = sla as unknown as Record<
       string,
       unknown
@@ -102,7 +102,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!sla.slaStartedAt && incidentId && ruleId) {
       const projectId: ObjectID | null | undefined =
-        sla.projectId || onCreate.createBy.props.tenantId;
+        sla.projectId || createBy.props.tenantId;
 
       if (projectId) {
         await this.fillInFromRule({
@@ -114,7 +114,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return onCreate;
+    return { createBy: createBy, carryForward: undefined };
   }
 
   /*
@@ -285,8 +285,20 @@ export class Service extends ProjectReferencesService<Model> {
     // Create SLA record
     const sla: Model = new Model();
     sla.projectId = data.projectId;
-    sla.incidentId = data.incidentId;
-    sla.incidentSlaRuleId = matchingRule.id;
+    /*
+     * The incident and the rule are OneUptime's to name here, so each is
+     * written under its ID column alone (RelationIdUtil.stamp).
+     */
+    const record: Record<string, unknown> = sla as unknown as Record<
+      string,
+      unknown
+    >;
+    RelationIdUtil.stamp(record, ["incidentId", "incident"], data.incidentId);
+    RelationIdUtil.stamp(
+      record,
+      ["incidentSlaRuleId", "incidentSlaRule"],
+      matchingRule.id,
+    );
     sla.slaStartedAt = slaStartedAt;
     sla.status = IncidentSlaStatus.OnTrack;
 
