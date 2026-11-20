@@ -257,6 +257,8 @@ interface ExceptionFixture {
   resource?: JSONObject | undefined;
   // The session it arrived in, when not the one it is numbered by; '' for none.
   sessionId?: string | undefined;
+  // The occurrence it repeats: a crash's second report (#9923).
+  duplicateOf?: string | undefined;
 }
 
 function exceptionRow(fixture: ExceptionFixture): JSONObject {
@@ -297,6 +299,7 @@ function exceptionRow(fixture: ExceptionFixture): JSONObject {
     attributes: attributes,
     attributeKeys: Object.keys(attributes),
     entityKeys: [],
+    ...(fixture.duplicateOf ? { duplicateOf: fixture.duplicateOf } : {}),
     retentionDate: retentionDate,
   };
 }
@@ -445,6 +448,21 @@ function exceptionFixtures(): Array<ExceptionFixture> {
     at: minutesAgo(80),
     resource: deviceIdOf(iphone("sessionless-0")),
     sessionId: "",
+  });
+
+  /*
+   * KSCrash's report of the first iPhone's crash, which MetricKit reported
+   * too (#9923): kept as a repeat of it, in a session of its own, and
+   * counted nowhere - not as a crash, a crashed session or an install.
+   */
+  fixtures.push({
+    appId: iosAppId,
+    session: 2001,
+    exceptionType: "EXC_BAD_ACCESS",
+    escaped: true,
+    at: minutesAgo(81, 1),
+    resource: deviceIdOf(iphone(1)),
+    duplicateOf: "8800000000000000000000e1",
   });
 
   // In the past five minutes, which App Crashes reads.
