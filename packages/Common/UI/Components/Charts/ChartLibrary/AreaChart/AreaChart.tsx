@@ -79,7 +79,6 @@ import {
   ChartValueAxesPlan,
   useValueAxesTicks,
 } from "../Utils/UseValueAxesTicks";
-import { getTickFormatter } from "../../Utils/ValueAxisTicks";
 import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 
 /*
@@ -1204,10 +1203,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                 fill=""
                 stroke=""
                 className={cx("tabular-nums", "fill-gray-500")}
-                tickFormatter={getTickFormatter(
-                  valueFormatter,
-                  valueAxes.first.ticks,
-                )}
+                tickFormatter={valueAxes.first.tickFormatter}
                 allowDecimals={allowDecimals}
               >
                 {yAxisLabel && (
@@ -1252,10 +1248,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                   className={cx("tabular-nums", "fill-gray-500")}
                   tickFormatter={
                     valueAxes.second
-                      ? getTickFormatter(
-                          secondYAxis.valueFormatter,
-                          valueAxes.second.ticks,
-                        )
+                      ? valueAxes.second.tickFormatter
                       : (value: number): string => {
                           return secondYAxis.valueFormatter(value);
                         }

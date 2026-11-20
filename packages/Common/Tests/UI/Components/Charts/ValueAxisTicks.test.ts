@@ -717,23 +717,22 @@ describe("the tick formatter recharts is handed", () => {
       return String(value);
     };
     const asRechartsCallsIt: (value: number, index: number) => string =
-      getTickFormatter(formatter, {
-        ticks: undefined,
-        domain: undefined,
-        precision: undefined,
-        labels: [],
-      }) as unknown as (value: number, index: number) => string;
+      getTickFormatter(formatter, undefined) as unknown as (
+        value: number,
+        index: number,
+      ) => string;
 
     asRechartsCallsIt(5, 3);
     expect(seen).toEqual([undefined]);
 
-    getTickFormatter(formatter, {
-      ticks: [1, 2],
-      domain: [1, 2],
-      precision: { step: 1 },
-      labels: ["1", "2"],
-    })(5);
+    const stepped: (value: number, index: number) => string = getTickFormatter(
+      formatter,
+      { step: 1 },
+    ) as unknown as (value: number, index: number) => string;
+
+    stepped(5, 3);
     expect(seen[1]).toEqual({ step: 1 });
+    expect(seen).toHaveLength(2);
   });
 });
 

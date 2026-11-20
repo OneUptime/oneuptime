@@ -1,10 +1,14 @@
 import React from "react";
 import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
-import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
+import {
+  ValueAxisFormatter,
+  ValueAxisPrecision,
+} from "../../Types/YAxis/YAxis";
 import {
   ValueAxisDomainEnd,
   ValueAxisTicks,
   getChartAxisValues,
+  getTickFormatter,
   getValueAxisTicks,
 } from "../../Utils/ValueAxisTicks";
 import { getYAxisWidthForLabelsInPx } from "../../Utils/YAxisWidth";
@@ -33,6 +37,8 @@ export interface ChartValueAxisPlan {
   ticks: ValueAxisTicks;
   // Its width in pixels.
   width: number;
+  // How recharts writes its ticks (getTickFormatter).
+  tickFormatter: (value: number) => string;
 }
 
 export interface ChartValueAxesPlan {
@@ -55,6 +61,32 @@ function getAxisWidth(axisTicks: ValueAxisTicks, measured: number): number {
         minWidthInPx: measured,
       })
     : measured;
+}
+
+// The ticks an axis was handed before, while they are the same numbers.
+function useSameTicks(
+  ticks: Array<number> | undefined,
+): Array<number> | undefined {
+  const numbers: string = ticks ? `[${ticks.join(",")}]` : "";
+
+  return React.useMemo((): Array<number> | undefined => {
+    return ticks;
+  }, [numbers]);
+}
+
+// One tick formatter while the axis's formatter and its step stay.
+function useTickFormatter(
+  formatter: ValueAxisFormatter,
+  precision: ValueAxisPrecision | undefined,
+): (value: number) => string {
+  const step: number | undefined = precision?.step;
+
+  return React.useMemo((): ((value: number) => string) => {
+    return getTickFormatter(
+      formatter,
+      step === undefined ? undefined : { step: step },
+    );
+  }, [formatter, step]);
 }
 
 export function useValueAxesTicks(input: {
@@ -152,34 +184,86 @@ export function useValueAxesTicks(input: {
       input.bandKeys?.[1],
     ]);
 
-  const firstTicks: ValueAxisTicks = input.isFirstAxisLeftToRecharts
-    ? NOT_STEPPED
-    : getValueAxisTicks({
-        values: values.first,
-        domain: input.firstDomain,
-        allowDecimals: input.allowDecimals,
-        formatter: input.valueFormatter,
-      });
+  /*
+   * Worked out again only when what it is worked out from changes: the
+   * values drawn, either axis's ends or either axis's formatter.
+   */
+  const secondYAxis: ChartSecondYAxis | undefined = input.secondYAxis;
+  const secondFormatter: ValueAxisFormatter | undefined =
+    secondYAxis?.valueFormatter;
+  const axesTicks: {
+    first: ValueAxisTicks;
+    second: ValueAxisTicks | undefined;
+  } = React.useMemo((): {
+    first: ValueAxisTicks;
+    second: ValueAxisTicks | undefined;
+  } => {
+    return {
+      first: input.isFirstAxisLeftToRecharts
+        ? NOT_STEPPED
+        : getValueAxisTicks({
+            values: values.first,
+            domain: input.firstDomain,
+            allowDecimals: input.allowDecimals,
+            formatter: input.valueFormatter,
+          }),
+      second: secondFormatter
+        ? getValueAxisTicks({
+            values: values.second,
+            domain: input.secondDomain,
+            allowDecimals: input.allowDecimals,
+            formatter: secondFormatter,
+          })
+        : undefined,
+    };
+  }, [
+    values,
+    input.firstDomain[0],
+    input.firstDomain[1],
+    input.secondDomain[0],
+    input.secondDomain[1],
+    input.allowDecimals,
+    input.valueFormatter,
+    input.isFirstAxisLeftToRecharts,
+    secondFormatter,
+  ]);
 
-  const secondTicks: ValueAxisTicks | undefined = input.secondYAxis
-    ? getValueAxisTicks({
-        values: values.second,
-        domain: input.secondDomain,
-        allowDecimals: input.allowDecimals,
-        formatter: input.secondYAxis.valueFormatter,
-      })
-    : undefined;
+  /*
+   * recharts reads an axis again whenever its ticks or its tick formatter
+   * are new objects. They stay the same ones while the ticks are the same
+   * numbers and the axis's formatter and step stay: however often the chart
+   * is drawn again (its legend hovered, a dot clicked), and whatever new
+   * arrays its host hands it, as the host's own formatter did before the
+   * chart stepped its axes.
+   */
+  const firstTickValues: Array<number> | undefined = useSameTicks(
+    axesTicks.first.ticks,
+  );
+  const secondTickValues: Array<number> | undefined = useSameTicks(
+    axesTicks.second?.ticks,
+  );
+  const firstTickFormatter: (value: number) => string = useTickFormatter(
+    input.valueFormatter,
+    axesTicks.first.precision,
+  );
+  // With no second axis, a formatter nothing reads.
+  const secondTickFormatter: (value: number) => string = useTickFormatter(
+    secondFormatter || input.valueFormatter,
+    axesTicks.second?.precision,
+  );
 
   return {
     first: {
-      ticks: firstTicks,
-      width: getAxisWidth(firstTicks, input.yAxisWidth),
+      ticks: { ...axesTicks.first, ticks: firstTickValues },
+      width: getAxisWidth(axesTicks.first, input.yAxisWidth),
+      tickFormatter: firstTickFormatter,
     },
     second:
-      input.secondYAxis && secondTicks
+      secondYAxis && axesTicks.second
         ? {
-            ticks: secondTicks,
-            width: getAxisWidth(secondTicks, input.secondYAxis.width),
+            ticks: { ...axesTicks.second, ticks: secondTickValues },
+            width: getAxisWidth(axesTicks.second, secondYAxis.width),
+            tickFormatter: secondTickFormatter,
           }
         : undefined,
   };

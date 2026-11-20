@@ -412,16 +412,15 @@ export function getChartAxisValues(input: ChartAxisValuesInput): Array<number> {
 
 /*
  * The tick formatter recharts is handed: the axis's formatter, with its
- * precision when the chart steps the axis itself. Always a function of the
- * value alone: recharts hands a tick formatter the tick's index too.
+ * precision (a ValueAxisTicks' own) when the chart steps the axis itself.
+ * Always a function of the value alone: recharts hands a tick formatter the
+ * tick's index too.
  */
 export function getTickFormatter(
   formatter: ValueAxisFormatter,
-  axisTicks: ValueAxisTicks,
+  precision: ValueAxisPrecision | undefined,
 ): (value: number) => string {
   return (value: number): string => {
-    return axisTicks.precision
-      ? formatter(value, axisTicks.precision)
-      : formatter(value);
+    return precision ? formatter(value, precision) : formatter(value);
   };
 }

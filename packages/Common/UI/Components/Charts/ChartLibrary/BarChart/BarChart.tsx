@@ -65,7 +65,6 @@ import {
   ChartValueAxesPlan,
   useValueAxesTicks,
 } from "../Utils/UseValueAxesTicks";
-import { getTickFormatter } from "../../Utils/ValueAxisTicks";
 import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 import {
   PreparedTooltipEntries,
@@ -1197,9 +1196,7 @@ const BarChart: React.ForwardRefExoticComponent<
                       tickFormatter:
                         type === "percent"
                           ? valueToPercent
-                          : (value: number): string => {
-                              return valueFormatter(value);
-                            },
+                          : valueAxes.first.tickFormatter,
                       allowDecimals: allowDecimals,
                     })}
               >
@@ -1246,10 +1243,7 @@ const BarChart: React.ForwardRefExoticComponent<
                       tickFormatter:
                         type === "percent"
                           ? valueToPercent
-                          : getTickFormatter(
-                              valueFormatter,
-                              valueAxes.first.ticks,
-                            ),
+                          : valueAxes.first.tickFormatter,
                       allowDecimals: allowDecimals,
                     }
                   : {
@@ -1308,10 +1302,7 @@ const BarChart: React.ForwardRefExoticComponent<
                     : {})}
                   tickFormatter={
                     valueAxes.second
-                      ? getTickFormatter(
-                          secondYAxis.valueFormatter,
-                          valueAxes.second.ticks,
-                        )
+                      ? valueAxes.second.tickFormatter
                       : (value: number): string => {
                           return secondYAxis.valueFormatter(value);
                         }
