@@ -6,7 +6,7 @@ import {
   test,
 } from "@playwright/test";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
-import { HOST_COLLECTOR_VERSION } from "../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import { HOST_COLLECTOR_PINNED_VERSION } from "Common/Types/HostCollector/HostCollector";
 
 /*
  * "If the agent version is outdated, can you please show the sign beside the
@@ -35,10 +35,13 @@ const SERVER_VERSION: string = "14.0.14";
 const OUTDATED_NAME: string = `Agent 1.9.0 is outdated. A newer agent is available: ${SERVER_VERSION}. Show how to upgrade.`;
 
 /*
- * The otelcol-contrib release the host guide pins, read from where it is
- * pinned (0.165.0 since #9902), and a release after it: its minor one up.
+ * The otelcol-contrib release the host guide pins (0.165.0 since #9902), and
+ * a release after it: its minor one up. Read from Common's pin, which the
+ * host installers carry and the Dashboard's HOST_COLLECTOR_VERSION matches:
+ * this package's image holds Common, not the Dashboard's source, so a spec
+ * importing from App/ does not compile there (docker-build-e2e).
  */
-const HOST_COLLECTOR_PIN: string = HOST_COLLECTOR_VERSION;
+const HOST_COLLECTOR_PIN: string = HOST_COLLECTOR_PINNED_VERSION;
 const AFTER_HOST_COLLECTOR_PIN: string = HOST_COLLECTOR_PIN.replace(
   /^(\d+)\.(\d+)\.\d+$/,
   (_release: string, major: string, minor: string): string => {
