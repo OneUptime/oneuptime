@@ -820,7 +820,7 @@ export class ComponentControlIndex {
     }
     const drawn: Set<string> = new Set<string>();
     this.drawnProps.set(key, drawn);
-    const aliases: Map<string, Set<string>> = propAliases(found.component);
+    const aliases: PropAliases = propAliases(found.component);
     for (const returned of returnedExpressions(found.component)) {
       for (const control of this.rootSingleControls(found.module, returned)) {
         for (const child of control.children) {

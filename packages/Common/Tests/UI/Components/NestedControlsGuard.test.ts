@@ -464,61 +464,60 @@ describe("the detector, for components that are controls", () => {
     });
   });
 
-  interface FlaggedCase {
-    name: string;
-    jsx: string;
-    expected: Array<string>;
-    // What the page defines before it draws the element, when anything.
-    before: string;
-  }
-
-  test.each<FlaggedCase>([
-    {
-      name: "an (i) in a link (the Regions card's health)",
-      jsx: '<Link to={route}>RegionTwo<InfoTooltip label="Region health" text={text} /></Link>',
-      expected: ["Link > InfoTooltip"],
-      before: "",
+  /*
+   * Each row: what it is, the JSX, what is flagged, and what the page
+   * defines before it draws the element ("" for nothing). Every row has all
+   * four, so jest never takes the last argument for a done callback.
+   */
+  test.each<[string, string, Array<string>, string]>([
+    [
+      "an (i) in a link (the Regions card's health)",
+      '<Link to={route}>RegionTwo<InfoTooltip label="Region health" text={text} /></Link>',
+      ["Link > InfoTooltip"],
+      "",
+    ],
+    [
+      "a health pill in a row that is one link",
+      '<ResourcePartRow to={route}><span>RegionTwo</span><ResourceHealthPill health="Degraded" /></ResourcePartRow>',
+      ["ResourcePartRow > ResourceHealthPill"],
+      "",
+    ],
+    [
+      "an (i) in a row that is one link, written bare",
+      '<ResourcePartRow to={route} hasControls={false}><InfoTooltip label="Health" text={text} /></ResourcePartRow>',
+      ["ResourcePartRow > InfoTooltip"],
+      "",
+    ],
+    [
+      "an attention pill in a button",
+      '<button type="button"><ResourceAttentionPill label="3 failed" /></button>',
+      ["button > ResourceAttentionPill"],
+      "",
+    ],
+    [
+      "a shared Button in an AppLink",
+      '<AppLink to={route}><Button title="Open" /></AppLink>',
+      ["AppLink > Button"],
+      "",
+    ],
+    [
+      "an (i) handed in the title a tile draws inside its button",
+      '<ClickableTile figure="12" title={<span>CPU <InfoTooltip label="CPU" text={text} /></span>} />',
+      ["ClickableTile > InfoTooltip"],
+      "",
+    ],
+    [
+      "an (i) in a link a module keeps to itself",
+      '<Line to={route}>RegionTwo<InfoTooltip label="Region health" text={text} /></Line>',
+      ["Line > InfoTooltip"],
+      "const Line = (props) => { return <Link to={props.to}>{props.children}</Link>; };",
+    ],
+  ])(
+    "flags %s",
+    (_name: string, jsx: string, expected: Array<string>, before: string) => {
+      expect(scanPage(jsx, before)).toEqual(expected);
     },
-    {
-      name: "a health pill in a row that is one link",
-      jsx: '<ResourcePartRow to={route}><span>RegionTwo</span><ResourceHealthPill health="Degraded" /></ResourcePartRow>',
-      expected: ["ResourcePartRow > ResourceHealthPill"],
-      before: "",
-    },
-    {
-      name: "an (i) in a row that is one link, written bare",
-      jsx: '<ResourcePartRow to={route} hasControls={false}><InfoTooltip label="Health" text={text} /></ResourcePartRow>',
-      expected: ["ResourcePartRow > InfoTooltip"],
-      before: "",
-    },
-    {
-      name: "an attention pill in a button",
-      jsx: '<button type="button"><ResourceAttentionPill label="3 failed" /></button>',
-      expected: ["button > ResourceAttentionPill"],
-      before: "",
-    },
-    {
-      name: "a shared Button in an AppLink",
-      jsx: '<AppLink to={route}><Button title="Open" /></AppLink>',
-      expected: ["AppLink > Button"],
-      before: "",
-    },
-    {
-      name: "an (i) handed in the title a tile draws inside its button",
-      jsx: '<ClickableTile figure="12" title={<span>CPU <InfoTooltip label="CPU" text={text} /></span>} />',
-      expected: ["ClickableTile > InfoTooltip"],
-      before: "",
-    },
-    {
-      name: "an (i) in a link a module keeps to itself",
-      jsx: '<Line to={route}>RegionTwo<InfoTooltip label="Region health" text={text} /></Line>',
-      expected: ["Line > InfoTooltip"],
-      before:
-        "const Line = (props) => { return <Link to={props.to}>{props.children}</Link>; };",
-    },
-  ])("flags $name", (flagged: FlaggedCase) => {
-    expect(scanPage(flagged.jsx, flagged.before)).toEqual(flagged.expected);
-  });
+  );
 
   test.each([
     [
