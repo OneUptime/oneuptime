@@ -18,6 +18,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { isProductLevelPermission } from "../../../Types/Product/ProductLevels";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
@@ -1031,14 +1032,26 @@ describe("VMware database models", () => {
         expect(props!.description).not.toContain("Proxmox");
       }
 
-      // No stray extra members — the catalogue must not sprout a 24th.
+      /*
+       * No stray extra members — the catalogue must not sprout a 24th. The
+       * product's levels (#10289) are a family of their own, pinned below.
+       */
       const vmwareEnumMembers: Array<string> = Array.from(enumValues).filter(
         (value: string) => {
-          return value.includes("VMware");
+          return value.includes("VMware") && !isProductLevelPermission(value);
         },
       );
 
       expect(vmwareEnumMembers.sort()).toEqual([...VMWARE_PERMISSIONS].sort());
+
+      // VMware's three levels, and no other VMware-named permission.
+      expect(
+        Array.from(enumValues)
+          .filter((value: string) => {
+            return value.includes("VMware") && isProductLevelPermission(value);
+          })
+          .sort(),
+      ).toEqual(["VMwareAdmin", "VMwareMember", "VMwareViewer"]);
     });
 
     test("vCenter Delete/Edit/Read are label-scoped access-control permissions; everything else is not", () => {
