@@ -5,6 +5,7 @@ import PublicDashboardRateLimit, {
 } from "../../../Server/Middleware/PublicDashboardRateLimit";
 import DashboardService from "../../../Server/Services/DashboardService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import FindOneByID from "../../../Server/Types/Database/FindOneByID";
 import {
   PUBLIC_DASHBOARD_PROMQL_WIDGET_NOT_FOUND_MESSAGE,
   getVariableValueNotOfferedMessage,
@@ -278,11 +279,10 @@ describe("DashboardAPI public PromQL query", () => {
     jest
       .spyOn(DashboardService, "findOneById")
       .mockImplementation(
-        async (findBy: {
-          id: ObjectID;
-          select: JSONObject;
-        }): Promise<Dashboard | null> => {
-          selects.push({ id: findBy.id.toString(), select: findBy.select });
+        async (findBy: FindOneByID<Dashboard>): Promise<Dashboard | null> => {
+          const select: JSONObject = (findBy.select || {}) as JSONObject;
+
+          selects.push({ id: findBy.id.toString(), select: select });
           const found: Dashboard | undefined = dashboards.get(
             findBy.id.toString(),
           );
@@ -293,7 +293,7 @@ describe("DashboardAPI public PromQL query", () => {
 
           const projected: Dashboard = new Dashboard();
 
-          for (const column of Object.keys(findBy.select)) {
+          for (const column of Object.keys(select)) {
             (projected as unknown as Record<string, unknown>)[column] = (
               found as unknown as Record<string, unknown>
             )[column];

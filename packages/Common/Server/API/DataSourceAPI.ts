@@ -70,7 +70,7 @@ export const readNarrowingServiceIds: (
     })
   ) {
     throw new BadDataException(
-      "serviceIds must be a list of up to 100 service IDs.",
+      "The services this query reads are not a list of up to 100 service IDs. Send serviceIds as a list of service IDs, or leave it out to read every service you may read.",
     );
   }
 
@@ -105,7 +105,7 @@ export const readNarrowingSeriesLabels: (
 
   if (!isLabels) {
     throw new BadDataException(
-      "seriesLabels must be an object of up to 100 labels, each with a text value.",
+      "The series this query reads is not an object of up to 100 labels, each with a text value. Send seriesLabels as the series' labels, or leave it out to read every series.",
     );
   }
 
