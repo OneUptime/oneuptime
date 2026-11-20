@@ -443,8 +443,9 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
   onCloseRef.current = props.onClose;
 
   /*
-   * A field's popup leaves Tab, Escape and a press to its field (#9909). Read
-   * as it opens: a popup is one or the other for as long as it is open.
+   * A field's popup leaves Tab, Escape and a press to its field (#9909). A
+   * popup is one or the other for as long as it is open; were it to change,
+   * the layer's listeners would be set up again for what it is now.
    */
   const isFieldPopup: boolean = props.isFieldPopup === true;
 
