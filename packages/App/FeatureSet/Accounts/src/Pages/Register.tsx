@@ -61,12 +61,31 @@ import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import User from "Common/Models/DatabaseModels/User";
-import React, { useId, useRef, useState } from "react";
+import React, {
+  ComponentType,
+  lazy,
+  Suspense,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import { SSO_REQUIRED_SIGN_UP_MESSAGE } from "Common/Types/SSO/SignInMethods";
-import LoginWithSsoPage from "./LoginWithSSO";
+// Type-only on purpose: the page itself is loaded by the import() below.
+import type { ComponentProps as LoginWithSsoPageProps } from "./LoginWithSSO";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
+
+/*
+ * The single sign-on page, drawn in this page's place while the server
+ * requires SSO: it loads then, rather than with every sign-up page, as on
+ * the sign-in page (packages/Common/Scripts/first-load-budgets.js).
+ */
+const LoginWithSsoPage: React.LazyExoticComponent<
+  ComponentType<LoginWithSsoPageProps>
+> = lazy(() => {
+  return import("./LoginWithSSO");
+});
 
 const RegisterPage: () => JSX.Element = () => {
   const { t } = useTranslation();
@@ -567,7 +586,12 @@ const RegisterPage: () => JSX.Element = () => {
   }
 
   if (signInMethodsRead.signInMethods?.isSsoRequired) {
-    return <LoginWithSsoPage signInMethods={signInMethodsRead.signInMethods} />;
+    return (
+      // While it loads, the shape the single sign-on page draws as it reads.
+      <Suspense fallback={<AuthPageSkeleton fields={1} />}>
+        <LoginWithSsoPage signInMethods={signInMethodsRead.signInMethods} />
+      </Suspense>
+    );
   }
 
   if (error) {

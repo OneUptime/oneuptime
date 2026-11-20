@@ -55,10 +55,12 @@ const SECTIONS: Record<string, MetricRowGroup> = {
   d: group("d", 4),
 };
 
+const NAME_IN_A_SECTION: RegExp = /^[a-d]\d+$/;
+
 const BY_LETTER: GetMetricRowGroup = (
   name: string,
 ): MetricRowGroup | undefined => {
-  return (/^[a-d]\d+$/).test(name) ? SECTIONS[name[0]!] : undefined;
+  return NAME_IN_A_SECTION.test(name) ? SECTIONS[name[0]!] : undefined;
 };
 
 function gap(key: string, keys: Array<string> = ["x"]): MetricRowGroupGap {
