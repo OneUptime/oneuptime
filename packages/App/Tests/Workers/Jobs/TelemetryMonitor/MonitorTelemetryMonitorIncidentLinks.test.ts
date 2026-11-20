@@ -12,8 +12,11 @@ import {
   getHostAlertTemplateById,
 } from "Common/Types/Monitor/HostAlertTemplates";
 import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStepDockerMonitor from "Common/Types/Monitor/MonitorStepDockerMonitor";
+import MonitorStepPodmanMonitor from "Common/Types/Monitor/MonitorStepPodmanMonitor";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { getPodmanAlertTemplateById } from "Common/Types/Monitor/PodmanAlertTemplates";
@@ -313,10 +316,10 @@ async function incidentOf(data: {
 
   const opened: boolean = Boolean(
     data.step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray.find(
-      (instance: { data?: { id?: string; createIncidents?: boolean } }) => {
+      (instance: MonitorCriteriaInstance): boolean => {
         return (
           instance.data?.id?.toString() === result.criteriaMetId?.toString() &&
-          instance.data?.createIncidents
+          Boolean(instance.data?.createIncidents)
         );
       },
     ),
@@ -349,8 +352,10 @@ function withContainerName(
   step: MonitorStep,
   containerName: string,
 ): MonitorStep {
-  const config: { containerFilters: { containerName?: string } } | undefined =
-    step.data?.dockerMonitor || step.data?.podmanMonitor;
+  const config:
+    | MonitorStepDockerMonitor
+    | MonitorStepPodmanMonitor
+    | undefined = step.data?.dockerMonitor || step.data?.podmanMonitor;
 
   config!.containerFilters = { ...config!.containerFilters, containerName };
 

@@ -600,9 +600,12 @@ describe("MonitorCriteriaEvaluator - a resource monitor's links (#10451)", () =>
     return monitor;
   }
 
-  function stepOf(monitorType: MonitorType, data: JSONObject): MonitorStep {
+  function stepOf(
+    monitorType: MonitorType,
+    data: Dictionary<unknown>,
+  ): MonitorStep {
     const step: MonitorStep = new MonitorStep();
-    const config: JSONObject = {
+    const config: Dictionary<unknown> = {
       metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
       rollingTime: RollingTime.Past5Minutes,
       ...data,
