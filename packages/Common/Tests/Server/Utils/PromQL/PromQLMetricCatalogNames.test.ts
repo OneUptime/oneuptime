@@ -25,7 +25,10 @@ const metricType: (data: {
 }): MetricType => {
   const type: MetricType = new MetricType();
   type.name = data.name;
-  type.unit = data.unit;
+  // A metric with no unit leaves it unset, as the catalog stores it.
+  if (data.unit !== undefined) {
+    type.unit = data.unit;
+  }
   type.isMonotonic = data.isMonotonic ?? false;
   return type;
 };
