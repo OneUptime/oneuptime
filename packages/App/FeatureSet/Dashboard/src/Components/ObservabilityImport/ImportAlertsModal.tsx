@@ -38,10 +38,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Toast from "Common/UI/Utils/Toast";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   AlertImportAction,
@@ -341,15 +338,13 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
     }
 
     // What was created leaves the list; what failed stays, with why.
-    setUnticked(
-      (current: Set<string>): Set<string> => {
-        const next: Set<string> = new Set<string>(current);
-        for (const key of created) {
-          next.add(key);
-        }
-        return next;
-      },
-    );
+    setUnticked((current: Set<string>): Set<string> => {
+      const next: Set<string> = new Set<string>(current);
+      for (const key of created) {
+        next.add(key);
+      }
+      return next;
+    });
     setFailures(failed);
   };
 

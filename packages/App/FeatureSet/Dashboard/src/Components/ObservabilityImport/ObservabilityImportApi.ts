@@ -236,9 +236,8 @@ export const loadAlertImportSeeds: () => Promise<AlertImportSeeds> =
       }),
     ]);
 
-    const liveStatuses: Array<MonitorStatus> = ArchivedValuePicker.getLiveValues(
-      statuses.data || [],
-    );
+    const liveStatuses: Array<MonitorStatus> =
+      ArchivedValuePicker.getLiveValues(statuses.data || []);
     const operational: ObjectID | null =
       liveStatuses.find((status: MonitorStatus): boolean => {
         return Boolean(status.isOperationalState);
@@ -285,26 +284,27 @@ export const loadAlertImportSeeds: () => Promise<AlertImportSeeds> =
  * monitor's name is unique in its project. A lookup that fails hands back
  * none, and the server's own check still decides.
  */
-export const fetchMonitorNames: () => Promise<Array<string>> =
-  async (): Promise<Array<string>> => {
-    try {
-      const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
-        modelType: Monitor,
-        query: {},
-        select: { name: true },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        sort: {},
-      });
+export const fetchMonitorNames: () => Promise<
+  Array<string>
+> = async (): Promise<Array<string>> => {
+  try {
+    const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+      modelType: Monitor,
+      query: {},
+      select: { name: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      sort: {},
+    });
 
-      return (result.data || [])
-        .map((monitor: Monitor): string => {
-          return monitor.name || "";
-        })
-        .filter((name: string): boolean => {
-          return name.length > 0;
-        });
-    } catch {
-      return [];
-    }
-  };
+    return (result.data || [])
+      .map((monitor: Monitor): string => {
+        return monitor.name || "";
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      });
+  } catch {
+    return [];
+  }
+};

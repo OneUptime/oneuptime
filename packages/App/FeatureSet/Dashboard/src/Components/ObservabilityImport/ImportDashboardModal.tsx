@@ -35,10 +35,7 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   DASHBOARD_SOURCE_KINDS,
@@ -207,7 +204,9 @@ const ImportDashboardModal: FunctionComponent<ComponentProps> = (
 
     if (name.trim().length < NAME_MIN_LENGTH) {
       setNameError(
-        translationKey("Please give this dashboard a name of at least 2 letters."),
+        translationKey(
+          "Please give this dashboard a name of at least 2 letters.",
+        ),
       );
       return;
     }
@@ -262,10 +261,10 @@ const ImportDashboardModal: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const applyAiQuery: (targetKey: string | undefined, promQL: string) => void = (
+  const applyAiQuery: (
     targetKey: string | undefined,
     promQL: string,
-  ): void => {
+  ) => void = (targetKey: string | undefined, promQL: string): void => {
     if (!targetKey) {
       return;
     }
@@ -446,7 +445,10 @@ const ImportDashboardModal: FunctionComponent<ComponentProps> = (
         </div>
 
         {variables.length > 0 ? (
-          <ImportSection title="Variables" dataTestId="dashboard-import-variables">
+          <ImportSection
+            title="Variables"
+            dataTestId="dashboard-import-variables"
+          >
             {variables.map(renderVariable)}
           </ImportSection>
         ) : (

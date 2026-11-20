@@ -20,10 +20,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ImportAiAnswer,
@@ -38,12 +35,11 @@ import {
  * OneUptime AI's conversion of a query, asked for and read before use.
  */
 
-export const IMPORT_STATUS_WORDS: Readonly<Record<ImportItemStatus, string>> =
-  {
-    [ImportItemStatus.Exact]: translationKey("Converted exactly"),
-    [ImportItemStatus.Approximate]: translationKey("Converted approximately"),
-    [ImportItemStatus.NotConverted]: translationKey("Not converted"),
-  };
+export const IMPORT_STATUS_WORDS: Readonly<Record<ImportItemStatus, string>> = {
+  [ImportItemStatus.Exact]: translationKey("Converted exactly"),
+  [ImportItemStatus.Approximate]: translationKey("Converted approximately"),
+  [ImportItemStatus.NotConverted]: translationKey("Not converted"),
+};
 
 const STATUS_TONES: Readonly<Record<ImportItemStatus, PillTone>> = {
   [ImportItemStatus.Exact]: PillTone.Success,
@@ -358,11 +354,13 @@ export const ImportItemRow: FunctionComponent<{
                 setShowsQueries(!showsQueries);
               }}
             />
-            {showsQueries
-              ? props.queries.map((query: string, index: number) => {
-                  return <ImportQueryCode key={index} query={query} />;
-                })
-              : <></>}
+            {showsQueries ? (
+              props.queries.map((query: string, index: number) => {
+                return <ImportQueryCode key={index} query={query} />;
+              })
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <></>
@@ -444,7 +442,9 @@ export const ImportFileField: FunctionComponent<{
     };
 
     reader.onerror = (): void => {
-      setReadError("This file could not be read. Pick it again, or paste its text.");
+      setReadError(
+        "This file could not be read. Pick it again, or paste its text.",
+      );
     };
 
     reader.readAsText(file);
