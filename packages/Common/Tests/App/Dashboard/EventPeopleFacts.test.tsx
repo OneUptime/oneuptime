@@ -1334,6 +1334,12 @@ describe("the commander's name, which hands the role on", () => {
     expect(name).not.toHaveClass("bg-indigo-50", "ring-1");
     // Lined up with the avatars of the facts beside it.
     expect(name).toHaveClass("-ms-1", "ps-1");
+    /*
+     * As wide as its box and the 0.25rem it reaches back past it: held to
+     * the box alone, a name that fits one line broke onto two.
+     */
+    expect(name).toHaveClass("max-w-[calc(100%+0.25rem)]");
+    expect(name).not.toHaveClass("max-w-full");
   });
 
   test("pointed at, it says what a click does: Click to reassign", async () => {

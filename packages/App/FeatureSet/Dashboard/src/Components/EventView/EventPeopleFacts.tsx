@@ -156,9 +156,15 @@ export const CLICK_TO_REASSIGN_TEXT: string =
  * colours are one set or the other, never both: the Dashboard's Tailwind
  * would let whichever rule it wrote last win. The dark theme draws the
  * ground and the ring as it draws Assign's (Theme.css).
+ *
+ * It may be as wide as the box around it and the 0.25rem it reaches back
+ * past that box's start (-ms-1): held to the box alone, as max-w-full held
+ * it, a name that fits on one line was cut 0.25rem short of it and broke
+ * onto two ("Maya" over "Chen"), since the box is only as wide as the
+ * name less that margin.
  */
 export const EVENT_COMMANDER_REASSIGN_CLASS_NAME: string =
-  "-my-0.5 -ms-1 inline-flex min-w-0 max-w-full items-center rounded-full py-0.5 pe-2 ps-1 text-start transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "-my-0.5 -ms-1 inline-flex min-w-0 max-w-[calc(100%+0.25rem)] items-center rounded-full py-0.5 pe-2 ps-1 text-start transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export const EVENT_COMMANDER_REASSIGN_IDLE_CLASS_NAME: string =
   "hover:bg-indigo-50 hover:ring-1 hover:ring-indigo-300";
@@ -356,7 +362,15 @@ const ReassignablePerson: FunctionComponent<ReassignablePersonProps> = (
   return (
     <div className="flex max-w-full">
       <div ref={popup.anchorRef} className="flex min-w-0 max-w-full">
-        <Tooltip text={CLICK_TO_REASSIGN_TEXT} isHidden={popup.isPopupOpen}>
+        {/*
+         * Under the name, so it never covers the role's label and the
+         * pencil after it; gone while the list it leads to is open.
+         */}
+        <Tooltip
+          text={CLICK_TO_REASSIGN_TEXT}
+          placement="bottom"
+          isHidden={popup.isPopupOpen}
+        >
           <button
             type="button"
             data-testid="event-commander-reassign"
