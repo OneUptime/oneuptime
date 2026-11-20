@@ -3,7 +3,7 @@
 通过电子邮件提供商的 HTTPS API 而不是 SMTP 服务器发送 OneUptime 的邮件，支持 Amazon SES、SendGrid、Mailgun、Postmark 和 Resend。项目可以为 SMTP 配置选择一个提供商，自托管安装也可以通过提供商发送其自身的所有邮件。API 通过 443 端口上的 HTTPS 访问，因此即使网络封锁了 SMTP 端口，邮件也能照常发出；每个提供商的密钥都会加密存储。
 
 :::cards
-- [Amazon SES](#amazon-ses): IAM 访问密钥或服务器自身的 IAM 角色，以及发件人通过验证的区域。
+- [Amazon SES](#amazon-ses): IAM 访问密钥、您的 AWS 账户中的 IAM 角色或服务器自身的 IAM 角色，以及发件人通过验证的区域。
 - [SendGrid](#sendgrid): 具有 Mail Send 权限的 API 密钥。
 - [Mailgun](#mailgun): API 密钥、发信域名及其区域。
 - [Postmark](#postmark): 服务器的 API 令牌。
@@ -55,16 +55,16 @@
 }
 ```
 
-在 AWS 上自托管的安装也可以不用密钥，而是附加同一策略，[使用服务器的 IAM 角色登录](#使用服务器的-iam-角色登录)。
+在 AWS 上自托管的安装也可以不用密钥，而是附加同一策略，[使用服务器的 IAM 角色登录](#使用服务器的-iam-角色登录)。 项目的配置也可以不用密钥，而是[使用您的 AWS 账户中的 IAM 角色登录](#使用您的-aws-账户中的-iam-角色登录)。
 
 ### 填写 Amazon SES 步骤
 
-输入 **访问密钥 ID** 和 **私有访问密钥**，以及您的身份通过验证的 **区域**，例如 `us-east-1`。
+将 **认证类型** 保留为 **访问密钥**，输入 **访问密钥 ID** 和 **私有访问密钥**，以及您的身份通过验证的 **区域**，例如 `us-east-1`。
 :::
 
 ### 使用服务器的 IAM 角色登录
 
-自托管的安装可以以 IAM 角色身份发送自己的邮件，OneUptime 中不存储任何访问密钥：在 AWS 上是 AWS 赋予服务器的角色，在其他任何地方是它通过 IAM Roles Anywhere 登录的角色。凭证会在数小时内过期，OneUptime 会在过期前获取新的凭证。这仅适用于服务器自己的邮件。项目的 Amazon SES 配置始终使用访问密钥登录，因为服务器的角色是服务器自己的 AWS 身份，而不是某个项目的。
+自托管的安装可以以 IAM 角色身份发送自己的邮件，OneUptime 中不存储任何访问密钥：在 AWS 上是 AWS 赋予服务器的角色，在其他任何地方是它通过 IAM Roles Anywhere 登录的角色。凭证会在数小时内过期，OneUptime 会在过期前获取新的凭证。这仅适用于服务器自己的邮件：服务器的角色是服务器自己的 AWS 身份，而不是某个项目的。项目的 Amazon SES 配置使用访问密钥登录，或使用[您的 AWS 账户中的 IAM 角色](#使用您的-aws-账户中的-iam-角色登录)登录。
 
 为角色附加上面的策略，然后以该角色运行 OneUptime：
 
@@ -114,6 +114,37 @@ services:
 然后在 Admin Dashboard 中点击 **编辑 Amazon SES**，将 **认证类型** 选为 **此服务器的 IAM 角色**，并输入 **区域**。保存后，之前存储的访问密钥会被删除。
 
 OneUptime 按照 AWS SDK 的方式，依次在以下位置查找服务器的凭证：其环境中的 `AWS_ACCESS_KEY_ID` 和 `AWS_SECRET_ACCESS_KEY`、`AWS_PROFILE`、`AWS_CONFIG_FILE` 或 `AWS_SHARED_CREDENTIALS_FILE` 指定的 AWS profile（其密钥或其 `credential_process`）、Web 身份令牌（`AWS_ROLE_ARN` 和 `AWS_WEB_IDENTITY_TOKEN_FILE`）、Amazon ECS 和 EKS Pod Identity 的容器凭证端点，最后是 EC2 的实例元数据服务（IMDSv2）。这三者都未设置时，OneUptime 不会读取任何 AWS 配置文件。
+
+### 使用您的 AWS 账户中的 IAM 角色登录
+
+项目的 Amazon SES 配置可以使用您自己的 AWS 账户中的 IAM 角色登录，这样 OneUptime 中不存储任何密钥。OneUptime 使用自己的 AWS 身份和一个只有您的项目的邮件使用的外部 ID 登录该角色，每个会话持续一小时。为该角色附加上面的策略，以及一个允许 OneUptime 的 AWS 账户凭该外部 ID 进入的信任策略：
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+在配置的 **Amazon SES** 步骤中，选择 **你的 AWS 账户中的 IAM 角色** 作为 **认证类型**。在 **角色 ARN** 下方，**在 AWS 中设置角色** 显示您的项目的 **外部 ID**，以及填好 OneUptime 的账户和您的 ID 的这个信任策略，可直接复制。用它创建角色，输入该角色的 **角色 ARN** 和 **区域**，然后在配置所在行点击 **发送测试电子邮件**。保存角色会删除之前存储的任何访问密钥。
+
+OneUptime 在通过角色发送之前会检查该角色，并且绝不会登录：
+
+- 信任策略不要求您的项目外部 ID 的角色：任何知道其 ARN 的项目都可以通过您的账户发送邮件。添加 `sts:ExternalId` 条件并发送一封测试电子邮件，它会立即再次检查该角色。检查大约每天进行一次，并在该角色的 CloudTrail 中显示为一条针对 `sts:AssumeRole` 的 `AccessDenied`。
+- OneUptime 自己的 AWS 账户中的角色，无论其信任策略写的是什么。要通过服务器运行所在的账户发送服务器自己的邮件，请改用[服务器的 IAM 角色](#使用服务器的-iam-角色登录)。
+
+外部 ID 是您的项目自己的，并不是机密。Cloud Connect 的 IAM 角色使用另一个外部 ID，因此为其中一方创建的角色绝不会被另一方登录。没有自己的 AWS 身份的服务器（既没有 Cloud Connect 访问密钥，也没有 AWS 凭证）无法登录任何角色，该步骤会说明这一点。
 
 ## SendGrid
 
@@ -233,6 +264,10 @@ IAM 用户的策略不允许对您的身份执行 `ses:SendEmail`。请添加上
 
 :::details "This server's IAM role may not send with Amazon SES" 或 "did not let this server assume the role"
 角色的策略不允许对您的身份执行 `ses:SendEmail`：请添加上面的策略。或者，在 Amazon EKS 上，角色的信任策略不允许您集群的 OIDC 提供商和 OneUptime 的服务账户执行 `sts:AssumeRoleWithWebIdentity`。
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" 或 "This role is in this OneUptime's own AWS account"
+正如[使用您的 AWS 账户中的 IAM 角色登录](#使用您的-aws-账户中的-iam-角色登录)所述，OneUptime 不会通过该角色发送。将配置的 **在 AWS 中设置角色** 中显示的 `sts:ExternalId` 条件添加到该角色的信任策略中，或在您自己的 AWS 账户中创建该角色，然后发送一封测试电子邮件。
 :::
 
 :::details "Mailgun has no domain … in its US region"
