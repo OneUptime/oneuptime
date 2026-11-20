@@ -293,6 +293,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 Laat deze velden weg uit een update. De paar velden die een persoon wijzigt, hebben een eigen verzoek: een SCIM-client-secret vervangen stelt in wanneer het niet meer werkt, en `POST /api/host/:id/try-collector-config-again` stuurt een host opnieuw de collectorconfiguratie die erop mislukte. Een veld dat jij en OneUptime allebei wijzigen, zoals de `labels` van een record, waar labelregels labels aan toevoegen, stel je zoals voorheen zelf in.
 
+Een aanmaak die een veld wegliet, noemt het in de header `X-OneUptime-Fields-Left-Out` van het antwoord, met de velden gescheiden door komma's; een antwoord waarin niets is weggelaten, heeft zo'n header niet. De CLI toont de velden in een notitie, het antwoord van de MCP-server somt ze op in `fieldsLeftOut`, en de Terraform-provider toont ze in een waarschuwing.
+
+### Items aan een lijst toevoegen en weer weghalen
+
+Een wijziging kan records aan een lijst toevoegen, of er enkele weghalen, zonder de hele lijst te sturen: `addToList` en `removeFromList` noemen de ID's die erbij moeten en eraf moeten, lijst voor lijst. Elk item dat de wijziging niet noemt, blijft, ook een item dat iemand anders of een labelregel op hetzelfde moment toevoegt:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Naar `PUT /api/monitor/<id>` gestuurd, geeft dit de monitor een nieuwe naam, voegt er één label aan toe en haalt er een ander af. Laat `data` weg als de wijziging alleen items toevoegt en weghaalt. Een item is de ID van het record, of een object met zijn `_id`, zoals in `data`, en een item toevoegen dat de lijst al bevat, of een weghalen dat ze niet bevat, verandert niets.
+
+De lijsten die een wijziging kan noemen, zijn de lijsten die de volledige API-referentie onder `addToList` opsomt voor het `PUT`-verzoek van de resource. Een wijziging die zo wordt gedaan, wordt gecontroleerd zoals de hele lijst die ze achterlaat dat zou worden, volgens de regels hierboven: je machtiging om de lijst te wijzigen, dat elk record dat ze toevoegt er een van je project is dat je mag lezen, en de labels die een machtiging beperkt tot labels behoudt. Een lijst die zowel in zijn geheel, in `data`, als in `addToList` of `removeFromList` wordt gestuurd, wordt geweigerd met een `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+De Terraform- en Crossplane-providers wijzigen de labels van een record op deze manier, zodat een label dat een regel toevoegt terwijl ze lopen, blijft: zie [Labels en andere lijsten waar OneUptime ook aan toevoegt](/docs/terraform/complete-guide#labels-en-andere-lijsten-waar-oneuptime-ook-aan-toevoegt).
+
 ## Statussen en episodes
 
 ### De status waarin een nieuw record begint

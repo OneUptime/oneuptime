@@ -791,6 +791,34 @@ export class ModelSchema extends BaseSchema {
   }
 
   /*
+   * The lists of related records an update of `modelType` can add single
+   * entries to and take them off (addToList and removeFromList,
+   * Types/Database/ListChanges, #10135): each list its update schema
+   * documents - a list a caller may update, which only OneUptime does not
+   * write - by its field, in the model's order.
+   */
+  public static getListsChangedEntryByEntry(
+    modelType: new () => DatabaseBaseModel,
+  ): Array<string> {
+    const model: DatabaseBaseModel = new modelType();
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    return Object.keys(columns).filter((key: string): boolean => {
+      const column: TableColumnMetadata | undefined = columns[key];
+
+      return Boolean(
+        column &&
+          column.type === TableColumnType.EntityArray &&
+          !column.hideColumnInDocumentation &&
+          !ModelSchema.isWrittenOnlyByOneUptime(column) &&
+          (accessControl[key]?.update || []).length > 0,
+      );
+    });
+  }
+
+  /*
    * The model each relation of `columns` points at, keyed by the column a
    * caller writes: a many-to-one relation's id column (`labelId` for
    * `label`), and a relation list itself (`labels`).

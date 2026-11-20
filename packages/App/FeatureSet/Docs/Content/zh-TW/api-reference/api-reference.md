@@ -293,6 +293,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 更新時請不要傳送這些欄位。少數由人變更的欄位各有專屬的請求：輪替 SCIM 用戶端密鑰會設定它失效的時間，`POST /api/host/:id/try-collector-config-again` 會把在主機上失敗的收集器設定再次傳送給該主機。你和 OneUptime 都會變更的欄位，例如記錄的 `labels`（標籤規則會在其中加上標籤），仍由你像以前一樣設定。
 
+省略了欄位的建立會在回應的 `X-OneUptime-Fields-Left-Out` 標頭中指明這些欄位，欄位之間以逗號分隔；沒有省略任何內容的回應沒有這個標頭。CLI 會在一則提示中輸出這些欄位，MCP 伺服器的回應會在 `fieldsLeftOut` 中列出它們，Terraform 提供者會在一則警告中顯示它們。
+
+### 在清單中新增項目和移除項目
+
+變更可以在清單中新增記錄，或移除其中一些，而不必傳送整個清單：`addToList` 和 `removeFromList` 依清單指明要新增和要移除的 ID。變更沒有指明的每個項目都會保留，包括其他人或標籤規則在同一時刻新增的項目：
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+把它傳送到 `PUT /api/monitor/<id>`，會重新命名該監測器，為它新增一個標籤並移除另一個標籤。如果變更只新增和移除項目，請省略 `data`。項目是記錄的 ID，或帶有其 `_id` 的物件，與 `data` 中相同；新增清單中已有的項目，或移除清單中沒有的項目，不會變更任何內容。
+
+變更可以指明的清單，就是完整的 API 參考在該資源的 `PUT` 請求下 `addToList` 中列出的清單。以這種方式進行的變更，會依上面的規則，像它留下的整個清單那樣接受檢查：你變更該清單的權限、它新增的每筆記錄都是你專案中你可以讀取的記錄，以及限於標籤的權限所保留的標籤。同時在 `data` 中整體傳送、又在 `addToList` 或 `removeFromList` 中傳送的清單，會以 `400` 被拒絕：
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform 和 Crossplane 提供者就是這樣變更記錄的標籤，因此規則在它們執行期間新增的標籤會保留：請參閱[標籤和 OneUptime 也會新增的其他清單](/docs/terraform/complete-guide#標籤和-oneuptime-也會新增的其他清單)。
+
 ## 狀態與片段
 
 ### 新記錄的初始狀態

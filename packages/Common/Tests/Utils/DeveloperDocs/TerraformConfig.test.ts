@@ -26,8 +26,11 @@ import {
   getTerraformProviderHcl,
   getTerraformProviderUrl,
   getTerraformProviderVersionConstraint,
+  getTerraformRecordBody,
   getTerraformResourceConfig,
   TerraformOmissionReason,
+  TerraformRecordAttribute,
+  TerraformRecordBody,
   TerraformResourceConfig,
 } from "../../../Utils/DeveloperDocs/TerraformConfig";
 import {
@@ -269,18 +272,66 @@ describe("a workflow as Terraform", () => {
   });
 
   /*
-   * A label rule adds labels on its own (ServerOwned.Shared, #10052): written
-   * with the ones it has now, the configuration would take a rule's next
-   * label off at the next plan. Left out, the provider keeps them all.
+   * A label rule adds labels on its own (ServerOwned.Shared, #10052). The
+   * provider holds a configuration's labels to the entries it declares
+   * (#10134): written with the ones the workflow has now, a label a rule
+   * adds later stays, so the configuration names them, as a set of IDs.
    */
-  test("its labels are left to OneUptime, which a label rule adds to", () => {
+  test("its labels are a set of ids, the ones it has now: a rule's next label stays", () => {
     const config: TerraformResourceConfig = configFor(
       workflow({ labels: [label()] }),
       Workflow,
     );
 
-    expect(config.resourceHcl).not.toContain("labels");
-    expect(config.resourceHcl).not.toContain(LABEL_ID);
+    expect(config.resourceHcl).toContain(`labels      = ["${LABEL_ID}"]`);
+  });
+
+  /*
+   * The record body the Crossplane page writes its manifest from leaves
+   * the labels to OneUptime, as before: only the Terraform page asks for
+   * them (writesListsHeldEntryByEntry).
+   */
+  test("a record body that does not ask for lists held entry by entry leaves the labels out, named as OneUptime's", () => {
+    const json: JSONObject = BaseModel.toJSON(
+      workflow({ labels: [label()] }),
+      Workflow,
+    );
+    const body: TerraformRecordBody | null = getTerraformRecordBody({
+      modelType: Workflow,
+      json: json,
+    });
+    const written: TerraformRecordBody | null = getTerraformRecordBody({
+      modelType: Workflow,
+      json: json,
+      writesListsHeldEntryByEntry: true,
+    });
+
+    const names: (record: TerraformRecordBody | null) => Array<string> = (
+      record: TerraformRecordBody | null,
+    ): Array<string> => {
+      return (record?.attributes || []).map(
+        (attribute: TerraformRecordAttribute): string => {
+          return attribute.descriptor.attributeName;
+        },
+      );
+    };
+
+    expect(names(body)).not.toContain("labels");
+    expect(
+      body!.omittedShared.map(
+        (descriptor: TerraformAttributeDescriptor): string => {
+          return descriptor.attributeName;
+        },
+      ),
+    ).toContain("labels");
+    expect(names(written)).toContain("labels");
+    expect(
+      written!.omittedShared.map(
+        (descriptor: TerraformAttributeDescriptor): string => {
+          return descriptor.attributeName;
+        },
+      ),
+    ).not.toContain("labels");
   });
 
   test("its graph is written with jsonencode, and a secret in it comes from a variable", () => {
@@ -761,8 +812,9 @@ describe("the records a resource's ids point at", () => {
         `    "${MONITOR_IDS[0]}", # Checkout API`,
         `    "${MONITOR_IDS[1]}", # Website`,
         "  ]",
-        // Its labels are OneUptime's too, which a label rule adds (#10052).
-        `  change_monitor_status_to_id = "${STATUS_ID}" # Degraded`,
+        // Its labels: a rule's next one stays (#10134).
+        `  labels                      = ["${LABEL_ID}"] # production`,
+        `  change_monitor_status_to_id = "${STATUS_ID}"   # Degraded`,
         "}",
         "",
       ].join("\n"),
