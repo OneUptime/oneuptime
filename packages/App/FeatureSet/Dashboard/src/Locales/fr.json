@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Votre Kubecost lit votre facture cloud et rapproche ses prix de ce que vous avez payé, environ deux jours après chaque heure. Aucune heure rapprochée n'est encore arrivée dans OneUptime : ce sont les prix catalogue publics du cloud.",
   "Another custom role": "Un autre rôle personnalisé",
   "No workflow runs as it": "Aucun flux de travail ne s'exécute en tant que ce rôle",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Cela supprime définitivement le rôle personnalisé. Si des flux de travail s'exécutent en tant que ce rôle, indiquez en tant que quoi ils s'exécutent désormais, sinon OneUptime refuse la suppression et les nomme. Pour un autre rôle personnalisé, mettez son ID à la place de {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Cela supprime définitivement le rôle personnalisé. Si des flux de travail s'exécutent en tant que ce rôle, indiquez en tant que quoi ils s'exécutent désormais, sinon OneUptime refuse la suppression et les nomme. Pour un autre rôle personnalisé, mettez son ID à la place de {{placeholder}}.",
+  "New Email Link Expires": "Expiration du lien de la nouvelle adresse e-mail",
+  "Send Link Again": "Renvoyer le lien",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Le lien que nous avons envoyé à {{email}} a expiré, votre adresse e-mail n'a donc pas été modifiée. Envoyez un nouveau lien pour terminer la modification, ou annulez-la.",
+  "We emailed the new address again.": "Nous avons renvoyé un e-mail à la nouvelle adresse."
 }

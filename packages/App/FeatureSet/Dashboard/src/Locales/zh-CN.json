@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "您的 Kubecost 会读取您的云账单，并在每个小时结束约两天后，按您实际支付的金额核对其价格。尚无已核对的小时到达 OneUptime：这些是云的公开标价。",
   "Another custom role": "另一个自定义角色",
   "No workflow runs as it": "没有以此角色运行的工作流",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "这会永久删除该自定义角色。如果有工作流以此角色运行，请说明它们今后以什么身份运行，否则 OneUptime 会拒绝删除并列出这些工作流。若要改用另一个自定义角色，请将 {{placeholder}} 替换为它的 ID。"
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "这会永久删除该自定义角色。如果有工作流以此角色运行，请说明它们今后以什么身份运行，否则 OneUptime 会拒绝删除并列出这些工作流。若要改用另一个自定义角色，请将 {{placeholder}} 替换为它的 ID。",
+  "New Email Link Expires": "新电子邮件地址链接的过期时间",
+  "Send Link Again": "重新发送链接",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "我们发送到 {{email}} 的链接已过期，因此您的电子邮件地址没有更改。请发送新链接以完成更改，或取消此更改。",
+  "We emailed the new address again.": "我们已再次向新地址发送了电子邮件。"
 }

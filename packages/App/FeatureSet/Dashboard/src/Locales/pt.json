@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "O seu Kubecost lê a sua fatura da nuvem e concilia os preços dele com o que você pagou, cerca de dois dias depois de cada hora. Nenhuma hora conciliada chegou ainda ao OneUptime: estes são os preços de tabela públicos da nuvem.",
   "Another custom role": "Outra função personalizada",
   "No workflow runs as it": "Nenhum fluxo de trabalho é executado como esta função",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Isso exclui a função personalizada de vez. Se houver fluxos de trabalho executados como esta função, informe como eles passam a ser executados, ou o OneUptime recusa a exclusão e os nomeia. Para outra função personalizada, coloque o ID dela no lugar de {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Isso exclui a função personalizada de vez. Se houver fluxos de trabalho executados como esta função, informe como eles passam a ser executados, ou o OneUptime recusa a exclusão e os nomeia. Para outra função personalizada, coloque o ID dela no lugar de {{placeholder}}.",
+  "New Email Link Expires": "Expiração do link do novo endereço de e-mail",
+  "Send Link Again": "Enviar o link novamente",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "O link que enviamos para {{email}} expirou, então seu endereço de e-mail não foi alterado. Envie um novo link para concluir a alteração ou cancele-a.",
+  "We emailed the new address again.": "Enviamos um e-mail para o novo endereço novamente."
 }

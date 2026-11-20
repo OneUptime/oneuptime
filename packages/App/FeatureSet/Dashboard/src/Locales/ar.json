@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "يقرأ Kubecost لديك فاتورة السحابة ويطابق أسعاره مع ما دفعته، بعد نحو يومين من كل ساعة. لم تصل إلى OneUptime بعد أي ساعة مطابقة: هذه أسعار السحابة المعلنة للعموم.",
   "Another custom role": "دور مخصص آخر",
   "No workflow runs as it": "لا يعمل أي سير عمل بصفته",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "يحذف هذا الدور المخصص نهائيًا. إن كانت مهام سير عمل تعمل بصفته، فاذكر ما تعمل بصفته من الآن فصاعدًا، وإلا يرفض OneUptime الحذف ويذكر أسماءها. ولاختيار دور مخصص آخر، ضع معرّفه مكان {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "يحذف هذا الدور المخصص نهائيًا. إن كانت مهام سير عمل تعمل بصفته، فاذكر ما تعمل بصفته من الآن فصاعدًا، وإلا يرفض OneUptime الحذف ويذكر أسماءها. ولاختيار دور مخصص آخر، ضع معرّفه مكان {{placeholder}}.",
+  "New Email Link Expires": "انتهاء صلاحية رابط عنوان البريد الإلكتروني الجديد",
+  "Send Link Again": "إرسال الرابط مرة أخرى",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "انتهت صلاحية الرابط الذي أرسلناه إلى {{email}}، لذا لم يتغيّر عنوان بريدك الإلكتروني. أرسل رابطًا جديدًا لإكمال التغيير، أو ألغِه.",
+  "We emailed the new address again.": "أرسلنا رسالة إلى العنوان الجديد مرة أخرى."
 }

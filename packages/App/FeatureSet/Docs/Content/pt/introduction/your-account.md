@@ -41,7 +41,7 @@ Clique na sua foto, no canto superior direito, e escolha **Perfil**. A página *
 
 Clique em **Editar: Usuário** e mude o que precisar:
 
-- **E-mail**: o endereço com que você entra. Se você o mudar, o OneUptime envia um link para o novo endereço, e o seu endereço muda assim que você o abrir. Até lá, você entra com o atual, e **Cancelar alteração** interrompe a alteração. O endereço de um administrador principal muda na hora.
+- **E-mail**: o endereço com que você entra. Se você o mudar, o OneUptime envia um link para o novo endereço, e o seu endereço muda assim que você o abrir. Até lá, você entra com o atual, e **Cancelar alteração** interrompe a alteração. O endereço de um administrador principal muda na hora. Se o link expirar, **Enviar o link novamente** envia um novo. Sempre que o seu endereço muda, o OneUptime envia um e-mail para o endereço que você tinha.
 - **Nome completo**: o nome que sua equipe vê em todo o OneUptime.
 - **Fuso horário**: o fuso horário em que o painel mostra e lê os horários, e o dos horários nas notificações enviadas a você.
 - **Idioma**: o idioma do painel em cada navegador em que você entra, e o dos seus acionamentos de plantão. Sem definir, seus acionamentos ficam em inglês e o painel segue o seu navegador.
@@ -191,7 +191,11 @@ Esse endereço já tem uma conta no OneUptime, então o cadastro não criou nem 
 :::
 
 :::details Meu endereço de e-mail não mudou
-O seu endereço só muda quando você abre o link que o OneUptime enviou para o novo endereço. O link funciona por 24 horas: se ele expirou, mude o seu e-mail de novo para receber um novo. Se outra conta já usa esse endereço, o e-mail enviado para lá diz isso, e o seu endereço continua como está.
+O seu endereço só muda quando você abre o link que o OneUptime enviou para o novo endereço. O link funciona por 24 horas: depois que expira, o seu perfil avisa, e **Enviar o link novamente** envia um novo. Se outra conta já usa esse endereço, o e-mail enviado para lá diz isso, e o seu endereço continua como está.
+:::
+
+:::details Recebi um e-mail dizendo que meu endereço de e-mail foi alterado
+O OneUptime envia um e-mail para o endereço que a sua conta tinha sempre que esse endereço muda: quando você abre o link enviado a um novo endereço, quando um administrador do servidor o altera ou quando o provedor de identidade da sua organização o altera. Se foi você quem fez a alteração, não há nada a fazer. Se não foi, alguém que conseguia entrar na sua conta a mudou para um endereço próprio: a partir do seu endereço antigo, fale com o administrador do seu servidor ou, no OneUptime Cloud, com support@oneuptime.com, que podem voltar o endereço. O e-mail mostra só uma parte do novo endereço e não tem nenhum link para desfazer a alteração: um link assim funcionaria para qualquer pessoa que leia a sua caixa de correio antiga.
 :::
 
 :::details Perdi meu aplicativo autenticador

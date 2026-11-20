@@ -100,20 +100,34 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
-import EmailChangeConfirmation from "../Utils/EmailChange/EmailChangeConfirmation";
+import EmailChangeConfirmation, {
+  EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
+} from "../Utils/EmailChange/EmailChangeConfirmation";
+import EmailAddressChangedNotice from "../Utils/EmailChange/EmailAddressChangedNotice";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  getEmailAddressChanger,
+} from "../../Types/Accounts/EmailAddressChangedEmail";
 import RequestOrigin from "../../Types/RequestOrigin";
 
 /*
  * A person's own change of address, held for the new address to confirm
  * (#9821, Utils/EmailChange/EmailChangeConfirmation): found by
- * onBeforeUpdate, sent for by onUpdateSuccess once the update has been
- * answered. Keyed by the update, which both hooks are handed.
+ * onBeforeUpdate, its link's expiry written by onUpdatePermitted, sent for
+ * by onUpdateSuccess once the update has been answered. Keyed by the update,
+ * which every hook is handed.
  */
 interface PendingEmailChange {
   userId: ObjectID;
   newEmail: Email;
   timezone: Timezone | null | undefined;
   origin: RequestOrigin | undefined;
+  /*
+   * When the link stops working (#9908): kept on the account with the
+   * waiting address, for User Profile, and given to the link itself, so the
+   * two end at the same moment.
+   */
+  linkExpires: Date;
 }
 
 const pendingEmailChanges: WeakMap<
@@ -718,6 +732,11 @@ export class Service extends DatabaseService<Model> {
           // "Your password was changed" says when in the owner's own zone.
           timezone: true,
           /*
+           * And the email to the address an account had, once it changed
+           * (#9907), is in the owner's own language.
+           */
+          language: true,
+          /*
            * Whether there was a password to change: an invited account has
            * none until the person signs up, and its first one is no change
            * (onUpdateSuccess, #7472). Read only for a password write.
@@ -830,6 +849,9 @@ export class Service extends DatabaseService<Model> {
       newEmail: requested,
       timezone: own.timezone,
       origin: updateBy.props.requestOrigin,
+      linkExpires: OneUptimeDate.getSomeHoursAfter(
+        EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
+      ),
     });
   }
 
@@ -874,6 +896,7 @@ export class Service extends DatabaseService<Model> {
         isTaken: Boolean(holder),
         origin: pending.origin,
         timezone: pending.timezone,
+        linkExpires: pending.linkExpires,
       });
     } catch (err) {
       logger.error(err, { userId: pending.userId.toString() } as LogAttributes);
@@ -918,6 +941,8 @@ export class Service extends DatabaseService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
+    this.writePendingEmailLinkExpiry(updateBy);
+
     if (!updateBy.data.password) {
       return;
     }
@@ -926,6 +951,35 @@ export class Service extends DatabaseService<Model> {
     updateBy.data.resetPasswordExpires = null!;
     updateBy.data.magicLinkToken = null!;
     updateBy.data.magicLinkExpires = null!;
+  }
+
+  /*
+   * When a waiting address's link stops working (#9908), kept beside the
+   * address so User Profile can say it has expired: a held change writes
+   * its link's expiry - the same for a taken address as for a free one, as
+   * the rest of the held write is - and clearing the address (Cancel Change,
+   * the link's own write) clears it. OneUptime's column (update: []), so
+   * written here, once the caller's own columns have passed their check, as
+   * the links' columns above are.
+   */
+  private writePendingEmailLinkExpiry(updateBy: UpdateBy<Model>): void {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const pending: PendingEmailChange | undefined =
+      pendingEmailChanges.get(updateBy);
+
+    if (pending) {
+      data["newUnverifiedTemporaryEmailExpires"] = pending.linkExpires;
+      return;
+    }
+
+    const pendingAddress: unknown = data["newUnverifiedTemporaryEmail"];
+
+    if (pendingAddress === null || pendingAddress === "") {
+      data["newUnverifiedTemporaryEmailExpires"] = null;
+    }
   }
 
   /**
@@ -1491,7 +1545,80 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    if (onUpdate && onUpdate.updateBy.data.email) {
+      this.tellPreviousAddressesOfChange(onUpdate, updatedItemIds);
+    }
+
     return onUpdate;
+  }
+
+  /*
+   * EVERY ADDRESS AN ACCOUNT LEAVES IS TOLD (#9907).
+   *
+   * An account whose address this write changed emails the address it had
+   * (Utils/EmailChange/EmailAddressChangedNotice): that it changed, to which
+   * address (masked), when, from where for the account's own change, and
+   * whom to ask if it was not them. Every way an address changes writes it
+   * here: the link that confirms a person's own change (#9821), a master
+   * admin's change, SCIM, any other write OneUptime makes. Asking for a
+   * change writes no address - it is held for its link (above) - so asking
+   * sends nothing to the old address; the link's write does.
+   *
+   * Once per account the write reached whose address it changed: a write
+   * of the address an account already has - SCIM and single sign-on send
+   * it again with every push and sign-in, the profile's form with every
+   * save - changes nothing and sends nothing, in any case. Who changed it
+   * comes from the write (getEmailAddressChanger): OneUptime's own names
+   * its changer in miscDataProps, which only a root write may.
+   *
+   * Never awaited: the answer does not wait on an email, and the sender
+   * never throws. A write made with `ignoreHooks: true` skips this, as it
+   * skips the links the address change ends (onBeforeUpdate): any new
+   * caller that writes `email` hook-free has to send it itself.
+   */
+  private tellPreviousAddressesOfChange(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): void {
+    const newEmail: Email = new Email(String(onUpdate.updateBy.data.email));
+    const props: DatabaseCommonInteractionProps = onUpdate.updateBy.props;
+    const written: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+    const rows: Array<Model> = Array.isArray(onUpdate.carryForward)
+      ? (onUpdate.carryForward as Array<Model>)
+      : [];
+
+    for (const row of rows) {
+      if (
+        !row.id ||
+        !row.email ||
+        !written.has(row.id.toString().toLowerCase()) ||
+        row.email.toString().toLowerCase() === newEmail.toString().toLowerCase()
+      ) {
+        continue;
+      }
+
+      void EmailAddressChangedNotice.send({
+        userId: row.id,
+        previousEmail: row.email,
+        newEmail: newEmail,
+        changedBy: getEmailAddressChanger({
+          isRoot: props.isRoot === true,
+          isMasterAdmin: props.isMasterAdmin === true,
+          callerUserId: props.userId?.toString(),
+          accountUserId: row.id.toString(),
+          namedChanger:
+            onUpdate.updateBy.miscDataProps?.[EMAIL_ADDRESS_CHANGED_BY_KEY],
+        }),
+        origin: props.requestOrigin,
+        at: OneUptimeDate.getCurrentDate(),
+        language: row.language,
+        timezone: row.timezone,
+      });
+    }
   }
 
   /**

@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Din Kubecost læser din cloudregning og afstemmer sine priser med det, du har betalt, omkring to dage efter hver time. Ingen afstemt time er nået frem til OneUptime endnu: Det er cloudens offentlige listepriser.",
   "Another custom role": "En anden brugerdefineret rolle",
   "No workflow runs as it": "Ingen arbejdsgang kører som den",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Dette sletter den brugerdefinerede rolle for altid. Hvis arbejdsgange kører som den, så angiv, hvad de skal køre som fra nu af, ellers afviser OneUptime sletningen og nævner dem. For en anden brugerdefineret rolle skal du sætte dens ID i stedet for {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Dette sletter den brugerdefinerede rolle for altid. Hvis arbejdsgange kører som den, så angiv, hvad de skal køre som fra nu af, ellers afviser OneUptime sletningen og nævner dem. For en anden brugerdefineret rolle skal du sætte dens ID i stedet for {{placeholder}}.",
+  "New Email Link Expires": "Udløb af link til ny e-mailadresse",
+  "Send Link Again": "Send link igen",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Linket, vi sendte til {{email}}, er udløbet, så din e-mailadresse er ikke ændret. Send et nyt link for at gøre ændringen færdig, eller annuller den.",
+  "We emailed the new address again.": "Vi har sendt en e-mail til den nye adresse igen."
 }

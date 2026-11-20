@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Ihr Kubecost liest Ihre Cloud-Rechnung und gleicht seine Preise etwa zwei Tage nach jeder Stunde mit dem ab, was Sie bezahlt haben. Noch keine abgeglichene Stunde hat OneUptime erreicht: Dies sind die öffentlichen Listenpreise der Cloud.",
   "Another custom role": "Andere benutzerdefinierte Rolle",
   "No workflow runs as it": "Kein Arbeitsablauf läuft als sie",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Dies löscht die benutzerdefinierte Rolle endgültig. Wenn Arbeitsabläufe als sie laufen, sagen Sie, als was sie von nun an laufen, sonst lehnt OneUptime das Löschen ab und nennt sie. Für eine andere benutzerdefinierte Rolle setzen Sie deren ID an die Stelle von {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Dies löscht die benutzerdefinierte Rolle endgültig. Wenn Arbeitsabläufe als sie laufen, sagen Sie, als was sie von nun an laufen, sonst lehnt OneUptime das Löschen ab und nennt sie. Für eine andere benutzerdefinierte Rolle setzen Sie deren ID an die Stelle von {{placeholder}}.",
+  "New Email Link Expires": "Ablauf des Links für die neue E-Mail-Adresse",
+  "Send Link Again": "Link erneut senden",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Der Link, den wir an {{email}} gesendet haben, ist abgelaufen, daher wurde Ihre E-Mail-Adresse nicht geändert. Senden Sie einen neuen Link, um die Änderung abzuschließen, oder brechen Sie sie ab.",
+  "We emailed the new address again.": "Wir haben erneut eine E-Mail an die neue Adresse gesendet."
 }

@@ -135,6 +135,11 @@ export default class EmailChangeConfirmation {
    * another account already has, word that it could not be used. `isTaken`
    * is read by the caller after the answer, as this is. Never throws: the
    * person has their answer, and a failure is logged.
+   *
+   * `linkExpires` is when the link stops working: the moment the held
+   * write kept beside the waiting address (User.newUnverifiedTemporaryEmailExpires,
+   * #9908), so User Profile says it has expired exactly when it has.
+   * EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS from now when left out.
    */
   public static async sendForPendingChange(data: {
     userId: ObjectID;
@@ -142,6 +147,7 @@ export default class EmailChangeConfirmation {
     isTaken: boolean;
     origin?: RequestOrigin | undefined;
     timezone?: Timezone | null | undefined;
+    linkExpires?: Date | undefined;
   }): Promise<void> {
     try {
       const host: Hostname = await DatabaseConfig.getHost();
@@ -181,9 +187,9 @@ export default class EmailChangeConfirmation {
       row.userId = data.userId;
       row.email = data.newEmail;
       row.token = token;
-      row.expires = OneUptimeDate.getSomeHoursAfter(
-        EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
-      );
+      row.expires =
+        data.linkExpires ||
+        OneUptimeDate.getSomeHoursAfter(EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS);
 
       await EmailVerificationTokenService.create({
         data: row,

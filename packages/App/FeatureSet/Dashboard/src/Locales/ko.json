@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Kubecost는 클라우드 청구서를 읽고, 각 시간이 지나고 약 2일 뒤에 가격을 실제로 결제한 금액과 대조합니다. 대조된 시간은 아직 OneUptime에 도착하지 않았습니다. 이 가격은 클라우드의 공개 정가입니다.",
   "Another custom role": "다른 사용자 정의 역할",
   "No workflow runs as it": "이 역할로 실행되는 워크플로 없음",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "사용자 정의 역할을 영구적으로 삭제합니다. 이 역할로 실행되는 워크플로가 있으면 앞으로 무엇으로 실행할지 지정하세요. 그렇지 않으면 OneUptime이 삭제를 거부하고 해당 워크플로의 이름을 알려 줍니다. 다른 사용자 정의 역할로 하려면 {{placeholder}} 자리에 그 역할의 ID를 넣으세요."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "사용자 정의 역할을 영구적으로 삭제합니다. 이 역할로 실행되는 워크플로가 있으면 앞으로 무엇으로 실행할지 지정하세요. 그렇지 않으면 OneUptime이 삭제를 거부하고 해당 워크플로의 이름을 알려 줍니다. 다른 사용자 정의 역할로 하려면 {{placeholder}} 자리에 그 역할의 ID를 넣으세요.",
+  "New Email Link Expires": "새 이메일 주소 링크 만료 시간",
+  "Send Link Again": "링크 다시 보내기",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "{{email}}(으)로 보낸 링크가 만료되어 이메일 주소가 변경되지 않았습니다. 변경을 완료하려면 새 링크를 보내거나 변경을 취소하세요.",
+  "We emailed the new address again.": "새 주소로 이메일을 다시 보냈습니다."
 }

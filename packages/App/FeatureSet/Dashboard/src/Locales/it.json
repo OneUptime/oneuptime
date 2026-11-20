@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Il tuo Kubecost legge la tua fattura cloud e riconcilia i suoi prezzi con quanto hai pagato, circa due giorni dopo ogni ora. Nessuna ora riconciliata è ancora arrivata in OneUptime: questi sono i prezzi di listino pubblici del cloud.",
   "Another custom role": "Un altro ruolo personalizzato",
   "No workflow runs as it": "Nessun flusso di lavoro viene eseguito come questo ruolo",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Questo elimina definitivamente il ruolo personalizzato. Se dei flussi di lavoro vengono eseguiti come questo ruolo, indica come cosa vengono eseguiti d'ora in poi, altrimenti OneUptime rifiuta l'eliminazione e li nomina. Per un altro ruolo personalizzato, inserisci il suo ID al posto di {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Questo elimina definitivamente il ruolo personalizzato. Se dei flussi di lavoro vengono eseguiti come questo ruolo, indica come cosa vengono eseguiti d'ora in poi, altrimenti OneUptime rifiuta l'eliminazione e li nomina. Per un altro ruolo personalizzato, inserisci il suo ID al posto di {{placeholder}}.",
+  "New Email Link Expires": "Scadenza del link del nuovo indirizzo email",
+  "Send Link Again": "Invia di nuovo il link",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Il link che abbiamo inviato a {{email}} è scaduto, quindi il tuo indirizzo email non è cambiato. Invia un nuovo link per completare la modifica, oppure annullala.",
+  "We emailed the new address again.": "Abbiamo inviato di nuovo un'email al nuovo indirizzo."
 }

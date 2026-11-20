@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "आपका Kubecost आपका क्लाउड बिल पढ़ता है और हर घंटे के लगभग दो दिन बाद अपनी कीमतों को आपके चुकाए गए भुगतान से मिलाता है। मिलाया गया कोई घंटा अभी तक OneUptime तक नहीं पहुँचा है: ये क्लाउड की सार्वजनिक सूची कीमतें हैं।",
   "Another custom role": "दूसरी कस्टम भूमिका",
   "No workflow runs as it": "कोई वर्कफ़्लो इस भूमिका के रूप में नहीं चलता",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "यह कस्टम भूमिका को हमेशा के लिए हटा देता है। अगर वर्कफ़्लो इस भूमिका के रूप में चलते हैं, तो बताएँ कि अब से वे किस रूप में चलें, नहीं तो OneUptime हटाने से मना कर देता है और उनके नाम बताता है। किसी दूसरी कस्टम भूमिका के लिए {{placeholder}} की जगह उसकी ID डालें।"
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "यह कस्टम भूमिका को हमेशा के लिए हटा देता है। अगर वर्कफ़्लो इस भूमिका के रूप में चलते हैं, तो बताएँ कि अब से वे किस रूप में चलें, नहीं तो OneUptime हटाने से मना कर देता है और उनके नाम बताता है। किसी दूसरी कस्टम भूमिका के लिए {{placeholder}} की जगह उसकी ID डालें।",
+  "New Email Link Expires": "नए ईमेल पते के लिंक की समय-सीमा",
+  "Send Link Again": "लिंक फिर से भेजें",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "हमने {{email}} पर जो लिंक भेजा था उसकी समय-सीमा समाप्त हो गई है, इसलिए आपका ईमेल पता नहीं बदला है। बदलाव पूरा करने के लिए नया लिंक भेजें, या इसे रद्द करें।",
+  "We emailed the new address again.": "हमने नए पते पर फिर से ईमेल भेजा है।"
 }

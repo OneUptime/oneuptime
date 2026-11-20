@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Tu Kubecost lee tu factura de la nube y concilia sus precios con lo que pagaste, aproximadamente dos días después de cada hora. Todavía no ha llegado a OneUptime ninguna hora conciliada: estos son los precios de lista públicos de la nube.",
   "Another custom role": "Otro rol personalizado",
   "No workflow runs as it": "Ningún flujo de trabajo se ejecuta como este rol",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Esto elimina el rol personalizado de forma definitiva. Si hay flujos de trabajo que se ejecutan como este rol, indica como qué se ejecutan a partir de ahora, o OneUptime rechaza la eliminación y los nombra. Para otro rol personalizado, pon su ID en lugar de {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Esto elimina el rol personalizado de forma definitiva. Si hay flujos de trabajo que se ejecutan como este rol, indica como qué se ejecutan a partir de ahora, o OneUptime rechaza la eliminación y los nombra. Para otro rol personalizado, pon su ID en lugar de {{placeholder}}.",
+  "New Email Link Expires": "Caducidad del enlace de la nueva dirección de correo electrónico",
+  "Send Link Again": "Volver a enviar el enlace",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "El enlace que enviamos a {{email}} caducó, así que tu dirección de correo electrónico no ha cambiado. Envía un enlace nuevo para terminar el cambio, o cancélalo.",
+  "We emailed the new address again.": "Volvimos a enviar un correo a la nueva dirección."
 }

@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Kubecost شما صورت‌حساب ابری‌تان را می‌خواند و حدود دو روز پس از هر ساعت، قیمت‌هایش را با مبلغی که پرداخته‌اید تطبیق می‌دهد. هنوز هیچ ساعت تطبیق‌داده‌شده‌ای به OneUptime نرسیده است: این‌ها قیمت‌های عمومی اعلام‌شدهٔ ابر هستند.",
   "Another custom role": "نقش سفارشی دیگر",
   "No workflow runs as it": "هیچ گردش کاری به‌عنوان این نقش اجرا نمی‌شود",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "این کار نقش سفارشی را برای همیشه حذف می‌کند. اگر گردش‌های کاری به‌عنوان این نقش اجرا می‌شوند، بگویید از این پس به‌عنوان چه اجرا شوند، وگرنه OneUptime حذف را رد می‌کند و نام آن‌ها را می‌آورد. برای نقش سفارشی دیگر، شناسهٔ آن را به‌جای {{placeholder}} بگذارید."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "این کار نقش سفارشی را برای همیشه حذف می‌کند. اگر گردش‌های کاری به‌عنوان این نقش اجرا می‌شوند، بگویید از این پس به‌عنوان چه اجرا شوند، وگرنه OneUptime حذف را رد می‌کند و نام آن‌ها را می‌آورد. برای نقش سفارشی دیگر، شناسهٔ آن را به‌جای {{placeholder}} بگذارید.",
+  "New Email Link Expires": "زمان انقضای پیوند نشانی ایمیل جدید",
+  "Send Link Again": "ارسال دوباره پیوند",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "پیوندی که به {{email}} ایمیل کردیم منقضی شده است، بنابراین نشانی ایمیل شما تغییر نکرده است. برای کامل کردن تغییر یک پیوند جدید بفرستید، یا تغییر را لغو کنید.",
+  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم."
 }

@@ -59638,5 +59638,9 @@
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "Uw Kubecost leest uw cloudfactuur en stemt zijn prijzen ongeveer twee dagen na elk uur af op wat u hebt betaald. Er heeft nog geen afgestemd uur OneUptime bereikt: dit zijn de openbare lijstprijzen van de cloud.",
   "Another custom role": "Andere aangepaste rol",
   "No workflow runs as it": "Geen workflow draait als deze rol",
-  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Dit verwijdert de aangepaste rol definitief. Draaien er workflows als deze rol, geef dan aan als wat ze voortaan draaien, anders weigert OneUptime het verwijderen en noemt het ze. Zet voor een andere aangepaste rol de ID ervan op de plaats van {{placeholder}}."
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "Dit verwijdert de aangepaste rol definitief. Draaien er workflows als deze rol, geef dan aan als wat ze voortaan draaien, anders weigert OneUptime het verwijderen en noemt het ze. Zet voor een andere aangepaste rol de ID ervan op de plaats van {{placeholder}}.",
+  "New Email Link Expires": "Vervaldatum link nieuw e-mailadres",
+  "Send Link Again": "Link opnieuw versturen",
+  "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "De link die we naar {{email}} hebben gestuurd is verlopen, dus uw e-mailadres is niet gewijzigd. Verstuur een nieuwe link om de wijziging af te ronden, of annuleer de wijziging.",
+  "We emailed the new address again.": "We hebben het nieuwe adres opnieuw een e-mail gestuurd."
 }
