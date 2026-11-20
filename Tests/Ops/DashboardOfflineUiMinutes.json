@@ -19,6 +19,9 @@
     "The sign-in options suite's look at setting up a security key while signing in, with a virtual authenticator, of 2026-11-19 (SecurityKeyEnrolment.spec.ts, #9764: 8 tests, 20 s locally) is added to its minutes the same way, times 1.26: 1.2 to 1.6, until App Test's runs measure it.",
     "The accounts theme suite's looks at a required second step's choice and its security key, in dark and light, of 2026-11-19 (#9764: 4 tests, 5 s locally) are added to its minutes the same way, times 1.26: 2.6 to 2.7, until App Test's runs measure it.",
     "The dashboard time range suite's looks at a link that opens a dashboard at one of its widgets, inside OneUptime and on its public link, of 2026-11-20 (DashboardWidgetLink.spec.ts, #10084: 8 tests, 37.4 s locally) are added to its minutes the same way, times 1.26: 4.1 to 4.9, until App Test's runs measure it.",
+    "The website-down guided setup's looks at its records panel of 2026-11-20 - another device picking a run up, a policy that could not be made and Try again, and a wide screen (#7253, #10276: 5 tests, 31.7 s locally) - are added to its minutes the same way, times 1.26: 1.7 to 2.4, until App Test's runs measure it.",
+    "The on-call guided setup's look at another device picking a run up, of 2026-11-20 (#7253: 2 tests, 15.6 s locally), is added to its minutes the same way, times 1.26: 1.3 to 1.6, until App Test's runs measure it.",
+    "Journeys' look at a guided setup run this browser lost but the server kept, of 2026-11-20 (GuidedSetupRun.spec.ts, #7253: 1 test, 6.9 s locally), is added to its minutes the same way, times 1.26: 4.9 to 5.0, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
   ],
   "measuredOn": "2026-11-17",
@@ -82,7 +85,7 @@
     "test-how-to-reach-me-ui": 1.8,
     "test-incoming-call-policies-ui": 0.4,
     "test-infrastructure-first-run-ui": 0.7,
-    "test-journeys-ui": 4.9,
+    "test-journeys-ui": 5.0,
     "test-kubernetes-events-ui": 4,
     "test-kubernetes-pages-ui": 1.9,
     "test-label-rule-transfer-ui": 1.1,
@@ -102,7 +105,7 @@
     "test-network-first-run-ui": 1.4,
     "test-network-traffic-names-ui": 2.3,
     "test-new-version-ui": 2.9,
-    "test-on-call-guided-setup-ui": 1.3,
+    "test-on-call-guided-setup-ui": 1.6,
     "test-openshift-pages-ui": 2.6,
     "test-openstack-pages-ui 1/3": 16.2,
     "test-openstack-pages-ui 2/3": 11.4,
@@ -157,7 +160,7 @@
     "test-value-picker-ui": 3.5,
     "test-vmware-host-page-ui": 1.7,
     "test-vmware-pages-ui": 2.6,
-    "test-website-down-guided-setup-ui": 1.7,
+    "test-website-down-guided-setup-ui": 2.4,
     "test-workflow-builder-ui 1/2": 11.7,
     "test-workflow-builder-ui 2/2": 15.6
   }
