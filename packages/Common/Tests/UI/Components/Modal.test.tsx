@@ -1,5 +1,6 @@
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ButtonType from "../../../UI/Components/Button/ButtonTypes";
+import InfoTooltip from "../../../UI/Components/Tooltip/InfoTooltip";
 import Modal, {
   isLinkThatLeaves,
   ModalWidth,
@@ -872,6 +873,34 @@ describe("Modal initial focus", () => {
     expect(getByLabelText("Note")).toHaveFocus();
   });
 
+  it("starts a form on its field, not on the help (i) or the defined word in its title", () => {
+    const { getByLabelText } = render(
+      <Modal
+        title="Add Monitor to Group"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Add"
+      >
+        <div>
+          <button
+            type="button"
+            data-testid="defined-term"
+            data-dialog-aside="true"
+          >
+            Probe
+          </button>
+          <InfoTooltip text="Where the monitor checks from." label="Probe" />
+          <label>
+            Probe name
+            <input />
+          </label>
+        </div>
+      </Modal>,
+    );
+
+    expect(getByLabelText("Probe name")).toHaveFocus();
+  });
+
   it("starts a picker with no submit on its first choice", () => {
     const { getByRole } = render(
       <Modal title="Pick a widget" onClose={getJestMockFunction()}>
@@ -1664,6 +1693,51 @@ describe("pickInitialFocusElement", () => {
           isSubmitDestructive: false,
         }),
       ).toBe(parts.cancel);
+    });
+
+    /*
+     * A field's help (i) and a defined word in its title explain the field
+     * (DialogAside): they stood a Tab before it, and the dialog started
+     * there instead of on the field.
+     */
+    it("passes a field's help (i) and a defined word over for the field they explain", () => {
+      const parts: DialogParts = makeDialog();
+      const definedWord: HTMLElement = make("button", {
+        "data-dialog-aside": "true",
+      });
+      const help: HTMLElement = make("button", {
+        "data-dialog-aside": "true",
+      });
+      const probe: HTMLElement = make("input");
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [
+            definedWord,
+            help,
+            probe,
+            parts.cancel,
+            parts.submit,
+          ],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(probe);
+    });
+
+    it("starts a body that only explains on its submit", () => {
+      const parts: DialogParts = makeDialog();
+      const help: HTMLElement = make("button", {
+        "data-dialog-aside": "true",
+      });
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [help, parts.bodyLink, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(parts.submit);
     });
 
     it("knows a link: an anchor with an address, or a link by its role", () => {

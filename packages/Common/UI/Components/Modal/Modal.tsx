@@ -1,4 +1,5 @@
 import { isEscapePassedOn } from "../Dropdown/DropdownEscape";
+import { isDialogAside } from "./DialogAside";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -194,6 +195,17 @@ export const isLinkThatLeaves: (element: HTMLElement) => boolean = (
 };
 
 /*
+ * What a dialog never starts on: a link, which leads away, and a control
+ * that only explains another (DialogAside) - a field's help (i), a defined
+ * word in a field's title - which stood a Tab before the field.
+ */
+const isPassedOverAtFirst: (element: HTMLElement) => boolean = (
+  element: HTMLElement,
+): boolean => {
+  return isLinkThatLeaves(element) || isDialogAside(element);
+};
+
+/*
  * Where focus starts when a dialog opens (WAI-ARIA's dialog pattern: on its
  * first field for a form, else on the control the dialog is for).
  *
@@ -222,7 +234,9 @@ export const isLinkThatLeaves: (element: HTMLElement) => boolean = (
  * The header's X is never the starting point, and nor is anything else in
  * the header: a control there (rightElement) is an aside - a way to the
  * help, say - and starting on it would take the focus away from the field
- * the dialog is for. Nor is a field shown only to be read - an edit dialog's
+ * the dialog is for. Nor is a control that only explains another - a
+ * field's help (i), a defined word in its title (DialogAside): the field it
+ * explains comes first. Nor is a field shown only to be read - an edit dialog's
  * start time once it has started, drawn read-only so it can still be read
  * (isReadOnlyField): the first field that can be changed comes before it,
  * and Tab still reaches it.
@@ -259,10 +273,13 @@ export const pickInitialFocusElement: (data: {
     },
   );
 
-  // The body's first control that is no link, one that can be changed first.
+  /*
+   * The body's first control that is no link and explains nothing, one
+   * that can be changed first.
+   */
   const firstInTheBody: HTMLElement | undefined = findFirstChangeable(
     inTheBody.filter((element: HTMLElement): boolean => {
-      return !isLinkThatLeaves(element);
+      return !isPassedOverAtFirst(element);
     }),
   );
 
