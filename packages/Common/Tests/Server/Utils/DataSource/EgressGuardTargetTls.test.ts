@@ -234,8 +234,10 @@ describe("the agents built", () => {
       expect(agents.httpsAgent.options.rejectUnauthorized).toBe(false);
       expect(agents.httpsAgent.options.ca).toBe("PEM");
 
-      const httpOptions: Record<string, unknown> = agents.httpAgent
-        .options as unknown as Record<string, unknown>;
+      // An http.Agent's options are not in its type: they are at run time.
+      const httpOptions: Record<string, unknown> = (
+        agents.httpAgent as unknown as { options: Record<string, unknown> }
+      ).options;
 
       expect(httpOptions["rejectUnauthorized"]).toBeUndefined();
       expect(httpOptions["ca"]).toBeUndefined();

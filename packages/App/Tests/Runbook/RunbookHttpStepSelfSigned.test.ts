@@ -126,7 +126,8 @@ async function serverWith(
 
 function step(
   server: LocalHttpsServer,
-  config: Partial<HttpRequestStepConfig> & Record<string, unknown> = {},
+  // As stored: a value of any type, as the API or Terraform may write it.
+  config: Record<string, unknown> = {},
   host: string = HOST,
 ): RunbookStep {
   return {
@@ -515,8 +516,12 @@ describe("only that step's request", () => {
     expect(checks.agents.httpsAgent.options.ca).toBeUndefined();
 
     for (const entry of built) {
-      const httpOptions: Record<string, unknown> = entry.agents.httpAgent
-        .options as unknown as Record<string, unknown>;
+      // An http.Agent's options are not in its type: they are at run time.
+      const httpOptions: Record<string, unknown> = (
+        entry.agents.httpAgent as unknown as {
+          options: Record<string, unknown>;
+        }
+      ).options;
 
       expect(httpOptions["rejectUnauthorized"]).toBeUndefined();
       expect(httpOptions["ca"]).toBeUndefined();
