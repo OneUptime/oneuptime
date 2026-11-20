@@ -1,11 +1,28 @@
+import Log from "../../../../Models/AnalyticsModels/Log";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
+import {
+  COPY_TEXT_BUTTON_COPIED_MS,
+  COPY_TEXT_BUTTON_ICON_SIZES,
+  getCopyTextButtonClassName,
+} from "../../CopyTextButton/CopyTextButton";
+import Icon from "../../Icon/Icon";
 import Input from "../../Input/Input";
 import Clipboard from "../../../Utils/Clipboard";
 import Toast from "../../../Utils/Toast";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+  ClipboardCopyStatus,
+} from "../../../Utils/UseClipboardCopy";
 import useTranslator from "../../../Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useId } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  memo,
+  useId,
+  useMemo,
+} from "react";
 
 /*
  * COPY LINK, FOR ONE LOG LINE (#9794).
@@ -24,9 +41,16 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
  * clipboard (Clipboard.copyToClipboard), and otherwise that it could not
  * be copied, with the link shown in a field, selected as it takes the
  * focus, to copy by hand. That toast stays until it is closed.
+ *
+ * A row of the list has Copy Link too (#9944, CopyLogRowLinkButton), so a
+ * line's link is copied without opening it, and so has the keyboard: `l`
+ * copies the link of the row it is on (LogsViewer). Each builds the link
+ * with the same getLogLink, as it is pressed, so a row's link and its
+ * details' are the same link, and each says what happened the same way.
  */
 
 export const COPY_LOG_LINE_LINK_TEST_ID: string = "log-details-copy-link";
+export const COPY_LOG_ROW_LINK_TEST_ID: string = "logs-table-row-copy-link";
 export const LOG_LINE_LINK_COPIED_TOAST_TEST_ID: string =
   "log-line-link-copied";
 export const LOG_LINE_LINK_NOT_COPIED_TOAST_TEST_ID: string =
@@ -77,23 +101,22 @@ const LinkByHand: FunctionComponent<LinkByHandProps> = (
 };
 
 /*
- * Copies `link`, and says in a toast whether it was copied. Resolves
- * whether it was: what a keyboard press, a click and a test all wait on.
+ * Says in a toast whether `link` was copied: "Link copied", or that it
+ * could not be, with the link to copy by hand.
  */
-export async function copyLogLineLink(data: {
+export function sayLogLineLinkCopied(data: {
   link: string;
+  hasCopied: boolean;
   translator: Translator;
-}): Promise<boolean> {
-  const hasCopied: boolean = await Clipboard.copyToClipboard(data.link);
-
-  if (hasCopied) {
+}): void {
+  if (data.hasCopied) {
     Toast.success(
       data.translator.translateText(LOG_LINE_LINK_COPIED) ||
         LOG_LINE_LINK_COPIED,
       { dataTestId: LOG_LINE_LINK_COPIED_TOAST_TEST_ID },
     );
 
-    return true;
+    return;
   }
 
   Toast.error(
@@ -104,8 +127,21 @@ export async function copyLogLineLink(data: {
       dataTestId: LOG_LINE_LINK_NOT_COPIED_TOAST_TEST_ID,
     },
   );
+}
 
-  return false;
+/*
+ * Copies `link`, and says in a toast whether it was copied. Resolves
+ * whether it was: what a keyboard press, a click and a test all wait on.
+ */
+export async function copyLogLineLink(data: {
+  link: string;
+  translator: Translator;
+}): Promise<boolean> {
+  const hasCopied: boolean = await Clipboard.copyToClipboard(data.link);
+
+  sayLogLineLinkCopied({ ...data, hasCopied });
+
+  return hasCopied;
 }
 
 export interface ComponentProps {
@@ -131,5 +167,101 @@ const CopyLogLineLinkButton: FunctionComponent<ComponentProps> = (
     />
   );
 };
+
+export interface CopyLogRowLinkButtonProps {
+  // The row's line.
+  log: Log;
+  // How the app links a line, as its details link it (LogsViewer's getLogLink).
+  getLogLink: (log: Log) => string | null | undefined;
+  // How the row shows and hides its own actions (LogsTable).
+  className?: string | undefined;
+}
+
+/*
+ * COPY LINK ON A LOG ROW ITSELF (#9944): the line's link, copied without
+ * opening the line. It sits beside the row's Copy log message and is drawn
+ * like it (the small copy box, CopyTextButton's, with a link in it), and
+ * says what happened as the details' Copy Link does: "Link copied" in a
+ * toast a screen reader hears, or that it could not be copied, with the
+ * link to copy by hand. Its box turns to a tick for a moment as the link
+ * lands, for the eye; the toast is what is heard.
+ *
+ * A row the app cannot link - the viewer gives no getLogLink, or the line
+ * has no id the Logs page opens - has none, as its details have none. The
+ * link is built as it is pressed, with the getLogLink the details use, so
+ * the two are the same link. Pressing it leaves the row as it was: open or
+ * closed.
+ */
+const CopyLogRowLinkButtonElement: FunctionComponent<
+  CopyLogRowLinkButtonProps
+> = (props: CopyLogRowLinkButtonProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const clipboard: ClipboardCopy = useClipboardCopy({
+    copiedForMs: COPY_TEXT_BUTTON_COPIED_MS,
+  });
+  const { getLogLink, log } = props;
+
+  // Drawn only for a line the app can link; memo, so a busy list builds it once a row.
+  const canLink: boolean = useMemo((): boolean => {
+    return Boolean(getLogLink(log));
+  }, [getLogLink, log]);
+
+  if (!canLink) {
+    return <></>;
+  }
+
+  const name: string =
+    translator.translateText(COPY_LOG_LINE_LINK) || COPY_LOG_LINE_LINK;
+  const iconSize: string = COPY_TEXT_BUTTON_ICON_SIZES.xs;
+
+  return (
+    <button
+      type="button"
+      className={`${getCopyTextButtonClassName({
+        size: "xs",
+        variant: "ghost",
+        status: clipboard.status,
+      })} ${props.className || ""}`}
+      title={name}
+      aria-label={name}
+      data-testid={COPY_LOG_ROW_LINK_TEST_ID}
+      data-copy-state={clipboard.status}
+      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+        // The row's own action, not a press on the row: it stays as it is.
+        event.stopPropagation();
+
+        const link: string = getLogLink(log) || "";
+
+        if (!link) {
+          return;
+        }
+
+        void clipboard.copy(link).then((hasCopied: boolean): void => {
+          sayLogLineLinkCopied({ link, hasCopied, translator });
+        });
+      }}
+    >
+      <span aria-hidden="true" className="flex items-center justify-center">
+        {clipboard.status === ClipboardCopyStatus.Copied ? (
+          <Icon
+            icon={IconProp.Check}
+            className={`${iconSize} text-emerald-400`}
+          />
+        ) : clipboard.status === ClipboardCopyStatus.Failed ? (
+          <Icon icon={IconProp.Alert} className={iconSize} />
+        ) : (
+          <Icon icon={IconProp.Link} className={iconSize} />
+        )}
+      </span>
+    </button>
+  );
+};
+
+/*
+ * A list redraws every row as the keyboard moves through it (j and k):
+ * a row's Copy Link draws again only when its line or the link's maker do.
+ */
+export const CopyLogRowLinkButton: React.NamedExoticComponent<CopyLogRowLinkButtonProps> =
+  memo(CopyLogRowLinkButtonElement);
 
 export default CopyLogLineLinkButton;

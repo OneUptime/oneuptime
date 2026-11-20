@@ -809,11 +809,19 @@ describe("the CIS benchmark", () => {
   function agentSnapshot(options: {
     reasons?: string;
     isAgents?: boolean;
+    installedAs?: string;
   }): KubernetesComplianceSnapshot {
     const agentLabels: Record<string, string> = {
       "helm.sh/chart": "kubernetes-agent-16.2.0",
       "app.kubernetes.io/part-of": "oneuptime",
     };
+    const roleLabels: Record<string, string> =
+      options.installedAs === undefined
+        ? agentLabels
+        : {
+            ...agentLabels,
+            "oneuptime.com/installed-as": options.installedAs,
+          };
 
     return {
       ...snapshotOf(),
@@ -825,9 +833,9 @@ describe("the CIS benchmark", () => {
           name: "oneuptime-agent",
           labels:
             options.reasons === undefined
-              ? agentLabels
+              ? roleLabels
               : {
-                  ...agentLabels,
+                  ...roleLabels,
                   "oneuptime.com/nodes-proxy": options.reasons,
                 },
           spec: {
@@ -912,6 +920,62 @@ describe("the CIS benchmark", () => {
     expect(note).toHaveTextContent(
       "The agent's cost Prometheus reads each node's cAdvisor through the API server, as EKS Fargate needs. Where pods can reach each node's kubelet, upgrade the agent with --set cost.prometheus.nodesProxy=false.",
     );
+  });
+
+  /*
+   * The Amazon EKS add-on's buyer cannot run Helm (#9928): its role says it
+   * is the add-on, and the page names the add-on's configuration values.
+   */
+  test("the Amazon EKS add-on's binding names the configuration value that drops nodes/proxy", async () => {
+    const note: HTMLElement = within(
+      await drawAgentFinding(
+        agentSnapshot({
+          reasons: "kubelet-pods",
+          installedAs: "aws-eks-addon",
+        }),
+      ),
+    ).getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`);
+
+    expect(note).toHaveTextContent(
+      "This binding is the OneUptime Kubernetes agent's own.",
+    );
+    expect(note).toHaveTextContent(
+      'A kubelet older than Kubernetes 1.33 lets the agent read its node\'s pods only through nodes/proxy. Once every node runs 1.33 or later, add {"kubeletstats": {"nodesProxy": false}} to the configuration values of the agent\'s Amazon EKS add-on.',
+    );
+    expect(
+      within(note).getByText('{"kubeletstats": {"nodesProxy": false}}').tagName,
+    ).toBe("CODE");
+    expect(within(note).queryByText(/--set/)).not.toBeInTheDocument();
+  });
+
+  test("on the Amazon EKS add-on, the cost Prometheus's nodes/proxy goes with cost", async () => {
+    const note: HTMLElement = within(
+      await drawAgentFinding(
+        agentSnapshot({
+          reasons: "cost-prometheus",
+          installedAs: "aws-eks-addon",
+        }),
+      ),
+    ).getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`);
+
+    expect(note).toHaveTextContent(
+      'The agent\'s cost Prometheus reads each node\'s cAdvisor through the API server, as EKS Fargate needs. Only turning cost off drops nodes/proxy here: add {"cost": {"enabled": false}} to the configuration values of the agent\'s Amazon EKS add-on.',
+    );
+    expect(note).not.toHaveTextContent("kubeletstats");
+    expect(within(note).queryByText(/--set/)).not.toBeInTheDocument();
+  });
+
+  test("a role that names an install the page does not know is told the Helm value", async () => {
+    const note: HTMLElement = within(
+      await drawAgentFinding(
+        agentSnapshot({ reasons: "kubelet-pods", installedAs: "something" }),
+      ),
+    ).getByTestId(`${KUBERNETES_COMPLIANCE_TEST_ID}-agent-binding`);
+
+    expect(
+      within(note).getByText("--set kubeletstats.nodesProxy=false"),
+    ).toBeInTheDocument();
+    expect(note).not.toHaveTextContent("Amazon EKS add-on");
   });
 
   test("a role from a chart before the label says upgrading the agent drops it", async () => {

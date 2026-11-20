@@ -52,11 +52,18 @@ export class FakeProjectSCIMUserService {
   // Every call, by method, for assertions on what a request did.
   public calls: Array<{ method: string; data: unknown }> = [];
 
+  /*
+   * How long each read takes, in milliseconds: none, unless a suite slows
+   * the database down to time two requests against each other.
+   */
+  public readDelayMs: number = 0;
+
   private clock: number = Date.parse("2026-01-01T00:00:00.000Z");
 
   public reset(): void {
     this.records = [];
     this.calls = [];
+    this.readDelayMs = 0;
   }
 
   // A record put in place before a request, as an earlier provisioning left it.
@@ -71,6 +78,7 @@ export class FakeProjectSCIMUserService {
     userId: ObjectID;
   }): Promise<ProjectSCIMUser | null> {
     this.calls.push({ method: "findRecord", data });
+    await this.pause();
 
     const record: ProjectSCIMUser | undefined = this.records.find(
       (item: ProjectSCIMUser): boolean => {
@@ -88,6 +96,7 @@ export class FakeProjectSCIMUserService {
     projectScimId: ObjectID,
   ): Promise<Array<ProjectSCIMUser>> {
     this.calls.push({ method: "findRecordsOfConnection", data: projectScimId });
+    await this.pause();
 
     return this.records
       .filter((item: ProjectSCIMUser): boolean => {
@@ -101,6 +110,7 @@ export class FakeProjectSCIMUserService {
     userName: string;
   }): Promise<Array<ProjectSCIMUser>> {
     this.calls.push({ method: "findRecordsByUserName", data });
+    await this.pause();
 
     return this.records
       .filter((item: ProjectSCIMUser): boolean => {
@@ -119,6 +129,7 @@ export class FakeProjectSCIMUserService {
     externalId: string;
   }): Promise<Array<ProjectSCIMUser>> {
     this.calls.push({ method: "findRecordsByExternalId", data });
+    await this.pause();
 
     return this.records
       .filter((item: ProjectSCIMUser): boolean => {
@@ -189,6 +200,15 @@ export class FakeProjectSCIMUserService {
   private tick(): Date {
     this.clock += 1000;
     return new Date(this.clock);
+  }
+
+  // A read's time, when a suite slows reads down (readDelayMs).
+  private async pause(): Promise<void> {
+    if (this.readDelayMs > 0) {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, this.readDelayMs);
+      });
+    }
   }
 }
 

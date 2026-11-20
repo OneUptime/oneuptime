@@ -129,6 +129,23 @@ export async function removeCloudResourceMetric(data: {
   return readCloudAddedMetrics(answer["addedMetrics"]);
 }
 
+/*
+ * Keeps a metric added for every resource of its type for some of them
+ * alone (#10078): the ones its readers read it of.
+ */
+export async function keepCloudResourceMetricFor(data: {
+  cloudResourceId: ObjectID;
+  key: string;
+  cloudResourceIds: Array<string>;
+}): Promise<Array<CloudAddedMetric>> {
+  const answer: JSONObject = await post(data.cloudResourceId, "keep-for", {
+    key: data.key,
+    cloudResourceIds: data.cloudResourceIds,
+  });
+
+  return readCloudAddedMetrics(answer["addedMetrics"]);
+}
+
 // When each of its key metrics it did not report last did, and why.
 export async function explainCloudResourceUnreportedKeyMetrics(data: {
   cloudResourceId: ObjectID;

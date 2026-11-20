@@ -10,6 +10,7 @@ import Express, {
 import CompatibleIngestCredential, {
   CompatibleCredentialScheme,
 } from "../Utils/Compatible/CompatibleIngestCredential";
+import { ingestMetricsMiddleware } from "../Middleware/IngestRequestMetrics";
 import LokiIngestService from "../Services/LokiIngestService";
 
 /*
@@ -17,7 +18,9 @@ import LokiIngestService from "../Services/LokiIngestService";
  * /telemetry/loki/api/v1/push), at Loki's own path so a client that only
  * takes a host - Fluent Bit's loki output - needs nothing else changed.
  * The body is read raw after the key is checked: StartServer leaves this
- * path to it (isCompatibleIngestPath).
+ * path to it (isCompatibleIngestPath). Counted in OneUptime's own ingest
+ * metrics as logs, on its own surface (IngestRequestMetrics), before the
+ * key check.
  */
 
 const router: ExpressRouter = Express.getRouter();
@@ -26,6 +29,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/loki/api/v1/push",
   TelemetryIngestionDisabled.middleware,
+  ingestMetricsMiddleware("logs", TelemetryIngestSurface.Loki),
   CompatibleIngestCredential.middleware([
     CompatibleCredentialScheme.Basic,
     CompatibleCredentialScheme.Bearer,

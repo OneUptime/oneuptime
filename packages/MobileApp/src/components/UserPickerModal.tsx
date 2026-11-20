@@ -40,6 +40,16 @@ interface UserPickerModalProps {
    */
   excludeUserId?: string | null;
 
+  /*
+   * A line above the list saying why it offers whom it does: for someone
+   * who may name only the people of their own teams
+   * (oncall/overrideTeamAccess), which teams they are.
+   */
+  hint?: string | null;
+
+  // What the list says when nobody can be picked; the project's words otherwise.
+  emptyText?: string | null;
+
   onSelect: (user: ProjectUserItem) => void;
   onClose: () => void;
 }
@@ -81,6 +91,8 @@ export default function UserPickerModal({
   isLoading,
   selectedUserId,
   excludeUserId,
+  hint,
+  emptyText,
   onSelect,
   onClose,
 }: UserPickerModalProps): React.JSX.Element {
@@ -99,6 +111,15 @@ export default function UserPickerModal({
   const visibleUsers: ProjectUserItem[] = useMemo(() => {
     return filterUsers(users, searchTerm, excludeUserId);
   }, [users, searchTerm, excludeUserId]);
+
+  /*
+   * Whether anybody can be picked at all, whatever is searched: a list of
+   * only the person left out offers nobody, and says so - not that nobody
+   * matches a search never made.
+   */
+  const hasAnyoneToPick: boolean = useMemo(() => {
+    return filterUsers(users, "", excludeUserId).length > 0;
+  }, [users, excludeUserId]);
 
   return (
     <Modal
@@ -197,6 +218,32 @@ export default function UserPickerModal({
               value={searchTerm}
               onChangeText={setSearchTerm}
             />
+            {hint ? (
+              <View
+                testID="user-picker-hint"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: spacing.xs + 2,
+                  marginTop: spacing.md,
+                  marginHorizontal: spacing.xs,
+                }}
+              >
+                <Ionicons
+                  name="people-outline"
+                  size={16}
+                  color={colors.textSecondary}
+                  style={{ marginTop: 1 }}
+                />
+                <AppText
+                  variant="footnote"
+                  tone="secondary"
+                  style={{ flex: 1 }}
+                >
+                  {hint}
+                </AppText>
+              </View>
+            ) : null}
           </View>
 
           {isLoading ? (
@@ -224,15 +271,15 @@ export default function UserPickerModal({
               }}
             >
               <IconBadge
-                name={users.length === 0 ? "people-outline" : "search-outline"}
+                name={hasAnyoneToPick ? "search-outline" : "people-outline"}
                 color={colors.textSecondary}
                 size="lg"
                 shape="circle"
               />
               <AppText variant="subhead" tone="secondary" align="center">
-                {users.length === 0
-                  ? "No teammates found in this project."
-                  : "No teammates match that search."}
+                {hasAnyoneToPick
+                  ? "No teammates match that search."
+                  : emptyText || "No teammates found in this project."}
               </AppText>
             </View>
           ) : (

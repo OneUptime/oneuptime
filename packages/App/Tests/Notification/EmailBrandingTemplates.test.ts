@@ -670,11 +670,7 @@ describe("the partials every email is built from", () => {
         isSelfHosted: "true",
       });
 
-      /*
-       * Looked up in the email's language (#10157), the line is escaped
-       * like any value (Utils/EmailLanguage.ts): its "server's" is written
-       * "server&#x27;s", and read as a client shows it.
-       */
+      // As read: the line is in the email's language, escaped (#9897).
       expect(decodeHtmlEntities(textOf(html))).toContain(
         "Need help? Ask your server's admin.",
       );

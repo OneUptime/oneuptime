@@ -1,6 +1,7 @@
 import {
   MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
   MANAGED_DEVICE_APPLE_PLATFORMS,
+  MANAGED_DEVICE_NON_APPLE_PLATFORMS,
   MANAGED_DEVICE_CHECK_IN_GROUP_BY_ATTRIBUTES,
   MANAGED_DEVICE_CHECK_IN_ROLLING_TIME,
   MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
@@ -112,7 +113,7 @@ function filterOf(instance: MonitorCriteriaInstance): CriteriaFilter {
 }
 
 describe("the catalog of a connection's alerts", () => {
-  test("is an Esper connection's Android devices and its Apple devices, and an Intune connection's devices, each stopped checking in", () => {
+  test("is an Esper connection's Android devices and its Apple devices, an Intune connection's devices, a Workspace ONE connection's, and a SOTI connection's devices and its Apple devices, each stopped checking in, and each service's Android devices behind on security patches", () => {
     expect(
       getAllManagedDeviceAlertTemplates().map(
         (candidate: ManagedDeviceAlertTemplate) => {
@@ -122,7 +123,14 @@ describe("the catalog of a connection's alerts", () => {
     ).toEqual([
       "esper-device-stopped-checking-in",
       "esper-apple-device-stopped-checking-in",
+      "esper-security-patch-out-of-date",
       "intune-device-stopped-checking-in",
+      "intune-security-patch-out-of-date",
+      "workspace-one-device-stopped-checking-in",
+      "workspace-one-security-patch-out-of-date",
+      "soti-device-stopped-checking-in",
+      "soti-apple-device-stopped-checking-in",
+      "soti-security-patch-out-of-date",
     ]);
     expect(template().name).toBe("Esper Android Device Stopped Checking In");
     expect(appleTemplate().name).toBe("Esper Apple Device Stopped Checking In");
@@ -160,6 +168,8 @@ describe("the catalog of a connection's alerts", () => {
       ).toEqual([
         "DeviceManagementConnection:esper-device-stopped-checking-in",
         "DeviceManagementConnection:esper-apple-device-stopped-checking-in",
+        // #10098: its Android devices behind on their security patches.
+        "DeviceManagementConnection:esper-security-patch-out-of-date",
       ]);
     }
 
@@ -213,7 +223,10 @@ describe("the catalog of a connection's alerts", () => {
       ).map((recommendation: MonitorRecommendation) => {
         return recommendation.recommendationId;
       }),
-    ).toEqual(["DeviceManagementConnection:intune-device-stopped-checking-in"]);
+    ).toEqual([
+      "DeviceManagementConnection:intune-device-stopped-checking-in",
+      "DeviceManagementConnection:intune-security-patch-out-of-date",
+    ]);
     expect(intune.name).toBe("Intune Device Stopped Checking In");
     expect(intune.summary).toBe(
       "A device has not checked in with Intune for more than a day.",
@@ -517,6 +530,12 @@ describe("the alert a device opens", () => {
           "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
         command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.check_in.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       },
+      // A series names the device alone, of either template (#10098).
+      {
+        purpose:
+          "An Android device's security patch at each read: how many days old it was, and its level",
+        command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.security_patch.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
     ]);
   });
 });
@@ -587,5 +606,134 @@ describe("whether a monitor already covers it", () => {
         args: argsFor(CONNECTION_ID),
       }).size,
     ).toBe(0);
+  });
+});
+
+/*
+ * #10086, #10087: a Workspace ONE connection's devices report on their own
+ * schedule, hours apart, and are gone after a day; a SOTI agent keeps a
+ * live connection - its Android, Windows and Linux devices are gone after
+ * an hour - while its Apple devices check in through Apple's push and are
+ * gone after a day. The two SOTI templates read their devices apart.
+ */
+describe("a Workspace ONE or SOTI connection's alerts", () => {
+  function recommendedFor(provider: DeviceManagementProvider): Array<string> {
+    return MonitorRecommendationCatalog.getRecommendations(
+      MonitorRecommendationResourceType.DeviceManagementConnection,
+      { deviceManagementProvider: provider },
+    ).map((recommendation: MonitorRecommendation) => {
+      return recommendation.recommendationId;
+    });
+  }
+
+  function platformsRead(candidate: ManagedDeviceAlertTemplate): unknown {
+    const step: MonitorStep = candidate.getMonitorStep(buildArgs());
+
+    return (
+      queryOf(step).metricQueryData.filterData.attributes as Record<
+        string,
+        unknown
+      >
+    )[ManagedDeviceCheckInAttribute.Platform];
+  }
+
+  test("a Workspace ONE connection is offered its own: every device it manages, after a day", () => {
+    const workspaceOne: ManagedDeviceAlertTemplate =
+      getManagedDeviceAlertTemplateById(
+        "workspace-one-device-stopped-checking-in",
+      )!;
+
+    expect(recommendedFor(DeviceManagementProvider.WorkspaceOne)).toEqual([
+      "DeviceManagementConnection:workspace-one-device-stopped-checking-in",
+      "DeviceManagementConnection:workspace-one-security-patch-out-of-date",
+    ]);
+    expect(workspaceOne).toMatchObject({
+      name: "Workspace ONE Device Stopped Checking In",
+      provider: DeviceManagementProvider.WorkspaceOne,
+      thresholdInMinutes: MANAGED_DEVICE_STOPPED_SYNCING_MINUTES,
+      severity: "Warning",
+      monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+    });
+    expect(workspaceOne.summary).toBe(
+      "A device has not reported to Workspace ONE for more than a day.",
+    );
+    expect(workspaceOne.platforms).toBeUndefined();
+    expect(platformsRead(workspaceOne)).toBeUndefined();
+    expect(workspaceOne.description).toContain("Host Stopped Reporting");
+  });
+
+  test("a SOTI connection is offered two: its agents' devices after an hour, its Apple devices after a day, never the same device twice", () => {
+    const agents: ManagedDeviceAlertTemplate =
+      getManagedDeviceAlertTemplateById("soti-device-stopped-checking-in")!;
+    const apple: ManagedDeviceAlertTemplate = getManagedDeviceAlertTemplateById(
+      "soti-apple-device-stopped-checking-in",
+    )!;
+
+    expect(recommendedFor(DeviceManagementProvider.Soti)).toEqual([
+      "DeviceManagementConnection:soti-device-stopped-checking-in",
+      "DeviceManagementConnection:soti-apple-device-stopped-checking-in",
+      "DeviceManagementConnection:soti-security-patch-out-of-date",
+    ]);
+    expect(agents.name).toBe("SOTI Device Stopped Checking In");
+    expect(apple.name).toBe("SOTI Apple Device Stopped Checking In");
+    // An hour: two of the half hour a device with a heartbeat is Offline after.
+    expect(agents.thresholdInMinutes).toBe(
+      MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+    );
+    expect(agents.thresholdInMinutes).toBe(
+      2 * MANAGED_DEVICE_ONLINE_WINDOW_MINUTES,
+    );
+    expect(apple.thresholdInMinutes).toBe(
+      MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES,
+    );
+
+    expect(platformsRead(agents)).toEqual(
+      new Includes([...MANAGED_DEVICE_NON_APPLE_PLATFORMS]),
+    );
+    expect(platformsRead(apple)).toEqual(
+      new Includes([...MANAGED_DEVICE_APPLE_PLATFORMS]),
+    );
+    for (const platform of MANAGED_DEVICE_APPLE_PLATFORMS) {
+      expect(MANAGED_DEVICE_NON_APPLE_PLATFORMS).not.toContain(platform);
+    }
+  });
+
+  test("each hands the engineer a first step: what to check, and where the service shows it", () => {
+    for (const id of [
+      "workspace-one-device-stopped-checking-in",
+      "soti-device-stopped-checking-in",
+      "soti-apple-device-stopped-checking-in",
+    ]) {
+      const candidate: ManagedDeviceAlertTemplate =
+        getManagedDeviceAlertTemplateById(id)!;
+      const step: MonitorStep = candidate.getMonitorStep(buildArgs());
+      const unhealthy: MonitorCriteriaInstance = instancesOf(step)[0]!;
+      const incident: { description: string } = unhealthy.data!.incidents[0]!;
+
+      expect(incident.description).toContain(
+        "Check its power and its network first",
+      );
+      expect(incident.description).toContain("console");
+      expect(incident.description).toContain(
+        "This resolves on its own once it",
+      );
+      expect(filterOf(unhealthy).value).toBe(candidate.thresholdInMinutes);
+      expect(MonitorStep.getGroupByAttributeKeys(step)).toEqual([
+        ...MANAGED_DEVICE_CHECK_IN_GROUP_BY_ATTRIBUTES,
+      ]);
+    }
+  });
+
+  test("a connection of a service is offered no other service's", () => {
+    for (const provider of [
+      DeviceManagementProvider.Esper,
+      DeviceManagementProvider.Intune,
+      DeviceManagementProvider.WorkspaceOne,
+      DeviceManagementProvider.Soti,
+    ]) {
+      for (const candidate of getManagedDeviceAlertTemplatesFor(provider)) {
+        expect(candidate.provider).toBe(provider);
+      }
+    }
   });
 });

@@ -1,4 +1,5 @@
 import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
+import { FindBuilderAdjuster } from "../../Infrastructure/Postgres/PagedFind";
 import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import User from "../../../Models/DatabaseModels/User";
@@ -10,9 +11,18 @@ import Email from "../../../Types/Email";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import Text from "../../../Types/Text";
 import UserType from "../../../Types/UserType";
-import { DataSource, Raw } from "typeorm";
+import {
+  DataSource,
+  ObjectLiteral,
+  OrderByCondition,
+  Raw,
+  SelectQueryBuilder,
+} from "typeorm";
+import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
+import { Alias } from "typeorm/query-builder/Alias";
 
 /*
  * ---------------------------------------------------------------------------
@@ -60,6 +70,19 @@ import { DataSource, Raw } from "typeorm";
  *     pending person, so a search cannot spell out a name a page withholds.
  *     Pending people are found by their address, and by the name typed
  *     for them (ProjectMemberSearch).
+ *   - What a read is ordered by (orderAsTheReaderSees, #9895): an order
+ *     through a relation by a person's name, picture or two-factor flag
+ *     orders someone pending by what their row shows - the name typed for
+ *     them, else their address; no picture and no flag - so where they
+ *     fall among the other rows says nothing of their account. The Users
+ *     list sorted by its User column, a team's members, every list of
+ *     owners or on-call people, a record by who created it: every read of
+ *     the CRUD path (DatabaseService, through PagedFind).
+ *   - What a filter or an order through a relation may name of a person at
+ *     all (QueryPermission.canReadRelatedColumn): only what any reader of
+ *     the relation may read (their name, address, picture and two-factor
+ *     flag), never a column only the person reads - their language, time
+ *     zone, company, phone, whether their address is verified.
  *   - A person's account dates - created, last changed (which moves with
  *     their activity), deleted, and the row's version - are their own:
  *     withheld from every reader but the person, OneUptime and a master
@@ -110,6 +133,18 @@ export type ProfileReader = { userId: string } | { projectId: string };
 export interface WithheldProfile {
   // The name typed when they were invited, or null for none.
   inviteeName: string | null;
+}
+
+/*
+ * A person's profile column an order names through a relation: the join's
+ * alias, the column, and the person's address and id beside it.
+ */
+export interface OrderedProfileColumn {
+  aliasName: string;
+  propertyPath: string;
+  columnName: string;
+  emailColumnName: string;
+  idColumnName: string;
 }
 
 // One pending membership of a person, as the query below reads it.
@@ -818,37 +853,340 @@ export default class PendingInviteeProfiles {
       return null;
     }
 
-    const readerUserId: string | null =
-      "userId" in profileReader ? profileReader.userId : null;
-    const reader: string =
-      "userId" in profileReader
-        ? profileReader.userId
-        : profileReader.projectId;
-
     // Aliases and a parameter of this condition's own, in any query.
     const suffix: string = Text.generateRandomText(10);
     const parameter: string = `pendingInviteeReader${suffix}`;
-    const pending: string = `pending${suffix}`;
-    const accepted: string = `accepted${suffix}`;
-
-    const readerProjects: (alias: string) => string = (
-      alias: string,
-    ): string => {
-      return readerUserId
-        ? `SELECT "${alias}"."projectId" FROM "TeamMember" "${alias}" WHERE "${alias}"."userId" = :${parameter} AND "${alias}"."deletedAt" IS NULL`
-        : `:${parameter}`;
-    };
-
-    const notTheReader: string = readerUserId
-      ? ` AND "${pending}"."userId" <> :${parameter}`
-      : "";
 
     return Raw(
       (alias: string): string => {
-        return `(${alias} NOT IN (SELECT "${pending}"."userId" FROM "TeamMember" "${pending}" WHERE "${pending}"."hasAcceptedInvitation" = false AND "${pending}"."deletedAt" IS NULL AND "${pending}"."projectId" IN (${readerProjects(`readerOfPending${suffix}`)}) AND NOT EXISTS (SELECT 1 FROM "TeamMember" "${accepted}" WHERE "${accepted}"."userId" = "${pending}"."userId" AND "${accepted}"."hasAcceptedInvitation" = true AND "${accepted}"."deletedAt" IS NULL AND "${accepted}"."projectId" IN (${readerProjects(`readerOfAccepted${suffix}`)}))${notTheReader}))`;
+        return `(${alias} NOT IN (${PendingInviteeProfiles.getPendingPeopleSql({
+          reader: profileReader,
+          readerParameter: parameter,
+          suffix: suffix,
+        })}))`;
       },
-      { [parameter]: reader },
+      { [parameter]: PendingInviteeProfiles.getReaderParameter(profileReader) },
     );
+  }
+
+  // What a statement binds the reader as: a person's id, or a project's.
+  public static getReaderParameter(reader: ProfileReader): string {
+    return "userId" in reader ? reader.userId : reader.projectId;
+  }
+
+  /*
+   * The ids of the people pending for this reader (see the top of this
+   * file), as a subquery: their invitations in the reader's projects, for
+   * those who have joined none of those projects - never the reader
+   * themselves. `readerParameter` names the parameter the statement binds
+   * the reader to (getReaderParameter), and `suffix` makes its aliases its
+   * own, in any query.
+   */
+  public static getPendingPeopleSql(data: {
+    reader: ProfileReader;
+    readerParameter: string;
+    suffix: string;
+  }): string {
+    const pending: string = `pending${data.suffix}`;
+    const accepted: string = `accepted${data.suffix}`;
+    const isPersonReading: boolean = "userId" in data.reader;
+
+    const notTheReader: string = isPersonReading
+      ? ` AND "${pending}"."userId" <> :${data.readerParameter}`
+      : "";
+
+    return `SELECT "${pending}"."userId" FROM "TeamMember" "${pending}" WHERE "${pending}"."hasAcceptedInvitation" = false AND "${pending}"."deletedAt" IS NULL AND "${pending}"."projectId" IN (${PendingInviteeProfiles.getReaderProjectsSql(
+      {
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        alias: `readerOfPending${data.suffix}`,
+      },
+    )}) AND NOT EXISTS (SELECT 1 FROM "TeamMember" "${accepted}" WHERE "${accepted}"."userId" = "${pending}"."userId" AND "${accepted}"."hasAcceptedInvitation" = true AND "${accepted}"."deletedAt" IS NULL AND "${accepted}"."projectId" IN (${PendingInviteeProfiles.getReaderProjectsSql(
+      {
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        alias: `readerOfAccepted${data.suffix}`,
+      },
+    )}))${notTheReader}`;
+  }
+
+  /*
+   * The reader's projects, as SQL a statement can ask "IN" of: those a
+   * person has a membership in (an invitation included), or a project's
+   * own one.
+   */
+  private static getReaderProjectsSql(data: {
+    reader: ProfileReader;
+    readerParameter: string;
+    alias: string;
+  }): string {
+    return "userId" in data.reader
+      ? `SELECT "${data.alias}"."projectId" FROM "TeamMember" "${data.alias}" WHERE "${data.alias}"."userId" = :${data.readerParameter} AND "${data.alias}"."deletedAt" IS NULL`
+      : `:${data.readerParameter}`;
+  }
+
+  /*
+   * The name typed for a pending person, as a read of them shows it
+   * (readWithheldProfilesFor): from one of their invitations in the
+   * reader's projects, the request's project first (`preferredParameter`,
+   * when the read is in one), then the newest that has one; NULL when none
+   * has. `personIdSql` is the SQL of the person's id.
+   */
+  public static getTypedNameSql(data: {
+    personIdSql: string;
+    reader: ProfileReader;
+    readerParameter: string;
+    preferredParameter: string | null;
+    suffix: string;
+  }): string {
+    const typed: string = `typed${data.suffix}`;
+    const typedName: string = `BTRIM("${typed}"."inviteeName")`;
+    const requestFirst: string = data.preferredParameter
+      ? `CASE WHEN "${typed}"."projectId" = :${data.preferredParameter} THEN 0 ELSE 1 END, `
+      : "";
+
+    return `(SELECT ${typedName} FROM "TeamMember" "${typed}" WHERE "${typed}"."userId" = ${data.personIdSql} AND "${typed}"."hasAcceptedInvitation" = false AND "${typed}"."deletedAt" IS NULL AND "${typed}"."projectId" IN (${PendingInviteeProfiles.getReaderProjectsSql(
+      {
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        alias: `readerOfTyped${data.suffix}`,
+      },
+    )}) AND COALESCE(${typedName}, '') <> '' ORDER BY ${requestFirst}"${typed}"."createdAt" DESC LIMIT 1)`;
+  }
+
+  /*
+   * WHAT A READ IS ORDERED BY (#9895): the order of a read, through a
+   * relation, by a person's name, picture or two-factor flag, as this reader
+   * sees each person - for a builder TypeORM has built from a find's order
+   * (PagedFind, called from DatabaseService). Null for a reader who sees
+   * every profile, or whom the rule cannot be asked about: their order is
+   * TypeORM's own, as their rows are.
+   */
+  public static getOrderAdjuster(
+    props: DatabaseCommonInteractionProps,
+  ): FindBuilderAdjuster | null {
+    if (PendingInviteeProfiles.seesEveryProfile(props)) {
+      return null;
+    }
+
+    const reader: ProfileReader | null =
+      PendingInviteeProfiles.getReader(props);
+
+    if (!reader) {
+      return null;
+    }
+
+    const preferredProjectId: string | null =
+      PendingInviteeProfiles.getReaderProjectId(props);
+
+    return <TEntity extends ObjectLiteral>(
+      queryBuilder: SelectQueryBuilder<TEntity>,
+    ): void => {
+      PendingInviteeProfiles.orderAsTheReaderSees({
+        queryBuilder: queryBuilder,
+        reader: reader,
+        preferredProjectId: preferredProjectId,
+      });
+    };
+  }
+
+  /*
+   * Each order the builder has by a person's profile column, reached
+   * through a relation, replaced in its place by the value the reader sees
+   * (see the top of this file), with the same direction and the same place
+   * for empty values:
+   *
+   *   - a name: someone pending for the reader by the name typed for them,
+   *     else their address - what a row shows where it withholds the name -
+   *     and anyone else by their own;
+   *   - a picture or a two-factor flag: none for someone pending, as their
+   *     rows show none; anyone else's own.
+   *
+   * Each value is selected under an alias of its own (lower case: TypeORM
+   * orders by the alias as written) and the order names that alias, which
+   * TypeORM's two-query page reads too: it orders the page's ids by the
+   * alias it selects (createOrderByCombinedWithSelectExpression). The ids
+   * and the other orders are left as they are. A builder whose order names
+   * no profile column through a relation is not changed at all, and nor is
+   * an order of people themselves (a list of User, the reader's own row).
+   */
+  public static orderAsTheReaderSees<TEntity extends ObjectLiteral>(data: {
+    queryBuilder: SelectQueryBuilder<TEntity>;
+    reader: ProfileReader;
+    preferredProjectId: string | null;
+  }): void {
+    const orderBys: OrderByCondition = data.queryBuilder.expressionMap.orderBys;
+
+    const ordered: Array<OrderedProfileColumn | null> = Object.keys(
+      orderBys,
+    ).map((key: string): OrderedProfileColumn | null => {
+      return PendingInviteeProfiles.getOrderedProfileColumn({
+        queryBuilder: data.queryBuilder,
+        key: key,
+      });
+    });
+
+    if (
+      !ordered.some((column: OrderedProfileColumn | null): boolean => {
+        return Boolean(column);
+      })
+    ) {
+      return;
+    }
+
+    const keys: Array<string> = Object.keys(orderBys);
+    const rewritten: OrderByCondition = {};
+    let selected: number = 0;
+
+    for (let index: number = 0; index < keys.length; index++) {
+      const key: string = keys[index]!;
+      const column: OrderedProfileColumn | null = ordered[index] || null;
+
+      if (!column) {
+        rewritten[key] = orderBys[key]!;
+        continue;
+      }
+
+      const suffix: string = Text.generateRandomText(10);
+      const readerParameter: string = `pendingInviteeOrderReader${suffix}`;
+      const preferredParameter: string | null = data.preferredProjectId
+        ? `pendingInviteeOrderProject${suffix}`
+        : null;
+      const selectAlias: string =
+        `pending_invitee_order_${selected}_${suffix}`.toLowerCase();
+
+      selected++;
+
+      data.queryBuilder.addSelect(
+        PendingInviteeProfiles.getOrderedValueSql({
+          column: column,
+          reader: data.reader,
+          readerParameter: readerParameter,
+          preferredParameter: preferredParameter,
+          suffix: suffix,
+          escape: (name: string): string => {
+            return data.queryBuilder.escape(name);
+          },
+        }),
+        selectAlias,
+      );
+
+      data.queryBuilder.setParameter(
+        readerParameter,
+        PendingInviteeProfiles.getReaderParameter(data.reader),
+      );
+
+      if (preferredParameter) {
+        data.queryBuilder.setParameter(
+          preferredParameter,
+          data.preferredProjectId,
+        );
+      }
+
+      rewritten[selectAlias] = orderBys[key]!;
+    }
+
+    data.queryBuilder.expressionMap.orderBys = rewritten;
+  }
+
+  /*
+   * The person's profile column an order of the builder names through a
+   * relation ("TeamMember__TeamMember_user.name"), or null for any other
+   * order: one of the read's own columns, a related record that is no
+   * person, or a column of a person's that is not their profile (their
+   * address is the project's own: it typed it).
+   */
+  private static getOrderedProfileColumn<TEntity extends ObjectLiteral>(data: {
+    queryBuilder: SelectQueryBuilder<TEntity>;
+    key: string;
+  }): OrderedProfileColumn | null {
+    const dot: number = data.key.indexOf(".");
+
+    if (dot <= 0) {
+      return null;
+    }
+
+    const aliasName: string = data.key.substring(0, dot);
+    const propertyPath: string = data.key.substring(dot + 1);
+
+    if (
+      !PROFILE_COLUMNS_SHOWN_ONCE_JOINED.includes(propertyPath) ||
+      aliasName === data.queryBuilder.expressionMap.mainAlias?.name
+    ) {
+      return null;
+    }
+
+    const alias: Alias | undefined =
+      data.queryBuilder.expressionMap.aliases.find(
+        (candidate: Alias): boolean => {
+          return candidate.name === aliasName;
+        },
+      );
+
+    if (
+      !alias ||
+      !alias.hasMetadata ||
+      alias.metadata.tableName !== USER_TABLE_NAME
+    ) {
+      return null;
+    }
+
+    const column: ColumnMetadata | undefined =
+      alias.metadata.findColumnWithPropertyPath(propertyPath);
+    const emailColumn: ColumnMetadata | undefined =
+      alias.metadata.findColumnWithPropertyPath("email");
+    const idColumn: ColumnMetadata | undefined =
+      alias.metadata.primaryColumns[0];
+
+    if (!column || !emailColumn || !idColumn) {
+      return null;
+    }
+
+    return {
+      aliasName: aliasName,
+      propertyPath: propertyPath,
+      columnName: column.databaseName,
+      emailColumnName: emailColumn.databaseName,
+      idColumnName: idColumn.databaseName,
+    };
+  }
+
+  /*
+   * The value a person is ordered by, as this reader sees them (see
+   * orderAsTheReaderSees), in SQL.
+   */
+  public static getOrderedValueSql(data: {
+    column: OrderedProfileColumn;
+    reader: ProfileReader;
+    readerParameter: string;
+    preferredParameter: string | null;
+    suffix: string;
+    escape: (name: string) => string;
+  }): string {
+    const person: string = data.escape(data.column.aliasName);
+    const personId: string = `${person}.${data.escape(data.column.idColumnName)}`;
+    const own: string = `${person}.${data.escape(data.column.columnName)}`;
+
+    const isPending: string = `${personId} IN (${PendingInviteeProfiles.getPendingPeopleSql(
+      {
+        reader: data.reader,
+        readerParameter: data.readerParameter,
+        suffix: data.suffix,
+      },
+    )})`;
+
+    const shown: string =
+      data.column.propertyPath === "name"
+        ? `COALESCE(${PendingInviteeProfiles.getTypedNameSql({
+            personIdSql: personId,
+            reader: data.reader,
+            readerParameter: data.readerParameter,
+            preferredParameter: data.preferredParameter,
+            suffix: data.suffix,
+          })}, ${person}.${data.escape(data.column.emailColumnName)})`
+        : "NULL";
+
+    return `(CASE WHEN ${isPending} THEN ${shown} ELSE ${own} END)`;
   }
 
   /*
@@ -939,6 +1277,26 @@ export default class PendingInviteeProfiles {
     throw new NotAuthorizedException(
       ACCOUNT_DATES_THROUGH_RELATION_REFUSED_MESSAGE,
     );
+  }
+
+  /*
+   * The permissions that let nobody filter or order a list by a column of a
+   * record a relation reaches (QueryPermission
+   * .canFilterOrOrderByRelatedColumn). On a person's account, CurrentUser:
+   * it means the account's own person, and every signed-in person holds it
+   * (DatabaseCommonInteractionPropsUtil), because a read of the User table
+   * itself is held to the reader's own row (CurrentUserCanAccessRecordBy).
+   * Through a relation the account is whoever the relation names, so it
+   * lets in nobody there, and a filter or order through a relation names of
+   * a person only what any reader of the relation may read - their name,
+   * address, picture and two-factor flag - and their id.
+   */
+  public static getPermissionsNotCountedThroughRelation(
+    relatedModel: BaseModel,
+  ): ReadonlyArray<Permission> {
+    return relatedModel.tableName === USER_TABLE_NAME
+      ? [Permission.CurrentUser]
+      : [];
   }
 
   // A related record's id, lower-cased, as a read returns it.

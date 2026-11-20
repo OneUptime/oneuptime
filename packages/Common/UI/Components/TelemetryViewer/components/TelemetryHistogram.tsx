@@ -18,7 +18,8 @@ import {
 } from "recharts";
 import { HistogramBucket, HistogramSeriesOption } from "../types";
 import TelemetryHistogramTooltip from "./TelemetryHistogramTooltip";
-import OneUptimeDate from "../../../../Types/Date";
+import Timezone from "../../../../Types/Timezone";
+import { formatHistogramTick } from "../../Charts/Utils/HistogramDayBars";
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "../../Charts/Utils/useHistogramRangeSelection";
@@ -52,6 +53,12 @@ export interface TelemetryHistogramProps {
    * it a selection can only run from one bar's start to another's.
    */
   bucketIntervalMs?: number | undefined;
+  /*
+   * The zone the bars were cut in when each is a day of it (the answer's
+   * bucketTimezone, #7923): a day bar is labelled by its date and a click
+   * on it zooms to that zone's next midnight.
+   */
+  bucketTimezone?: Timezone | undefined;
   // Extra controls rendered in the chart header (e.g. a metric selector).
   headerActions?: ReactNode;
   // Formats Y-axis ticks and tooltip values (e.g. milliseconds → "1.2 s").
@@ -87,18 +94,6 @@ function pivotBuckets(buckets: Array<HistogramBucket>): Array<PivotedRow> {
   return Array.from(map.values());
 }
 
-function formatTickTime(time: string): string {
-  const date: Date = OneUptimeDate.fromString(time);
-
-  if (isNaN(date.getTime())) {
-    return time;
-  }
-
-  return OneUptimeDate.getLocalTimeString(date, {
-    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
-  });
-}
-
 /*
  * A count on the value axis: "42", "1.5K", "12K", "1.2M", in the reader's
  * digits and decimal sign with the scale letter kept ("1,5K", "۱٫۵K"), as
@@ -117,7 +112,21 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
     onTimeRangeSelect: props.onTimeRangeSelect,
     onZoomOut: props.onZoomOut,
     bucketIntervalMs: props.bucketIntervalMs,
+    bucketTimezone: props.bucketTimezone,
   });
+
+  /*
+   * One function while the bars' width stays: the axis keeps its bars, as a
+   * press waiting to become a click needs (#7923). A day bar names its day,
+   * a shorter one its time.
+   */
+  const formatXAxisTick: (time: string) => string = useMemo(() => {
+    return (time: string): string => {
+      return formatHistogramTick(time, {
+        bucketIntervalMs: props.bucketIntervalMs,
+      });
+    };
+  }, [props.bucketIntervalMs]);
 
   /*
    * The crosshair goes on the chart root itself: recharts sets an inline
@@ -345,7 +354,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
             >
               <XAxis
                 dataKey="time"
-                tickFormatter={formatTickTime}
+                tickFormatter={formatXAxisTick}
                 tick={{
                   fontSize: 10,
                   fill: "var(--ou-chart-tick, #9ca3af)",

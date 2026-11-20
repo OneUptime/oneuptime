@@ -304,6 +304,7 @@
     "Seccomp (Restricted)",
     "Server",
     "Server / VM",
+    "Server: {{server}}",
     "Service Mesh",
     "Session",
     "Session {{id}}",

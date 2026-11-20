@@ -76,6 +76,7 @@ import KubernetesResourceService, {
 } from "Common/Server/Services/KubernetesResourceService";
 import { isSeparateKubernetesImageFs } from "Common/Types/Kubernetes/KubernetesStorageHealth";
 import KubernetesEphemeralVolumeClaims from "Common/Server/Utils/Telemetry/KubernetesEphemeralVolumeClaims";
+import { fileKubernetesPodVolumeUnderReceiverNames } from "Common/Server/Utils/Telemetry/KubernetesPodVolumeNames";
 import KubernetesContainerService, {
   ContainerLatestMetric,
 } from "Common/Server/Services/KubernetesContainerService";
@@ -1357,6 +1358,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
           this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
+
+          /*
+           * A pod's volume named the semantic conventions way
+           * (k8s.pod.volume.*, #10055), under the names every reader of a
+           * volume's identity and usage reads, once: before the claim is
+           * named and the rows are built (KubernetesPodVolumeNames).
+           */
+          fileKubernetesPodVolumeUnderReceiverNames(resourceMetric);
 
           /*
            * A PVE native push describes one node's node, guest or storage

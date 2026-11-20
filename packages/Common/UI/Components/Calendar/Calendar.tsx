@@ -27,8 +27,17 @@ import {
   CalendarToolbarStatusContext,
   ConnectedCalendarToolbar,
 } from "./CalendarToolbar";
+import LayeredPopover from "../Tooltip/LayeredPopover";
 import moment from "moment-timezone";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Calendar,
   Components,
@@ -565,6 +574,30 @@ export enum DefaultCalendarView {
 
 const CALENDAR_VIEWS: View[] = ["month", "week", "day", "agenda"];
 
+// The "+N more" a full month cell draws (react-big-calendar's EventEndingRow).
+export const SHOW_MORE_SELECTOR: string = ".rbc-show-more";
+
+// The day's cell a "+N more" sits in, whose width the list starts from.
+const ROW_SEGMENT_SELECTOR: string = ".rbc-row-segment";
+
+/*
+ * The list a "+N more" opens: its day's events. The 5px between it and
+ * its "+N more" is react-big-calendar's own (popupOffset).
+ */
+export const BUSY_DAY_LIST_GAP_PX: number = 5;
+
+// The list, for tests that read it.
+export const BUSY_DAY_LIST_TEST_ID: string = "calendar-busy-day-list";
+
+interface BusyDayList {
+  date: Date;
+  events: Array<CalendarEvent>;
+  // The "+N more" it opened from.
+  anchor: HTMLElement;
+  // As react-big-calendar sized it: half again as wide as the day's cell.
+  minWidth: number;
+}
+
 /*
  * The toolbar's words and the "+2 more" of a full month cell, in the
  * reader's language. react-big-calendar writes them in English otherwise.
@@ -948,12 +981,203 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     return event.desc?.toString() || event.title;
   };
 
+  /*
+   * A BUSY DAY'S "+N MORE" LIST, ON THE TOOLTIP LAYER (#9911).
+   *
+   * react-big-calendar drew the list itself (its `popup`), on the page's
+   * body, and placed it against the month view: under the "+N more" unless
+   * that ran past the view's foot, and then above it. In a short window,
+   * where the page had scrolled the busy day near the window's top, the
+   * list opened above it and started above the window's top edge, though
+   * the window had room under it. The calendar draws the list now, on the
+   * tooltip layer (LayeredPopover), placed against the window as every
+   * menu is: under its "+N more" while the window has the room, above it
+   * while it has the room there instead, and otherwise on the roomier side,
+   * cut down to it and scrolling inside; slid along to stay inside the
+   * window's sides. The layer also takes the keyboard through it: Tab goes
+   * from the "+N more" to the events' links, and Escape and a press outside
+   * close it.
+   *
+   * It draws the day as the library's did - its name, then its events as
+   * the grid draws them - in the same classes, so Calendar.css and the dark
+   * theme style it as before.
+   */
+  const [busyDayList, setBusyDayList] = useState<BusyDayList | null>(null);
+  const showMoreAnchorRef: React.MutableRefObject<HTMLElement | null> =
+    useRef<HTMLElement | null>(null);
+  // The "+N more" pressed: react-big-calendar hands onShowMore no element.
+  const pressedShowMoreRef: React.MutableRefObject<HTMLElement | null> =
+    useRef<HTMLElement | null>(null);
+
+  const closeBusyDayList: () => void = useCallback((): void => {
+    setBusyDayList(null);
+  }, []);
+
+  const onShowMore: (events: Array<CalendarEvent>, date: Date) => void =
+    useCallback((events: Array<CalendarEvent>, date: Date): void => {
+      const anchor: HTMLElement | null = pressedShowMoreRef.current;
+      pressedShowMoreRef.current = null;
+
+      if (!anchor) {
+        return;
+      }
+
+      setBusyDayList((open: BusyDayList | null): BusyDayList | null => {
+        // A second press on the same "+N more" puts its list away.
+        if (open && open.anchor === anchor) {
+          return null;
+        }
+
+        const cell: Element | null = anchor.closest(ROW_SEGMENT_SELECTOR);
+        const cellWidth: number = cell ? cell.getBoundingClientRect().width : 0;
+
+        showMoreAnchorRef.current = anchor;
+
+        return {
+          date: date,
+          events: events,
+          anchor: anchor,
+          minWidth: cellWidth + cellWidth / 2,
+        };
+      });
+    }, []);
+
+  // Its "+N more" gone - the grid drawn again without it - the list goes too.
+  useLayoutEffect(() => {
+    if (busyDayList && !busyDayList.anchor.isConnected) {
+      setBusyDayList(null);
+    }
+  });
+
+  const renderBusyDayList: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!busyDayList) {
+        return null;
+      }
+
+      const dayHeaderFormat: Formats["dayHeaderFormat"] =
+        formats.dayHeaderFormat || localizer.formats.dayHeaderFormat;
+      const slotEnd: Date = localizer.add(busyDayList.date, 1, "day");
+
+      return (
+        <LayeredPopover
+          key={busyDayList.date.toISOString()}
+          anchorRef={showMoreAnchorRef}
+          onClose={closeBusyDayList}
+          gap={BUSY_DAY_LIST_GAP_PX}
+        >
+          <div
+            className="rbc-overlay"
+            data-testid={BUSY_DAY_LIST_TEST_ID}
+            /*
+             * Static: react-big-calendar's stylesheet places .rbc-overlay
+             * `absolute`, which would take it out of the layer that places
+             * it. Its height, its scrolling and its look are Calendar.css's.
+             */
+            style={{ position: "static", minWidth: busyDayList.minWidth }}
+          >
+            <div className="rbc-overlay-header">
+              {localizer.format(busyDayList.date, dayHeaderFormat as string)}
+            </div>
+            {busyDayList.events.map(
+              (event: CalendarEvent, index: number): ReactElement => {
+                // As react-big-calendar asks the grid's blocks for theirs.
+                const block: {
+                  className?: string | undefined;
+                  style?: React.CSSProperties;
+                } = eventStyleGetter(event, event.start, event.end, false);
+                const isShownAsAllDay: boolean =
+                  Boolean(event.allDay) ||
+                  localizer.diff(
+                    event.start,
+                    localizer.ceil(event.end, "day"),
+                    "day",
+                  ) > 1;
+                const className: string = [
+                  "rbc-event",
+                  block.className,
+                  isShownAsAllDay ? "rbc-event-allday" : undefined,
+                  event.start < busyDayList.date
+                    ? "rbc-event-continues-prior"
+                    : undefined,
+                  event.end > slotEnd ? "rbc-event-continues-after" : undefined,
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                const tooltip: string = eventTooltipGetter(event);
+
+                /*
+                 * A press on a block opens its event, as the grid's blocks
+                 * do. A block a page draws with a link of its own
+                 * (renderEventContent) is opened from the keyboard by that
+                 * link; one with nothing of its own to press is a button.
+                 */
+                const isOwnControl: boolean =
+                  Boolean(props.onEventClick) && !props.renderEventContent;
+
+                return (
+                  <div
+                    key={index}
+                    className={className}
+                    style={block.style}
+                    role={isOwnControl ? "button" : undefined}
+                    tabIndex={isOwnControl ? 0 : undefined}
+                    onClick={
+                      props.onEventClick
+                        ? (): void => {
+                            props.onEventClick?.(event);
+                          }
+                        : undefined
+                    }
+                    onKeyDown={
+                      isOwnControl
+                        ? (keyEvent: React.KeyboardEvent): void => {
+                            if (
+                              keyEvent.key === "Enter" ||
+                              keyEvent.key === " "
+                            ) {
+                              keyEvent.preventDefault();
+                              props.onEventClick?.(event);
+                            }
+                          }
+                        : undefined
+                    }
+                  >
+                    <div
+                      className="rbc-event-content"
+                      title={tooltip || undefined}
+                    >
+                      {props.renderEventContent
+                        ? props.renderEventContent(event)
+                        : event.title}
+                    </div>
+                  </div>
+                );
+              },
+            )}
+          </div>
+        </LayeredPopover>
+      );
+    };
+
   return (
     <div
       id={props.id}
       className={`oneuptime-calendar mt-5 h-[46rem] rounded-xl bg-white${
         hasAllDayEvents ? "" : " oneuptime-calendar--no-all-day"
       }${hasShortDayNames ? "" : ` ${LONG_DAY_NAMES_CLASS_NAME}`}`}
+      onClickCapture={(clickEvent: React.MouseEvent<HTMLDivElement>) => {
+        // Which "+N more" was pressed, for the list it opens (onShowMore).
+        const target: EventTarget | null = clickEvent.target;
+        const showMore: HTMLElement | null =
+          target instanceof Element
+            ? target.closest<HTMLElement>(SHOW_MORE_SELECTOR)
+            : null;
+
+        if (showMore) {
+          pressedShowMoreRef.current = showMore;
+        }
+      }}
     >
       <CalendarToolbarStatusContext.Provider value={props.toolbarStatus}>
         <Calendar
@@ -979,8 +1203,18 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
           defaultView={props.defaultCalendarView || "week"}
           eventPropGetter={eventStyleGetter}
           tooltipAccessor={eventTooltipGetter}
-          popup
+          /*
+           * The "+N more" list is the calendar's own, on the tooltip layer
+           * (renderBusyDayList): react-big-calendar neither draws its own
+           * nor opens the day instead.
+           */
+          popup={false}
+          doShowMoreDrillDown={false}
+          onShowMore={onShowMore}
           onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
+            // Another period, or another view: the day's list goes.
+            setBusyDayList(null);
+
             if (Array.isArray(range)) {
               return props.onRangeChange({
                 startTime: range[0] as Date,
@@ -997,6 +1231,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
           }}
         />
       </CalendarToolbarStatusContext.Provider>
+      {renderBusyDayList()}
     </div>
   );
 };

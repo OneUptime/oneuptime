@@ -1,10 +1,13 @@
 import UserService from "../../Services/UserService";
 import logger from "../Logger";
+import { getServerTranslator } from "../ServerTranslation";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
+import { getInvitationSubject } from "../../../Types/Team/InvitationEmailWords";
+import { getUserChosenLanguage } from "../../../Types/UserLanguage";
 import User from "../../../Models/DatabaseModels/User";
 
 /*
@@ -31,6 +34,12 @@ export interface InvitationInviter {
   // Their name as their account writes it, on one line; "" while they have none.
   name: string;
   email: string;
+  /*
+   * The language their account picked (Types/UserLanguage), when it picked
+   * one: what an invitation is written in for an invitee who picked none
+   * (#9897, Types/Team/InvitationEmailWords).
+   */
+  language?: string | undefined;
 }
 
 // The longest name an invitation carries: a person's name is shorter.
@@ -82,9 +91,12 @@ export default class InvitationInviterUtil {
       return null;
     }
 
+    const language: string = getUserChosenLanguage(user);
+
     return {
       name: InvitationInviterUtil.toOneLine(user?.name?.toString()),
       email: email,
+      ...(language ? { language: language } : {}),
     };
   }
 
@@ -100,24 +112,22 @@ export default class InvitationInviterUtil {
 
   /*
    * The invitation email's subject: who sent it and where to, or - naming
-   * nobody - what it always said.
+   * nobody - what it always said. In `language` (#9897), English without
+   * one (Types/Team/InvitationEmailWords).
    */
   public static getSubject(data: {
     projectName: string;
     inviter: InvitationInviter | null;
     isAccepted: boolean;
+    language?: string | undefined;
   }): string {
-    if (!data.inviter) {
-      return data.isAccepted
-        ? "You have been added to " + data.projectName
-        : "You have been invited to " + data.projectName;
-    }
-
-    const name: string = InvitationInviterUtil.getName(data.inviter);
-
-    return data.isAccepted
-      ? `${name} added you to ${data.projectName}`
-      : `${name} invited you to ${data.projectName}`;
+    return getInvitationSubject(getServerTranslator(data.language), {
+      projectName: data.projectName,
+      inviterName: data.inviter
+        ? InvitationInviterUtil.getName(data.inviter)
+        : null,
+      isAccepted: data.isAccepted,
+    });
   }
 
   // The invitation template's variables that name the inviter, or none.
@@ -204,6 +214,8 @@ export default class InvitationInviterUtil {
         _id: true,
         name: true,
         email: true,
+        // What the invitation is written in when the invitee picked none (#9897).
+        language: true,
       },
       props: {
         isRoot: true,

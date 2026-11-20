@@ -63,7 +63,7 @@ Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en 
 Klik på en række. Dens detaljer åbner ved siden af listen.
 :::
 
-Din søgning, dine chips og tidsintervallet gemmes i sidens adresse, så en genindlæsning, et bogmærke eller et delt link åbner de samme protokoller. Et link til én loglinje, såsom **Vis loglinje** på en sikkerhedsbegivenhed, åbner den linje over listen, læst med dine egne tilladelser. **Kopiér link** i en linjes detaljer kopierer sådan et link, med listen, du kopierede det fra, under linjen, over det samme tidsinterval.
+Din søgning, dine chips og tidsintervallet gemmes i sidens adresse, så en genindlæsning, et bogmærke eller et delt link åbner de samme protokoller. Et link til én loglinje, såsom **Vis loglinje** på en sikkerhedsbegivenhed, åbner den linje over listen, læst med dine egne tilladelser. **Kopiér link** i en linjes detaljer kopierer sådan et link, med listen, du kopierede det fra, under linjen, over det samme tidsinterval. Hver række i listen har også **Kopiér link**, ved siden af beskeden, så du kan kopiere en linjes link uden at åbne den.
 
 ## Læs en protokol
 
@@ -194,6 +194,7 @@ Tryk på `?` i Seer for at se dem.
 | --- | --- |
 | `j` / `k` | Gå til næste eller forrige protokol. |
 | Enter | Åbn eller luk den valgte protokol. |
+| `l` | Kopiér et link til den valgte protokol. |
 | Esc | Luk detaljepanelet. |
 | `/` | Hop til søgefeltet. |
 | ⌘ + Enter eller Ctrl + Enter | Anvend søgningen. |

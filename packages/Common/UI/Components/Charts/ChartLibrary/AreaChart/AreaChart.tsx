@@ -39,6 +39,7 @@ import useChartRangeSelection, {
 import { AxisDomain } from "recharts/types/util/types";
 
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
+import { getLegendExtraRowsHeight } from "../Utils/LegendExtraRows";
 import {
   AvailableChartColors,
   ChartColorValue,
@@ -463,6 +464,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ) => React.JSX.Element = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { payload }: any,
@@ -473,6 +475,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ): React.JSX.Element => {
   const legendRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
@@ -484,6 +487,7 @@ const ChartLegend: (
       return height ? Number(height) + 15 : 60;
     };
     setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
+    onExtraRowsHeightChange?.(getLegendExtraRowsHeight(legendRef.current));
   });
 
   const legendPayload: Array<PayloadItem> = payload.filter(
@@ -757,6 +761,15 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   categoryValueFormatters?:
     | Record<string, (value: number) => string>
     | undefined;
+  /*
+   * Told how much taller than one row the legend is (0 while its items fit
+   * on one line), each time the legend is measured: a host that keeps its
+   * plot's height when the legend wraps grows by that much (the wrapper's
+   * growsWhenLegendWraps, issue #7125).
+   */
+  onLegendExtraRowsHeightChange?:
+    | ((extraRowsHeightInPx: number) => void)
+    | undefined;
 }
 
 const AreaChart: React.ForwardRefExoticComponent<
@@ -807,6 +820,7 @@ const AreaChart: React.ForwardRefExoticComponent<
       secondYAxis,
       ownScales,
       categoryValueFormatters,
+      onLegendExtraRowsHeightChange,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
@@ -1374,6 +1388,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                       enableLegendSlider,
                       legendPosition,
                       valueAxes.first.width,
+                      onLegendExtraRowsHeightChange,
                     );
                   }}
                 />

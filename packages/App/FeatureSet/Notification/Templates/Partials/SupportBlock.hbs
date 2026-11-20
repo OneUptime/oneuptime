@@ -15,15 +15,14 @@
   On OneUptime Cloud it is OneUptime's support, unless the installation goes
   by another name (isBrandRenamed), which leaves the block out.
 
-  In the email's language (#10157, Utils/EmailLanguage.ts): an email with
-  none - every account email but the few written in the reader's language -
-  reads exactly as it always did. "Need help?" and the link's "Contact
-  support" are two sentences side by side, each looked up whole.
+  In the email's language (Notification/Utils/EmailLanguage): each line is
+  looked up whole by its English, the inviter's name put in as written.
+  English reads exactly as it always did.
 --}}
 {{#if @root.isSelfHosted}}
 <table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
   <tr><td class="st-Gutter " style="padding: 0 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 15px; line-height: 24px; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
-    {{#if @root.inviterName}}{{tt "Need help? Ask {{name}}, who invited you, or your server's admin." name=@root.inviterName}}{{else}}{{t "Need help? Ask your server's admin."}}{{/if}}
+    {{#if @root.inviterName}}{{tt "Need help? Ask {{inviter}}, who invited you, or your server's admin." inviter=@root.inviterName}}{{else}}{{t "Need help? Ask your server's admin."}}{{/if}}
   </td></tr>
 </table>
 {{else}}{{#unless @root.isBrandRenamed}}

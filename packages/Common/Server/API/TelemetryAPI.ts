@@ -9,6 +9,8 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Timezone from "../../Types/Timezone";
+import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
@@ -902,6 +904,8 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
@@ -952,6 +956,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         ...serviceFilter,
         entityKeys,
         resourceScopes,
@@ -978,6 +983,7 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
         bucketSizeInMinutes: bucketSizeInMinutes,
+        ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
       });
     } catch (err: unknown) {
       next(err);
@@ -1549,6 +1555,8 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const traceFilters: TraceFilters = scopeTraceFilters(
         {
           ...parseTraceFilterBody(body),
@@ -1565,6 +1573,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         ...traceFilters,
       };
 
@@ -1573,6 +1582,7 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
+        ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
       });
     } catch (err: unknown) {
       next(err);
@@ -2098,6 +2108,8 @@ router.post(
           ? Math.trunc(rawBucketSize)
           : computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const groupBy: Array<string> | undefined = Array.isArray(body["groupBy"])
         ? (body["groupBy"] as Array<unknown>).filter(
             (v: unknown): v is string => {
@@ -2151,6 +2163,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         chartType,
         metric,
         groupBy,
@@ -2165,6 +2178,7 @@ router.post(
 
         return Response.sendJsonObjectResponse(req, res, {
           data: data as unknown as JSONObject,
+          ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
         });
       }
 
@@ -2906,6 +2920,8 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
@@ -2948,6 +2964,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         ...serviceFilter,
         exceptionTypes,
         environments,
@@ -2967,6 +2984,7 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
+        ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
       });
     } catch (err: unknown) {
       next(err);
@@ -3478,6 +3496,8 @@ router.post(
           ? Math.trunc(rawBucketSize)
           : computeDefaultBucketSize(startTime, endTime);
 
+      const timezone: Timezone | undefined = readHistogramTimezone(body);
+
       const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
@@ -3557,6 +3577,7 @@ router.post(
         startTime,
         endTime,
         bucketSizeInMinutes,
+        timezone,
         chartType,
         groupBy,
         aggregation,
@@ -3587,6 +3608,7 @@ router.post(
 
         return Response.sendJsonObjectResponse(req, res, {
           data: data as unknown as JSONObject,
+          ...dayBarTimezoneField(bucketSizeInMinutes, timezone),
         });
       }
 
@@ -4244,6 +4266,34 @@ async function getProfileServiceFilter(
       excludedServiceIds: filter.excludedServiceIds,
     }),
   };
+}
+
+/*
+ * The reader's zone a histogram or an analytics chart names (`timezone`),
+ * read as an aggregate's is: undefined for none, a 400 for a zone the
+ * Timezone list does not hold. A bar of a day then starts at its midnight
+ * (TelemetryHistogramBuckets, #7923).
+ */
+function readHistogramTimezone(body: JSONObject): Timezone | undefined {
+  return TelemetryHistogramBuckets.readTimezone(body["timezone"]);
+}
+
+/*
+ * What an answer says of its bars besides the buckets: the zone its day
+ * bars were cut in, when they were cut in one, so the chart finds where a
+ * day ends - a day the clocks change on is 23 or 25 hours - and labels each
+ * bar by its date. Nothing for any other bar.
+ */
+function dayBarTimezoneField(
+  bucketSizeInMinutes: number,
+  timezone: Timezone | undefined,
+): JSONObject {
+  const zone: Timezone | null = TelemetryHistogramBuckets.getDayBarTimezone({
+    bucketSizeInMinutes: bucketSizeInMinutes,
+    timezone: timezone,
+  });
+
+  return zone ? { bucketTimezone: zone } : {};
 }
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {

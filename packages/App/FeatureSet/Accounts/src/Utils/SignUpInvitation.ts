@@ -1,4 +1,7 @@
-import { SIGN_UP_INVITATION_API_URL } from "./ApiPaths";
+import {
+  SIGN_UP_INVITATION_API_URL,
+  SIGN_UP_INVITATION_SSO_API_URL,
+} from "./ApiPaths";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -64,6 +67,69 @@ export const fetchSignUpInvitation: (
 
   try {
     return await Promise.race([ask(), timeout]);
+  } finally {
+    if (timer.id !== undefined) {
+      clearTimeout(timer.id);
+    }
+  }
+};
+
+/*
+ * Client half of POST /identity/sign-up-invitation/sso (#9898): said as the
+ * person picks one of the project's single sign-on providers, with the
+ * link's address and token and the project the page showed. On OneUptime
+ * Cloud the server takes the link as the mailbox's confirmation of that
+ * project's sign-in, so the provider signs them in the first time, with no
+ * second email.
+ *
+ * The answer is the same whatever the server found, so nothing is read
+ * from it, and the page goes on to the provider whatever happens: an
+ * error, an older server without the route, or no answer in time leaves
+ * the provider's answer to ask the mailbox, as it always did. Never throws.
+ */
+
+/*
+ * How long the page waits before it goes on to the provider anyway: long
+ * enough for the server's few writes, which the provider's answer must
+ * find, and short enough that a server that never answers still lets them
+ * sign in.
+ */
+export const SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS: number = 10000;
+
+export const confirmSignUpInvitationSsoSignIn: (
+  data: { email: string; token: string; projectId: string },
+  timeoutInMs?: number,
+) => Promise<void> = async (
+  data: { email: string; token: string; projectId: string },
+  timeoutInMs: number = SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS,
+): Promise<void> => {
+  const tell: () => Promise<void> = async (): Promise<void> => {
+    try {
+      await API.post<JSONObject>({
+        url: SIGN_UP_INVITATION_SSO_API_URL,
+        data: {
+          email: data.email,
+          token: data.token,
+          projectId: data.projectId,
+        },
+      });
+    } catch {
+      // The provider's answer asks the mailbox instead.
+    }
+  };
+
+  const timer: { id?: ReturnType<typeof setTimeout> | undefined } = {};
+
+  const timeout: Promise<void> = new Promise<void>(
+    (resolve: () => void): void => {
+      timer.id = setTimeout(() => {
+        resolve();
+      }, timeoutInMs);
+    },
+  );
+
+  try {
+    await Promise.race([tell(), timeout]);
   } finally {
     if (timer.id !== undefined) {
       clearTimeout(timer.id);

@@ -19,6 +19,7 @@ import {
   findBoundRole,
   getGrantedRequests,
   getNodesProxyReasons,
+  getOneUptimeAgentInstall,
   getWildcardFields,
   isBuiltInRbacObject,
   isOneUptimeAgentObject,
@@ -409,11 +410,13 @@ function accessFindings(
 
       /*
        * The OneUptime agent's own binding: the page says so, and why its
-       * role grants nodes/proxy, as the role's label says (#9878).
+       * role grants nodes/proxy, as the role's label says (#9878), with the
+       * value that drops it as the agent was installed (#9928).
        */
       if (isOneUptimeAgentObject(binding)) {
         finding.oneUptimeAgent = {
           nodesProxyReasons: getNodesProxyReasons(role),
+          installedAs: getOneUptimeAgentInstall(role),
         };
       }
 

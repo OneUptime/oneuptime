@@ -198,11 +198,10 @@ const readTemplate: (name: string) => string = (name: string): string => {
 };
 
 /*
- * What a reader reads in every client, what only Outlook shows included,
- * with its character references read as the client shows them: the help
- * line is looked up in the email's language (#10157) and escaped like any
- * value (Utils/EmailLanguage.ts), so its "server's" is written
- * "server&#x27;s".
+ * The email's words as its reader reads them: markup a space each, and
+ * character references decoded - the help line is written in the email's
+ * language (EmailLanguage's t and tt, #9897), whose output is escaped, so
+ * "server's" is "server&#x27;s" in the HTML.
  */
 const textOf: (html: string) => string = (html: string): string => {
   return decodeHtmlEntities(markupAsSpacesWithOutlookContent(html)).replace(
