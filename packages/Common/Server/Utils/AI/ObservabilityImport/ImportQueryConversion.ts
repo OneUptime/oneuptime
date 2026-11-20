@@ -92,11 +92,15 @@ export const readAnswerJson: (answer: string) => JSONObject | null = (
 
   if (fence !== -1) {
     const lineEnd: number = text.indexOf("\n", fence);
-    const close: number = lineEnd === -1 ? -1 : text.indexOf("```", lineEnd + 1);
+    const close: number =
+      lineEnd === -1 ? -1 : text.indexOf("```", lineEnd + 1);
     text =
       lineEnd === -1
         ? text
-        : (close === -1 ? text.slice(lineEnd + 1) : text.slice(lineEnd + 1, close)).trim();
+        : (close === -1
+            ? text.slice(lineEnd + 1)
+            : text.slice(lineEnd + 1, close)
+          ).trim();
   }
 
   const start: number = text.indexOf("{");
@@ -108,7 +112,9 @@ export const readAnswerJson: (answer: string) => JSONObject | null = (
 
   try {
     const parsed: unknown = JSON.parse(text.slice(start, end + 1));
-    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+    return parsed !== null &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
       ? (parsed as JSONObject)
       : null;
   } catch {
@@ -212,7 +218,8 @@ export const readImportQueryConversionRequest: (
 
   return {
     language,
-    query: typeof object["query"] === "string" ? (object["query"] as string) : "",
+    query:
+      typeof object["query"] === "string" ? (object["query"] as string) : "",
     variableNames: Array.isArray(names)
       ? names
           .filter((name: unknown): boolean => {
@@ -282,7 +289,8 @@ export default class ImportQueryConversion {
         request.userId = data.userId;
       }
 
-      const response: AILogResponse = await AIService.executeWithLogging(request);
+      const response: AILogResponse =
+        await AIService.executeWithLogging(request);
       const answer: JSONObject | null = readAnswerJson(response.content || "");
       const promQL: string =
         typeof answer?.["promql"] === "string"

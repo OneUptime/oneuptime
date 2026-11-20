@@ -1,4 +1,7 @@
-import { EvaluateOverTimeType, NoDataPolicy } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  NoDataPolicy,
+} from "../../../Types/Monitor/CriteriaFilter";
 import {
   AlertImportItem,
   AlertImportPlan,
@@ -54,6 +57,9 @@ import {
  * A recording rule records a metric rather than alerting, and a rule over
  * Loki's logs reads LogQL: both are listed, not imported.
  */
+
+// A runbook's address a browser can open.
+const WEB_ADDRESS: RegExp = /^https?:\/\//i;
 
 export const RULE_IS_RECORDING: string = translationKey(
   "It is a recording rule, which OneUptime does not import: Prometheus sends the series it records with remote write, as it sends the rest.",
@@ -265,7 +271,7 @@ export const convertPrometheusRules: (
           ""
         ).trim();
 
-        if (/^https?:\/\//i.test(runbook)) {
+        if (WEB_ADDRESS.test(runbook)) {
           descriptionParts.push(`Runbook: ${runbook}`);
         }
 

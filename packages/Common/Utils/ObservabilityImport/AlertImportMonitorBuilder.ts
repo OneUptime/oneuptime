@@ -2,7 +2,10 @@ import { CriteriaAlert } from "../../Types/Monitor/CriteriaAlert";
 import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "../../Types/Monitor/CriteriaIncident";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
-import { MetricMonitorQueryLanguage, PROMQL_METRIC_ALIAS } from "../../Types/Monitor/MonitorStepMetricMonitor";
+import {
+  MetricMonitorQueryLanguage,
+  PROMQL_METRIC_ALIAS,
+} from "../../Types/Monitor/MonitorStepMetricMonitor";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import MonitorRecommendationSeverityMapper from "../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
@@ -68,15 +71,17 @@ export const buildImportedMonitorSteps: (data: {
   const firstAlertSeverity: ObjectID =
     seeds.rankedAlertSeverityIds[0] || ObjectID.generate();
 
-  const severityIds: { incidentSeverityId: ObjectID; alertSeverityId: ObjectID } =
-    MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
-      severity:
-        rule.severity === ImportedAlertSeverity.Warning ? "Warning" : "Critical",
-      rankedIncidentSeverityIds: seeds.rankedIncidentSeverityIds,
-      rankedAlertSeverityIds: seeds.rankedAlertSeverityIds,
-      fallbackIncidentSeverityId: firstIncidentSeverity,
-      fallbackAlertSeverityId: firstAlertSeverity,
-    });
+  const severityIds: {
+    incidentSeverityId: ObjectID;
+    alertSeverityId: ObjectID;
+  } = MonitorRecommendationSeverityMapper.resolveTemplateSeverityIds({
+    severity:
+      rule.severity === ImportedAlertSeverity.Warning ? "Warning" : "Critical",
+    rankedIncidentSeverityIds: seeds.rankedIncidentSeverityIds,
+    rankedAlertSeverityIds: seeds.rankedAlertSeverityIds,
+    fallbackIncidentSeverityId: firstIncidentSeverity,
+    fallbackAlertSeverityId: firstAlertSeverity,
+  });
 
   const steps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
     monitorType: MonitorType.Metrics,
@@ -88,7 +93,8 @@ export const buildImportedMonitorSteps: (data: {
     defaultAlertSeverityId: firstAlertSeverity,
   });
 
-  const step: MonitorStep | undefined = steps.data?.monitorStepsInstanceArray[0];
+  const step: MonitorStep | undefined =
+    steps.data?.monitorStepsInstanceArray[0];
 
   if (!step) {
     return steps;

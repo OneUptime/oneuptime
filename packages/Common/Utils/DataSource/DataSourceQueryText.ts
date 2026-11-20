@@ -15,13 +15,6 @@ const PROMQL_MATCHER_PATTERN: RegExp =
 // A {{ name }} token, as applyVariables reads one.
 const VARIABLE_TOKEN_PATTERN: RegExp = /\{\{\s*([^{}\s]+)\s*\}\}/g;
 
-// What a value is in a regex: each RE2 metacharacter set apart.
-const escapeForPromQLRegex: (value: string) => string = (
-  value: string,
-): string => {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
-
 // What a value is inside a PromQL string of this quote.
 const escapeForPromQLString: (value: string, quote: string) => string = (
   value: string,
@@ -284,7 +277,7 @@ export default class DataSourceQueryText {
         if ("text" in part) {
           const text: string = unescape(part.text);
           // Literal text of an `=` matcher made a regex is read as written.
-          return asRegex && !isRegexMatcher ? escapeForPromQLRegex(text) : text;
+          return asRegex && !isRegexMatcher ? escapeRegExp(text) : text;
         }
 
         if (!part.resolved) {
@@ -297,13 +290,13 @@ export default class DataSourceQueryText {
             : [part.resolved.scalar || ""];
 
         if (values.length > 1) {
-          return `(${values.map(escapeForPromQLRegex).join("|")})`;
+          return `(${values.map(escapeRegExp).join("|")})`;
         }
 
         const one: string = values[0] || "";
 
         return asRegex && (!isRegexMatcher || part.variable.isMultiSelect)
-          ? escapeForPromQLRegex(one)
+          ? escapeRegExp(one)
           : one;
       })
       .join("");

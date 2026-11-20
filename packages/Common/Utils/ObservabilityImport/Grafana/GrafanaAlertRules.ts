@@ -69,6 +69,9 @@ import { looksLikeLogQL } from "./GrafanaLoki";
  * not imported.
  */
 
+// A runbook's address a browser can open.
+const WEB_ADDRESS: RegExp = /^https?:\/\//i;
+
 export const GRAFANA_RULE_CONDITION_NOT_READ: string = translationKey(
   "Its condition is not a threshold on one Prometheus query, which is what OneUptime imports.",
 );
@@ -102,14 +105,16 @@ export const GRAFANA_RULE_PAUSED: string = translationKey(
 );
 
 // Grafana's threshold types and the condition each is.
-const EVALUATORS: ReadonlyMap<string, FilterType> = new Map<string, FilterType>([
-  ["gt", FilterType.GreaterThan],
-  ["lt", FilterType.LessThan],
-  ["gte", FilterType.GreaterThanOrEqualTo],
-  ["lte", FilterType.LessThanOrEqualTo],
-  ["eq", FilterType.EqualTo],
-  ["ne", FilterType.NotEqualTo],
-]);
+const EVALUATORS: ReadonlyMap<string, FilterType> = new Map<string, FilterType>(
+  [
+    ["gt", FilterType.GreaterThan],
+    ["lt", FilterType.LessThan],
+    ["gte", FilterType.GreaterThanOrEqualTo],
+    ["lte", FilterType.LessThanOrEqualTo],
+    ["eq", FilterType.EqualTo],
+    ["ne", FilterType.NotEqualTo],
+  ],
+);
 
 // Grafana's reducers and how a window of values is read for each.
 const REDUCERS: ReadonlyMap<string, EvaluateOverTimeType> = new Map<
@@ -177,29 +182,35 @@ const readNodes: (alert: ImportObject) => Map<string, GrafanaQueryNode> = (
 // The threshold a node's evaluator holds: gt 80, lt 5.
 const readEvaluator: (
   evaluator: ImportObject | undefined,
-) => { filterType: FilterType; threshold: number } | { rangeType: string } | undefined =
-  (
-    evaluator: ImportObject | undefined,
-  ):
-    | { filterType: FilterType; threshold: number }
-    | { rangeType: string }
-    | undefined => {
-    const type: string = textField(evaluator, "type");
-    const params: Array<unknown> = arrayField(evaluator, "params");
-    const threshold: unknown = params[0];
+) =>
+  | { filterType: FilterType; threshold: number }
+  | { rangeType: string }
+  | undefined = (
+  evaluator: ImportObject | undefined,
+):
+  | { filterType: FilterType; threshold: number }
+  | { rangeType: string }
+  | undefined => {
+  const type: string = textField(evaluator, "type");
+  const params: Array<unknown> = arrayField(evaluator, "params");
+  const threshold: unknown = params[0];
 
-    if (type.includes("range")) {
-      return { rangeType: type };
-    }
+  if (type.includes("range")) {
+    return { rangeType: type };
+  }
 
-    const filterType: FilterType | undefined = EVALUATORS.get(type);
+  const filterType: FilterType | undefined = EVALUATORS.get(type);
 
-    if (!filterType || typeof threshold !== "number" || !Number.isFinite(threshold)) {
-      return undefined;
-    }
+  if (
+    !filterType ||
+    typeof threshold !== "number" ||
+    !Number.isFinite(threshold)
+  ) {
+    return undefined;
+  }
 
-    return { filterType, threshold };
-  };
+  return { filterType, threshold };
+};
 
 /*
  * The rule's condition, as one query compared with a number, or the
@@ -237,10 +248,12 @@ const readCondition: (data: {
   const type: string = textField(condition.model, "type");
 
   // A query reduced, then a threshold on it: C -> B -> A.
-  const followToQuery: (refId: string) => {
-    query: GrafanaQueryNode;
-    reducer: string | undefined;
-  } | undefined = (refId: string) => {
+  const followToQuery: (refId: string) =>
+    | {
+        query: GrafanaQueryNode;
+        reducer: string | undefined;
+      }
+    | undefined = (refId: string) => {
     const node: GrafanaQueryNode | undefined = data.nodes.get(
       refId.replace(/^\$/, ""),
     );
@@ -267,9 +280,13 @@ const readCondition: (data: {
   };
 
   if (type === "threshold") {
-    const source: { query: GrafanaQueryNode; reducer: string | undefined } | undefined =
-      followToQuery(textField(condition.model, "expression"));
-    const conditions: Array<unknown> = arrayField(condition.model, "conditions");
+    const source:
+      | { query: GrafanaQueryNode; reducer: string | undefined }
+      | undefined = followToQuery(textField(condition.model, "expression"));
+    const conditions: Array<unknown> = arrayField(
+      condition.model,
+      "conditions",
+    );
     const evaluator: ReturnType<typeof readEvaluator> = readEvaluator(
       objectField(asObject(conditions[0]), "evaluator"),
     );
@@ -290,15 +307,17 @@ const readCondition: (data: {
   }
 
   if (type === "classic_conditions") {
-    const conditions: Array<unknown> = arrayField(condition.model, "conditions");
+    const conditions: Array<unknown> = arrayField(
+      condition.model,
+      "conditions",
+    );
     const first: ImportObject | undefined = asObject(conditions[0]);
     const evaluator: ReturnType<typeof readEvaluator> = readEvaluator(
       objectField(first, "evaluator"),
     );
-    const queryRef: string = textField(
-      objectField(first, "query"),
-      "params",
-    ) || String(arrayField(objectField(first, "query"), "params")[0] || "");
+    const queryRef: string =
+      textField(objectField(first, "query"), "params") ||
+      String(arrayField(objectField(first, "query"), "params")[0] || "");
     const query: GrafanaQueryNode | undefined = data.nodes.get(queryRef);
 
     if (!query || query.isExpression || !evaluator || conditions.length !== 1) {
@@ -333,8 +352,9 @@ const readCondition: (data: {
       return notRead;
     }
 
-    const source: { query: GrafanaQueryNode; reducer: string | undefined } | undefined =
-      followToQuery(match[1] || "");
+    const source:
+      | { query: GrafanaQueryNode; reducer: string | undefined }
+      | undefined = followToQuery(match[1] || "");
     const operators: Record<string, FilterType> = {
       ">": FilterType.GreaterThan,
       ">=": FilterType.GreaterThanOrEqualTo,
@@ -406,12 +426,19 @@ const convertRule: (data: {
   const condition: ReadCondition | ImportNote = readCondition({ alert, nodes });
 
   if ("kind" in condition) {
-    return { ...base, status: ImportItemStatus.NotConverted, notes: [condition] };
+    return {
+      ...base,
+      status: ImportItemStatus.NotConverted,
+      notes: [condition],
+    };
   }
 
   const model: ImportObject = condition.query.model;
   const expr: string = textField(model, "expr");
-  const dataSourceType: string = textField(objectField(model, "datasource"), "type");
+  const dataSourceType: string = textField(
+    objectField(model, "datasource"),
+    "type",
+  );
   const override: string | undefined = data.overrides.get(
     getGrafanaRuleTargetKey(data.key),
   );
@@ -449,7 +476,10 @@ const convertRule: (data: {
   }
 
   if (override !== undefined) {
-    notes.push({ kind: ImportNoteKind.Approximation, text: QUERY_CONVERTED_BY_AI });
+    notes.push({
+      kind: ImportNoteKind.Approximation,
+      text: QUERY_CONVERTED_BY_AI,
+    });
   }
 
   // Grafana's macros in a rule: its 15-second interval and its range.
@@ -542,7 +572,10 @@ const convertRule: (data: {
   if (noDataState === "Alerting") {
     onNoData = NoDataPolicy.Trigger;
   } else if (noDataState === "KeepLast") {
-    notes.push({ kind: ImportNoteKind.Approximation, text: GRAFANA_RULE_KEEP_LAST });
+    notes.push({
+      kind: ImportNoteKind.Approximation,
+      text: GRAFANA_RULE_KEEP_LAST,
+    });
   }
 
   const labels: Map<string, string> = stringMapField(rule, "labels");
@@ -557,14 +590,16 @@ const convertRule: (data: {
   const runbook: string = (annotations.get("runbook_url") || "").trim();
 
   const said: Set<string> = new Set<string>();
-  const distinct: Array<ImportNote> = notes.filter((note: ImportNote): boolean => {
-    const noteKey: string = `${note.text}|${JSON.stringify(note.values || {})}`;
-    if (said.has(noteKey)) {
-      return false;
-    }
-    said.add(noteKey);
-    return true;
-  });
+  const distinct: Array<ImportNote> = notes.filter(
+    (note: ImportNote): boolean => {
+      const noteKey: string = `${note.text}|${JSON.stringify(note.values || {})}`;
+      if (said.has(noteKey)) {
+        return false;
+      }
+      said.add(noteKey);
+      return true;
+    },
+  );
 
   return {
     ...base,
@@ -581,7 +616,7 @@ const convertRule: (data: {
       title: alertTitle,
       description: [
         description,
-        /^https?:\/\//i.test(runbook) ? `Runbook: ${runbook}` : "",
+        WEB_ADDRESS.test(runbook) ? `Runbook: ${runbook}` : "",
       ]
         .filter((part: string): boolean => {
           return part.length > 0;

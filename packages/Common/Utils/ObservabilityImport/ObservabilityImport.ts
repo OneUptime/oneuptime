@@ -108,7 +108,9 @@ export const getCreatedDashboardItems: (
   plan: DashboardImportPlan,
 ): Array<DashboardImportItem> => {
   return plan.items.filter((item: DashboardImportItem): boolean => {
-    return item.status !== ImportItemStatus.NotConverted && Boolean(item.component);
+    return (
+      item.status !== ImportItemStatus.NotConverted && Boolean(item.component)
+    );
   });
 };
 
@@ -144,10 +146,14 @@ export const buildImportedDashboardViewConfig: (data: {
 
   const variables: Array<DashboardVariable> = data.plan.variables
     .filter((item: DashboardImportVariable): boolean => {
-      return Boolean(item.variable) && item.status !== ImportItemStatus.NotConverted;
+      return (
+        Boolean(item.variable) && item.status !== ImportItemStatus.NotConverted
+      );
     })
     .map((item: DashboardImportVariable): DashboardVariable => {
-      const variable: DashboardVariable = { ...(item.variable as DashboardVariable) };
+      const variable: DashboardVariable = {
+        ...(item.variable as DashboardVariable),
+      };
       const starting: string | undefined = data.startingValues?.get(item.key);
 
       if (

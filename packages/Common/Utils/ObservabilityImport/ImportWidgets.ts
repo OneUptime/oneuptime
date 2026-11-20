@@ -76,7 +76,9 @@ export const buildChartWidget: (data: {
   component.arguments = {
     queries: data.queries.map(toQueryConfig),
     chartType: data.chartType,
-    ...(data.title ? { chartTitle: cutText(data.title, TITLE_MAX_LENGTH) } : {}),
+    ...(data.title
+      ? { chartTitle: cutText(data.title, TITLE_MAX_LENGTH) }
+      : {}),
     ...(data.description ? { chartDescription: data.description } : {}),
     ...(data.unit ? { unit: data.unit } : {}),
   };
@@ -93,26 +95,29 @@ export interface ValueWidgetData {
   criticalThreshold?: number | undefined;
 }
 
-export const buildValueWidget: (data: ValueWidgetData) => DashboardBaseComponent =
-  (data: ValueWidgetData): DashboardBaseComponent => {
-    const component: DashboardDataSourceValueComponent =
-      DashboardDataSourceValueComponentUtil.getDefaultComponent();
+export const buildValueWidget: (
+  data: ValueWidgetData,
+) => DashboardBaseComponent = (
+  data: ValueWidgetData,
+): DashboardBaseComponent => {
+  const component: DashboardDataSourceValueComponent =
+    DashboardDataSourceValueComponentUtil.getDefaultComponent();
 
-    component.arguments = {
-      title: cutText(data.title, TITLE_MAX_LENGTH),
-      query: toQueryConfig(data.query),
-      reduce: data.reduce,
-      ...(data.unit ? { unit: data.unit } : {}),
-      ...(data.warningThreshold !== undefined
-        ? { warningThreshold: data.warningThreshold }
-        : {}),
-      ...(data.criticalThreshold !== undefined
-        ? { criticalThreshold: data.criticalThreshold }
-        : {}),
-    };
-
-    return component;
+  component.arguments = {
+    title: cutText(data.title, TITLE_MAX_LENGTH),
+    query: toQueryConfig(data.query),
+    reduce: data.reduce,
+    ...(data.unit ? { unit: data.unit } : {}),
+    ...(data.warningThreshold !== undefined
+      ? { warningThreshold: data.warningThreshold }
+      : {}),
+    ...(data.criticalThreshold !== undefined
+      ? { criticalThreshold: data.criticalThreshold }
+      : {}),
   };
+
+  return component;
+};
 
 export const buildGaugeWidget: (
   data: ValueWidgetData & {
@@ -131,7 +136,9 @@ export const buildGaugeWidget: (
   component.arguments = {
     query: toQueryConfig(data.query),
     reduce: data.reduce,
-    ...(data.title ? { gaugeTitle: cutText(data.title, TITLE_MAX_LENGTH) } : {}),
+    ...(data.title
+      ? { gaugeTitle: cutText(data.title, TITLE_MAX_LENGTH) }
+      : {}),
     ...(data.unit ? { unit: data.unit } : {}),
     ...(data.minValue !== undefined ? { minValue: data.minValue } : {}),
     ...(data.maxValue !== undefined ? { maxValue: data.maxValue } : {}),
@@ -162,7 +169,9 @@ export const buildTableWidget: (data: {
 
   component.arguments = {
     query: toQueryConfig(data.query),
-    ...(data.title ? { tableTitle: cutText(data.title, TITLE_MAX_LENGTH) } : {}),
+    ...(data.title
+      ? { tableTitle: cutText(data.title, TITLE_MAX_LENGTH) }
+      : {}),
     ...(data.description ? { tableDescription: data.description } : {}),
     ...(data.maxRows !== undefined ? { maxRows: data.maxRows } : {}),
   };

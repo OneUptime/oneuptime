@@ -88,15 +88,17 @@ export const getGrafanaIntervalValues: (
     rateIntervalInSeconds: Math.max(interval + scrape, 4 * scrape),
     rangeInSeconds: Math.max(
       1,
-      Math.round((window.endDate.getTime() - window.startDate.getTime()) / 1000),
+      Math.round(
+        (window.endDate.getTime() - window.startDate.getTime()) / 1000,
+      ),
     ),
   };
 };
 
-const macroText: (
+const macroText: (name: string, values: GrafanaIntervalValues) => string = (
   name: string,
   values: GrafanaIntervalValues,
-) => string = (name: string, values: GrafanaIntervalValues): string => {
+): string => {
   switch (name as GrafanaIntervalMacro) {
     case GrafanaIntervalMacro.Interval:
       return `${values.intervalInSeconds}s`;

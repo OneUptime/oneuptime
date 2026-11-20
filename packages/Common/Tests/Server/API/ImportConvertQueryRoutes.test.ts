@@ -29,13 +29,7 @@ import Permission, {
 import ProductKey from "../../../Types/Product/ProductKey";
 import UserType from "../../../Types/UserType";
 import { mockRouter } from "./Helpers";
-import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 
 /*
  * POST /dashboard/import/convert-query-with-ai and

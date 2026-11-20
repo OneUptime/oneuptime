@@ -4,9 +4,7 @@ import { DataSourceValueReduce } from "../../../Types/Dashboard/DashboardCompone
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
-import {
-  AutoRefreshInterval,
-} from "../../../Types/Dashboard/DashboardViewConfig";
+import { AutoRefreshInterval } from "../../../Types/Dashboard/DashboardViewConfig";
 import {
   ConvertedQuery,
   DashboardImportItem,
@@ -1242,7 +1240,10 @@ const panelNotes: (panel: ImportObject) => Array<ImportNote> = (
   });
 
   if (mappings.length > 0) {
-    notes.push({ kind: ImportNoteKind.Approximation, text: PANEL_VALUE_MAPPINGS });
+    notes.push({
+      kind: ImportNoteKind.Approximation,
+      text: PANEL_VALUE_MAPPINGS,
+    });
   }
 
   return notes;
@@ -1361,7 +1362,9 @@ const convertPanel: (data: {
         key: data.key,
         title: textField(libraryPanel, "name") || textField(panel, "title"),
         sourceType: "library panel",
-        reasons: [{ kind: ImportNoteKind.Reason, text: PANEL_LIBRARY_NOT_IN_FILE }],
+        reasons: [
+          { kind: ImportNoteKind.Reason, text: PANEL_LIBRARY_NOT_IN_FILE },
+        ],
       });
     }
 
@@ -1410,7 +1413,8 @@ const convertPanel: (data: {
         : typeof field(panel, "content") === "string"
           ? (field(panel, "content") as string)
           : "";
-    const text: string = title && mode !== "html" ? `### ${title}\n\n${content}` : content;
+    const text: string =
+      title && mode !== "html" ? `### ${title}\n\n${content}` : content;
 
     if (mode === "html") {
       return {
@@ -1438,7 +1442,11 @@ const convertPanel: (data: {
     return notConverted({
       ...base,
       reasons: [
-        { kind: ImportNoteKind.Reason, text: PANEL_READS_GRAFANA, values: { type } },
+        {
+          kind: ImportNoteKind.Reason,
+          text: PANEL_READS_GRAFANA,
+          values: { type },
+        },
       ],
     });
   }
@@ -1493,9 +1501,16 @@ const convertPanel: (data: {
   const isChart: boolean = type === "timeseries" || type === "graph";
   const isWidgetWithQueries: boolean =
     isChart ||
-    ["stat", "singlestat", "gauge", "bargauge", "table", "table-old", "piechart", "barchart"].includes(
-      type,
-    );
+    [
+      "stat",
+      "singlestat",
+      "gauge",
+      "bargauge",
+      "table",
+      "table-old",
+      "piechart",
+      "barchart",
+    ].includes(type);
 
   if (!isWidgetWithQueries) {
     return notConverted({
@@ -1576,12 +1591,18 @@ const convertPanel: (data: {
   }
 
   const queries: Array<ImportedQuery> = converted.queries.map(
-    (query: { query: ImportedQuery; converted: ConvertedQuery }): ImportedQuery => {
+    (query: {
+      query: ImportedQuery;
+      converted: ConvertedQuery;
+    }): ImportedQuery => {
       return query.query;
     },
   );
   const convertedQueries: Array<ConvertedQuery> = converted.queries.map(
-    (query: { query: ImportedQuery; converted: ConvertedQuery }): ConvertedQuery => {
+    (query: {
+      query: ImportedQuery;
+      converted: ConvertedQuery;
+    }): ConvertedQuery => {
       return { ...query.converted, promQL: query.query.promQL };
     },
   );
@@ -1601,7 +1622,10 @@ const convertPanel: (data: {
   let component: DashboardBaseComponent;
 
   if (isChart || type === "barchart" || type === "piechart") {
-    const chart: { chartType: DashboardChartType; note?: ImportNote | undefined } =
+    const chart: {
+      chartType: DashboardChartType;
+      note?: ImportNote | undefined;
+    } =
       type === "piechart"
         ? { chartType: DashboardChartType.Pie }
         : type === "barchart"
@@ -1629,7 +1653,10 @@ const convertPanel: (data: {
     });
   } else if (type === "bargauge") {
     if (queries.length > 1) {
-      notes.push({ kind: ImportNoteKind.Approximation, text: PANEL_BAR_GAUGE_AS_CHART });
+      notes.push({
+        kind: ImportNoteKind.Approximation,
+        text: PANEL_BAR_GAUGE_AS_CHART,
+      });
       component = buildChartWidget({
         title,
         description,
@@ -1638,14 +1665,19 @@ const convertPanel: (data: {
         unit: unit.unit,
       });
     } else {
-      notes.push({ kind: ImportNoteKind.Approximation, text: PANEL_BAR_GAUGE_AS_TABLE });
+      notes.push({
+        kind: ImportNoteKind.Approximation,
+        text: PANEL_BAR_GAUGE_AS_TABLE,
+      });
       component = buildTableWidget({ title, description, query: queries[0]! });
     }
   } else if (type === "table" || type === "table-old") {
     component = buildTableWidget({ title, description, query: firstOnly() });
   } else {
-    const reducer: { reduce: DataSourceValueReduce; note?: ImportNote | undefined } =
-      readReducer(panel);
+    const reducer: {
+      reduce: DataSourceValueReduce;
+      note?: ImportNote | undefined;
+    } = readReducer(panel);
     const thresholds: ConvertedThresholds =
       type === "singlestat"
         ? convertGrafanaLegacyThresholds({ panel, multiplyBy: unit.multiplyBy })
@@ -1689,11 +1721,17 @@ const convertPanel: (data: {
       component = buildGaugeWidget({
         ...valueData,
         minValue:
-          getGrafanaFieldNumber({ panel, name: "min", multiplyBy: unit.multiplyBy }) ??
-          (isPercent ? 0 : undefined),
+          getGrafanaFieldNumber({
+            panel,
+            name: "min",
+            multiplyBy: unit.multiplyBy,
+          }) ?? (isPercent ? 0 : undefined),
         maxValue:
-          getGrafanaFieldNumber({ panel, name: "max", multiplyBy: unit.multiplyBy }) ??
-          (isPercent ? 100 : undefined),
+          getGrafanaFieldNumber({
+            panel,
+            name: "max",
+            multiplyBy: unit.multiplyBy,
+          }) ?? (isPercent ? 100 : undefined),
       });
     } else {
       component = buildValueWidget(valueData);
@@ -1727,18 +1765,22 @@ const readTimeRange: (
   }
 
   const exact: { seconds: number; range: TimeRange } | undefined =
-    TIME_RANGES.find((entry: { seconds: number; range: TimeRange }): boolean => {
-      return entry.seconds === seconds;
-    });
+    TIME_RANGES.find(
+      (entry: { seconds: number; range: TimeRange }): boolean => {
+        return entry.seconds === seconds;
+      },
+    );
 
   if (exact) {
     return exact.range;
   }
 
   const nearest: { seconds: number; range: TimeRange } =
-    TIME_RANGES.find((entry: { seconds: number; range: TimeRange }): boolean => {
-      return entry.seconds >= seconds;
-    }) || TIME_RANGES[TIME_RANGES.length - 1]!;
+    TIME_RANGES.find(
+      (entry: { seconds: number; range: TimeRange }): boolean => {
+        return entry.seconds >= seconds;
+      },
+    ) || TIME_RANGES[TIME_RANGES.length - 1]!;
 
   notes.push({
     kind: ImportNoteKind.Approximation,
@@ -1874,7 +1916,11 @@ export const convertGrafanaDashboard: (
   const context: DashboardContext = {
     inputs,
     dataSourceVariables,
-    defaultType: readDefaultDataSource({ document, inputs, dataSourceVariables }),
+    defaultType: readDefaultDataSource({
+      document,
+      inputs,
+      dataSourceVariables,
+    }),
     elements,
     queryVariables: converted.queryVariables,
     variableKeys: converted.variableKeys,

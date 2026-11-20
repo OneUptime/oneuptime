@@ -183,15 +183,17 @@ const isPrometheusRuleGroups: (groups: Array<unknown>) => boolean = (
   groups: Array<unknown>,
 ): boolean => {
   return groups.some((group: unknown): boolean => {
-    return arrayField(asObject(group), "rules").some((rule: unknown): boolean => {
-      const object: ImportObject | undefined = asObject(rule);
-      return Boolean(
-        object &&
-          field(object, "expr") !== undefined &&
-          (field(object, "alert") !== undefined ||
-            field(object, "record") !== undefined),
-      );
-    });
+    return arrayField(asObject(group), "rules").some(
+      (rule: unknown): boolean => {
+        const object: ImportObject | undefined = asObject(rule);
+        return Boolean(
+          object &&
+            field(object, "expr") !== undefined &&
+            (field(object, "alert") !== undefined ||
+              field(object, "record") !== undefined),
+        );
+      },
+    );
   });
 };
 
@@ -436,7 +438,9 @@ export const readImportSource: (data: {
 
   if (!data.accepts.includes(classified.kind)) {
     throw new ImportReadError(
-      wantsDashboards ? IMPORT_ALERTS_ON_DASHBOARDS : IMPORT_DASHBOARD_ON_ALERTS,
+      wantsDashboards
+        ? IMPORT_ALERTS_ON_DASHBOARDS
+        : IMPORT_DASHBOARD_ON_ALERTS,
     );
   }
 

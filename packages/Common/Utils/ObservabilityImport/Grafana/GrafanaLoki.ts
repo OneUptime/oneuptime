@@ -44,6 +44,17 @@ import {
  * by the variable itself, as every log widget is.
  */
 
+// A value the log search reads as several words, unless it is quoted.
+const NEEDS_QUOTES: RegExp = /[\s()[\],]/;
+// A label name the log search can name as an attribute.
+const SEARCH_KEY: RegExp = /^[A-Za-z0-9_.-]+$/;
+// A regex that only fixes a prefix: "check.*".
+const PREFIX_PATTERN: RegExp = /^[A-Za-z0-9_:/@-]+\.\*$/;
+// What LogQL starts with, wraps or filters with, and PromQL never does.
+const LOGQL_SELECTOR_START: RegExp = /^\{[^}]*\}/;
+const LOGQL_SELECTOR_IN_RANGE: RegExp = /\(\s*\{[^}]*\}[^)]*\[/;
+const LOGQL_LINE_FILTER: RegExp = /\|[=~]\s*["`]/;
+
 export const LOGQL_DOES_NOT_PARSE: string = translationKey(
   "OneUptime's LogQL does not read this query: {{error}}",
 );
@@ -109,17 +120,20 @@ const searchValue: (value: string) => string | undefined = (
   }
 
   const escaped: string = escapeWildcards(value);
-  return /[\s()[\],]/.test(escaped) || escaped === "" ? `"${escaped}"` : escaped;
+  return NEEDS_QUOTES.test(escaped) || escaped === ""
+    ? `"${escaped}"`
+    : escaped;
 };
 
 // A label name as the log search names an attribute.
 const searchKey: (label: string) => string | undefined = (
   label: string,
 ): string | undefined => {
-  return /^[A-Za-z0-9_.-]+$/.test(label) ? label : undefined;
+  return SEARCH_KEY.test(label) ? label : undefined;
 };
 
-const LITERAL_ALTERNATION: RegExp = /^[A-Za-z0-9_.:/@ -]+(\|[A-Za-z0-9_.:/@ -]+)*$/;
+const LITERAL_ALTERNATION: RegExp =
+  /^[A-Za-z0-9_.:/@ -]+(\|[A-Za-z0-9_.:/@ -]+)*$/;
 
 const matcherText: (matcher: PromQLLabelMatcher) => string = (
   matcher: PromQLLabelMatcher,
@@ -165,7 +179,7 @@ const matcherToSearch: (matcher: PromQLLabelMatcher) => string | undefined = (
   const pattern: string = matcher.value;
 
   // A prefix: "check.*".
-  if (/^[A-Za-z0-9_:/@-]+\.\*$/.test(pattern)) {
+  if (PREFIX_PATTERN.test(pattern)) {
     return `${negate}@${key}:${escapeWildcards(pattern.slice(0, -2))}*`;
   }
 
@@ -174,7 +188,11 @@ const matcherToSearch: (matcher: PromQLLabelMatcher) => string | undefined = (
     const values: Array<string> = pattern.split("|");
     const written: Array<string | undefined> = values.map(searchValue);
 
-    if (written.some((value: string | undefined): boolean => !value)) {
+    if (
+      written.some((value: string | undefined): boolean => {
+        return !value;
+      })
+    ) {
       return undefined;
     }
 
@@ -328,7 +346,10 @@ const selectorToFilters: (data: {
   }
 
   if (readsVariable || data.variableKeys.size > 0) {
-    data.notes.push({ kind: ImportNoteKind.Info, text: LOGQL_VARIABLES_EVERYWHERE });
+    data.notes.push({
+      kind: ImportNoteKind.Info,
+      text: LOGQL_VARIABLES_EVERYWHERE,
+    });
   }
 
   return {
@@ -338,7 +359,9 @@ const selectorToFilters: (data: {
   };
 };
 
-const stageName: (stage: LogQLStage) => string = (stage: LogQLStage): string => {
+const stageName: (stage: LogQLStage) => string = (
+  stage: LogQLStage,
+): string => {
   switch (stage.kind) {
     case "Parser":
       return `| ${stage.parser}`;
@@ -506,7 +529,10 @@ export const convertLokiCountQuery: (data: {
   const notes: Array<ImportNote> = [];
 
   if (range.operation === LogQLRangeOperation.Rate) {
-    notes.push({ kind: ImportNoteKind.Approximation, text: LOGQL_RATE_AS_COUNT });
+    notes.push({
+      kind: ImportNoteKind.Approximation,
+      text: LOGQL_RATE_AS_COUNT,
+    });
   }
 
   if (counted.grouping.length > 0) {
@@ -534,8 +560,8 @@ export const looksLikeLogQL: (expr: string) => boolean = (
   const text: string = (expr || "").trim();
 
   return (
-    /^\{[^}]*\}/.test(text) ||
-    /\(\s*\{[^}]*\}[^)]*\[/.test(text) ||
-    /\|[=~]\s*["`]/.test(text)
+    LOGQL_SELECTOR_START.test(text) ||
+    LOGQL_SELECTOR_IN_RANGE.test(text) ||
+    LOGQL_LINE_FILTER.test(text)
   );
 };

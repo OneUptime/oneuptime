@@ -104,6 +104,10 @@ const METRIC_NAME: RegExp = /^[A-Za-z][A-Za-z0-9_.]*$/;
 const IDENTIFIER_START: RegExp = /[A-Za-z_]/;
 const IDENTIFIER_PART: RegExp = /[A-Za-z0-9_.]/;
 
+const WHITE_SPACE: RegExp = /\s/;
+// Where a word of a scope ends: a space, a bracket, a comma.
+const SCOPE_WORD_END: RegExp = /[\s(),]/;
+
 class Reader {
   private readonly text: string;
   public index: number = 0;
@@ -124,7 +128,10 @@ class Reader {
   }
 
   public skipSpace(): void {
-    while (this.index < this.text.length && /\s/.test(this.text.charAt(this.index))) {
+    while (
+      this.index < this.text.length &&
+      WHITE_SPACE.test(this.text.charAt(this.index))
+    ) {
       this.index++;
     }
   }
@@ -221,7 +228,10 @@ class Reader {
     this.index++;
     const start: number = this.index;
 
-    while (this.index < this.text.length && this.text.charAt(this.index) !== quote) {
+    while (
+      this.index < this.text.length &&
+      this.text.charAt(this.index) !== quote
+    ) {
       this.index++;
     }
 
@@ -360,7 +370,10 @@ const readPrimary: (reader: Reader) => DatadogExpression = (
 
   if (char === "-") {
     reader.index++;
-    return { kind: DatadogExpressionKind.Negate, expression: readPrimary(reader) };
+    return {
+      kind: DatadogExpressionKind.Negate,
+      expression: readPrimary(reader),
+    };
   }
 
   const quoted: string | undefined = reader.quoted();
@@ -523,7 +536,7 @@ const tokenizeScope: (text: string) => Array<ScopeToken> = (
   while (index < text.length) {
     const char: string = text.charAt(index);
 
-    if (/\s/.test(char)) {
+    if (WHITE_SPACE.test(char)) {
       index++;
       continue;
     }
@@ -548,7 +561,7 @@ const tokenizeScope: (text: string) => Array<ScopeToken> = (
 
     const start: number = index;
 
-    while (index < text.length && !/[\s(),]/.test(text.charAt(index))) {
+    while (index < text.length && !SCOPE_WORD_END.test(text.charAt(index))) {
       index++;
     }
 
@@ -679,7 +692,9 @@ class ScopeReader {
       const close: ScopeToken | undefined = this.peek();
 
       if (close?.kind !== ")") {
-        throw new DatadogQueryError("a parenthesis in the scope is never closed");
+        throw new DatadogQueryError(
+          "a parenthesis in the scope is never closed",
+        );
       }
 
       this.index++;
@@ -695,7 +710,11 @@ class ScopeReader {
     // key IN (a, b), key NOT IN (a, b)
     if (this.isKeyword("IN")) {
       this.index++;
-      return { kind: DatadogScopeKind.In, key: token.text, values: this.readList() };
+      return {
+        kind: DatadogScopeKind.In,
+        key: token.text,
+        values: this.readList(),
+      };
     }
 
     if (
@@ -787,9 +806,9 @@ export interface DatadogMonitorQuery {
   threshold: number;
 }
 
-export const parseDatadogMonitorQuery: (
+export const parseDatadogMonitorQuery: (text: string) => DatadogMonitorQuery = (
   text: string,
-) => DatadogMonitorQuery = (text: string): DatadogMonitorQuery => {
+): DatadogMonitorQuery => {
   const source: string = (text || "").trim();
   const head: RegExpMatchArray | null = source.match(
     /^([a-z_]+)\(\s*([a-z0-9_]+)\s*\)\s*:([\s\S]*)$/,

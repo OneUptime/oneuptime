@@ -72,6 +72,9 @@ import { DASHBOARD_PANELS_LEFT_OUT } from "../Grafana/GrafanaDashboard";
  * has no like of, are listed with why.
  */
 
+// An address a browser can open: an image's, a link's.
+const WEB_ADDRESS: RegExp = /^https?:\/\//i;
+
 export const WIDGET_TYPE_NOT_SUPPORTED: string = translationKey(
   "OneUptime has no widget like Datadog's {{type}} widget.",
 );
@@ -107,23 +110,22 @@ export const VARIABLE_AVAILABLE_VALUES: string = translationKey(
 );
 
 // Datadog's widgets of something other than metrics, and what they read.
-const OTHER_DATA_WIDGETS: ReadonlyMap<string, string> = new Map<
-  string,
-  string
->([
-  ["log_stream", "logs"],
-  ["list_stream", "logs"],
-  ["event_stream", "events"],
-  ["event_timeline", "events"],
-  ["check_status", "service checks"],
-  ["manage_status", "monitors"],
-  ["alert_graph", "monitors"],
-  ["alert_value", "monitors"],
-  ["slo", "SLOs"],
-  ["slo_list", "SLOs"],
-  ["trace_service", "traces"],
-  ["servicemap", "traces"],
-]);
+const OTHER_DATA_WIDGETS: ReadonlyMap<string, string> = new Map<string, string>(
+  [
+    ["log_stream", "logs"],
+    ["list_stream", "logs"],
+    ["event_stream", "events"],
+    ["event_timeline", "events"],
+    ["check_status", "service checks"],
+    ["manage_status", "monitors"],
+    ["alert_graph", "monitors"],
+    ["alert_value", "monitors"],
+    ["slo", "SLOs"],
+    ["slo_list", "SLOs"],
+    ["trace_service", "traces"],
+    ["servicemap", "traces"],
+  ],
+);
 
 // What Datadog's widget reads when it is not metrics.
 const OTHER_DATA: ReadonlyMap<string, string> = new Map<string, string>([
@@ -186,9 +188,7 @@ const readRequests: (definition: ImportObject) => ReadRequests = (
   definition: ImportObject,
 ): ReadRequests => {
   const value: unknown = field(definition, "requests");
-  const requests: Array<ImportObject> = (
-    Array.isArray(value) ? value : [value]
-  )
+  const requests: Array<ImportObject> = (Array.isArray(value) ? value : [value])
     .map(asObject)
     .filter((request: ImportObject | undefined): boolean => {
       return Boolean(request);
@@ -344,7 +344,9 @@ const convertVariables: (document: ImportObject) => {
         variables.push({
           ...base,
           status: ImportItemStatus.NotConverted,
-          notes: [{ kind: ImportNoteKind.Reason, text: VARIABLE_WITHOUT_PREFIX }],
+          notes: [
+            { kind: ImportNoteKind.Reason, text: VARIABLE_WITHOUT_PREFIX },
+          ],
         });
         return;
       }
@@ -463,8 +465,8 @@ const flattenWidgets: (document: ImportObject) => Array<FlatWidget> = (
       flat.push({
         definition,
         order: flat.length,
-        x: isFree ? 0 : (numberField(layout, "x") ?? 0),
-        width: isFree ? 6 : (numberField(layout, "width") ?? 6),
+        x: isFree ? 0 : numberField(layout, "x") ?? 0,
+        width: isFree ? 6 : numberField(layout, "width") ?? 6,
         height: isFree
           ? 3
           : Math.max(1, Math.round((numberField(layout, "height") ?? 2) * 1.5)),
@@ -636,7 +638,7 @@ const convertWidget: (data: {
   if (type === "image") {
     const url: string = textField(definition, "url");
 
-    if (!/^https?:\/\//i.test(url)) {
+    if (!WEB_ADDRESS.test(url)) {
       return notConverted({
         ...base,
         reasons: [
@@ -697,7 +699,9 @@ const convertWidget: (data: {
           {
             kind: ImportNoteKind.Reason,
             text: WIDGET_READS_OTHER_DATA,
-            values: { source: Array.from(new Set(requests.otherData)).join(", ") },
+            values: {
+              source: Array.from(new Set(requests.otherData)).join(", "),
+            },
           },
         ],
       });
@@ -810,7 +814,10 @@ const convertWidget: (data: {
     });
   } else {
     if (type === "toplist") {
-      distinct.push({ kind: ImportNoteKind.Approximation, text: WIDGET_TOPLIST_AS_TABLE });
+      distinct.push({
+        kind: ImportNoteKind.Approximation,
+        text: WIDGET_TOPLIST_AS_TABLE,
+      });
     }
 
     component = buildTableWidget({ title, query: firstOnly() });
@@ -873,30 +880,32 @@ export const convertDatadogDashboard: (
   const items: Array<DashboardImportItem> = [];
   const placed: Array<PlacedComponent> = [];
 
-  flat.slice(0, IMPORT_MAX_ITEMS).forEach((widget: FlatWidget, index: number) => {
-    const item: DashboardImportItem = convertWidget({
-      flat: widget,
-      key: `widget-${index}`,
-      prefixes: converted.prefixes,
-      queryOverrides: options?.queryOverrides || NO_QUERY_OVERRIDES,
-      knownMetricKinds: options?.knownMetricKinds,
-    });
-
-    items.push(item);
-
-    if (item.component) {
-      placed.push({
-        component: item.component,
-        placement: {
-          sourceRow: widget.order,
-          sourceColumn: widget.x,
-          width: widget.width,
-          height: widget.height,
-          startsLine: widget.isHeading,
-        },
+  flat
+    .slice(0, IMPORT_MAX_ITEMS)
+    .forEach((widget: FlatWidget, index: number) => {
+      const item: DashboardImportItem = convertWidget({
+        flat: widget,
+        key: `widget-${index}`,
+        prefixes: converted.prefixes,
+        queryOverrides: options?.queryOverrides || NO_QUERY_OVERRIDES,
+        knownMetricKinds: options?.knownMetricKinds,
       });
-    }
-  });
+
+      items.push(item);
+
+      if (item.component) {
+        placed.push({
+          component: item.component,
+          placement: {
+            sourceRow: widget.order,
+            sourceColumn: widget.x,
+            width: widget.width,
+            height: widget.height,
+            startsLine: widget.isHeading,
+          },
+        });
+      }
+    });
 
   /*
    * Datadog lays a row's widgets side by side, each on its own `y`: the
@@ -907,7 +916,11 @@ export const convertDatadogDashboard: (
       placed.map((item: PlacedComponent): PlacedComponent => {
         return {
           ...item,
-          placement: { ...item.placement, sourceRow: 0, sourceColumn: item.placement.sourceRow },
+          placement: {
+            ...item.placement,
+            sourceRow: 0,
+            sourceColumn: item.placement.sourceRow,
+          },
         };
       }),
     );

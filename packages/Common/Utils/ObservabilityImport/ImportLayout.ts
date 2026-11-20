@@ -56,9 +56,10 @@ export const fromGrafanaHeight: (height: number) => number = (
  * The components laid out in the source's order, in lines of 12 columns.
  * Returns new components and the board's height; none handed in is changed.
  */
-export const layOutImportedComponents: (
-  placed: Array<PlacedComponent>,
-) => { components: Array<DashboardBaseComponent>; height: number } = (
+export const layOutImportedComponents: (placed: Array<PlacedComponent>) => {
+  components: Array<DashboardBaseComponent>;
+  height: number;
+} = (
   placed: Array<PlacedComponent>,
 ): { components: Array<DashboardBaseComponent>; height: number } => {
   const ordered: Array<PlacedComponent> = [...placed].sort(

@@ -36,6 +36,13 @@ import { findPromQLMonitorExpressionProblem } from "../PromQL/PromQLMonitorExpre
  * may be asked to rewrite it.
  */
 
+// $1 in a label_replace: a group of the regex, not a variable.
+const DIGITS_ONLY: RegExp = /^[0-9]+$/;
+// A sample value that is a duration: 5m, 30s.
+const DURATION_START: RegExp = /^[0-9]+[smhdwy]/;
+// A query that reads Grafana's interval: $__interval, $__rate_interval.
+const READS_INTERVAL: RegExp = /\$__(rate_)?interval/;
+
 export const QUERY_EMPTY: string = translationKey("It has no query.");
 
 export const QUERY_DOES_NOT_PARSE: string = translationKey(
@@ -173,7 +180,7 @@ export const fillGrafanaVariables: (
       }
 
       // `$1` in a label_replace, or a regex's `$`: not a variable.
-      if (/^[0-9]+$/.test(name)) {
+      if (DIGITS_ONLY.test(name)) {
         return match;
       }
 
@@ -198,7 +205,10 @@ export const fillGrafanaVariables: (
 const withSampleValues: (
   text: string,
   sampleValues: ReadonlyMap<string, string>,
-) => string = (text: string, sampleValues: ReadonlyMap<string, string>): string => {
+) => string = (
+  text: string,
+  sampleValues: ReadonlyMap<string, string>,
+): string => {
   let result: string = "";
   let quote: string | null = null;
 
@@ -231,9 +241,10 @@ const withSampleValues: (
         const name: string = text.slice(index + 2, end).trim();
         const before: string = result.trimEnd();
         const sample: string | undefined = sampleValues.get(name);
-        const inBrackets: boolean = before.endsWith("[") || before.endsWith(":");
+        const inBrackets: boolean =
+          before.endsWith("[") || before.endsWith(":");
         result +=
-          sample && (!inBrackets || /^[0-9]+[smhdwy]/.test(sample))
+          sample && (!inBrackets || DURATION_START.test(sample))
             ? sample
             : inBrackets
               ? "5m"
@@ -359,7 +370,7 @@ export const convertGrafanaPromQL: (data: {
   if (
     minInterval &&
     !minInterval.startsWith("$") &&
-    /\$__(rate_)?interval/.test(filled.text)
+    READS_INTERVAL.test(filled.text)
   ) {
     notes.push({
       kind: ImportNoteKind.Approximation,

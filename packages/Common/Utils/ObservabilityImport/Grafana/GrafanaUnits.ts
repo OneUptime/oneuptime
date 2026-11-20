@@ -130,8 +130,7 @@ export const convertGrafanaUnit: (unit: string) => ConvertedUnit = (
     return { unit: "", multiplyBy: 1 };
   }
 
-  const known: { unit: string; multiplyBy: number } | undefined =
-    UNITS.get(id);
+  const known: { unit: string; multiplyBy: number } | undefined = UNITS.get(id);
 
   if (known) {
     return { ...known };
@@ -229,7 +228,9 @@ const WARNING_COLORS: ReadonlyArray<string> = [
 const readRgb: (color: string) => [number, number, number] | undefined = (
   color: string,
 ): [number, number, number] | undefined => {
-  const hex: RegExpMatchArray | null = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  const hex: RegExpMatchArray | null = color.match(
+    /^#([0-9a-f]{3}|[0-9a-f]{6})$/,
+  );
 
   if (hex) {
     const digits: string =
@@ -328,7 +329,9 @@ export const convertGrafanaLegacyThresholds: (data: {
   const lowIsBad: boolean =
     colors[0] !== ThresholdColor.Good ||
     colors.slice(1).some((color: ThresholdColor, index: number): boolean => {
-      return color === ThresholdColor.Good && colors[index] !== ThresholdColor.Good;
+      return (
+        color === ThresholdColor.Good && colors[index] !== ThresholdColor.Good
+      );
     });
 
   if (lowIsBad) {
@@ -442,8 +445,11 @@ export const convertGrafanaThresholds: (data: {
   const firstOf: (color: ThresholdColor) => number | undefined = (
     color: ThresholdColor,
   ): number | undefined => {
-    const step: { color: ThresholdColor; value: number | undefined } | undefined =
-      steps.slice(1).find(
+    const step:
+      | { color: ThresholdColor; value: number | undefined }
+      | undefined = steps
+      .slice(1)
+      .find(
         (candidate: {
           color: ThresholdColor;
           value: number | undefined;
@@ -481,5 +487,7 @@ export const getGrafanaFieldNumber: (data: {
     return undefined;
   }
 
-  return field(defaults, data.name) === null ? undefined : value * data.multiplyBy;
+  return field(defaults, data.name) === null
+    ? undefined
+    : value * data.multiplyBy;
 };

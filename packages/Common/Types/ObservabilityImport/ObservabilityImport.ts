@@ -1,7 +1,11 @@
 import DashboardBaseComponent from "../Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardVariable from "../Dashboard/DashboardVariable";
 import DashboardViewConfig from "../Dashboard/DashboardViewConfig";
-import { FilterType, EvaluateOverTimeType, NoDataPolicy } from "../Monitor/CriteriaFilter";
+import {
+  FilterType,
+  EvaluateOverTimeType,
+  NoDataPolicy,
+} from "../Monitor/CriteriaFilter";
 import RollingTime from "../RollingTime/RollingTime";
 
 /*
@@ -164,7 +168,10 @@ export interface DashboardImportPlan {
   // Notes about the whole dashboard.
   notes: Array<ImportNote>;
   // Board-wide defaults read from the source.
-  viewConfigDefaults: Pick<DashboardViewConfig, "timeRange" | "refreshInterval">;
+  viewConfigDefaults: Pick<
+    DashboardViewConfig,
+    "timeRange" | "refreshInterval"
+  >;
 }
 
 // ------------------------------------------------------------------- alerts
