@@ -389,7 +389,7 @@ describe("CompatibleIngestService.recordCount", () => {
   test("counts log records across resources and scopes", () => {
     const logs: JSONObject = logsOf(2);
     (logs["resourceLogs"] as Array<JSONObject>).push(
-      logsOf(3)["resourceLogs"]![0] as JSONObject,
+      (logsOf(3)["resourceLogs"] as Array<JSONObject>)[0]!,
     );
 
     expect(CompatibleIngestService.recordCount(logs, "resourceLogs")).toBe(5);
