@@ -1,7 +1,21 @@
 import PageMap from "../../Utils/PageMap";
+import {
+  LOG_ADDRESSES_SCRUBBED,
+  SCRUB_RULE_MASKS_THEM,
+  SCRUB_RULE_REDACTS_THEM,
+  TRACE_ADDRESSES_SCRUBBED,
+} from "../SecurityEvents/HiddenClientAddressCopy";
+import { HIDDEN_ADDRESS_RULES_PAGES } from "../SecurityEvents/HiddenClientAddressModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  ScrubbedAddressKind,
+  ScrubbedAddressSignal,
+  SecurityAddressScrubRule,
+  getScrubbedKindOfAction,
+  readSecurityAddressScrubRules,
+} from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import {
   TURN_ON_RECOMMENDED_ACTIONS,
   TURN_ON_RECOMMENDED_PARTS,
@@ -38,6 +52,12 @@ export interface SecuritySetupStatus {
   openCases: number;
   enabledPlaybooks: number;
   destinations: number;
+  /*
+   * The scrub rules that keep Security Events from naming the address an
+   * attack came from, of the logs and the traces it reads (#10397). Absent
+   * when there are none.
+   */
+  addressScrubRules?: Array<SecurityAddressScrubRule> | undefined;
 }
 
 export type { TurnOnRecommendedProblem, TurnOnRecommendedResult };
@@ -72,7 +92,11 @@ function readText(value: JSONValue | undefined): string | null {
 export function parseSecuritySetupStatus(
   body: JSONObject,
 ): SecuritySetupStatus {
+  const addressScrubRules: Array<SecurityAddressScrubRule> =
+    readSecurityAddressScrubRules(body["addressScrubRules"]);
+
   return {
+    ...(addressScrubRules.length > 0 ? { addressScrubRules } : {}),
     connections: readNumber(body["connections"]),
     logsSourceEnabled: body["logsSourceEnabled"] === true,
     telemetrySourcesEnabled: readNumber(body["telemetrySourcesEnabled"]),
@@ -565,6 +589,55 @@ export function getSecurityPipelineStages(
       needsAttention: false,
     },
   ];
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Scrub rules that hide attackers' addresses (#10397)
+ * ---------------------------------------------------------------------------
+ */
+
+// One line of the Overview's card: which kind of telemetry, which rule, and where it is changed.
+export interface SecurityAddressScrubItem {
+  signal: ScrubbedAddressSignal;
+  // What it means for Security Events, a translation key.
+  sentence: string;
+  // Which rule does it, a template with {{rule}}, and the rule's name as it was saved.
+  ruleSentence: string;
+  ruleName: string;
+  // The logs' or the traces' Scrub Rules, where the rule is.
+  rulesPage: PageMap;
+}
+
+/*
+ * What Security Events' setup says of the scrub rules that keep it from
+ * naming the address an attack came from: one line for the logs it reads,
+ * one for the traces, each with the rule that redacts or masks the
+ * addresses there and a way to it. Hash Instead takes the button's place
+ * once #10396 ships.
+ */
+export function getSecurityAddressScrubItems(
+  status: SecuritySetupStatus,
+): Array<SecurityAddressScrubItem> {
+  const items: Array<SecurityAddressScrubItem> = [];
+
+  for (const rule of status.addressScrubRules || []) {
+    items.push({
+      signal: rule.signal,
+      sentence:
+        rule.signal === "trace"
+          ? TRACE_ADDRESSES_SCRUBBED
+          : LOG_ADDRESSES_SCRUBBED,
+      ruleSentence:
+        getScrubbedKindOfAction(rule.scrubAction) === ScrubbedAddressKind.Masked
+          ? SCRUB_RULE_MASKS_THEM
+          : SCRUB_RULE_REDACTS_THEM,
+      ruleName: rule.ruleName,
+      rulesPage: HIDDEN_ADDRESS_RULES_PAGES[rule.signal],
+    });
+  }
+
+  return items;
 }
 
 // How many sources feed Security: each connection, your logs, and each kind of your other OneUptime data.

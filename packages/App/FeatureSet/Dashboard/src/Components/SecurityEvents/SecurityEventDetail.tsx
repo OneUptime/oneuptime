@@ -10,6 +10,11 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  HiddenClientAddress,
+  readHiddenClientAddress,
+} from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import HiddenClientAddressText from "./HiddenClientAddressText";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
@@ -68,6 +73,9 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const hiddenAddress: HiddenClientAddress | null =
+    readHiddenClientAddress(event);
+
   /*
    * Observables are the pivot points of the whole product — every one of
    * them is a valid Correlate query, so render them as chips that start
@@ -122,7 +130,15 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     { label: "MITRE Techniques", value: formatArray(event.mitreTechniques) },
     { label: "Principal User", value: event.principalUser },
     { label: "Principal Host", value: event.principalHost },
-    { label: "Principal IP", value: event.principalIp },
+    {
+      label: "Principal IP",
+      // An address a scrub rule hid says so, as the events list's drawer does.
+      value: hiddenAddress ? (
+        <HiddenClientAddressText hidden={hiddenAddress} />
+      ) : (
+        event.principalIp
+      ),
+    },
     { label: "Principal Process", value: event.principalProcess },
     { label: "Process", value: event.processName },
     { label: "Process Path", value: event.processPath },
