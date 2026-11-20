@@ -354,8 +354,15 @@ describe("Iron Bank's nginx", () => {
     expect(dockerfile).toMatch(
       /^ARG BASE_IMAGE=ironbank\/opensource\/nginx\/nginx-alpine$/m,
     );
+    /*
+     * The tag escaped whole, backslashes included, as Common's escapeRegExp
+     * does: these plain JavaScript tests cannot import it.
+     */
     expect(dockerfile).toMatch(
-      new RegExp(`^ARG BASE_TAG=${baseTag.replace(/\./g, "\\.")}$`, "m"),
+      new RegExp(
+        `^ARG BASE_TAG=${baseTag.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")}$`,
+        "m",
+      ),
     );
   });
 
