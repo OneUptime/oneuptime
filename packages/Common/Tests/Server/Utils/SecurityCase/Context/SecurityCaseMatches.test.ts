@@ -38,6 +38,7 @@ import {
 } from "../../../../../Types/SecurityCase/SecurityCaseMatches";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
+import { cutShortDetectionText } from "../../../../../Types/SecurityCase/SecurityDetectionText";
 import { DETECTION_RULE_LIBRARY } from "../../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import { getDetectionRuleLibraryResponseSteps } from "../../../../../Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
 import {
@@ -855,6 +856,58 @@ ${SUCCESSFUL_SIGN_IN}
     expect(detection.windowStart).toBe("2026-11-17T19:22:00.000Z");
     expect(detection.windowEnd).toBe("2026-11-17T19:29:00.000Z");
     expect(groupParams(statement)).toEqual([["alice"]]);
+  });
+
+  /*
+   * A group value longer than a detection keeps was recorded cut short,
+   * ending in an ellipsis: matched as it was recorded, no event's value is
+   * it, and the case listed nothing. Its group is the one that starts so.
+   */
+  test("a group recorded cut short is the group whose value starts as it does", async () => {
+    const route: string = `/api/search/${"q".repeat(600)}`;
+
+    useCorrelation({
+      yaml: ROUTE_BURST_YAML,
+      groupValue: cutShortDetectionText(route),
+    });
+
+    await matches();
+
+    const statement: Statement = eventsStatement();
+    const start: string = cutShortDetectionText(route).slice(0, -1);
+
+    expect(statement.query).toMatch(
+      /startsWith\(arrayStringConcat\(\[toString\(attributes\[\{p\d+:String\}\]\)\], ' \/ '\), \{p\d+:String\}\)/,
+    );
+    expect(statement.query).not.toContain("has(");
+    expect(Object.values(statement.query_params)).toContain(start);
+    expect(route.startsWith(start)).toBe(true);
+  });
+
+  test("so is a single rule's", () => {
+    const address: string = `2001:db8::${"f".repeat(600)}`;
+    const built: ReturnType<typeof buildRuleCondition> = buildRuleCondition({
+      rule: { groupByField: "principalIp" },
+      definition: SigmaRuleSetParser.parse(PATH_TRAVERSAL_YAML),
+      groupValue: cutShortDetectionText(address),
+    });
+
+    expect(built!.condition.query).toMatch(
+      /startsWith\(principalIp, \{p\d+:String\}\)/,
+    );
+    expect(built!.condition.query).not.toContain("principalIp = ");
+    expect(Object.values(built!.condition.query_params)).toContain(
+      cutShortDetectionText(address).slice(0, -1),
+    );
+
+    // A value kept whole is matched as it is.
+    expect(
+      buildRuleCondition({
+        rule: { groupByField: "principalIp" },
+        definition: SigmaRuleSetParser.parse(PATH_TRAVERSAL_YAML),
+        groupValue: "35.196.249.14",
+      })!.condition.query,
+    ).toContain("principalIp = ");
   });
 
   test("a step it cannot resolve leaves it to what the detection is about", () => {

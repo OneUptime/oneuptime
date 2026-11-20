@@ -29,6 +29,7 @@ import {
   readSecurityEntities,
 } from "../../../../Types/SecurityCase/SecurityEntity";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
+import { getCutShortDetectionTextStart } from "../../../../Types/SecurityCase/SecurityDetectionText";
 import {
   SecurityDetectionMatchedEvent,
   SecurityDetectionMatchedEvents,
@@ -333,6 +334,10 @@ function observablesCondition(values: Array<string>): Statement {
  * every event naming the address anywhere - as the source of another
  * group's request, or its target. Throws, as the reads do, for a step that
  * is not resolved to a rule.
+ *
+ * A group value longer than a detection keeps was recorded cut short
+ * (SecurityCaseIngest): its group is the one whose value starts as the
+ * recorded one does, where the value itself matched no event at all.
  */
 export function buildRuleCondition(data: {
   rule: Pick<DetectionRule, "groupByField">;
@@ -340,6 +345,24 @@ export function buildRuleCondition(data: {
   groupValue: string;
 }): { condition: Statement; basis: SecurityCaseMatchBasis } | null {
   const { definition } = data;
+  const cutShortStart: string | null = getCutShortDetectionTextStart(
+    data.groupValue,
+  );
+
+  // The group a value cut short as it was recorded names: every value it starts.
+  const appendStartsWith: (
+    condition: Statement,
+    expression: Statement,
+    start: string,
+  ) => void = (
+    condition: Statement,
+    expression: Statement,
+    start: string,
+  ): void => {
+    condition.append(" AND startsWith(");
+    condition.append(expression);
+    condition.append(SQL`, ${{ type: TableColumnType.Text, value: start }})`);
+  };
 
   if (definition.kind === "single") {
     const condition: Statement = SQL`(`;
@@ -348,7 +371,13 @@ export function buildRuleCondition(data: {
 
     const groupByField: string = (data.rule.groupByField || "").trim();
 
-    if (groupByField && data.groupValue) {
+    if (groupByField && cutShortStart) {
+      appendStartsWith(
+        condition,
+        buildSigmaFieldExpression(groupByField),
+        cutShortStart,
+      );
+    } else if (groupByField && data.groupValue) {
       condition.append(" AND ");
       condition.append(buildSigmaFieldExpression(groupByField));
       condition.append(
@@ -374,7 +403,9 @@ export function buildRuleCondition(data: {
   condition.append(")");
 
   // A correlation that does not group keeps its events as one group.
-  if (read.groupExpression && data.groupValue) {
+  if (read.groupExpression && cutShortStart) {
+    appendStartsWith(condition, read.groupExpression, cutShortStart);
+  } else if (read.groupExpression && data.groupValue) {
     condition.append(
       SQL` AND has(${{
         type: TableColumnType.ArrayText,

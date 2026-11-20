@@ -33,6 +33,7 @@ import {
   SecurityEntity,
   mergeSecurityEntities,
 } from "../../../Types/SecurityCase/SecurityEntity";
+import { cutShortDetectionText } from "../../../Types/SecurityCase/SecurityDetectionText";
 import OcsfSeverity, {
   OcsfSeverityId,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
@@ -95,8 +96,6 @@ export interface SecurityCaseIngestResult {
   detectionsRepeated: number;
 }
 
-const LONG_TEXT_LIMIT: number = 480;
-
 /*
  * The most detections whose kept events one read takes (#9943): a rule's
  * firing opens at most 100 groups (DETECTION_MAX_GROUPS_PER_EVALUATION), so
@@ -115,10 +114,6 @@ export type KeptEventsOfDetections = Map<
   string,
   SecurityDetectionMatchedEvents | null
 >;
-
-function clamp(text: string, limit: number): string {
-  return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
-}
 
 /*
  * The detection a signal repeats: the one with its fingerprint whose case
@@ -158,7 +153,7 @@ export function getRepeatedDetectionIdsToRead(data: {
 
     const repeated: SecurityDetection | undefined = findRepeatedDetection({
       detections: data.detections,
-      fingerprint: clamp(signal.fingerprint, LONG_TEXT_LIMIT),
+      fingerprint: cutShortDetectionText(signal.fingerprint),
       openCases: data.openCases,
     });
     const id: string = repeated?.id?.toString() || "";
@@ -190,7 +185,7 @@ export function securityCaseGroupingKey(signal: {
     return getEntityCaseGroupingKey(value);
   }
 
-  return clamp(`detection:${signal.fingerprint}`, LONG_TEXT_LIMIT);
+  return cutShortDetectionText(`detection:${signal.fingerprint}`);
 }
 
 // The worse of two OCSF severities.
@@ -317,7 +312,7 @@ export default class SecurityCaseIngest {
     const fingerprints: Array<string> = Array.from(
       new Set(
         signals.map((signal: SecurityDetectionSignal): string => {
-          return clamp(signal.fingerprint, LONG_TEXT_LIMIT);
+          return cutShortDetectionText(signal.fingerprint);
         }),
       ),
     );
@@ -439,7 +434,7 @@ export default class SecurityCaseIngest {
 
     for (const signal of signals) {
       try {
-        const fingerprint: string = clamp(signal.fingerprint, LONG_TEXT_LIMIT);
+        const fingerprint: string = cutShortDetectionText(signal.fingerprint);
 
         const repeated: SecurityDetection | undefined = findRepeatedDetection({
           detections: existingDetections,
@@ -573,7 +568,7 @@ export default class SecurityCaseIngest {
 
     const securityCase: SecurityCase = new SecurityCase();
     securityCase.projectId = signal.projectId;
-    securityCase.title = clamp(signal.title, LONG_TEXT_LIMIT);
+    securityCase.title = cutShortDetectionText(signal.title);
     securityCase.description = signal.description || "";
 
     if (priority?.id) {
@@ -638,11 +633,11 @@ export default class SecurityCaseIngest {
     const detection: SecurityDetection = new SecurityDetection();
     detection.projectId = signal.projectId;
     detection.securityCaseId = securityCase.id!;
-    detection.title = clamp(signal.title, LONG_TEXT_LIMIT);
+    detection.title = cutShortDetectionText(signal.title);
     detection.description = signal.description || "";
     detection.severity = signal.severity;
     detection.source = signal.source;
-    detection.fingerprint = clamp(signal.fingerprint, LONG_TEXT_LIMIT);
+    detection.fingerprint = cutShortDetectionText(signal.fingerprint);
     detection.entities = mergeSecurityEntities(
       signal.entities,
     ) as unknown as JSONArray;
@@ -657,11 +652,11 @@ export default class SecurityCaseIngest {
     detection.lastSeenAt = signal.seenAt;
 
     if (signal.ruleName) {
-      detection.ruleName = clamp(signal.ruleName, LONG_TEXT_LIMIT);
+      detection.ruleName = cutShortDetectionText(signal.ruleName);
     }
 
     if (signal.groupValue) {
-      detection.groupValue = clamp(signal.groupValue, LONG_TEXT_LIMIT);
+      detection.groupValue = cutShortDetectionText(signal.groupValue);
     }
 
     if (signal.detectionRuleId) {
@@ -681,7 +676,7 @@ export default class SecurityCaseIngest {
     }
 
     if (signal.eventUid) {
-      detection.eventUid = clamp(signal.eventUid, LONG_TEXT_LIMIT);
+      detection.eventUid = cutShortDetectionText(signal.eventUid);
     }
 
     const kept: SecurityDetectionMatchedEvents | null = signal.matchedEvents
@@ -855,7 +850,7 @@ export default class SecurityCaseIngest {
     };
 
     if (signal.eventUid) {
-      set.eventUid = clamp(signal.eventUid, LONG_TEXT_LIMIT);
+      set.eventUid = cutShortDetectionText(signal.eventUid);
     }
 
     if (signal.sampleMessage) {
