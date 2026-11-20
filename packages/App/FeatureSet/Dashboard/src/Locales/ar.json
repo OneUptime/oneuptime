@@ -59305,5 +59305,20 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "لا تقرؤه أي مراقبة أو لوحة معلومات أو هدف SLO أو قاعدة تسجيل.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "تعذّر التحقق الآن من بعض المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل، وقد تقرؤه.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "تقرؤه {{count}} من المراقبات ولوحات المعلومات وأهداف SLO وقواعد التسجيل. وبعد إزالته لن تتلقى بيانات جديدة.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "يقرؤه {{count}} من المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل. وبعد إزالته لن يتلقى بيانات جديدة."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "يقرؤه {{count}} من المراقبات أو لوحات المعلومات أو أهداف SLO أو قواعد التسجيل. وبعد إزالته لن يتلقى بيانات جديدة.",
+  "Checking why the payment app crashes after 6pm": "نتحقق من سبب تعطل تطبيق الدفع بعد الساعة 6 مساءً",
+  "Download Lines": "تنزيل الأسطر",
+  "Shown to the person at the device with the request, to say why you ask.": "تُعرض على الشخص الموجود عند الجهاز مع الطلب، لتوضح سبب طلبك.",
+  "Its security patch level is 90 days old or newer.": "مستوى تصحيح الأمان عمره 90 يومًا أو أقل.",
+  "Its security patch level is more than 90 days old.": "مستوى تصحيح الأمان أقدم من 90 يومًا.",
+  "Out of Date": "غير محدّث",
+  "Search security patch levels...": "البحث في مستويات تصحيح الأمان...",
+  "Security Patch Status": "حالة تصحيح الأمان",
+  "Up to Date": "محدّث",
+  "Agent Permissions": "أذونات الوكيل",
+  "Agent Permissions Status": "حالة أذونات الوكيل",
+  "All Granted": "مُنحت كلها",
+  "Search agent permissions...": "البحث في أذونات الوكيل...",
+  "The Android agent reads every app's logs and crash stacks.": "يقرأ وكيل Android سجلات كل التطبيقات وتتبعات أعطالها.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "لا يزال وكيل Android يحتاج إلى READ_LOGS أو READ_DROPBOX_DATA أو الوصول إلى بيانات الاستخدام."
 }

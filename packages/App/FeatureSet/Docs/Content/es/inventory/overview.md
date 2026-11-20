@@ -46,9 +46,9 @@ Cada tres horas, OneUptime elimina los elementos descubiertos que llevan más ti
 
 | Tipo de elemento | Se elimina tras este tiempo sin telemetría |
 | --- | --- |
-| Pods, despliegues, invitados de Proxmox y máquinas virtuales de VMware | 1 día |
-| Nodos y espacios de nombres de Kubernetes, nodos de Proxmox, hosts, clústeres y almacenes de datos de VMware, y las bases de datos y servicios remotos a los que llaman tus trazas | 7 días |
-| Servicios, hosts, clústeres de Kubernetes, Proxmox y Ceph, cabinas de almacenamiento, vCenters y clústeres de Docker Swarm | 30 días |
+| Pods, despliegues, invitados de Proxmox, instancias de OpenStack y máquinas virtuales de VMware | 1 día |
+| Nodos y espacios de nombres de Kubernetes, nodos de Proxmox, hipervisores de OpenStack, hosts, clústeres y almacenes de datos de VMware, y las bases de datos y servicios remotos a los que llaman tus trazas | 7 días |
+| Servicios, hosts, clústeres de Kubernetes, Proxmox y Ceph, nubes OpenStack, cabinas de almacenamiento, vCenters y clústeres de Docker Swarm | 30 días |
 
 Una relación que OneUptime descubrió se elimina cuando no se ha vuelto a ver durante 30 días.
 
@@ -77,6 +77,8 @@ Un host o un dispositivo de red tiene una tarjeta **Detalles del activo** que de
 - Los datos de un host vienen de los atributos de recurso de su telemetría: sus direcciones IP y MAC, su arquitectura y su sistema operativo de serie, y su número de serie, marca, modelo y firmware una vez que los estampas.
 - Los datos de un dispositivo de red vienen de su sondeo SNMP, su rol y su sitio. Lo que su sondeo no ha leído viene del descubrimiento: el último escaneo de su dirección, la tabla ARP de un router o la consulta DNS de su sonda. Un dispositivo sin ENTITY-MIB, como un Meraki MX, obtiene igualmente su marca, modelo y sistema operativo de su descripción del sistema, y su dirección MAC de sus propios puertos. Su dirección IP nunca se muestra como su nombre de host.
 - Un dispositivo Meraki también toma del panel de Meraki lo que su sondeo deja vacío, entre ello su número de serie, modelo y firmware, cuando una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) lee su organización.
+
+**Todos los elementos** encuentra los dispositivos Android sobre los que hay que actuar. Su filtro **Nivel del parche de seguridad** muestra como **Desactualizado** los dispositivos cuyo nivel de parche de seguridad tiene más de 90 días, la misma regla que aplica la alerta Security Patch Out of Date del [monitor de host](/docs/monitor/host-monitor). Su filtro **Permisos del agente** muestra los dispositivos en los que al [Agente de Android](/docs/telemetry/android-agent) aún le faltan READ_LOGS, READ_DROPBOX_DATA o el acceso a datos de uso. Cada uno tiene una columna con el mismo nombre, oculta hasta que la activas, y la exportación CSV la incluye.
 
 La tarjeta indica de dónde vino cada dato y cuándo. La fuente que comparten la mayoría de los datos, como el recolector de un host, el propio sondeo SNMP de un dispositivo de red o el escaneo de descubrimiento que lo leyó, se nombra una sola vez, debajo de los datos. Cualquier otra fuente, como la tabla ARP de un router o un valor guardado en el dispositivo, se nombra bajo su dato. Un valor guardado en un dispositivo de red nunca se sustituye por lo que lee el descubrimiento, y cuando los dos difieren, la tarjeta muestra ambos.
 

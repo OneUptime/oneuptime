@@ -59305,5 +59305,20 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "沒有監測器、儀表板、SLO 或記錄規則讀取此指標。",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "部分監測器、儀表板、SLO 或記錄規則暫時無法檢查，它們可能讀取此指標。",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} 個監測器、儀表板、SLO 和記錄規則讀取此指標。移除後，它們將不再取得新資料。",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 個監測器、儀表板、SLO 和記錄規則讀取此指標。移除後，它們將不再取得新資料。"
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} 個監測器、儀表板、SLO 和記錄規則讀取此指標。移除後，它們將不再取得新資料。",
+  "Checking why the payment app crashes after 6pm": "排查付款應用程式在晚上 6 點後當機的原因",
+  "Download Lines": "下載日誌行",
+  "Shown to the person at the device with the request, to say why you ask.": "隨請求顯示給裝置旁的人，說明您為什麼請求。",
+  "Its security patch level is 90 days old or newer.": "安全性修補程式等級不超過 90 天。",
+  "Its security patch level is more than 90 days old.": "安全性修補程式等級已超過 90 天。",
+  "Out of Date": "需要更新",
+  "Search security patch levels...": "搜尋安全性修補程式等級...",
+  "Security Patch Status": "安全性修補程式狀態",
+  "Up to Date": "已是最新",
+  "Agent Permissions": "代理程式權限",
+  "Agent Permissions Status": "代理程式權限狀態",
+  "All Granted": "已全部授予",
+  "Search agent permissions...": "搜尋代理程式權限...",
+  "The Android agent reads every app's logs and crash stacks.": "Android 代理程式會讀取所有應用程式的日誌和當機堆疊。",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android 代理程式仍需要 READ_LOGS、READ_DROPBOX_DATA 或使用情況存取權。"
 }

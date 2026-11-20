@@ -59305,5 +59305,20 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Ingen monitor, instrumentpanel, SLO eller inspelningsregel läser det.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Vissa monitorer, instrumentpaneler, SLO:er eller inspelningsregler kunde inte kontrolleras just nu och kan läsa det.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitorer, instrumentpaneler, SLO:er och inspelningsregler läser det. När det har tagits bort får de inga nya data.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, instrumentpanel, SLO eller inspelningsregel läser det. När det har tagits bort kommer inga nya data in."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, instrumentpanel, SLO eller inspelningsregel läser det. När det har tagits bort kommer inga nya data in.",
+  "Checking why the payment app crashes after 6pm": "Undersöker varför betalappen kraschar efter kl. 18",
+  "Download Lines": "Ladda ner rader",
+  "Shown to the person at the device with the request, to say why you ask.": "Visas för personen vid enheten tillsammans med begäran, för att säga varför du ber om det.",
+  "Its security patch level is 90 days old or newer.": "Säkerhetspatchnivån är högst 90 dagar gammal.",
+  "Its security patch level is more than 90 days old.": "Säkerhetspatchnivån är äldre än 90 dagar.",
+  "Out of Date": "Föråldrad",
+  "Search security patch levels...": "Sök säkerhetspatchnivåer...",
+  "Security Patch Status": "Säkerhetspatchstatus",
+  "Up to Date": "Uppdaterad",
+  "Agent Permissions": "Agentbehörigheter",
+  "Agent Permissions Status": "Status för agentbehörigheter",
+  "All Granted": "Alla beviljade",
+  "Search agent permissions...": "Sök agentbehörigheter...",
+  "The Android agent reads every app's logs and crash stacks.": "Android-agenten läser alla appars loggar och kraschstackar.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android-agenten behöver fortfarande READ_LOGS, READ_DROPBOX_DATA eller användningsåtkomst."
 }

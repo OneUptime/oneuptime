@@ -137,9 +137,10 @@ A host whose OS is Android, such as a kiosk or a POS terminal that runs the [And
 | Device Overheating | Warning | `android.thermal.status`, Max, past 5 minutes | 3 (severe) or worse | Below 3 |
 | Restart Loop | Critical | `android.boot.recent_count`, Max, past hour | Any value is 3 or more | Every value is below 3 |
 | Storage Nearly Full | Critical | `system.filesystem.utilization`, Max per `mountpoint`, as a percentage, past 5 minutes | Above 90% | At or below 90% |
+| Security Patch Out of Date | Warning | `android.os.security_patch.age`, the days since the device's security patch level, Min, past hour | More than 90 days old for the whole window | A reading of 90 days or fewer, once the device is updated |
 | High CPU Utilization | Warning | `system.cpu.utilization` for the `idle` state, busy as 1 minus idle, as a percentage, past 5 minutes | Above 80% | At or below 80% |
 
-High CPU Utilization is offered once the device reports CPU use, which on Android 8 and later takes the agent being its device owner. An Android device's alert starts with adb commands to run first, such as `adb shell dumpsys battery` or `adb shell getprop sys.boot.reason`, rather than a server's shell commands.
+High CPU Utilization is offered once the device reports CPU use, which on Android 8 and later takes the agent being its device owner. An Android device's alert starts with adb commands to run first, such as `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` or `adb shell getprop ro.build.version.security_patch`, rather than a server's shell commands.
 
 ## Collected Metrics
 

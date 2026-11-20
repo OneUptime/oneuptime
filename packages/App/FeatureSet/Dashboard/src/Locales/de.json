@@ -59305,5 +59305,20 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Kein Monitor, kein Dashboard, kein SLO und keine Aufzeichnungsregel liest sie.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Einige Monitore, Dashboards, SLOs oder Aufzeichnungsregeln konnten gerade nicht geprüft werden und lesen sie möglicherweise.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} Monitore, Dashboards, SLOs und Aufzeichnungsregeln lesen sie. Sobald sie entfernt ist, erhalten diese keine neuen Daten mehr.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} Monitor, Dashboard, SLO oder Aufzeichnungsregel liest sie. Sobald sie entfernt ist, kommen dort keine neuen Daten mehr an."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} Monitor, Dashboard, SLO oder Aufzeichnungsregel liest sie. Sobald sie entfernt ist, kommen dort keine neuen Daten mehr an.",
+  "Checking why the payment app crashes after 6pm": "Prüfen, warum die Zahlungs-App nach 18 Uhr abstürzt",
+  "Download Lines": "Zeilen herunterladen",
+  "Shown to the person at the device with the request, to say why you ask.": "Wird der Person am Gerät mit der Anfrage angezeigt, damit sie weiß, warum Sie fragen.",
+  "Its security patch level is 90 days old or newer.": "Die Sicherheitspatch-Ebene ist höchstens 90 Tage alt.",
+  "Its security patch level is more than 90 days old.": "Die Sicherheitspatch-Ebene ist älter als 90 Tage.",
+  "Out of Date": "Nicht aktuell",
+  "Search security patch levels...": "Sicherheitspatch-Ebenen durchsuchen...",
+  "Security Patch Status": "Status der Sicherheitspatch-Ebene",
+  "Up to Date": "Aktuell",
+  "Agent Permissions": "Agent-Berechtigungen",
+  "Agent Permissions Status": "Status der Agent-Berechtigungen",
+  "All Granted": "Alle erteilt",
+  "Search agent permissions...": "Agent-Berechtigungen durchsuchen...",
+  "The Android agent reads every app's logs and crash stacks.": "Der Android-Agent liest die Protokolle und Absturz-Stacks aller Apps.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Der Android-Agent braucht noch READ_LOGS, READ_DROPBOX_DATA oder den Nutzungszugriff."
 }

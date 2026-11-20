@@ -137,9 +137,10 @@ OS가 Android인 호스트, 예를 들어 [Android 에이전트](/docs/telemetry
 | Device Overheating | 경고 | `android.thermal.status`, Max, 최근 5분 | 3(심각) 이상 | 3 미만 |
 | Restart Loop | 심각 | `android.boot.recent_count`, Max, 최근 1시간 | 값 하나라도 3 이상 | 모든 값이 3 미만 |
 | Storage Nearly Full | 심각 | `system.filesystem.utilization`, `mountpoint`별 Max, 퍼센트, 최근 5분 | 90% 초과 | 90% 이하 |
+| Security Patch Out of Date | 경고 | `android.os.security_patch.age`(기기의 보안 패치 수준 이후 지난 일수), Min, 최근 1시간 | 기간 내내 90일보다 오래됨 | 기기가 업데이트되어 값이 90일 이하가 됨 |
 | High CPU Utilization | 경고 | `idle` 상태의 `system.cpu.utilization`으로 1에서 idle을 뺀 값을 사용 중인 시간으로, 퍼센트, 최근 5분 | 80% 초과 | 80% 이하 |
 
-High CPU Utilization 템플릿은 기기가 CPU 사용량을 보고하면 제공되며, Android 8 이상에서는 그러려면 에이전트가 기기 소유자여야 합니다. Android 기기의 경고는 서버의 셸 명령 대신 먼저 실행할 adb 명령(`adb shell dumpsys battery`나 `adb shell getprop sys.boot.reason` 등)으로 시작합니다.
+High CPU Utilization 템플릿은 기기가 CPU 사용량을 보고하면 제공되며, Android 8 이상에서는 그러려면 에이전트가 기기 소유자여야 합니다. Android 기기의 경고는 서버의 셸 명령 대신 먼저 실행할 adb 명령(`adb shell dumpsys battery`, `adb shell getprop sys.boot.reason`, `adb shell getprop ro.build.version.security_patch` 등)으로 시작합니다.
 
 ## 수집되는 메트릭
 

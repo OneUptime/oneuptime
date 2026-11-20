@@ -17,7 +17,11 @@ import ObjectID from "../../Types/ObjectID";
  *   request:  { hostName, androidApiLevel, agentVersion, canSendLogs,
  *               sessions: [{ id, status, statusMessage?, startedAt?, endsAt? }] }
  *   answer:   { sessions: [{ id, status, durationMinutes, minimumLevel,
- *               requestedAt, requestedByName?, expiresAt? }] }
+ *               requestedAt, requestedByName?, note?, expiresAt? }] }
+ *
+ * `note` is the requester's note (#9966), one line of plain text kept as the
+ * device shows it (Utils/Host/HostLogSessionNote); an agent from before it
+ * reads past it.
  *
  * Everything the device sends is read as untrusted: what cannot be read is
  * left out, and text is cut to what OneUptime keeps.
@@ -62,6 +66,8 @@ export interface DeviceLogSession {
   minimumLevel: HostLogSessionLevel;
   requestedAt?: Date | undefined;
   requestedByName?: string | undefined;
+  // Why the requester asks, as the device shows it.
+  note?: string | undefined;
   expiresAt?: Date | undefined;
 }
 
@@ -303,6 +309,10 @@ export default class AndroidAgentLogSessions {
 
         if (session.requestedByName) {
           json["requestedByName"] = session.requestedByName;
+        }
+
+        if (session.note) {
+          json["note"] = session.note;
         }
 
         if (session.expiresAt) {

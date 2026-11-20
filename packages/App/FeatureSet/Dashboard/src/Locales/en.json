@@ -59305,5 +59305,20 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "No monitor, dashboard, SLO or recording rule reads it.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO or recording rule reads it. Once it is removed, it gets no new data."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashboard, SLO or recording rule reads it. Once it is removed, it gets no new data.",
+  "Checking why the payment app crashes after 6pm": "Checking why the payment app crashes after 6pm",
+  "Download Lines": "Download Lines",
+  "Shown to the person at the device with the request, to say why you ask.": "Shown to the person at the device with the request, to say why you ask.",
+  "Its security patch level is 90 days old or newer.": "Its security patch level is 90 days old or newer.",
+  "Its security patch level is more than 90 days old.": "Its security patch level is more than 90 days old.",
+  "Out of Date": "Out of Date",
+  "Search security patch levels...": "Search security patch levels...",
+  "Security Patch Status": "Security Patch Status",
+  "Up to Date": "Up to Date",
+  "Agent Permissions": "Agent Permissions",
+  "Agent Permissions Status": "Agent Permissions Status",
+  "All Granted": "All Granted",
+  "Search agent permissions...": "Search agent permissions...",
+  "The Android agent reads every app's logs and crash stacks.": "The Android agent reads every app's logs and crash stacks.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access."
 }

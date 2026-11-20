@@ -59305,5 +59305,20 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "هیچ مانیتور، داشبورد، SLO یا قاعده ضبطی آن را نمی‌خواند.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "برخی مانیتورها، داشبوردها، SLOها یا قواعد ضبط اکنون بررسی نشدند و ممکن است آن را بخوانند.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} مانیتور، داشبورد، SLO و قاعده ضبط آن را می‌خوانند. پس از حذف آن، دیگر دادهٔ تازه‌ای نمی‌گیرند.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} مانیتور، داشبورد، SLO یا قاعده ضبط آن را می‌خواند. پس از حذف آن، دیگر دادهٔ تازه‌ای نمی‌گیرد."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} مانیتور، داشبورد، SLO یا قاعده ضبط آن را می‌خواند. پس از حذف آن، دیگر دادهٔ تازه‌ای نمی‌گیرد.",
+  "Checking why the payment app crashes after 6pm": "بررسی اینکه چرا برنامهٔ پرداخت بعد از ساعت ۶ عصر از کار می‌افتد",
+  "Download Lines": "بارگیری خط‌ها",
+  "Shown to the person at the device with the request, to say why you ask.": "همراه با درخواست به فردی که کنار دستگاه است نشان داده می‌شود تا بگوید چرا درخواست می‌کنید.",
+  "Its security patch level is 90 days old or newer.": "سطح وصله امنیتی آن ۹۰ روز یا کمتر قدمت دارد.",
+  "Its security patch level is more than 90 days old.": "سطح وصله امنیتی آن بیش از ۹۰ روز قدمت دارد.",
+  "Out of Date": "قدیمی",
+  "Search security patch levels...": "جستجوی سطح‌های وصله امنیتی...",
+  "Security Patch Status": "وضعیت وصله امنیتی",
+  "Up to Date": "به‌روز",
+  "Agent Permissions": "دسترسی‌های عامل",
+  "Agent Permissions Status": "وضعیت دسترسی‌های عامل",
+  "All Granted": "همه داده شده",
+  "Search agent permissions...": "جستجوی دسترسی‌های عامل...",
+  "The Android agent reads every app's logs and crash stacks.": "عامل Android لاگ‌ها و پشته‌های خرابی همهٔ برنامه‌ها را می‌خواند.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "عامل Android هنوز به READ_LOGS، READ_DROPBOX_DATA یا دسترسی استفاده نیاز دارد."
 }

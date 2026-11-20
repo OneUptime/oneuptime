@@ -59305,5 +59305,20 @@
   "No monitor, dashboard, SLO or recording rule reads it.": "Ingen monitor, dashbord, SLO eller opptaksregel leser den.",
   "Some monitors, dashboards, SLOs or recording rules could not be checked just now and may read it.": "Noen monitorer, dashbord, SLO-er eller opptaksregler kunne ikke kontrolleres akkurat nå og kan lese den.",
   "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.": "{{count}} monitorer, dashbord, SLO-er og opptaksregler leser den. Når den er fjernet, får de ingen nye data.",
-  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashbord, SLO eller opptaksregel leser den. Når den er fjernet, kommer det ingen nye data."
+  "{{count}} monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data._one": "{{count}} monitor, dashbord, SLO eller opptaksregel leser den. Når den er fjernet, kommer det ingen nye data.",
+  "Checking why the payment app crashes after 6pm": "Undersøker hvorfor betalingsappen krasjer etter kl. 18",
+  "Download Lines": "Last ned linjer",
+  "Shown to the person at the device with the request, to say why you ask.": "Vises til personen ved enheten sammen med forespørselen, for å si hvorfor du ber om det.",
+  "Its security patch level is 90 days old or newer.": "Sikkerhetspatchnivået er høyst 90 dager gammelt.",
+  "Its security patch level is more than 90 days old.": "Sikkerhetspatchnivået er eldre enn 90 dager.",
+  "Out of Date": "Utdatert",
+  "Search security patch levels...": "Søk i sikkerhetspatchnivåer...",
+  "Security Patch Status": "Sikkerhetspatchstatus",
+  "Up to Date": "Oppdatert",
+  "Agent Permissions": "Agenttillatelser",
+  "Agent Permissions Status": "Status for agenttillatelser",
+  "All Granted": "Alle gitt",
+  "Search agent permissions...": "Søk i agenttillatelser...",
+  "The Android agent reads every app's logs and crash stacks.": "Android-agenten leser alle apper sine logger og krasjstakker.",
+  "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.": "Android-agenten trenger fortsatt READ_LOGS, READ_DROPBOX_DATA eller tilgang til bruksdata."
 }
