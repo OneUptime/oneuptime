@@ -36,6 +36,7 @@ import {
   isCloudConnectionResourceCostsOn,
   splitCloudConnectionList,
 } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import { CLOUD_CONNECT_ROLE_SIGN_IN_WORDS } from "../../../../Types/CloudConnection/AwsRoleSignInFailures";
 import { isAwsRoleArn } from "../../../../Types/CloudConnection/CloudConnectionPaste";
 import { CloudConnectionSetupScope } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
@@ -146,6 +147,7 @@ import {
   AssumedRoleCache,
   AwsAssumedRole,
   AwsCallerIdentity,
+  AwsRolePurpose,
   assumeRole,
   getCallerIdentity,
   getStsRegion,
@@ -687,6 +689,7 @@ export default class AwsCloudConnector implements CloudConnector {
     const roleArn: string = readCloudSetting(settings.config, "roleArn");
     const connectionId: string = options.connectionId || "test";
     const key: string = AssumedRoleCache.keyOf({
+      purpose: AwsRolePurpose.CloudConnect,
       projectId: settings.projectId,
       connectionId,
       roleArn,
@@ -708,6 +711,7 @@ export default class AwsCloudConnector implements CloudConnector {
 
     try {
       session = await assumeRole({
+        purpose: AwsRolePurpose.CloudConnect,
         transport: options.transport,
         credentials: server.credentials,
         roleArn,
@@ -754,9 +758,10 @@ export default class AwsCloudConnector implements CloudConnector {
       );
 
       throw new LlmProviderError({
+        // Keys of the Dashboard's locales, said in the reader's language (#10474).
         message: error.isRetryable
-          ? "This OneUptime could not get its own AWS credentials just now, so it could not sign in to the role. It tries again on the next read."
-          : "This OneUptime has no AWS identity to sign in to the role with: no Cloud Connect access key is set, and the server's own AWS credentials did not work. The server's log says why. Connect with an access key instead.",
+          ? CLOUD_CONNECT_ROLE_SIGN_IN_WORDS.serverCredentialsUnavailable
+          : CLOUD_CONNECT_ROLE_SIGN_IN_WORDS.noServerIdentity,
         kind: error.isRetryable
           ? CloudConnectionFailureKind.Unavailable
           : CloudConnectionFailureKind.Settings,

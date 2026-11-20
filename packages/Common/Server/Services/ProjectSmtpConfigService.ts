@@ -1,11 +1,23 @@
 import DatabaseService from "./DatabaseService";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialChanges";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { isAwsRegion } from "../../Types/Cloud/AwsRegionCode";
+import { isAwsRoleArn } from "../../Types/Cloud/AwsRoleArn";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import {
+  AMAZON_SES_AUTHENTICATION_TYPE_INVALID,
+  AMAZON_SES_ROLE_ARN_INVALID,
+  AMAZON_SES_ROLE_REGION_REQUIRED,
+} from "../../Types/Email/AmazonSesRoleWords";
 import EmailServer from "../../Types/Email/EmailServer";
+import { JSONValue } from "../../Types/JSON";
+import ProjectAmazonSesAuthenticationType, {
+  isProjectAmazonSesAuthenticationType,
+  toProjectAmazonSesAuthenticationType,
+} from "../../Types/Email/ProjectAmazonSesAuthenticationType";
 import { isMailgunDomain } from "../../Types/Email/MailgunDomain";
 import { toMailgunRegion } from "../../Types/Email/MailgunRegion";
 import MailTransportType, {
@@ -29,6 +41,20 @@ export const PROJECT_SMTP_CONFIG_CREDENTIAL_COLUMNS: ReadonlyArray<string> = [
   "mailgunApiKey",
   "postmarkServerToken",
   "resendApiKey",
+];
+
+/*
+ * The columns how a config signs in to Amazon SES is read from and written
+ * to (applyAmazonSesAuthenticationRules): the transport, the sign-in, the
+ * role, the Region and the access key a role clears.
+ */
+export const AMAZON_SES_SIGN_IN_COLUMNS: ReadonlyArray<string> = [
+  "transportType",
+  "amazonSesAuthenticationType",
+  "amazonSesRoleArn",
+  "amazonSesRegion",
+  "amazonSesAccessKeyId",
+  "amazonSesSecretAccessKey",
 ];
 
 export class Service extends DatabaseService<Model> {
@@ -77,12 +103,121 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await this.applyAmazonSesAuthenticationRulesOnUpdate(updateBy);
+
     WriteOnlyCredentialChanges.recordInAuditLog(
       updateBy,
       PROJECT_SMTP_CONFIG_CREDENTIAL_COLUMNS,
     );
 
     return { updateBy, carryForward: null };
+  }
+
+  // A new config's Amazon SES sign-in, checked as it is written (applyAmazonSesAuthenticationRules).
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const data: Record<string, unknown> = {};
+
+    for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
+      data[column] = createBy.data.getColumnValue(column);
+    }
+
+    Service.applyAmazonSesAuthenticationRules(data);
+
+    for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
+      if (data[column] !== createBy.data.getColumnValue(column)) {
+        createBy.data.setColumnValue(
+          column,
+          (data[column] ?? null) as JSONValue,
+        );
+      }
+    }
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * An update's Amazon SES sign-in, weighed against what each config it
+   * changes holds: read only when the write names a column of it. Each
+   * config must come out of the write whole, and the write does the same to
+   * each - a write that would clear one config's access key and keep
+   * another's is refused, rather than half done.
+   */
+  private async applyAmazonSesAuthenticationRulesOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      !AMAZON_SES_SIGN_IN_COLUMNS.some((column: string): boolean => {
+        return data[column] !== undefined;
+      })
+    ) {
+      return;
+    }
+
+    const select: Record<string, boolean> = {};
+
+    for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
+      select[column] = true;
+    }
+
+    const configs: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: select,
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // Nothing stored to weigh it against: the write alone.
+    if (configs.length === 0) {
+      Service.applyAmazonSesAuthenticationRules(data);
+      return;
+    }
+
+    // The write, as each config would come out of it.
+    const writes: Array<Record<string, unknown>> = configs.map(
+      (config: Model): Record<string, unknown> => {
+        const stored: Record<string, unknown> = {};
+
+        for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
+          stored[column] = config.getColumnValue(column);
+        }
+
+        const forThisConfig: Record<string, unknown> = { ...data };
+
+        Service.applyAmazonSesAuthenticationRules(forThisConfig, stored);
+
+        return forThisConfig;
+      },
+    );
+    const written: Record<string, unknown> = writes[0]!;
+
+    if (
+      writes.some((forThisConfig: Record<string, unknown>): boolean => {
+        return AMAZON_SES_SIGN_IN_COLUMNS.some((column: string): boolean => {
+          return forThisConfig[column] !== written[column];
+        });
+      })
+    ) {
+      throw new BadDataException(
+        "Change how one SMTP config signs in to Amazon SES at a time: these configs sign in in different ways.",
+      );
+    }
+
+    for (const column of AMAZON_SES_SIGN_IN_COLUMNS) {
+      if (written[column] !== data[column]) {
+        data[column] = written[column];
+      }
+    }
   }
 
   public toEmailServer(
@@ -236,6 +371,20 @@ export class Service extends DatabaseService<Model> {
 
     switch (transportType) {
       case MailTransportType.AmazonSES: {
+        /*
+         * An IAM role in the project's own AWS account (#7378): no key, the
+         * role's ARN, and the config row's own project - the external id
+         * the role is signed in to with is derived from it alone, never
+         * from anything a request names (AmazonSesProjectRole).
+         */
+        if (
+          toProjectAmazonSesAuthenticationType(
+            projectSmtpConfig.amazonSesAuthenticationType,
+          ) === ProjectAmazonSesAuthenticationType.IamRole
+        ) {
+          return this.toAmazonSesRoleEmailServer(projectSmtpConfig, base);
+        }
+
         const accessKeyId: string =
           projectSmtpConfig.amazonSesAccessKeyId?.trim() || "";
         const secretAccessKey: string =
@@ -334,6 +483,125 @@ export class Service extends DatabaseService<Model> {
         throw new BadDataException(
           `Project SMTP config transport "${transportType}" does not send through an HTTP API.`,
         );
+    }
+  }
+
+  /*
+   * An Amazon SES config that signs in to an IAM role in the project's own
+   * AWS account: the role's ARN, the Region, and the project the row
+   * belongs to. No access key is read, and none is handed on.
+   */
+  private toAmazonSesRoleEmailServer(
+    projectSmtpConfig: Model,
+    base: EmailServer,
+  ): EmailServer {
+    const roleArn: string = projectSmtpConfig.amazonSesRoleArn?.trim() || "";
+    const region: string =
+      projectSmtpConfig.amazonSesRegion?.trim().toLowerCase() || "";
+    const projectId: string = projectSmtpConfig.projectId?.toString() || "";
+
+    if (!isAwsRoleArn(roleArn)) {
+      throw new BadDataException(AMAZON_SES_ROLE_ARN_INVALID);
+    }
+
+    if (!region || !isAwsRegion(region)) {
+      throw new BadDataException(AMAZON_SES_ROLE_REGION_REQUIRED);
+    }
+
+    if (!projectId) {
+      throw new BadDataException(
+        "This SMTP config was read without its project, so its Amazon SES role cannot be signed in to.",
+      );
+    }
+
+    return {
+      ...base,
+      awsRoleArn: roleArn,
+      awsRoleProjectId: projectId,
+      awsRegion: region,
+    };
+  }
+
+  /*
+   * HOW A CONFIG SIGNS IN TO AMAZON SES, AS IT IS WRITTEN (#7378).
+   *
+   * The Authentication Type is a project's own (Access Key, IAM Role), or
+   * nothing written (an access key, as every config had); anything else -
+   * the server's "Server IAM Role" among it - is refused with what it may
+   * be. A config of Amazon SES that signs in with an IAM role needs a role
+   * ARN and a Region, as stored after the write; and signing in with a
+   * role stores no key, so the access key it signed in with before is
+   * cleared in the same write, as the server's own Amazon SES card does
+   * (GlobalConfigService.applyAmazonSesAuthenticationRules): a key nothing
+   * uses any more is only one more to leak. A role ARN written on its own is
+   * checked to be one.
+   */
+  public static applyAmazonSesAuthenticationRules(
+    data: Record<string, unknown>,
+    stored?: Record<string, unknown> | undefined,
+  ): void {
+    const value: unknown = data["amazonSesAuthenticationType"];
+
+    if (value === "") {
+      data["amazonSesAuthenticationType"] =
+        ProjectAmazonSesAuthenticationType.AccessKey;
+    } else if (
+      value !== undefined &&
+      value !== null &&
+      !isProjectAmazonSesAuthenticationType(value)
+    ) {
+      throw new BadDataException(AMAZON_SES_AUTHENTICATION_TYPE_INVALID);
+    }
+
+    const roleArn: unknown = data["amazonSesRoleArn"];
+
+    if (typeof roleArn === "string") {
+      data["amazonSesRoleArn"] = roleArn.trim() || null;
+    }
+
+    if (
+      data["amazonSesRoleArn"] !== undefined &&
+      data["amazonSesRoleArn"] !== null &&
+      !isAwsRoleArn(String(data["amazonSesRoleArn"]))
+    ) {
+      throw new BadDataException(AMAZON_SES_ROLE_ARN_INVALID);
+    }
+
+    // What the row holds once this write is done.
+    const after: (column: string) => unknown = (column: string): unknown => {
+      return data[column] !== undefined ? data[column] : stored?.[column];
+    };
+
+    const signsInWithRole: boolean =
+      toProjectAmazonSesAuthenticationType(
+        after("amazonSesAuthenticationType"),
+      ) === ProjectAmazonSesAuthenticationType.IamRole;
+
+    if (!signsInWithRole) {
+      return;
+    }
+
+    // No key is stored for a role, whatever the write held.
+    data["amazonSesAccessKeyId"] = null;
+    data["amazonSesSecretAccessKey"] = null;
+
+    if (
+      toMailTransportType(after("transportType")) !==
+      MailTransportType.AmazonSES
+    ) {
+      return;
+    }
+
+    if (!isAwsRoleArn(String(after("amazonSesRoleArn") || ""))) {
+      throw new BadDataException(AMAZON_SES_ROLE_ARN_INVALID);
+    }
+
+    const region: string = String(after("amazonSesRegion") || "")
+      .trim()
+      .toLowerCase();
+
+    if (!region || !isAwsRegion(region)) {
+      throw new BadDataException(AMAZON_SES_ROLE_REGION_REQUIRED);
     }
   }
 

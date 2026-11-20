@@ -255,7 +255,7 @@ Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett proje
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Många andra slag har också ett eget namn, till exempel allvarlighetsgrader för incidenter, monitorstatusar, statussidor och arbetsflöden, och avvisar ett upptaget namn på samma sätt:
+Många andra slag har också ett eget namn, till exempel allvarlighetsgrader för incidenter, monitorstatusar, statussidor och arbetsflöden, och avvisar ett upptaget namn på samma sätt, både när en post skapas och när den byter namn:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Utöver meddelandet innehåller varje sådant avslag en `refusalCode` som säger
 - `"refusalCode": "name_taken"`: en post i drift har det. Ingenting skrevs, så samma begäran kan skickas igen så snart den posten lämnar namnet: Terraform-providern frågar igen i upp till 30 sekunder.
 - `"refusalCode": "name_taken_by_archived"`: bara en arkiverad post har det. Avarkivera den posten, eller välj ett annat namn: att skicka begäran igen hjälper inte, och Terraform-providern gör det inte.
 
-En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn. För team, etiketter, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant. Arkiverade etiketter och jourpolicyer räknas inte med.
+En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn, men aldrig en annan posts namn. För team, etiketter, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant. Arkiverade etiketter och jourpolicyer räknas inte med.
+
+#### Värden som en annan post redan har
+
+Även vissa värden som inte är ett namn hör till en post var: domänen för en statussida, en instrumentpanel eller ett formulär, en projektdomän, identifieraren för en värd eller ett Kubernetes-kluster, inloggnings-URL:en för en SSO-leverantör och behörigheten för en API-nyckel, bland andra. Ett skapande, eller en uppdatering som ändrar ett av dem, till ett värde som en annan post har avvisas med en `400` som säger det:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Utöver meddelandet innehåller avslaget en `refusalCode` som säger vad som har värdet, och ett `field` som namnger fältet vars värde är upptaget, till exempel `"field": "fullDomain"`. Ett värde av flera fält tillsammans kommer utan `field`. Känn igen avslaget på koden, inte på meningen, som kan formuleras om:
+
+- `"refusalCode": "value_taken"`: en post i drift har det. Ingenting skrevs, så samma begäran kan skickas igen så snart den posten lämnar värdet: Terraform-providern frågar igen i upp till 30 sekunder.
+- `"refusalCode": "value_taken_by_archived"`: bara en arkiverad post har det. Avarkivera den posten, eller välj ett annat värde: att skicka begäran igen hjälper inte, och Terraform-providern gör det inte.
+
+En uppdatering som skickar en posts eget värde igen, oavsett skiftläge, är ingen ändring, så poster som tidigare delade ett värde kan fortfarande ändras och få var sitt värde.
 
 ### Brytare
 

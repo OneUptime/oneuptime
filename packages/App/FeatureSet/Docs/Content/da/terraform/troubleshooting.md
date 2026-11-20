@@ -24,6 +24,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `Not Found` eller `Ambiguous Match` fra en datakilde | Ret opslagets argumenter: se [Opslag, der finder ingen eller flere](#opslag-der-finder-ingen-eller-flere) |
 | `There is already a team called` (en etiket, en vagtpolitik, en vagtplan) | Giv den et navn, som ingen anden af samme slags har, eller omdøb den anden først: se [Navne, som en anden post allerede har](#navne-som-en-anden-post-allerede-har) |
 | `with the same name already exists` | Giv den et navn, som ingen anden af samme slags har, eller importér den post, der har det: se [Navne, som en anden post allerede har](#navne-som-en-anden-post-allerede-har) |
+| `already exists` for et domæne, et værtsnavn eller en login-URL | Giv den en værdi, som ingen anden post har, eller importér den post, der har den: se [Domæner og identifikatorer, som en anden post allerede har](#domæner-og-identifikatorer-som-en-anden-post-allerede-har) |
 | `Cannot import non-existent remote object` | Kontrollér ID'et og nøglens tilladelser: se [Import af ressourcer](/docs/terraform/importing-resources#fejlfinding) |
 | `Provider produced inconsistent result after apply` | Opgradér provideren: se [Inkonsistent resultat efter apply](#inkonsistent-resultat-efter-apply) |
 | En plan opretter en ressource, du ikke har tilføjet | Nøglen kan ikke længere læse den, og OneUptime svarede `404`: giv nøglen dens læseadgang tilbage, og importér derefter ressourcen med `terraform import`: se [En ressource forlader state, og næste apply opretter den igen](#en-ressource-forlader-state-og-næste-apply-opretter-den-igen) |
@@ -114,6 +115,14 @@ Terraform foretager ændringerne i én apply side om side, så en oprettelse ell
 En arkiveret post beholder sit navn, og intet, en apply gør ved posterne i drift, får den til at opgive det. En oprettelse eller en omdøbning til det navn mislykkes med det samme, og fejlen siger, hvor posten fjernes fra arkivet: fjern den fra arkivet, eller vælg et andet navn.
 
 Med en ældre provider eller en ældre OneUptime får allerede den første afvisning applyen til at mislykkes: anvend igen, eller tilføj en `depends_on` fra den ressource, der tager navnet, til den, der opgiver det.
+
+### Domæner og identifikatorer, som en anden post allerede har
+
+En statussides, et dashboards eller en formulars domæne, et projektdomæne, en værts eller en Kubernetes-klynges identifikator og en SSO-udbyders login-URL hører også til én post hver, uanset store og små bogstaver. En oprettelse eller en ændring til en af dem, som en anden post allerede har, besvares med `400`, fx `Status Page Domain with the same fullDomain already exists.`
+
+Provideren spørger også her igen i op til 30 sekunder, så det at flytte et domæne fra én ressource til en anden i én apply, som sletter den ene og opretter den anden side om side, går igennem i én apply. Et bytte af to værdier går aldrig igennem, og det gør en værdi, som en post uden for konfigurationen har, heller ikke: efter 30 sekunder mislykkes applyen med `The value was still taken after asking again for 30 seconds.` Giv ressourcen en værdi, som ingen har, eller importér den post, der har værdien, med `terraform import`. Ved et bytte giver du én af dem en midlertidig værdi, anvender og laver så resten af ændringen.
+
+En værdi, som kun en arkiveret post har, fx en arkiveret værts værtsnavn, mislykkes med det samme, og fejlen siger, hvad du skal gøre: fjern den post fra arkivet, eller vælg en anden værdi.
 
 ## Planer, der ikke falder til ro
 

@@ -3,7 +3,7 @@
 OneUptime의 메일을 SMTP 서버 대신 이메일 공급자의 HTTPS API로 보냅니다. 지원하는 공급자는 Amazon SES, SendGrid, Mailgun, Postmark, Resend입니다. 프로젝트는 SMTP 구성에서 공급자를 고르고, 자체 호스팅 설치는 OneUptime 자체의 메일을 모두 공급자를 통해 보낼 수 있습니다. API에는 포트 443의 HTTPS로 연결하므로 SMTP 포트를 막는 네트워크에서도 메일이 나가며, 각 공급자의 키는 암호화되어 저장됩니다.
 
 :::cards
-- [Amazon SES](#amazon-ses): IAM 액세스 키 또는 서버 자체의 IAM 역할과, 보낸 사람을 확인한 리전.
+- [Amazon SES](#amazon-ses): IAM 액세스 키, AWS 계정의 IAM 역할 또는 서버 자체의 IAM 역할과, 보낸 사람을 확인한 리전.
 - [SendGrid](#sendgrid): Mail Send 액세스 권한이 있는 API 키.
 - [Mailgun](#mailgun): API 키, 보내는 도메인과 그 리전.
 - [Postmark](#postmark): 서버의 API 토큰.
@@ -55,16 +55,16 @@ OneUptime용 IAM 사용자를 만들어 확인한 자격 증명에 대해 `ses:S
 }
 ```
 
-AWS의 자체 호스팅 설치는 키 없이 같은 정책으로 [서버의 IAM 역할로 로그인](#서버의-iam-역할로-로그인) 할 수도 있습니다.
+AWS의 자체 호스팅 설치는 키 없이 같은 정책으로 [서버의 IAM 역할로 로그인](#서버의-iam-역할로-로그인) 할 수도 있습니다. 프로젝트의 구성도 키 없이 [AWS 계정의 IAM 역할로 로그인](#aws-계정의-iam-역할로-로그인) 할 수 있습니다.
 
 ### Amazon SES 단계 채우기
 
-**액세스 키 ID** 와 **비밀 액세스 키**, 그리고 자격 증명을 확인한 **지역** (예: `us-east-1`) 을 입력합니다.
+**인증 유형** 은 **액세스 키** 로 두고, **액세스 키 ID** 와 **비밀 액세스 키**, 그리고 자격 증명을 확인한 **지역** (예: `us-east-1`) 을 입력합니다.
 :::
 
 ### 서버의 IAM 역할로 로그인
 
-자체 호스팅 설치는 IAM 역할로 자체 메일을 보낼 수 있으며, OneUptime에는 액세스 키가 저장되지 않습니다. AWS에서는 AWS가 서버에 부여하는 역할이고, 그 밖의 곳에서는 IAM Roles Anywhere로 로그인하는 역할입니다. 자격 증명은 몇 시간 안에 만료되며, OneUptime은 만료되기 전에 새 자격 증명을 가져옵니다. 이는 서버 자체의 메일에만 해당합니다. 프로젝트의 Amazon SES 구성은 항상 액세스 키로 로그인합니다. 서버의 역할은 프로젝트가 아니라 서버 자체의 AWS ID이기 때문입니다.
+자체 호스팅 설치는 IAM 역할로 자체 메일을 보낼 수 있으며, OneUptime에는 액세스 키가 저장되지 않습니다. AWS에서는 AWS가 서버에 부여하는 역할이고, 그 밖의 곳에서는 IAM Roles Anywhere로 로그인하는 역할입니다. 자격 증명은 몇 시간 안에 만료되며, OneUptime은 만료되기 전에 새 자격 증명을 가져옵니다. 이는 서버 자체의 메일에만 해당합니다. 서버의 역할은 프로젝트가 아니라 서버 자체의 AWS ID이기 때문입니다. 프로젝트의 Amazon SES 구성은 액세스 키 또는 [AWS 계정의 IAM 역할](#aws-계정의-iam-역할로-로그인) 로 로그인합니다.
 
 역할에 위의 정책을 부여한 다음, OneUptime을 그 역할로 실행합니다.
 
@@ -114,6 +114,37 @@ Helm 차트에서는 `extraVolumes`와 `extraVolumeMounts`로 구성, 인증서,
 그런 다음 Admin Dashboard에서 **Amazon SES 편집** 을 클릭하고, **인증 유형** 으로 **이 서버의 IAM 역할** 을 선택한 뒤 **지역** 을 입력합니다. 저장하면 이전에 저장된 액세스 키는 삭제됩니다.
 
 OneUptime은 AWS SDK와 같은 곳에서 다음 순서로 서버의 자격 증명을 찾습니다: 환경의 `AWS_ACCESS_KEY_ID` 와 `AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`, `AWS_CONFIG_FILE` 또는 `AWS_SHARED_CREDENTIALS_FILE`이 지정하는 AWS 프로필(그 키 또는 그 `credential_process`), 웹 ID 토큰 (`AWS_ROLE_ARN` 과 `AWS_WEB_IDENTITY_TOKEN_FILE`), Amazon ECS 및 EKS Pod Identity의 컨테이너 자격 증명 엔드포인트, 마지막으로 EC2의 인스턴스 메타데이터 서비스 (IMDSv2). 이 세 가지 중 아무것도 설정되지 않으면 OneUptime은 AWS 구성 파일을 읽지 않습니다.
+
+### AWS 계정의 IAM 역할로 로그인
+
+프로젝트의 Amazon SES 구성은 자신의 AWS 계정에 있는 IAM 역할로 로그인할 수 있으므로, OneUptime에 키가 저장되지 않습니다. OneUptime은 자체 AWS ID와 프로젝트의 이메일만 쓰는 외부 ID로 역할에 로그인하며, 각 세션은 한 시간 동안 유지됩니다. 역할에 위의 정책과, 그 외부 ID로 OneUptime의 AWS 계정을 들여보내는 신뢰 정책을 부여합니다.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+구성의 **Amazon SES** 단계에서 **인증 유형** 으로 **AWS 계정의 IAM 역할** 을 고릅니다. **역할 ARN** 아래의 **AWS에서 역할 설정** 에 프로젝트의 **외부 ID** 와, OneUptime의 계정과 ID가 들어간 이 신뢰 정책이 복사할 수 있게 표시됩니다. 이것으로 역할을 만들고, 그 **역할 ARN** 과 **지역** 을 입력한 다음, 구성의 행에서 **테스트 이메일 보내기** 를 클릭합니다. 역할을 저장하면 전에 저장된 액세스 키는 삭제됩니다.
+
+OneUptime은 역할을 통해 보내기 전에 역할을 확인하며, 다음 역할에는 절대 로그인하지 않습니다.
+
+- 신뢰 정책이 프로젝트의 외부 ID를 요구하지 않는 역할. 역할의 ARN을 아는 모든 프로젝트가 계정을 통해 이메일을 보낼 수 있습니다. `sts:ExternalId` 조건을 추가하고 테스트 이메일을 보내면 즉시 역할을 다시 확인합니다. 확인은 하루에 한 번 정도 실행되며, 역할의 CloudTrail에 `sts:AssumeRole` 에 대한 `AccessDenied` 로 표시됩니다.
+- OneUptime 자체의 AWS 계정에 있는 역할. 신뢰 정책의 내용과는 상관없습니다. 서버 자체의 메일을 서버가 실행되는 계정을 통해 보내려면 대신 [서버의 IAM 역할](#서버의-iam-역할로-로그인) 을 사용하세요.
+
+외부 ID는 프로젝트 고유의 것이며 비밀이 아닙니다. Cloud Connect의 IAM 역할은 다른 외부 ID를 쓰므로, 한쪽을 위해 만든 역할에 다른 쪽이 로그인하는 일은 없습니다. Cloud Connect 액세스 키도 AWS 자격 증명도 없어 자체 AWS ID가 없는 서버는 어떤 역할에도 로그인할 수 없으며, 단계에 그렇게 표시됩니다.
 
 ## SendGrid
 
@@ -233,6 +264,10 @@ IAM 사용자의 정책이 자격 증명에 대한 `ses:SendEmail` 을 허용하
 
 :::details "This server's IAM role may not send with Amazon SES" 또는 "did not let this server assume the role"
 역할의 정책이 자격 증명에 대한 `ses:SendEmail` 을 허용하지 않습니다. 위의 정책을 추가하세요. 또는 Amazon EKS에서 역할의 신뢰 정책이 클러스터의 OIDC 공급자와 OneUptime 서비스 계정에 대한 `sts:AssumeRoleWithWebIdentity` 를 허용하지 않습니다.
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" 또는 "This role is in this OneUptime's own AWS account"
+[AWS 계정의 IAM 역할로 로그인](#aws-계정의-iam-역할로-로그인) 에서 설명하듯이 OneUptime은 이 역할을 통해 보내지 않습니다. 구성의 **AWS에서 역할 설정** 에 표시되는 `sts:ExternalId` 조건을 역할의 신뢰 정책에 추가하거나 자신의 AWS 계정에 역할을 만든 다음, 테스트 이메일을 보내세요.
 :::
 
 :::details "Mailgun has no domain … in its US region"

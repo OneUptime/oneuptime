@@ -198,6 +198,14 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A rename onto another label's name is refused above, in the label's
+   * own words: the generic check of an update leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
+  }
+
+  /*
    * Deleting a label cascades its join rows away at the database level, so no
    * service hook ever fires for the SLO monitor rules or status page monitor
    * rules that referenced it. Those would keep the monitors the rule attached,

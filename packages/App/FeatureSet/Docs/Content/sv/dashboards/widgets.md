@@ -250,7 +250,7 @@ Via API:et och Terraform är ordningen widgetens `arguments.sort`: en kolumn och
 En [offentlig instrumentpanel](/docs/dashboards/sharing) ritar de flesta widgetar för sina besökare, och var och en visar bara det den har ställts in att visa. Några få kan inte visas utan en inloggad session:
 
 - **Loggdiagram**, **Spårdiagram**, **Spårtabell**, **Säkerhetshändelser**, **Flöde av säkerhetshändelser**, **Tratt** och **Kvarhållning av användare** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
-- Widgetarna i Externa datakällor utelämnas helt från en offentlig instrumentpanel, eftersom deras inställningar är själva frågan.
+- Widgetarna i Externa datakällor visar sina data när de läser **Det här projektets mätvärden (PromQL)**, aldrig sina frågor. En widget med en extern datakälla utelämnas helt från en offentlig instrumentpanel.
 
 ## När en widget inte kan visas
 
