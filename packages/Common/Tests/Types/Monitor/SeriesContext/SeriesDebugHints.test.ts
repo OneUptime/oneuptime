@@ -1329,9 +1329,11 @@ describe("SeriesDebugHints", () => {
   /*
    * #9835: a Metrics monitor grouped by a managed device (Esper Device
    * Stopped Checking In) - the CLI can list what the device's connection
-   * last read of it. #10098: and its Android security patch's age at each
-   * read, which a device manager's Security Patch Out of Date reads; the
-   * series names the device alone, whichever template it is of.
+   * last read of it. #10008: its battery and its storage at each read,
+   * which a device manager's Low Battery and Storage Nearly Full read.
+   * #10098: and its Android security patch's age at each read, which a
+   * device manager's Security Patch Out of Date reads; the series names the
+   * device alone, whichever template it is of.
    */
   describe("a managed device that stopped checking in", () => {
     test("lists the device's last readings, newest first, read-only", () => {
@@ -1342,21 +1344,39 @@ describe("SeriesDebugHints", () => {
         }),
       ).toEqual([
         `oneuptime metric list --query '{"name":"oneuptime.managed_device.check_in.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+        `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.level","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+        `oneuptime metric list --query '{"name":"oneuptime.managed_device.storage.used","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
         `oneuptime metric list --query '{"name":"oneuptime.managed_device.security_patch.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       ]);
     });
 
-    test("its check-ins come first, the security patch's age after them", () => {
+    test("its check-ins come first, its battery and storage next, the security patch's age last", () => {
       const commands: Array<string> = getCommandStrings({
         monitorType: MonitorType.Metrics,
         seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
       });
 
-      expect(commands).toHaveLength(2);
+      expect(commands).toHaveLength(4);
       expect(commands[0]).toContain("oneuptime.managed_device.check_in.age");
-      expect(commands[1]).toContain(
+      expect(commands[1]).toContain("oneuptime.managed_device.battery.level");
+      expect(commands[2]).toContain("oneuptime.managed_device.storage.used");
+      expect(commands[3]).toContain(
         "oneuptime.managed_device.security_patch.age",
       );
+    });
+
+    // #10006: the connection itself, when it stopped reading.
+    test("a series that names a connection lists the connection's last reads, each with its error", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Metrics,
+          seriesLabels: {
+            "oneuptime.managed_device.connection.name": "Esper acme",
+          },
+        }),
+      ).toEqual([
+        `oneuptime metric list --query '{"name":"oneuptime.managed_device.connection.read.age","attributes":{"oneuptime.managed_device.connection.name":"Esper acme"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      ]);
     });
 
     test("finds the device under the resource. spelling too", () => {
@@ -1376,7 +1396,7 @@ describe("SeriesDebugHints", () => {
         seriesLabels: { "oneuptime.managed_device.name": "x'; rm -rf / '" },
       });
 
-      expect(commands).toHaveLength(2);
+      expect(commands).toHaveLength(4);
       for (const command of commands) {
         expect(command).toContain(`'{"name":`);
         expect(command).toContain(`x'\\''; rm -rf / '\\''`);

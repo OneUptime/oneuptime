@@ -23,7 +23,7 @@ import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { GetReactElementArrayFunction } from "../../Types/FunctionTypes";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
-import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
+import Icon from "../Icon/Icon";
 import GenericObject from "../../../Types/GenericObject";
 import Query from "../../../Types/BaseDatabase/Query";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -208,53 +208,6 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     });
   }, []);
 
-  type GetRightElementForTableViewMenuItemFunction = (
-    item: TableView,
-  ) => React.JSX.Element;
-
-  const getRightElementForTableViewMenuItem: GetRightElementForTableViewMenuItemFunction =
-    (item: TableView): ReactElement => {
-      return (
-        /*
-         * Rename and delete sit inside the view's menu item, and a click on
-         * either went on to the item: it applied the view as well. Renaming
-         * a view switched the table to it, and deleting one left the table
-         * on a view that no longer existed. A click here is theirs alone.
-         */
-        <div
-          className="flex"
-          onClick={(event: React.MouseEvent<HTMLDivElement>) => {
-            event.stopPropagation();
-          }}
-        >
-          <div className="h-4 w-4 mr-2">
-            <Icon
-              icon={IconProp.Edit}
-              className="text-gray-400 hover:text-gray-600"
-              size={SizeProp.Regular}
-              thick={ThickProp.Thick}
-              data-testid="table-view-rename"
-              onClick={() => {
-                setTableViewToEdit(item);
-              }}
-            />
-          </div>
-          <div className="h-4 w-4">
-            <Icon
-              className="text-gray-400 hover:text-gray-600"
-              icon={IconProp.Trash}
-              size={SizeProp.Regular}
-              thick={ThickProp.Thick}
-              data-testid="table-view-delete"
-              onClick={() => {
-                setTableViewToDelete(item);
-              }}
-            />
-          </div>
-        </div>
-      );
-    };
-
   type GetViewItemsFunction = () => Array<ReactElement>;
 
   const getViewItems: GetViewItemsFunction = (): Array<ReactElement> => {
@@ -262,7 +215,6 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
       return (
         <MoreMenuItem
           key={index}
-          rightElement={getRightElementForTableViewMenuItem(item)}
           text={item.name || ""}
           // A saved view's name is whoever saved it's, drawn as written.
           isUserContent={true}
@@ -272,6 +224,36 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
             props.onViewChange?.(item);
             setCurrentlySelectedView(item);
           }}
+          /*
+           * Rename and Delete beside the view, each a button of its own the
+           * arrow keys reach after the view and a screen reader names with
+           * it: "Rename view Errors" (#6922). They were two icons drawn
+           * inside the view's own button, which only a mouse could press,
+           * and a click on them went on to the view and applied it (#6766).
+           */
+          actions={[
+            {
+              icon: IconProp.Edit,
+              label: translator.translateTemplate("Rename view {{name}}", {
+                name: item.name || "",
+              }),
+              dataTestId: "table-view-rename",
+              onClick: () => {
+                setTableViewToEdit(item);
+              },
+            },
+            {
+              icon: IconProp.Trash,
+              label: translator.translateTemplate("Delete view {{name}}", {
+                name: item.name || "",
+              }),
+              isDestructive: true,
+              dataTestId: "table-view-delete",
+              onClick: () => {
+                setTableViewToDelete(item);
+              },
+            },
+          ]}
         />
       );
     });
@@ -379,238 +361,252 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
       return elements;
     };
 
-  if (error) {
-    return (
-      <ConfirmModal
-        title={`Something went wrong...`}
-        description={error}
-        isLoading={false}
-        submitButtonText={"Close"}
-        onSubmit={() => {
-          return setError("");
-        }}
-      />
-    );
-  }
+  /*
+   * The dialog a menu item opened, drawn beside the control rather than in
+   * its place: the Saved Views button stays on the page, so the focus goes
+   * back to it when the dialog closes, as a keyboard needs. Drawn in its
+   * place, the button was taken away while the dialog was up, and closing
+   * it left the focus on nothing (#6922).
+   */
+  type GetDialogFunction = () => ReactElement | null;
 
-  if (tableViewToEdit) {
-    return (
-      <ModelFormModal<TableView>
-        modelType={TableView}
-        modelIdToEdit={tableViewToEdit.id!}
-        name="Edit View"
-        title="Edit View"
-        description="You can rename this table view to any name you like."
-        onClose={() => {
-          setTableViewToEdit(undefined);
-        }}
-        submitButtonText="Save Changes"
-        onSuccess={async () => {
-          setTableViewToEdit(undefined);
-
-          await fetchTableViews();
-        }}
-        formProps={{
-          name: "Edit View",
-          modelType: TableView,
-          id: "edit-table-view",
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              fieldType: FormFieldSchemaType.Text,
-              placeholder: "Name of the view",
-              description: "Please enter the new name of the view",
-              title: "Name",
-              required: true,
-            },
-          ],
-          formType: FormType.Update,
-        }}
-      />
-    );
-  }
-
-  if (tableViewToDelete) {
-    return (
-      <ConfirmModal
-        /*
-         * Titled by kind and named in the sentence, like every other delete:
-         * "Delete View" / "Are you sure you want to delete Open incidents?".
-         */
-        description={
-          <DeleteConfirmationMessage
-            kind="question"
-            name={getRecordDisplayName(tableViewToDelete)}
-            typeLabel="view"
-          />
-        }
-        title="Delete View"
-        isLoading={isLoading}
-        onSubmit={async () => {
-          await deleteTableView(tableViewToDelete);
-          setTableViewToDelete(undefined);
-        }}
-        onClose={() => {
-          setTableViewToDelete(undefined);
-        }}
-        submitButtonText={`Delete`}
-        submitButtonType={ButtonStyleType.DANGER}
-      />
-    );
-  }
-
-  if (showCreateNewViewModal) {
-    return (
-      <ModelFormModal<TableView>
-        modelType={TableView}
-        name="Save New View"
-        title="Save New View"
-        description="You can save the current table settings as a new view."
-        onClose={() => {
-          setShowCreateNewViewModel(false);
-        }}
-        submitButtonText="Save Changes"
-        onBeforeCreate={(tableView: TableView) => {
-          let sort: Sort<T> = {};
-
-          if (props.currentSortOrder && props.currentSortBy) {
-            sort = {
-              [props.currentSortBy]: props.currentSortOrder,
-            } as Sort<T>;
-          }
-
-          tableView.tableId = props.tableId;
-          tableView.query =
-            (props.currentQuery as Query<
-              DatabaseBaseModel | AnalyticsBaseModel
-            >) || {};
-          tableView.itemsOnPage = props?.currentItemsOnPage || 10;
-          tableView.sort = sort || {};
-          if (props.currentFacetState) {
-            tableView.facets = props.currentFacetState;
-          }
-          if (props.currentColumns) {
-            tableView.columns = props.currentColumns;
-          }
-          return Promise.resolve(tableView);
-        }}
-        onSuccess={async (tableView: TableView) => {
-          setShowCreateNewViewModel(false);
-          await fetchTableViews();
-          // set as current view
-          props.onViewChange?.(tableView);
-        }}
-        formProps={{
-          name: "Save New View",
-          modelType: TableView,
-          id: "save-table-view",
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              fieldType: FormFieldSchemaType.Text,
-              placeholder: "Name of the view",
-              description: "Please enter the new name of the view",
-              title: "Name",
-              required: true,
-            },
-          ],
-          formType: FormType.Create,
-        }}
-      />
-    );
-  }
-
-  type GetElementToBeShownInsteadOfButtonFunction = () => ReactElement;
-
-  const getElementToBeShownInsteadOfButton: GetElementToBeShownInsteadOfButtonFunction =
-    (): ReactElement => {
-      /*
-       * Shared shape so the trigger lines up with the search bar + Create button
-       * (text-sm font-medium + px-3 py-2 + 1px border → ~38px tall).
-       */
-      const triggerBase: string =
-        "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition-colors";
-
-      if (viewInUse) {
-        return (
-          <div
-            className={`${triggerBase} border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100`}
-            title={translator.translateTemplate("Saved view: {{name}}", {
-              name: viewInUse.name || "",
-            })}
-          >
-            <Icon
-              icon={IconProp.Bookmark}
-              className="h-4 w-4 flex-none text-indigo-500"
-            />
-            <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap leading-none">
-              <span className="text-xs font-medium uppercase tracking-wider text-indigo-400">
-                {translator.translateText("View")}
-              </span>
-              <span className="max-w-[14rem] truncate text-sm font-semibold">
-                {viewInUse.name}
-              </span>
-            </span>
-            <span
-              aria-hidden="true"
-              className="mx-0.5 h-4 w-px bg-indigo-200"
-            />
-            <button
-              type="button"
-              aria-label={translator.translateText("Clear saved view")}
-              title={translator.translateText("Clear saved view")}
-              className="-mr-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-md text-indigo-500 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                setCurrentlySelectedView(null);
-                props.onViewChange?.(null);
-                closeDropdownMenu();
-              }}
-            >
-              <Icon icon={IconProp.Close} className="h-3 w-3" />
-            </button>
-            <Icon
-              icon={IconProp.ChevronDown}
-              className="h-3.5 w-3.5 flex-none text-indigo-400"
-            />
-          </div>
-        );
-      }
-
+  const getDialog: GetDialogFunction = (): ReactElement | null => {
+    if (error) {
       return (
-        <div
-          className={`${triggerBase} border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50`}
-          title={translator.translateText("Saved Views")}
-        >
-          <Icon
-            icon={IconProp.Bookmark}
-            className="h-4 w-4 flex-none text-gray-400"
-          />
-          <span className="text-sm">
-            {translator.translateText("Saved Views")}
-          </span>
-          {allTableViews.length > 0 && (
-            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-100 px-1.5 text-[11px] font-medium text-gray-600">
-              {allTableViews.length.toLocaleString(getReaderNumberLocale())}
-            </span>
-          )}
-          <Icon
-            icon={IconProp.ChevronDown}
-            className="h-3.5 w-3.5 flex-none text-gray-400"
-          />
-        </div>
+        <ConfirmModal
+          title={`Something went wrong...`}
+          description={error}
+          isLoading={false}
+          submitButtonText={"Close"}
+          onSubmit={() => {
+            return setError("");
+          }}
+        />
       );
-    };
+    }
+
+    if (tableViewToEdit) {
+      return (
+        <ModelFormModal<TableView>
+          modelType={TableView}
+          modelIdToEdit={tableViewToEdit.id!}
+          name="Edit View"
+          title="Edit View"
+          description="You can rename this table view to any name you like."
+          onClose={() => {
+            setTableViewToEdit(undefined);
+          }}
+          submitButtonText="Save Changes"
+          onSuccess={async () => {
+            setTableViewToEdit(undefined);
+
+            await fetchTableViews();
+          }}
+          formProps={{
+            name: "Edit View",
+            modelType: TableView,
+            id: "edit-table-view",
+            fields: [
+              {
+                field: {
+                  name: true,
+                },
+                fieldType: FormFieldSchemaType.Text,
+                placeholder: "Name of the view",
+                description: "Please enter the new name of the view",
+                title: "Name",
+                required: true,
+              },
+            ],
+            formType: FormType.Update,
+          }}
+        />
+      );
+    }
+
+    if (tableViewToDelete) {
+      return (
+        <ConfirmModal
+          /*
+           * Titled by kind and named in the sentence, like every other delete:
+           * "Delete View" / "Are you sure you want to delete Open incidents?".
+           */
+          description={
+            <DeleteConfirmationMessage
+              kind="question"
+              name={getRecordDisplayName(tableViewToDelete)}
+              typeLabel="view"
+            />
+          }
+          title="Delete View"
+          isLoading={isLoading}
+          onSubmit={async () => {
+            await deleteTableView(tableViewToDelete);
+            setTableViewToDelete(undefined);
+          }}
+          onClose={() => {
+            setTableViewToDelete(undefined);
+          }}
+          submitButtonText={`Delete`}
+          submitButtonType={ButtonStyleType.DANGER}
+        />
+      );
+    }
+
+    if (showCreateNewViewModal) {
+      return (
+        <ModelFormModal<TableView>
+          modelType={TableView}
+          name="Save New View"
+          title="Save New View"
+          description="You can save the current table settings as a new view."
+          onClose={() => {
+            setShowCreateNewViewModel(false);
+          }}
+          submitButtonText="Save Changes"
+          onBeforeCreate={(tableView: TableView) => {
+            let sort: Sort<T> = {};
+
+            if (props.currentSortOrder && props.currentSortBy) {
+              sort = {
+                [props.currentSortBy]: props.currentSortOrder,
+              } as Sort<T>;
+            }
+
+            tableView.tableId = props.tableId;
+            tableView.query =
+              (props.currentQuery as Query<
+                DatabaseBaseModel | AnalyticsBaseModel
+              >) || {};
+            tableView.itemsOnPage = props?.currentItemsOnPage || 10;
+            tableView.sort = sort || {};
+            if (props.currentFacetState) {
+              tableView.facets = props.currentFacetState;
+            }
+            if (props.currentColumns) {
+              tableView.columns = props.currentColumns;
+            }
+            return Promise.resolve(tableView);
+          }}
+          onSuccess={async (tableView: TableView) => {
+            setShowCreateNewViewModel(false);
+            await fetchTableViews();
+            // set as current view
+            props.onViewChange?.(tableView);
+          }}
+          formProps={{
+            name: "Save New View",
+            modelType: TableView,
+            id: "save-table-view",
+            fields: [
+              {
+                field: {
+                  name: true,
+                },
+                fieldType: FormFieldSchemaType.Text,
+                placeholder: "Name of the view",
+                description: "Please enter the new name of the view",
+                title: "Name",
+                required: true,
+              },
+            ],
+            formType: FormType.Create,
+          }}
+        />
+      );
+    }
+
+    return null;
+  };
 
   const closeDropdownMenu: VoidFunction = (): void => {
     if (moreMenuRef.current) {
       (moreMenuRef.current as any).closeDropdown();
     }
   };
+
+  /*
+   * Shared shape so the trigger lines up with the search bar + Create button
+   * (text-sm font-medium + px-3 py-2 + 1px border → ~38px tall).
+   */
+  const triggerBase: string =
+    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
+
+  type GetTriggerFunction = () => ReactElement;
+
+  /*
+   * The button that opens the menu, a real <button> (MoreMenu's own native
+   * trigger, which it hands its id, aria-expanded and click), named for a
+   * screen reader by what it shows. It used to be a box MoreMenu made into
+   * a role="button", with Clear saved view - a button - inside it: a control
+   * inside a control, whose inner button a screen reader could not reach.
+   * Clear saved view sits beside it now, the two drawn as one chip.
+   */
+  const getTrigger: GetTriggerFunction = (): ReactElement => {
+    if (viewInUse) {
+      const savedViewName: string = translator.translateTemplate(
+        "Saved view: {{name}}",
+        {
+          name: viewInUse.name || "",
+        },
+      );
+
+      return (
+        <button
+          type="button"
+          className={`${triggerBase} rounded-r-none border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100`}
+          title={savedViewName}
+          aria-label={savedViewName}
+        >
+          <Icon
+            icon={IconProp.Bookmark}
+            className="h-4 w-4 flex-none text-indigo-500"
+          />
+          <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap leading-none">
+            <span className="text-xs font-medium uppercase tracking-wider text-indigo-400">
+              {translator.translateText("View")}
+            </span>
+            <span className="max-w-[14rem] truncate text-sm font-semibold">
+              {viewInUse.name}
+            </span>
+          </span>
+          <Icon
+            icon={IconProp.ChevronDown}
+            className="h-3.5 w-3.5 flex-none text-indigo-400"
+          />
+        </button>
+      );
+    }
+
+    const savedViewsWord: string =
+      translator.translateText("Saved Views") || "Saved Views";
+
+    return (
+      <button
+        type="button"
+        className={`${triggerBase} border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50`}
+        title={savedViewsWord}
+        aria-label={savedViewsWord}
+      >
+        <Icon
+          icon={IconProp.Bookmark}
+          className="h-4 w-4 flex-none text-gray-400"
+        />
+        <span className="text-sm">{savedViewsWord}</span>
+        {allTableViews.length > 0 && (
+          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-100 px-1.5 text-[11px] font-medium text-gray-600">
+            {allTableViews.length.toLocaleString(getReaderNumberLocale())}
+          </span>
+        )}
+        <Icon
+          icon={IconProp.ChevronDown}
+          className="h-3.5 w-3.5 flex-none text-gray-400"
+        />
+      </button>
+    );
+  };
+
+  const dialog: ReactElement | null = getDialog();
 
   /*
    * Nothing to offer and nothing to say: no saved views, nothing worth saving,
@@ -623,16 +619,40 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     !hasSavableState &&
     !viewInUse
   ) {
-    return <></>;
+    return dialog || <></>;
   }
 
-  return (
-    <MoreMenu
-      elementToBeShownInsteadOfButton={getElementToBeShownInsteadOfButton()}
-      ref={moreMenuRef}
-    >
+  const menu: ReactElement = (
+    <MoreMenu elementToBeShownInsteadOfButton={getTrigger()} ref={moreMenuRef}>
       {getMenuContents()}
     </MoreMenu>
+  );
+
+  return (
+    <>
+      {viewInUse ? (
+        <div className="inline-flex items-stretch">
+          {menu}
+          <button
+            type="button"
+            aria-label={translator.translateText("Clear saved view")}
+            title={translator.translateText("Clear saved view")}
+            className="-ml-px inline-flex flex-none items-center justify-center rounded-r-md border border-indigo-200 bg-indigo-50 px-2 text-indigo-500 shadow-sm transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-w-11"
+            data-testid="table-view-clear"
+            onClick={() => {
+              setCurrentlySelectedView(null);
+              props.onViewChange?.(null);
+              closeDropdownMenu();
+            }}
+          >
+            <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        menu
+      )}
+      {dialog}
+    </>
   );
 };
 

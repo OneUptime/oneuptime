@@ -461,15 +461,53 @@ describe("the subscriptions it streams from", () => {
     ] as Array<[string, string, string]>) {
       const failed: ReturnType<typeof getAzureStreamSetup> =
         getAzureStreamSetup({
-          choices: { what: CloudStreamWhat.Metrics, subscriptionsText },
+          choices: {
+            what: CloudStreamWhat.Metrics,
+            subscriptionsText,
+            activityLog: true,
+            entraId: true,
+          },
           connectionId: CONNECTION_ID,
           appId,
         });
 
       expect(failed.problem?.text).toBe(problem);
       expect(failed.command).toBe("");
+      expect(failed.entraCommand).toBe("");
       expect(failed.hostSubscriptionId).toBe("");
     }
+  });
+
+  test("the audit logs start off; the Activity Log goes in the command, Entra ID's in a command of their own", () => {
+    const defaults: ReturnType<typeof getDefaultAzureStreamChoices> =
+      getDefaultAzureStreamChoices([SUB_A, SUB_B]);
+
+    expect([defaults.activityLog, defaults.entraId]).toEqual([false, false]);
+
+    const plain: ReturnType<typeof getAzureStreamSetup> = getAzureStreamSetup({
+      choices: defaults,
+      connectionId: CONNECTION_ID,
+      appId: APP_ID,
+    });
+
+    expect(plain.command).not.toContain("subscription create");
+    expect(plain.entraCommand).toBe("");
+
+    const both: ReturnType<typeof getAzureStreamSetup> = getAzureStreamSetup({
+      choices: { ...defaults, activityLog: true, entraId: true },
+      connectionId: CONNECTION_ID,
+      appId: APP_ID,
+    });
+
+    expect(both.command).toContain(
+      "az monitor diagnostic-settings subscription create",
+    );
+    expect(both.entraCommand).toContain(
+      "/providers/microsoft.aadiam/diagnosticSettings/$SETTING",
+    );
+    // Read where the command makes the event hubs: the first subscription.
+    expect(both.entraCommand).toContain(`local HOST='${SUB_A}'`);
+    expect(both.entraCommand).not.toContain("subscription create");
   });
 
   test("Stop streaming's command deletes in the subscription its event hubs are read in, then the ones it reads", () => {
@@ -565,6 +603,98 @@ describe("the dialog", () => {
       (part("command").querySelector("pre")?.parentElement as HTMLElement).style
         .maxHeight,
     ).toBe(CLOUD_STREAM_COMMAND_MAX_HEIGHT);
+  });
+
+  test("two switches offer what Security Events reads, off at first, each said in a line", () => {
+    openDialog();
+
+    const auditLogs: HTMLElement = part("audit-logs");
+
+    expect(auditLogs).toHaveTextContent("For Security Events");
+    expect(
+      within(auditLogs)
+        .getAllByRole("switch")
+        .map((toggle: HTMLElement) => {
+          return [
+            toggle.getAttribute("data-testid"),
+            toggle.getAttribute("aria-checked"),
+          ];
+        }),
+    ).toEqual([
+      [`${CLOUD_STREAM_DIALOG_TEST_ID}-audit-log-activityLog`, "false"],
+      [`${CLOUD_STREAM_DIALOG_TEST_ID}-audit-log-entraId`, "false"],
+    ]);
+    expect(auditLogs).toHaveTextContent("Each subscription's Activity Log");
+    expect(auditLogs).toHaveTextContent(
+      "Changes made, Defender for Cloud alerts and what Azure Policy refused, which Security Events reads.",
+    );
+    expect(auditLogs).toHaveTextContent(
+      "Microsoft Entra ID's sign-in and audit logs",
+    );
+    expect(auditLogs).toHaveTextContent(
+      "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.",
+    );
+    expect(queryPart("what-it-makes-activity-log")).toBeNull();
+    expect(queryPart("entra-command")).toBeNull();
+    expect(command()).not.toContain("subscription create");
+  });
+
+  test("the Activity Log switch puts each subscription's setting in the command, and says what it makes", async () => {
+    openDialog();
+
+    await act(async () => {
+      fireEvent.click(part("audit-log-activityLog"));
+    });
+
+    expect(part("audit-log-activityLog")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(command()).toContain(
+      "az monitor diagnostic-settings subscription create",
+    );
+    expect(command()).toContain(`for SUB in '${SUB_A}' '${SUB_B}'; do`);
+    expect(part("what-it-makes-activity-log")).toHaveTextContent(
+      "And it gives each subscription a diagnostic setting, OneUptime-6f1c3a2e, that sends its Activity Log to the first region's event hub.",
+    );
+    // Still three steps: one command does it.
+    expect(screen.queryByTestId("setup-guide-step-4")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(part("audit-log-activityLog"));
+    });
+
+    expect(command()).not.toContain("subscription create");
+    expect(queryPart("what-it-makes-activity-log")).toBeNull();
+  });
+
+  test("the Entra ID switch adds a step of its own: a command for a Security Administrator of the tenant", async () => {
+    openDialog();
+
+    await act(async () => {
+      fireEvent.click(part("audit-log-entraId"));
+    });
+
+    const steps: Array<HTMLElement> = [1, 2, 3, 4].map((index: number) => {
+      return screen.getByTestId(`setup-guide-step-${index}`);
+    });
+
+    expect(steps[2]).toHaveTextContent(
+      "Run this as a Security Administrator of your tenant",
+    );
+    expect(steps[2]).toHaveTextContent(
+      `Once the first command has finished, run this in Azure Cloud Shell as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of ${GROUP}.`,
+    );
+    expect(steps[3]).toHaveTextContent("Wait for the first events");
+
+    const entra: string =
+      part("entra-command").querySelector("pre code")?.textContent || "";
+
+    expect(entra).toContain("oneuptime_stream_entra() {");
+    expect(entra).toContain(`local HOST='${SUB_A}'`);
+    expect(entra).toContain("az rest --method put");
+    // The first command is unchanged by it: the tenant's setting is not the subscriptions'.
+    expect(command()).not.toContain("aadiam");
   });
 
   test("metrics and logs send both, as Azure allows each resource; logs alone send logs only", async () => {

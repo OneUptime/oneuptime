@@ -35,6 +35,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import InvitationInviterUtil from "../../../Server/Utils/TeamMember/InvitationInviter";
+import { callTeamMemberHook } from "../TestingUtils/TeamMemberInvitations";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -107,17 +108,13 @@ const PROJECT_NAME: string = "Acme Production";
 // A date the server could never have produced for "now".
 const FORGED_ACCEPTED_AT: Date = new Date("2001-01-01T00:00:00.000Z");
 
-// Calls a protected/private hook without widening the service's public surface.
+/*
+ * Calls a protected hook without widening the service's public surface -
+ * a membership's onBeforeCreate with the invitation it plans, which its
+ * create sends once the membership is made (runInvitationHooks, #10180).
+ */
 function callHook(name: string, ...args: Array<unknown>): Promise<unknown> {
-  const hooks: Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  > = TeamMemberService as unknown as Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  >;
-
-  return hooks[name]!.apply(TeamMemberService, args);
+  return callTeamMemberHook(TeamMemberService, name, ...args);
 }
 
 /* A project admin inviting from the dashboard (Team > Members, Users). */

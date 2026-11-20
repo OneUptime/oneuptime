@@ -70,6 +70,8 @@ const DATABASE_PAGE_KEYS: ReadonlyArray<string> = [
   "DATABASE_SERVER_VIEW_INCIDENTS",
   "DATABASE_SERVER_VIEW_ALERTS",
   "DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE",
+  "DATABASE_SERVER_VIEW_DATA_SECURITY",
+  "DATABASE_SERVER_VIEW_COMPLIANCE",
   "DATABASE_SERVER_VIEW_FEED",
   "DATABASE_SERVER_VIEW_OWNERS",
   "DATABASE_SERVER_VIEW_ENDPOINTS",
@@ -107,6 +109,19 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Documentation.tsx", "DATABASE_SERVER_VIEW_DOCUMENTATION"],
   ["AuditLogs.tsx", "DATABASE_SERVER_VIEW_AUDIT_LOGS"],
   ["Delete.tsx", "DATABASE_SERVER_VIEW_DELETE"],
+];
+
+/*
+ * The database's Security section (Data Security #9547, Compliance #9555):
+ * View pages routed like the others, but the section is drawn only once
+ * Data Security has read the database, in a project that uses it, so the
+ * side menu links them through useResourceDataSecurityMenu's routes rather
+ * than RouteMap. ResourceSecurityPagesWiring.test.ts pins both pages for
+ * every kind of resource a data store belongs to.
+ */
+const SECURITY_PAGES: ReadonlyArray<[string, string]> = [
+  ["DataSecurity.tsx", "DATABASE_SERVER_VIEW_DATA_SECURITY"],
+  ["Compliance.tsx", "DATABASE_SERVER_VIEW_COMPLIANCE"],
 ];
 
 /*
@@ -192,6 +207,8 @@ describe("RouteMap gives every page a URL under /databases", () => {
     ["DATABASE_SERVER_VIEW_INCIDENTS", "incidents"],
     ["DATABASE_SERVER_VIEW_ALERTS", "alerts"],
     ["DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE", "scheduled-maintenance"],
+    ["DATABASE_SERVER_VIEW_DATA_SECURITY", "data-security"],
+    ["DATABASE_SERVER_VIEW_COMPLIANCE", "compliance"],
     ["DATABASE_SERVER_VIEW_FEED", "feed"],
     ["DATABASE_SERVER_VIEW_OWNERS", "owners"],
     ["DATABASE_SERVER_VIEW_ENDPOINTS", "endpoints"],
@@ -264,6 +281,24 @@ describe("every route is actually mounted", () => {
     },
   );
 
+  test.each(SECURITY_PAGES)(
+    "Pages/Database/View/%s exists and is mounted under the view layout for %s",
+    (file: string, key: string) => {
+      expect(
+        fs.existsSync(
+          path.join(DASHBOARD_SRC, "Pages", "Database", "View", file),
+        ),
+      ).toBe(true);
+      expect(routes).toContain(
+        `from "../Pages/Database/View/${file.replace(/\.tsx$/, "")}"`,
+      );
+      expect(dense(routesRaw)).toMatch(
+        new RegExp(`RouteUtil\\.getLastPathForKey\\(PageMap\\.${key},?\\)`),
+      );
+      expect(dense(routesRaw)).toContain(`RouteMap[PageMap.${key}]asRoute`);
+    },
+  );
+
   test.each(PRODUCT_PAGES)(
     "Pages/Database/%s exists and is routed for %s",
     (segments: Array<string>, key: string) => {
@@ -292,9 +327,11 @@ describe("every route is actually mounted", () => {
       .sort();
 
     expect(onDisk).toEqual(
-      VIEW_PAGES.map((entry: [string, string]): string => {
-        return entry[0];
-      }).sort(),
+      [...VIEW_PAGES, ...SECURITY_PAGES]
+        .map((entry: [string, string]): string => {
+          return entry[0];
+        })
+        .sort(),
     );
   });
 
@@ -431,6 +468,34 @@ describe("the side menus reach the whole product", () => {
       expect(sideMenu).toContain(`RouteMap[PageMap.${key}]asRoute`);
     }
     expect(sideMenu).toContain('<SideMenuSectiontitle="AI">');
+  });
+
+  test("the database side menu links to its Security pages through Data Security's menu", () => {
+    const sideMenu: string = dense(
+      readSource("Pages", "Database", "View", "SideMenu.tsx"),
+    );
+
+    expect(sideMenu).toContain(
+      "useResourceDataSecurityMenu({kind:DataStoreResourceKind.DatabaseServer,modelId:props.modelId,})",
+    );
+    expect(sideMenu).toContain(
+      '{dataSecurityMenu?(<SideMenuSectiontitle="Security">',
+    );
+    expect(sideMenu).toContain("to:dataSecurityMenu.dataSecurityRoute,");
+    expect(sideMenu).toContain("to:dataSecurityMenu.complianceRoute,");
+
+    // The menu's two routes are this kind's pages, the ones routed above.
+    expect(
+      dense(
+        readSource(
+          "Components",
+          "ResourceDataSecurity",
+          "ResourceDataSecurityPages.ts",
+        ),
+      ),
+    ).toContain(
+      "[DataStoreResourceKind.DatabaseServer]:{dataSecurity:PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,compliance:PageMap.DATABASE_SERVER_VIEW_COMPLIANCE,}",
+    );
   });
 
   test("the activity badges count by the databaseServers relation", () => {

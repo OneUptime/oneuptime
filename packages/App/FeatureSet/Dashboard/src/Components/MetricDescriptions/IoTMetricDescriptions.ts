@@ -15,6 +15,10 @@
  *     whatever the picker says. Only the attention list checks that battery
  *     and signal readings are fresh (15 minutes).
  *   - The Fleets list counts come from the latest data the fleet sent.
+ *   - While a fleet is disconnected, none of its devices' last states is
+ *     current (#9730, #10014): the Status column, a device's Status and the
+ *     Fleets list's count say the fleet is disconnected instead, and keep
+ *     what each device last reported.
  *
  * Change the fetch, change the words.
  */
@@ -65,7 +69,7 @@ export const IOT_METRIC_DESCRIPTIONS: Record<IoTMetric, string> = {
     "Devices marked offline, plus devices whose latest reading shows battery below 20% or signal weaker than -100 dBm. Battery and signal only count if the device reported in the last 15 minutes, and this list ignores the time range picker.",
   ),
   deviceStatus: translationKey(
-    "Online or Offline, from the latest up/down heartbeat this device sent. If it has stopped reporting, check Last Seen: a registered device that stays silent is eventually marked Offline.",
+    "Online or Offline, from the latest up/down heartbeat this device sent; a registered device that stays silent is eventually marked Offline. While its fleet is disconnected, it says so instead, with the state the device last reported and when.",
   ),
   uptime: translationKey(
     "How long the device had been running since it last started, as of its most recent report. The value does not keep counting while the device is silent.",
@@ -86,7 +90,7 @@ export const IOT_METRIC_DESCRIPTIONS: Record<IoTMetric, string> = {
     "Memory the device was using compared with its total memory, both from its most recent report. A dash after the slash means the device does not report its total memory.",
   ),
   statusColumn: translationKey(
-    "Online or Offline, from each device's latest up/down heartbeat. A dash means no heartbeat has arrived yet, and a registered device that stops reporting is eventually marked Offline.",
+    "Online or Offline, from each device's latest up/down heartbeat: a dash means no heartbeat has arrived yet, and a registered device that stops reporting is eventually marked Offline. While the fleet is disconnected, each device says so instead, with the state it last reported.",
   ),
   batteryColumn: translationKey(
     "Battery charge from each device's most recent report, shown in red at 20% or below. It is the last value sent, even if the device has since stopped reporting.",
@@ -98,6 +102,6 @@ export const IOT_METRIC_DESCRIPTIONS: Record<IoTMetric, string> = {
     "Temperature in degrees Celsius from each device's most recent report. A dash means the device does not report temperature.",
   ),
   fleetDevices: translationKey(
-    "Devices online out of all devices, counted from the most recent data the fleet sent rather than from a time range. Shown in red when any of them is offline.",
+    "Devices online out of all devices, counted from the most recent data the fleet sent rather than from a time range, and shown in red when any of them is offline. While the fleet is disconnected, it counts the devices the fleet has: which of them are online is not known.",
   ),
 };

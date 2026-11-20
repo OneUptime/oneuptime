@@ -777,6 +777,13 @@ const DataSecurityTelemetryPage: FunctionComponent<
             title: "Scrubbed",
             type: FieldType.Element,
             disableSort: true,
+            /*
+             * Under the data type, where the list does not fit its card
+             * (TableFit): in German at 1280px, beside the side menu, each
+             * row's Show Records and its ⋯ pushed the list past its card.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "dataTypeId",
             getExportValue: (finding: DataStoreFinding): string => {
               if (!finding.isScrubbed) {
                 return NOT_SCRUBBED;

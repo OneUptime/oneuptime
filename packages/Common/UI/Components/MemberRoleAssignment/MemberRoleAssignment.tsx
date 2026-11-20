@@ -75,24 +75,36 @@ export interface ComponentProps {
   error?: string;
   onAssignMember: (userId: ObjectID, roleId: ObjectID) => Promise<void>;
   onUnassignMember: (memberId: ObjectID) => Promise<void>;
+  /*
+   * Hands a role from the person who holds it to someone else: one change
+   * on the server, never a removal and then an addition (#10191), so the
+   * role is never left without anyone. Rejects with the server's reason,
+   * which the Reassign dialog says.
+   */
+  onReassignMember: (
+    member: AssignedMember,
+    newUserId: ObjectID,
+  ) => Promise<void>;
   onRefresh?: () => Promise<void>;
   emptyStateMessage?: string;
   className?: string;
   // Handed to the Card; "stacked" suits a narrow column.
   headerLayout?: CardHeaderLayout | undefined;
   /*
-   * Whether the reader may give a role and take one off: PermissionGate's
-   * answer for the record's member table - a create to give one, a delete
-   * to take one off (Reassign does both). Refused with a reason, the
-   * buttons that would do it are drawn locked, saying why ("You do not
-   * have permission to change this incident's roles.", then the
-   * permissions that would allow it), as a record's header draws its
-   * locked state buttons; refused before the permissions are read, they
-   * are left out, as the header's Assign is. Left out, every button is
-   * offered and the server decides.
+   * Whether the reader may give a role, take one off and hand one on:
+   * PermissionGate's answer for the record's member table - a create to
+   * give one, a delete to take one off, and an update of the row's person
+   * to hand one on (Reassign). Refused with a reason, the buttons that
+   * would do it are drawn locked, saying why ("You do not have permission
+   * to change this incident's roles.", then the permissions that would
+   * allow it), as a record's header draws its locked state buttons;
+   * refused before the permissions are read, they are left out, as the
+   * header's Assign is. Left out, every button is offered and the server
+   * decides.
    */
   assignGate?: PermissionGateResult | undefined;
   unassignGate?: PermissionGateResult | undefined;
+  reassignGate?: PermissionGateResult | undefined;
 }
 
 /*
@@ -112,8 +124,7 @@ export interface MemberRoleButtonState {
 }
 
 /*
- * The state of a button that needs every one of `gates` - Reassign needs to
- * take the role off one person and give it to another. The first refusal
+ * The state of a button that needs every one of `gates`. The first refusal
  * with a reason says why; any refusal without one leaves the button out.
  */
 export const getMemberRoleButtonState: (
@@ -229,11 +240,22 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
   );
   const [selectedUserOption, setSelectedUserOption] =
     useState<DropdownOption | null>(null);
+  // What the card's own pickers failed to do: said at the top of the card.
   const [localError, setLocalError] = useState<string>("");
   const [reassignState, setReassignState] = useState<ReassignState | null>(
     null,
   );
+  // The person picked in the Reassign dialog: its own, apart from Assign's.
+  const [reassignPick, setReassignPick] = useState<DropdownOption | null>(null);
   const [isReassigning, setIsReassigning] = useState<boolean>(false);
+  /*
+   * What a dialog failed to do is said in that dialog, which stays open:
+   * never in the card behind it, where a refusal of Reassign read as raw
+   * text over the page's background and stayed there once the dialog was
+   * closed (#10191).
+   */
+  const [reassignError, setReassignError] = useState<string>("");
+  const [removeError, setRemoveError] = useState<string>("");
 
   /*
    * A picker that has just opened takes the cursor once it is drawn: the
@@ -286,15 +308,16 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
       [props.onAssignMember],
     );
 
+  // Remove's confirmation: its refusal is said in it, and it stays open.
   const handleUnassign: (member: AssignedMember) => Promise<void> = useCallback(
     async (member: AssignedMember): Promise<void> => {
       try {
         setIsUnassigning(member.memberId);
-        setLocalError("");
+        setRemoveError("");
         await props.onUnassignMember(member.memberId);
         setShowConfirmDelete(null);
       } catch (err) {
-        setLocalError(API.getFriendlyMessage(err));
+        setRemoveError(API.getFriendlyMessage(err));
       } finally {
         setIsUnassigning(null);
       }
@@ -302,32 +325,60 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
     [props.onUnassignMember],
   );
 
+  const openRemoveConfirmation: (member: AssignedMember) => void = (
+    member: AssignedMember,
+  ): void => {
+    setRemoveError("");
+    setShowConfirmDelete(member);
+  };
+
+  const closeRemoveConfirmation: () => void = (): void => {
+    setRemoveError("");
+    setShowConfirmDelete(null);
+  };
+
+  const openReassignDialog: (
+    member: AssignedMember,
+    role: MemberRole,
+  ) => void = (member: AssignedMember, role: MemberRole): void => {
+    setReassignPick(null);
+    setReassignError("");
+    setReassignState({ member, role });
+  };
+
+  const closeReassignDialog: () => void = (): void => {
+    setReassignState(null);
+    setReassignPick(null);
+    setReassignError("");
+  };
+
+  /*
+   * Reassign: one request that hands the role on (onReassignMember). It
+   * used to take the role off its holder and then give it to the person
+   * picked, two requests that needed two permissions - and a refusal of the
+   * first was said behind the dialog, as raw text over the page (#10191).
+   */
   const handleReassign: (
     currentMember: AssignedMember,
     newUserId: ObjectID,
-    roleId: ObjectID,
   ) => Promise<void> = useCallback(
     async (
       currentMember: AssignedMember,
       newUserId: ObjectID,
-      roleId: ObjectID,
     ): Promise<void> => {
       try {
         setIsReassigning(true);
-        setLocalError("");
-        // First unassign the current member
-        await props.onUnassignMember(currentMember.memberId);
-        // Then assign the new user
-        await props.onAssignMember(newUserId, roleId);
+        setReassignError("");
+        await props.onReassignMember(currentMember, newUserId);
         setReassignState(null);
-        setSelectedUserOption(null);
+        setReassignPick(null);
       } catch (err) {
-        setLocalError(API.getFriendlyMessage(err));
+        setReassignError(API.getFriendlyMessage(err));
       } finally {
         setIsReassigning(false);
       }
     },
-    [props.onUnassignMember, props.onAssignMember],
+    [props.onReassignMember],
   );
 
   // Get members for a specific role
@@ -366,7 +417,10 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
       [props.availableUsers, getMembersForRole],
     );
 
-  // Giving a role, taking one off, and Reassign's both.
+  /*
+   * Giving a role, taking one off, and handing one on - Reassign's own
+   * gate: it is one change of the row, so it never asks the other two.
+   */
   const assignButtonState: MemberRoleButtonState = getMemberRoleButtonState([
     props.assignGate,
   ]);
@@ -374,8 +428,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
     props.unassignGate,
   ]);
   const reassignButtonState: MemberRoleButtonState = getMemberRoleButtonState([
-    props.unassignGate,
-    props.assignGate,
+    props.reassignGate,
   ]);
 
   const cardTitle: string = props.title || "Team Members";
@@ -507,7 +560,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               onClick={() => {
-                setReassignState({ member, role });
+                openReassignDialog(member, role);
               }}
               className="ml-9 inline-flex flex-shrink-0 items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
               title={translator.translateText("Reassign")}
@@ -545,7 +598,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             onClick={() => {
-              setShowConfirmDelete(member);
+              openRemoveConfirmation(member);
             }}
             disabled={isUnassigning?.toString() === member.memberId.toString()}
             className={`ml-auto inline-flex flex-shrink-0 items-center p-1.5 text-gray-400 rounded-md transition-colors ${getHandDrawnButtonStateClassName(
@@ -887,32 +940,42 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
           onSubmit={() => {
             handleUnassign(showConfirmDelete);
           }}
-          onClose={() => {
-            setShowConfirmDelete(null);
-          }}
+          isLoading={Boolean(isUnassigning)}
+          isCloseDisabled={Boolean(isUnassigning)}
+          error={removeError || undefined}
+          errorWhatFailed={translator.translateText(
+            "The person was not removed from the role.",
+          )}
+          onClose={closeRemoveConfirmation}
         />
       )}
 
-      {/* Reassign Modal */}
+      {/*
+       * Reassign: the person picked takes the role over in one change. A
+       * refusal is said here, in the dialog, which stays open on the same
+       * pick (#10191).
+       */}
       {reassignState && (
         <Modal
           title="Reassign Role"
-          submitButtonText={isReassigning ? "Reassigning..." : "Reassign"}
+          submitButtonText="Reassign"
           submitButtonStyleType={ButtonStyleType.PRIMARY}
           onSubmit={() => {
-            if (selectedUserOption) {
+            if (reassignPick) {
               handleReassign(
                 reassignState.member,
-                new ObjectID(selectedUserOption.value.toString()),
-                reassignState.role.id,
+                new ObjectID(reassignPick.value.toString()),
               );
             }
           }}
-          disableSubmitButton={!selectedUserOption || isReassigning}
-          onClose={() => {
-            setReassignState(null);
-            setSelectedUserOption(null);
-          }}
+          isLoading={isReassigning}
+          disableSubmitButton={!reassignPick || isReassigning}
+          isCloseDisabled={isReassigning}
+          error={reassignError || undefined}
+          errorWhatFailed={translator.translateText(
+            "The role was not reassigned.",
+          )}
+          onClose={closeReassignDialog}
         >
           <p className="text-gray-500 text-sm mb-4">
             {translator.translateTemplate(
@@ -927,6 +990,8 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
             )}
           </p>
           <Dropdown
+            // Named by the role it hands on, as the card's own picker is.
+            ariaLabel={reassignState.role.name}
             options={props.availableUsers
               .filter((user: AvailableUser) => {
                 // Exclude the current member from the list
@@ -943,6 +1008,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
               })}
             placeholder="Select new user..."
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              // A new pick asks again: what the last one was refused goes.
+              setReassignError("");
+
               if (value && !Array.isArray(value)) {
                 const option: DropdownOption | undefined = props.availableUsers
                   .map((user: AvailableUser): DropdownOption => {
@@ -955,12 +1023,12 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                   .find((opt: DropdownOption) => {
                     return opt.value.toString() === value.toString();
                   });
-                setSelectedUserOption(option || null);
+                setReassignPick(option || null);
               } else {
-                setSelectedUserOption(null);
+                setReassignPick(null);
               }
             }}
-            value={selectedUserOption || undefined}
+            value={reassignPick || undefined}
           />
         </Modal>
       )}

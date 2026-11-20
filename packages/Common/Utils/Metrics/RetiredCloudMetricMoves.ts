@@ -1020,11 +1020,21 @@ export interface RetiredCloudMetricNotice {
 export function getRetiredCloudMetricNotices(
   queryConfigs: ReadonlyArray<unknown>,
 ): Array<RetiredCloudMetricNotice> {
+  return getRetiredCloudMetricNoticesOfNames(
+    queryConfigs.map((query: unknown): unknown => {
+      return getFilterData(query)?.["metricName"];
+    }),
+  );
+}
+
+// The same, of metric names as stored: a Table widget's columns name theirs.
+export function getRetiredCloudMetricNoticesOfNames(
+  metricNames: ReadonlyArray<unknown>,
+): Array<RetiredCloudMetricNotice> {
   const notices: Array<RetiredCloudMetricNotice> = [];
   const seen: Set<string> = new Set<string>();
 
-  for (const query of queryConfigs) {
-    const metricName: unknown = getFilterData(query)?.["metricName"];
+  for (const metricName of metricNames) {
     const metric: RetiredCloudMetric | null = getRetiredCloudMetric(metricName);
 
     if (!metric) {

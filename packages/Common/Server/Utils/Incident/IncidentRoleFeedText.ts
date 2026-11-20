@@ -90,9 +90,30 @@ export interface IncidentRoleRemovedFeedTextInput
   person: MarkdownText;
 }
 
-const getWorkflowName: (input: IncidentRoleFeedTextInput) => string = (
-  input: IncidentRoleFeedTextInput,
-): string => {
+/*
+ * A role handed from one person to another in one change (Reassign): the
+ * person who held it and the person who holds it now, each as a link to
+ * them. Who made the change may be either of them - somebody who takes the
+ * role over, or hands it on - or somebody else.
+ */
+export interface IncidentRoleReassignedFeedTextInput {
+  roleName: string;
+  incident: MarkdownText;
+  /*
+   * The person who held the role: empty for a person who is gone, whom
+   * nobody is named for.
+   */
+  from: MarkdownText;
+  // The person who holds it now.
+  to: MarkdownText;
+  // Who made the change, when it was one of the two.
+  madeBy?: "from" | "to" | undefined;
+  workflowName?: string | undefined;
+}
+
+const getWorkflowName: (input: {
+  workflowName?: string | undefined;
+}) => string = (input: { workflowName?: string | undefined }): string => {
   return (input.workflowName || "").trim();
 };
 
@@ -139,6 +160,41 @@ export default class IncidentRoleFeedText {
     }
 
     return mdText`👤 Removed **${input.person}** as **${input.roleName}** from ${input.incident}.`;
+  }
+
+  /*
+   * The entry for a role handed from one person to another in one change
+   * (Reassign): one entry, never a removal and an addition, since the role
+   * was never without someone. "Reassigned Incident Commander on Incident
+   * INC-18 from Maya Chen to Jordan Patel"; somebody taking it over reads
+   * "Took over ... from Maya Chen", and somebody handing it on "Handed ...
+   * to Jordan Patel".
+   */
+  public static getReassignedMarkdown(
+    input: IncidentRoleReassignedFeedTextInput,
+  ): MarkdownText {
+    const workflowName: string = getWorkflowName(input);
+    const hasFrom: boolean = !input.from.isEmpty();
+
+    if (workflowName) {
+      return hasFrom
+        ? mdText`👤 Workflow **${workflowName}** reassigned **${input.roleName}** on ${input.incident} from **${input.from}** to **${input.to}**.`
+        : mdText`👤 Workflow **${workflowName}** reassigned **${input.roleName}** on ${input.incident} to **${input.to}**.`;
+    }
+
+    if (input.madeBy === "to") {
+      return hasFrom
+        ? mdText`👤 Took over the **${input.roleName}** role on ${input.incident} from **${input.from}**.`
+        : mdText`👤 Took the **${input.roleName}** role on ${input.incident}.`;
+    }
+
+    if (input.madeBy === "from") {
+      return mdText`👤 Handed the **${input.roleName}** role on ${input.incident} to **${input.to}**.`;
+    }
+
+    return hasFrom
+      ? mdText`👤 Reassigned **${input.roleName}** on ${input.incident} from **${input.from}** to **${input.to}**.`
+      : mdText`👤 Reassigned **${input.roleName}** on ${input.incident} to **${input.to}**.`;
   }
 
   /*

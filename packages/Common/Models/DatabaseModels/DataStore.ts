@@ -700,11 +700,16 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     /*
-     * Readable through a relation, as the store's kind, sensitivity and
-     * exposure are: a data security issue's page reads the kinds of data its
-     * store holds (DATA_SECURITY_ISSUE_VIEW_SELECT).
+     * Never readable through a relation, as the store's data categories and
+     * subject countries are not (#10238). A column read on a relation query
+     * skips every permission check (QueryPermission), and a Data Asset, a
+     * Data Alert and a Data Warehouse Job join their store for every
+     * member, viewer and Telemetry role who reads them: through any of them,
+     * which kinds of data each store holds - what only the Security roles
+     * read - was anyone's to read. A data security issue's page reads its
+     * store's data types from the store itself (StoreDataTypes.ts), by the
+     * store's own read permissions.
      */
-    canReadOnRelationQuery: true,
     title: "Data Types",
     description:
       "The data types found in the store with at least Medium confidence.",

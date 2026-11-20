@@ -56,7 +56,7 @@ import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
-import React from "react";
+import React, { ComponentType, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -84,9 +84,23 @@ import {
   MAGIC_LINK_TOKEN_FIELD,
 } from "Common/Types/Accounts/MagicLink";
 import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
-import LoginWithSsoPage from "./LoginWithSSO";
+// Type-only on purpose: the page itself is loaded by the import() below.
+import type { ComponentProps as LoginWithSsoPageProps } from "./LoginWithSSO";
 import SessionEndedNotice from "../Components/SessionEndedNotice/SessionEndedNotice";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
+
+/*
+ * The single sign-on page, drawn in this page's place while the server
+ * requires SSO. It loads then, with the providers it offers and their
+ * models, rather than with every sign-in page: a provider's model names the
+ * domains it serves, and those are no part of a password sign-in
+ * (packages/Common/Scripts/first-load-budgets.js).
+ */
+const LoginWithSsoPage: React.LazyExoticComponent<
+  ComponentType<LoginWithSsoPageProps>
+> = lazy(() => {
+  return import("./LoginWithSSO");
+});
 
 /*
  * The misc bag travels on the wire under `_miscData` — the key
@@ -1319,10 +1333,13 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
     signInMethodsRead.signInMethods
   ) {
     return (
-      <LoginWithSsoPage
-        signInMethods={signInMethodsRead.signInMethods}
-        showEditionLabel={true}
-      />
+      // While it loads, the shape the single sign-on page draws as it reads.
+      <Suspense fallback={<AuthPageSkeleton fields={1} />}>
+        <LoginWithSsoPage
+          signInMethods={signInMethodsRead.signInMethods}
+          showEditionLabel={true}
+        />
+      </Suspense>
     );
   }
 

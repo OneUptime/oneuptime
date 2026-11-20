@@ -6,7 +6,11 @@ import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/Inci
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
-import { assignIncidentEpisodeRole } from "../../../Utils/EventRoleAssignment";
+import { getEpisodeRoleReassignGate } from "../../../Utils/EventRoleGates";
+import {
+  assignIncidentEpisodeRole,
+  reassignIncidentEpisodeRole,
+} from "../../../Utils/EventRoleAssignment";
 import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
 import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import PermissionGate, {
@@ -77,10 +81,12 @@ import {
   getOwnersFact,
 } from "../../../Components/EventView/EventPeopleFacts";
 import {
+  EventRoleMember,
   EventRolesSnapshot,
   PrimaryRoleHolding,
   getPrimaryRoleHolding,
   withRoleGiven,
+  withRoleReassigned,
 } from "../../../Utils/EventPeople";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
@@ -487,8 +493,9 @@ const IncidentEpisodeView: FunctionComponent<
   /*
    * Who runs the episode, first in its header: the commander (the
    * project's primary incident role) and the owners, teams first, each
-   * filled right there - Assign and Add - while the episode is open, by a
-   * reader who may give a role or add an owner.
+   * filled right there - Assign, the commander's name that hands the role
+   * on (#10195), and Add - while the episode is open, by a reader who may
+   * give a role, hand one on or add an owner.
    */
   const peopleFacts: Array<EventStatusFact> = [];
   const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(
@@ -496,6 +503,10 @@ const IncidentEpisodeView: FunctionComponent<
       ? rolesSnapshot.value
       : undefined,
   );
+  // Handing it on is the role row's update, as the roles card's Reassign is.
+  const mayReassignRoles: boolean = getEpisodeRoleReassignGate(
+    privateRecordGate(new IncidentEpisodeRoleMember()),
+  ).isAllowed;
   const mayAssignRoles: boolean = PermissionGate.check(
     new IncidentEpisodeRoleMember(),
     ModelAction.Create,
@@ -536,6 +547,54 @@ const IncidentEpisodeView: FunctionComponent<
                     withRoleGiven({
                       snapshot: current.value,
                       roleId: primaryRole.role.id,
+                      person: person,
+                    }) || current.value,
+                };
+              },
+            );
+            setRolesRefreshToken((token: number): number => {
+              return token + 1;
+            });
+            // Role changes are recorded on the episode feed.
+            setContentRefreshToken((token: number): number => {
+              return token + 1;
+            });
+          },
+    onReassign:
+      timing.isResolved || !primaryRole || !mayReassignRoles
+        ? undefined
+        : async (
+            member: EventRoleMember,
+            person: PeoplePickerOption,
+          ): Promise<void> => {
+            const episodeId: string = modelIdString;
+
+            await reassignIncidentEpisodeRole({
+              memberId: new ObjectID(member.memberId!),
+              userId: new ObjectID(person.id),
+            });
+
+            // Named at once; the roles card's read says the same a moment later.
+            setRolesSnapshot(
+              (
+                current: {
+                  subjectId: string;
+                  value: EventRolesSnapshot;
+                } | null,
+              ): {
+                subjectId: string;
+                value: EventRolesSnapshot;
+              } | null => {
+                if (!current || current.subjectId !== episodeId) {
+                  return current;
+                }
+
+                return {
+                  subjectId: episodeId,
+                  value:
+                    withRoleReassigned({
+                      snapshot: current.value,
+                      member: member,
                       person: person,
                     }) || current.value,
                 };

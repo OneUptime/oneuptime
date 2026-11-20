@@ -18,6 +18,10 @@ import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMa
 import ExceptionInstanceService from "../../../../Server/Services/ExceptionInstanceService";
 import HostLogSessionService from "../../../../Server/Services/HostLogSessionService";
 import { RealtimeReader } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
+import FindBy from "../../../../Server/Types/AnalyticsDatabase/FindBy";
+import { OnFind } from "../../../../Server/Types/AnalyticsDatabase/Hooks";
+import Query from "../../../../Server/Types/AnalyticsDatabase/Query";
+import Select from "../../../../Server/Types/AnalyticsDatabase/Select";
 import DatabaseModels from "../../../../Models/DatabaseModels/Index";
 import AnalyticsModels from "../../../../Models/AnalyticsModels/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -486,6 +490,67 @@ describe("every model that sends live updates is read the way its service reads 
           .getRealtimeReadAccess()
           .readsEveryRecord(readerOf(SERVER_ADMIN)),
       ).resolves.toBe(true);
+    },
+  );
+
+  /*
+   * A service may keep rows out of what a read lists - ExceptionInstance's
+   * keeps a crash's second report out of every list and count (#9923) - and
+   * still be decided by the read check and the read scope alone, when its
+   * find hook leaves a read of a row by its _id as it was: whoever may read
+   * the row reads it by asking, so may hear that it was written. It names
+   * that hook (getFindHookThatNarrowsNoRead). Any other hook of its own
+   * decides that nobody hears, which the check above refuses.
+   */
+  test.each(
+    ANALYTICS_SERVICES.map(
+      (service: AnalyticsDatabaseService<AnalyticsBaseModel>) => {
+        return [service.modelType.name, service];
+      },
+    ) as Array<[string, AnalyticsDatabaseService<AnalyticsBaseModel>]>,
+  )(
+    "%s: a find hook of its own is the one it names, and leaves a read of a row by its _id as it was",
+    async (
+      _model: string,
+      service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    ) => {
+      type FindHook = (
+        findBy: FindBy<AnalyticsBaseModel>,
+      ) => Promise<OnFind<AnalyticsBaseModel>>;
+
+      const ownHook: unknown = (service as unknown as Record<string, unknown>)[
+        "onBeforeFind"
+      ];
+      const baseHook: unknown = (
+        AnalyticsDatabaseService.prototype as unknown as Record<string, unknown>
+      )["onBeforeFind"];
+      const named: FindHook | null = service.getFindHookThatNarrowsNoRead();
+
+      if (ownHook === baseHook) {
+        expect(named).toBeNull();
+        return;
+      }
+
+      expect(named).toBe(ownHook);
+
+      const readById: FindBy<AnalyticsBaseModel> = {
+        query: {
+          _id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          projectId: SERVER_ADMIN.tenantId,
+        } as Query<AnalyticsBaseModel>,
+        select: { _id: true } as Select<AnalyticsBaseModel>,
+        limit: 1,
+        skip: 0,
+        props: SERVER_ADMIN,
+      };
+      const asked: Query<AnalyticsBaseModel> = { ...readById.query };
+
+      const onFind: OnFind<AnalyticsBaseModel> = await named!.call(
+        service,
+        readById,
+      );
+
+      expect(onFind.findBy.query).toEqual(asked);
     },
   );
 });

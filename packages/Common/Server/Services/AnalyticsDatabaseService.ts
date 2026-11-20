@@ -3751,7 +3751,8 @@ export default class AnalyticsDatabaseService<
    *
    * A service that narrows its reads further on its own (onBeforeFind, or a
    * findBy of its own) is not modelled here, so nobody hears about its rows
-   * rather than everybody.
+   * rather than everybody - unless its find hook is one that narrows no
+   * one's read (getFindHookThatNarrowsNoRead).
    */
   public getRealtimeReadAccess(): RealtimeReadAccess {
     if (this.realtimeReadAccess) {
@@ -3854,8 +3855,31 @@ export default class AnalyticsDatabaseService<
   }
 
   /*
+   * This service's find hook (onBeforeFind), when it narrows no one's read
+   * of a row: it keeps rows out of what a read lists, but leaves a read of
+   * rows by their _id as it was, so whoever may read a row - the read check
+   * and the read scope, which every read is held to after the hook - still
+   * reads it by asking. ExceptionInstanceService's keeps a crash's second
+   * report out of every list and count, and finds it by its _id or by the
+   * report it repeats (#9923). Such a hook changes what a list shows, not
+   * who may read a row, so the table's live updates are still decided by
+   * the read check and the read scope (getRealtimeReadAccess).
+   *
+   * Named as the hook itself, so a service that overrides it again narrows
+   * its reads on its own once more. Null for a service that keeps the base
+   * hook or narrows its reads in it. RealtimeEmitGuard holds every service
+   * whose model sends live updates to what its hook does.
+   */
+  public getFindHookThatNarrowsNoRead():
+    | ((findBy: FindBy<TBaseModel>) => Promise<OnFind<TBaseModel>>)
+    | null {
+    return null;
+  }
+
+  /*
    * Whether this service's reads are narrowed by the permission check
-   * alone: it adds nothing in onBeforeFind and replaces no read.
+   * alone: it adds nothing in onBeforeFind but a hook that narrows no one's
+   * read (getFindHookThatNarrowsNoRead), and replaces no read.
    */
   private readsThroughThePermissionCheck(): boolean {
     const service: Record<string, unknown> = this as unknown as Record<
@@ -3864,6 +3888,8 @@ export default class AnalyticsDatabaseService<
     >;
     const base: Record<string, unknown> =
       AnalyticsDatabaseService.prototype as unknown as Record<string, unknown>;
+    const findHookNarrowingNoRead: unknown =
+      this.getFindHookThatNarrowsNoRead();
 
     return [
       "findBy",
@@ -3872,7 +3898,12 @@ export default class AnalyticsDatabaseService<
       "onBeforeFind",
       "onFindSuccess",
     ].every((method: string): boolean => {
-      return service[method] === base[method];
+      return (
+        service[method] === base[method] ||
+        (method === "onBeforeFind" &&
+          findHookNarrowingNoRead !== null &&
+          service[method] === findHookNarrowingNoRead)
+      );
     });
   }
 }

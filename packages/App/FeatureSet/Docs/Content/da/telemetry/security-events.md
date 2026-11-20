@@ -193,6 +193,7 @@ Hver slags når OneUptime som almindelige logs:
 | AWS CloudTrail | Et trail leveret til CloudWatch Logs, læst af collectorens `awscloudwatch`-receiver, eller, for en konto, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
 | Google Cloud-auditlogs | En log-sink til Pub/Sub, læst af collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et projekt, der er forbundet under **Cloud**, dets [stream](/docs/telemetry/cloud-streaming-google-cloud) eller [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
 | Azure-aktivitetslogs og Entra ID-logs | En diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw`, eller til hændelseshubben i et forbundet abonnements [stream](/docs/telemetry/cloud-streaming-azure), eller, for aktivitetsloggen fra et abonnement, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| Azure Key Vault-, Storage- og SQL-logs | En ressources diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw`, eller diagnosticeringsindstillingerne i et forbundet abonnements [stream](/docs/telemetry/cloud-streaming-azure), med logs. Se [Azure-ressourcers egne auditlogs](#azure-ressourcers-egne-auditlogs) |
 | OpenStack-auditspor | En clouds notifikationer og auditfilter sendt til dens logs med `driver = log`, læst af agentens [logprofil](/docs/telemetry/openstack#hvem-gjorde-hvad) |
 | CEF, LEEF | Produktets syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Firewallens egen syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
@@ -204,6 +205,18 @@ På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en
 En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åbner en [sag](/docs/telemetry/security-cases), som et forbundet produkts advarsel gør, og øger risikoen for den bruger, vært eller adresse, den nævner. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**. Produktets logins og blokerede forbindelser forbliver hændelser, som dine regler kan læse.
 
 En post, der når OneUptime ad to veje, gemmes én gang: et Microsoft Entra ID-login, som dets forbindelse læser, og som Azure også eksporterer til dine logs, en CloudTrail-post i dine logs og i auditloggen for en forbundet AWS-konto, eller en auditpost, som en cloudkontos stream sender, og som **Cloud-auditlogs** også læser.
+
+#### Azure-ressourcers egne auditlogs
+
+En Key Vault, en lagerkonto og en Azure SQL-database fører hver sin egen auditlog, som registrerer hver anmodning. Kun det, et sikkerhedsteam kigger på, bliver en sikkerhedshændelse:
+
+| Ressource | Hvad der bliver en sikkerhedshændelse |
+| --- | --- |
+| Key Vault (`AuditEvent`) | En anmodning, som vaulten afviste; en hemmelighed, der blev udleveret; en hemmelighed, en nøgle, et certifikat eller selve vaulten, der blev slettet, fjernet permanent eller sikkerhedskopieret; en ændret adgangspolitik; og en ændring af det, vaulten rummer. Ikke den 401, som hver Azure SDK-klient får ved sit første kald, der foretages uden token for at finde lejeren: Key Vault logger den under sin handling `Authentication` |
+| Lagerkonto (`StorageRead`, `StorageWrite`, `StorageDelete`) | En anmodning, der blev afvist, fordi en rettighed manglede; en, der blev besvaret helt uden loginoplysninger, bortset fra et statisk websteds sider og en CORS-preflight; en ændret adgangsliste for en container, en filshare, en kø eller en tabel, eller en af dem slettet helt; og en skrivning eller sletning, som en signatur til delt adgang (SAS) har signeret. Ikke en læsning, der lykkedes, heller ikke en med SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Et mislykket login; et login på en ny forbindelse, ikke genbrug af en forbindelse fra en forbindelsespulje; en tilladelse, der blev givet, nægtet eller tilbagekaldt, et rollemedlem eller en adgangskode, der blev ændret, en personificering, og et login, en bruger eller en rolle, der blev oprettet, ændret eller fjernet; og en handling, hvis tilladelseskontrol mislykkedes. Ikke et batch, hovedparten af en audit |
+
+En lagerkontos vellykkede læsninger er det meste af det, den logger: en SAS er den måde, de fleste apps giver browsere filer på. De bliver i Protokoller, hele, på kontoens fane **Protokoller**: søg der efter `"type":"SAS"` for at se, hvad en signatur til delt adgang læste. Hver hændelse nævner sin ressource ved dens ID, en lagertjenestes også dens konto, så den vises på ressourcens side **Sikkerhedshændelser**, og en post, der ankommer to gange, gemmes én gang.
 
 ### Læs auditlogs fra dine cloudkonti
 

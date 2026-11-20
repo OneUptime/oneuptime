@@ -76,6 +76,12 @@ export const SECURITY_LOG_FORMAT_TEXTS: Record<
       "Changes made in your Azure subscriptions, Defender for Cloud alerts, and Microsoft Entra ID sign-ins and directory changes.",
     ),
   },
+  [SecurityLogFormat.AzureResourceLogs]: {
+    title: translationKey("Azure Key Vault, Storage and SQL logs"),
+    description: translationKey(
+      "Key vault secrets read and changed, storage requests refused, anonymous or changing data with a SAS, and Azure SQL sign-ins, refusals and permission changes.",
+    ),
+  },
   [SecurityLogFormat.Cef]: {
     title: translationKey("CEF"),
     description: translationKey(

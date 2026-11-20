@@ -788,11 +788,17 @@ describe("the Custom Probes page: how OneUptime knows a probe is running", () =>
     );
     expect(readSource(PROBE_ALIVE_JOB)).toMatch(/schedule: EVERY_MINUTE/);
     /*
-     * Every authenticated probe request stamps lastAlive, with what it
-     * says of the release the probe runs (#9759).
+     * Every authenticated probe request stamps lastAlive, in the one key
+     * check every way a probe presents its key goes through (#10222), with
+     * what its body says of the release the probe runs (#9759).
      */
-    expect(readSource(PROBE_AUTHORIZATION)).toContain(
-      "ProbeService.updateLastAlive(\n        probeId,\n        ProbeReportedVersionUtil.readFromRequest(data),\n      )",
+    const authorization: string = readSource(PROBE_AUTHORIZATION);
+
+    expect(authorization).toContain(
+      "ProbeService.updateLastAlive(probeId, data.versionReport)",
+    );
+    expect(authorization).toContain(
+      "versionReport: ProbeReportedVersionUtil.readFromRequest(data),",
     );
   });
 

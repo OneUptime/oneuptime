@@ -317,7 +317,7 @@ const getProjectPicker: GetElementFunction = (): HTMLElement => {
 };
 
 const getSideMenu: GetElementFunction = (): HTMLElement => {
-  return screen.getByRole("navigation", { name: "Main navigation" });
+  return screen.getByRole("navigation", { name: "Pages in this section" });
 };
 
 beforeAll(async () => {

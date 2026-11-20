@@ -4984,6 +4984,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       /*
+       * What the task log says about the stopped guests, as the Proxmox AI
+       * agent read it (#10017): who or what stopped each one, and when. A
+       * fact about the guests, never their status or the cluster being read,
+       * so it moves no lastSeenAt and no count.
+       */
+      if (snap && snap.guestPowerTasks.size > 0) {
+        try {
+          await ProxmoxResourceService.recordGuestPowerTasks({
+            projectId: data.projectId,
+            proxmoxClusterId: new ObjectID(liveIdStr),
+            readings: Array.from(snap.guestPowerTasks.values()),
+          });
+        } catch (err) {
+          logger.warn(
+            `Proxmox snapshot writeback (guest power tasks) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      /*
        * Nodes the live siblings reported as not reporting turn Offline —
        * before the recount below, so onlineNodeCount drops in this flush.
        */

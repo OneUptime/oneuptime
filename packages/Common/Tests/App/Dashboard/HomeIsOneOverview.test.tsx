@@ -237,7 +237,7 @@ describe("Home's frame", () => {
         expect({
           width,
           sideMenu: screen.queryByRole("navigation", {
-            name: "Main navigation",
+            name: "Pages in this section",
           }),
           phoneToggle: screen.queryByTestId("mobile-sidemenu-toggle"),
         }).toEqual({ width, sideMenu: null, phoneToggle: null });

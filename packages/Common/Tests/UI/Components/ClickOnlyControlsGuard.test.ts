@@ -66,7 +66,7 @@ const DELIBERATE: Record<string, { elements: Array<string>; reason: string }> =
           "The floating panel's transparent backdrop: a click outside closes it, as Escape and its Close button do from the keyboard.",
       },
     "packages/Common/UI/Components/SideMenu/SideMenu.tsx": {
-      elements: ["div", "nav"],
+      elements: ["div", "nav[role=none]"],
       reason:
         "The phone menu's backdrop (the menu button, which opened it, closes it again from the keyboard), and the menu's list, which hears its links' clicks to close itself after one is followed; the links are what a keyboard presses.",
     },
@@ -79,11 +79,6 @@ const DELIBERATE: Record<string, { elements: Array<string>; reason: string }> =
       elements: ["div[role=alert]"],
       reason:
         "A pressable alert draws a real button over its whole box, which a keyboard reaches and presses; the box's click is the same action for a click that lands on its words.",
-    },
-    "packages/Common/UI/Components/HiddenText/HiddenText.tsx": {
-      elements: ["div[role=hidden-text]"],
-      reason:
-        "The reveal button inside it is what a person presses; its click reaches the box, which end-to-end specs find by its role.",
     },
     "packages/Common/UI/Components/Dropdown/Dropdown.tsx": {
       elements: ["div"],

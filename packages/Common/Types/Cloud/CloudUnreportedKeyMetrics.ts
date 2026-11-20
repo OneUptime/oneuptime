@@ -5,17 +5,18 @@ import {
   AwsCloudWatchResourceRule,
 } from "./CloudResourceCatalog";
 import {
-  AWS_DEFAULT_PERIOD_SECONDS,
-  AZURE_FIVE_MINUTE_GRAIN,
   AZURE_FIVE_MINUTE_READ_MINUTES,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   AzureKeyMetric,
+  CloudKeyMetricCadence,
   GCP_KEY_METRICS,
   GcpKeyMetric,
   GcpTypeKeyMetrics,
+  getAwsKeyMetricCadence,
   getAwsKeyMetrics,
   getAwsStoredMetricName,
+  getAzureKeyMetricCadence,
   getAzureKeyMetricOfStoredName,
   getAzureKeyMetrics,
   getAzureStoredMetricName,
@@ -30,6 +31,7 @@ import {
   CLOUD_KEY_METRIC_CONDITION_REASONS,
   CloudKeyMetricCondition,
 } from "./CloudKeyMetricCondition";
+import { CLOUD_CONNECTION_READ_INTERVALS } from "../CloudConnection/CloudConnectionCatalog";
 
 /*
  * THE KEY METRICS A CLOUD RESOURCE DID NOT REPORT, AND WHY.
@@ -71,12 +73,15 @@ export interface CloudResourceKeyMetric {
   onlyWhen?: CloudKeyMetricCondition | undefined;
   /*
    * The seconds between two of its points, where they are further apart
-   * than the read's: an Azure metric kept at five minutes (300), an AWS
-   * metric published a few times a day (3600) or once a day (86400).
+   * than the read's: an Azure metric kept at five minutes (300), at an
+   * hour (3600) or at six hours (21600), an AWS metric published a few
+   * times a day (3600) or once a day (86400).
    */
   intervalSeconds?: number | undefined;
   // How often it is read, where that is not every read: every 15 minutes.
   readEverySeconds?: number | undefined;
+  // How often it comes (CloudKeyMetricCadence), set with intervalSeconds.
+  cadence?: CloudKeyMetricCadence | undefined;
   // Who reports it when the cloud does not itself: the Ops Agent on a VM.
   reportedBy?: string | undefined;
   /*
@@ -151,6 +156,9 @@ function getAwsKeyMetricsOfResource(data: {
         return;
       }
 
+      const cadence: CloudKeyMetricCadence | undefined =
+        getAwsKeyMetricCadence(metric);
+
       metrics.push({
         key: awsKeyOf(entry.namespace, metric.metricName),
         name: metric.metricName,
@@ -158,9 +166,7 @@ function getAwsKeyMetricsOfResource(data: {
         group: metric.group,
         rank,
         ...(metric.onlyWhen ? { onlyWhen: metric.onlyWhen } : {}),
-        ...(metric.periodSeconds > AWS_DEFAULT_PERIOD_SECONDS
-          ? { intervalSeconds: metric.periodSeconds }
-          : {}),
+        ...(cadence ? { intervalSeconds: metric.periodSeconds, cadence } : {}),
         storedNames: [
           getAwsStoredMetricName(
             entry.namespace,
@@ -174,12 +180,46 @@ function getAwsKeyMetricsOfResource(data: {
   return metrics;
 }
 
+/*
+ * An Azure key metric's points, by its mark (AzureKeyMetric.grain): how far
+ * apart they are, and how often they are read - a five-minute one in a call
+ * every 15 minutes, an hourly one once an hour, a six-hourly one every six.
+ */
+const AZURE_CADENCE_TIMING: Readonly<
+  Partial<
+    Record<
+      CloudKeyMetricCadence,
+      Pick<
+        CloudResourceKeyMetric,
+        "intervalSeconds" | "readEverySeconds" | "cadence"
+      >
+    >
+  >
+> = {
+  [CloudKeyMetricCadence.FiveMinutes]: {
+    intervalSeconds: 300,
+    readEverySeconds: AZURE_FIVE_MINUTE_READ_MINUTES * 60,
+    cadence: CloudKeyMetricCadence.FiveMinutes,
+  },
+  [CloudKeyMetricCadence.Hourly]: {
+    intervalSeconds: 3600,
+    readEverySeconds: 3600,
+    cadence: CloudKeyMetricCadence.Hourly,
+  },
+  [CloudKeyMetricCadence.SixHourly]: {
+    intervalSeconds: 21600,
+    readEverySeconds: 21600,
+    cadence: CloudKeyMetricCadence.SixHourly,
+  },
+};
+
 function getAzureKeyMetricsOfResource(
   type: string,
 ): Array<CloudResourceKeyMetric> {
   return (getAzureKeyMetrics(type)?.metrics || []).map(
     (metric: AzureKeyMetric, rank: number): CloudResourceKeyMetric => {
-      const isFiveMinutes: boolean = metric.grain === AZURE_FIVE_MINUTE_GRAIN;
+      const cadence: CloudKeyMetricCadence | undefined =
+        getAzureKeyMetricCadence(metric);
 
       return {
         key: metric.name.toLowerCase(),
@@ -187,12 +227,7 @@ function getAzureKeyMetricsOfResource(
         group: metric.group,
         rank,
         ...(metric.onlyWhen ? { onlyWhen: metric.onlyWhen } : {}),
-        ...(isFiveMinutes
-          ? {
-              intervalSeconds: 300,
-              readEverySeconds: AZURE_FIVE_MINUTE_READ_MINUTES * 60,
-            }
-          : {}),
+        ...(cadence ? AZURE_CADENCE_TIMING[cadence] : {}),
         storedNames: AZURE_AGGREGATIONS.map((aggregation: string): string => {
           return getAzureStoredMetricName(metric.name, aggregation);
         }),
@@ -333,14 +368,128 @@ export function getCloudKeyMetricKeyOfStoredName(data: {
 }
 
 /*
+ * ---- When a key metric's points can be in a range ------------------------
+ *
+ * A key metric that comes every read is in any range that ends now. One
+ * whose points come less often (its cadence) reaches a range only once its
+ * newest point can be in it: an hourly one's is 2 to 3 hours old when it is
+ * read, so the last hour holds none of it, and a list of that hour counted
+ * it as not reported (#10026). It is counted only past its own interval and
+ * delay.
+ *
+ * How old its newest point can be, before the read that brings the next -
+ * the readings' holds say the same of a reading (CloudResourceHealth):
+ *
+ *   - five minutes: 9 to 14 minutes old when read (Azure Monitor's 4
+ *     minutes on a whole five), in a call once a read's window holds 15
+ *     minutes - every 15 or 20 minutes, or every read on a connection read
+ *     every 30 or 60;
+ *   - an hour, or six: two periods old when read (a window of an hour or
+ *     more waits a whole period), three by the first read after the next
+ *     is there;
+ *   - a few times a day (ACM's DaysToExpiry, twice a day): up to 12 hours
+ *     between two, read 2 to 3 hours after each, hourly;
+ *   - once a day: 2.5 to 3.5 days old (CloudWatch's day, read 36 hours on).
+ */
+export const CLOUD_LONGEST_READ_INTERVAL_MINUTES: number = Math.max(
+  ...CLOUD_CONNECTION_READ_INTERVALS,
+);
+
+const MINUTE_MS: number = 60 * 1000;
+const HOUR_MS: number = 60 * MINUTE_MS;
+
+export function getCloudKeyMetricNewestPointMaxAgeMs(data: {
+  cadence: CloudKeyMetricCadence;
+  // How often its connection reads; unknown: the longest a connection may wait.
+  readIntervalInMinutes?: number | null | undefined;
+}): number {
+  const readMs: number =
+    Math.max(
+      1,
+      Number(data.readIntervalInMinutes) || CLOUD_LONGEST_READ_INTERVAL_MINUTES,
+    ) * MINUTE_MS;
+
+  switch (data.cadence) {
+    case CloudKeyMetricCadence.FiveMinutes: {
+      // Its call waits for 15 minutes of it: the reads it takes to hold them.
+      const callEveryMs: number =
+        Math.ceil((AZURE_FIVE_MINUTE_READ_MINUTES * MINUTE_MS) / readMs) *
+        readMs;
+
+      return 14 * MINUTE_MS + callEveryMs;
+    }
+    case CloudKeyMetricCadence.Hourly:
+      return 3 * HOUR_MS + readMs;
+    case CloudKeyMetricCadence.SixHourly:
+      return 18 * HOUR_MS + readMs;
+    case CloudKeyMetricCadence.FewTimesADay:
+      return 15 * HOUR_MS + readMs;
+    case CloudKeyMetricCadence.Daily:
+      return 84 * HOUR_MS + readMs;
+    default:
+      return 0;
+  }
+}
+
+// A range a list read, in milliseconds.
+export interface CloudKeyMetricRange {
+  startMs: number;
+  endMs: number;
+}
+
+/*
+ * Whether the range holds a point of the metric for certain, as of `nowMs`:
+ * always for one that comes every read. For one with a cadence, when the
+ * range reaches now and back past its newest point's age (so its newest
+ * point is in it), or when it holds a whole interval of the points that
+ * are surely in by now. A range that only may hold one does not count it
+ * as not reported.
+ */
+export function isCloudKeyMetricExpectedInRange(data: {
+  metric: Pick<CloudResourceKeyMetric, "cadence" | "intervalSeconds">;
+  range: CloudKeyMetricRange;
+  nowMs: number;
+  readIntervalInMinutes?: number | null | undefined;
+}): boolean {
+  if (!data.metric.cadence) {
+    return true;
+  }
+
+  const maxAgeMs: number = getCloudKeyMetricNewestPointMaxAgeMs({
+    cadence: data.metric.cadence,
+    readIntervalInMinutes: data.readIntervalInMinutes,
+  });
+  const surelyInMs: number = data.nowMs - maxAgeMs;
+  // A range that ends a minute ago reaches now: a list's "now" is its own.
+  const reachesNow: boolean = data.range.endMs >= data.nowMs - MINUTE_MS;
+
+  if (reachesNow && data.range.startMs <= surelyInMs) {
+    return true;
+  }
+
+  return (
+    Math.min(data.range.endMs, surelyInMs) - data.range.startMs >=
+    (data.metric.intervalSeconds || 0) * 1000
+  );
+}
+
+/*
  * The resource's key metrics none of `reportedMetricNames` is (the names
- * its metrics list found in its range), in their sections' order.
+ * its metrics list found in its range), in their sections' order. With the
+ * range, only those it holds a point of for certain
+ * (isCloudKeyMetricExpectedInRange): the last hour does not count an
+ * hourly one, whose newest point is older.
  */
 export function getCloudUnreportedKeyMetrics(data: {
   provider: string | null | undefined;
   type: string | null | undefined;
   namespace?: string | null | undefined;
   reportedMetricNames: ReadonlyArray<string>;
+  range?: CloudKeyMetricRange | undefined;
+  // When the range was read; now unless said.
+  nowMs?: number | undefined;
+  // How often its connection reads; unknown: the longest a connection may wait.
+  readIntervalInMinutes?: number | null | undefined;
 }): Array<CloudResourceKeyMetric> {
   const reported: Set<string> = new Set<string>();
 
@@ -356,9 +505,21 @@ export function getCloudUnreportedKeyMetrics(data: {
     }
   }
 
+  const nowMs: number = data.nowMs ?? Date.now();
+  const range: CloudKeyMetricRange | undefined = data.range;
+
   return getCloudKeyMetricsOfResource(data).filter(
     (metric: CloudResourceKeyMetric): boolean => {
-      return !reported.has(metric.key);
+      return (
+        !reported.has(metric.key) &&
+        (!range ||
+          isCloudKeyMetricExpectedInRange({
+            metric,
+            range,
+            nowMs,
+            readIntervalInMinutes: data.readIntervalInMinutes,
+          }))
+      );
     },
   );
 }
@@ -402,6 +563,8 @@ export interface CloudUnreportedReasonEntry {
   // CloudUnreportedReason.Cadence's: the metric's interval and read cadence.
   intervalSeconds?: number | undefined;
   readEverySeconds?: number | undefined;
+  // CloudUnreportedReason.Cadence's: how often it comes, which its sentence says.
+  cadence?: CloudKeyMetricCadence | undefined;
   fix?: CloudUnreportedFix | undefined;
 }
 
@@ -447,12 +610,29 @@ export const CLOUD_UNREPORTED_REASON_SENTENCES: Readonly<
 export const CLOUD_UNREPORTED_FIVE_MINUTES: string = translationKey(
   "It comes every 5 minutes and is read every 15 minutes.",
 );
+export const CLOUD_UNREPORTED_HOURLY: string = translationKey(
+  "Azure Monitor keeps it by the hour, so it comes once an hour, 2 to 3 hours after the hour it measures.",
+);
+export const CLOUD_UNREPORTED_SIX_HOURLY: string = translationKey(
+  "Azure Monitor keeps it in six-hour periods, so it comes every 6 hours, 12 to 18 hours after the period it measures.",
+);
 export const CLOUD_UNREPORTED_FEW_TIMES_A_DAY: string = translationKey(
   "Its cloud publishes it a few times a day, and it is read every hour.",
 );
 export const CLOUD_UNREPORTED_ONCE_A_DAY: string = translationKey(
   "Its cloud publishes it once a day.",
 );
+
+// How often a metric comes, as the sentence that says so.
+const CLOUD_UNREPORTED_CADENCE_SENTENCES: Readonly<
+  Record<CloudKeyMetricCadence, string>
+> = {
+  [CloudKeyMetricCadence.FiveMinutes]: CLOUD_UNREPORTED_FIVE_MINUTES,
+  [CloudKeyMetricCadence.Hourly]: CLOUD_UNREPORTED_HOURLY,
+  [CloudKeyMetricCadence.SixHourly]: CLOUD_UNREPORTED_SIX_HOURLY,
+  [CloudKeyMetricCadence.FewTimesADay]: CLOUD_UNREPORTED_FEW_TIMES_A_DAY,
+  [CloudKeyMetricCadence.Daily]: CLOUD_UNREPORTED_ONCE_A_DAY,
+};
 
 // What a reason's link says, in English.
 export const CLOUD_UNREPORTED_FIX_LABELS: Readonly<
@@ -473,6 +653,11 @@ export function getCloudUnreportedReasonText(
   }
 
   if (entry.reason === CloudUnreportedReason.Cadence) {
+    if (entry.cadence) {
+      return CLOUD_UNREPORTED_CADENCE_SENTENCES[entry.cadence];
+    }
+
+    // An answer from before reasons said their cadence: by the interval.
     const interval: number = entry.intervalSeconds || 0;
 
     if (interval >= 86400) {
@@ -608,6 +793,7 @@ export function explainCloudUnreportedKeyMetric(data: {
       ...(metric.readEverySeconds
         ? { readEverySeconds: metric.readEverySeconds }
         : {}),
+      ...(metric.cadence ? { cadence: metric.cadence } : {}),
     });
   }
 
@@ -674,6 +860,15 @@ function readReasonEntry(value: unknown): CloudUnreportedReasonEntry | null {
     if (typeof seconds === "number" && Number.isFinite(seconds)) {
       entry[field] = seconds;
     }
+  }
+
+  const cadence: unknown = raw["cadence"];
+
+  if (
+    typeof cadence === "string" &&
+    (Object.values(CloudKeyMetricCadence) as Array<string>).includes(cadence)
+  ) {
+    entry.cadence = cadence as CloudKeyMetricCadence;
   }
 
   const fix: unknown = raw["fix"];

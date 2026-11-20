@@ -38,11 +38,14 @@ export type CephLatestPerLabel = Map<
 /*
  * The newest reading of a metric per value of one of its labels (`pool_id`,
  * `name`); with no label (""), the newest reading of the metric under "".
+ * `withoutLabel` leaves out the readings that carry it: the cluster's own
+ * series of a metric that is also counted per pool.
  */
 export async function loadCephLatestPerLabel(data: {
   clusterName: string;
   metricName: string;
   labelAttribute: string;
+  withoutLabel?: string | undefined;
   windowMinutes?: number | undefined;
 }): Promise<CephLatestPerLabel> {
   const endDate: Date = OneUptimeDate.getCurrentDate();
@@ -87,6 +90,14 @@ export async function loadCephLatestPerLabel(data: {
   for (const metric of result.data) {
     const attrs: Record<string, unknown> =
       (metric.attributes as Record<string, unknown>) || {};
+    if (
+      data.withoutLabel &&
+      attrs[data.withoutLabel] !== undefined &&
+      attrs[data.withoutLabel] !== null &&
+      attrs[data.withoutLabel] !== ""
+    ) {
+      continue;
+    }
     const key: string = String(attrs[data.labelAttribute] ?? "");
     if (!key && data.labelAttribute) {
       continue;
@@ -164,8 +175,9 @@ function emptyPgStates(): CephPoolPgStates {
 
 /*
  * Each pool's placement groups by state, and the cluster's totals. Older
- * releases export the counts cluster-wide only, with no pool label: the
- * totals fall back to those, and no pool gets states of its own.
+ * releases (Luminous, the first Mimic ones) export the counts cluster-wide
+ * only, with no pool label: the totals fall back to those, and no pool
+ * gets states of its own.
  */
 export async function loadCephPgStates(
   clusterName: string,
@@ -195,6 +207,7 @@ export async function loadCephPgStates(
             clusterName: clusterName,
             metricName: metric.metricName,
             labelAttribute: "",
+            withoutLabel: "pool_id",
           });
           clusterWide = whole.get("")?.value ?? null;
         }
@@ -270,4 +283,41 @@ export async function loadCephPgReasonStates(
     }
   }
   return byPool;
+}
+
+/*
+ * The same states for the whole cluster, on a Ceph that counts its
+ * placement groups for the whole cluster only (#10016). Luminous's mgr
+ * exports every ceph_pg_<state> with no pool_id - per-pool counts came in
+ * a later Mimic release - so there Ceph says what it is doing about its
+ * degraded and undersized placement groups for the cluster as a whole,
+ * never for a pool. Null when it reported none of them in the window.
+ */
+export async function loadCephClusterPgReasonStates(
+  clusterName: string,
+): Promise<CephPgReasonStates | null> {
+  const perState: Array<{ state: string; value: number | null }> =
+    await Promise.all(
+      CEPH_PG_REASON_STATES.map(
+        async (
+          state: string,
+        ): Promise<{ state: string; value: number | null }> => {
+          const whole: CephLatestPerLabel = await loadCephLatestPerLabel({
+            clusterName: clusterName,
+            metricName: `ceph_pg_${state}`,
+            labelAttribute: "",
+            withoutLabel: "pool_id",
+          });
+          return { state: state, value: whole.get("")?.value ?? null };
+        },
+      ),
+    );
+
+  const states: CephPgReasonStates = {};
+  for (const entry of perState) {
+    if (entry.value !== null) {
+      states[entry.state] = entry.value;
+    }
+  }
+  return Object.keys(states).length > 0 ? states : null;
 }

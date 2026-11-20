@@ -43,7 +43,9 @@ range, on the attributes asked for (an exact value, an `Includes`, a
 `StartsWith` matched without regard to case) and on ids, newest first, up to
 the limit and saying when there is more, with the body only when it is
 selected. The Overview's metrics are generated: smooth series for two nodes and
-four pods, sampled once a minute inside each read's window.
+four pods, sampled once a minute inside each read's window. The cluster has
+sent no cost yet, so the Overview's Cost card reads the cost agent's
+allocations, finds none, and says how to turn cost monitoring on.
 
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).

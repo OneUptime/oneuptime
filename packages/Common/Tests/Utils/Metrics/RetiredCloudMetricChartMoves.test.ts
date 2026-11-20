@@ -3,6 +3,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   findRetiredCloudMetricQueriesOfDashboard,
   findRetiredCloudMetricQueryOfSlo,
+  getRetiredCloudMetricNoticesOfWidget,
   moveRetiredCloudMetricQueriesOfDashboard,
   moveRetiredCloudMetricQueryOfSlo,
 } from "../../../Utils/Metrics/RetiredCloudMetricChartMoves";
@@ -13,6 +14,7 @@ import {
   PUBSUB_PUBLISH_OPERATIONS_METRIC,
   RetiredCloudMetric,
   RetiredCloudMetricKeptReason,
+  RetiredCloudMetricNotice,
   RetiredCloudMetricOutcome,
   RetiredCloudMetricQuery,
 } from "../../../Utils/Metrics/RetiredCloudMetricMoves";
@@ -558,6 +560,80 @@ describe("what a dashboard holds besides", () => {
   });
 });
 
+/*
+ * A config is read as every board reads it (StoredDashboardViewConfig,
+ * #4571): the API, Terraform and scripts store what they are sent, so a
+ * chart the board draws is found - and kept read - and moved on the config
+ * handed in, whatever shape it was stored in.
+ */
+describe("a dashboard stored in another shape a board reads", () => {
+  function publishChart(): JSONObject {
+    return component("Chart", {
+      metricQueryConfigs: [
+        query({ metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC }),
+      ],
+    });
+  }
+
+  function metricNameOf(args: JSONObject): unknown {
+    return (
+      (
+        (args["metricQueryConfigs"] as Array<JSONObject>)[0]![
+          "metricQueryData"
+        ] as JSONObject
+      )["filterData"] as JSONObject
+    )["metricName"];
+  }
+
+  test("in the envelopes the API reference documented, the config's as an object or as JSON text", () => {
+    const stored: JSONObject = {
+      components: [{ _type: "DashboardComponent", value: publishChart() }],
+    };
+
+    for (const value of [stored, JSON.stringify(stored)]) {
+      const viewConfig: JSONObject = { _type: "DashboardViewConfig", value };
+      const before: string = JSON.stringify(viewConfig);
+
+      expect(findRetiredCloudMetricQueriesOfDashboard(viewConfig)).toHaveLength(
+        1,
+      );
+      // Finding changes nothing.
+      expect(JSON.stringify(viewConfig)).toBe(before);
+
+      expect(move(viewConfig).moved).toHaveLength(1);
+      expect(viewConfig["_type"]).toBe("DashboardViewConfig");
+      expect(metricNameOf(argsOf(viewConfig["value"] as JSONObject))).toBe(
+        PUBSUB_MESSAGES_PUBLISHED_METRIC,
+      );
+    }
+  });
+
+  test("a widget, or a widget's arguments, written as JSON text: moved as the objects they say", () => {
+    const textArguments: JSONObject = {
+      ...publishChart(),
+      arguments: JSON.stringify(publishChart()["arguments"]),
+    };
+    const viewConfig: JSONObject = {
+      _type: "DashboardViewConfig",
+      components: [JSON.stringify(publishChart()), textArguments],
+    };
+    const before: string = JSON.stringify(viewConfig);
+
+    expect(findRetiredCloudMetricQueriesOfDashboard(viewConfig)).toHaveLength(
+      2,
+    );
+    expect(JSON.stringify(viewConfig)).toBe(before);
+
+    expect(move(viewConfig).moved).toHaveLength(2);
+    expect(metricNameOf(argsOf(viewConfig, 0))).toBe(
+      PUBSUB_MESSAGES_PUBLISHED_METRIC,
+    );
+    expect(metricNameOf(argsOf(viewConfig, 1))).toBe(
+      PUBSUB_MESSAGES_PUBLISHED_METRIC,
+    );
+  });
+});
+
 describe("an SLO of a deprecated metric", () => {
   test("a counter of the publish operations counts the messages published", () => {
     const config: JSONObject = {
@@ -695,5 +771,156 @@ describe("an SLO of a deprecated metric", () => {
         }),
       ).toEqual({ moved: [], kept: [] });
     }
+  });
+});
+
+/*
+ * #10027: what one Value, Gauge or Table widget says of the deprecated
+ * metrics it reads - read as the moves read it, so a widget the hourly
+ * job cannot move says so, and every other says nothing.
+ */
+describe("what a widget says of the deprecated metrics it reads", () => {
+  const COSMOS_LATENCY: string = "azure_serversidelatency_average";
+  const SPLIT_BY_CODE: JSONObject = query({
+    metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+    groupBy: ["metric.labels.response_code"],
+  });
+
+  function notices(component: JSONObject): Array<string> {
+    return getRetiredCloudMetricNoticesOfWidget(component).map(
+      (notice: RetiredCloudMetricNotice): string => {
+        return `${notice.metric}:${notice.metricName}`;
+      },
+    );
+  }
+
+  test("a Value's and a Gauge's query, split by response code so the move left it", () => {
+    expect(
+      notices(component("Value", { metricQueryConfig: SPLIT_BY_CODE })),
+    ).toEqual([
+      `${RetiredCloudMetric.PubSubPublishOperations}:${PUBSUB_PUBLISH_OPERATIONS_METRIC}`,
+    ]);
+    expect(
+      notices(
+        component("Gauge", {
+          metricQueryConfig: query({ metricName: COSMOS_LATENCY }),
+          minValue: 0,
+          maxValue: 100,
+        }),
+      ),
+    ).toEqual([
+      `${RetiredCloudMetric.CosmosServerSideLatency}:${COSMOS_LATENCY}`,
+    ]);
+
+    // What to read instead, for each.
+    const [pubsub] = getRetiredCloudMetricNoticesOfWidget(
+      component("Value", { metricQueryConfig: SPLIT_BY_CODE }),
+    );
+
+    expect(pubsub?.replacements).toEqual([PUBSUB_MESSAGES_PUBLISHED_METRIC]);
+  });
+
+  test("a Table's metric columns and its older queries, each deprecated metric once", () => {
+    expect(
+      notices(
+        component("Table", {
+          columns: [
+            {
+              id: "c1",
+              variable: "a",
+              header: "Published",
+              kind: "Metric",
+              metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+            },
+            {
+              id: "c2",
+              variable: "b",
+              header: "Published again",
+              kind: "Metric",
+              metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+            },
+            {
+              id: "c3",
+              variable: "c",
+              header: "Latency",
+              kind: "Metric",
+              metricName: COSMOS_LATENCY,
+            },
+            {
+              id: "c4",
+              variable: "d",
+              header: "Share",
+              kind: "Formula",
+              formula: "a / 2",
+            },
+          ],
+          metricQueryConfig: query({ metricName: "http.server.duration" }),
+        }),
+      ),
+    ).toEqual([
+      `${RetiredCloudMetric.PubSubPublishOperations}:${PUBSUB_PUBLISH_OPERATIONS_METRIC}`,
+      `${RetiredCloudMetric.CosmosServerSideLatency}:${COSMOS_LATENCY}`,
+    ]);
+    expect(
+      notices(
+        component("Table", {
+          metricQueryConfigs: [query({ metricName: COSMOS_LATENCY })],
+        }),
+      ),
+    ).toEqual([
+      `${RetiredCloudMetric.CosmosServerSideLatency}:${COSMOS_LATENCY}`,
+    ]);
+  });
+
+  test("a widget of what replaces it, of another metric, or of another kind says nothing", () => {
+    for (const widget of [
+      component("Value", {
+        metricQueryConfig: query({
+          metricName: PUBSUB_MESSAGES_PUBLISHED_METRIC,
+        }),
+      }),
+      component("Gauge", {
+        metricQueryConfig: query({ metricName: "system.cpu.utilization" }),
+      }),
+      component("Value", {}),
+      component("Text", { text: PUBSUB_PUBLISH_OPERATIONS_METRIC }),
+      component("LogChart", { metricQueryConfig: SPLIT_BY_CODE }),
+    ]) {
+      expect(notices(widget)).toEqual([]);
+    }
+
+    expect(getRetiredCloudMetricNoticesOfWidget(null)).toEqual([]);
+    expect(getRetiredCloudMetricNoticesOfWidget("Value")).toEqual([]);
+    expect(
+      getRetiredCloudMetricNoticesOfWidget({ componentType: "Value" }),
+    ).toEqual([]);
+  });
+
+  test("a widget's notice is the move's own read: every query the job would try to move", () => {
+    const widget: JSONObject = component("Table", {
+      columns: [
+        {
+          id: "c1",
+          variable: "a",
+          header: "Published",
+          kind: "Metric",
+          metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+        },
+      ],
+    });
+
+    expect(
+      findRetiredCloudMetricQueriesOfDashboard(board([widget])).map(
+        (found: RetiredCloudMetricQuery): string => {
+          return found.metricName;
+        },
+      ),
+    ).toEqual(
+      getRetiredCloudMetricNoticesOfWidget(widget).map(
+        (notice: RetiredCloudMetricNotice): string => {
+          return notice.metricName;
+        },
+      ),
+    );
   });
 });

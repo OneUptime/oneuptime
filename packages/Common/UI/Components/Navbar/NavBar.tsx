@@ -255,6 +255,16 @@ const Navbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  /*
+   * The bar's name, which a screen reader says as it lists the page's
+   * landmarks: the main menu, the one that moves between Home and the
+   * products (#7963). It had none, while a page's side menu was named
+   * "Main navigation"; the side menu is "Pages in this section" now
+   * (SideMenu), the trail "Breadcrumb", so the three are told apart. No
+   * name holds the landmark's own word, navigation, which a screen reader
+   * says after it (WAI-ARIA's landmark naming).
+   */
+  const mainMenuName: string = translateString("Main menu") || "Main menu";
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
@@ -464,7 +474,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
       props.className || "flex text-center lg:space-x-8 lg:py-2 bg-white ";
 
     return (
-      <nav className={props.rightElement ? `flex justify-between` : ""}>
+      <nav
+        className={props.rightElement ? `flex justify-between` : ""}
+        aria-label={mainMenuName}
+      >
         <div data-testid="nav-children" className={className}>
           {props.children}
         </div>
@@ -539,8 +552,12 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Mobile view
   if (isMobile && activeItem) {
     return (
-      <div className="relative md:hidden">
-        <nav className="bg-white text-center justify-between py-2 mt-5">
+      /*
+       * One landmark around the bar and the menu it opens, named as the
+       * desktop bar is: the two were a navigation each, neither named.
+       */
+      <nav className="relative md:hidden" aria-label={mainMenuName}>
+        <div className="bg-white text-center justify-between py-2 mt-5">
           {/* Mobile: Show only active item and hamburger menu */}
           <div className="flex items-center justify-between w-full">
             <NavBarItem
@@ -573,7 +590,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               dataTestId="mobile-nav-toggle"
             />
           </div>
-        </nav>
+        </div>
 
         {/* Mobile dropdown menu */}
         {isMobileMenuOpen && (
@@ -581,8 +598,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
             ref={mobileMenuRef}
             className="absolute top-full left-0 right-0 z-50 mt-1 transition-all duration-200 ease-in-out"
           >
-            <nav
+            <div
               className="bg-white rounded-lg shadow-lg px-3 py-3 space-y-1 border border-gray-200 overflow-y-auto overscroll-contain"
+              // The open menu alone, inside the bar's one landmark.
+              data-testid="mobile-nav-menu"
               style={
                 mobileMenuMaxHeight
                   ? { maxHeight: `${mobileMenuMaxHeight}px` }
@@ -604,10 +623,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 pinnedLabel={props.pinnedLabel}
                 onNavigate={closeMobileMenu}
               />
-            </nav>
+            </div>
           </div>
         )}
-      </div>
+      </nav>
     );
   }
 
@@ -644,6 +663,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   return (
     <nav
       className={props.rightElement ? `flex justify-between items-center` : ""}
+      aria-label={mainMenuName}
     >
       <div data-testid="nav-children" className={className}>
         {/* Combined Home > Product breadcrumb */}

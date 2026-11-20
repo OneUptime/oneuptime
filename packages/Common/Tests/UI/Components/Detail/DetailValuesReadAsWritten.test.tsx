@@ -321,9 +321,10 @@ describe("the other values a Detail card draws as written", () => {
     cleanup();
 
     container = renderIn("fa", <HiddenText text="sk-live-123*" />);
-    fireEvent.click(container.firstElementChild as HTMLElement);
+    fireEvent.click(within(container).getByTestId("hidden-text-reveal"));
 
-    const revealed: HTMLElement = within(container).getByRole("revealed-text");
+    const revealed: HTMLElement =
+      within(container).getByTestId("hidden-text-value");
 
     expect(revealed.getAttribute("dir")).toBe("ltr");
     expect(revealed).toHaveTextContent("sk-live-123*");

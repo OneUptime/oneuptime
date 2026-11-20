@@ -2,9 +2,17 @@ import { ProbeExpressRequest } from "../Types/Request";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import ProbeReportedVersionUtil from "Common/Types/Probe/ProbeReportedVersion";
+import ProbeKeyHeaders, {
+  ProbeKeyHeadersRead,
+} from "Common/Types/Probe/ProbeKeyHeaders";
+import ProbeReportedVersionUtil, {
+  ProbeVersionReport,
+} from "Common/Types/Probe/ProbeReportedVersion";
 import ProbeService from "Common/Server/Services/ProbeService";
 import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
+import ProbeReportOpening, {
+  ProbeReportOpeningCredentials,
+} from "Common/Server/Utils/Probe/ProbeReportOpening";
 import WrongComponentKeyLimit, {
   ComponentKeyKind,
 } from "Common/Server/Utils/RateLimit/WrongComponentKeyLimit";
@@ -85,6 +93,16 @@ export default class ProbeAuthorization {
     });
   }
 
+  /*
+   * Every probe route: the probe's id and key, from the request's body
+   * (ProbeAPIRequest.getDefaultRequestBody).
+   *
+   * A request a collection route has authenticated already - from its
+   * headers, or from the id and key its report opens with, before its body
+   * was parsed (#10222) - is that probe's: it is not authenticated again,
+   * and it is timed from here, once its body is in, as every other probe
+   * request is.
+   */
   public static async isAuthorizedServiceMiddleware(
     req: ProbeExpressRequest,
     res: ExpressResponse,
@@ -102,139 +120,276 @@ export default class ProbeAuthorization {
      * being flagged Disconnected in the field.
      */
     try {
+      if (req.probe?.id) {
+        ProbeAuthorization.observeRequestDuration(
+          req,
+          res,
+          req.probe.id.toString(),
+        );
+
+        return next();
+      }
+
       const data: JSONObject = req.body;
 
-      if (!data["probeId"] || !data["probeKey"]) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("ProbeId or ProbeKey is missing"),
-        );
-      }
+      return await ProbeAuthorization.authorize({
+        req: req,
+        res: res,
+        next: next,
+        probeId: data["probeId"],
+        probeKey: data["probeKey"],
+        /*
+         * The release the probe says it runs rides along with the stamp
+         * (issue #9759): its page and the monitor forms read it to say when
+         * a custom probe is too old to make one-time codes.
+         */
+        versionReport: ProbeReportedVersionUtil.readFromRequest(data),
+        observeDuration: true,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
 
-      /*
-       * One spelling of the probe's id - lower-cased, as Postgres stores a
-       * uuid - for everything below: the key check and its cache, the
-       * liveness stamp, and req.probe, which every handler names the probe
-       * by. Postgres reads a uuid in any case; a cache key or a string
-       * comparison does not.
-       */
-      const probeId: ObjectID = ProbeReportIdentity.normalize(
-        new ObjectID(data["probeId"] as string),
+  /*
+   * A collection route, before its body is read (#10222): the probe's id
+   * and key from the request's headers (ProbeKeyHeaders), which a probe
+   * sends with every collection from #10222 on. A wrong key is refused as it
+   * is in a body, and counted as one (WrongComponentKeyLimit), with not a
+   * byte of the body read; a right one makes the request this probe's, and
+   * its body is read whole.
+   *
+   * A request with neither header is an older probe's, whose key is in its
+   * body alone: it goes on, to be authenticated from the id and key its
+   * report opens with (isAuthorizedFromReportOpeningMiddleware), or from
+   * its body once that is parsed.
+   */
+  public static async isAuthorizedFromHeadersMiddleware(
+    req: ProbeExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const sent: ProbeKeyHeadersRead | null = ProbeKeyHeaders.read(
+        req.headers,
       );
 
-      const probeKey: string = data["probeKey"] as string;
-
-      ProbeAuthorization.observeRequestDuration(req, res, probeId.toString());
-
-      /*
-       * A client that sent too many different wrong keys for this probe is
-       * refused before its key is looked up (WrongComponentKeyLimit).
-       */
-      const refusedBeforeLookup: WrongKeyRefusal | null =
-        await WrongComponentKeyLimit.checkBeforeLookup({
-          req: req,
-          kind: ComponentKeyKind.Probe,
-          componentId: probeId.toString(),
-        });
-
-      if (refusedBeforeLookup) {
-        return WrongComponentKeyLimit.answerRefusal(
-          req,
-          res,
-          ComponentKeyKind.Probe,
-          refusedBeforeLookup,
-        );
+      if (!sent) {
+        return next();
       }
 
-      /*
-       * Cache-backed verification: repeat requests from a probe skip the
-       * per-request Probe SELECT, so authentication stays fast even while
-       * the Postgres pool is busy. Falls back to the database on any cache
-       * miss or cache failure.
-       */
-      const isValidProbe: boolean = await ProbeService.verifyProbeKey({
-        probeId: probeId,
-        probeKey: probeKey,
+      return await ProbeAuthorization.authorize({
+        req: req,
+        res: res,
+        next: next,
+        probeId: sent.probeId,
+        probeKey: sent.probeKey,
+        // The release the probe runs is in its body, unread.
+        versionReport: undefined,
+        // Timed once its body is in (isAuthorizedServiceMiddleware).
+        observeDuration: false,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  /*
+   * A collection route, once its body's bytes are read and before they are
+   * parsed (#10222): a request its headers did not authenticate - an older
+   * probe's - is authenticated from the id and key its report opens with
+   * (ProbeReportOpening), which every probe release puts first. A wrong key
+   * is refused as it is in a parsed body, and counted as one, with the
+   * report unparsed; a right one has the whole report parsed.
+   *
+   * A body that opens with anything else goes on unauthenticated: it is
+   * parsed under a large route's limit, and its key, if it has one, read
+   * from it then (isAuthorizedServiceMiddleware).
+   */
+  public static async isAuthorizedFromReportOpeningMiddleware(
+    req: ProbeExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      if (req.probe?.id) {
+        return next();
+      }
+
+      const body: unknown = req.body;
+
+      if (!(Buffer.isBuffer(body) || body instanceof Uint8Array)) {
+        return next();
+      }
+
+      const opening: ProbeReportOpeningCredentials | null =
+        ProbeReportOpening.read(body);
+
+      if (!opening) {
+        return next();
+      }
+
+      return await ProbeAuthorization.authorize({
+        req: req,
+        res: res,
+        next: next,
+        probeId: opening.probeId,
+        probeKey: opening.probeKey,
+        // The release the probe runs is further into its report, unparsed.
+        versionReport: undefined,
+        // Timed once its body is parsed (isAuthorizedServiceMiddleware).
+        observeDuration: false,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  /*
+   * The key check every way a probe presents its key goes through - its
+   * body, its headers, its report's opening: the same refusals, the same
+   * count of wrong keys (WrongComponentKeyLimit), the same lookup
+   * (ProbeService.verifyProbeKey: the key compared in constant time, and
+   * never a key this repository ships). On a right key the request is the
+   * probe's (req.probe) and goes on; on any other it is answered here.
+   */
+  private static async authorize(data: {
+    req: ProbeExpressRequest;
+    res: ExpressResponse;
+    next: NextFunction;
+    probeId: unknown;
+    probeKey: unknown;
+    versionReport: ProbeVersionReport | undefined;
+    // Whether the request is timed from here (observeRequestDuration).
+    observeDuration: boolean;
+  }): Promise<void> {
+    const { req, res, next } = data;
+
+    if (!data.probeId || !data.probeKey) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("ProbeId or ProbeKey is missing"),
+      );
+    }
+
+    /*
+     * One spelling of the probe's id - lower-cased, as Postgres stores a
+     * uuid - for everything below: the key check and its cache, the
+     * liveness stamp, and req.probe, which every handler names the probe
+     * by. Postgres reads a uuid in any case; a cache key or a string
+     * comparison does not.
+     */
+    const probeId: ObjectID = ProbeReportIdentity.normalize(
+      new ObjectID(data.probeId as string),
+    );
+
+    const probeKey: string = data.probeKey as string;
+
+    if (data.observeDuration) {
+      ProbeAuthorization.observeRequestDuration(req, res, probeId.toString());
+    }
+
+    /*
+     * A client that sent too many different wrong keys for this probe is
+     * refused before its key is looked up (WrongComponentKeyLimit).
+     */
+    const refusedBeforeLookup: WrongKeyRefusal | null =
+      await WrongComponentKeyLimit.checkBeforeLookup({
+        req: req,
+        kind: ComponentKeyKind.Probe,
+        componentId: probeId.toString(),
       });
 
-      /*
-       * Too many different wrong keys for this probe from this client:
-       * refused, whichever key this request carries
-       * (WrongComponentKeyLimit). A probe that still holds an old key sends
-       * that one key, so it is never refused for it.
-       */
-      const refusal: WrongKeyRefusal | null =
-        await WrongComponentKeyLimit.checkComponentKey({
-          req: req,
-          kind: ComponentKeyKind.Probe,
-          componentId: probeId.toString(),
-          presentedKey: probeKey,
-          isKeyRight: isValidProbe,
-          componentExists: async (): Promise<boolean> => {
-            return await ProbeService.hasProbeWithId(probeId);
-          },
-        });
+    if (refusedBeforeLookup) {
+      return WrongComponentKeyLimit.answerRefusal(
+        req,
+        res,
+        ComponentKeyKind.Probe,
+        refusedBeforeLookup,
+      );
+    }
 
-      if (refusal) {
-        return WrongComponentKeyLimit.answerRefusal(
-          req,
-          res,
-          ComponentKeyKind.Probe,
-          refusal,
-        );
-      }
+    /*
+     * Cache-backed verification: repeat requests from a probe skip the
+     * per-request Probe SELECT, so authentication stays fast even while
+     * the Postgres pool is busy. Falls back to the database on any cache
+     * miss or cache failure.
+     */
+    const isValidProbe: boolean = await ProbeService.verifyProbeKey({
+      probeId: probeId,
+      probeKey: probeKey,
+    });
 
-      if (!isValidProbe) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid Probe ID or Probe Key"),
-        );
-      }
+    /*
+     * Too many different wrong keys for this probe from this client:
+     * refused, whichever key this request carries
+     * (WrongComponentKeyLimit). A probe that still holds an old key sends
+     * that one key, so it is never refused for it.
+     */
+    const refusal: WrongKeyRefusal | null =
+      await WrongComponentKeyLimit.checkComponentKey({
+        req: req,
+        kind: ComponentKeyKind.Probe,
+        componentId: probeId.toString(),
+        presentedKey: probeKey,
+        isKeyRight: isValidProbe,
+        componentExists: async (): Promise<boolean> => {
+          return await ProbeService.hasProbeWithId(probeId);
+        },
+      });
 
-      /*
-       * Every authenticated request proves the probe is alive, so the
-       * liveness stamp rides along here — but deliberately WITHOUT being
-       * awaited. The write is throttled (one single-statement UPDATE per
-       * probe per 30s) and self-heals (a failed write clears the throttle
-       * so the next request retries), and nothing downstream reads its
-       * result. Awaiting it would chain every probe request's latency —
-       * including the /alive heartbeat itself — to Postgres write latency,
-       * which is precisely the coupling that let a slow database mark
-       * healthy probes Disconnected.
-       */
-      /*
-       * The release the probe says it runs rides along with the stamp
-       * (issue #9759): its page and the monitor forms read it to say when a
-       * custom probe is too old to make one-time codes.
-       */
-      ProbeService.updateLastAlive(
-        probeId,
-        ProbeReportedVersionUtil.readFromRequest(data),
-      ).catch((err: Error) => {
+    if (refusal) {
+      return WrongComponentKeyLimit.answerRefusal(
+        req,
+        res,
+        ComponentKeyKind.Probe,
+        refusal,
+      );
+    }
+
+    if (!isValidProbe) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Probe ID or Probe Key"),
+      );
+    }
+
+    /*
+     * Every authenticated request proves the probe is alive, so the
+     * liveness stamp rides along here — but deliberately WITHOUT being
+     * awaited. The write is throttled (one single-statement UPDATE per
+     * probe per 30s) and self-heals (a failed write clears the throttle
+     * so the next request retries), and nothing downstream reads its
+     * result. Awaiting it would chain every probe request's latency —
+     * including the /alive heartbeat itself — to Postgres write latency,
+     * which is precisely the coupling that let a slow database mark
+     * healthy probes Disconnected. A request that says nothing of the
+     * release the probe runs leaves the release kept alone.
+     */
+    ProbeService.updateLastAlive(probeId, data.versionReport).catch(
+      (err: Error) => {
         logger.error(
           `Failed to update lastAlive for probe ${probeId.toString()}`,
           getLogAttributesFromRequest(req as any),
         );
         logger.error(err, getLogAttributesFromRequest(req as any));
-      });
+      },
+    );
 
-      /*
-       * From here on the request is this probe's, and req.probe is how a
-       * handler knows which probe it is (Utils/ProbeRequest). A handler
-       * never reads a probe id from the body: what the body says, inside a
-       * result especially, names nobody on its own (ProbeReportIdentity).
-       * Handlers only ever read req.probe.id, so hand them exactly that
-       * instead of a fetched row.
-       */
-      const probe: Probe = new Probe();
-      probe.id = probeId;
-      req.probe = probe;
+    /*
+     * From here on the request is this probe's, and req.probe is how a
+     * handler knows which probe it is (Utils/ProbeRequest). A handler
+     * never reads a probe id from the body: what the body says, inside a
+     * result especially, names nobody on its own (ProbeReportIdentity).
+     * Handlers only ever read req.probe.id, so hand them exactly that
+     * instead of a fetched row.
+     */
+    const probe: Probe = new Probe();
+    probe.id = probeId;
+    req.probe = probe;
 
-      return next();
-    } catch (err) {
-      return next(err);
-    }
+    return next();
   }
 }

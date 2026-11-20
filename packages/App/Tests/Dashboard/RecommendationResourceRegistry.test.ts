@@ -92,10 +92,13 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
+  describeCloudReadIntervalCost,
   getMessageQueueRecommendableMetrics,
   joinCloudRecommendationNotes,
   loadMessageQueueRecommendationContext,
+  readCloudConnectionRecommendationContext,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import {
   RdsConnectionEngine,
   RdsConnectionLimitGap,
@@ -2405,6 +2408,9 @@ describe("RecommendationResourceRegistry", () => {
         cloudReadings: true,
         cloudProperties: true,
         cloudConnectionId: true,
+        // What its account's stream is read by (#10028).
+        cloudAccountId: true,
+        cloudRegion: true,
       });
     });
 
@@ -2916,6 +2922,207 @@ describe("RecommendationResourceRegistry", () => {
         ).toBeUndefined();
       }
     });
+
+    /*
+     * #10028: each recommended monitor's window follows how often its
+     * connection reads it, and what its account's stream writes instead -
+     * read off its connection when its tab loads.
+     */
+    describe("what its connection says of how its metrics come", () => {
+      const CONNECTION_ID: string = "1b2c3d4e-0000-4000-8000-00000000c0de";
+
+      function ec2Row(): CloudResource {
+        const model: CloudResource = new CloudResource();
+        const record: Record<string, unknown> = model as unknown as Record<
+          string,
+          unknown
+        >;
+
+        record["_id"] = CLOUD_RESOURCE_ID;
+        record["name"] = "web-1";
+        record["cloudProvider"] = "aws";
+        record["cloudResourceType"] = "AWS::EC2::Instance";
+        record["telemetryAttributes"] = EC2_ATTRIBUTES;
+        record["cloudConnectionId"] = new ObjectID(CONNECTION_ID);
+        record["cloudAccountId"] = "123456789012";
+        record["cloudRegion"] = "eu-west-1";
+
+        return model;
+      }
+
+      function loadEc2(): Promise<MonitorRecommendationContext> {
+        return RecommendationResourceRegistry.loadContext({
+          resourceType: MonitorRecommendationResourceType.CloudResource,
+          model: ec2Row(),
+        });
+      }
+
+      function windowsOf(context: MonitorRecommendationContext): Array<string> {
+        return MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.CloudResource,
+          context,
+        ).map((recommendation: MonitorRecommendation): string => {
+          return String(
+            recommendation.getMonitorStep({
+              resourceIdentifier: CLOUD_RESOURCE_ID,
+              onlineMonitorStatusId: ObjectID.generate(),
+              offlineMonitorStatusId: ObjectID.generate(),
+              defaultIncidentSeverityId: ObjectID.generate(),
+              defaultAlertSeverityId: ObjectID.generate(),
+              monitorName: "web-1",
+            }).data?.metricMonitor?.rollingTime,
+          );
+        });
+      }
+
+      beforeEach(() => {
+        mockModelApiGetItem.mockReset();
+      });
+
+      test("its interval is read off its connection, and its monitors read the windows it gives", async () => {
+        mockModelApiGetItem.mockResolvedValue({
+          provider: "aws",
+          config: { readIntervalInMinutes: "60" },
+        });
+
+        const context: MonitorRecommendationContext = await loadEc2();
+        const read: {
+          modelType: unknown;
+          id: ObjectID;
+          select: Record<string, boolean>;
+        } = mockModelApiGetItem.mock.calls[0]![0] as {
+          modelType: unknown;
+          id: ObjectID;
+          select: Record<string, boolean>;
+        };
+
+        expect(read.modelType).toBe(CloudConnection);
+        expect(read.id.toString()).toBe(CONNECTION_ID);
+        expect(read.select).toEqual({
+          provider: true,
+          config: true,
+          streamSummary: true,
+        });
+        expect(context.cloudReadIntervalInMinutes).toBe(60);
+        expect(context.cloudStreamedMetrics).toEqual([]);
+        expect(windowsOf(context)).toEqual(["Past 2 Hours", "Past 2 Hours"]);
+        expect(describeCloud(context)).toBe(
+          // A page holds a figure to its word (getGlobalTranslator).
+          "Its connection reads metrics every 60\u00A0minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        );
+      });
+
+      test("read at its cloud's default, or one it does not offer: its templates' windows, and no note", async () => {
+        for (const value of ["10", undefined, "7", "abc"]) {
+          mockModelApiGetItem.mockResolvedValue({
+            provider: "aws",
+            config: value === undefined ? {} : { readIntervalInMinutes: value },
+          });
+
+          const context: MonitorRecommendationContext = await loadEc2();
+
+          expect(context.cloudReadIntervalInMinutes).toBe(10);
+          expect(windowsOf(context)).toEqual([
+            "Past 30 Minutes",
+            "Past 30 Minutes",
+          ]);
+          expect(describeCloud(context)).toBeUndefined();
+        }
+      });
+
+      test("its account's stream writes its metrics: they come within minutes, so its windows stay", async () => {
+        mockModelApiGetItem.mockResolvedValue({
+          provider: "aws",
+          config: { readIntervalInMinutes: "60" },
+          streamSummary: {
+            metricSources: [
+              {
+                accountId: "123456789012",
+                region: "eu-west-1",
+                namespaces: ["AWS/EC2"],
+                lastAt: new Date(Date.now() - 60 * 1000).toISOString(),
+              },
+            ],
+            logSources: [],
+          },
+        });
+
+        const context: MonitorRecommendationContext = await loadEc2();
+
+        expect(context.cloudStreamedMetrics).toEqual([
+          "aws|aws/ec2|cpuutilization",
+          "aws|aws/ec2|statuscheckfailed",
+        ]);
+        expect(windowsOf(context)).toEqual([
+          "Past 30 Minutes",
+          "Past 30 Minutes",
+        ]);
+        expect(describeCloud(context)).toBeUndefined();
+      });
+
+      test("no connection, or one that cannot be read: the row's context, its templates' windows", async () => {
+        const unread: CloudResource = ec2Row();
+
+        (unread as unknown as Record<string, unknown>)["cloudConnectionId"] =
+          undefined;
+
+        const withoutConnection: MonitorRecommendationContext =
+          await RecommendationResourceRegistry.loadContext({
+            resourceType: MonitorRecommendationResourceType.CloudResource,
+            model: unread,
+          });
+
+        expect(mockModelApiGetItem).not.toHaveBeenCalled();
+        expect(withoutConnection.cloudReadIntervalInMinutes).toBeUndefined();
+
+        for (const answer of [
+          (): Promise<unknown> => {
+            return Promise.reject(new Error("403"));
+          },
+          (): Promise<unknown> => {
+            return Promise.resolve(null);
+          },
+        ]) {
+          mockModelApiGetItem.mockReset();
+          mockModelApiGetItem.mockImplementation(answer);
+
+          const context: MonitorRecommendationContext = await loadEc2();
+
+          expect(context.cloudReadIntervalInMinutes).toBeUndefined();
+          expect(windowsOf(context)).toEqual([
+            "Past 30 Minutes",
+            "Past 30 Minutes",
+          ]);
+        }
+      });
+
+      test("readCloudConnectionRecommendationContext: a connection of a cloud it does not know adds nothing", () => {
+        const context: MonitorRecommendationContext = {
+          cloudProvider: "oracle",
+          cloudResourceType: "x",
+        };
+
+        expect(
+          readCloudConnectionRecommendationContext({
+            context,
+            record: {},
+            connection: { provider: "oracle", config: {} },
+            now: new Date(),
+          }),
+        ).toBe(context);
+      });
+
+      test("the account's sentence names it, not the resource", () => {
+        expect(
+          describeCloudReadIntervalCost({
+            readIntervalInMinutes: 30,
+            isAccount: true,
+          }),
+        ).toBe(
+          "This account's connection reads metrics every 30\u00A0minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        );
+      });
+    });
   });
 
   describe("App Platforms app context", () => {
@@ -3424,12 +3631,12 @@ describe("RecommendationResourceRegistry", () => {
       return model;
     }
 
-    test("selects the connection's service with its name", () => {
+    test("selects the connection's service and settings with its name", () => {
       expect(
         RecommendationResourceRegistry.getSelect(
           MonitorRecommendationResourceType.DeviceManagementConnection,
         ),
-      ).toEqual({ _id: true, name: true, provider: true });
+      ).toEqual({ _id: true, name: true, provider: true, config: true });
     });
 
     test("reads the service off the row, and none as none", () => {
@@ -3439,14 +3646,82 @@ describe("RecommendationResourceRegistry", () => {
             MonitorRecommendationResourceType.DeviceManagementConnection,
           model: connectionRow("esper"),
         }),
-      ).toEqual({ deviceManagementProvider: "esper" });
+      ).toEqual({
+        deviceManagementProvider: "esper",
+        deviceManagementReadIntervalInMinutes: null,
+      });
       expect(
         RecommendationResourceRegistry.readContext({
           resourceType:
             MonitorRecommendationResourceType.DeviceManagementConnection,
           model: connectionRow(undefined),
         }),
-      ).toEqual({ deviceManagementProvider: null });
+      ).toEqual({
+        deviceManagementProvider: null,
+        deviceManagementReadIntervalInMinutes: null,
+      });
+    });
+
+    /*
+     * #10006: Connection Stopped Reading waits three of the connection's
+     * read intervals, so how often it is read is its context too.
+     */
+    test("reads how often the connection is read off its settings, an interval it does not take as the default", () => {
+      const row: (config: unknown) => BaseModel = (
+        config: unknown,
+      ): BaseModel => {
+        const model: BaseModel = connectionRow("soti");
+        (model as unknown as Record<string, unknown>)["config"] = config;
+        return model;
+      };
+
+      for (const [config, interval] of [
+        [
+          { tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 60 },
+          60,
+        ],
+        [{ tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 5 }, 5],
+        [{ tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 7 }, 15],
+        [{ tenant: "acme.mobicontrolcloud.com" }, 15],
+      ] as Array<[Record<string, unknown>, number]>) {
+        expect(
+          RecommendationResourceRegistry.readContext({
+            resourceType:
+              MonitorRecommendationResourceType.DeviceManagementConnection,
+            model: row(config),
+          }),
+        ).toEqual({
+          deviceManagementProvider: "soti",
+          deviceManagementReadIntervalInMinutes: interval,
+        });
+      }
+
+      // The page's context reaches the template: an hourly connection waits 190 minutes.
+      const step: MonitorStep = MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+        RecommendationResourceRegistry.readContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          model: row({
+            tenant: "acme.mobicontrolcloud.com",
+            readIntervalInMinutes: 60,
+          }),
+        }),
+      )[0]!.getMonitorStep({
+        resourceIdentifier: "55555555-5555-4555-8555-555555555555",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "MobiControl stores",
+      });
+
+      expect(
+        Number(
+          step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!
+            .data!.filters[0]!.value,
+        ),
+      ).toBe(190);
     });
 
     test("says nothing while its service has templates, and why the list is empty when it has none", () => {

@@ -31,7 +31,16 @@ export default interface DataSecurityIssueViewContext {
   updateIssue: (data: JSONObject) => Promise<void>;
 }
 
-// What the layout reads: the issue, its store, and who has it.
+/*
+ * What the layout reads: the issue, its store, and who has it.
+ *
+ * Through a relation, only what the related model lets a relation read
+ * (canReadOnRelationQuery): the server refuses the whole read for one
+ * column it does not, and the page said "Column dataTypeIds on Data Store
+ * does not support read on relation query." in place of every issue from
+ * 14.0.99 (#10238). The kinds of data the store holds are read from the
+ * store itself, when the issue has none of its own (StoreDataTypes.ts).
+ */
 export const DATA_SECURITY_ISSUE_VIEW_SELECT: Select<DataSecurityIssue> = {
   _id: true,
   title: true,
@@ -68,7 +77,6 @@ export const DATA_SECURITY_ISSUE_VIEW_SELECT: Select<DataSecurityIssue> = {
     environment: true,
     sensitivity: true,
     exposure: true,
-    dataTypeIds: true,
     // A telemetry store's service, or its RUM application by its key.
     serviceId: true,
     storeKey: true,
