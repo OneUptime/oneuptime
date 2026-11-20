@@ -1026,6 +1026,93 @@ describe("adding one split by a dimension", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * #10076: Google Cloud bills every series a call returns, so a split is
+   * asked for each resource's busiest values alone, learned every hour: the
+   * dialog says so before it is added, with what it costs at most - its
+   * reads and the hour's learning, ten series a resource each.
+   */
+  test("a Google Cloud split says only the busiest values are asked for, and what that costs at most", async () => {
+    const listed: CloudPublishedMetricsListing = listing({
+      provider: CloudProvider.GCP,
+      resourceType: "gce_instance",
+      resourcesOfType: 12,
+    });
+
+    delete listed.azureMetricsInCall;
+    listed.metrics[1] = {
+      name: "agent.googleapis.com/processes/cpu_time",
+      displayName: "Process CPU time",
+      unit: "us/s",
+      aggregation: "ALIGN_RATE",
+      status: CloudPublishedMetricStatus.Available,
+      splits: [{ name: "command" }, { name: "owner" }],
+    };
+    mockList.mockImplementation(() => {
+      return Promise.resolve(listed);
+    });
+    mockAdd.mockImplementation(() => {
+      return Promise.resolve([]);
+    });
+    await renderCard();
+    await list();
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf("Process CPU time")).getByRole("button", {
+          name: /Add/,
+        }),
+      );
+    });
+
+    const dialog: HTMLElement = screen.getByTestId(
+      CLOUD_ADD_METRIC_MODAL_TEST_ID,
+    );
+
+    expect(
+      within(dialog).getByTestId("cloud-add-metric-split-help"),
+    ).toHaveTextContent(
+      "A series for each of the 10 busiest values on each resource, checked every hour, so Google Cloud bills those alone.",
+    );
+    // Whole, a series a read.
+    expect(
+      within(dialog).getByText(
+        "8,640 more time series read a month: free within the first 1,000,000 a month, then about $0.01.",
+      ),
+    ).toBeInTheDocument();
+
+    // Split by command: at most its busiest 10 a read, and the hour's learning.
+    const combobox: HTMLElement = within(dialog).getByLabelText("Split by");
+
+    fireEvent.keyDown(combobox, { key: "ArrowDown", code: 40, keyCode: 40 });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("option", { name: "command" }));
+    });
+
+    expect(
+      within(dialog).getByText(
+        "Up to 93,600 more time series read a month: free within the first 1,000,000 a month, then up to $0.05.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Up to 1,123,200 more time series read a month: free within the first 1,000,000 a month, then up to $0.56.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Add Metric/ }));
+    });
+    await waitFor(() => {
+      expect(mockAdd).toHaveBeenCalledTimes(1);
+    });
+    expect(mockAdd.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        name: "agent.googleapis.com/processes/cpu_time",
+        splitBy: "command",
+      }),
+    );
+  });
+
   test("an AWS metric split counts each value's metric read in its cost", () => {
     expect(
       drawCloudTemplate(

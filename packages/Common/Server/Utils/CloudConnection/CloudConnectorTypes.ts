@@ -67,6 +67,43 @@ export interface CloudConnectorCallOptions {
  * Where the last read got to, kept on the connection between reads
  * (CloudConnection.pullState). Server only; holds no secret.
  */
+/*
+ * GOOGLE CLOUD: WHICH VALUES A SPLIT ADDITION'S RESOURCES ARE READ FOR
+ * (#10076), as the last learning found them (GcpCloudConnector).
+ */
+export interface GcpSplitLearned {
+  // When they were learned: a resource's busiest values are learned again an hour later.
+  at: string;
+  /*
+   * How: PromQL's topk, which returns - and bills - each resource's busiest
+   * values alone; or timeSeries.list, which returns every value, where
+   * PromQL could not rank them.
+   */
+  via: "promql" | "list";
+  /*
+   * The resources that had the cap's values or more: each read for its
+   * busiest values alone, by their labels (the split's resource labels).
+   */
+  capped: Array<{ resource: Record<string, string>; values: Array<string> }>;
+  // The others it saw, with fewer values: read for every value.
+  others: Array<Record<string, string>>;
+}
+
+/*
+ * AWS: AN ADDED METRIC'S UNIT AS ITS DATAPOINTS CARRY IT, AS THE READ LEARNED
+ * IT (#10077, AwsAddedMetricUnits).
+ */
+export interface AwsAddedMetricUnitState {
+  // CloudWatch's name for it ("Bytes"), "None" for none; absent until learned.
+  unit?: string | undefined;
+  // When the datapoints last confirmed it: checked again a day later.
+  checkedAt?: string | undefined;
+  // When the read last asked: an hour between two asks of one addition.
+  probedAt?: string | undefined;
+  // The last check found another unit: every unit is asked at the next read.
+  isChanged?: boolean | undefined;
+}
+
 export interface CloudConnectionPullState {
   /*
    * Per datapoint period, in seconds: where the last metric window ended
@@ -84,6 +121,11 @@ export interface CloudConnectionPullState {
   activePairs?: Array<string> | undefined;
   // AWS: Regions the credential cannot use (an opt-in Region not enabled).
   disabledRegions?: Array<string> | undefined;
+  /*
+   * AWS, an account's: the unit of each added metric it reads, by the
+   * addition's key, as its datapoints carry it (#10077).
+   */
+  awsAddedMetricUnits?: Record<string, AwsAddedMetricUnitState> | undefined;
   /*
    * Azure: each resource type's metrics as its definitions name them, when
    * they were read, and for which of its key metrics (`of`, a fingerprint).
@@ -109,6 +151,11 @@ export interface CloudConnectionPullState {
    */
   gcpOpsAgentSeen?: Record<string, string> | undefined;
   gcpOpsAgentAskedAt?: Record<string, string> | undefined;
+  /*
+   * Google Cloud: per call a split addition is asked in (by
+   * getGcpSplitLearnKey), the values its resources are read for (#10076).
+   */
+  gcpSplitValues?: Record<string, GcpSplitLearned> | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
   // When the inventory last listed every resource (CloudInventory).

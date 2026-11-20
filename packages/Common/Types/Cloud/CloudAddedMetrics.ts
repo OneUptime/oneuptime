@@ -109,6 +109,14 @@ export interface CloudAddedMetric {
  */
 export const CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES: number = 10;
 
+/*
+ * Google Cloud bills every series a call returns, and timeSeries.list has
+ * no top-N, so a split is read for each resource's busiest values alone
+ * (#10076): learned over the last hour, once an hour, by a PromQL topk that
+ * returns those alone. What it costs counts them (CloudConnectionCost).
+ */
+export const GCP_SPLIT_LEARN_EVERY_MINUTES: number = 60;
+
 // Google Cloud: the aligners a split read can add a metric's other labels up with.
 export const GCP_SPLIT_ALIGNERS: ReadonlyArray<string> = [
   "ALIGN_RATE",
