@@ -190,7 +190,7 @@ const SotiConnectionFormModal: FunctionComponent<ComponentProps> = (
                 config: stored,
               }),
             })
-          : "Every device MobiControl manages is imported into Inventory, with its device group, apps and last check-in, and kept current. OneUptime only reads."
+          : "Every device MobiControl manages is imported into Inventory with its group, apps and last check-in, and kept current. OneUptime only reads."
       }
       name={
         isEditing

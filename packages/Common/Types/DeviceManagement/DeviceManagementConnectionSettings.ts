@@ -1119,16 +1119,16 @@ const CONFIG_KEYS: Record<DeviceManagementProvider, ReadonlyArray<string>> = {
   ],
 };
 
-// What a refused key says a connection of the service takes.
+// What a refused key says a connection of the service takes: the end of a sentence.
 const CONFIG_KEYS_SENTENCE: Record<DeviceManagementProvider, string> = {
   [DeviceManagementProvider.Esper]:
-    "an Esper connection takes tenant and readIntervalInMinutes.",
+    "an Esper connection takes tenant and readIntervalInMinutes",
   [DeviceManagementProvider.Intune]:
-    "an Intune connection takes tenant, clientId, cloud and readIntervalInMinutes.",
+    "an Intune connection takes tenant, clientId, cloud and readIntervalInMinutes",
   [DeviceManagementProvider.WorkspaceOne]:
-    "a Workspace ONE connection takes tenant, authMethod, region, clientId, username and readIntervalInMinutes.",
+    "a Workspace ONE connection takes tenant, authMethod, region, clientId, username and readIntervalInMinutes",
   [DeviceManagementProvider.Soti]:
-    "a SOTI connection takes tenant, clientId, username and readIntervalInMinutes.",
+    "a SOTI connection takes tenant, clientId, username and readIntervalInMinutes",
 };
 
 // A value that is set: not undefined, null or "".
@@ -1269,7 +1269,7 @@ export function validateDeviceManagementConfig(
   for (const key of Object.keys(config)) {
     if (!keys.includes(key)) {
       throw new BadDataException(
-        `Settings has no "${key.substring(0, 50)}": ${CONFIG_KEYS_SENTENCE[provider]}`,
+        `Settings has no "${key.substring(0, 50)}": ${CONFIG_KEYS_SENTENCE[provider]}.`,
       );
     }
   }

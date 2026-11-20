@@ -305,7 +305,7 @@ const WorkspaceOneConnectionFormModal: FunctionComponent<ComponentProps> = (
                 config: stored,
               }),
             })
-          : "Every device Workspace ONE manages is imported into Inventory, with its organization group, apps and last check-in, and kept current. OneUptime only reads."
+          : "Every device Workspace ONE manages is imported into Inventory with its group, apps and last check-in, and kept current. OneUptime only reads."
       }
       name={
         isEditing

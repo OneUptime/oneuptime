@@ -123,23 +123,23 @@ export function getDeviceManagementSecretRules(
   }
 }
 
-// What a refused credential says a connection takes.
+// What a refused credential says a connection takes: the end of a sentence.
 function describeSecretsTaken(
   provider: DeviceManagementProvider,
   config?: DeviceManagementConfig | undefined,
 ): string {
   switch (provider) {
     case DeviceManagementProvider.Intune:
-      return "an Intune connection takes clientSecret.";
+      return "an Intune connection takes clientSecret";
     case DeviceManagementProvider.WorkspaceOne:
       return config?.authMethod === "basic"
-        ? "a Workspace ONE connection that signs in with an administrator's account takes password and apiKey."
-        : "a Workspace ONE connection that signs in with an OAuth client takes clientSecret.";
+        ? "a Workspace ONE connection that signs in with an administrator's account takes password and apiKey"
+        : "a Workspace ONE connection that signs in with an OAuth client takes clientSecret";
     case DeviceManagementProvider.Soti:
-      return "a SOTI connection takes clientSecret and password.";
+      return "a SOTI connection takes clientSecret and password";
     case DeviceManagementProvider.Esper:
     default:
-      return "an Esper connection takes apiKey.";
+      return "an Esper connection takes apiKey";
   }
 }
 
@@ -224,7 +224,7 @@ export class Service extends DatabaseService<Model> {
         })
       ) {
         throw new BadDataException(
-          `Credentials has no "${key.substring(0, 50)}": ${describeSecretsTaken(provider, options.config)}`,
+          `Credentials has no "${key.substring(0, 50)}": ${describeSecretsTaken(provider, options.config)}.`,
         );
       }
     }
