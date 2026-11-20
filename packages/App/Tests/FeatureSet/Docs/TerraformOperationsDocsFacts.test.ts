@@ -659,7 +659,7 @@ describe("the troubleshooting page", () => {
     );
     // Every attribute that holds the ID of another record has the validator.
     expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
-      'string: "recordIDValidators",',
+      'string: "RecordIDValidators",',
     );
   });
 

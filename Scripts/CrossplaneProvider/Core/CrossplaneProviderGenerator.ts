@@ -108,8 +108,10 @@ export function goSteps(options: CrossplaneProviderOptions): Array<GoStep> {
  * on PATH, no C library, and Go's memory limit
  * (TerraformProvider/Core/GoCommand.ts). Reading the schema, generating the
  * resources and building the provider all link the Terraform provider's
- * internal/provider, which this provider runs in process, and without the
- * limit compiling it took the compiler alone to ~15 GB of a 16 GB CI runner.
+ * internal/provider, which this provider runs in process. Compiled as one
+ * package it took the compiler alone to ~15 GB of a 16 GB CI runner without
+ * the limit; split into packages (TerraformProvider/Core/ProviderShards.ts),
+ * a compile holds under 1 GiB, and the limit stays as a guard rail.
  */
 export function goStepsEnvironment(
   options: CrossplaneProviderOptions,
