@@ -79,6 +79,10 @@ export interface ComponentProps {
   currentProject: Project | null;
   // How many rows the table holds after each load.
   onPermissionCountChange?: ((count: number) => void) | undefined;
+  // Called after each load: a row the table added, changed or removed.
+  onRowsChange?: (() => void) | undefined;
+  // Changes when another card changed the team's rows: read again.
+  refreshToggle?: string | undefined;
   /*
    * How many custom roles the team has (folded under More settings): with
    * one, the empty allow card says the roles give the team its access
@@ -233,7 +237,9 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       }}
       onFetchSuccess={(_data: Array<TeamPermission>, totalCount: number) => {
         props.onPermissionCountChange?.(totalCount);
+        props.onRowsChange?.();
       }}
+      refreshToggle={props.refreshToggle}
       cardProps={
         isBlock
           ? {
