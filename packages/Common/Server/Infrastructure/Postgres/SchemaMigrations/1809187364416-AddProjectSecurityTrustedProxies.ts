@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * A nullable column with no default: adding it rewrites no row of
  * "Project" and holds its lock for an instant (Docs/migrations/README.md).
  */
-export class AddProjectSecurityTrustedProxies1809187150416
+export class AddProjectSecurityTrustedProxies1809187364416
   implements MigrationInterface
 {
-  public name: string = "AddProjectSecurityTrustedProxies1809187150416";
+  public name: string = "AddProjectSecurityTrustedProxies1809187364416";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

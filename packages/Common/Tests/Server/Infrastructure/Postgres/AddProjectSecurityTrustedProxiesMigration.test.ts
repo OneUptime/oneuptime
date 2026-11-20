@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProjectSecurityTrustedProxies1809187150416 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187150416-AddProjectSecurityTrustedProxies";
+import { AddProjectSecurityTrustedProxies1809187364416 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187364416-AddProjectSecurityTrustedProxies";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -37,18 +37,18 @@ function timestampOf(migration: unknown): number {
   );
 }
 
-describe("AddProjectSecurityTrustedProxies1809187150416", () => {
+describe("AddProjectSecurityTrustedProxies1809187364416", () => {
   test("adds the one column to Project, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProjectSecurityTrustedProxies1809187150416().up(runner);
+        return new AddProjectSecurityTrustedProxies1809187364416().up(runner);
       }),
     ).toEqual([`ALTER TABLE "Project" ADD "securityTrustedProxies" text`]);
   });
 
   test("nullable, no default, no index, no row rewritten", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddProjectSecurityTrustedProxies1809187150416().up(runner);
+      return new AddProjectSecurityTrustedProxies1809187364416().up(runner);
     })) {
       expect(statement).not.toMatch(
         /NOT NULL|DEFAULT|CREATE (UNIQUE )?INDEX|FOREIGN KEY|UPDATE /i,
@@ -73,7 +73,7 @@ describe("AddProjectSecurityTrustedProxies1809187150416", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProjectSecurityTrustedProxies1809187150416().down(runner);
+        return new AddProjectSecurityTrustedProxies1809187364416().down(runner);
       }),
     ).toEqual([`ALTER TABLE "Project" DROP COLUMN "securityTrustedProxies"`]);
   });
@@ -83,19 +83,19 @@ describe("AddProjectSecurityTrustedProxies1809187150416", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddProjectSecurityTrustedProxies1809187150416;
+        return candidate === AddProjectSecurityTrustedProxies1809187364416;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      AddProjectSecurityTrustedProxies1809187150416,
+      AddProjectSecurityTrustedProxies1809187364416,
     );
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(AddProjectSecurityTrustedProxies1809187150416));
-    expect(new AddProjectSecurityTrustedProxies1809187150416().name).toBe(
-      "AddProjectSecurityTrustedProxies1809187150416",
+    ).toBeLessThan(timestampOf(AddProjectSecurityTrustedProxies1809187364416));
+    expect(new AddProjectSecurityTrustedProxies1809187364416().name).toBe(
+      "AddProjectSecurityTrustedProxies1809187364416",
     );
   });
 });

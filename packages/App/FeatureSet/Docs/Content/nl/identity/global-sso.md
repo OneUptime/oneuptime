@@ -104,6 +104,12 @@ Registreer de omleidings-URI na afmelden die de kaart **URL van de identiteitspr
 
 Waar Okta, Microsoft Entra ID, Auth0 en Keycloak deze instellingen bewaren, staat op de pagina [SSO](/docs/identity/sso).
 
+## Opnieuw aanmelden om te bevestigen dat u het bent
+
+Wie zich alleen via een globale provider aanmeldt, bevestigt met **Opnieuw aanmelden** dat hij het is voordat hij wijzigt hoe hij zich aanmeldt of zijn account verwijdert: OneUptime stuurt hem terug naar de provider met `ForceAuthn="true"` voor SAML, of `prompt=login` en `max_age=0` voor OpenID Connect, en telt het alleen als de provider in `AuthnInstant` of `auth_time` zegt dat hij zich op dat moment of daarna heeft aangemeld. Een globale provider toevoegen, wijzigen of verwijderen vraagt u eerst [te bevestigen dat u het bent](/docs/introduction/your-account#bevestigen-dat-u-het-bent).
+
+Wat u instelt in Okta, Microsoft Entra ID, Keycloak en Google Workspace, staat op de pagina [SSO](/docs/identity/sso#opnieuw-aanmelden-om-te-bevestigen-dat-u-het-bent).
+
 ## SSO afdwingen
 
 Een globale provider instellen dwingt niemand om hem te gebruiken; aanmelden met een wachtwoord blijft werken. Om SSO te verplichten, zet u de verplichting aan voor een project of voor de hele instantie:

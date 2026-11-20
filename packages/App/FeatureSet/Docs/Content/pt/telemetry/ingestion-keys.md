@@ -4,7 +4,7 @@ Uma chave de ingestão liga a sua telemetria ao seu projeto. Aplicações, OpenT
 
 :::cards
 - [Criar uma chave de ingestão](#criar-uma-chave-de-ingestão): Um nome, um tipo e um segredo para copiar.
-- [Servidor ou navegador](#servidor-ou-navegador): O tipo de chave de que um remetente precisa.
+- [Servidor, navegador ou celular](#servidor-navegador-ou-celular): O tipo de chave de que um remetente precisa.
 - [Proteger uma chave de navegador](#proteger-uma-chave-de-navegador): Origens, um nome de serviço e um limite.
 - [Trocar, desativar ou excluir uma chave](#trocar-desativar-ou-excluir-uma-chave): O que fazer quando uma chave vaza.
 :::
@@ -27,21 +27,21 @@ flowchart TB
 - **A chave decide o projeto.** Você nunca envia um ID de projeto: os dados enviados com uma chave vão para o projeto ao qual a chave pertence.
 - **As mudanças chegam a todos os servidores em poucos segundos.** Desativar uma chave, redefinir o segredo dela ou mudar as origens, a expiração ou o limite tem efeito em todos os servidores em poucos segundos.
 - **Uma chave pode ter orçamentos próprios.** Um orçamento diário e uma taxa por segundo para cada sinal, dentro dos do projeto dela: veja [Orçamentos de ingestão](/docs/telemetry/ingestion-budgets).
-- **Uma chave de servidor é uma senha.** Qualquer pessoa que a tenha pode enviar telemetria para o seu projeto. Guarde-a nos segredos dos seus servidores, nunca no controle de versão nem em uma página web.
+- **Uma chave de servidor é uma senha.** Qualquer pessoa que a tenha pode enviar telemetria para o seu projeto. Guarde-a nos segredos dos seus servidores, nunca no controle de versão, em uma página web nem em um aplicativo móvel.
 
-## Servidor ou navegador
+## Servidor, navegador ou celular
 
 Escolha o tipo pelo lugar onde a chave vai ficar. O tipo não pode ser mudado depois que a chave é criada.
 
-| | **Servidor** | **Navegador** |
-| --- | --- | --- |
-| Para | Aplicações, collectors e agentes em máquinas que você opera | Páginas web, e React Native Session Replay |
-| Envia | Todo tipo de telemetria, para todos os endpoints | Traços, registros, métricas, Session Replays e [eventos do Sentry](/docs/telemetry/compatible-endpoints#sdks-do-sentry) |
-| É um segredo | Sim: mantenha-a nos seus servidores | Não: qualquer pessoa que veja a página pode lê-la |
-| Origens | Não verificadas | Só as origens listadas são aceitas |
-| Requisições por minuto | Sem limite, a menos que você defina um | 6.000, a menos que você defina outro limite |
+| | **Servidor** | **Navegador** | **Celular** |
+| --- | --- | --- | --- |
+| Para | Aplicações, collectors e agentes em máquinas que você opera | Páginas web, e React Native Session Replay | Um aplicativo iOS, Android ou React Native |
+| Envia | Todo tipo de telemetria, para todos os endpoints | Traços, registros, métricas, Session Replays e [eventos do Sentry](/docs/telemetry/compatible-endpoints#sdks-do-sentry) | Os traços, registros e métricas desse aplicativo, por OTLP/HTTP |
+| É um segredo | Sim: mantenha-a nos seus servidores | Não: qualquer pessoa que veja a página pode lê-la | Não: qualquer pessoa que tenha o aplicativo pode copiá-la |
+| Origens | Não verificadas | Só as origens listadas são aceitas | Uma requisição de uma página web é recusada |
+| Requisições por minuto | Sem limite, a menos que você defina um | 6.000, a menos que você defina outro limite | 6.000, a menos que você defina outro limite |
 
-Em qualquer outro lugar, o OneUptime recusa uma chave de navegador, como por gRPC e MQTT, para perfis, Syslog, Fluent Bit e Fluentd, e para envio de source maps. Para passar um remetente para o outro tipo, crie uma chave desse tipo, troque o remetente para ela e depois exclua a chave antiga.
+Em qualquer outro lugar, o OneUptime recusa uma chave de navegador, como por gRPC e MQTT, para perfis, Syslog, Fluent Bit e Fluentd, e para envio de source maps, e uma chave de celular em tudo o que não for traços, registros e métricas OTLP por HTTP. Para passar um remetente para outro tipo, crie uma chave desse tipo, troque o remetente para ela e depois exclua a chave antiga.
 
 ## Antes de começar
 
@@ -59,9 +59,9 @@ Acesse **Configurações do projeto → Telemetria e APM → Chaves de ingestão
 
 Clique em **Criar chave de ingestão**. A caixa começa com o nome **Chave de servidor** e o tipo **Servidor**. Escolha o **Tipo de chave** e renomeie a chave conforme o que vai usá-la, como `checkout-collector`. Uma **Descrição** fica em **Avançado**.
 
-### Adicionar as origens de uma chave de navegador
+### Adicionar as origens de uma chave de navegador ou o aplicativo de uma chave de celular
 
-Uma chave **Navegador** pede as suas **Origens permitidas** na etapa seguinte, **Configurações do navegador**, com o seu **Nome do serviço fixado** em **Avançado**. Veja [Proteger uma chave de navegador](#proteger-uma-chave-de-navegador).
+Uma chave **Navegador** pede as suas **Origens permitidas** na etapa seguinte, **Configurações do navegador**, com o seu **Nome do serviço fixado** em **Avançado**. Veja [Proteger uma chave de navegador](#proteger-uma-chave-de-navegador). Uma chave **Celular** pede, em vez disso, o seu **Nome do serviço fixado** na primeira página: o `service.name` do aplicativo em que ela vai.
 
 ### Criar a chave e copiar o segredo
 
@@ -91,7 +91,7 @@ Uma chave de navegador fica na sua página, onde qualquer pessoa pode copiá-la.
 | --- | --- |
 | **Origens permitidas** | As únicas origens das quais a chave é aceita. Uma requisição de qualquer outra origem, ou sem nenhum cabeçalho `Origin`, é recusada. Uma chave de navegador precisa manter pelo menos uma. |
 | **Nome do serviço fixado** | Arquiva tudo o que a chave envia por OTLP/HTTP sob este único serviço, seja qual for o `service.name` que o remetente definiu. Uma cópia da chave só pode então gravar nesse serviço. |
-| **Requests Per Minute Limit** | O máximo de requisições pelas quais a chave é aceita a cada minuto, compartilhado por todos os visitantes. Uma chave de navegador recebe 6.000 quando você deixa o campo vazio. |
+| **Limite de solicitações por minuto** | O máximo de requisições pelas quais a chave é aceita a cada minuto, compartilhado por todos os visitantes. Uma chave de navegador recebe 6.000 quando você deixa o campo vazio. |
 | **Expira em** | A data depois da qual a chave é recusada, para que uma cópia publicada pare de funcionar. |
 
 Uma origem é um esquema, um host e uma porta opcional: `https://app.example.com` não cobre `https://app.example.com:8443`. Um `*.` no início cobre todos os subdomínios, mas não o próprio domínio. O React Native Session Replay envia uma identidade `app://` exata, que não aceita curingas:
@@ -105,6 +105,17 @@ Uma origem é um esquema, um host e uma porta opcional: `https://app.example.com
 ```
 
 [Serviços](/docs/telemetry/services#como-um-serviço-entra-no-catálogo) mostra como um nome fixado decide o serviço. O Runner e o agente de IA do agente Kubernetes, e os agentes de IA de infraestrutura, não se registram com uma chave fixada: dê a eles uma chave de servidor sem nome fixado.
+
+## O que uma chave de celular limita
+
+Uma chave de celular vai dentro do seu aplicativo, e qualquer pessoa que tenha o aplicativo pode copiá-la. Estes limites prendem cada cópia ao aplicativo para o qual ela foi criada:
+
+- **Ela só escreve como um aplicativo.** Tudo o que ela envia é arquivado sob o seu **Nome do serviço fixado** como um aplicativo RUM móvel, seja qual for o serviço ou o host que o remetente informe. Uma cópia não pode escrever nos seus serviços de backend, hosts ou clusters.
+- **Ela só envia a telemetria desse aplicativo.** Traços, registros e métricas OTLP por HTTP. Ela é recusada por gRPC e MQTT, para Session Replays, perfis e source maps, em qualquer outro endpoint e a partir de qualquer página web.
+- **Ela tem limite de taxa.** 6.000 requisições por minuto para todas as cópias juntas, a menos que você defina o seu **Limite de solicitações por minuto**.
+- **Você pode pará-la.** Desligue **Habilitado**, ou defina **Expira em**, e cada cópia é recusada em segundos.
+
+O que ela não pode impedir: quem tem o seu aplicativo ainda pode enviar traços, registros e métricas inventados para esse aplicativo, até o limite da chave, até que você desligue a chave ou ela expire. Troque a chave a cada versão, para que uma cópia antiga pare de funcionar com a sua versão.
 
 ## Trocar, desativar ou excluir uma chave
 
@@ -132,10 +143,12 @@ A página da chave também faz a conta: **Telemetria recusada** lista o que foi 
 | `402` com `Add a payment method` | No OneUptime Cloud, o projeto está no plano Free e ainda não tem método de pagamento. |
 | `422` com `This telemetry ingestion key has been disabled.` | Alguém desativou **Habilitado**. |
 | `422` com `A browser ingestion key cannot be used for` | Uma chave de navegador chegou a um endpoint que só aceita chaves de servidor. |
-| `422` com `did not send an Origin header` | Uma chave de navegador foi enviada de fora de um navegador. Use ali uma chave de servidor. |
+| `422` com `did not send an Origin header` | Uma chave de navegador foi enviada de fora de um navegador. Use uma chave de celular em um aplicativo móvel, e uma chave de servidor em qualquer outro lugar. |
+| `422` com `A mobile ingestion key cannot be used for` | Uma chave de celular chegou a um endpoint que não é de traços, registros e métricas OTLP por HTTP, como gRPC ou Session Replay. |
+| `422` com `A mobile ingestion key cannot be used from a web page` | Uma chave de celular foi enviada de um navegador. Use uma chave de navegador em uma página web. |
 | `422` com `is not allowed for this browser ingestion key` | A origem da página não está em **Origens permitidas**. |
 | `422` com `is pinned to a single service` | Uma chave com um **Nome do serviço fixado** foi usada para registrar um agente. Use uma chave de servidor sem nome fixado. |
-| `429` com `Too many telemetry requests for this ingestion key` | A chave atingiu o seu **Requests Per Minute Limit**. Os exportadores tentam de novo depois do tempo de `Retry-After`. |
+| `429` com `Too many telemetry requests for this ingestion key` | A chave atingiu o seu **Limite de solicitações por minuto**. Os exportadores tentam de novo depois do tempo de `Retry-After`. |
 
 Para as outras respostas que um exportador OTLP pode receber, veja [Respostas](/docs/telemetry/open-telemetry#respostas).
 

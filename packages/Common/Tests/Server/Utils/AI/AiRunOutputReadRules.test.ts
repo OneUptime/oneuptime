@@ -125,6 +125,17 @@ const RULES: Record<string, Rule> = {
     kind: "projectWide",
     why: "An insight's triage, which OneUptime starts on its own about no incident or alert, and its fix task, a CodeFix run.",
   },
+  /*
+   * What OneUptime AI proposed for a Data Security issue (#10364): the
+   * change and why, in names and counts, read only by the issue's readers
+   * (CanAccessIfCanReadOn the issue). The run it names is OneUptime AI's
+   * own work on the issue, which nobody chats with, and none of the run's
+   * output is kept on it.
+   */
+  DataSecurityAiProposal: {
+    kind: "projectWide",
+    why: "A change OneUptime AI proposed for a Data Security issue, about no incident or alert, read by the issue's readers; it keeps none of the run's output.",
+  },
 };
 
 // A key naming an AI run: aiRunId, triageAiRunId, fixAiRunId.

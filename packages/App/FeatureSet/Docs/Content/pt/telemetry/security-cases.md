@@ -232,7 +232,9 @@ Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configura
 
 As escolhas seguem as prioridades de caso do projeto, com os próprios nomes: estas são as de um projeto novo.
 
-Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador.
+Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador. Uma notificação push sobre uma etapa que aguarda a sua aprovação abre essa mesma aprovação, com as provas; se alguém a decidiu nesse meio-tempo, o caso diz quem, quando e como a etapa correu.
+
+Uma etapa que aguarda a sua aprovação chega até você no Slack ou no Microsoft Teams como uma mensagem a partir da qual você pode aprová-la, e o e-mail dela diz o que a etapa vai fazer e por quê: veja [Aprovar pelo Slack e pelo Microsoft Teams](#aprovar-pelo-slack-e-pelo-microsoft-teams).
 
 ### Publique em canais do Slack, do Microsoft Teams e do Mattermost
 
@@ -375,9 +377,20 @@ As duas etapas de repositório de dados agem nos repositórios de dados de que o
 
 As oito etapas que cortam o acesso de alguém aguardam aprovação. Só um Administrador de segurança pode desativar **Requer aprovação** em uma delas, e o OneUptime registra quem fez isso. A aprovação lista em **Agir sobre** os usuários ou hosts em que a etapa agiria, todos marcados: desmarque os que ela deve deixar intactos. Os protegidos não são oferecidos. Quem iniciou uma execução não pode aprovar as etapas dela: outra pessoa faz isso, mas quem a iniciou ainda pode rejeitá-las.
 
+#### Aprovar pelo Slack e pelo Microsoft Teams
+
+Uma etapa que aguarda aprovação é uma mensagem com **Aprovar**, **Rejeitar** e **Abrir caso**; quando ela age sobre mais de um usuário ou host, também permite aprovar só alguns deles. Ela vai para os canais e chats de cada regra de casos de segurança cujas **Atualizações** publicam **Aprovações pendentes**, e para cada aprovador que escolheu Slack ou Microsoft Teams para **Etapa de playbook aguardando minha aprovação**, no idioma da conta dele. Ela diz o que a etapa vai fazer e por qual conexão, cada usuário ou host sobre o qual age e por quê, os protegidos que deixa de lado, quem ou o que pediu, as provas por trás do caso (até onde chegaram as requisições por trás dele, o que a threat intel sabe, que nada sobre o que ela age está protegido) e se ela pode ser desfeita. O e-mail que pede a aprovação diz o mesmo; o botão dele abre a aprovação no caso e nunca decide nada, já que os scanners de e-mail seguem links.
+
+- Ao aprovar só alguns, aparecem os usuários ou hosts sobre os quais a etapa agiria, todos marcados: desmarque os que ela deve deixar de lado. Pelo menos um fica, ou rejeite a etapa em vez disso.
+- Apertar um botão decide como você, pela conta do Slack ou do Microsoft Teams que você conectou ao OneUptime. Se ainda não conectou, você é solicitado a conectar e depois apertar de novo. Você precisa de uma função que possa executar playbooks e de poder ver o caso; quem iniciou a execução não pode aprová-la, mas pode rejeitá-la. Uma recusa diz o motivo: no Slack, só você a vê.
+- O OneUptime verifica que cada toque veio do Slack ou do Microsoft Teams e decide uma única vez: um toque repetido, reenviado ou feito numa mensagem sobre outra etapa não decide nada, e um toque depois que alguém decidiu diz quem e quando.
+- Assim que alguém decide, no Slack, no Microsoft Teams, no caso ou no app, cada cópia da mensagem diz quem a aprovou ou rejeitou e quando, depois como a etapa correu e o que aconteceu com cada usuário ou host, sem outros botões além de **Abrir caso**. A decisão fica guardada na linha do tempo do caso, dizendo que veio do Slack ou do Microsoft Teams, e no registro de auditoria do projeto.
+
+O Mattermost recebe a aprovação como texto, sem botões.
+
 #### Desfazer
 
-As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Reativar**, **Suspender a contenção**, **Liberar** ou **Ativar**. Uma desconexão não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto.
+As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Reativar**, **Suspender a contenção**, **Liberar** ou **Ativar**. Uma desconexão não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto. No app OneUptime On-Call, o caso lista o que os playbooks dele contiveram, e cada um pode ser desfeito por lá.
 
 ### Lista de bloqueio
 

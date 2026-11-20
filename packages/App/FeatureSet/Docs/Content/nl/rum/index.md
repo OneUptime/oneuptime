@@ -94,7 +94,7 @@ Een applicatie toont **Ontvangt gegevens** zolang er telemetrie binnenkomt en **
 :::steps
 ### Een ingestiesleutel aanmaken
 
-Open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Ingestiesleutel aanmaken**. Een web-app heeft een **Browser**-sleutel nodig, die alleen werkt vanaf de origins die je opgeeft. Een mobiele app heeft een **Server**-sleutel nodig, omdat een mobiele SDK geen `Origin`-header verstuurt.
+Open **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en klik op **Ingestiesleutel aanmaken**. Een web-app heeft een **Browser**-sleutel nodig, die alleen werkt vanaf de origins die je opgeeft. Een mobiele app heeft een **Mobiel**-sleutel nodig, vastgezet op de `service.name` van de app: die zit in de app, dus hij kan alleen de traces, logs en metrieken van die app versturen.
 
 ### Je app instrumenteren
 

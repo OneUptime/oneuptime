@@ -110,6 +110,7 @@ const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticExceptionRemediation",
   "enableAutomaticLogRemediation",
   "enableAutomaticMetricRemediation",
+  "enableAutomaticDataSecurityAi",
   "autoArchiveNonActionableExceptions",
 ];
 

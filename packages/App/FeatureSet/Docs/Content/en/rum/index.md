@@ -94,7 +94,7 @@ An application shows **Receiving data** while telemetry arrives and **No recent 
 :::steps
 ### Create an ingestion key
 
-Open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. A web app needs a **Browser** key, which works only from the origins you list. A mobile app needs a **Server** key, because a mobile SDK sends no `Origin` header.
+Open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. A web app needs a **Browser** key, which works only from the origins you list. A mobile app needs a **Mobile** key, pinned to the app's `service.name`: it ships inside the app, so it can send only that app's traces, logs and metrics.
 
 ### Instrument your app
 

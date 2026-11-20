@@ -165,7 +165,7 @@ Tout ce que contient l'extrait est envoyé à vos visiteurs : n'importe qui peut
 | Paramètre | Effet |
 | --- | --- |
 | **Origines autorisées** | Les requêtes ne sont acceptées que depuis ces origines, chacune avec son schéma et son port éventuel. Un hôte peut commencer par un seul joker `*.` : `https://*.example.com` couvre chaque sous-domaine de `example.com`, mais pas `example.com` lui-même. |
-| **Requests Per Minute Limit** | Un plafond unique pour tous les visiteurs qui utilisent la clé : 6000 requêtes par minute, sauf si vous fixez le vôtre. |
+| **Limite de requêtes par minute** | Un plafond unique pour tous les visiteurs qui utilisent la clé : 6000 requêtes par minute, sauf si vous fixez le vôtre. |
 | **Nom du service épinglé** | Impose `service.name` sur tout ce que la clé écrit, pour qu'une copie ne puisse pas faire passer sa télémétrie pour l'un de vos services backend. |
 | **Expire le** | Après cette date, la clé n'est plus acceptée. |
 | **Activé** | Désactivez-le pour arrêter immédiatement une clé qui a fuité. |

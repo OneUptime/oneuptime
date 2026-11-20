@@ -221,10 +221,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "(module) DataStore": Why.Bookkeeping,
     "(module) DataStoreFinding": Why.FollowOn,
   },
-  "packages/Common/Server/API/SecurityPlaybookRunAPI.ts": {
-    "SecurityPlaybookRunAPI.decide SecurityPlaybookRun": Why.Recorded,
-    "SecurityPlaybookRunAPI.writeUndone SecurityPlaybookRun": Why.Recorded,
-  },
+  /*
+   * A proposal of OneUptime AI's made or undone (#10364): the scrub rules
+   * it makes or deletes are recorded where they are, and a finding marked
+   * scrubbed, or not, follows from them - as Scrub It's own route does.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/Actions/ScrubTelemetryAction.ts":
+    {
+      "markFindings DataStoreFinding": Why.FollowOn,
+    },
   "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
     "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
       Why.Automation,
@@ -661,6 +666,12 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SecurityPlaybookEngine.recoverRuns SecurityPlaybookRun": Why.Automation,
     "SecurityPlaybookEngine.runSteps SecurityPlaybookRun": Why.Automation,
   },
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookRunDecision.ts":
+    {
+      "SecurityPlaybookRunDecision.decide SecurityPlaybookRun": Why.Recorded,
+      "SecurityPlaybookRunDecision.writeUndone SecurityPlaybookRun":
+        Why.Recorded,
+    },
   "packages/Common/Server/Utils/Slo/SloLegacyMonitorLabelAdoption.ts": {
     "(module) ServiceLevelObjectiveMonitorRule": Why.Migration,
   },

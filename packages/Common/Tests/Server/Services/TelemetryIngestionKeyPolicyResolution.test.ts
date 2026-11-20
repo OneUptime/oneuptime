@@ -324,6 +324,39 @@ describe("TelemetryIngestionKeyService policy resolution", () => {
       expect(browserKey.keyType).toBe(TelemetryIngestionKeyType.Browser);
     });
 
+    /*
+     * A Mobile key (issue #6457) read back as a Server key would be a key
+     * copied out of an app with every surface and no limit - the one
+     * failure this type exists to rule out.
+     */
+    test("the exact string Mobile is a Mobile key, with its pin, never a Server key", async () => {
+      const mobileKey: TelemetryIngestionKeyPolicy = await resolveRow({
+        _id: ObjectID.generate(),
+        projectId: ObjectID.generate(),
+        keyType: TelemetryIngestionKeyType.Mobile,
+        pinnedServiceName: "  storefront-mobile  ",
+      });
+
+      expect(mobileKey.keyType).toBe(TelemetryIngestionKeyType.Mobile);
+      expect(mobileKey.pinnedServiceName).toBe("storefront-mobile");
+      expect(mobileKey.allowedOrigins).toEqual([]);
+    });
+
+    test("a keyType that only looks like Mobile is a Server key, as every unrecognised value is", async () => {
+      for (const value of ["mobile", "MOBILE", "Mobile ", "App"]) {
+        const policy: TelemetryIngestionKeyPolicy = await resolveRow({
+          _id: ObjectID.generate(),
+          projectId: ObjectID.generate(),
+          keyType: value,
+        });
+
+        expect({ value, keyType: policy.keyType }).toEqual({
+          value,
+          keyType: TelemetryIngestionKeyType.Server,
+        });
+      }
+    });
+
     test("a NULL or absent isEnabled leaves the key enabled", async () => {
       const nullIsEnabled: TelemetryIngestionKeyPolicy = await resolveRow({
         _id: ObjectID.generate(),

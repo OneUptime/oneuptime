@@ -15,6 +15,7 @@ import Route from "../../Types/API/Route";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationAction from "../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import { DataSecurityAiAutonomy } from "../../Types/DataSecurity/DataSecurityAi";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -289,7 +290,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     allowedValues: Object.values(AutoRemediationTriggerEntity),
     title: "Trigger Entity Type",
     description:
-      "Which kind of signal this rule decides about: Incident or Alert - or Profile, the slow code OneUptime finds in a service's profiles, or Trace, the slow and failing operations OneUptime finds in a service's traces, or Exception, the new and rising exceptions OneUptime finds in a service, or Log, the error, missing and noisy logs OneUptime finds in a service's logs, or Metric, the problems OneUptime finds in a service's metrics.",
+      "Which kind of signal this rule decides about: Incident or Alert - or Profile, the slow code OneUptime finds in a service's profiles, or Trace, the slow and failing operations OneUptime finds in a service's traces, or Exception, the new and rising exceptions OneUptime finds in a service, or Log, the error, missing and noisy logs OneUptime finds in a service's logs, or Metric, the problems OneUptime finds in a service's metrics, or DataSecurityIssue, a Data Security check that failed on a store.",
   })
   @Column({
     nullable: false,
@@ -1007,7 +1008,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Service,
     title: "Services",
     description:
-      "Profile, Trace, Exception, Log and Metric AI rules only: match what OneUptime found in one of these services. Leave empty to match any service.",
+      "Profile, Trace, Exception, Log, Metric and Data Security AI rules only: match what OneUptime found in one of these services - for a Data Security issue, on a store that is the service's telemetry. Leave empty to match any service.",
   })
   @ManyToMany(
     () => {
@@ -1053,7 +1054,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Label,
     title: "Service Labels",
     description:
-      "Profile, Trace, Exception, Log and Metric AI rules only: match what OneUptime found in a service that carries at least one of these labels. Leave empty to match any label.",
+      "Profile, Trace, Exception, Log, Metric and Data Security AI rules only: match what OneUptime found in a service that carries at least one of these labels. Leave empty to match any label.",
   })
   @ManyToMany(
     () => {
@@ -1098,7 +1099,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.LongText,
     title: "Service Name Pattern",
     description:
-      "Profile, Trace, Exception, Log and Metric AI rules only: case-insensitive regex matched against the name of the service OneUptime found the problem in. Leave empty to match any name.",
+      "Profile, Trace, Exception, Log, Metric and Data Security AI rules only: case-insensitive regex matched against the name of the service OneUptime found the problem in. Leave empty to match any name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -1106,6 +1107,471 @@ export default class AutoRemediationRule extends RuleBaseModel {
     length: ColumnLength.LongText,
   })
   public serviceNamePattern?: string = undefined;
+
+  /*
+   * WHAT A DATA SECURITY AI RULE DOES (#10364, Types/DataSecurity/
+   * DataSecurityAi): for each kind of work OneUptime AI does on a Data
+   * Security issue the rule matches - analyze it, contain it, fix it, judge
+   * it - Off, Suggest (proposed for a person to approve) or WithoutAsking.
+   * Only a rule whose Trigger Entity Type is DataSecurityIssue holds them;
+   * the rule service refuses them on any other, and writes the defaults
+   * (DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY) for one a create leaves out.
+   * What a change may do without asking is held to what it is, whatever
+   * the rule says: deleting data and paging people always ask.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: [
+      DataSecurityAiAutonomy.Off,
+      DataSecurityAiAutonomy.WithoutAsking,
+    ],
+    title: "Data Security: Analyze",
+    description:
+      "Data Security AI rules only: whether OneUptime AI analyzes the issues this rule matches on its own - what is wrong, what it puts at risk and how to fix it, written on the issue's timeline. Off or WithoutAsking: an analysis changes nothing. Left out of a create, WithoutAsking.",
+    example: "WithoutAsking",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public dataSecurityAnalyze?: DataSecurityAiAutonomy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSecurityAiAutonomy),
+    title: "Data Security: Contain",
+    description:
+      "Data Security AI rules only: how OneUptime AI contains the issues this rule matches - a scrub rule that hides a telemetry issue's data from now on. Off; Suggest, proposed for one-click approval; or WithoutAsking, made on its own and undone with one press. A change of who can reach data runs without asking only where a rule names it, and deleting data never does. Left out of a create, Suggest.",
+    example: "Suggest",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public dataSecurityContain?: DataSecurityAiAutonomy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSecurityAiAutonomy),
+    title: "Data Security: Fix",
+    description:
+      "Data Security AI rules only: whether OneUptime AI fixes the cause of the issues this rule matches with a pull request in one of the project's code repositories. Off; Suggest, offered for a person to open; or WithoutAsking, opened on its own for review. Nothing is ever merged. Left out of a create, Suggest.",
+    example: "Suggest",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public dataSecurityFix?: DataSecurityAiAutonomy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataSecurityAiAutonomy),
+    title: "Data Security: Judge",
+    description:
+      "Data Security AI rules only: whether OneUptime AI judges what the issues this rule matches rest on - which findings are real, who owns the store. Off; Suggest, proposed for a person to confirm; or WithoutAsking, recorded on its own and set back with one press. Left out of a create, Suggest.",
+    example: "Suggest",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public dataSecurityJudge?: DataSecurityAiAutonomy = undefined;
+
+  /*
+   * WHICH DATA SECURITY ISSUES THE RULE MATCHES (Utils/DataSecurity/
+   * DataSecurityAiRuleMatch): the check, its group and the severity; the
+   * store's sensitivity, kind, provider, environment and labels; and the
+   * categories of the issue's data types. Each is skipped when empty, and
+   * every one that is set must hold. Data Security AI rules only
+   * (Types/AI/AiRuleCriteria); a store that is a service's telemetry is
+   * also matched by its service, with the telemetry rules' service fields.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Security Checks",
+    description:
+      "Data Security AI rules only: match issues of these checks, by their ids (public-read, secrets-in-telemetry). Leave empty to match any check.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataSecurityChecks?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Security Check Groups",
+    description:
+      "Data Security AI rules only: match issues of checks in these groups: Exposure, Encryption, Recovery, Visibility, Access, Data hygiene, Telemetry, Residency or AI. Leave empty to match any group.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataSecurityCheckGroups?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Security Severities",
+    description:
+      "Data Security AI rules only: match issues of these severities: Critical, High, Medium or Low. Leave empty to match any severity.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataSecuritySeverities?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Store Sensitivities",
+    description:
+      "Data Security AI rules only: match issues on stores of these sensitivities: Restricted, Confidential, Internal or Public. Leave empty to match any sensitivity.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataStoreSensitivities?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Store Kinds",
+    description:
+      "Data Security AI rules only: match issues on stores of these kinds (AWS S3 Bucket, Logs). Leave empty to match any kind.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataStoreKinds?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Store Providers",
+    description:
+      "Data Security AI rules only: match issues on stores of these providers: aws, azure, gcp, self-managed or oneuptime. Leave empty to match any provider.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataStoreProviders?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Store Environments",
+    description:
+      "Data Security AI rules only: match issues on stores that serve these environments: Production, Staging, Development, Test or Unknown. Leave empty to match any environment.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataStoreEnvironments?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Data Store Labels",
+    description:
+      "Data Security AI rules only: match issues on stores that carry at least one of these labels. Leave empty to match any label.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AutoRemediationRuleDataStoreLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "autoRemediationRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public dataStoreLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Data Categories",
+    description:
+      "Data Security AI rules only: match issues whose data types are of at least one of these categories: Contact and identity, Government ID, Financial, Health, Secrets and credentials, Special category or Business confidential. Leave empty to match any data.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataCategories?: Array<string> = undefined;
 
   @ColumnAccessControl({
     create: [

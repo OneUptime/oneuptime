@@ -26,6 +26,7 @@
     "Journeys' look at a guided setup run this browser lost but the server kept, of 2026-11-20 (GuidedSetupRun.spec.ts, #7253: 1 test, 6.9 s locally), is added to its minutes the same way, times 1.26: 4.9 to 5.0, until App Test's runs measure it.",
     "Home's looks at a new project's quickstart on a wide screen and a phone, of 2026-11-20 - centred under its title, the steps beside the goals as they are picked, the checklist's progress and goals beside its steps, and the German dark question's steps (#10276: 2 tests and one look, 3.1 s locally) - are added to its minutes the same way, times 1.26: 4.6 to 4.7, until App Test's runs measure it.",
     "The status page and telemetry guided setups' looks at a status page the server refused and Try again, of 2026-11-20 (#10276: 2 tests, 7.7 s locally), are added to its minutes the same way, times 1.26: 4.5 to 4.7, until App Test's runs measure it.",
+    "The RUM setup suite of 2026-11-20 (#6379, #6457, #6458: 44 tests, at 1280 and on a 390px touch screen) took 2.2 minutes locally, its bundle built, on a machine other work ran on: 2.2 minutes times 1.26, 2.8, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
   ],
   "measuredOn": "2026-11-17",
@@ -133,6 +134,7 @@
     "test-resource-onboarding-ui": 0.8,
     "test-resource-overviews-ui": 4.2,
     "test-resource-topology-ui": 3.7,
+    "test-rum-setup-ui": 2.8,
     "test-rules-menu-section-ui": 3.1,
     "test-runbook-steps-ui": 1.2,
     "test-runbook-triggers-ui": 1.6,

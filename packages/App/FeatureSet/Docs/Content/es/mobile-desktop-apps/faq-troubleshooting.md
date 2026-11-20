@@ -34,7 +34,7 @@ Sí. Cada teléfono o tableta es un dispositivo push propio, con sus propias reg
 :::details ¿Qué puedo hacer en la aplicación?
 - **Home**: lo que requiere atención en el proyecto: incidentes y alertas activos, casos de seguridad abiertos si su rol le permite verlos, monitores con problemas y eventos agrupados.
 - **Monitors**: todos los monitores, filtrados por estado, con sus detalles.
-- **Inbox**: incidentes y alertas, y los episodios que los agrupan. Abra uno para usar **Acknowledge**, **Resolve** o **Add Note**. Si su rol le permite ver los casos de seguridad del proyecto, **Security** lista los abiertos: abra uno para usar **Approve** o **Reject** en un paso de playbook que espera aprobación, hacerse cargo del caso con **Assign to me** o usar **Close case**.
+- **Inbox**: incidentes y alertas, y los episodios que los agrupan. Abra uno para usar **Acknowledge**, **Resolve** o **Add Note**. Si su rol le permite ver los casos de seguridad del proyecto, **Security** lista los abiertos: abra uno para usar **Approve** o **Reject** en un paso de playbook que espera aprobación, hacerse cargo del caso con **Assign to me** o usar **Close case**. Un paso que espera aprobación muestra qué hará y las pruebas que hay detrás, y **Undo** libera lo que contuvo un playbook.
 - **On-Call**: si está de guardia y hasta cuándo, quién más lo está, los avisos que le enviaron, y **Cover for me**, que pasa sus avisos a un compañero durante un tiempo.
 - **Settings**: sus proyectos y el inicio de sesión único, la apariencia, las alertas críticas y el sonido de alarma, **Biometric Unlock**, su feed de calendario de guardias y **Sign Out**.
 

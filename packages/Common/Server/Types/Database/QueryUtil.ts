@@ -640,16 +640,29 @@ export default class QueryUtil {
         query[key] instanceof Wildcard &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.wildcard(
-          (query[key] as Wildcard<string>).toString() as any,
+        // Several globs are any of them; one (or none) reads as it always has.
+        const globs: Array<string> = (query[key] as Wildcard<string>).values;
+
+        query[key] = (
+          globs.length > 1
+            ? QueryHelper.wildcardAny(globs)
+            : QueryHelper.wildcard(
+                (query[key] as Wildcard<string>).toString() as any,
+              )
         ) as any;
       } else if (
         query[key] &&
         query[key] instanceof NotWildcard &&
         tableColumnMetadata
       ) {
-        query[key] = QueryHelper.notWildcard(
-          (query[key] as NotWildcard<string>).toString() as any,
+        const globs: Array<string> = (query[key] as NotWildcard<string>).values;
+
+        query[key] = (
+          globs.length > 1
+            ? QueryHelper.notWildcardAny(globs)
+            : QueryHelper.notWildcard(
+                (query[key] as NotWildcard<string>).toString() as any,
+              )
         ) as any;
       } else if (
         query[key] &&

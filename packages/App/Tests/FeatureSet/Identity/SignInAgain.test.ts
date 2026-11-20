@@ -596,6 +596,91 @@ describe("an OpenID Connect Sign In Again asks the provider to authenticate the 
       expect(params.has("max_age")).toBe(false);
     }
   });
+
+  test("a provider other than Google is not asked for auth_time with the claims parameter: max_age makes it send it", () => {
+    expect(authorizationParams(true).has("claims")).toBe(false);
+  });
+
+  /*
+   * Google as a project's or the server's OpenID Connect provider (Google
+   * Workspace, #10332): it takes no prompt=login and documents no max_age,
+   * and sends auth_time only when asked for it with the claims parameter,
+   * once the OAuth client has Session age claims on - so Sign In Again asks
+   * for it, as Continue with Google does, or it could never confirm anyone.
+   */
+  describe("through Google", () => {
+    function googleClient(issuer: string): Client {
+      const google: Issuer<Client> = new Issuer({
+        issuer: issuer,
+        authorization_endpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+        token_endpoint: "https://oauth2.googleapis.com/token",
+        jwks_uri: "https://www.googleapis.com/oauth2/v3/certs",
+      });
+
+      return new google.Client({
+        client_id: "1234567890-abc.apps.googleusercontent.com",
+        client_secret: "a-client-secret",
+        redirect_uris: [REDIRECT_URI],
+        response_types: ["code"],
+      });
+    }
+
+    function googleParams(
+      issuer: string,
+      isSignInAgain: boolean,
+    ): URLSearchParams {
+      const url: URL = OIDCUtil.generateAuthorizationUrl({
+        client: googleClient(issuer),
+        scopes: "openid email profile",
+        state: "state-abc",
+        nonce: "nonce-xyz",
+        codeChallenge: "challenge",
+        isSignInAgain: isSignInAgain,
+      });
+
+      return new URLSearchParams(url.toString().split("?")[1] || "");
+    }
+
+    test.each([
+      ["https://accounts.google.com"],
+      ["accounts.google.com"],
+      ["https://ACCOUNTS.GOOGLE.COM"],
+    ])(
+      "Sign In Again asks Google (%s) for auth_time, as an essential claim of the ID token",
+      (issuer: string) => {
+        const params: URLSearchParams = googleParams(issuer, true);
+
+        expect(JSON.parse(params.get("claims") || "null")).toEqual({
+          id_token: { auth_time: { essential: true } },
+        });
+        // Still asked to ask again: a provider that honours it proves more.
+        expect(params.get("prompt")).toBe("login");
+        expect(params.get("max_age")).toBe("0");
+      },
+    );
+
+    test("any other sign-in through Google asks for nothing more", () => {
+      expect(
+        googleParams("https://accounts.google.com", false).has("claims"),
+      ).toBe(false);
+    });
+
+    test("a provider whose address only looks like Google's is not Google", () => {
+      for (const issuer of [
+        "https://accounts.google.com.evil.example",
+        "https://evil.example/accounts.google.com",
+        "https://notaccounts.google.com",
+      ]) {
+        expect({
+          issuer,
+          claims: googleParams(issuer, true).has("claims"),
+        }).toEqual({
+          issuer,
+          claims: false,
+        });
+      }
+    });
+  });
 });
 
 describe("what an OpenID Connect ID token proves", () => {

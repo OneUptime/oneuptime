@@ -2679,6 +2679,47 @@ export default class Project extends TenantModel {
   public enableAutomaticSecurityCaseTriage?: boolean = undefined;
 
   /*
+   * Working on new Data Security issues (#10364): when a check opens an
+   * issue, or opens one again, OneUptime AI works on it the way the
+   * project's Data Security AI rules say - or, with none, analyzes it when
+   * it is Critical or High and proposes the rest for one-click approval
+   * (Types/DataSecurity/DataSecurityAi). Off, nothing runs on its own; the
+   * buttons a person presses (Explain with AI, Fix with AI, Scrub It) still
+   * work. On for new projects, like triaging new security cases above; a
+   * project that existed before keeps it off, so an upgrade spends no AI
+   * credits unasked.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Data Security AI",
+    description:
+      "When enabled, OneUptime AI works on every new and reopened Data Security issue the way the project's Data Security AI rules say: with no rule, it analyzes Critical and High issues and proposes the rest for one-click approval. Everything it does is on the issue's timeline and can be undone. Off, nothing runs on its own, and Explain with AI, Fix with AI and Scrub It still work. On for new projects created in OneUptime; projects that existed before keep their setting. Requires AI to be enabled and an LLM provider to be configured.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticDataSecurityAi?: boolean = undefined;
+
+  /*
    * Opening security cases from entity risk: when what the project's
    * detection rules, threat intel and connected products found about one
    * user, host or address in the last week adds up to
