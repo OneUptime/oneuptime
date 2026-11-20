@@ -1791,6 +1791,16 @@ enum Permission {
   EditNetworkSite = "EditNetworkSite",
   ReadNetworkSite = "ReadNetworkSite",
 
+  CreateNetworkSiteOwnerTeam = "CreateNetworkSiteOwnerTeam",
+  DeleteNetworkSiteOwnerTeam = "DeleteNetworkSiteOwnerTeam",
+  EditNetworkSiteOwnerTeam = "EditNetworkSiteOwnerTeam",
+  ReadNetworkSiteOwnerTeam = "ReadNetworkSiteOwnerTeam",
+
+  CreateNetworkSiteOwnerUser = "CreateNetworkSiteOwnerUser",
+  DeleteNetworkSiteOwnerUser = "DeleteNetworkSiteOwnerUser",
+  EditNetworkSiteOwnerUser = "EditNetworkSiteOwnerUser",
+  ReadNetworkSiteOwnerUser = "ReadNetworkSiteOwnerUser",
+
   CreateNetworkSiteType = "CreateNetworkSiteType",
   DeleteNetworkSiteType = "DeleteNetworkSiteType",
   EditNetworkSiteType = "EditNetworkSiteType",
@@ -11311,6 +11321,86 @@ export class PermissionHelper {
         description: "This permission can read Network Site of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteOwnerTeam,
+        title: "Create Network Site Team Owner",
+        description:
+          "This permission can create Network Site Team Owner in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteOwnerTeam,
+        title: "Delete Network Site Team Owner",
+        description:
+          "This permission can delete Network Site Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteOwnerTeam,
+        title: "Edit Network Site Team Owner",
+        description:
+          "This permission can edit Network Site Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteOwnerTeam,
+        title: "Read Network Site Team Owner",
+        description:
+          "This permission can read Network Site Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteOwnerUser,
+        title: "Create Network Site User Owner",
+        description:
+          "This permission can create Network Site User Owner in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteOwnerUser,
+        title: "Delete Network Site User Owner",
+        description:
+          "This permission can delete Network Site User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteOwnerUser,
+        title: "Edit Network Site User Owner",
+        description:
+          "This permission can edit Network Site User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteOwnerUser,
+        title: "Read Network Site User Owner",
+        description:
+          "This permission can read Network Site User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Monitor,
       },

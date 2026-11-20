@@ -89,7 +89,7 @@ En lista eller en räkning tar en `query`. Ett fält med ett värde matchar det 
 | `Includes` | Något av värdena i `value` |
 | `IsNull`, `NotNull` | Inget värde, eller vilket värde som helst |
 
-Ett fält i en post som resursen namnger filtreras under dess relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` hittar de teammedlemmar vars användare har ett namn som innehåller ”ada”. Att filtrera på ett fält kräver behörighet att läsa det, genom en relation som på själva resursen: ett filter på ett fält du inte får läsa avvisas med en `422` som namnger fältet.
+Ett fält i en post som resursen namnger filtreras under dess relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` hittar de teammedlemmar vars användare har ett namn som innehåller ”ada”. Att filtrera på ett fält kräver behörighet att läsa det, genom en relation som på själva resursen: ett filter på ett fält du inte får läsa avvisas med en `422` som namnger fältet. Genom en relation avvisas ett fält som bara personen själv får läsa, till exempel en användares tidszon eller personens aviseringsmetoder och jourloggar, för alla, både i ett filter och i en sortering, eftersom relationen kan namnge vems post som helst.
 
 En resurs med ägare - en monitor, en incident, en jourpolicy och varje annan med användar- och teamägare - filtreras också efter vem som äger den, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` hittar de poster som en eller flera av de personerna och teamen äger. `match` är `AnyOf` om du inte anger den: `NoneOf` hittar de poster som ingen av dem äger, även poster utan ägare, och `AnyOwner` och `NoOwner` hittar de poster som har någon ägare eller ingen, utan att namnge någon. Ett teams medlemmar är inte ägare till det som teamet äger. Ett filter namnger högst 1 000 personer och team tillsammans, en resurs utan ägare avvisar det med en `400`, och att filtrera på ägare utan behörighet att läsa dem nekas med en `422`.
 
@@ -255,7 +255,16 @@ Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett proje
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Utöver meddelandet innehåller svaret `"refusalCode": "name_taken"`. Känn igen det här avslaget på den koden, inte på meningen, som kan formuleras om. Ingenting skrevs, så samma begäran kan skickas igen så snart den andra posten lämnar namnet: Terraform-providern frågar igen i upp till 30 sekunder.
+Många andra slag har också ett eget namn, till exempel allvarlighetsgrader för incidenter, monitorstatusar, statussidor och arbetsflöden, och avvisar ett upptaget namn på samma sätt:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Utöver meddelandet innehåller varje sådant avslag en `refusalCode` som säger vad som har namnet. Känn igen avslaget på den koden, inte på meningen, som kan formuleras om:
+
+- `"refusalCode": "name_taken"`: en post i drift har det. Ingenting skrevs, så samma begäran kan skickas igen så snart den posten lämnar namnet: Terraform-providern frågar igen i upp till 30 sekunder.
+- `"refusalCode": "name_taken_by_archived"`: bara en arkiverad post har det. Avarkivera den posten, eller välj ett annat namn: att skicka begäran igen hjälper inte, och Terraform-providern gör det inte.
 
 En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn. För team, etiketter, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant. Arkiverade etiketter och jourpolicyer räknas inte med.
 

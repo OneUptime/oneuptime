@@ -48,6 +48,12 @@ enum EmailTemplateType {
   TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   TwoFactorWrongCodes = "TwoFactorWrongCodes.hbs",
   /*
+   * A session of a person's account was signed out after too many wrong
+   * attempts to confirm it was them (#10218, Server/Utils/Reauthentication/
+   * SignedOutEmail), in their own language.
+   */
+  ReauthenticationSignedOut = "ReauthenticationSignedOut.hbs",
+  /*
    * A person's password, passkeys and second steps were cleared by a server
    * admin or an owner of their projects (#9818, #9820,
    * Types/SSO/SignInSettingsClearedEmail), in their own language.

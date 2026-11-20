@@ -146,6 +146,31 @@ Samma sak händer när alla projekt du tillhör kräver enkel inloggning och har
 - **Huvudadministratörer** behåller alltid sina egna inställningar under **Säkerhet**.
 - **Det du konfigurerade tidigare** finns kvar. En serveradministratör kan rensa det, och det kan även en ägare till alla projekt du tillhör; du får ett e-postmeddelande när det sker.
 
+### Bekräfta att det är du
+
+Vissa ändringar ber dig först bekräfta att det är du, även om du är inloggad, så att ingen kan göra dem från en webbläsare där du har förblivit inloggad. OneUptime frågar innan du:
+
+- ändrar din e-postadress eller ditt lösenord;
+- lägger till eller tar bort en passnyckel, en säkerhetsnyckel eller en autentiseringsapp;
+- får nya reservkoder medan du fortfarande har oanvända;
+- stänger av tvåfaktorsautentisering;
+- tar bort ditt konto.
+
+Dialogrutan **Bekräfta att det är du** ber om ditt lösenord och, medan tvåfaktorsautentisering är aktiverad, om ditt andra steg: en kod från din autentiseringsapp, din säkerhetsnyckel eller en av dina reservkoder. Med en passnyckel klickar du i stället på **Använd en passnyckel**. Om du bara loggar in med enkel inloggning, Google eller Microsoft klickar du på **Logga in igen**: OneUptime får din identitetsleverantör att be dig logga in igen och tar sedan tillbaka dig till sidan. Därefter genomförs ändringen.
+
+När du har bekräftat blir du inte tillfrågad igen på 10 minuter i den webbläsaren. Fem felaktiga försök loggar ut den webbläsaren, men låser aldrig ditt konto: logga in igen och försök en gång till. OneUptime skickar ett e-postmeddelande till dig när det händer, och varje gång en reservkod bekräftar att det är du.
+
+På en självhostad server bekräftar huvudadministratörer på samma sätt att det är de innan de ändrar hur någon annan loggar in, gör någon till huvudadministratör, ändrar serverns leverantörer för enkel inloggning eller e-postinställningar, eller skapar en master-API-nyckel. Master-API-nyckeln kan inte göra dessa ändringar.
+
+Att logga in igen räknas bara när din identitetsleverantör säger att du loggade in efter att OneUptime skickade dig dit. Om leverantören loggar in dig med en session den redan har, utan att be om ditt lösenord, bekräftar det ingenting: logga först ut från leverantören och klicka sedan på **Logga in igen**. Där din server låter dig logga in med en länk via e-post gör **Logga in på ett annat sätt** det i stället. Vad OneUptime ber varje leverantör om, och vad en administratör kan ändra när en ny inloggning inte bekräftar något:
+
+| Leverantör | Vad OneUptime ber om | När det inte bekräftar något |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` och när du loggade in (`AuthnInstant`) | Låt leverantören följa begäran, till exempel med Honor Force Authentication i Okta. |
+| OpenID Connect | `prompt=login` och `max_age=0`, och när du loggade in (`auth_time`) | Låt leverantören skicka `auth_time`. I Microsoft Entra ID lägger du till det i ID-token som ett valfritt anspråk. |
+| Google | När du loggade in (`auth_time`). Google kan inte ombes att låta dig logga in igen. | Aktivera Session age claims för serverns Google-inloggningsapp, som måste vara publicerad och verifierad. |
+| Microsoft | `prompt=login` och `max_age=0`, och när du loggade in (`auth_time`) | Lägg till `auth_time` i ID-token för serverns Microsoft-inloggningsapp som ett valfritt anspråk. |
+
 ## Dina projekt
 
 Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänster i instrumentpanelen listar dem: välj ett för att byta.
@@ -178,7 +203,7 @@ Ditt tema sparas i din webbläsare, så ställ in det igen i en annan webbläsar
 
 ## Ta bort ditt konto
 
-Öppna **Farozon → Ta bort konto**. Du kan bara ta bort ditt konto när du inte är med i något projekt: sidan listar projekten du fortfarande är med i. Lämna dem först, klicka sedan på **Ta bort konto** och bekräfta. Att ta bort ditt konto är permanent och kan inte ångras.
+Öppna **Farozon → Ta bort konto**. Du kan bara ta bort ditt konto när du inte är med i något projekt: sidan listar projekten du fortfarande är med i. Lämna dem först, klicka sedan på **Ta bort konto** och bekräfta. Att ta bort ditt konto är permanent och kan inte ångras. Innan OneUptime tar bort ditt konto ber det dig bekräfta att det är du.
 
 ## Felsökning
 

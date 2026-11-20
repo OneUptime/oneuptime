@@ -74,6 +74,9 @@ describe("the metric", () => {
     expect(MANAGED_DEVICE_READING_METRIC_NAMES).toEqual([
       MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
       MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+      // #10008: its battery and its storage, beside them.
+      "oneuptime.managed_device.battery.level",
+      "oneuptime.managed_device.storage.used",
     ]);
   });
 

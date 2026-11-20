@@ -64,6 +64,24 @@ export interface VerifiedSamlResponse {
    * provider ends that one. Null when the assertion carries none.
    */
   sessionIndex: string | null;
+
+  /*
+   * When the identity provider says it authenticated the person: the
+   * AuthnInstant of the assertion's one <AuthnStatement> (SAML 2.0 Core
+   * 2.7.2). An identity provider that reuses a session it has says when that
+   * session signed in, so this is how Sign In Again tells a new sign-in from
+   * a remembered one (#10217, Utils/SignInAgain). Null when the assertion
+   * has no AuthnStatement, more than one, or a time that is not one.
+   */
+  authnInstant: Date | null;
+
+  /*
+   * The ID of the request this answers, as the bearer confirmation for this
+   * provider names it (SAML 2.0 Profiles 4.1.4.2: InResponseTo, signed with
+   * the assertion). Null for a sign-in started at the identity provider, and
+   * when the confirmations name different requests.
+   */
+  inResponseTo: string | null;
 }
 
 /*
@@ -255,16 +273,27 @@ export default class SSOUtil {
   private static readonly COMMENT_NODE: number = 8;
   private static readonly DOCUMENT_NODE: number = 9;
 
+  /*
+   * The AuthnRequest a sign-in sends the browser to the identity provider
+   * with (HTTP-Redirect binding). Sign In Again (#10217) sends it with
+   * `forceAuthn`, asking the provider to authenticate the person directly
+   * rather than rely on a session it has (SAML 2.0 Core 3.4.1), and with an
+   * ID of its own (Utils/SignInAgain) that the response names back. Never
+   * IsPassive: a passive request may not authenticate anyone.
+   */
   public static createSAMLRequestUrl(data: {
     acsUrl: URL;
     signOnUrl: URL;
     issuerUrl: URL;
+    forceAuthn?: boolean | undefined;
+    requestId?: string | undefined;
   }): URL {
     const { acsUrl, signOnUrl } = data;
 
-    const samlRequest: string = `<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ID="${Text.generateRandomText(
-      10,
-    ).toUpperCase()}" Version="2.0" IssueInstant="${OneUptimeDate.getCurrentDate().toISOString()}" IsPassive="false" AssertionConsumerServiceURL="${acsUrl.toString()}" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ForceAuthn="false"><Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">${data.issuerUrl.toString()}</Issuer></samlp:AuthnRequest>`;
+    const requestId: string =
+      data.requestId || Text.generateRandomText(10).toUpperCase();
+
+    const samlRequest: string = `<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:metadata" ID="${requestId}" Version="2.0" IssueInstant="${OneUptimeDate.getCurrentDate().toISOString()}" IsPassive="false" AssertionConsumerServiceURL="${acsUrl.toString()}" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ForceAuthn="${data.forceAuthn ? "true" : "false"}"><Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">${data.issuerUrl.toString()}</Issuer></samlp:AuthnRequest>`;
 
     const deflated: Buffer = zlib.deflateRawSync(samlRequest);
 
@@ -410,6 +439,8 @@ export default class SSOUtil {
     const nameId: SamlNameId = SSOUtil.getNameIdFromAssertion(assertion);
     const sessionIndex: string | null =
       SSOUtil.getSessionIndexFromAssertion(assertion);
+    const authnInstant: Date | null =
+      SSOUtil.getAuthnInstantFromAssertion(assertion);
 
     const assertionId: string = SSOUtil.getIdAttribute(assertion).trim();
 
@@ -424,6 +455,12 @@ export default class SSOUtil {
       now,
     });
 
+    // Once the assertion is held to this provider: what it answers.
+    const inResponseTo: string | null = SSOUtil.getInResponseToFromAssertion(
+      assertion,
+      serviceProvider,
+    );
+
     return {
       issuerUrl,
       email,
@@ -433,6 +470,8 @@ export default class SSOUtil {
       acceptableUntil,
       nameId,
       sessionIndex,
+      authnInstant,
+      inResponseTo,
     };
   }
 
@@ -1977,6 +2016,63 @@ export default class SSOUtil {
     }
 
     return null;
+  }
+
+  /*
+   * When the identity provider says it authenticated the person: the
+   * AuthnInstant of the assertion's <AuthnStatement>, read from the signed
+   * assertion. Null - which no Sign In Again counts - when there is none,
+   * when there is more than one (which sign-in would it be?), or when its
+   * time is not one: it is never a reason to refuse the sign-in itself.
+   */
+  private static getAuthnInstantFromAssertion(
+    assertion: XmlElement,
+  ): Date | null {
+    const statements: Array<XmlElement> = SSOUtil.getSamlChildren(
+      assertion,
+      "AuthnStatement",
+    );
+
+    if (statements.length !== 1) {
+      return null;
+    }
+
+    const value: string | null = SSOUtil.getOptionalAttribute(
+      statements[0]!,
+      "AuthnInstant",
+    );
+
+    const time: number | null = value ? SSOUtil.parseSamlTime(value) : null;
+
+    return time === null ? null : new Date(time);
+  }
+
+  /*
+   * The request the assertion answers, as its bearer confirmations for this
+   * provider name it (their InResponseTo), read from the signed assertion:
+   * the one they agree on, or null when none names one or they differ.
+   */
+  private static getInResponseToFromAssertion(
+    assertion: XmlElement,
+    serviceProvider: SamlServiceProvider,
+  ): string | null {
+    const named: Set<string> = new Set();
+
+    for (const confirmationData of SSOUtil.getBearerConfirmationsForThisProvider(
+      assertion,
+      serviceProvider,
+    )) {
+      const inResponseTo: string | null = SSOUtil.getOptionalAttribute(
+        confirmationData,
+        "InResponseTo",
+      );
+
+      if (inResponseTo) {
+        named.add(inResponseTo);
+      }
+    }
+
+    return named.size === 1 ? Array.from(named)[0]! : null;
   }
 
   // An attribute's value without space around it, or null when absent or empty.

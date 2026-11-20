@@ -183,7 +183,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
     },
   },
-  // Its own routes only read today: a write added here names Monitors.
+  /*
+   * Its own routes read, but for Import Alerts' Convert with OneUptime AI
+   * (#7697), which writes nothing and is refused while Monitors is off: an
+   * import's monitors are created through the CRUD API, refused with it.
+   */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
     leftAlone: {},
@@ -406,6 +410,12 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/NetworkDeviceRefreshAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},
+  },
+  "packages/Common/Server/API/NetworkEmptySitesAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {
+      EMPTY_SITES_PATH: READ,
+    },
   },
   "packages/Common/Server/API/NetworkDeviceWatchingMonitorsAPI.ts": {
     products: [ProductKey.Network],
@@ -1061,9 +1071,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * the phone's browser reads a mobile app's passkey options once,
          * by the one-time hand-off the app was given at sign-in. #9898: the
          * sign-up page an invitation opens says its link is the person's,
-         * as they pick the project's single sign-on.
+         * as they pick the project's single sign-on. #10178: so does the
+         * project's SSO page an invitation opens for someone who has
+         * signed up.
          */
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 23,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 24,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
@@ -1133,6 +1145,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          */
         "packages/Common/Server/API/UserAPI.ts": 10,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
+      },
+    ),
+    ...decided(
+      "A person's own progress through a guided setup (#7253), which spans products: it keeps only where they are, and every record a step makes goes through its own product's routes.",
+      {
+        "packages/Common/Server/API/GuidedSetupRunAPI.ts": 2,
       },
     ),
     ...decided(

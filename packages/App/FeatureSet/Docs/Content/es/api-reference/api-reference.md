@@ -89,7 +89,7 @@ Una lista o un recuento acepta una `query`. Un campo con un valor coincide con e
 | `Includes` | Cualquiera de los valores de `value` |
 | `IsNull`, `NotNull` | Ningún valor, o cualquier valor |
 
-Un campo de un registro que nombra el recurso se filtra bajo su relación: `"user": { "name": { "_type": "Search", "value": "ada" } }` encuentra los miembros del equipo cuyo usuario tiene un nombre que contiene «ada». Filtrar por un campo requiere permiso para leerlo, a través de una relación igual que en el propio recurso: un filtro sobre un campo que no puedes leer se rechaza con un `422` que nombra el campo.
+Un campo de un registro que nombra el recurso se filtra bajo su relación: `"user": { "name": { "_type": "Search", "value": "ada" } }` encuentra los miembros del equipo cuyo usuario tiene un nombre que contiene «ada». Filtrar por un campo requiere permiso para leerlo, a través de una relación igual que en el propio recurso: un filtro sobre un campo que no puedes leer se rechaza con un `422` que nombra el campo. A través de una relación, un campo que solo puede leer la persona a la que pertenece, como la zona horaria de un usuario o sus métodos de notificación y registros de guardia, se rechaza para todos, tanto en un filtro como en un orden, porque la relación puede nombrar el registro de cualquiera.
 
 Un recurso con propietarios - un monitor, un incidente, una política de guardia y cualquier otro con propietarios de usuario y de equipo - también se filtra por quién es su propietario, bajo `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` encuentra los registros de los que son propietarios una o más de esas personas y equipos. `match` es `AnyOf` salvo que lo fijes: `NoneOf` encuentra los registros de los que no es propietario ninguno de ellos, incluidos los registros sin propietarios, y `AnyOwner` y `NoOwner` encuentran los registros con algún propietario o sin ninguno, sin nombrar a nadie. Los miembros de un equipo no son propietarios de lo que es del equipo. Un filtro nombra como máximo 1000 personas y equipos en total, un recurso sin propietarios lo rechaza con un `400`, y filtrar por propietarios sin permiso para leerlos se rechaza con un `422`.
 
@@ -255,7 +255,16 @@ Los equipos, las etiquetas, las políticas de guardia y las programaciones de gu
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Junto al mensaje, la respuesta incluye `"refusalCode": "name_taken"`. Reconoce este rechazo por ese código, no por la frase, que puede cambiar de redacción. No se escribió nada, así que la misma solicitud se puede volver a enviar en cuanto el otro registro deje el nombre: el proveedor de Terraform vuelve a pedirlo durante hasta 30 segundos.
+Muchos otros tipos también tienen un nombre propio, como las severidades de incidentes, los estados de monitor, las páginas de estado y los workflows, y rechazan un nombre ocupado de la misma manera:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Junto al mensaje, cada uno de estos rechazos incluye un `refusalCode` que dice qué tiene el nombre. Reconoce el rechazo por ese código, no por la frase, que puede cambiar de redacción:
+
+- `"refusalCode": "name_taken"`: lo tiene un registro en servicio. No se escribió nada, así que la misma solicitud se puede volver a enviar en cuanto ese registro deje el nombre: el proveedor de Terraform vuelve a pedirlo durante hasta 30 segundos.
+- `"refusalCode": "name_taken_by_archived"`: solo lo tiene un registro archivado. Desarchiva ese registro o elige otro nombre: volver a enviar la solicitud no sirve, y el proveedor de Terraform no lo hace.
 
 Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos. Para los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual. Las etiquetas y las políticas de guardia archivadas quedan fuera.
 

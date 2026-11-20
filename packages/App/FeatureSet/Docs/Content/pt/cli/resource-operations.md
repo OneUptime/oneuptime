@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Uma listagem pede ao OneUptime cada campo de cada registro que a chave pode ler. `--fields` pede, em vez disso, os que nomeia e, depois de um ponto, um campo de um registro relacionado, como em `currentIncidentState.name`. Uma tabela mostra seis campos; o JSON mostra todos (veja [Formatos de saída](/docs/cli/output-formats)). `--all` lê todas as páginas, 100 registros por vez, até 100.000; `count` diz quantos são.
 
-Os rótulos são listados por nome, e não dos mais recentes para os mais antigos: primeiro os rótulos cujo nome começa com um número, na ordem desse número (`2. Team` antes de `10. Owner`), depois os demais em ordem alfabética. Para listá-los em outra ordem, informe `--sort`.
+Os rótulos são listados por nome, e não dos mais recentes para os mais antigos: primeiro os rótulos cujo nome começa com um número, na ordem desse número (`2. Team` antes de `10. Owner`), depois os demais em ordem alfabética. Os registros que você ordena arrastando-os, como os estados de incidente, são listados nessa ordem. Para listá-los em outra ordem, informe `--sort`.
 
 ### Filtrar uma lista
 

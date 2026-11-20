@@ -439,6 +439,70 @@ export const WEBSITE_DOWN_COPY: {
 };
 
 /*
+ * WHAT THE SETUP MAKES, AS ITS PANEL LISTS IT (#10276): each record by the
+ * step that makes it, with how it is getting on (GuidedSetupResources).
+ * Step 2 makes the project's first on-call policy in one request, with its
+ * first escalation rule and the two on-call rules that run it for every new
+ * incident and alert (OnCallDutyPolicyService.create), so the three are
+ * made, or fail, together. A project that pages people already makes none:
+ * its own policies are in use.
+ */
+export enum WebsiteDownResource {
+  Monitor = "monitor",
+  OnCallPolicy = "on_call_policy",
+  EscalationRule = "escalation_rule",
+  OnCallRules = "on_call_rules",
+  ExistingPolicies = "existing_policies",
+  TestPage = "test_page",
+  StatusPage = "status_page",
+}
+
+export const WEBSITE_DOWN_RESOURCE_COPY: {
+  monitor: string;
+  onCallPolicy: string;
+  escalationRule: string;
+  onCallRules: string;
+  existingPolicies: string;
+  testPage: string;
+  statusPage: string;
+  sent: string;
+  acknowledged: string;
+  escalationRuleDetail: string;
+  onCallRulesDetail: string;
+  existingPoliciesDetail: string;
+  whoDescription: string;
+  testDescription: string;
+  statusPageDescription: string;
+} = {
+  monitor: translationKey("Monitor"),
+  onCallPolicy: translationKey("On-call policy"),
+  escalationRule: translationKey("Escalation rule"),
+  onCallRules: translationKey("On-call rules"),
+  existingPolicies: translationKey("Your on-call policies"),
+  testPage: translationKey("Test page"),
+  statusPage: translationKey("Status page"),
+  sent: translationKey("Sent"),
+  acknowledged: translationKey("Acknowledged"),
+  escalationRuleDetail: translationKey("Pages {{people}} first."),
+  onCallRulesDetail: translationKey(
+    "Run the policy for every new incident and alert.",
+  ),
+  existingPoliciesDetail: translationKey(
+    "The project's own policies and rules decide who is paged.",
+  ),
+  // Why each step is there, under its title until it is reached.
+  whoDescription: translationKey(
+    "Pick who is paged when it goes down, so nobody has to keep watching it.",
+  ),
+  testDescription: translationKey(
+    "A test page proves an alert reaches you before a real outage does.",
+  ),
+  statusPageDescription: translationKey(
+    "Your customers see that it is up, or that you are on it.",
+  ),
+};
+
+/*
  * STEP 1'S HELP, WITH HOW MANY LOCATIONS (#7461): the probes a new monitor
  * starts with (MonitorProbeSelectionUtil, as Create Monitor reads them),
  * read before it is made. All of them must find it down before an incident
@@ -1124,7 +1188,16 @@ export const getWhoIsToldDoneLine: (data: {
  * keeps it.
  */
 export enum WebsiteDownRunValue {
+  /*
+   * What step 1 was asked to check, kept when Start checking is pressed
+   * (#7253): another device opens step 1 with it typed, and the panel names
+   * the monitor being made, or the one that failed.
+   */
+  Address = "address",
+  IsApi = "isApi",
   MonitorId = "monitorId",
+  // The run went on with a monitor of the person's own, made before it.
+  MonitorIsExisting = "monitorIsExisting",
   PolicyId = "policyId",
   // The who-is-told step was confirmed without a policy of its own.
   WhoIsToldConfirmed = "whoIsToldConfirmed",

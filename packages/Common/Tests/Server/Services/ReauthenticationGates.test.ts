@@ -42,7 +42,9 @@ import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
 import {
   REAUTHENTICATION_MESSAGES,
+  REAUTHENTICATION_REQUIRED_MESSAGES,
   REAUTHENTICATION_WINDOW_IN_MINUTES,
+  ReauthenticationPurpose,
 } from "../../../Types/Accounts/Reauthentication";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
@@ -737,7 +739,24 @@ describe("what the check does not ask", () => {
     ).toBeInstanceOf(ReauthenticationRequiredException);
   });
 
-  test("a master admin's change of somebody else's address is the Admin Dashboard's, outside this rule", async () => {
+  test("a master admin's change of somebody else's address waits for the master admin's own confirmation (#10216)", async () => {
+    const refusal: Exception = await refusalOf(
+      onBeforeUpdate(
+        update(
+          { email: new Email(NEW_EMAIL) },
+          signedIn({ isMasterAdmin: true }),
+          REAUTH_OTHER_USER_ID,
+        ),
+      ),
+    );
+
+    expect(refusal).toBeInstanceOf(ReauthenticationRequiredException);
+    expect(refusal.message).toBe(
+      REAUTHENTICATION_REQUIRED_MESSAGES[ReauthenticationPurpose.AdminChange],
+    );
+
+    await confirmAsTheOwner();
+
     await expect(
       onBeforeUpdate(
         update(

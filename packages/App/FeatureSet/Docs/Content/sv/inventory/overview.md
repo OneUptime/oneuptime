@@ -138,9 +138,17 @@ En enhet som tas bort från Esper markeras som **Borttagen**, och dess objekt ar
 
 Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Android Device Stopped Checking In** och **Esper Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-enhet som inte har checkat in hos Esper på mer än en timme, den andra för varje Apple-enhet efter mer än ett dygn, vart och ett namngivet efter enheten och löst så snart den checkar in igen.
 
-Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting, så inget larm öppnas eller löses förrän vid nästa. Höj monitorns tröskel för en flotta som stängs av på natten.
+Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting om enheterna, så inget av deras larm öppnas eller löses förrän en läsning lyckas igen. Höj monitorns tröskel för en flotta som stängs av på natten.
 
 Skapa också **Esper Security Patch Out of Date**, så öppnar varje Android-enhet vars säkerhetspatchnivå enligt Esper är mer än 90 dagar gammal ett eget larm, som löses när enheten har uppdaterats. Varje läsning registrerar som mätvärdet `oneuptime.managed_device.security_patch.age` hur många dagar gammal varje Android-enhets patchnivå är. En enhet som kör Android Agent lämnas åt sin värds **Security Patch Out of Date**, så den larmar aldrig två gånger.
+
+Skapa också **Esper Low Battery** och **Esper Storage Nearly Full**: varje enhet vars batteri enligt Espers senaste läsning är under 20 % öppnar ett eget larm, och det gör även varje enhet vars lagring är mer än 90 % full, och varje larm löses när enheten har laddats eller har utrymme igen. Varje läsning registrerar båda, som mätvärdena `oneuptime.managed_device.battery.level` och `oneuptime.managed_device.storage.used`. En enhet som kör Android Agent lämnas åt sin värds **Low Battery** och **Storage Nearly Full**, som larmar vid samma nivåer, så den larmar aldrig två gånger.
+
+En enhets larm finns också på dess objekt: enhetens kort **Esper** listar de incidenter och larm som är öppna om den, vart och ett med en länk till sin sida, och sidorna **Larm** och **Incidenter** för en enhet som Android Agent inte rapporterar listar vartenda ett som dess anslutnings monitorer har utlöst om den.
+
+### Få ett larm när anslutningen inte längre läses
+
+Skapa **Esper Connection Stopped Reading**, så öppnar anslutningen ett eget larm så snart ingen läsning av den har lyckats på så länge som dess rad väntar innan dess **Status** visar **Inaktuell**: tre av dess läsintervall och tio minuter till, och aldrig under en halvtimme, alltså 55 minuter vid standardintervallet 15. Dess första felsökningssteg listar anslutningens senaste värden, vart och ett med felet som dess läsning misslyckades med, och den första läsning som lyckas löser larmet. Varje läsning, och varje läsning som anslutningen står i tur för, registrerar som mätvärdet `oneuptime.managed_device.connection.read.age` hur många minuter det har gått sedan en lyckades. Monitorn väntar så länge som anslutningens läsintervall anger när du skapar den, och en anslutning som är avstängd registrerar ingenting, så ett öppet larm förblir öppet tills du löser det.
 
 ## Importera enheter från Microsoft Intune
 
@@ -168,7 +176,7 @@ En enhet checkar in hos Intune ungefär var åttonde timme, och dess senaste inc
 
 Intune namnger en enhet med det namn dess ägare gav den, så två enheter kan ha samma namn: varje iPhone som ingen har bytt namn på heter `iPhone`. Ett namn som två enheter i en anslutning delar är ingen av dem i inventariet: var och en namnges i stället efter sitt serienummer och får tillbaka sitt namn så snart ingen annan enhet har det.
 
-För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Intune Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Intune på mer än ett dygn, namngivet efter enheten. En bärbar dator som är avstängd under en helg ser likadan ut, så höj monitorns tröskel om ett dygn är för kort för dina. **Intune Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Intune Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Intune på mer än ett dygn, namngivet efter enheten. En bärbar dator som är avstängd under en helg ser likadan ut, så höj monitorns tröskel om ett dygn är för kort för dina. **Intune Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör. **Intune Storage Nearly Full** och **Intune Connection Stopped Reading** larmar som Espers mallar gör. Inget batterilarm erbjuds, eftersom Intunes lista över enheter saknar batterinivå.
 
 ## Importera enheter från Workspace ONE UEM
 
@@ -194,7 +202,7 @@ En enhet rapporterar till Workspace ONE enligt sitt eget schema, en iPhone med t
 
 En app eller Android Agent som skickar telemetri från en enhet blir ett och samma objekt som den via enhetens serienummer: sätt Android Agents inställning `device_serial` till uppslagsvärdet `{DeviceSerialNumber}` i dess hanterade konfiguration.
 
-För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Workspace ONE Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har rapporterat till Workspace ONE på mer än ett dygn, namngivet efter enheten. **Workspace ONE Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Workspace ONE Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har rapporterat till Workspace ONE på mer än ett dygn, namngivet efter enheten. **Workspace ONE Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör. **Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full** och **Workspace ONE Connection Stopped Reading** larmar som Espers mallar gör.
 
 ## Importera enheter från SOTI MobiControl
 
@@ -218,7 +226,7 @@ En MobiControl-agent håller en aktiv anslutning till sin server, så en enhet v
 
 En app eller Android Agent som skickar telemetri från en enhet blir ett och samma objekt som den via enhetens serienummer: sätt Android Agents inställning `device_serial` till makrot `%SERIALNUM%` i dess hanterade konfiguration.
 
-För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **SOTI Device Stopped Checking In** och **SOTI Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-, Windows- eller Linux-enhet vars agent inte har varit ansluten på mer än en timme, och den andra för varje Apple-enhet som inte har checkat in på mer än ett dygn, vart och ett namngivet efter enheten. **SOTI Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **SOTI Device Stopped Checking In** och **SOTI Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-, Windows- eller Linux-enhet vars agent inte har varit ansluten på mer än en timme, och den andra för varje Apple-enhet som inte har checkat in på mer än ett dygn, vart och ett namngivet efter enheten. **SOTI Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör. **SOTI Low Battery**, **SOTI Storage Nearly Full** och **SOTI Connection Stopped Reading** larmar som Espers mallar gör.
 
 ## Lägg till något manuellt
 

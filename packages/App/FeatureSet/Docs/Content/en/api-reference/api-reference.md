@@ -89,7 +89,7 @@ A list or a count takes a `query`. A field with a value matches that value; an o
 | `Includes` | Any of the values in `value` |
 | `IsNull`, `NotNull` | No value, or any value |
 
-A field of a record the resource names is filtered under its relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` finds the team members whose user's name contains "ada". Filtering by a field needs permission to read it, through a relation as on the resource itself: a filter on a field you may not read is refused with a `422` that names it.
+A field of a record the resource names is filtered under its relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` finds the team members whose user's name contains "ada". Filtering by a field needs permission to read it, through a relation as on the resource itself: a filter on a field you may not read is refused with a `422` that names it. Through a relation, a field only its own person may read, such as a user's time zone or their notification methods and on-call logs, is refused to everyone, in a filter and a sort alike, because the relation can name anyone's record.
 
 A resource with owners - a monitor, an incident, an on-call policy and every other one with user and team owners - is also filtered by who owns it, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` finds the records owned by one or more of those people and teams. `match` is `AnyOf` unless you set it: `NoneOf` finds the records none of them own, records without owners included, and `AnyOwner` and `NoOwner` find the records with any owner or with none, naming no one. A team's members are not owners of what the team owns. One filter names at most 1,000 people and teams together, a resource without owners refuses it with a `400`, and filtering by owners without permission to read them is refused with a `422`.
 
@@ -255,7 +255,16 @@ Teams, labels, on-call policies and on-call schedules each have a name of their 
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Beside the message, the answer carries `"refusalCode": "name_taken"`. Tell this refusal apart by that code, not by the sentence, which may be reworded. Nothing was written, so the same request can be sent again once the other record gives the name up: the Terraform provider asks again for up to 30 seconds.
+Many other kinds have a name of their own too, such as incident severities, monitor statuses, status pages and workflows, and refuse a taken name in the same way:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Beside the message, every such refusal carries a `refusalCode` that says what has the name. Tell the refusal apart by that code, not by the sentence, which may be reworded:
+
+- `"refusalCode": "name_taken"`: a record in service has it. Nothing was written, so the same request can be sent again once that record gives the name up: the Terraform provider asks again for up to 30 seconds.
+- `"refusalCode": "name_taken_by_archived"`: only an archived record has it. Unarchive that record, or pick another name: sending the request again does not help, and the Terraform provider does not.
 
 An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart. For teams, labels, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `label`, `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike. Archived labels and on-call policies are left out.
 

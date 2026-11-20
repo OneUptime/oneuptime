@@ -11,20 +11,26 @@ import ManagedDeviceService from "../../../../Server/Services/ManagedDeviceServi
 import MetricService from "../../../../Server/Services/MetricService";
 import ManagedDeviceCheckInMetrics, {
   ManagedDeviceCheckInOutcome,
+  buildManagedDeviceBatteryRow,
   buildManagedDeviceCheckInRow,
   buildManagedDeviceSecurityPatchRow,
+  buildManagedDeviceStorageRow,
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceCheckInMetrics";
 import logger from "../../../../Server/Utils/Logger";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
 import OneUptimeDate from "../../../../Types/Date";
 import Dictionary from "../../../../Types/Dictionary";
 import {
+  MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION,
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_DESCRIPTION,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_DESCRIPTION,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT,
+  MANAGED_DEVICE_STORAGE_USED_DESCRIPTION,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
   ManagedDeviceCheckInReading,
 } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { EsperDeviceState } from "../../../../Types/DeviceManagement/ManagedDeviceStatus";
@@ -63,6 +69,8 @@ function deviceRow(values: {
   state?: number | undefined;
   platform?: ManagedDevicePlatform | undefined;
   securityPatchLevel?: string | undefined;
+  batteryLevel?: number | undefined;
+  details?: JSONObject | undefined;
 }): ManagedDevice {
   const row: ManagedDevice = new ManagedDevice();
   row._id = values.id;
@@ -71,6 +79,14 @@ function deviceRow(values: {
 
   if (values.platform) {
     row.platform = values.platform;
+  }
+
+  if (values.batteryLevel !== undefined) {
+    row.batteryLevel = values.batteryLevel;
+  }
+
+  if (values.details) {
+    row.details = values.details;
   }
 
   if (values.securityPatchLevel !== undefined) {
@@ -197,6 +213,8 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       readingCount: 2,
       hostCount: 0,
       securityPatchReadingCount: 0,
+      batteryReadingCount: 0,
+      storageReadingCount: 0,
     });
     expect(rowOf("ESP-ID-AAAAW")["value"]).toBe(4);
     expect(rowOf("ESP-ID-AAAAX")["value"]).toBe(75);
@@ -259,6 +277,8 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       readingCount: 0,
       hostCount: 0,
       securityPatchReadingCount: 0,
+      batteryReadingCount: 0,
+      storageReadingCount: 0,
     });
     expect(insert).not.toHaveBeenCalled();
     expect(hostFindBy).not.toHaveBeenCalled();
@@ -281,6 +301,8 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       readingCount: 3,
       hostCount: 1,
       securityPatchReadingCount: 0,
+      batteryReadingCount: 0,
+      storageReadingCount: 0,
     });
 
     const isHost: (name: string) => string = (name: string): string => {
@@ -340,6 +362,8 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       readingCount: 1,
       hostCount: 0,
       securityPatchReadingCount: 0,
+      batteryReadingCount: 0,
+      storageReadingCount: 0,
     });
     expect(insert).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalled();
@@ -440,6 +464,8 @@ describe("ManagedDeviceCheckInMetrics.record: security patches", () => {
       readingCount: 2,
       hostCount: 0,
       securityPatchReadingCount: 2,
+      batteryReadingCount: 0,
+      storageReadingCount: 0,
     });
     // One write, the check-ins and the patches together.
     expect(insert).toHaveBeenCalledTimes(1);
@@ -483,6 +509,8 @@ describe("ManagedDeviceCheckInMetrics.record: security patches", () => {
       readingCount: 3,
       hostCount: 0,
       securityPatchReadingCount: 0,
+      batteryReadingCount: 0,
+      storageReadingCount: 0,
     });
     expect(rowsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME)).toEqual([]);
   });
@@ -561,6 +589,231 @@ describe("ManagedDeviceCheckInMetrics.record: security patches", () => {
         ).metricNameServiceNameMap,
       ),
     ).toEqual([MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME]);
+  });
+});
+
+/*
+ * #10008: beside each device's check-in, its battery and how full its
+ * storage is, where its service reports them: what a device manager's Low
+ * Battery and Storage Nearly Full read.
+ */
+describe("ManagedDeviceCheckInMetrics.record: battery and storage", () => {
+  function rowsOf(metricName: string): Array<JSONObject> {
+    return writtenRows().filter((candidate: JSONObject): boolean => {
+      return candidate["name"] === metricName;
+    });
+  }
+
+  const STORAGE: JSONObject = {
+    totalStorage: "32",
+    storageTotalBytes: 32000000000,
+    storageFreeBytes: 1600000000,
+  };
+
+  test("asks for each device's battery and details with the rest of what a reading reads", async () => {
+    await record();
+
+    const select: JSONObject = (
+      deviceFindBy.mock.calls[0]![0] as { select: JSONObject }
+    ).select;
+    expect(select["batteryLevel"]).toBe(true);
+    expect(select["details"]).toBe(true);
+  });
+
+  test("a device that reports them gets a battery reading and a storage reading beside its check-in", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "ESP-ID-AAAAW",
+          minutesQuiet: 4,
+          batteryLevel: 14,
+          details: STORAGE,
+        }),
+        // A desktop: no battery, and none of its free space.
+        deviceRow({
+          id: "d2",
+          name: "DESKTOP-7KQ2M1",
+          minutesQuiet: 10,
+          platform: ManagedDevicePlatform.Windows,
+          batteryLevel: 0,
+          details: { totalStorage: "512" },
+        }),
+      ],
+    ];
+
+    expect(await record()).toEqual({
+      readingCount: 2,
+      hostCount: 0,
+      securityPatchReadingCount: 0,
+      batteryReadingCount: 1,
+      storageReadingCount: 1,
+    });
+    // One write, every reading together.
+    expect(insert).toHaveBeenCalledTimes(1);
+
+    const battery: Array<JSONObject> = rowsOf(
+      MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+    );
+    const storage: Array<JSONObject> = rowsOf(
+      MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+    );
+
+    expect(battery).toHaveLength(1);
+    expect(battery[0]!["value"]).toBe(14);
+    expect(storage).toHaveLength(1);
+    expect(storage[0]!["value"]).toBe(95);
+    expect(
+      (storage[0]!["attributes"] as Dictionary<string>)[
+        "oneuptime.managed_device.storage.free_bytes"
+      ],
+    ).toBe("1600000000");
+    expect(
+      (storage[0]!["attributes"] as Dictionary<string>)[
+        "oneuptime.managed_device.storage.total_bytes"
+      ],
+    ).toBe("32000000000");
+  });
+
+  test("its battery and storage readings are its check-in's row, the device's and its host's", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "ESP-ID-AAAAW",
+          minutesQuiet: 4,
+          batteryLevel: 14,
+          details: STORAGE,
+        }),
+      ],
+    ];
+    hosts = [hostRow("esp-id-aaaaw")];
+
+    await record();
+
+    const checkIn: JSONObject = rowsOf(
+      MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+    )[0]!;
+
+    for (const row of [
+      rowsOf(MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME)[0]!,
+      rowsOf(MANAGED_DEVICE_STORAGE_USED_METRIC_NAME)[0]!,
+    ]) {
+      expect(row["hostEntityKey"]).toBe(checkIn["hostEntityKey"]);
+      expect(row["primaryEntityId"]).toBe(CONNECTION.toString());
+      expect(row["primaryEntityType"]).toBe(
+        ServiceType.DeviceManagementConnection,
+      );
+      expect(row["metricPointType"]).toBe(MetricPointType.Gauge);
+      expect(row["time"]).toBe(checkIn["time"]);
+      // The agent reports it: its host's templates alert on it, not these.
+      expect(
+        (row["attributes"] as Dictionary<string>)[
+          "oneuptime.managed_device.is_host"
+        ],
+      ).toBe("true");
+    }
+  });
+
+  test("puts the battery and storage metrics in the catalog, with their units, once a read wrote one", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "ESP-ID-AAAAW",
+          minutesQuiet: 4,
+          batteryLevel: 14,
+          details: STORAGE,
+        }),
+      ],
+    ];
+
+    await record();
+
+    const map: Dictionary<MetricType> = (
+      register.mock.calls[0]![0] as {
+        metricNameServiceNameMap: Dictionary<MetricType>;
+      }
+    ).metricNameServiceNameMap;
+
+    expect(Object.keys(map).sort()).toEqual(
+      [
+        MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+      ].sort(),
+    );
+    expect(map[MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME]!.unit).toBe("%");
+    expect(map[MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME]!.description).toBe(
+      MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION,
+    );
+    expect(map[MANAGED_DEVICE_STORAGE_USED_METRIC_NAME]!.unit).toBe("%");
+    expect(map[MANAGED_DEVICE_STORAGE_USED_METRIC_NAME]!.description).toBe(
+      MANAGED_DEVICE_STORAGE_USED_DESCRIPTION,
+    );
+  });
+});
+
+describe("buildManagedDeviceBatteryRow and buildManagedDeviceStorageRow", () => {
+  const reading: ManagedDeviceCheckInReading = {
+    deviceName: "ESP-ID-AAAAW",
+    hostName: "esp-id-aaaaw",
+    alias: "",
+    group: "",
+    ageInMinutes: 4,
+    isHost: false,
+    platform: ManagedDevicePlatform.Android,
+    batteryLevel: 14,
+    storage: {
+      usedPercent: 95,
+      totalBytes: 32000000000,
+      freeBytes: 1600000000,
+    },
+  };
+
+  function input(
+    overrides: Partial<ManagedDeviceCheckInReading> = {},
+  ): Parameters<typeof buildManagedDeviceBatteryRow>[0] {
+    return {
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: "esper",
+      reading: { ...reading, ...overrides },
+      asOf: AS_OF,
+      retentionDate: OneUptimeDate.addRemoveDurationInDays(AS_OF, 30),
+    };
+  }
+
+  test("the battery row is the device's battery, under the check-in's attributes", () => {
+    const row: JSONObject = buildManagedDeviceBatteryRow(input())!;
+
+    expect(row["name"]).toBe(MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME);
+    expect(row["value"]).toBe(14);
+    expect(row["attributes"]).toEqual(
+      buildManagedDeviceCheckInRow(input())["attributes"],
+    );
+    expect(row["entityKeys"]).toEqual([
+      keyForHost(PROJECT.toString(), "esp-id-aaaaw"),
+    ]);
+  });
+
+  test("the storage row is how full it is, with its bytes on it", () => {
+    const row: JSONObject = buildManagedDeviceStorageRow(input())!;
+
+    expect(row["name"]).toBe(MANAGED_DEVICE_STORAGE_USED_METRIC_NAME);
+    expect(row["value"]).toBe(95);
+    expect(row["attributeKeys"]).toEqual(
+      Object.keys(row["attributes"] as JSONObject).sort(),
+    );
+  });
+
+  test("a reading with no battery, or no storage, has no such row", () => {
+    expect(
+      buildManagedDeviceBatteryRow(input({ batteryLevel: undefined })),
+    ).toBeUndefined();
+    expect(
+      buildManagedDeviceStorageRow(input({ storage: undefined })),
+    ).toBeUndefined();
   });
 });
 

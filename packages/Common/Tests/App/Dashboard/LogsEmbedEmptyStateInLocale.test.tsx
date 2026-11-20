@@ -569,11 +569,14 @@ describe("the explorer's time range sentence, with the shipped locale files", ()
     const line: string = drawnLinesOf(block)[1]!;
 
     expect(spaced(line)).toBe(
-      "Time range: Oct 26, 08:00 – Oct 26, 09:30. Try adjusting filters or expanding the time range.",
+      "Time range: Oct 26, 08:00 – 09:30. Try adjusting filters or expanding the time range.",
     );
-    // A window too long for its line breaks only between its two ends.
+    /*
+     * A window too long for its line breaks only between its two ends; the
+     * end of a window within one day is its time alone (#7281).
+     */
     expect(line).toContain(
-      `Oct${NO_BREAK_SPACE}26,${NO_BREAK_SPACE}08:00${NO_BREAK_SPACE}– Oct${NO_BREAK_SPACE}26,${NO_BREAK_SPACE}09:30`,
+      `Oct${NO_BREAK_SPACE}26,${NO_BREAK_SPACE}08:00${NO_BREAK_SPACE}– 09:30`,
     );
     // Nothing set apart in a sentence read left to right.
     expect(line).toBe(withoutIsolateMarks(line));
@@ -615,15 +618,15 @@ describe("the explorer's time range sentence, with the shipped locale files", ()
   test.each<[string, string]>([
     [
       "de",
-      "Zeitraum: 26. Okt., 08:00 – 26. Okt., 09:30. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+      "Zeitraum: 26. Okt., 08:00 – 09:30. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
     ],
     [
       "it",
-      "Intervallo di tempo: 26 ott, 08:00 – 26 ott, 09:30. Prova a modificare i filtri o ad ampliare l'intervallo di tempo.",
+      "Intervallo di tempo: 26 ott, 08:00 – 09:30. Prova a modificare i filtri o ad ampliare l'intervallo di tempo.",
     ],
     [
       "ja",
-      "時間範囲: 10月26日 08:00 – 10月26日 09:30。フィルターを調整するか、時間範囲を広げてみてください。",
+      "時間範囲: 10月26日 08:00 – 09:30。フィルターを調整するか、時間範囲を広げてみてください。",
     ],
   ])("%s, word for word: %s", async (language: string, sentence: string) => {
     await readIn(language);
@@ -661,10 +664,10 @@ describe("the explorer's time range sentence, with the shipped locale files", ()
     const drawn: string = drawnLinesOf(block)[1]!;
 
     expect(readAs(drawn)).toBe(
-      "النطاق الزمني: 26 أكتوبر، 8:00 ص – 26 أكتوبر، 9:30 ص. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
+      "النطاق الزمني: 26 أكتوبر، 8:00 ص – 9:30 ص. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
     );
     expect(spaced(drawn)).toContain(
-      spaced(isolated("26 أكتوبر، 8:00 ص – 26 أكتوبر، 9:30 ص")),
+      spaced(isolated("26 أكتوبر، 8:00 ص – 9:30 ص")),
     );
     expect(drawn).not.toContain("08:00");
   });
@@ -685,7 +688,7 @@ describe("the explorer's time range sentence, with the shipped locale files", ()
     expect(read).toContain("۸:۰۰ ق.ظ. –");
     // The window is still set apart, its own letters inside, the stop after.
     expect(spaced(drawn)).toContain(
-      spaced(`${isolated("۲۶ اکتبر، ۸:۰۰ ق.ظ. – ۲۶ اکتبر، ۹:۳۰ ق.ظ")}.`),
+      spaced(`${isolated("۲۶ اکتبر، ۸:۰۰ ق.ظ. – ۹:۳۰ ق.ظ")}.`),
     );
   });
 

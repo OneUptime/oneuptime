@@ -97,17 +97,31 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  * page - from the dashboard, with an API key or by a workflow - and the
  * people it invites, to its project or to a private status page. Each is
  * sent a message as it is added, from this installation's mail server or
- * SMS sender, so each contact is sent a bounded number of them an hour,
- * whichever project names it. These are counted per contact only (assertTeamMaySend, TeamMessageKind): a team
- * adding its own subscribers in bulk, or inviting its colleagues, names
+ * SMS sender, so each contact is sent a bounded number of them an hour.
+ * These are counted per contact only (assertTeamMaySend, TeamMessageKind): a
+ * team adding its own subscribers in bulk, or inviting its colleagues, names
  * each contact once, and is never held back by how many it adds. A
  * subscriber the team adds is counted with the sign-ups of the same
  * contact - one count of the subscription messages a contact is sent,
- * whoever subscribed it - and an invitation with the other invitations sent
- * to that address. Counted right before the send, given back when the
+ * whoever subscribed it. Counted right before the send, given back when the
  * create ends with nothing sent, as above. When the counter cannot be
  * reached they go out uncounted, text messages too: the team is signed in,
  * and what it sends it pays for.
+ *
+ * AN INVITATION IS COUNTED IN ITS PROJECT (#10179). An invitation to a
+ * project, or to one of its private status pages, is counted for that
+ * project and that address: its limit says only what the project has sent
+ * the address itself. It used to be one count of every project's
+ * invitations together, so an address other projects had invited ten times
+ * in an hour was refused for everyone - which told an inviter that the
+ * address was being invited elsewhere, so had an account, and let one
+ * project use up the address's invitations for all the others. Every
+ * project's invitations to an address are still counted together too,
+ * against a cap well past anything people do (it stops a run of projects
+ * made to mail one person), and a refusal by that cap says only that the
+ * invitation cannot be sent now (503, PublicMessageNotNowException): never
+ * that the address was invited by anyone else. A project also mails a
+ * person one invitation per window at most (InvitationEmailWindow).
  */
 
 export enum PublicMessageKind {
@@ -249,6 +263,23 @@ export interface PublicMessageSendPermit {
   giveBack: () => Promise<void>;
 }
 
+/*
+ * What the team is about to send (assertTeamMaySend): its kind and its
+ * contacts - and for an invitation, the project it is from, whose own count
+ * it is held to (#10179).
+ */
+export type TeamMessageSend =
+  | {
+      kind: TeamMessageKind.SubscriberAdded;
+      contacts: Array<PublicMessageContact>;
+    }
+  | {
+      kind: TeamMessageKind.Invitation;
+      // The project inviting: its own, or its private status page's.
+      projectId: ObjectID;
+      contacts: Array<PublicMessageContact>;
+    };
+
 export interface PublicMessageKindConfig {
   // Messages of this kind one client address may cause per client window.
   perClientLimit: number;
@@ -258,8 +289,18 @@ export interface PublicMessageKindConfig {
 }
 
 export interface TeamMessageKindConfig {
-  // Messages of this kind one contact may be sent per contact window.
+  /*
+   * Messages of this kind one contact may be sent per contact window. For
+   * an invitation, from every project together: the cap no person is sent
+   * more than, answered as "not now" (PublicMessageNotNowException).
+   */
   perContactLimit: number;
+
+  /*
+   * Messages of this kind one project may send one contact per contact
+   * window, for a kind counted in its project (an invitation, #10179).
+   */
+  perContactInProjectLimit?: number | undefined;
 }
 
 export interface PublicMessageRateLimitConfig {
@@ -293,6 +334,21 @@ export class PublicMessageRateLimitException extends TooManyRequestsException {
   public constructor(message: string, retryAfterSeconds: number) {
     super(message);
     this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/*
+ * What an invitation refused by the cap on every project's invitations to an
+ * address together is answered with (#10179): that it cannot be sent now -
+ * 503, never a 429, which a page reads as this project having sent too many,
+ * and words that name no other project's invitations.
+ */
+export const INVITATION_NOT_NOW_MESSAGE: string =
+  "This invitation cannot be sent right now. Please try again later.";
+
+export class PublicMessageNotNowException extends ServiceUnavailableException {
+  public constructor() {
+    super(INVITATION_NOT_NOW_MESSAGE);
   }
 }
 
@@ -365,10 +421,14 @@ const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
  * A subscriber the team adds: counted with the sign-ups of its contact, so
  * held to their ten in an hour. A team adds each of its subscribers once.
  *
- * Invitations: ten to one address in an hour, to projects and private status
- * pages together. A person is invited once, perhaps again when the first
- * invitation is lost; ten is room for a person joining several projects in
- * one sitting.
+ * Invitations: ten from one project to one address in an hour, to its teams
+ * and its private status pages together (#10179). A person is invited once,
+ * perhaps again when the first invitation is lost; and a project mails them
+ * one per hour at most anyway, but for Resend Invitation
+ * (InvitationEmailWindow). Fifty to one address in an hour from every
+ * project together: a person joining several projects in one sitting is sent
+ * a handful, and the cap stops only a run of projects made to mail one
+ * person.
  */
 const STATUS_PAGE_SIGN_UPS_PER_CONTACT: number = parsePositiveIntFromEnv(
   "STATUS_PAGE_SIGN_UPS_PER_CONTACT",
@@ -462,7 +522,11 @@ const CONFIG: PublicMessageRateLimitConfig = {
       perContactLimit: STATUS_PAGE_SIGN_UPS_PER_CONTACT,
     },
     [TeamMessageKind.Invitation]: {
-      perContactLimit: parsePositiveIntFromEnv("INVITATIONS_PER_CONTACT", 10),
+      perContactLimit: parsePositiveIntFromEnv("INVITATIONS_PER_CONTACT", 50),
+      perContactInProjectLimit: parsePositiveIntFromEnv(
+        "INVITATIONS_PER_CONTACT_IN_PROJECT",
+        10,
+      ),
     },
   },
 };
@@ -1018,10 +1082,9 @@ export default class PublicMessageRateLimit {
    * sent, after the create's own checks; a create that ends with nothing
    * sent gives the permit back (PublicMessageSendPermit).
    */
-  public static async assertTeamMaySend(data: {
-    kind: TeamMessageKind;
-    contacts: Array<PublicMessageContact>;
-  }): Promise<PublicMessageSendPermit> {
+  public static async assertTeamMaySend(
+    data: TeamMessageSend,
+  ): Promise<PublicMessageSendPermit> {
     const client: ClientType | null = Redis.getClient();
 
     if (!client || !Redis.isConnected()) {
@@ -1030,6 +1093,15 @@ export default class PublicMessageRateLimit {
       return PublicMessageRateLimit.permitFor({
         kind: data.kind,
         keys: [],
+      });
+    }
+
+    // An invitation is counted in its project, and under the cap (see the top).
+    if (data.kind === TeamMessageKind.Invitation) {
+      return await PublicMessageRateLimit.assertProjectMayInvite({
+        client: client,
+        projectId: data.projectId,
+        contacts: PublicMessageRateLimit.withoutRepeats(data.contacts),
       });
     }
 
@@ -1086,6 +1158,173 @@ export default class PublicMessageRateLimit {
         `PublicMessageRateLimit: rate limit counter unavailable, sending ${kind} uncounted`,
       );
     }
+  }
+
+  /*
+   * An invitation from `projectId` to each of `contacts` (#10179): counted
+   * on the project's counter for the address, and on the address's counter
+   * of every project's invitations together, in one go. Past the project's
+   * limit it is refused as before (429, with when to come back). Past the
+   * cap only, it is refused as "not now" (503), in words that name nobody
+   * else's invitations; the project's count is given back, as nothing went.
+   * A counter that fails lets it through uncounted, as above.
+   */
+  private static async assertProjectMayInvite(data: {
+    client: ClientType;
+    projectId: ObjectID;
+    contacts: Array<PublicMessageContact>;
+  }): Promise<PublicMessageSendPermit> {
+    const kind: TeamMessageKind = TeamMessageKind.Invitation;
+    const kindConfig: TeamMessageKindConfig = CONFIG.teamKinds[kind];
+    const windowIndex: number = PublicMessageRateLimit.getWindowIndex(
+      CONFIG.contactWindowSeconds,
+    );
+
+    /*
+     * The project's counter of each address first, then the cap's: when
+     * both are over, the project hears about its own invitations.
+     */
+    const counters: Array<
+      FixedRateLimitCounterSpec<{ isCap: boolean; contactIndex: number }>
+    > = data.contacts.flatMap(
+      (
+        contact: PublicMessageContact,
+        contactIndex: number,
+      ): Array<
+        FixedRateLimitCounterSpec<{ isCap: boolean; contactIndex: number }>
+      > => {
+        return [
+          {
+            scope: { isCap: false, contactIndex: contactIndex },
+            key: PublicMessageRateLimit.getProjectContactCounterKey({
+              counterName: TEAM_MESSAGE_COUNTERS[kind],
+              projectId: data.projectId,
+              contact: contact,
+              windowIndex: windowIndex,
+            }),
+            limit:
+              kindConfig.perContactInProjectLimit || kindConfig.perContactLimit,
+          },
+          {
+            scope: { isCap: true, contactIndex: contactIndex },
+            key: PublicMessageRateLimit.getContactCounterKey({
+              counterName: TEAM_MESSAGE_COUNTERS[kind],
+              contact: contact,
+              windowIndex: windowIndex,
+            }),
+            limit: kindConfig.perContactLimit,
+          },
+        ];
+      },
+    );
+
+    const keys: Array<string> = counters.map(
+      (
+        counter: FixedRateLimitCounterSpec<{
+          isCap: boolean;
+          contactIndex: number;
+        }>,
+      ): string => {
+        return counter.key;
+      },
+    );
+
+    if (counters.length === 0) {
+      return PublicMessageRateLimit.permitFor({ kind: kind, keys: [] });
+    }
+
+    let refusal: ClientRateLimitRefusal<{
+      isCap: boolean;
+      contactIndex: number;
+    }> | null;
+
+    try {
+      refusal = await ClientRateLimitCounter.countFixed<{
+        isCap: boolean;
+        contactIndex: number;
+      }>({
+        redis: data.client,
+        ttlSeconds: CONFIG.contactWindowSeconds * TTL_MULTIPLIER,
+        counters: counters,
+      });
+    } catch (err) {
+      if (PublicMessageRateLimit.shouldLogCounterUnavailable(kind)) {
+        logger.warn(`PublicMessageRateLimit: counter failed for ${kind}`);
+        logger.warn(err);
+      }
+
+      return PublicMessageRateLimit.permitFor({ kind: kind, keys: [] });
+    }
+
+    if (!refusal) {
+      return PublicMessageRateLimit.permitFor({ kind: kind, keys: keys });
+    }
+
+    // Nothing is sent: every other counter gets its count back.
+    const refusedKey: string =
+      counters.find(
+        (
+          counter: FixedRateLimitCounterSpec<{
+            isCap: boolean;
+            contactIndex: number;
+          }>,
+        ): boolean => {
+          return (
+            counter.scope.isCap === refusal!.scope.isCap &&
+            counter.scope.contactIndex === refusal!.scope.contactIndex
+          );
+        },
+      )?.key || "";
+
+    await PublicMessageRateLimit.giveBackContacts({
+      kind: kind,
+      keys: keys.filter((key: string): boolean => {
+        return key !== refusedKey;
+      }),
+    });
+
+    const contact: PublicMessageContact | undefined =
+      data.contacts[refusal.scope.contactIndex];
+
+    if (refusal.isFirstRefusalInWindow) {
+      logger.warn(
+        `PublicMessageRateLimit: refused ${kind} (${refusal.scope.isCap ? "every project's invitations to the contact" : "the project's invitations to the contact"}, ${contact?.channel || "contact"})`,
+      );
+    }
+
+    if (refusal.scope.isCap) {
+      throw new PublicMessageNotNowException();
+    }
+
+    throw new PublicMessageRateLimitException(
+      PublicMessageRateLimit.getTeamRefusalMessage({
+        kind: kind,
+        channel: contact?.channel || PublicMessageChannel.Email,
+      }),
+      PublicMessageRateLimit.getSecondsUntilWindowEnd(
+        CONFIG.contactWindowSeconds,
+      ),
+    );
+  }
+
+  /*
+   * The key one project's counter of `counterName` for one contact is kept
+   * under in a window (an invitation's, #10179): beside the contact's own
+   * counter, never the same key.
+   */
+  public static getProjectContactCounterKey(data: {
+    counterName: string;
+    projectId: ObjectID;
+    contact: PublicMessageContact;
+    windowIndex?: number | undefined;
+  }): string {
+    const windowIndex: number =
+      data.windowIndex ??
+      PublicMessageRateLimit.getWindowIndex(CONFIG.contactWindowSeconds);
+
+    return `${KEY_PREFIX}${data.counterName}:p:${PublicMessageRateLimit.sanitizeKeySegment(
+      data.projectId.toString().toLowerCase(),
+    )}:k:${PublicMessageRateLimit.getContactKey(data.contact)}:${windowIndex}`;
   }
 
   /*

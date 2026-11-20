@@ -28,6 +28,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { callTeamMemberHook } from "../TestingUtils/TeamMemberInvitations";
 
 /*
  * THE LANGUAGE AN INVITATION IS WRITTEN IN, AND WHAT THE PROJECT SEES OF
@@ -69,21 +70,17 @@ let findUserSpy: jest.SpyInstance;
 let findUserByIdSpy: jest.SpyInstance;
 let sendMailSpy: jest.SpyInstance;
 
-// Calls a protected hook without widening the service's public surface.
+/*
+ * Calls a protected hook without widening the service's public surface -
+ * a membership's onBeforeCreate with the invitation it plans, which its
+ * create sends once the membership is made (runInvitationHooks, #10180).
+ */
 function callHook(
   service: unknown,
   name: string,
   ...args: Array<unknown>
 ): Promise<unknown> {
-  const hooks: Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  > = service as Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  >;
-
-  return hooks[name]!.apply(service, args);
+  return callTeamMemberHook(service, name, ...args);
 }
 
 // An invitation by address, as the invite forms send it - from Ada, by default.

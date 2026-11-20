@@ -354,8 +354,12 @@ describe("an answer that arrives too late changes nothing", () => {
 
 describe("what an import put in the inventory reads as added at once", () => {
   test("the list is the scan's hosts with this sitting's imports marked", () => {
+    /*
+     * Each with the device its import named (#9677), so a host brought in
+     * during the sitting can be given a monitor at once.
+     */
     expect(readCode(DIALOG)).toContain(
-      "return getReviewHosts({ scan: scan, importedAddresses: importedAddresses, });",
+      "return getReviewHosts({ scan: scan, importedAddresses: importedAddresses, importedDeviceIds: importedDeviceIds, });",
     );
     // The hosts are read through the shared, tested helper.
     expect(readCode(REVIEW)).toContain(
@@ -364,7 +368,7 @@ describe("what an import put in the inventory reads as added at once", () => {
     expect(readCode(DIALOG)).not.toContain("discoveredDevices");
   });
 
-  test("a finished import's addresses are added to the record functionally, and the scan read again", () => {
+  test("a finished import's addresses and devices are added to the record functionally, and the scan read again", () => {
     const finished: string = section(
       DIALOG,
       "const onFinished",
@@ -373,6 +377,9 @@ describe("what an import put in the inventory reads as added at once", () => {
 
     expect(finished).toContain(
       "setImportedAddresses((current: Set<string>) => { return new Set<string>([...current, ...addresses]); });",
+    );
+    expect(finished).toContain(
+      "setImportedDeviceIds((current: Map<string, string>) => { return new Map<string, string>([...current, ...deviceIds]); });",
     );
     expect(finished).toContain(
       "getDiscoveryImport(view.id, { allResults: true })",

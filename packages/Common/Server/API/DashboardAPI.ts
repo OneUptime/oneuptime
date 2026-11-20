@@ -129,6 +129,22 @@ import {
   readDashboardWidgetListInSteps,
 } from "../../Utils/Dashboard/DashboardWidgetSorts";
 import FileOwnership from "../Utils/File/FileOwnership";
+import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ImportQueryConversion, {
+  ImportQueryConversionRequest,
+  ImportQueryConversionResult,
+  readImportQueryConversionRequest,
+} from "../Utils/AI/ObservabilityImport/ImportQueryConversion";
+
+/*
+ * Where Import from Grafana or Datadog asks OneUptime AI to convert one
+ * query of the dashboard it previews (issue #7697).
+ */
+export const DASHBOARD_IMPORT_CONVERT_QUERY_PATH: string =
+  "/import/convert-query-with-ai";
 
 /*
  * How a public dashboard's logos and favicon are read: their bytes and type,
@@ -475,6 +491,61 @@ export default class DashboardAPI extends BaseAPI<
 > {
   public constructor() {
     super(Dashboard, DashboardService);
+
+    /*
+     * POST /dashboard/import/convert-query-with-ai
+     *
+     * One query of a dashboard being imported from Grafana or Datadog that
+     * no rule converted, converted by OneUptime AI when the person asks
+     * (ImportQueryConversion): the PromQL, checked as the preview checks a
+     * query, for the person to read and use. Nothing is created here; the
+     * dashboard is created through its own create, afterwards.
+     *
+     * Asking takes the permission to create dashboards - it is the import's
+     * create - and AI on for the project. Only the query and the variables'
+     * names are sent, all from the person's own file.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}${DASHBOARD_IMPORT_CONVERT_QUERY_PATH}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Dashboards),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanCreateTable({
+            modelType: Dashboard,
+            props,
+            errorMessage:
+              "Converting a query with OneUptime AI takes a role that can create dashboards.",
+          });
+
+          const request: ImportQueryConversionRequest =
+            readImportQueryConversionRequest(req.body);
+
+          const result: ImportQueryConversionResult =
+            await ImportQueryConversion.convert({
+              projectId,
+              userId: props.userId,
+              language: request.language,
+              query: request.query,
+              variableNames: request.variableNames,
+              isForMonitor: false,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            promQL: result.promQL,
+            explanation: result.explanation,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
 
     /*
      * Rate limiting for the anonymous public dashboard surface. Nginx exposes

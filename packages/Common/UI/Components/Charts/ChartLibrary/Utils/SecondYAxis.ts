@@ -37,6 +37,11 @@ export interface ChartSecondYAxis {
   autoMinValue: boolean;
   minValue?: number | undefined;
   maxValue?: number | undefined;
+  /*
+   * For an axis of spans of time, the seconds one value stands for: it
+   * steps in natural units of time (YAxisOptions, issue #10118).
+   */
+  durationUnitInSeconds?: number | undefined;
 }
 
 /*
@@ -122,8 +127,9 @@ export function getMarkYAxisProps(
 
 /*
  * A value as an axis's formatter writes it: with the precision the chart
- * writes that axis's ticks with, when it steps the axis itself (issue
- * #10079), and as the formatter always has otherwise.
+ * hands the axis's tooltip (ValueAxisTicks' tooltipPrecision: its ticks'
+ * own, where the formatter's own figures cannot tell two of them apart,
+ * issue #10079), and as the formatter always has otherwise.
  */
 function writeWithPrecision(
   formatter: ValueAxisFormatter,
@@ -137,8 +143,8 @@ function writeWithPrecision(
 /*
  * How the tooltip writes a category's value: as the series asks
  * (categoryValueFormatters), else as its own scale writes one, for a series
- * drawn to a scale of its own, else as the axis it is drawn against writes
- * its ticks, to the same figures.
+ * drawn to a scale of its own, else with the formatter of the axis it is
+ * drawn against, to that axis's tooltip precision.
  */
 export function getCategoryValueFormatter(input: {
   category: string;
@@ -148,7 +154,7 @@ export function getCategoryValueFormatter(input: {
   categoryValueFormatters?:
     | Record<string, (value: number) => string>
     | undefined;
-  // The figures each axis's ticks are written with (ValueAxisTicks).
+  // The precision each axis's tooltip writes with (ValueAxisTicks' tooltipPrecision).
   firstAxisPrecision?: ValueAxisPrecision | undefined;
   secondAxisPrecision?: ValueAxisPrecision | undefined;
 }): (value: number) => string {

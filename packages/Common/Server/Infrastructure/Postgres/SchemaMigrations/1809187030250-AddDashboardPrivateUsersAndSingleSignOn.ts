@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * still empty when its key is added, so each check reads nothing and holds
  * its locks for an instant (Docs/migrations/README.md).
  */
-export class AddDashboardPrivateUsersAndSingleSignOn1809186950000
+export class AddDashboardPrivateUsersAndSingleSignOn1809187030250
   implements MigrationInterface
 {
-  public name: string = "AddDashboardPrivateUsersAndSingleSignOn1809186950000";
+  public name: string = "AddDashboardPrivateUsersAndSingleSignOn1809187030250";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

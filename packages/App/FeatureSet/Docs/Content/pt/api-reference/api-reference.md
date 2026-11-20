@@ -89,7 +89,7 @@ Uma lista ou uma contagem recebe uma `query`. Um campo com um valor corresponde 
 | `Includes` | Qualquer um dos valores em `value` |
 | `IsNull`, `NotNull` | Nenhum valor, ou qualquer valor |
 
-Um campo de um registro que o recurso cita é filtrado sob a sua relação: `"user": { "name": { "_type": "Search", "value": "ada" } }` encontra os membros da equipe cujo usuário tem um nome que contém “ada”. Filtrar por um campo exige permissão para lê-lo, por uma relação como no próprio recurso: um filtro em um campo que você não pode ler é recusado com um `422` que cita o campo.
+Um campo de um registro que o recurso cita é filtrado sob a sua relação: `"user": { "name": { "_type": "Search", "value": "ada" } }` encontra os membros da equipe cujo usuário tem um nome que contém “ada”. Filtrar por um campo exige permissão para lê-lo, por uma relação como no próprio recurso: um filtro em um campo que você não pode ler é recusado com um `422` que cita o campo. Por uma relação, um campo que só a própria pessoa pode ler, como o fuso horário de um usuário ou os métodos de notificação e os registros de plantão dele, é recusado para todos, tanto em um filtro quanto em uma ordenação, porque a relação pode citar o registro de qualquer pessoa.
 
 Um recurso com proprietários - um monitor, um incidente, uma política de plantão e qualquer outro com proprietários usuários e equipes - também é filtrado por quem o possui, sob `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` encontra os registros dos quais uma ou mais dessas pessoas e equipes são proprietárias. `match` é `AnyOf`, a menos que você o defina: `NoneOf` encontra os registros dos quais nenhuma delas é proprietária, incluindo os registros sem proprietários, e `AnyOwner` e `NoOwner` encontram os registros com algum proprietário ou sem nenhum, sem citar ninguém. Os membros de uma equipe não são proprietários do que a equipe possui. Um filtro cita no máximo 1.000 pessoas e equipes no total, um recurso sem proprietários o recusa com um `400`, e filtrar por proprietários sem permissão para lê-los é recusado com um `422`.
 
@@ -255,7 +255,16 @@ Cada equipe, rótulo, política de plantão e agendamento de plantão tem um nom
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Ao lado da mensagem, a resposta traz `"refusalCode": "name_taken"`. Reconheça esta recusa por esse código, não pela frase, que pode ser reescrita. Nada foi gravado, então a mesma requisição pode ser enviada de novo assim que o outro registro liberar o nome: o provider do Terraform tenta de novo por até 30 segundos.
+Muitos outros tipos também têm um nome só seu, como severidades de incidentes, status de monitor, páginas de status e workflows, e recusam um nome já usado da mesma forma:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Ao lado da mensagem, cada recusa desse tipo traz um `refusalCode` que diz o que tem o nome. Reconheça a recusa por esse código, não pela frase, que pode ser reescrita:
+
+- `"refusalCode": "name_taken"`: um registro em serviço tem o nome. Nada foi gravado, então a mesma requisição pode ser enviada de novo assim que esse registro liberar o nome: o provider do Terraform tenta de novo por até 30 segundos.
+- `"refusalCode": "name_taken_by_archived"`: só um registro arquivado tem o nome. Desarquive esse registro ou escolha outro nome: enviar a requisição de novo não adianta, e o provider do Terraform não faz isso.
 
 Uma atualização que envia de novo o próprio nome de um registro, em maiúsculas ou minúsculas, não é uma renomeação, então registros que compartilhavam um nome antes ainda podem ser alterados, e renomeados para se diferenciarem. Para equipes, rótulos, políticas de plantão e agendamentos de plantão, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) responde quais compartilham um nome: `{"groups": [["<id>", "<id>"]]}`, cada grupo com os IDs, que a sua chave pode ler, dos registros cujos nomes se leem igual. Rótulos e políticas de plantão arquivados ficam de fora.
 

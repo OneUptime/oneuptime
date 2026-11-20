@@ -89,7 +89,7 @@ En liste eller en optælling tager en `query`. Et felt med en værdi matcher den
 | `Includes` | En hvilken som helst af værdierne i `value` |
 | `IsNull`, `NotNull` | Ingen værdi, eller en hvilken som helst værdi |
 
-Et felt i en post, som ressourcen nævner, filtreres under dens relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` finder de teammedlemmer, hvis brugers navn indeholder »ada«. At filtrere på et felt kræver tilladelse til at læse det, gennem en relation som på selve ressourcen: et filter på et felt, du ikke må læse, afvises med en `422`, der nævner feltet.
+Et felt i en post, som ressourcen nævner, filtreres under dens relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` finder de teammedlemmer, hvis brugers navn indeholder »ada«. At filtrere på et felt kræver tilladelse til at læse det, gennem en relation som på selve ressourcen: et filter på et felt, du ikke må læse, afvises med en `422`, der nævner feltet. Gennem en relation afvises et felt, som kun personen selv må læse, for eksempel en brugers tidszone eller vedkommendes notifikationsmetoder og vagtlogs, for alle, både i et filter og i en sortering, fordi relationen kan nævne enhver persons post.
 
 En ressource med ejere - en monitor, en hændelse, en vagtpolitik og enhver anden med bruger- og teamejere - filtreres også efter, hvem der ejer den, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` finder de poster, som en eller flere af de personer og teams ejer. `match` er `AnyOf`, medmindre du sætter den: `NoneOf` finder de poster, som ingen af dem ejer, også poster uden ejere, og `AnyOwner` og `NoOwner` finder de poster, der har en ejer eller ingen, uden at nævne nogen. Et teams medlemmer er ikke ejere af det, teamet ejer. Ét filter nævner højst 1.000 personer og teams i alt, en ressource uden ejere afviser det med en `400`, og at filtrere efter ejere uden tilladelse til at læse dem afvises med en `422`.
 
@@ -255,7 +255,16 @@ Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et pro
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Ud over meddelelsen indeholder svaret `"refusalCode": "name_taken"`. Kend denne afvisning på den kode, ikke på sætningen, som kan blive omformuleret. Intet blev skrevet, så den samme anmodning kan sendes igen, så snart den anden post opgiver navnet: Terraform-provideren spørger igen i op til 30 sekunder.
+Mange andre slags har også deres eget navn, fx hændelsesalvorligheder, monitorstatusser, statussider og arbejdsgange, og afviser et navn, der er taget, på samme måde:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Ud over meddelelsen indeholder hver sådan afvisning en `refusalCode`, der siger, hvad der har navnet. Kend afvisningen på den kode, ikke på sætningen, som kan blive omformuleret:
+
+- `"refusalCode": "name_taken"`: en post i drift har det. Intet blev skrevet, så den samme anmodning kan sendes igen, så snart den post opgiver navnet: Terraform-provideren spørger igen i op til 30 sekunder.
+- `"refusalCode": "name_taken_by_archived"`: kun en arkiveret post har det. Fjern den post fra arkivet, eller vælg et andet navn: det hjælper ikke at sende anmodningen igen, og Terraform-provideren gør det ikke.
 
 En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig. For teams, etiketter, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens. Arkiverede etiketter og vagtpolitikker er udeladt.
 

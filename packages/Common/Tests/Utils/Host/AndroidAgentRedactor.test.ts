@@ -2,6 +2,7 @@ import AndroidAgentRedactor, {
   REDACTOR_MAX_LENGTH,
 } from "../../../Utils/Host/AndroidAgentRedactor";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The Android agent's redaction, as OneUptime runs it over what it sends to
@@ -125,13 +126,23 @@ describe("its bounds", () => {
   });
 
   test("a long text costs time in proportion to its length", () => {
-    const started: number = Date.now();
+    // A long word before a secret's name, a long number, a long run of "@".
+    const texts: Array<string> = [
+      "a".repeat(200_000) + " password" + "b".repeat(50_000) + "=x",
+      "1".repeat(200_000),
+      "x@".repeat(100_000),
+    ];
+    // The fastest of up to three attempts: one timing on a busy runner is noisy.
+    const redacted: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return texts.map(redact);
+      },
+      limitInMs: 5_000,
+    });
 
-    redact("a".repeat(200_000) + " password" + "b".repeat(50_000) + "=x");
-    redact("1".repeat(200_000));
-    redact("x@".repeat(100_000));
-
-    expect(Date.now() - started).toBeLessThan(5_000);
+    // None of them holds a secret, a card number or an address.
+    expect(redacted.result).toEqual(texts);
+    expect(redacted.inMs).toBeLessThan(5_000);
   });
 
   test("the same text twice reads the same: no pattern keeps a place between calls", () => {

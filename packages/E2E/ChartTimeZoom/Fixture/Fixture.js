@@ -175,6 +175,7 @@ import {
 } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
 import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
+import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -890,10 +891,10 @@ insert(Host, {
   hostIdentifier: HOST_IDENTIFIER,
   otelCollectorStatus: "connected",
   /*
-   * The collector release its config stamps: older than the 0.161.0 the
-   * host guide pins, so its Agent Version carries the sign
-   * (AgentVersionSign.spec.ts). `?hostAgentVersion=` reports another one
-   * for one page load.
+   * The collector release its config stamps: older than the release the
+   * host guide pins (HOST_COLLECTOR_VERSION, 0.165.0), so its Agent Version
+   * carries the sign (AgentVersionSign.spec.ts). `?hostAgentVersion=`
+   * reports another one for one page load.
    */
   agentVersion:
     new window.URLSearchParams(window.location.search).get(
@@ -1229,6 +1230,19 @@ HOST_MOUNTS.forEach((mount, index) => {
     },
   );
 });
+/*
+ * Two spans of time (#10118), in seconds. The gateway's nightly batch job
+ * runs an hour and a half, give or take two seconds: the issue's axis, which
+ * read "1.5000 hours", "1.5003 hours". The host's uptime counts up from twelve
+ * days and five hours at the window's start, a second a second.
+ */
+series("batch.job.duration", { ...hostAttributes }, (time) => {
+  return wave(time, { base: 5400, amplitude: 1.3, period: 13, phase: 0.4 });
+});
+const HOST_BOOTED_AT = NOW.getTime() - 12 * DAY - 5.5 * HOUR;
+series("system.uptime", { ...hostAttributes }, (time) => {
+  return Math.round((time - HOST_BOOTED_AT) / SECOND);
+});
 [
   ["1", "systemd", 0.001],
   ["812", "envoy", 0.18],
@@ -1348,6 +1362,8 @@ const METRIC_UNITS = {
   "system.filesystem.usage": "By",
   "system.network.io": "By",
   "process.cpu.utilization": "1",
+  "batch.job.duration": "s",
+  "system.uptime": "s",
 };
 Object.entries(METRIC_UNITS)
   .sort(([left], [right]) => {
@@ -3008,12 +3024,19 @@ table(Span);
  * the events naming it (SecurityEventsInSignal), and find none.
  */
 table(SecurityEvent);
+/*
+ * The cost agent's hourly allocations, which the cluster Overview's Cost
+ * card reads: the cluster has sent none yet, so the table is empty and the
+ * card says how to turn cost monitoring on.
+ */
+table(KubernetesCostAllocation);
 const ANALYTICS_TABLES = [
   tableName(Log),
   tableName(ChangeEvent),
   tableName(Metric),
   tableName(Span),
   tableName(SecurityEvent),
+  tableName(KubernetesCostAllocation),
 ];
 
 /*
@@ -3172,6 +3195,11 @@ AnalyticsModelAPI.aggregate = async (options) => {
           }
         : null,
   });
+  // The Cost card's sums, over a cost table with no rows (above): empty.
+  if (modelName === tableName(KubernetesCostAllocation)) {
+    entry.rows = 0;
+    return { data: [] };
+  }
   if (modelName !== tableName(Metric)) {
     fixture.unhandled.push({ kind: "analytics.aggregate", modelName });
     return { data: [] };

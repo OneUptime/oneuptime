@@ -387,6 +387,16 @@ export default class Domain extends BaseModel {
     description: "Is this domain verified?",
     defaultValue: false,
     serverOwned: ServerOwned.AfterCreate,
+    /*
+     * Read through a relation beside the domain's name, which already is: an
+     * SSO provider's Domains column and Settings > SSO's notice say which of
+     * its domains are verified (#9918), and read them through the provider.
+     * Without it the server refused those reads whole (#10238's guard).
+     * Every role that reads a relation to a domain - an SSO provider's, a
+     * status page's, a dashboard's or a form's custom domain - reads its
+     * name already, and whether it is verified says no more than that.
+     */
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Boolean,

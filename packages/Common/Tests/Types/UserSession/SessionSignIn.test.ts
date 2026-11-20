@@ -16,10 +16,13 @@ import {
   SIGN_IN_LOCATION_KEY,
   SIGN_IN_METHOD_KEY,
   SignInMethod,
+  SIGN_IN_AGAIN_KEY,
   SSO_PROJECT_ID_KEY,
+  SSO_PROVIDER_ID_KEY,
   SSO_PROVIDER_NAME_KEY,
   toSessionSignInInfo,
 } from "../../../Types/UserSession/SessionSignIn";
+import { SignInAgainRefusal } from "../../../Types/Accounts/Reauthentication";
 
 /*
  * How a session was signed in, and from where, as the session keeps it
@@ -304,5 +307,119 @@ describe("reading where a session signed in from", () => {
     expect(readSessionSignInOrigin(undefined)).toEqual({});
     expect(readSessionSignInOrigin({ signInDevice: 12 })).toEqual({});
     expect(readSessionSignInOrigin({ signInLocation: "" })).toEqual({});
+  });
+});
+
+/*
+ * Sign In Again (#10217): a single sign-on keeps its provider's id, where
+ * Sign In Again sends the session back to; and a sign-in Sign In Again
+ * started keeps what it proved, which Confirm It's You reads
+ * (Server/Utils/Reauthentication).
+ */
+describe("what a session keeps of Sign In Again", () => {
+  const PROVIDER_ID: ObjectID = new ObjectID(
+    "22222222-2222-4222-8222-222222222222",
+  );
+  const AUTHENTICATED_AT: Date = new Date("2026-11-20T10:00:12.345Z");
+
+  test("a single sign-on keeps its provider's id, read back as it was", () => {
+    const info: JSONObject = toSessionSignInInfo({
+      signIn: {
+        method: SignInMethod.Saml,
+        ssoProviderName: "Acme Okta",
+        ssoProviderId: PROVIDER_ID,
+      },
+    });
+
+    expect(info[SSO_PROVIDER_ID_KEY]).toBe(PROVIDER_ID.toString());
+    expect(readSessionSignIn(info)?.ssoProviderId?.toString()).toBe(
+      PROVIDER_ID.toString(),
+    );
+  });
+
+  test("no other sign-in keeps a provider's id, and one that is not an id is not read", () => {
+    expect(
+      toSessionSignInInfo({
+        signIn: { method: SignInMethod.Google, ssoProviderId: PROVIDER_ID },
+      })[SSO_PROVIDER_ID_KEY],
+    ).toBeUndefined();
+    expect(
+      readSessionSignIn({
+        [SIGN_IN_METHOD_KEY]: SignInMethod.Saml,
+        [SSO_PROVIDER_ID_KEY]: "../../another-provider",
+      })?.ssoProviderId,
+    ).toBeUndefined();
+  });
+
+  test.each([
+    ["a confirmation, from when", { reauthenticatedAt: AUTHENTICATED_AT }],
+    ["a reused session", { refusal: SignInAgainRefusal.ReusedSession }],
+    ["no sign-in time", { refusal: SignInAgainRefusal.NoSignInTime }],
+  ] as Array<[string, SessionSignIn["signInAgain"]]>)(
+    "%s is kept, and read back as it was",
+    (_name: string, outcome: SessionSignIn["signInAgain"]) => {
+      for (const method of [
+        SignInMethod.Saml,
+        SignInMethod.OpenIdConnect,
+        SignInMethod.Google,
+        SignInMethod.Microsoft,
+      ]) {
+        const read: SessionSignIn | null = readSessionSignIn(
+          JSON.parse(
+            JSON.stringify(
+              toSessionSignInInfo({
+                signIn: { method: method, signInAgain: outcome },
+              }),
+            ),
+          ),
+        );
+
+        expect(read?.signInAgain).toEqual(outcome);
+      }
+    },
+  );
+
+  test("a sign-in Sign In Again did not start keeps nothing of it", () => {
+    expect(
+      toSessionSignInInfo({ signIn: { method: SignInMethod.Saml } })[
+        SIGN_IN_AGAIN_KEY
+      ],
+    ).toBeUndefined();
+    expect(
+      readSessionSignIn({ [SIGN_IN_METHOD_KEY]: SignInMethod.Saml })
+        ?.signInAgain,
+    ).toBeUndefined();
+  });
+
+  test("an outcome that could not have been written reads as none", () => {
+    for (const kept of [
+      { reauthenticatedAt: "yesterday" },
+      { reauthenticatedAt: 1795168800000 },
+      { refusal: "TrustMe" },
+      { refusal: SignInAgainRefusal.ReusedSession.toLowerCase() },
+      "confirmed",
+      ["reauthenticatedAt"],
+      null,
+    ] as Array<unknown>) {
+      expect(
+        readSessionSignIn({
+          [SIGN_IN_METHOD_KEY]: SignInMethod.Saml,
+          [SIGN_IN_AGAIN_KEY]: kept,
+        } as JSONObject)?.signInAgain,
+      ).toBeUndefined();
+    }
+  });
+
+  test("an invalid time or refusal is not kept", () => {
+    for (const outcome of [
+      { reauthenticatedAt: new Date("not a time") },
+      { refusal: "TrustMe" as SignInAgainRefusal },
+    ]) {
+      expect(
+        toSessionSignInInfo({
+          signIn: { method: SignInMethod.Saml, signInAgain: outcome },
+        })[SIGN_IN_AGAIN_KEY],
+      ).toBeUndefined();
+    }
   });
 });

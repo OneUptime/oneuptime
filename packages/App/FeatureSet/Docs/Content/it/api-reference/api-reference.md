@@ -89,7 +89,7 @@ Un elenco o un conteggio accetta una `query`. Un campo con un valore corrisponde
 | `Includes` | Uno qualsiasi dei valori in `value` |
 | `IsNull`, `NotNull` | Nessun valore, o un valore qualsiasi |
 
-Un campo di un record che la risorsa nomina si filtra sotto la sua relazione: `"user": { "name": { "_type": "Search", "value": "ada" } }` trova i membri del team il cui utente ha un nome che contiene «ada». Filtrare per un campo richiede il permesso di leggerlo, attraverso una relazione come sulla risorsa stessa: un filtro su un campo che non puoi leggere viene rifiutato con un `422` che nomina il campo.
+Un campo di un record che la risorsa nomina si filtra sotto la sua relazione: `"user": { "name": { "_type": "Search", "value": "ada" } }` trova i membri del team il cui utente ha un nome che contiene «ada». Filtrare per un campo richiede il permesso di leggerlo, attraverso una relazione come sulla risorsa stessa: un filtro su un campo che non puoi leggere viene rifiutato con un `422` che nomina il campo. Attraverso una relazione, un campo che solo la persona stessa può leggere, come il fuso orario di un utente o i suoi metodi di notifica e i suoi log di reperibilità, viene rifiutato a tutti, in un filtro come in un ordinamento, perché la relazione può nominare il record di chiunque.
 
 Una risorsa con proprietari - un monitor, un incidente, una policy di reperibilità e ogni altra con proprietari utente e team - si filtra anche in base a chi la possiede, sotto `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` trova i record di cui sono proprietari una o più di quelle persone e di quei team. `match` è `AnyOf` se non lo imposti: `NoneOf` trova i record di cui nessuno di loro è proprietario, compresi i record senza proprietari, e `AnyOwner` e `NoOwner` trovano i record con almeno un proprietario o senza nessuno, senza nominare nessuno. I membri di un team non sono proprietari di ciò che il team possiede. Un filtro nomina al massimo 1.000 persone e team in tutto, una risorsa senza proprietari lo rifiuta con un `400`, e filtrare per proprietari senza il permesso di leggerli viene rifiutato con un `422`.
 
@@ -255,7 +255,16 @@ Team, etichette, policy di reperibilità e pianificazioni di reperibilità hanno
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Accanto al messaggio, la risposta contiene `"refusalCode": "name_taken"`. Riconosci questo rifiuto da quel codice, non dalla frase, che può essere riformulata. Non è stato scritto nulla, quindi la stessa richiesta si può inviare di nuovo appena l'altro record lascia il nome: il provider Terraform riprova fino a 30 secondi.
+Anche molti altri tipi hanno un nome tutto loro, come le gravità degli incidenti, gli stati dei monitor, le pagine di stato e i flussi di lavoro, e rifiutano allo stesso modo un nome già preso:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Accanto al messaggio, ognuno di questi rifiuti contiene un `refusalCode` che dice che cosa ha il nome. Riconosci il rifiuto da quel codice, non dalla frase, che può essere riformulata:
+
+- `"refusalCode": "name_taken"`: lo ha un record in servizio. Non è stato scritto nulla, quindi la stessa richiesta si può inviare di nuovo appena quel record lascia il nome: il provider Terraform riprova fino a 30 secondi.
+- `"refusalCode": "name_taken_by_archived"`: lo ha solo un record archiviato. Annulla l'archiviazione di quel record, o scegli un altro nome: inviare di nuovo la richiesta non serve, e il provider Terraform non lo fa.
 
 Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli. Per team, etichette, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo. Le etichette e le policy di reperibilità archiviate sono escluse.
 

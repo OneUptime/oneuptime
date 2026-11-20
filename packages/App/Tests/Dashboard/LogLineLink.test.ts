@@ -1,6 +1,6 @@
-import { beforeAll, describe, expect, test } from "@jest/globals";
-import type * as LinkModuleType from "../../FeatureSet/Dashboard/src/Components/Logs/LogLineLink";
-import type * as HookModuleType from "../../FeatureSet/Dashboard/src/Components/Logs/useOpenedLogLine";
+import { describe, expect, test } from "@jest/globals";
+import * as Link from "../../FeatureSet/Dashboard/src/Components/Logs/LogLineLink";
+import * as Address from "../../FeatureSet/Dashboard/src/Components/Logs/OpenedLogLineAddress";
 
 /*
  * Copy Link on a log line's details (#9794): the address it copies opens
@@ -13,12 +13,6 @@ import type * as HookModuleType from "../../FeatureSet/Dashboard/src/Components/
  * reads with their own permissions.
  */
 
-type LinkModule = typeof LinkModuleType;
-type HookModule = typeof HookModuleType;
-
-let Link: LinkModule;
-let Hook: HookModule;
-
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const LOGS_PAGE: string = `https://oneuptime.example.com/dashboard/${PROJECT_ID}/logs`;
 const LOG_ID: string = "0192f1a0-0000-7000-8000-000000000001";
@@ -29,55 +23,9 @@ const WINDOW: { start: Date; end: Date } = {
   end: new Date("2026-10-27T07:00:00.000Z"),
 };
 
-/*
- * Common/UI/Config reads `window` when it loads, and the hook reaches it
- * through Navigation and ProjectUtil, so the stub exists before the
- * deferred import (as OpenedLogLine.test.ts does).
- */
-beforeAll(async () => {
-  (globalThis as Record<string, unknown>)["window"] = {
-    location: {
-      pathname: `/dashboard/${PROJECT_ID}/logs`,
-      search: "",
-      hash: "",
-    },
-    history: {
-      state: null,
-      replaceState: (): void => {
-        // no-op; these tests never navigate.
-      },
-    },
-  };
-
-  for (const storageName of ["sessionStorage", "localStorage"]) {
-    Object.defineProperty(globalThis, storageName, {
-      value: {
-        getItem: (): null => {
-          return null;
-        },
-        setItem: (): void => {
-          // no-op
-        },
-        removeItem: (): void => {
-          // no-op
-        },
-      },
-      configurable: true,
-      writable: true,
-    });
-  }
-
-  Link = await import(
-    "../../FeatureSet/Dashboard/src/Components/Logs/LogLineLink"
-  );
-  Hook = await import(
-    "../../FeatureSet/Dashboard/src/Components/Logs/useOpenedLogLine"
-  );
-});
-
 function line(
-  overrides: Partial<LinkModuleType.LogLineLinkLine> = {},
-): LinkModuleType.LogLineLinkLine {
+  overrides: Partial<Link.LogLineLinkLine> = {},
+): Link.LogLineLinkLine {
   return {
     id: LOG_ID,
     time: WRITTEN,
@@ -87,8 +35,8 @@ function line(
 }
 
 function list(
-  overrides: Partial<LinkModuleType.LogLineLinkList> = {},
-): LinkModuleType.LogLineLinkList {
+  overrides: Partial<Link.LogLineLinkList> = {},
+): Link.LogLineLinkList {
   return {
     facetFilters: new Map<string, Set<string>>([
       ["severityText", new Set<string>(["Error", "Warning"])],
@@ -101,8 +49,8 @@ function list(
 
 function link(
   data: {
-    line?: LinkModuleType.LogLineLinkLine;
-    list?: LinkModuleType.LogLineLinkList;
+    line?: Link.LogLineLinkLine;
+    list?: Link.LogLineLinkList;
     logsPageUrl?: string;
   } = {},
 ): URL {
@@ -121,16 +69,16 @@ describe("the address Copy Link copies", () => {
 
     expect(copied.origin).toBe("https://oneuptime.example.com");
     expect(copied.pathname).toBe(`/dashboard/${PROJECT_ID}/logs`);
-    expect(Hook.readOpenedLogLineAddress(copied.search)).toEqual({
+    expect(Address.readOpenedLogLineAddress(copied.search)).toEqual({
       logId: LOG_ID,
       logTime: WRITTEN,
     });
   });
 
   test("is looked for where it was written, so the line is found", () => {
-    const address: HookModuleType.OpenedLogLineAddress =
-      Hook.readOpenedLogLineAddress(link().search)!;
-    const lookIn: { start: Date; end: Date } = Hook.getOpenedLogLineWindow({
+    const address: Address.OpenedLogLineAddress =
+      Address.readOpenedLogLineAddress(link().search)!;
+    const lookIn: { start: Date; end: Date } = Address.getOpenedLogLineWindow({
       address,
       now: new Date("2030-01-01T00:00:00.000Z"),
     });
@@ -236,14 +184,14 @@ describe("the address Copy Link copies", () => {
       ["attributes.http.target", [value]],
     ]);
     // The line is still read from the same address.
-    expect(Hook.readOpenedLogLineAddress(copied.search)!.logId).toBe(LOG_ID);
+    expect(Address.readOpenedLogLineAddress(copied.search)!.logId).toBe(LOG_ID);
   });
 
   test("a line with no time still opens, by when its time-ordered id says it came in", () => {
     const copied: URL = link({ line: line({ time: null }) });
 
     expect(copied.searchParams.has("logTime")).toBe(false);
-    expect(Hook.readOpenedLogLineAddress(copied.search)).toEqual({
+    expect(Address.readOpenedLogLineAddress(copied.search)).toEqual({
       logId: LOG_ID,
       logTime: null,
     });

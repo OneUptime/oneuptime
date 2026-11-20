@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import IssuePartsNotLoaded from "../../../Components/DataSecurity/IssuePartsNotLoaded";
 import { getDataSecurityBreadcrumbs } from "../../../Utils/Breadcrumbs/DataSecurityBreadcrumbs";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import DataSecurityIssueViewContext, {
@@ -14,6 +15,11 @@ import { nameRecordInTrail } from "Common/UI/Components/Page/RecordNameInTrail";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import API from "Common/UI/Utils/API/API";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import {
+  ItemInParts,
+  UnloadedPart,
+  getItemInParts,
+} from "Common/UI/Utils/ModelAPI/ItemInParts";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
@@ -49,6 +55,8 @@ interface LoadedIssue {
   issue: DataSecurityIssue | null;
   // Why it could not be read; "" when it was, or when it is not there.
   error: string;
+  // The records it names that could not be read with it, and why.
+  unloadedParts: Array<UnloadedPart>;
 }
 
 /*
@@ -58,7 +66,10 @@ interface LoadedIssue {
  *
  * The layout reads the issue once for all of them and again after every
  * change, names it in the trail, and says so in place of its pages when
- * it is not there, or the reader may not read it.
+ * it is not there, or the reader may not read it. A record it names that
+ * cannot be read with it - its store, who has it - never takes the issue
+ * away: the pages show the issue with everything else, and above them it
+ * says what could not be loaded, and why (getItemInParts, #10238).
  */
 const DataSecurityIssueViewLayout: FunctionComponent<
   PageComponentProps
@@ -87,22 +98,43 @@ const DataSecurityIssueViewLayout: FunctionComponent<
     let result: LoadedIssue;
 
     if (!isIdValid) {
-      result = { issueId: issueIdString, issue: null, error: "" };
+      result = {
+        issueId: issueIdString,
+        issue: null,
+        error: "",
+        unloadedParts: [],
+      };
     } else {
       try {
-        const item: DataSecurityIssue | null =
-          await ModelAPI.getItem<DataSecurityIssue>({
+        const read: ItemInParts<DataSecurityIssue> =
+          await getItemInParts<DataSecurityIssue>({
             modelType: DataSecurityIssue,
             id: issueId,
-            select: DATA_SECURITY_ISSUE_VIEW_SELECT,
+            /*
+             * Of its store, what this reader may read through the issue: the
+             * store's sensitivity, exposure, region and keys are read through
+             * a relation only by who may read the store (#10281), so a custom
+             * role that reads issues and not stores reads the store's name,
+             * kind and environment, and the issue, in one read.
+             */
+            select: PermissionGate.getSelectReadableThroughRelations(
+              DataSecurityIssue,
+              DATA_SECURITY_ISSUE_VIEW_SELECT,
+            ),
           });
 
-        result = { issueId: issueIdString, issue: item, error: "" };
+        result = {
+          issueId: issueIdString,
+          issue: read.item,
+          error: "",
+          unloadedParts: read.unloadedParts,
+        };
       } catch (err) {
         result = {
           issueId: issueIdString,
           issue: null,
           error: API.getFriendlyMessage(err),
+          unloadedParts: [],
         };
       }
     }
@@ -225,6 +257,7 @@ const DataSecurityIssueViewLayout: FunctionComponent<
 
   return (
     <Page breadcrumbLinks={breadcrumbs} sideMenu={sideMenu}>
+      <IssuePartsNotLoaded parts={loaded!.unloadedParts} onTryAgain={refresh} />
       {/* Each page of the issue starts afresh for another issue. */}
       <React.Fragment key={issueIdString}>
         <Outlet context={context} />

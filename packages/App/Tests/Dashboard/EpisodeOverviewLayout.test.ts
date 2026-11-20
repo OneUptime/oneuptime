@@ -572,6 +572,18 @@ describe("episode overview layout", () => {
     expect(incident).toContain(
       "setRolesRefreshToken((token: number): number => { return token + 1; });",
     );
+    /*
+     * The commander's name hands the role on (#10195) while the episode is
+     * open, to a reader who may change the role row's person: one update
+     * of the episode's row, which its incidents follow on the server.
+     */
+    expect(incident).toContain(
+      "const mayReassignRoles: boolean = getEpisodeRoleReassignGate( privateRecordGate(new IncidentEpisodeRoleMember()), ).isAllowed;",
+    );
+    expect(incident).toContain(
+      "onReassign: timing.isResolved || !primaryRole || !mayReassignRoles ? undefined : async ( member: EventRoleMember, person: PeoplePickerOption, ): Promise<void> => { const episodeId: string = modelIdString; await reassignIncidentEpisodeRole({ memberId: new ObjectID(member.memberId!), userId: new ObjectID(person.id), });",
+    );
+    expect(incident).toContain("withRoleReassigned({");
     expect(incident).toContain(
       'headerLayout="stacked" onRolesLoaded={onRolesLoaded} refreshToken={rolesRefreshToken}',
     );

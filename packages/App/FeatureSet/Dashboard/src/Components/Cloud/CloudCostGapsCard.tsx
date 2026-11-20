@@ -3,6 +3,7 @@ import { Gray500, Red, Yellow } from "Common/Types/BrandColors";
 import { CloudCostState } from "Common/Types/Cloud/CloudCost";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import Color from "Common/Types/Color";
+import OneUptimeDate from "Common/Types/Date";
 import Card from "Common/UI/Components/Card/Card";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -18,6 +19,7 @@ import {
   COST_STATE_LABELS,
   SAVINGS_SETUP_DOCS_PATHS,
   SAVINGS_SETUP_STEPS,
+  getCloudQueuedCostsLine,
 } from "./CloudCostWords";
 import { cloudConnectionDocsUrl } from "./Connect/CloudConnectApi";
 import CloudConnectionLogo from "./Connect/CloudConnectionLogo";
@@ -76,6 +78,8 @@ export interface CloudCostGapRow {
   message: string;
   // The currency it is billed in, when that is why.
   currency?: string | undefined;
+  // Queued: when its costs are read.
+  nextReadAt?: string | undefined;
 }
 
 export function getCloudCostGapRows(data: {
@@ -91,6 +95,7 @@ export function getCloudCostGapRows(data: {
       state: CloudCostState;
       message?: string | undefined;
       currency: string;
+      nextReadAt?: string | undefined;
     } | null =
       data.kind === "costs" ? account.costSummary : account.savingsSummary;
 
@@ -107,6 +112,9 @@ export function getCloudCostGapRows(data: {
         account,
         reason: summary.state,
         message: summary.message || "",
+        ...(summary.state === CloudCostState.Queued
+          ? { nextReadAt: summary.nextReadAt }
+          : {}),
       });
       continue;
     }
@@ -127,11 +135,13 @@ export function getCloudCostGapRows(data: {
   return rows;
 }
 
+// A queued account is waiting its turn, not failing: grey, as waiting is.
 const GAP_COLORS: Readonly<Record<CloudCostGapRow["reason"], Color>> = {
   [CloudCostState.Reading]: Gray500,
   [CloudCostState.NotAllowed]: Yellow,
   [CloudCostState.NotSetUp]: Yellow,
   [CloudCostState.Failed]: Red,
+  [CloudCostState.Queued]: Gray500,
   waiting: Gray500,
   currency: Gray500,
 };
@@ -262,7 +272,19 @@ const CloudCostGapsCard: FunctionComponent<ComponentProps> = (
                       color={GAP_COLORS[row.reason]}
                     />
                   </div>
-                  {row.message ? (
+                  {row.reason === CloudCostState.Queued ? (
+                    // Why it waits and when it is read, in the reader's words and time.
+                    <p
+                      className="mt-1 text-xs text-gray-600"
+                      data-testid="cloud-cost-gap-queued"
+                    >
+                      {getCloudQueuedCostsLine({
+                        nextReadAt: row.nextReadAt,
+                        now: OneUptimeDate.getCurrentDate(),
+                        translator,
+                      })}
+                    </p>
+                  ) : row.message ? (
                     /*
                      * The cloud's own words, nearly always English: in their
                      * own direction (dir="auto"), so on a page read right to

@@ -85,6 +85,16 @@ export default class DashboardDataSourceChartComponentUtil extends DashboardBase
         id: "chartDescription",
         section: DisplaySection,
       },
+      {
+        name: "Unit",
+        description:
+          'The values\' unit, on the value axis and in the tooltip. Known units also scale it — "Bytes" reads as 1.5 MB, "ms" as 2.4 sec, "%" as 99.9%.',
+        required: false,
+        type: ComponentInputType.Text,
+        id: "unit",
+        placeholder: "e.g. %, ms, Bytes, requests",
+        section: DisplaySection,
+      },
     ];
   }
 }

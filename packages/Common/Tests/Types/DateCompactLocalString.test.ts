@@ -13,7 +13,7 @@ import Timezone from "../../Types/Timezone";
  * Table/TableDate): "Oct 22, 7:25 AM" - a date of this year without its year
  * and without the zone - or "Oct 22, 2025", the date alone, for another year.
  *
- * "Oct 22 2026, 07:25 AM BST" took some 180px in every table's date column,
+ * "Oct 22, 2026, 7:25 AM BST" took some 180px in every table's date column,
  * the widest value left in the lists that still ran past their card at a
  * laptop's width (the incidents and alerts lists, the on-call logs). The
  * whole date - year, time and zone - stays under the pointer.
@@ -76,7 +76,7 @@ describe("a date of this year", () => {
       true,
     );
 
-    expect(whole).toBe("Oct 07 2026, 02:05 PM BST");
+    expect(whole).toBe("Oct 7, 2026, 2:05 PM BST");
     expect(compact.length).toBeLessThan(whole.length * 0.7);
     expect(compact).not.toContain("2026");
     expect(compact).not.toContain("BST");

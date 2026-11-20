@@ -103,6 +103,7 @@ import EmailChangeConfirmation, {
 } from "../Utils/EmailChange/EmailChangeConfirmation";
 import EmailAddressChangedNotice from "../Utils/EmailChange/EmailAddressChangedNotice";
 import Reauthentication from "../Utils/Reauthentication/Reauthentication";
+import { ReauthenticationPurpose } from "../../Types/Accounts/Reauthentication";
 import {
   EMAIL_ADDRESS_CHANGED_BY_KEY,
   getEmailAddressChanger,
@@ -650,6 +651,27 @@ export class Service extends DatabaseService<Model> {
     this.normalizeLanguage(updateBy.data as unknown as JSONObject);
 
     /*
+     * Who is a master admin decides who runs this server: one can change how
+     * anyone signs in, from the Admin Dashboard. So a master admin's session
+     * confirms it's theirs before it makes anyone one, or stops anyone being
+     * one (#10216, Admin Dashboard > Users > Settings) - or whoever held a
+     * master admin's session, without their password, could make an account
+     * of their own a master admin and confirm as that. Only a master admin
+     * may write the column; anyone else is refused by its permissions.
+     * Asked before anything below reads or writes.
+     */
+    if (
+      !updateBy.props.isRoot &&
+      updateBy.props.isMasterAdmin &&
+      updateBy.data.isMasterAdmin !== undefined
+    ) {
+      await Reauthentication.assertConfirmed(
+        updateBy.props,
+        ReauthenticationPurpose.AdminChange,
+      );
+    }
+
+    /*
      * Two factor authentication is switched by its owner alone, outside the
      * Admin Dashboard: this hook runs before row scoping, so the update must
      * name the caller's own account by an exact predicate. A master admin
@@ -763,12 +785,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * A new password or a new address for the caller's own account waits
-     * until their session has confirmed it's theirs (#10155). After the
-     * rules a refused value is told (the password's, single sign-on's) and
-     * before anything below counts, sends or writes.
+     * A new password or a new address waits until the caller's session has
+     * confirmed it's theirs: for their own account (#10155), and for
+     * anyone else's, which only a master admin may write (#10216). After
+     * the rules a refused value is told (the password's, single sign-on's)
+     * and before anything below counts, sends or writes.
      */
-    await this.assertOwnSignInChangeIsConfirmed(updateBy, carryForward);
+    await this.assertSignInChangeIsConfirmed(updateBy, carryForward);
 
     /*
      * A person's own new address waits for the address to confirm it
@@ -790,28 +813,37 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A SESSION ALONE NO LONGER CHANGES HOW ITS PERSON SIGNS IN (#10155).
+   * A SESSION ALONE NO LONGER CHANGES HOW ANYONE SIGNS IN (#10155, #10216).
    *
-   * A new password, or a new email address, for the account the caller is
-   * signed in as - asked from the profile, PUT /api/user/:id, the mobile app
-   * or anything else a session reaches - is refused until the session has
-   * confirmed it's its person's (Utils/Reauthentication): the password, and
-   * its second step while two-factor authentication is on; a passkey; or,
-   * for an account with neither, a sign-in in the last few minutes. The
-   * refusal changes nothing, so the same write goes through once it has.
+   * A new password, or a new email address, is refused until the caller's
+   * session has confirmed it's its person's (Utils/Reauthentication): the
+   * password, and its second step while two-factor authentication is on; a
+   * passkey; or, for an account with neither, a sign-in that proved its
+   * person was asked. The refusal changes nothing, so the same write goes
+   * through once it has:
    *
-   * Only a change: the address the account already has, which every save of
-   * the profile's form sends, asks nothing. Only the caller's own account: a
-   * master admin's change of somebody else's is the Admin Dashboard's, and a
-   * root write is the server's own - a reset link, the link that confirms an
-   * address, SCIM, single sign-on. `rows` are the rows the write may change,
-   * as onBeforeUpdate read them.
+   *   - for the account the caller is signed in as - asked from the
+   *     profile, PUT /api/user/:id, the mobile app or anything else a
+   *     session reaches (#10155);
+   *   - for anybody else's, which only a master admin may write - Admin
+   *     Dashboard > Users, or PUT /api/user/:id (#10216). Their session's
+   *     own confirmation: whoever holds a master admin's session, without
+   *     their password, can no longer move someone's account to a mailbox
+   *     they read, or set its password. The master API key has no session,
+   *     and is refused (Reauthentication.getSessionOf).
    *
-   * A server that cannot send the email that confirms a new address refuses
-   * that change before asking for anything (EmailChangeConfirmation): a
-   * person is never asked to confirm for a change that cannot happen.
+   * Only a change: the address an account already has, which every save of
+   * the profile's form sends, asks nothing. A root write is the server's own
+   * - a reset link, the link that confirms an address, SCIM, single sign-on
+   * - and is not asked. `rows` are the rows the write may change, as
+   * onBeforeUpdate read them: only those the caller may write.
+   *
+   * A server that cannot send the email that confirms a person's own new
+   * address refuses that change before asking for anything
+   * (EmailChangeConfirmation): nobody is asked to confirm for a change that
+   * cannot happen.
    */
-  private async assertOwnSignInChangeIsConfirmed(
+  private async assertSignInChangeIsConfirmed(
     updateBy: UpdateBy<Model>,
     rows: Array<Model>,
   ): Promise<void> {
@@ -820,24 +852,39 @@ export class Service extends DatabaseService<Model> {
     }
 
     const callerId: string = updateBy.props.userId.toString().toLowerCase();
+    const changesPassword: boolean = Boolean(updateBy.data.password);
 
-    const own: Model | undefined = rows.find((row: Model): boolean => {
-      return row.id?.toString().toLowerCase() === callerId;
+    const changing: Array<Model> = rows.filter((row: Model): boolean => {
+      return (
+        changesPassword ||
+        (Boolean(updateBy.data.email) &&
+          row.email?.toString().toLowerCase() !==
+            String(updateBy.data.email).trim().toLowerCase())
+      );
     });
 
-    if (!own) {
+    if (changing.length === 0) {
       return;
     }
 
-    const changesPassword: boolean = Boolean(updateBy.data.password);
+    const changesSomeoneElse: boolean = changing.some((row: Model): boolean => {
+      return row.id?.toString().toLowerCase() !== callerId;
+    });
+
+    if (changesSomeoneElse) {
+      await Reauthentication.assertConfirmed(
+        updateBy.props,
+        ReauthenticationPurpose.AdminChange,
+      );
+      return;
+    }
+
+    // Every row changing is the caller's own here: their account.
+    const own: Model | undefined = changing[0];
     const changesEmail: boolean =
       Boolean(updateBy.data.email) &&
-      own.email?.toString().toLowerCase() !==
+      own?.email?.toString().toLowerCase() !==
         String(updateBy.data.email).trim().toLowerCase();
-
-    if (!changesPassword && !changesEmail) {
-      return;
-    }
 
     if (changesEmail && !updateBy.props.isMasterAdmin) {
       await EmailChangeConfirmation.assertCanConfirm();
@@ -1339,7 +1386,51 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    await this.assertOwnAccountDeleteIsConfirmed(deleteBy, users);
+
     return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * DELETING YOUR OWN ACCOUNT WAITS UNTIL YOUR SESSION CONFIRMS IT'S YOU
+   * (#10220).
+   *
+   * Danger Zone > Delete Account, or DELETE /api/user/:id, deletes an
+   * account for good once it is in no project: the one change nobody
+   * recovers from. A session could leave each project and then delete the
+   * account; now the delete of the caller's own account is refused until
+   * their session has confirmed it's theirs (Utils/Reauthentication), as a
+   * change to how they sign in is. Asked after the rule that it is in no
+   * project, so nobody confirms for a delete that cannot happen, and before
+   * anything is deleted, so the same delete goes through once they have.
+   * The Dashboard asks and sends it again on its own.
+   *
+   * Root deletes, and a master admin's delete of somebody else's account
+   * (Admin Dashboard > Users > Delete), are as they were. `rows` are the
+   * rows the delete may remove, as onBeforeDelete read them.
+   */
+  private async assertOwnAccountDeleteIsConfirmed(
+    deleteBy: DeleteBy<Model>,
+    rows: Array<Model>,
+  ): Promise<void> {
+    if (deleteBy.props.isRoot || !deleteBy.props.userId) {
+      return;
+    }
+
+    const callerId: string = deleteBy.props.userId.toString().toLowerCase();
+
+    const deletesOwnAccount: boolean = rows.some((row: Model): boolean => {
+      return row.id?.toString().toLowerCase() === callerId;
+    });
+
+    if (!deletesOwnAccount) {
+      return;
+    }
+
+    await Reauthentication.assertConfirmed(
+      deleteBy.props,
+      ReauthenticationPurpose.DeleteAccount,
+    );
   }
 
   @CaptureSpan()
@@ -2096,7 +2187,7 @@ export class Service extends DatabaseService<Model> {
    * separately.
    */
   @CaptureSpan()
-  public async countVerifiedTwoFactorAuthMethods(
+  private async countVerifiedTwoFactorAuthMethods(
     userId: ObjectID,
   ): Promise<number> {
     const verifiedTotpCount: PositiveNumber = await UserTotpAuthService.countBy(

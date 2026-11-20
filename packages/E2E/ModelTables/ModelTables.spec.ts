@@ -63,6 +63,7 @@ interface FixtureRecord {
     query: Record<string, unknown>;
   }>;
   updates: Array<{ tableName: string; id: string; data: unknown }>;
+  moves: Array<{ tableName: string; id: string; placeOfId: string }>;
   navigations: Array<string>;
   unmodelled: Array<string>;
 }
@@ -4396,15 +4397,26 @@ test.describe("a list put in order by dragging", () => {
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Space");
 
+    /*
+     * The move request a drop sends (POST <list>/:id/move, #9609): Router
+     * takes Firewall's place, named by its id, and writes no number itself.
+     */
     await expect
       .poll(async (): Promise<number> => {
-        return (await fixture(page)).updates.length;
+        return (await fixture(page)).moves.length;
       })
       .toBe(1);
 
-    expect((await fixture(page)).updates[0]).toEqual(
-      expect.objectContaining({ tableName: "NetworkDeviceRole" }),
-    );
+    expect((await fixture(page)).moves[0]).toEqual({
+      tableName: "NetworkDeviceRole",
+      id: "70000000-0000-4000-8000-000000000001",
+      placeOfId: "70000000-0000-4000-8000-000000000002",
+    });
+    expect((await fixture(page)).updates).toEqual([]);
+
+    // The list read again, in its new order.
+    await expect(rows.first()).toContainText("Firewall");
+    await expect(rows.nth(1)).toContainText("Router");
 
     await screenshot(page, "device-roles-1280");
   });
@@ -4494,7 +4506,7 @@ test.describe("a table fits its own card", () => {
       // "Oct 5, 7:04 AM": this year's, in the reader's zone, unnamed.
       expect(date.text).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2} [AP]M$/);
       // Whole under the pointer: its year, and the zone it is read in.
-      expect(date.title).toMatch(/2026, \d{2}:\d{2} [AP]M BST$/);
+      expect(date.title).toMatch(/2026, \d{1,2}:\d{2} [AP]M BST$/);
       expect(date.dateTime).toMatch(/^2026-\d{2}-\d{2}T/);
       expect(new Date(date.dateTime || "").toISOString()).toBe(date.dateTime);
     }

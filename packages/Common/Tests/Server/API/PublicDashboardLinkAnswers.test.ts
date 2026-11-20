@@ -1544,11 +1544,23 @@ describe("a dashboard's public link answers only what its visitor may see", () =
     };
 
     /*
-     * The one route that takes no dashboard: it turns a verified custom
-     * domain into its dashboard's id for the public app, and every route that
-     * id is then sent to decides access itself.
+     * The one public route that takes no dashboard: it turns a verified
+     * custom domain into its dashboard's id for the public app, and every
+     * route that id is then sent to decides access itself.
      */
     const DOMAIN_ROUTE: string = "POST /dashboard/domain";
+
+    /*
+     * The custom routes that name no dashboard: the domain lookup, and the
+     * routes only a signed-in OneUptime user reaches - converting a query
+     * with OneUptime AI while importing a dashboard. None serves a dashboard
+     * to its public link. A route added that names no dashboard has to be
+     * placed here, or name one.
+     */
+    const ROUTES_NAMING_NO_DASHBOARD: Array<string> = [
+      DOMAIN_ROUTE,
+      "POST /dashboard/import/convert-query-with-ai",
+    ];
 
     const pathFor: (key: string, id: string) => string = (
       key: string,
@@ -1562,15 +1574,18 @@ describe("a dashboard's public link answers only what its visitor may see", () =
         .replace(":resourceType", "monitor")}`;
     };
 
-    it("takes a dashboard in its path, on every route but the domain lookup", () => {
+    it("takes a dashboard in its path, on every route but the domain lookup and the routes only a signed-in OneUptime user reaches", () => {
       const routes: Array<string> = publicRoutes();
       const TAKES_A_DASHBOARD: RegExp = /:dashboardId(OrDomain)?\b/;
 
       expect(routes.length).toBeGreaterThan(8);
-      expect(routes).toContain(DOMAIN_ROUTE);
+
+      for (const route of ROUTES_NAMING_NO_DASHBOARD) {
+        expect(routes).toContain(route);
+      }
 
       for (const key of routes) {
-        if (key === DOMAIN_ROUTE) {
+        if (ROUTES_NAMING_NO_DASHBOARD.includes(key)) {
           continue;
         }
 
@@ -1634,11 +1649,28 @@ describe("a dashboard's public link answers only what its visitor may see", () =
       "POST /dashboard/master-password/:dashboardId",
     ];
 
+    // `:dashboardId` or `:dashboardIdOrDomain`.
+    const namesADashboard: (key: string) => boolean = (
+      key: string,
+    ): boolean => {
+      return key.includes("/:dashboardId");
+    };
+
     const contentRoutes: () => Array<string> = (): Array<string> => {
       return publicRoutes().filter((key: string): boolean => {
-        return !SIGN_IN_PAGE_ROUTES.includes(key);
+        return namesADashboard(key) && !SIGN_IN_PAGE_ROUTES.includes(key);
       });
     };
+
+    it("knows every route that names no dashboard: the domain lookup, and the routes only a signed-in OneUptime user reaches", () => {
+      expect(
+        publicRoutes()
+          .filter((key: string): boolean => {
+            return !namesADashboard(key);
+          })
+          .sort(),
+      ).toEqual([...ROUTES_NAMING_NO_DASHBOARD].sort());
+    });
 
     it("names the routes that serve a dashboard's content: the overview, the view config and every widget's data", () => {
       const routes: Array<string> = contentRoutes();

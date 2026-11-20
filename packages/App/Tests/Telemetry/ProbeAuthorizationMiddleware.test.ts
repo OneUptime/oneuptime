@@ -6,6 +6,11 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ExpressResponse, NextFunction } from "Common/Server/Utils/Express";
+import ProbeKeyHeaders, {
+  PROBE_ID_HEADER,
+  PROBE_KEY_HEADER,
+} from "Common/Types/Probe/ProbeKeyHeaders";
+import Dictionary from "Common/Types/Dictionary";
 import { ProbeExpressRequest } from "../../FeatureSet/Telemetry/Types/Request";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -528,5 +533,328 @@ describe("server-side timing of probe requests", () => {
 
     // mockResponse has no .on; attaching listeners to it would throw.
     await expect(middlewarePromise).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * A collection's key, checked before its report is parsed (#10222). A
+ * vCenter's or an OpenStack cloud's collection is millions of JSON values,
+ * so its key is checked first from the request's headers, then - for an
+ * older probe that sends none - from the id and key its report opens with,
+ * and only then is the report parsed. Every one of those checks is the same
+ * check a body's key gets: the same lookup, the same refusals.
+ */
+describe("a collection's key, before its report is parsed", () => {
+  const probeId: ObjectID = ObjectID.generate();
+  const probeKey: string = "pr0be-(key)!*~ clé 東京 ";
+
+  type Middleware = (
+    req: ProbeExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void>;
+
+  type NextSpy = ReturnType<typeof jest.fn>;
+
+  async function run(
+    middleware: Middleware,
+    req: Dictionary<unknown>,
+  ): Promise<{ req: ProbeExpressRequest; next: NextSpy }> {
+    const request: ProbeExpressRequest = {
+      headers: {},
+      ...req,
+    } as unknown as ProbeExpressRequest;
+    const next: NextSpy = jest.fn();
+
+    await middleware(request, mockResponse, next as unknown as NextFunction);
+
+    return { req: request, next: next };
+  }
+
+  function sentError(): Error {
+    expect(responseUtil.sendErrorResponse).toHaveBeenCalledTimes(1);
+    return responseUtil.sendErrorResponse.mock.calls[0]![2] as Error;
+  }
+
+  // A report's bytes as every probe release writes them: key and id first.
+  function reportBytes(key: string, id: string): Buffer {
+    return Buffer.from(
+      JSON.stringify({
+        probeKey: key,
+        probeId: id,
+        probeCapabilities: ["networkDevicePing"],
+        status: "Succeeded",
+        resourceMetrics: [],
+      }),
+    );
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    probeService.verifyProbeKey.mockResolvedValue(true as never);
+    probeService.updateLastAlive.mockResolvedValue(undefined as never);
+  });
+
+  describe("from its headers", () => {
+    test("a request with neither header goes on untouched: an older probe's key is in its body", async () => {
+      const { req, next } = await run(
+        ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
+        { headers: { "content-encoding": "gzip" } },
+      );
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.probe).toBeUndefined();
+      expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
+      expect(responseUtil.sendErrorResponse).not.toHaveBeenCalled();
+    });
+
+    test("the id and key in the headers are checked as a body's are, and make the request the probe's", async () => {
+      const { req, next } = await run(
+        ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
+        {
+          headers: ProbeKeyHeaders.build({
+            probeId: probeId.toString().toUpperCase(),
+            probeKey: probeKey,
+          }),
+        },
+      );
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.probe).toBeInstanceOf(Probe);
+      expect(req.probe?.id?.toString()).toBe(probeId.toString());
+
+      // The key as the probe set it, decoded from the header.
+      const verifyArgs: { probeId: ObjectID; probeKey: string } = probeService
+        .verifyProbeKey.mock.calls[0]![0] as {
+        probeId: ObjectID;
+        probeKey: string;
+      };
+      expect(verifyArgs.probeId.toString()).toBe(probeId.toString());
+      expect(verifyArgs.probeKey).toBe(probeKey);
+
+      // Alive, with no release: the body that says it is unread.
+      expect(probeService.updateLastAlive).toHaveBeenCalledTimes(1);
+      expect(probeService.updateLastAlive.mock.calls[0]![1]).toBeUndefined();
+    });
+
+    test("a wrong key in the headers is refused as one in a body is, and the request goes no further", async () => {
+      probeService.verifyProbeKey.mockResolvedValue(false as never);
+
+      const { req, next } = await run(
+        ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
+        {
+          headers: ProbeKeyHeaders.build({
+            probeId: probeId.toString(),
+            probeKey: "a-wrong-key",
+          }),
+        },
+      );
+
+      expect(next).not.toHaveBeenCalled();
+      expect(sentError()).toBeInstanceOf(BadDataException);
+      expect(sentError().message).toBe("Invalid Probe ID or Probe Key");
+      expect(req.probe).toBeUndefined();
+      expect(probeService.updateLastAlive).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      [
+        "only the id",
+        { [PROBE_ID_HEADER]: "11111111-1111-4111-8111-111111111111" },
+      ],
+      ["only the key", { [PROBE_KEY_HEADER]: "a-key" }],
+      [
+        "an empty key",
+        {
+          [PROBE_ID_HEADER]: "11111111-1111-4111-8111-111111111111",
+          [PROBE_KEY_HEADER]: "",
+        },
+      ],
+      [
+        "a key that is no URI-encoded text",
+        {
+          [PROBE_ID_HEADER]: "11111111-1111-4111-8111-111111111111",
+          [PROBE_KEY_HEADER]: "%E0%A4%A",
+        },
+      ],
+    ])(
+      "%s is refused as a body without both is, before anything is looked up",
+      async (_what: string, headers: Dictionary<string>) => {
+        const { next } = await run(
+          ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
+          { headers: headers },
+        );
+
+        expect(next).not.toHaveBeenCalled();
+        expect(sentError().message).toBe("ProbeId or ProbeKey is missing");
+        expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a lookup that fails reaches next(err), so the request is answered", async () => {
+      const boom: Error = new Error("pool acquire timeout");
+      probeService.verifyProbeKey.mockRejectedValue(boom as never);
+
+      const { next } = await run(
+        ProbeAuthorization.isAuthorizedFromHeadersMiddleware,
+        {
+          headers: ProbeKeyHeaders.build({
+            probeId: probeId.toString(),
+            probeKey: probeKey,
+          }),
+        },
+      );
+
+      expect(next).toHaveBeenCalledWith(boom);
+    });
+  });
+
+  describe("from the id and key its report opens with", () => {
+    test("bytes that open with them are checked before they are parsed, and make the request the probe's", async () => {
+      const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        JSON,
+        "parse",
+      );
+
+      try {
+        const { req, next } = await run(
+          ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
+          { body: reportBytes(probeKey, probeId.toString()) },
+        );
+
+        expect(next).toHaveBeenCalledWith();
+        expect(req.probe?.id?.toString()).toBe(probeId.toString());
+        expect(jsonParse).not.toHaveBeenCalled();
+      } finally {
+        jsonParse.mockRestore();
+      }
+
+      const verifyArgs: { probeId: ObjectID; probeKey: string } = probeService
+        .verifyProbeKey.mock.calls[0]![0] as {
+        probeId: ObjectID;
+        probeKey: string;
+      };
+      expect(verifyArgs.probeKey).toBe(probeKey);
+      expect(probeService.updateLastAlive.mock.calls[0]![1]).toBeUndefined();
+    });
+
+    test("a wrong key there is refused as one in a parsed body is", async () => {
+      probeService.verifyProbeKey.mockResolvedValue(false as never);
+
+      const { req, next } = await run(
+        ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
+        { body: reportBytes("an-old-key", probeId.toString()) },
+      );
+
+      expect(next).not.toHaveBeenCalled();
+      expect(sentError().message).toBe("Invalid Probe ID or Probe Key");
+      expect(req.probe).toBeUndefined();
+    });
+
+    test("a request its headers authenticated is not checked again", async () => {
+      const probe: Probe = new Probe();
+      probe.id = probeId;
+
+      const { next } = await run(
+        ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
+        {
+          probe: probe,
+          body: reportBytes("whatever the report says", "someone else"),
+        },
+      );
+
+      expect(next).toHaveBeenCalledWith();
+      expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      [
+        "bytes that open with another member",
+        Buffer.from('{"status":"Failed","probeKey":"k","probeId":"i"}'),
+      ],
+      ["bytes that are no object", Buffer.from("[{},{}]")],
+      [
+        "a body parsed already",
+        { probeKey: probeKey, probeId: probeId.toString() },
+      ],
+      ["no body", undefined],
+    ])(
+      "%s: the request goes on unauthenticated, to be parsed under a large route's limit",
+      async (_what: string, body: unknown) => {
+        const { req, next } = await run(
+          ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
+          { body: body },
+        );
+
+        expect(next).toHaveBeenCalledWith();
+        expect(req.probe).toBeUndefined();
+        expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
+        expect(responseUtil.sendErrorResponse).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe("once its report is parsed", () => {
+    test("a request authenticated before is not checked again from its body", async () => {
+      const probe: Probe = new Probe();
+      probe.id = probeId;
+
+      const { req, next } = await run(
+        ProbeAuthorization.isAuthorizedServiceMiddleware,
+        {
+          probe: probe,
+          // What the body says names nobody: the request is the probe's already.
+          body: { probeId: ObjectID.generate().toString(), probeKey: "x" },
+        },
+      );
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.probe).toBe(probe);
+      expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
+      expect(probeService.updateLastAlive).not.toHaveBeenCalled();
+    });
+
+    test("and is timed from there, as every probe request is", async () => {
+      const probe: Probe = new Probe();
+      probe.id = probeId;
+
+      const listeners: Record<string, Array<() => void>> = {};
+      const res: ExpressResponse = {
+        on: (event: string, listener: () => void): void => {
+          listeners[event] = [...(listeners[event] || []), listener];
+        },
+      } as unknown as ExpressResponse;
+
+      await ProbeAuthorization.isAuthorizedServiceMiddleware(
+        {
+          probe: probe,
+          body: {},
+          url: "/probe/vmware/collection",
+        } as unknown as ProbeExpressRequest,
+        res,
+        jest.fn() as unknown as NextFunction,
+      );
+
+      // The probe hung up before an answer: called out by its id.
+      for (const listener of listeners["close"] || []) {
+        listener();
+      }
+
+      expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+      expect(String(loggerMock.warn.mock.calls[0]![0])).toContain(
+        probeId.toString(),
+      );
+    });
+
+    test("a request no earlier check authenticated is checked from its body, as every probe route's is", async () => {
+      const { req, next } = await run(
+        ProbeAuthorization.isAuthorizedServiceMiddleware,
+        { body: { probeId: probeId.toString(), probeKey: probeKey } },
+      );
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.probe?.id?.toString()).toBe(probeId.toString());
+      expect(probeService.verifyProbeKey).toHaveBeenCalledTimes(1);
+    });
   });
 });

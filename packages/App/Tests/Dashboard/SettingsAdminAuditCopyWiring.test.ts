@@ -17,6 +17,7 @@ import path from "path";
 const APP: string = path.join(__dirname, "..", "..", "FeatureSet");
 const DASHBOARD: string = path.join(APP, "Dashboard", "src");
 const ADMIN: string = path.join(APP, "AdminDashboard", "src");
+const COMMON: string = path.join(__dirname, "..", "..", "..", "Common");
 
 // Source with comments dropped and whitespace collapsed.
 function read(...segments: Array<string>): string {
@@ -74,10 +75,17 @@ describe("the welcome page of someone who may not create a project", () => {
 
 describe("Users > Invite User", () => {
   const page: string = read(DASHBOARD, "Pages", "Users", "Index.tsx");
+  // The Name row's words, which every invite form shares (#9745).
+  const inviteeName: string = read(COMMON, "UI", "Utils", "InviteeName.ts");
 
   test("asks a newcomer's name in a line", () => {
-    expect(page).toContain(
-      '"They have no OneUptime account yet. It is set up with this name."',
+    /*
+     * The form no longer learns whether the address has an account
+     * (#9745), so the line says what the name is for without saying so.
+     */
+    expect(page).toContain("description: INVITEE_NAME_DESCRIPTION,");
+    expect(inviteeName).toContain(
+      '"If they have no OneUptime account yet, it is set up with this name."',
     );
     expect(page).not.toContain("we will use it to set up their new account");
   });

@@ -1,0 +1,153 @@
+# Grafana's export of alert rules (Alerting > Alert rules > Export), in the
+# provisioning file shape Grafana documents: one group of four rules.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: checkout
+    folder: Services
+    interval: 1m
+    rules:
+      - uid: high-error-ratio
+        title: High error ratio
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus-main
+            model:
+              editorMode: code
+              expr: sum by (job) (rate(http_requests_total{code=~"5.."}[$__rate_interval])) / sum by (job) (rate(http_requests_total[$__rate_interval]))
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              type: reduce
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.05
+                    type: gt
+              expression: B
+              type: threshold
+              refId: C
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Error ratio of {{ $labels.job }} is {{ humanizePercentage $value }}
+          description: More than 5% of the requests of {{ $labels.job }} fail.
+          runbook_url: https://runbooks.example.com/high-error-ratio
+        labels:
+          severity: critical
+        isPaused: false
+      - uid: memory-mean
+        title: Memory usage high
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus-main
+            model:
+              expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+              range: true
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: mean
+              type: reduce
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: $B > 90
+              type: math
+              refId: C
+        noDataState: Alerting
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: Memory above 90% on {{ $labels.instance }}
+        labels:
+          severity: warning
+        isPaused: true
+      - uid: disk-range
+        title: Disk usage outside its range
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-main
+            model:
+              expr: node_filesystem_avail_bytes
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10
+                      - 90
+                    type: outside_range
+              expression: A
+              type: threshold
+              refId: C
+        for: 5m
+        labels: {}
+        annotations: {}
+      - uid: error-logs
+        title: Error logs
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki-main
+            model:
+              datasource:
+                type: loki
+                uid: loki-main
+              expr: sum(count_over_time({app="checkout"} |= "error" [5m]))
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              type: classic_conditions
+              refId: B
+        for: 2m
+        labels:
+          severity: warning
+        annotations: {}

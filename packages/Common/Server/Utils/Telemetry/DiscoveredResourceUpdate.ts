@@ -2,6 +2,7 @@ import DatabaseService from "../../Services/DatabaseService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
+import Sort from "../../Types/Database/Sort";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import CaptureSpan from "./CaptureSpan";
 import {
@@ -11,7 +12,9 @@ import {
 } from "./DiscoveredResourceCreate";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../Types/Exception/NameTakenException";
 import ObjectID from "../../../Types/ObjectID";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 
 /*
  * CHANGING WHAT A RESOURCE'S TELEMETRY IS MATCHED ON.
@@ -40,7 +43,9 @@ import ObjectID from "../../../Types/ObjectID";
  *     included - already has it, in plain words. Two hosts with one host
  *     name would split that host's telemetry between them, and the columns
  *     with a unique index of their own would only answer with the
- *     database's generic refusal.
+ *     database's generic refusal. A name refused so carries the code a
+ *     program tells a taken name by, which says whether the resource that
+ *     has it is archived (NameTakenException, #10065).
  *
  * Only a change is looked up. An edit form sends the column back unchanged
  * with every save, so saving a resource's description never trips over a
@@ -195,6 +200,10 @@ export default class DiscoveredResourceUpdate {
         _id: true,
         isArchived: true,
       } as unknown as Select<TModel>,
+      // One in service is named before an archived one.
+      sort: {
+        isArchived: SortOrder.Ascending,
+      } as unknown as Sort<TModel>,
       props: {
         isRoot: true,
       },
@@ -205,11 +214,16 @@ export default class DiscoveredResourceUpdate {
     }
 
     const message: string = data.matchColumn.getTakenMessage(value);
+    const isArchived: boolean = readColumn(sameValue, "isArchived") === true;
+    const refusal: string = isArchived
+      ? `${message} ${ARCHIVED_RESOURCE_HINT}`
+      : message;
 
-    throw new BadDataException(
-      readColumn(sameValue, "isArchived") === true
-        ? `${message} ${ARCHIVED_RESOURCE_HINT}`
-        : message,
-    );
+    // A name, with its code; an identifier is no name (#10065).
+    if (column === "name") {
+      throw new NameTakenException(refusal, { isArchived: isArchived });
+    }
+
+    throw new BadDataException(refusal);
   }
 }

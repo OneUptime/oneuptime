@@ -700,7 +700,7 @@ describe("the summary's message, read in its time zone", () => {
       });
 
     expect(blocks[0]!.text).toBe(
-      "Incident Summary \u2014 Sep 28, 2026 to Oct 05, 2026",
+      "Incident Summary \u2014 Sep 28, 2026 to Oct 5, 2026",
     );
   });
 
@@ -711,7 +711,7 @@ describe("the summary's message, read in its time zone", () => {
       });
 
     expect(blocks[0]!.text).toBe(
-      "Incident Summary \u2014 Sep 27, 2026 to Oct 04, 2026",
+      "Incident Summary \u2014 Sep 27, 2026 to Oct 4, 2026",
     );
   });
 
@@ -727,9 +727,9 @@ describe("the summary's message, read in its time zone", () => {
     expect(listData["timezone"]).toBe("Australia/Sydney");
     expect(
       formatter.formatDate(at("2026-10-04T22:00:00.000Z"), "Australia/Sydney"),
-    ).toBe("Oct 05, 2026");
+    ).toBe("Oct 5, 2026");
     expect(formatter.formatDate(at("2026-10-04T22:00:00.000Z"))).toBe(
-      "Oct 04, 2026",
+      "Oct 4, 2026",
     );
   });
 });

@@ -4884,13 +4884,20 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
+  /*
+   * Nobody reads it through the API, and no relation reads it either: it
+   * was marked readable through a relation, so every member read it through
+   * the project of any record they read - an incident's, a monitor's - which
+   * the column's own read, empty, never let anyone do (#10281). OneUptime
+   * reads it as itself to find the project a reseller's tier change is for
+   * (ResellerPlanAPI).
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     title: "License ID",
     hideColumnInDocumentation: true,
     description: "License ID from a OneUptime Reseller",
-    canReadOnRelationQuery: true,
   })
   @Column({
     nullable: true,

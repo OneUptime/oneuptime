@@ -52,6 +52,18 @@ import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+
+/*
+ * A new master API key waits until the session confirms it's its
+ * person's (Confirm It's You, #10216): every session here has confirmed.
+ * The check itself, through the same hooks and routes, is pinned by
+ * Tests/Server/Services/AdminReauthenticationGates.test.ts and
+ * Tests/Server/API/AdminReauthenticationRoutes.test.ts.
+ */
+beforeEach(() => {
+  confirmEverySession();
+});
 
 // jsdom has no setImmediate, and Express needs it.
 if (

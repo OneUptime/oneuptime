@@ -14,8 +14,9 @@
  * Scenarios are picked with query parameters, parsed once at load:
  *
  *   ?agent=   old (default: 0.161.0, the files before #5076's CPU fix) |
- *             current (0.161.3, the files this release ships) | none (an
- *             agent that reports no version)
+ *             current (the files this release ships, the version
+ *             AgentKind.ts calls current) | none (an agent that reports
+ *             no version)
  *   ?swarm=   trouble: a worker down, a service short of a replica, one
  *             whose tasks keep failing, a task near its memory limit, and an
  *             alert open on the short service (default: all healthy)
@@ -56,6 +57,7 @@ import SwarmTaskDetail from "../../../App/FeatureSet/Dashboard/src/Pages/DockerS
 import SwarmMetrics from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Metrics";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import { DOCKER_SWARM_AGENT_VERSION } from "../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -123,7 +125,16 @@ const LOADED_AT = Date.now();
 const CLUSTER_ID = uuid("62000000", 1);
 const CLUSTER_NAME = "swarm-prod";
 
-const AGENT_VERSIONS = { old: "0.161.0", current: "0.161.3", none: "" };
+/*
+ * The files before #5076's CPU fix, and the files this release ships, read
+ * from AgentKind.ts as the Dashboard reads them: new files need no change
+ * here.
+ */
+const AGENT_VERSIONS = {
+  old: "0.161.0",
+  current: DOCKER_SWARM_AGENT_VERSION,
+  none: "",
+};
 
 const project = Object.assign(new Project(), {
   _id: PROJECT_ID,

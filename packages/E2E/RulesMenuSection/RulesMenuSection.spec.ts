@@ -147,15 +147,15 @@ async function open(page: Page, address: string): Promise<void> {
 }
 
 /*
- * The desktop menu, by the name it gives itself: "Main navigation", or what
- * the reader's language calls it (German: Hauptnavigation).
+ * The desktop menu, by the name it gives itself: "Pages in this section",
+ * or what the reader's language calls it (German: Seiten in diesem Bereich).
  */
-function desktopMenu(page: Page, name: string = "Main navigation"): Locator {
+function desktopMenu(page: Page, name: string = "Pages in this section"): Locator {
   return page.locator(`aside[role='navigation'][aria-label='${name}']`);
 }
 
 function phoneMenu(page: Page): Locator {
-  return page.locator("div[role='navigation'][aria-label='Main navigation']");
+  return page.locator("div[role='navigation'][aria-label='Pages in this section']");
 }
 
 // A section's toggle, by its heading's text (CSS draws it in capitals).
@@ -694,7 +694,7 @@ test.describe("in German and in dark mode", () => {
     page: Page;
   }) => {
     await open(page, `${STATUS_PAGE_PATH}?lang=de`);
-    const menu: Locator = desktopMenu(page, "Hauptnavigation");
+    const menu: Locator = desktopMenu(page, "Seiten in diesem Bereich");
 
     expect(await sectionTitles(menu)).toContain("Regeln");
     await expectFolded(menu, "Regeln");

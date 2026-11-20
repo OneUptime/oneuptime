@@ -108,7 +108,10 @@ export const ENTERPRISE_FILES_DECIDED_WHOLE: Record<
        * uninstalls it (PUT, PATCH, DELETE), adds, changes or deletes a
        * resource - a project billed through Vercel - (POST, PATCH, DELETE)
        * or rotates its secrets (POST), and Vercel's webhook (POST), as AWS,
-       * Microsoft and Google Cloud call MarketplaceAPI.
+       * Microsoft and Google Cloud call MarketplaceAPI. What adding a
+       * resource and the webhook would make in a product - a status page, a
+       * monitor - is not made while that product is off (#10251:
+       * VercelMarketplaceResources, VercelMarketplaceMonitors).
        */
       "ee/Server/CloudMarketplace/API/VercelMarketplaceProviderAPI.ts": 8,
     },

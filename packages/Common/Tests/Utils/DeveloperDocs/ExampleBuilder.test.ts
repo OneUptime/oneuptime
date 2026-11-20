@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -1026,5 +1027,128 @@ describe("a monitor type that needs no steps", () => {
       });
 
     expect(manual?.hcl).not.toContain("monitor_steps");
+  });
+});
+
+/*
+ * A custom role (#10139): what it holds in permissions is OneUptime's to
+ * count (permissionCount, computed), and its slug is OneUptime's to make.
+ * Both are read - a role's read asks for how many permissions it holds -
+ * and neither is ever written: no create, change, Terraform block or task
+ * sets them.
+ */
+describe("a custom role", () => {
+  function rolePage(): DeveloperDocsExampleContext {
+    return {
+      live: getFixtureLiveData(),
+      record: {
+        id: FIXTURE_RECORD_ID,
+        displayName: "Incident Responder",
+        json: {},
+        terraformAddress: "oneuptime_custom_role.incident_responder",
+      },
+    };
+  }
+
+  test("is created by its name and description alone, as Terraform and over the API", () => {
+    const example: DeveloperDocsTerraformExample | null =
+      getTerraformCreateExample({ modelType: CustomRole, context: project() });
+
+    expect(example?.hcl).toBe(
+      [
+        'resource "oneuptime_custom_role" "incident_responder" {',
+        '  name        = "Incident Responder"',
+        '  description = "Declares, works and resolves incidents."',
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(
+      getApiCreateExample({ modelType: CustomRole, context: project() }).body,
+    ).toEqual({
+      name: "Incident Responder",
+      description: "Declares, works and resolves incidents.",
+    });
+  });
+
+  test("its read asks for how many permissions it holds, and never its slug", () => {
+    expect(getApiReadSelect(CustomRole)).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      permissionCount: true,
+      createdAt: true,
+    });
+  });
+
+  test("its change is a new description, never what OneUptime keeps", () => {
+    expect(
+      getApiUpdateExample({ modelType: CustomRole, context: rolePage() })?.data,
+    ).toEqual({ description: "Updated with the OneUptime API." });
+  });
+
+  test("its recipes and tasks refer to it by its address or its ID, and set no count", () => {
+    const recipes: Array<DeveloperDocsTerraformRecipe> = getTerraformRecipes({
+      modelType: CustomRole,
+      scope: "view",
+      context: rolePage(),
+    });
+
+    expect(
+      recipes.map((recipe: DeveloperDocsTerraformRecipe): string => {
+        return recipe.title;
+      }),
+    ).toEqual(["Add a permission", "Give it to a team"]);
+
+    for (const recipe of recipes) {
+      expect(recipe.isPlaceholder).toBe(false);
+      expect(recipe.hcl).toContain(
+        "custom_role_id = oneuptime_custom_role.incident_responder.id",
+      );
+      expect(recipe.hcl).not.toContain("permission_count");
+    }
+
+    const tasks: Array<DeveloperDocsApiTask> = getApiTasks({
+      modelType: CustomRole,
+      scope: "view",
+      context: rolePage(),
+    });
+
+    expect(
+      tasks.map((task: DeveloperDocsApiTask): Array<string> => {
+        return [
+          task.title,
+          new task.modelType().tableName || "",
+          task.operation,
+        ];
+      }),
+    ).toEqual([
+      ["Its permissions", "CustomRolePermission", "list"],
+      ["Add a permission", "CustomRolePermission", "create"],
+      ["Workflows that run as it", "Workflow", "list"],
+    ]);
+    expect(tasks[1]?.body).toEqual({
+      data: {
+        customRoleId: FIXTURE_RECORD_ID,
+        permission: "IncidentMember",
+        scope: "All",
+      },
+    });
+    expect(tasks[2]?.body["query"]).toEqual({
+      runAsCustomRoleId: FIXTURE_RECORD_ID,
+    });
+  });
+
+  test("a list page makes no recipe or task of its own: a role has a page of its own only", () => {
+    expect(
+      getTerraformRecipes({
+        modelType: CustomRole,
+        scope: "list",
+        context: project(),
+      }),
+    ).toEqual([]);
+    expect(
+      getApiTasks({ modelType: CustomRole, scope: "list", context: project() }),
+    ).toEqual([]);
   });
 });

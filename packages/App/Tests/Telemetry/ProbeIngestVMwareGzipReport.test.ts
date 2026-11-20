@@ -1,21 +1,28 @@
-import GzipRequestBodyMiddleware from "Common/Server/Middleware/GzipRequestBody";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { JSONObject } from "Common/Types/JSON";
-import { parseInflatedJsonBody } from "../../FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection";
+import {
+  parseCollectionBody,
+  readCollectionBody,
+} from "../../FeatureSet/Telemetry/Middleware/ProbeCollectionRequest";
 import { PassThrough } from "stream";
 import zlib from "zlib";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
+
+// Nothing here checks a key: the key checks are ProbeCollectionKeyBeforeParse's.
+jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
+  return { __esModule: true, default: {} };
+});
 
 /*
  * A probe posts a collection gzip-compressed - several megabytes of metrics
- * for a large vCenter. The server's own gzip reader (mounted for every route,
- * before routing) inflates it under its limits into a Buffer, and the
- * collection route reads that Buffer as the report it is: the two, end to
- * end, on the bytes a probe sends.
+ * for a large vCenter. The collection route reads it itself once it has
+ * checked the probe's key (#10222), inflating it under its limits into a
+ * Buffer, and reads that Buffer as the report it is: the two, end to end,
+ * on the bytes a probe sends.
  */
 
 function gzipRequest(body: Buffer): ExpressRequest {
@@ -89,14 +96,17 @@ describe("a gzip-compressed collection report", () => {
 
     const req: ExpressRequest = gzipRequest(compressed);
 
-    expect(
-      await runMiddleware(GzipRequestBodyMiddleware.parseBody, req),
-    ).toBeUndefined();
+    expect(await runMiddleware(readCollectionBody, req)).toBeUndefined();
     expect(Buffer.isBuffer((req as unknown as { body: unknown }).body)).toBe(
       true,
     );
 
-    expect(await runMiddleware(parseInflatedJsonBody, req)).toBeUndefined();
+    expect(
+      await runMiddleware(
+        parseCollectionBody as unknown as Parameters<typeof runMiddleware>[0],
+        req,
+      ),
+    ).toBeUndefined();
     expect((req as unknown as { body: JSONObject }).body).toEqual(report);
   });
 });

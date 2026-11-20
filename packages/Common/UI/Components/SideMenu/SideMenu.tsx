@@ -204,6 +204,17 @@ function withActiveSections(
 
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const { translateString, language } = useTranslateValue();
+  /*
+   * The menu's name, which a screen reader says as it lists the page's
+   * landmarks: what it holds, the pages of the section the page is in
+   * (#7963). It was "Main navigation", which named a project's Settings
+   * menu as the product's main navigation, while the bar along the top that
+   * moves between products had no name. That bar is the main menu now
+   * (NavBar), and no name holds the landmark's own word, navigation, which
+   * a screen reader says after it (WAI-ARIA's landmark naming).
+   */
+  const menuName: string =
+    translateString("Pages in this section") || "Pages in this section";
   // The Page's last breadcrumb, for a page none of the entries read here is for.
   const pageTrailEnd: Link | null = useContext(PageTrailEndContext);
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -311,7 +322,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   // Close mobile menu when clicking on a menu item
   /*
    * Following a link closes the phone menu; opening or closing a section
-   * must not. The handler sits on the whole <nav>, so a tap on a section's
+   * must not. The handler sits on the whole list, so a tap on a section's
    * header used to close the menu too: a folded section (Advanced, or a
    * product's Settings) could never be opened on a phone, and its pages were
    * out of reach from the menu.
@@ -942,7 +953,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 animate-in slide-in-from-top-2 fade-in duration-200
               `}
               role="navigation"
-              aria-label={translateString("Main navigation")}
+              aria-label={menuName}
             >
               {/* Optional Header */}
               {props.header && (
@@ -956,7 +967,14 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                * the lit entry is brought into sight with the next one
                * peeking past it (SideMenuScroll).
                */}
+              {/*
+               * The list keeps its tag, which the browser suites and its
+               * scroll find it by; role="none" leaves the panel one landmark,
+               * its own, rather than a navigation with no name inside a
+               * named one.
+               */}
               <nav
+                role="none"
                 ref={mobileListRef}
                 className={`p-2 max-h-[60vh] overflow-y-auto ${SIDE_MENU_SCROLL_PADDING_CLASS_NAME} ${getSideMenuFadeClassName(
                   mobileList.hiddenEdges,
@@ -1002,7 +1020,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
        */
       className={`max-md:hidden md:block w-56 lg:w-64 flex-shrink-0 mb-10 ${props.className || ""}`}
       role="navigation"
-      aria-label={translateString("Main navigation")}
+      aria-label={menuName}
     >
       {/*
        * Stick below the app header, not at the top of the viewport. The header
@@ -1055,7 +1073,12 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
            * scrollbar shows only while it scrolls on many screens - and the
            * keyboard's focus stays clear of the fades (SideMenuScroll).
            */}
+          {/*
+           * The list keeps its tag; role="none" leaves the menu one
+           * landmark, the aside's, never an unnamed navigation in it.
+           */}
           <nav
+            role="none"
             ref={desktopListRef}
             className={`p-2 min-h-0 overflow-y-auto ${SIDE_MENU_SCROLL_PADDING_CLASS_NAME} ${getSideMenuFadeClassName(
               desktopList.hiddenEdges,

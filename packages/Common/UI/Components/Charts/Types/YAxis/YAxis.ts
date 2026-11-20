@@ -9,20 +9,30 @@ export enum YAxisPrecision {
 }
 
 /*
- * THE FIGURES A VALUE AXIS WRITES ITS TICKS WITH (issue #10079).
+ * THE FIGURES A VALUE AXIS WRITES ITS TICKS WITH (issues #10079, #10117).
  *
- * An axis over a range small beside its values wrote the same label on every
- * tick: "17.2 GB" five times for a filesystem holding 17.2 GB give or take a
- * few megabytes. When an axis's ticks would read alike, the chart steps it in
- * round steps (1, 2, 2.5 or 5 times a power of ten) and hands its formatter
- * the step: a formatter that can write more figures writes as many as the
- * step needs, "17.200 GB", "17.205 GB" (ValueFormatter's `step` option). The
- * tooltip writes the values of the axis's series with the same figures.
- * Every other axis is handed nothing, and reads exactly as before.
+ * The chart steps every value axis itself, in round steps of the unit it is
+ * written in (1, 2, 2.5 or 5 times a power of ten; natural steps of time on
+ * a duration axis, issue #10118), and hands its formatter the step: a
+ * formatter that can write more figures writes as many as the step needs
+ * and no more, "17.200 GB", "17.205 GB" beside each other, "25%" on an axis
+ * stepping a quarter (ValueFormatter's `step` option). Before, an axis whose
+ * ticks already read apart kept recharts' own steps, which are not round in
+ * the unit drawn: "7.57 GB", "7.65 GB", "7.74 GB". The tooltip writes the
+ * values of the axis's series with the step's figures only where its own
+ * figures cannot tell two ticks apart ("17.2 GB" five times).
  */
 export interface ValueAxisPrecision {
   // The step between the axis's neighbouring ticks, in the axis's unit.
   step: number;
+  /*
+   * The size of the axis's largest tick, either side of zero, in the axis's
+   * unit: a duration axis writes every tick in the units its largest one
+   * needs, so its ticks read alike ("1:29:59" beside "1:30:00", never "59
+   * min 59 sec" beside "1:00:00", issue #10118). Undefined: each value is
+   * written in the units it needs itself.
+   */
+  largestTick?: number | undefined;
 }
 
 /*
@@ -40,6 +50,15 @@ export interface YAxisOptions {
   max: YAxisMaxMin;
   formatter: ValueAxisFormatter;
   precision: YAxisPrecision;
+  /*
+   * For an axis whose values are spans of time: the seconds one value
+   * stands for (1 for seconds, 0.001 for milliseconds, 60 for minutes;
+   * ValueFormatter.getDurationUnitInSeconds). The axis then steps in
+   * natural units of time - 15 sec, 5 min, 30 min, 6 h, 2 d - not in
+   * decimal fractions of an hour (issue #10118). Left out, the axis steps
+   * in round decimal steps.
+   */
+  durationUnitInSeconds?: number | undefined;
 }
 
 export default interface YAxis {

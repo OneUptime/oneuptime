@@ -40,6 +40,7 @@ const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_SITE_VIEW_TRAFFIC,
   PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE,
   PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
+  PageMap.NETWORK_SITE_VIEW_OWNERS,
   PageMap.NETWORK_SITE_VIEW_SETTINGS,
   PageMap.NETWORK_SITE_VIEW_DELETE,
   // A device's and a site's Developer pages (Terraform, API, CLI, AI Assistants).

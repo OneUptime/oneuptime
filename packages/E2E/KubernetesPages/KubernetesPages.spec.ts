@@ -1194,16 +1194,26 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
       "2 runs kept",
     ]);
 
+    /*
+     * The run, then why it failed: its failed pod, after the rest, with how
+     * its container ended (#9595).
+     */
     const card: Locator = page.getByTestId("kubernetes-cronjob-attention");
     expect(await attentionRows(card)).toEqual([
       { key: "CronJob:shop/nightly-report", severity: "warning" },
       { key: `Job:shop/${FAILED_RUN}`, severity: "warning" },
+      { key: `Pod:shop/${FAILED_RUN}-k2j4h`, severity: "warning" },
     ]);
     await expect(
       attentionRow(card, `Job:shop/${FAILED_RUN}`).getByTestId(
         "kubernetes-cronjob-attention-reason",
       ),
     ).toHaveText(["Failed", "BackoffLimitExceeded"]);
+    await expect(
+      attentionRow(card, `Pod:shop/${FAILED_RUN}-k2j4h`).getByTestId(
+        "kubernetes-cronjob-attention-reason",
+      ),
+    ).toHaveText(["Failed", "Error, exit code 1"]);
     await expect(
       page.getByTestId("kubernetes-cronjob-alerts-turn-on"),
     ).toHaveText("Turn on 1 alert");
@@ -1258,14 +1268,48 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     await expect(
       location.getByRole("link", { name: "CronJob nightly-report" }),
     ).toHaveAttribute("href", partPath("cronjobs", "nightly-report", "shop"));
-    await expect(heroChips(hero, "Job")).toHaveText(["3 pods failed"]);
+    /*
+     * Its one chip, "3 pods failed", opens which pods failed and why
+     * (#9595): red, since the Job gave up.
+     */
+    const chips: Locator = hero.getByTestId("kubernetes-job-hero-chips");
+    await expect(heroChips(hero, "Job")).toHaveCount(0);
+    await expect(chips.getByRole("button")).toHaveText(["3 pods failed"]);
+    const failedPods: Locator = chips.getByTestId("kubernetes-job-failed-pods");
+    await expect(failedPods).toHaveAttribute("data-tone", "danger");
+    // Its Needs attention: the Job, then the pod that says why it failed.
+    const card: Locator = page.getByTestId("kubernetes-job-attention");
+    expect(await attentionRows(card)).toEqual([
+      { key: `Job:shop/${FAILED_RUN}`, severity: "warning" },
+      { key: `Pod:shop/${FAILED_RUN}-k2j4h`, severity: "warning" },
+    ]);
     await expect(
-      page.getByTestId("kubernetes-job-attention-reason"),
+      attentionRow(card, `Job:shop/${FAILED_RUN}`).getByTestId(
+        "kubernetes-job-attention-reason",
+      ),
     ).toHaveText(["Failed", "BackoffLimitExceeded"]);
+    await expect(
+      attentionRow(card, `Pod:shop/${FAILED_RUN}-k2j4h`).getByTestId(
+        "kubernetes-job-attention-reason",
+      ),
+    ).toHaveText(["Failed", "Error, exit code 1"]);
+    // Pressed, the chip lists that pod with how its container ended.
+    await failedPods.click();
+    const dialog: Locator = page.getByTestId(
+      "kubernetes-job-failed-pods-dialog-list",
+    );
+    await expect(
+      dialog.getByTestId("kubernetes-job-failed-pods-dialog-item"),
+    ).toHaveCount(1);
+    await expect(
+      dialog.locator(`[data-key="Pod:shop/${FAILED_RUN}-k2j4h"]`),
+    ).toContainText("Error, exit code 1");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
     const overview: Locator = page.getByRole("tabpanel", { name: "Overview" });
     await expect(overview).not.toContainText(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
     await expect(overview).toContainText(
-      /Start Time\s*[A-Z][a-z]{2} \d{2} \d{4}, \d{2}:\d{2}/,
+      /Start Time\s*[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2}/,
     );
   });
 });

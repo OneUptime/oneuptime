@@ -175,10 +175,13 @@ export default abstract class PrivateUserServiceBase<
   /*
    * After every permission check: whether the new private user has a
    * password (hasPassword, which no caller writes), and the count of the
-   * invitation the create emails - refused with 429, before anything is
-   * written, once the address has been sent enough this hour. Only an
-   * invitation that is sent counts: a user single sign-on adds, or one of a
-   * resource that takes only single sign-on, is sent none.
+   * invitation the create emails. It is counted in the resource's project,
+   * with the project's own invitations (PublicMessageRateLimit.
+   * assertTeamMaySend, #10179): refused with 429, before anything is
+   * written, once the project has sent the address enough this hour, and
+   * with a 503 past the cap on every project's invitations to it together.
+   * Only an invitation that is sent counts: a user single sign-on adds, or
+   * one of a resource that takes only single sign-on, is sent none.
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -215,6 +218,8 @@ export default abstract class PrivateUserServiceBase<
     carryForward.invitationPermit =
       await PublicMessageRateLimit.assertTeamMaySend({
         kind: TeamMessageKind.Invitation,
+        // The project inviting: the dashboard's, or the form's (#10179).
+        projectId: resource.projectId,
         contacts: [PublicMessageRateLimit.forEmail(data["email"] as Email)],
       });
   }
@@ -488,7 +493,8 @@ export default abstract class PrivateUserServiceBase<
 
     return {
       user,
-      isExpired: !(expires instanceof Date) || OneUptimeDate.hasExpired(expires),
+      isExpired:
+        !(expires instanceof Date) || OneUptimeDate.hasExpired(expires),
     };
   }
 }

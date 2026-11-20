@@ -18,11 +18,11 @@ import { dropdownControlOf } from "../SuiteHelpers/Dropdowns";
  * behind. So, read the way a person reads them: the Metrics tab's rows at a
  * phone's width, beside the side menu at a 768px window and at a laptop's;
  * a task's page with its long Container ID; the Overview's agent chip with
- * the files before the fix (0.161.0), the files this release ships
- * (0.161.3) and no version at all, the sign's dialog with both ways to
- * upgrade; the Overview's own name on a phone; dark and German. The fixture
- * records every read, so the tests check that nothing it does not model was
- * asked for.
+ * the files before the fix (0.161.0), the files this release ships and no
+ * version at all, the sign's dialog with both ways to upgrade; the
+ * Overview's own name on a phone; dark and German. The fixture records
+ * every read, so the tests check that nothing it does not model was asked
+ * for.
  *
  * And what the swarm's rules say (DockerSwarmHealth), on a swarm in trouble
  * (?swarm=trouble): the Overview's health and Needs attention, the Nodes,
@@ -52,8 +52,19 @@ const METRIC_NAMES: Array<string> = [
   "container.network.io.usage.rx_bytes",
 ];
 
-// The agent files this release ships, and the ones before the CPU fix.
-const AGENT_FILES_VERSION: string = "0.161.3";
+/*
+ * The agent files this release ships - the version the agent's compose file
+ * reports, APP_VERSION's default - and the ones before the CPU fix.
+ */
+const AGENT_FILES_VERSION: string = fs
+  .readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../agents/DockerSwarmAgent/docker-compose.yml",
+    ),
+    "utf8",
+  )
+  .match(/APP_VERSION=\$\{APP_VERSION:-([^}]+)\}/)![1]!;
 const OLD_AGENT_VERSION: string = "0.161.0";
 const OUTDATED_NAME: string = `Agent ${OLD_AGENT_VERSION} is outdated. A newer agent is available: ${AGENT_FILES_VERSION}. Show how to upgrade.`;
 
@@ -590,7 +601,7 @@ test.describe("the Swarm agent's version on the Overview", () => {
     await expect(sign).toBeFocused();
   });
 
-  test("the files this release ships (0.161.3): the plain chip, no sign", async ({
+  test("the files this release ships: the plain chip, no sign", async ({
     page,
   }: {
     page: Page;
@@ -933,7 +944,7 @@ test.describe("the Overview's name on a phone", () => {
  * ---------------------------------------------------------------------------
  */
 
-// A hovered point's time, as the row writes it: "Oct 26 2026, 14:37 GMT".
+// A hovered point's time, as the row writes it: "Oct 26, 2026, 14:37 GMT".
 const TIME_OF_DAY: RegExp = /\d{2}:\d{2}/;
 
 // A task's image, exactly.

@@ -270,6 +270,7 @@
     "Dashboard Widgets": "ダッシュボード ウィジェット",
     "Dashboard Variables & Filters": "ダッシュボード 変数とフィルター",
     "External Data Sources": "外部データソース",
+    "Import from Grafana and Datadog": "Grafana と Datadog からのインポート",
     "Sharing & Public Dashboards": "共有と公開ダッシュボード",
     "Dashboard Playlists": "ダッシュボード プレイリスト",
     "Dashboard Configuration & Permissions": "ダッシュボード 設定とアクセス権",

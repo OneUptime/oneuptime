@@ -129,7 +129,7 @@ const MONOSPACE: RegExp = /mono|Menlo|Consolas|Courier/i;
  * was, the number held to its unit (#8669).
  */
 const WHOLE_DATE_UNDER_THE_POINTER: RegExp = new RegExp(
-  `^Oct 27 2026, 02:57 PM \\S+ · ${withUnit(3, "minutes")} ago$`,
+  `^Oct 27, 2026, 2:57 PM \\S+ · ${withUnit(3, "minutes")} ago$`,
 );
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -1618,16 +1618,23 @@ test.describe("what an answer carries fits where it is drawn", () => {
       for (const label of labels) {
         expect(label, label.text).toEqual({ text: label.text, lines: 1 });
       }
-      // Each value held to its unit, as read (#8717).
+      /*
+       * Each value held to its unit, as read (#8717), half a second a tick
+       * with the figures that step needs (#10117): recharts' own steps read
+       * "650 ms", "1.3 s", "1.95 s", "2.6 s".
+       */
       expect(
         labels.map((label: { text: string; lines: number }): string => {
           return label.text;
         }),
       ).toEqual(
         expect.arrayContaining([
-          withUnit(650, "ms"),
-          withUnit(1.3, "s"),
-          withUnit(2.6, "s"),
+          withUnit(0, "ms"),
+          withUnit(500, "ms"),
+          withUnit("1.0", "s"),
+          withUnit("1.5", "s"),
+          withUnit("2.0", "s"),
+          withUnit("2.5", "s"),
         ]),
       );
     });
@@ -1743,7 +1750,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
   });
 
   /*
-   * A tool's table wrote each date whole - "Oct 27 2026, 02:57 PM UTC · 3
+   * A tool's table wrote each date whole - "Oct 27, 2026, 2:57 PM UTC · 3
    * minutes ago" - which took a third of the chat's column, its year and
    * zone the same on every row, and named its columns in English in every
    * language. A date is short now, as every table writes one, and whole
@@ -4936,8 +4943,8 @@ test.describe("every card a read leaves", () => {
       "Pages no one",
       "On call now: Ana Souza",
       // In the browser's zone, UTC, as the export's header names it (#8475).
-      "Oct 26 2026, 13:00 UTC",
-      "Nov 02 2026, 13:00 UTC",
+      "Oct 26, 2026, 13:00 UTC",
+      "Nov 2, 2026, 13:00 UTC",
       "Jonas Müller",
       "3: Checkout (monitor: Checkout API), Payments (monitor group: Payments stack), Backups - not monitored",
       "IP Address: 203.0.113.7, User: ana@acme.example.com",

@@ -27,6 +27,7 @@ import {
 } from "../../../../Types/DateLanguage";
 import GenericObject from "../../../../Types/GenericObject";
 import Timezone from "../../../../Types/Timezone";
+import { readDashboardLocale } from "../../../Helpers/DashboardLocales";
 
 /*
  * A DATE AND TIME FILTER'S CHIP READS HOURS AND MINUTES (issue #7593).
@@ -144,7 +145,7 @@ describe("a date and time filter's chip", () => {
         seconds: false,
       });
       expect(text).toContain(clock);
-      expect(text).toContain("Nov 13 2026");
+      expect(text).toContain("Nov 13, 2026");
     },
   );
 
@@ -153,16 +154,16 @@ describe("a date and time filter's chip", () => {
       startsAt: new GreaterThan(WITH_SECONDS),
     } as FilterData<Row>);
 
-    expect(chipText("Starts")).toBe("Starts is after Nov 13 2026, 11:15 EST");
+    expect(chipText("Starts")).toBe("Starts is after Nov 13, 2026, 11:15 EST");
   });
 
-  test("is between: both ends to the minute", () => {
+  test("is between: both ends to the minute, the day and the zone said once (#7721)", () => {
     renderFilters("en", {
       startsAt: new InBetween(WITH_SECONDS, LATER_WITH_SECONDS),
     } as FilterData<Row>);
 
     expect(chipText("Starts")).toBe(
-      "Starts is between Nov 13 2026, 11:15 EST and Nov 13 2026, 12:40 EST",
+      "Starts is between Nov 13, 2026, 11:15 and 12:40 EST",
     );
   });
 
@@ -171,7 +172,7 @@ describe("a date and time filter's chip", () => {
       startsAt: new InBetween(ON_THE_MINUTE, WITH_SECONDS),
     } as FilterData<Row>);
 
-    expect(chipText("Starts")).toBe("Starts is Nov 13 2026, 11:15 EST");
+    expect(chipText("Starts")).toBe("Starts is Nov 13, 2026, 11:15 EST");
   });
 
   test("on a 12-hour clock too", () => {
@@ -184,7 +185,7 @@ describe("a date and time filter's chip", () => {
     } as FilterData<Row>);
 
     expect(chipText("Starts")).toBe(
-      "Starts is after Nov 13 2026, 11:15 AM EST",
+      "Starts is after Nov 13, 2026, 11:15 AM EST",
     );
   });
 
@@ -217,5 +218,144 @@ describe("a date and time filter's chip", () => {
     } as FilterData<Row>);
 
     expect(chipText("Day")).toBe("Day is after Nov 13, 2026");
+  });
+});
+
+/*
+ * A RANGE WITHIN ONE DAY SAYS ITS DATE ONCE AND ITS ZONE ONCE (#7721).
+ *
+ * "Notification Sent At is between Nov 13 2026, 09:00 GMT+08 and Nov 13
+ * 2026, 17:30 GMT+08" wrapped to three lines on a phone. When both ends
+ * fall on one day of the viewer's zone, in one zone name, the end is its
+ * time alone, with the zone after it, in the sentence each language
+ * already words: "between {{start}} and {{end}}". Across midnight, and for
+ * a date alone, each end is written whole.
+ */
+describe("a date and time range within one day", () => {
+  // 09:00 and 17:30 in Singapore (GMT+08), on November 13.
+  const MORNING_IN_SINGAPORE: Date = new Date("2026-11-13T01:00:00.000Z");
+  const EVENING_IN_SINGAPORE: Date = new Date("2026-11-13T09:30:00.000Z");
+
+  const worded: Record<string, i18n> = {};
+
+  beforeAll(async () => {
+    for (const code of ["en", "de", "ar", "ja"]) {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: code,
+        resources: {
+          [code]: { translation: readDashboardLocale(code) },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+
+      worded[code] = instance;
+    }
+  });
+
+  const chipIn: (code: string, filterData: FilterData<Row>) => string = (
+    code: string,
+    filterData: FilterData<Row>,
+  ): string => {
+    setDateDisplayLanguage(code);
+
+    render(
+      <I18nextProvider i18n={worded[code] as i18n}>
+        <FilterViewer<Row>
+          id="notification-logs"
+          filters={FILTERS}
+          filterData={filterData}
+          showFilterModal={false}
+          pluralLabel="Notifications"
+        />
+      </I18nextProvider>,
+    );
+
+    const chips: Array<HTMLElement> = screen.getAllByTestId(
+      "applied-filter-chip",
+    );
+
+    return (chips[0]!.textContent || "").replace(/\s+/g, " ").trim();
+  };
+
+  beforeEach(() => {
+    OneUptimeDate.setUserTimezone(Timezone.AsiaSingapore);
+  });
+
+  test.each<[string, string]>([
+    ["en", "Starts is between Nov 13, 2026, 09:00 and 17:30 GMT+08"],
+    ["de", "Beginnt liegt zwischen 13. Nov. 2026, 09:00 und 17:30 GMT+08"],
+    ["ja", "開始 が 2026年11月13日 09:00 から 17:30 GMT+08 の間"],
+  ])("%s: the date once, the zone once", (code: string, text: string) => {
+    expect(
+      chipIn(code, {
+        startsAt: new InBetween(MORNING_IN_SINGAPORE, EVENING_IN_SINGAPORE),
+      } as FilterData<Row>),
+    ).toBe(text);
+  });
+
+  test("ar: the date once and the zone once, in Arabic's own sentence and Latin digits", () => {
+    const text: string = chipIn("ar", {
+      startsAt: new InBetween(MORNING_IN_SINGAPORE, EVENING_IN_SINGAPORE),
+    } as FilterData<Row>);
+
+    expect(text.match(/نوفمبر/g)).toHaveLength(1);
+    expect(text.match(/GMT\+08/g)).toHaveLength(1);
+    expect(text).toContain("بين");
+    expect(text).toMatch(/09:00/);
+    expect(text).toMatch(/17:30/);
+  });
+
+  test("a 12-hour viewer reads 9:00 AM and 5:30 PM", () => {
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+
+    expect(
+      chipIn("en", {
+        startsAt: new InBetween(MORNING_IN_SINGAPORE, EVENING_IN_SINGAPORE),
+      } as FilterData<Row>),
+    ).toBe("Starts is between Nov 13, 2026, 9:00 AM and 5:30 PM GMT+08");
+  });
+
+  test("across midnight in the viewer's zone, though one day in UTC, both dates are read", () => {
+    // 22:00 on the 13th and 02:00 on the 14th in Singapore: the 13th in UTC.
+    const lateEvening: Date = new Date("2026-11-13T14:00:00.000Z");
+    const earlyMorning: Date = new Date("2026-11-13T18:00:00.000Z");
+
+    expect(
+      chipIn("en", {
+        startsAt: new InBetween(lateEvening, earlyMorning),
+      } as FilterData<Row>),
+    ).toBe(
+      "Starts is between Nov 13, 2026, 22:00 GMT+08 and Nov 14, 2026, 02:00 GMT+08",
+    );
+  });
+
+  test("across a change of the clocks within the day, each end names its zone", () => {
+    // 00:30 EDT and 03:00 EST on 1 November 2026, when New York falls back.
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    expect(
+      chipIn("en", {
+        startsAt: new InBetween(
+          new Date("2026-11-01T04:30:00.000Z"),
+          new Date("2026-11-01T08:00:00.000Z"),
+        ),
+      } as FilterData<Row>),
+    ).toBe(
+      "Starts is between Nov 1, 2026, 00:30 EDT and Nov 1, 2026, 03:00 EST",
+    );
+  });
+
+  test("a date filter's range reads its two days, as it always did", () => {
+    expect(
+      chipIn("en", {
+        day: new InBetween(MORNING_IN_SINGAPORE, EVENING_IN_SINGAPORE),
+      } as FilterData<Row>),
+    ).toBe("Day is Nov 13, 2026");
   });
 });

@@ -89,7 +89,7 @@ Une liste ou un comptage prend une `query`. Un champ avec une valeur correspond 
 | `Includes` | L'une des valeurs de `value` |
 | `IsNull`, `NotNull` | Aucune valeur, ou n'importe quelle valeur |
 
-Un champ d'un enregistrement que la ressource nomme se filtre sous sa relation : `"user": { "name": { "_type": "Search", "value": "ada" } }` trouve les membres d'équipe dont l'utilisateur a un nom qui contient « ada ». Filtrer sur un champ demande l'autorisation de le lire, à travers une relation comme sur la ressource elle-même : un filtre sur un champ que vous ne pouvez pas lire est refusé avec un `422` qui nomme le champ.
+Un champ d'un enregistrement que la ressource nomme se filtre sous sa relation : `"user": { "name": { "_type": "Search", "value": "ada" } }` trouve les membres d'équipe dont l'utilisateur a un nom qui contient « ada ». Filtrer sur un champ demande l'autorisation de le lire, à travers une relation comme sur la ressource elle-même : un filtre sur un champ que vous ne pouvez pas lire est refusé avec un `422` qui nomme le champ. À travers une relation, un champ que seule la personne elle-même peut lire, comme le fuseau horaire d'un utilisateur ou ses méthodes de notification et ses journaux d'astreinte, est refusé à tout le monde, dans un filtre comme dans un tri, car la relation peut nommer l'enregistrement de n'importe qui.
 
 Une ressource avec des propriétaires - un moniteur, un incident, une stratégie d'astreinte et toute autre ressource avec des propriétaires utilisateurs et équipes - se filtre aussi selon qui la possède, sous `owners` : `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` trouve les enregistrements dont une ou plusieurs de ces personnes et équipes sont propriétaires. `match` vaut `AnyOf` tant que vous ne le fixez pas : `NoneOf` trouve les enregistrements dont aucune d'elles n'est propriétaire, enregistrements sans propriétaire compris, et `AnyOwner` et `NoOwner` trouvent les enregistrements avec au moins un propriétaire ou sans aucun, sans nommer personne. Les membres d'une équipe ne sont pas propriétaires de ce que l'équipe possède. Un filtre nomme au plus 1 000 personnes et équipes au total, une ressource sans propriétaires le refuse avec un `400`, et filtrer par propriétaires sans l'autorisation de les lire est refusé avec un `422`.
 
@@ -255,7 +255,16 @@ Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'ast
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-À côté du message, la réponse contient `"refusalCode": "name_taken"`. Reconnaissez ce refus à ce code, pas à la phrase, qui peut être reformulée. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que l'autre enregistrement abandonne le nom : le fournisseur Terraform redemande pendant 30 secondes au plus.
+Beaucoup d'autres types ont aussi un nom bien à eux, comme les gravités d'incidents, les statuts de moniteur, les pages d'état et les flux de travail, et refusent de la même façon un nom déjà pris :
+
+```text
+Incident Severity with the same name already exists.
+```
+
+À côté du message, chacun de ces refus contient un `refusalCode` qui dit ce qui porte le nom. Reconnaissez le refus à ce code, pas à la phrase, qui peut être reformulée :
+
+- `"refusalCode": "name_taken"` : un enregistrement en service le porte. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que cet enregistrement abandonne le nom : le fournisseur Terraform redemande pendant 30 secondes au plus.
+- `"refusalCode": "name_taken_by_archived"` : seul un enregistrement archivé le porte. Désarchivez cet enregistrement, ou choisissez un autre nom : renvoyer la requête n'y change rien, et le fournisseur Terraform ne la renvoie pas.
 
 Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer. Pour les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon. Les étiquettes et les politiques d'astreinte archivées sont laissées de côté.
 

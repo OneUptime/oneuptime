@@ -89,7 +89,7 @@ Een lijst of een telling neemt een `query`. Een veld met een waarde komt overeen
 | `Includes` | Een van de waarden in `value` |
 | `IsNull`, `NotNull` | Geen waarde, of een willekeurige waarde |
 
-Een veld van een record dat de resource noemt, filter je onder de relatie ervan: `"user": { "name": { "_type": "Search", "value": "ada" } }` vindt de teamleden van wie de gebruiker een naam heeft die „ada” bevat. Filteren op een veld vereist toestemming om het te lezen, via een relatie net als op de resource zelf: een filter op een veld dat je niet mag lezen, wordt geweigerd met een `422` die het veld noemt.
+Een veld van een record dat de resource noemt, filter je onder de relatie ervan: `"user": { "name": { "_type": "Search", "value": "ada" } }` vindt de teamleden van wie de gebruiker een naam heeft die „ada” bevat. Filteren op een veld vereist toestemming om het te lezen, via een relatie net als op de resource zelf: een filter op een veld dat je niet mag lezen, wordt geweigerd met een `422` die het veld noemt. Via een relatie wordt een veld dat alleen de persoon zelf mag lezen, zoals de tijdzone van een gebruiker of diens meldingsmethoden en piketlogboeken, voor iedereen geweigerd, zowel in een filter als bij het sorteren, omdat de relatie ieders record kan noemen.
 
 Een resource met eigenaren - een monitor, een incident, een piketbeleid en elke andere met gebruikers- en teameigenaren - filter je ook op wie hem bezit, onder `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` vindt de records waarvan een of meer van die personen en teams eigenaar zijn. `match` is `AnyOf` tenzij je het instelt: `NoneOf` vindt de records waarvan geen van hen eigenaar is, records zonder eigenaren inbegrepen, en `AnyOwner` en `NoOwner` vinden de records met een eigenaar of zonder, zonder iemand te noemen. De leden van een team zijn geen eigenaar van wat het team bezit. Eén filter noemt samen hoogstens 1.000 personen en teams, een resource zonder eigenaren weigert het met een `400`, en filteren op eigenaren zonder toestemming om ze te lezen, wordt geweigerd met een `422`.
 
@@ -255,7 +255,16 @@ Teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's hebben in een pr
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Naast de melding bevat het antwoord `"refusalCode": "name_taken"`. Herken deze weigering aan die code, niet aan de zin, die anders geformuleerd kan worden. Er is niets geschreven, dus hetzelfde verzoek kan opnieuw worden gestuurd zodra het andere record de naam opgeeft: de Terraform-provider vraagt het tot 30 seconden lang opnieuw.
+Ook veel andere soorten hebben een eigen naam, zoals ernstniveaus van incidenten, monitorstatussen, statuspagina's en workflows, en weigeren een bezette naam op dezelfde manier:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Naast de melding bevat elke zulke weigering een `refusalCode` die zegt wat de naam heeft. Herken de weigering aan die code, niet aan de zin, die anders geformuleerd kan worden:
+
+- `"refusalCode": "name_taken"`: een record in dienst heeft hem. Er is niets geschreven, dus hetzelfde verzoek kan opnieuw worden gestuurd zodra dat record de naam opgeeft: de Terraform-provider vraagt het tot 30 seconden lang opnieuw.
+- `"refusalCode": "name_taken_by_archived"`: alleen een gearchiveerd record heeft hem. Haal dat record uit het archief, of kies een andere naam: het verzoek opnieuw sturen helpt niet, en de Terraform-provider doet dat niet.
 
 Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen. Voor teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `label`, `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden. Gearchiveerde labels en gearchiveerd bereikbaarheidsbeleid tellen niet mee.
 

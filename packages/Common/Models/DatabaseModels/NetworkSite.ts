@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import Label from "./Label";
 import MonitorStatus from "./MonitorStatus";
 import NetworkSiteType from "./NetworkSiteType";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
@@ -31,6 +32,8 @@ import {
   Entity,
   Index,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   ValueTransformer,
 } from "typeorm";
@@ -371,6 +374,68 @@ export default class NetworkSite extends BaseModel {
     length: ColumnLength.LongText,
   })
   public description?: string = undefined;
+
+  /*
+   * Labels group and filter sites (#10188): a Meraki organization's 700
+   * stores, by brand, by country, by who looks after them. A site's labels
+   * do not decide who may see it - no @AccessControlColumn - so a team
+   * limited to some labels reads every site, as it did before sites had
+   * labels: a device of theirs is in one, and the hierarchy draws its
+   * parents. Only people set them: no rule labels a site.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description: "Labels to group and filter sites by.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "NetworkSiteLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "networkSiteId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
 
   @ColumnAccessControl({
     create: [
