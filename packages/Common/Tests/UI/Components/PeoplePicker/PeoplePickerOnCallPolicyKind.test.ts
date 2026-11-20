@@ -250,7 +250,14 @@ describe("searching on-call policies", () => {
     expect(request.modelType).toBe(OnCallDutyPolicy);
     // The policies the On-Call Policies page lists: an archived one pages no one.
     expect(request.query).toEqual({ projectId: PROJECT_ID, isArchived: false });
-    expect(request.select).toEqual({ _id: true, name: true, isArchived: true });
+    // With what tells records of one name apart (SharedNameOptions, #10064).
+    expect(request.select).toEqual({
+      _id: true,
+      name: true,
+      isArchived: true,
+      description: true,
+      createdAt: true,
+    });
     expect(request.sort).toEqual({ name: SortOrder.Ascending });
     expect(request.limit).toBe(PEOPLE_PICKER_SEARCH_LIMIT);
   });
