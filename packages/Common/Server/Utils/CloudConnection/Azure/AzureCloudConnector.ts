@@ -663,7 +663,8 @@ export function buildAzureMetricRequest(data: {
   status?: CloudResourceMetricStatus | undefined;
   now: Date;
 }): AzureMetricRequest<SelectedMetric> {
-  const typeSplitBy: string | undefined = getAzureKeyMetrics(
+  // Its type's split: a Service Bus or Event Hubs namespace's, by its entities.
+  const splitBy: string | undefined = getAzureKeyMetrics(
     data.entry.type,
   )?.splitByDimension;
   const groups: Map<string, AzureMetricCallGroup<SelectedMetric>> = new Map();
@@ -702,19 +703,21 @@ export function buildAzureMetricRequest(data: {
         grain: readGroup.grain,
         window: readGroup.window,
         metrics: [],
+        // An added metric's split stops at its cap by design; a namespace's says so.
+        reportsCapped: !metric.splitBy,
+        /*
+         * The split rides on the resource's own call, never a call per
+         * queue: an addition's by its own dimension, a namespace's by its
+         * entities.
+         */
         ...(metric.splitBy
           ? {
               splitBy: metric.splitBy,
               top: CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
               orderBy,
             }
-          : typeSplitBy
-            ? {
-                splitBy: typeSplitBy,
-                top: AZURE_MAX_SPLIT_SERIES_PER_METRIC,
-                // An added metric's split stops at its cap by design; a namespace's says so.
-                reportsCapped: true,
-              }
+          : splitBy
+            ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
             : {}),
       };
       groups.set(callKey, group);
