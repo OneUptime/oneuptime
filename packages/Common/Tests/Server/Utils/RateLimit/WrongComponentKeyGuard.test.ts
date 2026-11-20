@@ -443,7 +443,9 @@ describe("every way a probe presents its key goes through the one check", () => 
       });
       expect({
         name,
-        handsItOn: method.includes("return await ProbeAuthorization.authorize({"),
+        handsItOn: method.includes(
+          "return await ProbeAuthorization.authorize({",
+        ),
         looksUp: method.includes("ProbeService.verifyProbeKey("),
         counts: method.includes("WrongComponentKeyLimit."),
         makesItTheProbes: method.includes("req.probe ="),

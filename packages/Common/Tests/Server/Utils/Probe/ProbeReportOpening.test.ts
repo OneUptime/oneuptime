@@ -123,7 +123,8 @@ describe("a report as every probe release writes it", () => {
       "\u0000\u0001\u001f control characters",
       "clé 東京 Grüße 🚀 beyond Latin-1",
       " spaces at both ends ",
-      "   line separators",
+      // Line separators, written as escapes so no tool turns them into line breaks.
+      `${String.fromCharCode(0x2028)}${String.fromCharCode(0x2029)} line separators`,
       // A lone surrogate, which JSON.stringify writes as an escape.
       "half a pair: \ud83d",
       "%41%20 percent signs",
@@ -174,7 +175,8 @@ describe("a report as every probe release writes it", () => {
       "🚀",
       "\ud800",
       "\udfff",
-      " ",
+      // A line separator, written as an escape so no tool turns it into a line break.
+      String.fromCharCode(0x2028),
       "{",
       "}",
       ",",
@@ -220,7 +222,10 @@ describe("anything else reads as no opening", () => {
     ["white space alone", "  \n "],
     ["an array", `[{"probeKey":"${PROBE_KEY}","probeId":"${PROBE_ID}"}]`],
     ["a string", `"${PROBE_KEY}"`],
-    ["an object that opens with another member", `{"status":"Failed","probeKey":"k","probeId":"i"}`],
+    [
+      "an object that opens with another member",
+      `{"status":"Failed","probeKey":"k","probeId":"i"}`,
+    ],
     [
       "the key with another member before the id",
       `{"probeKey":"k","status":"Failed","probeId":"i"}`,
@@ -305,7 +310,9 @@ describe("what it costs", () => {
 
   test("a character cut in two where the read stops leaves what comes before it whole", () => {
     const opening: string = `{"probeKey":"${PROBE_KEY}","probeId":"${PROBE_ID}","note":"`;
-    const filler: string = "x".repeat(MAX_REPORT_OPENING_BYTES - opening.length - 1);
+    const filler: string = "x".repeat(
+      MAX_REPORT_OPENING_BYTES - opening.length - 1,
+    );
     // A three-byte character across the end of what is read.
     const body: Buffer = Buffer.from(`${opening}${filler}東東"}`, "utf8");
 

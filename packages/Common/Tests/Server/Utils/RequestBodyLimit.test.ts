@@ -208,8 +208,10 @@ describe("the routes that read their body after their caller's key is checked", 
     expect(collections).toHaveLength(6);
 
     for (const path of [...collections, "/telemetry-writer/insert"]) {
-      expect({ path, afterAuthentication: readsBodyAfterAuthentication(path) })
-        .toEqual({ path, afterAuthentication: true });
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: true });
       // What they take once the key is right.
       expect(getRequestBodyLimit(path)).toBe(REPORT_REQUEST_BODY_LIMIT);
     }
@@ -223,8 +225,10 @@ describe("the routes that read their body after their caller's key is checked", 
       "/Probe/OpenStack/Collection",
       "/Telemetry-Writer/Insert/",
     ]) {
-      expect({ path, afterAuthentication: readsBodyAfterAuthentication(path) })
-        .toEqual({ path, afterAuthentication: true });
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: true });
     }
   });
 
@@ -244,8 +248,10 @@ describe("the routes that read their body after their caller's key is checked", 
       "/",
       "",
     ]) {
-      expect({ path, afterAuthentication: readsBodyAfterAuthentication(path) })
-        .toEqual({ path, afterAuthentication: false });
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: false });
     }
 
     const listed: Array<LargeRequestBodyRoute> =

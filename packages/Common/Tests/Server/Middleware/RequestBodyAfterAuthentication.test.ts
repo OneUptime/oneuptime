@@ -227,9 +227,7 @@ function post(data: {
 
             resolve({
               status: response.statusCode || 0,
-              body: text
-                ? (JSON.parse(text) as Record<string, unknown>)
-                : {},
+              body: text ? (JSON.parse(text) as Record<string, unknown>) : {},
             });
           });
         },

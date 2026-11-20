@@ -241,12 +241,12 @@ function startProbe(data: {
           .default,
         ...(data.collections
           ? {
-              postVMwareCollectionReport: require(
-                "../../Jobs/VMware/FetchVMwareWork",
-              ).postCollectionReport,
-              postOpenStackCollectionReport: require(
-                "../../Jobs/OpenStack/FetchOpenStackWork",
-              ).postCollectionReport,
+              postVMwareCollectionReport:
+                require("../../Jobs/VMware/FetchVMwareWork")
+                  .postCollectionReport,
+              postOpenStackCollectionReport:
+                require("../../Jobs/OpenStack/FetchOpenStackWork")
+                  .postCollectionReport,
             }
           : {}),
         LocalCache: require("Common/Server/Infrastructure/LocalCache").default,

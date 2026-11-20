@@ -39,9 +39,7 @@ export interface ProbeReportOpeningCredentials {
 }
 
 // The characters JSON allows between tokens.
-const isJsonWhiteSpace: (code: number) => boolean = (
-  code: number,
-): boolean => {
+const isJsonWhiteSpace: (code: number) => boolean = (code: number): boolean => {
   return code === 0x20 || code === 0x09 || code === 0x0a || code === 0x0d;
 };
 

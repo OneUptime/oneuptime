@@ -103,7 +103,11 @@ const mockRecordCollectionReport: (data: {
 
   return {
     accepted: true,
-    projectId: { toString: (): string => "project" },
+    projectId: {
+      toString: (): string => {
+        return "project";
+      },
+    },
     vcenterName: "Production",
     cloudName: "Production",
     isCurrent: true,
@@ -430,7 +434,11 @@ let largeReportOfProbeOne: Buffer;
 
 beforeAll(() => {
   largeReportOfProbeOne = zlib.gzipSync(
-    report({ probeId: PROBE_ONE, probeKey: PROBES[PROBE_ONE]!, points: 310000 }),
+    report({
+      probeId: PROBE_ONE,
+      probeKey: PROBES[PROBE_ONE]!,
+      points: 310000,
+    }),
   );
 });
 
@@ -524,7 +532,11 @@ describe("a probe that sends its key in the headers", () => {
     const opening: Answer = await post({
       path: VMWARE,
       body: zlib.gzipSync(
-        report({ probeId: PROBE_ONE, probeKey: "guess-in-the-body", points: 1 }),
+        report({
+          probeId: PROBE_ONE,
+          probeKey: "guess-in-the-body",
+          points: 1,
+        }),
       ),
     });
 
@@ -679,7 +691,11 @@ describe("an older probe, whose key is in its report alone", () => {
   }, 60000);
 
   test("still works with a small report, as it always has", async () => {
-    for (const path of [VMWARE, "/ingestor/probe/vmware/collection", "/probe/vmware/collection"]) {
+    for (const path of [
+      VMWARE,
+      "/ingestor/probe/vmware/collection",
+      "/probe/vmware/collection",
+    ]) {
       const answer: Answer = await post({
         path: path,
         body: zlib.gzipSync(
@@ -709,8 +725,11 @@ describe("a body whose probe is not known before it is parsed", () => {
       const started: number = Date.now();
       const answer: Answer = await post({ path: path, body: bomb });
 
-      expect({ path, status: answer.status, limit: answer.body["limit"] })
-        .toEqual({ path, status: 413, limit: 1000000 });
+      expect({
+        path,
+        status: answer.status,
+        limit: answer.body["limit"],
+      }).toEqual({ path, status: 413, limit: 1000000 });
       expect(answer.body["type"]).toBe("entity.too.many.values");
       // JSON.parse took 1.4 s and 490 MiB of heap for it.
       expect(Date.now() - started).toBeLessThan(5000);

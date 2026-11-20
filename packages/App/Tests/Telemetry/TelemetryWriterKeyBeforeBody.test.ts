@@ -139,11 +139,11 @@ beforeAll(async () => {
 
   jest.isolateModules(() => {
     /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-    keyHeaders = require("Common/Server/Middleware/ClusterKeyAuthorization")
-      .default.getClusterKeyHeaders();
+    keyHeaders =
+      require("Common/Server/Middleware/ClusterKeyAuthorization").default.getClusterKeyHeaders();
     gzipReader = require("Common/Server/Middleware/GzipRequestBody").default;
-    bodyReader = require("Common/Server/Middleware/RequestBodyAfterAuthentication")
-      .default;
+    bodyReader =
+      require("Common/Server/Middleware/RequestBodyAfterAuthentication").default;
     writer = require("../../FeatureSet/Telemetry/API/TelemetryWriter").default;
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
   });
@@ -290,9 +290,21 @@ function rows(count: number): Buffer {
 
 describe("a request without the cluster key", () => {
   test.each([
-    ["no key", {}, 'Cluster key not found. OneUptime\'s services send it in the "clusterkey" request header.'],
-    ["a wrong key", { clusterkey: "not-the-key" }, "Invalid cluster key provided"],
-    ["a wrong key, as KEDA sends one", { "x-clusterkey": "not-the-key" }, "Invalid cluster key provided"],
+    [
+      "no key",
+      {},
+      'Cluster key not found. OneUptime\'s services send it in the "clusterkey" request header.',
+    ],
+    [
+      "a wrong key",
+      { clusterkey: "not-the-key" },
+      "Invalid cluster key provided",
+    ],
+    [
+      "a wrong key, as KEDA sends one",
+      { "x-clusterkey": "not-the-key" },
+      "Invalid cluster key provided",
+    ],
   ])(
     "%s: refused with 23 MiB of eight million objects unread and never parsed",
     async (_what: string, headers: Dictionary<string>, message: string) => {

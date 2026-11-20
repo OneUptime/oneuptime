@@ -151,8 +151,7 @@ describe("getProbeKeyHeaders", () => {
         const fresh: typeof import("../../Utils/ProbeAPIRequest") = require("../../Utils/ProbeAPIRequest");
         /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
-        const headers: Dictionary<string> =
-          fresh.default.getProbeKeyHeaders();
+        const headers: Dictionary<string> = fresh.default.getProbeKeyHeaders();
 
         for (const [name, value] of Object.entries(headers)) {
           expect(() => {
