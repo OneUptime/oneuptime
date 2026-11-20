@@ -244,7 +244,8 @@ describe("the package", () => {
     );
 
     // The icon the Helm charts show, at the address they show it from.
-    const chartIcon: string | undefined = /^icon: (\S+)$/m.exec(
+    const iconLine: RegExp = /^icon: (\S+)$/m;
+    const chartIcon: string | undefined = iconLine.exec(
       fs.readFileSync(
         path.join(REPO_ROOT, "HelmChart", "Public", "oneuptime", "Chart.yaml"),
         "utf-8",
