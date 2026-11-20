@@ -7,6 +7,8 @@ Inventory is one list of everything OneUptime knows about your estate: services,
 - [Find your way around](#find-your-way-around): The Inventory pages, and each item's own pages.
 - [Import devices from Esper](#import-devices-from-esper): Every Android and Apple device your Esper tenant enrolls, kept current.
 - [Import devices from Microsoft Intune](#import-devices-from-microsoft-intune): Every Windows PC, Mac, iPhone, iPad and Android device Intune manages, kept current.
+- [Import devices from Workspace ONE UEM](#import-devices-from-workspace-one-uem): Every phone, tablet and computer Workspace ONE manages, kept current.
+- [Import devices from SOTI MobiControl](#import-devices-from-soti-mobicontrol): Every rugged device, phone, tablet and computer MobiControl manages, kept current.
 - [Add something by hand](#add-something-by-hand): A third-party API, an external database or an appliance.
 - [Archive instead of deleting](#archive-instead-of-deleting): The way to tidy the list that sticks.
 :::
@@ -27,14 +29,14 @@ flowchart TB
 | Source | In the API | Where it comes from | How long it stays |
 | --- | --- | --- | --- |
 | **Discovered** | `discovered` | OpenTelemetry resource attributes, read as telemetry arrives: a service, host, Kubernetes object or virtual machine that sends telemetry. | Registered again with each batch. Removed once it has been silent for longer than its kind's window (see below). |
-| **Mirrored** | `inventory` | A record a OneUptime poller keeps: network devices, cloud resources, IoT devices, serverless functions, RUM applications, Docker hosts, Podman hosts and the devices an Esper or Microsoft Intune connection imports. Copied every 15 minutes. An Esper device, each time its connection is read. | As long as its record. Delete the record, and the item goes with it. |
+| **Mirrored** | `inventory` | A record a OneUptime poller keeps: network devices, cloud resources, IoT devices, serverless functions, RUM applications, Docker hosts, Podman hosts and the devices a device manager connection imports. Copied every 15 minutes. A managed device, each time its connection is read. | As long as its record. Delete the record, and the item goes with it. |
 | **Added by you** | `manual` | Added by you, for something OneUptime cannot see: a third-party API, a vendor-managed database, an appliance in a rack. | Until you delete it. Nothing expires it. |
 
 A discovered or mirrored item cannot be renamed or given another type: its source would overwrite the change on its next pass. The item's **Settings** page says where to make a lasting change instead. What you can always add to any item, whatever its source, is custom field values: see [Inventory Custom Fields](/docs/inventory/custom-fields).
 
 ### How long a silent item stays
 
-A discovered item has a heartbeat. Each time telemetry arrives for it, its last-seen time moves forward, and the **Status** column of the list says how recent that is. So does a device from Esper or Intune: each time it checks in with its device manager. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.
+A discovered item has a heartbeat. Each time telemetry arrives for it, its last-seen time moves forward, and the **Status** column of the list says how recent that is. So does a managed device: each time it checks in with its device manager. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.
 
 | Status | What it means |
 | --- | --- |
@@ -60,9 +62,9 @@ Open **Products → Resources → Inventory**. Its side menu has these pages. **
 | --- | --- |
 | **Overview** | How many items you have, what they are, how many have gone quiet, and what was added most recently. |
 | **All Items** | Every item. Search by name, description or identity key, narrow the list by type, source, status or custom field, and add an item by hand. |
-| **Managed Devices** | Your Esper and Microsoft Intune connections, and every device they import with its status, group, model and operating system. |
+| **Managed Devices** | Your device manager connections - Esper, Microsoft Intune, Workspace ONE UEM and SOTI MobiControl - and every device they import with its status, group, model and operating system. |
 | **Topology Map** | How the items connect: services, what they call, and the hosts, pods and devices they run on. |
-| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with Esper. |
+| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with their device manager. |
 | **By Source** | The items of one source: **Discovered**, **Mirrored** or **Added by You**. |
 | **Settings → Custom Fields** | The fields your project keeps on every item. |
 | **Help → Documentation** | A short guide to Inventory, with the kinds of item it recognises. |
@@ -72,7 +74,7 @@ Open an item, and its own side menu has its **Overview** (its type, source and s
 
 ### Asset details
 
-A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. An Android device's card also has its security patch level, from the Android agent or Esper. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
+A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. An Android device's card also has its security patch level, from the Android agent or its device manager. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
 
 - A host's facts come from the resource attributes on its telemetry: its IP and MAC addresses, architecture and operating system out of the box, and its serial number, make, model and firmware once you stamp them on.
 - A network device's facts come from its SNMP poll, its role and its site. What its poll has not read comes from discovery: the last scan of its address, a router's ARP table, or its probe's DNS lookup. A device without ENTITY-MIB, such as a Meraki MX, still gets its make, model and operating system from its system description, and its MAC address from its own ports. Its IP address is never shown as its hostname.
@@ -164,6 +166,56 @@ A device checks in with Intune about every eight hours, and its last check-in is
 Intune names a device what its owner called it, so two devices can share a name: every iPhone nobody renamed is `iPhone`. A name two devices of a connection share is neither one's in Inventory: each is named by its serial number instead, and takes its name back once no other device has it.
 
 To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Intune Device Stopped Checking In**. It opens one alert for each device that has not checked in with Intune for more than a day, named after the device. A laptop left off over a weekend reads the same, so raise the monitor's threshold if a day is too soon for yours.
+
+## Import devices from Workspace ONE UEM
+
+Connect a Workspace ONE UEM server, and every device it manages is in Inventory: its iPhones, iPads, Macs, Windows PCs, Android devices and Linux machines. Each device is one host, with what Workspace ONE knows about it: its organization group, its operating system and version, its model, serial number and IMEI, its compliance, enrollment and ownership, its battery, storage and memory, and its apps. Workspace ONE sends nothing on its own, so OneUptime reads it on a schedule: the devices every 15 minutes, and each device's apps every 6 hours.
+
+:::steps
+### Make a read-only role
+
+In the Workspace ONE UEM console, go to `Accounts`, then `Administrators`, then `Roles`, and click `Add Role`. Under `API`, then `REST`, select `Read` for `Devices` and for `Apps`, and nothing else. That role is all OneUptime needs: it lists the devices and their apps, and can change nothing.
+
+### Make an OAuth client
+
+Go to `Groups & Settings`, then `Configurations`, then `OAuth Client Management`, and click `Add`. Pick the organization group whose devices OneUptime reads, and give the client the role you made. Copy its `Client ID` and its `Client Secret`: Workspace ONE shows the secret once.
+
+### Connect the server
+
+Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **Workspace ONE UEM**. Enter the **REST API URL**, which `Groups & Settings`, `All Settings`, `System`, `Advanced`, `API`, `REST API` shows, like `https://as1234.awmdm.com`. Keep **OAuth client** under **Sign in with**, enter the **Client ID** and the **Client Secret**, and pick the **Region** of your data center's token service. **Connect** tests the client before it saves anything: it says how many devices a read will import, or what is wrong and how to fix it.
+:::
+
+A Workspace ONE server on premises has no token service: pick **Administrator account** under **Sign in with**, and enter the **Username** and **Password** of an administrator with the read-only role and the **REST API Key** from the same REST API settings, where basic authentication must be allowed. OneUptime Cloud reads servers on the public internet only, so a server on a private network is read by a self-hosted OneUptime.
+
+A device reports to Workspace ONE on its own schedule, an iPhone hours apart, so a device that has not for a day is **Offline**. A device that is no longer enrolled is left out. A device is named by the name it reports, not by its friendly name, which Workspace ONE makes of its user's name, and nothing about a device's user is read. Every request counts against the tenant's daily API quota, so a read reads the apps of at most 25 devices, and the next read the next ones.
+
+An app or the Android Agent that sends telemetry from a device joins it as one item by the device's serial number: set the Android Agent's `device_serial` setting to the `{DeviceSerialNumber}` lookup value in its managed configuration.
+
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Workspace ONE Device Stopped Checking In**. It opens one alert for each device that has not reported to Workspace ONE for more than a day, named after the device.
+
+## Import devices from SOTI MobiControl
+
+Connect a SOTI MobiControl server, in SOTI's cloud or on premises, and every device it manages is in Inventory: its rugged Android devices, phones, tablets and scanners, its iPhones, iPads and Macs, and its Windows and Linux computers. Each device is one host, with what MobiControl knows about it: its device group, its operating system and version, its model, serial number and IMEI, its compliance, its agent, its battery, storage and memory, and its installed applications. MobiControl sends nothing on its own, so OneUptime reads it on a schedule: the devices every 15 minutes, and each device's apps every 6 hours.
+
+:::steps
+### Make a read-only MobiControl user
+
+In the MobiControl web console, add a user of MobiControl's own, not a SOTI Identity user. Allow `Web Console Access` and `View Installed Applications` in its general permissions and nothing else, and give it `View Groups` on the device groups OneUptime reads. That user is all OneUptime needs: it can see the devices and their apps, and change nothing.
+
+### Make an API client
+
+In the web console, go to `Global Settings`, then `Services`, then `API Client`, and add one. Copy its `Client ID` and its `Client Secret`: MobiControl shows the secret once. A server older than MobiControl 2024.0 makes one on the server with `MCAdmin.exe APIClientAdd -n:OneUptime`.
+
+### Connect the server
+
+Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **SOTI MobiControl**. Enter the **Server**, the address of your web console without `/MobiControl`, like `https://acme.mobicontrolcloud.com`, and the API client's **Client ID** and **Client Secret**, then the user's **Username** and **Password**. **Connect** tests the sign-in before it saves anything: it says how many devices a read will import, or what is wrong and how to fix it.
+:::
+
+A MobiControl agent keeps a live connection to its server, so a device whose agent is connected is online, and one whose agent has not been connected for 30 minutes is **Offline**. An iPhone, iPad or Mac checks in through Apple's push service, hours apart, and is **Offline** after a day. A device an administrator disabled is **Disabled**, and one being unenrolled is left out. OneUptime Cloud reads servers on the public internet only, so a server on a private network is read by a self-hosted OneUptime. Nothing about a device's user is read.
+
+An app or the Android Agent that sends telemetry from a device joins it as one item by the device's serial number: set the Android Agent's `device_serial` setting to the `%SERIALNUM%` macro in its managed configuration.
+
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **SOTI Device Stopped Checking In** and **SOTI Apple Device Stopped Checking In**. The first opens one alert for each Android, Windows or Linux device whose agent has not been connected for more than an hour, and the second for each Apple device that has not checked in for more than a day, each named after the device.
 
 ## Add something by hand
 
