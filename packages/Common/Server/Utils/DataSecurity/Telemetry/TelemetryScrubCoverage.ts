@@ -1305,17 +1305,17 @@ export async function createDropRuleForFinding(data: {
  * store that is not telemetry, a location no rule reaches (a session's own
  * details, a metric's name), and a data type no rule can find.
  */
-export async function createScrubRuleForFinding(data: {
-  projectId: ObjectID;
-  userId?: ObjectID | undefined;
+/*
+ * Where a finding's data would be scrubbed, or why it cannot be: a store
+ * that is not telemetry, a location no rule reaches (a session's own
+ * details, a metric's name). Refuses with BadDataException, in the words
+ * Scrub It answers with.
+ */
+function readScrubbableTarget(data: {
   kind: DataStoreKind;
   dataTypeId: string;
-  // The name the finding kept for its type: what the rule calls a type that is gone.
-  dataTypeName?: string | null | undefined;
   location: string;
-  // The service the store is the telemetry of: a metric rule is its own.
-  serviceId?: ObjectID | string | null | undefined;
-}): Promise<CreatedScrubRule> {
+}): { location: string; dataTypeId: string; target: ScrubTarget } {
   if (
     !isDataStoreKind(data.kind) ||
     !TELEMETRY_DATA_STORE_KINDS.includes(data.kind)
@@ -1348,6 +1348,107 @@ export async function createScrubRuleForFinding(data: {
       `No scrub rule reaches ${location} of ${data.kind}.`,
     );
   }
+
+  return { location, dataTypeId, target };
+}
+
+// The rule Scrub It would make for a finding, as a person reads it before it is made.
+export interface ScrubRulePreview {
+  signal: ScrubRuleSignal;
+  name: string;
+  description: string;
+}
+
+/*
+ * The rule "Scrub it" would make for a finding, without making it: what a
+ * proposal of OneUptime AI's shows a person before they approve it
+ * (Server/Utils/AI/DataSecurity/Actions/ScrubTelemetryAction, #10364).
+ * Refuses (BadDataException) what createScrubRuleForFinding refuses for a
+ * finding no rule covers yet, in the same words. It does not look for a
+ * rule that already covers the finding: its caller does.
+ */
+export async function previewScrubRuleForFinding(data: {
+  projectId: ObjectID;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  dataTypeName?: string | null | undefined;
+  location: string;
+  serviceId?: ObjectID | string | null | undefined;
+}): Promise<ScrubRulePreview> {
+  const scrubbable: {
+    location: string;
+    dataTypeId: string;
+    target: ScrubTarget;
+  } = readScrubbableTarget(data);
+
+  if (scrubbable.target.signal === "metric") {
+    const rule: MetricPipelineRule = buildMetricScrubRule({
+      projectId: data.projectId,
+      serviceId: data.serviceId,
+      kind: data.kind,
+      dataTypeId: scrubbable.dataTypeId,
+      location: scrubbable.location,
+      target: scrubbable.target,
+      dataTypeName: isCustomDataTypeId(scrubbable.dataTypeId)
+        ? await nameTypeForRule({
+            projectId: data.projectId,
+            dataTypeId: scrubbable.dataTypeId,
+            dataTypeName: data.dataTypeName,
+          })
+        : undefined,
+    });
+
+    return {
+      signal: "metric",
+      name: rule.name || "",
+      description: rule.description || "",
+    };
+  }
+
+  const plan: ScrubRulePlan = planScrubRule({
+    dataTypeId: scrubbable.dataTypeId,
+    location: scrubbable.location,
+    target: scrubbable.target,
+  });
+  const dataTypeName: string = await nameTypeForRule({
+    projectId: data.projectId,
+    dataTypeId: scrubbable.dataTypeId,
+    dataTypeName: data.dataTypeName,
+  });
+
+  return {
+    signal: scrubbable.target.signal,
+    name: cut(
+      `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${dataTypeName} in ${scrubbable.location}`,
+      MAX_RULE_NAME_LENGTH,
+    ),
+    description: describeRule({
+      plan,
+      signal: scrubbable.target.signal,
+      dataTypeName,
+      location: scrubbable.location,
+      kind: data.kind,
+    }),
+  };
+}
+
+export async function createScrubRuleForFinding(data: {
+  projectId: ObjectID;
+  userId?: ObjectID | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  // The name the finding kept for its type: what the rule calls a type that is gone.
+  dataTypeName?: string | null | undefined;
+  location: string;
+  // The service the store is the telemetry of: a metric rule is its own.
+  serviceId?: ObjectID | string | null | undefined;
+}): Promise<CreatedScrubRule> {
+  const {
+    location,
+    dataTypeId,
+    target,
+  }: { location: string; dataTypeId: string; target: ScrubTarget } =
+    readScrubbableTarget(data);
 
   const existing: CoveringScrubRule | null = findCoveringScrubRule(
     await getScrubCoverage(data.projectId),

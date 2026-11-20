@@ -873,9 +873,11 @@ describe("the token check", () => {
   });
 
   it("names the key types the answer reports", () => {
+    // A Mobile key (#6457) is a mobile app's: a collector sends with a Server key.
     expect(Object.values(TelemetryIngestionKeyType)).toEqual([
       "Server",
       "Browser",
+      "Mobile",
     ]);
     expect(readSource(OTLP_INGEST_API)).toContain("keyType: policy.keyType,");
     expect(pageProse(TROUBLESHOOTING)).toContain(

@@ -5,6 +5,7 @@ import {
   SecurityConnectorSample,
 } from "../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { ConnectorFieldChoice } from "../../../../Types/SecurityEvent/Connectors/ConnectorFieldChoices";
 import {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
@@ -218,6 +219,24 @@ export interface SecurityEventConnector {
     window: ConnectorFetchWindow,
     options: ConnectorFetchOptions,
   ): Promise<ConnectorFetchResult>;
+
+  /*
+   * The choices of the catalog's fields whose choices are the product's own
+   * (ConnectorField.choicesFromProvider), read with the credentials in
+   * settings: a Cloudflare token's accounts and zones. The settings may not
+   * name a choice yet (the form asks for them after the credentials), so
+   * only the credentials are needed. Throws, with a message the person
+   * filling the form can act on, when the product cannot be read. Only a
+   * connector with such a field has it.
+   */
+  listFieldChoices?(
+    settings: SecurityConnectorSettings,
+    options: ConnectorFieldChoicesOptions,
+  ): Promise<Record<string, Array<ConnectorFieldChoice>>>;
+}
+
+export interface ConnectorFieldChoicesOptions {
+  requestTimeoutInMs: number;
 }
 
 export function toConnectorTestResult(

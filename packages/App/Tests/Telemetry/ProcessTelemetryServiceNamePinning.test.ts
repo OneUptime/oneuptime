@@ -188,6 +188,8 @@ import { JSONObject } from "Common/Types/JSON";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import PinMobileRumResource from "Common/Server/Utils/Telemetry/PinMobileRumResource";
+import { RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE } from "Common/Types/Rum/RumClientKind";
 
 const PROJECT_ID: string = "11111111-1111-1111-1111-111111111111";
 const BODY_KEY: string = "telemetry:body:pin-test";
@@ -691,5 +693,225 @@ describe("ProcessTelemetry worker — applying the pin before any ingest service
     expect(serviceNamesIn(ingestedBody, "resourceProfiles")).toEqual([
       PINNED_SERVICE_NAME,
     ]);
+  });
+});
+
+/*
+ * A MOBILE KEY'S BATCH IS ITS APP'S MOBILE RUM (issue #6457).
+ *
+ * The enqueue side marks a job a Mobile key admitted; the worker then keeps
+ * only a mobile app's own resource attributes, after the pin, and stamps
+ * each resource as a mobile client. A copied key's `host.name` or
+ * `k8s.cluster.name` never reaches the ingest services, so the batch can
+ * file nothing under a host, a cluster or any other resource.
+ */
+function mobilePolicy(): TelemetryIngestionKeyPolicy {
+  return {
+    ...policyWithPin("storefront-mobile"),
+    keyType: TelemetryIngestionKeyType.Mobile,
+    allowedOrigins: [],
+  };
+}
+
+function mobileJob(
+  telemetryType: TelemetryType,
+  productType: ProductType,
+): unknown {
+  const job: { data: JSONObject } = otelJob(
+    telemetryType,
+    productType,
+    "storefront-mobile",
+  ) as { data: JSONObject };
+
+  job.data["isMobileKey"] = true;
+
+  return job;
+}
+
+function resourceKeysIn(body: JSONObject, containerKey: string): Array<string> {
+  const container: Array<JSONObject> =
+    (body[containerKey] as unknown as Array<JSONObject>) ?? [];
+
+  return container.flatMap((block: JSONObject): Array<string> => {
+    return (
+      ((block["resource"] as JSONObject | undefined)?.[
+        "attributes"
+      ] as unknown as Array<JSONObject>) ?? []
+    ).map((attribute: JSONObject): string => {
+      return attribute["key"] as string;
+    });
+  });
+}
+
+describe("addTelemetryIngestJob — a Mobile key's job says so", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    storeBody.mockResolvedValue("telemetry:body:test-key");
+  });
+
+  test("an OTLP job a Mobile key admitted carries the flag and the app's pin", async () => {
+    const req: TelemetryRequest = {
+      projectId: new ObjectID(PROJECT_ID),
+      productType: ProductType.Traces,
+      ingestionKeyPolicy: mobilePolicy(),
+      headers: {},
+      body: { resourceSpans: [] },
+    } as unknown as TelemetryRequest;
+
+    await TelemetryQueueService.addTelemetryIngestJob(
+      req,
+      TelemetryType.Traces,
+    );
+
+    expect(getEnqueuedJobData().isMobileKey).toBe(true);
+    expect(getEnqueuedJobData().pinnedServiceName).toBe("storefront-mobile");
+  });
+
+  test("a Browser or Server key's job never carries it", async () => {
+    for (const keyType of [
+      TelemetryIngestionKeyType.Browser,
+      TelemetryIngestionKeyType.Server,
+    ]) {
+      jest.clearAllMocks();
+
+      const req: TelemetryRequest = {
+        projectId: new ObjectID(PROJECT_ID),
+        productType: ProductType.Logs,
+        ingestionKeyPolicy: { ...policyWithPin("checkout"), keyType },
+        headers: {},
+        body: { resourceLogs: [] },
+      } as unknown as TelemetryRequest;
+
+      await TelemetryQueueService.addTelemetryIngestJob(
+        req,
+        TelemetryType.Logs,
+      );
+
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          getEnqueuedJobData(),
+          "isMobileKey",
+        ),
+      ).toBe(false);
+    }
+  });
+});
+
+describe("ProcessTelemetry worker — a Mobile key's batch as its app's mobile RUM", () => {
+  let decodeSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    processTracesFromQueue.mockReset();
+    processLogsFromQueue.mockReset();
+    processMetricsFromQueue.mockReset();
+    deleteBody.mockClear();
+    decodeSpy = jest.spyOn(OtelPayloadDecoder, "decodeFromQueue");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    [TelemetryType.Traces, ProductType.Traces, "resourceSpans"],
+    [TelemetryType.Logs, ProductType.Logs, "resourceLogs"],
+    [TelemetryType.Metrics, ProductType.Metrics, "resourceMetrics"],
+  ])(
+    "a %s batch keeps the app's own attributes, under its pinned name, stamped mobile",
+    async (
+      telemetryType: TelemetryType,
+      productType: ProductType,
+      containerKey: string,
+    ) => {
+      decodeSpy.mockResolvedValue({
+        [containerKey]: [
+          {
+            resource: {
+              attributes: [
+                { key: "service.name", value: { stringValue: "payments-api" } },
+                { key: "host.name", value: { stringValue: "box-1" } },
+                {
+                  key: "k8s.cluster.name",
+                  value: { stringValue: "prod-east" },
+                },
+                {
+                  key: "device.model.identifier",
+                  value: { stringValue: "Pixel 8" },
+                },
+                { key: "os.name", value: { stringValue: "Android" } },
+              ],
+            },
+          },
+        ],
+      } as never);
+
+      await capturedHandler!(mobileJob(telemetryType, productType));
+
+      const process: jest.Mock =
+        telemetryType === TelemetryType.Traces
+          ? processTracesFromQueue
+          : telemetryType === TelemetryType.Logs
+            ? processLogsFromQueue
+            : processMetricsFromQueue;
+
+      expect(process).toHaveBeenCalledTimes(1);
+
+      const ingestedBody: JSONObject = (
+        process.mock.calls[0]![0] as { body: JSONObject }
+      ).body;
+
+      expect(serviceNamesIn(ingestedBody, containerKey)).toEqual([
+        "storefront-mobile",
+      ]);
+      expect(resourceKeysIn(ingestedBody, containerKey).sort()).toEqual(
+        [
+          "device.model.identifier",
+          "os.name",
+          "service.name",
+          RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+        ].sort(),
+      );
+      expect(JSON.stringify(ingestedBody)).not.toContain("payments-api");
+      expect(JSON.stringify(ingestedBody)).not.toContain("prod-east");
+    },
+  );
+
+  test("a failure inside it never fails the job", async () => {
+    decodeSpy.mockResolvedValue(
+      otlpBody("resourceSpans", ATTACKER_SERVICE_NAME) as never,
+    );
+    jest
+      .spyOn(PinMobileRumResource, "pinInPlace")
+      .mockImplementation((): number => {
+        throw new TypeError("unexpected");
+      });
+
+    await expect(
+      capturedHandler!(mobileJob(TelemetryType.Traces, ProductType.Traces)),
+    ).resolves.toBeUndefined();
+
+    expect(processTracesFromQueue).toHaveBeenCalledTimes(1);
+    expect(deleteBody).toHaveBeenCalledWith(BODY_KEY);
+  });
+
+  test("a job without the flag is never filtered: a Browser key's resource keeps host.name", async () => {
+    const mobilePin: jest.SpyInstance = jest.spyOn(
+      PinMobileRumResource,
+      "pinInPlace",
+    );
+    decodeSpy.mockResolvedValue(
+      otlpBody("resourceSpans", ATTACKER_SERVICE_NAME) as never,
+    );
+
+    await capturedHandler!(
+      otelJob(TelemetryType.Traces, ProductType.Traces, PINNED_SERVICE_NAME),
+    );
+
+    expect(mobilePin).not.toHaveBeenCalled();
+    expect(
+      JSON.stringify(
+        (processTracesFromQueue.mock.calls[0]![0] as { body: JSONObject }).body,
+      ),
+    ).toContain("host.name");
   });
 });

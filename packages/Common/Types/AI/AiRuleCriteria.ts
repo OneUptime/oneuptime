@@ -1,4 +1,5 @@
 import AutoRemediationTriggerEntity from "../AutoRemediation/AutoRemediationTriggerEntity";
+import { DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS } from "../DataSecurity/DataSecurityAi";
 import { RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN } from "../Rules/RuleCriteria";
 
 /*
@@ -18,9 +19,10 @@ export const TELEMETRY_AI_RULE_CRITERIA_FIELDS: ReadonlyArray<string> = [
  * rules do (Runbook Rules, Postmortem Rules), so a condition written once
  * reads the same everywhere. One table serves every kind of AI rule, told
  * apart by triggerEntityType, and each uses only its own share: an
- * incident has an IncidentSeverity, an alert an AlertSeverity, and slow
+ * incident has an IncidentSeverity, an alert an AlertSeverity, slow
  * code in a profile - or a slow or failing operation in a trace, or an
- * exception - the service it runs in.
+ * exception - the service it runs in, and a Data Security issue its check,
+ * store and data.
  */
 export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
   Record<AutoRemediationTriggerEntity, ReadonlyArray<string>>
@@ -46,6 +48,15 @@ export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
   [AutoRemediationTriggerEntity.Exception]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
   [AutoRemediationTriggerEntity.Log]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
   [AutoRemediationTriggerEntity.Metric]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
+  /*
+   * A Data Security issue: its check, severity, store and data, and - for
+   * a store that is a service's telemetry - the service, as telemetry AI
+   * rules match it (Utils/DataSecurity/DataSecurityAiRuleMatch).
+   */
+  [AutoRemediationTriggerEntity.DataSecurityIssue]: [
+    ...DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS,
+    ...TELEMETRY_AI_RULE_CRITERIA_FIELDS,
+  ],
 };
 
 const TRIGGER_ENTITY_TYPES: ReadonlyArray<AutoRemediationTriggerEntity> =
@@ -74,6 +85,7 @@ const RULES_NAME_BY_TRIGGER: Readonly<
   [AutoRemediationTriggerEntity.Exception]: "exception AI rules",
   [AutoRemediationTriggerEntity.Log]: "log AI rules",
   [AutoRemediationTriggerEntity.Metric]: "metric AI rules",
+  [AutoRemediationTriggerEntity.DataSecurityIssue]: "Data Security AI rules",
 };
 
 // What a refusal calls each criterion: its column's title in the API docs.
@@ -88,6 +100,15 @@ const TRIGGER_SPECIFIC_FIELD_TITLES: Readonly<Record<string, string>> = {
   services: "Services",
   serviceLabels: "Service Labels",
   serviceNamePattern: "Service Name Pattern",
+  dataSecurityChecks: "Data Security Checks",
+  dataSecurityCheckGroups: "Data Security Check Groups",
+  dataSecuritySeverities: "Data Security Severities",
+  dataStoreSensitivities: "Data Store Sensitivities",
+  dataStoreKinds: "Data Store Kinds",
+  dataStoreProviders: "Data Store Providers",
+  dataStoreEnvironments: "Data Store Environments",
+  dataStoreLabels: "Data Store Labels",
+  dataCategories: "Data Categories",
 };
 
 // The criteria that are a pattern on a text, rather than a list of records.

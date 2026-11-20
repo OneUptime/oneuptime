@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 7962
+    "keys": 60451,
+    "untranslated": 8100
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -39,6 +39,7 @@
     "CloudKitty",
     "Community Edition",
     "Container Apps",
+    "Core Web Vitals",
     "CrowdStrike",
     "DE",
     "DES",
@@ -245,6 +246,7 @@
     "s",
     "security-alerts",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",

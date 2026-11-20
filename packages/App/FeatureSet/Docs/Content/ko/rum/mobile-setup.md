@@ -3,7 +3,7 @@
 Android, iOS, React Native 앱을 OpenTelemetry로 계측해 모바일 RUM 애플리케이션으로 OneUptime에 보고하게 합니다. OpenTelemetry SDK가 있는 다른 플랫폼도 같은 방식으로 작동합니다.
 
 :::cards
-- [OneUptime에 필요한 것](#oneuptime에-필요한-것): 서버 키로 보내는 두 가지 리소스 속성.
+- [OneUptime에 필요한 것](#oneuptime에-필요한-것): 모바일 키로 보내는 두 가지 리소스 속성.
 - [플랫폼 설정](#플랫폼-설정): Android, iOS, React Native 및 그 밖의 플랫폼.
 - [iOS 크래시와 멈춤](#ios-크래시와-멈춤): 예외에 나타나는 MetricKit과 KSCrash의 보고서, dSYM으로 이름이 붙습니다.
 - [도착 확인](#도착-확인하기): 키를 확인한 뒤 앱을 찾습니다.
@@ -12,12 +12,12 @@ Android, iOS, React Native 앱을 OpenTelemetry로 계측해 모바일 RUM 애�
 
 ## 작동 방식
 
-앱은 **서버** 수집 키로 OTLP를 OneUptime에 직접 내보냅니다. 앱을 백엔드 서비스가 아닌 모바일 RUM으로 분류하게 하는 것은 리소스의 `device.*` 속성입니다.
+앱은 앱에 고정된 **모바일** 수집 키로 OTLP를 OneUptime에 직접 내보내므로, 보내는 모든 것이 그 모바일 RUM 애플리케이션으로 분류됩니다. 다른 키를 쓰면, 앱을 백엔드 서비스가 아닌 모바일 RUM으로 분류하게 하는 것은 리소스의 `device.*` 속성입니다.
 
 ```mermaid title="모바일 앱이 보내는 것과 사용하는 키"
 flowchart TB
     app["사용자의 모바일 앱"] --> sdk["OpenTelemetry SDK와<br/>device.* 속성"]
-    sdk -->|"서버 키를 쓰는<br/>OTLP"| oneuptime["OneUptime"]
+    sdk -->|"모바일 키를 쓰는<br/>OTLP"| oneuptime["OneUptime"]
     oneuptime --> rum["모바일 RUM 애플리케이션"]
     replay["React Native<br/>리플레이 SDK"] -->|"Browser 키를 쓰는<br/>녹화"| oneuptime
 ```
@@ -31,7 +31,7 @@ flowchart TB
 | `service.name` | 애플리케이션의 식별자입니다. 예: `storefront-android`. |
 | `device.id` 또는 `device.model.identifier` | 텔레메트리를 모바일 RUM으로 표시합니다. `device.model.identifier`는 **클라이언트** 페이지에도 쓰입니다. |
 
-기기 속성이 없어도 텔레메트리는 도착하고 조회할 수도 있지만, RUM 애플리케이션이 아니라 백엔드 서비스로 분류됩니다.
+다른 키로 보낸 텔레메트리는 기기 속성이 없어도 도착하고 조회할 수도 있지만, RUM 애플리케이션이 아니라 백엔드 서비스로 분류됩니다.
 
 `device.manufacturer`도 배치를 모바일로 표시하지만, 호스트 식별자가 없는 리소스에서만 그렇습니다. 호스트 인벤토리가 이 속성으로 장비의 제조사를 보고하기 때문입니다. 아래의 모든 예시처럼 `device.id`나 `device.model.identifier`도 설정하면 이 점은 문제가 되지 않습니다.
 
@@ -40,7 +40,7 @@ flowchart TB
 ## 시작하기 전에
 
 - OpenTelemetry SDK가 들어 있는 앱. OpenTelemetry Java SDK 또는 OpenTelemetry Android, opentelemetry-swift, React Native라면 OpenTelemetry JavaScript SDK입니다.
-- **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 **수집 키 생성**으로 만든 **서버** 수집 키. **브라우저** 키는 모바일 앱에서 거부됩니다. 이 키는 `Origin` 헤더로 확인되는데, 모바일 SDK는 이 헤더를 보내지 않기 때문입니다.
+- **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 **수집 키 생성**으로 만들고 **고정된 서비스 이름**에 앱의 `service.name`을 넣은 **모바일** 수집 키. **브라우저** 키는 모바일 앱에서 거부됩니다. 이 키는 `Origin` 헤더로 확인되는데, 모바일 SDK는 이 헤더를 보내지 않기 때문입니다. 앱에 **서버** 키를 넣어 배포하지 마세요.
 - 다음 OTLP 설정. OneUptime을 직접 호스팅한다면 `https://oneuptime.com`을 자신의 호스트로 바꾸세요.
 
 | 설정 | 값 |
@@ -52,7 +52,7 @@ flowchart TB
 | 로그 | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> 키는 앱 안에 담겨 배포되고 앱은 풀어 볼 수 있으므로, 누군가 키를 복사한다고 가정하세요. 키 페이지에서 **고정된 서비스 이름**을 설정해 복사본이 백엔드 서비스의 이름으로 쓰지 못하게 하고, **Requests Per Minute Limit**과 **만료 시각** 날짜를 추가하고, 릴리스마다 키를 교체하세요.
+> 키는 앱 안에 담겨 배포되고 앱은 풀어 볼 수 있으므로, 누군가 키를 복사한다고 가정하세요. 모바일 키의 복사본은 이 앱의 트레이스, 로그, 메트릭만 보낼 수 있으며, 모두 **고정된 서비스 이름** 아래 분류되고, 웹 페이지에서는 보낼 수 없습니다. 그래도 키의 **분당 요청 한도**까지는 이 앱의 꾸며 낸 데이터를 보낼 수 있으므로, **만료 시각** 날짜를 추가하고 릴리스마다 키를 교체하세요.
 
 ## 플랫폼 설정
 
@@ -136,7 +136,7 @@ OpenTelemetry.registerTracerProvider(
 
 `UIDevice.current.model`은 `iPhone` 같은 짧은 이름을 주므로, **클라이언트** 페이지가 기기 종류마다 한 행으로 유지됩니다. `identifierForVendor`는 OneUptime이 크래시 없는 설치를 셀 때 기준으로 삼는 설치이며, 자세한 내용은 [세션 기록하기](#세션-기록하기)에 있습니다.
 @tab React Native
-React Native는 OpenTelemetry JavaScript SDK로 실행되므로, [브라우저 설정](/docs/rum/browser-setup)처럼 프로바이더, OTLP 내보내기 도구, 배치 프로세서를 만들되 세 가지를 바꾸세요. **서버** 키로 보내고, `browserDetector`와 `DocumentLoadInstrumentation`을 빼고, 기기 속성을 직접 설정합니다.
+React Native는 OpenTelemetry JavaScript SDK로 실행되므로, [브라우저 설정](/docs/rum/browser-setup)처럼 프로바이더, OTLP 내보내기 도구, 배치 프로세서를 만들되 세 가지를 바꾸세요. **모바일** 키로 보내고, `browserDetector`와 `DocumentLoadInstrumentation`을 빼고, 기기 속성을 직접 설정합니다.
 
 ```ts
 import { Platform } from "react-native";
@@ -276,7 +276,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`"valid": true`와 함께 오는 `200`은 키가 수락되었다는 뜻입니다. Browser 키도 `200`을 돌려주지만, 메시지에 브라우저에서만 쓸 수 있다고 적혀 있습니다. 모바일 앱에는 서버 키가 필요합니다. `401`은 키가 알 수 없거나, 취소되었거나, 꺼져 있거나, 만료되었다는 뜻이며, SDK 설정으로는 고칠 수 없습니다.
+`"valid": true`와 함께 오는 `200`은 키가 수락되었다는 뜻입니다. Browser 키도 `200`을 돌려주지만, 메시지에 브라우저에서만 쓸 수 있다고 적혀 있습니다. 모바일 앱에는 모바일 키가 필요합니다. `401`은 키가 알 수 없거나, 취소되었거나, 꺼져 있거나, 만료되었다는 뜻이며, SDK 설정으로는 고칠 수 없습니다.
 
 ### 앱 실행하기
 
@@ -289,20 +289,20 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 모바일 세션 리플레이
 
-React Native 앱은 `@oneuptime/react-native-replay`로 세션을 녹화할 수 있습니다. 네이티브 뷰 트리를 와이어프레임으로 기록하며, 스크린샷이나 화면의 텍스트는 절대 기록하지 않습니다. 녹화는 웹 녹화와 같은 플레이어에서 열립니다. 전송에는 **브라우저** 키를 쓰며, 그 **허용된 출처**에 앱을 `app://` 뒤에 Android 애플리케이션 ID나 iOS 번들 ID를 붙인 형태로 등록합니다. 이 키는 OpenTelemetry SDK가 쓰는 서버 키와는 별개입니다. 자세한 절차는 [React Native에 설치하기](/docs/telemetry/session-replay#react-native에-설치하기)에서 안내합니다.
+React Native 앱은 `@oneuptime/react-native-replay`로 세션을 녹화할 수 있습니다. 네이티브 뷰 트리를 와이어프레임으로 기록하며, 스크린샷이나 화면의 텍스트는 절대 기록하지 않습니다. 녹화는 웹 녹화와 같은 플레이어에서 열립니다. 전송에는 **브라우저** 키를 쓰며, 그 **허용된 출처**에 앱을 `app://` 뒤에 Android 애플리케이션 ID나 iOS 번들 ID를 붙인 형태로 등록합니다. 이 키는 OpenTelemetry SDK가 쓰는 모바일 키와는 별개입니다. 자세한 절차는 [React Native에 설치하기](/docs/telemetry/session-replay#react-native에-설치하기)에서 안내합니다.
 
 네이티브 Android 앱과 iOS 앱, 그리고 그 밖의 플랫폼에는 세션 레코더가 없습니다. 이들의 **세션 리플레이** 페이지는 비어 있지만, 트레이스, 로그, 메트릭, 예외, **클라이언트** 페이지는 평소처럼 작동합니다.
 
 ## 문제 해결
 
 :::details 키 확인이 401을 돌려주거나 키가 거부됨
-`401`은 키가 알 수 없거나, 취소되었거나, 꺼져 있거나, 만료되었다는 뜻입니다. 서버 키를 만들고 그 키로 앱을 다시 빌드하세요.
+`401`은 키가 알 수 없거나, 취소되었거나, 꺼져 있거나, 만료되었다는 뜻입니다. 모바일 키를 만들고 그 키로 앱을 다시 빌드하세요.
 
-Browser 키는 확인을 통과하지만, 모바일 앱에서 보내는 모든 내보내기가 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.`라는 `422`로 거부됩니다. **서버** 키를 쓰세요.
+Browser 키는 확인을 통과하지만, 모바일 앱에서 보내는 모든 내보내기가 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.`라는 `422`로 거부됩니다. **모바일** 키를 쓰세요. 모바일 키도 gRPC로 보내거나 웹 페이지에서 보내면 `422`로 거부됩니다. OTLP/HTTP로 내보내세요.
 :::
 
 :::details 앱이 실제 사용자 모니터링이 아니라 서비스에 나타남
-리소스에 `device.id`도 `device.model.identifier`도 없어서 텔레메트리가 백엔드 서비스로 분류되었습니다. [플랫폼 설정](#플랫폼-설정)처럼 설정하세요.
+모바일 키가 아닌 키로 보냈고 리소스에 `device.id`도 `device.model.identifier`도 없어서 텔레메트리가 백엔드 서비스로 분류되었습니다. 모바일 키로 보내거나 [플랫폼 설정](#플랫폼-설정)처럼 설정하세요.
 
 이미 만들어진 서비스는 RUM 애플리케이션으로 바뀌지 않으므로, RUM 텔레메트리가 도착하면 **제품 → 서비스**에서 삭제하세요.
 :::

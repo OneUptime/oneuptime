@@ -179,6 +179,11 @@ export function getDataSecurityBreadcrumbs(
       "Data Security",
       "Compliance",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_AI, [
+      "Project",
+      "Data Security",
+      "AI",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_SCANS, [
       "Project",
       "Data Security",

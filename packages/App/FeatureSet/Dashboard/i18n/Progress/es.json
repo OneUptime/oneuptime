@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 2157
+    "keys": 60451,
+    "untranslated": 2307
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -619,6 +619,7 @@
     "stacks",
     "statefulsets",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "subscriber@company.com",
     "sum by (job) (rate(http_requests_total[5m]))",

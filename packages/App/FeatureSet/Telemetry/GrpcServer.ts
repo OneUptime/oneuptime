@@ -183,6 +183,12 @@ const GRPC_STATUS_FOR_KEY_REFUSAL: Record<
   [TelemetryIngestionKeyRefusalReason.Expired]: grpc.status.UNAUTHENTICATED,
   [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
     grpc.status.PERMISSION_DENIED,
+  /*
+   * A Mobile key sends over OTLP/HTTP only (issue #6457): recognised, and
+   * not allowed to write here, as the HTTP guard's 422 says.
+   */
+  [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey]:
+    grpc.status.PERMISSION_DENIED,
 };
 
 type BuildServiceErrorFunction = (

@@ -1135,6 +1135,8 @@ import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000
 import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
 import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProjectAmazonSesIamRole";
 import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
+import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
+import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
 import { AddCloudAppPlatformCloudResource1809187207600 } from "./1809187207600-AddCloudAppPlatformCloudResource";
 import { AddCloudAppPlatformCloudResourceIndexAndKey1809187207610 } from "./1809187207610-AddCloudAppPlatformCloudResourceIndexAndKey";
 
@@ -2276,6 +2278,8 @@ export default [
   AddFormPrivateUsersAndSingleSignOn1809187140120,
   AddProjectAmazonSesIamRole1809187142000,
   AddSecurityBlocklist1809187150000,
+  AddDataSecurityAiRules1809187364000,
+  AddAIRunDataSecurityIssueIndex1809187364100,
   AddCloudAppPlatformCloudResource1809187207600,
   AddCloudAppPlatformCloudResourceIndexAndKey1809187207610,
 ];

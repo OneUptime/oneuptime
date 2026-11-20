@@ -133,6 +133,7 @@ function fixAnswer(files: Record<string, string>): string {
 function goodAnswer(testCase: DataSecurityEvalCase): string {
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
+    case DataSecurityAiFeature.AnalyzeIssue:
     case DataSecurityAiFeature.AskAi:
       return goodWords(testCase);
     case DataSecurityAiFeature.SuggestFieldTypes:

@@ -4,7 +4,7 @@ En indtagelsesnøgle forbinder din telemetri med dit projekt. Applikationer, Ope
 
 :::cards
 - [Opret en indtagelsesnøgle](#opret-en-indtagelsesnøgle): Et navn, en type og en hemmelighed at kopiere.
-- [Server eller Browser](#server-eller-browser): Hvilken slags nøgle en afsender har brug for.
+- [Server, Browser eller Mobil](#server-browser-eller-mobil): Hvilken slags nøgle en afsender har brug for.
 - [Lås en browsernøgle ned](#lås-en-browsernøgle-ned): Origins, ét tjenestenavn og en grænse.
 - [Udskift, slå fra eller slet en nøgle](#udskift-slå-fra-eller-slet-en-nøgle): Hvad du gør, når en nøgle lækker.
 :::
@@ -27,21 +27,21 @@ flowchart TB
 - **Nøglen bestemmer projektet.** Du sender aldrig et projekt-ID: data, der sendes med en nøgle, havner i det projekt, nøglen tilhører.
 - **Ændringer når ud til alle servere inden for få sekunder.** At slå en nøgle fra, nulstille dens hemmelighed eller ændre dens origins, udløb eller grænse træder i kraft på alle servere inden for få sekunder.
 - **En nøgle kan have sine egne budgetter.** Et dagligt budget og en hastighed pr. sekund for hvert signal, inden for dens projekts: se [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets).
-- **En servernøgle er en adgangskode.** Alle, der har den, kan sende telemetri til dit projekt. Opbevar den i dine serveres hemmeligheder, aldrig i versionsstyring eller på en webside.
+- **En servernøgle er en adgangskode.** Alle, der har den, kan sende telemetri til dit projekt. Opbevar den i dine serveres hemmeligheder, aldrig i versionsstyring, på en webside eller i en mobilapp.
 
-## Server eller Browser
+## Server, Browser eller Mobil
 
 Vælg typen efter, hvor nøglen skal ligge. Typen kan ikke ændres, efter at nøglen er oprettet.
 
-| | **Server** | **Browser** |
-| --- | --- | --- |
-| Til | Applikationer, collectors og agenter på maskiner, du driver | Websider, og React Native Session Replay |
-| Sender | Alle slags telemetri, til alle endpoints | Spor, protokoller, metrikker, Session Replays og [Sentry-hændelser](/docs/telemetry/compatible-endpoints#sentry-sdker) |
-| En hemmelighed | Ja: hold den på dine servere | Nej: alle, der ser siden, kan læse den |
-| Origins | Kontrolleres ikke | Kun de angivne origins accepteres |
-| Anmodninger pr. minut | Ingen grænse, medmindre du angiver en | 6.000, medmindre du angiver en anden grænse |
+| | **Server** | **Browser** | **Mobil** |
+| --- | --- | --- | --- |
+| Til | Applikationer, collectors og agenter på maskiner, du driver | Websider, og React Native Session Replay | Én iOS-, Android- eller React Native-app |
+| Sender | Alle slags telemetri, til alle endpoints | Spor, protokoller, metrikker, Session Replays og [Sentry-hændelser](/docs/telemetry/compatible-endpoints#sentry-sdker) | Den apps spor, protokoller og metrikker, over OTLP/HTTP |
+| En hemmelighed | Ja: hold den på dine servere | Nej: alle, der ser siden, kan læse den | Nej: alle, der har appen, kan kopiere den |
+| Origins | Kontrolleres ikke | Kun de angivne origins accepteres | En anmodning fra en webside afvises |
+| Anmodninger pr. minut | Ingen grænse, medmindre du angiver en | 6.000, medmindre du angiver en anden grænse | 6.000, medmindre du angiver en anden grænse |
 
-Alle andre steder afviser OneUptime en browsernøgle, for eksempel over gRPC og MQTT, for profiler, Syslog, Fluent Bit og Fluentd, og for upload af source maps. For at flytte en afsender til den anden type skal du oprette en nøgle af den type, skifte afsenderen over til den og derefter slette den gamle nøgle.
+Alle andre steder afviser OneUptime en browsernøgle, for eksempel over gRPC og MQTT, for profiler, Syslog, Fluent Bit og Fluentd, og for upload af source maps, og en mobilnøgle alle steder undtagen for OTLP-spor, -protokoller og -metrikker over HTTP. For at flytte en afsender til en anden type skal du oprette en nøgle af den type, skifte afsenderen over til den og derefter slette den gamle nøgle.
 
 ## Før du begynder
 
@@ -59,9 +59,9 @@ Gå til **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. **
 
 Klik på **Opret indtagelsesnøgle**. Dialogen starter med navnet **Servernøgle** og typen **Server**. Vælg **Nøgletype**, og omdøb nøglen efter det, der skal bruge den, for eksempel `checkout-collector`. En **Beskrivelse** ligger under **Avanceret**.
 
-### Tilføj en browsernøgles origins
+### Tilføj en browsernøgles origins eller en mobilnøgles app
 
-En **Browser**-nøgle beder om sine **Tilladte oprindelser** i det næste trin, **Browserindstillinger**, med sit **Fastgjort tjenestenavn** under **Avanceret**. Se [Lås en browsernøgle ned](#lås-en-browsernøgle-ned).
+En **Browser**-nøgle beder om sine **Tilladte oprindelser** i det næste trin, **Browserindstillinger**, med sit **Fastgjort tjenestenavn** under **Avanceret**. Se [Lås en browsernøgle ned](#lås-en-browsernøgle-ned). En **Mobil**-nøgle beder i stedet om sit **Fastgjort tjenestenavn** på den første side: `service.name` for den app, den følger med i.
 
 ### Opret nøglen, og kopiér dens hemmelighed
 
@@ -91,7 +91,7 @@ En browsernøgle ligger i din side, hvor alle kan kopiere den. Disse indstilling
 | --- | --- |
 | **Tilladte oprindelser** | De eneste origins, nøglen accepteres fra. En anmodning fra enhver anden origin, eller helt uden `Origin`-header, afvises. En browsernøgle skal beholde mindst én. |
 | **Fastgjort tjenestenavn** | Lægger alt, hvad nøglen sender over OTLP/HTTP, under denne ene tjeneste, uanset hvilket `service.name` afsenderen har sat. En kopi af nøglen kan så kun skrive til den tjeneste. |
-| **Requests Per Minute Limit** | Det største antal anmodninger, nøglen accepteres for hvert minut, delt af alle besøgende. En browsernøgle får 6.000, når du lader feltet stå tomt. |
+| **Grænse for anmodninger pr. minut** | Det største antal anmodninger, nøglen accepteres for hvert minut, delt af alle besøgende. En browsernøgle får 6.000, når du lader feltet stå tomt. |
 | **Udløber den** | Datoen, hvorefter nøglen afvises, så en offentliggjort kopi holder op med at virke. |
 
 En origin er et skema, en vært og en valgfri port: `https://app.example.com` dækker ikke `https://app.example.com:8443`. Én indledende `*.` dækker alle underdomæner, men ikke selve domænet. React Native Session Replay sender en præcis `app://`-identitet, som ikke tager noget jokertegn:
@@ -105,6 +105,17 @@ En origin er et skema, en vært og en valgfri port: `https://app.example.com` d�
 ```
 
 [Tjenester](/docs/telemetry/services#sådan-kommer-en-tjeneste-ind-i-kataloget) viser, hvordan et fastlåst navn bestemmer tjenesten. Kubernetes-agentens Runner og AI-agent og infrastrukturens AI-agenter registrerer sig ikke med en fastlåst nøgle: giv dem en servernøgle uden fastlåst navn.
+
+## Hvad en mobilnøgle begrænser
+
+En mobilnøgle følger med i din app, og alle, der har appen, kan kopiere den. Disse grænser holder hver kopi til den app, nøglen blev lavet til:
+
+- **Den skriver kun som én app.** Alt, hvad den sender, arkiveres under dens **Fastgjort tjenestenavn** som en mobil RUM-applikation, uanset hvilken tjeneste eller vært afsenderen angiver. En kopi kan ikke skrive i dine backend-tjenester, værter eller klynger.
+- **Den sender kun den apps telemetri.** OTLP-spor, -protokoller og -metrikker over HTTP. Den afvises over gRPC og MQTT, for Session Replays, profiler og source maps, på alle andre endpoints og fra enhver webside.
+- **Den har en hastighedsgrænse.** 6.000 anmodninger pr. minut for alle kopier tilsammen, medmindre du sætter dens **Grænse for anmodninger pr. minut**.
+- **Du kan stoppe den.** Slå **Aktiveret** fra, eller sæt **Udløber den**, og hver kopi afvises inden for få sekunder.
+
+Hvad den ikke kan forhindre: Den, der har din app, kan stadig sende opdigtede spor, protokoller og metrikker for den ene app, op til nøglens grænse, indtil du slår nøglen fra, eller den udløber. Udskift nøglen med dine udgivelser, så en gammel kopi holder op med at virke med sin version.
 
 ## Udskift, slå fra eller slet en nøgle
 
@@ -132,10 +143,12 @@ Nøglens side tæller også med: **Afvist telemetri** viser, hvad der er afvist 
 | `402` med `Add a payment method` | På OneUptime Cloud er projektet på Free-abonnementet og har endnu ingen betalingsmetode. |
 | `422` med `This telemetry ingestion key has been disabled.` | Nogen har slået **Aktiveret** fra. |
 | `422` med `A browser ingestion key cannot be used for` | En browsernøgle nåede et endpoint, der kun tager servernøgler. |
-| `422` med `did not send an Origin header` | En browsernøgle blev sendt uden for en browser. Brug en servernøgle der. |
+| `422` med `did not send an Origin header` | En browsernøgle blev sendt uden for en browser. Brug en mobilnøgle i en mobilapp og en servernøgle alle andre steder. |
+| `422` med `A mobile ingestion key cannot be used for` | En mobilnøgle nåede et andet endpoint end OTLP-spor, -protokoller og -metrikker over HTTP, for eksempel gRPC eller Session Replay. |
+| `422` med `A mobile ingestion key cannot be used from a web page` | En mobilnøgle blev sendt fra en browser. Brug en browsernøgle på en webside. |
 | `422` med `is not allowed for this browser ingestion key` | Sidens origin er ikke i **Tilladte oprindelser**. |
 | `422` med `is pinned to a single service` | En nøgle med et **Fastgjort tjenestenavn** blev brugt til at registrere en agent. Brug en servernøgle uden fastlåst navn. |
-| `429` med `Too many telemetry requests for this ingestion key` | Nøglen nåede sin **Requests Per Minute Limit**. Eksportører prøver igen efter `Retry-After`-tiden. |
+| `429` med `Too many telemetry requests for this ingestion key` | Nøglen nåede sin **Grænse for anmodninger pr. minut**. Eksportører prøver igen efter `Retry-After`-tiden. |
 
 For de andre svar, en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 

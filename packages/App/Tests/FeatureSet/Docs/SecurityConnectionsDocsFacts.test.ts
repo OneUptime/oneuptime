@@ -7,6 +7,7 @@ import {
   ENTRA_ID,
   GOOGLE_SECOPS,
   GOOGLE_WORKSPACE,
+  CLOUDFLARE,
   OKTA,
   SECURITY_CONNECTION_PAGES,
   SENTINEL,
@@ -74,6 +75,7 @@ import MicrosoftSentinelClient, {
 } from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelClient";
 import ElasticSecurityConnector from "Common/Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityConnector";
 import GoogleWorkspaceConnector from "Common/Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceConnector";
+import CloudflareConnector from "Common/Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareConnector";
 import MicrosoftEntraIdConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftEntraId/MicrosoftEntraIdConnector";
 import MicrosoftSentinelConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelConnector";
 import OktaConnector from "Common/Server/Utils/SecurityEvent/Connectors/Okta/OktaConnector";
@@ -195,6 +197,11 @@ const CONNECTION_PAGES: Array<ConnectionPage> = [
     provider: SecurityEventConnectorProvider.GoogleWorkspace,
     messagePrefix: "Google Workspace",
   },
+  {
+    page: CLOUDFLARE,
+    provider: SecurityEventConnectorProvider.Cloudflare,
+    messagePrefix: "Cloudflare",
+  },
 ];
 
 const TOKEN: DataSourceHttpResponse = json(200, {
@@ -298,6 +305,12 @@ const OTHER_CONNECTION_SETTINGS: Partial<
     },
     alertingOnly: false,
   },
+  [SecurityEventConnectorProvider.Cloudflare]: {
+    provider: SecurityEventConnectorProvider.Cloudflare,
+    config: { accountId: "9a7806061c88ada191ed06f989cc3dac" },
+    secrets: { apiToken: "TestOnlyCloudflareToken0123456789abcdefgh" },
+    alertingOnly: false,
+  },
 };
 
 function crowdStrikeSettings(): SecurityConnectorSettings {
@@ -343,6 +356,10 @@ function connectorFor(
 
   if (provider === SecurityEventConnectorProvider.GoogleWorkspace) {
     return new GoogleWorkspaceConnector(transport);
+  }
+
+  if (provider === SecurityEventConnectorProvider.Cloudflare) {
+    return new CloudflareConnector(transport);
   }
 
   return new CrowdStrikeFalconConnector(transport);
@@ -500,9 +517,14 @@ describe("every connection page's form", () => {
       expect(englishPage(entry.page)).toContain(
         `click ${bold("Add connection")}, choose ${bold(definition.title)}`,
       );
-      // Settings, then Credentials: the secret fields are on the step after.
+      /*
+       * Settings, then Credentials: the secret fields are on the step after.
+       * A provider whose settings are all picked from what its credentials
+       * read (Cloudflare) skips the Connection step and picks them on the
+       * Credentials step, after the credentials.
+       */
       expect(form).toContain(
-        'steps.push({ id: CONNECTION_STEP_ID, title: "Connection" });',
+        'steps.push({\n      id: CONNECTION_STEP_ID,\n      title: "Connection",',
       );
       expect(form).toContain(
         'steps.push({ id: CREDENTIALS_STEP_ID, title: "Credentials" });',
@@ -594,6 +616,7 @@ const OVERLAP_IN_MINUTES: Partial<
   [SecurityEventConnectorProvider.OktaSystemLog]: 15,
   [SecurityEventConnectorProvider.MicrosoftEntraId]: 30,
   [SecurityEventConnectorProvider.GoogleWorkspace]: 120,
+  [SecurityEventConnectorProvider.Cloudflare]: 10,
 };
 
 describe("every connection page's polling", () => {
@@ -1835,8 +1858,8 @@ describe("every connection page in every language: the labels built from a sente
       }
     }
 
-    // Ten Preview buttons, Returned by Google SecOps and three switches.
-    expect(labels).toBe(14);
+    // Eleven Preview buttons, Returned by Google SecOps and three switches.
+    expect(labels).toBe(15);
     expect(tried).toBe(TRANSLATED_LANGUAGES.length * labels);
   });
 });

@@ -1071,9 +1071,9 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("name every link's anchor by the heading in the English heading's place, in the reader's language", () => {
-    expect(expectedLink("en", INGESTION_KEYS, "#server-or-browser")).toBe(
-      "#server-or-browser",
-    );
+    expect(
+      expectedLink("en", INGESTION_KEYS, "#server-browser-or-mobile"),
+    ).toBe("#server-browser-or-mobile");
     // An anchor that names no heading is kept as written, not made "#null".
     expect(expectedLink("fa", TOPOLOGY, "#no-such-heading")).toBe(
       "#no-such-heading",

@@ -5,6 +5,7 @@ import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "../../../../../Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import {
+  AnalyzeEvalCase,
   AskAiEvalCase,
   DataSecurityEvalCase,
   ExplainEvalCase,
@@ -508,8 +509,76 @@ const ASK_AI_CASES: Array<AskAiEvalCase> = [
   },
 ];
 
+/*
+ * OneUptime AI's own analysis of a new issue (#10364), written with no one
+ * asking: what is wrong, what could happen, and the steps to fix it - for a
+ * store's exposure, and for data reaching a service's telemetry.
+ */
+const ANALYZE_CASES: Array<AnalyzeEvalCase> = [
+  {
+    id: "analyze-public-bucket-customer-records",
+    title: "A new Critical issue: a public S3 bucket of customer records",
+    feature: DataSecurityAiFeature.AnalyzeIssue,
+    issue: {
+      checkId: "public-read",
+      title: "Anyone on the internet can read it",
+      severity: SecuritySeverity.Critical,
+      evidence:
+        "The bucket policy grants s3:GetObject to Principal * with no condition.",
+      dataTypeIds: ["email-address", "phone-number"],
+      dataStore: {
+        name: "fabrikam-customer-records",
+        kind: DataStoreKind.AwsS3Bucket,
+        region: "us-east-1",
+        providerResourceId: "arn:aws:s3:::fabrikam-customer-records",
+        sensitivity: DataSensitivity.Confidential,
+      },
+    },
+    expect: {
+      mentions: [["public", "anyone"], BUCKET_FIX_WORDS, ["email", "phone"]],
+      never: ["az storage", "gcloud", "azure portal"],
+    },
+  },
+  {
+    id: "analyze-card-numbers-in-logs",
+    title: "A new High issue: card numbers reaching a service's logs",
+    feature: DataSecurityAiFeature.AnalyzeIssue,
+    issue: {
+      checkId: "sensitive-data-in-telemetry",
+      title: "Sensitive data is reaching your telemetry",
+      severity: SecuritySeverity.High,
+      evidence: "1 kind of sensitive data is not scrubbed: Card number.",
+      dataTypeIds: ["credit-card-number"],
+      dataStore: {
+        name: "payments · Logs",
+        kind: DataStoreKind.TelemetryLogs,
+        sensitivity: DataSensitivity.Restricted,
+      },
+    },
+    findings: [
+      {
+        dataTypeId: "credit-card-number",
+        dataTypeName: "Card number",
+        location: "attributes.payment.card",
+        locationKind: "Attribute",
+        confidence: DataConfidence.High,
+        matchCount: 12,
+      },
+    ],
+    expect: {
+      mentions: [
+        ["attributes.payment.card", "payment.card"],
+        ["scrub"],
+        ["code"],
+      ],
+      never: ["s3api", "terraform"],
+    },
+  },
+];
+
 export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...EXPLAIN_CASES,
+  ...ANALYZE_CASES,
   ...FIELD_SUGGESTION_CASES,
   ...FIX_CASES,
   ...ASK_AI_CASES,

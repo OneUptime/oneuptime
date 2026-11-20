@@ -3,7 +3,7 @@
 使用 OpenTelemetry 为 Android、iOS 或 React Native 应用插桩，让它作为移动端 RUM 应用程序向 OneUptime 上报。任何其他拥有 OpenTelemetry SDK 的平台都以同样的方式工作。
 
 :::cards
-- [OneUptime 需要什么](#oneuptime-需要什么): 两个资源属性，用服务器密钥发送。
+- [OneUptime 需要什么](#oneuptime-需要什么): 两个资源属性，用移动端密钥发送。
 - [设置你的平台](#设置你的平台): Android、iOS、React Native 及其他平台。
 - [iOS 崩溃和卡顿](#ios-崩溃和卡顿): MetricKit 和 KSCrash 的报告，显示在异常中，并由你的 dSYM 命名。
 - [确认数据到达](#确认数据到达): 先测试密钥，再找到应用。
@@ -12,12 +12,12 @@
 
 ## 工作原理
 
-你的应用使用 **服务器** 摄取密钥将 OTLP 直接导出到 OneUptime。让它被归类为移动端 RUM 而不是后端服务的，是其资源上的 `device.*` 属性。
+你的应用使用固定到该应用的 **移动端** 摄取密钥将 OTLP 直接导出到 OneUptime，因此它发送的所有内容都会归为该移动端 RUM 应用程序。使用其他任何密钥时，让它被归类为移动端 RUM 而不是后端服务的，是其资源上的 `device.*` 属性。
 
 ```mermaid title="移动应用发送什么，用哪个密钥"
 flowchart TB
     app["你的移动应用"] --> sdk["OpenTelemetry SDK<br/>带 device.* 属性"]
-    sdk -->|"使用服务器密钥<br/>的 OTLP"| oneuptime["OneUptime"]
+    sdk -->|"使用移动端密钥<br/>的 OTLP"| oneuptime["OneUptime"]
     oneuptime --> rum["移动端 RUM 应用程序"]
     replay["React Native<br/>回放 SDK"] -->|"使用 Browser 密钥<br/>的录制"| oneuptime
 ```
@@ -31,7 +31,7 @@ flowchart TB
 | `service.name` | 应用程序的标识，例如 `storefront-android` 。 |
 | `device.id` 或 `device.model.identifier` | 将遥测标记为移动端 RUM。 `device.model.identifier` 还会填充 **客户端** 页面。 |
 
-没有设备属性时，遥测数据仍会到达，你也可以查询它，但它会被归为后端服务，而不是 RUM 应用程序。
+使用其他密钥发送时，没有设备属性的遥测数据仍会到达，你也可以查询它，但它会被归为后端服务，而不是 RUM 应用程序。
 
 `device.manufacturer` 也会将批次标记为移动端，但仅限于没有主机标识的资源，因为主机清单也用它上报机器的制造商。像下面每个示例那样同时设置 `device.id` 或 `device.model.identifier` ，这一点就无关紧要。
 
@@ -40,7 +40,7 @@ flowchart TB
 ## 开始之前
 
 - 一个带有 OpenTelemetry SDK 的应用：OpenTelemetry Java SDK 或 OpenTelemetry Android、opentelemetry-swift，或用于 React Native 的 OpenTelemetry JavaScript SDK。
-- 一个 **服务器** 摄取密钥，在 **项目设置 → 遥测与 APM → 摄取密钥** 中通过 **创建摄取密钥** 创建。移动应用发来的 **浏览器** 密钥会被拒绝：它要根据 `Origin` 请求头进行检查，而移动端 SDK 不发送这个请求头。
+- 一个 **移动端** 摄取密钥，在 **项目设置 → 遥测与 APM → 摄取密钥** 中通过 **创建摄取密钥** 创建，并将其 **固定的服务名称** 设为你的应用的 `service.name`。移动应用发来的 **浏览器** 密钥会被拒绝：它要根据 `Origin` 请求头进行检查，而移动端 SDK 不发送这个请求头。切勿在应用中分发 **服务器** 密钥。
 - 以下 OTLP 设置。如果你自行托管 OneUptime，请将 `https://oneuptime.com` 替换为你自己的主机。
 
 | 设置 | 值 |
@@ -52,7 +52,7 @@ flowchart TB
 | 日志 | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> 密钥会随应用一起发布，而应用可以被解包，所以请假定有人会复制它。在密钥的页面上设置 **固定的服务名称** ，使复制品无法以你的后端服务的名称写入，再添加 **Requests Per Minute Limit** 和 **过期时间** 日期，并随每次发布轮换密钥。
+> 密钥会随应用一起发布，而应用可以被解包，所以请假定有人会复制它。移动端密钥的复制品只能发送此应用的追踪、日志和指标，全部归入其 **固定的服务名称** 之下，而且绝不能从网页发送。它仍可以在密钥的 **每分钟请求数上限** 以内为此应用发送编造的数据，所以请添加 **过期时间** 日期，并随每次发布轮换密钥。
 
 ## 设置你的平台
 
@@ -136,7 +136,7 @@ OpenTelemetry.registerTracerProvider(
 
 `UIDevice.current.model` 给出 `iPhone` 这样的简短名称，使 **客户端** 页面每种设备只有一行。 `identifierForVendor` 是 OneUptime 统计无崩溃安装时所依据的安装，详见 [记录会话](#记录会话) 。
 @tab React Native
-React Native 运行 OpenTelemetry JavaScript SDK，因此请按照 [浏览器端设置](/docs/rum/browser-setup) 构建提供程序、OTLP 导出器和批处理器，并做三处修改：使用 **服务器** 密钥发送，去掉 `browserDetector` 和 `DocumentLoadInstrumentation` ，并自行设置设备属性。
+React Native 运行 OpenTelemetry JavaScript SDK，因此请按照 [浏览器端设置](/docs/rum/browser-setup) 构建提供程序、OTLP 导出器和批处理器，并做三处修改：使用 **移动端** 密钥发送，去掉 `browserDetector` 和 `DocumentLoadInstrumentation` ，并自行设置设备属性。
 
 ```ts
 import { Platform } from "react-native";
@@ -276,7 +276,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` 加上 `"valid": true` 表示密钥被接受。Browser 密钥也会返回 `200` ，但其消息说明它只能在浏览器中使用：移动应用需要服务器密钥。 `401` 表示密钥未知、已撤销、已关闭或已过期，任何 SDK 设置都无法解决。
+`200` 加上 `"valid": true` 表示密钥被接受。Browser 密钥也会返回 `200` ，但其消息说明它只能在浏览器中使用：移动应用需要移动端密钥。 `401` 表示密钥未知、已撤销、已关闭或已过期，任何 SDK 设置都无法解决。
 
 ### 启动应用
 
@@ -289,20 +289,20 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 移动端的会话回放
 
-React Native 应用可以使用 `@oneuptime/react-native-replay` 录制会话。它将原生视图树记录为线框，绝不记录屏幕截图或屏幕上的文字，其录制与 Web 录制在同一个播放器中打开。它使用 **浏览器** 密钥发送，该密钥的 **允许的来源** 以 `app://` 加上 Android 应用 ID 或 iOS bundle ID 的形式列出你的应用：这是一个独立的密钥，不同于你的 OpenTelemetry SDK 使用的服务器密钥。 [在 React Native 中安装](/docs/telemetry/session-replay#在-react-native-中安装) 会逐步介绍。
+React Native 应用可以使用 `@oneuptime/react-native-replay` 录制会话。它将原生视图树记录为线框，绝不记录屏幕截图或屏幕上的文字，其录制与 Web 录制在同一个播放器中打开。它使用 **浏览器** 密钥发送，该密钥的 **允许的来源** 以 `app://` 加上 Android 应用 ID 或 iOS bundle ID 的形式列出你的应用：这是一个独立的密钥，不同于你的 OpenTelemetry SDK 使用的移动端密钥。 [在 React Native 中安装](/docs/telemetry/session-replay#在-react-native-中安装) 会逐步介绍。
 
 原生 Android 和 iOS 应用以及其他平台没有会话录制器：它们的 **会话回放** 页面保持为空，而追踪、日志、指标、异常和 **客户端** 页面照常工作。
 
 ## 故障排除
 
 :::details 密钥检查返回 401，或密钥被拒绝
-`401` 表示密钥未知、已撤销、已关闭或已过期：请创建一个服务器密钥，并用它重新构建应用。
+`401` 表示密钥未知、已撤销、已关闭或已过期：请创建一个移动端密钥，并用它重新构建应用。
 
-Browser 密钥能通过检查，但移动应用的每次导出都会被拒绝，返回 `422` 和 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` 。请使用 **服务器** 密钥。
+Browser 密钥能通过检查，但移动应用的每次导出都会被拒绝，返回 `422` 和 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` 。请使用 **移动端** 密钥。移动端密钥通过 gRPC 或从网页发送时也会以 `422` 被拒绝：请通过 OTLP/HTTP 导出。
 :::
 
 :::details 应用出现在服务下，而不是真实用户监控下
-资源既没有 `device.id` 也没有 `device.model.identifier` ，因此遥测被归为后端服务。请按照 [设置你的平台](#设置你的平台) 设置它们。
+遥测是用移动端密钥以外的密钥发送的，且资源既没有 `device.id` 也没有 `device.model.identifier` ，因此被归为后端服务。请使用移动端密钥发送，或按照 [设置你的平台](#设置你的平台) 设置它们。
 
 已经创建的服务不会变成 RUM 应用程序，因此在 RUM 遥测到达后，请在 **产品 → 服务** 下删除它。
 :::

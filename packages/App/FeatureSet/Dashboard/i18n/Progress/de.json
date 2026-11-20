@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 2609
+    "keys": 60451,
+    "untranslated": 2755
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -822,6 +822,7 @@
     "sensor-001",
     "sk-...",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "subscriber@company.com",
     "sum by (job) (rate(http_requests_total[5m]))",

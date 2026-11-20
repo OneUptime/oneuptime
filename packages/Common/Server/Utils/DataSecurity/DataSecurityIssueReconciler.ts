@@ -29,6 +29,7 @@ import {
 import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import { ClosedDataSecurityIssue } from "./DataSecurityIssueAlerts";
+import DataSecurityAiProposals from "../AI/DataSecurity/DataSecurityAiProposals";
 
 /*
  * KEEPING A STORE'S ISSUES IN STEP WITH ITS CHECKS.
@@ -420,6 +421,17 @@ export default class DataSecurityIssueReconciler {
         : "its check passes now",
     });
     output.resolvedCount++;
+
+    /*
+     * What OneUptime AI made for the issue is proven by its check passing,
+     * never by its own word; what still waited for a person is no longer
+     * needed (#10364).
+     */
+    await DataSecurityAiProposals.onIssuesClosed({
+      issueIds: [issue.id],
+      checkPassed: !checkGone,
+      now,
+    });
   }
 
   /*
@@ -472,6 +484,13 @@ export default class DataSecurityIssueReconciler {
         });
 
         closed.push({ issueId: issue.id, why: "its store was archived" });
+
+        // Nothing OneUptime AI proposed for it is needed now; nothing is proven either.
+        await DataSecurityAiProposals.onIssuesClosed({
+          issueIds: [issue.id],
+          checkPassed: false,
+          now,
+        });
       } catch (error) {
         logger.error(
           `DataSecurity: could not resolve issue ${issue.id.toString()} of archived store ${data.dataStoreId.toString()}:`,

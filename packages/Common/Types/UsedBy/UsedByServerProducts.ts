@@ -93,6 +93,7 @@ export const USED_BY_ROW_KIND_PRODUCTS: Readonly<
   [UsedByRowKind.CephCluster]: ProductKey.Ceph,
   [UsedByRowKind.StorageArray]: ProductKey.StorageArrays,
   [UsedByRowKind.NetworkDevice]: ProductKey.Network,
+  [UsedByRowKind.NetworkSite]: ProductKey.Network,
   [UsedByRowKind.IoTFleet]: ProductKey.IoT,
   [UsedByRowKind.CloudResource]: ProductKey.Cloud,
   [UsedByRowKind.ServerlessFunction]: ProductKey.Serverless,

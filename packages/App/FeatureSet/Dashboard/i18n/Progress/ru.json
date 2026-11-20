@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 8181
+    "keys": 60451,
+    "untranslated": 8325
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -40,6 +40,7 @@
     "CloudWatch Metric Streams",
     "Community Edition",
     "Container Apps",
+    "Core Web Vitals",
     "CrowdStrike",
     "DE",
     "DES",
@@ -222,6 +223,7 @@
     "s",
     "security-alerts",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",

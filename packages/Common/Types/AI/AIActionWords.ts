@@ -403,6 +403,7 @@ export const AI_ACTION_LINES: {
   invitationsWithoutEmail: string;
   alreadyInProject: string;
   invitedPagedOnceTheyJoin: string;
+  invitedEarlierPagedOnceTheyJoin: string;
   serviceMonitorOpensAlerts: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
@@ -575,6 +576,14 @@ export const AI_ACTION_LINES: {
   ),
   invitedPagedOnceTheyJoin: translationKey(
     "Invited in this plan, and paged once they join: {{names}}.",
+  ),
+  /*
+   * Someone the project invited earlier, named by the address they were
+   * invited at (#10412): the rule names them now, and pages them once they
+   * join - nothing reaches them before.
+   */
+  invitedEarlierPagedOnceTheyJoin: translationKey(
+    "Invited, and paged once they join: {{names}}.",
   ),
   /*
    * set_up_service_monitor (#7243): what a service's recommended monitor

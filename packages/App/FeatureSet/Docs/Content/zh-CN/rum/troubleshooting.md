@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` 且 `"valid": true` | OneUptime 接受该密钥。响应中还会给出它的 `keyType` 和 `projectId` 。继续下一项检查。 |
 | `401` 且 `"valid": false` | 密钥缺失、未知、已吊销、已关闭或已过期， `message` 会说明是哪一种。在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个有效的密钥。 |
 
-Web 应用需要 **浏览器** 密钥，移动应用需要 **服务器** 密钥：参见 [浏览器端设置](/docs/rum/browser-setup) 和 [移动端设置](/docs/rum/mobile-setup) 。导出端点也会按 OTLP 规范的要求以 `401` 拒绝错误的密钥，因此行为良好的 SDK 会记录这次拒绝，而不是重试。这一行在浏览器控制台中很容易被忽略，而这项检查会直接给出答案。
+Web 应用需要 **浏览器** 密钥，移动应用需要 **移动端** 密钥：参见 [浏览器端设置](/docs/rum/browser-setup) 和 [移动端设置](/docs/rum/mobile-setup) 。导出端点也会按 OTLP 规范的要求以 `401` 拒绝错误的密钥，因此行为良好的 SDK 会记录这次拒绝，而不是重试。这一行在浏览器控制台中很容易被忽略，而这项检查会直接给出答案。
 
 OneUptime 还会统计它从已知密钥拒绝的内容。 **项目设置 → 遥测与 APM → 摄取密钥** 下的密钥页面在 **被拒绝的遥测** 中列出过去 30 天被拒绝的内容，应用程序 **文档** 页面上的 **设置检查** 会说明哪种遥测被拒绝、原因以及如何解决。缺失或未知的密钥不指向任何项目，因此不会被统计：只有这项检查和 `401` 能告诉你。
 
@@ -81,7 +81,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 **`422`.** OneUptime 在这里拒绝了该密钥，消息会说明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示页面的确切来源（包括协议和端口，如果有）不在该密钥的 **允许的来源** 中。 `This telemetry ingestion key has been disabled.` 表示有人关闭了该密钥。
 
-**`429`.** 该密钥的 **Requests Per Minute Limit** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在密钥上设置了自己的上限，否则 Browser 密钥对你所有访客合计每分钟允许 6000 个请求。
+**`429`.** 该密钥的 **每分钟请求数上限** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在密钥上设置了自己的上限，否则 Browser 密钥对你所有访客合计每分钟允许 6000 个请求。
 
 **带有 HTML 页面或空正文的 `403`。** OneUptime 对每次拒绝都以 JSON 响应，所以这个响应来自它前面的某个东西，通常是你自己域名上的 Web 应用防火墙（如果你通过它代理 OneUptime）。防火墙会解析 OTLP/JSON，并用它的注入规则检查每个 span 属性，因此 span 上一个带查询字符串的 URL 就足以被拦截，防火墙的日志会写明是哪条规则。仅在 OTLP 路径上将 OTLP 负载排除在检查之外： [你的 OpenTelemetry 请求也被阻止了](/docs/rum/session-replay-troubleshooting#你的-opentelemetry-请求也被阻止了) 说明了做法，也涵盖了位于同一防火墙后面的回放录制器。
 

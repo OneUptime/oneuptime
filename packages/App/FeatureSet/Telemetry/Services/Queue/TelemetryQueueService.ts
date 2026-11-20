@@ -9,6 +9,7 @@ import WebhookVerificationProvider from "Common/Types/Monitor/IncomingMonitor/We
 import { IncomingRequestSecretProblem } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import OtelPayloadDecoder, {
   OtelPayloadEncoding,
   OtelPayloadFormat,
@@ -347,6 +348,14 @@ export interface TelemetryIngestJobData {
    * seeing it in a failed-job listing grants no access.
    */
   pinnedServiceName?: string;
+  /*
+   * Set only for a job a Mobile ingestion key admitted (issue #6457): the
+   * worker keeps only a mobile app's own resource attributes and files the
+   * batch as the pinned app's mobile RUM (PinMobileRumResource), so a key
+   * copied out of an app can write nothing else. Carried on the job for the
+   * same reason as pinnedServiceName: the payload is decoded in the worker.
+   */
+  isMobileKey?: true;
   /*
    * Set only when the body was counted against an ingestion budget at an
    * estimate - a compressed OTLP/HTTP body, sized from its own header
@@ -795,6 +804,14 @@ export default class TelemetryQueueService {
        */
       if (isOtelType && pinnedServiceName) {
         jobData.pinnedServiceName = pinnedServiceName;
+      }
+
+      // A Mobile key writes only its app's mobile RUM (issue #6457).
+      if (
+        isOtelType &&
+        ingestionKeyPolicy?.keyType === TelemetryIngestionKeyType.Mobile
+      ) {
+        jobData.isMobileKey = true;
       }
 
       const budgetSignal: TelemetryIngestionBudgetSignal | null =
