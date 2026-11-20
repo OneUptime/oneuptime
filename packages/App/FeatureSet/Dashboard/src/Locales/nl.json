@@ -60313,5 +60313,6 @@
   "`AddAzureAppServiceDetector()` names each instance (`service.instance.id`) and the site (`cloud.resource_id`). Each log written through `ILogger` inside a request carries that request's trace, so it opens its trace.": "`AddAzureAppServiceDetector()` benoemt elke instantie (`service.instance.id`) en de site (`cloud.resource_id`). Elk logboekbericht dat binnen een aanvraag via `ILogger` wordt geschreven, draagt de trace van die aanvraag en opent zo zijn trace.",
   "`OTEL_SERVICE_NAME` names the app as its App Service app, and `cloud.account.id` adds its subscription, which the SDK detectors leave out: together they tie its telemetry to the Azure Monitor numbers of its site.": "`OTEL_SERVICE_NAME` geeft de app de naam van zijn App Service-app, en `cloud.account.id` voegt het abonnement toe, dat de SDK-detectors weglaten: samen koppelen ze de telemetrie aan de Azure Monitor-cijfers van de site.",
   "running, as Azure reports": "actief, volgens Azure",
-  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} staat in abonnement {{other}}, niet in {{subscription}}, dat de telemetrie noemt."
+  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} staat in abonnement {{other}}, niet in {{subscription}}, dat de telemetrie noemt.",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "Kies de repository met de code van deze service. OneUptime AI opent daar een pull request."
 }

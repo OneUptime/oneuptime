@@ -60313,5 +60313,6 @@
   "`AddAzureAppServiceDetector()` names each instance (`service.instance.id`) and the site (`cloud.resource_id`). Each log written through `ILogger` inside a request carries that request's trace, so it opens its trace.": "متد `AddAzureAppServiceDetector()` هر نمونه (`service.instance.id`) و سایت (`cloud.resource_id`) را نام می‌برد. هر لاگی که درون یک درخواست با `ILogger` نوشته شود ترِیس همان درخواست را با خود دارد، پس ترِیس خودش را باز می‌کند.",
   "`OTEL_SERVICE_NAME` names the app as its App Service app, and `cloud.account.id` adds its subscription, which the SDK detectors leave out: together they tie its telemetry to the Azure Monitor numbers of its site.": "متغیر `OTEL_SERVICE_NAME` نام برنامهٔ App Service را روی برنامه می‌گذارد، و `cloud.account.id` اشتراک آن را اضافه می‌کند، که تشخیص‌دهنده‌های SDK آن را نمی‌گذارند: این دو با هم تله‌متری آن را به اعداد Azure Monitor سایتش پیوند می‌دهند.",
   "running, as Azure reports": "در حال اجرا، طبق گزارش Azure",
-  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "سایت {{site}} در اشتراک {{other}} است، نه در {{subscription}} که تله‌متری آن نام می‌برد."
+  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "سایت {{site}} در اشتراک {{other}} است، نه در {{subscription}} که تله‌متری آن نام می‌برد.",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "مخزن کدی را که کد این سرویس را نگه می‌دارد انتخاب کنید. OneUptime AI در آنجا یک pull request باز می‌کند."
 }

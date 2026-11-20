@@ -60313,5 +60313,6 @@
   "`AddAzureAppServiceDetector()` names each instance (`service.instance.id`) and the site (`cloud.resource_id`). Each log written through `ILogger` inside a request carries that request's trace, so it opens its trace.": "`AddAzureAppServiceDetector()` 会标识每个实例（`service.instance.id`）和站点（`cloud.resource_id`）。在请求中通过 `ILogger` 写入的每条日志都带有该请求的追踪，因此可以打开它的追踪。",
   "`OTEL_SERVICE_NAME` names the app as its App Service app, and `cloud.account.id` adds its subscription, which the SDK detectors leave out: together they tie its telemetry to the Azure Monitor numbers of its site.": "`OTEL_SERVICE_NAME` 将应用命名为与其 App Service 应用相同的名称，`cloud.account.id` 添加其订阅（SDK 检测器不会设置它）：二者一起将其遥测数据与站点的 Azure Monitor 数据关联起来。",
   "running, as Azure reports": "运行中（据 Azure 报告）",
-  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} 位于订阅 {{other}} 中，而不在其遥测数据指明的 {{subscription}} 中。"
+  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} 位于订阅 {{other}} 中，而不在其遥测数据指明的 {{subscription}} 中。",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "选择包含此服务代码的存储库。OneUptime AI 会在那里创建拉取请求。"
 }

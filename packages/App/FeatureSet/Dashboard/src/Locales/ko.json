@@ -60313,5 +60313,6 @@
   "`AddAzureAppServiceDetector()` names each instance (`service.instance.id`) and the site (`cloud.resource_id`). Each log written through `ILogger` inside a request carries that request's trace, so it opens its trace.": "`AddAzureAppServiceDetector()`는 각 인스턴스(`service.instance.id`)와 사이트(`cloud.resource_id`)를 표시합니다. 요청 안에서 `ILogger`로 기록된 각 로그에는 그 요청의 트레이스가 담겨 있어, 해당 트레이스를 열 수 있습니다.",
   "`OTEL_SERVICE_NAME` names the app as its App Service app, and `cloud.account.id` adds its subscription, which the SDK detectors leave out: together they tie its telemetry to the Azure Monitor numbers of its site.": "`OTEL_SERVICE_NAME`은 앱 이름을 App Service 앱과 같게 하고, `cloud.account.id`는 SDK 감지기가 빠뜨리는 구독을 추가합니다. 이 둘이 함께 텔레메트리를 사이트의 Azure Monitor 수치와 연결합니다.",
   "running, as Azure reports": "실행 중(Azure 보고 기준)",
-  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}}은(는) 텔레메트리가 가리키는 {{subscription}}이(가) 아니라 구독 {{other}}에 있습니다."
+  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}}은(는) 텔레메트리가 가리키는 {{subscription}}이(가) 아니라 구독 {{other}}에 있습니다.",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "이 서비스의 코드가 있는 리포지토리를 선택하세요. OneUptime AI가 해당 리포지토리에 풀 리퀘스트를 엽니다."
 }

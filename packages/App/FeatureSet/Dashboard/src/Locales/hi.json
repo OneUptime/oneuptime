@@ -60313,5 +60313,6 @@
   "`AddAzureAppServiceDetector()` names each instance (`service.instance.id`) and the site (`cloud.resource_id`). Each log written through `ILogger` inside a request carries that request's trace, so it opens its trace.": "`AddAzureAppServiceDetector()` हर इंस्टेंस (`service.instance.id`) और साइट (`cloud.resource_id`) का नाम बताता है। किसी अनुरोध के भीतर `ILogger` से लिखा गया हर लॉग उस अनुरोध का ट्रेस साथ रखता है, इसलिए वह अपना ट्रेस खोलता है।",
   "`OTEL_SERVICE_NAME` names the app as its App Service app, and `cloud.account.id` adds its subscription, which the SDK detectors leave out: together they tie its telemetry to the Azure Monitor numbers of its site.": "`OTEL_SERVICE_NAME` ऐप को उसके App Service ऐप का नाम देता है, और `cloud.account.id` उसका सब्सक्रिप्शन जोड़ता है, जिसे SDK detectors छोड़ देते हैं: दोनों मिलकर उसकी टेलीमेट्री को उसकी साइट के Azure Monitor आँकड़ों से जोड़ते हैं।",
   "running, as Azure reports": "चल रहे हैं, Azure के अनुसार",
-  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} सब्सक्रिप्शन {{other}} में है, {{subscription}} में नहीं, जिसका नाम इसकी टेलीमेट्री बताती है।"
+  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} सब्सक्रिप्शन {{other}} में है, {{subscription}} में नहीं, जिसका नाम इसकी टेलीमेट्री बताती है।",
+  "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "वह रिपॉज़िटरी चुनें जिसमें इस सेवा का कोड है। OneUptime AI वहां एक पुल रिक्वेस्ट खोलता है।"
 }
