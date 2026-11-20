@@ -275,9 +275,10 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * Creating a field already refuses a name another field has
-     * (UniqueColumnBy, case-insensitively), but an update does not check it,
-     * and a rename onto another field's name would move this field's values
-     * over that field's.
+     * (UniqueColumnBy, case-insensitively). An update leaves the name to
+     * this check (getUniqueColumnsCheckedOnUpdate, #10318): it runs before
+     * anything else of the rename, since a rename onto another field's name
+     * would move this field's values over that field's.
      */
     const clashes: number = (
       await this.countBy({
