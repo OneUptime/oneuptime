@@ -655,6 +655,52 @@ describe("the run, kept on the server (#7253)", () => {
     expect(kept()).toMatchObject({ isSynced: true });
   });
 
+  test("a save made just as the last request finishes is sent too, whatever the timing", async () => {
+    /*
+     * A save made after the sender's last request answered, but before it
+     * let go of the line, found it busy and left its change to it - and the
+     * change was never sent (the website setup's monitor id, between the
+     * address it saved first and its next step).
+     */
+    const store: GuidedSetupRunStore = storeOn();
+    const answerSave: FakeServer["save"] = server.save;
+    let lateSave: (() => void) | null = (): void => {
+      store.save({ monitorId: "m-1" });
+    };
+
+    /*
+     * The first answer, once read, leads to a save one tick later: after
+     * the sender's loop found nothing more to send, before it let go.
+     */
+    server.save = (
+      setup: GuidedSetupKey,
+      change: GuidedSetupRunChange,
+    ): Promise<GuidedSetupRunAnswer> => {
+      const answer: Promise<GuidedSetupRunAnswer> = answerSave(setup, change);
+      const save: (() => void) | null = lateSave;
+
+      lateSave = null;
+
+      if (save) {
+        void answer.then(() => {
+          return Promise.resolve().then(save);
+        });
+      }
+
+      return answer;
+    };
+
+    store.save({ address: "https://acme.example" });
+    await store.flush();
+    await store.flush();
+
+    expect(server.valuesOf("website_down")).toEqual({
+      address: "https://acme.example",
+      monitorId: "m-1",
+    });
+    expect(store.getSync()).toBe(GuidedSetupRunSync.Saved);
+  });
+
   test("says where the run stands as it goes: saving, then saved", async () => {
     const store: GuidedSetupRunStore = storeOn();
     const seen: Array<GuidedSetupRunSync> = [];
@@ -820,6 +866,49 @@ describe("the run, kept on the server (#7253)", () => {
     expect(await storeOn().load()).toEqual({});
     expect(server.valuesOf("website_down")).toBeUndefined();
     expect(kept()).toBeNull();
+  });
+
+  test("a start afresh, then a save, both before the server answers: the save is the new run's", async () => {
+    // The on-call setup's Set up another policy: forget, then who is reached.
+    const store: GuidedSetupRunStore = storeOn();
+    store.save({ policyId: "p-1", reachConfirmed: true });
+    await store.flush();
+
+    store.forget();
+    store.save({ reachConfirmed: true });
+
+    expect(store.read()).toEqual({ reachConfirmed: true });
+    expect(storeOn().read()).toEqual({ reachConfirmed: true });
+
+    await store.flush();
+
+    expect(server.valuesOf("website_down")).toEqual({ reachConfirmed: true });
+    expect(
+      server.calls.map((call: { kind: string }) => {
+        return call.kind;
+      }),
+    ).toEqual(["save", "forget", "save"]);
+  });
+
+  test("a start afresh and a save the server never heard are sent in that order when the page opens again", async () => {
+    const store: GuidedSetupRunStore = storeOn();
+    store.save({ policyId: "p-1" });
+    await store.flush();
+
+    server.isDown = true;
+    store.forget();
+    store.save({ reachConfirmed: true });
+    await store.flush();
+
+    server.isDown = false;
+
+    expect(await storeOn().load()).toEqual({ reachConfirmed: true });
+    expect(server.valuesOf("website_down")).toEqual({ reachConfirmed: true });
+    expect(kept()).toMatchObject({
+      values: { reachConfirmed: true },
+      isSynced: true,
+      isForgetPending: false,
+    });
   });
 
   test("a save made while the page's run was being read is kept, and sent", async () => {

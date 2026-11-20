@@ -438,7 +438,18 @@ export default class GuidedSetupRunStore {
       if (this.isForgetPending) {
         await this.remote.forget(this.setupKey);
         this.isForgetPending = false;
-        this.takeAnswer(null);
+
+        // What was saved after the start afresh is the new run's: sent too.
+        if (hasAnything(this.page || emptyCopy())) {
+          this.takeAnswer(
+            await this.remote.save(
+              this.setupKey,
+              toWholeChange(this.page || emptyCopy(), []),
+            ),
+          );
+        } else {
+          this.takeAnswer(null);
+        }
       } else if (this.isServerBehind) {
         // What this browser has that the server may not: sent first.
         const answer: GuidedSetupRunAnswer = await this.remote.save(
@@ -566,9 +577,11 @@ export default class GuidedSetupRunStore {
   private getCopy(): RunCopy {
     const kept: KeptRun | null = this.readKept();
 
-    if (kept && kept.isForgetPending) {
-      this.page = emptyCopy();
-    } else if (kept && hasAnything(kept)) {
+    /*
+     * A start afresh the server has not heard yet is kept with what was
+     * saved after it (nothing, at first): that is the run.
+     */
+    if (kept && (kept.isForgetPending || hasAnything(kept))) {
       this.page = { values: kept.values, resources: kept.resources };
     } else if (!this.page) {
       this.page = emptyCopy();
@@ -610,8 +623,9 @@ export default class GuidedSetupRunStore {
     }
 
     const setupKey: GuidedSetupKey = this.setupKey;
+    let didFail: boolean = false;
 
-    this.sending = (async (): Promise<void> => {
+    const sending: Promise<void> = (async (): Promise<void> => {
       this.setSync(GuidedSetupRunSync.Saving);
 
       try {
@@ -649,14 +663,28 @@ export default class GuidedSetupRunStore {
         );
       } catch {
         // Kept here: sent again with the next change, or retry().
+        didFail = true;
         this.isServerBehind = !this.isForgetPending;
         this.writeKept();
         this.setSync(GuidedSetupRunSync.NotSaved);
       }
     })();
 
-    void this.sending.finally(() => {
-      this.sending = null;
+    this.sending = sending;
+
+    void sending.finally(() => {
+      if (this.sending === sending) {
+        this.sending = null;
+      }
+
+      /*
+       * A save made as this request finished found it still out and left
+       * its change to it: sent now. After a failure, the next change or
+       * retry() sends again.
+       */
+      if (!didFail) {
+        this.send();
+      }
     });
   }
 
