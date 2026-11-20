@@ -62,6 +62,7 @@ De kaart **Uw logboeken**, boven aan **Verbindingen**, hoeft niet geïnstalleerd
 | AWS CloudTrail | Aanmeldingen bij de console, wijzigingen in uw AWS-accounts en aanroepen die AWS weigerde |
 | Google Cloud-auditlogs | Wijzigingen in uw Google Cloud-projecten, aanroepen die Google weigerde en aanmeldingen bij Google Workspace die met Google Cloud worden gedeeld |
 | Azure-activiteitslogs en Entra ID-logs | Wijzigingen in uw Azure-abonnementen, waarschuwingen van Defender for Cloud, en aanmeldingen en directorywijzigingen van Microsoft Entra ID |
+| Azure Key Vault-, Storage- en SQL-logboeken | Gelezen en gewijzigde geheimen in Key Vault, opslagverzoeken die zijn geweigerd, anoniem zijn of met een SAS gegevens wijzigen, en aanmeldingen, weigeringen en machtigingswijzigingen in Azure SQL |
 | OpenStack-audittrail | Mislukte aanmeldingen, roltoekenningen en wijzigingen in Keystone, wat het auditfilter van elke API zag, beveiligingsgroepen die voor iedereen zijn geopend en afbeeldingen die openbaar zijn gemaakt |
 | CEF | Bedreigingen, geblokkeerde verbindingen en aanmeldingen van firewalls, IDS, WAF's en andere beveiligingsproducten die Common Event Format sturen |
 | LEEF | Hetzelfde van producten die Log Event Extended Format sturen, zoals veel producten voor IBM QRadar doen |

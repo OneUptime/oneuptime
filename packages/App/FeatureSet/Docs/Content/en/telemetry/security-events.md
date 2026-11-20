@@ -193,6 +193,7 @@ Each kind reaches OneUptime as ordinary logs:
 | AWS CloudTrail | A trail delivered to CloudWatch Logs, read by the collector's `awscloudwatch` receiver, or, for an account connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
 | Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text`, or, for a project connected under **Cloud**, its [stream](/docs/telemetry/cloud-streaming-google-cloud) or [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
 | Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or to the event hub of a connected subscription's [stream](/docs/telemetry/cloud-streaming-azure), or, for a subscription's Activity Log, connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Azure Key Vault, Storage and SQL logs | A resource's diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or the diagnostic settings of a connected subscription's [stream](/docs/telemetry/cloud-streaming-azure), with its logs. See [Azure resources' own audit logs](#azure-resources-own-audit-logs) |
 | OpenStack audit trail | A cloud's notifications and audit filter sent to its logs with `driver = log`, read by the agent's [logs profile](/docs/telemetry/openstack#who-did-what) |
 | CEF, LEEF | The product's syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | The firewall's own syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
@@ -204,6 +205,18 @@ On **Your logs**, each kind says when it was last found, and **Check a log line*
 A threat a security product writes in your logs, such as a CEF or LEEF finding or a Palo Alto Networks, FortiGate or Cisco ASA threat, opens a [case](/docs/telemetry/security-cases) as a connected product's alert does, and adds to the risk of the user, host or address it names. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**. The product's sign-ins and blocked connections stay events, for your rules to read.
 
 A record that reaches OneUptime two ways is stored once: a Microsoft Entra ID sign-in its connection reads and Azure's export of it in your logs, a CloudTrail record in your logs and in a connected AWS account's audit log, or an audit record a cloud account's stream sends that **Cloud audit logs** reads too.
+
+#### Azure resources' own audit logs
+
+A key vault, a storage account and an Azure SQL database each keep an audit log of their own, which records every request. Only what a security team looks at becomes a security event:
+
+| Resource | What becomes a security event |
+| --- | --- |
+| Key vault (`AuditEvent`) | A request the vault refused; a secret handed out; a secret, key, certificate or the vault deleted, purged or backed up; its access policy changed; and a change to what it holds. Not the 401 every Azure SDK client gets on its first call, made without a token to learn the tenant: Key Vault logs it under its `Authentication` operation |
+| Storage account (`StorageRead`, `StorageWrite`, `StorageDelete`) | A request refused for want of a right; one served with no credential at all, but a static website's pages and a CORS preflight; a container's, share's, queue's or table's access list changed, or the whole of one deleted; and a write or delete a shared access signature (SAS) signed. Not a read that succeeded, a SAS read included |
+| Azure SQL (`SQLSecurityAuditEvents`) | A failed sign-in; a sign-in on a new connection, not a pooled connection's reuse; a permission granted, denied or revoked, a role's member or a password changed, an impersonation, and a login, user or role created, altered or dropped; and an action whose permission check failed. Not a batch, the bulk of an audit |
+
+A storage account's successful reads are most of what it logs: a SAS is how most apps hand files to browsers. They stay in Logs, whole, on the account's **Logs** tab: search there for `"type":"SAS"` to see what a shared access signature read. Each event names its resource by its ID, a storage service's its account too, so it shows on that resource's **Security Events** page, and a record that arrives twice is stored once.
 
 ### Read your cloud accounts' audit logs
 

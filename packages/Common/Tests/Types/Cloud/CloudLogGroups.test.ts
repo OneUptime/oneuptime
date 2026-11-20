@@ -431,6 +431,8 @@ describe("which resource pages have a Logs tab", () => {
       "Microsoft.Web/sites",
       "Microsoft.Sql/servers/databases",
       "Microsoft.KeyVault/vaults",
+      // Its services' logs, which the stream files under it (#10110).
+      "Microsoft.Storage/storageAccounts",
       "Microsoft.ContainerService/managedClusters",
       "Microsoft.App/managedEnvironments",
       "Microsoft.Network/applicationGateways",
@@ -466,7 +468,6 @@ describe("which resource pages have a Logs tab", () => {
       "Microsoft.Compute/virtualMachines",
       "Microsoft.Compute/disks",
       "Microsoft.Network/virtualNetworks",
-      "Microsoft.Storage/storageAccounts",
       "Microsoft.Web/serverfarms",
       "Microsoft.App/containerApps",
       // Not in the catalog: the stream's command sets no diagnostic setting on it.

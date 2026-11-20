@@ -3,6 +3,8 @@ import ProbeReportOpening, {
   ProbeReportOpeningCredentials,
 } from "../../../../Server/Utils/Probe/ProbeReportOpening";
 import { JSONObject } from "../../../../Types/JSON";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -183,26 +185,22 @@ describe("a report as every probe release writes it", () => {
       ":",
     ];
 
-    // A seeded generator: the same 500 cases every run.
-    let seed: number = 20261120;
-    const next: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed;
-    };
+    // Seeded: the same 500 cases every run, so a failing index replays.
+    const random: SeededRandom = seededRandom(20261120);
 
     const text: (length: number) => string = (length: number): string => {
       let value: string = "";
 
       for (let index: number = 0; index < length; index++) {
-        value += pool[next() % pool.length];
+        value += pool[random(pool.length)];
       }
 
       return value;
     };
 
     for (let index: number = 0; index < 500; index++) {
-      const probeKey: string = text(1 + (next() % 60));
-      const probeId: string = text(1 + (next() % 40));
+      const probeKey: string = text(1 + random(60));
+      const probeId: string = text(1 + random(40));
       const body: Buffer = vmwareReport(probeKey, probeId);
       const parsed: JSONObject = JSON.parse(body.toString("utf8"));
 
@@ -265,14 +263,29 @@ describe("what it costs", () => {
     const body: Buffer = Buffer.alloc(48 * 1024 * 1024, " ");
     body.write(`${opening},"resourceMetrics":[`, 0, "utf8");
 
-    const started: number = Date.now();
+    // The fastest of up to three attempts: one timing on a busy runner is noisy.
+    const reads: FastestRun<Array<ProbeReportOpeningCredentials | null>> =
+      fastestRun({
+        run: (): Array<ProbeReportOpeningCredentials | null> => {
+          const opened: Array<ProbeReportOpeningCredentials | null> = [];
 
-    for (let index: number = 0; index < 100; index++) {
-      expect(read(body)).toEqual({ probeId: PROBE_ID, probeKey: PROBE_KEY });
+          for (let index: number = 0; index < 100; index++) {
+            opened.push(read(body));
+          }
+
+          return opened;
+        },
+        limitInMs: 1000,
+      });
+
+    expect(reads.result).toHaveLength(100);
+
+    for (const opened of reads.result) {
+      expect(opened).toEqual({ probeId: PROBE_ID, probeKey: PROBE_KEY });
     }
 
     // 100 reads of a 48 MiB body: each one reads 4 KiB.
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(reads.inMs).toBeLessThan(1000);
   });
 
   test("never calls JSON.parse", () => {

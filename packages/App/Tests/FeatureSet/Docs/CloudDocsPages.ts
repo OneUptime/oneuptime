@@ -392,6 +392,8 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A connected Azure subscription.",
     "A Project Owner or Project Admin.",
     "Azure Cloud Shell",
+    // Who runs Microsoft Entra ID's own command (#10111).
+    "For Microsoft Entra ID's logs, a Security Administrator",
     "A way out to Azure, on a self-hosted OneUptime.",
   ],
   [CLOUD_STREAMING_GOOGLE_CLOUD]: [
