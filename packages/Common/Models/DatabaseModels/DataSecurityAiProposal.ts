@@ -362,7 +362,7 @@ export default class DataSecurityAiProposal extends BaseModel {
     type: TableColumnType.Markdown,
     required: false,
     computed: true,
-    title: "How To Undo It",
+    title: "How to Undo It",
     description: "What Undo does, and what it cannot take back.",
   })
   @Column({
@@ -680,8 +680,7 @@ export default class DataSecurityAiProposal extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Applied At",
-    description:
-      "When the change was made: after approval, or without asking.",
+    description: "When the change was made: after approval, or without asking.",
   })
   @Column({
     type: ColumnType.Date,

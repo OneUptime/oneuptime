@@ -21,6 +21,7 @@ import DataSecurityDataFlowsPage from "../Pages/DataSecurity/DataFlows";
 import DataSecurityAccessPage from "../Pages/DataSecurity/Access";
 import DataSecurityIdentityViewPage from "../Pages/DataSecurity/IdentityView";
 import DataSecurityCompliancePage from "../Pages/DataSecurity/Compliance";
+import DataSecurityAiPage from "../Pages/DataSecurity/AI";
 import DataSecurityScansPage from "../Pages/DataSecurity/Scans";
 import DataSecurityDocumentationPage from "../Pages/DataSecurity/Documentation";
 import DataSecurityDataTypesPage from "../Pages/DataSecurity/Settings/DataTypes";
@@ -156,6 +157,15 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
             <DataSecurityCompliancePage
               {...props}
               pageRoute={RouteMap[PageMap.DATA_SECURITY_COMPLIANCE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={DataSecurityRoutePath[PageMap.DATA_SECURITY_AI] || ""}
+          element={
+            <DataSecurityAiPage
+              {...props}
+              pageRoute={RouteMap[PageMap.DATA_SECURITY_AI] as Route}
             />
           }
         />
