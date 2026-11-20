@@ -43,10 +43,13 @@ const OTHER_CERTIFICATE: string = [
   "-----END CERTIFICATE-----",
 ].join("\n");
 
+// A step's config as stored: any value, as the API or Terraform may write it.
 function settings(
-  config: Partial<HttpRequestStepConfig> & Record<string, unknown>,
+  config: Record<string, unknown>,
 ): HttpStepCertificateSettings {
-  return getHttpStepCertificateSettings(config as HttpRequestStepConfig);
+  return getHttpStepCertificateSettings(
+    config as unknown as HttpRequestStepConfig,
+  );
 }
 
 const CHECKS: HttpStepCertificateSettings = {
