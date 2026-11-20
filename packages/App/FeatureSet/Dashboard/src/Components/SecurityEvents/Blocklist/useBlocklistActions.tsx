@@ -294,7 +294,8 @@ export default function useBlocklistActions(data: {
                 // An ended block has nothing to lift: left as it is, saying why.
                 if (!isActive(block)) {
                   return bulkItemUnchanged(
-                    translator.translateText(ENDED_BLOCK_REASON),
+                    translator.translateText(ENDED_BLOCK_REASON) ||
+                      ENDED_BLOCK_REASON,
                   );
                 }
 
