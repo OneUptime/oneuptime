@@ -2,8 +2,16 @@ import PageContextUtil, {
   DashboardPageContext,
   SuggestedQuestion,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PageContext";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DashboardModel from "../../../Models/DatabaseModels/Dashboard";
+import Form from "../../../Models/DatabaseModels/Form";
+import IncomingCallPolicy from "../../../Models/DatabaseModels/IncomingCallPolicy";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Runbook from "../../../Models/DatabaseModels/Runbook";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import Team from "../../../Models/DatabaseModels/Team";
 import AIChatPageContextType, {
   AIChatPageContextHelper,
 } from "../../../Types/AI/AIChatPageContext";
@@ -202,7 +210,7 @@ describe("the pages where a project is set up have a context", () => {
     });
   });
 
-  test("the lists, explorers and other records keep the context they had", () => {
+  test("the lists and explorers keep the context they had, with no page", () => {
     navigateTo(`/dashboard/${PROJECT_ID}/monitors`);
 
     expect(detected()).toEqual({
@@ -212,11 +220,191 @@ describe("the pages where a project is set up have a context", () => {
       icon: "AltGlobe",
       isEntity: false,
     });
-
-    navigateTo(`/dashboard/${PROJECT_ID}/monitors/${POLICY_ID}/criteria`);
-
-    expect(detected()?.page).toBeUndefined();
   });
+});
+
+/*
+ * ONE RECORD'S PAGES ARE THAT RECORD, AND SAY WHICH PAGE (#10104): an
+ * on-call schedule's, an incoming call policy's, a team's, a dashboard's,
+ * a runbook's, an SLO's and a form's sent no context, so "how do I add a
+ * layer to this schedule?" was asked about no schedule; a monitor's,
+ * incident's, alert's, maintenance event's, service's and workflow's sent
+ * which record but not which of its pages.
+ */
+describe("a record's own pages are that record, with the page on screen (#10104)", () => {
+  const RECORD_ID: string = "40000000-0000-4000-8000-000000000004";
+
+  test.each<[string, AIChatPageContextType, string, string]>([
+    [
+      `on-call-duty/schedules/${RECORD_ID}/layers`,
+      AIChatPageContextType.OnCallSchedule,
+      "This on-call schedule",
+      "/dashboard/:projectId/on-call-duty/schedules/:id/layers",
+    ],
+    [
+      `on-call-duty/incoming-call-policies/${RECORD_ID}/escalation`,
+      AIChatPageContextType.IncomingCallPolicy,
+      "This incoming call policy",
+      "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/escalation",
+    ],
+    [
+      `teams/${RECORD_ID}/members`,
+      AIChatPageContextType.Team,
+      "This team",
+      "/dashboard/:projectId/teams/:id/members",
+    ],
+    [
+      `dashboards/${RECORD_ID}/authentication-settings`,
+      AIChatPageContextType.Dashboard,
+      "This dashboard",
+      "/dashboard/:projectId/dashboards/:id/authentication-settings",
+    ],
+    [
+      `runbooks/${RECORD_ID}/steps`,
+      AIChatPageContextType.Runbook,
+      "This runbook",
+      "/dashboard/:projectId/runbooks/:id/steps",
+    ],
+    [
+      `slos/${RECORD_ID}/burn-rate-rules`,
+      AIChatPageContextType.Slo,
+      "This SLO",
+      "/dashboard/:projectId/slos/:id/burn-rate-rules",
+    ],
+    [
+      `forms/${RECORD_ID}/share`,
+      AIChatPageContextType.Form,
+      "This form",
+      "/dashboard/:projectId/forms/:id/share",
+    ],
+    // Records Ask AI knew, which now say which of their pages is on screen.
+    [
+      `monitors/${RECORD_ID}/criteria`,
+      AIChatPageContextType.Monitor,
+      "This monitor",
+      "/dashboard/:projectId/monitors/:id/criteria",
+    ],
+    [
+      `incidents/${RECORD_ID}/postmortem`,
+      AIChatPageContextType.Incident,
+      "This incident",
+      "/dashboard/:projectId/incidents/:id/postmortem",
+    ],
+    [
+      `alerts/${RECORD_ID}/notification-logs`,
+      AIChatPageContextType.Alert,
+      "This alert",
+      "/dashboard/:projectId/alerts/:id/notification-logs",
+    ],
+    [
+      `scheduled-maintenance-events/${RECORD_ID}/notification-logs`,
+      AIChatPageContextType.ScheduledMaintenanceEvent,
+      "This maintenance event",
+      "/dashboard/:projectId/scheduled-maintenance-events/:id/notification-logs",
+    ],
+    [
+      `service/${RECORD_ID}/exceptions`,
+      AIChatPageContextType.TelemetryService,
+      "This service",
+      "/dashboard/:projectId/service/:id/exceptions",
+    ],
+    [
+      `workflows/${RECORD_ID}/builder`,
+      AIChatPageContextType.Workflow,
+      "This workflow",
+      "/dashboard/:projectId/workflows/:id/builder",
+    ],
+  ])(
+    "%s is %s, chip %s, on its page",
+    (
+      path: string,
+      type: AIChatPageContextType,
+      chipLabel: string,
+      page: string,
+    ) => {
+      navigateTo(`/dashboard/${PROJECT_ID}/${path}`);
+
+      const context: DashboardPageContext | null = detected();
+
+      expect(context).toMatchObject({
+        type,
+        entityId: RECORD_ID,
+        chipLabel,
+        isEntity: true,
+        page,
+      });
+
+      // Sent as the record's id and its page's template, never the address.
+      const payload: JSONObject = PageContextUtil.toRequestPayload(context!);
+
+      expect(payload).toEqual({ type, entityId: RECORD_ID, page });
+      expect(String(payload["page"])).not.toContain(RECORD_ID);
+      expect(String(payload["page"])).not.toContain(PROJECT_ID);
+      expect(AIChatPageContextHelper.sanitize(payload)).toEqual(payload);
+    },
+  );
+
+  test("a schedule's or a team's page is that record, not On-Call or Project Settings", () => {
+    navigateTo(`/dashboard/${PROJECT_ID}/on-call-duty/schedules/${RECORD_ID}`);
+    expect(detected()?.type).toBe(AIChatPageContextType.OnCallSchedule);
+
+    // The list of schedules is On-Call still.
+    navigateTo(`/dashboard/${PROJECT_ID}/on-call-duty/schedules`);
+    expect(detected()?.type).toBe(AIChatPageContextType.OnCall);
+  });
+
+  test("an address under a record's root that is no record's id is no record", () => {
+    navigateTo(`/dashboard/${PROJECT_ID}/dashboards/not-an-id`);
+
+    expect(detected()?.isEntity).not.toBe(true);
+  });
+
+  test.each<[AIChatPageContextType, { new (): BaseModel }, string]>([
+    [AIChatPageContextType.OnCallSchedule, OnCallDutyPolicySchedule, "Weekly"],
+    [
+      AIChatPageContextType.IncomingCallPolicy,
+      IncomingCallPolicy,
+      "Support line",
+    ],
+    [AIChatPageContextType.Team, Team, "Platform"],
+    [AIChatPageContextType.Dashboard, DashboardModel, "Checkout health"],
+    [AIChatPageContextType.Runbook, Runbook, "Restart the API"],
+    [AIChatPageContextType.Slo, ServiceLevelObjective, "Checkout 99.9%"],
+    [AIChatPageContextType.Form, Form, "Report a problem"],
+  ])(
+    "%s is named by its name, read with the viewer's own permissions",
+    async (
+      type: AIChatPageContextType,
+      modelType: { new (): BaseModel },
+      name: string,
+    ) => {
+      const record: BaseModel = new modelType();
+      (record as unknown as { name: string }).name = name;
+      const getItem: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(ModelAPI, "getItem")
+        .mockResolvedValue(record);
+
+      const context: DashboardPageContext = {
+        type,
+        entityId: RECORD_ID,
+        noun: "record",
+        chipLabel: "This record",
+        icon: "Add" as never,
+        isEntity: true,
+      };
+
+      expect(await PageContextUtil.resolveEntityTitle(context)).toBe(name);
+      expect(getItem).toHaveBeenCalledWith({
+        modelType,
+        id: new ObjectID(RECORD_ID),
+        select: { name: true },
+      });
+
+      // One the viewer may not read keeps the chip's plain label.
+      jest.spyOn(ModelAPI, "getItem").mockRejectedValue(new Error("No access"));
+      expect(await PageContextUtil.resolveEntityTitle(context)).toBeNull();
+    },
+  );
 });
 
 describe("what a setup page sends, and what it keeps in the browser", () => {
@@ -319,6 +507,13 @@ describe("the questions a setup page offers", () => {
   test.each([
     AIChatPageContextType.StatusPage,
     AIChatPageContextType.OnCallPolicy,
+    AIChatPageContextType.OnCallSchedule,
+    AIChatPageContextType.IncomingCallPolicy,
+    AIChatPageContextType.Team,
+    AIChatPageContextType.Dashboard,
+    AIChatPageContextType.Runbook,
+    AIChatPageContextType.Slo,
+    AIChatPageContextType.Form,
     AIChatPageContextType.Home,
     AIChatPageContextType.ProjectSettings,
     AIChatPageContextType.UserSettings,
@@ -356,7 +551,17 @@ describe("the questions a setup page offers", () => {
   );
 
   test("a chip's label is worded in every Dashboard language", () => {
-    for (const label of ["This status page", "This on-call policy"]) {
+    for (const label of [
+      "This status page",
+      "This on-call policy",
+      "This on-call schedule",
+      "This incoming call policy",
+      "This team",
+      "This dashboard",
+      "This runbook",
+      "This SLO",
+      "This form",
+    ]) {
       for (const language of DASHBOARD_LANGUAGES) {
         expect({
           language,
