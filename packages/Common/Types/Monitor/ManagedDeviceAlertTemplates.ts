@@ -13,8 +13,11 @@ import DeviceManagementProvider from "../DeviceManagement/DeviceManagementProvid
 import {
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT,
   ManagedDeviceCheckInAttribute,
 } from "../DeviceManagement/ManagedDeviceCheckIn";
+import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "../Host/AndroidSecurityPatch";
 import { ManagedDevicePlatform } from "../DeviceManagement/ManagedDevicePlatform";
 import {
   buildHealthyCriteriaInstance,
@@ -80,6 +83,17 @@ import {
  *     and the open alerts stay open until readings arrive again
  *     (MonitorResource.isSilentInfrastructureWindow); the connection's row
  *     on Managed Devices says why.
+ *
+ * And, for every service, SECURITY PATCH OUT OF DATE (#10098): an Android
+ * device whose security patch level, as the service reports it, is more than
+ * 90 days old - the rule Inventory's Security Patch Level filter and the
+ * Android agent's own Host template read (Host/AndroidSecurityPatch). Each
+ * read writes every Android device's patch age beside its check-in
+ * (ManagedDeviceCheckIn), and the template reads them the way the check-in
+ * templates read theirs: each device's latest reading, one alert per device,
+ * never a device the agent reports - whose host's Security Patch Out of Date
+ * reads the agent's own age - and no resolving on a connection gone quiet.
+ * It resolves at the first read that finds the device updated.
  */
 
 // The threshold of a device with a heartbeat: more than this many minutes since its last check-in.
@@ -130,7 +144,9 @@ export const MANAGED_DEVICE_NON_APPLE_PLATFORMS: ReadonlyArray<ManagedDevicePlat
 
 const METRIC_ALIAS: string = "minutes_since_check_in";
 
-export type ManagedDeviceAlertTemplateCategory = "Availability";
+const SECURITY_PATCH_METRIC_ALIAS: string = "days_since_security_patch";
+
+export type ManagedDeviceAlertTemplateCategory = "Availability" | "Security";
 
 export type ManagedDeviceAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -157,8 +173,12 @@ export interface ManagedDeviceAlertTemplate {
   category: ManagedDeviceAlertTemplateCategory;
   severity: ManagedDeviceAlertTemplateSeverity;
   monitoringInterval: string;
-  // The minutes of silence it fires after.
-  thresholdInMinutes: number;
+  // The reading it reads, each device's latest: a check-in's, or a patch's.
+  metricName: string;
+  // A check-in template's: the minutes of silence it fires after.
+  thresholdInMinutes?: number | undefined;
+  // A security patch template's: the days old a patch may be, and no more.
+  maxSecurityPatchAgeInDays?: number | undefined;
   // The platforms it reads; none is every device of the connection.
   platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
   getMonitorStep: (args: ManagedDeviceAlertTemplateArgs) => MonitorStep;
@@ -175,10 +195,59 @@ export function buildManagedDeviceCheckInMetricMonitor(data: {
   deviceManagementConnectionId: string;
   platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
 }): MonitorStepMetricMonitor {
+  return buildManagedDeviceReadingMetricMonitor({
+    deviceManagementConnectionId: data.deviceManagementConnectionId,
+    platforms: data.platforms,
+    metricName: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+    metricAlias: METRIC_ALIAS,
+    title: "Minutes since last check-in",
+    description:
+      "How long since each device last checked in, at the connection's latest read.",
+    legendUnit: MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
+  });
+}
+
+/*
+ * The query of a connection's Android devices' security patches (#10098):
+ * the days since each one's patch level, of the devices no agent reports,
+ * one series per device. Max per minute, as the check-ins read theirs.
+ */
+export function buildManagedDeviceSecurityPatchMetricMonitor(data: {
+  deviceManagementConnectionId: string;
+}): MonitorStepMetricMonitor {
+  return buildManagedDeviceReadingMetricMonitor({
+    deviceManagementConnectionId: data.deviceManagementConnectionId,
+    // Android's alone: no other platform has a security patch level.
+    platforms: [ManagedDevicePlatform.Android],
+    metricName: MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+    metricAlias: SECURITY_PATCH_METRIC_ALIAS,
+    title: "Days since security patch",
+    description:
+      "How old each Android device's security patch level is, at the connection's latest read.",
+    legendUnit: MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT,
+  });
+}
+
+/*
+ * A connection's readings of its devices, of one metric: the devices no
+ * agent reports, of the given platforms, one series per device.
+ */
+function buildManagedDeviceReadingMetricMonitor(data: {
+  deviceManagementConnectionId: string;
+  platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
+  metricName: string;
+  metricAlias: string;
+  title: string;
+  description: string;
+  legendUnit: string;
+}): MonitorStepMetricMonitor {
   const attributes: Dictionary<string | Includes> = {
     [ManagedDeviceCheckInAttribute.ConnectionId]:
       data.deviceManagementConnectionId,
-    // A device the Android agent reports is Host Stopped Reporting's.
+    /*
+     * A device the Android agent reports is its host's to alert on: Host
+     * Stopped Reporting, and its own Security Patch Out of Date.
+     */
     [ManagedDeviceCheckInAttribute.IsHost]: "false",
   };
 
@@ -197,16 +266,15 @@ export function buildManagedDeviceCheckInMetricMonitor(data: {
       queryConfigs: [
         {
           metricAliasData: {
-            metricVariable: METRIC_ALIAS,
-            title: "Minutes since last check-in",
-            description:
-              "How long since each device last checked in, at the connection's latest read.",
-            legend: "Minutes since last check-in",
-            legendUnit: MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
+            metricVariable: data.metricAlias,
+            title: data.title,
+            description: data.description,
+            legend: data.title,
+            legendUnit: data.legendUnit,
           },
           metricQueryData: {
             filterData: {
-              metricName: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+              metricName: data.metricName,
               attributes: attributes,
               aggegationType: MetricsAggregationType.Max,
               aggregateBy: {},
@@ -248,6 +316,7 @@ function buildCheckInTemplate(
     category: "Availability",
     severity: "Warning",
     monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+    metricName: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
     thresholdInMinutes: spec.thresholdInMinutes,
     platforms: spec.platforms,
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
@@ -450,13 +519,156 @@ const sotiAppleDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
       "Triggers when a device's latest reading says it has not checked in with MobiControl for more than a day, once for each such device.",
   });
 
+// What a security patch template says, for its service.
+interface SecurityPatchTemplateSpec {
+  id: string;
+  provider: DeviceManagementProvider;
+  name: string;
+  summary: string;
+  // The service as a sentence names it: "Esper", "Intune", "MobiControl".
+  serviceName: string;
+}
+
+/*
+ * Security Patch Out of Date, for one service's Android devices (#10098):
+ * their latest reading of how old their patch level is, more than 90 days
+ * fires, one alert per device; 90 days or newer - the device updated -
+ * resolves, with no dead band: the age only grows, a day at a time, until
+ * an update takes it back under the threshold, as the Android agent's Host
+ * template reads it.
+ */
+function buildSecurityPatchTemplate(
+  spec: SecurityPatchTemplateSpec,
+): ManagedDeviceAlertTemplate {
+  /*
+   * The criteria read the rule's own number; the words write it out, "90
+   * days", as the Host template's do, so no code joins a figure to its word
+   * (NumbersKeepTheirUnitsInCodeGuard). The templates' tests hold the two
+   * together.
+   */
+  const maxAge: number = ANDROID_SECURITY_PATCH_MAX_AGE_DAYS;
+
+  return {
+    id: spec.id,
+    provider: spec.provider,
+    name: spec.name,
+    summary: spec.summary,
+    description: `Alert when an Android device ${spec.serviceName} manages has a security patch level more than 90 days old, one alert per device, resolved once it is updated. Android Enterprise Recommended devices get each monthly Android security bulletin within 90 days, so a device further behind misses fixes for known vulnerabilities. Every read of the connection records how old each device's patch level is. A device that runs the OneUptime Android agent is left to its host's Security Patch Out of Date.`,
+    category: "Security",
+    severity: "Warning",
+    monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+    metricName: MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+    maxSecurityPatchAgeInDays: maxAge,
+    platforms: [ManagedDevicePlatform.Android],
+    getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Metrics,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setMetricMonitor(
+        buildManagedDeviceSecurityPatchMetricMonitor({
+          deviceManagementConnectionId: args.deviceManagementConnectionId,
+        }),
+      );
+
+      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
+        {
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          incidentSeverityId: args.defaultIncidentSeverityId,
+          alertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+          metricAlias: SECURITY_PATCH_METRIC_ALIAS,
+          filterType: FilterType.GreaterThan,
+          value: maxAge,
+          incidentTitle: `[${spec.serviceName}] Security patch out of date`,
+          incidentDescription: `An Android device ${spec.serviceName} manages has a security patch level more than 90 days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through the system update policy ${spec.serviceName} sets on it, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. This resolves on its own once ${spec.serviceName} reports a patch level from the last 90 days.`,
+          criteriaName: "A device's security patch is out of date",
+          criteriaDescription: `Triggers when a device's latest reading says its security patch level is more than 90 days old, once for each such device.`,
+          resourceNoun: "device",
+          // Each device holds one reading here, its latest: Any Value is that reading.
+          metricAggregationType: EvaluateOverTimeType.AnyValue,
+        },
+      );
+
+      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: SECURITY_PATCH_METRIC_ALIAS,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: maxAge,
+        // No dead band: an update to a patch from the last 90 days is up to date.
+        recoveryValue: maxAge,
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      });
+
+      const criteria: MonitorCriteria = new MonitorCriteria();
+      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+      step.setMonitorCriteria(criteria);
+
+      return step;
+    },
+  };
+}
+
+const esperSecurityPatchOutOfDateTemplate: ManagedDeviceAlertTemplate =
+  buildSecurityPatchTemplate({
+    id: "esper-security-patch-out-of-date",
+    provider: DeviceManagementProvider.Esper,
+    name: "Esper Security Patch Out of Date",
+    summary:
+      "An Android device Esper manages has a security patch over 90 days old.",
+    serviceName: "Esper",
+  });
+
+const intuneSecurityPatchOutOfDateTemplate: ManagedDeviceAlertTemplate =
+  buildSecurityPatchTemplate({
+    id: "intune-security-patch-out-of-date",
+    provider: DeviceManagementProvider.Intune,
+    name: "Intune Security Patch Out of Date",
+    summary:
+      "An Android device Intune manages has a security patch over 90 days old.",
+    serviceName: "Intune",
+  });
+
+const workspaceOneSecurityPatchOutOfDateTemplate: ManagedDeviceAlertTemplate =
+  buildSecurityPatchTemplate({
+    id: "workspace-one-security-patch-out-of-date",
+    provider: DeviceManagementProvider.WorkspaceOne,
+    name: "Workspace ONE Security Patch Out of Date",
+    summary:
+      "An Android device Workspace ONE manages has a patch over 90 days old.",
+    serviceName: "Workspace ONE",
+  });
+
+const sotiSecurityPatchOutOfDateTemplate: ManagedDeviceAlertTemplate =
+  buildSecurityPatchTemplate({
+    id: "soti-security-patch-out-of-date",
+    provider: DeviceManagementProvider.Soti,
+    name: "SOTI Security Patch Out of Date",
+    summary:
+      "An Android device MobiControl manages has a patch over 90 days old.",
+    serviceName: "MobiControl",
+  });
+
+/*
+ * Each service's templates in the order its connection is offered them: its
+ * check-ins first, then its Android devices' security patches.
+ */
 const ALL_TEMPLATES: ReadonlyArray<ManagedDeviceAlertTemplate> = [
   esperAndroidDeviceStoppedCheckingInTemplate,
   esperAppleDeviceStoppedCheckingInTemplate,
+  esperSecurityPatchOutOfDateTemplate,
   intuneDeviceStoppedCheckingInTemplate,
+  intuneSecurityPatchOutOfDateTemplate,
   workspaceOneDeviceStoppedCheckingInTemplate,
+  workspaceOneSecurityPatchOutOfDateTemplate,
   sotiDeviceStoppedCheckingInTemplate,
   sotiAppleDeviceStoppedCheckingInTemplate,
+  sotiSecurityPatchOutOfDateTemplate,
 ];
 
 // Every template, of every service.

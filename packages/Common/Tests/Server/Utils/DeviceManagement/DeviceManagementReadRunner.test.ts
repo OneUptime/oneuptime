@@ -161,7 +161,7 @@ function dependencies(
       data: ManagedDeviceCheckInRecordInput,
     ): Promise<ManagedDeviceCheckInOutcome> => {
       checkInRecords.push(data);
-      return { readingCount: 0, hostCount: 0 };
+      return { readingCount: 0, hostCount: 0, securityPatchReadingCount: 0 };
     },
     ...overrides,
   };
@@ -981,7 +981,7 @@ describe("the devices' check-ins, as a metric", () => {
       ): Promise<ManagedDeviceCheckInOutcome> => {
         lastCheckInSeen = deviceRow(KIOSK_A)["lastCheckInAt"];
         checkInRecords.push(data);
-        return { readingCount: 2, hostCount: 0 };
+        return { readingCount: 2, hostCount: 0, securityPatchReadingCount: 0 };
       },
     });
 

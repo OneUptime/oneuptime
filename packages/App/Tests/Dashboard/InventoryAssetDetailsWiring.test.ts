@@ -78,6 +78,17 @@ function locales(): Dictionary<Dictionary<string>> {
   return out;
 }
 
+/*
+ * The facts only a host has: its architecture, and an Android device's
+ * security patch level (#9800), which the Android agent and a device
+ * manager's import write on the device's host. The host table documents
+ * them; a network device has neither.
+ */
+const HOST_ONLY_FIELDS: ReadonlyArray<InventoryAssetField> = [
+  InventoryAssetField.Architecture,
+  InventoryAssetField.SecurityPatch,
+];
+
 describe("the CMDB page documents the asset details (issue #4569)", () => {
   const doc: string = readDoc("inventory", "cmdb-sync.md");
 
@@ -131,6 +142,35 @@ describe("the CMDB page documents the asset details (issue #4569)", () => {
     }
   });
 
+  test("the host table lists every fact only a host has, under its key", () => {
+    const keys: Array<string> = tableRows(
+      sectionOf(doc, "## Host Asset Attributes"),
+    ).map((row: TableRow): string => {
+      return row.key;
+    });
+
+    for (const field of HOST_ONLY_FIELDS) {
+      // A fact the card shows when it is known, beside the ones every machine has.
+      expect(INVENTORY_ASSET_OPTIONAL_FIELDS).toContain(field);
+      expect(keys).toContain(INVENTORY_ASSET_ATTRIBUTE_KEYS[field]);
+    }
+
+    expect(keys).toContain("android.os.security_patch");
+  });
+
+  test("the host table says where an Android device's security patch level comes from", () => {
+    const row: TableRow | undefined = tableRows(
+      sectionOf(doc, "## Host Asset Attributes"),
+    ).find((candidate: TableRow): boolean => {
+      return candidate.key === "android.os.security_patch";
+    });
+
+    expect(row?.fact).toBe("Security patch level");
+    expect(sectionOf(doc, "## Host Asset Attributes")).toContain(
+      "| Security patch level | `android.os.security_patch` | On an Android device: from the Android agent or its device manager |",
+    );
+  });
+
   test("the network device table lists every asset key", () => {
     const keys: Array<string> = tableRows(
       sectionOf(doc, "## Network Device Asset Attributes"),
@@ -142,8 +182,9 @@ describe("the CMDB page documents the asset details (issue #4569)", () => {
       ...INVENTORY_ASSET_FIELDS,
       ...INVENTORY_ASSET_OPTIONAL_FIELDS,
     ]) {
-      if (field === InventoryAssetField.Architecture) {
-        // A host's fact only.
+      if (HOST_ONLY_FIELDS.includes(field)) {
+        // A host's fact only: the host table lists it.
+        expect(keys).not.toContain(INVENTORY_ASSET_ATTRIBUTE_KEYS[field]);
         continue;
       }
       expect(keys).toContain(INVENTORY_ASSET_ATTRIBUTE_KEYS[field]);

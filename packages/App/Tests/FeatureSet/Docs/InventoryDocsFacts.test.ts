@@ -170,7 +170,11 @@ import { ESPER_IMPORTED_PLATFORMS } from "Common/Server/Utils/DeviceManagement/E
 import { DeviceManagementSession } from "Common/Server/Utils/DeviceManagement/DeviceManagementTypes";
 import { REMOVED_DEVICE_RETENTION_DAYS } from "Common/Server/Utils/DeviceManagement/ManagedDeviceSync";
 import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
-import { MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import {
+  MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+} from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "Common/Types/Host/AndroidSecurityPatch";
 import {
   MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
   MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
@@ -2098,7 +2102,7 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
     const template: { name: string } | undefined =
       getManagedDeviceAlertTemplateById("esper-device-stopped-checking-in");
     const appleTemplate:
-      | { name: string; thresholdInMinutes: number }
+      | { name: string; thresholdInMinutes?: number | undefined }
       | undefined = getManagedDeviceAlertTemplateById(
       "esper-apple-device-stopped-checking-in",
     );
@@ -2183,8 +2187,11 @@ describe("Inventory Overview: devices from Microsoft Intune (issue #9837)", () =
   });
 
   it("says a device is offline after a day, as its status and its template read it", () => {
-    const template: { name: string; thresholdInMinutes: number } | undefined =
-      getManagedDeviceAlertTemplateById("intune-device-stopped-checking-in");
+    const template:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "intune-device-stopped-checking-in",
+    );
 
     expect(
       getManagedDeviceOnlineWindowMinutes({
@@ -2286,10 +2293,11 @@ describe("Inventory Overview: devices from Workspace ONE UEM (issue #10086)", ()
   });
 
   it("says a device is offline after a day, as its status and its template read it", () => {
-    const template: { name: string; thresholdInMinutes: number } | undefined =
-      getManagedDeviceAlertTemplateById(
-        "workspace-one-device-stopped-checking-in",
-      );
+    const template:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "workspace-one-device-stopped-checking-in",
+    );
 
     expect(
       getManagedDeviceOnlineWindowMinutes({
@@ -2378,12 +2386,16 @@ describe("Inventory Overview: devices from SOTI MobiControl (issue #10087)", () 
   });
 
   it("says how to get an alert, as its two templates fire", () => {
-    const agents: { name: string; thresholdInMinutes: number } | undefined =
-      getManagedDeviceAlertTemplateById("soti-device-stopped-checking-in");
-    const apple: { name: string; thresholdInMinutes: number } | undefined =
-      getManagedDeviceAlertTemplateById(
-        "soti-apple-device-stopped-checking-in",
-      );
+    const agents:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "soti-device-stopped-checking-in",
+    );
+    const apple:
+      | { name: string; thresholdInMinutes?: number | undefined }
+      | undefined = getManagedDeviceAlertTemplateById(
+      "soti-apple-device-stopped-checking-in",
+    );
 
     expect(agents!.thresholdInMinutes).toBe(
       MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
@@ -2400,4 +2412,105 @@ describe("Inventory Overview: devices from SOTI MobiControl (issue #10087)", () 
     );
     expect(soti()).toContain("Nothing about a device's user is read.");
   });
+});
+
+/*
+ * #10097, #10098, #10099: an Android device's security patch and the ID its
+ * device manager knows it by, as Inventory shows them and alerts on them.
+ * The page says what the card, the columns and the templates do, in their
+ * words: the Asset Details card reads its patch as the Security Patch Level
+ * column does, the Device Manager ID column sits beside Agent Permissions,
+ * and each device manager's connection is offered Security Patch Out of
+ * Date, which leaves a device the Android agent reports to its host.
+ */
+describe("Inventory Overview: an Android device's patch and its device manager's ID (#10097, #10098, #10099)", () => {
+  const SECURITY_PATCH_STATUS: string = `${DASHBOARD_APP}/Components/Inventory/SecurityPatchStatus.tsx`;
+  const DEVICE_MANAGER_IDS: string = `${DASHBOARD_APP}/Components/Inventory/DeviceManagerIds.tsx`;
+  const INVENTORY_TABLE: string = `${DASHBOARD_APP}/Components/Inventory/InventoryTable.tsx`;
+
+  function patchTemplate(id: string): { name: string } {
+    const template: { name: string } | undefined =
+      getManagedDeviceAlertTemplateById(id);
+
+    expect(template).toBeDefined();
+    return template!;
+  }
+
+  it("says the Asset Details card tells an out-of-date patch, as the column does, and its age", () => {
+    const assets: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Asset details",
+    );
+
+    // The pill's words and the column's title, as the Dashboard writes them.
+    expect(readRepoFile(SECURITY_PATCH_STATUS)).toContain(
+      'translationKey("Out of Date")',
+    );
+    expect(readRepoFile(SECURITY_PATCH_STATUS)).toContain(
+      '"{{count}} days old"',
+    );
+    expect(assets).toContain(
+      "It says whether the patch is **Out of Date**, as the **Security Patch Level** column does, and how many days old it is.",
+    );
+  });
+
+  it("says the Device Manager ID column sits beside the Agent Permissions one, with the ID Secure Remote ADB takes", () => {
+    const assets: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Asset details",
+    );
+
+    expect(readRepoFile(DEVICE_MANAGER_IDS)).toContain(
+      'translationKey("Device Manager ID")',
+    );
+    expect(readRepoFile(INVENTORY_TABLE).replace(/\s+/g, " ")).toContain(
+      "getInventoryAgentPermissionsColumn(), getInventoryDeviceManagerIdColumn(),",
+    );
+    expect(assets).toContain(
+      "Beside them, the **Device Manager ID** column holds the ID a device's device manager knows it by, such as the Esper ID that `espercli secureadb connect --device` takes.",
+    );
+    expect(englishPage(INVENTORY_OVERVIEW)).toContain(
+      "| Its Esper device ID | The **Device Manager ID** column of **All Items** |",
+    );
+  });
+
+  it("says how to get an alert when an Esper device falls behind, as the template and the metric do", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+
+    expect(ANDROID_SECURITY_PATCH_MAX_AGE_DAYS).toBe(90);
+    expect(alerts).toContain(
+      `Create ${bold(patchTemplate("esper-security-patch-out-of-date").name)} too, and each Android device whose security patch level, as Esper reports it, is more than 90 days old opens an alert of its own, resolved once the device is updated.`,
+    );
+    expect(alerts).toContain(
+      `\`${MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME}\``,
+    );
+    expect(alerts).toContain(
+      `A device that runs the Android Agent is left to its host's ${bold(getHostAlertTemplateById("android-security-patch-out-of-date")!.name)}, so it never alerts twice.`,
+    );
+  });
+
+  it.each([
+    [
+      "intune-security-patch-out-of-date",
+      "## Import devices from Microsoft Intune",
+    ],
+    [
+      "workspace-one-security-patch-out-of-date",
+      "## Import devices from Workspace ONE UEM",
+    ],
+    [
+      "soti-security-patch-out-of-date",
+      "## Import devices from SOTI MobiControl",
+    ],
+  ])(
+    "names %s where its service's alerts are set up",
+    (id: string, heading: string) => {
+      expect(englishSection(INVENTORY_OVERVIEW, heading)).toContain(
+        `${bold(patchTemplate(id).name)} alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.`,
+      );
+    },
+  );
 });

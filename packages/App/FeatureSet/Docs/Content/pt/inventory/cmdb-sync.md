@@ -171,6 +171,7 @@ A [tabela de hosts](#atributos-de-ativo-dos-hosts) e a [tabela de dispositivos d
 | Nome do sistema operacional | `os.name` | Só dos SDKs que o informam: senão `os.description` cita o sistema |
 | Tipo de dispositivo | `device.type` | Opcional: carimbe da mesma forma (`Hypervisor`, `Workstation`) |
 | Localização | `device.location` | Opcional: carimbe da mesma forma (`Frankfurt DC, Rack B4`) |
+| Nível do patch de segurança | `android.os.security_patch` | Em um dispositivo Android: do Android Agent ou do gerenciador de dispositivos dele |
 
 Tudo o que está marcado com Sim vem do processador `resourcedetection` do coletor e já está na configuração que o OneUptime gera para você.
 

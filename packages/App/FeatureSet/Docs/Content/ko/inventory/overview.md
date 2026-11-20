@@ -74,13 +74,13 @@ OneUptime이 검색한 관계는 30일 동안 다시 확인되지 않으면 제�
 
 ### 자산 세부 정보
 
-호스트와 네트워크 장치에는 둘을 같은 방식으로 설명하는 **자산 세부 정보** 카드가 있습니다. 호스트 이름, IP 주소, MAC 주소, 일련 번호, 제조사, 모델, 펌웨어 버전, 운영 체제, OS 버전, 장치 유형, 위치입니다. Android 기기의 카드에는 Android 에이전트나 해당 디바이스 관리 서비스에서 가져온 보안 패치 수준도 있습니다. 아무것도 보고되지 않은 정보는 **알 수 없음**으로 표시되며, 카드는 그 이유와 알 수 없는 정보를 채우는 방법을 알려 줍니다. SNMP로 보고하지 않는 장치, 아직 읽지 않은 장치, 대시보드에 정보가 있는 Meraki 장치 중 하나입니다.
+호스트와 네트워크 장치에는 둘을 같은 방식으로 설명하는 **자산 세부 정보** 카드가 있습니다. 호스트 이름, IP 주소, MAC 주소, 일련 번호, 제조사, 모델, 펌웨어 버전, 운영 체제, OS 버전, 장치 유형, 위치입니다. Android 기기의 카드에는 Android 에이전트나 해당 디바이스 관리 서비스에서 가져온 보안 패치 수준도 있습니다. 패치가 **업데이트 필요**인지도 **보안 패치 수준** 열처럼 알려 주며, 며칠 지났는지도 보여 줍니다. 아무것도 보고되지 않은 정보는 **알 수 없음**으로 표시되며, 카드는 그 이유와 알 수 없는 정보를 채우는 방법을 알려 줍니다. SNMP로 보고하지 않는 장치, 아직 읽지 않은 장치, 대시보드에 정보가 있는 Meraki 장치 중 하나입니다.
 
 - 호스트의 정보는 텔레메트리의 리소스 속성에서 옵니다. IP 주소와 MAC 주소, 아키텍처, 운영 체제는 처음부터, 일련 번호, 제조사, 모델, 펌웨어는 직접 지정한 뒤부터 채워집니다.
 - 네트워크 장치의 정보는 SNMP 폴링, 역할, 사이트에서 옵니다. 폴링이 읽지 못한 정보는 검색에서 옵니다. 주소의 마지막 스캔, 라우터의 ARP 테이블, 프로브의 DNS 조회입니다. Meraki MX처럼 ENTITY-MIB가 없는 장치도 시스템 설명에서 제조사, 모델, 운영 체제를 얻고, 자체 포트에서 MAC 주소를 얻습니다. 장치의 IP 주소가 호스트 이름으로 표시되는 일은 없습니다.
 - [Meraki 연결](/docs/monitor/network-traffic#netflow-없는-cisco-meraki)이 조직을 읽으면, Meraki 장치는 폴링이 비워 둔 정보도 Meraki 대시보드에서 가져옵니다. 일련 번호, 모델, 펌웨어 등입니다.
 
-**모든 항목**에서 조치가 필요한 Android 기기를 찾을 수 있습니다. **보안 패치 수준** 필터의 **업데이트 필요**는 보안 패치 수준이 90일보다 오래된 기기를 나열하며, 이는 [호스트 모니터](/docs/monitor/host-monitor)의 Security Patch Out of Date 경고가 읽는 것과 같은 규칙입니다. **에이전트 권한** 필터는 [Android 에이전트](/docs/telemetry/android-agent)에 아직 READ_LOGS, READ_DROPBOX_DATA 또는 사용 정보 접근 권한이 없는 기기를 나열합니다. 두 필터 모두 같은 이름의 열이 있으며, 켜기 전까지는 숨겨져 있고 CSV 내보내기에도 들어갑니다.
+**모든 항목**에서 조치가 필요한 Android 기기를 찾을 수 있습니다. **보안 패치 수준** 필터의 **업데이트 필요**는 보안 패치 수준이 90일보다 오래된 기기를 나열하며, 이는 [호스트 모니터](/docs/monitor/host-monitor)의 Security Patch Out of Date 경고가 읽는 것과 같은 규칙입니다. **에이전트 권한** 필터는 [Android 에이전트](/docs/telemetry/android-agent)에 아직 READ_LOGS, READ_DROPBOX_DATA 또는 사용 정보 접근 권한이 없는 기기를 나열합니다. 두 필터 모두 같은 이름의 열이 있으며, 켜기 전까지는 숨겨져 있고 CSV 내보내기에도 들어갑니다. 그 옆의 **디바이스 관리 서비스 ID** 열에는 디바이스 관리 서비스가 기기를 식별하는 ID가 들어 있습니다. 예를 들어 `espercli secureadb connect --device`가 받는 Esper ID입니다.
 
 카드는 각 정보의 출처와 시각을 보여 줍니다. 호스트의 수집기, 네트워크 장치 자체의 SNMP 폴링, 장치를 읽은 검색 스캔처럼 대부분의 정보가 공유하는 출처는 정보 아래에 한 번만 표시됩니다. 라우터의 ARP 테이블이나 장치에 저장된 값 같은 다른 출처는 해당 정보 아래에 표시됩니다. 네트워크 장치에 저장된 값은 검색이 읽은 내용으로 바뀌지 않으며, 둘이 다르면 카드가 둘 다 보여 줍니다.
 
@@ -115,6 +115,7 @@ Esper 콘솔의 API Key Management에서 키를 만듭니다. OneUptime은 읽�
 | 모델, 제조사, 일련 번호, 운영 체제와 그 버전, 빌드, IP 주소와 MAC 주소 | 기기의 **자산 세부 정보** 카드, **모든 항목**의 열 |
 | 상태, 마지막 체크인, 그룹, 보안 패치 수준, IMEI, 배터리, 스토리지, Esper 에이전트 | 기기의 **Esper** 카드, **관리형 디바이스**의 **디바이스** 목록 |
 | 앱과 앱 버전 | 기기의 **설치된 앱** 목록 |
+| 기기의 Esper 기기 ID | **모든 항목**의 **디바이스 관리 서비스 ID** 열 |
 
 ### 같은 기기는 한 항목으로
 
@@ -138,6 +139,8 @@ Esper에서 제거된 기기는 **제거됨**으로 표시되고 항목은 보�
 **관리형 디바이스**에서 연결 행의 **경고 설정**을 클릭하고 **Esper Android Device Stopped Checking In**과 **Esper Apple Device Stopped Checking In**을 생성합니다. 첫 번째는 1시간 넘게 Esper에 체크인하지 않은 Android 기기마다, 두 번째는 하루 넘게 체크인하지 않은 Apple 기기마다 기기 이름을 붙인 경고를 하나씩 열고, 기기가 다시 체크인하면 해결합니다.
 
 연결을 읽을 때마다 각 기기가 몇 분 전에 마지막으로 체크인했는지를 메트릭 `oneuptime.managed_device.check_in.age`로 기록하며, 모니터는 5분마다 각 기기의 최신 값을 확인합니다. Android Agent도 실행하는 기기는 **Host Stopped Reporting**에 맡기므로 경고가 두 번 울리지 않으며, Esper에서 제거된 기기의 경고는 해결됩니다. 읽기에 실패하면 아무것도 기록되지 않으므로 다음 읽기까지 경고가 열리거나 해결되지 않습니다. 밤에 꺼 두는 기기군이라면 모니터의 임계값을 높이세요.
+
+**Esper Security Patch Out of Date**도 생성하면, Esper가 보고하는 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고가 하나씩 열리고, 기기가 업데이트되면 해결됩니다. 읽을 때마다 각 Android 기기의 패치 수준이 며칠 지났는지를 메트릭 `oneuptime.managed_device.security_patch.age`로 기록합니다. Android Agent를 실행하는 기기는 해당 호스트의 **Security Patch Out of Date**에 맡기므로 경고가 두 번 울리지 않습니다.
 
 ## Microsoft Intune에서 기기 가져오기
 
@@ -165,7 +168,7 @@ Microsoft Entra 관리 센터에서 `App registrations`를 열고 `New registrat
 
 Intune은 소유자가 붙인 이름으로 기기를 부르므로, 두 기기가 같은 이름일 수 있습니다. 아무도 이름을 바꾸지 않은 iPhone은 모두 `iPhone`입니다. 한 연결의 두 기기가 함께 쓰는 이름은 인벤토리에서 어느 쪽의 것도 아닙니다. 각 기기는 대신 일련 번호로 이름이 붙고, 그 이름을 가진 다른 기기가 없어지면 이름을 되찾습니다.
 
-기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Intune Device Stopped Checking In**을 생성합니다. 하루 넘게 Intune에 체크인하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. 주말 동안 꺼 둔 노트북도 똑같이 보이므로, 하루가 너무 짧다면 모니터의 임계값을 높이세요.
+기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Intune Device Stopped Checking In**을 생성합니다. 하루 넘게 Intune에 체크인하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. 주말 동안 꺼 둔 노트북도 똑같이 보이므로, 하루가 너무 짧다면 모니터의 임계값을 높이세요. **Intune Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다.
 
 ## Workspace ONE UEM에서 기기 가져오기
 
@@ -191,7 +194,7 @@ Workspace ONE UEM 콘솔에서 `Accounts`, `Administrators`, `Roles`로 차례�
 
 기기에서 텔레메트리를 보내는 앱이나 Android Agent는 기기의 일련 번호로 그 기기와 하나의 항목으로 합쳐집니다. Android Agent의 관리형 구성에서 `device_serial` 설정에 `{DeviceSerialNumber}` 조회 값을 넣으세요.
 
-기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Workspace ONE Device Stopped Checking In**을 생성합니다. 하루 넘게 Workspace ONE에 보고하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다.
+기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Workspace ONE Device Stopped Checking In**을 생성합니다. 하루 넘게 Workspace ONE에 보고하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. **Workspace ONE Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다.
 
 ## SOTI MobiControl에서 기기 가져오기
 
@@ -215,7 +218,7 @@ MobiControl 에이전트는 서버와 실시간 연결을 유지하므로, 에�
 
 기기에서 텔레메트리를 보내는 앱이나 Android Agent는 기기의 일련 번호로 그 기기와 하나의 항목으로 합쳐집니다. Android Agent의 관리형 구성에서 `device_serial` 설정에 `%SERIALNUM%` 매크로를 넣으세요.
 
-기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **SOTI Device Stopped Checking In**과 **SOTI Apple Device Stopped Checking In**을 생성합니다. 첫 번째는 에이전트가 1시간 넘게 연결되지 않은 Android, Windows, Linux 기기마다, 두 번째는 하루 넘게 체크인하지 않은 Apple 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다.
+기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **SOTI Device Stopped Checking In**과 **SOTI Apple Device Stopped Checking In**을 생성합니다. 첫 번째는 에이전트가 1시간 넘게 연결되지 않은 Android, Windows, Linux 기기마다, 두 번째는 하루 넘게 체크인하지 않은 Apple 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. **SOTI Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다.
 
 ## 직접 추가하기
 

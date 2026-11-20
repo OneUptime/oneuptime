@@ -74,13 +74,13 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 
 ### Tillgångsdetaljer
 
-En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriver båda på samma sätt: värdnamn, IP-adress, MAC-adress, serienummer, tillverkare, modell, firmwareversion, operativsystem, OS-version, enhetstyp och plats. Kortet för en Android-enhet har också dess säkerhetspatchnivå, från Android-agenten eller dess MDM. En uppgift som inget har rapporterat står som **Okänd**, och kortet förklarar varför det är så och hur de okända fylls i: en enhet som inte rapporterar dem över SNMP, en enhet som inte har lästs ännu, eller en Meraki-enhet vars dashboard har dem.
+En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriver båda på samma sätt: värdnamn, IP-adress, MAC-adress, serienummer, tillverkare, modell, firmwareversion, operativsystem, OS-version, enhetstyp och plats. Kortet för en Android-enhet har också dess säkerhetspatchnivå, från Android-agenten eller dess MDM. Det visar också om patchen är **Föråldrad**, som kolumnen **Säkerhetspatchnivå** gör, och hur många dagar gammal den är. En uppgift som inget har rapporterat står som **Okänd**, och kortet förklarar varför det är så och hur de okända fylls i: en enhet som inte rapporterar dem över SNMP, en enhet som inte har lästs ännu, eller en Meraki-enhet vars dashboard har dem.
 
 - En värds uppgifter kommer från resursattributen i dess telemetri: dess IP- och MAC-adresser, arkitektur och operativsystem från början, och dess serienummer, märke, modell och firmware när du stämplar på dem.
 - En nätverksenhets uppgifter kommer från dess SNMP-pollning, dess roll och dess plats. Det som dess pollning inte har läst kommer från discovery: den senaste skanningen av dess adress, en routers ARP-tabell eller dess sonds DNS-uppslag. En enhet utan ENTITY-MIB, som en Meraki MX, får ändå sitt märke, sin modell och sitt operativsystem från sin systembeskrivning och sin MAC-adress från sina egna portar. Dess IP-adress visas aldrig som dess värdnamn.
 - En Meraki-enhet hämtar också det som dess pollning lämnar tomt från Meraki-dashboarden, bland annat dess serienummer, modell och firmware, när en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation.
 
-I **Alla objekt** hittar du de Android-enheter som behöver åtgärdas. Filtret **Säkerhetspatchnivå** listar de enheter som står som **Föråldrad**, vars säkerhetspatchnivå är äldre än 90 dagar, samma regel som larmet Security Patch Out of Date i en [värdmonitor](/docs/monitor/host-monitor) läser. Filtret **Agentbehörigheter** listar de enheter där [Android-agenten](/docs/telemetry/android-agent) fortfarande saknar READ_LOGS, READ_DROPBOX_DATA eller åtkomst till användningsdata. Båda har en kolumn med samma namn, dold tills du slår på den, och den följer med i CSV-exporten.
+I **Alla objekt** hittar du de Android-enheter som behöver åtgärdas. Filtret **Säkerhetspatchnivå** listar de enheter som står som **Föråldrad**, vars säkerhetspatchnivå är äldre än 90 dagar, samma regel som larmet Security Patch Out of Date i en [värdmonitor](/docs/monitor/host-monitor) läser. Filtret **Agentbehörigheter** listar de enheter där [Android-agenten](/docs/telemetry/android-agent) fortfarande saknar READ_LOGS, READ_DROPBOX_DATA eller åtkomst till användningsdata. Båda har en kolumn med samma namn, dold tills du slår på den, och den följer med i CSV-exporten. Bredvid dem har kolumnen **MDM-ID** det id som en enhets MDM känner den under, till exempel det Esper-id som `espercli secureadb connect --device` tar.
 
 Kortet visar var varje uppgift kom ifrån och när. Den källa som de flesta uppgifterna delar, som en värds collector, en nätverksenhets egen SNMP-pollning eller den discovery-skanning som läste den, nämns en gång, under uppgifterna. Varje annan källa, som en routers ARP-tabell eller ett värde som sparats på enheten, nämns under sin uppgift. Ett värde som har sparats på en nätverksenhet ersätts aldrig av det som discovery läser, och när de två skiljer sig visar kortet båda.
 
@@ -115,6 +115,7 @@ Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade en
 | Modell, tillverkare, serienummer, operativsystem och dess version, byggnummer samt IP- och MAC-adresser | Enhetens kort **Tillgångsdetaljer** och kolumnerna i **Alla objekt** |
 | Status, senaste incheckning, grupp, säkerhetspatchnivå, IMEI, batteri, lagring och Esper-agent | Enhetens kort **Esper** och listan **Enheter** under **Hanterade enheter** |
 | Appar och deras versioner | Enhetens lista **Installerade appar** |
+| Dess Esper-enhets-id | Kolumnen **MDM-ID** i **Alla objekt** |
 
 ### En enhet, inte två
 
@@ -138,6 +139,8 @@ En enhet som tas bort från Esper markeras som **Borttagen**, och dess objekt ar
 Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Android Device Stopped Checking In** och **Esper Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-enhet som inte har checkat in hos Esper på mer än en timme, den andra för varje Apple-enhet efter mer än ett dygn, vart och ett namngivet efter enheten och löst så snart den checkar in igen.
 
 Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting, så inget larm öppnas eller löses förrän vid nästa. Höj monitorns tröskel för en flotta som stängs av på natten.
+
+Skapa också **Esper Security Patch Out of Date**, så öppnar varje Android-enhet vars säkerhetspatchnivå enligt Esper är mer än 90 dagar gammal ett eget larm, som löses när enheten har uppdaterats. Varje läsning registrerar som mätvärdet `oneuptime.managed_device.security_patch.age` hur många dagar gammal varje Android-enhets patchnivå är. En enhet som kör Android Agent lämnas åt sin värds **Security Patch Out of Date**, så den larmar aldrig två gånger.
 
 ## Importera enheter från Microsoft Intune
 
@@ -165,7 +168,7 @@ En enhet checkar in hos Intune ungefär var åttonde timme, och dess senaste inc
 
 Intune namnger en enhet med det namn dess ägare gav den, så två enheter kan ha samma namn: varje iPhone som ingen har bytt namn på heter `iPhone`. Ett namn som två enheter i en anslutning delar är ingen av dem i inventariet: var och en namnges i stället efter sitt serienummer och får tillbaka sitt namn så snart ingen annan enhet har det.
 
-För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Intune Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Intune på mer än ett dygn, namngivet efter enheten. En bärbar dator som är avstängd under en helg ser likadan ut, så höj monitorns tröskel om ett dygn är för kort för dina.
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Intune Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Intune på mer än ett dygn, namngivet efter enheten. En bärbar dator som är avstängd under en helg ser likadan ut, så höj monitorns tröskel om ett dygn är för kort för dina. **Intune Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
 
 ## Importera enheter från Workspace ONE UEM
 
@@ -191,7 +194,7 @@ En enhet rapporterar till Workspace ONE enligt sitt eget schema, en iPhone med t
 
 En app eller Android Agent som skickar telemetri från en enhet blir ett och samma objekt som den via enhetens serienummer: sätt Android Agents inställning `device_serial` till uppslagsvärdet `{DeviceSerialNumber}` i dess hanterade konfiguration.
 
-För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Workspace ONE Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har rapporterat till Workspace ONE på mer än ett dygn, namngivet efter enheten.
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Workspace ONE Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har rapporterat till Workspace ONE på mer än ett dygn, namngivet efter enheten. **Workspace ONE Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
 
 ## Importera enheter från SOTI MobiControl
 
@@ -215,7 +218,7 @@ En MobiControl-agent håller en aktiv anslutning till sin server, så en enhet v
 
 En app eller Android Agent som skickar telemetri från en enhet blir ett och samma objekt som den via enhetens serienummer: sätt Android Agents inställning `device_serial` till makrot `%SERIALNUM%` i dess hanterade konfiguration.
 
-För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **SOTI Device Stopped Checking In** och **SOTI Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-, Windows- eller Linux-enhet vars agent inte har varit ansluten på mer än en timme, och den andra för varje Apple-enhet som inte har checkat in på mer än ett dygn, vart och ett namngivet efter enheten.
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **SOTI Device Stopped Checking In** och **SOTI Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-, Windows- eller Linux-enhet vars agent inte har varit ansluten på mer än en timme, och den andra för varje Apple-enhet som inte har checkat in på mer än ett dygn, vart och ett namngivet efter enheten. **SOTI Security Patch Out of Date** larmar för varje Android-enhet vars säkerhetspatchnivå är mer än 90 dagar gammal, som Espers mall gör.
 
 ## Lägg till något manuellt
 

@@ -111,7 +111,7 @@ function dependencies(
       data: ManagedDeviceCheckInRecordInput,
     ): Promise<ManagedDeviceCheckInOutcome> => {
       checkInRecords.push(data);
-      return { readingCount: 0, hostCount: 0 };
+      return { readingCount: 0, hostCount: 0, securityPatchReadingCount: 0 };
     },
   };
 }
