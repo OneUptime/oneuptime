@@ -464,6 +464,40 @@ describe("the enqueue counts a batch once", () => {
     expect(enqueuedJob()?.ingestionBudgetCharge).toBeUndefined();
   });
 
+  test("a compatible endpoint's batch checked at the door is counted at its body decompressed, not at the OTLP JSON it became", async () => {
+    // What a remote write request of 42 bytes, snappy undone, became.
+    const body: Record<string, unknown> = {
+      resourceMetrics: [{ scopeMetrics: [{ metrics: [{ name: "up" }] }] }],
+    };
+    const req: TelemetryRequest = request({
+      body: body,
+      charge: charge({ isPending: true, signal: ProductType.Metrics }),
+    });
+    (req as unknown as Record<string, unknown>)["telemetryIngestBytes"] = 42;
+
+    await TelemetryQueueService.addMetricIngestJob(req);
+
+    expect(chargePending).toHaveBeenCalledTimes(1);
+    expect(chargePending.mock.calls[0]![0].size).toEqual({
+      bytes: 42,
+      isExact: true,
+    });
+    // The same number the worker shares out over the batch's resources.
+    expect(enqueuedJob()?.ingestBytes).toBe(42);
+  });
+
+  test("a batch no gate saw that carries its counted size is decided at that size", async () => {
+    const req: TelemetryRequest = request({
+      body: { resourceMetrics: [{ scopeMetrics: [] }] },
+    });
+    (req as unknown as Record<string, unknown>)["telemetryIngestBytes"] = 9;
+
+    await TelemetryQueueService.addMetricIngestJob(req);
+
+    expect(admit).toHaveBeenCalledTimes(1);
+    expect(lastMeasure()).toEqual({ bytes: 9, isExact: true });
+  });
+
   test("a raw gzip body no gate saw is sized from its trailer and settled by the worker", async () => {
     admit.mockImplementation(
       async (data: { measure: () => TelemetryIngestBodySize }) => {
