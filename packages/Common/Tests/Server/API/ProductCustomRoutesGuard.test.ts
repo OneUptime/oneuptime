@@ -1100,8 +1100,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * is-user-registered is gone (#9745).
          */
         "packages/Common/Server/API/TeamMemberAPI.ts": 11,
-        // #9762: a master admin clearing one person's sign-in settings.
-        "packages/Common/Server/API/UserAPI.ts": 8,
+        /*
+         * #9762: a master admin clearing one person's sign-in settings.
+         * #10155: a person confirming it's them before they change how
+         * they sign in, and the security key or passkey options for it.
+         */
+        "packages/Common/Server/API/UserAPI.ts": 10,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
     ),
