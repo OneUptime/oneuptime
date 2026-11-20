@@ -24,6 +24,7 @@ import {
   PROMQL_DEFAULT_MAX_ROWS,
   PROMQL_QUERY_TIMEOUT_SECONDS,
 } from "Common/Server/Utils/PromQL/PromQLMetricSeriesSource";
+import { COMPATIBLE_QUERY_DEFAULT_LIMIT_PER_MINUTE } from "Common/Server/Middleware/CompatibleQueryRateLimit";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -126,6 +127,10 @@ describe("PromQL docs: the limits are the engine's", () => {
     [
       "A subquery's step, when the query leaves it out",
       `${PROMQL_DEFAULT_SUBQUERY_STEP_MS / 60000} minute`,
+    ],
+    [
+      "Queries a project may send each minute",
+      formatCount(COMPATIBLE_QUERY_DEFAULT_LIMIT_PER_MINUTE),
     ],
   ])("%s: %s", (name: string, value: string) => {
     expect(limitRow(name)).toBe(`| ${name} | ${value} |`);

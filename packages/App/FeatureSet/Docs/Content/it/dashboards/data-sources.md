@@ -75,6 +75,7 @@ Per cambiare una fonte di dati in seguito, aprila dall'elenco. **Modifica** in *
 
 Modifica una dashboard, fai clic su **Aggiungi widget** e scegli un widget del gruppo Fonti di dati esterne: un **Grafico**, un **Valore**, un **Indicatore** o una **Tabella**. Nelle sue impostazioni:
 
+- **Metriche di questo progetto (PromQL)** è la prima **Origine dati**, e quella da cui parte un nuovo widget: PromQL sulle metriche che il tuo progetto invia a OneUptime, lette per i servizi che puoi leggere, come nella pagina [PromQL](/docs/telemetry/promql). Non ha bisogno di una fonte di dati propria, quindi funziona con ogni piano.
 - Scegli l'**Origine dati** e scrivi la **Query**. L'editor indica il linguaggio di query e mostra un esempio per il tipo.
 - In un grafico, **Aggiungi query** sovrappone altre query sugli stessi assi, e **Legend (optional)** dà un nome a ogni serie a partire dalle sue etichette: `{{instance}} — errors` scrive davanti l'etichetta `instance` della serie.
 - In un valore o in un indicatore, **Riduci** trasforma i punti in un solo numero: l'ultimo valore (il predefinito), il primo, la media, la somma, il minimo o il massimo. **Unità** aggiunge un suffisso, e scala le unità note: `Bytes` si legge come 1.5 MB, `ms` come 2.4 s.
