@@ -34,7 +34,8 @@ import { JSONObject } from "../../../../Types/JSON";
 const CHART_ID: string = "ab000000-0000-4000-8000-0000000000c1";
 const VALUE_ID: string = "ab000000-0000-4000-8000-0000000000c2";
 const TABLE_ID: string = "ab000000-0000-4000-8000-0000000000c3";
-const OTHER_DASHBOARD_WIDGET_ID: string = "ab000000-0000-4000-8000-0000000000f9";
+const OTHER_DASHBOARD_WIDGET_ID: string =
+  "ab000000-0000-4000-8000-0000000000f9";
 
 const STORED_QUERY: string =
   'sum by (pod) (rate(http_requests_total{job="{{job}}", env=~"{{env}}"}[{{range}}]))';
@@ -226,7 +227,10 @@ describe("which query runs", () => {
         refusal(() => {
           return plan({ componentId: componentId as JSONObject[string] });
         }),
-      ]).toEqual([componentId, PUBLIC_DASHBOARD_PROMQL_WIDGET_NOT_FOUND_MESSAGE]);
+      ]).toEqual([
+        componentId,
+        PUBLIC_DASHBOARD_PROMQL_WIDGET_NOT_FOUND_MESSAGE,
+      ]);
     }
   });
 
@@ -308,12 +312,7 @@ describe("a visitor's pick of a variable is held to what its definition allows",
   });
 
   test("a list refuses a value it does not offer, wherever the query reads it", () => {
-    for (const value of [
-      "1h",
-      "5m]) or vector(1) or sum(x[5m",
-      "5M",
-      " 5m",
-    ]) {
+    for (const value of ["1h", "5m]) or vector(1) or sum(x[5m", "5M", " 5m"]) {
       expect([
         value,
         refusal(() => {

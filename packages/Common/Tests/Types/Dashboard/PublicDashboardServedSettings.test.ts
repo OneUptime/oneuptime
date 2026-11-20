@@ -136,10 +136,7 @@ describe("every widget type's settings are decided: served or withheld", () => {
         getPublicDashboardWidgetSettingsDecision(componentType);
 
       expect([componentType, decision !== null]).toEqual([componentType, true]);
-      expect([
-        componentType,
-        decision!.servedWithoutQueryText || [],
-      ]).toEqual([
+      expect([componentType, decision!.servedWithoutQueryText || []]).toEqual([
         componentType,
         componentType === DashboardComponentType.DataSourceChart
           ? ["queries"]

@@ -84,9 +84,9 @@ describe("whether a series is the one an incident keeps the labels of", () => {
 
   test("a series of no labels is the incident's that kept none", () => {
     expect(isSeriesNamed({ labels: {}, seriesLabels: {} })).toBe(true);
-    expect(
-      isSeriesNamed({ labels: { __name__: "x" }, seriesLabels: {} }),
-    ).toBe(true);
+    expect(isSeriesNamed({ labels: { __name__: "x" }, seriesLabels: {} })).toBe(
+      true,
+    );
   });
 
   test("a label named like an Object property is a label", () => {

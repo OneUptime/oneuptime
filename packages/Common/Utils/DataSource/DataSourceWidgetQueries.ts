@@ -188,14 +188,23 @@ export default class DataSourceWidgetQueries {
 
   /*
    * Whether a query the public page holds is one a public dashboard
-   * served: one of this project's metrics, served without its text. The
+   * served: one of this project's metrics, served without its text (a
+   * query card left blank is none - the server serves no such card). The
    * public page's widgets run these through the public route, by place.
    */
   public static isServedPublicQuery(query: unknown): boolean {
-    return (
-      isObject(query) &&
-      ProjectMetricsDataSourceUtil.isProjectMetrics(query["dataSourceId"])
-    );
+    if (
+      !isObject(query) ||
+      !ProjectMetricsDataSourceUtil.isProjectMetrics(query["dataSourceId"])
+    ) {
+      return false;
+    }
+
+    const text: unknown = Object.prototype.hasOwnProperty.call(query, "query")
+      ? query["query"]
+      : undefined;
+
+    return text === undefined || isNonBlankString(text);
   }
 
   /*

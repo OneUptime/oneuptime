@@ -689,9 +689,8 @@ describe("issue #10226: a Data Source widget that reads only this project's metr
         ]);
 
         // The route finds the widget the page draws, under the same id.
-        const drawnId: string = pageDraws(
-          stored,
-        ).components[0]!.componentId.toString();
+        const drawnId: string =
+          pageDraws(stored).components[0]!.componentId.toString();
 
         expect(
           PublicDashboardViewConfig.getDrawnDataSourceWidgets(stored).map(

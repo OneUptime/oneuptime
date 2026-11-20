@@ -49,7 +49,9 @@ describe("a variable read only as a label matcher's value", () => {
     ['up{job!="{{job}}"}'],
     ['up{job!~"{{job}}"}'],
     ['up{job = "{{ job }}"}'],
-    ['sum by (pod) (rate(http_requests_total{job=~"{{job}}.*", code="5.."}[5m]))'],
+    [
+      'sum by (pod) (rate(http_requests_total{job=~"{{job}}.*", code="5.."}[5m]))',
+    ],
     ['{__name__="{{job}}"}'],
     // Grafana's interval macros are read as the durations they become.
     ['rate(http_requests_total{job="{{job}}"}[$__rate_interval])'],
@@ -91,13 +93,10 @@ describe("a variable read anywhere else", () => {
       ["value"],
     ],
     // A matcher on a quoted label name is not filled as one.
-    ['in a quoted label name\'s matcher', '{"job"="{{job}}"}', ["job"]],
-  ])(
-    "%s",
-    (_label: string, query: string, expected: Array<string>) => {
-      expect(outside(query)).toEqual(expected);
-    },
-  );
+    ["in a quoted label name's matcher", '{"job"="{{job}}"}', ["job"]],
+  ])("%s", (_label: string, query: string, expected: Array<string>) => {
+    expect(outside(query)).toEqual(expected);
+  });
 
   test("a query that does not lex reads every variable as outside a matcher", () => {
     expect(outside('up{job="{{job}}"} $nope')).toEqual(["job"]);
@@ -169,9 +168,7 @@ describe("a legend template's labels", () => {
     ).toEqual(["instance", "job"]);
     expect(DataSourceQueryText.getLegendTemplateKeys("Requests")).toEqual([]);
     expect(DataSourceQueryText.getLegendTemplateKeys("")).toEqual([]);
-    expect(DataSourceQueryText.getLegendTemplateKeys("{{ }} {{a}")).toEqual(
-      [],
-    );
+    expect(DataSourceQueryText.getLegendTemplateKeys("{{ }} {{a}")).toEqual([]);
   });
 
   test("a template is written as before, and an inherited key reads as unset", () => {

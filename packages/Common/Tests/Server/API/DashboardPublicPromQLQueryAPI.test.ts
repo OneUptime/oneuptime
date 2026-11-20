@@ -10,11 +10,7 @@ import {
   getVariableValueNotOfferedMessage,
 } from "../../../Server/Utils/Dashboard/PublicDashboardPromQLPolicy";
 import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
-import {
-  ExpressRequest,
-  ExpressResponse,
-  NextFunction,
-} from "../../../Server/Utils/Express";
+import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
@@ -96,9 +92,7 @@ const WINDOW: JSONObject = {
   endDate: "2026-11-20T09:00:00.000Z",
 };
 
-type BuildConfigFunction = (
-  widgets: Array<JSONObject>,
-) => DashboardViewConfig;
+type BuildConfigFunction = (widgets: Array<JSONObject>) => DashboardViewConfig;
 
 const buildConfig: BuildConfigFunction = (
   widgets: Array<JSONObject>,
@@ -190,9 +184,9 @@ describe("DashboardAPI public PromQL query", () => {
     const spy: jest.SpyInstance = jest
       .spyOn(PublicDashboardRateLimit, "getMiddleware")
       .mockImplementation(
-        (bucket?: PublicDashboardRateLimitBucket): ReturnType<
-          typeof PublicDashboardRateLimit.getMiddleware
-        > => {
+        (
+          bucket?: PublicDashboardRateLimitBucket,
+        ): ReturnType<typeof PublicDashboardRateLimit.getMiddleware> => {
           const middleware: ReturnType<
             typeof PublicDashboardRateLimit.getMiddleware
           > = getMiddleware(bucket);
@@ -230,22 +224,24 @@ describe("DashboardAPI public PromQL query", () => {
     return made;
   };
 
-  const call: (body: JSONObject, target?: Dashboard) => Promise<void> =
-    async (body: JSONObject, target?: Dashboard): Promise<void> => {
-      const request: ExpressRequest = {
-        params: { dashboardId: (target || dashboard).id!.toString() },
-        body: { ...WINDOW, ...body },
-        query: {},
-        cookies: {},
-        headers: {},
-        socket: {},
-        ips: [],
-      } as unknown as ExpressRequest;
+  const call: (body: JSONObject, target?: Dashboard) => Promise<void> = async (
+    body: JSONObject,
+    target?: Dashboard,
+  ): Promise<void> => {
+    const request: ExpressRequest = {
+      params: { dashboardId: (target || dashboard).id!.toString() },
+      body: { ...WINDOW, ...body },
+      query: {},
+      cookies: {},
+      headers: {},
+      socket: {},
+      ips: [],
+    } as unknown as ExpressRequest;
 
-      await mockRouter
-        .match("post", ROUTE)
-        .handlerFunction(request, mockResponse, nextFunction);
-    };
+    await mockRouter
+      .match("post", ROUTE)
+      .handlerFunction(request, mockResponse, nextFunction);
+  };
 
   const thrown: () => unknown = (): unknown => {
     expect(nextFunction).toHaveBeenCalledTimes(1);
@@ -501,9 +497,9 @@ describe("DashboardAPI public PromQL query", () => {
     expect(body["resultKind"]).toBe(DataSourceResultKind.TimeSeries);
     expect(JSON.stringify(body)).not.toContain("secret-node");
     expect(
-      (
-        (body["result"] as JSONObject)["data"] as Array<JSONObject>
-      )[0]!["attributes"],
+      ((body["result"] as JSONObject)["data"] as Array<JSONObject>)[0]![
+        "attributes"
+      ],
     ).toEqual({ pod: "api-1" });
   });
 

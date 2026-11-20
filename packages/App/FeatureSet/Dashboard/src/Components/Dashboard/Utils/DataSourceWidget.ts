@@ -1,5 +1,8 @@
 import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
-import DataSourceWidgetQueries from "Common/Utils/DataSource/DataSourceWidgetQueries";
+import DataSourceWidgetQueries, {
+  PublicDataSourceQuery,
+} from "Common/Utils/DataSource/DataSourceWidgetQueries";
+import { isPublicDashboard } from "./PublicDashboardContext";
 
 /*
  * The Data Source widgets' rows and queries, read the one way the widgets,
@@ -41,4 +44,31 @@ export function getConfiguredDataSourceQueries(
   queryConfigs: Array<DataSourceQueryConfig> | undefined,
 ): Array<DataSourceQueryConfig> {
   return DataSourceWidgetQueries.getConfigured(queryConfigs);
+}
+
+/*
+ * The queries a Data Source widget runs where it is drawn, in order - the
+ * place of each is what a public dashboard's route names it by:
+ *
+ *   - signed in, the ones set up (getConfiguredDataSourceQueries);
+ *   - on a public dashboard (issue #10226), the ones it was served: this
+ *     project's metrics, each without its text, which the page never holds
+ *     (an empty `query` here, for the types alone).
+ */
+export function getRunnableDataSourceQueries(
+  queries: Array<DataSourceQueryConfig> | DataSourceQueryConfig | undefined,
+): Array<DataSourceQueryConfig> {
+  if (isPublicDashboard()) {
+    return DataSourceWidgetQueries.getServedPublicQueries(queries).map(
+      (query: PublicDataSourceQuery): DataSourceQueryConfig => {
+        return { ...query, query: "" };
+      },
+    );
+  }
+
+  if (Array.isArray(queries)) {
+    return getConfiguredDataSourceQueries(queries);
+  }
+
+  return isDataSourceQueryConfigured(queries) && queries ? [queries] : [];
 }

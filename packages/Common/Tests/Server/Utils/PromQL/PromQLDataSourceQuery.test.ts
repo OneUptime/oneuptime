@@ -420,9 +420,9 @@ describe("a PromQL monitor's charts (issue #10227)", () => {
 
   test("an incident's chart reads the one series that opened it, named as the monitor names it", async () => {
     // Without __name__, as the monitor names a series it opens one for.
-    expect(jobsOf(await runNarrowed({ seriesLabels: { job: "worker" } }))).toEqual(
-      ["worker", "worker", "worker"],
-    );
+    expect(
+      jobsOf(await runNarrowed({ seriesLabels: { job: "worker" } })),
+    ).toEqual(["worker", "worker", "worker"]);
   });
 
   test("a series named with __name__, where the check needed it, is found by it too; labels no series has find none", async () => {
