@@ -216,8 +216,7 @@ describe("the words for where a request came from, and what a rule could not cou
             plural: plural.other,
             count,
             counted: drawn.includes(translator.formatNumber(count)),
-            english:
-              drawn === english.translatePlural(plural, count, values),
+            english: drawn === english.translatePlural(plural, count, values),
             named:
               plural !== UNCOUNTED_NO_VALUE || drawn.includes("processName"),
           }).toEqual({

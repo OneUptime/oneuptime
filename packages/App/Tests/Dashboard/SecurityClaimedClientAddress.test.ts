@@ -156,7 +156,8 @@ function matchedEvent(
     categoryName: "",
     activityName: "GET",
     statusName: "Failure",
-    message: "Path traversal attempt: GET /download?file=../../etc/passwd → 404",
+    message:
+      "Path traversal attempt: GET /download?file=../../etc/passwd → 404",
     vendorName: "",
     productName: "",
     ruleName: "",
@@ -391,7 +392,10 @@ describe("the case's Response Plan never offers to block an address the sender w
   test("a case with no event names nothing claimed", () => {
     expect(model.getCaseClaimedClientAddress(null)).toBeNull();
     expect(
-      step(plan.buildResponsePlan(planInput({ matches: null })), CLAIMED_STEP_KEY),
+      step(
+        plan.buildResponsePlan(planInput({ matches: null })),
+        CLAIMED_STEP_KEY,
+      ),
     ).toBeUndefined();
     expect(model.getCaseClaimedOnlyAddresses(null).size).toBe(0);
   });

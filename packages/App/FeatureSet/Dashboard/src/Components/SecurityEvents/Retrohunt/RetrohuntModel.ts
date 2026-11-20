@@ -254,8 +254,9 @@ export function getRetrohuntUncounted(
     return null;
   }
 
-  const entityType: SecurityEntityType | undefined =
-    securityEntityTypeForField(uncounted.field);
+  const entityType: SecurityEntityType | undefined = securityEntityTypeForField(
+    uncounted.field,
+  );
   let template: PluralTemplate = UNCOUNTED_NO_VALUE;
 
   if (entityType === SecurityEntityType.IpAddress) {

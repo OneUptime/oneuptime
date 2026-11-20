@@ -1,7 +1,4 @@
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   TrustedProxyListProblem,
   TrustedProxyListProblemKind,

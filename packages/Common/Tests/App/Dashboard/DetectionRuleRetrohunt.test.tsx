@@ -334,10 +334,7 @@ describe("Run on Past Events", () => {
       );
       expect(
         within(line).getByRole("link", { name: "Open Scrub Rules" }),
-      ).toHaveAttribute(
-        "href",
-        getHiddenAddressRulesRoute("log")!.toString(),
-      );
+      ).toHaveAttribute("href", getHiddenAddressRulesRoute("log")!.toString());
     });
 
     test("a rule that left out events no scrub rule hid says so with no link; one that left out nothing, nothing", async () => {
@@ -354,7 +351,9 @@ describe("Run on Past Events", () => {
 
       await drawPanel();
 
-      expect(screen.getByTestId(RETROHUNT_TEST_IDS.uncounted)).toHaveTextContent(
+      expect(
+        screen.getByTestId(RETROHUNT_TEST_IDS.uncounted),
+      ).toHaveTextContent(
         "1 matching event had no user, so this rule couldn't count it.",
       );
       expect(

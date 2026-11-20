@@ -216,9 +216,9 @@ describe("what a rule that counts per value could not count (#10415)", () => {
     ]) {
       expect(template.other).toContain("so this rule couldn't count them.");
       expect(template.one).toContain("so this rule couldn't count it.");
-      expect(template.other.startsWith("{{count}} matching events had no")).toBe(
-        true,
-      );
+      expect(
+        template.other.startsWith("{{count}} matching events had no"),
+      ).toBe(true);
     }
 
     expect(UNCOUNTED_NO_IP_ADDRESS.other).toBe(

@@ -28,7 +28,9 @@ export const TRUSTED_PROXIES_CARD_KEY: string =
 
 // How many addresses and ranges a saved list holds.
 export function countTrustedProxies(value: unknown): number {
-  return typeof value === "string" ? readTrustedProxyList(value).blocks.length : 0;
+  return typeof value === "string"
+    ? readTrustedProxyList(value).blocks.length
+    : 0;
 }
 
 export interface ComponentProps {

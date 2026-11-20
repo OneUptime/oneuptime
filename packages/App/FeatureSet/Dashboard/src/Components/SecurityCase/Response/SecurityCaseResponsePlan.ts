@@ -18,7 +18,6 @@ import {
   getCaseClaimedClientAddress,
   getCaseClaimedOnlyAddresses,
 } from "../../SecurityEvents/ClaimedClientAddressModel";
-import { canonicalAddress } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { getHiddenAddressRulesRoute } from "../../SecurityEvents/HiddenClientAddressRoute";
 import { HiddenClientAddress } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import {
@@ -116,6 +115,7 @@ import { parseInvestigationReport } from "Common/Utils/AI/InvestigationReport";
 import { isSecurityCaseTriageDecisionLine } from "Common/Server/Utils/AI/Security/SecurityCaseTriageDecision";
 import {
   SecurityAddressScope,
+  canonicalAddress,
   getSecurityAddressScope,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { toTracesExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalScope";
