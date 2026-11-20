@@ -60465,5 +60465,8 @@
   "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "请以可以在租户根管理组上分配角色的身份在 Azure Cloud Shell 中运行此命令。它会创建一个对每个订阅都具有下方所列访问权限的应用，并输出其详细信息。",
   "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "在 Azure Cloud Shell 中运行此命令。它会创建一个具有下方所列访问权限的应用，并输出其详细信息。",
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "在要监控的项目中，于 Cloud Shell 运行此命令。它会创建一个具有下方所列访问权限的服务账号，并输出其密钥。",
-  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "请以可以在组织上授予角色的身份，在组织的某个项目中于 Google Cloud Shell 运行此命令。它会创建一个对每个项目都具有下方所列访问权限的服务账号，并输出其密钥。"
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "请以可以在组织上授予角色的身份，在组织的某个项目中于 Google Cloud Shell 运行此命令。它会创建一个对每个项目都具有下方所列访问权限的服务账号，并输出其密钥。",
+  "Choose Sign In Another Way, and sign in with a link emailed to you instead.": "请改为选择“用其他方式登录”，然后用发送到您邮箱的链接登录。",
+  "Set a password with Forgot password? on the sign-in page, then confirm it's you with it instead.": "请改为在登录页面通过“忘记密码？”设置密码，然后用它确认是您本人。",
+  "You signed in with Vercel, which cannot confirm it's you: Vercel cannot be asked to have you sign in again, and does not say when you signed in.": "您是用 Vercel 登录的，而 Vercel 无法确认是您本人：无法要求 Vercel 让您重新登录，它也不会告知您的登录时间。"
 }

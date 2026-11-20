@@ -60465,5 +60465,8 @@
   "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "테넌트의 루트 관리 그룹에서 역할을 할당할 수 있는 사용자로 Azure Cloud Shell에서 실행하세요. 모든 구독에 대해 아래 액세스 권한을 가진 앱을 만들고 그 세부 정보를 출력합니다.",
   "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "Azure Cloud Shell에서 실행하세요. 아래 액세스 권한을 가진 앱을 만들고 세부 정보를 출력합니다.",
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "모니터링할 프로젝트의 Cloud Shell에서 실행하세요. 아래 액세스 권한을 가진 서비스 계정을 만들고 키를 출력합니다.",
-  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "조직의 프로젝트에서 조직에 역할을 부여할 수 있는 사용자로 Google Cloud Shell에서 실행하세요. 모든 프로젝트에 대해 아래 액세스 권한을 가진 서비스 계정을 만들고 그 키를 출력합니다."
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "조직의 프로젝트에서 조직에 역할을 부여할 수 있는 사용자로 Google Cloud Shell에서 실행하세요. 모든 프로젝트에 대해 아래 액세스 권한을 가진 서비스 계정을 만들고 그 키를 출력합니다.",
+  "Choose Sign In Another Way, and sign in with a link emailed to you instead.": "대신 다른 방법으로 로그인을 선택해 이메일로 받은 링크로 로그인하세요.",
+  "Set a password with Forgot password? on the sign-in page, then confirm it's you with it instead.": "대신 로그인 페이지의 비밀번호를 잊으셨나요?에서 비밀번호를 설정한 다음, 그 비밀번호로 본인 확인을 하세요.",
+  "You signed in with Vercel, which cannot confirm it's you: Vercel cannot be asked to have you sign in again, and does not say when you signed in.": "Vercel로 로그인했으며, Vercel은 본인 확인을 할 수 없습니다. Vercel에 다시 로그인하도록 요청할 수 없고, Vercel은 로그인한 시간을 알려 주지 않습니다."
 }
