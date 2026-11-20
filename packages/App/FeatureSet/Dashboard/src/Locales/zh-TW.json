@@ -60455,5 +60455,15 @@
   "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.": "選擇存放此服務程式碼的存放庫。OneUptime AI 會在該處開啟提取要求。",
   "Add the condition below to the role's trust policy, or run the setup command again, then test again.": "將下方的條件新增到該角色的信任政策中，或再次執行設定指令，然後再次測試。",
   "This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add {{condition}} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.": "此角色允許 OneUptime 在沒有你的專案外部 ID 的情況下登入，因此任何知道其 ARN 的專案都能透過 OneUptime 讀取你的 AWS 帳戶。在其信任政策要求外部 ID 之前，OneUptime 不會使用它：請將 {{condition}} 新增到信任 OneUptime 的那條陳述式中，或再次執行設定指令並連接它輸出的角色。",
-  "This role lets OneUptime sign in without your project's external ID.": "此角色允許 OneUptime 在沒有你的專案外部 ID 的情況下登入。"
+  "This role lets OneUptime sign in without your project's external ID.": "此角色允許 OneUptime 在沒有你的專案外部 ID 的情況下登入。",
+  "Data Security also reads samples of what your data stores hold, to find sensitive data.": "資料安全也會讀取您的資料儲存區所存內容的樣本，以找出敏感資料。",
+  "Data Security may also close a data store's exposures and fix its settings. Each change is approved by a person unless a playbook says otherwise.": "資料安全也可以關閉資料儲存區的暴露並修正其設定。除非劇本另有規定，每項變更都需由人員核准。",
+  "OneUptime reads metrics, resources and how they are set up, changes and health events.": "OneUptime 會讀取指標、資源及其設定、變更和健康事件。",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role with the access below in every account, and prints the management account's role ARN.": "在組織管理帳戶的 AWS CloudShell 中執行此指令。它會在每個帳戶中建立一個具有下方所列存取權限的角色，並輸出管理帳戶角色的 ARN。",
+  "Run this in AWS CloudShell. It creates a role with the access below, and prints the role's ARN.": "在 AWS CloudShell 中執行此指令。它會建立一個具有下方所列存取權限的角色，並輸出該角色的 ARN。",
+  "Run this in AWS CloudShell. It creates a user with the access below, and prints its access key.": "在 AWS CloudShell 中執行此指令。它會建立一個具有下方所列存取權限的使用者，並輸出其存取金鑰。",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "請以可以在租用戶根管理群組上指派角色的身分在 Azure Cloud Shell 中執行此指令。它會建立一個對每個訂用帳戶都具有下方所列存取權限的應用程式，並輸出其詳細資料。",
+  "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "在 Azure Cloud Shell 中執行此指令。它會建立一個具有下方所列存取權限的應用程式，並輸出其詳細資料。",
+  "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "在要監控的專案中，於 Cloud Shell 執行此指令。它會建立一個具有下方所列存取權限的服務帳戶，並輸出其金鑰。",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "請以可以在組織上授予角色的身分，在組織的某個專案中於 Google Cloud Shell 執行此指令。它會建立一個對每個專案都具有下方所列存取權限的服務帳戶，並輸出其金鑰。"
 }
