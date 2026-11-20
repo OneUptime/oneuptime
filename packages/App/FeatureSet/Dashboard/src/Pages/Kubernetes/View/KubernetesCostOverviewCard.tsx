@@ -384,6 +384,8 @@ const KubernetesCostOverviewCard: FunctionComponent<ComponentProps> = (
               dataTestId: `${KUBERNETES_COST_OVERVIEW_TEST_ID}-docs`,
             },
           ]}
+          // In the card's padding, under its title, as its figures are.
+          isCardBody={true}
           dataTestId={`${KUBERNETES_COST_OVERVIEW_TEST_ID}-empty`}
         />
       );

@@ -38,7 +38,7 @@ Query parameters on any page:
 
 | Parameter     | Values                                                                                                                                                 |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `agent`       | `old` (default: `0.161.0`, the files before #5076's CPU fix), `current` (`0.161.3`, the files this release ships), `none`                              |
+| `agent`       | `old` (default: `0.161.0`, the files before #5076's CPU fix), `current` (the files this release ships, as `AgentKind.ts` names them), `none`           |
 | `swarm`       | `trouble`: a worker down, a service short of a replica, one whose tasks keep failing, a task near its memory limit, an alert open on the short service |
 | `lang`        | `de` reads the German locale file, `fa` the Persian one (right to left)                                                                                |
 | `theme`       | `dark` adds `html.dark` (server.js)                                                                                                                    |
