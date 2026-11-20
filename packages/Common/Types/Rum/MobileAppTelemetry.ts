@@ -38,8 +38,27 @@
  * Native app runs send none of the app start or frame signals on their own;
  * an app on them reports these only where its code records them under the
  * same names. opentelemetry-swift's MetricKit instrumentation reports an
- * iOS app's crashes and hangs (MobileAppFaults), and its releases set no
- * `app.installation.id` yet.
+ * iOS app's crashes and hangs (MobileAppFaults).
+ *
+ * WHAT AN INSTALL IS (#9924). An install is what the SDK names on its
+ * resource, the first of:
+ *
+ *   - `app.installation.id`: OpenTelemetry Android's random UUID, kept
+ *     until the app is uninstalled or its data is cleared, so a reinstall
+ *     is a new install; opentelemetry-swift sets it too from 3.0, to the
+ *     device's identifierForVendor;
+ *   - `device.id`: what opentelemetry-swift's releases (2.x) set instead,
+ *     `UIDevice.identifierForVendor` - one id for every app of the same
+ *     vendor on a device, kept while one of them stays installed. A
+ *     reinstall while another of the vendor's apps stays is the same
+ *     install; one after the vendor's last app was removed is a new one.
+ *
+ * So an iOS app's installs are counted from the releases it runs today, and
+ * read the same when it moves to 3.0, which sets both to the same value. A
+ * row that names neither is no install. Both are copied onto a crash's
+ * exception rows, so an occurrence's install is the very value its spans
+ * carry, and every count of installs reads the first that has a value
+ * (STORED_APP_INSTALL_SQL).
  */
 
 export const APP_START_SPAN_NAME: string = "AppStart";
@@ -96,6 +115,28 @@ export const APP_INSTALLATION_ID_ATTRIBUTE: string = "app.installation.id";
 export const STORED_APP_INSTALLATION_ID_ATTRIBUTE: string = `resource.${APP_INSTALLATION_ID_ATTRIBUTE}`;
 
 /*
+ * The device, as opentelemetry-swift's releases name it on their resource:
+ * its identifierForVendor, read as the install where no
+ * `app.installation.id` is set (#9924).
+ */
+export const DEVICE_ID_ATTRIBUTE: string = "device.id";
+
+export const STORED_DEVICE_ID_ATTRIBUTE: string = `resource.${DEVICE_ID_ATTRIBUTE}`;
+
+// The stored attributes an install is read from, the first with a value winning.
+export const STORED_APP_INSTALL_ATTRIBUTES: ReadonlyArray<string> = [
+  STORED_APP_INSTALLATION_ID_ATTRIBUTE,
+  STORED_DEVICE_ID_ATTRIBUTE,
+];
+
+/*
+ * A row's install, as ClickHouse reads it from a span's, log's or
+ * exception's attributes: its `app.installation.id`, else its `device.id`,
+ * '' for none. Constant keys, so it is written into statements as it is.
+ */
+export const STORED_APP_INSTALL_SQL: string = `if(attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}'] != '', attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}'], attributes['${STORED_DEVICE_ID_ATTRIBUTE}'])`;
+
+/*
  * The install a row's stored attributes name, or '' when none does: only
  * the resource's, the one OpenTelemetry Android sets, so every count of
  * installs reads the same key. Verbatim, as the span's own copy is
@@ -118,10 +159,29 @@ export function readStoredAppInstallationId(
 }
 
 /*
- * An exception row's attributes with the install its span or log names,
- * when that names one and the row's own do not: an exception row keeps
- * none of its span's or log's resource attributes otherwise. The given
- * attributes are never changed.
+ * The install a row's stored attributes name (#9924): its
+ * `app.installation.id`, else its `device.id`, verbatim, or '' when it names
+ * neither - as STORED_APP_INSTALL_SQL reads it in ClickHouse.
+ */
+export function readStoredAppInstall(
+  attributes: StoredAttributes | undefined | null,
+): string {
+  for (const key of STORED_APP_INSTALL_ATTRIBUTES) {
+    const value: unknown = attributes?.[key];
+
+    if (typeof value === "string" && value !== "") {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+/*
+ * An exception row's attributes with the install its span or log names -
+ * its `app.installation.id` and its `device.id`, each that it names and the
+ * row's own do not: an exception row keeps none of its span's or log's
+ * resource attributes otherwise. The given attributes are never changed.
  */
 export function withAppInstallationId<
   Attributes extends StoredAttributes,
@@ -129,16 +189,24 @@ export function withAppInstallationId<
   attributes: Attributes;
   from: StoredAttributes | undefined | null;
 }): Attributes {
-  const installationId: string = readStoredAppInstallationId(input.from);
+  let attributes: Attributes = input.attributes;
 
-  if (!installationId || readStoredAppInstallationId(input.attributes)) {
-    return input.attributes;
+  for (const key of STORED_APP_INSTALL_ATTRIBUTES) {
+    const value: unknown = input.from?.[key];
+    const own: unknown = attributes[key];
+
+    if (
+      typeof value !== "string" ||
+      value === "" ||
+      (typeof own === "string" && own !== "")
+    ) {
+      continue;
+    }
+
+    attributes = { ...attributes, [key]: value };
   }
 
-  return {
-    ...input.attributes,
-    [STORED_APP_INSTALLATION_ID_ATTRIBUTE]: installationId,
-  };
+  return attributes;
 }
 
 // The crash and ANR events, first the name current SDKs send.

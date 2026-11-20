@@ -27,6 +27,7 @@ jest.mock(
         addLogIngestJob: jest.fn(),
         addMetricIngestJob: jest.fn(),
         addTraceIngestJob: jest.fn(),
+        addProfileIngestJob: jest.fn(),
       },
     };
   },
@@ -45,6 +46,14 @@ const METRICS: JSONObject = {
 };
 const TRACES: JSONObject = {
   resourceSpans: [{ resource: { attributes: [] }, scopeSpans: [] }],
+};
+const PROFILES: JSONObject = {
+  resourceProfiles: [
+    {
+      resource: { attributes: [] },
+      scopeProfiles: [{ scope: { name: "sentry" }, profiles: [{}, {}] }],
+    },
+  ],
 };
 
 // An export request of `count` records of its signal.
@@ -145,9 +154,70 @@ beforeEach(() => {
       recordJob(jobs, "traces", req as TelemetryRequest);
     },
   );
+  queue["addProfileIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "profiles", req as TelemetryRequest);
+    },
+  );
 });
 
 describe("CompatibleIngestService.enqueue", () => {
+  test("a batch's profiles (a Sentry envelope's) are a Profiles job of their own, counted at their own bytes", async () => {
+    const result: Awaited<ReturnType<typeof CompatibleIngestService.enqueue>> =
+      await CompatibleIngestService.enqueue({
+        req: request(),
+        surface: TelemetryIngestSurface.Sentry,
+        batch: { traces: TRACES, profiles: PROFILES },
+        ingestBytes: { traces: 300, profiles: 4000 },
+      });
+
+    expect(result).toEqual({
+      queuedLogs: false,
+      queuedMetrics: false,
+      queuedTraces: true,
+      queuedProfiles: true,
+    });
+    expect(
+      jobs.map((job: QueuedJob) => {
+        return [job.signal, job.productType, job.ingestBytes];
+      }),
+    ).toEqual([
+      ["traces", "Traces", 300],
+      ["profiles", "Profiles", 4000],
+    ]);
+    expect(jobs[1]!.body).toEqual(PROFILES);
+    expect(jobs[1]!.contentType).toBe("application/json");
+    expect(jobs[1]!.budgetCharge).toBe("absent");
+  });
+
+  test("a request's size is shared with a profiles job by its profiles", async () => {
+    await CompatibleIngestService.enqueue({
+      req: request(),
+      surface: TelemetryIngestSurface.Sentry,
+      batch: { traces: tracesOf(2), profiles: PROFILES },
+      ingestBytes: 1000,
+    });
+
+    expect(
+      jobs.map((job: QueuedJob) => {
+        return job.ingestBytes;
+      }),
+    ).toEqual([500, 500]);
+    expect(
+      CompatibleIngestService.recordCount(PROFILES, "resourceProfiles"),
+    ).toBe(2);
+  });
+
+  test("an empty profiles export is no job", async () => {
+    await CompatibleIngestService.enqueue({
+      req: request(),
+      surface: TelemetryIngestSurface.Sentry,
+      batch: { profiles: { resourceProfiles: [] } },
+    });
+
+    expect(jobs).toHaveLength(0);
+  });
+
   test("queues each signal the batch holds as its own OTLP JSON job", async () => {
     const result: Awaited<ReturnType<typeof CompatibleIngestService.enqueue>> =
       await CompatibleIngestService.enqueue({
@@ -160,6 +230,7 @@ describe("CompatibleIngestService.enqueue", () => {
       queuedLogs: true,
       queuedMetrics: true,
       queuedTraces: true,
+      queuedProfiles: false,
     });
     expect(
       jobs.map((job: QueuedJob) => {

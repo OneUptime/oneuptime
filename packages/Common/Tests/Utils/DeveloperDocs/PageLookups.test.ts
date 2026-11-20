@@ -231,6 +231,52 @@ describe("the records a resource's own ids point at", () => {
     ]);
   });
 
+  /*
+   * A record's labels are written by its Terraform configuration - the
+   * provider keeps a label a rule adds later (#10134) - and left out of its
+   * Crossplane manifest, which leaves them to OneUptime: only the Terraform
+   * page names them.
+   */
+  test("labels are named for the Terraform page, which writes them, and not for the Crossplane page, which leaves them out", () => {
+    const json: Record<string, unknown> = {
+      _id: "i1",
+      title: "Checkout",
+      incidentSeverityId: "s1",
+      labels: [{ _id: "l1" }],
+    };
+
+    expect(
+      describeLookups(
+        getDeveloperDocsRecordLookups({
+          modelType: Incident,
+          json,
+          page: "terraform",
+        }),
+      ),
+    ).toEqual(["IncidentSeverity:s1", "Label:l1"]);
+    expect(
+      describeLookups(
+        getDeveloperDocsRecordLookups({
+          modelType: Incident,
+          json,
+          page: "crossplane",
+        }),
+      ),
+    ).toEqual(["IncidentSeverity:s1"]);
+    expect(
+      describeLookups(
+        getDeveloperDocsPageLookups({
+          modelType: Incident,
+          scope: "view",
+          page: "crossplane",
+          json,
+        }),
+      ).filter((lookup: string): boolean => {
+        return lookup.startsWith("Label");
+      }),
+    ).toEqual([]);
+  });
+
   test("a record without ids needs no lookups", () => {
     expect(
       getDeveloperDocsRecordLookups({

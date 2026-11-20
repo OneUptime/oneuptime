@@ -301,10 +301,13 @@ export const getComparisonChoices: (data: {
   monitorType: MonitorType;
   measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
+  // A PromQL step: no anomaly conditions (TelemetryAlertRuleUtil).
+  isPromQL?: boolean | undefined;
 }) => Array<TelemetryRuleChoice<FilterType>> = (data: {
   monitorType: MonitorType;
   measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
+  isPromQL?: boolean | undefined;
 }): Array<TelemetryRuleChoice<FilterType>> => {
   const labels: Record<string, string> =
     data.monitorType === MonitorType.Metrics
@@ -440,12 +443,14 @@ export const TelemetryRuleCopy: {
   regressedExceptionCountTitle: string;
   exceptionIncreaseTitle: string;
   sessionsWithExceptionsTitle: string;
+  installsWithExceptionsTitle: string;
   exceptionMeasureTitle: string;
   exceptionMeasureCount: string;
   exceptionMeasureNew: string;
   exceptionMeasureRegressed: string;
   exceptionMeasureIncrease: string;
   exceptionMeasureSessions: string;
+  exceptionMeasureInstalls: string;
   exceptionMeasureNoPreview: string;
   metricValueTitle: string;
   windowTitle: string;
@@ -503,14 +508,18 @@ export const TelemetryRuleCopy: {
   sessionsWithExceptionsTitle: translationKey(
     "Sessions with an exception (in %)",
   ),
+  installsWithExceptionsTitle: translationKey(
+    "Installs with an exception (in %)",
+  ),
   exceptionMeasureTitle: translationKey("Alert on"),
   exceptionMeasureCount: translationKey("Exceptions"),
   exceptionMeasureNew: translationKey("New exceptions"),
   exceptionMeasureRegressed: translationKey("Exceptions that came back"),
   exceptionMeasureIncrease: translationKey("A rise over the usual"),
   exceptionMeasureSessions: translationKey("A share of sessions"),
+  exceptionMeasureInstalls: translationKey("A share of installs"),
   exceptionMeasureNoPreview: translationKey(
-    "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions.",
+    "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.",
   ),
   metricValueTitle: translationKey("Value"),
   windowTitle: translationKey("Time window"),
@@ -866,6 +875,19 @@ const getExceptionMeasureSentence: (data: {
         );
   }
 
+  // The same rate per install (#9924): a share too, with no "any" sentence.
+  if (data.measure === CheckOn.InstallsWithExceptionsPercent) {
+    return data.hasCount
+      ? translator.translateTemplate(
+          "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.",
+          { window, count, comparison },
+        )
+      : translator.translateTemplate(
+          "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.",
+          { window, comparison },
+        );
+  }
+
   if (data.measure === CheckOn.RegressedExceptionCount) {
     if (data.isAny) {
       return translator.translateTemplate(
@@ -1049,6 +1071,10 @@ export const getCountTitle: (
 
     if (measure === CheckOn.SessionsWithExceptionsPercent) {
       return TelemetryRuleCopy.sessionsWithExceptionsTitle;
+    }
+
+    if (measure === CheckOn.InstallsWithExceptionsPercent) {
+      return TelemetryRuleCopy.installsWithExceptionsTitle;
     }
   }
 

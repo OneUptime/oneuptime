@@ -104,7 +104,7 @@ Android lets an app read other apps' logs only with the READ_LOGS permission, an
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-With Esper, run that command over **Secure Remote ADB**: turn on ADB access for the device, connect with `espercli secureadb connect --device DEVICE_ID`, then run the command. Android restarts the agent when the permission is granted, and the agent starts reading at once.
+With Esper, run that command over **Secure Remote ADB**: turn on ADB access for the device, connect with `espercli secureadb connect --device DEVICE_ID`, then run the command. Android restarts the agent when the permission is granted, and the agent starts reading at once. Inventory's **Device Manager ID** column holds each device's `DEVICE_ID`.
 
 What the agent then reads depends on the Android version:
 
@@ -126,7 +126,7 @@ The first command is for Android 15 and later; usage access can also be turned o
 
 ### Grant them across a fleet
 
-Every report of the agent says which of these grants it still lacks. To list the devices that need them, open **Inventory**, then **All Items**, and filter by **Agent Permissions**: **Missing**. Turn on the **Agent Permissions** column to see what each device lacks, and export the list as CSV.
+Every report of the agent says which of these grants it still lacks. To list the devices that need them, open **Inventory**, then **All Items**, and filter by **Agent Permissions**: **Missing**. Turn on the **Agent Permissions** column to see what each device lacks, and export the list as CSV. Turn on the **Device Manager ID** column too, and the export holds each device's Esper ID, the `DEVICE_ID` that `espercli secureadb connect --device` takes.
 
 A device policy cannot grant these: READ_LOGS and READ_DROPBOX_DATA are permissions only adb, the system or the device's maker can give, and usage access is set by adb or by the person at the device. What Esper offers, and why none of it grants them:
 
@@ -204,7 +204,7 @@ A session needs READ_LOGS and `logcat_enabled`; without them it reads **Unavaila
 
 In **Hosts**, the device's OS reads Android, with Android's mark.
 
-A device is behind on its security patches when its security patch level is more than 90 days old. Google publishes an Android security bulletin every month, and Android Enterprise Recommended holds a device's maker to shipping each one within 90 days, so a device further behind lacks fixes its maker should have shipped. In **Inventory**, the **Security Patch Level** filter lists the devices **Out of Date**; the **Security Patch Out of Date** template alerts on each.
+A device is behind on its security patches when its security patch level is more than 90 days old. Google publishes an Android security bulletin every month, and Android Enterprise Recommended holds a device's maker to shipping each one within 90 days, so a device further behind lacks fixes its maker should have shipped. In **Inventory**, the **Security Patch Level** filter lists the devices **Out of Date**; the **Security Patch Out of Date** template alerts on each. An Android device a device manager imports, without the agent, is alerted on by its connection's own template, such as **Esper Security Patch Out of Date**, from the patch level the device manager reports; a device that runs the agent is left to this one, so it never alerts twice.
 
 The device's boots in the last hour are the metric `android.boot.recent_count`, and a device that keeps restarting logs a warning at each boot. In **Hosts**, an Android device is offered alert templates of its own: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full and Security Patch Out of Date, with Host Stopped Reporting, Host Restarted and High Memory Utilization, and High CPU Utilization once it reports CPU use. Each alert's first debug commands are adb commands. See [Host Monitor](/docs/monitor/host-monitor#android-devices).
 

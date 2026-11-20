@@ -332,6 +332,14 @@ export interface MonitorRecommendationContext {
    */
   cloudResourceName?: string | null | undefined;
   /*
+   * How often its connection reads it, and the metrics of it its account's
+   * stream writes instead (CloudAlertTemplates.getCloudAlertStreamedMetrics):
+   * each monitor's window follows them (getCloudAlertWindow, #10028). Not
+   * known: the windows its cloud's default interval reads.
+   */
+  cloudReadIntervalInMinutes?: number | null | undefined;
+  cloudStreamedMetrics?: Array<string> | null | undefined;
+  /*
    * An App Platforms app's telemetry filter: its environment's
    * resource.cloud.* attributes and its own resource.* attributes, as its
    * Traces tab reads its spans. Without its own attributes nothing is
@@ -437,6 +445,16 @@ export interface MonitorRecommendation {
   category: string;
   severity: MonitorRecommendationSeverity;
   getMonitorStep: (args: MonitorRecommendationArgs) => MonitorStep;
+  /*
+   * The other steps a monitor made from it may have and still be it, which
+   * count as created as its own step does: a cloud template's at each
+   * window its connection's read interval may have given it, for a monitor
+   * made before the interval changed (CloudAlertTemplates, #10028). Absent:
+   * its own step alone.
+   */
+  getEquivalentMonitorSteps?:
+    | ((args: MonitorRecommendationArgs) => Array<MonitorStep>)
+    | undefined;
   /*
    * How often the created monitor is evaluated, as a 5-field cron
    * (Monitor.monitoringInterval), when the template says: a cloud resource's

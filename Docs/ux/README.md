@@ -191,7 +191,10 @@ next, and how to change it last.
   disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
   as systemd said it: its result, its exit code or the signal that killed it, since when and what
   it printed last, from its journal (#9748), on its page and on its row of the host's Systemd
-  Units list, whose "3 units failed" opens all of them (#9960). A count opens its parts only while the resource's
+  Units list, whose "3 units failed" opens all of them (#9960), and in the host's Needs attention
+  and behind its Degraded (#10129): one bounded read of what systemd said of those units, never on
+  a tick of the auto-refresh, and a row as it was while the journal says nothing of why. A count
+  opens its parts only while the resource's
   agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
   what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
   "fleet disconnected" where it counted its devices online, rather than calling every device
@@ -355,10 +358,13 @@ work out, starts from a default for everything else, and folds what most people 
   a page and holds a control of its own - a region's health pill that opens why, an (i) - is
   never one link around it: the row's name is its link, stretched over the row so a press
   anywhere still opens the page, and the control sits beside the name, above the stretch
-  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). Enforced by
-  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts)
-  and
-  [ResourcePartRowControlsGuard](../../packages/App/Tests/Dashboard/ResourcePartRowControlsGuard.test.ts).
+  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). A
+  component counts as what its own source draws: an (i), an attention pill and a health pill
+  are buttons, `AppLink` is a link around what it is given, and JSX handed to a control in a
+  prop it draws inside itself (a button's title) is inside it. The guard knew a short list of
+  shared components and never saw the Regions card's (i) in its row's link (#10015). Enforced
+  by
+  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
 - **A menu, a list or a panel opens on the tooltip layer, never in place.** Drawn `absolute`
   under its control, a popup was cut off wherever the box it sat in clipped. The logs toolbar's
   Columns lost its foot over a trace's empty logs (#9859), and a search's suggestions ran into an

@@ -2,20 +2,35 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IoTDevice from "Common/Models/DatabaseModels/IoTDevice";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import {
   formatPercent,
   routeParamFromExternalId,
 } from "../Utils/IoTDeviceUtils";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import {
+  IOT_DEVICES_FLEET_DISCONNECTED_NOTICE,
+  IOT_FLEET_DISCONNECTED_ACTION,
+  isIoTFleetConnected,
+} from "../Utils/IoTFleetConnection";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
+import IoTDeviceStatus from "../../../Components/IoT/IoTDeviceStatus";
 import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
@@ -30,6 +45,15 @@ import TableEmptyValue, {
  * `device.id` datapoint label) percent-encoded as a single path
  * segment — same identity scheme as the Proxmox guest/node detail
  * routes — not the DB `_id`.
+ *
+ * While the fleet itself is disconnected (#10014), no device's state is
+ * current: each was last reported before the fleet stopped, and when the
+ * collector is what went away every device can read offline. So the list
+ * opens on one notice that says so, which leads to the fleet's Overview
+ * and what to check there, and each row's Status says the fleet is
+ * disconnected, in grey, with the state the device last reported and when
+ * (IoTDeviceStatus) - never a red "Offline" that blames the device. The
+ * rest of each row is what the device last sent, dated by Last Seen.
  */
 
 const IoTFleetDevices: FunctionComponent<
@@ -37,8 +61,77 @@ const IoTFleetDevices: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+  // The fleet's own connection: whether its devices' states are current.
+  const [fleet, setFleet] = useState<IoTFleet | null>(null);
+  const [isFleetLoading, setIsFleetLoading] = useState<boolean>(true);
+  const [fleetError, setFleetError] = useState<string>("");
+
+  const fetchFleet: () => Promise<void> = async (): Promise<void> => {
+    setIsFleetLoading(true);
+    setFleetError("");
+    try {
+      setFleet(
+        await ModelAPI.getItem({
+          modelType: IoTFleet,
+          id: modelId,
+          select: {
+            otelCollectorStatus: true,
+          },
+        }),
+      );
+    } catch (err) {
+      setFleetError(API.getFriendlyMessage(err));
+    }
+    setIsFleetLoading(false);
+  };
+
+  useEffect(() => {
+    fetchFleet().catch((err: Error) => {
+      setFleetError(API.getFriendlyMessage(err));
+      setIsFleetLoading(false);
+    });
+  }, []);
+
+  if (isFleetLoading) {
+    return <PageSkeleton shape="table" />;
+  }
+
+  if (fleetError) {
+    return (
+      <ErrorMessage
+        message={fleetError}
+        onRefreshClick={() => {
+          fetchFleet().catch(() => {
+            // fetchFleet says what failed itself.
+          });
+        }}
+      />
+    );
+  }
+
+  const isFleetConnected: boolean = isIoTFleetConnected(
+    fleet?.otelCollectorStatus as string | undefined,
+  );
+
   return (
     <Fragment>
+      {!isFleetConnected && (
+        <Alert
+          className="mb-5"
+          type={AlertType.WARNING}
+          title={IOT_DEVICES_FLEET_DISCONNECTED_NOTICE}
+          textOnRight={IOT_FLEET_DISCONNECTED_ACTION}
+          dataTestId="iot-devices-fleet-disconnected"
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.IOT_FLEET_VIEW] as Route,
+                { modelId: modelId },
+              ),
+            );
+          }}
+        />
+      )}
       <ModelTable<IoTDevice>
         modelType={IoTDevice}
         id="iot-devices-table"
@@ -120,15 +213,12 @@ const IoTFleetDevices: FunctionComponent<
             headerTooltip: IOT_METRIC_DESCRIPTIONS.statusColumn,
             type: FieldType.Element,
             getElement: (item: IoTDevice): ReactElement => {
-              if (item.isUp === undefined || item.isUp === null) {
-                return <TableEmptyValue />;
-              }
               return (
-                <StatusBadge
-                  text={item.isUp ? "Online" : "Offline"}
-                  type={
-                    item.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger
-                  }
+                <IoTDeviceStatus
+                  isUp={item.isUp}
+                  isFleetConnected={isFleetConnected}
+                  lastSeenAt={item.lastSeenAt}
+                  testId={`iot-device-status-${item.externalId || ""}`}
                 />
               );
             },

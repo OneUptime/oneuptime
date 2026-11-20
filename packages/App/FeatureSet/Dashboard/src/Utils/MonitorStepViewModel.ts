@@ -10,6 +10,7 @@ import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import { MonitorStepMetricMonitorUtil } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import { MonitorStepProbeStatusMonitorUtil } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MonitorStepLlmMonitor, {
@@ -1719,6 +1720,43 @@ export default class MonitorStepViewModel {
   private static getMetricRows(
     data: MonitorStepType,
   ): Array<MonitorStepViewRow> {
+    // A step written in PromQL is its expression and its window (#7712).
+    if (MonitorStepMetricMonitorUtil.isPromQL(data.metricMonitor)) {
+      return compact([
+        {
+          key: "promQLQuery",
+          title: "PromQL",
+          description:
+            "The PromQL expression this monitor evaluates; each series it returns is judged on its own.",
+          valueType: MonitorStepViewValueType.Code,
+          value: toText(
+            MonitorStepMetricMonitorUtil.getPromQLQuery(data.metricMonitor),
+          ),
+          placeholder: "No data entered",
+        },
+        {
+          key: "rollingTime",
+          title: "Time Range",
+          description: "The rolling window each check evaluates over.",
+          valueType: MonitorStepViewValueType.Text,
+          value: toText(data.metricMonitor?.rollingTime),
+          placeholder: RollingTime.Past1Minute,
+        },
+        optional({
+          key: "metricTelemetryServices",
+          title: "Services",
+          description: "Telemetry services this monitor is scoped to.",
+          valueType: MonitorStepViewValueType.TelemetryServices,
+          value: (data.metricMonitor?.telemetryServiceIds || []).map(
+            (serviceId: { toString: () => string }) => {
+              return serviceId.toString();
+            },
+          ),
+          placeholder: "All services",
+        }),
+      ]);
+    }
+
     return compact([
       ...MonitorStepViewModel.getMetricConfigRows(data, {
         metricViewConfig: data.metricMonitor?.metricViewConfig,

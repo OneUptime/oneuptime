@@ -33,6 +33,12 @@ import { getScreenBottomPadding } from "../theme/layout";
 import { radius } from "../theme/tokens";
 import type { CreateOverrideInput } from "../hooks/useOnCallOverrides";
 import type { CoverPoliciesState } from "../hooks/useCoverPolicies";
+import type { OverrideTeamPeopleState } from "../hooks/useOverrideTeamPeople";
+import {
+  OVERRIDE_TEAM_AWAY_REFUSAL,
+  OVERRIDE_TEAM_COVER_REFUSAL,
+  OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
+} from "../oncall/overrideTeamAccess";
 import type { CoverPolicy } from "../api/onCallOverrides";
 import type { CreateOnCallOverrideParams } from "../navigation/types";
 import type {
@@ -255,6 +261,52 @@ jest.mock("../hooks/useCoverPolicies", () => {
     }): CoverPoliciesState => {
       mockCoverPoliciesAsked.push(data);
       return data.enabled ? mockCoverPolicies.current : { status: "not-asked" };
+    },
+  };
+});
+
+/*
+ * The people of the teams the sheet is kept to (useOverrideTeamPeople):
+ * what a test says, and what each render asked for. Asked with no teams,
+ * nothing is known, as the hook answers.
+ */
+const mockTeamPeople: { current: OverrideTeamPeopleState } = {
+  current: {
+    users: [],
+    membersByTeam: null,
+    teamNames: null,
+    isLoading: false,
+    isError: false,
+    refetch: async (): Promise<void> => {
+      return undefined;
+    },
+  },
+};
+const mockTeamPeopleAsked: Array<{
+  projectId: string | null;
+  teamIds: ReadonlyArray<string> | null;
+}> = [];
+
+jest.mock("../hooks/useOverrideTeamPeople", () => {
+  return {
+    useOverrideTeamPeople: (data: {
+      projectId: string | null;
+      teamIds: ReadonlyArray<string> | null;
+    }): OverrideTeamPeopleState => {
+      mockTeamPeopleAsked.push(data);
+
+      return data.teamIds
+        ? mockTeamPeople.current
+        : {
+            users: [],
+            membersByTeam: null,
+            teamNames: null,
+            isLoading: false,
+            isError: false,
+            refetch: async (): Promise<void> => {
+              return undefined;
+            },
+          };
     },
   };
 });
@@ -1696,5 +1748,350 @@ describe("CreateOnCallOverrideScreen offering the policies someone may cover", (
     await fireEvent.press(screen.getByTestId("submit-override"));
 
     expect(createdPolicyIds()).toEqual(["policy-variant"]);
+  });
+});
+
+/*
+ * #9883: for someone who manages the user overrides of their own teams'
+ * people only (Manage On-Call Policy User Overrides for Own Team), the
+ * server refuses cover from or for anybody else, so the teammate is picked
+ * from those teams' accepted members, and the picker says which teams - as
+ * the Dashboard's pickers do. The rule is read from the rows the server
+ * sends (oncall/overrideTeamAccess); the teams' people come from
+ * useOverrideTeamPeople.
+ */
+const TEAM_PAYMENTS: string = "team-payments";
+const TEAM_MOBILE: string = "team-mobile";
+const OUTSIDER: string = "user-outsider";
+
+const OUTSIDER_USER: ProjectUserItem = {
+  userId: OUTSIDER,
+  name: "Omar Okafor",
+  email: "omar@example.com",
+};
+
+// Manage On-Call Policy User Overrides for Own Team, given to a team.
+function teamRow(
+  teamId: string,
+  data: { scope?: string; labelIds?: Array<unknown> } = {},
+): Record<string, unknown> {
+  return {
+    _type: "UserPermission",
+    permission: "ManageTeamOnCallDutyPolicyUserOverride",
+    labelIds: data.labelIds ?? [],
+    scope: data.scope ?? "All",
+    isBlockPermission: false,
+    teamId: { _type: "ObjectID", value: teamId },
+  };
+}
+
+const READS_ON_CALL: Record<string, unknown> = {
+  _type: "UserPermission",
+  permission: "OnCallViewer",
+  labelIds: [],
+  scope: "All",
+  isBlockPermission: false,
+};
+
+// Payments: the signed-in person and the teammate; the outsider is in no team of theirs.
+function paymentsPeople(
+  overrides: Partial<OverrideTeamPeopleState> = {},
+): OverrideTeamPeopleState {
+  return {
+    users: USERS,
+    membersByTeam: new Map<string, Set<string>>([
+      [TEAM_PAYMENTS, new Set<string>([ME, TEAMMATE])],
+    ]),
+    teamNames: ["Payments"],
+    isLoading: false,
+    isError: false,
+    refetch: async (): Promise<void> => {
+      return undefined;
+    },
+    ...overrides,
+  };
+}
+
+function lastTeamPeopleAsked(): (typeof mockTeamPeopleAsked)[number] {
+  return mockTeamPeopleAsked[mockTeamPeopleAsked.length - 1]!;
+}
+
+describe("CreateOnCallOverrideScreen for someone who manages their own team's overrides", () => {
+  beforeEach(() => {
+    mockCoverPolicies.current = { status: "unavailable" };
+    mockCoverPoliciesAsked.length = 0;
+    mockTeamPeopleAsked.length = 0;
+    mockTeamPeople.current = paymentsPeople();
+    mockCreateOverride.mockReset();
+    mockCreateOverride.mockResolvedValue(undefined);
+    mockGoBack.mockClear();
+    mockUsersError.current = false;
+    mockProjects.current = PROJECTS;
+    // The whole project, an outsider among them: what the sheet must not offer.
+    mockUsers.current = [...USERS, OUTSIDER_USER];
+    mockUserId.current = ME;
+    mockRouteParams.current = undefined;
+    clearAllProjectPermissions();
+  });
+
+  afterEach(() => {
+    clearAllProjectPermissions();
+    jestGlobal.restoreAllMocks();
+  });
+
+  test("the picker offers only the team's people, and says which team above the list", async (): Promise<void> => {
+    holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked()).toEqual({
+      projectId: "project-1",
+      teamIds: [TEAM_PAYMENTS],
+    });
+
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(screen.getByTestId(`user-option-${TEAMMATE}`)).toBeTruthy();
+    expect(screen.queryByTestId(`user-option-${OUTSIDER}`)).toBeNull();
+    // The signed-in person is the other side of the cover, never offered.
+    expect(screen.queryByTestId(`user-option-${ME}`)).toBeNull();
+    expect(
+      within(screen.getByTestId("user-picker-hint")).getByText(
+        "Only people in Payments are listed: the teams that let you manage user overrides.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("Cover for me with a teammate is sent as before", async (): Promise<void> => {
+    holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+
+    await render(<CreateOnCallOverrideScreen />);
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).toHaveBeenCalledTimes(1);
+    expect(lastCreateInput().overrideUserId).toBe(ME);
+    expect(lastCreateInput().routeAlertsToUserId).toBe(TEAMMATE);
+    expect("onCallDutyPolicyId" in lastCreateInput()).toBe(false);
+  });
+
+  test("given by two teams, the line names both, as the project calls them", async (): Promise<void> => {
+    holding("project-1", [
+      READS_ON_CALL,
+      teamRow(TEAM_PAYMENTS),
+      teamRow(TEAM_MOBILE),
+    ]);
+    mockTeamPeople.current = paymentsPeople({
+      teamNames: ["Mobile", "Payments"],
+    });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked().teamIds).toEqual([TEAM_PAYMENTS, TEAM_MOBILE]);
+
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(
+      screen.getByText(
+        "Only people in Mobile, Payments are listed: the teams that let you manage user overrides.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("while the teams' names are read, the list is kept to them with no line yet", async (): Promise<void> => {
+    holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+    mockTeamPeople.current = paymentsPeople({ teamNames: null });
+
+    await render(<CreateOnCallOverrideScreen />);
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(screen.getByTestId(`user-option-${TEAMMATE}`)).toBeTruthy();
+    expect(screen.queryByTestId(`user-option-${OUTSIDER}`)).toBeNull();
+    expect(screen.queryByTestId("user-picker-hint")).toBeNull();
+  });
+
+  test("nobody else in the teams: the picker says so, not that a search found nobody", async (): Promise<void> => {
+    holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+    mockTeamPeople.current = paymentsPeople({ users: [USERS[0]!] });
+
+    await render(<CreateOnCallOverrideScreen />);
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(
+      within(screen.getByTestId("user-picker-empty")).getByText(
+        OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("No teammates match that search.")).toBeNull();
+  });
+
+  test("while the teams' people are read, the picker says it is loading them", async (): Promise<void> => {
+    holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+    mockTeamPeople.current = paymentsPeople({ users: [], isLoading: true });
+
+    await render(<CreateOnCallOverrideScreen />);
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(screen.getByTestId("user-picker-loading")).toBeTruthy();
+    expect(screen.queryByTestId(`user-option-${OUTSIDER}`)).toBeNull();
+  });
+
+  test("when the teams' people could not be read, the sheet says so with a retry", async (): Promise<void> => {
+    const refetch: jest.Mock = jestGlobal.fn(async (): Promise<void> => {
+      return undefined;
+    }) as unknown as jest.Mock;
+    holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+    mockTeamPeople.current = paymentsPeople({
+      users: [],
+      isError: true,
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("coverage-teammates-error")).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+    expect(screen.queryByTestId("user-picker-sheet")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("retry-coverage-teammates"));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("somebody picked before the server said whom they may name is refused in its words before anything is sent", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    // The whole project, until the rows arrive.
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+    await fireEvent.press(screen.getByTestId(`user-option-${OUTSIDER}`));
+
+    await act(async (): Promise<void> => {
+      holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+    });
+
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        OVERRIDE_TEAM_COVER_REFUSAL,
+      ),
+    ).toBeTruthy();
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+  });
+
+  test("I'll take over for somebody outside the teams is refused with the words for who is away", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    await fireEvent.press(screen.getByText("I'll take over"));
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+    await fireEvent.press(screen.getByTestId(`user-option-${OUTSIDER}`));
+
+    await act(async (): Promise<void> => {
+      holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+    });
+
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        OVERRIDE_TEAM_AWAY_REFUSAL,
+      ),
+    ).toBeTruthy();
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+  });
+
+  test("while who is in the teams is not known, nothing is refused before sending: the server decides", async (): Promise<void> => {
+    mockTeamPeople.current = paymentsPeople({ membersByTeam: null });
+
+    await render(<CreateOnCallOverrideScreen />);
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+    await fireEvent.press(screen.getByTestId(`user-option-${OUTSIDER}`));
+
+    await act(async (): Promise<void> => {
+      holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+    });
+
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).toHaveBeenCalledTimes(1);
+  });
+
+  test("a permission that reaches everyone: the whole project, no line, and no team read", async (): Promise<void> => {
+    holding("project-1", [OVER_THE_WHOLE_PROJECT, teamRow(TEAM_PAYMENTS)]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(screen.getByTestId(`user-option-${OUTSIDER}`)).toBeTruthy();
+    expect(screen.queryByTestId("user-picker-hint")).toBeNull();
+  });
+
+  test("a master admin picks from the whole project, whatever the rows say", async (): Promise<void> => {
+    jestGlobal
+      .spyOn(keychain, "getCachedAccessToken")
+      .mockReturnValue(tokenWith({ userId: ME, isMasterAdmin: true }));
+    holding("project-1", [READS_ON_CALL, teamRow(TEAM_PAYMENTS)]);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(screen.getByTestId(`user-option-${OUTSIDER}`)).toBeTruthy();
+  });
+
+  test("before the server has said anything, the whole project is offered: the server decides", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+
+    expect(screen.getByTestId(`user-option-${OUTSIDER}`)).toBeTruthy();
+  });
+
+  test("beside a role narrowed to a label, global cover keeps to the team; a policy's shift is the server's to weigh", async (): Promise<void> => {
+    holding("project-1", [LIMITED_TO_TEAM_LABEL, teamRow(TEAM_PAYMENTS)]);
+
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <CreateOnCallOverrideScreen />,
+    );
+
+    // Cover for every policy: a narrower role cannot make it, so the team rule holds.
+    expect(lastTeamPeopleAsked().teamIds).toEqual([TEAM_PAYMENTS]);
+
+    mockProjects.current = [PROJECTS[1]!];
+    holding("project-2", [LIMITED_TO_TEAM_LABEL, teamRow(TEAM_PAYMENTS)]);
+    mockRouteParams.current = prefill({ policyId: "policy-variant" });
+    await rendered.rerender(<CreateOnCallOverrideScreen />);
+
+    // On one policy, the label may reach it: everyone is offered, and the server decides.
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+  });
+
+  test("the team's grant narrowed to its label: cover goes on the policies offered, kept to the team", async (): Promise<void> => {
+    holding("project-1", [
+      READS_ON_CALL,
+      teamRow(TEAM_PAYMENTS, {
+        scope: "Labels",
+        labelIds: [{ _type: "ObjectID", value: "label-team-a" }],
+      }),
+    ]);
+    mockCoverPolicies.current = { status: "offered", policies: [PAYMENTS] };
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("cover-policies")).toBeTruthy();
+    expect(lastTeamPeopleAsked().teamIds).toEqual([TEAM_PAYMENTS]);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().onCallDutyPolicyId).toBe(PAYMENTS.policyId);
+    expect(lastCreateInput().routeAlertsToUserId).toBe(TEAMMATE);
   });
 });

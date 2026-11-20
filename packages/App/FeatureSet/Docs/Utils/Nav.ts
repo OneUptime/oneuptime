@@ -743,6 +743,11 @@ const DocsNav: NavGroup[] = [
         title: "PromQL",
         url: "/docs/telemetry/promql",
       },
+      // Querying logs with LogQL, and reading them from Grafana (#7700).
+      {
+        title: "LogQL",
+        url: "/docs/telemetry/logql",
+      },
       {
         title: "Deploys and Changes",
         url: "/docs/telemetry/change-events",

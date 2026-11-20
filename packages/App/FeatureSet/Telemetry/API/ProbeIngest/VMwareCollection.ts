@@ -14,6 +14,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import RequestBodyJson from "Common/Server/Utils/RequestBodyJson";
 import { VMwareCollectionReportOutcome } from "Common/Server/Utils/VMware/VMwareProbeCollectionStore";
 import VMwareProbeMetrics, {
   VMwareProbeMetricsPayload,
@@ -91,6 +92,9 @@ export function readRunningVMwareVCenterIds(value: unknown): Array<string> {
  * gzip body reader (GzipRequestBody - bounded, 50 MiB inflated) leaves the
  * inflated bytes in req.body; this reads them as the JSON they are, before
  * the probe is authenticated from them. A plain JSON body passes untouched.
+ * The bytes are counted first (RequestBodyJson), whatever their Content-Type
+ * said, so a body with more values than the route reads is refused with 413
+ * before it is parsed.
  */
 export function parseInflatedJsonBody(
   req: ProbeExpressRequest,
@@ -101,8 +105,12 @@ export function parseInflatedJsonBody(
 
   if (Buffer.isBuffer(body) || body instanceof Uint8Array) {
     try {
-      req.body = JSON.parse(Buffer.from(body).toString("utf8"));
-    } catch {
+      req.body = RequestBodyJson.parse(body, RequestBodyJson.getLimit(req));
+    } catch (err) {
+      if (RequestBodyJson.isTooManyValuesError(err)) {
+        return next(err);
+      }
+
       return Response.sendErrorResponse(
         req,
         res,

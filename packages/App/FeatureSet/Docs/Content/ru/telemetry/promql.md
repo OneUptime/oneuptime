@@ -50,7 +50,7 @@ flowchart TB
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime хранит метрики так, как это принято в Op
 
 | В OneUptime | В PromQL |
 | --- | --- |
-| Gauge `system.cpu.utilization` | `system_cpu_utilization` |
-| Счётчик `http.requests` | `http_requests` или `http_requests_total` |
-| Гистограмма `http.server.request.duration` | `http_server_request_duration_bucket` (с `le`), `_count` и `_sum` |
+| Gauge `system.cpu.utilization` в `1` | `system_cpu_utilization_ratio` или `system_cpu_utilization` |
+| Gauge `system.memory.usage` в `By` | `system_memory_usage_bytes` или `system_memory_usage` |
+| Счётчик `http.requests` | `http_requests_total` или `http_requests` |
+| Гистограмма `http.server.request.duration` в `s` | `http_server_request_duration_seconds_bucket` (с `le`), `_count` и `_sum` или те же без `_seconds` |
 | Summary `rpc.latency` | `rpc_latency` (с `quantile`), `_count` и `_sum` |
 | Атрибут `http.route` | Метка `http_route` |
 | Атрибут ресурса `service.name` | Метка `resource_service_name`, а также `job` |
 | Атрибут ресурса `service.instance.id` | Метка `resource_service_instance_id`, а также `instance` |
 
 - **Точки и дефисы становятся подчёркиваниями** в именах метрик и меток. Чтобы назвать метрику или метку точно так, как она хранится, заключите имя в кавычки, как это делает Prometheus 3: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **Единица измерения входит в имя**, так, как её пишут Prometheus 3 и OpenTelemetry Collector: `s` добавляет `_seconds`, `By` — `_bytes`, `By/s` — `_bytes_per_second`, а `%` — `_percent`; gauge в `1` оканчивается на `_ratio`, счётчик — на `_total`, а единица в фигурных скобках, например `{request}`, ничего не добавляет. Имя без единицы тоже находит метрику, а **Добавить имя метрики** показывает каждую метрику с ней.
 - **Дельта-счётчики суммируются** с начала диапазона времени запроса, поэтому `rate()` и `increase()` читают их как любой другой счётчик.
 - **Экспоненциальные гистограммы** содержат `_count` и `_sum`, но не содержат корзин.
 
@@ -144,6 +146,7 @@ API отвечает на маршруты HTTP API Prometheus, с метода�
 | Время, которое может занять вычисление | 30 секунд |
 | Насколько далеко назад селектор ищет последний сэмпл ряда | 5 минут |
 | Шаг подзапроса, если запрос его не указывает | 1 минута |
+| Запросы, которые проект может отправить за минуту | 1 200 |
 
 ## Устранение неполадок
 
@@ -159,10 +162,15 @@ API отвечает на маршруты HTTP API Prometheus, с метода�
 Запрос просит больше, чем может удержать одно чтение. Добавьте сопоставители меток, сократите диапазон времени или используйте больший шаг.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+Панели, Grafana и скрипты проекта вместе отправили в API больше 1 200 запросов за эту минуту. Панели загрузятся снова в следующую минуту; обновляйте панели реже, чтобы не выходить за предел.
+:::
+
 ## Дальнейшие шаги
 
 :::cards
 - [Обозреватель метрик](/docs/telemetry/metrics-explorer): Стройте графики метрик, не написав ни одного запроса.
-- [Мониторинг метрик](/docs/monitor/metrics-monitor): Получайте оповещения, когда метрика пересекает порог.
-- [Внешние источники данных](/docs/dashboards/data-sources): Показывайте на панелях данные внешнего Prometheus.
+- [Мониторинг метрик](/docs/monitor/metrics-monitor): Получайте оповещения по метрике или выражению PromQL, с одним инцидентом на ряд.
+- [Внешние источники данных](/docs/dashboards/data-sources): Стройте графики PromQL на панелях — по метрикам этого проекта или внешнего Prometheus.
+- [LogQL](/docs/telemetry/logql): Запрашивайте журналы на LogQL, в том числе из источника данных Loki в Grafana.
 :::

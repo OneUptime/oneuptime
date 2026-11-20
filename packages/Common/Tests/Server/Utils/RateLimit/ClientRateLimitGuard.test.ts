@@ -77,6 +77,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "wrong two factor codes per account, wherever they come from",
   "packages/Common/Server/Utils/EmailChange/EmailChangeConfirmation.ts":
     "changes of email address per signed-in account, and per new address, an hour (#9821)",
+  "packages/Common/Server/Utils/Reauthentication/Reauthentication.ts":
+    "wrong attempts to confirm it's you per signed-in session (#10155); its attempts per person and client are counted by IdentityRateLimit",
   "packages/Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector.ts":
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
@@ -128,6 +130,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a sign-in from Vercel Marketplace",
   "packages/Common/Server/API/FormAPI.ts":
     "checks the form's IP allowlist; its requests are counted by FormRateLimit",
+  "packages/Common/Server/API/UserAPI.ts":
+    "hands the address of a session confirming it's its person's to Utils/Reauthentication, whose attempts are counted by IdentityRateLimit (#10155)",
   "packages/App/FeatureSet/Frontend/Index.ts":
     "checks a form's IP allowlist before its own domain's page is titled with the form's name",
   "packages/Common/Server/API/TelemetryAPI.ts":

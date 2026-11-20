@@ -730,13 +730,28 @@ export class OpenAPIParser {
   public static readonly SHARED_DESCRIPTION: string =
     "OneUptime changes it too, on its own: left out, it keeps the value OneUptime gives it.";
 
+  /*
+   * What the reference says of a list of related records people set and
+   * OneUptime adds to too (#10134): a configuration's entries are its own,
+   * under Terraform (StaticFiles/entries.go) and under Crossplane
+   * (shared.go) alike. The provider's exclusive_lists, which holds the list
+   * whole, is the provider's to say.
+   */
+  public static readonly SHARED_LIST_DESCRIPTION: string =
+    "OneUptime adds to it too, on its own: the entries listed here are added and taken off, and every other entry stays. Left out, it keeps the entries OneUptime gives it.";
+
   private describeWhatOneUptimeOwns(resource: TerraformResource): void {
     for (const attribute of Object.values(resource.schema)) {
+      const isList: boolean =
+        (attribute.type === "set" || attribute.type === "list") &&
+        attribute.elementKind === "entity";
       const sentence: string | undefined =
         attribute.serverOwned === "after-create"
           ? OpenAPIParser.AFTER_CREATE_DESCRIPTION
           : attribute.serverOwned === "shared"
-            ? OpenAPIParser.SHARED_DESCRIPTION
+            ? isList
+              ? OpenAPIParser.SHARED_LIST_DESCRIPTION
+              : OpenAPIParser.SHARED_DESCRIPTION
             : undefined;
 
       if (!sentence) {

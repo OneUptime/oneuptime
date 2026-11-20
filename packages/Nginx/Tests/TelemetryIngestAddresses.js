@@ -692,6 +692,28 @@ const TELEMETRY_INGEST_ADDRESSES = [
     ],
   },
 
+  // An iOS app's dSYMs, uploaded from CI by the CLI or curl (#9922).
+  {
+    method: "POST",
+    route: "/dsyms/v1/upload",
+    addresses: [
+      {
+        address: "/dsyms/v1/upload",
+        handedOutBy: [
+          {
+            file: "packages/App/FeatureSet/Docs/Content/en/rum/mobile-setup.md",
+            contains:
+              'curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload"',
+          },
+          {
+            file: "packages/CLI/Commands/DsymCommands.ts",
+            contains: 'DSYM_UPLOAD_PATH: string = "/dsyms/v1/upload"',
+          },
+        ],
+      },
+    ],
+  },
+
   /*
    * The host collector: the supervisor the installers set up asks here for
    * its host's config, every 30 seconds.
@@ -722,6 +744,33 @@ const TELEMETRY_INGEST_ADDRESSES = [
         address: "/opamp/v1",
         calledBy:
           "every host installed before the installers pointed the supervisor at /telemetry/opamp/v1",
+      },
+    ],
+  },
+
+  /*
+   * The OneUptime Android agent asks for the log sessions open for its
+   * device here, every minute (#9806). It posts beside its OTLP, under
+   * /telemetry: the address its OneUptime URL (`<URL>/otlp`) is read into,
+   * which every agent has called since log sessions shipped.
+   */
+  {
+    method: "POST",
+    route: "/android-agent/v1/log-sessions",
+    addresses: [
+      {
+        address: "/telemetry/android-agent/v1/log-sessions",
+        handedOutBy: [
+          {
+            file: "agents/AndroidAgent/app/src/main/java/com/oneuptime/androidagent/logsession/LogSessionClient.kt",
+            contains:
+              'const val PATH: String = "/telemetry/android-agent/v1/log-sessions"',
+          },
+          {
+            file: "agents/AndroidAgent/README.md",
+            contains: "POST `/telemetry/android-agent/v1/log-sessions`",
+          },
+        ],
       },
     ],
   },

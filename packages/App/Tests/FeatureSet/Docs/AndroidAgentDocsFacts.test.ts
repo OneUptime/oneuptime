@@ -13,6 +13,9 @@ import {
 } from "Common/Utils/Host/HostLogSessionFile";
 import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "Common/Types/Host/AndroidSecurityPatch";
 import { ANDROID_AGENT_PERMISSIONS_ATTRIBUTE } from "Common/Types/Host/AndroidAgentPermissions";
+import { getManagedDeviceAlertTemplateById } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
+import { MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import { ESPER_DEVICE_ID_ATTRIBUTE } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -340,5 +343,47 @@ describe("Android Agent docs: notes, files, patches and a fleet's grants", () =>
     // The flag the Esper CLI's secureadb connect takes: it has no -d.
     expect(markdown).toContain("espercli secureadb connect --device DEVICE_ID");
     expect(markdown).not.toContain("secureadb connect -d");
+  });
+
+  /*
+   * #10097: the DEVICE_ID that command takes is in Inventory, in the Device
+   * Manager ID column beside Agent Permissions, read from what Esper's
+   * import writes on the device's host.
+   */
+  it("says where each device's DEVICE_ID is, and exports it with the devices still missing grants", () => {
+    const columns: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/Inventory/DeviceManagerIds.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(ESPER_DEVICE_ID_ATTRIBUTE).toBe("esper.device.id");
+    expect(columns).toContain('translationKey("Device Manager ID")');
+    expect(markdown).toContain(
+      "Inventory's **Device Manager ID** column holds each device's `DEVICE_ID`.",
+    );
+    expect(markdown).toContain(
+      "Turn on the **Device Manager ID** column too, and the export holds each device's Esper ID, the `DEVICE_ID` that `espercli secureadb connect --device` takes.",
+    );
+  });
+
+  /*
+   * #10098: a device a device manager imports and the agent does not run on
+   * is alerted on by its connection's own template, from the patch level
+   * the device manager reports; the agent's devices are left to the host's.
+   */
+  it("says which template alerts on a device without the agent, and that none alerts twice", () => {
+    const esper: { name: string; description: string } | undefined =
+      getManagedDeviceAlertTemplateById("esper-security-patch-out-of-date");
+
+    expect(esper).toBeDefined();
+    expect(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME).not.toBe(
+      "android.os.security_patch.age",
+    );
+    expect(markdown).toContain(
+      `An Android device a device manager imports, without the agent, is alerted on by its connection's own template, such as **${esper!.name}**, from the patch level the device manager reports; a device that runs the agent is left to this one, so it never alerts twice.`,
+    );
   });
 });

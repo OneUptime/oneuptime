@@ -2,6 +2,9 @@ import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import PacketCaptureService from "Common/Server/Services/PacketCaptureService";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Response from "Common/Server/Utils/Response";
+import getRequestBodyLimit, {
+  RequestBodyLimit,
+} from "Common/Server/Utils/RequestBodyLimit";
 import logger from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -1110,7 +1113,6 @@ describe("the largest upload fits on its way in", () => {
   // A body parser or nginx limit such as "50mb" / "50M", in bytes.
   const SIZE: RegExp = /^(\d+)\s*(k|m|g)?b?$/i;
   const NGINX_BODY_LIMIT: RegExp = /client_max_body_size\s+([^;]+);/;
-  const BODY_PARSER_LIMIT: RegExp = /limit:\s*"([^"]+)"/;
 
   function toBytes(value: string): number {
     const match: RegExpExecArray | null = SIZE.exec(value.trim());
@@ -1150,20 +1152,19 @@ describe("the largest upload fits on its way in", () => {
     expect(toBytes(limit![1]!)).toBeGreaterThanOrEqual(largestReport);
   });
 
-  test("through the server's JSON body parser", () => {
-    const source: string = fs.readFileSync(
-      path.join(repository, "packages/Common/Server/Utils/StartServer.ts"),
-      "utf8",
-    );
-    const start: number = source.indexOf("export const jsonBodyParserOptions");
+  /*
+   * The server's parsers hold each route to its own limit (RequestBodyLimit,
+   * #10183): the upload route, under every prefix a probe sends it to, is
+   * one of the large ones. A report is one base64 string: a few values.
+   */
+  test("through the server's JSON body parser, at the upload route's limit", () => {
+    for (const prefix of ["/probe-ingest", "/ingestor", ""]) {
+      const limit: RequestBodyLimit = getRequestBodyLimit(
+        `${prefix}${INGEST_URI}`,
+      );
 
-    expect(start).toBeGreaterThan(-1);
-
-    const limit: RegExpExecArray | null = BODY_PARSER_LIMIT.exec(
-      source.substring(start),
-    );
-
-    expect(limit).not.toBeNull();
-    expect(toBytes(limit![1]!)).toBeGreaterThanOrEqual(largestReport);
+      expect(limit.bytes).toBeGreaterThanOrEqual(largestReport);
+      expect(limit.objectsArraysAndStrings).toBeGreaterThanOrEqual(100);
+    }
   });
 });

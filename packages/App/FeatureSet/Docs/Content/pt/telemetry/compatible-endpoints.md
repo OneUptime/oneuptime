@@ -6,8 +6,8 @@ Já usa o Prometheus, um cliente do Loki, um encaminhador do Splunk, o Datadog A
 - [Prometheus remote write](#prometheus-remote-write): Métricas do Prometheus, do Grafana Alloy ou de qualquer emissor de remote write.
 - [Loki](#loki): Logs do Promtail, do Grafana Alloy, do Fluent Bit ou do Vector.
 - [Splunk HTTP Event Collector](#splunk-http-event-collector): Logs e eventos de métrica de qualquer cliente HEC.
-- [Datadog Agent](#datadog-agent): Métricas e logs do Datadog Agent.
-- [SDKs do Sentry](#sdks-do-sentry): Erros, transações e logs de qualquer SDK do Sentry.
+- [Datadog Agent](#datadog-agent): Métricas, logs e traces de APM do Datadog Agent.
+- [SDKs do Sentry](#sdks-do-sentry): Erros, transações, logs, check-ins de cron, feedback e perfis de qualquer SDK do Sentry.
 :::
 
 ## Como funciona
@@ -24,7 +24,7 @@ flowchart TB
     end
     tools -->|"O protocolo de cada um + a sua chave de ingestão"| endpoint["Endpoints compatíveis do OneUptime"]
     endpoint --> otlp["Armazenados como dados do OpenTelemetry"]
-    otlp --> signals["Logs, métricas, traces e exceções"]
+    otlp --> signals["Logs, métricas, traces, exceções e perfis"]
 ```
 
 Cada endpoint responde na língua da sua ferramenta — um `204` para o Prometheus e o Loki, o `{"text": "Success", "code": 0}` do HEC, o `202` do Datadog, o ID do evento do Sentry —, então a ferramenta informa sucesso e falha como sempre fez. Depois, os dados são processados exatamente como os de um SDK do OpenTelemetry.
@@ -159,7 +159,7 @@ Um `200` com `{"text": "Success", "code": 0}` significa que o evento foi aceito.
 
 ## Datadog Agent
 
-Aponte as métricas e os logs do Agent para o OneUptime, com a sua chave de ingestão como chave de API:
+Aponte as métricas, os logs e os traces de APM do Agent para o OneUptime, com a sua chave de ingestão como chave de API:
 
 ```yaml title="datadog.yaml"
 api_key: YOUR_TELEMETRY_KEY_WITHOUT_HYPHENS
@@ -169,13 +169,14 @@ logs_config:
   use_http: true
   logs_dd_url: oneuptime.com:443
 apm_config:
-  enabled: false
+  enabled: true
+  apm_dd_url: https://oneuptime.com/telemetry/datadog
 process_config:
   process_collection:
     enabled: false
 ```
 
-O Agent adiciona os próprios caminhos a `dd_url` e envia os logs para `/api/v2/logs` no host e na porta que `logs_dd_url` indica. Na raiz, o OneUptime só responde a esses caminhos para uma requisição que leve um cabeçalho `DD-API-KEY`. Reinicie o Agent depois da mudança; `datadog-agent status` mostra a chave de API dele como válida quando o OneUptime a aceita.
+O Agent adiciona os próprios caminhos a `dd_url` e a `apm_dd_url` e envia os logs para `/api/v2/logs` no host e na porta que `logs_dd_url` indica. Na raiz, o OneUptime só responde a esses caminhos para uma requisição que leve um cabeçalho `DD-API-KEY`. Reinicie o Agent depois da mudança; `datadog-agent status` mostra a chave de API dele como válida quando o OneUptime a aceita.
 
 ### No que os dados do Agent se transformam
 
@@ -183,10 +184,22 @@ O Agent adiciona os próprios caminhos a `dd_url` e envia os logs para `/api/v2/
 - **As distribuições** viram summaries com a sua contagem, soma, mínimo e máximo.
 - **Os service checks** viram uma métrica com o nome do check, cujo valor é o status do check: 0 OK, 1 aviso, 2 crítico, 3 desconhecido.
 - **Os logs** mantêm a mensagem, o status, o host e o serviço, e o resto dos campos como atributos.
-- **As tags viram atributos**, e as tags `service`, `env` e `version` dão nome ao serviço, ao seu ambiente e à sua versão.
-- **Ainda não lidos:** traces de APM, processos, contêineres, dados de rede e perfis. Deixe-os desligados no `datadog.yaml`, como acima.
+- **Os traces de APM** aparecem em Traços. Cada span leva o nome do seu recurso (`GET /users/:id`, uma consulta) e pertence ao seu serviço; um span a que uma integração deu um nome de serviço próprio, como `checkout-postgres`, pertence ao serviço que fez a chamada. O seu nome de operação e o seu tipo são mantidos como `datadog.operation_name` e `datadog.span_type`.
+- **Os erros** de um span aparecem em Exceções, com o stack trace que o tracer registrou.
+- **As tags viram atributos**, e as tags `service`, `env` e `version` dão nome ao serviço, ao seu ambiente e à sua versão. As tags HTTP e de banco de dados de um span também são gravadas com os seus nomes do OpenTelemetry: `http.status_code` como `http.response.status_code`, `db.type` como `db.system.name`.
+- **Ainda não lidos:** processos, contêineres, dados de rede e perfis. Deixe-os desligados no `datadog.yaml`, como acima. As estatísticas de APM do Agent são aceitas e não mantidas: o OneUptime calcula as suas a partir dos spans.
 
 Os clientes da API HTTP do Datadog — uma biblioteca de logs que faz POST para `/api/v2/logs`, um script que envia séries — podem enviar ao mesmo endpoint com o cabeçalho `DD-API-KEY`.
+
+### Sem o Agent
+
+O dd-trace-go pode enviar os seus traces ao OneUptime por conta própria, com a sua chave de ingestão como senha da URL do Agent:
+
+```bash
+DD_TRACE_AGENT_URL=https://oneuptime:YOUR_TELEMETRY_KEY@oneuptime.com/telemetry/datadog
+```
+
+Os tracers de Python e Node.js deixam de fora o caminho e a senha da URL, então envie os traces deles pelo Agent.
 
 ## SDKs do Sentry
 
@@ -215,15 +228,18 @@ O `1` no fim do DSN é exigido pelos SDKs do Sentry e não é lido. O DSN de uma
 - **Os erros** aparecem em Exceções, com os seus stack traces e as exceções que os causaram, agrupados como qualquer outra exceção. Cada um é um span no seu trace, sob o span que estava ativo.
 - **As transações** e os seus spans aparecem em Traços.
 - **Os logs do Sentry** e as mensagens capturadas com `capture_message` aparecem em Registros.
+- **Os check-ins de cron** aparecem em Registros, um registro por check-in, com o slug do monitor em `sentry.monitor.slug` e o seu status em `sentry.check_in.status`. Um check-in que falhou, expirou ou não aconteceu é registrado no nível Error. Para saber quando uma tarefa falha ou não roda, crie um [monitor de logs](/docs/monitor/logs-monitor) para o slug dela.
+- **O feedback dos usuários**, do widget de feedback do Sentry ou de `capture_user_feedback`, aparece em Registros, no trace de onde foi enviado. O seu `sentry.feedback.associated_event_id` é o `sentry.event_id` do erro a que se refere.
+- **Os perfis**, de transações e do profiling contínuo, aparecem em Perfis como perfis de tempo de relógio (wall time), ligados ao trace da sua transação. Os perfis do Android ainda não são lidos.
 - **O serviço** é uma tag `service` ou, se não houver, o nome da release antes do `@`: `checkout@1.4.2` é `checkout`. A release é a versão do serviço, e o ambiente é mantido.
-- **Não mantidos:** sessões, replays, anexos, perfis e check-ins. O SDK continua a enviá-los; o OneUptime os aceita e descarta.
+- **Não mantidos:** sessões, replays e anexos. O SDK continua a enviá-los; o OneUptime os aceita e descarta.
 
 ## Limites e orçamentos de ingestão
 
 - **Tamanho da requisição** – o ingress do OneUptime aceita requisições de até 4 MB sob `/telemetry`, e cada corpo pode se descomprimir em no máximo 64 MB. Uma requisição do Prometheus remote write pode se descomprimir em no máximo 32 MB e conter no máximo 500.000 séries, rótulos e amostras, para que nenhuma requisição sozinha esgote a memória do servidor. O Prometheus e o Alloy enviam 2.000 amostras por requisição por padrão, bem abaixo dos dois; uma requisição acima deles é recusada com `413`, então reduza `max_samples_per_send` em `queue_config`.
 - **Pushes do Loki** – um push pode se descomprimir em no máximo 32 MB e conter no máximo 500.000 entradas, rótulos e metadados estruturados, contando os rótulos de um fluxo uma vez para cada uma das suas entradas. O Promtail e o Alloy enviam lotes de 1 MB por padrão, bem abaixo dos dois; um push acima deles é recusado com `413`, então reduza o tamanho de lote do cliente.
-- **Cargas JSON e do Datadog** – um corpo JSON pode conter no máximo 1.000.000 de valores (objetos, arrays, strings e números), e uma carga protobuf do Datadog Agent no máximo 500.000 séries, pontos, tags e sketches. Cada um é contado antes de ser lido, e uma requisição acima de um limite é recusada com `413`.
-- **Orçamentos de ingestão** – o Prometheus remote write e o Loki são verificados contra o orçamento de métricas ou de logs antes de o corpo ser lido, e recusados com `403` quando ele se esgota. Depois, cada requisição é contada pelo seu tamanho descomprimido, como uma requisição OTLP, também nos orçamentos de uma equipe ou de um rótulo. Um lote do HEC, uma carga do Datadog ou um envelope do Sentry pode levar vários sinais, então cada sinal é contado no seu próprio orçamento à medida que é armazenado, e descartado quando esse orçamento se esgota: os logs e os eventos de métrica de um lote do HEC dividem o seu tamanho, e um envelope do Sentry é contado pelos itens que o OneUptime guarda, não pelos seus anexos, replays ou perfis.
+- **Cargas JSON, MessagePack e do Datadog** – um corpo JSON ou MessagePack pode conter no máximo 1.000.000 de valores (objetos, arrays, strings e números), e uma carga protobuf do Datadog Agent no máximo 500.000 séries, pontos, spans, tags e sketches. Cada um é contado antes de ser lido, e uma requisição acima de um limite é recusada com `413`.
+- **Orçamentos de ingestão** – o Prometheus remote write e o Loki são verificados contra o orçamento de métricas ou de logs antes de o corpo ser lido, e recusados com `403` quando ele se esgota. Depois, cada requisição é contada pelo seu tamanho descomprimido, como uma requisição OTLP, também nos orçamentos de uma equipe ou de um rótulo. Um lote do HEC, uma carga do Datadog ou um envelope do Sentry pode levar vários sinais, então cada sinal é contado no seu próprio orçamento à medida que é armazenado, e descartado quando esse orçamento se esgota: os logs e os eventos de métrica de um lote do HEC dividem o seu tamanho, e cada item de um envelope do Sentry é contado no seu próprio sinal (os perfis no orçamento de perfis, os check-ins e o feedback no de logs), enquanto os anexos, replays e sessões, que não são mantidos, não são contados em nenhum.
 
 ## Solução de problemas
 
@@ -238,6 +254,10 @@ Os SDKs do Sentry recusam um DSN cuja chave tenha hífens. Escreva a chave como 
 ### As métricas do Datadog chegam, mas os logs não
 
 Verifique se `logs_config.use_http` é `true` e se `logs_config.logs_dd_url` é um host e uma porta, não uma URL. O Agent envia os logs por TCP quando `use_http` não está definido.
+
+### Um log do Datadog não se liga ao seu trace
+
+O tracer gravou no log só os 64 bits inferiores do ID do trace. Defina `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED=true` no tracer, para que ele grave o ID inteiro.
 
 ### O Prometheus retorna 415
 

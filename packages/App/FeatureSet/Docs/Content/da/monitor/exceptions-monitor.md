@@ -129,7 +129,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En undtagelse-monitors kriterier har seks slags **Filtertype**: **Antal undtagelser**, antallet af undtagelser, der matchede i vinduet, samt **Nye undtagelser**, **Genopståede undtagelser**, **Stigning i undtagelser (i %)**, **Sessioner med undtagelser (i %)** og **Sessioner**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
+En undtagelse-monitors kriterier har otte slags **Filtertype**: **Antal undtagelser**, antallet af undtagelser, der matchede i vinduet, samt **Nye undtagelser**, **Genopståede undtagelser**, **Stigning i undtagelser (i %)**, **Sessioner med undtagelser (i %)**, **Sessioner**, **Installationer med undtagelser (i %)** og **Installationer**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
@@ -184,6 +184,19 @@ En app på tusindvis af telefoner har altid nogle nedbrud, så det, teamet vil h
 | **Sessioner** | Vinduets sessioner: de forskellige `session.id` på spans fra monitorens tjenester. Kombinér denne filtertype med andelen, så en andel af nogle få sessioner ikke udløser en advarsel. |
 
 Med **Kun ikke-håndterede undtagelser** slået til og typerne `ANR` og `Hang` udeladt er andelen en mobilapps nedbrudsrate. En mobilapps anbefaling **App Crash Rate** advarer, når mere end 1,09 % af en times sessioner går ned, den rate, som Android vitals kalder dårlig adfærd, så snart timen har mindst 250 sessioner. **App ANR Rate** tæller kun `ANR` og `Hang`, over 0,47 %. For selv at skrive sådan en regel vælger du **En andel af sessionerne** under **Advar ved** i **Hvornår der advares**.
+
+## En andel af installationerne
+
+Over et døgn er den rate, som Android vitals bedømmer, og som Play Console viser, andelen af en apps installationer, der gik ned: en person, hvis app går ned fem gange, er én installation, der gik ned. For en mobilapp, hvis telemetri angiver dens installation, kan en undtagelse-monitor advare ved den andel, ved siden af eller i stedet for andelen af sessioner.
+
+| Filtertype | Hvad den læser i vinduet |
+| --- | --- |
+| **Installationer med undtagelser (i %)** | Andelen af vinduets installationer, hvor en matchende undtagelse skete. Uden nogen installation i vinduet er der ingen andel, og intet kriterium på den matcher. |
+| **Installationer** | Vinduets installationer: de forskellige installationer, som spans fra monitorens tjenester angiver. Kombinér denne filtertype med andelen, så en andel af nogle få installationer ikke udløser en advarsel. |
+
+En installation er det, som appens ressource angiver: det `app.installation.id`, som OpenTelemetry Android 1.1 og nyere sætter, ellers en iOS-apps `device.id`, dens leverandør-id. En Android-installation slutter, når appen afinstalleres, så en geninstallation er en ny installation. En iOS-installation varer, så længe en af leverandørens apps bliver på enheden, så en geninstallation af den eneste app er en ny installation, mens en geninstallation af én af to ikke er. En installation hører til vinduet, når dens app sendte et span i det. Et nedbrud tæller stadig, når dets installation ikke sendte noget span, for eksempel et iOS-nedbrud, som MetricKit rapporterer en dag senere, og andelen overstiger aldrig 100 %.
+
+**Daily Crash Rate** advarer, når mere end 1,09 % af mindst 250 installationer går ned på en dag, og **Daily ANR Rate**, når mere end 0,47 % af dem har en ANR eller en hængning. For selv at skrive sådan en regel vælger du **En andel af installationerne** under **Advar ved** i **Hvornår der advares**.
 
 ## Toppe i forhold til det normale
 

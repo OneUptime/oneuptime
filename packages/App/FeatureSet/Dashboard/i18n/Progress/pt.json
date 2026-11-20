@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 8188
+    "keys": 59636,
+    "untranslated": 8193
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -396,6 +396,7 @@
     "compute-01 · RegionTwo",
     "compute-07 · RegionOne",
     "customer facing|tier-1",
+    "dSYMs",
     "datastore",
     "db-primary",
     "deadlocks",

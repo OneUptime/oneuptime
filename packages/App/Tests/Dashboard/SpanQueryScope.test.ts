@@ -1,4 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import { createTranslator, Translator } from "Common/Types/Translator";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -21,9 +24,35 @@ import {
   SpanScopeChip,
   buildSpanQueryScope,
   describeDurationBounds,
+  describeDurationBoundsInLanguage,
   readStoredDurationFilter,
   toDurationSearchValue,
 } from "../../FeatureSet/Dashboard/src/Utils/SpanQueryScope";
+import { formatDurationMsInLanguage } from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
+
+// A reader of one of the Dashboard's languages, with its own words.
+function readerOf(language: string): Translator {
+  const words: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../FeatureSet/Dashboard/src/Locales",
+        `${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+
+  return createTranslator(
+    (text: string): string | undefined => {
+      const word: unknown = words[text];
+
+      return typeof word === "string" ? word : undefined;
+    },
+    language,
+    { drawsOnPage: true },
+  );
+}
 
 /*
  * The Alert and Incident pages used to render a trace monitor's stored query
@@ -424,16 +453,91 @@ describe("a Traces monitor's duration floor (Takes at least)", () => {
   });
 
   test("is drawn as a Duration chip whose value is the search bar's spelling", () => {
-    const scope: SpanQueryScope = buildSpanQueryScope(roundTrip(slowColdStart));
+    const scope: SpanQueryScope = buildSpanQueryScope(
+      roundTrip(slowColdStart),
+      createTranslator(undefined, "en", { drawsOnPage: true }),
+    );
 
     expect(chipFor(scope, DURATION_FACET_KEY)).toEqual([
       {
         facetKey: DURATION_FACET_KEY,
         value: ">=5000",
         displayKey: "Duration",
-        displayValue: "≥\u00A05000\u00A0ms",
+        displayValue: "≥\u00A05.00\u00A0s",
       },
     ]);
+  });
+
+  /*
+   * The chip used to read "≥ 5000 ms" - a Latin figure glued to English "ms"
+   * by hand, which an Arabic or Persian page lays out from the right - until
+   * the viewer reworded it (MillisecondsInReadersLanguageGuard). It is the
+   * shared formatter's reading now, in the reader's language, wherever the
+   * scope is read.
+   */
+  test("its words are the reader's, through the shared duration formatter", () => {
+    const persian: Translator = readerOf("fa");
+    const german: Translator = readerOf("de");
+
+    for (const reader of [persian, german]) {
+      const scope: SpanQueryScope = buildSpanQueryScope(
+        roundTrip(slowColdStart),
+        reader,
+      );
+      const chip: SpanScopeChip = chipFor(scope, DURATION_FACET_KEY)[0]!;
+
+      expect(chip.displayValue).toBe(
+        `≥\u00A0${formatDurationMsInLanguage(5000, reader)}`,
+      );
+      // The value stays the search bar's, which no language translates.
+      expect(chip.value).toBe(">=5000");
+    }
+
+    const persianChip: SpanScopeChip = chipFor(
+      buildSpanQueryScope(roundTrip(slowColdStart), persian),
+      DURATION_FACET_KEY,
+    )[0]!;
+
+    // Persian digits and its word for seconds, never a Latin figure or "ms".
+    expect(persianChip.displayValue).toContain("۵٫۰۰");
+    expect(persianChip.displayValue).toContain("ثانیه");
+    expect(persianChip.displayValue).not.toMatch(/[0-9]/);
+    expect(persianChip.displayValue).not.toContain("ms");
+
+    // German writes its decimal comma.
+    expect(
+      chipFor(
+        buildSpanQueryScope(roundTrip(slowColdStart), german),
+        DURATION_FACET_KEY,
+      )[0]!.displayValue,
+    ).toContain("5,00");
+  });
+
+  test("read without a translator, the page's own words it: English before the page has one", () => {
+    const scope: SpanQueryScope = buildSpanQueryScope(roundTrip(slowColdStart));
+
+    expect(chipFor(scope, DURATION_FACET_KEY)[0]!.displayValue).toBe(
+      "≥\u00A05.00\u00A0s",
+    );
+  });
+
+  test("the viewer and the scope word a duration's bounds the same way", () => {
+    const english: Translator = createTranslator(undefined, "en", {
+      drawsOnPage: true,
+    });
+
+    expect(
+      describeDurationBoundsInLanguage(
+        { atLeastDurationNano: 1_000_000, atMostDurationNano: 9_000_000 },
+        english,
+      ),
+    ).toBe("≥\u00A01.0\u00A0ms, ≤\u00A09.0\u00A0ms");
+    expect(
+      describeDurationBoundsInLanguage(
+        { maxDurationNano: 250_000_000 },
+        english,
+      ),
+    ).toBe("<\u00A0250\u00A0ms");
   });
 
   test("every comparison the explorer writes is read back", () => {

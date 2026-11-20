@@ -14,6 +14,7 @@ import {
   ProxmoxRosterNode,
   isProxmoxSilentNodeDetectionEnabled,
 } from "../Utils/Telemetry/ProxmoxNativeNodeLiveness";
+import { ProxmoxGuestPowerTaskReading } from "../Utils/Telemetry/ProxmoxCephSnapshotScan";
 
 const NODE_ID_PREFIX: string = "node/";
 
@@ -123,6 +124,26 @@ export interface ProxmoxResourceStartOnBoot {
 
 const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
+
+/*
+ * A guest's last power task says who or what stopped it (#10017,
+ * recordGuestPowerTasks) only while it stays stopped: once a scrape newer
+ * than the reading sees it running, the reading is cleared, so a later
+ * stop is never told with an earlier one's facts. The agent reads the task
+ * log again once the guest is stopped again.
+ */
+const IS_SEEN_RUNNING_SINCE_POWER_TASK_READ: string = `(EXCLUDED."isUp" IS TRUE AND "ProxmoxResource"."powerTaskReadAt" <= EXCLUDED."lastSeenAt")`;
+const CLEAR_POWER_TASK_WHEN_SEEN_RUNNING: string = [
+  "lastPowerTaskType",
+  "lastPowerTaskUser",
+  "lastPowerTaskStatus",
+  "lastPowerTaskAt",
+  "powerTaskReadAt",
+]
+  .map((column: string): string => {
+    return `"${column}" = CASE WHEN ${IS_SEEN_RUNNING_SINCE_POWER_TASK_READ} THEN NULL ELSE "ProxmoxResource"."${column}" END,`;
+  })
+  .join("\n          ");
 
 /*
  * Column order used by bulkUpsert() and its generated parameter tuples.
@@ -304,6 +325,7 @@ export class Service extends DatabaseService<Model> {
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "isNativePush" = EXCLUDED."isNativePush",
           "notReportingMarkedAt" = NULL,
+          ${CLEAR_POWER_TASK_WHEN_SEEN_RUNNING}
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "ProxmoxResource"."lastSeenAt"
       `;
@@ -583,6 +605,97 @@ export class Service extends DatabaseService<Model> {
          AND p."kind" = 'Guest'
          AND p."vmid" = v."vmid"
          AND p."deletedAt" IS NULL`,
+      params,
+    );
+
+    // Postgres driver returns [rows, affected] for UPDATE — normalize.
+    if (Array.isArray(result) && typeof result[1] === "number") {
+      return result[1];
+    }
+    return 0;
+  }
+
+  /**
+   * Write what the cluster's task log says about its stopped guests: each
+   * one's last power task (the last task that started, stopped, shut down,
+   * hibernated or restored it), who ran it, how it ended and when, as the
+   * Proxmox AI agent read it (#10017, ProxmoxGuestPowerTask). A reading with
+   * no task clears what an earlier one wrote. Guests are found by their
+   * `id` label (qemu/104); one with no row yet is skipped (the agent reads
+   * it again next round).
+   *
+   * Each guest only moves forward - an older reading never replaces a newer
+   * one - and a reading is dropped for a guest a scrape saw running after
+   * it was taken: that guest is not stopped by what it names (see
+   * CLEAR_POWER_TASK_WHEN_SEEN_RUNNING). lastSeenAt does not move: what the
+   * task log says is not the cluster being read. Returns the number of
+   * guests written.
+   */
+  @CaptureSpan()
+  public async recordGuestPowerTasks(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    readings: Array<ProxmoxGuestPowerTaskReading>;
+  }): Promise<number> {
+    // The newest reading per guest.
+    const byId: Map<string, ProxmoxGuestPowerTaskReading> = new Map();
+    for (const reading of data.readings) {
+      if (isNaN(reading.readAt.getTime())) {
+        continue;
+      }
+      const existing: ProxmoxGuestPowerTaskReading | undefined = byId.get(
+        reading.externalId,
+      );
+      if (!existing || reading.readAt >= existing.readAt) {
+        byId.set(reading.externalId, reading);
+      }
+    }
+
+    if (byId.size === 0) {
+      return 0;
+    }
+
+    const valueFragments: Array<string> = [];
+    const params: Array<unknown> = [
+      data.projectId.toString(),
+      data.proxmoxClusterId.toString(),
+    ];
+    let paramIndex: number = 3;
+
+    for (const reading of byId.values()) {
+      valueFragments.push(
+        `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}::timestamptz, $${paramIndex++}::timestamptz)`,
+      );
+      const at: Date | null =
+        reading.at && !isNaN(reading.at.getTime()) ? reading.at : null;
+      params.push(
+        truncateShortText(reading.externalId),
+        truncateShortText(reading.type),
+        truncateShortText(reading.user),
+        truncateLongText(reading.status),
+        at,
+        reading.readAt,
+      );
+    }
+
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "ProxmoxResource" AS p
+       SET
+         "lastPowerTaskType" = v."type",
+         "lastPowerTaskUser" = v."user",
+         "lastPowerTaskStatus" = v."status",
+         "lastPowerTaskAt" = v."at",
+         "powerTaskReadAt" = v."readAt",
+         "updatedAt" = now()
+       FROM (VALUES ${valueFragments.join(", ")})
+         AS v("externalId", "type", "user", "status", "at", "readAt")
+       WHERE p."projectId" = $1
+         AND p."proxmoxClusterId" = $2
+         AND p."kind" = 'Guest'
+         AND p."externalId" = v."externalId"
+         AND p."deletedAt" IS NULL
+         AND (p."powerTaskReadAt" IS NULL OR v."readAt" >= p."powerTaskReadAt")
+         AND NOT (p."isUp" IS TRUE AND p."lastSeenAt" > v."readAt")`,
       params,
     );
 

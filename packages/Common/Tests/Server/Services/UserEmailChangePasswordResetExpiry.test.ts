@@ -10,6 +10,7 @@ import ObjectID from "../../../Types/ObjectID";
 import HashedString from "../../../Types/HashedString";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * The read of the rows a caller's update may write, which the update path
@@ -17,6 +18,9 @@ import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayW
  * (stubRowsCallerMayWriteLikeFindBy).
  */
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   stubRowsCallerMayWriteLikeFindBy(
     UserService,
     jest.spyOn(UserService, "findBy"),
@@ -369,6 +373,10 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
       jest
         .spyOn(EmailChangeConfirmation, "assertMayAsk")
         .mockResolvedValue(undefined);
+      // A server that can send the link, asked before the session confirms (#10155).
+      jest
+        .spyOn(EmailChangeConfirmation, "canSendEmail")
+        .mockResolvedValue(true);
 
       const asked: UpdateBy<User> = updatePayload({
         patch: { email: new Email(NEW_EMAIL) },

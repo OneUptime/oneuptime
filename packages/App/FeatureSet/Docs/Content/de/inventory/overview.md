@@ -74,13 +74,13 @@ Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lan
 
 ### Asset-Details
 
-Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Die Karte eines Android-Geräts enthält außerdem seine Sicherheitspatch-Ebene, vom Android-Agenten oder von seiner Geräteverwaltung. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
+Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Die Karte eines Android-Geräts enthält außerdem seine Sicherheitspatch-Ebene, vom Android-Agenten oder von seiner Geräteverwaltung. Sie sagt auch, ob der Patch **Nicht aktuell** ist, wie die Spalte **Sicherheitspatch-Ebene**, und wie viele Tage alt er ist. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
 
 - Die Fakten eines Hosts stammen aus den Ressourcenattributen seiner Telemetrie: seine IP- und MAC-Adressen, Architektur und Betriebssystem von Haus aus, und seine Seriennummer, Marke, Modell und Firmware, sobald Sie sie aufprägen.
 - Die Fakten eines Netzwerkgeräts stammen aus seiner SNMP-Abfrage, seiner Rolle und seinem Standort. Was seine Abfrage nicht gelesen hat, stammt aus der Erkennung: dem letzten Scan seiner Adresse, der ARP-Tabelle eines Routers oder der DNS-Abfrage seiner Sonde. Ein Gerät ohne ENTITY-MIB, etwa ein Meraki MX, erhält Marke, Modell und Betriebssystem trotzdem aus seiner Systembeschreibung und seine MAC-Adresse von seinen eigenen Ports. Seine IP-Adresse wird nie als sein Hostname angezeigt.
 - Ein Meraki-Gerät übernimmt außerdem, was seine Abfrage leer lässt, aus dem Meraki-Dashboard, darunter seine Seriennummer, sein Modell und seine Firmware, wenn eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) seine Organisation liest.
 
-In **Alle Elemente** finden Sie die Android-Geräte, bei denen etwas zu tun ist. Der Filter **Sicherheitspatch-Ebene** listet unter **Nicht aktuell** die Geräte auf, deren Sicherheitspatch-Ebene älter als 90 Tage ist, nach derselben Regel, die auch die Warnung Security Patch Out of Date eines [Host-Monitors](/docs/monitor/host-monitor) anwendet. Der Filter **Agent-Berechtigungen** listet die Geräte auf, auf denen dem [Android-Agenten](/docs/telemetry/android-agent) noch READ_LOGS, READ_DROPBOX_DATA oder der Zugriff auf Nutzungsdaten fehlt. Zu jedem Filter gibt es eine gleichnamige Spalte, ausgeblendet, bis Sie sie einschalten, und sie geht in den CSV-Export ein.
+In **Alle Elemente** finden Sie die Android-Geräte, bei denen etwas zu tun ist. Der Filter **Sicherheitspatch-Ebene** listet unter **Nicht aktuell** die Geräte auf, deren Sicherheitspatch-Ebene älter als 90 Tage ist, nach derselben Regel, die auch die Warnung Security Patch Out of Date eines [Host-Monitors](/docs/monitor/host-monitor) anwendet. Der Filter **Agent-Berechtigungen** listet die Geräte auf, auf denen dem [Android-Agenten](/docs/telemetry/android-agent) noch READ_LOGS, READ_DROPBOX_DATA oder der Zugriff auf Nutzungsdaten fehlt. Zu jedem Filter gibt es eine gleichnamige Spalte, ausgeblendet, bis Sie sie einschalten, und sie geht in den CSV-Export ein. Daneben enthält die Spalte **Geräteverwaltungs-ID** die ID, unter der die Geräteverwaltung ein Gerät kennt, etwa die Esper-ID, die `espercli secureadb connect --device` erwartet.
 
 Die Karte zeigt, woher jeder Fakt kam und wann. Die Quelle, die die meisten Fakten teilen, etwa der Collector eines Hosts, die eigene SNMP-Abfrage eines Netzwerkgeräts oder der Erkennungsscan, der es gelesen hat, wird einmal genannt, unter den Fakten. Jede andere Quelle, etwa die ARP-Tabelle eines Routers oder ein am Gerät gespeicherter Wert, wird unter ihrem Fakt genannt. Ein an einem Netzwerkgerät gespeicherter Wert wird nie durch das ersetzt, was die Erkennung liest, und wenn beide sich unterscheiden, zeigt die Karte beide.
 
@@ -115,6 +115,7 @@ Gehen Sie zu **Produkte → Ressourcen → Inventar**, dann zu **Verwaltete Ger�
 | Modell, Hersteller, Seriennummer, Betriebssystem und seine Version, Build sowie IP- und MAC-Adressen | Die Karte **Asset-Details** des Geräts und die Spalten von **Alle Elemente** |
 | Status, letzter Kontakt, Gruppe, Sicherheitspatch-Ebene, IMEI, Akku, Speicher und Esper-Agent | Die Karte **Esper** des Geräts und die Liste **Geräte** unter **Verwaltete Geräte** |
 | Apps und ihre Versionen | Die Liste **Installierte Apps** des Geräts |
+| Seine Esper-Geräte-ID | Die Spalte **Geräteverwaltungs-ID** von **Alle Elemente** |
 
 ### Ein Gerät, nicht zwei
 
@@ -138,6 +139,8 @@ Ein aus Esper entferntes Gerät wird als **Entfernt** markiert, und sein Element
 Klicken Sie unter **Verwaltete Geräte** in der Zeile der Verbindung auf **Warnungen einrichten**, und erstellen Sie **Esper Android Device Stopped Checking In** und **Esper Apple Device Stopped Checking In**. Der erste Monitor öffnet für jedes Android-Gerät, das sich seit mehr als einer Stunde nicht bei Esper gemeldet hat, eine eigene Warnung, der zweite für jedes Apple-Gerät nach mehr als einem Tag, jede nach dem Gerät benannt und behoben, sobald sich das Gerät wieder meldet.
 
 Jeder Lesevorgang der Verbindung hält als Metrik `oneuptime.managed_device.check_in.age` fest, vor wie vielen Minuten sich jedes Gerät zuletzt gemeldet hat, und der Monitor prüft alle 5 Minuten den neuesten Wert jedes Geräts. Ein Gerät, auf dem auch der Android-Agent läuft, bleibt **Host Stopped Reporting** überlassen, sodass es nie doppelt warnt, und die Warnung eines aus Esper entfernten Geräts wird behoben. Ein fehlgeschlagener Lesevorgang hält nichts fest, sodass bis zum nächsten keine Warnung geöffnet oder behoben wird. Für eine Flotte, die nachts ausgeschaltet wird, erhöhen Sie den Schwellenwert des Monitors.
+
+Erstellen Sie auch **Esper Security Patch Out of Date**, dann öffnet jedes Android-Gerät, dessen Sicherheitspatch-Ebene laut Esper älter als 90 Tage ist, eine eigene Warnung, die behoben wird, sobald das Gerät aktualisiert ist. Jeder Lesevorgang hält als Metrik `oneuptime.managed_device.security_patch.age` fest, wie viele Tage alt die Patch-Ebene jedes Android-Geräts ist. Ein Gerät, auf dem der Android-Agent läuft, bleibt **Security Patch Out of Date** seines Hosts überlassen, sodass es nie doppelt warnt.
 
 ## Geräte aus Microsoft Intune importieren
 
@@ -165,7 +168,7 @@ Ein Gerät meldet sich etwa alle acht Stunden bei Intune, und sein letzter Konta
 
 Intune benennt ein Gerät so, wie sein Besitzer es genannt hat, daher können zwei Geräte denselben Namen tragen: Jedes iPhone, das niemand umbenannt hat, heißt `iPhone`. Ein Name, den zwei Geräte einer Verbindung teilen, gehört im Inventar keinem von beiden: Jedes wird stattdessen nach seiner Seriennummer benannt und bekommt seinen Namen zurück, sobald kein anderes Gerät ihn mehr trägt.
 
-Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **Intune Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einem Tag nicht bei Intune gemeldet hat, eine eigene Warnung, nach dem Gerät benannt. Ein Laptop, der übers Wochenende aus ist, sieht genauso aus: Erhöhen Sie also den Schwellenwert des Monitors, wenn ein Tag für Ihre Geräte zu früh ist.
+Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **Intune Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einem Tag nicht bei Intune gemeldet hat, eine eigene Warnung, nach dem Gerät benannt. Ein Laptop, der übers Wochenende aus ist, sieht genauso aus: Erhöhen Sie also den Schwellenwert des Monitors, wenn ein Tag für Ihre Geräte zu früh ist. **Intune Security Patch Out of Date** warnt für jedes Android-Gerät, dessen Sicherheitspatch-Ebene älter als 90 Tage ist, wie die Vorlage von Esper.
 
 ## Geräte aus Workspace ONE UEM importieren
 
@@ -191,7 +194,7 @@ Ein Gerät meldet sich nach seinem eigenen Zeitplan bei Workspace ONE, ein iPhon
 
 Telemetrie, die eine App oder der Android-Agent von einem Gerät sendet, landet über die Seriennummer des Geräts beim selben Element: Setzen Sie die Einstellung `device_serial` des Android-Agenten in seiner verwalteten Konfiguration auf den Nachschlagewert `{DeviceSerialNumber}`.
 
-Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **Workspace ONE Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einem Tag nicht bei Workspace ONE gemeldet hat, eine eigene Warnung, nach dem Gerät benannt.
+Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **Workspace ONE Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einem Tag nicht bei Workspace ONE gemeldet hat, eine eigene Warnung, nach dem Gerät benannt. **Workspace ONE Security Patch Out of Date** warnt für jedes Android-Gerät, dessen Sicherheitspatch-Ebene älter als 90 Tage ist, wie die Vorlage von Esper.
 
 ## Geräte aus SOTI MobiControl importieren
 
@@ -215,7 +218,7 @@ Ein MobiControl-Agent hält eine dauerhafte Verbindung zu seinem Server, daher i
 
 Telemetrie, die eine App oder der Android-Agent von einem Gerät sendet, landet über die Seriennummer des Geräts beim selben Element: Setzen Sie die Einstellung `device_serial` des Android-Agenten in seiner verwalteten Konfiguration auf das Makro `%SERIALNUM%`.
 
-Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **SOTI Device Stopped Checking In** und **SOTI Apple Device Stopped Checking In**. Der erste Monitor öffnet für jedes Android-, Windows- oder Linux-Gerät, dessen Agent seit mehr als einer Stunde nicht verbunden war, eine eigene Warnung, der zweite für jedes Apple-Gerät, das sich seit mehr als einem Tag nicht gemeldet hat, jede nach dem Gerät benannt.
+Um eine Warnung zu erhalten, wenn sich ein Gerät nicht mehr meldet, klicken Sie in der Zeile der Verbindung auf **Warnungen einrichten** und erstellen Sie **SOTI Device Stopped Checking In** und **SOTI Apple Device Stopped Checking In**. Der erste Monitor öffnet für jedes Android-, Windows- oder Linux-Gerät, dessen Agent seit mehr als einer Stunde nicht verbunden war, eine eigene Warnung, der zweite für jedes Apple-Gerät, das sich seit mehr als einem Tag nicht gemeldet hat, jede nach dem Gerät benannt. **SOTI Security Patch Out of Date** warnt für jedes Android-Gerät, dessen Sicherheitspatch-Ebene älter als 90 Tage ist, wie die Vorlage von Esper.
 
 ## Etwas von Hand hinzufügen
 
