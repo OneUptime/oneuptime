@@ -3623,12 +3623,18 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
     }
 
     if (!added) {
+      // Who is there already is said beside the refusals (#10411).
+      const notAdded: Array<string> = [
+        ...failures.map((failure: string): string => {
+          return failure.replace(/\.$/, "");
+        }),
+        ...alreadyThere.map((name: string): string => {
+          return `"${name}" is paged at that level already`;
+        }),
+      ];
+
       throw new BadDataException(
-        `Nobody was added to the on-call policy "${addition.policyName}", as each addition was refused (${failures
-          .map((failure: string): string => {
-            return failure.replace(/\.$/, "");
-          })
-          .join("; ")}).${pagedThereAlready(alreadyThere)}`,
+        `Nobody was added to the on-call policy "${addition.policyName}", as each addition was refused (${notAdded.join("; ")}).`,
       );
     }
 

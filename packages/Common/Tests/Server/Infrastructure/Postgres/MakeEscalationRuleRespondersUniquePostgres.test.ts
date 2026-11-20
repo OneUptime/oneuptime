@@ -51,7 +51,7 @@ import { DataSource, QueryRunner } from "typeorm";
  * from ESCALATION_RULE_RESPONDER_TEST_DATABASE_HOST / _PORT (default
  * localhost:5400).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ESCALATION_RULE_RESPONDER_TESTS"] === "true"
     ? describe
     : describe.skip;

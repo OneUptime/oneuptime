@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import type { SpyInstance } from "jest-mock";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -284,7 +285,7 @@ describe("the copies, soft-deleted", () => {
   );
 
   test("says how many copies it deleted, and nothing when there were none", async () => {
-    const info: jest.SpiedFunction<typeof logger.info> = jest
+    const info: SpyInstance<typeof logger.info> = jest
       .spyOn(logger, "info")
       .mockImplementation(() => {
         return undefined as never;

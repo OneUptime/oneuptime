@@ -31,6 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { DataSource } from "typeorm";
 
 /*
@@ -61,7 +62,7 @@ import { DataSource } from "typeorm";
  * _PORT (default localhost:5400). Only the success hooks' notifications and
  * realtime delivery are stubbed, so nobody is told anything.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ESCALATION_RULE_RESPONDER_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -470,7 +471,7 @@ describePostgres(
             release = resolve;
           },
         );
-        const barrier: jest.SpiedFunction<
+        const barrier: SpyInstance<
           (createBy: CreateBy<BaseModel>) => Promise<void>
         > = jest
           .spyOn(
@@ -597,7 +598,7 @@ describePostgres(
         );
 
         const read: Array<BaseModel> = await services[fixture.kind].findBy({
-          query: { onCallDutyPolicyEscalationRuleId: ruleId },
+          query: { onCallDutyPolicyEscalationRuleId: ruleId } as never,
           select: { [fixture.column]: true } as never,
           props: { isRoot: true },
           skip: 0,

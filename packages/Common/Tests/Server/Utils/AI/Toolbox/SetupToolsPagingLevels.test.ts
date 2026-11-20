@@ -1328,7 +1328,7 @@ describe("add_to_on_call_policy", () => {
       await expect(
         AddToOnCallPolicyTool.execute(ANA_AND_BO, ctx),
       ).rejects.toThrow(
-        'Nobody was added to the on-call policy "Payments on-call", as each addition was refused (No permission). "Ana Lopez" is paged at that level already, so they were not added again.',
+        'Nobody was added to the on-call policy "Payments on-call", as each addition was refused (No permission; "Ana Lopez" is paged at that level already).',
       );
     });
 
