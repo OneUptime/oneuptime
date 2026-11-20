@@ -100,17 +100,25 @@ const OWNERS_AND_ADMINS: Array<Permission> = [
   Permission.ProjectAdmin,
 ];
 
+/*
+ * Each list ends with Forms' levels (#10289), which follow the project-wide
+ * roles on Forms' records: Form Admin builds, changes and deletes what
+ * Project Admin does, Form Viewer reads what Viewer reads.
+ */
 const FORM_CREATORS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.CreateForm,
+  Permission.FormAdmin,
 ];
 const FORM_EDITORS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.EditForm,
+  Permission.FormAdmin,
 ];
 const FORM_DELETERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.DeleteForm,
+  Permission.FormAdmin,
 ];
 const FORM_READERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
@@ -123,15 +131,19 @@ const FORM_READERS: Array<Permission> = [
   Permission.ScheduledMaintenanceMember,
   Permission.ScheduledMaintenanceViewer,
   Permission.ReadForm,
+  Permission.FormAdmin,
+  Permission.FormViewer,
 ];
 
 const SUBMISSION_READERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.ReadFormSubmission,
+  Permission.FormAdmin,
 ];
 const SUBMISSION_DELETERS: Array<Permission> = [
   ...OWNERS_AND_ADMINS,
   Permission.DeleteFormSubmission,
+  Permission.FormAdmin,
 ];
 
 const GRANULAR_PERMISSIONS: Array<[Permission, string]> = [
