@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 Leave these fields out of an update. The few a person changes have a request of their own: rotating a SCIM client secret sets when it stops working, and `POST /api/host/:id/try-collector-config-again` sends a host the collector config that failed on it again. A field you and OneUptime both change, such as a record's `labels`, which label rules add to, is yours to set as before.
 
+A create that left a field out names it in the answer's `X-OneUptime-Fields-Left-Out` header, the fields separated by commas; an answer with nothing left out has no such header. The CLI prints the fields in a note, the MCP server's answer lists them in `fieldsLeftOut`, and the Terraform provider shows them in a warning.
+
+### Adding entries to a list and taking them off
+
+A change can add records to a list, or take some off, without sending the whole list: `addToList` and `removeFromList` name the IDs to add and to take off, list by list. Every entry the change does not name stays, one that someone else or a label rule adds at the same moment included:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Sent to `PUT /api/monitor/<id>`, this renames the monitor, adds one label to it and takes another off. Leave `data` out when the change only adds and takes off entries. An entry is the record's ID, or an object with its `_id`, as in `data`, and adding an entry the list holds already, or taking off one it does not hold, changes nothing.
+
+The lists a change can name are the ones the full API reference lists under `addToList` for the resource's `PUT` request. A change made this way is checked as the whole list it leaves would be, by the rules above: your permission to change the list, every record it adds being one of your project's that you may read, and the labels a permission restricted to labels keeps. A list sent both whole, in `data`, and in `addToList` or `removeFromList` is refused with a `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+The Terraform and Crossplane providers change a record's labels this way, so a label a rule adds while they run stays: see [Labels and other lists OneUptime adds to](/docs/terraform/complete-guide#labels-and-other-lists-oneuptime-adds-to).
+
 ## States and episodes
 
 ### The state a new record starts in

@@ -242,6 +242,15 @@ export default class ListChangesUtil {
     return null;
   }
 
+  /*
+   * The refusal of an update that sends a list both whole, in `data`, and
+   * entry by entry: the two would say different things of one list. The API
+   * reference quotes it.
+   */
+  public static getSentWholeAndByEntryMessage(column: string): string {
+    return `${column} is both in data and in ${ADD_TO_LIST_KEY} or ${REMOVE_FROM_LIST_KEY}. Send the whole list in data, or the entries to add and take off in ${ADD_TO_LIST_KEY} and ${REMOVE_FROM_LIST_KEY}.`;
+  }
+
   private static getUnknownListMessage(data: {
     key: string;
     column: string;

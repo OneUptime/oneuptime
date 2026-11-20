@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 Lascia questi campi fuori da un aggiornamento. I pochi che una persona modifica hanno una richiesta tutta loro: ruotare un segreto client SCIM stabilisce quando smette di funzionare, e `POST /api/host/:id/try-collector-config-again` invia di nuovo a un host la configurazione del collector che non è riuscita su di esso. Un campo che modificate sia tu sia OneUptime, come le `labels` di un record, a cui le regole sulle etichette aggiungono altre etichette, lo imposti tu come prima.
 
+Una creazione che ha lasciato fuori un campo lo nomina nell'intestazione `X-OneUptime-Fields-Left-Out` della risposta, con i campi separati da virgole; una risposta che non ha lasciato fuori nulla non ha questa intestazione. La CLI stampa i campi in una nota, la risposta del server MCP li elenca in `fieldsLeftOut`, e il provider Terraform li mostra in un avvertimento.
+
+### Aggiungere voci a un elenco e toglierle
+
+Una modifica può aggiungere record a un elenco, o toglierne alcuni, senza inviare l'elenco intero: `addToList` e `removeFromList` nominano gli ID da aggiungere e da togliere, elenco per elenco. Ogni voce che la modifica non nomina resta, compresa una che qualcun altro o una regola per etichette aggiunge nello stesso momento:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Inviato a `PUT /api/monitor/<id>`, questo corpo rinomina il monitor, gli aggiunge un'etichetta e ne toglie un'altra. Lascia fuori `data` quando la modifica si limita ad aggiungere e togliere voci. Una voce è l'ID del record, o un oggetto con il suo `_id`, come in `data`, e aggiungere una voce che l'elenco contiene già, o toglierne una che non contiene, non cambia nulla.
+
+Gli elenchi che una modifica può nominare sono quelli che il riferimento API completo elenca sotto `addToList` per la richiesta `PUT` della risorsa. Una modifica fatta così viene verificata come lo sarebbe l'elenco intero che lascia, secondo le regole sopra: la tua autorizzazione a modificare l'elenco, il fatto che ogni record che aggiunge sia uno del tuo progetto che puoi leggere, e le etichette che un'autorizzazione limitata a etichette mantiene. Un elenco inviato sia intero, in `data`, sia in `addToList` o `removeFromList` viene rifiutato con un `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+I provider Terraform e Crossplane modificano così le etichette di un record, quindi un'etichetta che una regola aggiunge mentre sono in esecuzione resta: vedi [Le etichette e le altre liste a cui aggiunge anche OneUptime](/docs/terraform/complete-guide#le-etichette-e-le-altre-liste-a-cui-aggiunge-anche-oneuptime).
+
 ## Stati ed episodi
 
 ### Lo stato in cui inizia un nuovo record

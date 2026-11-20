@@ -75,11 +75,7 @@ import ListEntries, {
   ListEntryWrite,
   ListEntryWrites,
 } from "../Utils/Database/ListEntries";
-import {
-  ADD_TO_LIST_KEY,
-  ListChanges,
-  REMOVE_FROM_LIST_KEY,
-} from "../../Types/Database/ListChanges";
+import ListChangesUtil, { ListChanges } from "../../Types/Database/ListChanges";
 import PresentedKey from "../Utils/PresentedKey/PresentedKey";
 import PresentedKeysAtRest from "../Utils/PresentedKey/PresentedKeysAtRest";
 import PasswordHash from "../Utils/PasswordHash";
@@ -12909,7 +12905,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       if (data[column] !== undefined) {
         throw new BadDataException(
-          `${column} is both in data and in ${ADD_TO_LIST_KEY} or ${REMOVE_FROM_LIST_KEY}. Send the whole list in data, or the entries to add and take off in ${ADD_TO_LIST_KEY} and ${REMOVE_FROM_LIST_KEY}.`,
+          ListChangesUtil.getSentWholeAndByEntryMessage(column),
         );
       }
     }

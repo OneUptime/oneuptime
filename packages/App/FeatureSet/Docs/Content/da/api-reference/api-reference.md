@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 Udelad disse felter i en opdatering. De få, som en person ændrer, har deres egen forespørgsel: at udskifte en SCIM-klienthemmelighed sætter, hvornår den holder op med at virke, og `POST /api/host/:id/try-collector-config-again` sender den collector-konfiguration, der mislykkedes på en vært, til værten igen. Et felt, som både du og OneUptime ændrer, såsom en posts `labels`, som etiketregler føjer etiketter til, sætter du selv som før.
 
+En oprettelse, der udelod et felt, nævner det i svarets header `X-OneUptime-Fields-Left-Out`, med felterne adskilt af kommaer; et svar, hvor intet er udeladt, har ingen sådan header. CLI'en skriver felterne i en note, MCP-serverens svar oplister dem i `fieldsLeftOut`, og Terraform-provideren viser dem i en advarsel.
+
+### Tilføje elementer til en liste og fjerne dem
+
+En ændring kan tilføje poster til en liste eller fjerne nogle uden at sende hele listen: `addToList` og `removeFromList` nævner de ID'er, der skal tilføjes og fjernes, liste for liste. Hvert element, som ændringen ikke nævner, bliver, også et, som en anden eller en etiketregel tilføjer i samme øjeblik:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Sendt til `PUT /api/monitor/<id>` omdøber dette monitoren, tilføjer én etiket til den og fjerner en anden. Udelad `data`, når ændringen kun tilføjer og fjerner elementer. Et element er postens ID eller et objekt med dens `_id`, som i `data`, og at tilføje et element, som listen allerede indeholder, eller fjerne et, den ikke indeholder, ændrer intet.
+
+De lister, en ændring kan nævne, er dem, den fulde API-reference oplister under `addToList` for ressourcens `PUT`-forespørgsel. En ændring lavet på denne måde kontrolleres, som hele den liste, den efterlader, ville blive det, efter reglerne ovenfor: din tilladelse til at ændre listen, at hver post, den tilføjer, er en af dit projekts poster, som du må læse, og de etiketter, som en tilladelse begrænset til etiketter holder fast i. En liste, der sendes både hel, i `data`, og i `addToList` eller `removeFromList`, afvises med en `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform- og Crossplane-providerne ændrer en posts etiketter på denne måde, så en etiket, som en regel tilføjer, mens de kører, bliver: se [Etiketter og andre lister, som OneUptime selv tilføjer til](/docs/terraform/complete-guide#etiketter-og-andre-lister-som-oneuptime-selv-tilføjer-til).
+
 ## Tilstande og episoder
 
 ### Den tilstand, en ny post starter i

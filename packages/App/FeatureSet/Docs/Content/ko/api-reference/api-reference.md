@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 업데이트에서는 이 필드들을 빼세요. 사람이 바꾸는 몇 안 되는 필드에는 전용 요청이 있습니다. SCIM 클라이언트 시크릿을 교체하면 더 이상 작동하지 않게 되는 시각이 정해지고, `POST /api/host/:id/try-collector-config-again`은 호스트에서 실패한 컬렉터 구성을 그 호스트에 다시 보냅니다. 레이블 규칙이 레이블을 더하는 레코드의 `labels`처럼, 직접 바꾸기도 하고 OneUptime도 바꾸는 필드는 이전처럼 직접 설정합니다.
 
+필드를 뺀 만들기는 응답의 `X-OneUptime-Fields-Left-Out` 헤더에 그 필드를 쉼표로 구분해 알려 줍니다. 아무것도 빼지 않은 응답에는 이 헤더가 없습니다. CLI는 필드를 안내 메시지로 출력하고, MCP 서버의 응답은 `fieldsLeftOut`에 나열하며, Terraform 프로바이더는 경고 메시지로 보여 줍니다.
+
+### 목록에 항목을 추가하고 제거하기
+
+변경은 목록 전체를 보내지 않고도 목록에 레코드를 추가하거나 일부를 제거할 수 있습니다. `addToList`와 `removeFromList`는 추가할 ID와 제거할 ID를 목록별로 지정합니다. 변경이 지정하지 않은 항목은 모두 남으며, 같은 순간에 다른 사람이나 레이블 규칙이 추가한 항목도 남습니다.
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+이 본문을 `PUT /api/monitor/<id>`로 보내면 모니터 이름이 바뀌고, 레이블 하나가 추가되며, 다른 레이블 하나가 제거됩니다. 변경이 항목을 추가하고 제거하기만 한다면 `data`는 빼세요. 항목은 레코드의 ID이거나 그 `_id`를 가진 객체이며, `data`에서와 같습니다. 목록에 이미 있는 항목을 추가하거나 없는 항목을 제거해도 아무것도 바뀌지 않습니다.
+
+변경이 지정할 수 있는 목록은 전체 API 참조가 그 리소스의 `PUT` 요청에서 `addToList` 아래에 나열하는 목록입니다. 이렇게 한 변경은 위의 규칙에 따라, 변경 후 남는 목록 전체를 보낸 것처럼 확인됩니다. 확인하는 것은 목록을 바꿀 권한, 추가하는 각 레코드가 읽을 수 있는 프로젝트의 레코드인지, 레이블로 제한된 권한이 유지하는 레이블입니다. 목록을 `data`에 통째로 보내면서 `addToList`나 `removeFromList`에도 보내면 `400`으로 거부됩니다.
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform 프로바이더와 Crossplane 프로바이더는 레코드의 레이블을 이렇게 바꾸므로, 실행 중에 규칙이 추가한 레이블도 남습니다. [레이블과 OneUptime도 추가하는 다른 목록](/docs/terraform/complete-guide#레이블과-oneuptime도-추가하는-다른-목록)을 참고하세요.
+
 ## 상태와 에피소드
 
 ### 새 레코드가 시작하는 상태

@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 更新ではこれらのフィールドを送らないでください。人が変更する数少ないフィールドには、専用のリクエストがあります。SCIM クライアントシークレットを入れ替えると、それが使えなくなる日時が設定され、`POST /api/host/:id/try-collector-config-again` は、ホストで失敗したコレクター設定をそのホストにもう一度送ります。ラベルルールがラベルを追加するレコードの `labels` のように、自分と OneUptime の両方が変更するフィールドは、これまでどおり自分で設定します。
 
+フィールドを除いた作成は、応答の `X-OneUptime-Fields-Left-Out` ヘッダーでそのフィールドを示します。フィールドはカンマで区切られ、何も除かなかった応答にはこのヘッダーがありません。CLI はフィールドをメモとして出力し、MCP サーバーの応答は `fieldsLeftOut` にそれらを並べ、Terraform プロバイダーは警告でそれらを示します。
+
+### 一覧にエントリーを追加し、外す
+
+変更では、一覧全体を送らずに、一覧にレコードを追加したり、一部を外したりできます。`addToList` と `removeFromList` は、追加する ID と外す ID を一覧ごとに示します。変更が示さないエントリーはすべて残り、同じ時点にほかの人やラベルルールが追加したエントリーも残ります。
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+これを `PUT /api/monitor/<id>` に送ると、モニターの名前が変わり、ラベルが 1 つ追加され、別のラベルが外されます。変更がエントリーの追加と削除だけなら、`data` は省いてください。エントリーはレコードの ID か、その `_id` を持つオブジェクトで、`data` と同じです。一覧にすでにあるエントリーの追加や、ないエントリーの削除では何も変わりません。
+
+変更が示せる一覧は、API リファレンスの全体で、そのリソースの `PUT` リクエストの `addToList` の下に並んでいるものです。この方法の変更は、上のルールに従い、変更後の一覧全体を送ったものとして確認されます。確認されるのは、一覧を変更する権限、追加する各レコードが読み取りを許されたプロジェクトのレコードであること、ラベルに限定された権限が保つラベルです。一覧を `data` で丸ごと送り、同時に `addToList` か `removeFromList` でも送ると、`400` で拒否されます。
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform プロバイダーと Crossplane プロバイダーはこの方法でレコードのラベルを変更するため、実行中にルールが追加したラベルも残ります。[ラベルと、OneUptime も追加するほかのリスト](/docs/terraform/complete-guide#ラベルとoneuptime-も追加するほかのリスト) を参照してください。
+
 ## 状態とエピソード
 
 ### 新しいレコードが始まる状態

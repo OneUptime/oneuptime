@@ -292,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 
 N'envoyez pas ces champs dans une mise à jour. Les rares qu'une personne modifie ont leur propre requête : renouveler un secret client SCIM fixe le moment où il cesse de fonctionner, et `POST /api/host/:id/try-collector-config-again` renvoie à un hôte la configuration du collecteur qui a échoué sur lui. Un champ que vous et OneUptime modifiez tous les deux, comme les `labels` d'un enregistrement, que les règles d'étiquettes complètent, vous le définissez comme avant.
 
+Une création qui a laissé un champ de côté le nomme dans l'en-tête `X-OneUptime-Fields-Left-Out` de la réponse, les champs séparés par des virgules ; une réponse qui n'a rien laissé de côté n'a pas cet en-tête. La CLI affiche les champs dans une note, la réponse du serveur MCP les liste dans `fieldsLeftOut`, et le fournisseur Terraform les montre dans un avertissement.
+
+### Ajouter des entrées à une liste et les enlever
+
+Une modification peut ajouter des enregistrements à une liste, ou en enlever, sans envoyer la liste entière : `addToList` et `removeFromList` nomment les ID à ajouter et à enlever, liste par liste. Chaque entrée que la modification ne nomme pas reste, y compris une que quelqu'un d'autre ou une règle d'étiquettes ajoute au même moment :
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Envoyé à `PUT /api/monitor/<id>`, ce corps renomme le moniteur, lui ajoute une étiquette et lui en enlève une autre. Laissez `data` de côté quand la modification ne fait qu'ajouter et enlever des entrées. Une entrée est l'ID de l'enregistrement, ou un objet avec son `_id`, comme dans `data`, et ajouter une entrée que la liste contient déjà, ou en enlever une qu'elle ne contient pas, ne change rien.
+
+Les listes qu'une modification peut nommer sont celles que la référence complète de l'API liste sous `addToList` pour la requête `PUT` de la ressource. Une modification faite ainsi est vérifiée comme le serait la liste entière qu'elle laisse, selon les règles ci-dessus : votre autorisation de modifier la liste, chaque enregistrement qu'elle ajoute devant être un de ceux de votre projet que vous pouvez lire, et les étiquettes qu'une autorisation restreinte à des étiquettes conserve. Une liste envoyée à la fois entière, dans `data`, et dans `addToList` ou `removeFromList` est refusée avec un `400` :
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Les fournisseurs Terraform et Crossplane modifient ainsi les étiquettes d'un enregistrement, si bien qu'une étiquette qu'une règle ajoute pendant leur exécution reste : voir [Les étiquettes et les autres listes auxquelles OneUptime ajoute aussi](/docs/terraform/complete-guide#les-étiquettes-et-les-autres-listes-auxquelles-oneuptime-ajoute-aussi).
+
 ## États et épisodes
 
 ### L'état dans lequel commence un nouvel enregistrement
