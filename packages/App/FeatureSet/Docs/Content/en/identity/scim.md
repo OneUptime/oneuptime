@@ -70,13 +70,13 @@ sequenceDiagram
     participant IdP as Identity provider
     participant O as OneUptime
     IdP->>O: Create the user, when you assign them
-    Note over O: Added to the default teams.<br/>On OneUptime Cloud, an existing<br/>account is invited instead
+    Note over O: Added to the default teams.<br/>On OneUptime Cloud, anyone not<br/>in the project yet is invited instead
     IdP->>O: Update the user, when their profile changes
     IdP->>O: Delete or deactivate, when you unassign them
     Note over O: Removed from the default teams
 ```
 
-A person who already had a OneUptime account joins once they accept the invitation on OneUptime Cloud (see the [FAQ](#frequently-asked-questions)). Access granted through teams outside the connection's default teams is not touched.
+On OneUptime Cloud, someone who is not in your project yet joins once they accept the invitation, whether SCIM made their OneUptime account or they already had one (see the [FAQ](#frequently-asked-questions)). Access granted through teams outside the connection's default teams is not touched.
 
 ### OAuth 2.0 client credentials
 
@@ -445,9 +445,9 @@ Nowhere: OneUptime keeps only a hash of it, so neither the dashboard nor the API
 When SCIM tries to create a user who already exists (matching by email), OneUptime does not create a duplicate user. What happens next depends on where OneUptime runs:
 
 - **Self-hosted**: the existing user is added to the configured default teams (or to the group's team, with Push Groups) straight away.
-- **OneUptime Cloud**: a OneUptime account belongs to the person, not to any one project, so SCIM cannot make somebody a member of your project on its own say-so. The existing user is **invited** to the teams instead, and receives the usual invitation email. They join when they accept the invitations from **Project Invitations** in OneUptime, or when they confirm your project's single sign-on from the email OneUptime sends at their first SSO sign-in. Until then they are listed as pending. The same applies when a group adds an existing user who is not yet a member of your project.
+- **OneUptime Cloud**: a OneUptime account belongs to the person, not to any one project, so SCIM cannot make somebody a member of your project on its own say-so. The existing user is **invited** to the teams instead, and receives the usual invitation email, as a user SCIM creates is. They join when they accept the invitations from **Project Invitations** in OneUptime, or when they confirm your project's single sign-on from the email OneUptime sends at their first SSO sign-in. Until then they are listed as pending, by the name your identity provider sent, so your project's list of users reads the same whether or not someone already had a OneUptime account. The same applies when a group adds someone who is not yet a member of your project.
 
-Users SCIM creates itself and users who are members of your project are added straight away everywhere. Confirming your project's SSO makes someone a member, so they are added straight away too; someone who has since left your project is invited again.
+Users who are members of your project are added straight away everywhere, and on a self-hosted installation so are the users SCIM creates itself. Confirming your project's SSO makes someone a member, so they are added straight away too; someone who has since left your project is invited again.
 :::
 
 :::details Can SCIM change a user's email address or name?
