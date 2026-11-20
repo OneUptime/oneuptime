@@ -1979,7 +1979,10 @@ describe.each(
    * An optional variable's reference must be the ENTIRE argument value. That
    * is what lets the wizard drop the argument when the field is left blank; a
    * reference embedded in a longer string would survive the strip and leave
-   * the braces behind in the saved workflow.
+   * the braces behind in the saved workflow. The exception is a variable
+   * marked emptyWhenBlank, whose references the wizard writes as empty text:
+   * one of those may sit in a script's JSON arguments, as a whole JSON string
+   * of its own, so the arguments are still JSON once it is emptied.
    */
   test("an optional variable's reference is the whole argument, so it can be dropped", () => {
     for (const variable of template.variables) {
@@ -1996,7 +1999,30 @@ describe.each(
             continue;
           }
 
-          expect(value.trim()).toBe(token);
+          if (!variable.emptyWhenBlank) {
+            expect(value.trim()).toBe(token);
+            continue;
+          }
+
+          const emptied: string = value.split(token).join("");
+
+          expect({
+            variable: variable.name,
+            wholeStrings:
+              value.split(token).length === value.split(`"${token}"`).length,
+            emptiedIsJson: ((): boolean => {
+              try {
+                JSON.parse(emptied);
+                return true;
+              } catch {
+                return false;
+              }
+            })(),
+          }).toEqual({
+            variable: variable.name,
+            wholeStrings: true,
+            emptiedIsJson: true,
+          });
         }
       }
     }
