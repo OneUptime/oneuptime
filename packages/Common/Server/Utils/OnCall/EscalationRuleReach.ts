@@ -325,6 +325,11 @@ export default class EscalationRuleReach {
   public static async readOrNull(
     data: EscalationRuleOfReach & { withSchedules: boolean },
   ): Promise<RuleReach | null> {
+    // A row read back without its rule names none to ask about.
+    if (!data.projectId || !data.ruleId) {
+      return null;
+    }
+
     try {
       return await EscalationRuleReach.read(data);
     } catch (error) {
@@ -345,7 +350,7 @@ export default class EscalationRuleReach {
 
   // A rule's key in what readEach answers: its project and its id.
   public static getRuleKey(rule: EscalationRuleOfReach): string {
-    return ProjectMembership.getKey(rule.projectId, rule.ruleId);
+    return ProjectMembership.getKey(rule.projectId || "", rule.ruleId || "");
   }
 
   /*
@@ -363,6 +368,11 @@ export default class EscalationRuleReach {
     >();
 
     for (const rule of data.rules) {
+      // A row read back without its rule names none to ask about.
+      if (!rule.projectId || !rule.ruleId) {
+        continue;
+      }
+
       const key: string = EscalationRuleReach.getRuleKey(rule);
 
       if (reachByRule.has(key)) {

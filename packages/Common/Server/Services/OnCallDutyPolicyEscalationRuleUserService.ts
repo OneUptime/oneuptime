@@ -576,12 +576,16 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       });
 
     const members: RuleMembers = await EscalationRuleReach.readMembers(
-      deletedItems.map((deletedItem: Model): ProjectUserPair => {
-        return {
-          projectId: deletedItem.projectId!,
-          userId: deletedItem.user?.id || deletedItem.userId!,
-        };
-      }),
+      deletedItems
+        .filter((deletedItem: Model): boolean => {
+          return Boolean(deletedItem.projectId && deletedItem.user?.id);
+        })
+        .map((deletedItem: Model): ProjectUserPair => {
+          return {
+            projectId: deletedItem.projectId!,
+            userId: deletedItem.user!.id!,
+          };
+        }),
     );
 
     // One message for one person on one rule, however many rows went.
