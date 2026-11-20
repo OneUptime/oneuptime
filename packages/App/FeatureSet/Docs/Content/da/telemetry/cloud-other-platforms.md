@@ -182,7 +182,9 @@ SDK-detektorerne staver platformen `azure.app_service` med et punktum; OneUptime
 
 **Netværk:** App Service når internettet direkte, medmindre **VNet integration** med **Route All** er slået til. Så skal VNet'et have en NAT-gateway eller en rute til en firewall, der tillader TCP 443 til OneUptime-værten.
 
-**Hvad appens side viser:** anmodninger, fejlrate og latens kommer fra appens spor, så en app, der kun sender logs eller metrikker, viser **Ingen spor modtaget** dér, og dens **Opsætningstjek** siger, hvad der skal tilføjes. App Service giver ikke en app sin egen CPU eller hukommelse, og dens felter for CPU og hukommelse siger det. Forbind abonnementet under **Cloud → Forbind**, og appens **Oversigt** får en sektion **Azure Monitor**: sitets anmodninger, serverfejl, svartid, CPU-tid og hukommelse, som Azure måler dem, uanset hvad appen sender.
+**Hvad appens side viser:** anmodninger, fejlrate og latens kommer fra appens spor, så en app, der kun sender logs eller metrikker, viser **Ingen spor modtaget** dér, og dens **Opsætningstjek** siger, hvad der skal tilføjes. App Service giver ikke en app sin egen CPU eller hukommelse, og dens felter for CPU og hukommelse siger det. Forbind abonnementet under **Cloud → Forbind**, og appens **Oversigt** får en sektion **Azure Monitor**: sitets anmodninger, server- og klientfejl, svartid, CPU-tid og hukommelse, som Azure måler dem, uanset hvad appen sender. Dens fane **Instanser** viser så de instanser, Azure kører den på, og dens fane **Revisioner** de udrulninger, Azure gemmer.
+
+Appens fane **Opsætning** giver disse indstillinger som Azure Cloud Shell-kommandoer til .NET, Java, Node.js eller Python, med appens eget navn, ressourcegruppe og abonnement i hver kommando. For sitets egne konsol-, HTTP- og platformlogs skal du også vælge **Stream metrikker og logge** i abonnementets række under **Cloud → Forbind**: de vises på appens fane **Protokoller** under **Fra Azures diagnosticeringsindstillinger**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ App Service-detektorerne til Node.js og .NET sætter ikke `cloud.account.id`. F�
 :::
 
 :::details En App Service-app viser ingen anmodninger eller instanser
-Anmodninger, fejlrate og latens kommer fra spor, så en app, der kun sender logs eller metrikker, har ingen: dens **Opsætningstjek** siger, hvad der skal tilføjes. Instanser kommer fra `azure.app_service.instance.id` eller `service.instance.id`, som Azure-detektorerne sætter: uden nogen af dem viser feltet **Instanser** værdien **Ikke rapporteret**. For at se sitets anmodninger, uanset hvad appen sender, skal du forbinde abonnementet: appens side får en sektion **Azure Monitor**.
+Anmodninger, fejlrate og latens kommer fra spor, så en app, der kun sender logs eller metrikker, har ingen: dens **Opsætningstjek** siger, hvad der skal tilføjes, og dens fane **Opsætning** hvordan. Instanser kommer fra `azure.app_service.instance.id` eller `service.instance.id`, som Azure-detektorerne sætter: uden nogen af dem viser feltet **Instanser** værdien **Ikke rapporteret**, indtil abonnementet er forbundet, og tæller derefter de instanser, Azure kører. For at se sitets anmodninger, uanset hvad appen sender, skal du forbinde abonnementet: appens side får en sektion **Azure Monitor**.
+:::
+
+:::details En App Service-app har ingen tal fra Azure Monitor
+Rækken **Azure Monitor-forbindelse** i dens **Opsætningstjek** siger hvorfor. OneUptime knytter appen til dens site via `cloud.resource_id`, som App Service-detektorerne sætter, ellers via dens `service.name` i det abonnement, `cloud.account.id` nævner: navngiv appen som dens site, eller tilføj `cloud.resource_id`. En Azure-forbindelse under **Cloud → Forbind** skal læse det abonnement, med rollen Monitoring Reader på det. Et udrulningsslot er en selvstændig ressource, som OneUptime endnu ikke læser.
 :::
 
 :::details En ændret Container Instances-variabel har ingen effekt

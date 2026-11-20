@@ -5,9 +5,14 @@ import {
   CloudAddedMetricScope,
 } from "../../Types/Cloud/CloudAddedMetrics";
 import { CloudAddedMetricReaders } from "../../Types/Cloud/CloudAddedMetricReaders";
+import {
+  APP_SERVICE_SITE_ACTIVITY_API_PATH,
+  AppServiceSiteActivity,
+} from "../../Types/Cloud/AppServiceSiteActivity";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import { CloudPublishedMetricsListing } from "../../Types/Cloud/CloudPublishedMetrics";
 import { CloudUnreportedKeyMetricReport } from "../../Types/Cloud/CloudUnreportedKeyMetrics";
+import { CloudResourceMetricCollection } from "../../Types/Cloud/CloudResourceMetricCollection";
 import CloudResourceMetrics from "../Utils/CloudConnection/CloudResourceMetrics";
 import { CloudConnectionAwsRoleSetup } from "../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "../../Types/CloudConnection/CloudConnectionTest";
@@ -19,6 +24,7 @@ import CloudConnectionService, {
   Service as CloudConnectionServiceClass,
 } from "../Services/CloudConnectionService";
 import AwsServerIdentity from "../Utils/CloudConnection/Aws/AwsServerIdentity";
+import AzureAppServiceSiteActivity from "../Utils/CloudConnection/Azure/AzureAppServiceSiteActivity";
 import CloudConnectionScheduler from "../Utils/CloudConnection/CloudConnectionScheduler";
 import CloudConnectorRegistry from "../Utils/CloudConnection/CloudConnectorRegistry";
 import {
@@ -95,10 +101,18 @@ import ProductKey from "../../Types/Product/ProductKey";
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/unreported
  *     { keys } -> { metrics: CloudUnreportedKeyMetricReport[] }: when each
  *        key metric the resource did not report last did, and why.
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/collection
+ *     -> { collection: CloudResourceMetricCollection | null }: when its
+ *        connection last read its metrics, and what it could not (#10291).
  *
  *   The resource-metrics routes list and explain for whoever may read the
  *   resource; Add, Remove and what reads an addition are for whoever may
  *   edit connections.
+ *
+ *   GET /cloud-connection/app-service-site/:cloudResourceId/activity
+ *     -> AppServiceSiteActivity: an Azure App Service app's instances,
+ *        deployments and image, asked of Azure now (#10294), for whoever
+ *        may read the site.
  *
  * All of them are for whoever may edit connections (project owners and
  * admins): a test signs in to a cloud account with its credential, a read
@@ -643,6 +657,38 @@ export default class CloudConnectionAPI extends BaseAPI<
       },
     );
 
+    /*
+     * How the resource's metrics were collected (#10291): when its
+     * connection last read them, and what it could not read - for whoever
+     * may read the resource. Null for a resource whose reads keep none.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/collection`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          const collection: CloudResourceMetricCollection | null =
+            await CloudResourceMetrics.collectionOf({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            collection: collection as unknown as JSONObject | null,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
     this.router.get(
       `${basePath}/aws-role-setup`,
       UserMiddleware.getUserMiddleware,
@@ -665,6 +711,41 @@ export default class CloudConnectionAPI extends BaseAPI<
             req,
             res,
             setup as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * An Azure App Service app's instances, deployments and image, asked of
+     * Azure now through the site's connection (#10294): an App Platforms
+     * app's page shows them beside what its telemetry names. Read-only and
+     * for whoever may read the site (AzureAppServiceSiteActivity).
+     */
+    this.router.get(
+      `${APP_SERVICE_SITE_ACTIVITY_API_PATH}/:cloudResourceId/activity`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const activity: AppServiceSiteActivity =
+            await AzureAppServiceSiteActivity.read({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            activity as unknown as JSONObject,
           );
         } catch (error) {
           next(error);

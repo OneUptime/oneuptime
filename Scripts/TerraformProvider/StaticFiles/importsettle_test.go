@@ -208,7 +208,7 @@ func TestJSONSubsetKeepImportedPlansTheConfigurationWithNoImportBehindIt(t *test
 func TestImportedFromServerNamesEachAttributeUntilAnUpdateWritesIt(t *testing.T) {
 	ctx := context.Background()
 	private := &fakePrivate{}
-	if diags := markImportedFromServer(ctx, private, []string{"rotation", "restriction_times"}); diags.HasError() {
+	if diags := MarkImportedFromServer(ctx, private, []string{"rotation", "restriction_times"}); diags.HasError() {
 		t.Fatalf("marking the import: %v", diags)
 	}
 
@@ -226,7 +226,7 @@ func TestImportedFromServerNamesEachAttributeUntilAnUpdateWritesIt(t *testing.T)
 
 	// An update that writes restriction_times from the configuration takes it
 	// off; rotation, which it did not write, still holds what was imported.
-	if diags := keepImportedFromServer(ctx, private, map[string]bool{"restriction_times": true, "rotation": false}); diags.HasError() {
+	if diags := KeepImportedFromServer(ctx, private, map[string]bool{"restriction_times": true, "rotation": false}); diags.HasError() {
 		t.Fatalf("keeping the import: %v", diags)
 	}
 	if isImportedFromServer(ctx, private, path.Root("restriction_times")) {
@@ -237,7 +237,7 @@ func TestImportedFromServerNamesEachAttributeUntilAnUpdateWritesIt(t *testing.T)
 	}
 
 	// Once nothing holds what was imported, the key goes.
-	if diags := keepImportedFromServer(ctx, private, map[string]bool{"rotation": true}); diags.HasError() {
+	if diags := KeepImportedFromServer(ctx, private, map[string]bool{"rotation": true}); diags.HasError() {
 		t.Fatalf("keeping the import: %v", diags)
 	}
 	if _, kept := private.data[importedFromServerKey]; kept {
@@ -251,10 +251,10 @@ func TestImportedFromServerWithNoPrivateState(t *testing.T) {
 
 	// A nil private state inside the interface is no private state: nothing
 	// to mark, forget or find, and no panic.
-	if diags := markImportedFromServer(ctx, none, []string{"rotation"}); diags.HasError() {
+	if diags := MarkImportedFromServer(ctx, none, []string{"rotation"}); diags.HasError() {
 		t.Fatalf("marking with no private state: %v", diags)
 	}
-	if diags := forgetImportedFromServer(ctx, none); diags.HasError() {
+	if diags := ForgetImportedFromServer(ctx, none); diags.HasError() {
 		t.Fatalf("forgetting with no private state: %v", diags)
 	}
 	if isImportedFromServer(ctx, none, path.Root("rotation")) {
@@ -266,8 +266,8 @@ func TestImportedFromServerWithNoPrivateState(t *testing.T) {
 
 	// A create forgets what an earlier import named.
 	private := &fakePrivate{}
-	markImportedFromServer(ctx, private, []string{"rotation"})
-	forgetImportedFromServer(ctx, private)
+	MarkImportedFromServer(ctx, private, []string{"rotation"})
+	ForgetImportedFromServer(ctx, private)
 	if isImportedFromServer(ctx, private, path.Root("rotation")) {
 		t.Fatalf("after a create, rotation still holds what was imported")
 	}

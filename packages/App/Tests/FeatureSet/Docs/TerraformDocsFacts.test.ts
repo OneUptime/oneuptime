@@ -2145,7 +2145,7 @@ describe("the overview", () => {
     expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
       "has been renamed to ${this.providerName}_${resource.name}",
     );
-    expect(readRepoFile(RESOURCE_GENERATOR)).toContain("legacyNameStateMover(");
+    expect(readRepoFile(RESOURCE_GENERATOR)).toContain("LegacyNameStateMover(");
   });
 
   it("asks for the versions the generated docs give for import blocks", () => {
@@ -2383,7 +2383,7 @@ describe("the quick start", () => {
     ).toContain("`You do not have permissions to ${type} ${");
     expect(new Monitor().singularName).toBe("Monitor");
     expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
-      '"Not Found", fmt.Sprintf("No ${label} matches %s.", describeLookup(filterNames))',
+      '"Not Found", fmt.Sprintf("No ${label} matches %s.", DescribeLookup(filterNames))',
     );
 
     expect(headings).toEqual([
@@ -2573,7 +2573,7 @@ describe("the complete guide", () => {
 
     // Held to the declared entries, an update sending single ones.
     expect(entries).toContain(
-      "func heldEntriesAfterRead(client *Client, declared declaredEntries",
+      "func heldEntriesAfterRead(client *Client, declared DeclaredEntries",
     );
     expect(entries).toContain('addToListKey      = "addToList"');
     expect(entries).toContain('removeFromListKey = "removeFromList"');
@@ -3549,7 +3549,7 @@ describe("the people and teams page", () => {
     expect(source.attributes.get("user_email")?.personEmailOf).toBe("user_id");
     expect(source.attributes.get("user_id")?.personEmail).toBe("user_email");
     expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
-      "personIDForLookup(ctx, d.client",
+      "PersonIDForLookup(ctx, d.client",
     );
     expect(section).toContain(
       "Other data sources find a record by the address of the person it names, beside their ID.",
@@ -3560,8 +3560,8 @@ describe("the people and teams page", () => {
     const people: string = readRepoFile(
       "Scripts/TerraformProvider/StaticFiles/people.go",
     );
-    const plan: string = goFunction(people, "func planPersonID(");
-    const write: string = goFunction(people, "func personIDForWrite(");
+    const plan: string = goFunction(people, "func PlanPersonID(");
+    const write: string = goFunction(people, "func PersonIDForWrite(");
 
     expect(plan).toContain("resp.Diagnostics.AddAttributeWarning(");
     expect(plan).toContain('" is not in this project yet"');
@@ -3584,7 +3584,7 @@ describe("the people and teams page", () => {
     expect(errors).toContain(
       'ALREADY_INVITED: "This user has already been invited to this team"',
     );
-    expect(goFunction(people, "func alreadyInvitedHint(")).toContain(
+    expect(goFunction(people, "func AlreadyInvitedHint(")).toContain(
       '"already been invited"',
     );
     expect(page).toContain(

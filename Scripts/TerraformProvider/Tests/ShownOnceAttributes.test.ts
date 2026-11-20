@@ -10,6 +10,7 @@ import {
   TerraformDataSource,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 
 /*
  * A SECRET ANSWERED ONCE IS KEPT IN STATE FROM THE CREATE'S ANSWER (#8902).
@@ -219,11 +220,11 @@ beforeAll(async () => {
   await new ResourceGenerator(config, buildSpec()).generateResources();
   await new DataSourceGenerator(config, buildSpec()).generateDataSources();
   resourceGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_api_key.go"),
+    path.join(outputDir, providerGoFilePath("resource_api_key.go")),
     "utf-8",
   );
   dataSourceGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/data_source_api_key.go"),
+    path.join(outputDir, providerGoFilePath("data_source_api_key.go")),
     "utf-8",
   );
 });

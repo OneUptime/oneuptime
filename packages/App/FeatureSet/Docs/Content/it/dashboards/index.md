@@ -61,6 +61,8 @@ Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne
 | **Condivisione** | Chi può vederla, il suo link pubblico e una lista di IP consentiti in Altre impostazioni. |
 | **Branding** | Titolo della pagina, descrizione, logo, tema e favicon della dashboard pubblica. |
 | **Domini personalizzati** | Ospitare la dashboard pubblica sul tuo dominio. |
+| **Utenti privati** | Le persone che possono accedere al link pubblico, quando solo chi accede può vederla. |
+| **Single Sign-On** | I provider SAML e OpenID Connect con cui accedono, e **Richiedi l'SSO per l'accesso**. |
 | **Impostazioni** | Duplicare, esportare o archiviare la dashboard. |
 | **Proprietari** | Gli utenti e i team a cui appartiene. |
 | **Log di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |

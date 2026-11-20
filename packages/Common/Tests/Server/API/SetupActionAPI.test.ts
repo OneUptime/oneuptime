@@ -213,20 +213,35 @@ describe("ProductsOfRequest.setupAction", () => {
     expect(productsOf({ action: "who_is_told" })).toEqual([
       ProductKey.Monitors,
     ]);
+    // A service's recommended monitor (#10041): both products'.
+    expect(productsOf({ action: "set_up_service_monitor" })).toEqual([
+      ProductKey.Monitors,
+      ProductKey.Services,
+    ]);
+    expect(productsOf({ action: "add_to_on_call_policy" })).toEqual([
+      ProductKey.OnCall,
+    ]);
   });
 
-  it("every action it runs names a product", () => {
+  /*
+   * Inviting people and How to Reach Me are of no one product (#10041): a
+   * project's people and how pages reach a person are always on, as their
+   * own routes are (ProductCustomRoutesGuard).
+   */
+  const OF_NO_PRODUCT: Array<string> = ["invite_people", "set_how_to_reach_me"];
+
+  it("every other action it runs names a product", () => {
     for (const action of SETUP_ACTIONS_RUN_OUTSIDE_CHAT) {
       expect([action, productsOf({ action }).length > 0]).toEqual([
         action,
-        true,
+        !OF_NO_PRODUCT.includes(action),
       ]);
     }
   });
 
   it("names none for an action it does not run, or a body that names none", () => {
     expect(productsOf({ action: "create_incident" })).toEqual([]);
-    expect(productsOf({ action: "set_how_to_reach_me" })).toEqual([]);
+    expect(productsOf({ action: "query_on_call_policies" })).toEqual([]);
     expect(productsOf({})).toEqual([]);
     expect(productsOf(null)).toEqual([]);
     expect(

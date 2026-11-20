@@ -20,6 +20,7 @@ import {
   TerraformDataSource,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 
 /*
  * PHONE NUMBERS (OneUptime/oneuptime#7777).
@@ -235,8 +236,8 @@ beforeAll(async () => {
   const read: (file: string) => string = (file: string): string => {
     return fs.readFileSync(path.join(outputDir, file), "utf-8");
   };
-  resourceGo = read("internal/provider/resource_call_and_sms_config.go");
-  dataSourceGo = read("internal/provider/data_source_call_and_sms_config.go");
+  resourceGo = read(providerGoFilePath("resource_call_and_sms_config.go"));
+  dataSourceGo = read(providerGoFilePath("data_source_call_and_sms_config.go"));
   resourceDoc = read("docs/resources/call_and_sms_config.md");
 });
 

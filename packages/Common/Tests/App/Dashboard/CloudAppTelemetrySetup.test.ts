@@ -1,36 +1,73 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CLOUD_APP_AZURE_DEPLOYMENT,
+  CLOUD_APP_AZURE_FIRST_READ,
+  CLOUD_APP_AZURE_FIRST_READ_HINT,
+  CLOUD_APP_AZURE_IMAGE,
+  CLOUD_APP_AZURE_INSTANCES,
+  CLOUD_APP_AZURE_INSTANCES_HINT,
+  CLOUD_APP_AZURE_METRICS_NEED_CONNECTION,
+  CLOUD_APP_AZURE_METRICS_NEXT_READ,
+  CLOUD_APP_AZURE_METRICS_NOT_READ,
   CLOUD_APP_AZURE_MONITOR_CONNECTED_HINT,
   CLOUD_APP_AZURE_MONITOR_HINT,
+  CLOUD_APP_AZURE_NO_CONNECTION,
+  CLOUD_APP_AZURE_NO_SITES,
+  CLOUD_APP_AZURE_NO_SUBSCRIPTION,
+  CLOUD_APP_AZURE_READ_BY,
+  CLOUD_APP_AZURE_RESOURCE_ID_HINT,
+  CLOUD_APP_AZURE_SITE_ELSEWHERE,
+  CLOUD_APP_AZURE_SITE_ELSEWHERE_HINT,
+  CLOUD_APP_AZURE_SITE_NAME_HINT,
+  CLOUD_APP_AZURE_SITE_NOT_FOUND,
+  CLOUD_APP_AZURE_SITE_READ,
+  CLOUD_APP_AZURE_SLOT,
+  CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ,
+  CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ_HINT,
+  CLOUD_APP_AZURE_CONNECTION_FAILING,
+  CLOUD_APP_AZURE_CONNECTION_OFF,
   CLOUD_APP_INSTANCES_HINT,
   CLOUD_APP_LOAD_FAILED_SUBLABEL,
+  CLOUD_APP_LOGS_LATEST_FROM_APP,
+  CLOUD_APP_LOGS_LATEST_FROM_AZURE,
   CLOUD_APP_NO_TRACES_NOTE,
   CLOUD_APP_NOT_ON_PLATFORM_NOTE,
   CLOUD_APP_NOT_REPORTED_NOTE,
+  CLOUD_APP_OPEN_CONNECTIONS,
   CLOUD_APP_PLATFORMS_WITHOUT_USAGE,
   CLOUD_APP_REVISION_HINT,
-  CLOUD_APP_ROW_ARRIVING,
   CLOUD_APP_ROW_CHECKING,
   CLOUD_APP_ROW_CONNECTED,
   CLOUD_APP_ROW_LABELS,
+  CLOUD_APP_ROW_LATEST,
   CLOUD_APP_ROW_NONE,
   CLOUD_APP_ROW_NONE_SINCE,
+  CLOUD_APP_ROW_NONE_YET,
+  CLOUD_APP_ROW_NOT_CHECKED,
   CLOUD_APP_ROW_NOT_CONNECTED,
   CLOUD_APP_ROW_NOT_REPORTED,
   CLOUD_APP_ROW_NOT_REPORTING,
-  CLOUD_APP_ROW_QUIET,
   CLOUD_APP_ROW_REPORTED,
+  CLOUD_APP_ROW_WAITING_FOR_FIRST_READ,
+  CLOUD_APP_SEND_WITH_OTEL_HINT,
+  CLOUD_APP_SERVICE_LOGS_HINT,
+  CLOUD_APP_SET_UP_TELEMETRY,
+  CLOUD_APP_SETUP_ACTION_LABELS,
   CLOUD_APP_SETUP_DESCRIPTION,
   CLOUD_APP_SETUP_GUIDE,
+  CLOUD_APP_SETUP_STATUS_LABELS,
   CLOUD_APP_SETUP_TITLE,
   CLOUD_APP_TRACES_HINT,
+  CLOUD_APP_TRAFFIC_SIGNAL_RECEIVED_MS,
   CloudAppArrival,
   CloudAppArrivalSource,
   CloudAppArrivalState,
-  CloudAppPlatformResourceState,
+  CloudAppAzureMonitorLookup,
+  CloudAppSetupAction,
   CloudAppSetupInput,
   CloudAppSetupRow,
   CloudAppSetupRowKey,
+  CloudAppSetupStatus,
   formatCloudAppSinceDate,
   getCloudAppArrival,
   getCloudAppInstancesTileNote,
@@ -39,11 +76,30 @@ import {
   getCloudAppTraceTileNote,
   getCloudAppUsageTileNote,
   getCloudEnvironmentTraceTileNote,
+  getShortAppServiceDeploymentId,
   hasCloudAppSentTraces,
   isCloudAppSetupIncomplete,
   showsCloudAppUsageTiles,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
+import {
+  CloudAppAzureLink,
+  CloudAppAzureMonitorState,
+  getCloudAppAzureMonitorState,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppAzureLink";
+import {
+  CloudAppSiteMatch,
+  CloudAppSubscriptionSource,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformResource";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
+import {
+  AppServiceDeploymentStatus,
+  AppServiceInstanceState,
+  AppServiceSiteActivity,
+  AppServiceSiteReadError,
+} from "../../../Types/Cloud/AppServiceSiteActivity";
 import { CloudAppTelemetrySignal } from "../../../Types/Cloud/CloudAppTelemetrySignal";
 import {
   MANAGED_CLOUD_PLATFORMS,
@@ -599,36 +655,934 @@ describe("the platform's name in a sentence", () => {
   });
 });
 
+// ---- #10294: every signal on a row of its own -------------------------------
+
+const SUBSCRIPTION: string = "d6252cc9-f01c-428b-924d-9896199f9a13";
+const OTHER_SUBSCRIPTION: string = "3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13";
+const SITE: string = "azure-monitor-collector-northcentralus";
+const SITE_ID: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg-monitoring/providers/Microsoft.Web/sites/${SITE}`;
+
+// A row's fields; one set to undefined clears what the row has by default.
+type RowFields<T> = { [K in keyof T]?: T[K] | undefined };
+
+function connection(fields: RowFields<CloudConnection> = {}): CloudConnection {
+  return Object.assign(new CloudConnection(), {
+    _id: "77100000-0000-4000-8000-000000000001",
+    name: "Azure production",
+    provider: "azure",
+    config: { readIntervalInMinutes: 5 },
+    isEnabled: true,
+    lastPulledAt: minutesBefore(5),
+    lastSuccessfulPullAt: minutesBefore(5),
+    ...fields,
+  });
+}
+
+function site(fields: RowFields<CloudResource> = {}): CloudResource {
+  return Object.assign(new CloudResource(), {
+    _id: "78000000-0000-4000-8000-000000000001",
+    name: SITE,
+    providerResourceId: SITE_ID,
+    cloudReadings: {
+      requests: { value: 120, time: minutesBefore(6).toISOString() },
+    },
+    cloudReadingsAt: minutesBefore(4),
+    ...fields,
+  });
+}
+
+// The app's way to Azure Monitor, its links as each test names them.
+function link(fields: Partial<CloudAppAzureLink> = {}): CloudAppAzureLink {
+  return {
+    siteName: SITE,
+    slot: null,
+    subscription: {
+      id: SUBSCRIPTION,
+      source: CloudAppSubscriptionSource.Environment,
+    },
+    site: null,
+    matchedBy: null,
+    elsewhere: [],
+    account: Object.assign(new CloudAccount(), { accountId: SUBSCRIPTION }),
+    connection: connection(),
+    azureConnections: 1,
+    connectionsChecked: true,
+    sitesInSubscription: 3,
+    ...fields,
+  };
+}
+
+function read(
+  fields: Partial<CloudAppAzureLink> = {},
+): CloudAppAzureMonitorLookup {
+  return { status: "read", link: link(fields) };
+}
+
+const CONNECTED: CloudAppAzureMonitorLookup = read({
+  site: site(),
+  matchedBy: CloudAppSiteMatch.Name,
+});
+
+const INSTANCE_A: string =
+  "8f0a3d1c2b4e6f8a0c2e4a6b8d0f1e3c5a7b9d1f3e5c7a9b1d3f5e7c9a1b3d5e";
+const INSTANCE_B: string =
+  "1b3d5f7a9c1e3b5d7f9a1c3e5b7d9f1a3c5e7b9d1f3a5c7e9b1d3f5a7c9e1b3d";
+
+function activity(
+  fields: Partial<AppServiceSiteActivity> = {},
+): AppServiceSiteActivity {
+  return {
+    readAt: NOW.toISOString(),
+    instances: {
+      items: [
+        { id: INSTANCE_A, state: AppServiceInstanceState.Ready },
+        { id: INSTANCE_B, state: AppServiceInstanceState.Ready },
+        { id: "stopped", state: AppServiceInstanceState.Stopped },
+      ],
+    },
+    deployments: {
+      items: [
+        {
+          id: "4d1c9a8b7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b",
+          status: AppServiceDeploymentStatus.Succeeded,
+          active: true,
+          author: "Ops Bot",
+          deployer: "GitHub",
+          message: "Merge pull request #212",
+          startTime: minutesBefore(95).toISOString(),
+          endTime: minutesBefore(90).toISOString(),
+        },
+      ],
+    },
+    image: null,
+    ...fields,
+  };
+}
+
+interface RowView {
+  status: CloudAppSetupStatus;
+  statusLabel: string;
+  tone: string;
+  text: string;
+  hint?: string | undefined;
+  action?: CloudAppSetupAction | undefined;
+}
+
+function viewOf(row: CloudAppSetupRow): RowView {
+  return {
+    status: row.status,
+    statusLabel: row.statusLabel,
+    tone: row.tone,
+    text: row.text,
+    hint: row.hint,
+    action: row.action,
+  };
+}
+
+function keysOf(rows: Array<CloudAppSetupRow>): Array<CloudAppSetupRowKey> {
+  return rows.map((row: CloudAppSetupRow): CloudAppSetupRowKey => {
+    return row.key;
+  });
+}
+
+const APP_SERVICE_ROWS: Array<CloudAppSetupRowKey> = [
+  CloudAppSetupRowKey.AzureMonitor,
+  CloudAppSetupRowKey.AzureMonitorMetrics,
+  CloudAppSetupRowKey.Traces,
+  CloudAppSetupRowKey.Metrics,
+  CloudAppSetupRowKey.Logs,
+  CloudAppSetupRowKey.Instances,
+  CloudAppSetupRowKey.Revision,
+];
+
+function ago(minutes: number): string {
+  return OneUptimeDate.fromNow(minutesBefore(minutes), NOW);
+}
+
+describe("the Setup check of an App Service app, for each set of signals it sends", () => {
+  const since: string = formatCloudAppSinceDate(TRACKED_SINCE, NOW);
+
+  test("none: its subscription not connected, nothing sent, nothing named - each row says what to set up", () => {
+    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
+      setupInput({
+        azureMonitor: read({
+          account: null,
+          connection: null,
+          azureConnections: 0,
+          sitesInSubscription: null,
+        }),
+      }),
+    );
+
+    expect(keysOf(rows)).toEqual(APP_SERVICE_ROWS);
+    expect(rows.map(viewOf)).toEqual([
+      {
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: CLOUD_APP_ROW_NOT_CONNECTED,
+        tone: "setup",
+        text: CLOUD_APP_AZURE_NO_CONNECTION,
+        hint: CLOUD_APP_AZURE_MONITOR_HINT,
+        action: CloudAppSetupAction.ConnectCloud,
+      },
+      {
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: "Needs setup",
+        tone: "setup",
+        text: CLOUD_APP_AZURE_METRICS_NEED_CONNECTION,
+        hint: undefined,
+        action: undefined,
+      },
+      {
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: "Needs setup",
+        tone: "setup",
+        text: `None since ${since}.`,
+        hint: CLOUD_APP_TRACES_HINT,
+        action: CloudAppSetupAction.SetUpTelemetry,
+      },
+      // Nothing on the page waits for its own metrics: grey, not asked for.
+      {
+        status: CloudAppSetupStatus.NotSetUp,
+        statusLabel: CLOUD_APP_ROW_NONE,
+        tone: "off",
+        text: `None since ${since}.`,
+        hint: CLOUD_APP_SEND_WITH_OTEL_HINT,
+        action: undefined,
+      },
+      {
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: "Needs setup",
+        tone: "setup",
+        text: `None since ${since}.`,
+        hint: CLOUD_APP_SERVICE_LOGS_HINT,
+        action: CloudAppSetupAction.SetUpTelemetry,
+      },
+      {
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: "Needs setup",
+        tone: "setup",
+        text: CLOUD_APP_ROW_NOT_REPORTED,
+        hint: CLOUD_APP_INSTANCES_HINT,
+        action: undefined,
+      },
+      {
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: "Needs setup",
+        tone: "setup",
+        text: CLOUD_APP_ROW_NOT_REPORTED,
+        hint: CLOUD_APP_REVISION_HINT,
+        action: undefined,
+      },
+    ]);
+    expect(isCloudAppSetupIncomplete(rows)).toBe(true);
+  });
+
+  test("metrics only - the issue's app: its connected subscription holds no site of its name, and that is what it says", () => {
+    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
+      setupInput({
+        app: {
+          cloudPlatform: ManagedCloudPlatform.AzureAppService,
+          metricsLastReceivedAt: minutesBefore(3),
+          signalArrivalsTrackedSince: TRACKED_SINCE,
+          createdAt: CREATED_AT,
+        },
+        azureMonitor: read(),
+      }),
+    );
+
+    expect(keysOf(rows)).toEqual(APP_SERVICE_ROWS);
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitor))).toEqual({
+      status: CloudAppSetupStatus.NeedsSetup,
+      statusLabel: "Needs setup",
+      tone: "setup",
+      text: `Subscription ${SUBSCRIPTION} is connected, but holds no App Service app named ${SITE}.`,
+      hint: CLOUD_APP_AZURE_SITE_NAME_HINT,
+      action: undefined,
+    });
+    // Never "Not connected" for a subscription that is.
+    for (const row of rows) {
+      expect(row.statusLabel).not.toBe(CLOUD_APP_ROW_NOT_CONNECTED);
+    }
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.Metrics))).toEqual({
+      status: CloudAppSetupStatus.Received,
+      statusLabel: "Received",
+      tone: "ok",
+      text: `The latest came in ${ago(3)}.`,
+      hint: undefined,
+      action: undefined,
+    });
+    // Its own metrics are not Azure Monitor's: that row has its own state.
+    expect(rowOf(rows, CloudAppSetupRowKey.AzureMonitorMetrics).status).toBe(
+      CloudAppSetupStatus.NeedsSetup,
+    );
+    expect(rowOf(rows, CloudAppSetupRowKey.Traces).status).toBe(
+      CloudAppSetupStatus.NeedsSetup,
+    );
+    expect(rowOf(rows, CloudAppSetupRowKey.Logs).status).toBe(
+      CloudAppSetupStatus.NeedsSetup,
+    );
+    expect(isCloudAppSetupIncomplete(rows)).toBe(true);
+  });
+
+  test("metrics and traces: its site found, Azure Monitor's numbers arriving, and still the logs, instances and version to set up", () => {
+    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
+      setupInput({
+        app: {
+          cloudPlatform: ManagedCloudPlatform.AzureAppService,
+          metricsLastReceivedAt: minutesBefore(1),
+          tracesLastReceivedAt: minutesBefore(2),
+          signalArrivalsTrackedSince: TRACKED_SINCE,
+        },
+        azureMonitor: CONNECTED,
+      }),
+    );
+
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitor))).toEqual({
+      status: CloudAppSetupStatus.Received,
+      statusLabel: CLOUD_APP_ROW_CONNECTED,
+      tone: "ok",
+      text: `The connection Azure production reads ${SITE} in subscription ${SUBSCRIPTION}.`,
+      hint: CLOUD_APP_AZURE_MONITOR_CONNECTED_HINT,
+      action: undefined,
+    });
+    expect(
+      viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitorMetrics)),
+    ).toEqual({
+      status: CloudAppSetupStatus.Received,
+      statusLabel: "Received",
+      tone: "ok",
+      text: `The latest came in ${ago(6)}.`,
+      hint: undefined,
+      action: undefined,
+    });
+    expect(rowOf(rows, CloudAppSetupRowKey.Traces).status).toBe(
+      CloudAppSetupStatus.Received,
+    );
+    expect(rowOf(rows, CloudAppSetupRowKey.Metrics).status).toBe(
+      CloudAppSetupStatus.Received,
+    );
+    for (const key of [
+      CloudAppSetupRowKey.Logs,
+      CloudAppSetupRowKey.Instances,
+      CloudAppSetupRowKey.Revision,
+    ]) {
+      expect({ key, status: rowOf(rows, key).status }).toEqual({
+        key,
+        status: CloudAppSetupStatus.NeedsSetup,
+      });
+    }
+    expect(isCloudAppSetupIncomplete(rows)).toBe(true);
+  });
+
+  test("everything: each row received, and the page leads with its numbers alone", () => {
+    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
+      setupInput({
+        app: {
+          cloudPlatform: ManagedCloudPlatform.AzureAppService,
+          metricsLastReceivedAt: minutesBefore(1),
+          tracesLastReceivedAt: minutesBefore(1),
+          logsLastReceivedAt: minutesBefore(2),
+          currentRevision: "2026.11.20",
+          signalArrivalsTrackedSince: TRACKED_SINCE,
+        },
+        hasReportedInstances: true,
+        azureMonitor: CONNECTED,
+        diagnosticLogsLastReceivedAt: minutesBefore(4),
+        azureActivity: activity(),
+      }),
+    );
+
+    expect(
+      rows.map((row: CloudAppSetupRow) => {
+        return [row.key, row.status];
+      }),
+    ).toEqual(
+      APP_SERVICE_ROWS.map((key: CloudAppSetupRowKey) => {
+        return [key, CloudAppSetupStatus.Received];
+      }),
+    );
+    // The app's own logs are the newest: said as the app's.
+    expect(rowOf(rows, CloudAppSetupRowKey.Logs).text).toBe(
+      `The latest came in ${ago(2)}, from the app's OpenTelemetry.`,
+    );
+    // Azure's count beside the instances the telemetry names.
+    expect(rowOf(rows, CloudAppSetupRowKey.Instances).text).toBe(
+      "Azure runs 2 instances.",
+    );
+    expect(rowOf(rows, CloudAppSetupRowKey.Revision).text).toBe(
+      CLOUD_APP_ROW_REPORTED,
+    );
+    expect(isCloudAppSetupIncomplete(rows)).toBe(false);
+  });
+});
+
+describe("the Azure Monitor connection's row, link by link", () => {
+  function connectionRow(lookup: CloudAppAzureMonitorLookup): RowView {
+    return viewOf(
+      rowOf(
+        getCloudAppSetupRows(setupInput({ azureMonitor: lookup })),
+        CloudAppSetupRowKey.AzureMonitor,
+      ),
+    );
+  }
+
+  test("checking, while it is looked up: neither connected nor not", () => {
+    expect(connectionRow({ status: "checking" })).toEqual({
+      status: CloudAppSetupStatus.Checking,
+      statusLabel: CLOUD_APP_ROW_CHECKING,
+      tone: "waiting",
+      text: CLOUD_APP_ROW_CHECKING,
+      hint: undefined,
+      action: undefined,
+    });
+  });
+
+  test("a look-up that failed says it could not check - never 'Not connected'", () => {
+    for (const lookup of [
+      { status: "failed" } as CloudAppAzureMonitorLookup,
+      read({ connectionsChecked: false, azureConnections: null }),
+    ]) {
+      expect(connectionRow(lookup)).toEqual({
+        status: CloudAppSetupStatus.NotAvailable,
+        statusLabel: "Not available",
+        tone: "off",
+        text: CLOUD_APP_ROW_NOT_CHECKED,
+        hint: undefined,
+        action: undefined,
+      });
+    }
+  });
+
+  test("a site found with no connection name to say: OneUptime reads it", () => {
+    expect(
+      connectionRow(
+        read({
+          site: site(),
+          matchedBy: CloudAppSiteMatch.ResourceId,
+          connectionsChecked: false,
+          connection: null,
+        }),
+      ).text,
+    ).toBe(`OneUptime reads ${SITE} in subscription ${SUBSCRIPTION}.`);
+  });
+
+  test("the subscription no Azure connection reads, named, with how to add it", () => {
+    expect(
+      connectionRow(
+        read({ account: null, connection: null, azureConnections: 2 }),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.NeedsSetup,
+      statusLabel: CLOUD_APP_ROW_NOT_CONNECTED,
+      tone: "setup",
+      text: `No Azure connection reads subscription ${SUBSCRIPTION}.`,
+      hint: CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ_HINT,
+      action: CloudAppSetupAction.OpenConnections,
+    });
+  });
+
+  test("telemetry that names no subscription, and no site of the app's name", () => {
+    expect(
+      connectionRow(
+        read({ subscription: null, account: null, connection: null }),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.NeedsSetup,
+      statusLabel: "Needs setup",
+      tone: "setup",
+      text: `Its telemetry names no Azure subscription, and no connected App Service app is named ${SITE}.`,
+      hint: CLOUD_APP_AZURE_RESOURCE_ID_HINT,
+      action: undefined,
+    });
+  });
+
+  test("its connection turned off, or failing: not connected, with the way to the connections", () => {
+    expect(
+      connectionRow(read({ connection: connection({ isEnabled: false }) })),
+    ).toEqual({
+      status: CloudAppSetupStatus.NotReceived,
+      statusLabel: CLOUD_APP_ROW_NOT_CONNECTED,
+      tone: "warning",
+      text: "The connection Azure production is turned off.",
+      hint: undefined,
+      action: CloudAppSetupAction.OpenConnections,
+    });
+    expect(
+      connectionRow(
+        read({
+          site: site(),
+          connection: connection({
+            lastPulledAt: minutesBefore(2),
+            lastSuccessfulPullAt: minutesBefore(600),
+            lastError: "AuthorizationFailed",
+          }),
+        }),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.NotReceived,
+      statusLabel: CLOUD_APP_ROW_NOT_CONNECTED,
+      tone: "warning",
+      text: "The last read of the connection Azure production failed.",
+      hint: undefined,
+      action: CloudAppSetupAction.OpenConnections,
+    });
+  });
+
+  test("its connection's first read still to come", () => {
+    expect(
+      connectionRow(
+        read({
+          connection: connection({
+            lastPulledAt: undefined,
+            lastSuccessfulPullAt: undefined,
+          }),
+        }),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.Checking,
+      statusLabel: CLOUD_APP_ROW_WAITING_FOR_FIRST_READ,
+      tone: "waiting",
+      text: "The connection Azure production has not finished its first read.",
+      hint: CLOUD_APP_AZURE_FIRST_READ_HINT,
+      action: undefined,
+    });
+  });
+
+  test("a connected subscription OneUptime reads no App Service app in yet", () => {
+    expect(connectionRow(read({ sitesInSubscription: 0 })).text).toBe(
+      `Subscription ${SUBSCRIPTION} is connected, but OneUptime reads no App Service app in it yet.`,
+    );
+  });
+
+  test("a site of the app's name in another subscription, which a cloud.account.id typed by hand most likely meant", () => {
+    expect(
+      connectionRow(
+        read({
+          elsewhere: [
+            site({
+              providerResourceId: SITE_ID.replace(
+                SUBSCRIPTION,
+                OTHER_SUBSCRIPTION,
+              ),
+            }),
+          ],
+        }),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.NeedsSetup,
+      statusLabel: "Needs setup",
+      tone: "setup",
+      text: `${SITE} is in subscription ${OTHER_SUBSCRIPTION}, not in ${SUBSCRIPTION}, which its telemetry names.`,
+      hint: CLOUD_APP_AZURE_SITE_ELSEWHERE_HINT,
+      action: undefined,
+    });
+  });
+
+  test("an app of a deployment slot: not available, and why", () => {
+    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
+      setupInput({ azureMonitor: read({ slot: "staging" }) }),
+    );
+
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitor))).toEqual({
+      status: CloudAppSetupStatus.NotAvailable,
+      statusLabel: "Not available",
+      tone: "off",
+      text: "It runs in deployment slot staging, which Azure Monitor reports as a resource of its own that OneUptime does not read yet.",
+      hint: undefined,
+      action: undefined,
+    });
+    expect(
+      viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitorMetrics)).text,
+    ).toBe(CLOUD_APP_AZURE_METRICS_NOT_READ);
+  });
+
+  test("every state the chain can be in has a row that says it", () => {
+    const lookups: Record<
+      CloudAppAzureMonitorState,
+      CloudAppAzureMonitorLookup
+    > = {
+      [CloudAppAzureMonitorState.Connected]: CONNECTED,
+      [CloudAppAzureMonitorState.Slot]: read({ slot: "staging" }),
+      [CloudAppAzureMonitorState.NoConnection]: read({
+        account: null,
+        connection: null,
+        azureConnections: 0,
+      }),
+      [CloudAppAzureMonitorState.SubscriptionNotRead]: read({
+        account: null,
+        connection: null,
+      }),
+      [CloudAppAzureMonitorState.NoSubscription]: read({
+        subscription: null,
+        account: null,
+        connection: null,
+      }),
+      [CloudAppAzureMonitorState.ConnectionOff]: read({
+        connection: connection({ isEnabled: false }),
+      }),
+      [CloudAppAzureMonitorState.ConnectionFailing]: read({
+        connection: connection({
+          lastSuccessfulPullAt: undefined,
+          lastError: "AuthorizationFailed",
+        }),
+      }),
+      [CloudAppAzureMonitorState.FirstReadPending]: read({
+        connection: connection({
+          lastPulledAt: undefined,
+          lastSuccessfulPullAt: undefined,
+        }),
+      }),
+      [CloudAppAzureMonitorState.SiteNotFound]: read(),
+      [CloudAppAzureMonitorState.SiteInOtherSubscription]: read({
+        elsewhere: [site()],
+      }),
+      [CloudAppAzureMonitorState.Unknown]: read({ connectionsChecked: false }),
+    };
+
+    const texts: Set<string> = new Set<string>();
+
+    for (const state of Object.values(CloudAppAzureMonitorState)) {
+      const lookup: CloudAppAzureMonitorLookup = lookups[state];
+
+      expect({
+        state,
+        read:
+          lookup.status === "read"
+            ? getCloudAppAzureMonitorState(lookup.link)
+            : null,
+      }).toEqual({ state, read: state });
+
+      const row: RowView = connectionRow(lookup);
+
+      expect(row.text.length).toBeGreaterThan(0);
+      texts.add(row.text);
+    }
+
+    // Each says something of its own.
+    expect(texts.size).toBe(Object.values(CloudAppAzureMonitorState).length);
+  });
+});
+
+describe("the Azure Monitor metrics' row", () => {
+  function metricsRow(lookup: CloudAppAzureMonitorLookup): CloudAppSetupRow {
+    return rowOf(
+      getCloudAppSetupRows(setupInput({ azureMonitor: lookup })),
+      CloudAppSetupRowKey.AzureMonitorMetrics,
+    );
+  }
+
+  test("received while its newest reading is within two reads and a quarter hour, at every read interval", () => {
+    for (const interval of [5, 10, 15, 30, 60]) {
+      const window: number = 2 * interval + 15;
+      const at: (minutes: number) => CloudAppAzureMonitorLookup = (
+        minutes: number,
+      ): CloudAppAzureMonitorLookup => {
+        return read({
+          site: site({
+            cloudReadings: {
+              requests: {
+                value: 1,
+                time: minutesBefore(minutes).toISOString(),
+              },
+            },
+          }),
+          connection: connection({
+            config: { readIntervalInMinutes: interval },
+          }),
+        });
+      };
+
+      expect({ interval, status: metricsRow(at(window)).status }).toEqual({
+        interval,
+        status: CloudAppSetupStatus.Received,
+      });
+      expect({ interval, status: metricsRow(at(window + 1)).status }).toEqual({
+        interval,
+        status: CloudAppSetupStatus.NotReceived,
+      });
+    }
+  });
+
+  test("a site found with no reading yet: they come with the next read", () => {
+    expect(
+      viewOf(
+        metricsRow(
+          read({
+            site: site({ cloudReadings: {}, cloudReadingsAt: undefined }),
+          }),
+        ),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.NotReceived,
+      statusLabel: "Not received",
+      tone: "warning",
+      text: CLOUD_APP_AZURE_METRICS_NEXT_READ,
+      hint: undefined,
+      action: undefined,
+    });
+  });
+
+  test("its connection off: its last reading, not received", () => {
+    const row: CloudAppSetupRow = metricsRow(
+      read({
+        site: site({
+          cloudReadings: {
+            requests: { value: 1, time: minutesBefore(300).toISOString() },
+          },
+        }),
+        connection: connection({ isEnabled: false }),
+      }),
+    );
+
+    expect(row.status).toBe(CloudAppSetupStatus.NotReceived);
+    expect(row.text).toBe(`The latest came in ${ago(300)}.`);
+  });
+
+  test("while it is looked up, checking; when it could not be, not available", () => {
+    expect(metricsRow({ status: "checking" }).status).toBe(
+      CloudAppSetupStatus.Checking,
+    );
+    expect(metricsRow({ status: "failed" }).text).toBe(
+      CLOUD_APP_ROW_NOT_CHECKED,
+    );
+  });
+});
+
+describe("the logs' row: the app's own, or its site's that Azure streams", () => {
+  function logsRow(fields: Partial<CloudAppSetupInput>): CloudAppSetupRow {
+    return rowOf(
+      getCloudAppSetupRows(setupInput(fields)),
+      CloudAppSetupRowKey.Logs,
+    );
+  }
+
+  test("an App Service app that sends none, whose site's diagnostic settings stream: received, from Azure", () => {
+    expect(
+      viewOf(
+        logsRow({
+          azureMonitor: CONNECTED,
+          diagnosticLogsLastReceivedAt: minutesBefore(8),
+        }),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.Received,
+      statusLabel: "Received",
+      tone: "ok",
+      text: `The latest came in ${ago(8)}, from Azure's diagnostic settings.`,
+      hint: undefined,
+      action: undefined,
+    });
+  });
+
+  test("the newest of the two is said, with where it came from", () => {
+    expect(
+      logsRow({
+        app: {
+          cloudPlatform: ManagedCloudPlatform.AzureAppService,
+          logsLastReceivedAt: minutesBefore(30),
+        },
+        diagnosticLogsLastReceivedAt: minutesBefore(2),
+      }).text,
+    ).toBe(`The latest came in ${ago(2)}, from Azure's diagnostic settings.`);
+    expect(
+      logsRow({
+        app: {
+          cloudPlatform: ManagedCloudPlatform.AzureAppService,
+          logsLastReceivedAt: minutesBefore(1),
+        },
+        diagnosticLogsLastReceivedAt: minutesBefore(2),
+      }).text,
+    ).toBe(`The latest came in ${ago(1)}, from the app's OpenTelemetry.`);
+  });
+
+  test("logs come with traffic: received for a day after the latest, not received after", () => {
+    expect(
+      logsRow({ diagnosticLogsLastReceivedAt: minutesBefore(23 * 60) }).status,
+    ).toBe(CloudAppSetupStatus.Received);
+    expect(
+      logsRow({ diagnosticLogsLastReceivedAt: minutesBefore(25 * 60) }).status,
+    ).toBe(CloudAppSetupStatus.NotReceived);
+  });
+
+  test("on another platform, how to send them names no Azure setting, and the latest no source", () => {
+    expect(
+      viewOf(logsRow({ app: { cloudPlatform: ManagedCloudPlatform.AwsEcs } })),
+    ).toEqual({
+      status: CloudAppSetupStatus.NeedsSetup,
+      statusLabel: "Needs setup",
+      tone: "setup",
+      text: CLOUD_APP_ROW_NONE_YET,
+      hint: CLOUD_APP_SEND_WITH_OTEL_HINT,
+      action: CloudAppSetupAction.SetUpTelemetry,
+    });
+    expect(
+      logsRow({
+        app: {
+          cloudPlatform: ManagedCloudPlatform.AwsEcs,
+          logsLastReceivedAt: minutesBefore(3),
+        },
+      }).text,
+    ).toBe(`The latest came in ${ago(3)}.`);
+  });
+});
+
+describe("instances and the revision, from the telemetry and else from Azure", () => {
+  test("Azure's instances count while the telemetry names none, with how to name them", () => {
+    const row: CloudAppSetupRow = rowOf(
+      getCloudAppSetupRows(
+        setupInput({ azureMonitor: CONNECTED, azureActivity: activity() }),
+      ),
+      CloudAppSetupRowKey.Instances,
+    );
+
+    expect(viewOf(row)).toEqual({
+      status: CloudAppSetupStatus.Received,
+      statusLabel: "Received",
+      tone: "ok",
+      text: "Azure runs 2 instances.",
+      hint: CLOUD_APP_AZURE_INSTANCES_HINT,
+      action: undefined,
+    });
+  });
+
+  test("one instance is said as one", () => {
+    expect(
+      rowOf(
+        getCloudAppSetupRows(
+          setupInput({
+            azureActivity: activity({
+              instances: {
+                items: [
+                  { id: INSTANCE_A, state: AppServiceInstanceState.Ready },
+                ],
+              },
+            }),
+          }),
+        ),
+        CloudAppSetupRowKey.Instances,
+      ).text,
+    ).toBe("Azure runs 1 instance.");
+  });
+
+  test("instances Azure could not list, or lists none running: the telemetry's hint", () => {
+    for (const instances of [
+      { items: null, error: AppServiceSiteReadError.NoAccess },
+      {
+        items: [{ id: INSTANCE_A, state: AppServiceInstanceState.Stopped }],
+      },
+    ]) {
+      const row: CloudAppSetupRow = rowOf(
+        getCloudAppSetupRows(
+          setupInput({ azureActivity: activity({ instances }) }),
+        ),
+        CloudAppSetupRowKey.Instances,
+      );
+
+      expect(row.status).toBe(CloudAppSetupStatus.NeedsSetup);
+      expect(row.hint).toBe(CLOUD_APP_INSTANCES_HINT);
+    }
+  });
+
+  test("Azure's active deployment stands for a version the telemetry does not name", () => {
+    expect(
+      viewOf(
+        rowOf(
+          getCloudAppSetupRows(setupInput({ azureActivity: activity() })),
+          CloudAppSetupRowKey.Revision,
+        ),
+      ),
+    ).toEqual({
+      status: CloudAppSetupStatus.Received,
+      statusLabel: "Received",
+      tone: "ok",
+      text: `Azure's latest deployment, 4d1c9a8, finished ${ago(90)}.`,
+      hint: CLOUD_APP_REVISION_HINT,
+      action: undefined,
+    });
+  });
+
+  test("with no deployment, the image a container app runs stands for it", () => {
+    expect(
+      rowOf(
+        getCloudAppSetupRows(
+          setupInput({
+            azureActivity: activity({
+              deployments: { items: [] },
+              image: "myregistry.azurecr.io/checkout:1.4.2",
+            }),
+          }),
+        ),
+        CloudAppSetupRowKey.Revision,
+      ).text,
+    ).toBe("Azure runs the image myregistry.azurecr.io/checkout:1.4.2.");
+  });
+
+  test("a deployment's id as a row says it: a commit's seven, a GUID's first group, else twelve", () => {
+    expect(
+      getShortAppServiceDeploymentId(
+        "4d1c9a8b7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b",
+      ),
+    ).toBe("4d1c9a8");
+    expect(
+      getShortAppServiceDeploymentId("0c8f1d2e-3b4a-4c5d-9e6f-7a8b9c0d1e2f"),
+    ).toBe("0c8f1d2e");
+    expect(getShortAppServiceDeploymentId(" release-2026-11-20-a ")).toBe(
+      "release-2026",
+    );
+  });
+});
+
 describe("when the page leads with its Setup check", () => {
   const complete: CloudAppSetupInput = setupInput({
     app: {
-      cloudPlatform: ManagedCloudPlatform.AzureAppService,
+      cloudPlatform: ManagedCloudPlatform.AwsEcs,
       tracesLastReceivedAt: minutesBefore(1),
+      logsLastReceivedAt: minutesBefore(1),
       currentRevision: "2026.11.1",
     },
     isRunning: true,
     hasReportedInstances: true,
   });
 
-  test("not once traces, an instance and a version all arrive", () => {
-    expect(isCloudAppSetupIncomplete(complete)).toBe(false);
+  function incomplete(input: CloudAppSetupInput): boolean {
+    return isCloudAppSetupIncomplete(getCloudAppSetupRows(input));
+  }
+
+  test("not once traces, logs, an instance and a version all arrive - its own metrics are not asked for", () => {
+    expect(incomplete(complete)).toBe(false);
   });
 
-  test("while no trace has arrived", () => {
+  test("while no trace or no log has arrived", () => {
     expect(
-      isCloudAppSetupIncomplete({
+      incomplete({
         ...complete,
         app: { ...complete.app, tracesLastReceivedAt: null },
+      }),
+    ).toBe(true);
+    expect(
+      incomplete({
+        ...complete,
+        app: { ...complete.app, logsLastReceivedAt: null },
+      }),
+    ).toBe(true);
+  });
+
+  test("while what came stopped", () => {
+    expect(
+      incomplete({
+        ...complete,
+        app: {
+          ...complete.app,
+          tracesLastReceivedAt: minutesBefore(3 * 24 * 60),
+        },
       }),
     ).toBe(true);
   });
 
   test("while a running app names no instance - but not for an app that is not running", () => {
+    expect(incomplete({ ...complete, hasReportedInstances: false })).toBe(true);
     expect(
-      isCloudAppSetupIncomplete({ ...complete, hasReportedInstances: false }),
-    ).toBe(true);
-    expect(
-      isCloudAppSetupIncomplete({
+      incomplete({
         ...complete,
         isRunning: false,
         hasReportedInstances: false,
@@ -638,132 +1592,89 @@ describe("when the page leads with its Setup check", () => {
 
   test("while the app reports no version, a blank one included", () => {
     expect(
-      isCloudAppSetupIncomplete({
+      incomplete({
         ...complete,
         app: { ...complete.app, currentRevision: undefined },
       }),
     ).toBe(true);
     expect(
-      isCloudAppSetupIncomplete({
+      incomplete({
         ...complete,
         app: { ...complete.app, currentRevision: "   " },
       }),
     ).toBe(true);
   });
 
-  test("the issue's app - only metrics, no instance, no version - leads with it", () => {
+  test("an App Service app that sends everything leads with it while Azure Monitor is not set up - and not while it is checked", () => {
+    const appService: CloudAppSetupInput = {
+      ...complete,
+      app: {
+        ...complete.app,
+        cloudPlatform: ManagedCloudPlatform.AzureAppService,
+      },
+    };
+
+    expect(incomplete({ ...appService, azureMonitor: CONNECTED })).toBe(false);
+    expect(incomplete({ ...appService, azureMonitor: read() })).toBe(true);
     expect(
-      isCloudAppSetupIncomplete(
-        setupInput({
-          app: {
-            cloudPlatform: ManagedCloudPlatform.AzureAppService,
-            metricsLastReceivedAt: minutesBefore(1),
-          },
-        }),
-      ),
-    ).toBe(true);
+      incomplete({ ...appService, azureMonitor: { status: "checking" } }),
+    ).toBe(false);
+    expect(
+      incomplete({ ...appService, azureMonitor: { status: "failed" } }),
+    ).toBe(false);
+    expect(
+      incomplete({ ...appService, azureMonitor: read({ slot: "staging" }) }),
+    ).toBe(false);
   });
 });
 
-describe("the Setup check's rows", () => {
-  test("the issue's App Service app: what arrives, what does not, and what to add", () => {
+describe("the Setup check's rows on every platform", () => {
+  test("a kind that came, and stopped, says when it last came", () => {
+    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
+      setupInput({ app: { tracesLastReceivedAt: minutesBefore(2 * 24 * 60) } }),
+    );
+
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.Traces))).toEqual({
+      status: CloudAppSetupStatus.NotReceived,
+      statusLabel: "Not received",
+      tone: "warning",
+      text: `The latest came in ${ago(2 * 24 * 60)}.`,
+      hint: undefined,
+      action: undefined,
+    });
+  });
+
+  test("traces and logs come with traffic: received for a day; metrics come on a clock: received for the live window", () => {
     const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
       setupInput({
         app: {
-          cloudPlatform: ManagedCloudPlatform.AzureAppService,
-          metricsLastReceivedAt: minutesBefore(2),
-          signalArrivalsTrackedSince: TRACKED_SINCE,
-          createdAt: CREATED_AT,
+          tracesLastReceivedAt: minutesBefore(20 * 60),
+          metricsLastReceivedAt: minutesBefore(
+            CLOUD_INSTANCE_LIVE_WINDOW_MINUTES + 1,
+          ),
         },
-        isRunning: true,
-        hasReportedInstances: false,
-        platformResource: CloudAppPlatformResourceState.NotFound,
-      }),
-    );
-    const since: string = formatCloudAppSinceDate(TRACKED_SINCE, NOW);
-
-    expect(
-      rows.map((row: CloudAppSetupRow): CloudAppSetupRowKey => {
-        return row.key;
-      }),
-    ).toEqual([
-      CloudAppSetupRowKey.Traces,
-      CloudAppSetupRowKey.Metrics,
-      CloudAppSetupRowKey.Logs,
-      CloudAppSetupRowKey.Instances,
-      CloudAppSetupRowKey.Revision,
-      CloudAppSetupRowKey.AzureMonitor,
-    ]);
-
-    expect(rowOf(rows, CloudAppSetupRowKey.Traces)).toEqual({
-      key: CloudAppSetupRowKey.Traces,
-      label: "Traces",
-      tone: "warning",
-      text: `None since ${since}.`,
-      hint: CLOUD_APP_TRACES_HINT,
-    });
-    expect(rowOf(rows, CloudAppSetupRowKey.Metrics)).toEqual({
-      key: CloudAppSetupRowKey.Metrics,
-      label: "Metrics",
-      tone: "ok",
-      text: `Arriving. The latest came in ${OneUptimeDate.fromNow(minutesBefore(2), NOW)}.`,
-    });
-    // Nothing on the page needs logs: a grey dash, nothing asked.
-    expect(rowOf(rows, CloudAppSetupRowKey.Logs)).toEqual({
-      key: CloudAppSetupRowKey.Logs,
-      label: "Logs",
-      tone: "off",
-      text: `None since ${since}.`,
-      hint: undefined,
-    });
-    expect(rowOf(rows, CloudAppSetupRowKey.Instances)).toEqual({
-      key: CloudAppSetupRowKey.Instances,
-      label: "Instances",
-      tone: "warning",
-      text: CLOUD_APP_ROW_NOT_REPORTED,
-      hint: CLOUD_APP_INSTANCES_HINT,
-    });
-    expect(rowOf(rows, CloudAppSetupRowKey.Revision)).toEqual({
-      key: CloudAppSetupRowKey.Revision,
-      label: "Revision",
-      tone: "warning",
-      text: CLOUD_APP_ROW_NOT_REPORTED,
-      hint: CLOUD_APP_REVISION_HINT,
-    });
-    expect(rowOf(rows, CloudAppSetupRowKey.AzureMonitor)).toEqual({
-      key: CloudAppSetupRowKey.AzureMonitor,
-      label: "Azure Monitor",
-      tone: "off",
-      text: CLOUD_APP_ROW_NOT_CONNECTED,
-      hint: CLOUD_APP_AZURE_MONITOR_HINT,
-    });
-  });
-
-  test("a kind that arrived once, not lately, is quiet: still a green check, with when", () => {
-    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
-      setupInput({
-        app: { tracesLastReceivedAt: minutesBefore(6 * 60) },
       }),
     );
 
-    expect(rowOf(rows, CloudAppSetupRowKey.Traces)).toEqual({
-      key: CloudAppSetupRowKey.Traces,
-      label: "Traces",
-      tone: "ok",
-      text: `Quiet. The latest came in ${OneUptimeDate.fromNow(minutesBefore(6 * 60), NOW)}.`,
-    });
+    expect(rowOf(rows, CloudAppSetupRowKey.Traces).status).toBe(
+      CloudAppSetupStatus.Received,
+    );
+    expect(rowOf(rows, CloudAppSetupRowKey.Metrics).status).toBe(
+      CloudAppSetupStatus.NotReceived,
+    );
+    expect(CLOUD_APP_TRAFFIC_SIGNAL_RECEIVED_MS).toBe(24 * 60 * 60 * 1000);
   });
 
-  test("with no date to say since when, a missing kind is Not set up", () => {
+  test("with no date to say since when, a missing kind is none yet", () => {
     const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
       setupInput({ app: {} }),
     );
 
     expect(rowOf(rows, CloudAppSetupRowKey.Traces).text).toBe(
-      CLOUD_APP_ROW_NONE,
+      CLOUD_APP_ROW_NONE_YET,
     );
     expect(rowOf(rows, CloudAppSetupRowKey.Metrics).text).toBe(
-      CLOUD_APP_ROW_NONE,
+      CLOUD_APP_ROW_NONE_YET,
     );
   });
 
@@ -772,12 +1683,13 @@ describe("the Setup check's rows", () => {
       setupInput({ isRunning: false, hasReportedInstances: false }),
     );
 
-    expect(rowOf(rows, CloudAppSetupRowKey.Instances)).toEqual({
-      key: CloudAppSetupRowKey.Instances,
-      label: "Instances",
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.Instances))).toEqual({
+      status: CloudAppSetupStatus.NotAvailable,
+      statusLabel: "Not available",
       tone: "off",
       text: CLOUD_APP_ROW_NOT_REPORTING,
       hint: undefined,
+      action: undefined,
     });
     expect(CLOUD_APP_ROW_NOT_REPORTING).toBe("Not reporting");
   });
@@ -822,55 +1734,21 @@ describe("the Setup check's rows", () => {
     expect(labelOn(ManagedCloudPlatform.AzureAppService)).toBe("Revision");
   });
 
-  test("Azure Monitor's row follows the look-up: checking, connected, or not connected", () => {
-    const azureRow: (
-      state: CloudAppPlatformResourceState,
-    ) => CloudAppSetupRow = (
-      state: CloudAppPlatformResourceState,
-    ): CloudAppSetupRow => {
-      return rowOf(
-        getCloudAppSetupRows(setupInput({ platformResource: state })),
-        CloudAppSetupRowKey.AzureMonitor,
-      );
-    };
-
-    expect(azureRow(CloudAppPlatformResourceState.Checking)).toEqual({
-      key: CloudAppSetupRowKey.AzureMonitor,
-      label: "Azure Monitor",
-      tone: "waiting",
-      text: CLOUD_APP_ROW_CHECKING,
-      hint: undefined,
-    });
-    expect(azureRow(CloudAppPlatformResourceState.Found)).toEqual({
-      key: CloudAppSetupRowKey.AzureMonitor,
-      label: "Azure Monitor",
-      tone: "ok",
-      text: CLOUD_APP_ROW_CONNECTED,
-      hint: CLOUD_APP_AZURE_MONITOR_CONNECTED_HINT,
-    });
-    expect(azureRow(CloudAppPlatformResourceState.NotFound)).toEqual({
-      key: CloudAppSetupRowKey.AzureMonitor,
-      label: "Azure Monitor",
-      tone: "off",
-      text: CLOUD_APP_ROW_NOT_CONNECTED,
-      hint: CLOUD_APP_AZURE_MONITOR_HINT,
-    });
-  });
-
-  test("an app on a platform with no resource to look up has no Azure Monitor row", () => {
+  test("an app with no Azure Monitor to look up has no Azure rows: five rows, each signal its own", () => {
     const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
-      setupInput({
-        app: { cloudPlatform: ManagedCloudPlatform.AwsEcs },
-        platformResource: undefined,
-      }),
+      setupInput({ app: { cloudPlatform: ManagedCloudPlatform.AwsEcs } }),
     );
 
-    expect(
-      rows.some((row: CloudAppSetupRow): boolean => {
-        return row.key === CloudAppSetupRowKey.AzureMonitor;
-      }),
-    ).toBe(false);
-    expect(rows.length).toBe(5);
+    expect(keysOf(rows)).toEqual([
+      CloudAppSetupRowKey.Traces,
+      CloudAppSetupRowKey.Metrics,
+      CloudAppSetupRowKey.Logs,
+      CloudAppSetupRowKey.Instances,
+      CloudAppSetupRowKey.Revision,
+    ]);
+    expect(rowOf(rows, CloudAppSetupRowKey.Metrics).label).toBe(
+      "OpenTelemetry metrics",
+    );
   });
 
   test("every row is worded in the reader's language", () => {
@@ -881,7 +1759,7 @@ describe("the Setup check's rows", () => {
           metricsLastReceivedAt: minutesBefore(2),
           signalArrivalsTrackedSince: TRACKED_SINCE,
         },
-        platformResource: CloudAppPlatformResourceState.NotFound,
+        azureMonitor: read(),
         translator: GERMAN,
       }),
     );
@@ -890,17 +1768,23 @@ describe("the Setup check's rows", () => {
     expect(rowOf(rows, CloudAppSetupRowKey.Traces).label).toBe(
       german["Traces"],
     );
+    expect(rowOf(rows, CloudAppSetupRowKey.Traces).statusLabel).toBe(
+      german["Needs setup"],
+    );
     expect(rowOf(rows, CloudAppSetupRowKey.Traces).hint).toBe(
       german[CLOUD_APP_TRACES_HINT],
     );
     expect(rowOf(rows, CloudAppSetupRowKey.Instances).text).toBe(
       german[CLOUD_APP_ROW_NOT_REPORTED],
     );
-    expect(rowOf(rows, CloudAppSetupRowKey.Instances).hint).toBe(
-      german[CLOUD_APP_INSTANCES_HINT],
+    expect(rowOf(rows, CloudAppSetupRowKey.AzureMonitor).label).toBe(
+      german["Azure Monitor connection"],
     );
     expect(rowOf(rows, CloudAppSetupRowKey.AzureMonitor).hint).toBe(
-      german[CLOUD_APP_AZURE_MONITOR_HINT],
+      german[CLOUD_APP_AZURE_SITE_NAME_HINT],
+    );
+    expect(rowOf(rows, CloudAppSetupRowKey.AzureMonitor).text).toContain(
+      SUBSCRIPTION,
     );
     expect(rowOf(rows, CloudAppSetupRowKey.Traces).text).not.toMatch(
       /^None since/,
@@ -931,9 +1815,9 @@ describe("the words, in every language", () => {
     CLOUD_APP_SETUP_TITLE,
     CLOUD_APP_SETUP_DESCRIPTION,
     CLOUD_APP_SETUP_GUIDE,
-    CLOUD_APP_ROW_ARRIVING,
-    CLOUD_APP_ROW_QUIET,
+    CLOUD_APP_ROW_LATEST,
     CLOUD_APP_ROW_NONE_SINCE,
+    CLOUD_APP_ROW_NONE_YET,
     CLOUD_APP_ROW_NONE,
     CLOUD_APP_ROW_REPORTED,
     CLOUD_APP_ROW_NOT_REPORTED,
@@ -941,11 +1825,45 @@ describe("the words, in every language", () => {
     CLOUD_APP_ROW_CHECKING,
     CLOUD_APP_ROW_CONNECTED,
     CLOUD_APP_ROW_NOT_CONNECTED,
+    CLOUD_APP_ROW_NOT_CHECKED,
+    CLOUD_APP_ROW_WAITING_FOR_FIRST_READ,
+    CLOUD_APP_LOGS_LATEST_FROM_APP,
+    CLOUD_APP_LOGS_LATEST_FROM_AZURE,
     CLOUD_APP_TRACES_HINT,
+    CLOUD_APP_SEND_WITH_OTEL_HINT,
+    CLOUD_APP_SERVICE_LOGS_HINT,
     CLOUD_APP_INSTANCES_HINT,
     CLOUD_APP_REVISION_HINT,
     CLOUD_APP_AZURE_MONITOR_HINT,
     CLOUD_APP_AZURE_MONITOR_CONNECTED_HINT,
+    CLOUD_APP_AZURE_READ_BY,
+    CLOUD_APP_AZURE_SITE_READ,
+    CLOUD_APP_AZURE_NO_CONNECTION,
+    CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ,
+    CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ_HINT,
+    CLOUD_APP_AZURE_NO_SUBSCRIPTION,
+    CLOUD_APP_AZURE_RESOURCE_ID_HINT,
+    CLOUD_APP_AZURE_CONNECTION_OFF,
+    CLOUD_APP_AZURE_CONNECTION_FAILING,
+    CLOUD_APP_AZURE_FIRST_READ,
+    CLOUD_APP_AZURE_FIRST_READ_HINT,
+    CLOUD_APP_AZURE_SITE_NOT_FOUND,
+    CLOUD_APP_AZURE_NO_SITES,
+    CLOUD_APP_AZURE_SITE_NAME_HINT,
+    CLOUD_APP_AZURE_SITE_ELSEWHERE,
+    CLOUD_APP_AZURE_SITE_ELSEWHERE_HINT,
+    CLOUD_APP_AZURE_SLOT,
+    CLOUD_APP_AZURE_METRICS_NEXT_READ,
+    CLOUD_APP_AZURE_METRICS_NEED_CONNECTION,
+    CLOUD_APP_AZURE_METRICS_NOT_READ,
+    CLOUD_APP_AZURE_INSTANCES.other,
+    CLOUD_APP_AZURE_INSTANCES_HINT,
+    CLOUD_APP_AZURE_DEPLOYMENT,
+    CLOUD_APP_AZURE_IMAGE,
+    CLOUD_APP_OPEN_CONNECTIONS,
+    CLOUD_APP_SET_UP_TELEMETRY,
+    ...Object.values(CLOUD_APP_SETUP_STATUS_LABELS),
+    ...Object.values(CLOUD_APP_SETUP_ACTION_LABELS),
     ...Object.values(CLOUD_APP_ROW_LABELS),
   ];
 
@@ -978,9 +1896,31 @@ describe("the words, in every language", () => {
 
       for (const [template, placeholder] of [
         [CLOUD_APP_NOT_ON_PLATFORM_NOTE, "{{platform}}"],
-        [CLOUD_APP_ROW_ARRIVING, "{{time}}"],
-        [CLOUD_APP_ROW_QUIET, "{{time}}"],
+        [CLOUD_APP_ROW_LATEST, "{{time}}"],
         [CLOUD_APP_ROW_NONE_SINCE, "{{date}}"],
+        [CLOUD_APP_LOGS_LATEST_FROM_APP, "{{time}}"],
+        [CLOUD_APP_LOGS_LATEST_FROM_AZURE, "{{time}}"],
+        [CLOUD_APP_AZURE_READ_BY, "{{connection}}"],
+        [CLOUD_APP_AZURE_READ_BY, "{{site}}"],
+        [CLOUD_APP_AZURE_READ_BY, "{{subscription}}"],
+        [CLOUD_APP_AZURE_SITE_READ, "{{site}}"],
+        [CLOUD_APP_AZURE_SITE_READ, "{{subscription}}"],
+        [CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ, "{{subscription}}"],
+        [CLOUD_APP_AZURE_NO_SUBSCRIPTION, "{{site}}"],
+        [CLOUD_APP_AZURE_CONNECTION_OFF, "{{connection}}"],
+        [CLOUD_APP_AZURE_CONNECTION_FAILING, "{{connection}}"],
+        [CLOUD_APP_AZURE_FIRST_READ, "{{connection}}"],
+        [CLOUD_APP_AZURE_SITE_NOT_FOUND, "{{subscription}}"],
+        [CLOUD_APP_AZURE_SITE_NOT_FOUND, "{{site}}"],
+        [CLOUD_APP_AZURE_NO_SITES, "{{subscription}}"],
+        [CLOUD_APP_AZURE_SITE_ELSEWHERE, "{{site}}"],
+        [CLOUD_APP_AZURE_SITE_ELSEWHERE, "{{other}}"],
+        [CLOUD_APP_AZURE_SITE_ELSEWHERE, "{{subscription}}"],
+        [CLOUD_APP_AZURE_SLOT, "{{slot}}"],
+        [CLOUD_APP_AZURE_INSTANCES.other, "{{count}}"],
+        [CLOUD_APP_AZURE_DEPLOYMENT, "{{deployment}}"],
+        [CLOUD_APP_AZURE_DEPLOYMENT, "{{time}}"],
+        [CLOUD_APP_AZURE_IMAGE, "{{image}}"],
       ] as Array<[string, string]>) {
         expect({
           language,

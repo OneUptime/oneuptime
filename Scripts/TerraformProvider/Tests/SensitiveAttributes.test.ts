@@ -10,6 +10,7 @@ import {
   TerraformDataSource,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 import { crudPaths } from "./Fixtures";
 
 /*
@@ -98,11 +99,11 @@ beforeAll(async () => {
     buildSecretSpec(),
   ).generateDataSources();
   resourceGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_agent_key.go"),
+    path.join(outputDir, providerGoFilePath("resource_agent_key.go")),
     "utf-8",
   );
   dataSourceGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/data_source_agent_key.go"),
+    path.join(outputDir, providerGoFilePath("data_source_agent_key.go")),
     "utf-8",
   );
 });

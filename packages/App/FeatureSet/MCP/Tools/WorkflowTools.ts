@@ -51,6 +51,11 @@ interface WorkflowToolDefinition {
    * a public note, shown on the status page and sent to its subscribers.
    */
   published?: boolean;
+  /*
+   * It emails addresses outside the project, as invite_people's
+   * invitations do (#10041): open-world, as a published write is.
+   */
+  mailsOutsideProject?: boolean;
 }
 
 const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
@@ -275,7 +280,11 @@ export function generateWorkflowTools(): McpToolInfo[] {
         inputSchema: definition.inputSchema,
         annotations: definition.readOnly
           ? readOnlyToolAnnotations()
-          : writeToolAnnotations({ openWorld: definition.published === true }),
+          : writeToolAnnotations({
+              openWorld:
+                definition.published === true ||
+                definition.mailsOutsideProject === true,
+            }),
         modelName: "Workflow",
         operation: definition.readOnly
           ? OneUptimeOperation.Read

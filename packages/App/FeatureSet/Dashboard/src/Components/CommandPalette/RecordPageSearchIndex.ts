@@ -946,6 +946,18 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Custom Domains",
       },
       {
+        page: PageMap.DASHBOARD_VIEW_PRIVATE_USERS,
+        section: "Public Link",
+        title: "Private Users",
+        keywords: ["sign in", "invite"],
+      },
+      {
+        page: PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON,
+        section: "Public Link",
+        title: "Single Sign-On",
+        keywords: ["sso", "saml", "oidc"],
+      },
+      {
         page: PageMap.DASHBOARD_VIEW_SETTINGS,
         section: "Advanced",
         title: "Settings",

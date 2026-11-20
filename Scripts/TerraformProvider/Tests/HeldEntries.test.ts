@@ -14,6 +14,7 @@ import {
   OpenAPISpec,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 
 /*
  * LISTS ONEUPTIME ADDS TO AS WELL, HELD BY THE ENTRIES A CONFIGURATION
@@ -241,7 +242,7 @@ beforeAll(async () => {
     dir: string,
     file: string,
   ): string => {
-    return fs.readFileSync(path.join(dir, "internal/provider", file), "utf-8");
+    return fs.readFileSync(path.join(dir, providerGoFilePath(file)), "utf-8");
   };
   resourceGo = read(outputDir, "resource_incident.go");
   plainResourceGo = read(plainDir, "resource_incident.go");
@@ -289,36 +290,36 @@ describe("the resource's Go", () => {
   test("an update sends a held list's entries one by one, and the whole list only under exclusive_lists", () => {
     const update: string = method(resourceGo, "Update");
 
-    expect(update).toContain("listChanges := newEntryChanges()");
+    expect(update).toContain("listChanges := NewEntryChanges()");
     expect(update).toContain(
-      'listChanges.diff("labels", "labels", data.Labels, state.Labels)',
+      'listChanges.Diff("labels", "labels", data.Labels, state.Labels)',
     );
     expect(update).toContain(
-      'listChanges.diff("on_call_duty_policies", "onCallDutyPolicies", data.OnCallDutyPolicies, state.OnCallDutyPolicies)',
+      'listChanges.Diff("on_call_duty_policies", "onCallDutyPolicies", data.OnCallDutyPolicies, state.OnCallDutyPolicies)',
     );
-    expect(update).toContain("if r.client.changesEntriesOneByOne() {");
+    expect(update).toContain("if r.client.ChangesEntriesOneByOne() {");
     expect(update).toContain(
       'requestDataMap["labels"] = r.convertTerraformSetToInterface(data.Labels)',
     );
-    expect(update).toContain("listChanges.addTo(incidentRequest)");
+    expect(update).toContain("listChanges.AddTo(incidentRequest)");
     // An update that only adds or takes off entries is still sent.
     expect(update).toContain(
-      'if len(incidentRequest["data"].(map[string]interface{})) > 0 || listChanges.any() {',
+      'if len(incidentRequest["data"].(map[string]interface{})) > 0 || listChanges.Any() {',
     );
     // A list only people write is sent whole, as before.
     expect(update).toContain(
       'requestDataMap["monitors"] = r.convertTerraformSetToInterface(data.Monitors)',
     );
-    expect(update).not.toContain('listChanges.diff("monitors"');
+    expect(update).not.toContain('listChanges.Diff("monitors"');
   });
 
   test("an update checks what it changed is there, then holds the state to the configuration's entries", () => {
     const update: string = method(resourceGo, "Update");
     const check: number = update.indexOf(
-      'resp.Diagnostics.Append(listChanges.check("labels", data.Labels)...)',
+      'resp.Diagnostics.Append(listChanges.Check("labels", data.Labels)...)',
     );
     const held: number = update.indexOf(
-      "resp.Diagnostics.Append(r.heldEntriesAfterWrite(ctx, req.Private, &data, &plan, &config, false).write(ctx, resp.Private)...)",
+      "resp.Diagnostics.Append(r.heldEntriesAfterWrite(ctx, req.Private, &data, &plan, &config, false).Write(ctx, resp.Private)...)",
     );
     const kept: number = update.indexOf(
       "r.keepPlannedValues(&data, &plan, &config)",
@@ -333,10 +334,10 @@ describe("the resource's Go", () => {
     const create: string = method(resourceGo, "Create");
 
     expect(create).toContain(
-      'resp.Diagnostics.Append(fieldsLeftOutWarning(httpResp, "incident")...)',
+      'resp.Diagnostics.Append(FieldsLeftOutWarning(httpResp, "incident")...)',
     );
     expect(create).toContain(
-      "resp.Diagnostics.Append(r.heldEntriesAfterWrite(ctx, nil, &data, &plan, &config, true).write(ctx, resp.Private)...)",
+      "resp.Diagnostics.Append(r.heldEntriesAfterWrite(ctx, nil, &data, &plan, &config, true).Write(ctx, resp.Private)...)",
     );
   });
 
@@ -355,7 +356,7 @@ describe("the resource's Go", () => {
 
   test("an import adopts the record's entries of every held list", () => {
     expect(method(resourceGo, "ImportState")).toContain(
-      'declaredEntries{"labels": true, "on_call_duty_policies": true}.write(ctx, resp.Private)',
+      'DeclaredEntries{"labels": true, "on_call_duty_policies": true}.Write(ctx, resp.Private)',
     );
   });
 
@@ -364,10 +365,10 @@ describe("the resource's Go", () => {
     const afterWrite: string = method(resourceGo, "heldEntriesAfterWrite");
 
     expect(afterRead).toContain(
-      'data.Labels = setEntriesAfterRead(r.client, declared, "labels", prior.Labels, data.Labels)',
+      'data.Labels = SetEntriesAfterRead(r.client, declared, "labels", prior.Labels, data.Labels)',
     );
     expect(afterWrite).toContain(
-      'data.Labels, isDeclared = setEntriesAfterWrite(r.client, isCreate, declared["labels"], config.Labels, plan.Labels, data.Labels)',
+      'data.Labels, isDeclared = SetEntriesAfterWrite(r.client, isCreate, declared["labels"], config.Labels, plan.Labels, data.Labels)',
     );
     expect(afterWrite).toContain('declared["labels"] = isDeclared');
     expect(afterRead).not.toContain("Monitors");
@@ -376,10 +377,10 @@ describe("the resource's Go", () => {
   test("a resource with no held list has none of it, but its create still says what it left out", () => {
     expect(plainResourceGo).not.toContain("listChanges");
     expect(plainResourceGo).not.toContain("heldEntriesAfter");
-    expect(plainResourceGo).not.toContain("declaredEntries{");
+    expect(plainResourceGo).not.toContain("DeclaredEntries{");
     expect(plainResourceGo).not.toContain("prior := data");
     expect(method(plainResourceGo, "Create")).toContain(
-      'fieldsLeftOutWarning(httpResp, "incident")',
+      'FieldsLeftOutWarning(httpResp, "incident")',
     );
   });
 });
@@ -421,7 +422,7 @@ describe("entries.go", () => {
     ]) {
       expect([
         file,
-        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+        fs.existsSync(path.join(outputDir, providerGoFilePath(file))),
       ]).toEqual([file, true]);
     }
   });

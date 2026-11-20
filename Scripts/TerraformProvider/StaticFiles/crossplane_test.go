@@ -63,7 +63,7 @@ func leftOutObject(values map[string]tftypes.Value) tftypes.Value {
 	return tftypes.NewValue(leftOutType, all)
 }
 
-// planLeftOut is the plan keepLeftOutUnderCrossplane makes of a record in
+// planLeftOut is the plan KeepLeftOutUnderCrossplane makes of a record in
 // `prior`, a configuration and the plan the framework made of it (defaults
 // in), and what it replaces the record for.
 func planLeftOut(t *testing.T, prior, config, planned tftypes.Value, replaces path.Paths) (map[string]tftypes.Value, path.Paths) {
@@ -74,7 +74,7 @@ func planLeftOut(t *testing.T, prior, config, planned tftypes.Value, replaces pa
 		Plan:   tfsdk.Plan{Schema: leftOutSchema, Raw: planned},
 	}
 	resp := &resource.ModifyPlanResponse{Plan: req.Plan, RequiresReplace: replaces}
-	keepLeftOutUnderCrossplane(context.Background(), req, resp)
+	KeepLeftOutUnderCrossplane(context.Background(), req, resp)
 	values := map[string]tftypes.Value{}
 	if err := resp.Plan.Raw.As(&values); err != nil {
 		t.Fatal(err)
