@@ -460,9 +460,11 @@ describe("a clicked moment's values and the tooltip write the axis's figures", (
           _start: Date,
           _end: Date,
           values: Record<string, number | string>,
-          formatValue: (category: string, value: number) => string,
+          formatValue?: (category: string, value: number) => string,
         ): void => {
-          clicks.push({ values: values, formatValue: formatValue });
+          // The chart always hands it over.
+          expect(formatValue).toBeDefined();
+          clicks.push({ values: values, formatValue: formatValue! });
         }}
       />,
     );
@@ -501,9 +503,10 @@ describe("a clicked moment's values and the tooltip write the axis's figures", (
           _start: Date,
           _end: Date,
           _values: Record<string, number | string>,
-          formatValue: (category: string, value: number) => string,
+          formatValue?: (category: string, value: number) => string,
         ): void => {
-          clicks.push(formatValue);
+          expect(formatValue).toBeDefined();
+          clicks.push(formatValue!);
         }}
       />,
     );
