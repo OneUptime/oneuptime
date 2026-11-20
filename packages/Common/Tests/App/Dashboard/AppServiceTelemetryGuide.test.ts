@@ -511,7 +511,8 @@ describe("the environment's App Service guide gives each stack's own step", () =
 
   test("each stack turns on its App Service resource detector, which names the site, and the hand-set attributes are gone", () => {
     const content: SetupGuideContent = environmentGuide();
-    const tabs: Array<SetupGuideStepVariant> = stackStep(content).variants || [];
+    const tabs: Array<SetupGuideStepVariant> =
+      stackStep(content).variants || [];
     const tabOf: (label: string) => string = (label: string): string => {
       return (
         tabs.find((candidate: SetupGuideStepVariant): boolean => {

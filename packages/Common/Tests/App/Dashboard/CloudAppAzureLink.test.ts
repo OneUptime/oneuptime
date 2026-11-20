@@ -723,7 +723,9 @@ describe("the site the server keeps on the app", () => {
     mockServer.sites = [siteRow("collector-ncus")];
 
     const link: CloudAppAzureLink = await linkOf(
-      issueApp({ platformCloudResourceId: "78000000-0000-4000-8000-0000000fffff" }),
+      issueApp({
+        platformCloudResourceId: "78000000-0000-4000-8000-0000000fffff",
+      }),
     );
 
     expect(link.site).toBeNull();

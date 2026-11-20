@@ -53,7 +53,9 @@ import {
  *     unknown, and a read that fails says so.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("7c000000-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "7c000000-0000-4000-8000-000000000001",
+);
 const NOW: Date = new Date("2026-11-20T12:00:00.000Z");
 const SUBSCRIPTION: string = "d6252cc9-f01c-428b-924d-9896199f9a13";
 
@@ -241,7 +243,11 @@ describe("the reads a page of sites takes", () => {
         siteRow(CHECKOUT_SITE_ROW, "checkout-api"),
         siteRow(ORDERS_SITE_ROW, "orders-api", {
           cloudReadings: {
-            requests: { value: 3, time: NOW.toISOString(), metric: "azure_requests_count" },
+            requests: {
+              value: 3,
+              time: NOW.toISOString(),
+              metric: "azure_requests_count",
+            },
           },
         }),
       ]);
@@ -300,13 +306,20 @@ describe("a site's hour, from the reads' groups", () => {
     const id: string = armId("checkout-api");
     const valuesByRead: Map<string, Map<string, number>> = new Map();
 
-    const put: (metric: AppServiceMetric, name: string, value?: number) => void =
-      (metric: AppServiceMetric, name: string, value?: number): void => {
-        valuesByRead.set(
-          `${metric}|${name}`,
-          new Map(value === undefined ? [] : [[id, value]]),
-        );
-      };
+    const put: (
+      metric: AppServiceMetric,
+      name: string,
+      value?: number,
+    ) => void = (
+      metric: AppServiceMetric,
+      name: string,
+      value?: number,
+    ): void => {
+      valuesByRead.set(
+        `${metric}|${name}`,
+        new Map(value === undefined ? [] : [[id, value]]),
+      );
+    };
 
     put(AppServiceMetric.Requests, REQUESTS, values.requests);
     put(AppServiceMetric.ServerErrors, SERVER_ERRORS, values.serverErrors);
@@ -425,7 +438,9 @@ describe("fetchCloudAppPlatformSignals: as the reader may read", () => {
         }
 
         return {
-          data: (data.groups || {})[String(request.aggregateBy.query["name"])] || [],
+          data:
+            (data.groups || {})[String(request.aggregateBy.query["name"])] ||
+            [],
         };
       },
     );
@@ -438,7 +453,10 @@ describe("fetchCloudAppPlatformSignals: as the reader may read", () => {
 
     const result: CloudAppPlatformSignalResult =
       await fetchCloudAppPlatformSignals({
-        apps: [app(1, { tracesLastReceivedAt: NOW }), app(2, { cloudPlatform: "aws_ecs" })],
+        apps: [
+          app(1, { tracesLastReceivedAt: NOW }),
+          app(2, { cloudPlatform: "aws_ecs" }),
+        ],
         now: NOW,
       });
 
@@ -480,11 +498,11 @@ describe("fetchCloudAppPlatformSignals: as the reader may read", () => {
     expect(server.lists).toHaveLength(1);
     expect(server.lists[0]!.modelType.name).toBe("CloudResource");
     expect(
-      ((server.lists[0]!.query["_id"] as Includes).values as Array<unknown>).map(
-        (value: unknown): string => {
-          return String(value);
-        },
-      ),
+      (
+        (server.lists[0]!.query["_id"] as Includes).values as Array<unknown>
+      ).map((value: unknown): string => {
+        return String(value);
+      }),
     ).toEqual([CHECKOUT_SITE_ROW, ORDERS_SITE_ROW]);
     expect(server.lists[0]!.query["cloudResourceKind"]).toBe(
       CloudResourceKind.Resource,

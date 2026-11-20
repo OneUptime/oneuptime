@@ -103,9 +103,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
                   "td",
                   { key: column.title, "data-column": column.title },
                   column.getElement
-                    ? (column.getElement as (row: unknown) => React.ReactElement)(
-                        row,
-                      )
+                    ? (
+                        column.getElement as (
+                          row: unknown,
+                        ) => React.ReactElement
+                      )(row)
                     : null,
                 );
               }),
@@ -183,7 +185,11 @@ interface AppFixture {
 }
 
 // Sent no trace, tied to its site: its site's numbers.
-const CHECKOUT: AppFixture = { index: 1, name: "checkout-api", site: CHECKOUT_SITE };
+const CHECKOUT: AppFixture = {
+  index: 1,
+  name: "checkout-api",
+  site: CHECKOUT_SITE,
+};
 // Its site is one the reader may not read: nothing of it.
 const ORDERS: AppFixture = { index: 2, name: "orders-api", site: HIDDEN_SITE };
 // No site kept: "No traces", as before.
@@ -450,8 +456,8 @@ function tableCellOf(name: string): HTMLElement {
 
 function textOf(scope: HTMLElement, testId: string): string {
   return (within(scope).getByTestId(testId).textContent || "")
-    .replace(/[⁦-⁩‎‏]/g, "")
-    .replace(/[  ]/g, " ")
+    .replace(/[\u2066-\u2069\u200E\u200F]/g, "")
+    .replace(/[\u00A0\u202F]/g, " ")
     .trim();
 }
 
@@ -503,9 +509,7 @@ describe.each([
         "5.0% server errors",
       );
       expect(errors.getAttribute("data-tone")).toBe("danger");
-      expect(textOf(cell, "cloud-app-platform-requests")).toBe(
-        "1.2k requests",
-      );
+      expect(textOf(cell, "cloud-app-platform-requests")).toBe("1.2k requests");
       expect(textOf(cell, "cloud-app-platform-response-time")).toBe(
         "250 ms on average",
       );
@@ -639,7 +643,9 @@ describe.each([
 
       const cell: HTMLElement = cellOf("idle-api");
 
-      expect(within(cell).getByTestId("cloud-app-no-traces")).toBeInTheDocument();
+      expect(
+        within(cell).getByTestId("cloud-app-no-traces"),
+      ).toBeInTheDocument();
       expect(
         within(cell).queryByTestId("cloud-app-platform-signals"),
       ).toBeNull();
@@ -749,7 +755,9 @@ describe("the Last hour cell, drawn alone", () => {
       />,
     );
 
-    expect(screen.getByTestId("cloud-app-platform-signals")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("cloud-app-platform-signals"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId("cloud-app-platform-signals-loading"),
     ).toBeNull();
@@ -769,12 +777,10 @@ describe("the Last hour cell, drawn alone", () => {
       />,
     );
 
-    expect(
-      textOf(document.body, "cloud-app-platform-requests"),
-    ).toBe("40 requests");
-    expect(
-      screen.queryByTestId("cloud-app-platform-server-errors"),
-    ).toBeNull();
+    expect(textOf(document.body, "cloud-app-platform-requests")).toBe(
+      "40 requests",
+    );
+    expect(screen.queryByTestId("cloud-app-platform-server-errors")).toBeNull();
     expect(screen.queryByTestId("cloud-app-platform-response-time")).toBeNull();
     expect(textOf(document.body, "cloud-app-platform-source")).toBe(
       "Azure Monitor",

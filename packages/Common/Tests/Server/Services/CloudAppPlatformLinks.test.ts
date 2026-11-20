@@ -100,7 +100,10 @@ const ENVIRONMENTS: Map<string, CloudAppPlatformEnvironment> = new Map<
   string,
   CloudAppPlatformEnvironment
 >([
-  [ENVIRONMENT_ID, { cloudAccountId: SUBSCRIPTION, cloudRegion: "northcentralus" }],
+  [
+    ENVIRONMENT_ID,
+    { cloudAccountId: SUBSCRIPTION, cloudRegion: "northcentralus" },
+  ],
   [OTHER_ENVIRONMENT_ID, { cloudAccountId: null, cloudRegion: null }],
 ]);
 
@@ -380,9 +383,7 @@ describe("CloudAppService.linkPlatformResources", () => {
     await CloudAppService.linkPlatformResources({ projectId: PROJECT_ID });
 
     expect(run.writes).toHaveLength(1);
-    expect(run.writes[0]!.sql).toContain(
-      'SET "platformCloudResourceId" = $1',
-    );
+    expect(run.writes[0]!.sql).toContain('SET "platformCloudResourceId" = $1');
     expect(run.writes[0]!.sql).toContain('"projectId" = $2');
     expect(run.writes[0]!.sql).toContain('"_id" = $3');
     expect(run.writes[0]!.parameters).toEqual([
@@ -558,11 +559,12 @@ describe("CloudAppService.recordApp ties an App Service app to its site (#10407)
   }
 
   function existing(providerResourceId?: string): void {
-    jest
-      .spyOn(CloudAppService, "findOneBy")
-      .mockResolvedValue(
-        Object.assign(new CloudApp(), { _id: APP_ID, providerResourceId }) as never,
-      );
+    jest.spyOn(CloudAppService, "findOneBy").mockResolvedValue(
+      Object.assign(new CloudApp(), {
+        _id: APP_ID,
+        providerResourceId,
+      }) as never,
+    );
     jest
       .spyOn(CloudAppService, "updateOneById")
       .mockResolvedValue(undefined as never);
