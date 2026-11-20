@@ -51,6 +51,8 @@ const INGEST_LOCATIONS = [
   "/session-replay",
   "/pyroscope",
   "/source-maps",
+  // An iOS app's dSYMs (#9922).
+  "/dsyms",
   // Splunk HEC's root paths (the compatible ingest endpoints, #6797).
   "/services/collector",
 ];

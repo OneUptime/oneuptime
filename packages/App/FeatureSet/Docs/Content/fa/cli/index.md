@@ -103,6 +103,7 @@ oneuptime resources
 | `oneuptime deploy` | یک استقرار، یا تغییری دیگر، را برای نمودارها و OneUptime AI ثبت می‌کند | [استقرارها و تغییرها](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | بررسی‌های داده پروژه را با یک فایل در مخزن شما یکی می‌کند | [مرجع دستورها](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | پس از یک ساخت، آرتیفکت‌های یک پروژهٔ dbt را به مشاهده‌پذیری داده می‌فرستد | [مرجع دستورها](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | پس از یک ساخت، فایل‌های dSYM یک برنامهٔ iOS را می‌فرستد تا کرش‌ها و هنگ‌های آن با نام تابع‌ها خوانده شوند | [راه‌اندازی موبایل](/docs/rum/mobile-setup#فایلهای-dsym-را-بارگذاری-کنید) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | با یک نوع رکورد کار می‌کند | [عملیات روی منابع](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | فیلدهای یک منبع و پرچم‌هایی را که آن‌ها را تنظیم می‌کنند فهرست می‌کند | [عملیات روی منابع](/docs/cli/resource-operations#دیدن-فیلدهای-یک-منبع) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | روی حادثه‌ها، هشدارها و تعمیر و نگهداری زمان‌بندی‌شده همان کاری را می‌کند که دکمه‌های داشبورد می‌کنند | [عملیات روی منابع](/docs/cli/resource-operations#تأیید-رفع-و-افزودن-یادداشت) |

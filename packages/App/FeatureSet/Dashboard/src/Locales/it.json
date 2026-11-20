@@ -59749,5 +59749,22 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Vanno sotto ogni receiver journald che non ne ha, e nient'altro cambia. Una volta salvata, è una nuova versione che i suoi host ricevono entro un minuto.",
   "Device Manager ID": "ID nel gestore dei dispositivi",
   "{{count}} days old": "Risale a {{count}} giorni fa",
-  "{{count}} days old_one": "Risale a {{count}} giorno fa"
+  "{{count}} days old_one": "Risale a {{count}} giorno fa",
+  "A share of installs": "Una quota di installazioni",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "Avvisa quando la percentuale di installazioni in {{window}} con un'eccezione corrispondente è {{comparison}} quanto indicato.",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "Avvisa quando la percentuale di installazioni in {{window}} con un'eccezione corrispondente è {{comparison}} {{count}}%.",
+  "Binary Name": "Nome del binario",
+  "Binary UUID": "UUID del binario",
+  "Duplicate Of": "Duplicato di",
+  "Installs": "Installazioni",
+  "Installs With Exceptions (in %)": "Installazioni con eccezioni (in %)",
+  "Installs with an exception (in %)": "Installazioni con un'eccezione (in %)",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash e MetricKit hanno segnalato entrambi questo crash. Viene contato una volta, come questa occorrenza.",
+  "Reported twice": "Segnalato due volte",
+  "Symbol Count": "Numero di simboli",
+  "Symbols": "Simboli",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "Il grafico mostra quante eccezioni si sono verificate. Non viene disegnato per nuove eccezioni, eccezioni tornate, un aumento rispetto al solito o una quota di sessioni o di installazioni.",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "I simboli delle funzioni di una build di un binario di un'app iOS, dal suo dSYM. Servono a nominare i frame degli stack di crash e di blocco dell'app con le loro funzioni e a raggrupparli per funzione. Associati a un frame tramite l'UUID del binario.",
+  "dSYMs": "dSYM",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "La quota delle sessioni nell'intervallo selezionato che nessun crash ha interrotto. La barra diventa ambra sotto il 99,5% e rossa sotto il 99%. La riga sotto indica la stessa quota per le installazioni, un'approssimazione dei suoi utenti: l'app.installation.id che OpenTelemetry Android imposta, o il device.id di un'app iOS; per un'app che non invia né l'uno né l'altro, quante sessioni sono andate in crash."
 }

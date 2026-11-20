@@ -1456,11 +1456,18 @@ describe("MonitorRecommendationCatalog", () => {
       expect(mobile).toEqual(
         idsOf(getRumAlertTemplates({ clientKind: "mobile" })),
       );
-      expect(mobile).toHaveLength(9);
+      expect(mobile).toHaveLength(11);
       expect(mobile).toContain(
         buildRecommendationId(
           MonitorRecommendationResourceType.RumApplication,
           "rum-app-crashes",
+        ),
+      );
+      // The per-install daily rates (#9924), beside the hourly ones.
+      expect(mobile).toContain(
+        buildRecommendationId(
+          MonitorRecommendationResourceType.RumApplication,
+          "rum-app-daily-crash-rate",
         ),
       );
       expect(mobile).not.toContain(
@@ -1474,7 +1481,7 @@ describe("MonitorRecommendationCatalog", () => {
           ...FULL_REPLAY_CONTEXT,
           rumClientKind: "mobile",
         }),
-      ).toHaveLength(13);
+      ).toHaveLength(15);
       expect(rumRecommendationIds({ rumClientKind: null })).toEqual(
         rumRecommendationIds(),
       );
@@ -1536,8 +1543,8 @@ describe("MonitorRecommendationCatalog", () => {
           MonitorRecommendationResourceType.RumApplication,
         );
 
-      // 5 web vitals, 2 shared, 8 mobile, 4 budgets.
-      expect(all).toHaveLength(19);
+      // 5 web vitals, 2 shared, 10 mobile, 4 budgets.
+      expect(all).toHaveLength(21);
       expect(all.length).toBe(getAllRumAlertTemplates().length);
 
       for (const templateId of BUDGET_TEMPLATE_IDS) {

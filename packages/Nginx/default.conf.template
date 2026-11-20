@@ -1423,6 +1423,32 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
+    location /dsyms {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
+
+        # An iOS app's dSYMs (#9922): the CLI sends their symbol tables as
+        # JSON, a few MB for a large app; curl sends a dSYM as it is, whose
+        # DWARF can be tens of MB. Bounded as /source-maps is: the App's
+        # multipart middleware caps each file at 50 MiB, and the docs send a
+        # dSYM larger than that through the CLI.
+        client_max_body_size 50M;
+
+        # Reuse pooled upstream connections for this large-body ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
     location ~ /opentelemetry.proto.collector* {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app_grpc grpc://${SERVER_APP_HOSTNAME}:4317;

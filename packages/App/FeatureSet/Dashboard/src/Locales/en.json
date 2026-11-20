@@ -59749,5 +59749,22 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.",
   "Device Manager ID": "Device Manager ID",
   "{{count}} days old": "{{count}} days old",
-  "{{count}} days old_one": "{{count}} day old"
+  "{{count}} days old_one": "{{count}} day old",
+  "A share of installs": "A share of installs",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.",
+  "Binary Name": "Binary Name",
+  "Binary UUID": "Binary UUID",
+  "Duplicate Of": "Duplicate Of",
+  "Installs": "Installs",
+  "Installs With Exceptions (in %)": "Installs With Exceptions (in %)",
+  "Installs with an exception (in %)": "Installs with an exception (in %)",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.",
+  "Reported twice": "Reported twice",
+  "Symbol Count": "Symbol Count",
+  "Symbols": "Symbols",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.",
+  "dSYMs": "dSYMs",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed."
 }

@@ -59749,5 +59749,22 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "De hamnar under varje journald-mottagare som saknar dem, och inget annat ändras. Sparad blir den en ny version, som dess värdar får inom en minut.",
   "Device Manager ID": "MDM-ID",
   "{{count}} days old": "{{count}} dagar gammal",
-  "{{count}} days old_one": "{{count}} dag gammal"
+  "{{count}} days old_one": "{{count}} dag gammal",
+  "A share of installs": "En andel av installationerna",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "Larmar när andelen av installationerna under {{window}} med ett matchande undantag är {{comparison}} den procent du anger.",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "Larmar när {{comparison}} {{count}} % av installationerna under {{window}} har ett matchande undantag.",
+  "Binary Name": "Binärfilens namn",
+  "Binary UUID": "Binärfilens UUID",
+  "Duplicate Of": "Dubblett av",
+  "Installs": "Installationer",
+  "Installs With Exceptions (in %)": "Installationer med undantag (i %)",
+  "Installs with an exception (in %)": "Installationer med ett undantag (i %)",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash och MetricKit rapporterade båda den här kraschen. Den räknas en gång, som den här förekomsten.",
+  "Reported twice": "Rapporterad två gånger",
+  "Symbol Count": "Antal symboler",
+  "Symbols": "Symboler",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "Diagrammet visar hur många undantag som inträffade. Det ritas inte för nya undantag, undantag som kom tillbaka, en ökning över det vanliga eller en andel av sessionerna eller installationerna.",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "Funktionssymbolerna för ett bygge av en iOS-apps binärfil, från dess dSYM. Används för att namnge ramarna i appens krasch- och hängstackar efter deras funktioner och för att gruppera dem per funktion. Kopplas till en ram via binärfilens UUID.",
+  "dSYMs": "dSYM:er",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "Andelen av sessionerna i det valda intervallet som inte avslutades av en krasch. Stapeln blir gul under 99,5 % och röd under 99 %. Raden under visar samma andel av installationerna, ett mått på appens användare: det app.installation.id som OpenTelemetry Android sätter, eller en iOS-apps device.id; för en app som inte skickar något av dem visar den hur många sessioner som kraschade."
 }
