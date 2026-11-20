@@ -45,6 +45,7 @@ import AIInsightService, {
 } from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import PrometheusAPI from "Common/Server/API/PrometheusAPI";
+import LokiAPI from "Common/Server/API/LokiAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
@@ -7709,6 +7710,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // The Prometheus HTTP API over the project's metrics: PromQL (#6796).
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, PrometheusAPI);
+
+    // The Loki HTTP API over the project's logs: LogQL (#7700).
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, LokiAPI);
 
     //attach api's
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
