@@ -80,11 +80,6 @@ const DELIBERATE: Record<string, { elements: Array<string>; reason: string }> =
       reason:
         "A pressable alert draws a real button over its whole box, which a keyboard reaches and presses; the box's click is the same action for a click that lands on its words.",
     },
-    "packages/Common/UI/Components/HiddenText/HiddenText.tsx": {
-      elements: ["div[role=hidden-text]"],
-      reason:
-        "The reveal button inside it is what a person presses; its click reaches the box, which end-to-end specs find by its role.",
-    },
     "packages/Common/UI/Components/Dropdown/Dropdown.tsx": {
       elements: ["div"],
       reason:

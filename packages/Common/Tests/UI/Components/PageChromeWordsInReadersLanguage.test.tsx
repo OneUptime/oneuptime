@@ -337,7 +337,7 @@ const drawPart: (instance: i18n, part: Part) => Promise<string> = async (
     case "Copy": {
       // A revealed secret's copy button, named for what it does.
       inLocale(instance, <HiddenText text="s3cr3t-value" isCopyable={true} />);
-      fireEvent.click(screen.getByRole("hidden-text"));
+      fireEvent.click(screen.getByTestId("hidden-text-reveal"));
 
       return (
         screen
@@ -347,7 +347,7 @@ const drawPart: (instance: i18n, part: Part) => Promise<string> = async (
     }
     case "Hide": {
       inLocale(instance, <HiddenText text="s3cr3t-value" isCopyable={true} />);
-      fireEvent.click(screen.getByRole("hidden-text"));
+      fireEvent.click(screen.getByTestId("hidden-text-reveal"));
 
       /*
        * What a screen reader says for the Hide button, and what its tooltip
