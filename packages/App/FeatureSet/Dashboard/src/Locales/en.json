@@ -59919,5 +59919,9 @@
   "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.",
   "Run this as a Security Administrator of your tenant": "Run this as a Security Administrator of your tenant",
   "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.",
-  "Invitee Email": "Invitee Email"
+  "Invitee Email": "Invitee Email",
+  "Click to reassign": "Click to reassign",
+  "Reassign {{role}}": "Reassign {{role}}",
+  "The person was not removed from the role.": "The person was not removed from the role.",
+  "The role was not reassigned.": "The role was not reassigned."
 }

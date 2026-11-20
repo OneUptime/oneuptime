@@ -59919,5 +59919,9 @@
   "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "最初のコマンドが完了したら、イベント ハブのキーを読み取れるテナントの Security Administrator として {{shell}} で実行してください。{{group}} の Owner または Contributor である必要があります。",
   "Run this as a Security Administrator of your tenant": "テナントの Security Administrator として実行してください",
   "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "サインイン、ディレクトリの変更、リスク。テナントの Security Administrator 向けの 2 つ目のコマンドで設定します。",
-  "Invitee Email": "Invitee Email"
+  "Invitee Email": "Invitee Email",
+  "Click to reassign": "クリックして再割り当て",
+  "Reassign {{role}}": "{{role}} を再割り当て",
+  "The person was not removed from the role.": "メンバーはロールから削除されませんでした。",
+  "The role was not reassigned.": "ロールは再割り当てされませんでした。"
 }

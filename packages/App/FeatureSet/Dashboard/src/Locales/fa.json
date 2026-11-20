@@ -59919,5 +59919,9 @@
   "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "پس از پایان فرمان نخست، این را در {{shell}} به‌عنوان یک Security Administrator مستأجر اجرا کنید که اجازه خواندن کلید هاب‌های رویداد را داشته باشد: یک Owner یا Contributor گروه منابع {{group}}.",
   "Run this as a Security Administrator of your tenant": "این را به‌عنوان Security Administrator مستأجر خود اجرا کنید",
   "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "ورودها، تغییرات دایرکتوری و ریسک‌ها، که با فرمان دومی برای یک Security Administrator مستأجر شما راه‌اندازی می‌شوند.",
-  "Invitee Email": "Invitee Email"
+  "Invitee Email": "ایمیل فرد دعوت‌شده",
+  "Click to reassign": "برای تخصیص دوباره کلیک کنید",
+  "Reassign {{role}}": "تخصیص دوبارهٔ {{role}}",
+  "The person was not removed from the role.": "این فرد از نقش حذف نشد.",
+  "The role was not reassigned.": "نقش دوباره تخصیص داده نشد."
 }

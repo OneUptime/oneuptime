@@ -59919,5 +59919,9 @@
   "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "بعد انتهاء الأمر الأول، شغّل هذا في {{shell}} بصلاحيات Security Administrator في المستأجر يُسمح له بقراءة مفتاح مراكز الأحداث: Owner أو Contributor على مجموعة الموارد {{group}}.",
   "Run this as a Security Administrator of your tenant": "شغّل هذا بصلاحيات Security Administrator في المستأجر لديك",
   "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "عمليات تسجيل الدخول وتغييرات الدليل والمخاطر، ويُعِدّها أمر ثانٍ يشغّله Security Administrator في المستأجر لديك.",
-  "Invitee Email": "Invitee Email"
+  "Invitee Email": "البريد الإلكتروني للمدعو",
+  "Click to reassign": "انقر لإعادة التعيين",
+  "Reassign {{role}}": "إعادة تعيين الدور {{role}}",
+  "The person was not removed from the role.": "لم تتم إزالة الشخص من الدور.",
+  "The role was not reassigned.": "لم تتم إعادة تعيين الدور."
 }

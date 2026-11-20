@@ -59919,5 +59919,9 @@
   "Once the first command has finished, run this in {{shell}} as a Security Administrator of the tenant who may read the event hubs' key: an Owner or Contributor of {{group}}.": "Cuando el primer comando haya terminado, ejecuta esto en {{shell}} como un Security Administrator del inquilino que pueda leer la clave de los centros de eventos: un Owner o un Contributor de {{group}}.",
   "Run this as a Security Administrator of your tenant": "Ejecuta esto como Security Administrator de tu inquilino",
   "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.": "Inicios de sesión, cambios de directorio y riesgos, configurados por un segundo comando para un Security Administrator de tu inquilino.",
-  "Invitee Email": "Invitee Email"
+  "Invitee Email": "Invitee Email",
+  "Click to reassign": "Haz clic para reasignar",
+  "Reassign {{role}}": "Reasignar {{role}}",
+  "The person was not removed from the role.": "La persona no se quitó del rol.",
+  "The role was not reassigned.": "El rol no se reasignó."
 }
