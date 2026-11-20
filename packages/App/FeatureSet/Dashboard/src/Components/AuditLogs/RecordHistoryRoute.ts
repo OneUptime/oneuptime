@@ -12,11 +12,16 @@ import {
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { getRecordHistoryPage } from "./RecordHistoryPages";
+import {
+  getRecordHistoryPage,
+  RECORD_HISTORY_QUERY_PARAM,
+  RecordHistoryPage,
+} from "./RecordHistoryPages";
 
 /*
  * A RECORD'S HISTORY LINK, FOR ITS LINE (#10290): the Audit Logs page of the
- * record's own view (RecordHistoryPages), where that page shows a history -
+ * record's own view, or the project's audit log showing the record alone
+ * (RecordHistoryPages), where that page shows a history -
  * a project on a plan and an edition that keep audit logs, in a build with
  * their screens - and for a reader who may read the audit log: Project
  * Owner, Project Admin, Settings Admin, Read Audit Log. Anyone else gets no
@@ -33,9 +38,12 @@ const getRecordHistoryRoute: GetRecordHistoryRoute = (data: {
   modelType: { new (): BaseModel };
   modelId: ObjectID;
 }): Route | null => {
-  const page: PageMap | null = getRecordHistoryPage(new data.modelType());
+  const history: RecordHistoryPage | null = getRecordHistoryPage(
+    new data.modelType(),
+  );
+  const page: PageMap | undefined = history?.page;
 
-  if (!page || !RouteMap[page]) {
+  if (!history || !page || !RouteMap[page]) {
     return null;
   }
 
@@ -50,6 +58,12 @@ const getRecordHistoryRoute: GetRecordHistoryRoute = (data: {
 
   if (readers.length === 0 || !PermissionGate.holdsAnyOf(readers)) {
     return null;
+  }
+
+  if (!history.isOwnPage) {
+    return RouteUtil.getPageRoute(page, {
+      query: { [RECORD_HISTORY_QUERY_PARAM]: data.modelId.toString() },
+    });
   }
 
   return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
