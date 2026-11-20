@@ -28,10 +28,14 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
-import { assignIncidentRole } from "../../Utils/EventRoleAssignment";
+import {
+  assignIncidentRole,
+  reassignIncidentRole,
+} from "../../Utils/EventRoleAssignment";
 import PermissionGate, {
   ModelAction,
   PermissionGateOptions,
+  PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import {
   usePrivateRecordGate,
@@ -48,6 +52,28 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const INCIDENT_ROLES_LOCKED_SENTENCE: string = translationKey(
   "You do not have permission to change this incident's roles.",
 );
+
+/*
+ * Whether the reader may hand one of the incident's roles on (Reassign):
+ * the update of the role row's person, with what the reader holds on a
+ * private incident. The one gate the roles card's Reassign and the
+ * header's commander both ask (#10191, #10195) - never the create and the
+ * delete that Reassign used to be.
+ */
+export const getIncidentRoleReassignGate: (
+  privateRecordOptions: PermissionGateOptions | undefined,
+) => PermissionGateResult = (
+  privateRecordOptions: PermissionGateOptions | undefined,
+): PermissionGateResult => {
+  return PermissionGate.checkColumnUpdate(
+    new IncidentMember(),
+    "userId",
+    withPrivateRecordGateOptions(
+      { sentence: INCIDENT_ROLES_LOCKED_SENTENCE },
+      privateRecordOptions,
+    ),
+  );
+};
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -303,6 +329,26 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
     }
   };
 
+  // Reassign: the role's row names the person picked - one change.
+  const handleReassignMember: (
+    member: AssignedMember,
+    newUserId: ObjectID,
+  ) => Promise<void> = async (
+    member: AssignedMember,
+    newUserId: ObjectID,
+  ): Promise<void> => {
+    await reassignIncidentRole({
+      memberId: member.memberId,
+      userId: newUserId,
+    });
+
+    await fetchData();
+
+    if (props.onMemberChange) {
+      await props.onMemberChange();
+    }
+  };
+
   const card: ReactElement = (
     <MemberRoleAssignment
       title="Incident Roles"
@@ -318,13 +364,16 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       error={error}
       onAssignMember={handleAssignMember}
       onUnassignMember={handleUnassignMember}
+      onReassignMember={handleReassignMember}
       onRefresh={fetchData}
       emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
       /*
        * A role given is a new row of the incident's members, a role taken
-       * off one removed: the header's Assign asks the same.
+       * off one removed, and a role handed on that row naming someone else
+       * (Edit Incident Member, never the other two: #10191). The header
+       * asks the same of its Assign and of its commander's name.
        */
       assignGate={PermissionGate.check(
         new IncidentMember(),
@@ -343,6 +392,9 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
           { sentence: INCIDENT_ROLES_LOCKED_SENTENCE },
           privateRecordGate(new IncidentMember()),
         ),
+      )}
+      reassignGate={getIncidentRoleReassignGate(
+        privateRecordGate(new IncidentMember()),
       )}
     />
   );
