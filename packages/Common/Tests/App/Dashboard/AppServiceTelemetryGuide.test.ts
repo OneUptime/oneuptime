@@ -4,13 +4,17 @@ import {
   APP_SERVICE_STACK_OPTIONS,
   AppServiceStack,
   OPENTELEMETRY_JAVA_AGENT_URL,
+  getAppServiceStackVariants,
   getAppServiceTelemetryGuide,
   resolveAppServiceStack,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/AppServiceTelemetryGuide";
+import { getCloudSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudSetupGuide";
 import { getAppServiceGuideApp } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/AppServiceSetupTab";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SetupGuideContent,
+  SetupGuideStep,
+  SetupGuideStepVariant,
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
@@ -419,6 +423,158 @@ describe("in every language", () => {
           spans(getSetupGuideMarkdown(english)).length,
         ).toBeGreaterThanOrEqual(3);
       }
+    }
+  });
+});
+
+/*
+ * #10408: the environment's App Service guide gave one set of settings,
+ * and left "other languages" to add cloud.platform and cloud.region by hand
+ * and set service.instance.id in code - never cloud.resource_id, which ties
+ * the app to its site. It now gives each stack's own step as a tab, from
+ * the very steps this tab draws, so the two can never drift apart.
+ */
+describe("the environment's App Service guide gives each stack's own step", () => {
+  const STACK_LABELS: Array<string> = [".NET", "Java", "Node.js", "Python"];
+
+  function environmentGuide(translator?: Translator): SetupGuideContent {
+    return getCloudSetupGuide({
+      oneuptimeUrl: URL_BASE,
+      apiKey: KEY,
+      platform: ManagedCloudPlatform.AzureAppService,
+      translator,
+    });
+  }
+
+  function stackStep(content: SetupGuideContent): SetupGuideStep {
+    const step: SetupGuideStep | undefined = content.steps.find(
+      (candidate: SetupGuideStep): boolean => {
+        return (candidate.variants || []).length > 0;
+      },
+    );
+
+    expect(step).toBeDefined();
+
+    return step as SetupGuideStep;
+  }
+
+  test("one tab per stack, in the Setup tab's order, after the settings and before the check", () => {
+    const content: SetupGuideContent = environmentGuide();
+
+    expect(
+      content.steps.map((step: SetupGuideStep): string => {
+        return step.title;
+      }),
+    ).toEqual([
+      "Store the token in Key Vault",
+      "Set the application settings",
+      "Instrument the app",
+      "Verify the connection",
+    ]);
+    expect(
+      (stackStep(content).variants || []).map(
+        (variant: SetupGuideStepVariant): string => {
+          return variant.label;
+        },
+      ),
+    ).toEqual(STACK_LABELS);
+    expect(
+      APP_SERVICE_STACK_OPTIONS.map((option: { label: string }): string => {
+        return option.label;
+      }),
+    ).toEqual(STACK_LABELS);
+  });
+
+  test("each tab is the Setup tab's own step for its stack, word for word, with placeholders for the names", () => {
+    const tabs: Array<SetupGuideStepVariant> =
+      stackStep(environmentGuide()).variants || [];
+
+    for (const option of APP_SERVICE_STACK_OPTIONS) {
+      const setupTab: SetupGuideContent = getAppServiceTelemetryGuide({
+        oneuptimeUrl: URL_BASE,
+        apiKey: KEY,
+        stack: option.key,
+      });
+      const ownStep: SetupGuideStep = setupTab.steps[1]!;
+      const tab: SetupGuideStepVariant | undefined = tabs.find(
+        (candidate: SetupGuideStepVariant): boolean => {
+          return candidate.label === option.label;
+        },
+      );
+
+      expect({ stack: option.key, markdown: tab?.markdown }).toEqual({
+        stack: option.key,
+        markdown: ownStep.markdown,
+      });
+    }
+  });
+
+  test("each stack turns on its App Service resource detector, which names the site, and the hand-set attributes are gone", () => {
+    const content: SetupGuideContent = environmentGuide();
+    const tabs: Array<SetupGuideStepVariant> = stackStep(content).variants || [];
+    const tabOf: (label: string) => string = (label: string): string => {
+      return (
+        tabs.find((candidate: SetupGuideStepVariant): boolean => {
+          return candidate.label === label;
+        })?.markdown || ""
+      );
+    };
+
+    expect(tabOf(".NET")).toContain("AddAzureAppServiceDetector()");
+    expect(tabOf("Java")).toContain("OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED");
+    expect(tabOf("Node.js")).toContain(
+      "OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure",
+    );
+    expect(tabOf("Python")).toContain(
+      "OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service",
+    );
+
+    // The detector that names the site: cloud.resource_id, said once, on .NET's.
+    expect(tabOf(".NET")).toContain("`cloud.resource_id`");
+
+    const markdown: string = getSetupGuideMarkdown(content);
+
+    expect(markdown).not.toContain("Other languages add");
+    expect(markdown).not.toContain(
+      "cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>",
+    );
+  });
+
+  test("the names the guide does not know are placeholders, single-quoted for the shell", () => {
+    const commands: string = (stackStep(environmentGuide()).variants || [])
+      .map((variant: SetupGuideStepVariant): string => {
+        return variant.markdown;
+      })
+      .join("\n");
+
+    expect(commands).toContain(
+      `--resource-group '${APP_SERVICE_GUIDE_PLACEHOLDERS.resourceGroup}'`,
+    );
+    expect(commands).toContain(
+      `--name '${APP_SERVICE_GUIDE_PLACEHOLDERS.siteName}'`,
+    );
+    expect(stackStep(environmentGuide()).markdown).toContain(
+      "`<app-name>` and `<resource-group>`",
+    );
+  });
+
+  test("the tabs are worded in the reader's language, from the same steps", () => {
+    for (const language of ["de", "fa"]) {
+      const translator: Translator = dashboardTranslator(language);
+      const tabs: Array<SetupGuideStepVariant> =
+        stackStep(environmentGuide(translator)).variants || [];
+
+      expect(tabs).toEqual(
+        getAppServiceStackVariants({
+          oneuptimeUrl: URL_BASE,
+          apiKey: KEY,
+          translator,
+        }),
+      );
+      // Not the English: the sentence under the .NET commands is worded.
+      expect(tabs[0]!.markdown).not.toContain(
+        "names each instance (`service.instance.id`) and the site",
+      );
     }
   });
 });
