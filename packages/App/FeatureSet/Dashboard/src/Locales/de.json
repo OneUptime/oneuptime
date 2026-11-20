@@ -59749,5 +59749,11 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Sie kommen unter jeden journald-Receiver, der keine hat, und sonst ändert sich nichts. Gespeichert ist es eine neue Version, die ihre Hosts in einer Minute erhalten.",
   "Device Manager ID": "Geräteverwaltungs-ID",
   "{{count}} days old": "{{count}} Tage alt",
-  "{{count}} days old_one": "{{count}} Tag alt"
+  "{{count}} days old_one": "{{count}} Tag alt",
+  "Catching up (device manager connection)": "Holt auf",
+  "Failing (device manager connection)": "Fehlerhaft",
+  "Get an alert when it stops reading, or when one of its devices stops checking in.": "Eine Warnung erhalten, wenn sie nicht mehr gelesen wird oder sich eines ihrer Geräte nicht mehr meldet.",
+  "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.": "Monitore, die OneUptime für diese Verbindung und die von ihr importierten Geräte empfiehlt: wenn sie nicht mehr gelesen wird, und wenn sich eines der Geräte nicht mehr meldet oder Aufmerksamkeit braucht. Wählen Sie die gewünschten aus und erstellen Sie sie in einem Schritt.",
+  "Waiting (device manager connection)": "Wartet",
+  "What its device manager's monitors raise about this device: when it stops checking in, runs low on battery, fills its storage or falls behind on security patches.": "Was die Monitore seiner Geräteverwaltung zu diesem Gerät melden: wenn es sich nicht mehr meldet, sein Akku zur Neige geht, sein Speicher vollläuft oder es bei den Sicherheitspatches zurückfällt."
 }

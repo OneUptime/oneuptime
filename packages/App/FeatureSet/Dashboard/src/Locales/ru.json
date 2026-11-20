@@ -59749,5 +59749,11 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "Они добавляются в каждый приёмник journald, где их нет, и больше ничего не меняется. После сохранения это новая версия, которую её хосты получат в течение минуты.",
   "Device Manager ID": "ID в системе управления устройствами",
   "{{count}} days old": "Давность: {{count}} дн.",
-  "{{count}} days old_one": "Давность: {{count}} день"
+  "{{count}} days old_one": "Давность: {{count}} день",
+  "Catching up (device manager connection)": "Прочитано частично",
+  "Failing (device manager connection)": "Неисправно",
+  "Get an alert when it stops reading, or when one of its devices stops checking in.": "Получить оповещение, когда подключение перестаёт читаться или одно из его устройств перестаёт выходить на связь.",
+  "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.": "Мониторы, которые OneUptime рекомендует для этого подключения и импортируемых им устройств: когда подключение перестаёт читаться и когда одно из устройств перестаёт выходить на связь или требует внимания. Выберите нужные и создайте их за один шаг.",
+  "Waiting (device manager connection)": "Ещё не прочитано",
+  "What its device manager's monitors raise about this device: when it stops checking in, runs low on battery, fills its storage or falls behind on security patches.": "О чём мониторы его системы управления устройствами сообщают по этому устройству: когда оно перестаёт выходить на связь, его батарея садится, хранилище заполняется или оно отстаёт с патчами безопасности."
 }

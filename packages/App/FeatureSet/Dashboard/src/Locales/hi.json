@@ -59749,5 +59749,11 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "ये हर उस journald रिसीवर के नीचे जुड़ते हैं जिसमें कोई नहीं है, और कुछ और नहीं बदलता। सहेजने पर यह नया संस्करण बनता है, जो एक मिनट में इसके होस्ट तक पहुँचता है।",
   "Device Manager ID": "डिवाइस मैनेजर ID",
   "{{count}} days old": "{{count}} दिन पुराना",
-  "{{count}} days old_one": "{{count}} दिन पुराना"
+  "{{count}} days old_one": "{{count}} दिन पुराना",
+  "Catching up (device manager connection)": "बकाया पूरा कर रहा है",
+  "Failing (device manager connection)": "विफल",
+  "Get an alert when it stops reading, or when one of its devices stops checking in.": "यह पढ़ा जाना बंद हो जाए या इसका कोई डिवाइस चेक-इन करना बंद करे तो अलर्ट पाएं।",
+  "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.": "इस कनेक्शन और इसके द्वारा आयात किए गए डिवाइसों के लिए OneUptime के सुझाए गए मॉनिटर: जब यह पढ़ा जाना बंद हो जाए, और जब इनमें से कोई डिवाइस चेक-इन करना बंद करे या उस पर ध्यान देने की ज़रूरत हो। जो चाहिए उन्हें चुनें और एक ही चरण में बनाएँ।",
+  "Waiting (device manager connection)": "प्रतीक्षारत",
+  "What its device manager's monitors raise about this device: when it stops checking in, runs low on battery, fills its storage or falls behind on security patches.": "इसके डिवाइस मैनेजर के मॉनिटर इस डिवाइस के बारे में क्या बताते हैं: जब यह चेक-इन करना बंद करे, इसकी बैटरी कम हो, इसका स्टोरेज भरने लगे या यह सुरक्षा पैच में पीछे रह जाए।"
 }

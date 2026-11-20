@@ -59749,5 +59749,11 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "این عملگرها زیر هر گیرنده journald که عملگری ندارد قرار می‌گیرند و چیز دیگری تغییر نمی‌کند. با ذخیره، نسخه‌ای جدید ساخته می‌شود که ظرف یک دقیقه به میزبان‌های آن می‌رسد.",
   "Device Manager ID": "شناسه در سرویس مدیریت دستگاه",
   "{{count}} days old": "قدمت: {{count}} روز",
-  "{{count}} days old_one": "قدمت: {{count}} روز"
+  "{{count}} days old_one": "قدمت: {{count}} روز",
+  "Catching up (device manager connection)": "در حال جبران عقب‌ماندگی",
+  "Failing (device manager connection)": "ناموفق",
+  "Get an alert when it stops reading, or when one of its devices stops checking in.": "دریافت هشدار وقتی دیگر خوانده نمی‌شود یا یکی از دستگاه‌های آن دیگر اعلام حضور نمی‌کند.",
+  "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.": "مانیتورهایی که OneUptime برای این اتصال و دستگاه‌هایی که وارد می‌کند توصیه می‌کند: وقتی دیگر خوانده نمی‌شود، و وقتی یکی از دستگاه‌ها دیگر اعلام حضور نمی‌کند یا به رسیدگی نیاز دارد. موارد دلخواه را انتخاب کنید و در یک گام بسازید.",
+  "Waiting (device manager connection)": "در انتظار",
+  "What its device manager's monitors raise about this device: when it stops checking in, runs low on battery, fills its storage or falls behind on security patches.": "آنچه مانیتورهای سرویس مدیریت دستگاه آن درباره این دستگاه اعلام می‌کنند: وقتی دیگر اعلام حضور نمی‌کند، باتری‌اش رو به اتمام است، فضای ذخیره‌سازی‌اش پر می‌شود یا از وصله‌های امنیتی عقب می‌ماند."
 }

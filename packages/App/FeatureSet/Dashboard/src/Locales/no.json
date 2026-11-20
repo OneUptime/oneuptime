@@ -59749,5 +59749,11 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "De legges under hver journald-mottaker som ikke har noen, og ingenting annet endres. Lagret blir den en ny versjon, som vertene får innen et minutt.",
   "Device Manager ID": "MDM-ID",
   "{{count}} days old": "{{count}} dager gammel",
-  "{{count}} days old_one": "{{count}} dag gammel"
+  "{{count}} days old_one": "{{count}} dag gammel",
+  "Catching up (device manager connection)": "Tar igjen etterslep",
+  "Failing (device manager connection)": "Feiler",
+  "Get an alert when it stops reading, or when one of its devices stops checking in.": "Få et varsel når den ikke lenger leses, eller når en av enhetene slutter å sjekke inn.",
+  "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.": "Monitorer OneUptime anbefaler for denne tilkoblingen og enhetene den importerer: når den ikke lenger leses, og når en av enhetene slutter å sjekke inn eller trenger oppmerksomhet. Velg dem du vil ha, og opprett dem i ett trinn.",
+  "Waiting (device manager connection)": "Venter",
+  "What its device manager's monitors raise about this device: when it stops checking in, runs low on battery, fills its storage or falls behind on security patches.": "Det monitorene i MDM-en melder om denne enheten: når den slutter å sjekke inn, har lavt batteri, fyller lagringen sin eller henger etter med sikkerhetspatcher."
 }

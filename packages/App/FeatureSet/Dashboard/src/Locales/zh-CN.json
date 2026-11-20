@@ -59749,5 +59749,11 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "它们会加到每个没有 operator 的 journald 接收器下，其他部分保持不变。保存后成为新版本，其主机会在一分钟内收到。",
   "Device Manager ID": "设备管理服务 ID",
   "{{count}} days old": "已过 {{count}} 天",
-  "{{count}} days old_one": "已过 {{count}} 天"
+  "{{count}} days old_one": "已过 {{count}} 天",
+  "Catching up (device manager connection)": "正在追赶",
+  "Failing (device manager connection)": "失败",
+  "Get an alert when it stops reading, or when one of its devices stops checking in.": "此连接停止读取或其中某台设备停止签入时收到警报。",
+  "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.": "OneUptime 为此连接及其导入的设备推荐的监视器：连接停止读取时，以及其中某台设备停止签入或需要处理时。选择需要的监视器，一步即可创建。",
+  "Waiting (device manager connection)": "正在等待",
+  "What its device manager's monitors raise about this device: when it stops checking in, runs low on battery, fills its storage or falls behind on security patches.": "其设备管理服务的监视器针对此设备发出的提醒：停止签入、电量不足、存储将满或安全补丁落后时。"
 }

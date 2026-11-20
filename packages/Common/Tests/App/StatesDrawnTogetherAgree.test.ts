@@ -202,6 +202,31 @@ export const STATE_SETS: Array<StateSet> = [
     ],
     drawnIn: ["packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts"],
   },
+  {
+    /*
+     * One pill per row of Inventory > Managed Devices' Device Managers list,
+     * its Status column (getDeviceManagementHealthWords), for every service
+     * a connection reads: Esper, Microsoft Intune, Workspace ONE UEM and
+     * SOTI MobiControl, which draw the same six (#10009). Russian's bare
+     * Waiting, Catching up and Failing are a noun, a verb and a masculine
+     * noun beside the neuter Off, Stale and Healthy, so the connection's
+     * have keys of their own.
+     */
+    thing:
+      "a device manager connection's status, on the Managed Devices list's Device Managers",
+    app: "Dashboard",
+    keys: [
+      "Off",
+      "Waiting (device manager connection)",
+      "Catching up (device manager connection)",
+      "Failing (device manager connection)",
+      "Stale",
+      "Healthy",
+    ],
+    drawnIn: [
+      `${DASHBOARD_SOURCE}/Components/DeviceManagement/DeviceManagementWords.ts`,
+    ],
+  },
 ];
 
 export const GENDERED_LANGUAGES: Array<string> = [
@@ -244,6 +269,15 @@ const PREPOSITION: Record<string, Array<string>> = {
 
 // Arabic's short vowels and the like, which a word may or may not carry.
 const VOWEL_MARKS: RegExp = /[ً-ِْٰ]/g;
+
+/*
+ * Words that read the same in every gender, whatever their ending: French's
+ * "Obsolète" ends as the feminine "Complète" does, and is a masculine
+ * device manager's state as much as a feminine connection's (#10009).
+ */
+const SAME_IN_EVERY_GENDER: Record<string, Array<string>> = {
+  fr: ["obsolète", "obsolètes"],
+};
 
 type Gender = "masculine" | "feminine" | "neuter" | "plural";
 
@@ -335,7 +369,7 @@ export function getStateGender(
   const word: string | undefined =
     language === "hi" ? text.trim() : headWord(language, text);
 
-  if (!word) {
+  if (!word || (SAME_IN_EVERY_GENDER[language] || []).includes(word)) {
     return undefined;
   }
 
@@ -682,6 +716,56 @@ describe("the states with keys of their own", () => {
     );
   });
 
+  /*
+   * #10009: a device manager connection's six states, one above the other
+   * on the Device Managers list, read in Russian as one part of speech, the
+   * neuter short form, as Russian words a state on its own and as its
+   * tooltips speak of the connection ("Сохранено", "Включите его"). The
+   * three with keys of their own read so beside Off, Stale and Healthy,
+   * which needed none; the bare words stay the other pages'.
+   */
+  test("a device manager connection's states read in Russian as one part of speech, the neuter", () => {
+    const russian: Translator = dashboardTranslator("ru");
+    const english: Translator = dashboardTranslator("en");
+    const keys: Array<string> = [
+      "Off",
+      "Waiting (device manager connection)",
+      "Catching up (device manager connection)",
+      "Failing (device manager connection)",
+      "Stale",
+      "Healthy",
+    ];
+    const words: Array<string> = keys.map((key: string): string => {
+      return russian.translateText(key);
+    });
+
+    expect(words).toEqual([
+      "Выключено",
+      "Ещё не прочитано",
+      "Прочитано частично",
+      "Неисправно",
+      "Устарело",
+      "Исправно",
+    ]);
+    expect(
+      words.map((word: string): string | undefined => {
+        return getStateGender("ru", word);
+      }),
+    ).toEqual(["neuter", "neuter", "neuter", "neuter", "neuter", "neuter"]);
+
+    // English draws each as its word, as the page always did.
+    expect(
+      keys.map((key: string): string => {
+        return english.translateText(key);
+      }),
+    ).toEqual(["Off", "Waiting", "Catching up", "Failing", "Stale", "Healthy"]);
+
+    // The bare words stay the other pages': an on-call log's Waiting, a security connection's Catching up.
+    expect(russian.translateText("Waiting")).toBe("Ожидание");
+    expect(russian.translateText("Catching up")).toBe("Догоняет");
+    expect(russian.translateText("Failing")).toBe("Сбой");
+  });
+
   test("read in Arabic and Spanish beside theirs", () => {
     const arabic: Record<string, unknown> = readLocale("Dashboard", "ar");
     const spanish: Record<string, unknown> = readLocale("Dashboard", "es");
@@ -707,6 +791,10 @@ describe("the states with keys of their own", () => {
       "Not fetched yet (OAuth token)": ["ru"],
       "Valid (OAuth token)": ["ar"],
       "Not fetched yet (calendar feed)": ["ru"],
+      // A device manager connection's states (#10009).
+      "Waiting (device manager connection)": ["ru"],
+      "Catching up (device manager connection)": ["ru"],
+      "Failing (device manager connection)": ["ru"],
     };
 
     for (const language of [
@@ -834,6 +922,54 @@ describe("the checks above (negative control)", () => {
     expect(getStateGender("hi", "सक्रिय")).toBeUndefined();
     expect(agrees("ru", ["Активно", "Неактивно"])).toBe(true);
     expect(agrees("it", ["Attivo", "Svuotato", "In pausa"])).toBe(true);
+  });
+
+  /*
+   * #10009: French's "Obsolète" is either gender, so a masculine
+   * "Désactivé" and "Sain" agree with it; a feminine ending like it still
+   * shows its gender, and a set of two genders is still caught.
+   */
+  test("a French word that is either gender shows none, and one that only ends like it still does", () => {
+    expect(getStateGender("fr", "Obsolète")).toBeUndefined();
+    expect(getStateGender("fr", "Non obsolète")).toBeUndefined();
+    expect(agrees("fr", ["Désactivé", "En attente", "Obsolète", "Sain"])).toBe(
+      true,
+    );
+
+    expect(getStateGender("fr", "Complète")).toBe("feminine");
+    expect(getStateGender("fr", "Incomplète")).toBe("feminine");
+    expect(agrees("fr", ["Désactivé", "Obsolète", "Incomplète"])).toBe(false);
+  });
+
+  // #10009: the connection's states as Russian worded them before, each caught.
+  test("a device manager connection's former Russian states disagree", () => {
+    expect(
+      getSetGenders("ru", [
+        "Выключено",
+        "Ожидание",
+        "Догоняет",
+        "Сбой",
+        "Устарело",
+        "Исправно",
+      ]),
+    ).toEqual({
+      Выключено: "neuter",
+      Ожидание: "plural",
+      Догоняет: "masculine",
+      Сбой: "masculine",
+      Устарело: "neuter",
+      Исправно: "neuter",
+    });
+    expect(
+      agrees("ru", [
+        "Выключено",
+        "Ожидание",
+        "Догоняет",
+        "Сбой",
+        "Устарело",
+        "Исправно",
+      ]),
+    ).toBe(false);
   });
 
   /*

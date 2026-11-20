@@ -59749,5 +59749,11 @@
   "They go under each journald receiver that has none, and nothing else changes. Saved, it is a new version its hosts get within a minute.": "오퍼레이터가 없는 각 journald 수신기 아래에 추가되며 다른 부분은 바뀌지 않습니다. 저장하면 새 버전이 되고, 1분 안에 호스트에 전달됩니다.",
   "Device Manager ID": "디바이스 관리 서비스 ID",
   "{{count}} days old": "{{count}}일 경과",
-  "{{count}} days old_one": "{{count}}일 경과"
+  "{{count}} days old_one": "{{count}}일 경과",
+  "Catching up (device manager connection)": "따라잡는 중",
+  "Failing (device manager connection)": "실패 중",
+  "Get an alert when it stops reading, or when one of its devices stops checking in.": "읽기가 멈추거나 디바이스 중 하나가 체크인을 멈추면 경고 받기.",
+  "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.": "OneUptime이 이 연결과 이 연결이 가져오는 디바이스에 권장하는 모니터입니다: 연결의 읽기가 멈출 때, 그리고 디바이스 중 하나가 체크인을 멈추거나 조치가 필요할 때. 원하는 모니터를 골라 한 번에 생성하세요.",
+  "Waiting (device manager connection)": "대기 중",
+  "What its device manager's monitors raise about this device: when it stops checking in, runs low on battery, fills its storage or falls behind on security patches.": "디바이스 관리 서비스의 모니터가 이 디바이스에 대해 알리는 내용: 체크인을 멈추거나, 배터리가 부족하거나, 스토리지가 가득 차거나, 보안 패치가 뒤처질 때."
 }
