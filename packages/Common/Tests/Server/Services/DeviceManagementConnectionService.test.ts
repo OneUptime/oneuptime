@@ -162,9 +162,7 @@ describe("what a save reads", () => {
     );
     expect(() => {
       return DeviceManagementConnectionServiceType.readProvider("jamf");
-    }).toThrow(
-      /Service must be 'esper', 'intune', 'workspaceone' or 'soti'/,
-    );
+    }).toThrow(/Service must be 'esper', 'intune', 'workspaceone' or 'soti'/);
   });
 
   test("the credentials: the API key and nothing else", () => {

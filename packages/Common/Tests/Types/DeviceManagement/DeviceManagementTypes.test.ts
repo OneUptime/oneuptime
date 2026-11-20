@@ -212,9 +212,9 @@ describe("the service", () => {
         DeviceManagementProvider.WorkspaceOne,
       ),
     ).toBe("Workspace ONE");
-    expect(getDeviceManagementProviderTitle(DeviceManagementProvider.Soti)).toBe(
-      "SOTI MobiControl",
-    );
+    expect(
+      getDeviceManagementProviderTitle(DeviceManagementProvider.Soti),
+    ).toBe("SOTI MobiControl");
     expect(
       getDeviceManagementProviderShortTitle(DeviceManagementProvider.Soti),
     ).toBe("SOTI");

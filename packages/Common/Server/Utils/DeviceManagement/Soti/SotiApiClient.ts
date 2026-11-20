@@ -77,7 +77,8 @@ export function readSotiTokenError(response: DataSourceHttpResponse): {
   said: string;
 } {
   const body: JSONObject | undefined = asObject(response.bodyJson);
-  const error: string = typeof body?.["error"] === "string" ? body["error"] : "";
+  const error: string =
+    typeof body?.["error"] === "string" ? body["error"] : "";
   const description: string =
     typeof body?.["error_description"] === "string"
       ? firstLineOf(body["error_description"])
@@ -280,7 +281,9 @@ export function describeSotiRefusal(
 }
 
 // The client a connection's settings read with.
-export function createSotiClient(options: SotiClientOptions): TenantServerClient {
+export function createSotiClient(
+  options: SotiClientOptions,
+): TenantServerClient {
   const now: () => Date =
     options.now ||
     ((): Date => {

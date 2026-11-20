@@ -85,7 +85,9 @@ export const WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ: number = 25;
 
 export const WORKSPACE_ONE_DEVICES_PATH: string = "/mdm/devices/search";
 
-export function getWorkspaceOneDeviceAppsPath(providerDeviceId: string): string {
+export function getWorkspaceOneDeviceAppsPath(
+  providerDeviceId: string,
+): string {
   return `/mdm/devices/${encodeURIComponent(providerDeviceId)}/apps`;
 }
 

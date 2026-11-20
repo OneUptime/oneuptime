@@ -95,7 +95,8 @@ export function readWorkspaceOneTokenError(response: DataSourceHttpResponse): {
   said: string;
 } {
   const body: JSONObject | undefined = asObject(response.bodyJson);
-  const error: string = typeof body?.["error"] === "string" ? body["error"] : "";
+  const error: string =
+    typeof body?.["error"] === "string" ? body["error"] : "";
   const description: string =
     typeof body?.["error_description"] === "string"
       ? firstLineOf(body["error_description"])

@@ -391,8 +391,7 @@ const workspaceOneDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
     id: "workspace-one-device-stopped-checking-in",
     provider: DeviceManagementProvider.WorkspaceOne,
     name: "Workspace ONE Device Stopped Checking In",
-    summary:
-      "A device has not reported to Workspace ONE for more than a day.",
+    summary: "A device has not reported to Workspace ONE for more than a day.",
     description:
       "Alert when a device Workspace ONE UEM manages has not reported for more than a day, one alert per device, resolved once it reports again. A device reports on its own schedule, an iPhone hours apart, so a day without a report is what says it is gone. A laptop left off over a weekend reads the same: raise the threshold for those. A device that is a host in Hosts, because a OneUptime agent reports it, is left to Host Stopped Reporting.",
     thresholdInMinutes: MANAGED_DEVICE_STOPPED_SYNCING_MINUTES,

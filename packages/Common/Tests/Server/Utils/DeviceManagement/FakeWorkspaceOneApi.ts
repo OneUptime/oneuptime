@@ -30,7 +30,8 @@ import { DeviceManagementTransport } from "../../../../Server/Utils/DeviceManage
  */
 
 export const WORKSPACE_ONE_SERVER: string = "as1234.awmdm.com";
-export const WORKSPACE_ONE_CLIENT_ID: string = "a3f1c2d4e5b647a8b9c0d1e2f3a4b5c6";
+export const WORKSPACE_ONE_CLIENT_ID: string =
+  "a3f1c2d4e5b647a8b9c0d1e2f3a4b5c6";
 export const WORKSPACE_ONE_CLIENT_SECRET: string =
   "9F2C4A7E1B3D5F60A8C2E4B6D8F0A1C3";
 export const WORKSPACE_ONE_TOKEN: string =
@@ -80,7 +81,9 @@ export interface FakeWorkspaceOneOptions {
  * search lists of it: an enrolled iPhone of a store, its user's details
  * included, as Workspace ONE sends them - which the import never keeps.
  */
-export function buildWorkspaceOneDevice(overrides: JSONObject = {}): JSONObject {
+export function buildWorkspaceOneDevice(
+  overrides: JSONObject = {},
+): JSONObject {
   return {
     EasIds: { EasId: ["ApplF2LXK1AAAAAA"] },
     TimeZone: "America/Chicago",
@@ -472,12 +475,17 @@ export class FakeWorkspaceOneApi {
       };
     }
 
-    const appsMatch: RegExpExecArray | null = /^\/api\/mdm\/devices\/([^/]+)\/apps$/.exec(
-      path,
-    );
+    const appsPrefix: string = "/api/mdm/devices/";
+    const appsSuffix: string = "/apps";
 
-    if (appsMatch) {
-      const id: string = decodeURIComponent(appsMatch[1]!);
+    if (
+      path.startsWith(appsPrefix) &&
+      path.endsWith(appsSuffix) &&
+      path.length > appsPrefix.length + appsSuffix.length
+    ) {
+      const id: string = decodeURIComponent(
+        path.substring(appsPrefix.length, path.length - appsSuffix.length),
+      );
       const known: boolean = (this.options.devices || []).some(
         (device: JSONObject): boolean => {
           return (

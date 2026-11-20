@@ -165,7 +165,10 @@ function titled(props: Record<string, unknown>, title: string): CapturedField {
  * shows: a step's showIf and a field's are applied, as BasicForm applies
  * them.
  */
-function walk(props: Record<string, unknown>, values: JSONObject): Array<string> {
+function walk(
+  props: Record<string, unknown>,
+  values: JSONObject,
+): Array<string> {
   const steps: Array<CapturedStep> = (
     props["formProps"] as { steps: Array<CapturedStep> }
   ).steps;
@@ -203,9 +206,8 @@ async function submit(values: JSONObject): Promise<void> {
 }
 
 function savedModel(): DeviceManagementConnection {
-  return (
-    createSpy.mock.calls[0]![0] as { model: DeviceManagementConnection }
-  ).model;
+  return (createSpy.mock.calls[0]![0] as { model: DeviceManagementConnection })
+    .model;
 }
 
 function updateData(): JSONObject {
@@ -316,7 +318,11 @@ describe("connecting a Workspace ONE server", () => {
     ).toEqual(["oauth OAuth client", "basic Administrator account"]);
     // The token service's regions, by the hosts Omnissa's docs name: as written.
     expect(titled(props, "Region").dropdownOptions).toEqual([
-      { value: "na", label: "na.uemauth.workspaceone.com", isUserContent: true },
+      {
+        value: "na",
+        label: "na.uemauth.workspaceone.com",
+        isUserContent: true,
+      },
       {
         value: "emea",
         label: "emea.uemauth.workspaceone.com",
@@ -334,9 +340,15 @@ describe("connecting a Workspace ONE server", () => {
       },
     ]);
     // Only the way in taken asks for its credentials.
-    expect(isRequired(titled(props, "Client Secret"), { authMethod: "oauth" })).toBe(true);
-    expect(isRequired(titled(props, "Client Secret"), { authMethod: "basic" })).toBe(false);
-    expect(isRequired(titled(props, "REST API Key"), { authMethod: "basic" })).toBe(true);
+    expect(
+      isRequired(titled(props, "Client Secret"), { authMethod: "oauth" }),
+    ).toBe(true);
+    expect(
+      isRequired(titled(props, "Client Secret"), { authMethod: "basic" }),
+    ).toBe(false);
+    expect(
+      isRequired(titled(props, "REST API Key"), { authMethod: "basic" }),
+    ).toBe(true);
     for (const title of ["Client Secret", "Password", "REST API Key"]) {
       expect(titled(props, title).fieldType).toBe("Password");
     }
@@ -482,7 +494,11 @@ describe("connecting a Workspace ONE server", () => {
     expect(mockRunTest).not.toHaveBeenCalled();
     expect(updateData()).toEqual({
       name: "Stores",
-      config: { clientId: WS1_CLIENT_ID, region: "emea", readIntervalInMinutes: 60 },
+      config: {
+        clientId: WS1_CLIENT_ID,
+        region: "emea",
+        readIntervalInMinutes: 60,
+      },
     });
     expect(onSaved).toHaveBeenCalledTimes(1);
   });

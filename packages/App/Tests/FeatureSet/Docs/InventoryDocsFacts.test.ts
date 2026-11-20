@@ -2381,7 +2381,9 @@ describe("Inventory Overview: devices from SOTI MobiControl (issue #10087)", () 
     const agents: { name: string; thresholdInMinutes: number } | undefined =
       getManagedDeviceAlertTemplateById("soti-device-stopped-checking-in");
     const apple: { name: string; thresholdInMinutes: number } | undefined =
-      getManagedDeviceAlertTemplateById("soti-apple-device-stopped-checking-in");
+      getManagedDeviceAlertTemplateById(
+        "soti-apple-device-stopped-checking-in",
+      );
 
     expect(agents!.thresholdInMinutes).toBe(
       MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,

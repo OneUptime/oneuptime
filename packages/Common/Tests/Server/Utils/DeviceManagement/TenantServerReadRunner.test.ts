@@ -59,6 +59,7 @@ import {
 } from "./FakeSotiApi";
 import {
   FakeWorkspaceOneApi,
+  FakeWorkspaceOneRequest,
   WORKSPACE_ONE_CLIENT_ID,
   WORKSPACE_ONE_CLIENT_SECRET,
   WORKSPACE_ONE_SERVER,
@@ -390,9 +391,11 @@ describe("a Workspace ONE UEM connection", () => {
     api = new FakeWorkspaceOneApi({ devices: many });
     const outcome: DeviceManagementReadOutcome = await run(api.transport);
 
-    const appRequests: number = api.requests.filter((request): boolean => {
-      return request.path.endsWith("/apps");
-    }).length;
+    const appRequests: number = api.requests.filter(
+      (request: FakeWorkspaceOneRequest): boolean => {
+        return request.path.endsWith("/apps");
+      },
+    ).length;
 
     expect(appRequests).toBe(WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ);
     expect(outcome.status).toBe("success");
@@ -425,7 +428,7 @@ describe("a Workspace ONE UEM connection", () => {
       appsReadDeviceCount: 0,
     });
     expect(
-      api.requests.filter((request): boolean => {
+      api.requests.filter((request: FakeWorkspaceOneRequest): boolean => {
         return request.path.endsWith("/apps");
       }),
     ).toHaveLength(1);
@@ -518,7 +521,7 @@ describe("a Workspace ONE UEM connection", () => {
     );
     expect(db.devices.size).toBe(0);
     expect(
-      api.requests.filter((request): boolean => {
+      api.requests.filter((request: FakeWorkspaceOneRequest): boolean => {
         return request.host === WORKSPACE_ONE_SERVER;
       }),
     ).toHaveLength(0);
@@ -571,9 +574,9 @@ describe("a SOTI MobiControl connection", () => {
 
     expect(outcome.status).toBe("success");
     expect(db.devices.size).toBe(4);
-    expect(new Date(String(deviceRow("35-8C4F2A9B1D7E")["lastCheckInAt"]))).toEqual(
-      START,
-    );
+    expect(
+      new Date(String(deviceRow("35-8C4F2A9B1D7E")["lastCheckInAt"])),
+    ).toEqual(START);
     expect(statusOf("35-8C4F2A9B1D7E")).toBe(ManagedDeviceStatus.Online);
     // Its agent disconnected two hours ago: a heartbeat device, offline after 30 minutes.
     expect(statusOf("WIN-5D1C2B3A4E5F")).toBe(ManagedDeviceStatus.Offline);

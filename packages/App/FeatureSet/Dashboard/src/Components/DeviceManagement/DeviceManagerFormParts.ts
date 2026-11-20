@@ -15,7 +15,9 @@ import { READ_INTERVAL_WORDS } from "./DeviceManagementWords";
  * field's value in HashedString before submit: that one is kept exactly as
  * typed, since a space at either end can be part of a password.
  */
-export function readDeviceManagerFormText(value: JSONValue | undefined): string {
+export function readDeviceManagerFormText(
+  value: JSONValue | undefined,
+): string {
   if (value === null || value === undefined) {
     return "";
   }

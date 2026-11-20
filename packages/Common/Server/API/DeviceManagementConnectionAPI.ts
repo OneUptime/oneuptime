@@ -383,7 +383,10 @@ export default class DeviceManagementConnectionAPI extends BaseAPI<
       (config.authMethod || "") === (stored.config.authMethod || "");
     const secrets: DeviceManagementSecretValues = {};
 
-    for (const rule of getDeviceManagementSecretRules(stored.provider, config)) {
+    for (const rule of getDeviceManagementSecretRules(
+      stored.provider,
+      config,
+    )) {
       secrets[rule.key] =
         provided[rule.key] ||
         rule.read(isSameSignIn ? stored[rule.key] : undefined);

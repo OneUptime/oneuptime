@@ -90,8 +90,7 @@ class ScriptedServer {
       return {
         statusCode: answer.status,
         bodyText,
-        bodyJson:
-          typeof answer.body === "string" ? undefined : answer.body,
+        bodyJson: typeof answer.body === "string" ? undefined : answer.body,
         headers: answer.headers || {},
       };
     };
@@ -197,9 +196,7 @@ describe("where the credentials may go", () => {
     expect(
       client.isAllowedServerUrl(`https://${SERVER}/API/mdm/devices/search`),
     ).toBe(true);
-    expect(client.isAllowedServerUrl(`https://${SERVER}:443/api/x`)).toBe(
-      true,
-    );
+    expect(client.isAllowedServerUrl(`https://${SERVER}:443/api/x`)).toBe(true);
 
     for (const url of [
       `http://${SERVER}/api/mdm/devices/search`,
@@ -224,7 +221,9 @@ describe("where the credentials may go", () => {
     });
 
     expect(
-      client.isAllowedServerUrl("https://mdm.acme.com:8443/MobiControl/api/devices"),
+      client.isAllowedServerUrl(
+        "https://mdm.acme.com:8443/MobiControl/api/devices",
+      ),
     ).toBe(true);
     expect(
       client.isAllowedServerUrl("https://mdm.acme.com/MobiControl/api/devices"),
@@ -300,7 +299,11 @@ describe("where the credentials may go", () => {
       headers: { location: "/api/mdm/devices/summary2" },
     });
     await failureOf(
-      post.client.postJson("/mdm/devices/summary", [], "device summary request"),
+      post.client.postJson(
+        "/mdm/devices/summary",
+        [],
+        "device summary request",
+      ),
     );
     expect(post.server.requests).toHaveLength(1);
   });
@@ -361,7 +364,11 @@ describe("the egress guard checks every request", () => {
     );
 
     await failureOf(
-      cloud.harness.client.get("/mdm/devices/search", {}, "device list request"),
+      cloud.harness.client.get(
+        "/mdm/devices/search",
+        {},
+        "device list request",
+      ),
     );
     expect(cloud.harness.server.requests).toHaveLength(0);
 
@@ -413,7 +420,12 @@ describe("the egress guard checks every request", () => {
   test("through the real DataSourceHttpFetch, the metadata, loopback and (on OneUptime Cloud) private addresses are refused before a socket opens", async () => {
     process.env["BILLING_ENABLED"] = "true";
 
-    for (const host of ["169.254.169.254", "127.0.0.1", "10.0.4.17", "192.168.1.20"]) {
+    for (const host of [
+      "169.254.169.254",
+      "127.0.0.1",
+      "10.0.4.17",
+      "192.168.1.20",
+    ]) {
       const { client } = harness({
         apiBaseUrl: `https://${host}/api`,
         transport: DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
@@ -424,7 +436,9 @@ describe("the egress guard checks every request", () => {
       );
 
       expect(failure.kind).toBe(LlmConnectionFailureKind.Settings);
-      expect(failure.message).toContain(`Workspace ONE UEM server host ${host}`);
+      expect(failure.message).toContain(
+        `Workspace ONE UEM server host ${host}`,
+      );
       expect(failure.message).toContain("is not allowed");
     }
   });
@@ -466,18 +480,27 @@ describe("throttling, failures and the budget", () => {
     const backingOff: Harness = harness();
     backingOff.server.answer({ status: 429 });
 
-    await backingOff.client.get("/mdm/devices/search", {}, "device list request");
+    await backingOff.client.get(
+      "/mdm/devices/search",
+      {},
+      "device list request",
+    );
     expect(backingOff.slept).toContain(backingOff.client.backoffMs(1));
 
     const tooMany: Harness = harness();
     for (let index: number = 0; index <= MAX_RATE_LIMIT_RETRIES; index++) {
-      tooMany.server.answer({ status: 429, body: { message: "Too many requests." } });
+      tooMany.server.answer({
+        status: 429,
+        body: { message: "Too many requests." },
+      });
     }
     const gaveUp: LlmProviderError = await failureOf(
       tooMany.client.get("/mdm/devices/search", {}, "device list request"),
     );
     expect(gaveUp.kind).toBe(LlmConnectionFailureKind.RateLimited);
-    expect(gaveUp.message).toContain("slow down (HTTP 429) on the device list request. Too many requests.");
+    expect(gaveUp.message).toContain(
+      "slow down (HTTP 429) on the device list request. Too many requests.",
+    );
 
     const longWait: Harness = harness();
     longWait.server.answer({ status: 429, headers: { "retry-after": "3600" } });
@@ -530,7 +553,10 @@ describe("throttling, failures and the budget", () => {
 
   test("a token the server no longer takes is renewed once; a second 401 stands", async () => {
     const { client, server, signIn } = harness();
-    server.answer({ status: 401, body: { message: "OAuth token is expired." } });
+    server.answer({
+      status: 401,
+      body: { message: "OAuth token is expired." },
+    });
 
     await client.get("/mdm/devices/search", {}, "device list request");
     expect(signIn.tokensGiven).toBe(2);
@@ -552,7 +578,10 @@ describe("throttling, failures and the budget", () => {
 
   test("a sign-in that cannot be renewed (an account's) takes its 401 at once", async () => {
     const { client, server } = harness({}, new TestSignIn(false));
-    server.answer({ status: 401, body: { message: "User credentials are invalid." } });
+    server.answer({
+      status: 401,
+      body: { message: "User credentials are invalid." },
+    });
 
     const failure: LlmProviderError = await failureOf(
       client.get("/mdm/devices/search", {}, "device list request"),
@@ -606,7 +635,10 @@ describe("throttling, failures and the budget", () => {
 
     const signingIn: Harness = harness({ maxRequests: 1 });
     await signingIn.client.sendSignInRequest(
-      { method: "POST", url: "https://na.uemauth.workspaceone.com/connect/token" },
+      {
+        method: "POST",
+        url: "https://na.uemauth.workspaceone.com/connect/token",
+      },
       "token request",
     );
     expect(signingIn.client.hasBudgetFor(1)).toBe(false);

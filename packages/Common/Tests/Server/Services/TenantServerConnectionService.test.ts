@@ -256,9 +256,9 @@ describe("a Workspace ONE connection (#10086)", () => {
         },
       }),
     ).toBe("Region must be one of na, emea, apac, uat.");
-    expect(
-      await refused({ config: { tenant: "as1234.awmdm.com" } }),
-    ).toMatch(/Enter the OAuth client's Client ID/);
+    expect(await refused({ config: { tenant: "as1234.awmdm.com" } })).toMatch(
+      /Enter the OAuth client's Client ID/,
+    );
     expect(
       await refused({
         config: { tenant: "as1234.awmdm.com", clientId: WS1_CLIENT_ID },
@@ -420,8 +420,7 @@ describe("a SOTI connection (#10087)", () => {
   test("its server is stored as its host, its API client and user as checked, both secrets as JSON", async () => {
     const connection: DeviceManagementConnection = soti({
       config: {
-        tenant:
-          "https://Acme.MobiControlCloud.com/MobiControl/WebConsole/home",
+        tenant: "https://Acme.MobiControlCloud.com/MobiControl/WebConsole/home",
         clientId: SOTI_CLIENT_ID,
         username: " oneuptime-reader ",
         readIntervalInMinutes: 5,
@@ -478,9 +477,9 @@ describe("a SOTI connection (#10087)", () => {
         },
       }),
     ).toMatch(/Enter the username of the MobiControl user/);
-    expect(
-      await refused({ secrets: { clientSecret: SOTI_SECRET } }),
-    ).toMatch(/Enter the password of the MobiControl user/);
+    expect(await refused({ secrets: { clientSecret: SOTI_SECRET } })).toMatch(
+      /Enter the password of the MobiControl user/,
+    );
     expect(
       await refused({
         secrets: {
@@ -529,9 +528,7 @@ describe("a SOTI connection (#10087)", () => {
   test("one connection per server and project", async () => {
     existing = [soti({ name: "Warehouses" })];
 
-    expect(
-      await refusal(service.onBeforeCreate(createBy(soti()))),
-    ).toBe(
+    expect(await refusal(service.onBeforeCreate(createBy(soti())))).toBe(
       'This MobiControl server is connected already, as "Warehouses". Edit that connection instead.',
     );
   });

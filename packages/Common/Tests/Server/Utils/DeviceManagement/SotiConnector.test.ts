@@ -269,9 +269,11 @@ describe("reading the device list", () => {
     ).readFleet({ checkInSince: NOW });
 
     expect(
-      fleet.devices.map((device: { providerDeviceId: string; platform: string }): string => {
-        return `${device.providerDeviceId} ${device.platform}`;
-      }),
+      fleet.devices.map(
+        (device: { providerDeviceId: string; platform: string }): string => {
+          return `${device.providerDeviceId} ${device.platform}`;
+        },
+      ),
     ).toEqual([
       `35-8C4F2A9B1D7E ${ManagedDevicePlatform.Android}`,
       `IOS-00008110001A2B3C ${ManagedDevicePlatform.IPadOS}`,
@@ -402,10 +404,9 @@ describe("a device's apps", () => {
 
   test("a user that may not view installed applications: a permission failure", async () => {
     const api: FakeSotiApi = new FakeSotiApi({ devices: devices() });
-    api.script(
-      `${BASE_PATH}/devices/35-8C4F2A9B1D7E/installedApplications`,
-      [{ status: 403, body: { Message: "Access denied." } }],
-    );
+    api.script(`${BASE_PATH}/devices/35-8C4F2A9B1D7E/installedApplications`, [
+      { status: 403, body: { Message: "Access denied." } },
+    ]);
 
     await expect(
       sessionOf(api.transport).readApps({
@@ -457,7 +458,9 @@ describe("testing a connection", () => {
 
     expect(result.status).toBe("pass");
     expect(result.deviceCount).toBeUndefined();
-    expect(result.message).toBe(`Connected to SOTI MobiControl at ${SOTI_SERVER}.`);
+    expect(result.message).toBe(
+      `Connected to SOTI MobiControl at ${SOTI_SERVER}.`,
+    );
   });
 
   test("a server or credentials that cannot be one are refused before any request", async () => {
@@ -491,7 +494,8 @@ describe("testing a connection", () => {
       new FakeSotiApi({ devices: devices() }).transport,
       {
         config: config({
-          tenant: "https://ACME.mobicontrolcloud.com/MobiControl/WebConsole/home",
+          tenant:
+            "https://ACME.mobicontrolcloud.com/MobiControl/WebConsole/home",
         }),
       },
     );

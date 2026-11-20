@@ -460,7 +460,9 @@ export function parseSotiApps(
  * Disabled buckets of an aggregation of the devices by their Mode
  * (POST /devices/summary). Undefined when it says nothing that can be read.
  */
-export function parseSotiManagedDeviceCount(value: unknown): number | undefined {
+export function parseSotiManagedDeviceCount(
+  value: unknown,
+): number | undefined {
   if (!Array.isArray(value) || value.length === 0) {
     return undefined;
   }

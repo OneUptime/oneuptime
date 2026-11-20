@@ -8,7 +8,6 @@ import {
   ProviderApp,
 } from "../../../../Server/Utils/DeviceManagement/DeviceManagementTypes";
 import WorkspaceOneConnector, {
-  WORKSPACE_ONE_DEVICES_PATH,
   WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ,
   WORKSPACE_ONE_PAGE_SIZE,
 } from "../../../../Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneConnector";
@@ -316,9 +315,7 @@ describe("signing in", () => {
     });
     expect(result.message).toContain("HTTP 403");
     expect(result.message).toContain("(error code 1011)");
-    expect(result.remediation).toContain(
-      "API > REST: Devices and Apps, Read",
-    );
+    expect(result.remediation).toContain("API > REST: Devices and Apps, Read");
   });
 });
 
@@ -443,10 +440,9 @@ describe("reading the device list", () => {
     ]);
     const slept: Array<number> = [];
 
-    const fleet: DeviceManagementFleetRead = await sessionOf(
-      waited.transport,
-      { slept },
-    ).readFleet({ checkInSince: NOW });
+    const fleet: DeviceManagementFleetRead = await sessionOf(waited.transport, {
+      slept,
+    }).readFleet({ checkInSince: NOW });
     expect(fleet.isDeviceListComplete).toBe(true);
     expect(slept).toContain(5000);
     expect(slept.length).toBeGreaterThanOrEqual(2);
@@ -613,7 +609,11 @@ describe("testing a connection", () => {
       { config: oauthConfig({ region: "mars" }) },
       { config: oauthConfig({ clientId: "" }) },
       { clientSecret: "" },
-      { config: { ...basicConfig(), username: "" }, password: "x", apiKey: WORKSPACE_ONE_API_KEY },
+      {
+        config: { ...basicConfig(), username: "" },
+        password: "x",
+        apiKey: WORKSPACE_ONE_API_KEY,
+      },
       { config: basicConfig(), password: "", apiKey: WORKSPACE_ONE_API_KEY },
       { config: basicConfig(), password: "pw", apiKey: "" },
       { config: oauthConfig({ authMethod: "certificate" }) },
@@ -641,7 +641,10 @@ describe("testing a connection", () => {
       config: oauthConfig({ tenant: "https://cn1234.awmdm.com/AirWatch/" }),
     });
 
-    expect(result).toMatchObject({ status: "pass", tenant: "as1234.awmdm.com" });
+    expect(result).toMatchObject({
+      status: "pass",
+      tenant: "as1234.awmdm.com",
+    });
   });
 });
 
@@ -707,7 +710,8 @@ describe("where the requests may go", () => {
       {
         status: 302,
         headers: {
-          location: "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+          location:
+            "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
         },
       },
     ]);

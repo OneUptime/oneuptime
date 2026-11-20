@@ -139,6 +139,11 @@ export function firstLineOf(text: string): string {
     .substring(0, MAX_ERROR_TEXT_LENGTH);
 }
 
+// Whether a text ends as a sentence does: a full stop, a question or an exclamation mark.
+function endsSentence(text: string): boolean {
+  return text.endsWith(".") || text.endsWith("?") || text.endsWith("!");
+}
+
 // A URL's path, lowercased and with one slash at its end, for comparing as a prefix.
 function asPathPrefix(path: string): string {
   const lower: string = path.toLowerCase();
@@ -212,10 +217,7 @@ export default class TenantServerClient {
    * is https://as1234.awmdm.com/api/mdm/devices/search?page=0. The path is
    * the API's own, never anything a server answered.
    */
-  public urlOf(
-    path: string,
-    query: Dictionary<string | number> = {},
-  ): string {
+  public urlOf(path: string, query: Dictionary<string | number> = {}): string {
     const url: URL = new URL(this.apiBase.toString());
 
     url.pathname = `${this.apiBase.pathname.replace(/\/+$/, "")}${path}`;
@@ -261,7 +263,11 @@ export default class TenantServerClient {
     query: Dictionary<string | number>,
     step: string,
   ): Promise<TenantServerAnswer> {
-    return this.requestUrl({ method: "GET", url: this.urlOf(path, query), step });
+    return this.requestUrl({
+      method: "GET",
+      url: this.urlOf(path, query),
+      step,
+    });
   }
 
   /*
@@ -450,7 +456,7 @@ export default class TenantServerClient {
 
     return new LlmProviderError({
       message: this.redact(
-        `The ${this.options.serviceTitle} server answered the ${step} with HTTP ${status}${said ? `: ${said}` : ""}${said && /[.!?]$/.test(said) ? "" : "."}${refusal?.hint ? ` ${refusal.hint}` : ""}`,
+        `The ${this.options.serviceTitle} server answered the ${step} with HTTP ${status}${said ? `: ${said}` : ""}${endsSentence(said) ? "" : "."}${refusal?.hint ? ` ${refusal.hint}` : ""}`,
       ),
       kind,
       statusCode: status,
@@ -460,10 +466,7 @@ export default class TenantServerClient {
 
   // A text safe to show: every credential the sign-in holds removed.
   public redact(text: string): string {
-    return LlmProviderError.redact(
-      text,
-      this.options.signIn.secretValues(),
-    );
+    return LlmProviderError.redact(text, this.options.signIn.secretValues());
   }
 
   private egressOptions(): DataSourceHttpRequest["egressOptions"] {

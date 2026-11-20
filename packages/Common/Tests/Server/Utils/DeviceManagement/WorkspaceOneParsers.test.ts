@@ -381,8 +381,9 @@ describe("a device's apps", () => {
 
   test("an app assigned but not installed, or removed, is not on the device", () => {
     for (const status of ["Pending Install", "PendingInstall", "Removed"]) {
-      expect(parseWorkspaceOneApp(buildWorkspaceOneApp({ Status: status })))
-        .toBeNull();
+      expect(
+        parseWorkspaceOneApp(buildWorkspaceOneApp({ Status: status })),
+      ).toBeNull();
     }
 
     for (const status of ["Pending Removal", "Unknown", ""]) {

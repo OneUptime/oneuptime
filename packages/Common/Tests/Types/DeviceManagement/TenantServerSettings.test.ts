@@ -49,7 +49,10 @@ describe("a server's address", () => {
     for (const [typed, read] of [
       ["as1234.awmdm.com", "as1234.awmdm.com"],
       ["https://AS1234.awmdm.com/API/", "as1234.awmdm.com"],
-      ["  https://as1234.awmdm.com/api/mdm/devices?page=0#top ", "as1234.awmdm.com"],
+      [
+        "  https://as1234.awmdm.com/api/mdm/devices?page=0#top ",
+        "as1234.awmdm.com",
+      ],
       ["HTTPS://mdm.acme.com:8443/MobiControl", "mdm.acme.com:8443"],
       ["mdm.acme.com:443", "mdm.acme.com"],
       ["mobicontrol", "mobicontrol"],
@@ -386,7 +389,9 @@ describe("how often their devices check in", () => {
 describe("what their devices' hosts carry", () => {
   test("each service's facts under its own namespace, and every namespace let go with a host", () => {
     expect(
-      getManagedDeviceServiceAttributeKeys(DeviceManagementProvider.WorkspaceOne),
+      getManagedDeviceServiceAttributeKeys(
+        DeviceManagementProvider.WorkspaceOne,
+      ),
     ).toEqual({
       deviceId: "workspaceone.device.id",
       deviceName: "workspaceone.device.name",

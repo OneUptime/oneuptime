@@ -133,16 +133,19 @@ describe("a device", () => {
     expect(readSotiPlatform({ Kind: "Ios", ProductName: "iPad12,1" })).toBe(
       ManagedDevicePlatform.IPadOS,
     );
-    expect(readSotiPlatform({ Kind: "Unknown", Platform: "WindowsTen64" })).toBe(
-      ManagedDevicePlatform.Windows,
-    );
+    expect(
+      readSotiPlatform({ Kind: "Unknown", Platform: "WindowsTen64" }),
+    ).toBe(ManagedDevicePlatform.Windows);
   });
 
   test("an Active device and a Disabled one are imported, the Disabled one as Disabled; an unenrolled one is not", () => {
     expect(read(buildSotiDevice({ Mode: "Disabled" })).device.state).toBe(
       EsperDeviceState.Disabled,
     );
-    expect(read(buildSotiDevice({ Mode: undefined as unknown as string })).device.state).toBeNull();
+    expect(
+      read(buildSotiDevice({ Mode: undefined as unknown as string })).device
+        .state,
+    ).toBeNull();
 
     for (const mode of [
       "UnenrollPendingUser",
@@ -168,9 +171,9 @@ describe("a device", () => {
     }
 
     // A number is written out as an ID.
-    expect(read(buildSotiDevice({ DeviceId: 42 })).device.providerDeviceId).toBe(
-      "42",
-    );
+    expect(
+      read(buildSotiDevice({ DeviceId: 42 })).device.providerDeviceId,
+    ).toBe("42");
   });
 
   test("missing and odd values are absent, never a failure", () => {
@@ -260,7 +263,9 @@ describe("when a device was last there", () => {
 
 describe("groups", () => {
   test("a device group's path as Inventory writes one, and each group once by its path", () => {
-    expect(readSotiGroupPath("\\\\Acme\\Stores\\West")).toBe("Acme/Stores/West");
+    expect(readSotiGroupPath("\\\\Acme\\Stores\\West")).toBe(
+      "Acme/Stores/West",
+    );
     expect(readSotiGroupPath("\\\\Acme")).toBe("Acme");
     expect(readSotiGroupPath("")).toBe("");
 
@@ -392,7 +397,10 @@ describe("what MobiControl said went wrong", () => {
     ).toBe("Contract validation failed take must be at most 1000");
     expect(
       readSotiError({
-        bodyJson: { error: "invalid_grant", error_description: "The user name or password is incorrect." },
+        bodyJson: {
+          error: "invalid_grant",
+          error_description: "The user name or password is incorrect.",
+        },
         bodyText: "",
       }),
     ).toBe("invalid_grant: The user name or password is incorrect.");

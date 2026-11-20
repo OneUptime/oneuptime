@@ -140,7 +140,9 @@ export function readWorkspaceOneDate(value: unknown): Date | null {
  * ({"Id": {"Value": 15}}), as text. "" for a device without one.
  */
 export function readWorkspaceOneDeviceId(value: unknown): string {
-  const id: number | null = readNumber(asObject(asObject(value)["Id"])["Value"]);
+  const id: number | null = readNumber(
+    asObject(asObject(value)["Id"])["Value"],
+  );
 
   return id !== null && id > 0 && Number.isInteger(id) ? String(id) : "";
 }
@@ -252,7 +254,10 @@ export function parseWorkspaceOneDevice(
   const raw: JSONObject = asObject(value);
   const providerDeviceId: string = readWorkspaceOneDeviceId(raw);
 
-  if (!providerDeviceId || !isWorkspaceOneDeviceEnrolled(raw["EnrollmentStatus"])) {
+  if (
+    !providerDeviceId ||
+    !isWorkspaceOneDeviceEnrolled(raw["EnrollmentStatus"])
+  ) {
     return null;
   }
 
@@ -351,8 +356,7 @@ export function parseWorkspaceOneDevice(
       provisionedAt: readWorkspaceOneDate(raw["LastEnrolledOn"]),
       details,
     },
-    lastSeenAt:
-      lastSeen && lastSeen.getTime() > now.getTime() ? now : lastSeen,
+    lastSeenAt: lastSeen && lastSeen.getTime() > now.getTime() ? now : lastSeen,
   };
 }
 
@@ -423,7 +427,8 @@ export function readWorkspaceOnePage(data: {
 
   const body: JSONObject = asObject(data.body);
   const items: unknown =
-    body[data.key] ?? body[data.key.charAt(0).toLowerCase() + data.key.slice(1)];
+    body[data.key] ??
+    body[data.key.charAt(0).toLowerCase() + data.key.slice(1)];
 
   if (!Array.isArray(items)) {
     return null;
@@ -501,7 +506,9 @@ export function readWorkspaceOneError(data: {
 }): string {
   const body: JSONObject = asObject(data.bodyJson);
   const message: unknown = body["message"] ?? body["Message"];
-  const code: number | null = readNumber(body["errorCode"] ?? body["ErrorCode"]);
+  const code: number | null = readNumber(
+    body["errorCode"] ?? body["ErrorCode"],
+  );
   let text: string = "";
 
   if (typeof message === "string") {

@@ -611,9 +611,7 @@ describe("a Workspace ONE or SOTI connection's alerts", () => {
     });
   }
 
-  function platformsRead(
-    candidate: ManagedDeviceAlertTemplate,
-  ): unknown {
+  function platformsRead(candidate: ManagedDeviceAlertTemplate): unknown {
     const step: MonitorStep = candidate.getMonitorStep(buildArgs());
 
     return (
@@ -651,10 +649,9 @@ describe("a Workspace ONE or SOTI connection's alerts", () => {
   test("a SOTI connection is offered two: its agents' devices after an hour, its Apple devices after a day, never the same device twice", () => {
     const agents: ManagedDeviceAlertTemplate =
       getManagedDeviceAlertTemplateById("soti-device-stopped-checking-in")!;
-    const apple: ManagedDeviceAlertTemplate =
-      getManagedDeviceAlertTemplateById(
-        "soti-apple-device-stopped-checking-in",
-      )!;
+    const apple: ManagedDeviceAlertTemplate = getManagedDeviceAlertTemplateById(
+      "soti-apple-device-stopped-checking-in",
+    )!;
 
     expect(recommendedFor(DeviceManagementProvider.Soti)).toEqual([
       "DeviceManagementConnection:soti-device-stopped-checking-in",
@@ -694,8 +691,7 @@ describe("a Workspace ONE or SOTI connection's alerts", () => {
         getManagedDeviceAlertTemplateById(id)!;
       const step: MonitorStep = candidate.getMonitorStep(buildArgs());
       const unhealthy: MonitorCriteriaInstance = instancesOf(step)[0]!;
-      const incident: { description: string } =
-        unhealthy.data!.incidents[0]!;
+      const incident: { description: string } = unhealthy.data!.incidents[0]!;
 
       expect(incident.description).toContain(
         "Check its power and its network first",
