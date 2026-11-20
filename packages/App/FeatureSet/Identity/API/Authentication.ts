@@ -95,6 +95,10 @@ import {
 } from "Common/Types/ServerSending/ServerSendingWords";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  EmailAddressChangedBy,
+} from "Common/Types/Accounts/EmailAddressChangedEmail";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
 import SsoManagedSignIn from "Common/Server/Utils/SsoManagedSignIn";
 import UserService from "Common/Server/Services/UserService";
@@ -1936,8 +1940,17 @@ const confirmEmailChange: ConfirmEmailChangeFunction = async (data: {
         isEmailVerified: true,
         newUnverifiedTemporaryEmail: null!,
       },
+      /*
+       * The account's own change, made by opening its link: the address it
+       * leaves is told so, with where the link was opened (#9907,
+       * UserService.tellPreviousAddressesOfChange).
+       */
+      miscDataProps: {
+        [EMAIL_ADDRESS_CHANGED_BY_KEY]: EmailAddressChangedBy.AccountOwner,
+      },
       props: {
         isRoot: true,
+        requestOrigin: RequestOriginUtil.fromRequest(req),
       },
     });
   } catch (err) {
