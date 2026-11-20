@@ -170,7 +170,7 @@ describe("controlForColumn — the wire values, not the member names", () => {
     /*
      * Permission, MonitorType, WorkflowStatus and CustomFieldType are stored as
      * short text with one enum value in them - TeamPermission.permission ships
-     * example: "ProjectOwner".
+     * example: "IncidentMember".
      */
     const enumTypes: Array<string> = [
       TableColumnType.Permission,

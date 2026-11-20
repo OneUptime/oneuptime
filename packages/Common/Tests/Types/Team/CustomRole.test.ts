@@ -245,7 +245,7 @@ describe("what a custom role may hold", () => {
     expect(
       getCustomRolePermissionProblem({ permission: '"IncidentMember"' }),
     ).toBe(
-      '"IncidentMember" can\'t be given to a team, so it can\'t be part of a custom role.',
+      "\"IncidentMember\" can't be given to a team, so it can't be part of a custom role.",
     );
   });
 

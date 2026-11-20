@@ -69,7 +69,10 @@ beforeAll(() => {
 interface PermissionTable {
   modelType: DatabaseBaseModelType;
   resource: string;
-  // The column's own example, which the spec gives.
+  /*
+   * The column's own example, which the spec and the Terraform reference
+   * give: a role commonly given, never Project Owner.
+   */
   example: Permission;
 }
 
@@ -77,12 +80,12 @@ const TABLES: Array<PermissionTable> = [
   {
     modelType: TeamPermission,
     resource: "team_permission",
-    example: Permission.ProjectOwner,
+    example: Permission.IncidentMember,
   },
   {
     modelType: ApiKeyPermission,
     resource: "api_key_permission",
-    example: Permission.ProjectOwner,
+    example: Permission.IncidentMember,
   },
   {
     modelType: CustomRolePermission,
@@ -113,11 +116,11 @@ describe("the spec documents a permission as what it is: a permission's key", ()
   test("these are every table with a permission column", () => {
     const withPermissionColumns: Array<string> = Models.filter(
       (modelType: DatabaseBaseModelType): boolean => {
-        return Object.values(getTableColumns(new modelType() as BaseModel)).some(
-          (column: { type: TableColumnType }): boolean => {
-            return column.type === TableColumnType.Permission;
-          },
-        );
+        return Object.values(
+          getTableColumns(new modelType() as BaseModel),
+        ).some((column: { type: TableColumnType }): boolean => {
+          return column.type === TableColumnType.Permission;
+        });
       },
     ).map((modelType: DatabaseBaseModelType): string => {
       return modelType.name;
@@ -186,9 +189,9 @@ describe("the spec documents a permission as what it is: a permission's key", ()
       expect(property(`${tableName}QuerySchema`, "permission")).toEqual({
         $ref: "#/components/schemas/PermissionFilter",
       });
-      expect(
-        JSON.stringify(schema("PermissionFilter")["anyOf"]),
-      ).not.toContain('"type":"object","example"');
+      expect(JSON.stringify(schema("PermissionFilter")["anyOf"])).not.toContain(
+        '"type":"object","example"',
+      );
     },
   );
 });

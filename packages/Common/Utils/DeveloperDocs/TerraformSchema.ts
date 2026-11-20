@@ -439,6 +439,11 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.Buffer:
     case TableColumnType.Entity:
       return TerraformValueKind.Unsupported;
+    /*
+     * Text, and the values written as text: a permission's key, such as
+     * IncidentMember, among them, as the spec documents it since #10300
+     * (ModelSchema.getPermissionOpenApi).
+     */
     case TableColumnType.ObjectID:
     case TableColumnType.ShortText:
     case TableColumnType.LongText:
@@ -465,10 +470,6 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.CustomFieldType:
     case TableColumnType.HashedString:
     case TableColumnType.Password:
-    /*
-     * A permission's key, such as IncidentMember: written as it is, as the
-     * spec documents it since #10300 (ModelSchema.getPermissionOpenApi).
-     */
     case TableColumnType.Permission:
       return TerraformValueKind.String;
     default:

@@ -593,9 +593,7 @@ export class ModelSchema extends BaseSchema {
         }
         zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Permission) {
-        zodType = z
-          .string()
-          .openapi(ModelSchema.getPermissionOpenApi(column));
+        zodType = z.string().openapi(ModelSchema.getPermissionOpenApi(column));
       } else if (column.type === TableColumnType.CustomFieldType) {
         // What a custom field holds: "Text", "Number", "Dropdown"...
         zodType = z.string().openapi({
