@@ -717,7 +717,7 @@ describe("Services (telemetry/services)", () => {
     }
 
     expect(page).toContain(
-      "| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |",
+      "| **Developer** | **Terraform**, **Crossplane**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |",
     );
     expect(page).toContain("**Advanced** starts collapsed: expand it first.");
   });
