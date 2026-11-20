@@ -71,12 +71,14 @@ import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
-import { getIncidentRoleReassignGate } from "../../../Utils/EventRoleGates";
+import {
+  EventRoleGates,
+  useIncidentRoleGates,
+} from "../../../Utils/EventRoleGates";
 import {
   assignIncidentRole,
   reassignIncidentRole,
 } from "../../../Utils/EventRoleAssignment";
-import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
@@ -241,6 +243,12 @@ const IncidentView: FunctionComponent<
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
     usePrivateRecordGateOptions(PRIVATE_RECORD_INCIDENT);
+  /*
+   * What the header offers of the commander's role - Assign and the name
+   * that hands it on - as the roles card asks it, with what the server says
+   * the reader may do on this incident (EventRoleGates, #10272).
+   */
+  const roleGates: EventRoleGates = useIncidentRoleGates();
 
   const [incidentStateTimeline, setIncidentStateTimeline] = useState<
     IncidentStateTimeline[]
@@ -1065,15 +1073,10 @@ const IncidentView: FunctionComponent<
    * row's update, as the roles card's Reassign is (#10191): to a reader who
    * may not, the name is plain text.
    */
-  const mayReassignRoles: boolean =
-    getIncidentRoleReassignGate(privateRecordOptions).isAllowed;
+  const mayReassignRoles: boolean = roleGates.mayReassign;
   const primaryRole: PrimaryRoleHolding | null =
     getPrimaryRoleHolding(currentRolesSnapshot);
-  const mayAssignRoles: boolean = PermissionGate.check(
-    new IncidentMember(),
-    ModelAction.Create,
-    privateRecordOptions,
-  ).isAllowed;
+  const mayAssignRoles: boolean = roleGates.mayAssign;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
     onAssign:

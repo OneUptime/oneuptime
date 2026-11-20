@@ -13191,6 +13191,61 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The row `id`, read as root with `select`, when `props` may delete it -
+   * or null when it does not exist, or is outside what the caller may
+   * delete. findOneUpdatableById's twin, asked the way a delete by id asks
+   * it (deleteOneById): the checks on the row (the team block list against
+   * all of its labels, the table's delete permissions), then the query a
+   * delete is narrowed to (ModelPermission.checkDeleteQueryPermission: the
+   * caller's project, labels and Owned scope, a private record's owners,
+   * the record a table is read through). Throws what the delete would
+   * throw when the caller may not delete this table at all, or this row by
+   * one of its own labels. For what a record's page offers
+   * (RecordAccessBuilder): nothing is deleted.
+   */
+  @CaptureSpan()
+  public async findOneDeletableById(data: {
+    id: ObjectID;
+    select: Select<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<TBaseModel | null> {
+    try {
+      await ModelPermission.checkDeletePermissionByModel({
+        modelType: this.modelType,
+        fetchModelWithAccessControlIds:
+          async (): Promise<TBaseModel | null> => {
+            return await this.findWithAccessControlIds(data.id, data.props);
+          },
+        props: data.props,
+      });
+    } catch (error) {
+      // A row that is not there, or one the caller may not read: nothing.
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+
+      throw error;
+    }
+
+    const deletableQuery: Query<TBaseModel> =
+      await ModelPermission.checkDeleteQueryPermission(
+        this.modelType,
+        {
+          _id: data.id.toString(),
+        } as Query<TBaseModel>,
+        data.props,
+      );
+
+    return await this.findOneBy({
+      query: deletableQuery,
+      select: data.select,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
    * WHY A WRITE BY ID CHANGED NOTHING, for a caller who named one record by
    * its id and is to be told (BaseAPI's update and delete, and the routes
    * that write a record named in their path): the record is answered as

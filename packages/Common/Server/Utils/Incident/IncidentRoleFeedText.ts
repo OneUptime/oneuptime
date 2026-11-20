@@ -111,6 +111,23 @@ export interface IncidentRoleReassignedFeedTextInput {
   workflowName?: string | undefined;
 }
 
+/*
+ * A person moved from one role to another in one change (#10274): the row
+ * keeps its person and its incident, and names another role - through the
+ * API, Terraform or a workflow's Update step.
+ */
+export interface IncidentRoleMovedFeedTextInput {
+  // The person moved, as a link to them.
+  person: MarkdownText;
+  // The role they held, and the one they hold now, by the project's names.
+  fromRoleName: string;
+  toRoleName: string;
+  incident: MarkdownText;
+  // Whether the person moved is the one who moved themselves.
+  isSelf: boolean;
+  workflowName?: string | undefined;
+}
+
 const getWorkflowName: (input: {
   workflowName?: string | undefined;
 }) => string = (input: { workflowName?: string | undefined }): string => {
@@ -195,6 +212,29 @@ export default class IncidentRoleFeedText {
     return hasFrom
       ? mdText`👤 Reassigned **${input.roleName}** on ${input.incident} from **${input.from}** to **${input.to}**.`
       : mdText`👤 Reassigned **${input.roleName}** on ${input.incident} to **${input.to}**.`;
+  }
+
+  /*
+   * The entry for a person moved to another role in one change (#10274):
+   * one entry, never a removal and an addition, since they held a role all
+   * along. "Moved Maya Chen from Responder to Incident Commander on
+   * Incident INC-18"; somebody moving themselves reads "Moved from
+   * Responder to Incident Commander ...", after their name.
+   */
+  public static getMovedMarkdown(
+    input: IncidentRoleMovedFeedTextInput,
+  ): MarkdownText {
+    const workflowName: string = getWorkflowName(input);
+
+    if (workflowName) {
+      return mdText`👤 Workflow **${workflowName}** moved **${input.person}** from **${input.fromRoleName}** to **${input.toRoleName}** on ${input.incident}.`;
+    }
+
+    if (input.isSelf) {
+      return mdText`👤 Moved from **${input.fromRoleName}** to **${input.toRoleName}** on ${input.incident}.`;
+    }
+
+    return mdText`👤 Moved **${input.person}** from **${input.fromRoleName}** to **${input.toRoleName}** on ${input.incident}.`;
   }
 
   /*
