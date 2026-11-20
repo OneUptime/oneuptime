@@ -690,11 +690,12 @@ test(
  * It needs the same nginx `nginx -t` above needs, so it is skipped wherever
  * that is (a runner on Ubuntu 24.04 carries an older nginx; 26.04's is new
  * enough, and runs it as an unprivileged user, which is why the config's log
- * paths are moved into its own folder). To run it:
+ * paths are moved into its own folder). To run it on the nginx the ingress
+ * ships (the base stage of packages/Nginx/Dockerfile.tpl):
  *
  *   docker run --rm -v <repo>:/repo -w /repo/packages/Nginx \
- *     nginx:1.30.5-alpine3.24 sh -c \
- *     'rm -f /var/log/nginx/*; apk add -q nodejs openssl; node --test Tests/'
+ *     nginx:1.30.7-alpine3.24 sh -c \
+ *     'rm -f /var/log/nginx/*; apk add -q nodejs openssl; node --test Tests/*.test.js'
  */
 
 // Every nginx this file starts, so none can outlive a crashed run.
