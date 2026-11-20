@@ -161,6 +161,10 @@ function readTargets(value: unknown): Array<NodeBenchmarkTarget> {
   }) as Array<NodeBenchmarkTarget>;
 }
 
+/*
+ * Why a run could not finish, on one line: its end, where a log says what
+ * stopped it, when it is longer than a block keeps.
+ */
 function readError(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -168,7 +172,9 @@ function readError(value: unknown): string | undefined {
 
   const text: string = value.replace(/\s+/g, " ").trim();
 
-  return text ? text.slice(0, NODE_BENCHMARK_ERROR_MAX_LENGTH) : undefined;
+  return text
+    ? text.slice(Math.max(0, text.length - NODE_BENCHMARK_ERROR_MAX_LENGTH))
+    : undefined;
 }
 
 function readTime(value: unknown): string | undefined {
@@ -365,8 +371,16 @@ export const NODE_BENCHMARK_FOR_PROVIDER: Readonly<Record<string, string>> = {
 // The generic benchmark's names: "cis-1.12", never "k3s-cis-1.9".
 const GENERIC_BENCHMARK: RegExp = /^cis-[0-9]/;
 
-// The generic benchmark's sections kube-bench reads: 1 to 4, as 5 is the API's.
-const GENERIC_NODE_SECTION: RegExp = /^[1-4]\./;
+/*
+ * A check's number as the benchmarks write it, in the sections kube-bench
+ * reads: etcd's, section 2, in two parts ("2.1"), the others in three
+ * ("1.2.16", "4.1.1"); a group's ("4.1") is no check. The generic
+ * benchmark's are sections 1 to 4, as 5 is the API's; a managed platform's
+ * are its worker node section, 3.
+ */
+const GENERIC_NODE_CHECK: RegExp =
+  /^(2\.[0-9]{1,3}|[134]\.[0-9]{1,3}\.[0-9]{1,3})$/;
+const MANAGED_NODE_CHECK: RegExp = /^3\.[0-9]{1,3}\.[0-9]{1,3}$/;
 
 // A benchmark's family: null for one the page does not score (rh-1.9, k3s-cis-1.9).
 export function getNodeBenchmarkFamily(
@@ -395,8 +409,7 @@ export function getNodeBenchmarkRequirement(
 
 /*
  * The family and check a requirement names, or null for one no family's
- * checks are scored under. The generic benchmark's are sections 1 to 4 (5 is
- * the API's); a managed platform's are its worker node section, 3.
+ * checks are scored under (GENERIC_NODE_CHECK, MANAGED_NODE_CHECK).
  */
 export function readNodeBenchmarkRequirement(
   requirement: string,
@@ -407,14 +420,11 @@ export function readNodeBenchmarkRequirement(
     if (requirement.startsWith(prefix)) {
       const checkId: string = requirement.slice(prefix.length);
 
-      return isNodeBenchmarkCheckId(checkId) && checkId.startsWith("3.")
-        ? { family, checkId }
-        : null;
+      return MANAGED_NODE_CHECK.test(checkId) ? { family, checkId } : null;
     }
   }
 
-  return isNodeBenchmarkCheckId(requirement) &&
-    GENERIC_NODE_SECTION.test(requirement)
+  return GENERIC_NODE_CHECK.test(requirement)
     ? { family: NodeBenchmarkFamily.Cis, checkId: requirement }
     : null;
 }

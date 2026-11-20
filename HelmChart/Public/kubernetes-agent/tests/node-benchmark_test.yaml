@@ -352,10 +352,13 @@ tests:
       - matchRegex:
           path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
           pattern: 'jq -c "\$summary" "\$result" >/dev/termination-log'
-      # A run that could not finish says why, and fails.
+      # A run that could not finish says why - its log's end, without the version warning it always logs, and its exit status - and fails.
       - matchRegex:
           path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
-          pattern: "error: \\(gsub\\(.*\\) \\| \\.\\[0:300\\]\\)\\}' >/dev/termination-log\\nexit 1"
+          pattern: '\{ grep -v "was not auto-detected" "\$log"; echo "exit status \$status"; \} \| tail -n 4'
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: "error: \\(gsub\\(.*\\) \\| \\.\\[-300:\\]\\)\\}' >/dev/termination-log\\nexit 1"
 
   - it: runs on a worker where there is one, and on the only node of a one-node cluster
     set:

@@ -164,7 +164,7 @@ export const NOT_EVALUATED_REASONS: Readonly<
   ),
   [KubernetesComplianceNotEvaluatedReason.NodeBenchmarkNotChecked]:
     translationKey(
-      "kube-bench could not check it on any node it ran on, such as the control plane's where it ran on no control plane node.",
+      "kube-bench has not checked it on any node it ran on: a control plane control needs a run on a control plane node.",
     ),
   [KubernetesComplianceNotEvaluatedReason.NodeBenchmarkManual]: translationKey(
     "The benchmark kube-bench ran leaves it to a person's review.",

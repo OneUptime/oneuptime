@@ -437,8 +437,12 @@ const NODE_BENCHMARK_FOLD_DESCRIPTION: string = translationKey(
 
 const NODE_FINISHED: string = translationKey("Finished {{age}}");
 
+/*
+ * The end of what kube-bench wrote as it stopped: its own words, drawn as
+ * code, never an error of OneUptime's to put in the reader's language.
+ */
 const NODE_BENCHMARK_ERROR: string = translationKey(
-  "kube-bench could not finish here: {{error}}",
+  "kube-bench could not finish here: {{output}}",
 );
 
 const CONTROL_PLANE_NODE: string = translationKey("Control plane");
@@ -2621,7 +2625,7 @@ const NodeBenchmarkFold: FunctionComponent<{
                     <TranslatedSentence
                       template={NODE_BENCHMARK_ERROR}
                       slots={{
-                        error: (
+                        output: (
                           <code
                             className={`${INLINE_CODE_CLASS_NAME} break-words`}
                           >

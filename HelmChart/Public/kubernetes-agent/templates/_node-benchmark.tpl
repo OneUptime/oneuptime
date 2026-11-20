@@ -215,7 +215,9 @@ which the kubelet keeps in the pod's status (4 KB at most; a control plane
 node's comes to well under 1 KB). The policies kube-bench would check are the
 Kubernetes API's, which OneUptime scores from the agent's own snapshots.
 
-A run kube-bench could not finish writes why, and fails the pod.
+A run kube-bench could not finish writes why - the end of its log, without
+the warning it always logs with no API to ask its version, and its exit
+status - and fails the pod.
 */}}
 {{- define "kubernetes-agent.nodeBenchmarkScript" -}}
 set -u
@@ -227,13 +229,15 @@ summary='[.Controls[]? | select(.node_type == "master" or .node_type == "etcd" o
 {oneuptimeNodeBenchmark: 1, benchmark: ($controls[0].version // env.BENCHMARK), targets: ([$controls[].node_type] | join(" ")),
  pass: ids(.scored == true and .status == "PASS"), fail: ids(.scored == true and .status == "FAIL"),
  warn: ids(.scored == true and (.status == "WARN" or .status == "INFO")), manual: ids(.scored != true)}'
-if kube-bench --benchmark "$BENCHMARK" --json --outputfile "$result" >"$log" 2>&1 \
-  && [ -s "$result" ] && jq -c "$summary" "$result" >/dev/termination-log 2>>"$log"; then
+kube-bench --benchmark "$BENCHMARK" --json --outputfile "$result" >"$log" 2>&1
+status=$?
+if [ "$status" -eq 0 ] && [ -s "$result" ] && jq -c "$summary" "$result" >/dev/termination-log 2>>"$log"; then
   cat /dev/termination-log
   exit 0
 fi
 tail -c 2000 "$log"
-tail -n 5 "$log" | jq -Rsc '{oneuptimeNodeBenchmark: 1, benchmark: env.BENCHMARK, error: (gsub("\\s+"; " ") | .[0:300])}' >/dev/termination-log
+{ grep -v "was not auto-detected" "$log"; echo "exit status $status"; } | tail -n 4 \
+  | jq -Rsc '{oneuptimeNodeBenchmark: 1, benchmark: env.BENCHMARK, error: (gsub("\\s+"; " ") | ltrimstr(" ") | rtrimstr(" ") | .[-300:])}' >/dev/termination-log
 exit 1
 {{- end -}}
 

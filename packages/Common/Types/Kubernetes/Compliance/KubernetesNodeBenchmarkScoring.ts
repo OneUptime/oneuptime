@@ -6,6 +6,7 @@ import {
   NodeBenchmarkTarget,
   getNodeBenchmarkFamily,
   getNodeBenchmarkRequirement,
+  isNodeBenchmarkRequirement,
   sortCheckIds,
 } from "../KubernetesNodeBenchmark";
 import {
@@ -129,13 +130,20 @@ export function getNodeBenchmarkScope(
       return a.node.localeCompare(b.node);
     },
   );
+  /*
+   * Only checks scored under a requirement a setting can name: one to turn
+   * off or accept, and never one of the API's own (section 5).
+   */
+  const isScoredCheck: (id: string) => boolean = (id: string): boolean => {
+    return isNodeBenchmarkRequirement(getNodeBenchmarkRequirement(family, id));
+  };
   const checks: Array<string> = sortCheckIds(
     scoredRuns.flatMap(
       (run: KubernetesComplianceNodeBenchmarkRun): Array<string> => {
         return [...run.result.pass, ...run.result.fail, ...run.result.warn];
       },
     ),
-  );
+  ).filter(isScoredCheck);
   const checked: Set<string> = new Set<string>(checks);
 
   return {
@@ -158,7 +166,7 @@ export function getNodeBenchmarkScope(
         },
       ),
     ).filter((id: string): boolean => {
-      return !checked.has(id);
+      return isScoredCheck(id) && !checked.has(id);
     }),
   };
 }
