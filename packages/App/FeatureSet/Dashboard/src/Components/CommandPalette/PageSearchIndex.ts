@@ -2819,7 +2819,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "case states",
               "custom case status",
               "case workflow",
+              "auto contain",
+              "verified containment",
             ],
+            settings: ["Mark Cases Contained When Verified"],
           },
           {
             page: PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS,

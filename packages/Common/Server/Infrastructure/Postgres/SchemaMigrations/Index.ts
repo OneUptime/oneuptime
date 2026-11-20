@@ -1140,6 +1140,8 @@ import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-Add
 import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
 import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-AddCloudAppPlatformCloudResource";
 import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
+import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
+import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
 import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
 
 export default [
@@ -2285,5 +2287,7 @@ export default [
   AddProjectSecurityTrustedProxies1809187364416,
   AddCloudAppPlatformCloudResource1809187383700,
   AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
+  AddSecurityCaseStepChecks1809187390000,
+  AddSecurityCaseNextStepCheckIndex1809187390010,
   AddRecordCreatedByAndLastModifiedColumns1809187400000,
 ];

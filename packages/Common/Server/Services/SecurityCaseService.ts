@@ -81,10 +81,15 @@ import {
  *    starts the Case Opened playbooks, once the case has the detection their
  *    conditions read.
  *  - playbookName: a playbook step made the change; the feed says so.
+ *  - containedByStepChecks: OneUptime moved the case to Contained itself,
+ *    having verified every step of its Response Plan that contains the
+ *    threat (StepChecks, #10340); the feed says so.
  */
 export const SECURITY_CASE_OPENED_BY_DETECTION_KEY: string =
   "openedByDetection";
 export const SECURITY_CASE_PLAYBOOK_NAME_KEY: string = "playbookName";
+export const SECURITY_CASE_CONTAINED_BY_CHECKS_KEY: string =
+  "containedByStepChecks";
 
 /*
  * The case's two references, as a write can name them: a form writes the
@@ -430,6 +435,15 @@ export class Service extends ProjectReferencesService<Model> {
           data.setColumnValue(column, value);
         }
       }
+
+      /*
+       * OneUptime checks the steps of its Response Plan itself, from the
+       * first minute (Server/Utils/SecurityCase/StepChecks). A case opened
+       * closed has none left to check.
+       */
+      if (!created.closes) {
+        data.nextStepCheckAt = now;
+      }
     }
 
     if (created.closes) {
@@ -638,6 +652,10 @@ export class Service extends ProjectReferencesService<Model> {
             SECURITY_CASE_PLAYBOOK_NAME_KEY
           ] as string)
         : undefined;
+    const byStepChecks: boolean =
+      onUpdate.updateBy.miscDataProps?.[
+        SECURITY_CASE_CONTAINED_BY_CHECKS_KEY
+      ] === true;
 
     for (const updatedId of updatedItemIds) {
       const old: CaseStateBeforeUpdate | undefined = before.get(
@@ -665,6 +683,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: old.projectId,
           userId,
           playbookName,
+          byStepChecks,
           values,
         });
       } catch (error) {
@@ -692,6 +711,7 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     userId: ObjectID | undefined;
     playbookName: string | undefined;
+    byStepChecks?: boolean | undefined;
     values: ProjectSecurityCaseValues;
   }): Promise<void> {
     const { old, data, caseId, projectId, userId, playbookName, values } =
@@ -731,10 +751,20 @@ export class Service extends ProjectReferencesService<Model> {
         stamps["verdict"] = verdict;
         stamps["closedAt"] = now;
         stamps["closedByUserId"] = userId || null;
+        // A closed case's steps are not checked any more (StepChecks).
+        stamps["nextStepCheckAt"] = null;
       } else if (change.reopens) {
         stamps["verdict"] = null;
         stamps["closedAt"] = null;
         stamps["closedByUserId"] = null;
+
+        // Reopened, its steps are checked again from now.
+        if (
+          !old.groupingKey ||
+          !isSetupTestCase({ groupingKey: old.groupingKey })
+        ) {
+          stamps["nextStepCheckAt"] = now;
+        }
       } else if (isClosedNow) {
         verdict = isSecurityCaseVerdict(data["verdict"])
           ? data["verdict"]
@@ -762,6 +792,7 @@ export class Service extends ProjectReferencesService<Model> {
           verdict,
           reopens: change.reopens,
           playbookName,
+          byStepChecks: input.byStepChecks === true && change.contains,
         }).toString(),
         moreInformationInMarkdown:
           change.closes && typeof data["closingNote"] === "string"
