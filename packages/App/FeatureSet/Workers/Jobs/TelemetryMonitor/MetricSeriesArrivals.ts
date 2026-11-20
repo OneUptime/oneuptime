@@ -22,7 +22,10 @@ import ObjectID from "Common/Types/ObjectID";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricSeriesArrivalUtil from "Common/Utils/Metrics/MetricSeriesArrivalUtil";
 import { MetricZeroFillOptions } from "Common/Utils/Metrics/MetricZeroFill";
-import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
+import MetricSeriesFingerprint, {
+  MetricSeriesIdentity,
+} from "Common/Utils/Metrics/MetricSeriesFingerprint";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 
 /*
  * When a metric monitor's series got their data (#4912's follow-up: a
@@ -61,6 +64,18 @@ export interface QueryArrivals {
   bySeries: Map<string, MetricSeriesArrival>;
 }
 
+/*
+ * The arrival reads of one evaluation, by what they read (#10108). A step's
+ * queries can read the same metric with the same filters over the same
+ * window - the restarts' Maximum and their Minimum - and when they look
+ * behind they read the same arrivals: read once, the second query is handed
+ * the first's. A read that failed is not kept.
+ */
+export type QueryArrivalsReads = Map<string, Promise<QueryArrivals | null>>;
+
+// A row's series, read once per series (MetricSeriesFingerprint.createSeriesReader).
+type ReadSeries = (row: AggregatedModel) => MetricSeriesIdentity;
+
 // Whether any criteria of a step reads when its data arrived.
 export const stepJudgesFreshness: (monitorStep: MonitorStep) => boolean = (
   monitorStep: MonitorStep,
@@ -86,12 +101,18 @@ export const stepJudgesFreshness: (monitorStep: MonitorStep) => boolean = (
 const getRowFingerprint: (input: {
   row: AggregatedModel;
   groupByAttributeKeys: Array<string>;
+  readSeries?: ReadSeries | undefined;
 }) => string = (input: {
   row: AggregatedModel;
   groupByAttributeKeys: Array<string>;
+  readSeries?: ReadSeries | undefined;
 }): string => {
   if (input.groupByAttributeKeys.length === 0) {
     return MetricSeriesFingerprint.WholeMonitorFingerprint;
+  }
+
+  if (input.readSeries) {
+    return input.readSeries(input.row).fingerprint;
   }
 
   return MetricSeriesFingerprint.computeFingerprint(
@@ -110,10 +131,12 @@ export const isReadBehind: (input: {
   aggregatedResult: AggregatedResult;
   groupByAttributeKeys: Array<string>;
   startAndEndDate: InBetween<Date>;
+  readSeries?: ReadSeries | undefined;
 }) => boolean = (input: {
   aggregatedResult: AggregatedResult;
   groupByAttributeKeys: Array<string>;
   startAndEndDate: InBetween<Date>;
+  readSeries?: ReadSeries | undefined;
 }): boolean => {
   const startMs: number = new Date(
     input.startAndEndDate.startValue as Date,
@@ -148,6 +171,7 @@ export const isReadBehind: (input: {
     const fingerprint: string = getRowFingerprint({
       row: row,
       groupByAttributeKeys: input.groupByAttributeKeys,
+      readSeries: input.readSeries,
     });
     const newestMs: number | undefined = newestBySeries.get(fingerprint);
 
@@ -172,21 +196,43 @@ export const isReadBehind: (input: {
  * fails - the series are then judged by their data points' times alone, as
  * before.
  */
-export const readQueryArrivals: (input: {
+interface ReadQueryArrivalsInput {
   query: Query<Metric>;
   groupByAttributeKeys: Array<string>;
   aggregatedResult: AggregatedResult;
   startAndEndDate: InBetween<Date>;
   judgesFreshness: boolean;
   projectId?: ObjectID | undefined;
-}) => Promise<QueryArrivals | null> = async (input: {
-  query: Query<Metric>;
-  groupByAttributeKeys: Array<string>;
-  aggregatedResult: AggregatedResult;
-  startAndEndDate: InBetween<Date>;
-  judgesFreshness: boolean;
-  projectId?: ObjectID | undefined;
-}): Promise<QueryArrivals | null> => {
+  // A row's series, shared by the evaluation's reads.
+  readSeries?: ReadSeries | undefined;
+  // The evaluation's arrival reads, so one read serves the queries it fits.
+  reads?: QueryArrivalsReads | undefined;
+}
+
+/*
+ * What an arrival read reads: the query - its metric, filters, services and
+ * window - and how its series are grouped. Null when it cannot be told, and
+ * the read is not shared.
+ */
+const getArrivalReadKey: (input: ReadQueryArrivalsInput) => string | null = (
+  input: ReadQueryArrivalsInput,
+): string | null => {
+  try {
+    return JSON.stringify({
+      query: input.query,
+      groupByAttributeKeys: input.groupByAttributeKeys,
+      startAndEndDate: input.startAndEndDate,
+    });
+  } catch {
+    return null;
+  }
+};
+
+export const readQueryArrivals: (
+  input: ReadQueryArrivalsInput,
+) => Promise<QueryArrivals | null> = async (
+  input: ReadQueryArrivalsInput,
+): Promise<QueryArrivals | null> => {
   if (!input.judgesFreshness || input.aggregatedResult.data.length === 0) {
     return null;
   }
@@ -205,11 +251,43 @@ export const readQueryArrivals: (input: {
       aggregatedResult: input.aggregatedResult,
       groupByAttributeKeys: input.groupByAttributeKeys,
       startAndEndDate: input.startAndEndDate,
+      readSeries: input.readSeries,
     })
   ) {
     return null;
   }
 
+  const key: string | null = input.reads ? getArrivalReadKey(input) : null;
+  const shared: Promise<QueryArrivals | null> | undefined = key
+    ? input.reads!.get(key)
+    : undefined;
+
+  if (shared) {
+    return shared;
+  }
+
+  const read: Promise<QueryArrivals | null> = readArrivals(input);
+
+  if (key) {
+    input.reads!.set(key, read);
+  }
+
+  const arrivals: QueryArrivals | null = await read;
+
+  // A read that failed is tried again by the next query that needs it.
+  if (key && !arrivals) {
+    input.reads!.delete(key);
+  }
+
+  return arrivals;
+};
+
+// The read itself: null when it fails, as readQueryArrivals says.
+const readArrivals: (
+  input: ReadQueryArrivalsInput,
+) => Promise<QueryArrivals | null> = async (
+  input: ReadQueryArrivalsInput,
+): Promise<QueryArrivals | null> => {
   try {
     /*
      * What "nothing has arrived for" is counted to: the end of the window,
@@ -239,8 +317,14 @@ export const readQueryArrivals: (input: {
       });
 
     const arrivals: QueryArrivals = { whole: null, bySeries: new Map() };
+    // A read of every series of a fleet: the loop is handed back as it goes.
+    const budget: EventLoopBudget = new EventLoopBudget();
 
     for (const row of rows) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
       const arrival: MetricSeriesArrival | null =
         MetricSeriesArrivalUtil.fromAggregates({
           asOfMs: asOfMs,
@@ -264,6 +348,7 @@ export const readQueryArrivals: (input: {
             attributes: row.attributes,
           },
           groupByAttributeKeys: input.groupByAttributeKeys,
+          readSeries: input.readSeries,
         }),
         arrival,
       );

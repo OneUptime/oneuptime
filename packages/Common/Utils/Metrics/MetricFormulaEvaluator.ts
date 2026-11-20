@@ -6,6 +6,7 @@ import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import { readOwnValue, writeOwnValue } from "../LookupTable";
 import MetricZeroFill, { MetricZeroFillOptions } from "./MetricZeroFill";
+import SlicedWork, { SlicedWorkSteps } from "../SlicedWork";
 
 /**
  * Shunting-yard based evaluator for metric formulas such as
@@ -85,6 +86,29 @@ interface SeriesGroupBucket {
   samples: Array<AggregatedModel>;
 }
 
+export interface MetricFormulaEvaluationInput {
+  formula: string;
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  results: Array<AggregatedResult>;
+  /*
+   * What the metric catalog says of the queries' metrics, and which steps
+   * are settled: a counting query with no point in a step is then 0
+   * there. Unset: every missing point is a gap.
+   */
+  zeroFill?: MetricZeroFillOptions | undefined;
+}
+
+// How many rows evaluateFormulaInSteps buckets between two pauses.
+const FORMULA_ROWS_PER_STEP: number = 1024;
+
+// The formulas parsed lately, by their text (toRpn).
+const PARSED_FORMULAS_MAX_ENTRIES: number = 512;
+const parsedFormulas: Map<string, Array<Token>> = new Map<
+  string,
+  Array<Token>
+>();
+
 export default class MetricFormulaEvaluator {
   /**
    * Evaluate a formula against the provided query/formula results and
@@ -98,18 +122,25 @@ export default class MetricFormulaEvaluator {
    * skipped silently, as before - except a counting query's, which
    * `zeroFill` reads as 0 (MetricZeroFill).
    */
-  public static evaluateFormula(input: {
-    formula: string;
-    queryConfigs: Array<MetricQueryConfigData>;
-    formulaConfigs: Array<MetricFormulaConfigData>;
-    results: Array<AggregatedResult>;
-    /*
-     * What the metric catalog says of the queries' metrics, and which steps
-     * are settled: a counting query with no point in a step is then 0
-     * there. Unset: every missing point is a gap.
-     */
-    zeroFill?: MetricZeroFillOptions | undefined;
-  }): AggregatedResult {
+  public static evaluateFormula(
+    input: MetricFormulaEvaluationInput,
+  ): AggregatedResult {
+    return SlicedWork.runToEnd(
+      MetricFormulaEvaluator.evaluateFormulaInSteps(input),
+    );
+  }
+
+  /*
+   * evaluateFormula a step at a time: it pauses (yields) between groups of
+   * rows and between the series it evaluates, and its caller decides
+   * whether to hand the event loop back there (EventLoop.runInSlices) - a
+   * grouped monitor's formula over 16,000 series is 160,000 rows, a third
+   * of a second of work in one block (#10108). What it returns, and what it
+   * throws, are evaluateFormula's.
+   */
+  public static *evaluateFormulaInSteps(
+    input: MetricFormulaEvaluationInput,
+  ): SlicedWorkSteps<AggregatedResult> {
     const trimmedFormula: string = (input.formula || "").trim();
     if (!trimmedFormula) {
       return { data: [] };
@@ -147,9 +178,10 @@ export default class MetricFormulaEvaluator {
     const seriesBuckets: Record<string, Map<string, SeriesGroupBucket>> = {};
 
     for (const variableName of referencedVariables) {
-      seriesBuckets[variableName] = MetricFormulaEvaluator.bucketSeriesByGroup(
-        variableData[variableName]!,
-      );
+      seriesBuckets[variableName] =
+        yield* MetricFormulaEvaluator.bucketSeriesByGroupInSteps(
+          variableData[variableName]!,
+        );
     }
 
     // The queries a missing point of reads as 0 (MetricZeroFill).
@@ -338,6 +370,9 @@ export default class MetricFormulaEvaluator {
           isStepSettled,
         }),
       );
+
+      // A pause between two groups.
+      yield;
     }
 
     return { data: resultData };
@@ -786,12 +821,39 @@ export default class MetricFormulaEvaluator {
    * formula-of-formula references. Rows without attributes fall into a
    * single ungrouped bucket.
    */
-  private static bucketSeriesByGroup(
+  private static *bucketSeriesByGroupInSteps(
     variable: VariableSeriesData,
-  ): Map<string, SeriesGroupBucket> {
+  ): SlicedWorkSteps<Map<string, SeriesGroupBucket>> {
     const buckets: Map<string, SeriesGroupBucket> = new Map();
+    const groupKeyOf: ((sample: AggregatedModel) => string) | null =
+      MetricFormulaEvaluator.getGroupKeyReader(variable.groupByAttributeKeys);
+    let index: number = 0;
 
     for (const sample of variable.result.data) {
+      // A pause every so many rows.
+      if (++index % FORMULA_ROWS_PER_STEP === 0) {
+        yield;
+      }
+
+      if (groupKeyOf) {
+        const groupKey: string = groupKeyOf(sample);
+        const existing: SeriesGroupBucket | undefined = buckets.get(groupKey);
+
+        if (existing) {
+          existing.samples.push(sample);
+        } else {
+          buckets.set(groupKey, {
+            labels: MetricFormulaEvaluator.extractGroupLabels({
+              sample,
+              groupByAttributeKeys: variable.groupByAttributeKeys,
+            }),
+            samples: [sample],
+          });
+        }
+
+        continue;
+      }
+
       const labels: JSONObject = MetricFormulaEvaluator.extractGroupLabels({
         sample,
         groupByAttributeKeys: variable.groupByAttributeKeys,
@@ -808,6 +870,51 @@ export default class MetricFormulaEvaluator {
     }
 
     return buckets;
+  }
+
+  /*
+   * A row's group key, as computeGroupKey(extractGroupLabels(row)) reads it
+   * for a query grouped by these attribute keys: the same "key=value|..."
+   * text, built from the row's values of the keys, sorted once, without a
+   * label set or a sort for every row. Null for a variable without keys,
+   * whose labels are whatever attributes each row carries.
+   */
+  private static getGroupKeyReader(
+    groupByAttributeKeys: Array<string>,
+  ): ((sample: AggregatedModel) => string) | null {
+    if (groupByAttributeKeys.length === 0) {
+      return null;
+    }
+
+    const sortedKeys: Array<string> = Array.from(
+      new Set<string>(groupByAttributeKeys),
+    ).sort();
+    const prefixes: Array<string> = sortedKeys.map((key: string): string => {
+      return `${key}=`;
+    });
+
+    return (sample: AggregatedModel): string => {
+      const attributes: JSONObject =
+        ((sample as unknown as JSONObject)["attributes"] as
+          | JSONObject
+          | undefined) || {};
+
+      let groupKey: string = "";
+
+      for (let index: number = 0; index < sortedKeys.length; index++) {
+        const raw: JSONValue | undefined = readOwnValue(
+          attributes,
+          sortedKeys[index]!,
+        );
+
+        groupKey +=
+          (index > 0 ? "|" : "") +
+          prefixes[index]! +
+          (raw === undefined || raw === null ? "" : String(raw));
+      }
+
+      return groupKey;
+    };
   }
 
   /**
@@ -1217,7 +1324,31 @@ export default class MetricFormulaEvaluator {
     );
   }
 
+  /*
+   * A formula's tokens in evaluation order, parsed once per formula text: a
+   * grouped monitor evaluates its formula for every series, and asks which
+   * variables it reads for every series too. The tokens are read, never
+   * changed. A formula that does not parse is parsed (and refused) again.
+   */
   private static toRpn(expression: string): Array<Token> {
+    const kept: Array<Token> | undefined = parsedFormulas.get(expression);
+
+    if (kept) {
+      return kept;
+    }
+
+    const rpn: Array<Token> = MetricFormulaEvaluator.parseToRpn(expression);
+
+    if (parsedFormulas.size >= PARSED_FORMULAS_MAX_ENTRIES) {
+      parsedFormulas.clear();
+    }
+
+    parsedFormulas.set(expression, rpn);
+
+    return rpn;
+  }
+
+  private static parseToRpn(expression: string): Array<Token> {
     const tokens: Array<Token> = MetricFormulaEvaluator.tokenize(expression);
     const output: Array<Token> = [];
     const operatorStack: Array<Token> = [];

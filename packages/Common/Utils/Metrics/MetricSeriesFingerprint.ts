@@ -24,6 +24,12 @@ export const FINGERPRINT_MEMO_MAX_TEXT_LENGTH: number = 512;
 
 const fingerprintMemo: Map<string, string> = new Map<string, string>();
 
+// A row's series: its labels, and their fingerprint.
+export interface MetricSeriesIdentity {
+  labels: JSONObject;
+  fingerprint: string;
+}
+
 /**
  * Canonicalize a label dictionary (key/value string pairs identifying a
  * metric series) into a stable short hash. Used to key incidents/alerts
@@ -88,6 +94,98 @@ export default class MetricSeriesFingerprint {
   // How many label sets the fingerprint memo holds now (for tests).
   public static getMemoSize(): number {
     return fingerprintMemo.size;
+  }
+
+  /*
+   * The series of rows grouped by these attribute keys, each read once
+   * (#10108). A grouped monitor's reads return a row per series and minute,
+   * and every row used to be read into a new label set, its keys sorted and
+   * joined, and the text hashed: 160,000 rows of the #10108 fleet, read so
+   * several times over (bucketing, staleness, arrivals), each series hashed
+   * every time once 4,096 of them had pushed it out of the fingerprint memo.
+   *
+   * The returned function reads a row's series: its labels as
+   * extractSeriesLabels reads them, and their fingerprint. The canonical
+   * text computeFingerprint hashes is built straight from the row's values
+   * of the keys (sorted once), and a series is read and hashed the first
+   * time its text is seen; every later row of it is a lookup. So rows with
+   * the same text get the same fingerprint, as before, and the labels of the
+   * first of them. Holds every series it is shown: make one per grouped
+   * evaluation, never one for the process.
+   */
+  public static createSeriesReader(
+    attributeKeys: Array<string>,
+  ): (sample: AggregatedModel) => MetricSeriesIdentity {
+    /*
+     * With no keys a row's labels are every column it has
+     * (extractSeriesLabels): read each as before.
+     */
+    if (attributeKeys.length === 0) {
+      return (sample: AggregatedModel): MetricSeriesIdentity => {
+        const labels: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+          sample: sample,
+          attributeKeys: attributeKeys,
+        });
+
+        return {
+          labels: labels,
+          fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
+        };
+      };
+    }
+
+    // The labels' keys, as computeFingerprint lists them: each once, sorted.
+    const sortedKeys: Array<string> = Array.from(
+      new Set<string>(attributeKeys),
+    ).sort();
+    const prefixes: Array<string> = sortedKeys.map((key: string): string => {
+      return `${key}=`;
+    });
+    const seen: Map<string, MetricSeriesIdentity> = new Map<
+      string,
+      MetricSeriesIdentity
+    >();
+
+    return (sample: AggregatedModel): MetricSeriesIdentity => {
+      const attributes: JSONObject =
+        ((sample as unknown as JSONObject)["attributes"] as
+          | JSONObject
+          | undefined) || {};
+
+      let canonical: string = "";
+
+      for (let index: number = 0; index < sortedKeys.length; index++) {
+        const raw: JSONValue | undefined = readOwnValue(
+          attributes,
+          sortedKeys[index]!,
+        );
+
+        canonical +=
+          (index > 0 ? "|" : "") +
+          prefixes[index]! +
+          (raw === undefined || raw === null ? "" : String(raw));
+      }
+
+      const known: MetricSeriesIdentity | undefined = seen.get(canonical);
+
+      if (known) {
+        return known;
+      }
+
+      const labels: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+        sample: sample,
+        attributeKeys: attributeKeys,
+      });
+
+      const identity: MetricSeriesIdentity = {
+        labels: labels,
+        fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
+      };
+
+      seen.set(canonical, identity);
+
+      return identity;
+    };
   }
 
   /**
