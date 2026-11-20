@@ -66,6 +66,14 @@ import logger from "../Logger";
  * the ones the person asking may read themselves are named: the rest are a
  * count, never a name, so a person whose role cannot see some monitors
  * still learns that more read the metric than they can see.
+ *
+ * Asked to (followsOutputMetrics, #10085), it follows each recording rule
+ * it finds to what reads the metric the rule writes - which no longer
+ * includes what is taken away - and on down the chain, each record named
+ * once (Types/Metrics/MetricOutputReaders). The records are read once,
+ * whatever the chain's length, and the person's own read of each kind is
+ * one read of every record found. A widget is named by the id the board
+ * draws it under, so a warning's link opens the dashboard at it (#10084).
  */
 
 // How deep, and how many values, a record's queries are walked.
@@ -867,18 +875,15 @@ function followOutputMetrics(data: {
     return named.has(part.key);
   };
 
-  const queue: Array<{ rule: FoundReader; depth: number }> = ordered(
-    data.direct[MetricReaderKind.MetricRecordingRule],
-  ).map((rule: FoundReader) => {
-    return { rule, depth: 1 };
-  });
-
-  while (queue.length > 0) {
-    const { rule, depth } = queue.shift()!;
+  // What reads one rule's output metric, of the records not named yet; named now.
+  const followOne: (rule: FoundReader, depth: number) => Array<FoundReader> = (
+    rule: FoundReader,
+    depth: number,
+  ): Array<FoundReader> => {
     const outputName: string = outputNameOf(rule.record.outputMetricName);
 
     if (!outputName) {
-      continue;
+      return [];
     }
 
     const candidates: Array<ReadingRecord> = data.index.get(outputName) || [];
@@ -901,7 +906,7 @@ function followOutputMetrics(data: {
         outputs.set(rule, { readers: noneFound(), isPastDepth: true });
       }
 
-      continue;
+      return [];
     }
 
     const readers: FoundByKind = noneFound();
@@ -932,9 +937,26 @@ function followOutputMetrics(data: {
       outputs.set(rule, { readers, isPastDepth: false });
     }
 
-    for (const next of ordered(readers[MetricReaderKind.MetricRecordingRule])) {
-      queue.push({ rule: next, depth: depth + 1 });
+    return readers[MetricReaderKind.MetricRecordingRule];
+  };
+
+  /*
+   * Step by step: every rule of one step, in order - the ones the person
+   * may read first, then by name, across the whole step - before any of
+   * the next.
+   */
+  let step: Array<FoundReader> = ordered(
+    data.direct[MetricReaderKind.MetricRecordingRule],
+  );
+
+  for (let depth: number = 1; step.length > 0; depth++) {
+    const next: Array<FoundReader> = [];
+
+    for (const rule of step) {
+      next.push(...followOne(rule, depth));
     }
+
+    step = ordered(next);
   }
 
   return outputs;

@@ -1554,6 +1554,77 @@ describe("what reads a recording rule's output metric, down the chain", () => {
     ).toEqual(["Daily alert"]);
   });
 
+  test("further down the chain too: the rules of one step are taken the visible first, across the whole step", async () => {
+    // Two rules the drop empties, each leading to one rule of the next step.
+    rules.splice(
+      0,
+      rules.length,
+      recordingRuleOf({
+        name: "Alpha source",
+        outputMetricName: "alpha_source",
+        metricNames: [LEAKED],
+      }),
+      recordingRuleOf({
+        name: "Beta source",
+        outputMetricName: "beta_source",
+        metricNames: [LEAKED],
+      }),
+      // First by name, under the first rule - and the person cannot see it.
+      recordingRuleOf({
+        name: "Alpha hidden",
+        outputMetricName: "alpha_hidden",
+        metricNames: ["alpha_source"],
+      }),
+      recordingRuleOf({
+        name: "Zulu visible",
+        outputMetricName: "zulu_visible",
+        metricNames: ["beta_source"],
+      }),
+    );
+    monitors.push(
+      (() => {
+        const both: Monitor = monitorReading("Both outputs", "alpha_hidden");
+
+        (
+          both as unknown as {
+            monitorSteps: {
+              monitorStepsInstanceArray: Array<{
+                data: {
+                  metricMonitor: {
+                    metricViewConfig: { queryConfigs: Array<unknown> };
+                  };
+                };
+              }>;
+            };
+          }
+        ).monitorSteps.monitorStepsInstanceArray[0]!.data.metricMonitor.metricViewConfig.queryConfigs.push(
+          metricQuery("zulu_visible"),
+        );
+
+        return both;
+      })(),
+    );
+    serveAll({
+      rules: (rule: MetricRecordingRule): boolean => {
+        return rule.name !== "Alpha hidden";
+      },
+    });
+
+    const found: MetricReaders = await follow();
+    const [alpha, beta] = found[MetricReaderKind.MetricRecordingRule]
+      .readers as [MetricReader, MetricReader];
+    const zulu: MetricOutputReader =
+      beta.outputReaders!.recordingRules.readers[0]!;
+
+    expect(zulu.name).toBe("Zulu visible");
+    expect(namesOf(zulu.outputReaders!.monitors)).toEqual(["Both outputs"]);
+    // Counted under Alpha source, with nothing named under its count.
+    expect(alpha.outputReaders!.recordingRules.hidden).toBe(1);
+    expect(
+      alpha.outputReaders!.recordingRules.hiddenOutputReaders,
+    ).toBeUndefined();
+  });
+
   test("a record two rules lead to is named under the one the person can see", async () => {
     rules.push(
       recordingRuleOf({
