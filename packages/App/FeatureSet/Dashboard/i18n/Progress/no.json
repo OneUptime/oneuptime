@@ -276,6 +276,7 @@
     "Send {{command}}",
     "Server",
     "Server / VM",
+    "Server: {{server}}",
     "Service Mesh",
     "Shell",
     "Signal",
