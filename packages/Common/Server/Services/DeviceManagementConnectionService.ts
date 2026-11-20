@@ -7,10 +7,16 @@ import {
   DeviceManagementConfig,
   SECRET_API_KEY,
   SECRET_CLIENT_SECRET_KEY,
+  SECRET_PASSWORD_KEY,
   getDeviceManagementConnectionAddress,
   readDeviceManagementConfig,
   readEsperApiKey,
   readIntuneClientSecret,
+  readSotiClientSecret,
+  readSotiPassword,
+  readWorkspaceOneApiKey,
+  readWorkspaceOneClientSecret,
+  readWorkspaceOnePassword,
   toDeviceManagementConfigJson,
   validateDeviceManagementConfig,
 } from "../../Types/DeviceManagement/DeviceManagementConnectionSettings";
@@ -35,42 +41,130 @@ interface ConnectionDeleteCarryForward {
 
 /*
  * Device management connections (an Esper tenant, a Microsoft Intune
- * tenant: Inventory > Managed Devices): validated when saved, so a
- * connection that stores is one the read loop can use - a tenant that is
- * not one, a key that is not a key is a form error, not a lastError
- * fifteen minutes later.
+ * tenant, a Workspace ONE UEM or SOTI MobiControl server: Inventory >
+ * Managed Devices): validated when saved, so a connection that stores is
+ * one the read loop can use - a tenant that is not one, a key that is not a
+ * key is a form error, not a lastError fifteen minutes later.
  *
- * The secret (Esper's API key, Intune's client secret) is write-only: an
- * edit form cannot show it, so on an update a secret left empty keeps the
- * stored one and a value replaces it.
+ * The secrets (Esper's API key, Intune's client secret, Workspace ONE's
+ * client secret - or an administrator's password and the REST API key -
+ * and SOTI's API client secret and user's password) are write-only: an
+ * edit form cannot show them, so on an update a secret left empty keeps the
+ * stored one and a value replaces it. A Workspace ONE connection that
+ * changes how it signs in takes the new way's secrets: the old ones are
+ * not the new way's to keep.
  *
  * The tenant is fixed once a connection is made, and so are its service and
  * an Intune tenant's cloud: its devices are the tenant's, so reading
- * another tenant is a connection of its own.
+ * another tenant (or another server) is a connection of its own.
  */
 
 // The longest a connection's name is kept.
 const MAX_NAME_LENGTH: number = 50;
 
-// The secrets a connection's service takes, decrypted; one of them per service.
+// The secrets a connection's service takes, decrypted: those of how it signs in.
 export interface DeviceManagementSecretValues {
   apiKey?: string | undefined;
   clientSecret?: string | undefined;
+  password?: string | undefined;
 }
 
-// The key each service keeps its one secret under, and how it reads it.
-const SECRET_OF: Record<
-  DeviceManagementProvider,
-  { key: string; read: (value: unknown) => string }
-> = {
-  [DeviceManagementProvider.Esper]: {
-    key: SECRET_API_KEY,
-    read: readEsperApiKey,
-  },
-  [DeviceManagementProvider.Intune]: {
-    key: SECRET_CLIENT_SECRET_KEY,
-    read: readIntuneClientSecret,
-  },
+type SecretKey = keyof DeviceManagementSecretValues;
+
+// A secret a service takes: the key it is kept under, and how it is read.
+interface SecretRule {
+  key: SecretKey;
+  read: (value: unknown) => string;
+}
+
+/*
+ * The secrets a connection takes, by its service and - for Workspace ONE -
+ * how it signs in: an OAuth client's secret, or an administrator's
+ * password and the tenant's REST API key.
+ */
+export function getDeviceManagementSecretRules(
+  provider: DeviceManagementProvider,
+  config?: DeviceManagementConfig | undefined,
+): Array<SecretRule> {
+  switch (provider) {
+    case DeviceManagementProvider.Intune:
+      return [
+        {
+          key: SECRET_CLIENT_SECRET_KEY as SecretKey,
+          read: readIntuneClientSecret,
+        },
+      ];
+    case DeviceManagementProvider.WorkspaceOne:
+      return config?.authMethod === "basic"
+        ? [
+            {
+              key: SECRET_PASSWORD_KEY as SecretKey,
+              read: readWorkspaceOnePassword,
+            },
+            { key: SECRET_API_KEY as SecretKey, read: readWorkspaceOneApiKey },
+          ]
+        : [
+            {
+              key: SECRET_CLIENT_SECRET_KEY as SecretKey,
+              read: readWorkspaceOneClientSecret,
+            },
+          ];
+    case DeviceManagementProvider.Soti:
+      return [
+        {
+          key: SECRET_CLIENT_SECRET_KEY as SecretKey,
+          read: readSotiClientSecret,
+        },
+        { key: SECRET_PASSWORD_KEY as SecretKey, read: readSotiPassword },
+      ];
+    case DeviceManagementProvider.Esper:
+    default:
+      return [{ key: SECRET_API_KEY as SecretKey, read: readEsperApiKey }];
+  }
+}
+
+// What a refused credential says a connection takes.
+function describeSecretsTaken(
+  provider: DeviceManagementProvider,
+  config?: DeviceManagementConfig | undefined,
+): string {
+  switch (provider) {
+    case DeviceManagementProvider.Intune:
+      return "an Intune connection takes clientSecret.";
+    case DeviceManagementProvider.WorkspaceOne:
+      return config?.authMethod === "basic"
+        ? "a Workspace ONE connection that signs in with an administrator's account takes password and apiKey."
+        : "a Workspace ONE connection that signs in with an OAuth client takes clientSecret.";
+    case DeviceManagementProvider.Soti:
+      return "a SOTI connection takes clientSecret and password.";
+    case DeviceManagementProvider.Esper:
+    default:
+      return "an Esper connection takes apiKey.";
+  }
+}
+
+/*
+ * What a project already connected says: the tenant, or the server, is
+ * connected - and what a saved connection's fixed settings say.
+ */
+const CONNECTED_ALREADY: Record<DeviceManagementProvider, string> = {
+  [DeviceManagementProvider.Esper]: "This Esper tenant is connected already",
+  [DeviceManagementProvider.Intune]: "This Intune tenant is connected already",
+  [DeviceManagementProvider.WorkspaceOne]:
+    "This Workspace ONE server is connected already",
+  [DeviceManagementProvider.Soti]:
+    "This MobiControl server is connected already",
+};
+
+const ONE_TENANT_A_CONNECTION: Record<DeviceManagementProvider, string> = {
+  [DeviceManagementProvider.Esper]:
+    "A connection reads one Esper tenant. To read another one, connect it as well.",
+  [DeviceManagementProvider.Intune]:
+    "A connection reads one Intune tenant, in one cloud. To read another one, connect it as well.",
+  [DeviceManagementProvider.WorkspaceOne]:
+    "A connection reads one Workspace ONE server. To read another one, connect it as well.",
+  [DeviceManagementProvider.Soti]:
+    "A connection reads one MobiControl server. To read another one, connect it as well.",
 };
 
 export class Service extends DatabaseService<Model> {
@@ -85,7 +179,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!isDeviceManagementProvider(value)) {
       throw new BadDataException(
-        "Service must be 'esper' or 'intune': the device management services OneUptime can read.",
+        "Service must be 'esper', 'intune', 'workspaceone' or 'soti': the device management services OneUptime can read.",
       );
     }
 
@@ -98,11 +192,12 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The secrets a request carries, checked: the service's one secret (an
-   * Esper API key, an Intune client secret), and nothing else - an unknown
-   * key is refused rather than stored, so a typo is not "no secret". With
-   * `required` false, an empty secret means "keep the stored one" and
-   * reads as undefined.
+   * The secrets a request carries, checked: those of the service and of how
+   * it signs in (an Esper API key; an Intune client secret; a Workspace ONE
+   * client secret, or a password and a REST API key; a SOTI client secret
+   * and password), and nothing else - an unknown key is refused rather than
+   * stored, so a typo is not "no secret". With `required` false, an empty
+   * secret means "keep the stored one" and is left out.
    */
   public static readSecrets(
     value: unknown,
@@ -110,46 +205,61 @@ export class Service extends DatabaseService<Model> {
       required: boolean;
       // The connection's service; Esper when absent.
       provider?: DeviceManagementProvider | undefined;
+      // Its settings, which say how a Workspace ONE connection signs in.
+      config?: DeviceManagementConfig | undefined;
     },
   ): DeviceManagementSecretValues {
     const provider: DeviceManagementProvider =
       options.provider || DeviceManagementProvider.Esper;
-    const secretOf: { key: string; read: (value: unknown) => string } =
-      SECRET_OF[provider];
+    const rules: Array<SecretRule> = getDeviceManagementSecretRules(
+      provider,
+      options.config,
+    );
     const secrets: JSONObject = Service.parseJsonObject(value, "Credentials");
 
     for (const key of Object.keys(secrets)) {
-      if (key !== secretOf.key) {
+      if (
+        !rules.some((rule: SecretRule): boolean => {
+          return rule.key === key;
+        })
+      ) {
         throw new BadDataException(
-          provider === DeviceManagementProvider.Intune
-            ? `Credentials has no "${key.substring(0, 50)}": an Intune connection takes clientSecret.`
-            : `Credentials has no "${key.substring(0, 50)}": an Esper connection takes apiKey.`,
+          `Credentials has no "${key.substring(0, 50)}": ${describeSecretsTaken(provider, options.config)}`,
         );
       }
     }
 
-    const secret: unknown = secrets[secretOf.key];
+    const values: DeviceManagementSecretValues = {};
 
-    if (
-      !options.required &&
-      (secret === undefined || secret === null || secret === "")
-    ) {
-      return {};
+    for (const rule of rules) {
+      const secret: unknown = secrets[rule.key];
+
+      if (
+        !options.required &&
+        (secret === undefined || secret === null || secret === "")
+      ) {
+        continue;
+      }
+
+      values[rule.key] = rule.read(secret);
     }
 
-    return { [secretOf.key]: secretOf.read(secret) };
+    return values;
   }
 
-  // The JSON a connection's secrets are stored as: its service's one.
+  // The JSON a connection's secrets are stored as: those its service takes.
   public static toSecretsJson(
     provider: DeviceManagementProvider,
     secrets: DeviceManagementSecretValues,
+    config?: DeviceManagementConfig | undefined,
   ): string {
-    const key: string = SECRET_OF[provider].key;
+    const json: Record<string, string | undefined> = {};
 
-    return JSON.stringify({
-      [key]: (secrets as Record<string, string | undefined>)[key],
-    });
+    for (const rule of getDeviceManagementSecretRules(provider, config)) {
+      json[rule.key] = secrets[rule.key];
+    }
+
+    return JSON.stringify(json);
   }
 
   // A name for a connection saved without one: the tenant's.
@@ -184,7 +294,7 @@ export class Service extends DatabaseService<Model> {
 
     const secrets: DeviceManagementSecretValues = Service.readSecrets(
       createBy.data.secrets,
-      { required: true, provider },
+      { required: true, provider, config },
     );
 
     Service.readBoolean(createBy.data.isEnabled, "Enabled");
@@ -211,7 +321,7 @@ export class Service extends DatabaseService<Model> {
       .substring(0, MAX_NAME_LENGTH);
     createBy.data.provider = provider;
     createBy.data.config = toDeviceManagementConfigJson(config);
-    createBy.data.secrets = Service.toSecretsJson(provider, secrets);
+    createBy.data.secrets = Service.toSecretsJson(provider, secrets, config);
 
     return { createBy, carryForward: null };
   }
@@ -219,7 +329,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * One connection per tenant in a project: two would each read it on their
    * own schedule, import every device twice and spend its API budget twice.
-   * An Intune tenant is one per cloud it is in.
+   * An Intune tenant is one per cloud it is in, and a Workspace ONE or SOTI
+   * server one per host.
    */
   private async assertTenantNotConnected(data: {
     projectId: ObjectID;
@@ -254,9 +365,7 @@ export class Service extends DatabaseService<Model> {
 
     if (taken) {
       throw new BadDataException(
-        data.provider === DeviceManagementProvider.Intune
-          ? `This Intune tenant is connected already, as "${taken.name || ""}". Edit that connection instead.`
-          : `This Esper tenant is connected already, as "${taken.name || ""}". Edit that connection instead.`,
+        `${CONNECTED_ALREADY[data.provider]}, as "${taken.name || ""}". Edit that connection instead.`,
       );
     }
   }
@@ -330,8 +439,10 @@ export class Service extends DatabaseService<Model> {
       provider,
     );
 
+    let requested: DeviceManagementConfig = stored;
+
     if (incoming["config"] !== undefined) {
-      const requested: DeviceManagementConfig = validateDeviceManagementConfig(
+      requested = validateDeviceManagementConfig(
         {
           ...toDeviceManagementConfigJson(stored),
           ...Service.parseJsonObject(incoming["config"], "Settings"),
@@ -343,32 +454,39 @@ export class Service extends DatabaseService<Model> {
         requested.tenant !== stored.tenant ||
         (requested.cloud || "") !== (stored.cloud || "")
       ) {
-        throw new BadDataException(
-          provider === DeviceManagementProvider.Intune
-            ? "A connection reads one Intune tenant, in one cloud. To read another one, connect it as well."
-            : "A connection reads one Esper tenant. To read another one, connect it as well.",
-        );
+        throw new BadDataException(ONE_TENANT_A_CONNECTION[provider]);
       }
 
       incoming["config"] = toDeviceManagementConfigJson(requested);
     }
 
-    if (incoming["secrets"] !== undefined) {
+    /*
+     * A connection that signs in another way (a Workspace ONE connection
+     * moving to an OAuth client) takes that way's secrets: none of the
+     * stored ones is kept for it.
+     */
+    const isSameSignIn: boolean =
+      (requested.authMethod || "") === (stored.authMethod || "");
+
+    if (incoming["secrets"] !== undefined || !isSameSignIn) {
       const provided: DeviceManagementSecretValues = Service.readSecrets(
-        incoming["secrets"],
-        { required: false, provider },
+        incoming["secrets"] === undefined ? {} : incoming["secrets"],
+        { required: false, provider, config: requested },
       );
 
       const storedSecrets: JSONObject = Service.parseJsonObject(
         current.secrets,
         "Credentials",
       );
-      const key: string = SECRET_OF[provider].key;
-      const secret: string =
-        (provided as Record<string, string | undefined>)[key] ||
-        SECRET_OF[provider].read(storedSecrets[key]);
+      const secrets: DeviceManagementSecretValues = {};
 
-      incoming["secrets"] = JSON.stringify({ [key]: secret });
+      for (const rule of getDeviceManagementSecretRules(provider, requested)) {
+        secrets[rule.key] =
+          provided[rule.key] ||
+          rule.read(isSameSignIn ? storedSecrets[rule.key] : undefined);
+      }
+
+      incoming["secrets"] = Service.toSecretsJson(provider, secrets, requested);
     }
 
     return { updateBy, carryForward: null };
@@ -489,22 +607,26 @@ export class Service extends DatabaseService<Model> {
       "Credentials",
     );
     const service: DeviceManagementProvider = Service.readProvider(provider);
+    const settingsConfig: DeviceManagementConfig = readDeviceManagementConfig(
+      config,
+      service,
+    );
+    const values: DeviceManagementSecretValues = {};
 
-    if (service === DeviceManagementProvider.Intune) {
-      return {
-        provider: service,
-        projectId: projectId.toString(),
-        config: readDeviceManagementConfig(config, service),
-        apiKey: "",
-        clientSecret: readIntuneClientSecret(secrets[SECRET_CLIENT_SECRET_KEY]),
-      };
+    for (const rule of getDeviceManagementSecretRules(
+      service,
+      settingsConfig,
+    )) {
+      values[rule.key] = rule.read(secrets[rule.key]);
     }
 
     return {
       provider: service,
       projectId: projectId.toString(),
-      config: readDeviceManagementConfig(config, service),
-      apiKey: readEsperApiKey(secrets[SECRET_API_KEY]),
+      config: settingsConfig,
+      apiKey: values.apiKey || "",
+      ...(values.clientSecret ? { clientSecret: values.clientSecret } : {}),
+      ...(values.password ? { password: values.password } : {}),
     };
   }
 }

@@ -188,10 +188,13 @@ describe("the settings", () => {
 });
 
 describe("the service", () => {
-  test("Esper and Microsoft Intune, by their own names in every language", () => {
+  test("Esper, Microsoft Intune, Workspace ONE UEM and SOTI MobiControl, by their own names in every language", () => {
     expect(isDeviceManagementProvider("esper")).toBe(true);
     expect(isDeviceManagementProvider("intune")).toBe(true);
-    expect(isDeviceManagementProvider("soti")).toBe(false);
+    // #10086, #10087.
+    expect(isDeviceManagementProvider("workspaceone")).toBe(true);
+    expect(isDeviceManagementProvider("soti")).toBe(true);
+    expect(isDeviceManagementProvider("jamf")).toBe(false);
     expect(
       getDeviceManagementProviderTitle(DeviceManagementProvider.Esper),
     ).toBe("Esper");
@@ -201,6 +204,20 @@ describe("the service", () => {
     expect(
       getDeviceManagementProviderShortTitle(DeviceManagementProvider.Intune),
     ).toBe("Intune");
+    expect(
+      getDeviceManagementProviderTitle(DeviceManagementProvider.WorkspaceOne),
+    ).toBe("Workspace ONE UEM");
+    expect(
+      getDeviceManagementProviderShortTitle(
+        DeviceManagementProvider.WorkspaceOne,
+      ),
+    ).toBe("Workspace ONE");
+    expect(getDeviceManagementProviderTitle(DeviceManagementProvider.Soti)).toBe(
+      "SOTI MobiControl",
+    );
+    expect(
+      getDeviceManagementProviderShortTitle(DeviceManagementProvider.Soti),
+    ).toBe("SOTI");
     // A connection made before there was a choice is Esper's.
     expect(readDeviceManagementProvider(undefined)).toBe(
       DeviceManagementProvider.Esper,
