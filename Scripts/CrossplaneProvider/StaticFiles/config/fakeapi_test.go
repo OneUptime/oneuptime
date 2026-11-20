@@ -27,6 +27,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/v2/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/reconciler/managed"
 	xpresource "github.com/crossplane/crossplane-runtime/v2/pkg/resource"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/test"
+	xpv2 "github.com/crossplane/crossplane/apis/v2/core/v2"
 	tjcontroller "github.com/crossplane/upjet/v2/pkg/controller"
 	"github.com/crossplane/upjet/v2/pkg/terraform"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -264,14 +266,91 @@ func newReconciler(t *testing.T, api *fakeAPI) *reconciler {
 	return &reconciler{t: t, api: api, store: tjcontroller.NewOperationStore(logging.NewNopLogger())}
 }
 
-func (r *reconciler) setup(_ context.Context, _ client.Client, _ xpresource.Managed) (terraform.Setup, error) {
+// setup is the provider's setup for one reconcile (clients
+// .TerraformSetupBuilder): a provider of its own, planning with what the
+// resource's manifest last applied (lastapplied.go).
+func (r *reconciler) setup(_ context.Context, _ client.Client, mg xpresource.Managed) (terraform.Setup, error) {
+	recorded, lastApplied := LastAppliedOf(mg)
 	return terraform.Setup{
-		FrameworkProvider: xpprovider.FrameworkProvider("test"),
+		FrameworkProvider: xpprovider.FrameworkProviderFor("test", recorded, lastApplied),
 		Configuration: map[string]any{
 			"oneuptime_url": r.api.server.URL,
 			"api_key":       fakeAPIKey,
 		},
 	}, nil
+}
+
+// initialize runs the resource's initializers, as a reconcile starts: the
+// external name from the status, what the manifest last applied.
+func (r *reconciler) initialize(terraformName string, mg xpresource.Managed) {
+	r.t.Helper()
+	cfg := provider.Resources[terraformName]
+	kube := &test.MockClient{MockUpdate: test.NewMockUpdateFn(nil)}
+	for _, newInitializer := range cfg.InitializerFns {
+		if err := newInitializer(kube).Initialize(context.Background(), mg); err != nil {
+			r.t.Fatalf("initialize: %v", err)
+		}
+	}
+}
+
+// cycle is a whole reconcile, as the managed reconciler runs one under the
+// default management policy: the initializers, then the record observed and
+// created or updated, then the resource's Synced condition at its
+// generation, and Ready, as Upjet sets it. A spec late initialization
+// changed moves the generation on, as the API server does.
+func (r *reconciler) cycle(terraformName string, mg xpresource.Managed) (managed.ExternalObservation, error) {
+	r.t.Helper()
+	r.initialize(terraformName, mg)
+	before := specOf(r.t, mg)
+	ext := r.connect(terraformName, mg)
+	obs, err := ext.Observe(context.Background(), mg)
+	created := false
+	switch {
+	case err != nil:
+	case !obs.ResourceExists:
+		_, err = ext.Create(context.Background(), mg)
+		created = true
+	case !obs.ResourceUpToDate:
+		_, err = ext.Update(context.Background(), mg)
+	}
+	if specOf(r.t, mg) != before {
+		mg.SetGeneration(mg.GetGeneration() + 1)
+	}
+	generation := mg.GetGeneration()
+	if err != nil {
+		mg.SetConditions(xpv2.ReconcileError(err).WithObservedGeneration(generation))
+		return obs, err
+	}
+	if created {
+		mg.SetConditions(xpv2.Creating().WithObservedGeneration(generation))
+	}
+	mg.SetConditions(xpv2.ReconcileSuccess().WithObservedGeneration(generation))
+	return obs, nil
+}
+
+// edit changes a manifest as a person does: the API server moves its
+// generation on.
+func edit(mg xpresource.Managed, change func()) {
+	change()
+	mg.SetGeneration(mg.GetGeneration() + 1)
+}
+
+// specOf is a resource's spec as JSON, to tell whether a reconcile changed it.
+func specOf(t *testing.T, mg xpresource.Managed) string {
+	t.Helper()
+	b, err := json.Marshal(mg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	object := map[string]any{}
+	if err := json.Unmarshal(b, &object); err != nil {
+		t.Fatal(err)
+	}
+	spec, err := json.Marshal(object["spec"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(spec)
 }
 
 // connect is the start of a reconcile: the external client for one managed

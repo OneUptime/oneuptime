@@ -72,7 +72,7 @@ Aprite **Impostazioni di visualizzazione** per scegliere il **Tipo di grafico** 
 
 Ogni query disegna il proprio grafico. Per disegnare una query sullo stesso grafico della precedente, attivate **Sovrapponi alla query precedente** nelle sue **Impostazioni di visualizzazione**.
 
-Un grafico sovrapposto legge il suo asse dei valori di sinistra nell'unità della sua prima query, e vi converte una query in un'altra unità dello stesso tipo, come megabyte su un grafico in gigabyte. Una query in un'unità di un altro tipo, come byte su un grafico in percentuale, viene disegnata su un secondo asse dei valori a destra del grafico, nella sua unità, e la legenda sotto il grafico indica su quale asse è disegnata ciascuna serie. Solo un terzo tipo di unità non rientra in nessuno dei due assi: viene disegnata sull'asse di sinistra, e sia il grafico sia l'interruttore lo indicano.
+Un grafico sovrapposto legge il suo asse dei valori di sinistra nell'unità della sua prima query, e vi converte una query in un'altra unità dello stesso tipo, come megabyte su un grafico in gigabyte. Una query in un'unità di un altro tipo, come byte su un grafico in percentuale, viene disegnata su un secondo asse dei valori a destra del grafico, nella sua unità, e la legenda sotto il grafico indica su quale asse è disegnata ciascuna serie. Solo un terzo tipo di unità non rientra in nessuno dei due assi: viene disegnata su una scala propria, senza asse, e sia il grafico sia l'interruttore lo indicano. Leggi i suoi valori nella legenda e nel tooltip.
 
 ## Combinare query con una formula
 

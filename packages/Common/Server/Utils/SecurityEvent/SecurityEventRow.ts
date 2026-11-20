@@ -3,9 +3,14 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
+import { SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE } from "../../../Types/SecurityCase/SecurityConnection";
 import { TelemetryServiceMetadata } from "../../Services/OpenTelemetryIngestService";
 import TelemetryUtil, { AttributeType } from "../Telemetry/Telemetry";
 import { copyOwnValues } from "../../../Utils/LookupTable";
+import {
+  foldResourceIdObservables,
+  getResourceIdMatchKey,
+} from "../../../Utils/SecurityCase/SecurityConnectionMatch";
 
 /*
  * Events whose source timestamp is outside this window are stamped with
@@ -22,6 +27,30 @@ export const MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES: number = 60;
  * kept.
  */
 export const MAX_SECURITY_EVENT_TELEMETRY_ID_LENGTH: number = 128;
+
+/*
+ * The cloud resource an event's log line or span was of
+ * (SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE), as every row keeps it: an Azure
+ * resource ID by its key, in lower case, whatever case the line was stamped
+ * in (#10034) - the one spelling the resource's own page and Connected
+ * Signals look it up by. An ARN or a Google Cloud name is kept as written.
+ * Changes the row's own copy of the attributes.
+ */
+export function foldCloudResourceAttribute(
+  attributes: Dictionary<AttributeType | Array<AttributeType>>,
+): void {
+  const value: unknown = Object.prototype.hasOwnProperty.call(
+    attributes,
+    SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  )
+    ? attributes[SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]
+    : undefined;
+
+  if (typeof value === "string") {
+    attributes[SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE] =
+      getResourceIdMatchKey(value);
+  }
+}
 
 // A trace, span or session id as the row keeps it: trimmed, '' when absent.
 export function readSecurityEventTelemetryId(value: unknown): string {
@@ -77,6 +106,8 @@ export function buildSecurityEventDbRow(data: {
     eventTime = ingestionDate;
   }
 
+  foldCloudResourceAttribute(attributes);
+
   const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
     ingestionDate,
     retentionDays,
@@ -120,7 +151,7 @@ export function buildSecurityEventDbRow(data: {
     targetIp: normalized.targetIp,
     targetPort: normalized.targetPort,
     targetResource: normalized.targetResource,
-    observables: normalized.observables,
+    observables: foldResourceIdObservables(normalized.observables),
     traceId: readSecurityEventTelemetryId(normalized.traceId),
     spanId: readSecurityEventTelemetryId(normalized.spanId),
     sessionId: readSecurityEventTelemetryId(normalized.sessionId),

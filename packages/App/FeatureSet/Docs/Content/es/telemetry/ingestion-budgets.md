@@ -6,6 +6,7 @@ Un presupuesto de ingesta limita cuánta telemetría envía un proyecto en un d�
 - [Cómo funcionan los presupuestos](#cómo-funcionan-los-presupuestos): Tres niveles, contados a medida que llega la telemetría.
 - [Fijar los presupuestos predeterminados de todos los proyectos](#fijar-los-presupuestos-predeterminados-de-todos-los-proyectos): En los ajustes del Admin Dashboard.
 - [Dar a una clave de ingesta su propio presupuesto](#dar-a-una-clave-de-ingesta-su-propio-presupuesto): Una parte del presupuesto del proyecto.
+- [Dar a un equipo o a una etiqueta su propio presupuesto](#dar-a-un-equipo-o-a-una-etiqueta-su-propio-presupuesto): Para los servicios del equipo o con la etiqueta.
 - [Alertar sobre un presupuesto](#alertar-sobre-un-presupuesto): Antes de que se agote, y cuando se agota.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **Para los presupuestos de la instancia y de un proyecto, el Admin Dashboard.** En una instalación autoalojada, solo el administrador de la instancia los fija. Los Propietarios del proyecto y los Administradores del proyecto ven los presupuestos de un proyecto, pero no pueden cambiarlos.
 - **Para el presupuesto propio de una clave, un rol que edite claves de ingesta.** Propietario del proyecto o Administrador del proyecto, o un rol personalizado con el permiso Edit Ingestion Key.
+- **Para el presupuesto de un equipo o de una etiqueta, Propietario del proyecto o Administrador del proyecto.**
 - **Para ver los presupuestos, un rol que vea el uso del proyecto.** Los roles que ven la página [Uso de telemetría](/docs/telemetry/usage) ven en ella los presupuestos del proyecto.
 
 ## Fijar los presupuestos predeterminados de todos los proyectos
@@ -94,6 +96,30 @@ Haga clic en **Guardar cambios**. El presupuesto de una clave no puede superar e
 - **Cuentan los dos presupuestos.** La telemetría enviada con la clave se descuenta del presupuesto de la clave y del presupuesto del proyecto, y el que se agote primero la rechaza.
 - **Un presupuesto de proyecto rebajado también limita a la clave.** Cuando el presupuesto del proyecto se rebaja por debajo del de una clave, la clave queda limitada al del proyecto.
 
+## Dar a un equipo o a una etiqueta su propio presupuesto
+
+El presupuesto de un equipo o de una etiqueta también es una parte del de su proyecto, para los servicios de los que el equipo es propietario o que llevan la etiqueta: el servicio desbocado de un equipo se detiene en el presupuesto de su equipo, mientras el resto del proyecto sigue enviando, incluso por el mismo collector y la misma clave de ingesta.
+
+:::steps
+### Abrir la página Uso
+
+Vaya a **Ajustes del proyecto → Telemetría y APM → Uso**, y abra **Más ajustes** al final de la página.
+
+### Agregar el presupuesto
+
+En la tarjeta **Presupuestos de equipos y etiquetas**, haga clic en **Crear Presupuesto**. Elija el equipo o la etiqueta en **Equipo o etiqueta**, y escriba un número de GB por día en **Registros (GB por día)**. Las demás señales están en **Más campos**. Deje una señal vacía para que no tenga presupuesto propio.
+
+### Guardar el presupuesto
+
+Haga clic en **Crear Presupuesto**. El presupuesto de un equipo o de una etiqueta no puede superar el de su proyecto: OneUptime lo rechaza e indica el máximo posible.
+:::
+
+- **Qué cuenta.** Los registros, trazas, métricas y perfiles que los servicios del equipo, o los servicios con la etiqueta, envían por OpenTelemetry (OTLP). La telemetría de hosts y de otros recursos, los eventos de seguridad y los registros de Fluent Bit, Fluentd o syslog solo cuentan en los presupuestos del proyecto y de la clave.
+- **Cuando se agota, la telemetría se descarta.** La telemetría de esa señal de los servicios se descarta hasta el restablecimiento, y al emisor no se le avisa: recibió su respuesta cuando llegó la telemetría. Lo que se descarta deja de contar en el presupuesto del proyecto o de la clave.
+- **A quién se avisa.** Los Propietarios del proyecto reciben un correo cuando el presupuesto supera el umbral de advertencia, y cuando se agota.
+- **Solo un presupuesto diario.** Un equipo o una etiqueta no tiene límite de frecuencia.
+- **Cuenta cada presupuesto.** La telemetría de un servicio cuenta en los presupuestos de sus equipos y sus etiquetas, y en los de la clave y el proyecto, y el primero que se agota la detiene. Cuando el presupuesto del proyecto se rebaja por debajo del de un equipo o una etiqueta, queda limitado al del proyecto.
+
 ## Qué ven los emisores
 
 | Cuándo | Por HTTP | Por OTLP/gRPC | Qué hace el emisor |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Los demás emisores HTTP reciben JSON.** Fluent Bit, Fluentd, Syslog y los demás endpoints HTTP reciben `error`, `message` y `resetsAt`, y `retryAfterSeconds` cuando se trata de un límite de frecuencia.
 - **A MQTT y a los flujos de la nube no se les puede avisar.** La telemetría que llega por MQTT o desde el flujo de un proveedor de nube se descarta cuando su presupuesto se agota. No se le aplica ningún límite de frecuencia: no se podría volver a enviar.
+- **Tampoco a los servicios de un equipo o de una etiqueta.** Cuando el presupuesto de un equipo o de una etiqueta se agota, su telemetría se acepta y luego se descarta: consulte [Dar a un equipo o a una etiqueta su propio presupuesto](#dar-a-un-equipo-o-a-una-etiqueta-su-propio-presupuesto).
 - **Los rechazos se cuentan.** Lo que un presupuesto agotado rechaza o descarta se cuenta como descartado, y cada solicitud que rechaza un límite de frecuencia, como limitada: consulte [Ver el uso y los descartes de hoy](#ver-el-uso-y-los-descartes-de-hoy).
 
 ## La advertencia y el restablecimiento
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Ver el uso y los descartes de hoy
 
-Vaya a **Ajustes del proyecto → Telemetría y APM → Uso**. Mientras haya un presupuesto o un límite de frecuencia fijado para el proyecto, la página se abre con la tarjeta **Presupuestos de ingesta**, y las claves con presupuesto propio están en la tarjeta **Presupuestos de las claves de ingesta**:
+Vaya a **Ajustes del proyecto → Telemetría y APM → Uso**. Mientras haya un presupuesto o un límite de frecuencia fijado para el proyecto, la página se abre con la tarjeta **Presupuestos de ingesta**, las claves con presupuesto propio están en la tarjeta **Presupuestos de las claves de ingesta**, y los equipos y etiquetas con presupuesto propio en la tarjeta **Presupuestos de equipos y etiquetas de hoy**:
 
 | Columna | Qué muestra |
 | --- | --- |
 | **Señal** | La señal a la que corresponde la fila. |
 | **Usado hoy** | Lo que se ha contado desde que empezó el día de presupuesto, y su parte del presupuesto. |
-| **Presupuesto diario** | El presupuesto vigente, y dónde se fijó: **Predeterminado de la instancia**, **Fijado para este proyecto** o **Propio de esta clave**. |
+| **Presupuesto diario** | El presupuesto vigente, y dónde se fijó: **Predeterminado de la instancia**, **Fijado para este proyecto**, **Propio de esta clave**, **Propio de este equipo** o **Propio de esta etiqueta**. |
 | **Límite de frecuencia** | El límite de frecuencia vigente. |
 | **Descartado** | Lo que se rechazó o descartó porque el presupuesto estaba agotado. |
 | **Limitado** | Cuántas solicitudes rechazó el límite de frecuencia. |
 | **Estado** | **Dentro del presupuesto**, **Umbral de advertencia superado** o **Agotado**, **Sin presupuesto diario** para una señal que solo tiene límite de frecuencia, y **Desconocido** mientras no se pueden leer los recuentos. |
 
 - **En la página de una clave**, la tarjeta **Uso del presupuesto de hoy** muestra lo que la clave ha usado de sus propios presupuestos.
-- **En los exploradores**, un banner encima de los datos de registros, trazas, métricas, perfiles y eventos de seguridad indica cuándo el presupuesto de esa señal ha superado su umbral de advertencia o se ha agotado, con **Ver presupuestos** para abrir la página Uso.
+- **En los exploradores**, un banner encima de los datos de registros, trazas, métricas, perfiles y eventos de seguridad indica cuándo el presupuesto de esa señal ha superado su umbral de advertencia o se ha agotado, o se ha agotado el de una clave, un equipo o una etiqueta, con **Ver presupuestos** para abrir la página Uso.
 - **En el Admin Dashboard**, la página **Presupuestos de ingesta** de un proyecto muestra las mismas cifras.
 
 ## Alertar sobre un presupuesto
@@ -153,9 +180,13 @@ Cada punto lleva estos atributos:
 | --- | --- |
 | `projectId` | El ID del proyecto. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` o `security-events`. |
-| `scope` | `project`, o `ingestion-key` para el presupuesto propio de una clave. |
+| `scope` | `project`, `ingestion-key` para el presupuesto propio de una clave, o `team` o `label` para el de un equipo o una etiqueta. |
 | `ingestionKeyId` | El ID de la clave, para el presupuesto propio de una clave. |
 | `ingestionKeyName` | El nombre de la clave cuando se escribió el punto, para el presupuesto propio de una clave. |
+| `teamId` | El ID del equipo, para el presupuesto de un equipo. |
+| `teamName` | El nombre del equipo cuando se escribió el punto, para el presupuesto de un equipo. |
+| `labelId` | El ID de la etiqueta, para el presupuesto de una etiqueta. |
+| `labelName` | El nombre de la etiqueta cuando se escribió el punto, para el presupuesto de una etiqueta. |
 
 Para recibir un aviso al 90 % del presupuesto de registros del proyecto, cree un monitor de métricas sobre `oneuptime.telemetry.budget.used.percent`, filtrado por `signal` `logs` y `scope` `project`, que alerte cuando el máximo supere 90:
 
@@ -168,6 +199,10 @@ Para recibir un aviso al 90 % del presupuesto de registros del proyecto, cree un
 
 :::details Un collector registra 403 en sus exportaciones
 El presupuesto diario del proyecto o de la clave para esa señal está agotado, y el collector descarta lo que no puede enviar hasta que el presupuesto se restablezca. Consulte **Usado hoy** en la página Uso. Pida al administrador de la instancia que aumente el presupuesto del proyecto, o envíe menos: un filtro de descarte no ayuda aquí, porque elimina la telemetría después de que se haya contado.
+:::
+
+:::details La telemetría de un equipo dejó de llegar, y ningún emisor registra un error
+El presupuesto diario del equipo, o de una etiqueta de sus servicios, está agotado para esa señal, y su telemetría se descarta hasta que el presupuesto se restablezca. Consulte **Usado hoy** en la tarjeta **Presupuestos de equipos y etiquetas de hoy** de la página Uso, y aumente el presupuesto en **Más ajustes**.
 :::
 
 :::details Un collector registra 429 y reintenta

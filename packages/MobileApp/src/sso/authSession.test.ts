@@ -37,6 +37,7 @@ import {
   resetSsoCallbackCaptureForTesting,
   startSsoCallbackCapture,
 } from "./deepLink";
+import { beginSsoHandOff } from "./handOff";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -66,6 +67,20 @@ jest.mock("expo-linking", () => {
     }),
     getInitialURL: jest.fn(() => {
       return Promise.resolve(null);
+    }),
+  };
+});
+
+/*
+ * The hand-off every sign-in starts with (#9989) is ./handOff's to test;
+ * here it hands back the address it was given, unless a test says
+ * otherwise, so what is under test is the browser's half.
+ */
+jest.mock("./handOff", () => {
+  return {
+    __esModule: true,
+    beginSsoHandOff: jest.fn(async (url: string): Promise<string> => {
+      return url;
     }),
   };
 });
@@ -172,11 +187,44 @@ afterEach(async (): Promise<void> => {
   resetSsoCallbackCaptureForTesting();
 });
 
+function beginHandOff(): jest.Mock {
+  return beginSsoHandOff as unknown as jest.Mock;
+}
+
 describe("Opening the session", () => {
-  test("hands the IdP URL to the browser unchanged", async (): Promise<void> => {
+  test("hands the IdP URL to the browser unchanged but for its hand-off", async (): Promise<void> => {
     await openSsoAuthSession(SSO_URL, { graceMs: GRACE_MS });
 
+    expect(beginHandOff()).toHaveBeenCalledWith(SSO_URL);
     expect(openAuthSession().mock.calls[0]![0]).toBe(SSO_URL);
+  });
+
+  /*
+   * #9989: every sign-in opens with a state and a PKCE challenge of its
+   * own, so the server hands it back as a one-time code only it redeems.
+   */
+  test("opens the browser on the address the sign-in's hand-off began", async (): Promise<void> => {
+    const withHandOff: string = `${SSO_URL}&state=${"a".repeat(64)}&codeChallenge=${"b".repeat(43)}&codeChallengeMethod=S256`;
+
+    beginHandOff().mockResolvedValueOnce(withHandOff);
+
+    await openSsoAuthSession(SSO_URL, { graceMs: GRACE_MS });
+
+    expect(openAuthSession()).toHaveBeenCalledTimes(1);
+    expect(openAuthSession().mock.calls[0]![0]).toBe(withHandOff);
+  });
+
+  test("a sign-in whose hand-off cannot begin opens no browser, and says so", async (): Promise<void> => {
+    beginHandOff().mockRejectedValueOnce(new Error("no random bytes"));
+
+    const outcome: SsoAuthSessionOutcome = await openSsoAuthSession(SSO_URL, {
+      graceMs: GRACE_MS,
+    });
+
+    expect(errorOutcome(outcome).message).toBe(
+      "Could not start single sign-on. Please try again.",
+    );
+    expect(openAuthSession()).not.toHaveBeenCalled();
   });
 
   test("always returns to oneuptime://sso-callback", async (): Promise<void> => {

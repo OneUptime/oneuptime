@@ -282,6 +282,16 @@ OneUptime legt vast wie een record heeft aangemaakt — en wie het heeft gearchi
 
 De API-referentie markeert deze velden als alleen-lezen. Een waarde die een verzoek voor een ervan meestuurt naast andere wijzigingen, wordt genegeerd, dus de rest van de wijziging gaat door; een update die verder niets stuurt, wordt geweigerd met een melding die de velden noemt. Records die OneUptime zelf namens iemand aanmaakt — een notitie die vanuit Slack of Microsoft Teams is geplaatst, een account dat via een uitnodiging is gemaakt — noemen die persoon.
 
+### Velden die alleen OneUptime schrijft
+
+Sommige velden schrijft alleen OneUptime: wanneer een telemetriemonitor voor het laatst draaide en wanneer hij de volgende keer draait, wat een agent het laatst meldde, de SLA-deadlines, wanneer een SCIM-client-secret niet meer werkt. De API-referentie markeert ze als alleen-lezen en laat ze weg uit de body van een aanmaak en een update. Een aanmaak die er een van stuurt, zoals een kopie van een gelezen record doet, gaat zonder dat veld door, en het nieuwe record krijgt de waarde van OneUptime. Een update die er een van stuurt, wordt geweigerd, en het antwoord noemt elk zulk veld dat hij stuurde:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Laat deze velden weg uit een update. De paar velden die een persoon wijzigt, hebben een eigen verzoek: een SCIM-client-secret vervangen stelt in wanneer het niet meer werkt, en `POST /api/host/:id/try-collector-config-again` stuurt een host opnieuw de collectorconfiguratie die erop mislukte. Een veld dat jij en OneUptime allebei wijzigen, zoals de `labels` van een record, waar labelregels labels aan toevoegen, stel je zoals voorheen zelf in.
+
 ## Statussen en episodes
 
 ### De status waarin een nieuw record begint

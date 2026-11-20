@@ -58,6 +58,9 @@ export function getCloudAddedMetricCostWords(data: {
   azureGrain?: string | undefined;
   azureMetricsInCall?: number | undefined;
   azureHasFiveMinuteCall?: boolean | undefined;
+  // Split by a dimension (#9808): each resource's series, one a value.
+  isSplit?: boolean | undefined;
+  seriesPerResource?: number | undefined;
 }): CloudTemplate {
   const provider: CloudProvider = String(
     data.provider,
@@ -69,6 +72,8 @@ export function getCloudAddedMetricCostWords(data: {
     azureGrain: data.azureGrain,
     azureMetricsInCall: data.azureMetricsInCall,
     azureHasFiveMinuteCall: data.azureHasFiveMinuteCall,
+    isSplit: data.isSplit,
+    seriesPerResource: data.seriesPerResource,
   });
 
   if (estimate.ridesInExistingCall) {

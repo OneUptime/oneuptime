@@ -88,6 +88,7 @@
     <string name="log_session_title">Logboeken voor probleemoplossing</string>
     <string name="log_session_request_by">%1$s vraagt in OneUptime om de logboeken van alle apps op dit apparaat, gedurende %2$s, vanaf niveau %3$s.</string>
     <string name="log_session_request">OneUptime vraagt om de logboeken van alle apps op dit apparaat, gedurende %1$s, vanaf niveau %2$s.</string>
+    <string name="log_session_note">“%1$s”</string>
     <string name="log_session_android_prompt">Daarna vraagt Android u om toegang tot alle apparaatlogboeken toe te staan. Kies daar ook Toestaan.</string>
     <string name="log_session_allow">Toestaan</string>
     <string name="log_session_decline">Weigeren</string>

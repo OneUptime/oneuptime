@@ -47,11 +47,12 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 | Uma forma curta ou completa do nome de um item, como `web-1` e `web-1.acme.internal` | Esse item | Possível |
 | Um endereço IP público que só um host ou dispositivo de rede tem, ou em que só um recurso de nuvem responde | Esse item | Exata |
 | Um endereço IP privado, ou um que mais de um item tem | Cada item que o tem | Possível |
-| O ID próprio de um recurso de nuvem: um ARN da AWS, um ID de recurso do Azure ou um nome de recurso do Google Cloud | Esse recurso de nuvem | Exata |
+| O ID próprio de um recurso de nuvem: um ARN da AWS ou um nome de recurso do Google Cloud como foi escrito, ou um ID de recurso do Azure, em maiúsculas ou minúsculas | Esse recurso de nuvem | Exata |
 | Um host, um endereço IP público ou o host de uma URL que um monitor verifica | Esse monitor | Exata |
 | Um endereço IP privado que um monitor verifica | Esse monitor | Possível |
 | O e-mail de um membro | Esse membro | Exata |
 | O item sob o qual uma linha de registro foi enviada, para os eventos lidos dos seus registros | Esse host, cluster, nuvem OpenStack, recurso de nuvem, função serverless ou serviço | Exata |
+| O recurso de nuvem ou a função serverless de onde veio uma linha de registro, pelo `cloud.resource_id` ou pelo `faas.name` dela, para os eventos lidos dos seus registros | Esse recurso de nuvem ou essa função serverless | Exata |
 | Um simples nome de usuário, um hash de arquivo ou um processo | Nada: nenhum item é identificado por eles | - |
 
 - Uma possível correspondência mostra **Possível correspondência** ao lado do nome e diz por quê. Ela nunca é contada na página do item, e um incidente que o caso declara nunca é vinculado a ela.

@@ -39,8 +39,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     each line and legend chip named and colored apart;
  *   - units: a query in a unit of the chart's kind converted onto its axis,
  *     one in another kind on a second axis, on the right (issue #10042),
- *     saved and drawn again so, and a third kind named in the chart's
- *     warning.
+ *     saved and drawn again so, and a third kind drawn to a scale of its
+ *     own, with no axis, named in the legend and the chart's note (issue
+ *     #10080).
  */
 
 jest.setTimeout(120000);
@@ -149,6 +150,7 @@ import ArgumentsForm, {
   METRIC_QUERY_ROW_HEADER_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ArgumentsForm";
 import {
+  CHART_AXIS_UNIT_TEST_ID,
   OVERLAY_UNIT_MISMATCH_TEST_ID,
   SERIES_CHIP_AXIS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts";
@@ -937,7 +939,14 @@ describe("units on an overlaid chart", () => {
     }
   });
 
-  test("three kinds of unit: the third, in milliseconds, fits neither axis, and the chart says so", async () => {
+  /*
+   * Issue #10080: the third kind, in milliseconds, fits neither axis. Drawn
+   * against the left axis, it stretched it; it is drawn to a scale of its
+   * own now: no third axis is drawn, the two axes keep their own units and
+   * ranges, its line keeps its shape over the plot, and the legend and the
+   * chart say so.
+   */
+  test("three kinds of unit: the third, in milliseconds, is drawn to a scale of its own, and the chart says so", async () => {
     await drawWidget(
       chartOf(query("a", "mem_used"), [
         query("b", "cpu_usage_percent", OVERLAID),
@@ -946,12 +955,61 @@ describe("units on an overlaid chart", () => {
     );
 
     const [plot] = screen.getAllByTestId("chart-group-plot");
+    const [left, right] = valueAxesIn(plot!);
 
+    // Two axes drawn, never a third: bytes on the left, percent on the right.
     expect(valueAxesIn(plot!)).toHaveLength(2);
-    expect(chipAxisOf("http.server.duration")).toBe("Left axis");
+    for (const tick of left!) {
+      expect(tick).toMatch(/(^0|B)$/);
+    }
+    for (const tick of right!) {
+      expect(tick).toMatch(/%$/);
+    }
+
+    // Every line keeps its shape, the milliseconds' too, on its own scale.
+    const lines: Array<Element> = linesIn(plot!);
+
+    expect(lines).toHaveLength(3);
+    for (const line of lines) {
+      expect(lineSpanIn(line)).toBeGreaterThan(20);
+    }
+
+    expect(chipAxisOf("http.server.duration")).toBe("Own scale");
+    expect(chipAxisOf("mem_used")).toBe("Left axis");
+    expect(chipAxisOf("cpu_usage_percent")).toBe("Right axis");
+    expect(
+      screen
+        .getAllByTestId(CHART_AXIS_UNIT_TEST_ID)
+        .map((badge: HTMLElement): string | null => {
+          return badge.textContent;
+        }),
+    ).toEqual([
+      "Left axis: Bytes",
+      "Right axis: Percent",
+      "Own scale: Milliseconds",
+    ]);
     expect(screen.getByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toHaveTextContent(
-      "Queries in Milliseconds fit neither axis of this chart (Bytes, Percent), so they are drawn against the left axis and may not be directly comparable.",
+      "Queries in Milliseconds fit neither axis of this chart (Bytes, Percent), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.",
     );
+  });
+
+  test("three kinds of unit, saved and opened again: the third is on its own scale again", async () => {
+    const { stored, read } = saveAndReadBack(
+      chartOf(query("a", "mem_used"), [
+        query("b", "cpu_usage_percent", OVERLAID),
+        query("c", "http.server.duration", OVERLAID),
+      ]),
+    );
+
+    // What is saved is the switch, never a scale: the scales are read again.
+    expect(JSON.stringify(stored)).not.toMatch(/ownScale/);
+
+    await drawWidget(read);
+
+    expect(
+      valueAxesIn(screen.getAllByTestId("chart-group-plot")[0]!),
+    ).toHaveLength(2);
+    expect(chipAxisOf("http.server.duration")).toBe("Own scale");
   });
 
   test("saved with the dashboard and opened again, the chart is drawn on its two axes again", async () => {

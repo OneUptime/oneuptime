@@ -448,10 +448,55 @@ describe("the answer the device reads", () => {
       "minimumLevel",
       "requestedAt",
       "requestedByName",
+      "note",
       "expiresAt",
     ]) {
       expect(kotlin).toContain(`"${key}"`);
     }
     expect(CANCELLED_MESSAGE).toMatch(/\.$/);
+  });
+
+  test("a session with a note tells it, and one without says nothing of a note (#9966)", () => {
+    expect(
+      AndroidAgentLogSessions.toAnswer([
+        {
+          id: SESSION_ID,
+          status: HostLogSessionStatus.Requested,
+          durationMinutes: 30,
+          minimumLevel: HostLogSessionLevel.Info,
+          note: "Checking why the payment app crashes after 6pm",
+        },
+        {
+          id: SESSION_ID,
+          status: HostLogSessionStatus.Requested,
+          durationMinutes: 30,
+          minimumLevel: HostLogSessionLevel.Info,
+          note: "",
+        },
+      ]),
+    ).toEqual({
+      sessions: [
+        {
+          id: SESSION_ID,
+          status: "Requested",
+          durationMinutes: 30,
+          minimumLevel: "info",
+          note: "Checking why the payment app crashes after 6pm",
+        },
+        {
+          id: SESSION_ID,
+          status: "Requested",
+          durationMinutes: 30,
+          minimumLevel: "info",
+        },
+      ],
+    });
+  });
+
+  test("the agent shows the note only as it would send text itself (LogSessionNote)", () => {
+    const kotlin: string = agentSource("logsession/LogSessionNote.kt");
+
+    expect(kotlin).toContain("Redactor.redact(");
+    expect(kotlin).toContain("const val MAX_LENGTH: Int = 500");
   });
 });

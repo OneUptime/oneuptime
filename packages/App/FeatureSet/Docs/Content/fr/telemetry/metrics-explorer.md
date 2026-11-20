@@ -72,7 +72,7 @@ Ouvrez **Paramètres d'affichage** pour choisir le **Type de graphique** (ligne,
 
 Chaque requête trace son propre graphique. Pour tracer une requête sur le même graphique que la précédente, activez **Superposer à la requête précédente** dans ses **Paramètres d'affichage**.
 
-Un graphique superposé lit son axe des valeurs de gauche dans l'unité de sa première requête, et y convertit une requête dans une autre unité du même genre, comme des mégaoctets sur un graphique en gigaoctets. Une requête dans une unité d'un autre genre, comme des octets sur un graphique en pourcentage, est tracée sur un second axe des valeurs à droite du graphique, dans sa propre unité, et la légende sous le graphique indique sur quel axe chaque série est tracée. Seul un troisième genre d'unité ne correspond à aucun des deux axes : il est tracé sur l'axe de gauche, et le graphique comme l'interrupteur l'indiquent.
+Un graphique superposé lit son axe des valeurs de gauche dans l'unité de sa première requête, et y convertit une requête dans une autre unité du même genre, comme des mégaoctets sur un graphique en gigaoctets. Une requête dans une unité d'un autre genre, comme des octets sur un graphique en pourcentage, est tracée sur un second axe des valeurs à droite du graphique, dans sa propre unité, et la légende sous le graphique indique sur quel axe chaque série est tracée. Seul un troisième genre d'unité ne correspond à aucun des deux axes : il est tracé sur une échelle propre, sans axe, et le graphique comme l'interrupteur l'indiquent. Lisez ses valeurs dans la légende et l'info-bulle.
 
 ## Combiner des requêtes avec une formule
 

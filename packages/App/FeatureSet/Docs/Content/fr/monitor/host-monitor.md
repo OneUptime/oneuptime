@@ -137,9 +137,10 @@ Un hôte dont l'OS est Android, comme une borne ou un terminal de point de vente
 | Device Overheating | Avertissement | `android.thermal.status`, Max, 5 dernières minutes | 3 (sévère) ou pire | Sous 3 |
 | Restart Loop | Critique | `android.boot.recent_count`, Max, dernière heure | Une valeur est à 3 ou plus | Chaque valeur est sous 3 |
 | Storage Nearly Full | Critique | `system.filesystem.utilization`, Max par `mountpoint`, en pourcentage, 5 dernières minutes | Au-dessus de 90 % | À 90 % ou moins |
+| Security Patch Out of Date | Avertissement | `android.os.security_patch.age`, le nombre de jours écoulés depuis le niveau de correctif de sécurité de l'appareil, Min, dernière heure | Plus de 90 jours pendant toute la fenêtre | Une mesure de 90 jours ou moins, une fois l'appareil mis à jour |
 | High CPU Utilization | Avertissement | `system.cpu.utilization` pour l'état `idle`, occupé calculé comme 1 moins inactif, en pourcentage, 5 dernières minutes | Au-dessus de 80 % | À 80 % ou moins |
 
-High CPU Utilization est proposé dès que l'appareil signale son utilisation du processeur, ce qui, sous Android 8 et versions ultérieures, exige que l'agent soit le propriétaire de l'appareil. Une alerte d'un appareil Android commence par des commandes adb à lancer d'abord, comme `adb shell dumpsys battery` ou `adb shell getprop sys.boot.reason`, plutôt que par les commandes shell d'un serveur.
+High CPU Utilization est proposé dès que l'appareil signale son utilisation du processeur, ce qui, sous Android 8 et versions ultérieures, exige que l'agent soit le propriétaire de l'appareil. Une alerte d'un appareil Android commence par des commandes adb à lancer d'abord, comme `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` ou `adb shell getprop ro.build.version.security_patch`, plutôt que par les commandes shell d'un serveur.
 
 ## Métriques collectées
 

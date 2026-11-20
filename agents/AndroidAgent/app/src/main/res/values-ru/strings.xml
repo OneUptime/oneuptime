@@ -88,6 +88,7 @@
     <string name="log_session_title">Журналы для устранения неполадок</string>
     <string name="log_session_request_by">%1$s запрашивает в OneUptime журналы всех приложений на этом устройстве (%2$s, уровень %3$s и выше).</string>
     <string name="log_session_request">OneUptime запрашивает журналы всех приложений на этом устройстве (%1$s, уровень %2$s и выше).</string>
+    <string name="log_session_note">«%1$s»</string>
     <string name="log_session_android_prompt">Затем Android попросит разрешить доступ ко всем журналам устройства. Там тоже выберите «Разрешить».</string>
     <string name="log_session_allow">Разрешить</string>
     <string name="log_session_decline">Отклонить</string>

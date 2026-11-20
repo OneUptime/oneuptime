@@ -1,4 +1,12 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
+/*
+ * The toolbox first: the docs tools read records through the project's
+ * services (#7065), which load the toolbox in turn, so the toolbox is the
+ * one to load them, as every tool's suite does.
+ */
+import AIToolbox, {
+  ToolCallOutcome,
+} from "../../../../../Server/Utils/AI/Toolbox/Index";
 import AIChatPermissionMode from "../../../../../Types/AI/AIChatPermissionMode";
 import { AIChatCitationTargetType } from "../../../../../Types/AI/AIChatTypes";
 import {
@@ -26,9 +34,6 @@ import {
   SEARCH_DOCS_TOOL_NAME,
   SearchDocsTool,
 } from "../../../../../Server/Utils/AI/Toolbox/DocsTools";
-import AIToolbox, {
-  ToolCallOutcome,
-} from "../../../../../Server/Utils/AI/Toolbox/Index";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -649,7 +654,13 @@ describe("find_dashboard_page cites the page the model names by its place", () =
     const schema: JSONObject = FindDashboardPageTool.inputSchema;
     const properties: JSONObject = schema["properties"] as JSONObject;
 
-    expect(Object.keys(properties).sort()).toEqual(["place", "query"]);
+    // A record's own page takes its kind and id too (#7065).
+    expect(Object.keys(properties).sort()).toEqual([
+      "place",
+      "query",
+      "recordId",
+      "recordType",
+    ]);
     expect(schema["required"]).toEqual(["query"]);
     expect(FindDashboardPageTool.description).toContain("its where as place");
   });

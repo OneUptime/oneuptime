@@ -244,7 +244,13 @@
     "signInWithProvider": "使用 {{name}} 登录",
     "requiredSubtitle": "此服务器要求使用单点登录（SSO）。",
     "requiredNotSetUp": "此服务器尚未设置单点登录。请联系服务器管理员进行设置。",
-    "useDifferentEmail": "使用其他电子邮件"
+    "useDifferentEmail": "使用其他电子邮件",
+    "lastUsedTitle": "上次在此设备上使用",
+    "forgetLastUsed": "忘记此提供商",
+    "emailLinksPrompt": "我们可以将此地址所属的每个组织的 SSO 登录链接发送到此地址。",
+    "emailLinksButton": "通过邮件发送我的登录链接",
+    "emailLinksSent": "如果此地址属于使用单点登录的组织，我们已将 SSO 登录链接发送到此地址。",
+    "emailLinksCaptchaRequired": "请先完成人机验证，再请求这些链接。"
   },
   "adminLogin": {
     "title": "主管理员登录",

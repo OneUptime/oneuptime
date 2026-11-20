@@ -45,6 +45,7 @@ import {
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import YAxis, {
+  ValueAxisPrecision,
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
@@ -63,6 +64,7 @@ import {
   SloIdealBurnPoint,
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -340,9 +342,22 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
         min: "auto",
         max: 100,
         precision: YAxisPrecision.OneDecimal,
-        // "42,5 %" in German: the axis and the tooltip in the reader's figures.
-        formatter: (value: number): string => {
-          return formatSloPercent(value, 1, translator) || "";
+        /*
+         * "42,5 %" in German: the axis and the tooltip in the reader's
+         * figures. A budget that barely moved (99.92% to 100%) is stepped
+         * finer, and written with the figures its step needs (#10079).
+         */
+        formatter: (
+          value: number,
+          axisPrecision?: ValueAxisPrecision,
+        ): string => {
+          return (
+            formatSloPercent(
+              value,
+              ValueFormatter.getDecimalsForStep(axisPrecision?.step) ?? 1,
+              translator,
+            ) || ""
+          );
         },
       },
     };

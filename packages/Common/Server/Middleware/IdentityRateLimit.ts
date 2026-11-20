@@ -216,6 +216,15 @@ export enum IdentityRateLimitBucket {
    * SIGN_UP_BUCKET.
    */
   SignUp = "sign-up",
+
+  /*
+   * POST /identity/mobile-sso-exchange -- the mobile app redeeming the
+   * one-time code an SSO sign-in handed back to it with its PKCE verifier
+   * (#9989, Services/MobileSsoHandOffService). Not a guessing oracle -- the
+   * code is a server-minted random value and works once -- but anonymous.
+   * See MOBILE_SSO_EXCHANGE_BUCKET.
+   */
+  MobileSsoExchange = "mobile-sso-exchange",
 }
 
 export enum IdentityRateLimitScope {
@@ -424,6 +433,31 @@ const PASSKEY_BUCKET: BucketConfig = {
   ),
   perAccountLimit: PASSKEY_RATE_LIMIT,
   perIpLimit: PASSKEY_RATE_LIMIT,
+};
+
+/*
+ * Mobile SSO code budget (POST /identity/mobile-sso-exchange, #9989).
+ *
+ * Shaped like the passkey bucket: the request names no account - a code, a
+ * verifier and a state - so both counters use the address budget. Nothing
+ * is guessed: a code is 32 random bytes, works once, for two minutes, and
+ * only with its verifier. What this bounds is work. Each SSO sign-in in the
+ * app redeems one code, so an office of phones behind one NAT signing in
+ * the same morning stays far inside it. Its own counter, so that redeeming
+ * codes cannot spend anybody's password attempts, nor sign-in noise refuse
+ * a code the app holds.
+ */
+const MOBILE_SSO_EXCHANGE_RATE_LIMIT: number = parsePositiveIntFromEnv(
+  "IDENTITY_MOBILE_SSO_EXCHANGE_RATE_LIMIT_PER_IP_PER_WINDOW",
+  300,
+);
+const MOBILE_SSO_EXCHANGE_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_MOBILE_SSO_EXCHANGE_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: MOBILE_SSO_EXCHANGE_RATE_LIMIT,
+  perIpLimit: MOBILE_SSO_EXCHANGE_RATE_LIMIT,
 };
 
 /*
@@ -752,6 +786,10 @@ export default class IdentityRateLimit {
 
     if (bucket === IdentityRateLimitBucket.SignUp) {
       return SIGN_UP_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.MobileSsoExchange) {
+      return MOBILE_SSO_EXCHANGE_BUCKET;
     }
 
     return LOGIN_BUCKET;

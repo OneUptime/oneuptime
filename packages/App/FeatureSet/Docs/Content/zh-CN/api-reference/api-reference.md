@@ -282,6 +282,16 @@ OneUptime 根据请求本身记录是谁创建了记录——以及是谁归档�
 
 API 参考将这些字段标记为只读。请求在其他更改之外为其中某个字段发送的值会被忽略，因此其余更改可以通过；除此之外什么都不发送的更新会被拒绝，并返回一条指明这些字段的消息。OneUptime 代表某人自行创建的记录——从 Slack 或 Microsoft Teams 发布的备注、通过邀请创建的账户——会指明那个人。
 
+### 只有 OneUptime 才会写入的字段
+
+有些字段只由 OneUptime 写入：遥测监视器上次运行和下次运行的时间、代理上次报告的内容、SLA 的截止时间、SCIM 客户端密钥失效的时间。API 参考将它们标记为只读，并且不把它们放入创建和更新的请求体。发送其中某个字段的创建（例如复制一条你读取的记录时就会这样）会去掉该字段后通过，新记录得到 OneUptime 的值。发送其中某个字段的更新会被拒绝，响应会指明它发送的每一个此类字段：
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+更新时请不要发送这些字段。少数由人更改的字段各有专门的请求：轮换 SCIM 客户端密钥会设置它失效的时间，`POST /api/host/:id/try-collector-config-again` 会把在主机上失败的收集器配置再次发送给该主机。你和 OneUptime 都会更改的字段，例如记录的 `labels`（标签规则会向其中添加标签），仍由你像以前一样设置。
+
 ## 状态和片段
 
 ### 新记录的初始状态

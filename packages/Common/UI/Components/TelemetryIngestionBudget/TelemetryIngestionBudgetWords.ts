@@ -54,6 +54,10 @@ export const TELEMETRY_INGESTION_BUDGET_SOURCE_LABELS: Record<
   ),
   [TelemetryIngestionBudgetLimitSource.IngestionKey]:
     translationKey("This key's own"),
+  // A team's or a label's budget (#6386).
+  [TelemetryIngestionBudgetLimitSource.Team]: translationKey("This team's own"),
+  [TelemetryIngestionBudgetLimitSource.Label]:
+    translationKey("This label's own"),
 };
 
 const RATE_TEMPLATE: string = translationKey("{{size}} per second");
@@ -103,9 +107,11 @@ export const hasTelemetryIngestionBudgets: (
 ) => boolean = (status: TelemetryIngestionBudgetStatus): boolean => {
   return (
     status.project.signals.some(isTelemetryIngestionBudgetSignalShown) ||
-    status.ingestionKeys.some((key: TelemetryIngestionBudgetScopeStatus) => {
-      return key.signals.some(isTelemetryIngestionBudgetSignalShown);
-    })
+    [...status.ingestionKeys, ...(status.teamsAndLabels || [])].some(
+      (scope: TelemetryIngestionBudgetScopeStatus) => {
+        return scope.signals.some(isTelemetryIngestionBudgetSignalShown);
+      },
+    )
   );
 };
 

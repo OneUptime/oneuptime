@@ -282,6 +282,16 @@ OneUptime erfasst, wer einen Datensatz angelegt hat — und wer ihn archiviert, 
 
 Die API-Referenz kennzeichnet diese Felder als schreibgeschützt. Ein Wert, den eine Anfrage neben anderen Änderungen für eines davon sendet, wird ignoriert, sodass der Rest der Änderung durchgeht; ein Update, das sonst nichts sendet, wird mit einer Meldung abgelehnt, die die Felder nennt. Datensätze, die OneUptime selbst im Namen von jemandem anlegt — eine aus Slack oder Microsoft Teams gepostete Notiz, ein durch eine Einladung entstandenes Konto —, nennen diese Person.
 
+### Felder, die nur OneUptime schreibt
+
+Manche Felder schreibt allein OneUptime: wann ein Telemetrie-Monitor zuletzt lief und wann er als Nächstes läuft, was ein Agent zuletzt gemeldet hat, die Fristen eines SLA, wann ein SCIM-Client-Secret abläuft. Die API-Referenz kennzeichnet sie als schreibgeschützt und lässt sie aus den Bodys zum Anlegen und Aktualisieren weg. Ein Anlegen, das eines davon sendet, wie es die Kopie eines gelesenen Datensatzes tut, geht ohne dieses Feld durch, und der neue Datensatz erhält den Wert von OneUptime. Ein Update, das eines davon sendet, wird abgelehnt, und die Antwort nennt jedes solche Feld, das es gesendet hat:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Lassen Sie diese Felder in einem Update weg. Die wenigen, die eine Person ändert, haben eine eigene Anfrage: Ein SCIM-Client-Secret zu rotieren legt fest, wann es abläuft, und `POST /api/host/:id/try-collector-config-again` sendet einem Host die Collector-Konfiguration, die auf ihm fehlgeschlagen ist, erneut. Ein Feld, das Sie und OneUptime beide ändern, etwa die `labels` eines Datensatzes, zu denen Beschriftungsregeln weitere hinzufügen, setzen Sie wie bisher selbst.
+
 ## Status und Episoden
 
 ### Der Status, in dem ein neuer Datensatz beginnt

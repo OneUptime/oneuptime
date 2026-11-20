@@ -14,10 +14,12 @@
  * budget's readings exist only while a budget is set, usage for everything.
  *
  * Every row carries `projectId`, `signal` (logs, traces, metrics, profiles or
- * security-events) and `scope` (project or ingestion-key) attributes, and an
- * ingestion key's rows `ingestionKeyId` and `ingestionKeyName` too. The rows
- * are keyed to the project (primaryEntityId = its id): a budget belongs to
- * the project, or to one of its keys, never to a service.
+ * security-events) and `scope` (project, ingestion-key, team or label)
+ * attributes, an ingestion key's rows `ingestionKeyId` and
+ * `ingestionKeyName` too, a team's `teamId` and `teamName`, and a label's
+ * `labelId` and `labelName`. The rows are keyed to the project
+ * (primaryEntityId = its id): a budget belongs to the project, or to one of
+ * its keys, teams or labels, never to one service.
  */
 enum TelemetryIngestionBudgetMetricType {
   /*

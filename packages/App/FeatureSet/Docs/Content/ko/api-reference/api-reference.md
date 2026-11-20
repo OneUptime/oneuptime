@@ -282,6 +282,16 @@ OneUptime은 누가 레코드를 만들었는지(그리고 누가 보관하고, 
 
 API 참조는 이 필드들을 읽기 전용으로 표시합니다. 다른 변경과 함께 이 필드 중 하나에 보낸 값은 무시되므로 나머지 변경은 통과합니다. 다른 것을 아무것도 보내지 않는 업데이트는 필드를 알려 주는 메시지와 함께 거부됩니다. OneUptime이 누군가를 대신해 만드는 레코드(Slack이나 Microsoft Teams에서 올린 노트, 초대로 만든 계정)는 그 사람을 지정합니다.
 
+### OneUptime만 쓰는 필드
+
+일부 필드는 OneUptime만 씁니다. 텔레메트리 모니터가 마지막으로 실행된 시각과 다음에 실행될 시각, 에이전트가 마지막으로 보고한 내용, SLA 기한, SCIM 클라이언트 시크릿이 더 이상 작동하지 않게 되는 시각입니다. API 참조는 이 필드들을 읽기 전용으로 표시하고 만들기와 업데이트 요청 본문에서 뺍니다. 읽어 온 레코드를 복사해 만들 때처럼 이 중 하나를 보내는 만들기는 그 필드 없이 통과하고, 새 레코드에는 OneUptime의 값이 들어갑니다. 이 중 하나를 보내는 업데이트는 거부되며, 응답은 그렇게 보낸 필드를 하나하나 알려 줍니다.
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+업데이트에서는 이 필드들을 빼세요. 사람이 바꾸는 몇 안 되는 필드에는 전용 요청이 있습니다. SCIM 클라이언트 시크릿을 교체하면 더 이상 작동하지 않게 되는 시각이 정해지고, `POST /api/host/:id/try-collector-config-again`은 호스트에서 실패한 컬렉터 구성을 그 호스트에 다시 보냅니다. 레이블 규칙이 레이블을 더하는 레코드의 `labels`처럼, 직접 바꾸기도 하고 OneUptime도 바꾸는 필드는 이전처럼 직접 설정합니다.
+
 ## 상태와 에피소드
 
 ### 새 레코드가 시작하는 상태

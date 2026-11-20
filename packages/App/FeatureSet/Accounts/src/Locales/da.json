@@ -244,7 +244,13 @@
     "signInWithProvider": "Log ind med {{name}}",
     "requiredSubtitle": "Denne server kræver single sign-on (SSO).",
     "requiredNotSetUp": "Single sign-on er endnu ikke sat op på denne server. Bed din serveradministrator om at sætte det op.",
-    "useDifferentEmail": "Brug en anden e-mail"
+    "useDifferentEmail": "Brug en anden e-mail",
+    "lastUsedTitle": "Senest brugt på denne enhed",
+    "forgetLastUsed": "Glem denne udbyder",
+    "emailLinksPrompt": "Vi kan e-maile denne adresse SSO-loginlinks til alle de organisationer, den hører til.",
+    "emailLinksButton": "Send mig mine loginlinks",
+    "emailLinksSent": "Hvis denne adresse hører til en organisation, der bruger single sign-on, har vi sendt den SSO-loginlinkene.",
+    "emailLinksCaptchaRequired": "Løs captchaen, før du beder om linkene."
   },
   "adminLogin": {
     "title": "Log ind som hovedadministrator",

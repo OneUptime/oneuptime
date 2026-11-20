@@ -10,6 +10,11 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
+import { SearchValueOperator } from "../../../Types/Telemetry/TelemetrySearchQuery";
+import {
+  ParsedSloMetricSearch,
+  parseSloMetricSearch,
+} from "../../../Utils/Slo/SloMetricSli";
 import DashboardService from "../../Services/DashboardService";
 import MetricRecordingRuleService from "../../Services/MetricRecordingRuleService";
 import MonitorService from "../../Services/MonitorService";
@@ -39,6 +44,11 @@ import logger from "../Logger";
  *    SLO of another kind reads its metric query, and one of no service
  *    reads nothing), and an archived SLO is measured no more;
  *  - a metric recording rule reads each source's metric of every service.
+ *
+ * A query may also keep only some of the metric's series, by their
+ * attributes: each reference says which (`attributes`), so a caller that
+ * takes away the metric of some series only - a cloud resource's, when an
+ * added cloud metric is removed (#9807) - names the queries of those.
  *
  * The caller says which references read what it takes away (`reads`). The
  * records are read as the server - so every reader is counted - and only
@@ -71,6 +81,15 @@ export interface MetricNameReference {
   metricName: string;
   // The services the query is limited to, in lower case; none for every service.
   serviceIds: Array<string> | null;
+  /*
+   * The attributes the query keeps the metric's series by, as stored - a
+   * value, or an operator's object - when it names any: its own filter, its
+   * table's (attributeFilters), its recording rule source's key and value,
+   * or its SLO's `@key:value` terms. None when it keeps every series. The
+   * series it reads are always among the ones these name, so a caller that
+   * asks about some series only never misses a query that reads them.
+   */
+  attributes?: Record<string, unknown> | undefined;
 }
 
 // A dashboard's widget, as its dashboard names it.
@@ -159,10 +178,59 @@ function readText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+// An attribute filter as stored: none when it names no attribute.
+function readAttributeFilter(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  const filter: Record<string, unknown> | undefined = asRecord(value);
+
+  return filter && Object.keys(filter).length > 0 ? { ...filter } : undefined;
+}
+
+/*
+ * The attributes a query that names a metric keeps its series by: its own
+ * (a metric query's `attributes`, which may be none, or a recording rule
+ * source's one key and value, which the rule's cron reads only together),
+ * else the filter around it - a table's, for its columns' metrics.
+ */
+function readQueryAttributes(
+  query: Record<string, unknown>,
+  around: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if ("attributes" in query) {
+    return readAttributeFilter(query["attributes"]);
+  }
+
+  // As stored: the cron filters by the key as written.
+  const key: unknown = query["filterAttributeKey"];
+  const value: unknown = query["filterAttributeValue"];
+
+  if (
+    typeof key === "string" &&
+    key.trim() &&
+    typeof value === "string" &&
+    value
+  ) {
+    return { [key]: value };
+  }
+
+  return around;
+}
+
+function toReference(
+  metricName: string,
+  serviceIds: Array<string> | null,
+  attributes: Record<string, unknown> | undefined,
+): MetricNameReference {
+  return attributes
+    ? { metricName, serviceIds, attributes }
+    : { metricName, serviceIds };
+}
+
 /*
  * Every metric name a monitor's steps or a dashboard's widgets query, each
  * with the services its query is limited to - its own, or the nearest
- * around it that names some.
+ * around it that names some - and the attributes it filters by.
  */
 export function findMetricNameReferences(
   value: unknown,
@@ -174,10 +242,12 @@ export function findMetricNameReferences(
   const walk: (
     node: unknown,
     scope: Array<string> | null,
+    filter: Record<string, unknown> | undefined,
     depth: number,
   ) => void = (
     node: unknown,
     scope: Array<string> | null,
+    filter: Record<string, unknown> | undefined,
     depth: number,
   ): void => {
     if (visited++ >= MAX_VALUES || depth > MAX_DEPTH || !node) {
@@ -186,7 +256,7 @@ export function findMetricNameReferences(
 
     if (Array.isArray(node)) {
       for (const item of node) {
-        walk(item, scope, depth + 1);
+        walk(item, scope, filter, depth + 1);
       }
 
       return;
@@ -199,20 +269,29 @@ export function findMetricNameReferences(
     const entries: Record<string, unknown> = node as Record<string, unknown>;
     const ownScope: Array<string> | null =
       readServiceScope(entries["telemetryServiceIds"]) || scope;
+    // A table's filter, which each of its columns' metrics is read with.
+    const ownFilter: Record<string, unknown> | undefined =
+      readAttributeFilter(entries["attributeFilters"]) || filter;
     const metricName: unknown = entries["metricName"];
 
     if (typeof metricName === "string" && metricName.trim()) {
-      references.push({ metricName, serviceIds: ownScope });
+      references.push(
+        toReference(
+          metricName,
+          ownScope,
+          readQueryAttributes(entries, ownFilter),
+        ),
+      );
     }
 
     for (const [key, child] of Object.entries(entries)) {
       if (key !== "metricName" && key !== "telemetryServiceIds") {
-        walk(child, ownScope, depth + 1);
+        walk(child, ownScope, ownFilter, depth + 1);
       }
     }
   };
 
-  walk(plain, null, 0);
+  walk(plain, null, undefined, 0);
 
   return references;
 }
@@ -296,9 +375,44 @@ export function findDashboardMetricReferences(
 }
 
 /*
- * What a Metric SLO reads: its metric query's metric, of its own services.
- * Nothing for an SLO of another kind - its metric query is never read - or
- * of no service, which counts nothing (EvaluateSlos).
+ * An SLO's filter as attributes: its `@key:value` terms, a value each. A
+ * term of another kind (`-@k:v`, `@k:<5`, a pattern) keeps fewer of their
+ * series, so it is left out: the series the SLO reads are among the ones
+ * these name. None when it has no filter, or one that cannot be read (such
+ * an SLO measures nothing).
+ */
+function readSloFilterAttributes(
+  filter: unknown,
+): Record<string, unknown> | undefined {
+  if (typeof filter !== "string" || !filter.trim()) {
+    return undefined;
+  }
+
+  const parsed: ParsedSloMetricSearch = parseSloMetricSearch(filter);
+  const attributes: Record<string, unknown> = {};
+
+  if (parsed.problem) {
+    return undefined;
+  }
+
+  for (const term of parsed.terms) {
+    if (
+      term.key &&
+      term.predicate.operator === SearchValueOperator.Equals &&
+      !(term.key in attributes)
+    ) {
+      attributes[term.key] = term.predicate.value;
+    }
+  }
+
+  return readAttributeFilter(attributes);
+}
+
+/*
+ * What a Metric SLO reads: its metric query's metric, of its own services,
+ * with the attributes its filter names. Nothing for an SLO of another
+ * kind - its metric query is never read - or of no service, which counts
+ * nothing (EvaluateSlos).
  */
 export function findSloMetricReferences(slo: {
   sliType?: SliType | string | undefined;
@@ -312,17 +426,26 @@ export function findSloMetricReferences(slo: {
     return [];
   }
 
-  const metricName: string = readText(
-    asRecord(asStored(slo.metricQueryConfig))?.["metricName"],
+  const config: Record<string, unknown> | undefined = asRecord(
+    asStored(slo.metricQueryConfig),
   );
+  const metricName: string = readText(config?.["metricName"]);
 
-  return metricName ? [{ metricName, serviceIds }] : [];
+  return metricName
+    ? [
+        toReference(
+          metricName,
+          serviceIds,
+          readSloFilterAttributes(config?.["filter"]),
+        ),
+      ]
+    : [];
 }
 
 /*
  * What a metric recording rule reads: each of its sources' metrics, of every
  * service - the rule's cron reads a source's points of the whole project
- * (ComputeRecordingRules).
+ * (ComputeRecordingRules) - with the attribute its source filters by.
  */
 export function findRecordingRuleMetricReferences(
   definition: unknown,
@@ -330,7 +453,7 @@ export function findRecordingRuleMetricReferences(
   return findMetricNameReferences(
     asRecord(asStored(definition))?.["sources"],
   ).map((reference: MetricNameReference): MetricNameReference => {
-    return { metricName: reference.metricName, serviceIds: null };
+    return toReference(reference.metricName, null, reference.attributes);
   });
 }
 

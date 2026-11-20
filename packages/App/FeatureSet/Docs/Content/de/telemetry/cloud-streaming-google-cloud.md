@@ -71,6 +71,8 @@ Der Dialog fragt alle paar Sekunden, was angekommen ist. Pub/Sub pusht einen Ein
 
 Jedes Protokoll behält die Zeit seines Eintrags auf die Nanosekunde, seinen Schweregrad, seinen Trace und Span und seine HTTP-Anfrage unter den Namen der semantischen Konventionen von OpenTelemetry. Es wird unter einer Ressource abgelegt, wenn seine überwachte Ressource eine Art ist, deren Metriken OneUptime liest, etwa eine VM (`gce_instance`), ein Cloud-Run-Dienst (`cloud_run_revision`) oder eine Cloud-SQL-Instanz (`cloudsql_database`), und trägt die ID der Ressource als `cloud.resource_id`. Die Anfrageprotokolle eines externen Load Balancers, geschrieben unter `http_load_balancer`, werden unter seiner URL-Zuordnung abgelegt, der `https_lb_rule`, unter der seine Metriken landen.
 
+Der Eintrag eines Audit-Logs kommt ganz an, als Text seines Protokolls: Ist [Sicherheitsereignisse in Ihren Protokollen finden](/docs/telemetry/security-events#sicherheitsereignisse-in-ihren-logs-finden) eingeschaltet, wird jeder als Sicherheitsereignis gelesen, wie einer aus einer Log-Pipeline, und einmal gespeichert, auf wie vielen Wegen er OneUptime auch erreicht.
+
 Die Protokolle einer Instanzgruppe sind die ihrer VMs, deshalb hat ihre Seite keinen Tab **Protokolle**. Ein Eintrag einer anderen Art wird trotzdem gestreamt, unter seinem Projekt.
 
 ## Was der Befehl anlegt

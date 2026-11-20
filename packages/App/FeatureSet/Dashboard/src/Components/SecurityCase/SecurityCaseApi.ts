@@ -37,6 +37,7 @@ import {
   ResourceSecurityScopeJson,
   SecurityConnectionKind,
   SecurityConnectionsJson,
+  SecurityLogOwner,
   SecurityTelemetryMentionsJson,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
@@ -63,7 +64,8 @@ export type { DeclaredIncident, EntityActivity, SecurityOverview };
 /*
  * What Connected Signals is asked about: a case, by its id; or an event's
  * or an entity's values around a time, with the records its log lines were
- * sent under, when known - or, for an entity, read from its events.
+ * sent under and the cloud resource or function whose own line or span it
+ * was (#10033), when known - or, for an entity, read from its events.
  */
 export type SecurityConnectionsRequest =
   | { caseId: ObjectID }
@@ -71,6 +73,7 @@ export type SecurityConnectionsRequest =
       entities: Array<SecurityEntity>;
       time?: Date | undefined;
       logResources?: Array<SecurityLogResource> | undefined;
+      logOwners?: Array<SecurityLogOwner> | undefined;
       readLogResources?: boolean | undefined;
     };
 
@@ -223,6 +226,15 @@ export default class SecurityCaseApi {
                     logResources: request.logResources.map(
                       (resource: SecurityLogResource): JSONObject => {
                         return { type: resource.type, id: resource.id };
+                      },
+                    ),
+                  }
+                : {}),
+              ...(request.logOwners && request.logOwners.length > 0
+                ? {
+                    logOwners: request.logOwners.map(
+                      (owner: SecurityLogOwner): JSONObject => {
+                        return { kind: owner.kind, value: owner.value };
                       },
                     ),
                   }

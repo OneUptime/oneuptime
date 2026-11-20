@@ -72,7 +72,7 @@ Open **Weergave-instellingen** om het **Grafiektype** te kiezen (lijn, vlak of s
 
 Elke query tekent zijn eigen grafiek. Om een query in dezelfde grafiek als de vorige te tekenen, zet u **Over de vorige query leggen** aan in de **Weergave-instellingen** ervan.
 
-Een over elkaar gelegde grafiek leest zijn linker waardeas in de eenheid van zijn eerste query, en rekent een query in een andere eenheid van dezelfde soort daarin om, zoals megabytes in een grafiek in gigabytes. Een query in een eenheid van een andere soort, zoals bytes in een grafiek in procenten, wordt tegen een tweede waardeas aan de rechterkant van de grafiek getekend, in zijn eigen eenheid, en de legenda onder de grafiek zegt tegen welke as elke reeks wordt getekend. Alleen een derde soort eenheid past op geen van beide assen: die wordt tegen de linkeras getekend, en de grafiek en de schakelaar zeggen dat allebei.
+Een over elkaar gelegde grafiek leest zijn linker waardeas in de eenheid van zijn eerste query, en rekent een query in een andere eenheid van dezelfde soort daarin om, zoals megabytes in een grafiek in gigabytes. Een query in een eenheid van een andere soort, zoals bytes in een grafiek in procenten, wordt tegen een tweede waardeas aan de rechterkant van de grafiek getekend, in zijn eigen eenheid, en de legenda onder de grafiek zegt tegen welke as elke reeks wordt getekend. Alleen een derde soort eenheid past op geen van beide assen: die wordt op een eigen schaal getekend, zonder as, en de grafiek en de schakelaar zeggen dat allebei. Lees de waarden af in de legenda en de tooltip.
 
 ## Query's combineren met een formule
 

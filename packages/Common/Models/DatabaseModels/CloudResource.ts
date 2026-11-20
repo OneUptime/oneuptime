@@ -20,6 +20,7 @@ import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -96,6 +97,25 @@ import {
 @Index(["projectId"], {
   where: '"healthSeverity" IS NOT NULL AND "deletedAt" IS NULL',
 })
+/*
+ * The cloud resource a security event names by its own ID (#10034), and
+ * the one whose own logs it was read from (#10033): Connected Signals looks
+ * each ID up as LOWER("providerResourceId") IN (...) - an Azure resource
+ * ID matches whatever its case, and an ARN's or a Google Cloud name's case
+ * is then held to exactly (SecurityConnectionMatch.matchResourceId). The
+ * real definition is a HASH index on that expression - an ID can be longer
+ * than a b-tree entry holds - and lives in migration
+ * 1809186900000-AddCloudResourceProviderResourceIdIndex, which builds it
+ * online. @Index() cannot express LOWER() or USING hash, so the index is
+ * declared here by name with synchronize: false (Types/Database/
+ * UnsynchronizedIndex): the schema builder neither drops it nor tries to
+ * create it.
+ */
+@Index(
+  "IDX_CLOUD_RESOURCE_LOWER_PROVIDER_RESOURCE_ID",
+  ["providerResourceId"],
+  UNSYNCHRONIZED_INDEX,
+)
 @TableMetadata({
   tableName: "CloudResource",
   singularName: "Cloud Resource",
@@ -1164,6 +1184,7 @@ export default class CloudResource extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1389,6 +1410,7 @@ export default class CloudResource extends BaseModel {
     description:
       "Is this cloud resource archived? Archived cloud resources are hidden from lists but keep collecting telemetry.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,

@@ -75,6 +75,7 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "Common/Types/HostCollector/HostCollectorRoutes";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -972,6 +973,25 @@ async function handleApi(method, options) {
    */
   if (method === "POST" && url.endsWith("/host/needs-attention")) {
     return new HTTPResponse(200, { hosts: [], isTruncated: false }, {});
+  }
+
+  /*
+   * Try again (POST /host/:id/try-collector-config-again): HostAPI clears
+   * the failed config's hash, which only OneUptime writes, so the host is
+   * sent the config again.
+   */
+  const tryAgain = url.match(
+    new RegExp(`/host/([^/]+)/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}$`),
+  );
+  if (method === "POST" && tryAgain) {
+    const host = store.Host.find((candidate) => {
+      return idOf(candidate._id) === tryAgain[1];
+    });
+    if (!host) {
+      return new HTTPErrorResponse(404, { message: "Host not found." }, {});
+    }
+    host.collectorFailedConfigHash = null;
+    return new HTTPResponse(200, {}, {});
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

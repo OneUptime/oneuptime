@@ -3,13 +3,17 @@ import { getServerUrl } from "../storage/serverUrl";
 import { buildSsoLoginUrl } from "../sso/providerUrl";
 import {
   GlobalSSOProvider,
+  LinkedSsoProvider,
   SSOProvider,
   SsoDiscoveryResult,
+  exchangeSsoCode,
   fetchAllGlobalProviders,
   fetchGlobalOIDCProviders,
   fetchGlobalSSOProviders,
   fetchProjectOIDCProviders,
   fetchProjectProvidersForEmail,
+  fetchProjectSignInProviders,
+  fetchServerHandsBackSsoCodes,
   fetchSSOProviders,
   fetchSSOProvidersForProject,
 } from "./sso";
@@ -1305,5 +1309,350 @@ describe("fetchProjectProvidersForEmail reports failure only when BOTH routes ar
     expect(result.failed).toBe(false);
     expect(result.providers).toHaveLength(1);
     expect(result.providers[0]!.kind).toBe("project-oidc");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * #9989: the hand-off that ends an SSO sign-in, and a project's SSO sign-in
+ * link. The literals - routes and the field name - are a contract with
+ * App/FeatureSet/Identity/API/SignInMethods.ts, MobileSsoExchange.ts and
+ * Common/Types/SSO/MobileSsoHandOff.ts, held here as the server spells them.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("Whether a server hands back one-time codes", () => {
+  test("asks GET /identity/sign-in-methods of the server the sign-in starts on", async () => {
+    respondWith({ isMobileSsoHandOffSupported: true });
+
+    await expect(
+      fetchServerHandsBackSsoCodes("https://status.acme.com"),
+    ).resolves.toBe(true);
+    expect(firstGetUrl()).toBe(
+      "https://status.acme.com/identity/sign-in-methods",
+    );
+    expect(firstGetConfig()["params"]).toBeUndefined();
+  });
+
+  test("is no for a server that answers without saying so: one from before #9989", async () => {
+    respondWith({ isSsoRequired: false, ssoProviders: [] });
+
+    await expect(fetchServerHandsBackSsoCodes(SERVER_URL)).resolves.toBe(false);
+  });
+
+  test("is no for a server so old it has no such route", async () => {
+    getSpy().mockRejectedValue(httpStatus(404));
+
+    await expect(fetchServerHandsBackSsoCodes(SERVER_URL)).resolves.toBe(false);
+  });
+
+  test.each([
+    ["no answer at all", new Error("Network Error")],
+    ["a server error", httpStatus(500)],
+    ["an unavailable server", httpStatus(503)],
+    ["a refusal", httpStatus(429)],
+  ])(
+    "is yes - links carrying tokens refused - for %s: never a guess that lets them in",
+    async (_label: string, failure: Error) => {
+      getSpy().mockRejectedValue(failure);
+
+      await expect(fetchServerHandsBackSsoCodes(SERVER_URL)).resolves.toBe(
+        true,
+      );
+    },
+  );
+
+  test("is no only for exactly true's absence, not for a string that says so", async () => {
+    respondWith({ isMobileSsoHandOffSupported: "true" });
+
+    await expect(fetchServerHandsBackSsoCodes(SERVER_URL)).resolves.toBe(false);
+  });
+});
+
+describe("Redeeming a one-time code", () => {
+  const REQUEST: {
+    serverUrl: string;
+    code: string;
+    codeVerifier: string;
+    state: string;
+  } = {
+    serverUrl: "https://status.acme.com",
+    code: "c".repeat(43),
+    codeVerifier: "v".repeat(64),
+    state: "s".repeat(64),
+  };
+
+  test("posts the code, the verifier and the state to /identity/mobile-sso-exchange", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        accessToken: "access",
+        refreshToken: "refresh",
+        refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+        userId: "user-1",
+        email: "responder@acme.com",
+        name: "Ada",
+        isMasterAdmin: false,
+      },
+    } as never);
+
+    await exchangeSsoCode(REQUEST);
+
+    expect(postSpy().mock.calls[0]![0]).toBe(
+      "https://status.acme.com/identity/mobile-sso-exchange",
+    );
+    expect(postSpy().mock.calls[0]![1]).toEqual({
+      code: REQUEST.code,
+      codeVerifier: REQUEST.codeVerifier,
+      state: REQUEST.state,
+    });
+  });
+
+  test("answers a project sign-in as the deep link from before #9989 carried it", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        accessToken: "access",
+        refreshToken: "refresh",
+        refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+        userId: "user-1",
+        email: "responder@acme.com",
+        name: "Ada",
+        isMasterAdmin: true,
+        ssoToken: "project-sso",
+        projectId: "project-1",
+      },
+    } as never);
+
+    await expect(exchangeSsoCode(REQUEST)).resolves.toEqual({
+      status: "success",
+      tokens: {
+        accessToken: "access",
+        refreshToken: "refresh",
+        refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      user: {
+        userId: "user-1",
+        email: "responder@acme.com",
+        name: "Ada",
+        isMasterAdmin: true,
+      },
+      globalSsoToken: null,
+      projectSsoToken: { projectId: "project-1", ssoToken: "project-sso" },
+    });
+  });
+
+  test("answers a Global SSO sign-in with its token, and no project's", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        accessToken: "access",
+        refreshToken: "refresh",
+        refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+        userId: "user-1",
+        globalSsoToken: "global-sso",
+        ssoToken: "half-a-pair",
+      },
+    } as never);
+
+    const signedIn: Awaited<ReturnType<typeof exchangeSsoCode>> =
+      await exchangeSsoCode(REQUEST);
+
+    expect(signedIn.globalSsoToken).toBe("global-sso");
+    expect(signedIn.projectSsoToken).toBeNull();
+  });
+
+  test.each([
+    [
+      "no access token",
+      {
+        refreshToken: "r",
+        refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+        userId: "u",
+      },
+    ],
+    [
+      "no refresh token",
+      {
+        accessToken: "a",
+        refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+        userId: "u",
+      },
+    ],
+    [
+      "an expiry that is not a date",
+      {
+        accessToken: "a",
+        refreshToken: "r",
+        refreshTokenExpiresAt: "soon",
+        userId: "u",
+      },
+    ],
+    [
+      "no person",
+      {
+        accessToken: "a",
+        refreshToken: "r",
+        refreshTokenExpiresAt: "2026-12-31T23:59:59.000Z",
+      },
+    ],
+    ["no body", null],
+  ])(
+    "throws for an answer with %s, rather than store half a session",
+    async (_label: string, data: unknown) => {
+      postSpy().mockResolvedValue({ data } as never);
+
+      await expect(exchangeSsoCode(REQUEST)).rejects.toThrow(
+        "The server did not complete single sign-on. Please try again.",
+      );
+    },
+  );
+
+  test("passes the server's refusal on", async () => {
+    postSpy().mockRejectedValue(httpStatus(400));
+
+    await expect(exchangeSsoCode(REQUEST)).rejects.toThrow(
+      "Request failed with status code 400",
+    );
+  });
+});
+
+describe("The providers a project's SSO sign-in link offers", () => {
+  const PROJECT_ID: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+  const ids: Array<string> = [
+    "11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222",
+    "33333333-3333-4333-8333-333333333333",
+    "44444444-4444-4444-8444-444444444444",
+  ];
+
+  test("are asked by the project's id alone: GET /identity/project-sign-in-methods/<id>, no address", async () => {
+    respondWith({ ssoProviders: [] });
+
+    await fetchProjectSignInProviders(PROJECT_ID);
+
+    expect(getSpy()).toHaveBeenCalledTimes(1);
+    expect(firstGetUrl()).toBe(
+      `${SERVER_URL}/identity/project-sign-in-methods/${PROJECT_ID}`,
+    );
+    expect(firstGetConfig()["params"]).toBeUndefined();
+    expect(JSON.stringify(getSpy().mock.calls[0])).not.toContain("@");
+  });
+
+  test("are each kind the server names, started by the router it names", async () => {
+    respondWith({
+      ssoProviders: [
+        {
+          type: "ProjectSSO",
+          id: ids[0],
+          name: "Okta",
+          description: "Acme staff",
+        },
+        { type: "ProjectOIDC", id: ids[1], name: "Entra ID", description: "" },
+        {
+          type: "GlobalSSO",
+          id: ids[2],
+          name: "Instance SAML",
+          description: "",
+        },
+        {
+          type: "GlobalOIDC",
+          id: ids[3],
+          name: "Instance OIDC",
+          description: "",
+        },
+      ],
+    });
+
+    const result: SsoDiscoveryResult<LinkedSsoProvider> =
+      await fetchProjectSignInProviders(PROJECT_ID);
+
+    expect(result).toEqual({
+      failed: false,
+      providers: [
+        {
+          id: ids[0],
+          name: "Okta",
+          description: "Acme staff",
+          kind: "project",
+        },
+        { id: ids[1], name: "Entra ID", description: "", kind: "project-oidc" },
+        {
+          id: ids[2],
+          name: "Instance SAML",
+          description: "",
+          kind: "global-sso",
+        },
+        {
+          id: ids[3],
+          name: "Instance OIDC",
+          description: "",
+          kind: "global-oidc",
+        },
+      ],
+    });
+  });
+
+  test("leave out a row that cannot start a sign-in, and a row named twice", async () => {
+    respondWith({
+      ssoProviders: [
+        { type: "StatusPageSSO", id: ids[0], name: "Not the app's" },
+        { type: "ProjectSSO", id: "not-an-id", name: "Broken" },
+        { type: "ProjectSSO", id: ids[1], name: "" },
+        null,
+        "a string",
+        { type: "ProjectSSO", id: ids[2], name: "Okta" },
+        { type: "ProjectSSO", id: ids[2].toUpperCase(), name: "Okta again" },
+      ],
+    });
+
+    const result: SsoDiscoveryResult<LinkedSsoProvider> =
+      await fetchProjectSignInProviders(PROJECT_ID);
+
+    expect(
+      result.providers.map((provider: LinkedSsoProvider) => {
+        return provider.name;
+      }),
+    ).toEqual(["Okta"]);
+  });
+
+  test("drop the description nobody wrote, as the web page does", async () => {
+    respondWith({
+      ssoProviders: [
+        {
+          type: "ProjectSSO",
+          id: ids[0],
+          name: "Okta",
+          description: "Sign in with Okta",
+        },
+      ],
+    });
+
+    const result: SsoDiscoveryResult<LinkedSsoProvider> =
+      await fetchProjectSignInProviders(PROJECT_ID);
+
+    expect(result.providers[0]!.description).toBe("");
+  });
+
+  test("are none, and no failure, for a project with none turned on - or no such project", async () => {
+    respondWith({ ssoProviders: [] });
+
+    await expect(fetchProjectSignInProviders(PROJECT_ID)).resolves.toEqual({
+      providers: [],
+      failed: false,
+    });
+  });
+
+  test("are a failure only when the server could not be reached", async () => {
+    getSpy().mockRejectedValue(httpStatus(503));
+
+    await expect(fetchProjectSignInProviders(PROJECT_ID)).resolves.toEqual({
+      providers: [],
+      failed: true,
+    });
+
+    getSpy().mockRejectedValue(httpStatus(400));
+
+    await expect(fetchProjectSignInProviders(PROJECT_ID)).resolves.toEqual({
+      providers: [],
+      failed: false,
+    });
   });
 });

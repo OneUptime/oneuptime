@@ -83,6 +83,8 @@ Ein Service-Bus- oder Event-Hubs-Namespace streamt keine Metriken. Die Lesevorg�
 
 Ein Protokoll wird über die ARM-ID der Ressource unter ihr abgelegt, als `cloud.resource_id` mitgeführt, und behält Kategorie, Operation, Ergebnis und Eigenschaften als Attribute, etwa `azure.category`.
 
+Ein Datensatz des Aktivitätsprotokolls der Kategorie `Administrative`, `Security` oder `Policy` und ein Anmelde-, Audit- oder Risikodatensatz von Microsoft Entra ID kommen ganz an, als Text ihres Protokolls, auch einer über eine Ressourcengruppe, ein Abonnement oder den Mandanten statt über eine Ressource. Ist [Sicherheitsereignisse in Ihren Protokollen finden](/docs/telemetry/security-events#sicherheitsereignisse-in-ihren-logs-finden) eingeschaltet, wird jeder als Sicherheitsereignis gelesen, wie einer aus einer Log-Pipeline, und einmal gespeichert, auf wie vielen Wegen er OneUptime auch erreicht. Der Befehl richtet nur Ressourcenprotokolle ein: Das Aktivitätsprotokoll eines Abonnements und die Protokolle von Microsoft Entra ID erreichen den Stream über eine eigene Diagnoseeinstellung, die sie an einen seiner Event Hubs sendet.
+
 Virtuelle Computer, Skalierungsgruppen, Datenträger, Netzwerkschnittstellen, virtuelle Netzwerke, private Endpunkte, NAT-Gateways, DNS-Zonen und App-Service-Pläne senden keine eigenen Ressourcenprotokolle, deshalb haben ihre Seiten keinen Tab **Protokolle**. Die Protokolle eines Speicherkontos sind die seiner Dienste, und die einer Container-App die ihrer Umgebung.
 
 ## Was der Befehl anlegt

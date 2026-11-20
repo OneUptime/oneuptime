@@ -88,6 +88,7 @@
     <string name="log_session_title">Journaux pour le dépannage</string>
     <string name="log_session_request_by">%1$s demande, dans OneUptime, les journaux de toutes les applications de cet appareil pendant %2$s, à partir du niveau %3$s.</string>
     <string name="log_session_request">OneUptime demande les journaux de toutes les applications de cet appareil pendant %1$s, à partir du niveau %2$s.</string>
+    <string name="log_session_note">« %1$s »</string>
     <string name="log_session_android_prompt">Android vous demandera ensuite d\'autoriser l\'accès à tous les journaux de l\'appareil. Choisissez Autoriser là aussi.</string>
     <string name="log_session_allow">Autoriser</string>
     <string name="log_session_decline">Refuser</string>
