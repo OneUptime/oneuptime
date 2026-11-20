@@ -6,7 +6,7 @@ import FormService from "./FormService";
 import MailService from "./MailService";
 import Form from "../../Models/DatabaseModels/Form";
 import Model from "../../Models/DatabaseModels/FormPrivateUser";
-import URL from "../../Types/API/URL";
+import { FORM_RESET_PASSWORD_PARAMETER } from "../../Types/Form/FormPrivateUserSignIn";
 import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import ObjectID from "../../Types/ObjectID";
@@ -25,15 +25,19 @@ export const FORM_PRIVATE_USER_ALREADY_INVITED_MESSAGE: string =
 /*
  * Where a private user chooses a password, on the form's own public link:
  * its custom domain, or /accounts/form/<share key> on OneUptime's address
- * (FormService.getPublicFormUrl).
+ * (FormService.getPublicFormUrl) - with the token in its address
+ * (FORM_RESET_PASSWORD_PARAMETER), since a form's custom domain answers its
+ * root alone.
  */
 export const getFormResetPasswordUrl: (data: {
   resourceUrl: string;
   token: string;
 }) => string = (data: { resourceUrl: string; token: string }): string => {
-  return URL.fromString(data.resourceUrl)
-    .addRoute(`/reset-password/${data.token}`)
-    .toString();
+  const separator: string = data.resourceUrl.includes("?") ? "&" : "?";
+
+  return `${data.resourceUrl}${separator}${FORM_RESET_PASSWORD_PARAMETER}=${encodeURIComponent(
+    data.token,
+  )}`;
 };
 
 export class Service extends PrivateUserServiceBase<Model> {

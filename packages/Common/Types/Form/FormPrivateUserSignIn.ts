@@ -48,6 +48,15 @@ export const FORM_SIGN_IN_STATE_ROUTE: string = "/sign-in-state";
 export const FORM_LOGIN_CODE_PARAMETER: string = "loginCode";
 
 /*
+ * The address parameter a private user's invitation and password reset
+ * hand the form's page its token in: on the form's own link, since a
+ * form's custom domain answers its root alone (App/FeatureSet/Frontend/
+ * FormDomainPage). The page takes it out of the address before it shows
+ * anything.
+ */
+export const FORM_RESET_PASSWORD_PARAMETER: string = "resetPasswordToken";
+
+/*
  * What a form's page reads before anything else (FORM_SIGN_IN_STATE_ROUTE):
  * whether the form asks its visitors to sign in, and only when it does,
  * its id - which the sign-in routes take - its name, for the sign-in page's
