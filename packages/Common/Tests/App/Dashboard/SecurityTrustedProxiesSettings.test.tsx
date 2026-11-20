@@ -174,7 +174,10 @@ function projectOf(): Project {
   const project: Project = new Project();
 
   project._id = PROJECT_ID;
-  project.securityTrustedProxies = stored || undefined;
+
+  if (stored) {
+    project.securityTrustedProxies = stored;
+  }
 
   return project;
 }

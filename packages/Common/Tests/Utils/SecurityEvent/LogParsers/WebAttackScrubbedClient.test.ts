@@ -11,7 +11,7 @@ import { SECURITY_REQUEST_ATTRIBUTES } from "../../../../Types/SecurityEvent/Sec
 import SecurityLogParser from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import WebAttackLogParser, {
   AccessLogRequest,
-  ClientAddressReading,
+  ClientAddressReadingOfText,
   readClientAddress,
   readClientAddressReading,
   readCommonLogFormat,
@@ -443,7 +443,7 @@ describe("what the log scan makes of a line", () => {
 
 describe("the client of a line in no known format, as read", () => {
   test("an address anywhere wins over what a rule left in a more telling place", () => {
-    const reading: ClientAddressReading = readClientAddressReading(
+    const reading: ClientAddressReadingOfText = readClientAddressReading(
       "[REDACTED] rejected union select from 203.0.113.25",
     );
 
