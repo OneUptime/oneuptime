@@ -220,6 +220,195 @@ describe("MetricService aggregate statement generation", () => {
   });
 
   /*
+   * A Prometheus classic histogram arrives as its `_bucket` series (remote
+   * write, #7701): a percentile of one reads each series' scrape as one
+   * histogram (ClassicHistogramPercentile) - but only when the metric is a
+   * sum or a gauge, as its point type (cached by aggregateBy) says.
+   */
+  describe("classic histogram percentiles (a `_bucket` sum's)", () => {
+    const BUCKETS: string = "http_request_duration_seconds_bucket";
+
+    const cachePointType: (name: string, pointType: string | null) => void = (
+      name: string,
+      pointType: string | null,
+    ): void => {
+      (
+        service as unknown as {
+          metricPointTypeCache: Map<
+            string,
+            { pointType: string | null; expiresAt: number }
+          >;
+        }
+      ).metricPointTypeCache.set(`${projectId.toString()}|${name}`, {
+        pointType: pointType,
+        expiresAt: Date.now() + 60000,
+      });
+    };
+
+    const bucketsAggregate: (
+      overrides?: Partial<AggregateBy<Metric>>,
+    ) => AggregateBy<Metric> = (
+      overrides?: Partial<AggregateBy<Metric>>,
+    ): AggregateBy<Metric> => {
+      return buildAggregateBy({
+        aggregationType: AggregationType.P95,
+        query: {
+          projectId: projectId,
+          name: BUCKETS,
+          time: new InBetween(startDate, endDate),
+        } as AggregateBy<Metric>["query"],
+        ...overrides,
+      });
+    };
+
+    it("groups each series' scrape into one histogram, its buckets sorted by le, and fans them out", () => {
+      cachePointType(BUCKETS, "Sum");
+
+      const query: string = getQuery(bucketsAggregate());
+
+      expect(query).toContain("quantileExactWeighted(0.95)");
+      expect(query).toContain(
+        "mapSort(mapFilter((k, v) -> k != 'le', attributes)) AS __classic_attributes",
+      );
+      expect(query).toContain(
+        "arraySort(b -> b.1, groupArray(tuple(toFloat64OrZero(attributes['le']), toFloat64(coalesce(value, 0))))) AS __classic_buckets",
+      );
+      expect(query).toContain(
+        "GROUP BY primaryEntityId, timeUnixNano, time, __classic_attributes",
+      );
+      expect(query).toContain(
+        "AND NOT isNaN(ifNull(toFloat64OrNull(attributes['le']), nan))",
+      );
+      expect(query).toContain("__classic_attributes AS attributes");
+      expect(query).toContain("arrayJoin(");
+      expect(query).toContain("__classic_buckets[i - 1].1 * 1.5");
+      // The explicit-bucket fanout is not the one read.
+      expect(query).not.toContain("metricPointType = 'Histogram'");
+      // The query's own filters stay on the raw table, before the grouping.
+      expect(query).toMatch(
+        /FROM \S+\.MetricItemV3 WHERE TRUE AND \{p\d+:Identifier\} = \{p\d+:String\}.* AND retentionDate >= now\(\) AND NOT isNaN/s,
+      );
+    });
+
+    it("a gauge's _bucket series is read the same way", () => {
+      cachePointType(BUCKETS, "Gauge");
+
+      expect(getQuery(bucketsAggregate())).toContain("__classic_buckets");
+    });
+
+    it("an OpenTelemetry histogram that happens to be named _bucket keeps its own buckets' fanout", () => {
+      cachePointType(BUCKETS, "Histogram");
+
+      const query: string = getQuery(bucketsAggregate());
+
+      expect(query).not.toContain("__classic_buckets");
+      expect(query).toContain("metricPointType = 'Histogram'");
+    });
+
+    it("without a known point type it reads the table as before", () => {
+      const query: string = getQuery(bucketsAggregate());
+
+      expect(query).not.toContain("__classic_buckets");
+    });
+
+    it("is never read for a metric not named _bucket, nor for an average", () => {
+      cachePointType("latency", "Sum");
+      cachePointType(BUCKETS, "Sum");
+
+      expect(
+        getQuery(
+          bucketsAggregate({
+            query: {
+              projectId: projectId,
+              name: "latency",
+              time: new InBetween(startDate, endDate),
+            } as AggregateBy<Metric>["query"],
+          }),
+        ),
+      ).not.toContain("__classic_buckets");
+      expect(
+        getQuery(bucketsAggregate({ aggregationType: AggregationType.Avg })),
+      ).not.toContain("__classic_buckets");
+    });
+
+    it("a grouped percentile groups the scrapes' histograms by the selected attribute keys", () => {
+      cachePointType(BUCKETS, "Sum");
+
+      const query: string = getQuery(
+        bucketsAggregate({ groupByAttributeKeys: ["handler"] }),
+      );
+
+      expect(query).toContain("__classic_buckets");
+      expect(query).toMatch(/attributes\[\{p\d+:String\}\] AS __attr_grp_0/);
+      expect(query).toContain("GROUP BY time, __attr_grp_0");
+    });
+
+    it("a model column group-by rides through the scrape's grouping", () => {
+      cachePointType(BUCKETS, "Sum");
+
+      const query: string = getQuery(
+        bucketsAggregate({
+          groupBy: { primaryEntityId: true } as AggregateBy<Metric>["groupBy"],
+        }),
+      );
+
+      expect(query).toContain(
+        "GROUP BY primaryEntityId, timeUnixNano, time, __classic_attributes",
+      );
+      expect(query).toContain("SELECT time, primaryEntityId, __classic_attributes AS attributes");
+    });
+
+    it("a Top-K restriction applies to the raw rows, inside the scrape's grouping", () => {
+      cachePointType(BUCKETS, "Sum");
+
+      const query: string = getQuery(
+        bucketsAggregate({
+          groupByAttributeKeys: ["handler"],
+          topK: { count: 5, rankBy: "max" },
+        }),
+      );
+      const restriction: number = query.indexOf("GLOBAL IN (SELECT");
+      const leFilter: number = query.indexOf(
+        "AND NOT isNaN(ifNull(toFloat64OrNull(attributes['le']), nan))",
+      );
+
+      expect(restriction).toBeGreaterThan(-1);
+      expect(restriction).toBeLessThan(leFilter);
+    });
+
+    it("aggregateBy reads the metric's point type first, and the statement it runs is the classic one", async () => {
+      const captured: Array<string> = [];
+      (
+        service as unknown as {
+          executeQuery: (statement: Statement) => Promise<unknown>;
+        }
+      ).executeQuery = async (statement: Statement): Promise<unknown> => {
+        captured.push(statement.query);
+        const isLookup: boolean = statement.query.startsWith(
+          "SELECT metricPointType FROM",
+        );
+
+        return {
+          json: async (): Promise<{
+            data: Array<Record<string, unknown>>;
+          }> => {
+            return { data: isLookup ? [{ metricPointType: "Sum" }] : [] };
+          },
+        };
+      };
+
+      await service.aggregateBy(bucketsAggregate());
+
+      expect(captured[0]).toContain("SELECT metricPointType FROM");
+      expect(
+        captured.some((query: string): boolean => {
+          return query.includes("__classic_buckets");
+        }),
+      ).toBe(true);
+    });
+  });
+
+  /*
    * A monitor grouped by a pod, a container or a Proxmox id names each
    * affected resource from its datapoints' other attributes - the pod's
    * node, whether the id is a node or a guest. Its grouped read asks for
