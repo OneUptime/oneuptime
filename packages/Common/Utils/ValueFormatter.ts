@@ -12,6 +12,7 @@
 
 import {
   getNumberLocale,
+  getTimeSeparator,
   getUnitAmountParts,
   IntlTextPart,
   isEnglishDateLanguage,
@@ -1160,11 +1161,11 @@ function writeClockFigure(
   return `${(whole || "0").padStart(integerDigits, "0")}${fraction ? `.${fraction}` : ""}`;
 }
 
-const clockSeparators: Map<string, string> = new Map<string, string>();
-
 /*
  * What the language sets between a clock's hours and minutes: ":" in
  * English and Persian, "." in Danish, as its times of day are written.
+ * It is the mark every time of day a page writes takes (#7914), read from
+ * DateLanguage, so a duration's clock and a time of day never differ.
  */
 function getClockSeparator(language: string | undefined): string {
   const key: string = (language || "").trim();
@@ -1173,42 +1174,7 @@ function getClockSeparator(language: string | undefined): string {
     return ":";
   }
 
-  if (!clockSeparators.has(key)) {
-    let separator: string = ":";
-
-    try {
-      const parts: Array<Intl.DateTimeFormatPart> = new Intl.DateTimeFormat(
-        getNumberLocale(key),
-        {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-          timeZone: "UTC",
-        },
-      ).formatToParts(new Date(Date.UTC(2000, 0, 1, 13, 30)));
-      const hourAt: number = parts.findIndex(
-        (part: Intl.DateTimeFormatPart): boolean => {
-          return part.type === "hour";
-        },
-      );
-      const between: Intl.DateTimeFormatPart | undefined = parts[hourAt + 1];
-
-      if (
-        hourAt >= 0 &&
-        between &&
-        between.type === "literal" &&
-        between.value.trim()
-      ) {
-        separator = between.value.trim();
-      }
-    } catch {
-      separator = ":";
-    }
-
-    clockSeparators.set(key, separator);
-  }
-
-  return clockSeparators.get(key) || ":";
+  return getTimeSeparator(key);
 }
 
 // What the language writes before a negative figure: "-", or Persian's marked minus.

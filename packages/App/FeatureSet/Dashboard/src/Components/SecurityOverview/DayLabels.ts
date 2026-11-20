@@ -1,6 +1,8 @@
 import {
+  ReaderDateTimeFormat,
   getDateDisplayLanguage,
   getDateLocale,
+  getDateTimeFormat,
 } from "Common/Types/DateLanguage";
 
 /*
@@ -19,11 +21,13 @@ export function formatDayLabel(day: string): string {
     return day;
   }
 
-  return date.toLocaleDateString(getDateLocale(getDateDisplayLanguage()), {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getDateLocale(getDateDisplayLanguage()),
+    timezones: ["UTC"],
+    options: { day: "numeric", month: "short" },
   });
+
+  return format ? format.format(date) : day;
 }
 
 // The most day labels under a month of bars.

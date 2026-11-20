@@ -171,6 +171,12 @@ const TEMPLATES_WITH_A_HELP_LINE: ReadonlyArray<string> = [
   "InviteMember",
   "MagicLink",
   "PasswordChanged",
+  /*
+   * A session of the reader's account signed out for getting Confirm It's
+   * You wrong (#10218): whoever held it may still sign in, and the reader
+   * may need somebody to ask.
+   */
+  "ReauthenticationSignedOut",
   "SetPassword",
   "SignupWelcomeEmail",
   "TwoFactorBackupCodeUsed",

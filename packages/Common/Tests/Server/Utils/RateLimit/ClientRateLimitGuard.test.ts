@@ -79,6 +79,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "changes of email address per signed-in account, and per new address, an hour (#9821)",
   "packages/Common/Server/Utils/Reauthentication/Reauthentication.ts":
     "wrong attempts to confirm it's you per signed-in session (#10155); its attempts per person and client are counted by IdentityRateLimit",
+  "packages/Common/Server/Utils/Reauthentication/SignedOutEmail.ts":
+    "emails about sessions signed out for getting Confirm It's You wrong, per account and day (#10218), so nobody can fill an owner's inbox with them",
   "packages/Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector.ts":
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":

@@ -46,19 +46,34 @@ export const REASSIGN_ONE_ROLE_AT_A_TIME_MESSAGE: string =
 export const ALREADY_HOLDS_INCIDENT_ROLE_MESSAGE: string =
   "This person already holds this role on this incident. Choose someone else to hand it to.";
 
+// And of a move to another role (#10274).
+export const ROLE_REQUIRED_MESSAGE: string =
+  "A person on an incident always holds a role. To take them off this one, remove them from it instead.";
+export const MOVE_ONE_ROLE_AT_A_TIME_MESSAGE: string =
+  "Move one person to another incident role at a time.";
+export const ALREADY_HOLDS_TARGET_ROLE_MESSAGE: string =
+  "This person already holds that role on this incident. To take them off the role they hold now, remove them from it instead.";
+
 /*
- * A role handed from one person to another in one write (Reassign): read
- * once the caller may make the write (onUpdatePermitted) and said in the
- * incident's feed and its channels once it is written (onUpdateSuccess).
+ * A role row changed in one write, read once the caller may make the write
+ * (onUpdatePermitted) and said in the incident's feed and its channels
+ * once it is written (onUpdateSuccess): the role handed from one person to
+ * another (Reassign, #10191), the person moved to another role (#10274),
+ * or both at once - the person who held the old role taken off it, and the
+ * one named given the new one.
  */
-interface RoleHandOver {
+interface RoleChange {
   memberId: ObjectID;
   incidentId: ObjectID;
   projectId: ObjectID;
-  incidentRoleId: ObjectID;
   fromUserId: ObjectID;
   toUserId: ObjectID;
+  fromRoleId: ObjectID;
+  toRoleId: ObjectID;
 }
+
+// What a change does: hands the role on, moves the person, or both.
+type RoleChangeKind = "handOver" | "move" | "both";
 
 // Two ids are one id in any case: ObjectID keeps the case it was handed.
 const isSameId: (
@@ -75,11 +90,24 @@ const isSameId: (
   return first.toString().toLowerCase() === second.toString().toLowerCase();
 };
 
+const getRoleChangeKind: (change: RoleChange) => RoleChangeKind = (
+  change: RoleChange,
+): RoleChangeKind => {
+  const isHandedOn: boolean = !isSameId(change.fromUserId, change.toUserId);
+  const isMoved: boolean = !isSameId(change.fromRoleId, change.toRoleId);
+
+  if (isHandedOn && isMoved) {
+    return "both";
+  }
+
+  return isMoved ? "move" : "handOver";
+};
+
 export class Service extends ProjectReferencesService<Model> {
-  // The hand-overs onUpdatePermitted read, for onUpdateSuccess to tell.
-  private handOvers: WeakMap<UpdateBy<Model>, RoleHandOver> = new WeakMap<
+  // The changes onUpdatePermitted read, for onUpdateSuccess to tell.
+  private roleChanges: WeakMap<UpdateBy<Model>, RoleChange> = new WeakMap<
     UpdateBy<Model>,
-    RoleHandOver
+    RoleChange
   >();
 
   public constructor() {
@@ -363,8 +391,16 @@ export class Service extends ProjectReferencesService<Model> {
    *     (SendMemberAddedNotification).
    *
    * Whether they belong to the project is asked of every update that names
-   * a person, before this (ProjectReferencesService). An update that names
-   * no person - a row's notes, its role - is left as it was.
+   * a person, before this (ProjectReferencesService).
+   *
+   * AND A PERSON MOVED TO ANOTHER ROLE IN ONE WRITE (#10274): an update of
+   * the row's role - through the API, Terraform or a workflow's Update step
+   * (Edit Incident Member) - is held to the same: one row at a time, to a
+   * role the person does not hold on the incident yet, said in the feed and
+   * told to them. One that names another person and another role at once
+   * takes the old holder off the old role and gives the new one the new
+   * role. An update that changes neither - a row's notes - is left as it
+   * was.
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -377,25 +413,28 @@ export class Service extends ProjectReferencesService<Model> {
       unknown
     >;
 
-    if (!RelationIdUtil.isPresent(data, USER_KEYS)) {
+    const namesPerson: boolean = RelationIdUtil.isPresent(data, USER_KEYS);
+    const namesRole: boolean = RelationIdUtil.isPresent(data, ROLE_KEYS);
+
+    if (!namesPerson && !namesRole) {
       return;
     }
 
-    const toUserId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
-      data,
-      USER_KEYS,
-      "User",
-    );
+    const toUserId: ObjectID | null = namesPerson
+      ? RelationIdUtil.readIntoIdColumn(data, USER_KEYS, "User")
+      : null;
 
-    if (!toUserId) {
+    if (namesPerson && !toUserId) {
       throw new BadDataException(ROLE_HOLDER_REQUIRED_MESSAGE);
     }
 
-    const toRoleId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
-      data,
-      ROLE_KEYS,
-      "Incident Role",
-    );
+    const toRoleId: ObjectID | null = namesRole
+      ? RelationIdUtil.readIntoIdColumn(data, ROLE_KEYS, "Incident Role")
+      : null;
+
+    if (namesRole && !toRoleId) {
+      throw new BadDataException(ROLE_REQUIRED_MESSAGE);
+    }
 
     const written: { row: Model | null; writesMore: boolean } =
       await this.findOneRowAndHoldUpdateToIt(updateBy, {
@@ -407,7 +446,11 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
     if (written.writesMore) {
-      throw new BadDataException(REASSIGN_ONE_ROLE_AT_A_TIME_MESSAGE);
+      throw new BadDataException(
+        namesPerson
+          ? REASSIGN_ONE_ROLE_AT_A_TIME_MESSAGE
+          : MOVE_ONE_ROLE_AT_A_TIME_MESSAGE,
+      );
     }
 
     const row: Model | null = written.row;
@@ -423,18 +466,31 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    // The same person: nothing is handed on.
-    if (isSameId(toUserId, row.userId)) {
+    const change: RoleChange = {
+      memberId: row.id,
+      incidentId: row.incidentId,
+      projectId: row.projectId,
+      fromUserId: row.userId,
+      toUserId: toUserId || row.userId,
+      fromRoleId: row.incidentRoleId,
+      toRoleId: toRoleId || row.incidentRoleId,
+    };
+
+    // The same person in the same role: nothing changes.
+    if (
+      isSameId(change.fromUserId, change.toUserId) &&
+      isSameId(change.fromRoleId, change.toRoleId)
+    ) {
       return;
     }
 
-    const incidentRoleId: ObjectID = toRoleId || row.incidentRoleId;
+    const kind: RoleChangeKind = getRoleChangeKind(change);
 
     const holdsItAlready: Model | null = await this.findOneBy({
       query: {
         incidentId: row.incidentId,
-        userId: toUserId,
-        incidentRoleId: incidentRoleId,
+        userId: change.toUserId,
+        incidentRoleId: change.toRoleId,
       },
       select: {
         _id: true,
@@ -445,20 +501,17 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (holdsItAlready) {
-      throw new BadDataException(ALREADY_HOLDS_INCIDENT_ROLE_MESSAGE);
+      throw new BadDataException(
+        kind === "move"
+          ? ALREADY_HOLDS_TARGET_ROLE_MESSAGE
+          : ALREADY_HOLDS_INCIDENT_ROLE_MESSAGE,
+      );
     }
 
     // Told of the role the row gives them now, as a new row's person is.
     data["isMemberNotified"] = false;
 
-    this.handOvers.set(updateBy, {
-      memberId: row.id,
-      incidentId: row.incidentId,
-      projectId: row.projectId,
-      incidentRoleId: incidentRoleId,
-      fromUserId: row.userId,
-      toUserId: toUserId,
-    });
+    this.roleChanges.set(updateBy, change);
   }
 
   @CaptureSpan()
@@ -466,22 +519,22 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    const handOver: RoleHandOver | undefined = this.handOvers.get(
+    const change: RoleChange | undefined = this.roleChanges.get(
       onUpdate.updateBy,
     );
 
-    if (handOver) {
-      this.handOvers.delete(onUpdate.updateBy);
+    if (change) {
+      this.roleChanges.delete(onUpdate.updateBy);
 
       const wasWritten: boolean = updatedItemIds.some(
         (id: ObjectID): boolean => {
-          return isSameId(id, handOver.memberId);
+          return isSameId(id, change.memberId);
         },
       );
 
       if (wasWritten) {
-        await this.tellOfHandOver({
-          handOver: handOver,
+        await this.tellOfRoleChange({
+          change: change,
           props: onUpdate.updateBy.props,
         });
       }
@@ -491,49 +544,50 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A role handed on, in the incident's feed and its Slack and Teams
-   * channels - one entry, by whoever handed it on (IncidentRoleFeedText
-   * .getReassignedMarkdown) - and the person it went to brought into the
-   * incident's channels, as anyone given a role is.
+   * A role row changed, in the incident's feed and its Slack and Teams
+   * channels, by whoever changed it - and the person who holds the role
+   * now brought into the incident's channels, as anyone given a role is:
+   *
+   *   - handed on: one entry (IncidentRoleFeedText.getReassignedMarkdown);
+   *   - a person moved to another role: one entry ("Moved Maya Chen from
+   *     Responder to Incident Commander", getMovedMarkdown);
+   *   - both at once: the old holder taken off the old role and the new
+   *     holder given the new one, as two entries say it.
    */
-  private async tellOfHandOver(data: {
-    handOver: RoleHandOver;
+  private async tellOfRoleChange(data: {
+    change: RoleChange;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const handOver: RoleHandOver = data.handOver;
+    const change: RoleChange = data.change;
+    const kind: RoleChangeKind = getRoleChangeKind(change);
     const madeByUserId: ObjectID | undefined = data.props.userId;
+    const workflowName: string | undefined =
+      IncidentRoleFeedText.getWorkflowName(data.props);
 
     const to: MarkdownText = await UserService.getUserMarkdownString({
-      userId: handOver.toUserId,
-      projectId: handOver.projectId,
+      userId: change.toUserId,
+      projectId: change.projectId,
+    });
+    const incident: MarkdownText = await this.getIncidentMarkdown({
+      projectId: change.projectId,
+      incidentId: change.incidentId,
     });
 
-    if (!to.isEmpty()) {
-      const from: MarkdownText = await UserService.getUserMarkdownString({
-        userId: handOver.fromUserId,
-        projectId: handOver.projectId,
-      });
-
+    const tell: (entry: {
+      markdown: MarkdownText;
+      eventType: IncidentFeedEventType;
+      color: typeof Gray500;
+    }) => Promise<void> = async (entry: {
+      markdown: MarkdownText;
+      eventType: IncidentFeedEventType;
+      color: typeof Gray500;
+    }): Promise<void> => {
       await IncidentFeedService.createIncidentFeedItem({
-        incidentId: handOver.incidentId,
-        projectId: handOver.projectId,
-        incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,
-        displayColor: Gray500,
-        feedInfoInMarkdown: IncidentRoleFeedText.getReassignedMarkdown({
-          roleName: await this.getRoleName(handOver.incidentRoleId),
-          incident: await this.getIncidentMarkdown({
-            projectId: handOver.projectId,
-            incidentId: handOver.incidentId,
-          }),
-          from: from,
-          to: to,
-          madeBy: isSameId(madeByUserId, handOver.toUserId)
-            ? "to"
-            : isSameId(madeByUserId, handOver.fromUserId)
-              ? "from"
-              : undefined,
-          workflowName: IncidentRoleFeedText.getWorkflowName(data.props),
-        }).toString(),
+        incidentId: change.incidentId,
+        projectId: change.projectId,
+        incidentFeedEventType: entry.eventType,
+        displayColor: entry.color,
+        feedInfoInMarkdown: entry.markdown.toString(),
         userId: madeByUserId || undefined,
         apiKeyActor: FeedApiKeyActorUtil.fromProps(data.props),
         workspaceNotification: {
@@ -541,12 +595,84 @@ export class Service extends ProjectReferencesService<Model> {
           leadWithAuthor: true,
         },
       });
+    };
+
+    if (!to.isEmpty() && kind === "handOver") {
+      await tell({
+        markdown: IncidentRoleFeedText.getReassignedMarkdown({
+          roleName: await this.getRoleName(change.toRoleId),
+          incident: incident,
+          from: await UserService.getUserMarkdownString({
+            userId: change.fromUserId,
+            projectId: change.projectId,
+          }),
+          to: to,
+          madeBy: isSameId(madeByUserId, change.toUserId)
+            ? "to"
+            : isSameId(madeByUserId, change.fromUserId)
+              ? "from"
+              : undefined,
+          workflowName: workflowName,
+        }),
+        eventType: IncidentFeedEventType.IncidentMemberAdded,
+        color: Gray500,
+      });
+    }
+
+    if (!to.isEmpty() && kind === "move") {
+      await tell({
+        markdown: IncidentRoleFeedText.getMovedMarkdown({
+          person: to,
+          fromRoleName: await this.getRoleName(change.fromRoleId),
+          toRoleName: await this.getRoleName(change.toRoleId),
+          incident: incident,
+          isSelf: isSameId(madeByUserId, change.toUserId),
+          workflowName: workflowName,
+        }),
+        eventType: IncidentFeedEventType.IncidentMemberAdded,
+        color: Gray500,
+      });
+    }
+
+    if (kind === "both") {
+      const from: MarkdownText = await UserService.getUserMarkdownString({
+        userId: change.fromUserId,
+        projectId: change.projectId,
+      });
+
+      if (!from.isEmpty()) {
+        await tell({
+          markdown: IncidentRoleFeedText.getRemovedMarkdown({
+            roleName: await this.getRoleName(change.fromRoleId),
+            incident: incident,
+            person: from,
+            isSelf: isSameId(madeByUserId, change.fromUserId),
+            workflowName: workflowName,
+          }),
+          eventType: IncidentFeedEventType.IncidentMemberRemoved,
+          color: Red500,
+        });
+      }
+
+      if (!to.isEmpty()) {
+        await tell({
+          markdown: IncidentRoleFeedText.getAddedMarkdown({
+            roleName: await this.getRoleName(change.toRoleId),
+            incident: incident,
+            person: to,
+            isSelf: isSameId(madeByUserId, change.toUserId),
+            workflowName: workflowName,
+          }),
+          eventType: IncidentFeedEventType.IncidentMemberAdded,
+          color: Gray500,
+        });
+      }
     }
 
     await this.inviteToIncidentChannels({
-      projectId: handOver.projectId,
-      incidentId: handOver.incidentId,
-      userId: handOver.toUserId,
+      projectId: change.projectId,
+      incidentId: change.incidentId,
+      userId: change.toUserId,
     });
   }
 

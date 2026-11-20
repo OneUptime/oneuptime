@@ -1,4 +1,4 @@
-import { AccountsRoute, DashboardRoute } from "Common/ServiceRoute";
+import { AccountsRoute } from "Common/ServiceRoute";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -16,6 +16,9 @@ import MailService from "Common/Server/Services/MailService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import logger from "Common/Server/Utils/Logger";
+import TwoFactorBackupCodeNotification, {
+  BackupCodeUse,
+} from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import RequestOrigin from "Common/Types/RequestOrigin";
 import UserRegistrationToken, {
   REGISTRATION_TOKEN_EXPIRY_IN_DAYS,
@@ -168,19 +171,21 @@ export default class AuthenticationEmail {
   }
 
   /**
-   * Tell a user that one of their two factor backup codes was just spent.
+   * Tell a user that one of their two factor backup codes was just spent to
+   * sign in.
    *
    * THIS IS THE COMPENSATING CONTROL FOR THE WHOLE FEATURE. A backup code
    * turns "password plus a device you are holding" into "password plus a
    * string somebody could have photographed", so the account owner has to
    * learn about it through a channel the person who used the code does not
-   * control. That is why this goes to the address on the account rather than
-   * being rendered on the page that just signed in: a sign-in the owner did
-   * not perform still lands in their inbox.
+   * control: the address on the account, not the page that just signed in.
    *
-   * The remaining count is in the mail for the same reason. "You have 2 left"
-   * is what turns a vague unease into an action, and a user who reads "9 left"
-   * on a sign-in they do not remember knows exactly how far in someone is.
+   * The email itself - its words in the owner's language, the count that is
+   * left and the advice that goes with it, where the code was spent from -
+   * is Common's (Utils/TwoFactorBackupCodeNotification.sendCodeUsedEmail),
+   * which Confirm It's You sends too when a backup code confirms it's them
+   * (#10219). This is the sign-in's way to it, the one the sign-in route
+   * calls, once per code spent.
    *
    * Never awaited by the login path, and never allowed to fail it. The user
    * has already proved the password and spent a real code by the time this is
@@ -193,55 +198,15 @@ export default class AuthenticationEmail {
     // The sign-in's request: where the code was spent from.
     origin?: RequestOrigin | undefined;
   }): Promise<void> {
-    if (!data.user.email) {
+    if (!data.user.id) {
       return;
     }
 
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const twoFactorAuthUrl: string = new URL(
-      httpProtocol,
-      host,
-      new Route(DashboardRoute.toString()).addRoute(
-        "/user-profile/two-factor-auth",
-      ),
-    ).toString();
-
-    /*
-     * Graded advice rather than one line, because the useful action changes
-     * with the number. Somebody with eight codes left needs no prompting;
-     * somebody with none is one lost phone away from needing an
-     * administrator, and telling them that AFTER it happens is too late.
-     */
-    let remainingCodeMessage: string =
-      "You can see how many codes you have left, and generate a new set, from your user profile.";
-
-    if (data.remainingCodeCount === 0) {
-      remainingCodeMessage =
-        "<strong>That was your last backup code.</strong> If you lose access to your authenticator app or security key now, you will need an administrator to reset two factor authentication on your account. Generate a new set of backup codes as soon as you sign in.";
-    } else if (data.remainingCodeCount <= 3) {
-      remainingCodeMessage =
-        "You are running low on backup codes. Generate a new set from User Profile &gt; Two Factor Authentication -- doing so replaces every code you are currently holding.";
-    }
-
-    await MailService.sendMail({
-      toEmail: data.user.email,
-      subject: `A backup code was used to sign in to your ${ProductBrandingText.getProductName()} account`,
-      isSubjectLiteral: true,
-      templateType: EmailTemplateType.TwoFactorBackupCodeUsed,
-      vars: {
-        signedInAt: OneUptimeDate.getCurrentDateAsFormattedString(),
-        remainingCodeCount: data.remainingCodeCount.toString(),
-        remainingCodeMessage: remainingCodeMessage,
-        twoFactorAuthUrl: twoFactorAuthUrl,
-        homeUrl: new URL(httpProtocol, host).toString(),
-        // Which address, place and device the code was spent from.
-        ...RequestOriginUtil.getEmailVars({
-          origin: data.origin,
-          timezone: data.user.timezone,
-        }),
-      },
+    await TwoFactorBackupCodeNotification.sendCodeUsedEmail({
+      userId: data.user.id,
+      remainingCodeCount: data.remainingCodeCount,
+      usedFor: BackupCodeUse.SignIn,
+      origin: data.origin,
     });
   }
 

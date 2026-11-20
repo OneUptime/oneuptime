@@ -95,23 +95,32 @@ const OWN_CARD_EMAILS: Array<[string, Record<string, string>, Array<string>]> =
   [
     [
       "TwoFactorWrongCodes",
-      { wrongCodeCount: "5", enteredAt: "Oct 18 2026, 12:07 UTC" },
-      ["Wrong codes in a row: 5", "Last wrong code at: Oct 18 2026, 12:07 UTC"],
+      { wrongCodeCount: "5", enteredAt: "Oct 18, 2026, 12:07 UTC" },
+      [
+        "Wrong codes in a row: 5",
+        "Last wrong code at: Oct 18, 2026, 12:07 UTC",
+      ],
     ],
     [
       "TwoFactorBackupCodeUsed",
-      { signedInAt: "Oct 18 2026, 12:07 UTC", remainingCodeCount: "7" },
-      ["Signed in at: Oct 18 2026, 12:07 UTC", "Backup codes remaining: 7"],
+      { usedAt: "Oct 18, 2026, 12:07 UTC", remainingCodeCount: "7" },
+      ["Used at: Oct 18, 2026, 12:07 UTC", "Backup codes remaining: 7"],
+    ],
+    // A session signed out for getting Confirm It's You wrong (#10218).
+    [
+      "ReauthenticationSignedOut",
+      { signedOutAt: "Oct 18, 2026, 12:07 UTC" },
+      ["Signed out at: Oct 18, 2026, 12:07 UTC"],
     ],
     [
       "TwoFactorBackupCodesCreated",
-      { generatedAt: "Oct 18 2026, 12:07 UTC", newCodeCount: "10" },
-      ["Created at: Oct 18 2026, 12:07 UTC", "Codes issued: 10"],
+      { generatedAt: "Oct 18, 2026, 12:07 UTC", newCodeCount: "10" },
+      ["Created at: Oct 18, 2026, 12:07 UTC", "Codes issued: 10"],
     ],
     [
       "TwoFactorBackupCodesRegenerated",
-      { generatedAt: "Oct 18 2026, 12:07 UTC", newCodeCount: "10" },
-      ["Generated at: Oct 18 2026, 12:07 UTC", "New codes issued: 10"],
+      { generatedAt: "Oct 18, 2026, 12:07 UTC", newCodeCount: "10" },
+      ["Generated at: Oct 18, 2026, 12:07 UTC", "New codes issued: 10"],
     ],
   ];
 

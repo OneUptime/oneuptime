@@ -8,6 +8,7 @@ import {
   getWelcomeGoalEntry,
 } from "./WelcomeChecklistCatalog";
 import WelcomeGreeting from "./WelcomeGreeting";
+import GoalPlanPanel from "./GoalPlanPanel";
 import ProjectGoal from "Common/Types/WelcomeChecklist/ProjectGoal";
 import {
   WelcomeStep,
@@ -42,7 +43,8 @@ import React, { FunctionComponent, ReactElement, useId, useState } from "react";
  *     when picked (a checkbox underneath, so Tab, Space and a screen reader
  *     work as on any list of choices);
  *   - while picking, how many steps the picked goals bring and about how
- *     long they take, beside the one primary button;
+ *     long they take, beside the one primary button, and from lg up the
+ *     steps themselves beside the goals (GoalPlanPanel, #10276);
  *   - "Just looking around" under the cards, as the way out: it keeps the
  *     project's goal as Explore and takes the person straight to the rest
  *     of Home, with the line that brings the checklist back.
@@ -112,6 +114,21 @@ export const GOAL_MARK_CHOSEN_CLASS_NAME: string =
   "border-indigo-600 bg-indigo-600";
 
 export const GOAL_MARK_AT_REST_CLASS_NAME: string = "border-gray-300 bg-white";
+
+/*
+ * Under the question, the goals and, from lg up, the steps they bring
+ * beside them (GoalPlanPanel, #10276): the cards take the room there is,
+ * the panel a column of its own.
+ */
+export const GOAL_QUESTION_BODY_CLASS_NAME: string =
+  "grid grid-cols-1 gap-6 px-5 pb-6 pt-4 sm:px-8 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_19rem]";
+
+/*
+ * The goals: one a row on a phone, two from sm, and three once the column
+ * beside the panel has room for them (xl).
+ */
+export const GOAL_CARDS_CLASS_NAME: string =
+  "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4 xl:grid-cols-3";
 
 const GoalQuestion: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -193,91 +210,93 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
             {translator.translateText(WELCOME_QUESTION_COPY.description)}
           </p>
         </div>
-        <fieldset
-          aria-labelledby={questionId}
-          className="px-5 pb-6 pt-4 sm:px-8"
-        >
-          <div
-            data-testid="welcome-goal-cards"
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4"
-          >
-            {cards.map((entry: WelcomeGoalEntry): ReactElement => {
-              const isChosen: boolean = chosen.includes(entry.goal);
-              const titleId: string = `${questionId}-${entry.goal}-title`;
-              const outcomeId: string = `${questionId}-${entry.goal}`;
+        <div className={GOAL_QUESTION_BODY_CLASS_NAME}>
+          <fieldset aria-labelledby={questionId} className="min-w-0">
+            <div
+              data-testid="welcome-goal-cards"
+              className={GOAL_CARDS_CLASS_NAME}
+            >
+              {cards.map((entry: WelcomeGoalEntry): ReactElement => {
+                const isChosen: boolean = chosen.includes(entry.goal);
+                const titleId: string = `${questionId}-${entry.goal}-title`;
+                const outcomeId: string = `${questionId}-${entry.goal}`;
 
-              return (
-                <label
-                  key={entry.goal}
-                  data-testid={`welcome-goal-${entry.goal}`}
-                  data-chosen={isChosen ? "true" : "false"}
-                  className={`${GOAL_CARD_CLASS_NAME} ${
-                    isChosen ? CHOSEN_CARD_CLASS_NAME : CARD_AT_REST_CLASS_NAME
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`flex h-11 w-11 flex-none items-center justify-center rounded-xl ${entry.iconBackgroundClassName}`}
+                return (
+                  <label
+                    key={entry.goal}
+                    data-testid={`welcome-goal-${entry.goal}`}
+                    data-chosen={isChosen ? "true" : "false"}
+                    className={`${GOAL_CARD_CLASS_NAME} ${
+                      isChosen
+                        ? CHOSEN_CARD_CLASS_NAME
+                        : CARD_AT_REST_CLASS_NAME
+                    }`}
                   >
-                    <Icon icon={entry.icon} className="h-5 w-5 text-white" />
-                  </span>
-                  <span className="block min-w-0 flex-1 sm:mt-4">
-                    <span
-                      id={titleId}
-                      className="block text-base font-semibold text-gray-900"
-                    >
-                      {translator.translateText(entry.title)}
-                    </span>
-                    <span
-                      id={outcomeId}
-                      className="mt-1 block text-sm text-gray-600"
-                    >
-                      {translator.translateText(entry.outcome)}
-                    </span>
-                  </span>
-                  {/*
-                   * The choice itself: a real checkbox, over the round mark
-                   * in the card's corner - an empty ring, and an indigo
-                   * disc with a tick once picked. The card is its label, so
-                   * a click anywhere on it picks it; it is named by the
-                   * goal and described by what the goal brings.
-                   */}
-                  <span className="relative mt-0.5 flex h-6 w-6 flex-none sm:absolute sm:end-5 sm:top-5 sm:mt-0">
-                    <input
-                      type="checkbox"
-                      checked={isChosen}
-                      onChange={() => {
-                        toggle(entry.goal);
-                      }}
-                      aria-labelledby={titleId}
-                      aria-describedby={outcomeId}
-                      data-testid={`welcome-goal-${entry.goal}-checkbox`}
-                      className={GOAL_CHECKBOX_CLASS_NAME}
-                    />
                     <span
                       aria-hidden="true"
-                      data-testid={`welcome-goal-${entry.goal}-mark`}
-                      className={`${GOAL_MARK_CLASS_NAME} ${
-                        isChosen
-                          ? GOAL_MARK_CHOSEN_CLASS_NAME
-                          : GOAL_MARK_AT_REST_CLASS_NAME
-                      }`}
+                      className={`flex h-11 w-11 flex-none items-center justify-center rounded-xl ${entry.iconBackgroundClassName}`}
                     >
-                      {isChosen ? (
-                        <Icon
-                          icon={IconProp.Check}
-                          className="h-3.5 w-3.5 text-white"
-                        />
-                      ) : (
-                        <></>
-                      )}
+                      <Icon icon={entry.icon} className="h-5 w-5 text-white" />
                     </span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
+                    <span className="block min-w-0 flex-1 sm:mt-4">
+                      <span
+                        id={titleId}
+                        className="block text-base font-semibold text-gray-900"
+                      >
+                        {translator.translateText(entry.title)}
+                      </span>
+                      <span
+                        id={outcomeId}
+                        className="mt-1 block text-sm text-gray-600"
+                      >
+                        {translator.translateText(entry.outcome)}
+                      </span>
+                    </span>
+                    {/*
+                     * The choice itself: a real checkbox, over the round mark
+                     * in the card's corner - an empty ring, and an indigo
+                     * disc with a tick once picked. The card is its label, so
+                     * a click anywhere on it picks it; it is named by the
+                     * goal and described by what the goal brings.
+                     */}
+                    <span className="relative mt-0.5 flex h-6 w-6 flex-none sm:absolute sm:end-5 sm:top-5 sm:mt-0">
+                      <input
+                        type="checkbox"
+                        checked={isChosen}
+                        onChange={() => {
+                          toggle(entry.goal);
+                        }}
+                        aria-labelledby={titleId}
+                        aria-describedby={outcomeId}
+                        data-testid={`welcome-goal-${entry.goal}-checkbox`}
+                        className={GOAL_CHECKBOX_CLASS_NAME}
+                      />
+                      <span
+                        aria-hidden="true"
+                        data-testid={`welcome-goal-${entry.goal}-mark`}
+                        className={`${GOAL_MARK_CLASS_NAME} ${
+                          isChosen
+                            ? GOAL_MARK_CHOSEN_CLASS_NAME
+                            : GOAL_MARK_AT_REST_CLASS_NAME
+                        }`}
+                      >
+                        {isChosen ? (
+                          <Icon
+                            icon={IconProp.Check}
+                            className="h-3.5 w-3.5 text-white"
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+          <GoalPlanPanel steps={planSteps} />
+        </div>
         {props.error ? (
           <p
             role="alert"

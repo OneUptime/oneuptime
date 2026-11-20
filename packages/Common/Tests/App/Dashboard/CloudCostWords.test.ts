@@ -10,20 +10,33 @@ import {
   Translator,
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { writeReaderMoment } from "../../../UI/Utils/ReaderMoments";
 import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  isWordedInDashboardLocale,
+  placeholdersOf,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
+import {
+  COSTS_QUEUED_NOTE,
   COST_SETUP_DOCS_PATHS,
   COST_SETUP_STEPS,
   COST_STATE_LABELS,
   LESS_THAN_LAST_MONTH,
   MORE_THAN_LAST_MONTH,
+  QUEUED_COSTS_NEXT_READ,
+  QUEUED_COSTS_READ_AT,
   SAME_AS_LAST_MONTH,
   SAVINGS_SETUP_DOCS_PATHS,
   SAVINGS_SETUP_STEPS,
   formatCloudMoney,
   getCloudCostGaps,
+  getCloudQueuedCostsLine,
   getCloudSpendChangeLine,
   hasCloudCosts,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostWords";
+import { getCloudCostSetupProviders } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostSetupSteps";
 
 /*
  * How the Cloud pages say what the clouds cost: money in the reader's own
@@ -201,6 +214,127 @@ describe("accounts whose costs are not read", () => {
     expect(COST_SETUP_STEPS[CloudProvider.GCP]).toContain("BigQuery");
     expect(SAVINGS_SETUP_STEPS[CloudProvider.AWS]).toContain(
       "Cost Optimization Hub",
+    );
+  });
+});
+
+/*
+ * #10295: an account whose costs wait their turn - its cloud limits how
+ * fast they are read - is queued, not failing: its line says why and when,
+ * in the reader's own words and time, and it needs no step to set up.
+ */
+describe("a queued account", () => {
+  const NOW: Date = new Date("2026-11-20T15:00:00.000Z");
+
+  test("its label, and what it does not count as", () => {
+    expect(COST_STATE_LABELS[CloudCostState.Queued]).toBe("Queued");
+
+    const totals: CloudCostTotals = totalCloudCosts([
+      summary({ state: CloudCostState.Queued }),
+      summary({ state: CloudCostState.Failed }),
+    ]);
+
+    expect(totals.accountsQueued).toBe(1);
+    expect(totals.accountsFailed).toBe(1);
+    expect(totals.accountsRead).toBe(0);
+  });
+
+  test("when it is read, at the reader's time", () => {
+    const nextReadAt: Date = new Date("2026-11-20T15:05:00.000Z");
+
+    expect(
+      getCloudQueuedCostsLine({
+        nextReadAt: nextReadAt.toISOString(),
+        now: NOW,
+        translator: ENGLISH,
+      }),
+    ).toBe(
+      ENGLISH.translateTemplate(QUEUED_COSTS_READ_AT, {
+        time: writeReaderMoment(nextReadAt),
+      }),
+    );
+    expect(QUEUED_COSTS_READ_AT).toBe(
+      "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.",
+    );
+  });
+
+  test("a time gone by, or none: with the next read", () => {
+    for (const nextReadAt of [
+      "2026-11-20T14:59:00.000Z",
+      "2026-11-20T15:00:00.000Z",
+      undefined,
+      "soon",
+    ]) {
+      expect(
+        getCloudQueuedCostsLine({ nextReadAt, now: NOW, translator: ENGLISH }),
+      ).toBe(QUEUED_COSTS_NEXT_READ);
+    }
+  });
+
+  test("in every Dashboard language, the time where each puts it", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      for (const key of [
+        QUEUED_COSTS_READ_AT,
+        QUEUED_COSTS_NEXT_READ,
+        COSTS_QUEUED_NOTE,
+        COST_STATE_LABELS[CloudCostState.Queued],
+      ]) {
+        expect([
+          language,
+          key,
+          isWordedInDashboardLocale(key, language),
+        ]).toEqual([language, key, true]);
+        expect(placeholdersOf(readDashboardLocale(language)[key]!)).toEqual(
+          placeholdersOf(key),
+        );
+      }
+
+      const line: string = getCloudQueuedCostsLine({
+        nextReadAt: "2026-11-20T15:05:00.000Z",
+        now: NOW,
+        translator: dashboardTranslator(language),
+      });
+
+      expect(line).not.toContain("{{");
+      expect(line).not.toBe(
+        getCloudQueuedCostsLine({
+          nextReadAt: "2026-11-20T15:05:00.000Z",
+          now: NOW,
+          translator: ENGLISH,
+        }),
+      );
+    }
+  });
+
+  test("needs no step to set up: only the clouds of the others do", () => {
+    const queued: { state: CloudCostState } = {
+      state: CloudCostState.Queued,
+    };
+
+    expect(
+      getCloudCostSetupProviders([
+        { provider: CloudProvider.Azure, costSummary: queued },
+        { provider: CloudProvider.Azure, costSummary: queued },
+      ]),
+    ).toEqual([]);
+    expect(
+      getCloudCostSetupProviders([
+        { provider: CloudProvider.Azure, costSummary: queued },
+        {
+          provider: CloudProvider.AWS,
+          costSummary: { state: CloudCostState.NotSetUp },
+        },
+        { provider: CloudProvider.GCP, costSummary: null },
+      ]),
+    ).toEqual([CloudProvider.AWS, CloudProvider.GCP]);
+    // No accounts at all: every cloud's step, as before.
+    expect(getCloudCostSetupProviders([])).toEqual([
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]);
+    expect(COSTS_QUEUED_NOTE).toBe(
+      "Your accounts' costs are read in turn, as fast as their cloud allows.",
     );
   });
 });

@@ -1,9 +1,10 @@
 import CronTab, { CronScheduleShape } from "./CronTab";
 import {
-  getNumberLocale,
+  ReaderDateTimeFormat,
+  getDateTimeFormat,
   getDateLocale,
   isEnglishDateLanguage,
-  writeDigitsInLocale,
+  writeClockInLocale,
 } from "../Types/DateLanguage";
 import {
   composedValue,
@@ -54,21 +55,20 @@ const formatEach: (data: {
   options: Intl.DateTimeFormatOptions;
   toDate: (value: number) => Date;
 }): Array<string> | null => {
-  try {
-    const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-      getNumberLocale(data.locale),
-      {
-        ...data.options,
-        timeZone: "UTC",
-      },
-    );
+  // Words of the calendar, not instants: read at UTC.
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: data.locale,
+    timezones: ["UTC"],
+    options: data.options,
+  });
 
-    return data.values.map((value: number): string => {
-      return format.format(data.toDate(value));
-    });
-  } catch {
+  if (!format) {
     return null;
   }
+
+  return data.values.map((value: number): string => {
+    return format.format(data.toDate(value));
+  });
 };
 
 /*
@@ -159,7 +159,7 @@ const figuresInSentence: (english: string) => ComposedValue = (
 
     return locale.startsWith("en-")
       ? english
-      : writeDigitsInLocale(english, locale);
+      : writeClockInLocale(english, locale);
   });
 };
 
@@ -199,11 +199,20 @@ const formatDayOfMonth: (day: number, locale: string) => string | null = (
   day: number,
   locale: string,
 ): string | null => {
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: locale,
+    timezones: ["UTC"],
+    options: { day: "numeric", month: "long" },
+  });
+
+  if (!format) {
+    return null;
+  }
+
   try {
-    const parts: Array<Intl.DateTimeFormatPart> = new Intl.DateTimeFormat(
-      getNumberLocale(locale),
-      { day: "numeric", month: "long", timeZone: "UTC" },
-    ).formatToParts(new Date(Date.UTC(2023, 0, day)));
+    const parts: Array<Intl.DateTimeFormatPart> = format.formatToParts(
+      new Date(Date.UTC(2023, 0, day)),
+    );
     const index: number = parts.findIndex(
       (part: Intl.DateTimeFormatPart): boolean => {
         return part.type === "day";
@@ -444,7 +453,7 @@ const describeShape: (data: {
 
       return t.translateTemplate(EVERY_YEAR, {
         dates: joinInLocale(dates, locale),
-        time: writeDigitsInLocale(
+        time: writeClockInLocale(
           CronTab.describeTimeOfDay(shape.hour, shape.minute),
           locale,
         ),

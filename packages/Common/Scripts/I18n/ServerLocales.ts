@@ -174,6 +174,14 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
    * changed (#10156), in the status page's language.
    */
   "packages/Common/Types/StatusPage/PrivateUserEmailAddressChangedEmail.ts",
+  /*
+   * The emails Confirm It's You sends the account's owner: a backup code
+   * spent, to sign in or to confirm it's them (#10219), and a session
+   * signed out for too many wrong attempts (#10218), in the language on
+   * the account.
+   */
+  "packages/Common/Server/Utils/TwoFactorBackupCodeNotification.ts",
+  "packages/Common/Server/Utils/Reauthentication/SignedOutEmail.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).

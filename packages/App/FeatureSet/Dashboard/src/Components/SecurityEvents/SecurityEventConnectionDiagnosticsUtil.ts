@@ -31,11 +31,7 @@ import {
   buildSecurityEventFacetLinkParams,
 } from "./SecurityEventsFacets";
 import { getSecurityEventsTimeRangeLinkParams } from "./SecurityEventsTimeRange";
-import {
-  getLocaleClockHourOption,
-  getReaderDateLocale,
-  getReaderNumberLocale,
-} from "Common/Types/DateLanguage";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import {
   TemplateValue,
   Translator,
@@ -237,33 +233,19 @@ export function formatConnectionLocalDate(
   }
 
   /*
-   * On the language's own clock, a 12-hour hour without its zero (#7279),
-   * in the reader's zone - the one they picked in User Settings, else the
-   * browser's - and named. It was the browser's, whatever they had picked
-   * (issue #8231).
+   * As every moment in full on the page, to the second: in the reader's
+   * zone - the one they picked in User Settings, else the browser's (issue
+   * #8231) - on their 12- or 24-hour clock (#7651, it followed the
+   * language's own), and named as every other date names its zone (#10038):
+   * "Nov 5, 2026, 5:14:00 AM MST". Intl named it from the browser's CLDR
+   * data, "PDT" in Vancouver after British Columbia stayed on UTC-7, beside
+   * every other date's "MST".
    */
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: getLocaleClockHourOption(getReaderDateLocale()),
-    minute: "2-digit",
-    second: "2-digit",
-    timeZoneName: "short",
-  };
-
-  try {
-    return date.toLocaleString(getReaderDateLocale(), {
-      ...options,
-      timeZone: OneUptimeDate.getCurrentTimezone(),
-    });
-  } catch {
-    // A zone this browser's Intl does not know: UTC, named, as the value is.
-    return date.toLocaleString(getReaderDateLocale(), {
-      ...options,
-      timeZone: "UTC",
-    });
-  }
+  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+    date,
+    false,
+    true,
+  );
 }
 
 const LOCAL_TIME_TITLE: string = translationKey("Local time: {{time}}");

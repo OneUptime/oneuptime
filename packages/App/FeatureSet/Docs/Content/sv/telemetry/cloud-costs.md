@@ -61,6 +61,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 Cost Management svarar för varje prenumeration, med den resurs varje kostnad gäller, och det kostar inget att läsa. När den inte kan svara för en prenumeration säger kontots **Kostnader** varför.
 
+Cost Management begränsar hur snabbt en klientorganisations kostnader läses, lika för alla som läser dem: varje fråga kostar en frågebearbetningsenhet (QPU) för varje månad data den läser, och en klientorganisation har 12 QPU var 10:e sekund, 60 per minut och 600 per timme. OneUptime läser en klientorganisations prenumerationer en i taget inom två tredjedelar av varje kvot, väntar så länge Cost Management ber om när den avvisar en fråga och fortsätter vid nästa läsning där den slutade. En prenumeration som inte har lästs än säger **I kö** och när den läses; en som har belopp behåller dem under tiden.
+
 ## Google Cloud
 
 Google Cloud har inget API för ett projekts kostnader: OneUptime läser dem från faktureringskontots export till BigQuery.
@@ -151,6 +153,10 @@ Anslutningen får inte läsa kontots kostnader än. Kör dess installationskomma
 
 :::details Ett konto säger Inte konfigurerad
 Dess moln har inga kostnader att ge än. På AWS slår du på Cost Explorer; på Google Cloud anger du exportens tabell under **Tabell för faktureringsexport**. De första beloppen kommer med nästa läsning, inom 12 timmar.
+:::
+
+:::details Ett konto säger I kö
+Dess kostnader väntar på sin tur: Azure Cost Management begränsar hur snabbt en klientorganisations kostnader läses. Kontot säger när de läses, vid anslutningens första läsning från då, och inget behöver göras. Ett konto som redan har belopp behåller dem under tiden.
 :::
 
 :::details Kostnader per resurs säger Inte konfigurerad
