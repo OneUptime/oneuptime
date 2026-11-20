@@ -231,6 +231,7 @@ import FeedApiKeyActorUtil, {
 import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
 import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
+import { STATE_CHANGED_WITH_INCIDENT } from "../../Utils/Monitor/StatusChangeNotes";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -5706,7 +5707,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
           notifyOwners: true,
           shouldNotifyStatusPageSubscribers: true,
           isSubscribersNotified: false,
-          rootCause: "This status was changed when the incident was updated.",
+          rootCause: STATE_CHANGED_WITH_INCIDENT,
           stateChangeLog: undefined,
           props: {
             isRoot: true,

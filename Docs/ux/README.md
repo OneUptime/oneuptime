@@ -1075,7 +1075,12 @@ what was further down.
   Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
-  error kept as written after a sentence that says what kind of failure it is. Enforced by
+  error kept as written after a sentence that says what kind of failure it is. View Cause, on a
+  monitor's Status Timeline and an incident's, an alert's or an episode's State Timeline, words a
+  change's cause the same way (`StatusChangeCauseWording`, #9752), and so every note OneUptime
+  writes there itself - "Changed when its episode changed state.", "Resolved because every
+  incident in it is resolved." - each defined once with its older wordings, so last year's rows
+  read worded too (`StatusChangeNotes`, #9959). Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts)
   and
   [DatabaseCollectionIssuesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseCollectionIssuesInReadersLanguage.test.tsx).

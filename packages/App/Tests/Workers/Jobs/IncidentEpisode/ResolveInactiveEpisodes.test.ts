@@ -2,6 +2,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import { EPISODE_RESOLVED_NO_NEW_INCIDENT } from "Common/Utils/Monitor/StatusChangeNotes";
 
 /*
  * Regression tests for the IncidentEpisode:ResolveInactiveEpisodes cron's query
@@ -208,6 +209,7 @@ interface ResolveEpisodeArgs {
   episodeId: ObjectID;
   userId: unknown;
   cascade: unknown;
+  rootCause: unknown;
 }
 
 function resolveCalls(): Array<ResolveEpisodeArgs> {
@@ -217,6 +219,7 @@ function resolveCalls(): Array<ResolveEpisodeArgs> {
         episodeId: args[0] as ObjectID,
         userId: args[1],
         cascade: args[2],
+        rootCause: args[3],
       };
     },
   );
@@ -369,6 +372,8 @@ describe("IncidentEpisode:ResolveInactiveEpisodes worker", () => {
     for (const call of resolveCalls()) {
       expect(call.userId).toBeUndefined();
       expect(call.cascade).toBe(true);
+      // Saying why on its State Timeline, never "Resolved via API." (#9959).
+      expect(call.rootCause).toBe(EPISODE_RESOLVED_NO_NEW_INCIDENT);
     }
 
     expectNoPerRowLookups();
