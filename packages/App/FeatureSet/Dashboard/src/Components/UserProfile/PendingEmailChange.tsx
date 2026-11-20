@@ -276,9 +276,7 @@ const PendingEmailChange: FunctionComponent<ComponentProps> = (
           <div className="flex flex-wrap gap-3">
             {maySendAgain ? (
               <Button
-                title={translator.translateText(
-                  PENDING_EMAIL_CHANGE_COPY.sendAgain,
-                )}
+                title={PENDING_EMAIL_CHANGE_COPY.sendAgain}
                 icon={IconProp.Email}
                 buttonStyle={
                   hasLinkExpired
@@ -296,7 +294,7 @@ const PendingEmailChange: FunctionComponent<ComponentProps> = (
               <></>
             )}
             <Button
-              title={translator.translateText(PENDING_EMAIL_CHANGE_COPY.cancel)}
+              title={PENDING_EMAIL_CHANGE_COPY.cancel}
               buttonStyle={ButtonStyleType.NORMAL}
               isLoading={isCancelling}
               disabled={isBusy}

@@ -1686,7 +1686,7 @@ test.describe("dark, and what the pages read", () => {
  * A service and a serverless function have no name or address an event
  * would name them by: Security Events tells about them by the events read
  * from their own logs, so their card counts those events and findings,
- * opens Security Events on their logs, and has no open cases or risk to
+ * opens their own Security Events page, and has no open cases or risk to
  * show (Components/SecurityConnections, ?security=). The service's card was
  * drawn here first; the serverless function's is the same card on its own
  * Overview (Pages/Serverless/View/Overview.tsx), and is drawn and measured
@@ -1819,16 +1819,23 @@ for (const source of LOG_SOURCES) {
       await expect(card).toHaveAttribute("data-state", "news");
       await expect(card).toContainText(SECURITY_NEWS);
 
+      /*
+       * Its own Security Events page, beside its Logs (#9628, #9780), over
+       * the card's week: the page reads its logs itself, so no search.
+       */
       const events: Locator = card.getByTestId("resource-security-open");
       await expect(events).toHaveText("312");
-      const search: URL = new URL(
+      const week: URL = new URL(
         (await events.getAttribute("href"))!,
         "http://127.0.0.1",
       );
-      expect(search.pathname).toBe(`/dashboard/${PROJECT_ID}/security-events`);
-      expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
-        `@oneuptime.log.resource.id:${source.id}`,
-      );
+      expect(week.pathname).toBe(`${source.page}/security-events`);
+      expect(week.searchParams.get("range")).toBe("Custom");
+      expect(
+        new Date(week.searchParams.get("end")!).getTime() -
+          new Date(week.searchParams.get("start")!).getTime(),
+      ).toBe(7 * 24 * 60 * 60 * 1000);
+      expect(week.searchParams.get("search")).toBeNull();
       await expect(card).toContainText("Last seen 40 minutes ago");
       await expect(card).toContainText("Critical");
 
@@ -1840,7 +1847,7 @@ for (const source of LOG_SOURCES) {
       await expect(figures).not.toContainText("Risk");
       await expect(card.getByTestId("resource-security-cases")).toHaveCount(0);
 
-      // Open in Security Events opens its logs' events too: it has no page there.
+      // Open in Security Events opens its own page too: no entity there names it.
       expect(
         await card
           .getByRole("link", { name: "Open in Security Events" })

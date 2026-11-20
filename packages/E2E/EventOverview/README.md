@@ -106,7 +106,10 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
 - **When #58 is published** (`?publish=`, issue #5249): by default right away, as every event
   before it. `later` keeps it to the team until 19:30 today (it starts at 20:20): its header
   says it is not on its status pages yet, its 'scheduled' notification waits (Pending) and no
-  feed item says subscribers were told. **Publish Now** writes `publishOnStatusPageAt: null`
+  feed item says subscribers were told. The band asks whether its status pages tell their
+  subscribers (`POST /scheduled-maintenance/reach`): Acme Commerce Status shows maintenance
+  events and notifies, so the band and Publish Now's confirmation say its subscribers are told
+  it is scheduled when it is published. **Publish Now** writes `publishOnStatusPageAt: null`
   through `ModelAPI.updateById`, which the fixture records and applies (`?fail=publish` refuses
   it). Its next reminder before the event (19:20) comes before 19:30, so its Maintenance Details
   card says reminders due before it is published are not sent. `past` gives it a publish time
@@ -124,6 +127,10 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
 - **State changes** submitted from a hero action (incident, alert, both episodes, scheduled
   maintenance) are stamped like the server does: the new timeline entry starts now, the open
   one is closed and the event moves to the new state, so a background refresh reads the result.
+- **A public note from the feed** (Add Public Note on #1042, #12 and #58): nobody approves it
+  (`POST <note path>/approval/policy`), and each event is on a status page that notifies its
+  subscribers (`POST /<event>/public-note-reach`), so the composer says the note is visible on
+  the status page and that subscribers will be notified.
 - **Measurements** (`?measurements=`): the project's incident, alert and maintenance
   measurements, and each event's value of each one, worked out like the workers do - the real
   `MeasurementEvaluator` over the event's own fixture timeline - and worked out again after a

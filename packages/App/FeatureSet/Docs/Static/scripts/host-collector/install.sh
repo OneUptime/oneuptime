@@ -46,7 +46,7 @@
 
 set -eu
 
-PINNED_VERSION="0.161.0"
+PINNED_VERSION="0.165.0"
 DEFAULT_DOWNLOAD_URL="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download"
 SERVICE_NAME="oneuptime-collector"
 SERVICE_USER="oneuptime-collector"

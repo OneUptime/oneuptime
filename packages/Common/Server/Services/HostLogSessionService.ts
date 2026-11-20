@@ -71,7 +71,8 @@ export class Service extends ProjectReferencesService<Model> {
    * A person asks: on an Android device, for a duration and a level
    * OneUptime offers, while no other session of the device is waiting or
    * running. OneUptime sets everything else - Requested, and how long the
-   * person at the device has to allow it.
+   * person at the device has to allow it - once they may ask
+   * (onCreatePermitted).
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -168,13 +169,30 @@ export class Service extends ProjectReferencesService<Model> {
     } else {
       delete data.note;
     }
-    data.status = HostLogSessionStatus.Requested;
-    data.expiresAt = OneUptimeDate.addRemoveMinutes(
-      now,
-      HOST_LOG_SESSION_REQUEST_VALID_MINUTES,
-    );
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * What OneUptime sets on a new session - Requested, and how long the
+   * person at the device has to allow it - written once the request has
+   * passed its permission checks: nobody may write either column, so
+   * written before them it was held against the person and refused every
+   * request (HookWritesCallersMayMake).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const data: Model = onCreate.createBy.data;
+
+    data.status = HostLogSessionStatus.Requested;
+    data.expiresAt = OneUptimeDate.addRemoveMinutes(
+      OneUptimeDate.getCurrentDate(),
+      HOST_LOG_SESSION_REQUEST_VALID_MINUTES,
+    );
   }
 
   /*
@@ -245,10 +263,29 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * When a person's cancel ended the session, and why, in OneUptime's
+   * words: written once the cancel has passed its permission checks, as
+   * nobody may write either column (HookWritesCallersMayMake). OneUptime's
+   * own writes (the device's reports) say what they write.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const data: Model = updateBy.data as unknown as Model;
+
     data.endedAt = OneUptimeDate.getCurrentDate();
     data.statusMessage = CANCELLED_MESSAGE;
-
-    return { updateBy, carryForward: null };
   }
 
   /*

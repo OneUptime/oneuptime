@@ -507,15 +507,20 @@ describe("a volume's page", () => {
 });
 
 describe("the Storage Pools list", () => {
+  /*
+   * Used is the shared storage bar (#9647): its percent, amber past 85% and
+   * red past 95% as the status reads the pool, then what is free and its
+   * capacity.
+   */
   test.each([
-    [50, "Has room", "positive"],
-    [85, "Has room", "positive"],
-    [86, "Filling up", "warning"],
-    [95, "Filling up", "warning"],
-    [96, "Nearly full", "danger"],
+    [50, "Has room", "positive", "normal"],
+    [85, "Has room", "positive", "normal"],
+    [86, "Filling up", "warning", "warning"],
+    [95, "Filling up", "warning", "warning"],
+    [96, "Nearly full", "danger", "critical"],
   ])(
     "at %i%% it reads %s, at the templates' numbers",
-    async (percent: number, word: string, tone: string) => {
+    async (percent: number, word: string, tone: string, level: string) => {
       server.rows = [poolAt(percent)];
 
       await renderPage(OpenStackCloudStoragePools, "/storage-pools");
@@ -524,9 +529,14 @@ describe("the Storage Pools list", () => {
         "tr",
       ) as HTMLElement;
       expect(within(row).getByText(word)).toHaveAttribute("data-tone", tone);
-      expect(
-        within(row).getByText(`${percent} GiB of 100 GiB`),
-      ).toBeInTheDocument();
+      expect(within(row).getByTestId("storage-usage")).toHaveTextContent(
+        `${percent}%`,
+      );
+      expect(within(row).getByTestId("storage-usage-fill")).toHaveAttribute(
+        "data-level",
+        level,
+      );
+      expect(within(row).getByText("100 GiB")).toBeInTheDocument();
     },
   );
 

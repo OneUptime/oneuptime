@@ -113,9 +113,12 @@ async function chooseNested(control: HTMLElement): Promise<void> {
       within(control).getByRole("button", { name: "Choose JSON format" }),
     );
   });
+  // The menu opens over the page (LayeredPopover), outside the control.
   await act(async () => {
     fireEvent.click(
-      within(control).getByRole("menuitemradio", { name: /Nested/ }),
+      within(screen.getByRole("menu")).getByRole("menuitemradio", {
+        name: /Nested/,
+      }),
     );
   });
 }

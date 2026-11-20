@@ -179,10 +179,13 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
     );
 
     /*
-     * Read once: only whether the project requires SSO, by the server's own
-     * rule for "off" - and the card starts from what was read.
+     * Read once: whether the project requires SSO, by the server's own rule
+     * for "off", and the Manage Sign-In with SSO switch under it (#9763) -
+     * and the card starts from what was read.
      */
-    expect(leftover).toContain("select: { requireSsoForLogin: true, }");
+    expect(leftover).toContain(
+      "select: { requireSsoForLogin: true, manageSignInWithSso: true, }",
+    );
     expect(leftover).toContain(
       'isPlanGatedColumnOff( project.getTableColumnMetadata("requireSsoForLogin"), project.requireSsoForLogin, )',
     );

@@ -8,9 +8,11 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import { SearchValueOperator } from "../../../Types/Telemetry/TelemetrySearchQuery";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 import {
   ParsedSloMetricSearch,
   parseSloMetricSearch,
@@ -333,27 +335,29 @@ export interface DashboardMetricReferences {
  * A dashboard's metric names, widget by widget: each widget's own queries
  * (findMetricNameReferences), named by its id, title and type, and what
  * the rest of the dashboard reads.
+ *
+ * The config is read as every board reads it (StoredDashboardViewConfig,
+ * #4571): as stored, as JSON text or in the envelope the API reference
+ * documented; its widget list as a list, as JSON text or as an object keyed
+ * "0", "1", ...; each widget as stored, as JSON text or in its own
+ * envelope, with arguments written as JSON text read as the object they
+ * say. So a widget's queries are found wherever a board draws them.
  */
 export function findDashboardMetricReferences(
   dashboardViewConfig: unknown,
 ): DashboardMetricReferences {
   const found: DashboardMetricReferences = { widgets: [], dashboard: [] };
-  const config: Record<string, unknown> | undefined = asRecord(
+  const config: JSONObject = StoredDashboardViewConfig.unwrap(
     asStored(dashboardViewConfig),
   );
 
-  if (!config) {
-    return found;
-  }
-
-  const components: unknown = config["components"];
-
-  for (const item of Array.isArray(components) ? components : []) {
-    const component: Record<string, unknown> | undefined = asRecord(item);
-
-    if (!component) {
+  for (const entry of StoredDashboardViewConfig.getComponentEntries(config)) {
+    if (!StoredDashboardViewConfig.isWidgetEntry(entry)) {
       continue;
     }
+
+    const component: Record<string, unknown> =
+      StoredDashboardViewConfig.withArgumentsRead(entry);
 
     const widgetArguments: Record<string, unknown> =
       asRecord(component["arguments"]) || {};

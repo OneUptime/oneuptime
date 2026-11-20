@@ -175,7 +175,7 @@ export const OPENSTACK_AGENT_IDENTITY_CONFIG: string = `processors:
         value: \${env:OPENSTACK_CLOUD_NAME}
         action: upsert
       - key: oneuptime.agent.version
-        value: "0.161.4"
+        value: "0.165.0"
         action: upsert
       - key: service.name
         action: delete

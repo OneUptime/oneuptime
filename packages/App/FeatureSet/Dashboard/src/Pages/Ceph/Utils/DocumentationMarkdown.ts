@@ -140,7 +140,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.165.0"
         action: upsert
       # Optionally also stamp the cluster fsid (\`ceph fsid\`). Uncomment
       # and set CEPH_CLUSTER_FSID in the .env file:

@@ -16,6 +16,13 @@ import Timezone from "../../../Types/Timezone";
 import { DataSource } from "typeorm";
 
 /*
+ * Whether a person's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts): here it
+ * lets everyone through, as in UserServiceNewPasswordEndsLinks.test.ts.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn");
+
+/*
  * AN ACCOUNT'S SIGN-IN LINKS, AGAINST POSTGRES
  * (UserService.findByMagicLinkToken and consumeMagicLinkToken, the
  * AddMagicLinkLogin migration; Types/Accounts/MagicLink).

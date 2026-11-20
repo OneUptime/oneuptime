@@ -59,7 +59,7 @@ export const HOST_COLLECTOR_WINDOWS_INSTALL_SCRIPT_PATH: string =
  * tests hold them to it), and so does the manual host guide
  * (AgentKind.HOST_COLLECTOR_VERSION).
  */
-export const HOST_COLLECTOR_PINNED_VERSION: string = "0.161.0";
+export const HOST_COLLECTOR_PINNED_VERSION: string = "0.165.0";
 
 /*
  * What the installers run the collector as: the service oneuptime-collector
