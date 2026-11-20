@@ -348,12 +348,16 @@ L'outil **`oneuptime_move_in_list`** déplace une ligne d'une liste ordonnée, c
 Le serveur a aussi les actions de mise en place de Demander à l'IA, un appel chacune : ce que vous mettez en place, plutôt qu'un enregistrement à la fois. Chacune crée les enregistrements que Demander à l'IA et les configurations guidées créent pour les mêmes réponses, avec les mêmes vérifications :
 
 - **`set_up_website_monitoring`** : un moniteur de site web ou d'API pour une adresse, qui ouvre un incident quand l'adresse ne répond pas ou répond par une erreur. Il est à vous, et une adresse qu'un moniteur vérifie déjà n'en reçoit pas un second
+- **`set_up_service_monitor`** : un des moniteurs que la configuration guidée de la télémétrie recommande pour un service qui envoie de la télémétrie : pour les requêtes en échec, les requêtes lentes, les exceptions non gérées ou une hausse des journaux d'erreurs. Il ouvre une alerte pour votre équipe, et un moniteur que le service a déjà n'en reçoit pas un second
 - **`set_up_paging`** : dans un projet qui n'alerte encore personne, sa première politique d'astreinte, qui vous alerte, ainsi que les personnes et les équipes que vous nommez, pour chaque nouvel incident et chaque nouvelle alerte
+- **`add_to_on_call_policy`** : des membres et des équipes ajoutés à une politique d'astreinte que le projet a déjà, à l'un de ses niveaux ou comme nouveau niveau qui les alerte quand personne n'acquitte. Une personne qu'un niveau alerte déjà n'est pas ajoutée deux fois
+- **`invite_people`** : des personnes invitées au projet par e-mail. Chacune reçoit un e-mail d'invitation à votre nom, et une adresse déjà dans le projet n'est pas invitée de nouveau
+- **`set_how_to_reach_me`** : comment les alertes vous joignent, par exemple un SMS tout de suite puis un appel après cinq minutes. Il remplace vos réglages de Comment me joindre et n'utilise que les moyens que vous avez vérifiés
 - **`publish_status_page`** : une page de statut publique qui montre les moniteurs que vous nommez
 - **`add_monitors_to_status_page`** : des moniteurs ajoutés à une page de statut que le projet a déjà
 - **`who_is_told`** : qui est prévenu quand un moniteur tombe en panne, et ce qui empêcherait de joindre quelqu'un. Il ne change rien
 
-Ils agissent en votre nom, connecté avec OAuth : une clé d'API de projet ne peut pas utiliser les quatre qui créent quelque chose. Votre client vous demande avant chacun d'eux, et sa réponse dit ce qui a été créé. Ce qui manque, comme une autorisation, une adresse ou de la place dans le forfait, est dit avant que quoi que ce soit soit créé.
+Ils agissent en votre nom, connecté avec OAuth : une clé d'API de projet ne peut pas utiliser les huit qui créent quelque chose. Votre client vous demande avant chacun d'eux, et sa réponse dit ce qui a été créé. Ce qui manque, comme une autorisation, une adresse ou de la place dans le forfait, est dit avant que quoi que ce soit soit créé.
 
 ## Interroger la télémétrie
 

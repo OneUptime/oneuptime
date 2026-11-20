@@ -348,12 +348,16 @@ Lo strumento **`oneuptime_move_in_list`** sposta una riga di un elenco ordinato,
 Il server ha anche le azioni di configurazione di Chiedi all'IA, una chiamata ciascuna: ciò che imposti, invece di un record alla volta. Ognuna crea i record che Chiedi all'IA e le configurazioni guidate creano per le stesse risposte, con gli stessi controlli:
 
 - **`set_up_website_monitoring`**: un monitor di sito web o di API per un indirizzo, che apre un incidente quando l'indirizzo non risponde o risponde con un errore. È tuo, e un indirizzo che un monitor controlla già non ne riceve un secondo
+- **`set_up_service_monitor`**: uno dei monitor che la configurazione guidata della telemetria consiglia per un servizio che invia telemetria: per richieste non riuscite, richieste lente, eccezioni non gestite o un picco di log di errore. Apre un avviso per il tuo team, e un monitor che il servizio ha già non ne riceve un secondo
 - **`set_up_paging`**: in un progetto che non avvisa ancora nessuno, la sua prima policy di reperibilità, che avvisa te e le persone e i team che nomini per ogni nuovo incidente e ogni nuovo avviso
+- **`add_to_on_call_policy`**: membri e team aggiunti a una policy di reperibilità che il progetto ha già, a uno dei suoi livelli o come nuovo livello che li avvisa quando nessuno conferma. Chi un livello avvisa già non viene aggiunto due volte
+- **`invite_people`**: persone invitate al progetto via email. Ognuna riceve un'email di invito a tuo nome, e un indirizzo già nel progetto non viene invitato di nuovo
+- **`set_how_to_reach_me`**: come ti raggiungono gli avvisi, per esempio un SMS subito e una chiamata dopo cinque minuti. Sostituisce le tue impostazioni di Come contattarmi e usa solo i metodi che hai verificato
 - **`publish_status_page`**: una pagina di stato pubblica che mostra i monitor che nomini
 - **`add_monitors_to_status_page`**: monitor aggiunti a una pagina di stato che il progetto ha già
 - **`who_is_told`**: chi viene avvisato quando un monitor non funziona, e cosa impedirebbe di raggiungerlo. Non cambia nulla
 
-Agiscono come te, con l'accesso tramite OAuth: una chiave API di progetto non può usare le quattro che creano qualcosa. Il tuo client ti chiede conferma prima di ciascuna, e la sua risposta dice cosa è stato creato. Ciò che manca, come un permesso, un indirizzo o spazio nel piano, viene detto prima di creare qualcosa.
+Agiscono come te, con l'accesso tramite OAuth: una chiave API di progetto non può usare le otto che creano qualcosa. Il tuo client ti chiede conferma prima di ciascuna, e la sua risposta dice cosa è stato creato. Ciò che manca, come un permesso, un indirizzo o spazio nel piano, viene detto prima di creare qualcosa.
 
 ## Interrogare la telemetria
 

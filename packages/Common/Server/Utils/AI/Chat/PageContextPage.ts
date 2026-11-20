@@ -48,6 +48,15 @@ export const RECORD_KIND_OF_PAGE_CONTEXT: Readonly<
   [AIChatPageContextType.Workflow]: AskAiRecordKind.Workflow,
   [AIChatPageContextType.StatusPage]: AskAiRecordKind.StatusPage,
   [AIChatPageContextType.OnCallPolicy]: AskAiRecordKind.OnCallPolicy,
+  // The records whose pages sent no context before #10104.
+  [AIChatPageContextType.OnCallSchedule]: AskAiRecordKind.OnCallSchedule,
+  [AIChatPageContextType.Team]: AskAiRecordKind.Team,
+  [AIChatPageContextType.Dashboard]: AskAiRecordKind.Dashboard,
+  [AIChatPageContextType.Runbook]: AskAiRecordKind.Runbook,
+  [AIChatPageContextType.Slo]: AskAiRecordKind.Slo,
+  [AIChatPageContextType.IncomingCallPolicy]:
+    AskAiRecordKind.IncomingCallPolicy,
+  [AIChatPageContextType.Form]: AskAiRecordKind.Form,
 };
 
 const routeOf: (path: string) => string = (path: string): string => {

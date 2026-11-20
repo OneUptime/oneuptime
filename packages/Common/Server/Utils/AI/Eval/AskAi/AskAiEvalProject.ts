@@ -66,6 +66,17 @@ export interface AskAiEvalProject {
   statusPages: Array<AskAiEvalNamedRecord>;
   // Its telemetry services, each sending logs, metrics and traces.
   services: Array<AskAiEvalNamedRecord>;
+  /*
+   * The records whose own pages a question is asked on (#10104): an
+   * on-call schedule, an incoming call policy, a dashboard, a runbook, an
+   * SLO and a form, each by its name.
+   */
+  onCallSchedules: Array<AskAiEvalNamedRecord>;
+  incomingCallPolicies: Array<AskAiEvalNamedRecord>;
+  dashboards: Array<AskAiEvalNamedRecord>;
+  runbooks: Array<AskAiEvalNamedRecord>;
+  slos: Array<AskAiEvalNamedRecord>;
+  forms: Array<AskAiEvalNamedRecord>;
   // OneUptime Cloud's Free plan, whose one status page is taken.
   isFreePlan: boolean;
   // How the person asking can be reached today: a new member's email.
@@ -128,6 +139,42 @@ const PAGES_NOBODY: AskAiEvalProject = {
     {
       id: "e7246000-0000-4000-8000-0000000000d2",
       name: "checkout",
+    },
+  ],
+  onCallSchedules: [
+    {
+      id: "e7246000-0000-4000-8000-0000000000f1",
+      name: "Primary rotation",
+    },
+  ],
+  incomingCallPolicies: [
+    {
+      id: "e7246000-0000-4000-8000-0000000000f2",
+      name: "Support line",
+    },
+  ],
+  dashboards: [
+    {
+      id: "e7246000-0000-4000-8000-0000000000f3",
+      name: "Checkout health",
+    },
+  ],
+  runbooks: [
+    {
+      id: "e7246000-0000-4000-8000-0000000000f4",
+      name: "Restart the API",
+    },
+  ],
+  slos: [
+    {
+      id: "e7246000-0000-4000-8000-0000000000f5",
+      name: "Checkout availability",
+    },
+  ],
+  forms: [
+    {
+      id: "e7246000-0000-4000-8000-0000000000f6",
+      name: "Report a problem",
     },
   ],
   isFreePlan: false,

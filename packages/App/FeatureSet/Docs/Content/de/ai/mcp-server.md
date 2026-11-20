@@ -348,12 +348,16 @@ Das Tool **`oneuptime_move_in_list`** verschiebt eine Zeile einer geordneten Lis
 Der Server hat auch die Einrichtungsaktionen von KI fragen, je ein Aufruf: das, was Sie einrichten, statt eines Datensatzes nach dem anderen. Jede legt die Datensätze an, die KI fragen und die geführten Einrichtungen für dieselben Antworten anlegen, mit denselben Prüfungen:
 
 - **`set_up_website_monitoring`**: eine Website- oder API-Überwachung für eine Adresse, die einen Vorfall eröffnet, wenn die Adresse nicht antwortet oder mit einem Fehler antwortet. Sie gehört Ihnen, und eine Adresse, die bereits ein Monitor prüft, bekommt keinen zweiten
+- **`set_up_service_monitor`**: eine der Überwachungen, die die geführte Telemetrie-Einrichtung für einen Dienst empfiehlt, der Telemetrie sendet: für fehlschlagende Anfragen, langsame Anfragen, unbehandelte Ausnahmen oder einen Anstieg der Fehlerprotokolle. Sie eröffnet eine Warnung für Ihr Team, und eine Überwachung, die der Dienst bereits hat, bekommt keine zweite
 - **`set_up_paging`**: in einem Projekt, das noch niemanden alarmiert, seine erste Bereitschaftsrichtlinie, die Sie und die genannten Personen und Teams bei jedem neuen Vorfall und jeder neuen Warnung alarmiert
+- **`add_to_on_call_policy`**: Mitglieder und Teams, die einer Bereitschaftsrichtlinie des Projekts hinzugefügt werden, auf einer ihrer Stufen oder als neue Stufe, die sie alarmiert, wenn niemand bestätigt. Wen eine Stufe bereits alarmiert, wird nicht doppelt hinzugefügt
+- **`invite_people`**: Personen, die per E-Mail in das Projekt eingeladen werden. Jede bekommt eine Einladungs-E-Mail in Ihrem Namen, und eine Adresse, die bereits im Projekt ist, wird nicht erneut eingeladen
+- **`set_how_to_reach_me`**: wie Alarme Sie erreichen, etwa sofort per SMS und nach fünf Minuten per Anruf. Es ersetzt Ihre Einstellungen unter Wie ich erreichbar bin und nutzt nur die Methoden, die Sie bestätigt haben
 - **`publish_status_page`**: eine öffentliche Statusseite, die die genannten Monitore zeigt
 - **`add_monitors_to_status_page`**: Monitore auf einer Statusseite, die das Projekt bereits hat
 - **`who_is_told`**: wer informiert wird, wenn ein Monitor ausfällt, und was verhindern würde, dass jemand erreicht wird. Es ändert nichts
 
-Sie handeln als Sie, angemeldet mit OAuth: Ein API-Schlüssel eines Projekts kann die vier nicht nutzen, die etwas anlegen. Ihr Client fragt Sie vor jedem davon, und seine Antwort sagt, was angelegt wurde. Was fehlt, etwa eine Berechtigung, eine Adresse oder Platz im Tarif, wird gesagt, bevor etwas angelegt wird.
+Sie handeln als Sie, angemeldet mit OAuth: Ein API-Schlüssel eines Projekts kann die acht nicht nutzen, die etwas anlegen. Ihr Client fragt Sie vor jedem davon, und seine Antwort sagt, was angelegt wurde. Was fehlt, etwa eine Berechtigung, eine Adresse oder Platz im Tarif, wird gesagt, bevor etwas angelegt wird.
 
 ## Telemetrie abfragen
 

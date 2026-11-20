@@ -107,6 +107,14 @@ describe("the cases the eval asks", () => {
         ...project.monitors,
         ...project.policies,
         ...project.services,
+        // The records whose own pages a question is asked on since #10104.
+        ...project.onCallSchedules,
+        ...project.incomingCallPolicies,
+        ...project.teams,
+        ...project.dashboards,
+        ...project.runbooks,
+        ...project.slos,
+        ...project.forms,
       ];
       const entityId: string | undefined = howDoI.pageContext!.entityId;
 
