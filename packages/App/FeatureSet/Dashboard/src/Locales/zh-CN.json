@@ -60216,5 +60216,8 @@
   "Your permissions do not reach this alert.": "您的权限不涵盖此警报。",
   "Your permissions do not reach this episode.": "您的权限不涵盖此片段。",
   "Your permissions do not reach this incident.": "您的权限不涵盖此事件。",
-  "Your permissions do not reach this maintenance event.": "您的权限不涵盖此维护事件。"
+  "Your permissions do not reach this maintenance event.": "您的权限不涵盖此维护事件。",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "您的账户成本按顺序读取，速度以其云允许的为准。",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "您的云限制了读取成本的速度，因此这些成本排在下一轮，约于{{time}}读取。",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "您的云限制了读取成本的速度，因此这些成本将在连接的下一次读取时读取。"
 }

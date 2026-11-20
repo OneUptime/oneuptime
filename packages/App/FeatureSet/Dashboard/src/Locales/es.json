@@ -60216,5 +60216,8 @@
   "Your permissions do not reach this alert.": "Tus permisos no llegan a esta alerta.",
   "Your permissions do not reach this episode.": "Tus permisos no llegan a este episodio.",
   "Your permissions do not reach this incident.": "Tus permisos no llegan a este incidente.",
-  "Your permissions do not reach this maintenance event.": "Tus permisos no llegan a este evento de mantenimiento."
+  "Your permissions do not reach this maintenance event.": "Tus permisos no llegan a este evento de mantenimiento.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Los costos de tus cuentas se leen por turnos, tan rápido como lo permite su nube.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Tu nube limita la rapidez con la que se pueden leer los costos, así que estos se leen a continuación, hacia el {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Tu nube limita la rapidez con la que se pueden leer los costos, así que estos se leen en la próxima lectura de la conexión."
 }

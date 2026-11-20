@@ -4,6 +4,7 @@ import {
   CloudAccountCostSummary,
   CloudCostTotals,
 } from "Common/Types/Cloud/CloudCost";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -14,9 +15,10 @@ import AppLink from "../AppLink/AppLink";
 import RankedBars, { RankedBarItem } from "../SecurityOverview/RankedBars";
 import { CloudCostShare, mergeCloudTopServices } from "./CloudCostReads";
 import CloudCostSetupSteps, {
-  getCloudProvidersOf,
+  getCloudCostSetupProviders,
 } from "./CloudCostSetupSteps";
 import {
+  COSTS_QUEUED_NOTE,
   LAST_MONTH,
   PROJECTED_MONTH,
   SO_FAR_THIS_MONTH,
@@ -116,16 +118,29 @@ const CloudSpendCard: FunctionComponent<ComponentProps> = (
   const costs: CloudCostTotals = props.costs;
 
   if (!hasCloudCosts(costs)) {
+    // The clouds with a step to take: none when every account is queued.
+    const setupProviders: Array<CloudProvider> = getCloudCostSetupProviders(
+      props.accounts,
+    );
+
     return (
       <Card title={SPEND_CARD_TITLE} description={SPEND_CARD_DESCRIPTION}>
         <div data-testid="cloud-spend-card" data-state="not-read">
-          <p className="mb-4 text-sm text-gray-600">
-            {translator.translateText(SPEND_CARD_NOT_READ)}
-          </p>
-          <CloudCostSetupSteps
-            kind="costs"
-            providers={getCloudProvidersOf(props.accounts)}
-          />
+          {setupProviders.length > 0 ? (
+            <>
+              <p className="mb-4 text-sm text-gray-600">
+                {translator.translateText(SPEND_CARD_NOT_READ)}
+              </p>
+              <CloudCostSetupSteps kind="costs" providers={setupProviders} />
+            </>
+          ) : (
+            <p
+              className="text-sm text-gray-600"
+              data-testid="cloud-spend-card-queued"
+            >
+              {translator.translateText(COSTS_QUEUED_NOTE)}
+            </p>
+          )}
           <CloudCardFooterLink
             to={props.costsRoute}
             text={VIEW_COSTS}

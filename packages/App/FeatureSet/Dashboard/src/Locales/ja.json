@@ -60216,5 +60216,8 @@
   "Your permissions do not reach this alert.": "あなたの権限はこのアラートには及びません。",
   "Your permissions do not reach this episode.": "あなたの権限はこのエピソードには及びません。",
   "Your permissions do not reach this incident.": "あなたの権限はこのインシデントには及びません。",
-  "Your permissions do not reach this maintenance event.": "あなたの権限はこのメンテナンスイベントには及びません。"
+  "Your permissions do not reach this maintenance event.": "あなたの権限はこのメンテナンスイベントには及びません。",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "アカウントのコストは、クラウドが許す速さで順番に読み取られます。",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "クラウドがコストを読み取る速さを制限しているため、これらは次の順番として{{time}}頃に読み取られます。",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "クラウドがコストを読み取る速さを制限しているため、これらは接続の次回の読み取りで読み取られます。"
 }

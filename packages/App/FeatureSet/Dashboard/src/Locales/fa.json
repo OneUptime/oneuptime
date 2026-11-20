@@ -60216,5 +60216,8 @@
   "Your permissions do not reach this alert.": "مجوزهای شما به این هشدار نمی‌رسد.",
   "Your permissions do not reach this episode.": "مجوزهای شما به این اپیزود نمی‌رسد.",
   "Your permissions do not reach this incident.": "مجوزهای شما به این حادثه نمی‌رسد.",
-  "Your permissions do not reach this maintenance event.": "مجوزهای شما به این رویداد تعمیر و نگهداری نمی‌رسد."
+  "Your permissions do not reach this maintenance event.": "مجوزهای شما به این رویداد تعمیر و نگهداری نمی‌رسد.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "هزینه‌های حساب‌های شما به نوبت خوانده می‌شوند، به همان سرعتی که ابرشان اجازه می‌دهد.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در نوبت بعد، حدود {{time}} خوانده می‌شوند.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در خواندن بعدی اتصال خوانده می‌شوند."
 }

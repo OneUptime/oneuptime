@@ -60216,5 +60216,8 @@
   "Your permissions do not reach this alert.": "권한이 이 경고에는 미치지 않습니다.",
   "Your permissions do not reach this episode.": "권한이 이 에피소드에는 미치지 않습니다.",
   "Your permissions do not reach this incident.": "권한이 이 인시던트에는 미치지 않습니다.",
-  "Your permissions do not reach this maintenance event.": "권한이 이 유지 관리 이벤트에는 미치지 않습니다."
+  "Your permissions do not reach this maintenance event.": "권한이 이 유지 관리 이벤트에는 미치지 않습니다.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "계정 비용은 클라우드가 허용하는 속도로 차례대로 읽습니다.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 다음 차례로 {{time}}쯤 읽습니다.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다."
 }

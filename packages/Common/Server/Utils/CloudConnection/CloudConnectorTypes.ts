@@ -262,6 +262,27 @@ export interface CloudConnectionPullState {
    */
   costsVersion?: number | undefined;
   /*
+   * Per account (its id in lower case), when its costs were last read and
+   * kept - set once they are written. An account with none has had no read
+   * of its own yet, and is read as far back as a first read (Azure, whose
+   * subscriptions are read one by one: one a read could not reach is read
+   * in full when it is).
+   */
+  costAccountsReadAt?: Record<string, string> | undefined;
+  /*
+   * The accounts a read of costs put off - its cloud's rate limit, or the
+   * read's own limit, stopped it before them (Azure Cost Management) - and
+   * from when they may be read: the lane carries on with them at the first
+   * read from then, rather than in twelve hours, and never starts over.
+   */
+  costsPending?: { accounts: Array<string>; at: string } | undefined;
+  /*
+   * Azure: per subscription (lower case), when its reservations and savings
+   * plans were last read: they are read least recently read first, so a
+   * read Cost Management's limits stop part way reaches the rest next.
+   */
+  azureCommitmentsReadAt?: Record<string, string> | undefined;
+  /*
    * AWS, with Costs per resource on: when Cost Explorer's resource-level
    * costs were last read in full - due again a day later, when the last
    * days it still finishes are read again. Absent until the first, which
@@ -614,6 +635,17 @@ export interface CloudCostAccountOutcome {
   accountId: string;
   state: CloudCostState;
   message?: string | undefined;
+  /*
+   * Queued: when it may be read, as an ISO time - its cloud's own word (a
+   * rate limit's wait), or now when it was the read's own limit.
+   */
+  retryAt?: string | undefined;
+  /*
+   * Read over other days than the read was asked for: an account's first
+   * read, which goes back as far as a connection's first read does. The
+   * writer brings these days in line for it.
+   */
+  window?: { start: Date; end: Date } | undefined;
 }
 
 export interface CloudCostsOptions extends CloudConnectorCallOptions {
@@ -623,6 +655,17 @@ export interface CloudCostsOptions extends CloudConnectorCallOptions {
   // The first day read, and the day after the last, in UTC.
   start: Date;
   end: Date;
+  /*
+   * The days an account's first read covers (getCloudCostWindow's first
+   * read), for a connector that reads accounts one by one: an account it
+   * has never read in full (costAccountsReadAt) is read over these.
+   */
+  firstReadWindow?: { start: Date; end: Date } | undefined;
+  /*
+   * Only these accounts (lower case): a read that carries on with the
+   * accounts the last one put off (costsPending). Every account when absent.
+   */
+  accounts?: Array<string> | undefined;
   /*
    * The resources the connection holds: the Region of a cost the cloud
    * gives by resource but not by Region (Azure Cost Management).
@@ -826,6 +869,14 @@ export class CloudReadBudget {
 
   public isSpent(): boolean {
     return this.spent;
+  }
+
+  /*
+   * How long the read may still take, in milliseconds: 0 once its time is
+   * up. A client that would wait (a rate limit's) waits no longer than this.
+   */
+  public getRemainingMs(): number {
+    return Math.max(0, this.deadlineMs - Date.now());
   }
 
   // Requests made so far: the calls a read cost the customer's cloud.

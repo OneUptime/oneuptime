@@ -60216,5 +60216,8 @@
   "Your permissions do not reach this alert.": "Dine tilladelser rækker ikke til denne advarsel.",
   "Your permissions do not reach this episode.": "Dine tilladelser rækker ikke til denne episode.",
   "Your permissions do not reach this incident.": "Dine tilladelser rækker ikke til denne hændelse.",
-  "Your permissions do not reach this maintenance event.": "Dine tilladelser rækker ikke til denne vedligeholdelseshændelse."
+  "Your permissions do not reach this maintenance event.": "Dine tilladelser rækker ikke til denne vedligeholdelseshændelse.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Dine kontis omkostninger læses på skift, så hurtigt som deres cloud tillader.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Din cloud begrænser, hvor hurtigt omkostninger kan læses, så disse læses som de næste, omkring {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Din cloud begrænser, hvor hurtigt omkostninger kan læses, så disse læses ved forbindelsens næste læsning."
 }

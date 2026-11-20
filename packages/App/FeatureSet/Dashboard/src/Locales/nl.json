@@ -60216,5 +60216,8 @@
   "Your permissions do not reach this alert.": "Uw rechten gelden niet voor deze waarschuwing.",
   "Your permissions do not reach this episode.": "Uw rechten gelden niet voor deze episode.",
   "Your permissions do not reach this incident.": "Uw rechten gelden niet voor dit incident.",
-  "Your permissions do not reach this maintenance event.": "Uw rechten gelden niet voor deze onderhoudsgebeurtenis."
+  "Your permissions do not reach this maintenance event.": "Uw rechten gelden niet voor deze onderhoudsgebeurtenis.",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "De kosten van uw accounts worden om de beurt gelezen, zo snel als hun cloud toestaat.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden hierna gelezen, rond {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden gelezen bij de volgende leesactie van de koppeling."
 }
