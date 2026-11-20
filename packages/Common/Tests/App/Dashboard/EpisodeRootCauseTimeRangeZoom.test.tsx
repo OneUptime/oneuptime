@@ -208,7 +208,10 @@ import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 
 const EPISODE_ID: string = "44444444-4444-4444-8444-444444444444";
 const OTHER_EPISODE_ID: string = "55555555-5555-4555-8555-555555555555";
@@ -217,6 +220,8 @@ const FIRST_MEMBER_ID: string = "66666666-6666-4666-8666-666666666666";
 const LATER_MEMBER_ID: string = "77777777-7777-4777-8777-777777777777";
 const OTHER_MEMBER_ID: string = "88888888-8888-4888-8888-888888888888";
 const MONITOR_ID: string = "99999999-9999-4999-8999-999999999999";
+// The other episode's first member is on a monitor of its own.
+const OTHER_MONITOR_ID: string = "99999999-9999-4999-8999-999999999998";
 const RULE_ID: string = "criteria-1";
 
 const NOW: Date = new Date("2026-09-28T13:00:00.000Z");
@@ -404,7 +409,10 @@ const OTHER_EPISODE: EpisodeData = {
       id: OTHER_MEMBER_ID,
       startedAt: OTHER_STARTED_AT,
       telemetryQuery: null,
-      monitor: metricsMonitor("system.memory.utilization"),
+      monitor: {
+        ...metricsMonitor("system.memory.utilization"),
+        _id: OTHER_MONITOR_ID,
+      },
     },
   ],
   timeline: [["created", OTHER_STARTED_AT]],
@@ -416,6 +424,34 @@ function episodeFor(id: string): EpisodeData {
 
 function membersOf(episode: EpisodeData): Array<MemberData> {
   return episode.members || [FIRST_MEMBER];
+}
+
+/*
+ * A member's monitor as a read of the member answers it: which monitor it
+ * is and what kind. No relation reads a monitor's steps (#10309); the card
+ * reads them on the monitor (monitorsRead).
+ */
+function monitorThroughTheMember(
+  monitor: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  return monitor
+    ? { _id: monitor["_id"], monitorType: monitor["monitorType"] }
+    : null;
+}
+
+// The monitors a read of monitors by their ids answers: their steps, whole.
+function monitorsRead(ids: Array<string>): Array<Record<string, unknown>> {
+  return [...membersOf(mockEpisode), ...membersOf(OTHER_EPISODE)]
+    .map((member: MemberData): Record<string, unknown> | null | undefined => {
+      return member.monitor;
+    })
+    .filter(
+      (
+        monitor: Record<string, unknown> | null | undefined,
+      ): monitor is Record<string, unknown> => {
+        return Boolean(monitor) && ids.includes(String(monitor!["_id"]));
+      },
+    );
 }
 
 function memberById(id: string): MemberData | undefined {
@@ -496,7 +532,7 @@ const INCIDENT_EPISODE: EpisodeKind = {
     telemetryQuery: true,
     seriesLabels: true,
     createdCriteriaId: true,
-    monitors: { _id: true, monitorType: true, monitorSteps: true },
+    monitors: { _id: true, monitorType: true },
     declaredAt: true,
   },
   ruleSelect: { _id: true, createdCriteriaId: true, monitors: { _id: true } },
@@ -555,7 +591,7 @@ const ALERT_EPISODE: EpisodeKind = {
     telemetryQuery: true,
     seriesLabels: true,
     createdCriteriaId: true,
-    monitor: { _id: true, monitorType: true, monitorSteps: true },
+    monitor: { _id: true, monitorType: true },
     createdAt: true,
   },
   ruleSelect: { _id: true, createdCriteriaId: true, monitorId: true },
@@ -617,9 +653,7 @@ function memberRow(member: MemberData): Record<string, unknown> {
         : member.telemetryQuery,
     seriesLabels: member.seriesLabels,
     createdCriteriaId: member.createdCriteriaId,
-    ...kind.monitorColumns(
-      member.monitor === undefined ? null : member.monitor,
-    ),
+    ...kind.monitorColumns(monitorThroughTheMember(member.monitor)),
   };
 }
 
@@ -692,6 +726,18 @@ function serve(): void {
       limit: number;
       skip: number;
     };
+
+    if (request.modelType === Monitor) {
+      return list(
+        monitorsRead(
+          (request.query["_id"] as Includes).values.map(
+            (id: unknown): string => {
+              return String(id);
+            },
+          ),
+        ),
+      );
+    }
 
     if (request.modelType === kind.membershipModel) {
       const episode: EpisodeData = episodeFor(
@@ -1137,6 +1183,8 @@ describe.each(KINDS)("Root Cause of $name", (episodeKind: EpisodeKind) => {
 
       // Never a member's own timeline: the moments are the episode's.
       expect(readsOf(kind.memberTimelineModel)).toHaveLength(0);
+      // It kept a snapshot: its monitor is never read (#10309).
+      expect(readsOf(Monitor)).toHaveLength(0);
       // Nothing else of its own.
       expect(getListMock).toHaveBeenCalledTimes(4);
     });
@@ -1713,6 +1761,62 @@ describe.each(KINDS)("Root Cause of $name", (episodeKind: EpisodeKind) => {
       });
     });
 
+    test("its first member's monitor's steps are read on the monitor, by the reader's own read, never through the member (#10309)", async () => {
+      mockEpisode = {
+        members: [
+          {
+            ...FIRST_MEMBER,
+            telemetryQuery: null,
+            monitor: metricsMonitor("system.cpu.utilization"),
+          },
+        ],
+      };
+
+      await renderPage();
+
+      const monitorReads: Array<Read> = readsOf(Monitor);
+      expect(monitorReads).toHaveLength(1);
+      expect((monitorReads[0]!.query!["_id"] as Includes).values).toEqual([
+        MONITOR_ID,
+      ]);
+      expect(monitorReads[0]!.select).toEqual({
+        _id: true,
+        monitorType: true,
+        monitorSteps: true,
+      });
+      expect(JSON.stringify(memberReads()[0]!.select)).not.toContain(
+        "monitorSteps",
+      );
+      expect(chartedMetricNames()).toEqual(["system.cpu.utilization"]);
+    });
+
+    test("a reader who may not read monitors is not sent the monitor's read, and is shown no card from it", async () => {
+      PermissionGate.clearPermissionPropsCache();
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([
+          kind === INCIDENT_EPISODE
+            ? Permission.IncidentViewer
+            : Permission.AlertViewer,
+        ]);
+      mockEpisode = {
+        members: [
+          {
+            ...FIRST_MEMBER,
+            telemetryQuery: null,
+            monitor: metricsMonitor("system.cpu.utilization"),
+          },
+        ],
+      };
+
+      await renderPageWithoutCard();
+
+      expect(screen.getByTestId("root-cause-text")).toBeInTheDocument();
+      expect(memberReads()).toHaveLength(1);
+      expect(readsOf(Monitor)).toHaveLength(0);
+      expect(fetchResultsMock).not.toHaveBeenCalled();
+    });
+
     test("a snapshot of logs is no metric snapshot: the first member's metrics monitor is charted", async () => {
       mockEpisode = {
         members: [
@@ -1746,31 +1850,45 @@ describe.each(KINDS)("Root Cause of $name", (episodeKind: EpisodeKind) => {
     });
 
     test.each([
-      ["no monitor and no snapshot", { telemetryQuery: null, monitor: null }],
       [
+        "no monitor and no snapshot",
+        { telemetryQuery: null, monitor: null },
+        0,
+      ],
+      [
+        // A website's steps - its URL, headers and body - are never read.
         "a monitor that reads no metrics, and no snapshot",
         { telemetryQuery: null, monitor: WEBSITE_MONITOR },
+        0,
       ],
       [
         "a snapshot of logs, and no monitor",
         { telemetryQuery: LOGS_SNAPSHOT, monitor: null },
+        0,
       ],
       [
+        // Its steps, read on the monitor, which name no metric yet.
         "a metrics monitor with no metric picked yet, and no snapshot",
         { telemetryQuery: null, monitor: metricsMonitor("") },
+        1,
       ],
     ])(
-      "a first member with %s: the membership and that member, and nothing else",
-      async (_name: string, member: Partial<MemberData>) => {
+      "a first member with %s: the membership and that member, and its monitor only when the card would chart from it",
+      async (
+        _name: string,
+        member: Partial<MemberData>,
+        monitorReads: number,
+      ) => {
         mockEpisode = { members: [{ ...FIRST_MEMBER, ...member }] };
 
         await renderPageWithoutCard();
 
         expect(screen.getByTestId("root-cause-text")).toBeInTheDocument();
         expect(screen.queryByText(kind.description)).toBeNull();
-        expect(getListMock).toHaveBeenCalledTimes(2);
+        expect(getListMock).toHaveBeenCalledTimes(2 + monitorReads);
         expect(readsOf(kind.membershipModel)).toHaveLength(1);
         expect(memberReads()).toHaveLength(1);
+        expect(readsOf(Monitor)).toHaveLength(monitorReads);
         // Its moments, and the episode itself, are read only for a card.
         expect(getItemMock).not.toHaveBeenCalled();
         expect(fetchResultsMock).not.toHaveBeenCalled();

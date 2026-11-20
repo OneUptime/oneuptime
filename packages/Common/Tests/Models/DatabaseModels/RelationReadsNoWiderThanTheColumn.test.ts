@@ -420,7 +420,7 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
   },
   {
     reason:
-      "The monitors an incident, an alert, a log, a data check or a rule names, and the template, network policy and group a monitor or a status page's resource comes from: their names, kinds and state wherever they are listed. And a monitor's steps, which an incident's and an alert's Root Cause card reads to chart the metric the monitor watched - the whole of what the monitor checks, for every reader of the incident or alert, which #10309 weighs narrowing to the query the card charts.",
+      "The monitors an incident, an alert, a log, a data check or a rule names, and the template, network policy and group a monitor or a status page's resource comes from: their names, kinds and state wherever they are listed. Never what a monitor checks: its steps - its URLs, request headers and bodies, its queries and criteria - are no relation's to read, and a page that needs them reads them on the monitor, by the monitor's own read (#10309).",
     columns: {
       Monitor: [
         "autoProvisionedNetworkDeviceId",
@@ -430,7 +430,6 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
         "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
         "firstMeasuredAt",
         "isArchived",
-        "monitorSteps",
         "monitorTemplateId",
         "monitorType",
         "name",

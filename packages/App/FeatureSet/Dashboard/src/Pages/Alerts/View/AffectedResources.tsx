@@ -15,6 +15,10 @@ import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDi
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  MONITOR_THROUGH_RELATION_SELECT,
+  readMetricNamesOfMonitor,
+} from "../../../Components/Monitor/ReadMonitorSteps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -97,12 +101,14 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Deliberately a SEPARATE request from the labels above. The monitor
-   * type only decides which suggested commands to show, and reading it
-   * crosses into the Monitor model - a role with alert access but no
-   * monitor read permission would fail the whole query. Asking for it on
-   * its own means that user still gets the Affected Resource table and
-   * simply no command suggestions.
+   * A request of its own, apart from the labels above: the monitor's type
+   * only decides which suggested commands to show, and a read that fails
+   * leaves the Affected Resource table without them. Which monitor it is
+   * and what kind are read through the alert, as every reader of the alert
+   * may; the metrics a Metrics monitor's steps read, which only its
+   * commands name, on the monitor itself by the reader's own read: no
+   * relation reads a monitor's steps (#10309). A reader who may not read
+   * the monitor is offered every command of the resource instead.
    */
   const fetchMonitorType: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -110,19 +116,12 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
         modelType: Alert,
         id: props.alertId,
         select: {
-          monitor: {
-            monitorType: true,
-            monitorSteps: true,
-          },
+          monitor: MONITOR_THROUGH_RELATION_SELECT,
         },
       });
 
       setMonitorType(alert?.monitor?.monitorType);
-      setMetricNames(
-        SeriesDebugHints.getMetricNamesOfMonitorSteps(
-          alert?.monitor?.monitorSteps,
-        ),
-      );
+      setMetricNames(await readMetricNamesOfMonitor(alert?.monitor));
     } catch {
       setMonitorType(undefined);
       setMetricNames(undefined);

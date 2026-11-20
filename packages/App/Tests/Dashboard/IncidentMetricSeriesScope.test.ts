@@ -191,7 +191,7 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
   test("hands what the incident keeps to what it charts: its snapshot, series and monitors", () => {
     // The incident's row, read into the event the card charts...
     expect(INCIDENT_ROOT_CAUSE_READER).toContain(
-      "return incident ? getIncidentRootCauseEvent(incident) : null;",
+      "return incident ? await readRootCauseMonitorSteps(getIncidentRootCauseEvent(incident)) : null;",
     );
     const handed: string = selectBlockAfter(
       ROOT_CAUSE_METRICS,
@@ -281,7 +281,7 @@ describe("incident Root Cause metric chart is scoped to the incident's series", 
  * alert: a grouped metric monitor's alerts are each about one series too.
  */
 describe("alert Root Cause metric chart is scoped to the alert's series", () => {
-  test("asks the API for what the alert keeps: its snapshot, series and criteria, and its monitor's steps", () => {
+  test("asks the API for what the alert keeps: its snapshot, series and criteria, and which monitor it is on, never that monitor's steps (#10309)", () => {
     const select: string = selectBlockAfter(
       ALERT_ROOT_CAUSE_READER,
       "modelType: Alert, id:",
@@ -291,18 +291,20 @@ describe("alert Root Cause metric chart is scoped to the alert's series", () => 
       "telemetryQuery: true,",
       "seriesLabels: true,",
       "createdCriteriaId: true,",
-      "monitor: { _id: true, monitorType: true, monitorSteps: true, },",
+      "monitor: MONITOR_THROUGH_RELATION_SELECT,",
     ]) {
       expect({ column, selected: select.includes(column) }).toEqual({
         column,
         selected: true,
       });
     }
+
+    expect(select).not.toContain("monitorSteps");
   });
 
   test("hands what the alert keeps to what it charts, its one monitor as a list of one", () => {
     expect(ALERT_ROOT_CAUSE_READER).toContain(
-      "return alert ? getAlertRootCauseEvent(alert) : null;",
+      "return alert ? await readRootCauseMonitorSteps(getAlertRootCauseEvent(alert)) : null;",
     );
     const handed: string = selectBlockAfter(
       ROOT_CAUSE_METRICS,
@@ -342,7 +344,7 @@ describe("episode Root Cause metric chart is scoped to its first member's series
         return INCIDENT_EPISODE_ROOT_CAUSE_READER;
       },
       "kind: INCIDENT_EPISODE_FIRST_MEMBER, select: {",
-      "monitors: { _id: true, monitorType: true, monitorSteps: true, } as never,",
+      "monitors: MONITOR_THROUGH_RELATION_SELECT as never,",
     ],
     [
       "an alert episode's",
@@ -350,10 +352,10 @@ describe("episode Root Cause metric chart is scoped to its first member's series
         return ALERT_EPISODE_ROOT_CAUSE_READER;
       },
       "kind: ALERT_EPISODE_FIRST_MEMBER, select: {",
-      "monitor: { _id: true, monitorType: true, monitorSteps: true, },",
+      "monitor: MONITOR_THROUGH_RELATION_SELECT,",
     ],
   ])(
-    "%s card asks the API for what its first member keeps: its snapshot, series and criteria, and its monitors' steps",
+    "%s card asks the API for what its first member keeps: its snapshot, series and criteria, and which monitors it is on, never their steps (#10309)",
     (
       _name: string,
       reader: () => string,
@@ -379,10 +381,10 @@ describe("episode Root Cause metric chart is scoped to its first member's series
 
   test("hands its first member to what it charts, read as that incident's or alert's own card reads it", () => {
     expect(INCIDENT_EPISODE_ROOT_CAUSE_READER).toContain(
-      "return member ? getIncidentEpisodeRootCauseEvent(member) : null;",
+      "return member ? await readRootCauseMonitorSteps( getIncidentEpisodeRootCauseEvent(member), ) : null;",
     );
     expect(ALERT_EPISODE_ROOT_CAUSE_READER).toContain(
-      "return member ? getAlertEpisodeRootCauseEvent(member) : null;",
+      "return member ? await readRootCauseMonitorSteps(getAlertEpisodeRootCauseEvent(member)) : null;",
     );
     expect(ROOT_CAUSE_METRICS).toContain(
       "return readEpisodeEvent(member, getIncidentRootCauseEvent(member));",
