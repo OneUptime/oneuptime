@@ -10,6 +10,7 @@ import {
 import fs from "fs";
 import Path from "path";
 import Handlebars from "handlebars";
+import type { SpyInstance } from "jest-mock";
 import nodemailer, { Transporter } from "nodemailer";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import { visibleText } from "Common/Tests/Helpers/HtmlText";
@@ -302,10 +303,12 @@ function projectLogSubjects(): Array<unknown> {
 
 // The subjects the server's own email log was handed.
 function serverLogSubjects(
-  record: jest.SpiedFunction<typeof ServerEmailLogRecorder.record>,
-): Array<string> {
+  record: SpyInstance<typeof ServerEmailLogRecorder.record>,
+): Array<string | undefined> {
   return record.mock.calls.map(
-    (call: [Parameters<typeof ServerEmailLogRecorder.record>[0]]): string => {
+    (
+      call: [Parameters<typeof ServerEmailLogRecorder.record>[0]],
+    ): string | undefined => {
       return call[0].subject;
     },
   );
@@ -342,7 +345,7 @@ beforeAll(async () => {
   }
 });
 
-let record: jest.SpiedFunction<typeof ServerEmailLogRecorder.record>;
+let record: SpyInstance<typeof ServerEmailLogRecorder.record>;
 
 beforeEach(() => {
   jest.clearAllMocks();
