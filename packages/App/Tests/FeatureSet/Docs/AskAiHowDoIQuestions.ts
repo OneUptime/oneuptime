@@ -1339,7 +1339,8 @@ export const ASK_AI_PAGE_CONTEXT_QUESTIONS: ReadonlyArray<AskAiPageContextQuesti
     },
     {
       where: "the Checkout availability SLO",
-      question: "How do I get alerted when this burns its error budget too fast?",
+      question:
+        "How do I get alerted when this burns its error budget too fast?",
       pageContext: {
         type: AIChatPageContextType.Slo,
         entityId: CHECKOUT_AVAILABILITY.id,

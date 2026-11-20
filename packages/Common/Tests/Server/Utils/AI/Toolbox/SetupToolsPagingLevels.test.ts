@@ -884,8 +884,12 @@ describe("add_to_on_call_policy", () => {
       expect.arrayContaining(["alreadyPaged", "notFound"]),
     );
     expect(
-      (await AddToOnCallPolicyTool.checkBeforeApproval!(prepared.arguments, ctx))
-        ?.toldModel,
+      (
+        await AddToOnCallPolicyTool.checkBeforeApproval!(
+          prepared.arguments,
+          ctx,
+        )
+      )?.toldModel,
     ).toBe(
       'Nothing proposed: level 1 of the on-call policy "Payments on-call" pages "Ana Lopez" already, so nobody is added again and no level is made. Say so in one sentence.',
     );
@@ -903,8 +907,12 @@ describe("add_to_on_call_policy", () => {
 
     expect(prepared.arguments["notFound"]).toEqual(["Zed Unknown"]);
     expect(
-      (await AddToOnCallPolicyTool.checkBeforeApproval!(prepared.arguments, ctx))
-        ?.toldModel,
+      (
+        await AddToOnCallPolicyTool.checkBeforeApproval!(
+          prepared.arguments,
+          ctx,
+        )
+      )?.toldModel,
     ).toBe(
       'Nothing proposed: level 1 of the on-call policy "Payments on-call" pages "Ana Lopez" already, so nobody is added again and no level is made. "Zed Unknown" is no member or team of this project: ask the person who they meant, by the name the project knows them by (query_teams lists members). Say so in one sentence.',
     );

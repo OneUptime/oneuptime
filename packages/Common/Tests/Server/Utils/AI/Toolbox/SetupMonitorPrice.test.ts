@@ -281,10 +281,15 @@ describe("a website or API monitor's card", () => {
 
     // Nothing stops the card: it shows, with the price on it.
     expect(
-      await SetUpWebsiteMonitoringTool.checkBeforeApproval!(prepared.arguments, {
-        ...ctx,
-        plannedCalls: [{ name: "set_up_website_monitoring", arguments: WEBSITE }],
-      }),
+      await SetUpWebsiteMonitoringTool.checkBeforeApproval!(
+        prepared.arguments,
+        {
+          ...ctx,
+          plannedCalls: [
+            { name: "set_up_website_monitoring", arguments: WEBSITE },
+          ],
+        },
+      ),
     ).toBeNull();
   });
 
@@ -328,10 +333,14 @@ describe("a website or API monitor's card", () => {
     const refused: SetupActionRefusal | null =
       await SetUpWebsiteMonitoringTool.checkBeforeApproval!(WEBSITE, {
         ...ctx,
-        plannedCalls: [{ name: "set_up_website_monitoring", arguments: WEBSITE }],
+        plannedCalls: [
+          { name: "set_up_website_monitoring", arguments: WEBSITE },
+        ],
       });
 
-    expect(refused?.toldModel).toContain(PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE);
+    expect(refused?.toldModel).toContain(
+      PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
+    );
   });
 });
 
@@ -374,7 +383,10 @@ describe("a service's recommended monitor's card", () => {
 
     expect(
       linesOf(
-        await SetUpServiceMonitorTool.prepareMutation!(SERVICE_MONITORS[0]!, ctx),
+        await SetUpServiceMonitorTool.prepareMutation!(
+          SERVICE_MONITORS[0]!,
+          ctx,
+        ),
       ),
     ).not.toContain(PRICE_LINE);
   });
@@ -463,9 +475,8 @@ describe("in every Dashboard language", () => {
     async (language: string) => {
       onPlan(PlanType.Free);
 
-      const sentence: AIActionSentence = (await describeMonitorPriceForPerson(
-        ctx,
-      ))!;
+      const sentence: AIActionSentence =
+        (await describeMonitorPriceForPerson(ctx))!;
       const read: string = describeAIActionSentence(sentence, reader(language));
 
       expect([language, read === PRICE_LINE]).toEqual([language, false]);

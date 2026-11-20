@@ -68,52 +68,52 @@ const detected: () => DashboardPageContext | null =
   };
 
 describe("the pages where a project is set up have a context", () => {
-  test.each<[string, AIChatPageContextType, string, string, string | undefined]>(
+  test.each<
+    [string, AIChatPageContextType, string, string, string | undefined]
+  >([
     [
-      [
-        `/dashboard/${PROJECT_ID}/home`,
-        AIChatPageContextType.Home,
-        "Home",
-        "/dashboard/:projectId/home",
-        undefined,
-      ],
-      [
-        `/dashboard/${PROJECT_ID}/home/setup-health`,
-        AIChatPageContextType.Home,
-        "Home",
-        "/dashboard/:projectId/home/setup-health",
-        "Setup Health",
-      ],
-      [
-        `/dashboard/${PROJECT_ID}/settings/api-keys`,
-        AIChatPageContextType.ProjectSettings,
-        "Project Settings",
-        "/dashboard/:projectId/settings/api-keys",
-        "API Keys",
-      ],
-      [
-        `/dashboard/${PROJECT_ID}/user-settings/notification-methods`,
-        AIChatPageContextType.UserSettings,
-        "User Settings",
-        "/dashboard/:projectId/user-settings/notification-methods",
-        "Notification Methods",
-      ],
-      [
-        `/dashboard/${PROJECT_ID}/on-call-duty/schedules`,
-        AIChatPageContextType.OnCall,
-        "On-Call",
-        "/dashboard/:projectId/on-call-duty/schedules",
-        "Schedules",
-      ],
-      [
-        `/dashboard/${PROJECT_ID}/status-pages`,
-        AIChatPageContextType.StatusPagesList,
-        "Status Pages",
-        "/dashboard/:projectId/status-pages",
-        undefined,
-      ],
+      `/dashboard/${PROJECT_ID}/home`,
+      AIChatPageContextType.Home,
+      "Home",
+      "/dashboard/:projectId/home",
+      undefined,
     ],
-  )(
+    [
+      `/dashboard/${PROJECT_ID}/home/setup-health`,
+      AIChatPageContextType.Home,
+      "Home",
+      "/dashboard/:projectId/home/setup-health",
+      "Setup Health",
+    ],
+    [
+      `/dashboard/${PROJECT_ID}/settings/api-keys`,
+      AIChatPageContextType.ProjectSettings,
+      "Project Settings",
+      "/dashboard/:projectId/settings/api-keys",
+      "API Keys",
+    ],
+    [
+      `/dashboard/${PROJECT_ID}/user-settings/notification-methods`,
+      AIChatPageContextType.UserSettings,
+      "User Settings",
+      "/dashboard/:projectId/user-settings/notification-methods",
+      "Notification Methods",
+    ],
+    [
+      `/dashboard/${PROJECT_ID}/on-call-duty/schedules`,
+      AIChatPageContextType.OnCall,
+      "On-Call",
+      "/dashboard/:projectId/on-call-duty/schedules",
+      "Schedules",
+    ],
+    [
+      `/dashboard/${PROJECT_ID}/status-pages`,
+      AIChatPageContextType.StatusPagesList,
+      "Status Pages",
+      "/dashboard/:projectId/status-pages",
+      undefined,
+    ],
+  ])(
     "%s is %s, chip %s",
     (
       address: string,
@@ -138,7 +138,9 @@ describe("the pages where a project is set up have a context", () => {
   );
 
   test("a status page's own pages are that status page, with the page on screen", () => {
-    navigateTo(`/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/domains`);
+    navigateTo(
+      `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/domains`,
+    );
 
     expect(detected()).toMatchObject({
       type: AIChatPageContextType.StatusPage,
@@ -173,8 +175,16 @@ describe("the pages where a project is set up have a context", () => {
   });
 
   test.each([
-    ["monitors/create", "Create Monitor", "/dashboard/:projectId/monitors/create"],
-    ["incidents/create", "Declare Incident", "/dashboard/:projectId/incidents/create"],
+    [
+      "monitors/create",
+      "Create Monitor",
+      "/dashboard/:projectId/monitors/create",
+    ],
+    [
+      "incidents/create",
+      "Declare Incident",
+      "/dashboard/:projectId/incidents/create",
+    ],
     ["alerts/create", "Create Alert", "/dashboard/:projectId/alerts/create"],
   ])(
     "the %s form is the form, not its list",
@@ -523,9 +533,8 @@ describe("the questions a setup page offers", () => {
   ])(
     "%s offers its own questions, worded in every Dashboard language",
     (type: AIChatPageContextType) => {
-      const questions: Array<SuggestedQuestion> = PageContextUtil.getSuggestions(
-        contextOf(type),
-      );
+      const questions: Array<SuggestedQuestion> =
+        PageContextUtil.getSuggestions(contextOf(type));
 
       expect(questions.length).toBeGreaterThanOrEqual(2);
 

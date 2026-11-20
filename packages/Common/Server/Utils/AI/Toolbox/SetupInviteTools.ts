@@ -278,9 +278,7 @@ export function readPreparedInvitation(args: JSONObject): PreparedInvitation {
  * already (alreadyInProject), each once, in lower case: no invitation goes
  * to them.
  */
-export function readAddressesInProjectAlready(
-  args: JSONObject,
-): Array<string> {
+export function readAddressesInProjectAlready(args: JSONObject): Array<string> {
   return readInviteEmails({
     emails: ToolArgs.getStringArray(args, "alreadyInProject") || [],
   }).emails;

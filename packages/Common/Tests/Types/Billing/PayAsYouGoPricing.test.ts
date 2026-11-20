@@ -177,9 +177,9 @@ describe("isPayAsYouGoPriceQuoted", () => {
   });
 
   test("fails closed: no plan, or one not known, is quoted nothing", () => {
-    expect(isPayAsYouGoPriceQuoted({ isBillingEnabled: true, plan: null })).toBe(
-      false,
-    );
+    expect(
+      isPayAsYouGoPriceQuoted({ isBillingEnabled: true, plan: null }),
+    ).toBe(false);
     expect(
       isPayAsYouGoPriceQuoted({ isBillingEnabled: true, plan: undefined }),
     ).toBe(false);

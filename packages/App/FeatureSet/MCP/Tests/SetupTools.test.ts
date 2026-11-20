@@ -255,7 +255,10 @@ describe("the setup tools are listed", () => {
 
   // What the card on OneUptime Cloud's Free plan says before it is approved (#9995).
   it("the two that make a monitor say what it costs on the Free plan, at the guided setup's price", () => {
-    for (const name of ["set_up_website_monitoring", "set_up_service_monitor"]) {
+    for (const name of [
+      "set_up_website_monitoring",
+      "set_up_service_monitor",
+    ]) {
       expect([name, listed(name).description]).toEqual([
         name,
         expect.stringContaining(
@@ -273,9 +276,10 @@ describe("the setup tools are listed", () => {
       "add_monitors_to_status_page",
       "who_is_told",
     ]) {
-      expect([name, listed(name).description.includes(MONITOR_PRICE)]).toEqual(
-        [name, false],
-      );
+      expect([name, listed(name).description.includes(MONITOR_PRICE)]).toEqual([
+        name,
+        false,
+      ]);
     }
   });
 
@@ -497,13 +501,15 @@ describe("their arguments are Ask AI's", () => {
 
     expect(shapeOf(steps)).toEqual(
       shapeOf(
-        propertiesOf(AIToolbox.getToolByName("set_how_to_reach_me")!.inputSchema)[
-          "steps"
-        ]!,
+        propertiesOf(
+          AIToolbox.getToolByName("set_how_to_reach_me")!.inputSchema,
+        )["steps"]!,
       ),
     );
     expect(
-      (shapeOf(steps)["items"] as JSONObject)["properties"] as Array<JSONObject>,
+      (shapeOf(steps)["items"] as JSONObject)[
+        "properties"
+      ] as Array<JSONObject>,
     ).toHaveLength(2);
   });
 

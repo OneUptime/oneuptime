@@ -152,7 +152,9 @@ describe("the page on screen, named from the catalogs", () => {
 
     expect(section).toContain("the project's Home");
     expect(section).toContain('"Where do I start?"');
-    expect(section).toContain('query_incidents and query_alerts with state="active"');
+    expect(section).toContain(
+      'query_incidents and query_alerts with state="active"',
+    );
     expect(section).toContain("problemsOnly=true");
   });
 
