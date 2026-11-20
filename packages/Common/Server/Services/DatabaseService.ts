@@ -121,6 +121,7 @@ import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NameTakenException from "../../Types/Exception/NameTakenException";
+import ValueTakenException from "../../Types/Exception/ValueTakenException";
 import { ARCHIVED_COLUMN } from "../../Utils/ArchivableValues";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
@@ -8772,9 +8773,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           });
         }
 
-        throw new BadDataException(
-          `${this.model.singularName} with the same ${key} already exists.`,
-        );
+        await this.refuseTakenValue({
+          column: key,
+          query: sameValueQuery,
+          count: existingItemsWithSameNameCount,
+        });
       }
 
       existingItemsWithSameNameCount = 0;
@@ -8824,6 +8827,51 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     throw new NameTakenException(
       `${this.model.singularName} with the same name already exists, and it is archived. Unarchive it, or choose another name.`,
       { isArchived: true },
+    );
+  }
+
+  /*
+   * A VALUE ANOTHER RECORD OF ITS KIND HAS, IN A @UniqueColumnBy COLUMN
+   * THAT IS NOT THE NAME - a status page's domain, an SSO provider's
+   * sign-on URL, an API key's permission - refused in the words it always
+   * was, with the code a program tells a taken value by (ValueTakenException,
+   * #10319) and the column: nothing was written, so a client may ask again
+   * once the other record gives the value up, as the Terraform provider does
+   * for a domain moved from one resource to another in one apply.
+   *
+   * When every record with the value is archived, the code and the
+   * sentence say so, as for a name.
+   */
+  private async refuseTakenValue(data: {
+    column: string;
+    query: Query<TBaseModel>;
+    count: number;
+  }): Promise<never> {
+    const refusal: string = `${this.model.singularName} with the same ${data.column} already exists.`;
+
+    if (!this.model.hasColumn(ARCHIVED_COLUMN)) {
+      throw new ValueTakenException(refusal, { field: data.column });
+    }
+
+    const archivedCount: number = (
+      await this.countBy({
+        query: {
+          ...data.query,
+          [ARCHIVED_COLUMN]: true,
+        } as Query<TBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    if (archivedCount < data.count) {
+      throw new ValueTakenException(refusal, { field: data.column });
+    }
+
+    throw new ValueTakenException(
+      `${this.model.singularName} with the same ${data.column} already exists, and it is archived. Unarchive it, or choose another ${data.column}.`,
+      { field: data.column, isArchived: true },
     );
   }
 
@@ -9069,9 +9117,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         });
       }
 
-      throw new BadDataException(
-        `${this.model.singularName} with the same ${write.column} already exists.`,
-      );
+      await this.refuseTakenValue({
+        column: write.column,
+        query: sameValueQuery,
+        count: count,
+      });
     }
   }
 
