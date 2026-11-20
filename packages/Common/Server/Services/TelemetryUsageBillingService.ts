@@ -1682,6 +1682,13 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  /*
+   * The usage row's `day`: a stored key, not text for a reader. Staging
+   * skips the days and services it finds under it and adds a day's usage
+   * to the row it finds, so its shape stays "Sep 09, 2026" - written in
+   * any other shape, the rows already stored would not be found and their
+   * usage would be staged, and billed, twice.
+   */
   private getUsageDayString(usageDate: Date): string {
     return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
       date: usageDate,

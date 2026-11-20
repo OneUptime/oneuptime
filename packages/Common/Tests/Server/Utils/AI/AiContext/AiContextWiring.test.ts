@@ -145,6 +145,8 @@ const LEAVES_OUT_AI_CONTEXT: Record<string, string> = {
     "names the data type of fields from their names and the shapes of their values: one short call after a store's scan",
   "Utils/DataObservability/DataCheckFromSentence.ts":
     "writes one data check from a rule a person typed and the table's own columns: one short call, reviewed before it is added",
+  "Utils/AI/ObservabilityImport/ImportQueryConversion.ts":
+    "converts one query of a file a person imports, from that file alone: one short call, reviewed before it is used",
 };
 
 // Files that name the role without writing a prompt.

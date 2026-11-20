@@ -3,6 +3,7 @@ import IncidentService from "./IncidentService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import Model from "../../Models/DatabaseModels/IncidentCustomField";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import { INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS } from "../../Types/CustomField/CustomFieldSavedViews";
 import { generateCustomFieldVariableKey } from "../../Types/CustomField/CustomFieldVariableKey";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -282,8 +283,9 @@ export class Service extends DatabaseService<Model> {
       })
     ).toNumber();
 
+    // With the code a program tells a taken name by (#10065).
     if (clashes > 0) {
-      throw new BadDataException(
+      throw new NameTakenException(
         "Another incident custom field already has this name. Choose a different name.",
       );
     }

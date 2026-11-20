@@ -146,6 +146,31 @@ Det samme skjer når alle prosjektene du hører til, krever enkel pålogging og 
 - **Hovedadministratorer** beholder alltid sine egne innstillinger under **Sikkerhet**.
 - **Det du har satt opp før**, blir lagret. En serveradministrator kan fjerne det, og det kan også en eier av alle prosjektene du hører til; du får en e-post når det skjer.
 
+### Bekreft at det er deg
+
+Noen endringer ber deg først bekrefte at det er deg, selv om du er pålogget, slik at ingen kan gjøre dem fra en nettleser der du er blitt værende pålogget. OneUptime spør før du:
+
+- endrer e-postadressen eller passordet ditt;
+- legger til eller fjerner en passnøkkel, en sikkerhetsnøkkel eller en autentiseringsapp;
+- får nye reservekoder mens du fortsatt har ubrukte;
+- slår av tofaktorautentisering;
+- sletter kontoen din.
+
+Dialogen **Bekreft at det er deg** ber om passordet ditt og, mens tofaktorautentisering er slått på, om det andre trinnet ditt: en kode fra autentiseringsappen, sikkerhetsnøkkelen din eller en av reservekodene dine. Med en passnøkkel klikker du i stedet på **Bruk en passnøkkel**. Logger du bare på med enkel pålogging, Google eller Microsoft, klikker du på **Logg på igjen**: OneUptime får identitetsleverandøren din til å be deg logge på igjen, og sender deg så tilbake til siden. Deretter blir endringen gjort.
+
+Når du har bekreftet, blir du ikke spurt igjen på 10 minutter i den nettleseren. Fem feil forsøk logger av den nettleseren, men låser aldri kontoen din: Logg på igjen, og prøv en gang til. OneUptime sender deg en e-post når det skjer, og hver gang en reservekode bekrefter at det er deg.
+
+På en selvhostet server bekrefter hovedadministratorer på samme måte at det er dem, før de endrer hvordan noen andre logger på, gjør noen til hovedadministrator, endrer serverens leverandører for enkel pålogging eller e-postinnstillinger, eller oppretter en hoved-API-nøkkel. Hoved-API-nøkkelen kan ikke gjøre disse endringene.
+
+Å logge på igjen teller bare når identitetsleverandøren din sier at du logget på etter at OneUptime sendte deg dit. Logger leverandøren deg på med en økt den allerede har, uten å be om passordet ditt, bekrefter det ingenting: Logg først av hos leverandøren, og klikk så på **Logg på igjen**. Der serveren din lar deg logge på med en lenke på e-post, gjør **Logg på på en annen måte** det i stedet. Hva OneUptime ber hver leverandør om, og hva en administrator kan endre når en ny pålogging ikke bekrefter noe:
+
+| Leverandør | Hva OneUptime ber om | Når det ikke bekrefter noe |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` og når du logget på (`AuthnInstant`) | Få leverandøren til å følge forespørselen, for eksempel med Honor Force Authentication i Okta. |
+| OpenID Connect | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Få leverandøren til å sende `auth_time`. I Microsoft Entra ID legger du det til i ID-tokenet som et valgfritt krav. |
+| Google | Når du logget på (`auth_time`). Google kan ikke bes om å få deg til å logge på igjen. | Slå på Session age claims for serverens Google-påloggingsapp, som må være publisert og verifisert. |
+| Microsoft | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Legg til `auth_time` i ID-tokenet til serverens Microsoft-påloggingsapp som et valgfritt krav. |
+
 ## Prosjektene dine
 
 Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venstre i dashbordet viser dem: velg ett for å bytte.
@@ -178,7 +203,7 @@ Temaet ditt lagres i nettleseren din, så still det inn på nytt i en annen nett
 
 ## Slett kontoen din
 
-Åpne **Faresone → Slett konto**. Du kan bare slette kontoen når du ikke er med i noe prosjekt: siden viser prosjektene du fortsatt er med i. Forlat dem først, klikk så på **Slett konto**, og bekreft. Sletting av kontoen er permanent og kan ikke angres.
+Åpne **Faresone → Slett konto**. Du kan bare slette kontoen når du ikke er med i noe prosjekt: siden viser prosjektene du fortsatt er med i. Forlat dem først, klikk så på **Slett konto**, og bekreft. Sletting av kontoen er permanent og kan ikke angres. Før OneUptime sletter kontoen din, ber den deg bekrefte at det er deg.
 
 ## Feilsøking
 

@@ -29,10 +29,80 @@ import { JSONObject } from "../../Types/JSON";
 import CloudEndpointSuggestions from "../Utils/CloudConnection/CloudEndpointSuggestions";
 import MonitorLatestArrivals from "../Utils/Monitor/MonitorLatestArrivals";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
+import ImportQueryConversion, {
+  ImportQueryConversionRequest,
+  ImportQueryConversionResult,
+  readImportQueryConversionRequest,
+} from "../Utils/AI/ObservabilityImport/ImportQueryConversion";
+
+/*
+ * Where Import Alerts asks OneUptime AI to convert one query of an alert
+ * rule it previews (issue #7697).
+ */
+export const MONITOR_IMPORT_CONVERT_QUERY_PATH: string =
+  "/import/convert-query-with-ai";
 
 export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
   public constructor() {
     super(Monitor, MonitorService);
+
+    /*
+     * POST /monitor/import/convert-query-with-ai
+     *
+     * One query of a Prometheus, Grafana or Datadog alert rule being
+     * imported that no rule converted, converted by OneUptime AI when the
+     * person asks (ImportQueryConversion): PromQL that returns numbers per
+     * series, checked as the preview checks one, for the person to read
+     * and use. Nothing is created here; each monitor is created through
+     * its own create, afterwards.
+     *
+     * Asking takes the permission to create monitors - it is the import's
+     * create - and AI on for the project. Only the query is sent, from the
+     * person's own file.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}${MONITOR_IMPORT_CONVERT_QUERY_PATH}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Monitors),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanCreateTable({
+            modelType: Monitor,
+            props,
+            errorMessage:
+              "Converting a query with OneUptime AI takes a role that can create monitors.",
+          });
+
+          const request: ImportQueryConversionRequest =
+            readImportQueryConversionRequest(req.body);
+
+          const result: ImportQueryConversionResult =
+            await ImportQueryConversion.convert({
+              projectId,
+              userId: props.userId,
+              language: request.language,
+              query: request.query,
+              variableNames: [],
+              isForMonitor: true,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            promQL: result.promQL,
+            explanation: result.explanation,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
 
     /*
      * GET /monitor/active-monitor-limit

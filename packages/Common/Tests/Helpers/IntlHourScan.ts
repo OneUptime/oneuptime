@@ -23,12 +23,12 @@ import path from "path";
  * same object, the clock that hour is right on: "2-digit" with hour12: false
  * (or hourCycle "h23" or "h24"), "numeric" with hour12: true (or hourCycle
  * "h11" or "h12"). A time on the reader's clock asks getHourOption for its
- * hour, one on its language's own clock (a calendar's grid, a chart's axis)
- * getLocaleClockHourOption (both in Common/Types/DateLanguage), and the
- * mobile app its own getHourOption (packages/MobileApp/src/utils/date). An
- * object read only for the clock it resolves - new Intl.DateTimeFormat(
- * locale, { hour: "numeric" }).resolvedOptions() - writes no time, and is
- * how those helpers learn the clock.
+ * hour (Common/Types/DateLanguage) - every time is, a calendar's grid and a
+ * chart's axis among them since #7651 - and the mobile app its own
+ * getHourOption (packages/MobileApp/src/utils/date). An object read only
+ * for the clock it resolves - new Intl.DateTimeFormat(locale, { hour:
+ * "numeric" }).resolvedOptions() - writes no time, and is how the browser's
+ * clock is learnt.
  *
  * TwelveHourClockLeadingZeroGuard and TwentyFourHourClockLeadingZeroGuard
  * (Tests/Types) read every front end with these: the Dashboard and the

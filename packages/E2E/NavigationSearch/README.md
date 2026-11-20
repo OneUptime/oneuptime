@@ -121,6 +121,21 @@ menu are each named by their own button (no id twice on the page), open with
 Enter, and Escape puts them away with the focus back on the button.
 Screenshots are saved as `header-*.png`.
 
+`HeaderMenusKeyboard.spec.ts` (#7237, #7963) drives Help and the profile
+menu with the keyboard alone, as WAI-ARIA's menu button pattern has it, at
+1280 and 390px, light and dark, and in Arabic, on the desktop project:
+Enter, Space or Down on the button opens a menu on its first row (Up on
+its last), Up and Down walk every row and go round, Home and End go to the
+ends, Escape closes it back onto its button, Tab moves on to the next
+control and Shift+Tab out of it backwards, and Enter on a page's row opens
+it in a new tab with the focus back on Help. The theme's Light, Dark and
+System are menu item radios that Left and Right walk the way the row is
+drawn: in Arabic Light is at the right, and Left goes on to Dark, while Up
+and Down keep their way. The menu opens inside the window either way. The
+top bar is one landmark named "Main menu" in the reader's language, on a
+phone with its menu open too. Screenshots are saved as
+`header-menus-*.png`.
+
 `PaletteOnPhonesAndDesktops.spec.ts` (#7038) drives the phone menu and
 Search (Cmd/Ctrl+K) in a real browser at 390px and 1280px, light and dark,
 in German and Persian (right to left), on the desktop project. Its

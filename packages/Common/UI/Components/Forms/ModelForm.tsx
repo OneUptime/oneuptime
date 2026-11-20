@@ -95,6 +95,10 @@ import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "../../Utils/SharedNameOptions";
 
 /*
  * Whether a dropdown's list request was refused because the person may not
@@ -1197,6 +1201,18 @@ const ModelForm: <TBaseModel extends BaseModel>(
           }
 
           /*
+           * A team's, a label's, an on-call policy's or a schedule's
+           * description and when it was made, so records of one name are
+           * told apart in the picker (SharedNameOptions, #10064).
+           */
+          const isListedByName: boolean =
+            field.dropdownModal.labelField === "name";
+
+          if (isListedByName) {
+            Object.assign(select, getSharedNameSelect(tempModel));
+          }
+
+          /*
            * A sorted column is selected too: with the labels relation below
            * the list goes down TypeORM's paginated path, which orders by a
            * column only if it was selected - leaving it out fails the request.
@@ -1271,6 +1287,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
                   if (color) {
                     option.color = color;
                   }
+                }
+
+                const sharedName: DropdownOption["sharedName"] = isListedByName
+                  ? getSharedNameFacts(item)
+                  : undefined;
+
+                if (sharedName) {
+                  option.sharedName = sharedName;
                 }
 
                 if (accessControlColumnName) {

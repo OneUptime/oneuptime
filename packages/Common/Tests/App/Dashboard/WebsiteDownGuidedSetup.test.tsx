@@ -55,6 +55,21 @@ let mayAddToStatusPage: boolean = true;
 let mayUseOnCallSetup: boolean = true;
 let mayCreateStatusPage: boolean = true;
 
+/*
+ * The server's guided setup runs (#7253), in memory: the store reads and
+ * writes them as it would the server's (GuidedSetupRunServerMock).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupRunApi",
+  () => {
+    return (
+      jest.requireActual("./GuidedSetupRunServerMock") as {
+        guidedSetupRunApiModule: unknown;
+      }
+    ).guidedSetupRunApiModule;
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi",
   () => {
@@ -350,6 +365,11 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import {
+  guidedSetupRunServer,
+  readKeptRunValues,
+} from "./GuidedSetupRunServerMock";
+import { GuidedSetupResourceStatus } from "../../../Types/GuidedSetup/GuidedSetupRun";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006804";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -486,7 +506,7 @@ const storedRun: () => Record<string, unknown> = (): Record<
   string,
   unknown
 > => {
-  return JSON.parse(window.localStorage.getItem(RUN_KEY) || "{}") as Record<
+  return readKeptRunValues(window.localStorage.getItem(RUN_KEY)) as Record<
     string,
     unknown
   >;
@@ -574,6 +594,7 @@ const press: (testId: string) => Promise<void> = async (
 };
 
 beforeEach(() => {
+  guidedSetupRunServer.reset();
   window.localStorage.clear();
   mayCreateMonitor = true;
   mayAddPaymentMethod = true;
@@ -786,7 +807,11 @@ describe("1. What should we check?", () => {
       monitorName: "acme.example",
     });
     expect(call.isApi).toBe(false);
-    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+    // What was asked is kept too: another device asks it again (#7253).
+    expect(storedRun()).toEqual({
+      address: "acme.example",
+      monitorId: MONITOR_ID,
+    });
     // Only after looking for this person's own monitor for the address.
     expect(api["findOwnMonitor"]).toHaveBeenCalledTimes(1);
     expect(api["findOwnMonitor"]).toHaveBeenCalledWith({
@@ -879,7 +904,8 @@ describe("1. What should we check?", () => {
       "You have reached the active monitor limit of your plan.",
     );
     expect(stepState("check")).toBe("open");
-    expect(storedRun()).toEqual({});
+    // Only what was asked, to ask again: no monitor (#7253).
+    expect(storedRun()).toEqual({ address: "acme.example" });
   });
 
   test("Continue opens who is told, and the first step folds to what it found", async () => {
@@ -1216,7 +1242,9 @@ describe("the summary", () => {
     await press("guided-setup-start-over");
 
     expect(stepState("check")).toBe("open");
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(screen.getByTestId("guided-setup-address")).toHaveValue("");
     // Who is told is asked afresh: the project has a policy now.
     expect(api["loadWhoIsToldFacts"]).toHaveBeenCalledTimes(2);
@@ -1291,7 +1319,9 @@ describe("leaving and coming back", () => {
     await renderSetup();
 
     expect(stepState("check")).toBe("open");
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(api["loadPolicy"]).not.toHaveBeenCalled();
   });
 
@@ -1508,7 +1538,11 @@ describe("a run the browser lost (#7059)", () => {
     expect(
       screen.getByTestId("guided-setup-existing-monitor"),
     ).toHaveTextContent(EXISTING_NOTE);
-    expect(storedRun()).toEqual({ monitorId: theirs.id });
+    expect(storedRun()).toEqual({
+      address: "ACME.example/",
+      monitorId: theirs.id,
+      monitorIsExisting: true,
+    });
     expect(api["loadFirstCheck"]).toHaveBeenCalledWith(theirs.id);
 
     await press("guided-setup-check-continue");
@@ -1549,16 +1583,44 @@ describe("a run the browser lost (#7059)", () => {
     expect(api["createMonitor"]).not.toHaveBeenCalled();
   });
 
-  test("storage cleared, then the page opened again: the same address makes no second monitor", async () => {
+  test("storage cleared, then the page opened again: the server's run opens it at the step it was on (#7253)", async () => {
+    const first: { unmount: () => void } = await renderSetup();
+    await checkAddress("acme.example");
+    await press("guided-setup-check-continue");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    const made: string = serverMonitors[0]!.id;
+
+    await waitFor(() => {
+      expect(guidedSetupRunServer.valuesOf("website_down")).toEqual({
+        address: "acme.example",
+        monitorId: made,
+      });
+    });
+
+    // The browser forgets the run - a private window, another device.
+    window.localStorage.clear();
+    act(() => {
+      first.unmount();
+    });
+    await renderSetup();
+
+    expect(stepState("check")).toBe("done");
+    expect(stepState("who_is_told")).toBe("open");
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    expect(storedRun()).toEqual({ address: "acme.example", monitorId: made });
+  });
+
+  test("a run neither the browser nor the server kept: the same address makes no second monitor (#7059)", async () => {
     const first: { unmount: () => void } = await renderSetup();
     await checkAddress("acme.example");
 
     expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
     const made: string = serverMonitors[0]!.id;
-    expect(storedRun()).toEqual({ monitorId: made });
 
-    // The browser forgets the run; the monitor stays on the server.
+    // Gone from both: the monitor stays, but nothing says it is this run's.
     window.localStorage.clear();
+    guidedSetupRunServer.reset();
     act(() => {
       first.unmount();
     });
@@ -1570,7 +1632,11 @@ describe("a run the browser lost (#7059)", () => {
 
     expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
     expect(serverMonitors).toHaveLength(1);
-    expect(storedRun()).toEqual({ monitorId: made });
+    expect(storedRun()).toEqual({
+      address: "https://acme.example",
+      monitorId: made,
+      monitorIsExisting: true,
+    });
     expect(
       screen.getByTestId("guided-setup-existing-monitor"),
     ).toHaveTextContent(EXISTING_NOTE);
@@ -1642,9 +1708,26 @@ describe("a run the browser lost (#7059)", () => {
       expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
       expect(sent(ProductEventName.GuidedSetupFinished)).toHaveLength(1);
 
-      // The page opened again: this browser kept nothing of the run.
+      /*
+       * The page opened again: this browser kept nothing of the run, but
+       * the server did (#7253) - the summary again, and nothing made.
+       */
+      const second: { unmount: () => void } = await (async (): Promise<{
+        unmount: () => void;
+      }> => {
+        act(() => {
+          first.unmount();
+        });
+        return await renderSetup();
+      })();
+
+      expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+      expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+
+      // Then a run the server lost too: still no second monitor (#7059).
+      guidedSetupRunServer.reset();
       act(() => {
-        first.unmount();
+        second.unmount();
       });
       await renderSetup();
 
@@ -1674,7 +1757,7 @@ describe("a run the browser lost (#7059)", () => {
     );
     expect(api["createMonitor"]).not.toHaveBeenCalled();
     expect(stepState("check")).toBe("open");
-    expect(storedRun()).toEqual({});
+    expect(storedRun()).toEqual({ address: "acme.example" });
     expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
   });
 
@@ -1690,7 +1773,10 @@ describe("a run the browser lost (#7059)", () => {
 
     expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
     expect(serverMonitors).toHaveLength(2);
-    expect(storedRun()).toEqual({ monitorId: serverMonitors[1]!.id });
+    expect(storedRun()).toEqual({
+      address: "acme.example",
+      monitorId: serverMonitors[1]!.id,
+    });
     expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
   });
 
@@ -1710,7 +1796,11 @@ describe("a run the browser lost (#7059)", () => {
     await checkAddress("acme.example");
 
     expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
-    expect(storedRun()).toEqual({ monitorId: serverMonitors[0]!.id });
+    expect(storedRun()).toEqual({
+      address: "acme.example",
+      monitorId: serverMonitors[0]!.id,
+      monitorIsExisting: true,
+    });
     expect(
       screen.getByTestId("guided-setup-existing-monitor"),
     ).toHaveTextContent(EXISTING_NOTE);
@@ -2299,11 +2389,17 @@ describe("what it sets up, beside the steps", () => {
     const aside: HTMLElement = screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID);
 
     expect(
-      Array.from(aside.querySelectorAll("li")).map(
-        (item: HTMLLIElement): string => {
-          return item.textContent || "";
-        },
-      ),
+      Array.from(
+        aside.querySelectorAll('[data-testid^="guided-setup-outcome-"]'),
+      )
+        .filter((item: Element): boolean => {
+          return item.tagName === "LI";
+        })
+        .map((item: Element): string => {
+          return (
+            item.querySelector('[data-testid$="-text"]')?.textContent || ""
+          );
+        }),
     ).toEqual([
       "OneUptime checks your website or API around the clock.",
       "The right people are told when it goes down.",
@@ -2435,7 +2531,7 @@ describe("a payment method first, on Cloud's Free plan (#7367)", () => {
       "Project Settings > Billing and Invoices > Billing",
     );
     expect(stepState("check")).toBe("open");
-    expect(storedRun()).toEqual({});
+    expect(storedRun()).toEqual({ address: "acme.example" });
     // What was typed stays, to try again.
     expect(screen.getByTestId("guided-setup-address")).toHaveValue(
       "acme.example",
@@ -3831,7 +3927,7 @@ describe("1. A monitor someone else made already checks the address (#7254)", ()
     await checkTeammatesAddress();
 
     expect(api["createMonitor"]).not.toHaveBeenCalled();
-    expect(storedRun()).toEqual({});
+    expect(storedRun()).toEqual({ address: "acme.example" });
     expect(stepState("check")).toBe("open");
     expect(textOf("guided-setup-other-monitor-sentence")).toBe(
       'The monitor "Acme storefront" already checks this address. Grace Hopper made it.',
@@ -3895,7 +3991,10 @@ describe("1. A monitor someone else made already checks the address (#7254)", ()
     expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
     // The teammate's is not asked about again: the person chose.
     expect(api["findOtherMonitor"]).toHaveBeenCalledTimes(1);
-    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+    expect(storedRun()).toEqual({
+      address: "acme.example",
+      monitorId: MONITOR_ID,
+    });
     expect(screen.queryByTestId("guided-setup-other-monitor")).toBeNull();
     expect(screen.queryByTestId("guided-setup-existing-monitor")).toBeNull();
     await waitFor(() => {
@@ -3913,7 +4012,7 @@ describe("1. A monitor someone else made already checks the address (#7254)", ()
 
     expect(api["createMonitor"]).not.toHaveBeenCalled();
     expect(api["ensureMonitorOwner"]).not.toHaveBeenCalled();
-    expect(storedRun()).toEqual({});
+    expect(storedRun()).toEqual({ address: "acme.example" });
   });
 
   test("this person's own wins: theirs is used, and the project's are not asked", async () => {
@@ -3940,7 +4039,11 @@ describe("1. A monitor someone else made already checks the address (#7254)", ()
     await startChecking();
 
     expect(api["createMonitor"]).not.toHaveBeenCalled();
-    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+    expect(storedRun()).toEqual({
+      address: "acme.example",
+      monitorId: MONITOR_ID,
+      monitorIsExisting: true,
+    });
     expect(
       screen.getByTestId("guided-setup-existing-monitor"),
     ).toBeInTheDocument();
@@ -4279,5 +4382,382 @@ describe("4. Show it to customers? (#7053)", () => {
 
     expect(screen.queryByTestId("guided-setup-step-status_page")).toBeNull();
     expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  });
+});
+
+/*
+ * WHAT THE SETUP MAKES, AS IT MAKES IT (#10276): "when a monitor is created,
+ * I should see the resource being created ... the same with the on-call
+ * policy". The panel beside the steps lists each record under the step that
+ * makes it, with how it is getting on, and the run keeps it on the server
+ * (#7253), so another device draws the same panel.
+ */
+describe("the records it makes, beside the steps (#10276)", () => {
+  const resourceStatus: (key: string) => string | null = (
+    key: string,
+  ): string | null => {
+    return screen
+      .getByTestId(`guided-setup-resource-${key}`)
+      .getAttribute("data-status");
+  };
+
+  test("before anything is made: the monitor, the policy with its rule and rules, and the test page, each waiting", async () => {
+    await renderSetup();
+
+    for (const key of [
+      "monitor",
+      "on_call_policy",
+      "escalation_rule",
+      "on_call_rules",
+      "test_page",
+    ]) {
+      expect(resourceStatus(key)).toBe("waiting");
+    }
+
+    // The monitor is named as it will be while the address is typed.
+    typeAddress("https://acme.example/status");
+
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-name"),
+    ).toHaveTextContent("acme.example");
+  });
+
+  test("the monitor is made: Created, with how often it is checked and Open in a new tab", async () => {
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(resourceStatus("monitor")).toBe("created");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-detail"),
+    ).toHaveTextContent("Every 5 minutes");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-open"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/${MONITOR_ID}`,
+    );
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-open"),
+    ).toHaveAttribute("target", "_blank");
+
+    // Kept on the server, with what it made and how (#7253).
+    await waitFor(() => {
+      expect(guidedSetupRunServer.valuesOf("website_down")).toEqual({
+        address: "acme.example",
+        monitorId: MONITOR_ID,
+      });
+    });
+    expect(guidedSetupRunServer.resourcesOf("website_down")).toMatchObject({
+      monitor: {
+        status: "created",
+        recordId: MONITOR_ID,
+        name: "acme.example",
+      },
+    });
+  });
+
+  test("a monitor found rather than made is In use, never Created", async () => {
+    api["findOwnMonitor"]!.mockResolvedValue({
+      ...MONITOR,
+      id: MONITOR_ID,
+    });
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(resourceStatus("monitor")).toBe("existing");
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+  });
+
+  test("a monitor that could not be made: the panel says why, and Try again makes it - once", async () => {
+    api["createMonitor"]!.mockRejectedValueOnce(
+      new Error("OneUptime is busy and could not save this."),
+    );
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(resourceStatus("monitor")).toBe("failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-error"),
+    ).toHaveTextContent("OneUptime is busy and could not save this.");
+    await waitFor(() => {
+      expect(guidedSetupRunServer.resourcesOf("website_down")).toMatchObject({
+        monitor: {
+          status: "failed",
+          error: "OneUptime is busy and could not save this.",
+        },
+      });
+    });
+
+    await press("guided-setup-resource-monitor-retry");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(2);
+    expect(resourceStatus("monitor")).toBe("created");
+    expect(
+      screen.queryByTestId("guided-setup-resource-monitor-error"),
+    ).toBeNull();
+  });
+
+  test("Try again after a create that worked but answered too late: the monitor made then is found, not made twice", async () => {
+    // The server made it; the answer never arrived.
+    api["createMonitor"]!.mockRejectedValueOnce(
+      new Error("OneUptime could not be reached."),
+    );
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(resourceStatus("monitor")).toBe("failed");
+
+    // Tried again, the person's own monitor for the address is found.
+    api["findOwnMonitor"]!.mockResolvedValue({ ...MONITOR, id: MONITOR_ID });
+    await press("guided-setup-resource-monitor-retry");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    // The setup goes on with it: its first check, and the panel's In use.
+    expect(screen.getByTestId("guided-setup-first-check")).toBeInTheDocument();
+    expect(resourceStatus("monitor")).toBe("existing");
+    expect(storedRun()).toMatchObject({ monitorId: MONITOR_ID });
+  });
+
+  test("the policy, its first escalation rule and the rules that run it are made together, with a link to each", async () => {
+    keepRun({ monitorId: MONITOR_ID });
+    await renderSetup();
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+
+    for (const key of ["on_call_policy", "escalation_rule", "on_call_rules"]) {
+      expect(resourceStatus(key)).toBe("created");
+    }
+
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy-name"),
+    ).toHaveTextContent("Default on-call policy");
+    expect(
+      screen.getByTestId("guided-setup-resource-escalation_rule-detail"),
+    ).toHaveTextContent("Pages Ada Lovelace first.");
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy-open"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/on-call-duty/policies/${POLICY_ID}`,
+    );
+    expect(
+      screen.getByTestId("guided-setup-resource-escalation_rule-open"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/on-call-duty/policies/${POLICY_ID}/escalation`,
+    );
+  });
+
+  test("a policy that could not be made: it says why, the two after it wait, and Try again makes one policy", async () => {
+    keepRun({ monitorId: MONITOR_ID });
+    api["createPolicy"]!.mockRejectedValueOnce(
+      new Error("OneUptime is busy and could not save this."),
+    );
+    await renderSetup();
+    await press("guided-setup-who-continue");
+
+    expect(resourceStatus("on_call_policy")).toBe("failed");
+    expect(resourceStatus("escalation_rule")).toBe("waiting");
+    expect(resourceStatus("on_call_rules")).toBe("waiting");
+    expect(stepState("who_is_told")).toBe("open");
+
+    await press("guided-setup-resource-on_call_policy-retry");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(2);
+    expect(resourceStatus("on_call_policy")).toBe("created");
+    expect(stepState("test")).toBe("open");
+  });
+
+  test("a project that pages people already: its own policies, In use, and nothing made", async () => {
+    keepRun({ monitorId: MONITOR_ID });
+    api["loadWhoIsToldFacts"]!.mockResolvedValue({
+      policyCount: 1,
+      incidentRuleCount: 1,
+      alertRuleCount: 1,
+      mayCreatePolicy: true,
+      mayAddEscalationRules: true,
+      mayAddRules: true,
+    });
+    await renderSetup();
+
+    expect(resourceStatus("existing_policies")).toBe("existing");
+    expect(
+      screen.queryByTestId("guided-setup-resource-on_call_policy"),
+    ).toBeNull();
+  });
+
+  test("the test page: Sent, then Acknowledged; skipped, Skipped", async () => {
+    getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Paging));
+    keepRun({
+      monitorId: MONITOR_ID,
+      whoIsToldConfirmed: true,
+      testExecutionLogId: "log-1",
+    });
+    await renderSetup();
+
+    expect(resourceStatus("test_page")).toBe("creating");
+    expect(
+      screen.getByTestId("guided-setup-resource-test_page-status"),
+    ).toHaveTextContent("Sent");
+
+    await press("guided-setup-skip-test");
+
+    expect(resourceStatus("test_page")).toBe("skipped");
+  });
+
+  test("a run only the server kept - another device's - opens at the step it was on, the panel with it (#7253)", async () => {
+    guidedSetupRunServer.seed(
+      "website_down",
+      { address: "acme.example", monitorId: MONITOR_ID },
+      {
+        monitor: {
+          status: GuidedSetupResourceStatus.Created,
+          recordId: MONITOR_ID,
+          name: "acme.example",
+          at: "2026-11-20T10:00:00.000Z",
+        },
+      },
+    );
+    await renderSetup();
+
+    expect(stepState("check")).toBe("done");
+    expect(stepState("who_is_told")).toBe("open");
+    expect(resourceStatus("monitor")).toBe("created");
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+  });
+
+  test("a step that failed on another device opens on its address, with why and Try again (#7253)", async () => {
+    guidedSetupRunServer.seed(
+      "website_down",
+      { address: "https://acme.example", isApi: true },
+      {
+        monitor: {
+          status: GuidedSetupResourceStatus.Failed,
+          name: "acme.example",
+          error: "OneUptime is busy and could not save this.",
+          at: "2026-11-20T10:00:00.000Z",
+        },
+      },
+    );
+    await renderSetup();
+
+    expect(stepState("check")).toBe("open");
+    expect(screen.getByTestId("guided-setup-address")).toHaveValue(
+      "https://acme.example",
+    );
+    expect(resourceStatus("monitor")).toBe("failed");
+
+    await press("guided-setup-resource-monitor-retry");
+
+    expect(api["createMonitor"]).toHaveBeenCalledTimes(1);
+    expect(api["createMonitor"]!.mock.calls[0]![0]).toMatchObject({
+      isApi: true,
+    });
+    expect(resourceStatus("monitor")).toBe("created");
+  });
+
+  test("a monitor being made when its page closed, long ago: stopped, and Try again finds or makes it once", async () => {
+    guidedSetupRunServer.seed(
+      "website_down",
+      { address: "acme.example" },
+      {
+        monitor: {
+          status: GuidedSetupResourceStatus.Creating,
+          name: "acme.example",
+          at: "2020-01-01T00:00:00.000Z",
+        },
+      },
+    );
+    await renderSetup();
+
+    expect(resourceStatus("monitor")).toBe("failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-error"),
+    ).toHaveTextContent(
+      "This was being made when its page closed. Try again: nothing is made twice.",
+    );
+  });
+
+  test("an address given by Ask AI wins over the one the run kept", async () => {
+    guidedSetupRunServer.seed("website_down", {
+      address: "https://older.example",
+    });
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/monitors/setup?from=ask_ai&address=${encodeURIComponent("https://acme.example")}`,
+    );
+
+    try {
+      await renderSetup();
+
+      expect(screen.getByTestId("guided-setup-address")).toHaveValue(
+        "https://acme.example",
+      );
+    } finally {
+      window.history.replaceState(
+        {},
+        "",
+        `/dashboard/${PROJECT_ID}/monitors/setup`,
+      );
+    }
+  });
+
+  test("Check another address starts afresh on the server too: another device opens step 1", async () => {
+    keepRun({
+      monitorId: MONITOR_ID,
+      policyId: POLICY_ID,
+      testExecutionLogId: "log-1",
+    });
+    await renderSetup();
+    await press("guided-setup-start-over");
+
+    await waitFor(() => {
+      expect(guidedSetupRunServer.valuesOf("website_down")).toBeUndefined();
+    });
+    expect(resourceStatus("monitor")).toBe("waiting");
+  });
+
+  test("the panel says the run is saved to the person's account, and says so when it is not", async () => {
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-sync")).toHaveAttribute(
+        "data-sync",
+        "saved",
+      );
+    });
+
+    guidedSetupRunServer.isDown = true;
+    await press("guided-setup-check-continue");
+    await press("guided-setup-who-continue");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-sync")).toHaveAttribute(
+        "data-sync",
+        "not_saved",
+      );
+    });
+
+    guidedSetupRunServer.isDown = false;
+    await press("guided-setup-sync-retry");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-sync")).toHaveAttribute(
+        "data-sync",
+        "saved",
+      );
+    });
+    expect(guidedSetupRunServer.valuesOf("website_down")).toMatchObject({
+      monitorId: MONITOR_ID,
+      policyId: POLICY_ID,
+    });
   });
 });

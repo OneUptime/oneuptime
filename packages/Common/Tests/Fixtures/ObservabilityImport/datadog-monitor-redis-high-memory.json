@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "created_at": "2021-02-08",
+  "last_updated_at": "2026-04-09",
+  "title": "Memory consumption is high",
+  "tags": [
+    "integration:redis"
+  ],
+  "description": "Redis servers use RAM to store data and memory is a critical resource for its performance. This monitor tracks the percentage of used memory to avoid the risk of running out of memory, which can lead to performance issues.",
+  "definition": {
+    "message": "## What's happening?\n{{#is_alert}}\nRedis memory usage has exceeded 90% of its allocated limit in the last 5 minutes with current value of {{value}}.\n{{/is_alert}} \n\n{{#is_warning}}\nRedis memory usage has exceeded 70% of its allocated limit in the last 5 minutes with current value of {{value}}.\n{{/is_warning}}\n\n## Related Links\n\n- [Metrics Explorer (redis.mem.used)](/metric/explorer?exp_metric=redis.mem.used&exp_agg=avg&exp_type=line)\n- [Metrics Explorer (redis.mem.maxmemory)](/metric/explorer?exp_metric=redis.mem.maxmemory&exp_agg=avg&exp_type=line)",
+    "name": "[Redis] High memory consumption",
+    "options": {
+      "escalation_message": "",
+      "include_tags": true,
+      "locked": false,
+      "new_host_delay": 300,
+      "no_data_timeframe": null,
+      "notify_audit": false,
+      "notify_no_data": false,
+      "renotify_interval": 0,
+      "require_full_window": true,
+      "thresholds": {
+        "critical": 90,
+        "warning": 70
+      },
+      "timeout_h": 0
+    },
+    "priority": null,
+    "query": "avg(last_5m):100 * avg:redis.mem.used{*} / avg:redis.mem.maxmemory{*} > 90",
+    "restricted_roles": null,
+    "tags": [
+      "integration:redisdb"
+    ],
+    "type": "query alert"
+  }
+}

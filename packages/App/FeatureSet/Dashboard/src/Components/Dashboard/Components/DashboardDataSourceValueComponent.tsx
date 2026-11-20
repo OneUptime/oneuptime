@@ -131,10 +131,12 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
     }
 
     try {
-      const interpolatedQuery: string = DataSourceQueryText.applyVariables(
-        state.queryConfig.query,
-        state.variables,
-      );
+      const interpolatedQuery: string =
+        DataSourceQueryText.applyVariablesForSource({
+          dataSourceId: state.queryConfig.dataSourceId,
+          queryText: state.queryConfig.query,
+          variables: state.variables,
+        });
       const result: AggregatedResult =
         await DataSourceQueryUtil.fetchTimeSeries({
           queryConfig: { ...state.queryConfig, query: interpolatedQuery },

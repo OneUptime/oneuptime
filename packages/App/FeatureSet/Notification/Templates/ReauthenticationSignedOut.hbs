@@ -1,0 +1,50 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{!--
+  Sent to an account's address when a session of it was signed out after
+  too many wrong attempts to confirm it was its owner's (#10218, Confirm
+  It's You, Common/Server/Utils/Reauthentication/SignedOutEmail): a wrong
+  password, code, backup code, security key or passkey, from a session
+  that was already signed in - the clearest sign there is that somebody
+  else holds it. One email per session signed out, and a few a day at most.
+
+  It says what happened and when, in the reader's time zone; from where
+  the attempt that ended the session came (the rows of
+  Partials/RequestOriginFields.hbs, which show only what is known); that
+  the account is not locked; and what to do if it was not them: a new
+  password, which signs every device out (hasPassword), or their
+  organization's admin, for an account that signs in with single sign-on.
+
+  The product's name goes into a sentence through ttHtml, which escapes the
+  whole sentence; the time is a value. Everything else is OneUptime's own
+  words, looked up in the reader's language (Utils/EmailLanguage.ts).
+--}}
+
+{{> EmailTitle title=(t "A session of your account was signed out") }}
+
+{{> InfoBlock info=(ttHtml "A session signed in to your {{product}} account was asked to confirm it was you, and got it wrong too many times, so it has been signed out." product=(brandName))}}
+
+{{> InfoBlock info=(tHtml "Your account is not locked: you can sign in as usual.")}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=(t "Signed out at:") plainText=signedOutAt }}
+{{> RequestOriginFields this }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info=(tHtml "If this was you, sign in again to carry on.")}}
+
+{{#if hasPassword}}
+{{> InfoBlock info=(tHtml "If this was not you, someone else had that session and may still be able to sign in to your account. Reset your password: a new password signs every device out of your account.")}}
+
+{{> ButtonBlock buttonText=(t "Reset your password") buttonUrl=forgotPasswordUrl }}
+{{else}}
+{{> InfoBlock info=(tHtml "If this was not you, someone else had that session and may still be able to sign in to your account. Tell your organization's admin right away.")}}
+{{/if}}
+
+{{> SupportBlock this}}
+
+{{> Footer this}}
+
+{{> End this}}

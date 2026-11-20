@@ -1,5 +1,6 @@
 import { WEBSITE_DOWN_COPY } from "../../Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import WebsiteDownGuidedSetup from "../../Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup";
+import { GUIDED_SETUP_PAGE_CLASS_NAME } from "../../Components/GuidedSetup/GuidedSetupFrame";
 import { getMonitorBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
@@ -21,6 +22,7 @@ const MonitorGuidedSetup: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <Page
+      className={GUIDED_SETUP_PAGE_CLASS_NAME}
       title={WEBSITE_DOWN_COPY.pageTitle}
       description={WEBSITE_DOWN_COPY.pageDescription}
       breadcrumbLinks={getMonitorBreadcrumbs(

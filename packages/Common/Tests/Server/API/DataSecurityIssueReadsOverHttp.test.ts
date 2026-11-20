@@ -40,6 +40,8 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import { customDomainCaller } from "./CustomDomainCallers";
 import DashboardRequestsOverHttp, {
   SentRequest,
@@ -276,12 +278,20 @@ describe("the issue page's read, through the server", () => {
     "the read the page sends now is answered for %s: the issue, and the store it is on",
     async (_who: string, permissions: Array<Permission>) => {
       caller = callerWith(permissions);
+      // The page's own select for this reader (the layout's, #10281).
+      PermissionGate.clearPermissionPropsCache();
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue(permissions);
 
       const issue: DataSecurityIssue | null =
         await ModelAPI.getItem<DataSecurityIssue>({
           modelType: DataSecurityIssue,
           id: new ObjectID(ISSUE_ID),
-          select: DATA_SECURITY_ISSUE_VIEW_SELECT,
+          select: PermissionGate.getSelectReadableThroughRelations(
+            DataSecurityIssue,
+            DATA_SECURITY_ISSUE_VIEW_SELECT,
+          ),
         });
 
       const sent: Array<SentRequest> = server.sentTo(
@@ -295,8 +305,24 @@ describe("the issue page's read, through the server", () => {
       expect(issue?.title).toBe("Anyone on the internet can read it");
       expect(issue?.dataTypeIds).toEqual(["credit-card-number"]);
       expect(issue?.dataStore?.name).toBe("customer-exports");
-      expect(issue?.dataStore?.sensitivity).toBe("Restricted");
-      expect(issue?.dataStore?.exposure).toBe("Public");
+
+      /*
+       * The store's sensitivity and exposure: read through the issue only by
+       * who may read the store (#10281). A custom role that reads issues and
+       * not stores sends the read without them.
+       */
+      const readsStores: boolean = !permissions.includes(
+        Permission.ReadDataSecurityIssue,
+      );
+
+      expect({
+        sensitivity: issue?.dataStore?.sensitivity,
+        exposure: issue?.dataStore?.exposure,
+      }).toEqual(
+        readsStores
+          ? { sensitivity: "Restricted", exposure: "Public" }
+          : { sensitivity: undefined, exposure: undefined },
+      );
     },
   );
 

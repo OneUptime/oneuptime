@@ -625,7 +625,7 @@ test.describe("Profiler → AI → Insights", () => {
     } else {
       await expect(
         page
-          .getByRole("navigation", { name: "Main navigation" })
+          .getByRole("navigation", { name: "Pages in this section" })
           .getByRole("link", { name: "Insights" }),
       ).toHaveClass(/bg-indigo-50/);
     }

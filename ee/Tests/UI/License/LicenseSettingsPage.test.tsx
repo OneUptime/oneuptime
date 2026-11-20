@@ -399,7 +399,7 @@ describe("reading the license", () => {
 
     fireEvent.click(reveal);
 
-    const key: HTMLElement = screen.getByRole("revealed-text");
+    const key: HTMLElement = screen.getByTestId("hidden-text-value");
 
     expect(key).toHaveTextContent("acme-license-key");
     expect(value).toContainElement(key);

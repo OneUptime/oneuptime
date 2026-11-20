@@ -1,4 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import NameTakenException, {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/NameTakenException";
+import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -186,6 +192,7 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
   interface Request {
     query: Record<string, unknown>;
     select: Record<string, unknown>;
+    sort?: Record<string, unknown>;
     props: DatabaseCommonInteractionProps;
     limit?: number;
   }
@@ -326,6 +333,16 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
     ).rejects.toThrow(
       `A host with the host name "web-02" already exists. ${ARCHIVED_RESOURCE_HINT}`,
     );
+
+    // A host name is an identifier, not a name: no code (#10065).
+    const error: unknown = await check(
+      hostUpdate({ hostIdentifier: "web-02" }),
+    ).catch((caught: unknown): unknown => {
+      return caught;
+    });
+
+    expect(error).not.toBeInstanceOf(NameTakenException);
+    expect(getErrorDetails(error)).toEqual({});
   });
 
   test("refuses a blank identifier without looking anything up", async () => {
@@ -448,6 +465,65 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
 
     expect(sameTextValue(lookups[0]!.query["name"])).toBe("pve-production");
     expect((updateBy.data as any).name).toBe("pve-production");
+  });
+
+  /*
+   * A name, refused with the code a program tells a taken name by
+   * (#10065), saying whether the cluster that has it is archived; a taken
+   * host name is an identifier, and carries none.
+   */
+  test("a rename onto a name carries the code, archived or not; an identifier carries none", async () => {
+    const proxmox: MatchColumn = matchedOnName({
+      resourceName: "Proxmox cluster",
+    });
+    const renameOnto: (holder: ProxmoxCluster) => Promise<unknown> = async (
+      holder: ProxmoxCluster,
+    ): Promise<unknown> => {
+      const cluster: ProxmoxCluster = new ProxmoxCluster();
+      cluster._id = ROW_ID.toString();
+      cluster.projectId = PROJECT_ID;
+      cluster.name = "pve-staging";
+      targets = [cluster];
+      clash = holder;
+
+      return DiscoveredResourceUpdate.checkMatchColumn({
+        service,
+        updateBy: {
+          query: { _id: ROW_ID.toString() },
+          data: { name: "pve-production" } as any,
+          props: memberProps(),
+          skip: 0,
+          limit: 1,
+        } as unknown as UpdateBy<ProxmoxCluster>,
+        matchColumn: proxmox,
+      }).catch((error: unknown): unknown => {
+        return error;
+      });
+    };
+
+    const inService: unknown = await renameOnto(new ProxmoxCluster());
+
+    expect(inService).toBeInstanceOf(NameTakenException);
+    expect(getErrorDetails(inService)).toEqual({
+      refusalCode: NAME_TAKEN_REFUSAL_CODE,
+    });
+    // One in service is named before an archived one.
+    expect(lookups[lookups.length - 1]!.sort).toEqual({
+      isArchived: SortOrder.Ascending,
+    });
+
+    const archivedCluster: ProxmoxCluster = new ProxmoxCluster();
+    archivedCluster.isArchived = true;
+
+    const archived: unknown = await renameOnto(archivedCluster);
+
+    expect(archived).toBeInstanceOf(NameTakenException);
+    expect((archived as Error).message).toBe(
+      `Another Proxmox cluster is already named "pve-production". ${ARCHIVED_RESOURCE_HINT}`,
+    );
+    expect(getErrorDetails(archived)).toEqual({
+      refusalCode: NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    });
   });
 });
 

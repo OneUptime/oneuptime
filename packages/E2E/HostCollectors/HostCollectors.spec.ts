@@ -1090,7 +1090,7 @@ test("Put back sends an older version again, as the next version", async ({
   // Read it first: the version's own dialog puts it back.
   await versionRow(versions, 1).getByRole("button", { name: "View" }).click();
   const view: Locator = dialog(page);
-  // What changed, who saved it and when: "Created · Sam Patel · Oct 18 2026, ...".
+  // What changed, who saved it and when: "Created · Sam Patel · Oct 18, 2026, ...".
   const said: Array<string> = (
     (await view
       .getByText("Created · ", { exact: false })

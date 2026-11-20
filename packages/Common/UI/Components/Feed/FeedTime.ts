@@ -1,13 +1,15 @@
 import moment from "moment-timezone";
 import OneUptimeDate from "../../../Types/Date";
 import {
+  ReaderDateTimeFormat,
   formatRelativeAmount,
+  getDateTimeFormat as getReaderDateTimeFormat,
   getHourOption,
-  getNumberLocale,
   getDateLocale,
   isEnglishDateLanguage,
   rememberEnglishOf,
   writeDigitsInLocale,
+  writeStandAloneDayName,
 } from "../../../Types/DateLanguage";
 import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import Timezone from "../../../Types/Timezone";
@@ -113,49 +115,30 @@ export const getFeedLocale: (language: string | undefined) => string = (
   return getDateLocale(language);
 };
 
-const formatterCache: Map<string, Intl.DateTimeFormat> = new Map<
-  string,
-  Intl.DateTimeFormat
->();
-
 /*
- * Formatters are costly to build and a feed formats every entry, so each
- * one is built once per locale, zone and shape. Null when Intl cannot work
- * in this zone - moment knows a few zones some Intl builds do not - and the
- * caller falls back to moment's English.
+ * A feed's formatter for a shape, built once by DateLanguage, which works
+ * the wall clock out in the reader's zone with OneUptime's own zone data
+ * and has Intl write only the words (#10038): a feed's times were the
+ * browser's, an hour early in Vancouver in an older browser from November
+ * 2026. Null when nothing knows the zone, and the caller falls back to
+ * moment's English.
  */
 const getDateTimeFormat: (data: {
   locale: string;
   timezone: string;
   shape: string;
   options: Intl.DateTimeFormatOptions;
-}) => Intl.DateTimeFormat | null = (data: {
+}) => ReaderDateTimeFormat | null = (data: {
   locale: string;
   timezone: string;
   shape: string;
   options: Intl.DateTimeFormatOptions;
-}): Intl.DateTimeFormat | null => {
-  const cacheKey: string = `${data.locale}|${data.timezone}|${data.shape}`;
-  const cached: Intl.DateTimeFormat | undefined = formatterCache.get(cacheKey);
-
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-      getNumberLocale(data.locale),
-      {
-        ...data.options,
-        timeZone: data.timezone,
-      },
-    );
-
-    formatterCache.set(cacheKey, format);
-    return format;
-  } catch {
-    return null;
-  }
+}): ReaderDateTimeFormat | null => {
+  return getReaderDateTimeFormat({
+    locale: data.locale,
+    timezones: [data.timezone],
+    options: data.options,
+  });
 };
 
 const inZone: (date: Date, timezone: string) => moment.Moment = (
@@ -178,6 +161,31 @@ export const getFeedDayKey: (date: Date, timezone: string) => string = (
   return inZone(date, timezone).format("YYYY-MM-DD");
 };
 
+/*
+ * A day's heading above its entries, which starts with the day's name
+ * standing alone: "Martes, 13 de octubre de 2026" in Spanish, "tirsdag 13.
+ * oktober 2026" in Danish, as CLDR has each language write it (#7660).
+ * Inside a sentence the day is formatFeedDay's.
+ */
+export const formatFeedDayHeading: (date: Date, clock: FeedClock) => string = (
+  date: Date,
+  clock: FeedClock,
+): string => {
+  return (
+    rememberedWithEnglish({
+      text: writeStandAloneDayName({
+        name: formatFeedDay(date, clock),
+        language: clock.language,
+        context: "standAlone",
+      }),
+      clock,
+      english: (englishClock: FeedClock): string => {
+        return writeFeedDay(date, englishClock);
+      },
+    }) || ""
+  );
+};
+
 // "Tuesday, October 13, 2026", "Dienstag, 13. Oktober 2026".
 export const formatFeedDay: (date: Date, clock: FeedClock) => string = (
   date: Date,
@@ -198,7 +206,7 @@ const writeFeedDay: (date: Date, clock: FeedClock) => string = (
   date: Date,
   clock: FeedClock,
 ): string => {
-  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
     locale: getFeedLocale(clock.language),
     timezone: clock.timezone,
     shape: "day",
@@ -229,7 +237,7 @@ export const formatFeedTime: (date: Date, clock: FeedClock) => string = (
   date: Date,
   clock: FeedClock,
 ): string => {
-  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
     locale: getFeedLocale(clock.language),
     timezone: clock.timezone,
     shape: clock.use12HourClock ? "time-12" : "time-24",
@@ -300,7 +308,7 @@ const writeFeedFullTime: (date: Date, clock: FeedClock) => string = (
   date: Date,
   clock: FeedClock,
 ): string => {
-  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
     locale: getFeedLocale(clock.language),
     timezone: clock.timezone,
     shape: clock.use12HourClock ? "full-12" : "full-24",

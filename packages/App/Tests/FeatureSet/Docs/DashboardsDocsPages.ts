@@ -20,6 +20,7 @@ export const AUTHORING: string = "dashboards/authoring";
 export const WIDGETS: string = "dashboards/widgets";
 export const VARIABLES: string = "dashboards/variables";
 export const DATA_SOURCES: string = "dashboards/data-sources";
+export const IMPORT: string = "dashboards/import";
 export const SHARING: string = "dashboards/sharing";
 export const PLAYLISTS: string = "dashboards/playlists";
 export const CONFIGURATION: string = "dashboards/configuration";
@@ -31,6 +32,7 @@ export const DASHBOARDS_PAGES: ReadonlyArray<DashboardsDocsPageEntry> = [
   { page: WIDGETS, navTitle: "Dashboard Widgets" },
   { page: VARIABLES, navTitle: "Dashboard Variables & Filters" },
   { page: DATA_SOURCES, navTitle: "External Data Sources" },
+  { page: IMPORT, navTitle: "Import from Grafana and Datadog" },
   { page: SHARING, navTitle: "Sharing & Public Dashboards" },
   { page: PLAYLISTS, navTitle: "Dashboard Playlists" },
   { page: CONFIGURATION, navTitle: "Dashboard Configuration & Permissions" },

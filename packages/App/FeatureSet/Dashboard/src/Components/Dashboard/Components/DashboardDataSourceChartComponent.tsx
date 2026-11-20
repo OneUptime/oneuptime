@@ -148,10 +148,12 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
     try {
       const fetched: Array<AggregatedResult> = await Promise.all(
         state.queryConfigs.map((config: DataSourceQueryConfig) => {
-          const interpolatedQuery: string = DataSourceQueryText.applyVariables(
-            config.query,
-            state.variables,
-          );
+          const interpolatedQuery: string =
+            DataSourceQueryText.applyVariablesForSource({
+              dataSourceId: config.dataSourceId,
+              queryText: config.query,
+              variables: state.variables,
+            });
           return DataSourceQueryUtil.fetchTimeSeries({
             queryConfig: { ...config, query: interpolatedQuery },
             startDate: state.startDate!,
@@ -231,7 +233,8 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
                   : translator.translateTemplate("Query {{number}}", {
                       number: index + 1,
                     }),
-            legendUnit: undefined,
+            // The unit the widget names reads the value axis and the tooltip.
+            legendUnit: props.component.arguments.unit?.trim() || undefined,
           },
           metricQueryData: {
             filterData: {},
@@ -239,6 +242,13 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
               attributeKeys.length > 0 ? attributeKeys : undefined,
           },
           chartType: getMetricChartType(),
+          /*
+           * Every query is drawn on the one chart, as the widget's type says
+           * (DashboardDataSourceChartComponent) and as Grafana and every
+           * outside source draw a panel's queries: drawn apart, a panel of
+           * six queries was six charts stacked in the widget (issue #7697).
+           */
+          overlayWithPreviousQuery: index > 0,
         };
 
         if (legendTemplate && legendTemplate.includes("{{")) {
@@ -264,7 +274,13 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
       startAndEndDate: startAndEndDate,
       formulaConfigs: [],
     };
-  }, [queryConfigs, results, startAndEndDate, getMetricChartType]);
+  }, [
+    queryConfigs,
+    results,
+    startAndEndDate,
+    getMetricChartType,
+    props.component.arguments.unit,
+  ]);
 
   /*
    * Drag-to-zoom retimes the whole board, exactly as the metric chart

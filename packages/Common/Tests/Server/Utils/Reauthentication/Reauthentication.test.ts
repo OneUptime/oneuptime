@@ -25,10 +25,16 @@ import UserSessionService from "../../../../Server/Services/UserSessionService";
 import UserTotpAuthService from "../../../../Server/Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "../../../../Server/Services/UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "../../../../Server/Services/UserWebAuthnService";
+import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
+import SsoRequiredSignIn from "../../../../Server/Utils/SsoRequiredSignIn";
 import Reauthentication, {
   ReauthenticationSession,
 } from "../../../../Server/Utils/Reauthentication/Reauthentication";
 import TotpAuth from "../../../../Server/Utils/TotpAuth";
+import ReauthenticationSignedOutEmail from "../../../../Server/Utils/Reauthentication/SignedOutEmail";
+import TwoFactorBackupCodeNotification, {
+  BackupCodeUse,
+} from "../../../../Server/Utils/TwoFactorBackupCodeNotification";
 import TwoFactorWrongCodes from "../../../../Server/Utils/TwoFactorWrongCodes";
 import User from "../../../../Models/DatabaseModels/User";
 import UserSession from "../../../../Models/DatabaseModels/UserSession";
@@ -37,12 +43,24 @@ import UserWebAuthn from "../../../../Models/DatabaseModels/UserWebAuthn";
 import {
   REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT,
   REAUTHENTICATION_MESSAGES,
+  REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES,
+  REAUTHENTICATION_PURPOSE_FIELD,
+  REAUTHENTICATION_REQUIRED_MESSAGES,
   REAUTHENTICATION_REQUIRED_REFUSAL_CODE,
   REAUTHENTICATION_WINDOW_IN_MINUTES,
   ReauthenticationMethods,
+  ReauthenticationPurpose,
+  ReauthenticationSignInAgain,
   ReauthenticationStatus,
   ReauthenticationWebAuthnKind,
+  SignInAgainProvider,
+  SignInAgainRefusal,
 } from "../../../../Types/Accounts/Reauthentication";
+import {
+  SessionSignIn,
+  SignInMethod,
+  toSessionSignInInfo,
+} from "../../../../Types/UserSession/SessionSignIn";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../../Types/Email";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -96,6 +114,70 @@ const SESSION: ReauthenticationSession = {
   sessionId: SESSION_ID,
 };
 
+/*
+ * How the session signed in (#10217): with a password; a Sign In Again its
+ * provider said it authenticated after it was asked to, at the sign-in; one
+ * that reused the provider's session, or said nothing; a single sign-on
+ * Sign In Again did not start; a sign-in link.
+ */
+type SignedInWith =
+  | "Password"
+  | "SignInAgain"
+  | "ReusedSession"
+  | "NoSignInTime"
+  | "SingleSignOn"
+  | "SignInLink"
+  | "Google"
+  | "GlobalOidc";
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "eeeeeeee-5555-4555-8555-eeeeeeeeeeee",
+);
+const PROVIDER_ID: ObjectID = new ObjectID(
+  "ffffffff-6666-4666-8666-ffffffffffff",
+);
+
+function signInOf(with_: SignedInWith, signedInAt: Date): SessionSignIn {
+  const okta: SessionSignIn = {
+    method: SignInMethod.Saml,
+    ssoProviderName: "Okta",
+    ssoProjectId: PROJECT_ID,
+    ssoProviderId: PROVIDER_ID,
+  };
+
+  switch (with_) {
+    case "Password":
+      return { method: SignInMethod.Password };
+    case "SignInAgain":
+      return { ...okta, signInAgain: { reauthenticatedAt: signedInAt } };
+    case "ReusedSession":
+      return {
+        ...okta,
+        signInAgain: { refusal: SignInAgainRefusal.ReusedSession },
+      };
+    case "NoSignInTime":
+      return {
+        ...okta,
+        signInAgain: { refusal: SignInAgainRefusal.NoSignInTime },
+      };
+    case "SingleSignOn":
+      return okta;
+    case "SignInLink":
+      return { method: SignInMethod.SignInLink };
+    case "Google":
+      return {
+        method: SignInMethod.Google,
+        signInAgain: { refusal: SignInAgainRefusal.NoSignInTime },
+      };
+    case "GlobalOidc":
+      return {
+        method: SignInMethod.OpenIdConnect,
+        ssoProviderName: "Entra",
+        ssoProviderId: PROVIDER_ID,
+      };
+  }
+}
+
 // What an account has, for the stubs to answer with.
 interface Account {
   hasPassword: boolean;
@@ -106,6 +188,7 @@ interface Account {
   unusedBackupCodes: number;
   // When the session signed in, minutes ago.
   signedInMinutesAgo: number;
+  signedInWith: SignedInWith;
   isSessionRevoked: boolean;
   sessionUserId: ObjectID;
 }
@@ -117,6 +200,7 @@ const PASSWORD_ACCOUNT: Account = {
   keys: [],
   unusedBackupCodes: 0,
   signedInMinutesAgo: 120,
+  signedInWith: "Password",
   isSessionRevoked: false,
   sessionUserId: USER_ID,
 };
@@ -129,9 +213,11 @@ const TWO_FACTOR_ACCOUNT: Account = {
   unusedBackupCodes: 8,
 };
 
+// Its session signed in with a Sign In Again its provider confirmed.
 const SSO_ONLY_ACCOUNT: Account = {
   ...PASSWORD_ACCOUNT,
   hasPassword: false,
+  signedInWith: "SignInAgain",
 };
 
 const PASSKEY_ONLY_ACCOUNT: Account = {
@@ -218,6 +304,10 @@ let revokeSession: SpyInstance<
   typeof UserSessionService.revokeLiveSessionOfUser
 >;
 let verifyPassword: SpyInstance<typeof UserService.verifyHashedColumnValue>;
+let notifySignedOut: SpyInstance<typeof ReauthenticationSignedOutEmail.notify>;
+let notifyCodeUsed: SpyInstance<
+  typeof TwoFactorBackupCodeNotification.notifyCodeUsed
+>;
 let consumeBackupCode: SpyInstance<
   typeof UserTwoFactorBackupCodeService.consumeCode
 >;
@@ -334,12 +424,32 @@ beforeEach(() => {
       session.createdAt = new Date(
         Date.now() - account.signedInMinutesAgo * MINUTE_IN_MS,
       );
+      session.additionalInfo = toSessionSignInInfo({
+        signIn: signInOf(account.signedInWith, session.createdAt),
+      });
       return session;
     }) as never);
+
+  // The server lets sign-in links sign people in (#10217's fallback).
+  jest.spyOn(SsoRequiredSignIn, "isSsoRequired").mockResolvedValue(false);
+  jest
+    .spyOn(GlobalConfigService, "getMagicLinkLoginTurnedOff")
+    .mockResolvedValue(false);
 
   revokeSession = jest
     .spyOn(UserSessionService, "revokeLiveSessionOfUser")
     .mockResolvedValue(true as never);
+
+  /*
+   * The emails to the account's owner (#10218, #10219), held back here:
+   * what they say is ReauthenticationEmails.test.ts.
+   */
+  notifySignedOut = jest
+    .spyOn(ReauthenticationSignedOutEmail, "notify")
+    .mockResolvedValue(true);
+  notifyCodeUsed = jest
+    .spyOn(TwoFactorBackupCodeNotification, "notifyCodeUsed")
+    .mockResolvedValue(true);
 
   verifyPassword = jest
     .spyOn(UserService, "verifyHashedColumnValue")
@@ -499,7 +609,7 @@ describe("the check every change to how one signs in asks first", () => {
     },
   );
 
-  test("a session that has not confirmed is refused with the code a client acts on, and nothing else", async () => {
+  test("a session that has not confirmed is refused with the code a client acts on, and what it is for, and nothing else", async () => {
     const refusal: Exception = await refusalOf(
       Reauthentication.assertConfirmed(signedInProps()),
     );
@@ -510,6 +620,7 @@ describe("the check every change to how one signs in asks first", () => {
     expect(refusal.message).toBe(REAUTHENTICATION_MESSAGES.required);
     expect(getErrorDetails(refusal)).toEqual({
       refusalCode: REAUTHENTICATION_REQUIRED_REFUSAL_CODE,
+      [REAUTHENTICATION_PURPOSE_FIELD]: ReauthenticationPurpose.OwnSignIn,
     });
     expect(
       ReauthenticationRequiredException.isRefusal({
@@ -578,7 +689,7 @@ describe("the check every change to how one signs in asks first", () => {
     ).toBeInstanceOf(ReauthenticationRequiredException);
   });
 
-  test("an account that confirms by signing in: a sign-in of this session in the window lets the change through", async () => {
+  test("an account that confirms by signing in: a Sign In Again of this session in the window lets the change through", async () => {
     useAccount({ ...SSO_ONLY_ACCOUNT, signedInMinutesAgo: 3 });
 
     await expect(
@@ -786,6 +897,8 @@ describe("a confirmation with the password", () => {
 
       expect(refusal.message).toBe(REAUTHENTICATION_MESSAGES.wrongPassword);
       expect(revokeSession).not.toHaveBeenCalled();
+      // A wrong attempt below the limit tells nobody (#10218).
+      expect(notifySignedOut).not.toHaveBeenCalled();
     }
 
     const last: Exception = await refusalOf(
@@ -808,6 +921,34 @@ describe("a confirmation with the password", () => {
         requestOrigin: { ipAddress: "203.0.113.9" },
       },
     );
+
+    // The owner is told, once, from where (#10218).
+    expect(notifySignedOut).toHaveBeenCalledTimes(1);
+    expect(notifySignedOut).toHaveBeenCalledWith({
+      userId: USER_ID,
+      origin: { ipAddress: "203.0.113.9" },
+    });
+  });
+
+  test("a session that had already ended when its attempt reached the limit tells nobody again (#10218)", async () => {
+    revokeSession.mockResolvedValue(false as never);
+
+    for (
+      let i: number = 0;
+      i < REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT;
+      i++
+    ) {
+      await refusalOf(
+        Reauthentication.confirm({
+          session: SESSION,
+          proof: { password: `wrong ${i}` },
+          clientIp: "203.0.113.9",
+        }),
+      );
+    }
+
+    expect(revokeSession).toHaveBeenCalledTimes(1);
+    expect(notifySignedOut).not.toHaveBeenCalled();
   });
 
   test("the owner is never locked out: nothing about the account's sign-in moves, and another session confirms as before", async () => {
@@ -980,9 +1121,17 @@ describe("a confirmation while two-factor authentication is on", () => {
       userId: USER_ID,
       code: RIGHT_BACKUP_CODE,
     });
+
+    // Spent, as a sign-in spends one: its owner is told, once (#10219).
+    expect(notifyCodeUsed).toHaveBeenCalledTimes(1);
+    expect(notifyCodeUsed).toHaveBeenCalledWith({
+      userId: USER_ID,
+      usedFor: BackupCodeUse.ConfirmItsYou,
+      origin: undefined,
+    });
   });
 
-  test("a wrong or used backup code is said", async () => {
+  test("a wrong or used backup code is said, and tells the owner nothing", async () => {
     expect(
       (
         await refusalOf(
@@ -994,6 +1143,7 @@ describe("a confirmation while two-factor authentication is on", () => {
         )
       ).message,
     ).toBe(REAUTHENTICATION_MESSAGES.wrongBackupCode);
+    expect(notifyCodeUsed).not.toHaveBeenCalled();
   });
 
   test("the security key confirms with the password: its answer is checked for this session, as a second step", async () => {
@@ -1295,5 +1445,284 @@ describe("a key's options", () => {
         }),
       ),
     ).toBeInstanceOf(BadDataException);
+  });
+});
+
+/*
+ * SIGN IN AGAIN COUNTS ONLY WHEN IT PROVED ITS PERSON WAS ASKED (#10217).
+ *
+ * A session's own sign-in used to confirm an account with neither a
+ * password nor a passkey for the window, however it happened - and an
+ * identity provider that remembers its session signs a browser straight
+ * back in, asking nothing. Now only a Sign In Again whose provider said it
+ * authenticated the person after it was asked to, or a sign-in link,
+ * counts; and the status says where Sign In Again goes, and why the last
+ * one did not confirm.
+ */
+describe("Sign In Again counts only when it proved its person was asked (#10217)", () => {
+  test("a single sign-on Sign In Again did not start confirms nothing, a minute after it", async () => {
+    useAccount({
+      ...SSO_ONLY_ACCOUNT,
+      signedInWith: "SingleSignOn",
+      signedInMinutesAgo: 1,
+    });
+
+    expect(
+      await refusalOf(Reauthentication.assertConfirmed(signedInProps())),
+    ).toBeInstanceOf(ReauthenticationRequiredException);
+  });
+
+  test.each([
+    ["used a session it already had", "ReusedSession"],
+    ["did not say when the person signed in", "NoSignInTime"],
+  ] as Array<[string, SignedInWith]>)(
+    "a Sign In Again whose provider %s confirms nothing, a minute after it",
+    async (_name: string, signedInWith: SignedInWith) => {
+      useAccount({
+        ...SSO_ONLY_ACCOUNT,
+        signedInWith: signedInWith,
+        signedInMinutesAgo: 1,
+      });
+
+      expect(
+        await refusalOf(Reauthentication.assertConfirmed(signedInProps())),
+      ).toBeInstanceOf(ReauthenticationRequiredException);
+    },
+  );
+
+  test("a confirmed Sign In Again holds for the window from when the provider authenticated them", async () => {
+    useAccount({ ...SSO_ONLY_ACCOUNT, signedInMinutesAgo: 4 });
+
+    const status: ReauthenticationStatus =
+      await Reauthentication.getStatus(SESSION);
+
+    expect(status.isConfirmed).toBe(true);
+    expect(
+      Math.abs(
+        status.confirmedUntil!.getTime() -
+          (Date.now() +
+            (REAUTHENTICATION_WINDOW_IN_MINUTES - 4) * MINUTE_IN_MS),
+      ),
+    ).toBeLessThan(1000);
+
+    useAccount({ ...SSO_ONLY_ACCOUNT, signedInMinutesAgo: 11 });
+
+    expect(
+      await refusalOf(Reauthentication.assertConfirmed(signedInProps())),
+    ).toBeInstanceOf(ReauthenticationRequiredException);
+  });
+
+  test("a sign-in link confirms for the window from when it was opened, and not after", async () => {
+    useAccount({
+      ...SSO_ONLY_ACCOUNT,
+      signedInWith: "SignInLink",
+      signedInMinutesAgo: 3,
+    });
+
+    await expect(
+      Reauthentication.assertConfirmed(signedInProps()),
+    ).resolves.toBeUndefined();
+
+    useAccount({
+      ...SSO_ONLY_ACCOUNT,
+      signedInWith: "SignInLink",
+      signedInMinutesAgo: 11,
+    });
+
+    expect(
+      await refusalOf(Reauthentication.assertConfirmed(signedInProps())),
+    ).toBeInstanceOf(ReauthenticationRequiredException);
+  });
+
+  test("a password account's Sign In Again record confirms nothing: it confirms with its password", async () => {
+    useAccount({
+      ...PASSWORD_ACCOUNT,
+      signedInWith: "SignInAgain",
+      signedInMinutesAgo: 1,
+    });
+
+    expect(
+      await refusalOf(Reauthentication.assertConfirmed(signedInProps())),
+    ).toBeInstanceOf(ReauthenticationRequiredException);
+  });
+
+  test("the status says where Sign In Again goes, for a project's SAML provider", async () => {
+    useAccount({
+      ...SSO_ONLY_ACCOUNT,
+      signedInWith: "SingleSignOn",
+      signedInMinutesAgo: 30,
+    });
+
+    const status: ReauthenticationStatus =
+      await Reauthentication.getStatus(SESSION);
+
+    expect(status.signInAgain).toEqual({
+      route: `/sso/${PROJECT_ID.toString()}/${PROVIDER_ID.toString()}`,
+      provider: SignInAgainProvider.SingleSignOn,
+      providerName: "Okta",
+      refusal: null,
+      canUseSignInLink: true,
+    } as ReauthenticationSignInAgain);
+  });
+
+  test.each([
+    ["reused session", "ReusedSession", SignInAgainRefusal.ReusedSession],
+    ["no sign-in time", "NoSignInTime", SignInAgainRefusal.NoSignInTime],
+  ] as Array<[string, SignedInWith, SignInAgainRefusal]>)(
+    "the status says why the last Sign In Again did not confirm: %s",
+    async (
+      _name: string,
+      signedInWith: SignedInWith,
+      refusal: SignInAgainRefusal,
+    ) => {
+      useAccount({
+        ...SSO_ONLY_ACCOUNT,
+        signedInWith: signedInWith,
+        signedInMinutesAgo: 1,
+      });
+
+      const status: ReauthenticationStatus =
+        await Reauthentication.getStatus(SESSION);
+
+      expect(status.isConfirmed).toBe(false);
+      expect(status.signInAgain?.refusal).toBe(refusal);
+      expect(status.signInAgain?.providerName).toBe("Okta");
+    },
+  );
+
+  test("the status sends Google's and the server's own OpenID Connect sign-ins back the same way", async () => {
+    useAccount({ ...SSO_ONLY_ACCOUNT, signedInWith: "Google" });
+
+    expect((await Reauthentication.getStatus(SESSION)).signInAgain).toEqual({
+      route: "/google/sign-in",
+      provider: SignInAgainProvider.Google,
+      providerName: "Google",
+      refusal: SignInAgainRefusal.NoSignInTime,
+      canUseSignInLink: true,
+    } as ReauthenticationSignInAgain);
+
+    useAccount({ ...SSO_ONLY_ACCOUNT, signedInWith: "GlobalOidc" });
+
+    expect((await Reauthentication.getStatus(SESSION)).signInAgain?.route).toBe(
+      `/global-oidc/${PROVIDER_ID.toString()}`,
+    );
+  });
+
+  test("a sign-in link, or a session that does not say, goes to the sign-in page", async () => {
+    useAccount({ ...SSO_ONLY_ACCOUNT, signedInWith: "SignInLink" });
+
+    expect((await Reauthentication.getStatus(SESSION)).signInAgain).toEqual({
+      route: null,
+      provider: SignInAgainProvider.SignInPage,
+      providerName: null,
+      refusal: null,
+      canUseSignInLink: true,
+    } as ReauthenticationSignInAgain);
+  });
+
+  test("a sign-in link stands in only while the server lets one sign people in", async () => {
+    useAccount(SSO_ONLY_ACCOUNT);
+
+    jest.spyOn(SsoRequiredSignIn, "isSsoRequired").mockResolvedValue(true);
+
+    expect(
+      (await Reauthentication.getStatus(SESSION)).signInAgain?.canUseSignInLink,
+    ).toBe(false);
+
+    jest.spyOn(SsoRequiredSignIn, "isSsoRequired").mockResolvedValue(false);
+    jest
+      .spyOn(GlobalConfigService, "getMagicLinkLoginTurnedOff")
+      .mockResolvedValue(true);
+
+    expect(
+      (await Reauthentication.getStatus(SESSION)).signInAgain?.canUseSignInLink,
+    ).toBe(false);
+  });
+
+  test("an account that confirms in place has no Sign In Again in its status", async () => {
+    useAccount(TWO_FACTOR_ACCOUNT);
+
+    expect((await Reauthentication.getStatus(SESSION)).signInAgain).toBeNull();
+  });
+});
+
+/*
+ * WHAT A CONFIRMATION IS FOR (#10216, #10220): the refusal names its
+ * purpose beside its code, in words of its own, and so does the refusal of
+ * a request with no session.
+ */
+describe("a refusal says what it is for", () => {
+  test.each([
+    [ReauthenticationPurpose.OwnSignIn],
+    [ReauthenticationPurpose.DeleteAccount],
+    [ReauthenticationPurpose.AdminChange],
+  ])(
+    "%s: its words, its code and its purpose",
+    async (purpose: ReauthenticationPurpose) => {
+      const refusal: Exception = await refusalOf(
+        Reauthentication.assertConfirmed(signedInProps(), purpose),
+      );
+
+      expect(refusal).toBeInstanceOf(ReauthenticationRequiredException);
+      expect(refusal.message).toBe(REAUTHENTICATION_REQUIRED_MESSAGES[purpose]);
+      expect(getErrorDetails(refusal)).toEqual({
+        refusalCode: REAUTHENTICATION_REQUIRED_REFUSAL_CODE,
+        [REAUTHENTICATION_PURPOSE_FIELD]: purpose,
+      });
+      expect(
+        ReauthenticationRequiredException.getPurpose(getErrorDetails(refusal)),
+      ).toBe(purpose);
+    },
+  );
+
+  test.each([
+    [ReauthenticationPurpose.OwnSignIn],
+    [ReauthenticationPurpose.DeleteAccount],
+    [ReauthenticationPurpose.AdminChange],
+  ])(
+    "%s, from a request with no session - an API key, the master API key: refused with what to do",
+    async (purpose: ReauthenticationPurpose) => {
+      const refusal: Exception = await refusalOf(
+        Reauthentication.assertConfirmed(
+          { userId: USER_ID, isMasterAdmin: true },
+          purpose,
+        ),
+      );
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect(refusal).not.toBeInstanceOf(ReauthenticationRequiredException);
+      expect(refusal.message).toBe(
+        REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES[purpose],
+      );
+    },
+  );
+
+  test("each purpose has words of its own", () => {
+    const words: Array<string> = Object.values(ReauthenticationPurpose).map(
+      (purpose: ReauthenticationPurpose): string => {
+        return REAUTHENTICATION_REQUIRED_MESSAGES[purpose];
+      },
+    );
+
+    expect(new Set(words).size).toBe(words.length);
+    expect(
+      REAUTHENTICATION_REQUIRED_MESSAGES[ReauthenticationPurpose.OwnSignIn],
+    ).toBe(REAUTHENTICATION_MESSAGES.required);
+  });
+
+  test("a body that names no purpose, or one that is not, reads as a change to how you sign in", () => {
+    expect(ReauthenticationRequiredException.getPurpose(null)).toBe(
+      ReauthenticationPurpose.OwnSignIn,
+    );
+    expect(
+      ReauthenticationRequiredException.getPurpose({
+        refusalCode: REAUTHENTICATION_REQUIRED_REFUSAL_CODE,
+      }),
+    ).toBe(ReauthenticationPurpose.OwnSignIn);
+    expect(
+      ReauthenticationRequiredException.getPurpose({
+        [REAUTHENTICATION_PURPOSE_FIELD]: "TakeEverything",
+      }),
+    ).toBe(ReauthenticationPurpose.OwnSignIn);
   });
 });
