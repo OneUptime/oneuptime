@@ -2282,6 +2282,16 @@ import NetworkDeviceOwnerTeamService, {
   Service as NetworkDeviceOwnerTeamServiceType,
 } from "Common/Server/Services/NetworkDeviceOwnerTeamService";
 
+// NetworkSiteOwnerUser and NetworkSiteOwnerTeam (#10188)
+import NetworkSiteOwnerUser from "Common/Models/DatabaseModels/NetworkSiteOwnerUser";
+import NetworkSiteOwnerUserService, {
+  Service as NetworkSiteOwnerUserServiceType,
+} from "Common/Server/Services/NetworkSiteOwnerUserService";
+import NetworkSiteOwnerTeam from "Common/Models/DatabaseModels/NetworkSiteOwnerTeam";
+import NetworkSiteOwnerTeamService, {
+  Service as NetworkSiteOwnerTeamServiceType,
+} from "Common/Server/Services/NetworkSiteOwnerTeamService";
+
 // NetworkDeviceOwnerRule
 import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
 import NetworkDeviceOwnerRuleService, {
@@ -7760,6 +7770,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkDeviceOwnerTeam, NetworkDeviceOwnerTeamServiceType>(
         NetworkDeviceOwnerTeam,
         NetworkDeviceOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // network site owner user
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteOwnerUser, NetworkSiteOwnerUserServiceType>(
+        NetworkSiteOwnerUser,
+        NetworkSiteOwnerUserService,
+      ).getRouter(),
+    );
+
+    // network site owner team
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteOwnerTeam, NetworkSiteOwnerTeamServiceType>(
+        NetworkSiteOwnerTeam,
+        NetworkSiteOwnerTeamService,
       ).getRouter(),
     );
 

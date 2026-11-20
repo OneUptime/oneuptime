@@ -24,6 +24,8 @@ import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
+import NetworkSiteOwnerTeam from "./NetworkSiteOwnerTeam";
+import NetworkSiteOwnerUser from "./NetworkSiteOwnerUser";
 import NetworkSiteType from "./NetworkSiteType";
 import NetworkEndpoint from "./NetworkEndpoint";
 import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
@@ -1248,6 +1250,8 @@ const AllModelTypes: Array<{
   PacketCapture,
   NetworkInterface,
   NetworkSite,
+  NetworkSiteOwnerTeam,
+  NetworkSiteOwnerUser,
   NetworkSiteType,
   NetworkEndpoint,
   NetworkSiteStatusTimeline,

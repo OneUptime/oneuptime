@@ -113,7 +113,7 @@ export const CIRCUIT_BREAKER_COPY: {
     "Ask the circuit breaker as the pipeline's first step, and run the rest only when it clears the pipeline to run.",
   ),
   setupKey: translationKey(
-    "Create a project API key that may read Data Observability under Project Settings > API Keys, and give it to the step as ONEUPTIME_API_KEY.",
+    "Create a project API key that may read Data Observability under Project Settings > Advanced > API Keys, and give it to the step as ONEUPTIME_API_KEY.",
   ),
   curlNote: translationKey(
     "With failWithStatusCode, a stop answers HTTP 412, so curl -f fails the step and the steps after it do not run.",

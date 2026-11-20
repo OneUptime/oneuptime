@@ -431,8 +431,9 @@ describe("the Esper connections list", () => {
     const props: Record<string, unknown> = renderConnections();
     const done: MockFunction = getJestMockFunction();
 
+    // #10006: the connection's own alert first, then its devices'.
     expect(action(props, "Set up alerts").tooltip).toBe(
-      "Get an alert when one of its devices stops checking in.",
+      "Get an alert when it stops reading, or when one of its devices stops checking in.",
     );
     void action(props, "Set up alerts").onClick(
       connection(),

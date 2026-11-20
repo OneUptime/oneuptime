@@ -119,6 +119,7 @@ const drawCard: (data: {
     availableUsers: [],
     onAssignMember: async (): Promise<void> => {},
     onUnassignMember: async (): Promise<void> => {},
+    onReassignMember: async (): Promise<void> => {},
     onRefresh: async (): Promise<void> => {},
   };
 

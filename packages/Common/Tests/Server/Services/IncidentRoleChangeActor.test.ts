@@ -32,7 +32,12 @@ import WorkspaceNotificationRuleService from "../../../Server/Services/Workspace
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import IncidentRoleFeedText from "../../../Server/Utils/Incident/IncidentRoleFeedText";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -925,7 +930,7 @@ describe("a workflow's step", () => {
 });
 
 describe("Slack and Teams' Assign Role", () => {
-  test("the member who picked it is the one the line is by - and whoever it moved from is taken off by them too", async () => {
+  test("the member who picked it is the one the line is by: one line, the role handed on from Ana to Deane (#10270)", async () => {
     // Incident Commander takes one person: Ana holds it.
     const commander: IncidentRole = new IncidentRole();
     commander._id = COMMANDER_ROLE_ID.toString();
@@ -959,20 +964,67 @@ describe("Slack and Teams' Assign Role", () => {
       )
       .mockResolvedValue("Deane Looi" as never);
 
-    // The member's writes, as the database makes them, hooks included.
+    /*
+     * The member's write, as the database makes it once they may make it:
+     * the hook that reads the row the update is held to (Ana's), then the
+     * success hook with the row it wrote. Nothing is added or taken off.
+     */
     jest
-      .spyOn(IncidentMemberService, "create")
-      .mockImplementation(createAsTheDatabaseDoes as never);
+      .spyOn(IncidentMemberService, "findOneRowAndHoldUpdateToIt")
+      .mockResolvedValue({
+        row: memberRow({ userId: ANA_ID, roleId: COMMANDER_ROLE_ID }),
+        writesMore: false,
+      } as never);
+    // Deane holds no role on the incident yet.
+    jest.spyOn(IncidentMemberService, "findOneBy").mockResolvedValue(null);
+    const create: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      IncidentMemberService,
+      "create",
+    );
+    const deleteOne: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      IncidentMemberService,
+      "deleteOneById",
+    );
     jest
-      .spyOn(IncidentMemberService, "deleteOneById")
-      .mockImplementation((async (deleteBy: {
+      .spyOn(IncidentMemberService, "updateOneById")
+      .mockImplementation((async (updateById: {
+        id: ObjectID;
+        data: JSONObject;
         props: DatabaseCommonInteractionProps;
       }) => {
-        await remove({
-          userId: ANA_ID,
-          roleId: COMMANDER_ROLE_ID,
-          props: deleteBy.props,
-        });
+        const updateBy: UpdateBy<IncidentMember> = {
+          query: { _id: updateById.id.toString() },
+          data: updateById.data,
+          props: updateById.props,
+          limit: 1,
+          skip: 0,
+        } as unknown as UpdateBy<IncidentMember>;
+        const hooks: {
+          onUpdatePermitted: (
+            updateBy: UpdateBy<IncidentMember>,
+          ) => Promise<void>;
+          onUpdateSuccess: (
+            onUpdate: OnUpdate<IncidentMember>,
+            ids: Array<ObjectID>,
+          ) => Promise<OnUpdate<IncidentMember>>;
+        } = IncidentMemberService as unknown as {
+          onUpdatePermitted: (
+            updateBy: UpdateBy<IncidentMember>,
+          ) => Promise<void>;
+          onUpdateSuccess: (
+            onUpdate: OnUpdate<IncidentMember>,
+            ids: Array<ObjectID>,
+          ) => Promise<OnUpdate<IncidentMember>>;
+        };
+
+        await hooks.onUpdatePermitted(updateBy);
+        await hooks.onUpdateSuccess(
+          {
+            updateBy: updateBy,
+            carryForward: null,
+          } as OnUpdate<IncidentMember>,
+          [updateById.id],
+        );
         return 1;
       }) as never);
 
@@ -1006,30 +1058,28 @@ describe("Slack and Teams' Assign Role", () => {
       props: member,
     });
 
-    expect(feedRows).toHaveLength(2);
-    expect(feedRows[0]!.feedInfoInMarkdown).toBe(
-      `👤 Added **${DEANE_LINK}** as **Incident Commander** to ${INCIDENT_LINK}.`,
+    expect(create).not.toHaveBeenCalled();
+    expect(deleteOne).not.toHaveBeenCalled();
+
+    const row: IncidentFeed = onlyFeedRow();
+    expect(row.feedInfoInMarkdown).toBe(
+      `👤 Reassigned **Incident Commander** on ${INCIDENT_LINK} from **[Ana Ruiz](${personPage(ANA_ID)})** to **${DEANE_LINK}**.`,
     );
-    expect(feedRows[1]!.feedInfoInMarkdown).toBe(
-      `👤 Removed **[Ana Ruiz](${personPage(ANA_ID)})** as **Incident Commander** from ${INCIDENT_LINK}.`,
+    expect(row.userId?.toString()).toBe(VALERIA_ID.toString());
+
+    // One line in each channel, opening with her.
+    expect(slackShows().reads).toBe(
+      "👤 Valeria Mustafaeva reassigned Incident Commander on Incident INC-18 from Ana Ruiz to Deane Looi.",
     );
-
-    for (const row of feedRows) {
-      expect(row.userId?.toString()).toBe(VALERIA_ID.toString());
-    }
-
-    const slackLines: Array<string> = posted
-      .filter((payload: WorkspaceMessagePayload): boolean => {
-        return payload.workspaceType === WorkspaceType.Slack;
-      })
-      .map((payload: WorkspaceMessagePayload): string => {
-        return (payload.messageBlocks[0] as WorkspacePayloadMarkdown).text;
-      });
-
-    expect(slackLines).toHaveLength(2);
-    for (const line of slackLines) {
-      expect(line.startsWith(`👤 ${VALERIA_LINK} `)).toBe(true);
-    }
+    expect(teamsShows().reads).toBe(
+      "👤 Valeria Mustafaeva reassigned Incident Commander on Incident INC-18 from Ana Ruiz to Deane Looi.",
+    );
+    expect(
+      (
+        postedTo(WorkspaceType.Slack)
+          .messageBlocks[0] as WorkspacePayloadMarkdown
+      ).text.startsWith(`👤 ${VALERIA_LINK} `),
+    ).toBe(true);
   });
 });
 

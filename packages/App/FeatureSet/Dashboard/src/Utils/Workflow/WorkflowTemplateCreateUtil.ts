@@ -26,6 +26,7 @@ import {
   WorkflowTemplateVariable,
   WorkflowTemplateWhoToPage,
   buildGraphForTemplate,
+  emptyBlankSettingReferences,
   fillWorkflowTemplateSetting,
   getTemplateGraphSpec,
 } from "Common/Types/Workflow/Templates";
@@ -305,7 +306,10 @@ export type ApplyTemplateVariableValuesToGraphFunction = (
  * left blank is the case that needs handling: no row gets written for it, so
  * the reference would resolve to nothing and ship literal braces into (say) an
  * SMTP username. Where the argument is nothing BUT that reference, drop the
- * argument, which is what "leave it blank" was supposed to mean.
+ * argument, which is what "leave it blank" was supposed to mean. A variable
+ * marked emptyWhenBlank sits inside a longer argument, a script's arguments,
+ * as a JSON string of its own: there each reference is written as empty text
+ * (emptyBlankSettingReferences, which the template simulations build with too).
  */
 export const applyTemplateVariableValuesToGraph: ApplyTemplateVariableValuesToGraphFunction =
   (props: ApplyValuesProps): JSONObject => {
@@ -350,7 +354,11 @@ export const applyTemplateVariableValuesToGraph: ApplyTemplateVariableValuesToGr
       }
     }
 
-    return props.graph;
+    return emptyBlankSettingReferences({
+      graph: props.graph,
+      template: props.template,
+      values: props.values,
+    });
   };
 
 interface BuildWorkflowProps {

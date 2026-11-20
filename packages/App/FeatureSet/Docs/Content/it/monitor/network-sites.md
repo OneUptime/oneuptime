@@ -44,6 +44,8 @@ Il tipo, il nome, la descrizione, il padre e la posizione di un sito si modifica
 
 I siti che non contengono nulla se ne vanno in un passo: **Elimina siti vuoti**, nel menu in cima all'elenco **Siti**, elenca ogni sito senza dispositivi (anche archiviati), senza siti al suo interno e senza endpoint, collegamento, regola o evento di manutenzione che lo usi. Nomina i primi dieci e, quando confermi, elimina esattamente i siti elencati: un sito che nel frattempo riceve un dispositivo viene mantenuto. È per chi può eliminare i siti.
 
+La scheda **Hierarchy** in cima alla pagina **Siti** disegna l'albero. Resta chiusa finché non premi **Mostra la gerarchia**, e resta aperta la volta successiva se la lasci aperta. Elenca prima i siti del livello principale, cinquanta alla volta, e i siti figli di un sito quando lo apri. **Cerca siti per nome** trova un sito in qualsiasi punto dell'albero e apre i siti sopra di esso, e **Nascondi i siti senza dispositivi** esclude ogni sito senza dispositivi né in esso né sotto.
+
 Ogni dispositivo è collegato a un sito. Il sottoalbero di un sito è il sito stesso più ogni sito sotto di esso, e i dispositivi del sottoalbero sono ciò da cui si riepiloga la sua salute, quindi una regione senza dispositivi propri ha comunque uno stato, perché ce l'hanno le unità sotto di essa.
 
 > [!NOTE]
@@ -81,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` e `siteType` sono obbligatori. `siteType` deve essere uno dei tipi di sito del progetto.
 - `parentName` indica il sito padre, che può trovarsi nello stesso file: le righe senza padre, o con un padre che esiste già, vengono importate per prime, poi i loro figli. Lascialo vuoto per un sito di primo livello.
 - Una riga il cui padre non si trova viene saltata, e i risultati la elencano. **Anteprima dell'importazione** mostra cosa creerà il file prima che venga scritto qualcosa.
+
+## Modificare molti siti insieme
+
+Un'importazione di un'organizzazione Meraki aggiunge un sito per ciascuna delle sue reti, tutti al livello principale. Non li apri uno a uno: selezionali nell'elenco **Siti**, spuntando le righe o selezionando tutti i siti che corrispondono ai filtri, e apri **Azioni di massa**.
+
+| Azione | Cosa fa |
+| --- | --- |
+| **Imposta il sito padre** / **Rimuovi il sito padre** | Sposta ogni sito selezionato sotto il sito che scegli, con tutti i siti sottostanti, dove conta per la salute di quel sito. **Rimuovi il sito padre** li sposta al livello principale. Un sito ha bisogno di un tipo per stare sotto un altro, e un sito aggiunto da un'importazione Meraki non ne ha: quando alcuni dei siti selezionati non hanno un tipo, la finestra chiede il tipo che ricevono, e gli altri mantengono il loro. |
+| **Imposta la sonda predefinita** / **Rimuovi la sonda predefinita** | Imposta la [sonda predefinita](#valori-predefiniti-di-monitoraggio) di ogni sito selezionato, per i dispositivi aggiunti in seguito. I dispositivi già presenti mantengono le loro sonde. |
+| **Aggiungi etichette** / **Rimuovi etichette** | Le etichette raggruppano i siti così puoi filtrarli e selezionarli insieme. Non decidono chi può vedere un sito. |
+| **Aggiungi proprietario** / **Rimuovi proprietario** | I proprietari di un sito sono i proprietari dell'avviso che genera quando non è integro. La pagina **Proprietari** di un sito li elenca. |
+
+Ogni azione è una finestra e un salvataggio per l'intera selezione, e ogni sito passa per gli stessi controlli di una modifica nella sua pagina Impostazioni. Al termine, un'azione elenca quanti siti sono cambiati, quali hanno fallito e perché (un sito non può andare sotto sé stesso né sotto un sito sottostante, né sotto un sito di un tipo che contiene solo dispositivi), e quali non ha cambiato e perché: un sito già sotto quel padre, o il sito scelto come padre.
 
 ## La mappa
 
@@ -213,7 +228,7 @@ Collegare un monitor allo stesso evento fa ancora ciò che ha sempre fatto: il m
 
 ## Avvisi su un sito
 
-La scheda **Alerting** nella pagina **Impostazioni** di un sito ha **Alert When Unhealthy**: un avviso si apre quando il riepilogo del sito passa a uno stato non operativo, e si risolve da solo quando il sito si riprende. **Gravità avviso** ne imposta la gravità; se lasciato vuoto, è la più grave del progetto.
+La scheda **Alerting** nella pagina **Impostazioni** di un sito ha **Alert When Unhealthy**: un avviso si apre quando il riepilogo del sito passa a uno stato non operativo, e si risolve da solo quando il sito si riprende. **Gravità avviso** ne imposta la gravità; se lasciato vuoto, è la più grave del progetto. I proprietari del sito, nella sua pagina **Proprietari**, sono i proprietari dell'avviso.
 
 Genera avvisi solo sul cambiamento: attivarlo su un sito che è già non in salute arma il cambiamento successivo invece di avvisare sul passato. Degraded non è operativo, quindi un sito con la policy a percentuale genera un avviso appena uno dei suoi dispositivi che riferiscono diventa inattivo, come fa un sito con la policy dello stato peggiore; l'avviso resta aperto, senza un secondo, mentre il sito passa tra Degraded e Offline, e il suo titolo indica lo stato raggiunto per primo dal sito.
 

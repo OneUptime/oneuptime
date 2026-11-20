@@ -139,6 +139,8 @@ describe("which lists keep themselves current", () => {
         "AIRunEvent",
         "Alert",
         "AlertEpisode",
+        // An Android device moves its log sessions on while people watch the list (#9806).
+        "HostLogSession",
         "Incident",
         "IncidentEpisode",
         "IncidentPostmortemActionItem",

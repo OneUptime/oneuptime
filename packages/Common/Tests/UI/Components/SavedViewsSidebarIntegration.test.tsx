@@ -474,14 +474,12 @@ describe("LogsViewer feeds both saved-view surfaces at once", () => {
   /*
    * The toolbar's trigger echoes the applied view's name, or "Saved Views"
    * plus the total when nothing is applied — which is how it is told apart
-   * from the sidebar's section header of the same words.
+   * from the sidebar's section header of the same words. The panel it opens
+   * is drawn over the page on the tooltip layer (LayeredPopover, #9859), not
+   * beside the trigger, and names itself as a dialog the sidebar is not.
    */
   function toolbarDropdown(): HTMLElement {
-    const trigger: HTMLElement = screen.getByRole("button", {
-      name: /^Saved Views \d+$/,
-    });
-
-    return trigger.parentElement as HTMLElement;
+    return screen.getByRole("dialog", { name: "Saved views" });
   }
 
   test("LogsViewer feeds the same saved views to the sidebar and the toolbar", async () => {

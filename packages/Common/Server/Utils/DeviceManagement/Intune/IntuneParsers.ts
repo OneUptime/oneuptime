@@ -1,3 +1,4 @@
+import { getManagedDeviceStorageDetails } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import {
   ManagedDevicePlatform,
   readManagedDevicePlatformFromName,
@@ -173,6 +174,19 @@ export function parseIntuneDevice(
   if (details["totalStorage"]) {
     details["memoryUnits"] = "GB";
   }
+
+  /*
+   * In bytes, as Graph gives them, for how full it is (#10008). Graph's
+   * free space is 0 until the device reports it: that is no figure.
+   * Intune's device list says nothing of a battery.
+   */
+  Object.assign(
+    details,
+    getManagedDeviceStorageDetails({
+      totalBytes: readNumber(raw["totalStorageSpaceInBytes"]),
+      freeBytes: readNumber(raw["freeStorageSpaceInBytes"]),
+    }),
+  );
 
   const meid: string = cleanText(raw["meid"]);
 

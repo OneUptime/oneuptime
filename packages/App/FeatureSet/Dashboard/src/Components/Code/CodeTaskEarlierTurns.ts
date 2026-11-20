@@ -2,6 +2,7 @@ import {
   CodeTaskEarlierTurnsJSON,
   CodeTaskTurnJSON,
 } from "Common/Types/AI/CodeTask";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * A LONG TASK'S TURNS, WITH THEIR PLACES: THE ONES ITS PAGE SHOWS, AND THE
@@ -53,10 +54,10 @@ export type CodeTaskConversationEntry =
 // The most tasks whose earlier turns are kept at once: the newest ones.
 export const MAX_TASKS_WITH_EARLIER_TURNS_KEPT: number = 20;
 
-const kept: Map<string, Array<CodeTaskNumberedTurnJSON>> = new Map<
+const kept: OldestKeyMap<
   string,
   Array<CodeTaskNumberedTurnJSON>
->();
+> = new OldestKeyMap<string, Array<CodeTaskNumberedTurnJSON>>();
 
 const taskKey: (taskId: string) => string = (taskId: string): string => {
   return (taskId || "").toLowerCase();
@@ -85,7 +86,7 @@ export function keepEarlierTurns(
   kept.set(key, turns);
 
   while (kept.size > MAX_TASKS_WITH_EARLIER_TURNS_KEPT) {
-    const oldest: string | undefined = kept.keys().next().value;
+    const oldest: string | undefined = kept.oldestKey();
 
     if (oldest === undefined) {
       break;

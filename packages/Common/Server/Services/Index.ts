@@ -80,6 +80,8 @@ import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
 import PacketCaptureService from "./PacketCaptureService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
+import NetworkSiteOwnerTeamService from "./NetworkSiteOwnerTeamService";
+import NetworkSiteOwnerUserService from "./NetworkSiteOwnerUserService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NetworkEndpointService from "./NetworkEndpointService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
@@ -730,6 +732,8 @@ const services: Array<BaseService> = [
   PacketCaptureService,
   NetworkInterfaceService,
   NetworkSiteService,
+  NetworkSiteOwnerTeamService,
+  NetworkSiteOwnerUserService,
   NetworkSiteTypeService,
   NetworkEndpointService,
   NetworkSiteStatusTimelineService,

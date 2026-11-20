@@ -253,6 +253,14 @@ with recurring templates.
   takes its creator's profile time zone, or UTC when an API key creates it,
   and a name that is not a time zone is refused. See
   [Recurring events](/docs/scheduled-maintenance/templates#recurring-events).
+- **Network sites have owners, and the `Owned` scope narrows them.** A
+  site's people and teams own the alert it raises when it is unhealthy, and a
+  permission scoped to `Owned` - such as `ProjectMember` - now changes and
+  deletes only the sites its people or their teams own, where it changed
+  every site before. Sites are still read in full, so any of them can be
+  picked for a device. Make the people who look after sites their owners, on
+  a site's **Owners** page or with **Add Owner** in the **Sites** list's
+  **Bulk Actions**. See [Network Sites](/docs/monitor/network-sites).
 :::
 
 ## Upgrading from OneUptime 15 → 16

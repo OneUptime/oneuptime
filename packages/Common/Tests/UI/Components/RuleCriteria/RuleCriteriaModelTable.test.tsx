@@ -397,19 +397,22 @@ More details stay here.
      * rules, whose help has the shared Match Criteria section too). Data
      * Security's label and owner rules for data stores, the cloud ones -
      * Cloud's and App Platforms' - and RUM's and Serverless's had no help
-     * panel either, until #8889 gave them the shared one: 76.
+     * panel either, until #8889 gave them the shared one: 76. 77 since Data
+     * Observability's Owner Rules page lists pipeline owner rules beside its
+     * table ones (#6548), with the shared owner rule help.
      */
     expect(staticRuleFormFiles).toHaveLength(82);
-    expect(helpFormFiles).toHaveLength(76);
+    expect(helpFormFiles).toHaveLength(77);
     /*
      * 68, the five episode rule help texts that now have the heading too,
      * the alert incident rules', two for Data Observability's data assets,
      * and the network naming rules'; 78 with the alert episode owner rules',
      * which had none until every help became a lead and its topics (#8889),
-     * and 88 with the ten rule pages that had no help. Sixty of them are the
-     * resource label and owner rules' shared help.
+     * and 88 with the ten rule pages that had no help; 89 with the pipeline
+     * owner rules' shared help (#6548). Sixty of them are the resource label
+     * and owner rules' shared help.
      */
-    expect(helpMarkdown).toHaveLength(88);
+    expect(helpMarkdown).toHaveLength(89);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

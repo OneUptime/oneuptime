@@ -165,10 +165,12 @@ describe("the conditions builder in every dashboard language", () => {
     expect(BUILDER_STRINGS).toContain("Match all");
     expect(BUILDER_STRINGS).toContain("Is in");
     expect(BUILDER_STRINGS).toContain("Applies to");
-    expect(APPLIES_TO_STRINGS).toHaveLength(72);
+    expect(APPLIES_TO_STRINGS).toHaveLength(74);
     expect(BUILDER_STRINGS).toContain("All incidents");
     expect(BUILDER_STRINGS).toContain("Only incidents that match conditions");
     expect(BUILDER_STRINGS).toContain("Only data stores that match conditions");
+    // Data Observability's pipeline owner rules name their records (#9527).
+    expect(BUILDER_STRINGS).toContain("Only pipelines that match conditions");
     // App Platforms names the cloud rules' records as it names its rows.
     expect(BUILDER_STRINGS).toContain("All cloud environments");
     expect(BUILDER_STRINGS).toContain(

@@ -131,6 +131,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Link to Incident: every link is made to the same incident, whose own follow-ons each link runs.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/BulkRelation/useBulkRelationActions.tsx":
+    [
+      {
+        expression: "1",
+        why: "Set and Clear a device's Site and Role and a site's Parent Site and Default Probe: a device's move re-rolls its sites' health and re-reconciles its alert-policy monitors, and a site's new parent moves its subtree under the hierarchy's lock and re-rolls both parents' health, which each write does again.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ApplyDefaultLadder.tsx":
     [
       {
@@ -200,13 +207,6 @@ const LEDGER: Record<string, Array<Choice>> = {
       {
         expression: "1",
         why: "Create Ping Monitors: every monitor created counts against the project's limit on active monitors, and each create must see the one before it.",
-      },
-    ],
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkDeviceRelationActions.tsx":
-    [
-      {
-        expression: "1",
-        why: "Set Site and Role: a move into a site re-rolls that site's health and re-reconciles its alert-policy monitors, which each write does again.",
       },
     ],
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkOidTemplateActions.tsx":
@@ -315,6 +315,12 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Mute and unmute interfaces: every interface of a device rolls up into the device's health, which each write recomputes.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Pages/NetworkSite/Sites.tsx": [
+    {
+      expression: SEVERAL,
+      why: "Labels on network sites: nothing a site's siblings share reads its labels.",
+    },
+  ],
   "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/Index.tsx": [
     {
       expression: SEVERAL,

@@ -1,5 +1,6 @@
 import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../Models/DatabaseModels/Alert";
+import CustomRolePermission from "../../Models/DatabaseModels/CustomRolePermission";
 import AlertEpisodeMember from "../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
@@ -32,7 +33,11 @@ import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import Team from "../../Models/DatabaseModels/Team";
+import TeamCustomRole from "../../Models/DatabaseModels/TeamCustomRole";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import Workflow from "../../Models/DatabaseModels/Workflow";
+import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
+import Permission from "../../Types/Permission";
 import Recurring from "../../Types/Events/Recurring";
 import EventInterval from "../../Types/Events/EventInterval";
 import { JSONValue } from "../../Types/JSON";
@@ -1615,6 +1620,103 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
         operation: "list",
         query: [{ column: "teamId", operator: "equals", value: THIS }],
         select: ["userId", "hasAcceptedInvitation"],
+      },
+    ],
+  },
+
+  /*
+   * A custom role (#10139) is its name and description. What it gives are
+   * rows of their own, one per permission (CustomRolePermission), and so is
+   * each team given it (TeamCustomRole): the role's Terraform page adds
+   * them beside it, and its API and CLI pages list and add them. Its delete
+   * says what the workflows that run as it run as instead (DeleteChoices),
+   * so its API and CLI pages list those workflows too. How many
+   * permissions it holds (permissionCount) is OneUptime's to keep: it is
+   * read, never set.
+   */
+  CustomRole: {
+    fields: [
+      field(
+        "name",
+        literal("Incident Responder"),
+        "What the role is called. Unique in the project, and never the name of a built-in role.",
+      ),
+      field(
+        "description",
+        literal("Declares, works and resolves incidents."),
+        "What the role is for, in a sentence or two.",
+      ),
+    ],
+    readFields: ["name", "description", "permissionCount", "createdAt"],
+    recipes: [
+      {
+        title: "Add a permission",
+        description:
+          "Puts a permission in this role, reaching every resource of the project: each team and API key given the role gets it at once. You can put in only a permission you could give a team yourself, and never Project Owner. Each permission of the role is a resource like this one.",
+        scopes: ["view"],
+        blocks: [
+          {
+            id: "permission",
+            modelType: CustomRolePermission,
+            localName: "incident_member",
+            fields: [
+              field("customRoleId", THIS),
+              field("permission", literal(Permission.IncidentMember)),
+              field("scope", literal(PermissionScope.All)),
+            ],
+          },
+        ],
+      },
+      {
+        title: "Give it to a team",
+        description:
+          "The team's members get every permission in this role, at the same scope and with the same labels, as if the team held them itself. A block on the team still wins.",
+        scopes: ["view"],
+        blocks: [
+          {
+            id: "team",
+            modelType: TeamCustomRole,
+            localName: "team",
+            fields: [field("teamId", live()), field("customRoleId", THIS)],
+          },
+        ],
+      },
+    ],
+    tasks: [
+      {
+        title: "Its permissions",
+        description:
+          "What this role gives: each permission, and the scope it reaches.",
+        scopes: ["view"],
+        modelType: CustomRolePermission,
+        operation: "list",
+        query: [{ column: "customRoleId", operator: "equals", value: THIS }],
+        select: ["permission", "scope"],
+      },
+      {
+        title: "Add a permission",
+        description:
+          "Puts a permission in this role: each team and API key given the role gets it at once. You can put in only a permission you could give a team yourself.",
+        scopes: ["view"],
+        modelType: CustomRolePermission,
+        operation: "create",
+        fields: [
+          field("customRoleId", THIS),
+          field("permission", literal(Permission.IncidentMember)),
+          field("scope", literal(PermissionScope.All)),
+        ],
+      },
+      {
+        title: "Workflows that run as it",
+        description:
+          "The workflows whose steps can do exactly what this role allows. A delete of the role says what they run as from now on, as Delete it shows.",
+        scopes: ["view"],
+        modelType: Workflow,
+        operation: "list",
+        query: [
+          { column: "runAsCustomRoleId", operator: "equals", value: THIS },
+        ],
+        select: ["name", "isEnabled"],
       },
     ],
   },

@@ -76,6 +76,9 @@ describe("the metric", () => {
         "oneuptime.managed_device.provider",
         // An Android device's patch level, on its security patch readings (#10098).
         "oneuptime.managed_device.security_patch.level",
+        // A device's free and whole storage, on its storage readings (#10008).
+        "oneuptime.managed_device.storage.free_bytes",
+        "oneuptime.managed_device.storage.total_bytes",
         "resource.host.name",
       ].sort(),
     );
