@@ -373,9 +373,12 @@ const plainRatio: PercentOf = (numerator: number, denominator: number) => {
   return (numerator / denominator) * 100;
 };
 
-// k8s-high-disk-usage: used / (used + available) * 100, as `df` reports it.
-const diskUsage: PercentOf = (used: number, available: number) => {
-  return (used / (used + available)) * 100;
+/*
+ * k8s-high-disk-usage: (capacity - available) / capacity * 100, as the
+ * kubelet reads a node's root filesystem (#9643, #9645).
+ */
+const diskUsage: PercentOf = (available: number, capacity: number) => {
+  return ((capacity - available) / capacity) * 100;
 };
 
 function perMinute(value: number | Array<number>): Array<number> {
@@ -651,28 +654,24 @@ const RATIO_TEMPLATE_CASES: Array<RatioTemplateCase> = [
     templateId: "k8s-high-disk-usage",
     resourceNoun: "nodes",
     legend: "Node Disk Usage (%)",
-    expression: "(used_disk / (used_disk + avail_disk)) * 100",
+    expression: "((capacity_disk - free_disk) / capacity_disk) * 100",
     series: [
       ratioSeries({
         labels: node("node-disk-a"),
-        numerator: [
-          92000000000, 93000000000, 94000000000, 95000000000, 96000000000,
-        ],
-        denominator: [
-          8000000000, 7000000000, 6000000000, 5000000000, 4000000000,
-        ],
+        numerator: [8000000000, 7000000000, 6000000000, 5000000000, 4000000000],
+        denominator: 100000000000,
         percentOf: diskUsage,
       }),
       ratioSeries({
         labels: node("node-disk-ok"),
-        numerator: 50000000000,
-        denominator: 150000000000,
+        numerator: 150000000000,
+        denominator: 200000000000,
         percentOf: diskUsage,
       }),
       ratioSeries({
         labels: node("node-disk-b"),
-        numerator: 182000000000,
-        denominator: 18000000000,
+        numerator: 18000000000,
+        denominator: 200000000000,
         percentOf: diskUsage,
       }),
     ],
@@ -873,12 +872,29 @@ for (const testCase of RATIO_TEMPLATE_CASES) {
       const queries: Array<MetricQueryConfigData> =
         viewConfigOf(step).queryConfigs;
 
-      // The operands of the formula the criteria compared, in query order.
+      // Where the formula first names a query's variable, or -1.
+      const firstNamedAt: (query: MetricQueryConfigData) => number = (
+        query: MetricQueryConfigData,
+      ): number => {
+        const variable: string | undefined =
+          query.metricAliasData?.metricVariable;
+
+        return variable
+          ? testCase.expression.search(new RegExp(`\\b${variable}\\b`))
+          : -1;
+      };
+
+      /*
+       * The operands of the formula the criteria compared, in the order the
+       * formula names them: a node's disk reads its capacity first, though
+       * its query is the second (#9643).
+       */
       const componentLines: Array<string> = queries
         .filter((query: MetricQueryConfigData): boolean => {
-          return testCase.expression.includes(
-            query.metricAliasData?.metricVariable || "\u0000",
-          );
+          return firstNamedAt(query) !== -1;
+        })
+        .sort((a: MetricQueryConfigData, b: MetricQueryConfigData): number => {
+          return firstNamedAt(a) - firstNamedAt(b);
         })
         .map((query: MetricQueryConfigData): string => {
           return `  - \`${query.metricAliasData?.metricVariable}\` = ${describedMetric(metricNameOf(query))}`;

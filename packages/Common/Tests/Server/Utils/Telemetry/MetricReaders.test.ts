@@ -404,6 +404,63 @@ describe("what a record reads", () => {
     ).toHaveLength(200);
   });
 
+  /*
+   * #4571: a dashboard's config is read as every board reads it
+   * (StoredDashboardViewConfig) - one written in the envelope the API
+   * reference documented, its widget list or a widget as JSON text, a
+   * widget's arguments as JSON text - so a widget a board draws is never
+   * missed here.
+   */
+  test("a dashboard stored in any shape a board reads is read widget by widget too", () => {
+    const chartId: string = ObjectID.generate().toString();
+    const valueId: string = ObjectID.generate().toString();
+    const chart: Record<string, unknown> = chartOf("Signups", LEAKED, chartId);
+    const value: Record<string, unknown> = {
+      componentType: "Value",
+      componentId: valueId,
+      // Arguments encoded twice.
+      arguments: JSON.stringify({
+        title: "Errors",
+        metricQueryConfig: metricQuery("errors"),
+      }),
+    };
+    const widgets: Array<MetricReaderWidget> = [
+      { id: chartId, title: "Signups", type: "Chart" },
+      { id: valueId, title: "Errors", type: "Value" },
+    ];
+
+    for (const stored of [
+      // The envelope, with a widget as JSON text.
+      {
+        _type: "DashboardViewConfig",
+        value: { components: [JSON.stringify(chart), value] },
+      },
+      // The widget list as JSON text, the whole config as JSON text.
+      JSON.stringify({ components: JSON.stringify([chart, value]) }),
+      // A bare widget list.
+      [chart, value],
+    ]) {
+      const found: DashboardMetricReferences =
+        findDashboardMetricReferences(stored);
+
+      expect(
+        found.widgets.map(
+          (entry: { widget: MetricReaderWidget }): MetricReaderWidget => {
+            return entry.widget;
+          },
+        ),
+      ).toEqual(widgets);
+      expect(found.widgets[0]!.references).toEqual([
+        { metricName: LEAKED, serviceIds: null },
+      ]);
+      expect(found.widgets[1]!.references).toEqual([
+        { metricName: "errors", serviceIds: null },
+      ]);
+      // Nothing of the widgets is read as the dashboard's own.
+      expect(found.dashboard).toEqual([]);
+    }
+  });
+
   test("a Metric SLO: its metric, of its own services - no other kind of SLO, and none of no service", () => {
     expect(
       findSloMetricReferences({

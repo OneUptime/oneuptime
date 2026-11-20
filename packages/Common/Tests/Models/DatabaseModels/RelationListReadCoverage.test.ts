@@ -60,6 +60,8 @@ const READ_AS_A_WHOLE_TABLE: Record<string, string> = {
     "Incident roles are project settings every member reads; the reference check holds them to the project.",
   IncidentPostmortemTemplate:
     "Postmortem templates are project settings every member reads; the reference check holds them to the project.",
+  Domain:
+    "Every member reads the project's domains, which an SSO provider lists; the reference check refuses another project's domain like a missing one.",
 };
 
 // Lists of records read one by one the rule leaves out. May only shrink - and is empty.

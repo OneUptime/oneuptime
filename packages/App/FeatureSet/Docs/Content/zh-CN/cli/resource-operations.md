@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 列表会向 OneUptime 请求密钥可读取的每条记录的所有字段。`--fields` 则只请求它指定的字段，点号后面的则是关联记录的字段，例如 `currentIncidentState.name`。表格显示六个字段；JSON 显示全部（参见 [输出格式](/docs/cli/output-formats)）。`--all` 每次读取 100 条记录，逐页读完，最多 100,000 条；`count` 会告诉你总数。
 
-标签按名称排列，而不是最新的在前：名称以数字开头的标签排在前面，按该数字的大小排序（`2. Team` 在 `10. Owner` 之前），其余标签按字母顺序排在后面。要按其他顺序列出，请指定 `--sort`。
+标签按名称排列，而不是最新的在前：名称以数字开头的标签排在前面，按该数字的大小排序（`2. Team` 在 `10. Owner` 之前），其余标签按字母顺序排在后面。通过拖动排序的记录（例如事件状态）按该顺序列出。要按其他顺序列出，请指定 `--sort`。
 
 ### 筛选列表
 

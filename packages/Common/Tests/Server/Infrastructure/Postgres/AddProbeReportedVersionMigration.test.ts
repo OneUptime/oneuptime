@@ -27,7 +27,8 @@ const MIGRATION_TIMESTAMP: string = "1809185330000";
 const MIGRATION_BASE_NAME: string = "AddProbeReportedVersion";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddDetectionMatchedEventsAndRuleResponseSteps1809185320000";
+const PREVIOUS_MIGRATION: string =
+  "AddDetectionMatchedEventsAndRuleResponseSteps1809185320000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,

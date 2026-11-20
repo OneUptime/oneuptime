@@ -1,11 +1,14 @@
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { MakeOwnerRowsUnique1793500000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1793500000000-MakeOwnerRowsUnique";
+import { AddServiceOwnerIsOwnerNotified1809185000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185000000-AddServiceOwnerIsOwnerNotified";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
   DefaultNamingStrategy,
+  MigrationInterface,
   QueryRunner,
   getMetadataArgsStorage,
 } from "typeorm";
@@ -155,6 +158,47 @@ const MIGRATED_OWNER_MODEL_CASES: Array<[string, OwnerModel]> =
   MIGRATED_OWNER_MODELS.map((ownerModel: OwnerModel): [string, OwnerModel] => {
     return [ownerModel.className, ownerModel];
   });
+
+/*
+ * Owner tables whose isOwnerNotified column came or went AFTER
+ * MakeOwnerRowsUnique1793500000000 shipped. Its repair read each table as it
+ * was then, so such a table had the column then exactly when its model has
+ * none now. Each entry is held below to the later migration that changed it.
+ *
+ * Only ever append here, and only for a migration that adds or drops the
+ * column.
+ */
+interface IsOwnerNotifiedChange {
+  migration: { new (): MigrationInterface };
+  tables: Array<string>;
+}
+
+const IS_OWNER_NOTIFIED_CHANGED_AFTER_MIGRATION: Array<IsOwnerNotifiedChange> =
+  [
+    // A service's owner rows say whether their owners were told (#9700).
+    {
+      migration: AddServiceOwnerIsOwnerNotified1809185000000,
+      tables: ["ServiceOwnerTeam", "ServiceOwnerUser"],
+    },
+    // Nobody is told they were made an owner of a template (#9758).
+    {
+      migration: DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+      tables: ["IncidentTemplateOwnerTeam", "IncidentTemplateOwnerUser"],
+    },
+  ];
+
+// Whether a table had isOwnerNotified when MakeOwnerRowsUnique1793500000000 ran.
+function hadIsOwnerNotifiedThen(ownerModel: OwnerModel): boolean {
+  const changedLater: boolean = IS_OWNER_NOTIFIED_CHANGED_AFTER_MIGRATION.some(
+    (change: IsOwnerNotifiedChange): boolean => {
+      return change.tables.includes(ownerModel.tableName);
+    },
+  );
+
+  return changedLater
+    ? !ownerModel.hasIsOwnerNotified
+    : ownerModel.hasIsOwnerNotified;
+}
 
 function classIndexes(modelType: ModelType): Array<IndexMetadataArgs> {
   return getMetadataArgsStorage().indices.filter(
@@ -373,6 +417,41 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
     );
   });
 
+  test("reads isOwnerNotified as each table had it: changed since only by the migrations listed, run after it", async () => {
+    const order: Array<unknown> = SchemaMigrations as Array<unknown>;
+
+    for (const change of IS_OWNER_NOTIFIED_CHANGED_AFTER_MIGRATION) {
+      expect(order.indexOf(change.migration)).toBeGreaterThan(
+        order.indexOf(MakeOwnerRowsUnique1793500000000),
+      );
+
+      const { runner, sql } = mockQueryRunner();
+      await new change.migration().up(runner);
+      const statements: Array<string> = sql.map(normalize);
+
+      for (const tableName of change.tables) {
+        const ownerModel: OwnerModel | undefined = OWNER_MODELS.find(
+          (candidate: OwnerModel): boolean => {
+            return candidate.tableName === tableName;
+          },
+        );
+
+        expect(ownerModel).toBeDefined();
+
+        // What the model has now is what the later migration left.
+        const statement: string = ownerModel!.hasIsOwnerNotified
+          ? `ALTER TABLE "${tableName}" ADD "isOwnerNotified"`
+          : `ALTER TABLE "${tableName}" DROP COLUMN "isOwnerNotified"`;
+
+        expect(
+          statements.some((candidate: string): boolean => {
+            return candidate.startsWith(statement);
+          }),
+        ).toBe(true);
+      }
+    }
+  });
+
   test("creates exactly one unique index per owner model", async () => {
     const statements: Array<string> = await runUp();
     const creates: Array<string> = statements.filter((s: string) => {
@@ -493,7 +572,7 @@ describe("MakeOwnerRowsUnique1793500000000", () => {
         expect(order.endsWith(`t."createdAt" ASC, t._id ASC`)).toBe(true);
       });
 
-      if (ownerModel.hasIsOwnerNotified) {
+      if (hadIsOwnerNotifiedThen(ownerModel)) {
         test("keeps an already-notified row, so nobody is told twice", async () => {
           const sql: string = await repairSql();
           const order: string = sql.match(/ORDER BY (.*?) \) AS rn/)![1]!;

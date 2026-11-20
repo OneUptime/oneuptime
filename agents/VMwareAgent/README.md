@@ -97,7 +97,7 @@ Download the collector, the config and the unit, and install them to `/opt/oneup
 
 ```bash
 cd "$(mktemp -d)"
-VERSION=0.161.0   # the collector release the agent pins
+VERSION=0.165.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
@@ -341,7 +341,7 @@ Installed it without Docker? Run the install commands again — they download th
 
 ```bash
 cd "$(mktemp -d)"
-VERSION=0.161.0   # the collector release the agent pins
+VERSION=0.165.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz

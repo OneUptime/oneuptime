@@ -96,9 +96,10 @@
  * and return its id.
  *
  * Every list read is recorded on `window.__fixture.listRequests`, every
- * write on `window.__fixture.updates`, every record created (a row's state
- * move, a new owner) on `window.__fixture.creates`, every delete on
- * `window.__fixture.deletes`, every navigation on
+ * write on `window.__fixture.updates`, every row moved in its list (a
+ * drop: POST <list>/:id/move) on `window.__fixture.moves`, every record
+ * created (a row's state move, a new owner) on `window.__fixture.creates`,
+ * every delete on `window.__fixture.deletes`, every navigation on
  * `window.__fixture.navigations`, every read of what still uses a record (a
  * row's Delete and Archive, answered as nothing) on
  * `window.__fixture.usedByReads`, and every read of a table this fixture
@@ -182,6 +183,12 @@ import {
   getUsedByRelations,
   isUsedByRecordKind,
 } from "Common/Types/UsedBy/UsedBy";
+import {
+  SharedNameKind,
+  getSharedNamesRoute,
+} from "Common/Types/Database/SharedNames";
+import { getNameKey } from "Common/Types/Database/UniqueName";
+import { getListOrderMoveChanges } from "Common/Utils/ListOrder";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
@@ -236,6 +243,7 @@ window.__fixture = {
   countRequests: [],
   itemRequests: [],
   updates: [],
+  moves: [],
   creates: [],
   deletes: [],
   navigations: [],
@@ -1633,6 +1641,61 @@ ModelAPI.updateById = async (options) => {
   }
 };
 
+/*
+ * A row of a list put in order by dragging, moved to the place another row
+ * of it holds: POST <the list's path>/:id/move { placeOfId }, which a drop,
+ * or the keyboard's move, sends (Types/Database/MoveInList, #9609). Moved
+ * as the server moves a drag-ordered list's row (ListOrderMaintainer
+ * .getMoveChanges): the list in its order, the row put in the other's
+ * place, the list numbered again - each row given another number written,
+ * and answered under the list's own column.
+ */
+ModelAPI.moveInList = async (options) => {
+  const model = new options.modelType();
+  const tableName = model.tableName;
+  const id = idOf(options.id);
+  const placeOfId = idOf(options.placeOfId);
+  window.__fixture.moves.push({ tableName, id, placeOfId });
+
+  await waitFor(delay);
+
+  const listOrder = model.getListOrder();
+  const rows = RECORDS[tableName];
+  const move =
+    rows && listOrder
+      ? getListOrderMoveChanges({
+          items: rows.map((row) => {
+            return {
+              id: idOf(row._id),
+              value: row[listOrder.column],
+              createdAt: row.createdAt,
+            };
+          }),
+          itemId: id,
+          placeOfId,
+          sortOrder: listOrder.sortOrder,
+        })
+      : null;
+
+  if (!move || move.kind !== "moved") {
+    window.__fixture.unmodelled.push(`move ${tableName}`);
+    return { changedRows: [] };
+  }
+
+  for (const change of move.changes) {
+    const row = rows.find((candidate) => {
+      return idOf(candidate._id) === change.id;
+    });
+    row[listOrder.column] = change.value;
+  }
+
+  return {
+    changedRows: move.changes.map((change) => {
+      return { id: change.id, order: change.value };
+    }),
+  };
+};
+
 // The values a record links to by an id column: the link, and its table.
 const LINKED_VALUES = {
   incidentSeverityId: ["incidentSeverity", "IncidentSeverity"],
@@ -1773,12 +1836,38 @@ function usedBySummaryOf(address) {
   };
 }
 
+/*
+ * Which teams share a name (#9746): GET /shared-names/team, which Settings >
+ * Teams asks with every read of its rows, to mark them. Answered as the
+ * server finds them (UniqueNameInProject.findRecordsSharingName): the
+ * project's teams grouped by their names as they read, in lower case, each
+ * group of two or more. None here: every team has its own name.
+ */
+function sharedTeamNames() {
+  const byName = new Map();
+
+  for (const record of RECORDS.Team) {
+    const key = getNameKey(record.name);
+    byName.set(key, [...(byName.get(key) || []), idOf(record._id)]);
+  }
+
+  return {
+    groups: [...byName.values()].filter((ids) => {
+      return ids.length > 1;
+    }),
+  };
+}
+
 API.get = async (options) => {
   const address = options && options.url ? options.url.toString() : "";
 
   const usedBy = usedBySummaryOf(address);
   if (usedBy) {
     return { data: usedBy };
+  }
+
+  if (address.endsWith(getSharedNamesRoute(SharedNameKind.Team))) {
+    return { data: sharedTeamNames() };
   }
 
   window.__fixture.unmodelled.push(`API.get ${address}`);

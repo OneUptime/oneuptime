@@ -673,6 +673,29 @@ describe("its size and hooks", () => {
     expect(screen.getByTestId(ROOT).className).not.toContain("py-12");
   });
 
+  test("a table's state has room at its sides from sm up; a card's body, which the card pads, room above and below only", () => {
+    const { unmount } = render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No labels yet"
+      />,
+    );
+
+    expect(screen.getByTestId(ROOT)).toHaveClass("sm:px-6", "py-12");
+    unmount();
+
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No cost data from this cluster yet"
+        isCardBody={true}
+      />,
+    );
+
+    expect(screen.getByTestId(ROOT)).toHaveClass("py-12");
+    expect(screen.getByTestId(ROOT).className).not.toMatch(/px-/);
+  });
+
   test("a caller's own test id names every part", () => {
     render(
       <TableEmptyState

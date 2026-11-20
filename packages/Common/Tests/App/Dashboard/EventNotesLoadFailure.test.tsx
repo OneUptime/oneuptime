@@ -2493,13 +2493,18 @@ describe("a sort pressed just before Load more", () => {
         fireEvent.click(screen.getByTestId("notes-refresh"));
       }
 
+      /*
+       * A search's read starts from an effect once typing stops, and the lock
+       * set beside it is drawn by the render after that effect: wait for both,
+       * while the read is still on its way (it is answered below).
+       */
       await waitFor(
         () => {
           expect(pending).toHaveLength(1);
+          expect(loadMore).toBeDisabled();
         },
         { timeout: 3000 },
       );
-      expect(loadMore).toBeDisabled();
       expect(loadMore).toHaveClass(...LOCKED_LOOK);
 
       await act(async () => {

@@ -123,7 +123,8 @@ describe("workflow Settings", () => {
     render(<Settings {...PAGE_PROPS} />);
 
     /*
-     * The Archive card's read, and the Run As card's (#9695), and nothing
+     * The Archive card's read, and the Run As card's (#9695) - with the API
+     * key that gave the permissions, where one did (#9765) - and nothing
      * else: no graph, no secret key.
      */
     const selects: Array<Record<string, unknown>> = mockGetItem.mock.calls.map(
@@ -138,6 +139,7 @@ describe("workflow Settings", () => {
       runAs: true,
       runAsCustomRoleId: true,
       runAsGivenAt: true,
+      runAsGivenByApiKeyId: true,
       runAsGivenByUser: {
         name: true,
         email: true,
@@ -149,6 +151,7 @@ describe("workflow Settings", () => {
       "runAs",
       "runAsCustomRoleId",
       "runAsGivenAt",
+      "runAsGivenByApiKeyId",
       "runAsGivenByUser",
     ]) {
       expect(new Workflow().getColumnAccessControlFor(column)?.read).toEqual(
