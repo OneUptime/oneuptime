@@ -74,6 +74,9 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import { MonitorStepLogMonitorUtil } from "../../../Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -2877,6 +2880,29 @@ ${incomingRequestGrouping.rootCauseNote}
 
     if (!projectId) {
       return null;
+    }
+
+    /*
+     * A Metrics monitor written in PromQL compares its expression, which its
+     * context names as the metric (getPromQLViewConfig): opened as a metric,
+     * the explorer charted nothing. The expression opens on the PromQL page,
+     * which reads it from `query`.
+     */
+    const metricMonitor: MonitorStepMetricMonitor | undefined =
+      input.monitorStep?.data?.metricMonitor;
+
+    if (MonitorStepMetricMonitorUtil.isPromQL(metricMonitor)) {
+      const expression: string =
+        MonitorStepMetricMonitorUtil.getPromQLQuery(metricMonitor);
+
+      if (!expression) {
+        return null;
+      }
+
+      const promQLParams: URLSearchParams = new URLSearchParams();
+      promQLParams.set("query", expression);
+
+      return `${DashboardClientUrl.toString()}/${projectId}/metrics/promql?${promQLParams.toString()}`;
     }
 
     /*

@@ -25,6 +25,7 @@ import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigDa
 import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import { MetricMonitorQueryLanguage } from "../../../../Types/Monitor/MonitorStepMetricMonitor";
 import Wildcard from "../../../../Types/BaseDatabase/Wildcard";
 import MetricExplorerUrl, {
   SerializedMetricQuery,
@@ -1037,6 +1038,44 @@ describe("MonitorCriteriaEvaluator - a resource monitor's links (#10451)", () =>
       variable: "a",
       metricName: "http.server.duration",
       attributes: { "http.route": "/checkout" },
+    });
+
+    test("one written in PromQL opens its expression on the PromQL page, not a metric named by it", () => {
+      const expression: string = 'windows_service_status{name="Spooler"} != 4';
+      const monitor: Monitor = monitorOf(MonitorType.Metrics);
+      const step: MonitorStep = makeMetricMonitorStep([]);
+      step.data!.metricMonitor!.queryLanguage =
+        MetricMonitorQueryLanguage.PromQL;
+      step.data!.metricMonitor!.promQLQuery = ` ${expression} `;
+
+      const url: string = Evaluator.buildMetricExplorerDeepLink({
+        monitor: monitor,
+        // A PromQL step's context names its expression as the metric.
+        ctx: makeContext({
+          metricName: expression,
+          alias: "promql",
+          filterAttributes: {},
+        }),
+        monitorStep: step,
+      })!;
+
+      expect(
+        url.startsWith(
+          `${DashboardClientUrl.toString()}/${monitor.projectId!.toString()}/metrics/promql?`,
+        ),
+      ).toBe(true);
+      expect(getQueryParams(url).get("query")).toBe(expression);
+      expect(getQueryParams(url).get("metricQueries")).toBeNull();
+
+      // With no expression to open, no link: never one to an empty chart.
+      step.data!.metricMonitor!.promQLQuery = "  ";
+      expect(
+        Evaluator.buildMetricExplorerDeepLink({
+          monitor: monitor,
+          ctx: makeContext({ metricName: "", alias: "promql" }),
+          monitorStep: step,
+        }),
+      ).toBeNull();
     });
 
     test("Open metric is read for the services the monitor reads", () => {
