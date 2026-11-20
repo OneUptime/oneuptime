@@ -198,16 +198,17 @@ if [ -z "$HOST_TO_CHECK" ]; then
     # the ingress's primary server serves HOST over HTTPS on 7850, which
     # STATUS_PAGE_HTTPS_PORT publishes (443 when it names no port). The
     # request names HOST, as a browser's does: for a TLS connection nginx
-    # picks the server by the name the client asks for (SNI), and only the
-    # primary server, which holds HOST's certificate, takes HOST; for any
-    # other name the status pages' default server answers, with a status
-    # page's own certificate. It connects where the ingress is published,
-    # with --resolve (HOST's DNS names this server's public address, which
-    # this server may not reach, or a load balancer in front of it), and an
-    # address published on every address is reached at 127.0.0.1, as
-    # --resolve takes an address alone. Without PROVISION_SSL, 7850 serves
-    # only status pages' and dashboards' certificates for their own domains,
-    # and there is nothing of OneUptime's to ask for.
+    # picks the server by the name the client asks for (SNI), and the
+    # primary server, which holds HOST's certificate, takes HOST only while
+    # its TLS block and its name for HOST are in place; a name it does not
+    # take goes to the status pages' default server, whose certificates are
+    # status pages' own, and the handshake fails. It connects where the
+    # ingress is published, with --resolve (HOST's DNS names this server's
+    # public address, which this server may not reach, or a load balancer in
+    # front of it), and a port published on every address is reached at
+    # 127.0.0.1, as --resolve takes an address alone. Without PROVISION_SSL,
+    # 7850 serves only status pages' and dashboards' certificates for their
+    # own domains, and there is nothing of OneUptime's to ask for.
     https_name=$(https_name_of "$(read_setting HOST)")
 
     if [ "$(read_setting PROVISION_SSL)" = "true" ] && [ -n "$https_name" ]; then
