@@ -21,7 +21,9 @@ export const KEY_SWAP_KEY_STEP: Readonly<Record<RumClient, string>> = {
   browser: translationKey(
     "Pick a Browser key that is turned on and allows your site's origin, or create one.",
   ),
-  mobile: translationKey("Pick a Server key that is turned on, or create one."),
+  mobile: translationKey(
+    "Pick a Mobile key that is turned on and pinned to this app, or create one.",
+  ),
 };
 
 export const KEY_SWAP_PUT_IT_IN_TITLE: string = translationKey(

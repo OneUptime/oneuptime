@@ -3,7 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import { Blue, Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Blue, Green, Purple, Red, Yellow } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
@@ -15,7 +15,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import { DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import {
+  DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
+  DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
+} from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -53,7 +56,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
         formSteps={[
           { title: "Details", id: "details" },
           { title: "Access & Limits", id: "access-and-limits" },
-          { title: "Browser Settings", id: "browser-settings" },
+          { title: "Browser and App Settings", id: "browser-settings" },
         ]}
         formFields={[
           {
@@ -117,7 +120,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toString(),
             description: translator.translateTemplate(
-              "Requests per minute this key accepts, shared by every client using it. Leave empty for {{limit}} on a browser key, unlimited on a server key.",
+              "Requests per minute this key accepts, from every client together. Leave empty for {{limit}} on a browser or mobile key, unlimited on a server key.",
               { limit: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE },
             ),
             validation: {
@@ -178,7 +181,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "storefront-web",
             description:
-              "Forces service.name to this value on everything the key writes, so a copied key cannot pose as your other services.",
+              "Forces service.name to this value on everything the key writes, so a copied key cannot pose as your other services. Required on a mobile key.",
           },
         ]}
         modelDetailProps={{
@@ -217,6 +220,20 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                       <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
                         {translator.translateText(
                           "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.",
+                        )}
+                      </p>
+                    </div>
+                  );
+                }
+
+                // Issue #6457: shipped in an app, and bound to it.
+                if (item.keyType === TelemetryIngestionKeyType.Mobile) {
+                  return (
+                    <div>
+                      <Pill color={Purple} text="Mobile" />
+                      <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
+                        {translator.translateText(
+                          "Safe to ship in a mobile app. Everything sent with it is filed under the pinned service name below, and it is accepted only for that app's traces, logs and metrics, never from a web page.",
                         )}
                       </p>
                     </div>
@@ -279,6 +296,16 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                  * what is happening to this customer's telemetry.
                  */
                 if (origins.length === 0) {
+                  if (item.keyType === TelemetryIngestionKeyType.Mobile) {
+                    return (
+                      <span className="text-sm text-gray-500">
+                        {translator.translateText(
+                          "Not used — a mobile app sends no origin, and a request from a web page is refused.",
+                        )}
+                      </span>
+                    );
+                  }
+
                   return item.keyType === TelemetryIngestionKeyType.Browser ? (
                     <span className="text-sm text-red-600">
                       {translator.translateText(
@@ -341,6 +368,17 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                           other: "{{count}} requests per minute",
                         },
                         item.requestsPerMinuteLimit,
+                      )}
+                    </span>
+                  );
+                }
+
+                if (item.keyType === TelemetryIngestionKeyType.Mobile) {
+                  return (
+                    <span className="text-sm text-gray-700">
+                      {translator.translateTemplate(
+                        "{{limit}} requests per minute (default for a mobile key)",
+                        { limit: DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE },
                       )}
                     </span>
                   );

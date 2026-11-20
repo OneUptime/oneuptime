@@ -35,6 +35,9 @@ export const DATA_SECURITY_API_ROUTES: {
   fixIssueWithAi: (issueId: string) => string;
   responseActions: (dataStoreId: string) => string;
   respond: (dataStoreId: string) => string;
+  approveAiProposal: (proposalId: string) => string;
+  dismissAiProposal: (proposalId: string) => string;
+  undoAiProposal: (proposalId: string) => string;
   aiInput: string;
 } = {
   overview: "/data-security/overview",
@@ -81,6 +84,20 @@ export const DATA_SECURITY_API_ROUTES: {
   // Block public access, or revoke sharing: { action, dataSecurityIssueId? }.
   respond: (dataStoreId: string): string => {
     return `/data-store/${dataStoreId}/respond`;
+  },
+  /*
+   * A proposal of OneUptime AI's (#10364): approve it, { expectedPlanFingerprint,
+   * expectedApprovalStep } - the plan and step its person was shown; dismiss
+   * it, { reason }; or undo a change that was made.
+   */
+  approveAiProposal: (proposalId: string): string => {
+    return `/data-security-ai-proposal/${proposalId}/approve`;
+  },
+  dismissAiProposal: (proposalId: string): string => {
+    return `/data-security-ai-proposal/${proposalId}/dismiss`;
+  },
+  undoAiProposal: (proposalId: string): string => {
+    return `/data-security-ai-proposal/${proposalId}/undo`;
   },
   /*
    * What OneUptime AI sees (#10365): the model each feature runs on, and -

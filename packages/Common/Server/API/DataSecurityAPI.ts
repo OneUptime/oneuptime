@@ -69,6 +69,8 @@ import DataSecurityCodeTask, {
   DataSecurityFixCode,
 } from "../Utils/AI/DataSecurity/DataSecurityCodeTask";
 import ProjectDataTypeNames from "../Utils/DataSecurity/ProjectDataTypeNames";
+import DataSecurityAiProposal from "../../Models/DatabaseModels/DataSecurityAiProposal";
+import DataSecurityAiProposals from "../Utils/AI/DataSecurity/DataSecurityAiProposals";
 import {
   buildDataSecurityFixRequest,
   buildExplainIssuePrompt,
@@ -170,7 +172,10 @@ import ProductKey from "../../Types/Product/ProductKey";
  *  - Block public access and Revoke sharing on a cloud store, for anyone
  *    who may edit it, through the store's cloud connection and only when
  *    its "Data security response" setting is on (DataSecurityResponse) -
- *    and which of them a store can take now, for anyone who may read it.
+ *    and which of them a store can take now, for anyone who may read it;
+ *  - Approve, Dismiss and Undo on what OneUptime AI proposed for an issue
+ *    (#10364), for anyone who may read the proposal, each held to the
+ *    permission the change itself takes (DataSecurityAiProposals).
  *
  * Every route reads only the caller's project and answers 404-like errors
  * for another project's records.
@@ -254,6 +259,17 @@ export const EXPLAIN_ISSUE_PERMISSIONS: Array<Permission> = [
   Permission.SecurityMember,
   Permission.SecurityViewer,
   Permission.ReadDataSecurityIssue,
+];
+
+/*
+ * Who may press on a proposal of OneUptime AI's (#10364): who may read it,
+ * the issue's readers. Each press then takes the change's own permission
+ * (DataSecurityAiProposals), so a reader who may make no change is refused
+ * with what it takes. Its own list, not READ_PERMISSIONS: a press acts, so
+ * it is refused while the server has Data Security switched off.
+ */
+export const AI_PROPOSAL_PERMISSIONS: Array<Permission> = [
+  ...new DataSecurityAiProposal().readRecordPermissions,
 ];
 
 const TREND_DAYS: number = 30;
@@ -743,6 +759,69 @@ export default class DataSecurityAPI extends BaseAPI<
         })) as unknown as JSONObject;
       },
       { startsCodeWork: true },
+    );
+
+    /*
+     * A proposal of OneUptime AI's (#10364): approved, dismissed or undone
+     * by a person who may read it, each held to the change's own
+     * permission - approving a scrub rule takes what creating one takes,
+     * undoing it what deleting one takes, dismissing what changing the
+     * issue takes - and made with their own props
+     * (DataSecurityAiProposals).
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return await DataSecurityAiProposals.approve({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+          expectedPlanFingerprint: body["expectedPlanFingerprint"],
+          expectedApprovalStep: body["expectedApprovalStep"],
+        });
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return await DataSecurityAiProposals.dismiss({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+          reason: body["reason"],
+        });
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return await DataSecurityAiProposals.undo({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+        });
+      },
     );
   }
 

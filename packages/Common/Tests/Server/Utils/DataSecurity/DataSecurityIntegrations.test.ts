@@ -7,6 +7,9 @@ import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
 import * as SecurityEventAlerting from "../../../../Server/Utils/SecurityEvent/SecurityEventAlerting";
+import * as DataSecurityJobs from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import Project from "../../../../Models/DatabaseModels/Project";
 import DataSecurityIssueFeedService from "../../../../Server/Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../../../Server/Services/DataSecurityIssueService";
 import DataStoreOwnerTeamService from "../../../../Server/Services/DataStoreOwnerTeamService";
@@ -1546,5 +1549,86 @@ describe("getOwnerUsers", () => {
     expect(await DataSecurityIntegrations.getOwnerUsers(STORE_A)).toEqual([]);
     expect(teamMembersSpy).not.toHaveBeenCalled();
     expect(usersSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * OneUptime AI's work on what opened (#10364): one queued job per issue
+ * while Enable AI and "Work on new Data Security issues" are on - and with
+ * either off, nothing queued and every integration as it always was.
+ */
+describe("onIssuesOpened: OneUptime AI's work", () => {
+  let projectSpy: jest.SpyInstance;
+  let queueSpy: jest.SpyInstance;
+
+  function projectWith(switches: Partial<Project>): void {
+    projectSpy.mockResolvedValue({
+      id: PROJECT_ID,
+      enableAi: true,
+      enableAutomaticDataSecurityAi: true,
+      ...switches,
+    } as unknown as Project);
+  }
+
+  beforeEach(() => {
+    projectSpy = jest.spyOn(ProjectService, "findOneById");
+    queueSpy = jest
+      .spyOn(DataSecurityJobs, "queueDataSecurityAiEvaluation")
+      .mockResolvedValue(undefined);
+  });
+
+  test("queues one job per issue that opened, while both switches are on", async () => {
+    projectWith({});
+    const critical: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const low: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Low,
+    });
+
+    await opened([critical, low]);
+
+    expect(queueSpy.mock.calls).toEqual([
+      [{ projectId: PROJECT_ID, dataSecurityIssueId: critical.issueId }],
+      [{ projectId: PROJECT_ID, dataSecurityIssueId: low.issueId }],
+    ]);
+  });
+
+  test.each([
+    ["Enable AI is off", { enableAi: false }],
+    [
+      "Work on new Data Security issues is off",
+      { enableAutomaticDataSecurityAi: false },
+    ],
+  ])(
+    "%s: nothing is queued, and every integration runs as it always did",
+    async (_name: string, switches: Partial<Project>) => {
+      projectWith(switches);
+      ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+
+      await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+      await settle();
+
+      expect(queueSpy).not.toHaveBeenCalled();
+      expect(casesSpy).toHaveBeenCalledTimes(1);
+      expect(mails()).toHaveLength(1);
+    },
+  );
+
+  test("a project that cannot be read queues nothing, and the integrations still ran", async () => {
+    projectSpy.mockRejectedValue(new Error("the database went away"));
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(queueSpy).not.toHaveBeenCalled();
+    expect(casesSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  test("with nothing opened, the project is not even read", async () => {
+    await opened([]);
+
+    expect(projectSpy).not.toHaveBeenCalled();
+    expect(queueSpy).not.toHaveBeenCalled();
   });
 });

@@ -94,6 +94,12 @@ Due azioni su un problema chiedono aiuto a OneUptime AI. Entrambe inviano a OneU
 - **Spiega con l'IA** scrive, per il proprietario dell'archivio, cosa non va, cosa potrebbe succedere e i passaggi esatti per correggerlo sul suo cloud. La spiegazione viene conservata nella **Cronologia** del problema. Né il problema inviato né la risposta vengono conservati in **Impostazioni del progetto → IA → Log IA**, che ogni Membro del progetto e Visualizzatore può leggere: quella riga dice solo che la chiamata è avvenuta e quanto è costata. Chiunque possa leggere il problema può richiederla.
 - **Correggi con l'IA** chiede a OneUptime AI di correggere il problema nel tuo codice di infrastruttura - Terraform, CloudFormation, Bicep o simili - con la modifica più piccola che fa superare il controllo, e di aprire una pull request. Richiede che il repository che contiene il codice di infrastruttura dell'archivio sia collegato in **Codice**: sceglilo in **Repository** quando puoi richiederla in più di uno. La pull request compare in **Codice** (vedi [Codice](/docs/ai/ai-agent)). Possono richiederla i Membri della sicurezza e i ruoli superiori, in un repository che possono modificare in **Codice**, come richiede chiedere all'IA in quel punto: un ruolo di sicurezza da solo non legge né modifica alcun repository, quindi dai al loro team anche **Read Code Repository** e **Edit Code Repository**. Quando l'IA non può lavorare ora (è disattivata, il progetto ha esaurito i crediti IA, ha raggiunto i limiti giornalieri o nessun Runner è online), Correggi con l'IA dice cosa sistemare e non avvia nulla.
 
+### Da sola
+
+Con **Lavora sui nuovi problemi** attivo in **Sicurezza dei dati → IA**, come per i nuovi progetti, OneUptime AI lavora da sola su ogni nuovo problema critico o alto. Scrive l'analisi del problema, come fa **Spiega con l'IA** e a partire da ciò che invia, e la aggiunge alla **Cronologia** del problema. Per un problema di telemetria propone le regole di pulizia che nascondono i suoi dati nella nuova telemetria. Una proposta aspetta in quella pagina sotto **In attesa di te**, prima le più rischiose, con cosa cambierà, perché, come verrà dimostrato e come annullarlo. **Approva** fa la modifica con le tue autorizzazioni: una regola di pulizia richiede l'autorizzazione a creare regole di pulizia dei log, regole di pulizia delle tracce o regole della pipeline delle metriche. **Ignora la proposta** dice di no, con un motivo che viene aggiunto alla cronologia del problema. È il controllo del problema a decidere se una modifica ha funzionato: l'archivio viene controllato di nuovo, e il problema si risolve quando non resta nessuno dei suoi dati.
+
+Per impostazione predefinita, OneUptime AI chiede prima di ogni modifica, tranne una che nasconde solo dati, si può annullare ed è dimostrata sicura, e non elimina mai dati né avvisa nessuno senza chiedere. Una modifica fatta senza chiedere compare sotto **Fatto dall'IA**, con **Annulla**. **Perché l'IA non ha agito** elenca i problemi che ha esaminato e lasciato com'erano, e perché. Ogni proposta, approvazione, rifiuto e annullamento è nella **Cronologia** del problema e dell'archivio. Con l'interruttore disattivato, o l'IA disattivata per il progetto, la sicurezza dei dati funziona come sempre, e **Spiega con l'IA** e **Correggi con l'IA** funzionano ancora quando li premi.
+
 ### Chiedi all'IA
 
 **Chiedi all'IA** legge anche Sicurezza dei dati. In qualsiasi pagina di Sicurezza dei dati, chiedi quali archivi contengono numeri di carta, cosa correggere per primo, o quali archivi potrebbe raggiungere un ruolo se trapelasse; nella pagina di un archivio o di un problema legge prima quel record. Risponde con tre strumenti di lettura, eseguiti con i tuoi permessi:
@@ -130,6 +136,7 @@ Tutto ciò che conserva Sicurezza dei dati è un record dell'API di OneUptime, l
 | Tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità e regole di residenza | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Le impostazioni del progetto | `/data-security-setting` |
 | Proprietari, regole del proprietario e regole etichette | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Ciò che OneUptime AI propone per un problema, e perché ha agito o no su uno | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognuna è una `POST`:
 
@@ -149,6 +156,9 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 | `/data-security-issue/<id>/fix-with-ai` | **Correggi con l'IA** su un problema |
 | `/data-store/<id>/response-actions` | Quali azioni di risposta l'archivio può eseguire ora, e perché no |
 | `/data-store/<id>/respond` | Un'azione di risposta sull'archivio, come **Blocca l'accesso pubblico** o **Attiva il controllo delle versioni**, con il problema da cui è stata eseguita |
+| `/data-security-ai-proposal/<id>/approve` | **Approva** su una modifica proposta da OneUptime AI, che la fa con le tue autorizzazioni. Riceve il `expectedPlanFingerprint` della proposta che ti è stata mostrata, e rifiuta una che è cambiata da allora |
+| `/data-security-ai-proposal/<id>/dismiss` | **Ignora la proposta**, con `{"reason": "..."}`, che viene aggiunto alla cronologia del problema |
+| `/data-security-ai-proposal/<id>/undo` | **Annulla** su una modifica fatta da OneUptime AI: viene annullata, e l'archivio viene controllato di nuovo |
 
 Il [provider Terraform](/docs/terraform/index) ha una risorsa per ogni tipo di record che crei - archivi dati che aggiungi tu, tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità, regole di residenza, regole del proprietario e regole etichette - che prende il nome dal record, come `oneuptime_residency_rule`.
 

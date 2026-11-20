@@ -32,6 +32,11 @@ import { translationKey } from "../Translator";
 
 export enum DataSecurityAiFeature {
   ExplainIssue = "ExplainIssue",
+  /*
+   * OneUptime AI's own analysis of a new issue (#10364): what Explain
+   * writes, asked on its own when the issue opens.
+   */
+  AnalyzeIssue = "AnalyzeIssue",
   FixIssue = "FixIssue",
   SuggestFieldTypes = "SuggestFieldTypes",
   AskAi = "AskAi",
@@ -124,6 +129,32 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
         translationKey("A record the data was seen in"),
       ],
       keeps: translationKey("The explanation, on the issue's timeline."),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.AnalyzeIssue,
+      title: translationKey("Analysis of new issues"),
+      startedBy: translationKey(
+        "A new Critical or High issue, while Work on new issues is on, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "The issue's title, severity and evidence, why its check matters and the fix for the store's cloud",
+        ),
+        translationKey(
+          "The store's name, kind, region and cloud ID, its sensitivity and the names of its data types",
+        ),
+        translationKey(
+          "For a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in",
+        ),
+      ],
+      neverSends: [
+        translationKey("A sample of what was found, not even a masked one"),
+        translationKey("A record the data was seen in"),
+      ],
+      keeps: translationKey("The analysis, on the issue's timeline."),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
     },

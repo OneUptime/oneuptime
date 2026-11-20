@@ -206,6 +206,39 @@ export default class DataSecurityApi {
   }
 
   /*
+   * A proposal of OneUptime AI's (#10364), approved as the person shown it:
+   * the plan they read (its fingerprint) - a proposal that changed since is
+   * not approved.
+   */
+  public static async approveAiProposal(data: {
+    proposalId: ObjectID;
+    expectedPlanFingerprint: string;
+  }): Promise<JSONObject> {
+    return await post(
+      DATA_SECURITY_API_ROUTES.approveAiProposal(data.proposalId.toString()),
+      { expectedPlanFingerprint: data.expectedPlanFingerprint },
+    );
+  }
+
+  public static async dismissAiProposal(data: {
+    proposalId: ObjectID;
+    reason: string;
+  }): Promise<JSONObject> {
+    return await post(
+      DATA_SECURITY_API_ROUTES.dismissAiProposal(data.proposalId.toString()),
+      { reason: data.reason },
+    );
+  }
+
+  public static async undoAiProposal(
+    proposalId: ObjectID,
+  ): Promise<JSONObject> {
+    return await post(
+      DATA_SECURITY_API_ROUTES.undoAiProposal(proposalId.toString()),
+    );
+  }
+
+  /*
    * What dropping the metrics whose names hold a finding's data would do
    * (#9757, #9946): asked before the drop, which it never makes. Read
    * defensively: a reader without an id is no reader, a widget without an

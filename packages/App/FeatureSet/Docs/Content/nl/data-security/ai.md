@@ -23,11 +23,12 @@ Gegevensbeveiliging leest je gegevens zelf, in de eigen scans, en bewaart er nie
 | Functie | Wat die verstuurt | Draait vanzelf |
 | --- | --- | --- |
 | **Uitleggen met AI** | De titel, de ernst en het bewijs van het probleem, waarom de controle ervan ertoe doet en de oplossing voor de cloud van de opslag; de naam, het soort, de regio en de cloud-ID van de opslag, de gevoeligheid en de namen van de gegevenstypen; bij een probleem in de telemetrie, waar elk soort gegevens is gevonden: het attribuut, de logtekst of de prompt waarin het staat | Nee: een persoon vraagt erom, op de pagina van een probleem |
+| **Analyse van nieuwe problemen** | De titel, de ernst en het bewijs van het probleem, waarom de controle ervan ertoe doet en de oplossing voor de cloud van de opslag; de naam, het soort, de regio en de cloud-ID van de opslag, de gevoeligheid en de namen van de gegevenstypen; bij een probleem in de telemetrie, waar elk soort gegevens is gevonden: het attribuut, de logtekst of de prompt waarin het staat | Ja: een nieuw kritiek of hoog probleem start haar, zolang **Aan nieuwe problemen werken** aan staat |
 | **Oplossen met AI** | Wat Uitleggen met AI verstuurt, als verzoek aan de code-agent, die daarna de eigen code van de repository leest om de wijziging te maken | Nee: een persoon vraagt erom, in een repository die die persoon onder **Code** mag wijzigen |
 | **Suggesties voor velden die geen detector heeft geplaatst** | Het soort opslag en de gegevenstypen die de AI mag noemen; de naam van elk veld, de namen van de velden ernaast en de vormen van de waarden, elke letter als `a` of `A` en elk cijfer als `9`; hoeveel waarden zijn gelezen en hoe lang ze zijn | Ja: de inhoudsscan van een opslag start ze |
 | **AI vragen** | De opslagen, problemen en toegang die de persoon in Gegevensbeveiliging mag lezen; wat waar is gevonden, elk gegevenstype per locatie, met aantallen en betrouwbaarheid | Nee: een persoon stelt een vraag |
 
-**Uitleggen met AI** en **AI vragen** lezen ook eerst de [AI-context](/docs/ai/ai-context) van je team, als die er is: de notities die je team voor OneUptime AI over je systemen heeft geschreven.
+**Uitleggen met AI** en **AI vragen** lezen ook eerst de [AI-context](/docs/ai/ai-context) van je team, als die er is: de notities die je team voor OneUptime AI over je systemen heeft geschreven. **Analyse van nieuwe problemen** leest die ook.
 
 ### Tekst die je systemen schreven is gegevens
 
