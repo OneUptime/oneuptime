@@ -60222,5 +60222,9 @@
   "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다.",
   "Monitors shown": "표시되는 모니터",
   "Pick what you want to do first, and its steps show here.": "먼저 하고 싶은 일을 고르면 그 단계가 여기에 표시됩니다.",
-  "Your first steps": "첫 단계"
+  "Your first steps": "첫 단계",
+  "The device management connection **{{connection}}** was deleted, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "디바이스 관리 연결 **{{connection}}**이(가) 그 디바이스와 함께 삭제되었습니다. 이 항목을 연 모니터에서는 더 이상 아무것도 읽지 않으므로 그 모니터링이 꺼졌고, 이 항목은 해결되었습니다.",
+  "The device management connection **{{connection}}** was turned off. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "디바이스 관리 연결 **{{connection}}**이(가) 꺼졌습니다. 꺼진 연결은 읽지 않으므로 지연된 읽기가 없으며, 이 항목은 해결되었습니다. 연결을 다시 켰는데도 읽기가 계속 실패하면 해당 모니터가 다시 알립니다.",
+  "{{user}} deleted the device management connection **{{connection}}**, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "{{user}} 님이 디바이스 관리 연결 **{{connection}}**을(를) 그 디바이스와 함께 삭제했습니다. 이 항목을 연 모니터에서는 더 이상 아무것도 읽지 않으므로 그 모니터링이 꺼졌고, 이 항목은 해결되었습니다.",
+  "{{user}} turned off the device management connection **{{connection}}**. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "{{user}} 님이 디바이스 관리 연결 **{{connection}}**을(를) 껐습니다. 꺼진 연결은 읽지 않으므로 지연된 읽기가 없으며, 이 항목은 해결되었습니다. 연결을 다시 켰는데도 읽기가 계속 실패하면 해당 모니터가 다시 알립니다."
 }

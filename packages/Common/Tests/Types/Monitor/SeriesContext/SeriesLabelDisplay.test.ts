@@ -506,6 +506,25 @@ describe("SeriesLabelDisplay", () => {
       expect(title).toBe("Pod CPU high");
       expect(title.trimEnd()).toBe(title);
     });
+
+    test("of labels already picked, in their order, is the same suffix: empty for none", () => {
+      const labels: JSONObject = {
+        "resource.k8s.pod.name": "web-1",
+        "resource.k8s.namespace.name": "prod",
+      };
+
+      expect(
+        SeriesLabelDisplay.formatTitleSuffix(
+          SeriesLabelDisplay.getDisplayLabels(labels),
+        ),
+      ).toBe(SeriesLabelDisplay.buildTitleSuffix(labels));
+      expect(
+        SeriesLabelDisplay.formatTitleSuffix(
+          SeriesLabelDisplay.getDisplayLabels(labels).slice(1),
+        ),
+      ).toBe(" - Namespace: prod");
+      expect(SeriesLabelDisplay.formatTitleSuffix([])).toBe("");
+    });
   });
 
   describe("buildMarkdownBlock", () => {

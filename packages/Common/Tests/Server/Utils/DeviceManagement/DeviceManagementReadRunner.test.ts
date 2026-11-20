@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import DeviceManagementConnection from "../../../../Models/DatabaseModels/DeviceManagementConnection";
 import DeviceManagementReadRunner, {
   APPS_NOT_READ_WARNING,
+  BATTERIES_NOT_READ_WARNING,
+  BATTERY_READ_AT_CHECK_IN_DETAIL,
   CHECK_INS_NOT_RECORDED_WARNING,
   CONNECTION_READ_NOT_RECORDED_WARNING,
   CHECK_IN_WINDOW_MAX_MS,
@@ -9,7 +11,9 @@ import DeviceManagementReadRunner, {
   DeviceManagementReadDependencies,
   DeviceManagementReadOutcome,
   INVENTORY_NOT_RECORDED_WARNING,
+  MAX_BATTERY_LOOKUPS_PER_READ,
   getAppsDueDevices,
+  getBatteryLookups,
   getCheckInLookups,
   getCheckInWindowStart,
 } from "../../../../Server/Utils/DeviceManagement/DeviceManagementReadRunner";
@@ -61,7 +65,9 @@ import {
   installFakeDeviceManagementDb,
 } from "./FakeDeviceManagementDb";
 import {
+  FakeIntuneAnswer,
   FakeIntuneGraph,
+  FakeIntuneRequest,
   INTUNE_CLIENT_ID,
   INTUNE_CLIENT_SECRET,
   INTUNE_TENANT,
@@ -69,6 +75,7 @@ import {
   buildIntuneDetectedApp,
   buildIntuneDevice,
   buildIntuneIpad,
+  buildIntuneIphone,
 } from "./FakeIntuneGraph";
 import IntuneConnector from "../../../../Server/Utils/DeviceManagement/Intune/IntuneConnector";
 
@@ -174,6 +181,7 @@ function dependencies(
         hostCount: 0,
         securityPatchReadingCount: 0,
         batteryReadingCount: 0,
+        chargingReadingCount: 0,
         storageReadingCount: 0,
       };
     },
@@ -1007,6 +1015,7 @@ describe("the devices' check-ins, as a metric", () => {
           hostCount: 0,
           securityPatchReadingCount: 0,
           batteryReadingCount: 0,
+          chargingReadingCount: 0,
           storageReadingCount: 0,
         };
       },
@@ -1751,5 +1760,394 @@ describe("the rules a read follows", () => {
       }),
     ).toBe(HOUR);
     expect(next({ outcome: "failed", intervalInMinutes: 60 })).toBe(HOUR);
+  });
+});
+
+/*
+ * #10287: the devices whose battery a read asks about one by one - for a
+ * service whose device list says none (Intune) - pure.
+ */
+describe("which devices' batteries a read asks about", () => {
+  const readsApple: (device: {
+    platform: ManagedDevicePlatform;
+  }) => boolean = (device: { platform: ManagedDevicePlatform }): boolean => {
+    return (
+      device.platform === ManagedDevicePlatform.IOS ||
+      device.platform === ManagedDevicePlatform.IPadOS
+    );
+  };
+  const CHECK_IN: Date = new Date(START.getTime() - HOUR);
+
+  test("one never asked first, then the one asked at the oldest check-in; one asked at its check-in waits for its next", () => {
+    expect(
+      getBatteryLookups({
+        devices: [
+          {
+            providerDeviceId: "asked-long-ago",
+            platform: ManagedDevicePlatform.IOS,
+          },
+          {
+            providerDeviceId: "never-asked",
+            platform: ManagedDevicePlatform.IPadOS,
+          },
+          {
+            providerDeviceId: "asked-at-its-check-in",
+            platform: ManagedDevicePlatform.IOS,
+          },
+          {
+            providerDeviceId: "asked-lately",
+            platform: ManagedDevicePlatform.IOS,
+          },
+        ],
+        readsBatteryOf: readsApple,
+        askedAtCheckIns: new Map<string, string>([
+          ["asked-long-ago", new Date(START.getTime() - 3 * DAY).toISOString()],
+          ["asked-at-its-check-in", CHECK_IN.toISOString()],
+          ["asked-lately", new Date(START.getTime() - 2 * HOUR).toISOString()],
+        ]),
+        checkIns: new Map<string, Date>([
+          ["asked-long-ago", CHECK_IN],
+          ["never-asked", CHECK_IN],
+          ["asked-at-its-check-in", CHECK_IN],
+          ["asked-lately", CHECK_IN],
+        ]),
+      }),
+    ).toEqual(["never-asked", "asked-long-ago", "asked-lately"]);
+  });
+
+  test("a device its service says no battery of, or that never checked in, is never asked", () => {
+    expect(
+      getBatteryLookups({
+        devices: [
+          { providerDeviceId: "pc", platform: ManagedDevicePlatform.Windows },
+          {
+            providerDeviceId: "phone",
+            platform: ManagedDevicePlatform.Android,
+          },
+          {
+            providerDeviceId: "new-iphone",
+            platform: ManagedDevicePlatform.IOS,
+          },
+          { providerDeviceId: "iphone", platform: ManagedDevicePlatform.IOS },
+        ],
+        readsBatteryOf: readsApple,
+        askedAtCheckIns: new Map<string, string>(),
+        checkIns: new Map<string, Date>([
+          ["pc", CHECK_IN],
+          ["phone", CHECK_IN],
+          ["iphone", CHECK_IN],
+        ]),
+      }),
+    ).toEqual(["iphone"]);
+  });
+
+  test("a marker that says no time is as never asked", () => {
+    expect(
+      getBatteryLookups({
+        devices: [
+          { providerDeviceId: "iphone", platform: ManagedDevicePlatform.IOS },
+        ],
+        readsBatteryOf: readsApple,
+        askedAtCheckIns: new Map<string, string>([["iphone", "yesterday"]]),
+        checkIns: new Map<string, Date>([["iphone", CHECK_IN]]),
+      }),
+    ).toEqual(["iphone"]);
+  });
+
+  test("each device once, and at most MAX_BATTERY_LOOKUPS_PER_READ a read", () => {
+    const devices: Array<{
+      providerDeviceId: string;
+      platform: ManagedDevicePlatform;
+    }> = [];
+    const checkIns: Map<string, Date> = new Map<string, Date>();
+
+    for (
+      let index: number = 0;
+      index < MAX_BATTERY_LOOKUPS_PER_READ + 25;
+      index++
+    ) {
+      const id: string = `iphone-${index}`;
+
+      devices.push({
+        providerDeviceId: id,
+        platform: ManagedDevicePlatform.IOS,
+      });
+      devices.push({
+        providerDeviceId: id,
+        platform: ManagedDevicePlatform.IOS,
+      });
+      checkIns.set(id, CHECK_IN);
+    }
+
+    const asked: Array<string> = getBatteryLookups({
+      devices,
+      readsBatteryOf: readsApple,
+      askedAtCheckIns: new Map<string, string>(),
+      checkIns,
+    });
+
+    expect(MAX_BATTERY_LOOKUPS_PER_READ).toBe(200);
+    expect(asked).toHaveLength(MAX_BATTERY_LOOKUPS_PER_READ);
+    expect(new Set(asked).size).toBe(asked.length);
+  });
+});
+
+/*
+ * #10287: an Intune connection's iPhones and iPads, read end to end. Graph's
+ * device list says no battery; beta's hardwareInformation says an iOS or
+ * iPadOS device's, as of its last check-in, when the device is asked
+ * alone. A read asks each once it has checked in since it was last asked,
+ * keeps what it was told between, and never fails over it.
+ */
+describe("an Intune connection's iPhones and iPads report their battery", () => {
+  const IPHONE_ID: string = String(buildIntuneIphone()["id"]);
+  const IPAD_ID: string = String(buildIntuneIpad()["id"]);
+  const PC_ID: string = String(buildIntuneDevice()["id"]);
+  const PHONE_ID: string = String(buildIntuneAndroid()["id"]);
+  let graph: FakeIntuneGraph;
+  let iphoneSync: Date;
+  let ipadSync: Date;
+  let hardware: Record<string, JSONObject>;
+
+  function pathOf(id: string): string {
+    return `/beta/deviceManagement/managedDevices/${id}`;
+  }
+
+  // The devices asked about their battery this read, in the order asked.
+  function asked(): Array<string> {
+    return graph.requests
+      .filter((request: FakeIntuneRequest): boolean => {
+        return (request.query.get("$select") || "").includes(
+          "hardwareInformation",
+        );
+      })
+      .map((request: FakeIntuneRequest): string => {
+        return request.path.split("/").pop() || "";
+      });
+  }
+
+  function askedAt(id: string): unknown {
+    return (deviceRow(id)["details"] as JSONObject)[
+      BATTERY_READ_AT_CHECK_IN_DETAIL
+    ];
+  }
+
+  async function read(
+    prepare?: (graph: FakeIntuneGraph) => void,
+  ): Promise<DeviceManagementReadOutcome> {
+    graph = new FakeIntuneGraph({
+      devices: [
+        buildIntuneIphone({ lastSyncDateTime: iphoneSync.toISOString() }),
+        buildIntuneIpad({ lastSyncDateTime: ipadSync.toISOString() }),
+        buildIntuneDevice({
+          lastSyncDateTime: new Date(START.getTime() - 2 * HOUR).toISOString(),
+        }),
+        buildIntuneAndroid({
+          lastSyncDateTime: new Date(START.getTime() - 3 * HOUR).toISOString(),
+        }),
+      ],
+      hardware,
+    });
+    prepare?.(graph);
+
+    return run({ transport: graph.transport });
+  }
+
+  function warningsOf(outcome: DeviceManagementReadOutcome): Array<string> {
+    return (outcome.summary as DeviceManagementReadSummary).warnings || [];
+  }
+
+  beforeEach(() => {
+    iphoneSync = new Date(START.getTime() - HOUR);
+    ipadSync = new Date(START.getTime() - 2 * HOUR);
+    hardware = {
+      [IPHONE_ID]: { productName: "iPhone15,4", batteryLevelPercentage: 15 },
+      [IPAD_ID]: { productName: "iPad12,1", batteryLevelPercentage: 64.5 },
+      // A laptop's battery health is said; its level never is.
+      [PC_ID]: { batteryHealthPercentage: 93, batteryLevelPercentage: null },
+    };
+    connection.name = "Intune contoso";
+    connection.provider = DeviceManagementProvider.Intune;
+    connection.config = {
+      tenant: INTUNE_TENANT,
+      clientId: INTUNE_CLIENT_ID,
+      cloud: "public",
+      readIntervalInMinutes: 15,
+    };
+    connection.secrets = JSON.stringify({ clientSecret: INTUNE_CLIENT_SECRET });
+  });
+
+  test("the first read asks each iPhone and iPad alone, and no other device", async () => {
+    const outcome: DeviceManagementReadOutcome = await read();
+
+    expect(outcome.status).toBe("success");
+    expect(asked()).toEqual([IPHONE_ID, IPAD_ID]);
+    expect(deviceRow(IPHONE_ID)["batteryLevel"]).toBe(15);
+    expect(deviceRow(IPAD_ID)["batteryLevel"]).toBe(65);
+    // Graph says no PC's or Android phone's level: neither has one.
+    expect(deviceRow(PC_ID)["batteryLevel"] ?? null).toBeNull();
+    expect(deviceRow(PHONE_ID)["batteryLevel"] ?? null).toBeNull();
+    // Each remembers the check-in it was asked at.
+    expect(askedAt(IPHONE_ID)).toBe(iphoneSync.toISOString());
+    expect(askedAt(IPAD_ID)).toBe(ipadSync.toISOString());
+    expect(askedAt(PC_ID)).toBeUndefined();
+    expect(warningsOf(outcome)).toEqual([]);
+  });
+
+  test("a read before a device checks in again asks nothing, and keeps the battery it was told", async () => {
+    await read();
+
+    clock.advance(16 * MINUTE);
+    const outcome: DeviceManagementReadOutcome = await read();
+
+    expect(outcome.status).toBe("success");
+    expect(asked()).toEqual([]);
+    expect(deviceRow(IPHONE_ID)["batteryLevel"]).toBe(15);
+    expect(deviceRow(IPAD_ID)["batteryLevel"]).toBe(65);
+    expect(askedAt(IPHONE_ID)).toBe(iphoneSync.toISOString());
+  });
+
+  test("a device that checked in since is asked again, and says its battery anew", async () => {
+    await read();
+
+    clock.advance(8 * HOUR);
+    const before: Date = iphoneSync;
+    iphoneSync = new Date(clock.now().getTime() - 5 * MINUTE);
+    hardware[IPHONE_ID] = { batteryLevelPercentage: 42 };
+
+    await read();
+
+    expect(asked()).toEqual([IPHONE_ID]);
+    expect(deviceRow(IPHONE_ID)["batteryLevel"]).toBe(42);
+    expect(askedAt(IPHONE_ID)).toBe(iphoneSync.toISOString());
+    expect(askedAt(IPHONE_ID)).not.toBe(before.toISOString());
+    // The iPad, not checked in since, keeps its own.
+    expect(deviceRow(IPAD_ID)["batteryLevel"]).toBe(65);
+  });
+
+  test("a device that says no level now has none, rather than the one it said before", async () => {
+    await read();
+
+    clock.advance(8 * HOUR);
+    iphoneSync = new Date(clock.now().getTime() - 5 * MINUTE);
+    hardware[IPHONE_ID] = { batteryLevelPercentage: null };
+
+    await read();
+
+    expect(deviceRow(IPHONE_ID)["batteryLevel"] ?? null).toBeNull();
+    expect(askedAt(IPHONE_ID)).toBe(iphoneSync.toISOString());
+  });
+
+  test("Graph slowing the read down past what it waits: the read works, says the batteries wait, keeps what it was told, and the next read asks again", async () => {
+    await read();
+
+    clock.advance(8 * HOUR);
+    const askedBefore: string = iphoneSync.toISOString();
+    iphoneSync = new Date(clock.now().getTime() - 5 * MINUTE);
+    ipadSync = new Date(clock.now().getTime() - 10 * MINUTE);
+    hardware[IPHONE_ID] = { batteryLevelPercentage: 42 };
+    hardware[IPAD_ID] = { batteryLevelPercentage: 58 };
+
+    /*
+     * The iPad, asked at the older check-in, goes first; then Graph
+     * throttles the iPhone past every retry its client makes.
+     */
+    const outcome: DeviceManagementReadOutcome = await read(
+      (fake: FakeIntuneGraph): void => {
+        fake.script(
+          pathOf(IPHONE_ID),
+          Array.from({ length: 5 }, (): FakeIntuneAnswer => {
+            return {
+              status: 429,
+              headers: { "retry-after": "1" },
+              body: {
+                error: {
+                  code: "TooManyRequests",
+                  message:
+                    '{"_version": 3, "Message": "Too many requests - Operation ID (for customer support): 00000000-0000-0000-0000-000000000000"}',
+                },
+              },
+            };
+          }),
+        );
+      },
+    );
+
+    expect(outcome.status).toBe("success");
+    expect(warningsOf(outcome)).toContain(BATTERIES_NOT_READ_WARNING);
+    expect(asked()).toEqual([
+      IPAD_ID,
+      IPHONE_ID,
+      IPHONE_ID,
+      IPHONE_ID,
+      IPHONE_ID,
+      IPHONE_ID,
+    ]);
+    expect(deviceRow(IPAD_ID)["batteryLevel"]).toBe(58);
+    // What the iPhone said before is kept, and it is still due.
+    expect(deviceRow(IPHONE_ID)["batteryLevel"]).toBe(15);
+    expect(askedAt(IPHONE_ID)).toBe(askedBefore);
+    // Its devices are all read and written as ever.
+    expect(lastRecord()["lastPullResult"]).toMatchObject({ deviceCount: 4 });
+
+    clock.advance(16 * MINUTE);
+    const next: DeviceManagementReadOutcome = await read();
+
+    expect(asked()).toEqual([IPHONE_ID]);
+    expect(deviceRow(IPHONE_ID)["batteryLevel"]).toBe(42);
+    expect(warningsOf(next)).toEqual([]);
+  });
+
+  test("a device Intune no longer knows is passed over, and the rest are asked", async () => {
+    const outcome: DeviceManagementReadOutcome = await read(
+      (fake: FakeIntuneGraph): void => {
+        fake.script(pathOf(IPHONE_ID), [
+          {
+            status: 404,
+            body: {
+              error: {
+                code: "ResourceNotFound",
+                message:
+                  '{"_version": 3, "Message": "Resource not found for the segment \'managedDevices\'."}',
+              },
+            },
+          },
+        ]);
+      },
+    );
+
+    expect(outcome.status).toBe("success");
+    expect(warningsOf(outcome)).toEqual([]);
+    expect(asked()).toEqual([IPHONE_ID, IPAD_ID]);
+    expect(deviceRow(IPHONE_ID)["batteryLevel"] ?? null).toBeNull();
+    expect(askedAt(IPHONE_ID)).toBeUndefined();
+    expect(deviceRow(IPAD_ID)["batteryLevel"]).toBe(65);
+  });
+
+  test("a request Graph no longer takes - a beta property gone - stops the asking, never the read", async () => {
+    const outcome: DeviceManagementReadOutcome = await read(
+      (fake: FakeIntuneGraph): void => {
+        fake.script(pathOf(IPHONE_ID), [
+          {
+            status: 400,
+            body: {
+              error: {
+                code: "BadRequest",
+                message:
+                  "Could not find a property named 'hardwareInformation' on type 'microsoft.graph.managedDevice'.",
+              },
+            },
+          },
+        ]);
+      },
+    );
+
+    expect(outcome.status).toBe("success");
+    expect(warningsOf(outcome)).toContain(BATTERIES_NOT_READ_WARNING);
+    expect(asked()).toEqual([IPHONE_ID]);
+    expect(deviceRow(IPHONE_ID)["batteryLevel"] ?? null).toBeNull();
+    expect(deviceRow(IPAD_ID)["batteryLevel"] ?? null).toBeNull();
+    // Every device is still read, and its apps.
+    expect(lastRecord()["lastPullResult"]).toMatchObject({ deviceCount: 4 });
   });
 });

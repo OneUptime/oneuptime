@@ -2,7 +2,10 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
 import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "Common/Types/Monitor/MetricMonitor/MetricSeriesResult";
-import { getManagedDeviceAlertTemplateById } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
+import {
+  ManagedDeviceAlertTemplate,
+  getManagedDeviceAlertTemplateById,
+} from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
 import {
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
   ManagedDeviceCheckInAttribute,
@@ -125,8 +128,11 @@ function rowsOfARead(data: {
   devices: Array<ManagedDeviceCheckInDevice>;
   hosts?: Array<string> | undefined;
   readMinutesAgo: number;
+  // The connection's service, which every row names: Esper's when not given.
+  provider?: string | undefined;
 }): Array<JSONObject> {
   const asOf: Date = minutesAgo(data.readMinutesAgo);
+  const provider: string = data.provider || "esper";
   const readings: Array<ManagedDeviceCheckInReading> =
     getManagedDeviceCheckInReadings({
       devices: data.devices,
@@ -136,14 +142,14 @@ function rowsOfARead(data: {
         }),
       ),
       asOf,
-      provider: "esper",
+      provider,
     });
 
   return readings.flatMap((reading: ManagedDeviceCheckInReading) => {
     const input: ManagedDeviceReadingRowInput = {
       projectId,
       connectionId: CONNECTION_ID,
-      provider: "esper",
+      provider,
       reading,
       asOf,
       retentionDate: new Date(asOf.getTime() + 30 * 24 * 60 * 60_000),
@@ -260,6 +266,8 @@ describe("what a check of the security patches reads", () => {
     expect(call.query.attributes).toEqual({
       "oneuptime.managed_device.connection.id": CONNECTION_ID.toString(),
       "oneuptime.managed_device.is_host": "false",
+      // Its service too, which every reading of the connection names.
+      "oneuptime.managed_device.provider": "esper",
       "oneuptime.managed_device.platform": "android",
     });
     expect(call.groupByAttributeKeys).toEqual([DEVICE_KEY]);
@@ -388,6 +396,10 @@ describe("from a read's rows to the series a check judges", () => {
     ["workspace-one-security-patch-out-of-date"],
     ["soti-security-patch-out-of-date"],
   ])("%s reads the same, for its connection", async (templateId: string) => {
+    const provider: string =
+      getManagedDeviceAlertTemplateById(templateId)!.provider;
+
+    // Its own service's connection's rows: each names the service.
     answerFrom(
       rowsOfARead({
         devices: [
@@ -396,6 +408,7 @@ describe("from a read's rows to the series a check judges", () => {
         ],
         hosts: ["DEVICE-AGENT"],
         readMinutesAgo: 3,
+        provider,
       }),
     );
 
@@ -407,4 +420,54 @@ describe("from a read's rows to the series a check judges", () => {
 
     expect(devicesOf(response)).toEqual(["DEVICE-BEHIND"]);
   });
+
+  /*
+   * A monitor made before its template read the service reads the
+   * connection alone: the same rows, as every row names the service.
+   */
+  test.each([
+    ["esper-security-patch-out-of-date"],
+    ["intune-security-patch-out-of-date"],
+    ["workspace-one-security-patch-out-of-date"],
+    ["soti-security-patch-out-of-date"],
+  ])(
+    "%s made before it read its service reads the same rows",
+    async (templateId: string) => {
+      const template: ManagedDeviceAlertTemplate =
+        getManagedDeviceAlertTemplateById(templateId)!;
+      const earlierStep: MonitorStep = template.getEarlierMonitorSteps!({
+        deviceManagementConnectionId: CONNECTION_ID.toString(),
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "Stores West - Security Patch Out of Date",
+      })[0]!;
+
+      answerFrom(
+        rowsOfARead({
+          devices: [
+            device("DEVICE-BEHIND", "2025-01-05"),
+            device("DEVICE-CURRENT", "2026-11-05"),
+          ],
+          readMinutesAgo: 3,
+          provider: template.provider,
+        }),
+      );
+
+      const now: MetricMonitorResponse = await monitorMetric({
+        monitorStep: patchStep(templateId),
+        monitorId,
+        projectId,
+      });
+      const before: MetricMonitorResponse = await monitorMetric({
+        monitorStep: earlierStep,
+        monitorId,
+        projectId,
+      });
+
+      expect(devicesOf(before)).toEqual(devicesOf(now));
+      expect(devicesOf(now)).toEqual(["DEVICE-BEHIND", "DEVICE-CURRENT"]);
+    },
+  );
 });

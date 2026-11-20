@@ -60222,5 +60222,9 @@
   "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "您的云限制了读取成本的速度，因此这些成本将在连接的下一次读取时读取。",
   "Monitors shown": "显示的监视器",
   "Pick what you want to do first, and its steps show here.": "选择您想先做的事，相应的步骤会显示在这里。",
-  "Your first steps": "您的第一步"
+  "Your first steps": "您的第一步",
+  "The device management connection **{{connection}}** was deleted, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "设备管理连接 **{{connection}}** 及其设备已被删除。打开此项的监视器已不再读取任何内容，因此它的监控已被关闭，此项已被解决。",
+  "The device management connection **{{connection}}** was turned off. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "设备管理连接 **{{connection}}** 已被关闭。连接关闭期间不会被读取，因此它的读取都没有逾期，此项已被解决。如果重新打开该连接后读取仍然失败，它的监视器会再次报告。",
+  "{{user}} deleted the device management connection **{{connection}}**, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "{{user}} 删除了设备管理连接 **{{connection}}** 及其设备。打开此项的监视器已不再读取任何内容，因此它的监控已被关闭，此项已被解决。",
+  "{{user}} turned off the device management connection **{{connection}}**. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "{{user}} 关闭了设备管理连接 **{{connection}}**。连接关闭期间不会被读取，因此它的读取都没有逾期，此项已被解决。如果重新打开该连接后读取仍然失败，它的监视器会再次报告。"
 }

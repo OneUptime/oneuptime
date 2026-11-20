@@ -135,6 +135,22 @@ export const MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION: string =
   "A managed device's battery, in percent, as its device management service last heard it at the last read of its connection. One reading per device in service that reports a battery, at every read.";
 
 /*
+ * The metric: whether a device is on its charger, as its device manager
+ * last heard it, a gauge per read (#10288): 1 on power, 0 on its battery.
+ * Written beside a device's battery, where its service says which:
+ * Workspace ONE's AcLineStatus, and SOTI MobiControl's IsCharging of an
+ * Android+ device. Esper's and Intune's device lists say neither. Low
+ * Battery reads it beside the battery, to leave a device on its charger be.
+ */
+export const MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME: string =
+  "oneuptime.managed_device.battery.charging";
+
+export const MANAGED_DEVICE_BATTERY_CHARGING_UNIT: string = "";
+
+export const MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION: string =
+  "Whether a managed device is on its charger, as its device management service last heard it at the last read of its connection: 1 on power, 0 on its battery. One reading per device in service that reports a battery and whether it is on power, at every read.";
+
+/*
  * The metric: how much of a device's own storage is in use, in percent, as
  * its device manager last heard it, a gauge per read (#10008). OneUptime's
  * own name, never the agent's system.filesystem.utilization.
@@ -152,8 +168,31 @@ export const MANAGED_DEVICE_READING_METRIC_NAMES: ReadonlyArray<string> = [
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
   MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
 ];
+
+/*
+ * The key an import keeps whether a device is on its charger under, in its
+ * details (#10288): true on power, false on its battery, and left out
+ * where the service says neither. Each service's own field, made one shape
+ * by its parser (getManagedDeviceChargingDetails), so a reading reads it
+ * the same way whatever the service.
+ */
+export const MANAGED_DEVICE_IS_CHARGING_DETAIL: string = "isCharging";
+
+/*
+ * What a parser keeps of whether a device is on its charger, under the key
+ * a reading reads (#10288): true or false, and nothing where the service
+ * said neither. Pure.
+ */
+export function getManagedDeviceChargingDetails(
+  isCharging: boolean | null | undefined,
+): Record<string, boolean> {
+  return typeof isCharging === "boolean"
+    ? { [MANAGED_DEVICE_IS_CHARGING_DETAIL]: isCharging }
+    : {};
+}
 
 /*
  * The keys an import keeps a device's storage under, in its details, in
@@ -307,6 +346,11 @@ export interface ManagedDeviceCheckInReading {
   securityPatch?: ManagedDeviceSecurityPatchReading | undefined;
   // Its battery in percent, when it reports one (#10008).
   batteryLevel?: number | undefined;
+  /*
+   * Whether it is on its charger, when it reports a battery and its
+   * service says which (#10288).
+   */
+  isCharging?: boolean | undefined;
   // How full its storage is, when it reports its storage and its free space.
   storage?: ManagedDeviceStorageReading | undefined;
 }
@@ -329,6 +373,23 @@ export function getManagedDeviceBatteryReading(
   }
 
   return Math.round(batteryLevel);
+}
+
+/*
+ * Whether a device is on its charger, from what its import keeps of it
+ * (MANAGED_DEVICE_IS_CHARGING_DETAIL): true or false, and undefined for
+ * anything else. Pure.
+ */
+export function getManagedDeviceChargingReading(
+  details: Record<string, unknown> | null | undefined,
+): boolean | undefined {
+  if (!details || typeof details !== "object") {
+    return undefined;
+  }
+
+  const isCharging: unknown = details[MANAGED_DEVICE_IS_CHARGING_DETAIL];
+
+  return typeof isCharging === "boolean" ? isCharging : undefined;
 }
 
 function readBytes(value: unknown): number | undefined {
@@ -517,6 +578,11 @@ export function getManagedDeviceCheckInReadings(data: {
     const batteryLevel: number | undefined = getManagedDeviceBatteryReading(
       device.batteryLevel,
     );
+    // On its charger or not: of a device with a battery alone (#10288).
+    const isCharging: boolean | undefined =
+      batteryLevel !== undefined
+        ? getManagedDeviceChargingReading(device.details)
+        : undefined;
     const storage: ManagedDeviceStorageReading | undefined =
       getManagedDeviceStorageReading(device.details);
 
@@ -530,6 +596,7 @@ export function getManagedDeviceCheckInReadings(data: {
       isHost: data.hostNames.has(hostName),
       ...(securityPatch ? { securityPatch } : {}),
       ...(batteryLevel !== undefined ? { batteryLevel } : {}),
+      ...(isCharging !== undefined ? { isCharging } : {}),
       ...(storage ? { storage } : {}),
     });
   }

@@ -60222,5 +60222,9 @@
   "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "クラウドがコストを読み取る速さを制限しているため、これらは接続の次回の読み取りで読み取られます。",
   "Monitors shown": "表示するモニター",
   "Pick what you want to do first, and its steps show here.": "最初にやりたいことを選ぶと、そのステップがここに表示されます。",
-  "Your first steps": "最初のステップ"
+  "Your first steps": "最初のステップ",
+  "The device management connection **{{connection}}** was deleted, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "デバイス管理接続 **{{connection}}** は、そのデバイスとともに削除されました。これを作成したモニターでは何も読み取られなくなったため、その監視はオフになり、これは解決されました。",
+  "The device management connection **{{connection}}** was turned off. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "デバイス管理接続 **{{connection}}** はオフになりました。オフの接続は読み取られないため、その読み取りはどれも遅れておらず、これは解決されました。接続が再びオンになっても読み取りが失敗し続ける場合は、そのモニターが再度知らせます。",
+  "{{user}} deleted the device management connection **{{connection}}**, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "{{user}} がデバイス管理接続 **{{connection}}** を、そのデバイスとともに削除しました。これを作成したモニターでは何も読み取られなくなったため、その監視はオフになり、これは解決されました。",
+  "{{user}} turned off the device management connection **{{connection}}**. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "{{user}} がデバイス管理接続 **{{connection}}** をオフにしました。オフの接続は読み取られないため、その読み取りはどれも遅れておらず、これは解決されました。接続が再びオンになっても読み取りが失敗し続ける場合は、そのモニターが再度知らせます。"
 }
