@@ -79,6 +79,19 @@ export class ExceptionInstanceService extends AnalyticsDatabaseService<Exception
   }
 
   /*
+   * The list's hook (onBeforeFind) narrows no one's read of an occurrence:
+   * a read of one by its _id is left as it was, so whoever may read an
+   * occurrence - repeat or not - still reads it, and hears that it was
+   * written (its live update is decided by the read check and the read
+   * scope, as it was before #9923).
+   */
+  public override getFindHookThatNarrowsNoRead(): (
+    findBy: FindBy<ExceptionInstance>,
+  ) => Promise<OnFind<ExceptionInstance>> {
+    return ExceptionInstanceService.prototype.onBeforeFind;
+  }
+
+  /*
    * The reads below go around those hooks to the read permission, so each
    * takes the same rule itself: a rule's preview and an anomaly's baseline
    * count what the monitor counts, and a chart draws what the list shows.

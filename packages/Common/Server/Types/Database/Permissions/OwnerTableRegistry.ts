@@ -56,6 +56,8 @@ import IoTFleetOwnerTeamService from "../../../Services/IoTFleetOwnerTeamService
 import IoTFleetOwnerUserService from "../../../Services/IoTFleetOwnerUserService";
 import NetworkDeviceOwnerTeamService from "../../../Services/NetworkDeviceOwnerTeamService";
 import NetworkDeviceOwnerUserService from "../../../Services/NetworkDeviceOwnerUserService";
+import NetworkSiteOwnerTeamService from "../../../Services/NetworkSiteOwnerTeamService";
+import NetworkSiteOwnerUserService from "../../../Services/NetworkSiteOwnerUserService";
 import StatusPageOwnerTeamService from "../../../Services/StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserService";
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
@@ -577,6 +579,22 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: ProbeOwnerUserService,
       ownerTeamService: ProbeOwnerTeamService,
       fkColumn: "probeId",
+      ownedScopeLeavesReads: true,
+    },
+  ],
+  [
+    /*
+     * A network site (#10188): a device is put in one, a site under another,
+     * a site link, an endpoint, a rule and a maintenance event name one, and
+     * the Sites page draws the whole tree - its parents too. So, like a
+     * probe, every reader of sites reads every one; a grant scoped to Owned
+     * changes and deletes only the sites its holder or their teams own.
+     */
+    "NetworkSite",
+    {
+      ownerUserService: NetworkSiteOwnerUserService,
+      ownerTeamService: NetworkSiteOwnerTeamService,
+      fkColumn: "networkSiteId",
       ownedScopeLeavesReads: true,
     },
   ],

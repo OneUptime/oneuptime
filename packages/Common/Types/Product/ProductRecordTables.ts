@@ -571,6 +571,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "NetworkSite",
     "NetworkSiteAssignmentRule",
     "NetworkSiteLink",
+    "NetworkSiteOwnerTeam",
+    "NetworkSiteOwnerUser",
     "NetworkSiteStatusTimeline",
     "NetworkSiteType",
     "NetworkSnmpCredentialProfile",

@@ -4,6 +4,7 @@ import TeamsIndex from "../Pages/Teams/Index";
 import TeamCustomFields from "../Pages/Teams/CustomFields";
 import TeamRoles from "../Pages/Teams/Roles";
 import TeamRoleView from "../Pages/Teams/RoleView";
+import TeamRoleViewLayout from "../Pages/Teams/RoleViewLayout";
 
 import TeamsViewLayout from "../Pages/Teams/View/Layout";
 import TeamsViewIndex from "../Pages/Teams/View/Index";
@@ -21,6 +22,7 @@ import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 import TeamModel from "Common/Models/DatabaseModels/Team";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
@@ -39,6 +41,31 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
+      {/*
+       * A custom role's pages - the role, and its Developer pages - under
+       * the role's own layout and side menu (#10139), as a team's are.
+       */}
+      <PageRoute
+        path={TeamsRoutePath[PageMap.TEAM_ROLE_VIEW] || ""}
+        element={<TeamRoleViewLayout />}
+      >
+        <PageRoute
+          index
+          element={
+            <TeamRoleView
+              {...props}
+              pageRoute={RouteMap[PageMap.TEAM_ROLE_VIEW] as Route}
+            />
+          }
+        />
+
+        {getDeveloperDocsRoutes({
+          modelType: CustomRole,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
+      </PageRoute>
+
       {/* Team View - own layout with sidemenu (more specific path first) */}
       <PageRoute
         path={TeamsRoutePath[PageMap.TEAM_VIEW] || ""}
@@ -153,22 +180,16 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* The project's custom roles and the built-in ones, and a role's own page. */}
+        {/*
+         * The project's custom roles and the built-in ones. A role's own
+         * page has its own layout, above.
+         */}
         <PageRoute
           path={TeamsRoutePath[PageMap.TEAM_ROLES] || ""}
           element={
             <TeamRoles
               {...props}
               pageRoute={RouteMap[PageMap.TEAM_ROLES] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={TeamsRoutePath[PageMap.TEAM_ROLE_VIEW] || ""}
-          element={
-            <TeamRoleView
-              {...props}
-              pageRoute={RouteMap[PageMap.TEAM_ROLE_VIEW] as Route}
             />
           }
         />

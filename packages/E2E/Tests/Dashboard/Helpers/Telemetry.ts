@@ -105,12 +105,15 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
     );
     await expect(page).toHaveURL(keyDetailUrlRegex, { timeout: 60000 });
 
-    // Reveal the secret key (HiddenText renders "Click to reveal" first).
-    const revealTrigger: Locator = page.locator('[role="hidden-text"]');
+    /*
+     * Reveal the secret key: HiddenText draws a "Click to reveal" button
+     * first, and the secret once it is pressed, each with a test id (#7964).
+     */
+    const revealTrigger: Locator = page.getByTestId("hidden-text-reveal");
     await revealTrigger.first().waitFor({ state: "visible", timeout: 60000 });
     await revealTrigger.first().click();
 
-    const revealed: Locator = page.locator('[role="revealed-text"]');
+    const revealed: Locator = page.getByTestId("hidden-text-value");
     await revealed.first().waitFor({ state: "visible", timeout: 30000 });
 
     const secretKey: string = (await revealed.first().innerText()).trim();

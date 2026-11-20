@@ -386,6 +386,13 @@ work out, starts from a default for everything else, and folds what most people 
   a keyboard could open the header's notification bell but choose nothing in it, and could not go
   back to a finished step of a form (#9136). Enforced by
   [ClickOnlyControlsGuard](../../packages/Common/Tests/UI/Components/ClickOnlyControlsGuard.test.ts).
+- **A role is one a screen reader knows.** A `role` says what a part is, and only a role WAI-ARIA
+  defines means anything: the browser drops a made-up one, and accessibility checkers flag it on
+  every page that draws it. A secret behind "Click to reveal" carried `role="hidden-text"` and
+  `role="revealed-text"` only so that tests could find its parts (#7964). A test finds a part by
+  what a person sees (a button's words) or by its `data-testid`, never by a role made up for it.
+  Enforced by
+  [AriaRolesGuard](../../packages/Common/Tests/UI/Components/AriaRolesGuard.test.ts).
 - **A finger can hit it.** Under a finger (`[@media(pointer:coarse)]:min-h-11`) a control is at
   least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
   compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
