@@ -39,6 +39,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * A PROJECT'S AMAZON SES IAM ROLE, AT ITS ROUTES (#7378):
@@ -155,13 +156,13 @@ async function call(
     json: jest.fn(),
     status: jest.fn().mockReturnThis(),
   } as unknown as ExpressResponse;
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   await mockRouter
     .match(method, uri)
     .handlerFunction(req, res, next as unknown as NextFunction);
 
-  const answered: jest.Mock = Response.sendJsonObjectResponse as jest.Mock;
+  const answered: Mock = Response.sendJsonObjectResponse as unknown as Mock;
 
   return {
     thrownToNext: next.mock.calls[0] ? next.mock.calls[0][0] : undefined,
@@ -171,9 +172,7 @@ async function call(
 
 let projectId: ObjectID;
 let userId: ObjectID;
-let propsSpy: jest.SpiedFunction<
-  typeof CommonAPI.getDatabaseCommonInteractionProps
->;
+let propsSpy: SpyInstance<typeof CommonAPI.getDatabaseCommonInteractionProps>;
 
 beforeAll(async () => {
   // Importing the route module registers its routes on the mock router.
@@ -200,9 +199,7 @@ describe("GET /smtp-config/aws-role-setup", () => {
   };
 
   test("answers the setup of the project the request is signed in to, never one it names", async () => {
-    const setupSpy: jest.SpiedFunction<
-      typeof AmazonSesProjectRole.getRoleSetup
-    > = jest
+    const setupSpy: SpyInstance<typeof AmazonSesProjectRole.getRoleSetup> = jest
       .spyOn(AmazonSesProjectRole, "getRoleSetup")
       .mockResolvedValue(SETUP);
 
@@ -237,9 +234,7 @@ describe("GET /smtp-config/aws-role-setup", () => {
   });
 
   test("anyone else is refused, and nothing is asked of AWS", async () => {
-    const setupSpy: jest.SpiedFunction<
-      typeof AmazonSesProjectRole.getRoleSetup
-    > = jest
+    const setupSpy: SpyInstance<typeof AmazonSesProjectRole.getRoleSetup> = jest
       .spyOn(AmazonSesProjectRole, "getRoleSetup")
       .mockResolvedValue(SETUP);
 
@@ -263,9 +258,7 @@ describe("GET /smtp-config/aws-role-setup", () => {
   });
 
   test("a request that names no project is refused before anything is read", async () => {
-    const setupSpy: jest.SpiedFunction<
-      typeof AmazonSesProjectRole.getRoleSetup
-    > = jest
+    const setupSpy: SpyInstance<typeof AmazonSesProjectRole.getRoleSetup> = jest
       .spyOn(AmazonSesProjectRole, "getRoleSetup")
       .mockResolvedValue(SETUP);
 
@@ -315,16 +308,16 @@ describe("POST /smtp-config/test, for a config that signs in with an IAM role", 
   });
 
   test("the role is checked afresh, with the config row's own project, before the test email is sent", async () => {
-    const sessionSpy: jest.SpiedFunction<
-      typeof AmazonSesProjectRole.getSession
-    > = jest.spyOn(AmazonSesProjectRole, "getSession").mockResolvedValue({
-      credentials: {
-        accessKeyId: "ASIASESSION000000001",
-        secretAccessKey: "session-secret",
-        sessionToken: "session-token",
-      },
-      key: "key",
-    });
+    const sessionSpy: SpyInstance<typeof AmazonSesProjectRole.getSession> = jest
+      .spyOn(AmazonSesProjectRole, "getSession")
+      .mockResolvedValue({
+        credentials: {
+          accessKeyId: "ASIASESSION000000001",
+          secretAccessKey: "session-secret",
+          sessionToken: "session-token",
+        },
+        key: "key",
+      });
 
     const result: RouteCall = await call("POST", "/test", {
       body: {
@@ -370,9 +363,8 @@ describe("POST /smtp-config/test, for a config that signs in with an IAM role", 
   });
 
   test("an access key config is not checked as a role", async () => {
-    const sessionSpy: jest.SpiedFunction<
-      typeof AmazonSesProjectRole.getSession
-    > = jest.spyOn(AmazonSesProjectRole, "getSession");
+    const sessionSpy: SpyInstance<typeof AmazonSesProjectRole.getSession> =
+      jest.spyOn(AmazonSesProjectRole, "getSession");
     const config: ProjectSmtpConfig = roleConfig();
 
     config.amazonSesAuthenticationType =
