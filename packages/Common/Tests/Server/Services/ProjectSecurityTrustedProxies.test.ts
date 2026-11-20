@@ -1,4 +1,5 @@
 import ProjectService from "../../../Server/Services/ProjectService";
+import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
@@ -16,6 +17,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -28,7 +30,14 @@ import {
   isTrustedProxy,
   resolveClientAddress,
 } from "../../../Utils/SecurityEvent/ClientAddressTrust";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -263,6 +272,18 @@ describe("ProjectService.applySecurityTrustedProxyRules: what a project may stor
 });
 
 describe("SecurityTrustedProxies: what the scans read", () => {
+  /*
+   * Cloudflare's edge names its connection (#10565), so every read of a
+   * project's proxies counts its Cloudflare connections: a test that does not
+   * say which edges the project is behind is behind none, and reads no
+   * database.
+   */
+  beforeEach(() => {
+    jest
+      .spyOn(SecurityEventConnectionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+  });
+
   it("reads the project's list, as OneUptime, and keeps it a minute", async () => {
     const project: Project = new Project();
     project.securityTrustedProxies = "198.51.100.0/24\n203.0.113.50";
