@@ -30,6 +30,11 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { ingressRequestOf } = require("../../Scripts/Install/FollowIngressPort");
+const {
+  readSettings,
+} = require("../../Scripts/Install/ReplacePlaceholderSecrets");
+const { renderCompose, hasDockerCompose } = require("./Utils/ComposePorts");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const STATUS_CHECK = path.join(
@@ -377,6 +382,81 @@ describe("the address it checks", () => {
     expect(result.calls[0]).toBe("localhost:8080");
   });
 });
+
+/*
+ * npm start ends with this check, then the doctor, which asks the ingress
+ * itself (Scripts/Install/Doctor.js, by FollowIngressPort's
+ * ingressRequestOf), as backup.sh's report does: both must ask the same
+ * socket under the same name, or one passes where the other cannot.
+ */
+describe("the doctor and the backup report ask where the check asks", () => {
+  test.each(INGRESS_FORMS)(
+    "ONEUPTIME_HTTP_PORT=%s",
+    (setting, connectsTo, host) => {
+      const value = readSettings(`ONEUPTIME_HTTP_PORT=${setting}\n`).get(
+        "ONEUPTIME_HTTP_PORT",
+      );
+      const request = ingressRequestOf(value);
+      const url = new URL(request.url);
+      const checked = statusCheck({
+        config: configWith([`ONEUPTIME_HTTP_PORT=${setting}`]),
+      });
+
+      expect({
+        host: request.host,
+        connectsTo: `${url.hostname}:${url.port || "80"}`,
+      }).toEqual({
+        host,
+        connectsTo,
+      });
+      expect(requestOf(checked.requests[0])).toEqual(
+        expect.objectContaining({ host, connectsTo }),
+      );
+    },
+  );
+});
+
+/*
+ * What Compose itself makes of each form: the published address and port
+ * of the ingress's 7849, from `docker compose config`, are where the check
+ * connects. Needs the Docker CLI's compose plugin, and no daemon. Not the
+ * empty setting, which Compose publishes on a port Docker picks when it
+ * starts the ingress, so nothing knows it before: the check asks port 80 then,
+ * as it always did.
+ */
+const describeWithCompose = hasDockerCompose() ? describe : describe.skip;
+
+describeWithCompose(
+  "as Compose publishes each form of ONEUPTIME_HTTP_PORT",
+  () => {
+    test.each(
+      INGRESS_FORMS.filter(([setting]) => {
+        return setting !== "";
+      }),
+    )(
+      "ONEUPTIME_HTTP_PORT=%s is published where the check connects, %s",
+      (setting, connectsTo) => {
+        const value = readSettings(`ONEUPTIME_HTTP_PORT=${setting}\n`).get(
+          "ONEUPTIME_HTTP_PORT",
+        );
+        const rendered = renderCompose(["docker-compose.yml"], {
+          ONEUPTIME_HTTP_PORT: value,
+        });
+        const published = rendered.services.ingress.ports.find((port) => {
+          return Number(port.target) === 7849;
+        });
+        const hostIp = published.host_ip || "";
+        const address = ["", "0.0.0.0", "::"].includes(hostIp)
+          ? "localhost"
+          : hostIp.includes(":")
+            ? `[${hostIp}]`
+            : hostIp;
+
+        expect(`${address}:${published.published}`).toBe(connectsTo);
+      },
+    );
+  },
+);
 
 describe("how npm runs it", () => {
   test("npm's status-check script hands it no address, so it checks the ingress config.env names", () => {

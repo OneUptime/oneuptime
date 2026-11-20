@@ -21,7 +21,9 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const {
   BUNDLED_URL_SETTINGS,
+  publishedIngressOf,
   ingressUrlOf,
+  ingressRequestOf,
   followedUrl,
   followIngressPort,
   describeMoved,
@@ -67,9 +69,109 @@ describe("where the ingress is", () => {
     ["0.0.0.0:8080", { url: "http://localhost:8080", port: 8080 }],
     ["10.0.0.5:8080", { url: "http://10.0.0.5:8080", port: 8080 }],
     ["[::1]:8080", { url: "http://[::1]:8080", port: 8080 }],
+    // Compose takes an IPv6 address without brackets too; a URL needs them.
+    ["::1:8080", { url: "http://[::1]:8080", port: 8080 }],
+    ["2001:db8::5:8080", { url: "http://[2001:db8::5]:8080", port: 8080 }],
+    [":::8080", { url: "http://localhost:8080", port: 8080 }],
+    ["[::]:8080", { url: "http://localhost:8080", port: 8080 }],
     ["eighty", null],
   ])("ONEUPTIME_HTTP_PORT=%p", (value, expected) => {
     expect(ingressUrlOf(value)).toEqual(expected);
+  });
+
+  /*
+   * Unbracketed, a bundled probe's URL was http://::1:8080, which no client
+   * can read: the probe never started, and the doctor said OneUptime did
+   * not answer.
+   */
+  test.each(["::1:8080", "2001:db8::5:8080", "[::1]:8443", "10.0.0.5:8080"])(
+    "ONEUPTIME_HTTP_PORT=%s gives the probes a URL that reads as the address and port Compose publishes",
+    (value) => {
+      const { url, port } = ingressUrlOf(value);
+      const parsed = new URL(url);
+      const published = publishedIngressOf(value);
+
+      expect(parsed.host).toBe(`${published.address}:${port}`);
+      expect(parsed.pathname).toBe("/");
+    },
+  );
+
+  test.each([
+    [undefined, { address: "", port: 80 }],
+    ["", { address: "", port: 80 }],
+    ["80", { address: "", port: 80 }],
+    [" 8080 ", { address: "", port: 8080 }],
+    [":8080", { address: "", port: 8080 }],
+    ["0.0.0.0:8080", { address: "", port: 8080 }],
+    ["[::]:8080", { address: "", port: 8080 }],
+    [":::8080", { address: "", port: 8080 }],
+    ["127.0.0.1:8080", { address: "127.0.0.1", port: 8080 }],
+    ["127.0.0.1:80", { address: "127.0.0.1", port: 80 }],
+    ["[::1]:8080", { address: "[::1]", port: 8080 }],
+    ["::1:8080", { address: "[::1]", port: 8080 }],
+    ["10.0.0.5:8443", { address: "10.0.0.5", port: 8443 }],
+    ["[2001:db8::5]:8080", { address: "[2001:db8::5]", port: 8080 }],
+    ["2001:db8::5:8080", { address: "[2001:db8::5]", port: 8080 }],
+    ["eighty", null],
+    ["10.0.0.5", null],
+    ["10.0.0.5:", null],
+  ])("ONEUPTIME_HTTP_PORT=%p is published at %p", (value, expected) => {
+    expect(publishedIngressOf(value)).toEqual(expected);
+  });
+});
+
+/*
+ * What npm run doctor and backup.sh's report ask: where the ingress is
+ * published, under localhost. By the address it is published on, the ingress
+ * serves a status page's custom domain, which has none of the app's pages
+ * (#10024).
+ */
+describe("where the install scripts ask OneUptime on this server", () => {
+  test.each([
+    [undefined, "http://localhost", "localhost"],
+    ["", "http://localhost", "localhost"],
+    ["80", "http://localhost", "localhost"],
+    ["8080", "http://localhost:8080", "localhost:8080"],
+    [":8080", "http://localhost:8080", "localhost:8080"],
+    ["0.0.0.0:8080", "http://localhost:8080", "localhost:8080"],
+    ["[::]:8080", "http://localhost:8080", "localhost:8080"],
+    [":::8080", "http://localhost:8080", "localhost:8080"],
+    ["127.0.0.1:8080", "http://127.0.0.1:8080", "localhost:8080"],
+    ["127.0.0.1:80", "http://127.0.0.1", "localhost"],
+    ["[::1]:8080", "http://[::1]:8080", "localhost:8080"],
+    ["::1:8080", "http://[::1]:8080", "localhost:8080"],
+    ["[::1]:80", "http://[::1]", "localhost"],
+    ["10.0.0.5:8443", "http://10.0.0.5:8443", "localhost:8443"],
+    ["10.0.0.5:80", "http://10.0.0.5", "localhost"],
+    ["[2001:db8::5]:8080", "http://[2001:db8::5]:8080", "localhost:8080"],
+    ["2001:db8::5:8080", "http://[2001:db8::5]:8080", "localhost:8080"],
+  ])(
+    "ONEUPTIME_HTTP_PORT=%p: connect to %s, with Host: %s",
+    (value, url, host) => {
+      const request = ingressRequestOf(value);
+
+      expect(request).toEqual({
+        url: url,
+        host: host,
+        port: publishedIngressOf(value).port,
+      });
+      // A URL Node reads, at the port Compose publishes.
+      expect(new URL(request.url).port || "80").toBe(String(request.port));
+      // Never the address itself as the name.
+      expect(new URL(`http://${request.host}`).hostname).toBe("localhost");
+    },
+  );
+
+  test("a setting that is no port asks nothing", () => {
+    expect(ingressRequestOf("eighty")).toBeNull();
+  });
+
+  test("the bundled probes keep their URL, which names the ingress and the place it is published at once", () => {
+    // They cannot send a Host of their own: localhost for 127.0.0.1, which localhost names everywhere.
+    expect(ingressUrlOf("127.0.0.1:8080").url).toBe("http://localhost:8080");
+    expect(ingressRequestOf("127.0.0.1:8080").url).toBe(
+      "http://127.0.0.1:8080",
+    );
   });
 });
 

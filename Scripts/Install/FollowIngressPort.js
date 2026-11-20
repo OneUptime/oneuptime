@@ -76,13 +76,16 @@ const unquotedValueOf = (line) => {
 };
 
 /*
- * The address the ingress answers at on this server, as a URL the bundled
- * services can call, from ONEUPTIME_HTTP_PORT: a port alone ("8080") or an
- * address and a port ("127.0.0.1:8080"). Every address of the server and
- * its loopback address are http://localhost; another address is itself.
- * { url, port }, or null when the setting is neither.
+ * Where ONEUPTIME_HTTP_PORT publishes the ingress, as Compose publishes it:
+ * a port alone ("8080"), or an address and a port ("127.0.0.1:8080",
+ * "[::1]:8080", "::1:8080", "10.0.0.5:8080"). Compose takes what follows
+ * the last ":" for the port, and what comes before it, without brackets,
+ * for the address. { address, port }: the address in brackets when it is an
+ * IPv6 address, as a URL writes one, and "" for none and for one that means
+ * every address of the server (0.0.0.0, ::); null when the setting is
+ * neither. Tests/Scripts/status-check.sh reads it the same way.
  */
-const ingressUrlOf = (value) => {
+const publishedIngressOf = (value) => {
   const text = String(value === undefined ? "80" : value).trim() || "80";
   let address = "";
   let port = text;
@@ -98,15 +101,79 @@ const ingressUrlOf = (value) => {
     port = text.slice(colon + 1);
   }
 
-  const number = Number(port);
-  const hostname =
-    EVERY_ADDRESS.indexOf(address) !== -1 || address === "127.0.0.1"
-      ? "localhost"
+  const bare =
+    address.startsWith("[") && address.endsWith("]")
+      ? address.slice(1, -1)
       : address;
 
   return {
-    url: `http://${hostname}${number === 80 ? "" : `:${number}`}`,
-    port: number,
+    address:
+      EVERY_ADDRESS.indexOf(bare) !== -1
+        ? ""
+        : bare.indexOf(":") !== -1
+          ? `[${bare}]`
+          : bare,
+    port: Number(port),
+  };
+};
+
+// ":8080", or nothing for port 80, as a web address writes its port.
+const portSuffixOf = (port) => {
+  return port === 80 ? "" : `:${port}`;
+};
+
+/*
+ * The address the ingress answers at on this server, as a URL the bundled
+ * services can call, from ONEUPTIME_HTTP_PORT: a port alone ("8080") or an
+ * address and a port ("127.0.0.1:8080"). Every address of the server and
+ * 127.0.0.1 are http://localhost, which the ingress serves OneUptime under
+ * and which names 127.0.0.1 on every server; another address is itself, as
+ * localhost need not name it: where /etc/hosts gives ::1 another name, as
+ * Ubuntu's does, localhost is 127.0.0.1 alone. { url, port }, or null when
+ * the setting is neither.
+ */
+const ingressUrlOf = (value) => {
+  const published = publishedIngressOf(value);
+
+  if (!published) {
+    return null;
+  }
+
+  const hostname =
+    published.address === "" || published.address === "127.0.0.1"
+      ? "localhost"
+      : published.address;
+
+  return {
+    url: `http://${hostname}${portSuffixOf(published.port)}`,
+    port: published.port,
+  };
+};
+
+/*
+ * Where an install script asks OneUptime on this server (npm run doctor,
+ * backup.sh's report): { url, host, port }. `url` connects where
+ * ONEUPTIME_HTTP_PORT publishes the ingress (http://127.0.0.1:8080,
+ * http://[::1]:8080, http://10.0.0.5:8080), or localhost when it is published
+ * on every address of the server; `host` is the Host header to send with it:
+ * localhost and the port, the name the ingress serves OneUptime under
+ * whatever address it listens on. By the address it listens on, the ingress
+ * serves a status page's custom domain instead (#10024). null when the
+ * setting is neither a port nor an address and a port.
+ */
+const ingressRequestOf = (value) => {
+  const published = publishedIngressOf(value);
+
+  if (!published) {
+    return null;
+  }
+
+  const port = portSuffixOf(published.port);
+
+  return {
+    url: `http://${published.address || "localhost"}${port}`,
+    host: `localhost${port}`,
+    port: published.port,
   };
 };
 
@@ -228,7 +295,9 @@ module.exports = {
   BUNDLED_URL_SETTINGS,
   INGRESS_PORT_SETTING,
   LOOPBACK_HOSTNAMES,
+  publishedIngressOf,
   ingressUrlOf,
+  ingressRequestOf,
   followedUrl,
   followIngressPort,
   describeMoved,

@@ -275,6 +275,16 @@ export interface ClusterKeyRouteToolCaller {
   check: "isPlaceholderValue" | "isShippedSecretValue";
   // The check's declaration in the script, when the script declares it itself.
   checkDeclaration?: string | undefined;
+  /*
+   * The Host header the request names beside the key's, as the script writes
+   * its value, and the declarations that value is made of: the name the
+   * ingress serves OneUptime under, localhost and the ingress's port
+   * (FollowIngressPort's ingressRequestOf), never the key. The request still
+   * goes to the address `calls` names; asked by that address, the ingress
+   * would serve a status page's custom domain instead (#10024). Left out:
+   * the request names the clusterkey header alone.
+   */
+  host?: { value: string; declarations: Array<string> } | undefined;
 }
 
 const DOCTOR_ROUTE: ClusterKeyRouteToolCaller["route"] = {
@@ -315,8 +325,8 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       calls: "`${ingressUrl}${DOCTOR_PATH}`",
       address: [
         'const DOCTOR_PATH = "/api/admin/health/doctor";',
-        'const { ingressUrlOf } = require("./FollowIngressPort");',
-        'const ingress = ingressUrlOf(settings.get("ONEUPTIME_HTTP_PORT"));',
+        'const { ingressRequestOf } = require("./FollowIngressPort");',
+        'const ingress = ingressRequestOf(settings.get("ONEUPTIME_HTTP_PORT"));',
         'const ingressUrl = ingress ? ingress.url : "http://localhost";',
       ],
       path: "/api/admin/health/doctor",
@@ -324,6 +334,12 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       presents: "encodeURIComponent(secret)",
       client: "node-http",
       check: "isPlaceholderValue",
+      host: {
+        value: "ingressHost",
+        declarations: [
+          'const ingressHost = ingress ? ingress.host : "localhost";',
+        ],
+      },
     },
     /*
      * `npm run backup`: backup.sh, through WithConfig.sh, hands it
@@ -337,8 +353,8 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       calls: "`${ingressUrl}${BACKUP_SCRIPT_RUN_PATH}`",
       address: [
         'const BACKUP_SCRIPT_RUN_PATH = "/api/admin/health/backup-run";',
-        'const { ingressUrlOf } = require("./FollowIngressPort");',
-        "const ingress = ingressUrlOf(env.ONEUPTIME_HTTP_PORT);",
+        'const { ingressRequestOf } = require("./FollowIngressPort");',
+        "const ingress = ingressRequestOf(env.ONEUPTIME_HTTP_PORT);",
         'const ingressUrl = ingress ? ingress.url : "http://localhost";',
       ],
       path: "/api/admin/health/backup-run",
@@ -347,6 +363,12 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       client: "node-http",
       body: "outcome",
       check: "isPlaceholderValue",
+      host: {
+        value: "ingressHost",
+        declarations: [
+          'const ingressHost = ingress ? ingress.host : "localhost";',
+        ],
+      },
     },
   ];
 

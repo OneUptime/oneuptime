@@ -1774,7 +1774,7 @@ describe("npm run doctor", () => {
       {
         url: `http://localhost${DOCTOR_PATH}`,
         method: "POST",
-        headers: { clusterkey: SECRET },
+        headers: { Host: "localhost", clusterkey: SECRET },
       },
     ]);
     // HOST is asked for the server's proof, with a GET and without the key.
@@ -1850,6 +1850,68 @@ describe("npm run doctor", () => {
     expect(result.network.requests[0].url).toBe(
       `http://localhost:8080${READY_PATH}`,
     );
+    expect(result.network.requests[0].headers).toEqual({
+      Host: "localhost:8080",
+    });
+  });
+
+  /*
+   * By the address it is published on, the ingress serves a status page's
+   * custom domain: the server is asked where ONEUPTIME_HTTP_PORT publishes
+   * it, under localhost, the name it serves OneUptime under (#10024).
+   */
+  test.each([
+    ["8080", "http://localhost:8080", "localhost:8080"],
+    ["0.0.0.0:8080", "http://localhost:8080", "localhost:8080"],
+    ["[::]:8080", "http://localhost:8080", "localhost:8080"],
+    ["127.0.0.1:8080", "http://127.0.0.1:8080", "localhost:8080"],
+    ["127.0.0.1:80", "http://127.0.0.1", "localhost"],
+    ["[::1]:8080", "http://[::1]:8080", "localhost:8080"],
+    ["::1:8080", "http://[::1]:8080", "localhost:8080"],
+    ["10.0.0.5:8443", "http://10.0.0.5:8443", "localhost:8443"],
+    ["[2001:db8::5]:8080", "http://[2001:db8::5]:8080", "localhost:8080"],
+  ])(
+    "ONEUPTIME_HTTP_PORT=%s: the server is asked at %s, with Host: %s",
+    async (setting, origin, host) => {
+      const result = await runDoctor({
+        config: healthyConfig([`ONEUPTIME_HTTP_PORT=${setting}`]),
+      });
+      const atTheIngress = result.network.requests.filter((entry) => {
+        return entry.url.indexOf("custom-domain-readiness") === -1;
+      });
+
+      expect(
+        atTheIngress.map((entry) => {
+          return [entry.method, entry.url, entry.headers.Host];
+        }),
+      ).toEqual([
+        ["GET", `${origin}${READY_PATH}`, host],
+        ["POST", `${origin}${DOCTOR_PATH}`, host],
+      ]);
+      expect(result.output).not.toContain("does not answer at");
+
+      const all = await runDoctor({
+        config: healthyConfig([`ONEUPTIME_HTTP_PORT=${setting}`]),
+        argv: ["--all"],
+      });
+
+      expect(all.output).toContain(`✓ OneUptime answers at ${origin}.`);
+    },
+  );
+
+  test("HOST, asked from outside, keeps its own name: only the ingress is asked under localhost", async () => {
+    const result = await runDoctor({
+      config: healthyConfig(["ONEUPTIME_HTTP_PORT=127.0.0.1:8080"]),
+    });
+    const outside = result.network.requests.filter((entry) => {
+      return entry.url.indexOf("custom-domain-readiness") !== -1;
+    });
+
+    expect(outside).toHaveLength(1);
+    expect(outside[0].url.startsWith("https://oneuptime.example.com/")).toBe(
+      true,
+    );
+    expect(outside[0].headers).toEqual({});
   });
 
   test("a placeholder ONEUPTIME_SECRET is never sent: the server is not asked", async () => {
@@ -2009,6 +2071,8 @@ describe("against a real HTTP server standing in for the ingress", () => {
   let appKey = SECRET;
   const seen = [];
   const seenElsewhere = [];
+  // The Host header of each request the stand-in ingress took, by its path.
+  const hosts = [];
 
   const recordOf = (req) => {
     return {
@@ -2023,6 +2087,7 @@ describe("against a real HTTP server standing in for the ingress", () => {
   beforeAll(async () => {
     server = http.createServer((req, res) => {
       seen.push(recordOf(req));
+      hosts.push({ url: req.url, host: req.headers.host });
 
       if (req.url === READY_PATH) {
         res.writeHead(200);
@@ -2090,6 +2155,7 @@ describe("against a real HTTP server standing in for the ingress", () => {
     appKey = SECRET;
     seen.length = 0;
     seenElsewhere.length = 0;
+    hosts.length = 0;
   });
 
   // The doctor's POST, as the server saw it.
@@ -2150,6 +2216,31 @@ describe("against a real HTTP server standing in for the ingress", () => {
       contentLength: undefined,
       transferEncoding: undefined,
     });
+  });
+
+  /*
+   * The ingress published on 127.0.0.1 alone, as behind a reverse proxy of
+   * one's own: the doctor connects there, and asks for localhost, the name
+   * the ingress serves OneUptime under. Asked as 127.0.0.1, the ingress
+   * serves a status page's custom domain (#10024).
+   */
+  test("the real requests go where ONEUPTIME_HTTP_PORT publishes the ingress, under the name localhost", async () => {
+    // A HOST of this computer, which the doctor does not ask from outside; the name sent is not HOST's.
+    const result = await runAgainstServer(
+      healthyConfig([
+        "HOST=127.0.0.1",
+        "HTTP_PROTOCOL=http",
+        "PROVISION_SSL=false",
+        `ONEUPTIME_HTTP_PORT=127.0.0.1:${port}`,
+      ]),
+    );
+
+    expect(hosts).toEqual([
+      { url: READY_PATH, host: `localhost:${port}` },
+      { url: DOCTOR_PATH, host: `localhost:${port}` },
+    ]);
+    expect(result.output).not.toContain("does not answer at");
+    expect(result.output).toContain("✗ Email: Not set up yet");
   });
 
   test("a redirect is not followed, so the key reaches no other server", async () => {
