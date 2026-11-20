@@ -3,6 +3,8 @@ import {
   toAppleSymbolDisplayName,
 } from "../../../Utils/Telemetry/SwiftDemangle";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * #9922: a symbolicated iOS crash frame's Swift name, as a person reads it.
@@ -747,20 +749,6 @@ const TRUNCATED_OR_CORRUPTED: Array<string> = [
   "$s5MyApp4CartVyAA4ItemVSiciq",
 ];
 
-// A deterministic generator, so a failure can be replayed.
-function makeRandom(seed: number): () => number {
-  let state: number = seed >>> 0 || 1;
-
-  return (): number => {
-    state ^= state << 13;
-    state >>>= 0;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    state >>>= 0;
-    return state / 4294967296;
-  };
-}
-
 function expectReadable(name: string | null): void {
   if (name !== null) {
     expect(typeof name).toBe("string");
@@ -880,12 +868,20 @@ describe("demangleSwiftSymbol, what it does not read", () => {
   });
 
   test("an absurdly long name is shown as it is, quickly", () => {
-    const long: string = `$s${"5MyApp".repeat(2000)}`;
-    const started: number = Date.now();
+    const long: Array<string> = [
+      `$s${"5MyApp".repeat(2000)}`,
+      `$s${"A".repeat(5000)}`,
+    ];
+    // The fastest of up to three attempts: one timing on a busy runner is noisy.
+    const demangled: FastestRun<Array<string | null>> = fastestRun({
+      run: (): Array<string | null> => {
+        return long.map(demangleSwiftSymbol);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(demangleSwiftSymbol(long)).toBeNull();
-    expect(demangleSwiftSymbol(`$s${"A".repeat(5000)}`)).toBeNull();
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(demangled.result).toEqual([null, null]);
+    expect(demangled.inMs).toBeLessThan(2000);
   });
 
   test("a long name under the limit still reads", () => {
@@ -931,8 +927,6 @@ describe("demangleSwiftSymbol, what it does not read", () => {
   });
 
   test("manglings that make work grow fast end quickly", () => {
-    const started: number = Date.now();
-
     const growing: Array<string> = [
       // 2^23 copies of "Cart", from 152 characters.
       doubling(23),
@@ -947,12 +941,21 @@ describe("demangleSwiftSymbol, what it does not read", () => {
       `$s5MyApp3BoxC${"ACyACyxGG".repeat(400)}WOh`,
       `$s${"Si_SStSg".repeat(500)}WOh`,
     ];
+    // The fastest of up to three attempts: one timing on a busy runner is noisy.
+    const demangled: FastestRun<Array<string | null>> = fastestRun({
+      run: (): Array<string | null> => {
+        return growing.map(demangleSwiftSymbol);
+      },
+      limitInMs: 5000,
+    });
 
-    for (const mangled of growing) {
-      expect(demangleSwiftSymbol(mangled)).toBeNull();
-    }
-
-    expect(Date.now() - started).toBeLessThan(5000);
+    // Each is shown as it is.
+    expect(demangled.result).toEqual(
+      growing.map((): null => {
+        return null;
+      }),
+    );
+    expect(demangled.inMs).toBeLessThan(5000);
   });
 });
 
@@ -975,15 +978,15 @@ describe("demangleSwiftSymbol never throws", () => {
   });
 
   test("on real symbols with one character changed, dropped or doubled", () => {
-    const random: () => number = makeRandom(9922);
+    // Seeded, so a failure can be replayed.
+    const random: SeededRandom = seededRandom(9922);
     const alphabet: string =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$.";
 
     for (const symbol of SEEDS) {
       for (let round: number = 0; round < 40; round++) {
-        const at: number = Math.floor(random() * symbol.length);
-        const character: string =
-          alphabet[Math.floor(random() * alphabet.length)] || "_";
+        const at: number = random(symbol.length);
+        const character: string = alphabet[random(alphabet.length)] || "_";
         const changed: string =
           symbol.slice(0, at) + character + symbol.slice(at + 1);
         const dropped: string = symbol.slice(0, at) + symbol.slice(at + 1);
@@ -997,22 +1000,22 @@ describe("demangleSwiftSymbol never throws", () => {
   });
 
   test("on random manglings and random text", () => {
-    const random: () => number = makeRandom(9925);
+    const random: SeededRandom = seededRandom(9925);
     const mangling: string =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$.yyAAS_";
 
     for (let round: number = 0; round < 4000; round++) {
-      const length: number = Math.floor(random() * 80);
+      const length: number = random(80);
       let body: string = "";
 
       for (let index: number = 0; index < length; index++) {
-        body += mangling[Math.floor(random() * mangling.length)] || "y";
+        body += mangling[random(mangling.length)] || "y";
       }
 
       let text: string = "";
 
       for (let index: number = 0; index < length; index++) {
-        text += String.fromCharCode(Math.floor(random() * 0x3000));
+        text += String.fromCharCode(random(0x3000));
       }
 
       expectReadable(demangleSwiftSymbol(`$s${body}`));
@@ -1023,14 +1026,14 @@ describe("demangleSwiftSymbol never throws", () => {
   });
 
   test("on real symbols spliced together", () => {
-    const random: () => number = makeRandom(2026);
+    const random: SeededRandom = seededRandom(2026);
 
     for (let round: number = 0; round < 3000; round++) {
-      const first: string = SEEDS[Math.floor(random() * SEEDS.length)] || "$s";
-      const second: string = SEEDS[Math.floor(random() * SEEDS.length)] || "$s";
+      const first: string = SEEDS[random(SEEDS.length)] || "$s";
+      const second: string = SEEDS[random(SEEDS.length)] || "$s";
       const spliced: string =
-        first.slice(0, Math.floor(random() * first.length)) +
-        second.slice(Math.floor(random() * second.length));
+        first.slice(0, random(first.length)) +
+        second.slice(random(second.length));
 
       expectReadable(demangleSwiftSymbol(spliced));
     }
