@@ -145,6 +145,9 @@ function titlesBetween(
   });
 }
 
+// Who may change an incident's roles, as its roles card and header ask it.
+const ROLE_GATES: string = readSource("Utils", "EventRoleGates.ts");
+
 interface EventPage {
   noun: "incident" | "alert";
   view: string;
@@ -703,7 +706,7 @@ describe("incident-only layout", () => {
       "const [rolesRefreshToken, setRolesRefreshToken] = useState<number>(0);",
     );
     expect(view).toContain(
-      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(currentRolesSnapshot); const mayAssignRoles: boolean = PermissionGate.check( new IncidentMember(), ModelAction.Create, privateRecordOptions, ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const incidentId: string = modelIdString; await assignIncidentRole({ incidentId: new ObjectID(incidentId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
+      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(currentRolesSnapshot); const mayAssignRoles: boolean = roleGates.mayAssign; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const incidentId: string = modelIdString; await assignIncidentRole({ incidentId: new ObjectID(incidentId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
     );
     expect(view).toContain("withRoleGiven({");
     /*
@@ -714,7 +717,7 @@ describe("incident-only layout", () => {
      * again.
      */
     expect(view).toContain(
-      "const mayReassignRoles: boolean = getIncidentRoleReassignGate(privateRecordOptions).isAllowed;",
+      "const mayReassignRoles: boolean = roleGates.mayReassign;",
     );
     expect(view).toContain(
       "onReassign: isResolved || !primaryRole || !mayReassignRoles ? undefined : async ( member: EventRoleMember, person: PeoplePickerOption, ): Promise<void> => { const incidentId: string = modelIdString; await reassignIncidentRole({ memberId: new ObjectID(member.memberId!), userId: new ObjectID(person.id), });",
@@ -725,16 +728,25 @@ describe("incident-only layout", () => {
     // Never a removal and an addition.
     expect(view).not.toContain("deleteItem");
     /*
-     * A private incident's roles are given only with the permissions of the
-     * teams that own it: asked with what the reader holds on it, the header
-     * offers Assign only when one of those may (PrivateRecordScope).
+     * Assign and the name ask the roles card's own gates (#10272): the role
+     * row's create and its person's update, with what the reader holds on
+     * a private incident's role row and what the server says they may do
+     * on this incident (useIncidentRoleGates, whose answers Common's
+     * RecordAccessLocks exercises). The page builds no role gate of its
+     * own: asked with the incident's own options, the header offered the
+     * commander's hand-over where the roles card below it locked Reassign.
      */
     expect(view).toContain(
-      "const privateRecordOptions: PermissionGateOptions | undefined = usePrivateRecordGateOptions(PRIVATE_RECORD_INCIDENT);",
+      "const roleGates: EventRoleGates = useIncidentRoleGates();",
     );
-    expect(view).toContain(
-      "const PRIVATE_RECORD_INCIDENT: Incident = new Incident();",
+    expect(ROLE_GATES).toContain(
+      "const INCIDENT_ROLE_ROW: IncidentMember = new IncidentMember();",
     );
+    expect(tight(ROLE_GATES)).toContain(
+      "export const useIncidentRoleGates: () => EventRoleGates = (): EventRoleGates => { const options: PermissionGateOptions | undefined = usePrivateRecordGateOptions(INCIDENT_ROLE_ROW); return { mayAssign: PermissionGate.check(INCIDENT_ROLE_ROW, ModelAction.Create, options).isAllowed, mayReassign: getIncidentRoleReassignGate(options).isAllowed, }; };",
+    );
+    expect(view).not.toContain("getIncidentRoleReassignGate(");
+    expect(view).not.toContain("new IncidentMember()");
     expect(view).toContain(
       "setRolesRefreshToken((token: number): number => { return token + 1; }); refreshFeed(); },",
     );
@@ -890,8 +902,21 @@ describe.each(PAGES)(
     });
 
     test("skips the monitor type read when there are no series labels", () => {
+      /*
+       * The read brings the monitor's type and the metrics its steps read
+       * (#10209): with no series labels there are no commands to pick, so
+       * neither is read, and neither a type nor the metrics read for
+       * another series stay behind to pick the next one's.
+       */
       expect(page.affectedResources).toContain(
-        "if (!hasSeriesLabels) { setMonitorType(undefined); return; }",
+        "if (!hasSeriesLabels) { setMonitorType(undefined); setMetricNames(undefined); return; } fetchMonitorType().catch(",
+      );
+      expect(page.affectedResources).toContain(
+        `}, [${page.noun}IdString, hasSeriesLabels]);`,
+      );
+      // A read that fails forgets both too.
+      expect(page.affectedResources).toContain(
+        "} catch { setMonitorType(undefined); setMetricNames(undefined); }",
       );
     });
   },

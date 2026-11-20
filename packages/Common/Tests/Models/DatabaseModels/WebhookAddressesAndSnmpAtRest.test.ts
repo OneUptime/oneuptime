@@ -52,6 +52,11 @@ const TEAM_READS_SUBSCRIBERS: Array<Permission> = [
   Permission.ReadStatusPageSubscriber,
 ];
 
+/*
+ * Each list with its product's levels (#10289), which read what the roles
+ * they follow read: OpenStack's Viewer reads a notice's webhook as Viewer
+ * does, and Network's Viewer is kept from the SNMP keys as Viewer is.
+ */
 const OPENSTACK_READERS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -61,6 +66,9 @@ const OPENSTACK_READERS: Array<Permission> = [
   Permission.SettingsMember,
   Permission.SettingsViewer,
   Permission.ReadOpenStackCloud,
+  Permission.OpenStackAdmin,
+  Permission.OpenStackMember,
+  Permission.OpenStackViewer,
 ];
 
 const DEVICE_SECRET_READERS: Array<Permission> = [
@@ -70,6 +78,8 @@ const DEVICE_SECRET_READERS: Array<Permission> = [
   Permission.SettingsAdmin,
   Permission.SettingsMember,
   Permission.ReadNetworkDevice,
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
 ];
 
 const SCAN_SECRET_READERS: Array<Permission> = [
@@ -79,6 +89,8 @@ const SCAN_SECRET_READERS: Array<Permission> = [
   Permission.SettingsAdmin,
   Permission.SettingsMember,
   Permission.ReadNetworkDeviceDiscoveryScan,
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
 ];
 
 interface EncryptedColumn {
