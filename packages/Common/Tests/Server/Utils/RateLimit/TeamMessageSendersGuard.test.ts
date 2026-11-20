@@ -44,6 +44,15 @@ const TEAM_MEMBER_SERVICE: string =
 const PRIVATE_USER_SERVICE: string =
   "packages/Common/Server/Services/StatusPagePrivateUserService.ts";
 
+/*
+ * A dashboard's private users (#10250), and a form's after them: the shared
+ * base asks for the invitation, and each kind's service sends it.
+ */
+const PRIVATE_USER_BASE: string =
+  "packages/Common/Server/Services/PrivateUserServiceBase.ts";
+const DASHBOARD_PRIVATE_USER_SERVICE: string =
+  "packages/Common/Server/Services/DashboardPrivateUserService.ts";
+
 const TEAM_SENDERS: Array<TeamSender> = [
   {
     // Asked after every check of the create, right before its INSERT.
@@ -83,6 +92,18 @@ const TEAM_SENDERS: Array<TeamSender> = [
     after: [],
     givesBackIn: "onCreateError",
   },
+  {
+    /*
+     * A dashboard's private user (#10250): asked after every check of the
+     * create, counted in the dashboard's project, and given back by a
+     * create that fails before onCreateSuccess mails the invitation.
+     */
+    file: PRIVATE_USER_BASE,
+    asksIn: "onCreatePermitted",
+    kind: TeamMessageKind.Invitation,
+    after: [],
+    givesBackIn: "onCreateError",
+  },
 ];
 
 /*
@@ -95,6 +116,8 @@ const TEAM_EMAILS: Record<string, string> = {
   "EmailTemplateType.StatusPageWelcomeEmail": PRIVATE_USER_SERVICE,
   "EmailTemplateType.ConfirmStatusPageSubscription": SUBSCRIBER_SERVICE,
   "EmailTemplateType.SubscribedToStatusPage": SUBSCRIBER_SERVICE,
+  // The invitation PRIVATE_USER_BASE counts, which a dashboard's service mails.
+  "EmailTemplateType.PrivateUserInvitation": DASHBOARD_PRIVATE_USER_SERVICE,
 };
 
 /*
@@ -302,7 +325,11 @@ describe("every sender of the team's messages asks first, for its own kind", () 
   });
 
   test("the subscriber service and the private user service mark their creates as sending as onCreateSuccess starts", () => {
-    for (const file of [SUBSCRIBER_SERVICE, PRIVATE_USER_SERVICE]) {
+    for (const file of [
+      SUBSCRIBER_SERVICE,
+      PRIVATE_USER_SERVICE,
+      PRIVATE_USER_BASE,
+    ]) {
       const code: string = methodCode(file, "onCreateSuccess");
       const marked: number = code.indexOf("isSending = true");
 

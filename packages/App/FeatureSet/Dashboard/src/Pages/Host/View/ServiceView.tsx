@@ -86,6 +86,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import HostServiceMonitorsCard from "../../../Components/Host/HostServiceMonitorsCard";
+import { HostServiceKind } from "../../../Utils/HostServiceMonitorPrefill";
 
 interface ServiceSample {
   time: Date;
@@ -1040,10 +1042,31 @@ const HostServiceView: FunctionComponent<
    * double-click on it, or Reset zoom beside the hero's picker, puts the
    * range from before the zoom back.
    */
+  /*
+   * Issue #10296: under its status, the monitors that watch this service on
+   * this host, and Create Monitor - a Host monitor of this service, filled
+   * in, that opens an incident when it stops running.
+   */
+  const renderMonitors: () => ReactElement = (): ReactElement => {
+    if (!host?.hostIdentifier) {
+      return <Fragment />;
+    }
+
+    return (
+      <HostServiceMonitorsCard
+        kind={HostServiceKind.WindowsService}
+        serviceName={serviceName}
+        hostId={modelId}
+        hostIdentifier={host.hostIdentifier}
+      />
+    );
+  };
+
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryTiles()}
+      {renderMonitors()}
       {renderStatusChart()}
       {renderTransitions()}
       {renderNoDataNote()}

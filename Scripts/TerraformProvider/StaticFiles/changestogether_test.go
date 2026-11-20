@@ -1,7 +1,7 @@
 package provider
 
 /*
- * requireChangedTogether on its own, on a resource shaped like a monitor
+ * RequireChangedTogether on its own, on a resource shaped like a monitor
  * secret: a type that changes only together with a new value. The plans
  * through the real protocol server, and the requests they make, are in
  * changestogether_plan_test.go.
@@ -52,7 +52,7 @@ func togetherObject(t *testing.T, secretType interface{}, secretValue interface{
 	})
 }
 
-// planTogether runs requireChangedTogether on a plan from prior to planned,
+// planTogether runs RequireChangedTogether on a plan from prior to planned,
 // as the resource's ModifyPlan does, and returns its diagnostics' summaries
 // and details.
 func planTogether(t *testing.T, prior tftypes.Value, planned tftypes.Value, attribute string, companion string) []string {
@@ -63,7 +63,7 @@ func planTogether(t *testing.T, prior tftypes.Value, planned tftypes.Value, attr
 	}
 	response := &resource.ModifyPlanResponse{Plan: request.Plan}
 
-	requireChangedTogether(context.Background(), request, response, attribute, companion)
+	RequireChangedTogether(context.Background(), request, response, attribute, companion)
 
 	found := []string{}
 	for _, diagnostic := range response.Diagnostics.Errors() {

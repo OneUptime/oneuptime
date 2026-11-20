@@ -40,6 +40,8 @@ import crypto from "crypto";
 export enum SamlProviderKind {
   ProjectSso = "project-sso",
   StatusPageSso = "status-page-sso",
+  // A dashboard's SAML provider (#10250): its responses are remembered apart.
+  DashboardSso = "dashboard-sso",
   GlobalSso = "global-sso",
 }
 

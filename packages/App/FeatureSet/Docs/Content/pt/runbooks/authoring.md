@@ -64,7 +64,7 @@ Toda etapa tem estes campos. Uma etapa automatizada mostra seu **Título** e as 
 | [kubectl](#kubectl) | Um Runner | Um Runner, e uma variável de kubeconfig ou o acesso próprio do Runner |
 | [AI](#ai) | O Worker do OneUptime | Um provedor de LLM |
 
-Em cada etapa automatizada abaixo, **Mais campos** da etapa traz primeiro o **Runner** dela, para uma etapa que roda em um, depois **Exigir aprovação** e **Continuar em caso de falha**, depois as configurações próprias da etapa - os headers de uma chamada HTTP, a porta, a frase secreta da chave e a chave do host de uma etapa SSH, o provedor e os interruptores de contexto de uma etapa de IA - e por último a **Descrição** e os tempos limite. Recolhido, ele nomeia o Runner da etapa, para você ver onde uma etapa roda sem abri-la.
+Em cada etapa automatizada abaixo, **Mais campos** da etapa traz primeiro o **Runner** dela, para uma etapa que roda em um, depois **Exigir aprovação** e **Continuar em caso de falha**, depois as configurações próprias da etapa - os headers e as configurações de certificado de uma chamada HTTP, a porta, a frase secreta da chave e a chave do host de uma etapa SSH, o provedor e os interruptores de contexto de uma etapa de IA - e por último a **Descrição** e os tempos limite. Recolhido, ele nomeia o Runner da etapa, para você ver onde uma etapa roda sem abri-la.
 
 ### Manual
 
@@ -101,6 +101,8 @@ Uma chamada HTTP de saída, feita pelo Worker do OneUptime. Nenhum Runner é nec
 | **Método** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` ou `HEAD`. | `GET` |
 | **URL** | O endpoint a chamar. | Vazio |
 | **Cabeçalhos (JSON)** | Em **Mais campos**. Um objeto JSON, como `{ "Authorization": "Bearer ..." }`. Headers que não são JSON válido fazem a etapa falhar. | Nenhum |
+| **Permitir certificados autoassinados** | Em **Mais campos**. Ativado, a etapa aceita qualquer certificado que o servidor apresente, então um autoassinado funciona, mas ela não verifica nem o nome do host nem as datas de validade, e qualquer pessoa no caminho da rede poderia ler a solicitação, segredos incluídos, e alterar a resposta. | Desativado |
+| **Certificado da CA** | Em **Mais campos**, enquanto **Permitir certificados autoassinados** está desativado. O certificado, em PEM, da CA que assinou o certificado do servidor, ou o do próprio servidor quando ele é autoassinado. A etapa então confia apenas nesse certificado, e continua verificando o nome do host e as datas de validade. | Nenhum |
 | **Corpo** | Mostrado para `POST`, `PUT`, `PATCH` e `DELETE`. Enviado como JSON quando puder ser interpretado como JSON, e como texto caso contrário. | Nenhum |
 | **Tempo limite da solicitação** | Por quanto tempo esperar a resposta do endpoint antes de fazer a etapa falhar. | 30 segundos |
 
@@ -113,6 +115,21 @@ A etapa dá certo com uma resposta `2xx` ou `3xx` e falha com qualquer outra, co
 
 > [!TIP]
 > Mantenha tokens fora da etapa. Guarde-os como [variáveis de runbook](/docs/runbooks/variables) secretas e escreva `{{global.variables.NAME}}` onde o valor deve ficar, na URL, nos headers ou no corpo. O OneUptime envia a requisição ele mesmo, então insere também os segredos, e a resposta que a etapa registra mostra `[REDACTED]` no lugar deles. Em headers ou um corpo JSON, um valor fica dentro da sua string, então aspas ou uma quebra de linha nele não quebram o JSON.
+
+Um servidor cujo certificado ele mesmo assinou, ou que sua própria CA assinou, é recusado até que a etapa confie nele, e nada é enviado. O erro da etapa diz o que mudar: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Cole o certificado que o assinou em **Certificado da CA**: o da CA, ou o do próprio servidor quando ele é autoassinado. A etapa então verifica o certificado do servidor com ele, nome do host e datas de validade incluídos, então um servidor que só finge ser o seu continua sendo recusado. Ative **Permitir certificados autoassinados** só quando não puder colar um. Cada um vale apenas para a solicitação desta etapa, nunca para outra etapa, outra solicitação do OneUptime ou a conexão com um proxy de saída.
+
+> [!TIP]
+> Para confiar em vez disso na sua própria CA em todas as solicitações de uma vez, monitores incluídos, uma instalação auto-hospedada define `NODE_EXTRA_CA_CERTS` nos seus contêineres.
+
+Pela API e pelo Terraform, o interruptor é o `allowSelfSignedCertificates` da configuração da etapa, `true` ou `false`, e o certificado da CA é o seu `caCertificate`, o PEM como texto. Um salvamento é recusado quando `caCertificate` não é um certificado ou contém uma chave privada.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 

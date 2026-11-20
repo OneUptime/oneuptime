@@ -348,12 +348,16 @@ A ferramenta **`oneuptime_move_in_list`** move uma linha de uma lista ordenada, 
 O servidor também tem as ações de configuração do Pergunte à IA, uma chamada cada: o que você configura, em vez de um registro por vez. Cada uma cria os registros que o Pergunte à IA e as configurações guiadas criam para as mesmas respostas, com as mesmas verificações:
 
 - **`set_up_website_monitoring`**: um monitor de site ou de API para um endereço, que abre um incidente quando o endereço não responde ou responde com um erro. Ele é seu, e um endereço que um monitor já verifica não ganha um segundo
+- **`set_up_service_monitor`**: um dos monitores que a configuração guiada de telemetria recomenda para um serviço que envia telemetria: para solicitações com falha, solicitações lentas, exceções não tratadas ou um pico de logs de erro. Ele abre um alerta para a sua equipe, e um monitor que o serviço já tem não ganha um segundo
 - **`set_up_paging`**: em um projeto que ainda não aciona ninguém, sua primeira política de plantão, que aciona você e as pessoas e equipes que você nomear a cada novo incidente e a cada novo alerta
+- **`add_to_on_call_policy`**: membros e equipes adicionados a uma política de plantão que o projeto já tem, em um dos seus níveis ou como um novo nível que os aciona quando ninguém confirma. Quem um nível já aciona não é adicionado duas vezes
+- **`invite_people`**: pessoas convidadas para o projeto por e-mail. Cada uma recebe um e-mail de convite em seu nome, e um endereço que já está no projeto não é convidado de novo
+- **`set_how_to_reach_me`**: como os acionamentos chegam até você, por exemplo um SMS na hora e uma ligação depois de cinco minutos. Ele substitui as suas configurações de Como me contatar e usa só os métodos que você verificou
 - **`publish_status_page`**: uma página de status pública que mostra os monitores que você nomear
 - **`add_monitors_to_status_page`**: monitores adicionados a uma página de status que o projeto já tem
 - **`who_is_told`**: quem é avisado quando um monitor cai, e o que impediria que alguém fosse alcançado. Não muda nada
 
-Elas agem como você, conectado com OAuth: uma chave de API de projeto não pode usar as quatro que criam algo. Seu cliente pergunta a você antes de cada uma, e a resposta diz o que foi criado. O que falta, como uma permissão, um endereço ou espaço no plano, é dito antes de qualquer coisa ser criada.
+Elas agem como você, conectado com OAuth: uma chave de API de projeto não pode usar as oito que criam algo. Seu cliente pergunta a você antes de cada uma, e a resposta diz o que foi criado. O que falta, como uma permissão, um endereço ou espaço no plano, é dito antes de qualquer coisa ser criada.
 
 ## Consultar a telemetria
 

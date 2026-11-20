@@ -66,8 +66,8 @@ func applied(fields map[string]any) *LastApplied {
 	return &LastApplied{Recorded: true, Fields: fields}
 }
 
-var labels = sharedAttribute{name: "labels", entries: true}
-var isResolved = sharedAttribute{name: "is_resolved"}
+var labels = SharedAttribute{Name: "labels", Entries: true}
+var isResolved = SharedAttribute{Name: "is_resolved"}
 
 func TestALeftOutValueKeepsOneUptimesUnderTerraformAndCrossplane(t *testing.T) {
 	resolved := tftypes.NewValue(tftypes.Bool, true)
@@ -137,7 +137,7 @@ func TestUnderCrossplaneAValueIsSentWhenTheManifestChangesIt(t *testing.T) {
 func TestUnderCrossplaneAValueOneUptimeClearedStaysCleared(t *testing.T) {
 	site := tftypes.NewValue(tftypes.String, "517e0000-0000-4000-8000-000000000001")
 	cleared := tftypes.NewValue(tftypes.String, nil)
-	value, changed := planSharedAttribute(sharedAttribute{name: "site_id"}, site, cleared, site, applied(map[string]any{"site_id": "517e0000-0000-4000-8000-000000000001"}))
+	value, changed := planSharedAttribute(SharedAttribute{Name: "site_id"}, site, cleared, site, applied(map[string]any{"site_id": "517e0000-0000-4000-8000-000000000001"}))
 	if !changed || !value.IsNull() {
 		t.Fatalf("the provider puts back a site OneUptime cleared: %s", value)
 	}

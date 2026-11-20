@@ -2,10 +2,17 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import {
+  AI_ACTION_LINES,
   AI_ACTION_NAME,
   AIActionSentence,
   aiActionSentence,
 } from "../../../../Types/AI/AIActionWords";
+import {
+  ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+  formatPriceInUSD,
+  isPayAsYouGoPriceQuoted,
+} from "../../../../Types/Billing/PayAsYouGoPricing";
+import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import {
   SET_UP_SERVICE_MONITOR_TOOL_NAME,
@@ -20,10 +27,12 @@ import {
   isMonitorCheckingAddress,
   parseWebsiteAddress,
 } from "../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
+import { IsBillingEnabled } from "../../../EnvironmentConfig";
 import MonitorService from "../../../Services/MonitorService";
 import PayAsYouGoBillingService, {
   PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
 } from "../../../Services/PayAsYouGoBillingService";
+import ProjectService from "../../../Services/ProjectService";
 import TeamMemberService from "../../../Services/TeamMemberService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ActiveMonitorLimit from "../../Billing/ActiveMonitorLimit";
@@ -296,6 +305,41 @@ function hasWebsiteMonitoringCall(
 ): boolean {
   return (plannedCalls || []).some((call: PlannedToolCall): boolean => {
     return call.name === SET_UP_WEBSITE_MONITORING_TOOL_NAME;
+  });
+}
+
+/*
+ * What a monitor the plan sets up adds to the bill, said on its line of the
+ * card before anyone approves it (#9995): on OneUptime Cloud's Free plan,
+ * where every monitor that runs checks is billed as it is used, the price
+ * the website guided setup quotes there (ACTIVE_MONITOR_PRICE_IN_USD_PER_
+ * MONTH), by the same rule (isPayAsYouGoPriceQuoted). A plan of five
+ * monitors says it on each of the five lines. Null on a plan that includes
+ * monitors, on an install without billing, and when the plan cannot be
+ * read: a price is never guessed. Without pay as you go set up, no card is
+ * shown at all (readMonitorPlanRefusal).
+ */
+export async function describeMonitorPriceForPerson(
+  ctx: Pick<ToolContext, "projectId">,
+): Promise<AIActionSentence | null> {
+  if (!IsBillingEnabled) {
+    return null;
+  }
+
+  let plan: PlanType | null = null;
+
+  try {
+    plan = (await ProjectService.getCurrentPlan(ctx.projectId)).plan;
+  } catch {
+    return null;
+  }
+
+  if (!isPayAsYouGoPriceQuoted({ isBillingEnabled: IsBillingEnabled, plan })) {
+    return null;
+  }
+
+  return aiActionSentence(AI_ACTION_LINES.monitorBilledOnFreePlan, {
+    price: formatPriceInUSD(ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH),
   });
 }
 

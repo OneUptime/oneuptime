@@ -64,7 +64,7 @@ Varje steg har de här fälten. Ett automatiserat steg visar sin **Titel** och i
 | [kubectl](#kubectl) | En Runner | En Runner och en kubeconfig-variabel eller Runnerns egen åtkomst |
 | [AI](#ai) | OneUptime Worker | En LLM-leverantör |
 
-I varje automatiserat steg nedan innehåller stegets **Fler fält** först dess **Runner**, för ett steg som körs på en, sedan **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers, ett SSH-stegs port, nyckelns lösenfras och värdnyckel, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna. Hopfällt nämner det stegets Runner, så att du ser var ett steg körs utan att öppna det.
+I varje automatiserat steg nedan innehåller stegets **Fler fält** först dess **Runner**, för ett steg som körs på en, sedan **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers och certifikatinställningar, ett SSH-stegs port, nyckelns lösenfras och värdnyckel, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna. Hopfällt nämner det stegets Runner, så att du ser var ett steg körs utan att öppna det.
 
 ### Manual
 
@@ -101,6 +101,8 @@ Ett utgående HTTP-anrop som görs av OneUptime Worker. Ingen Runner behövs.
 | **Metod** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
 | **URL** | Slutpunkten som ska anropas. | Tom |
 | **Rubriker (JSON)** | Under **Fler fält**. Ett JSON-objekt, till exempel `{ "Authorization": "Bearer ..." }`. Headers som inte är giltig JSON får steget att misslyckas. | Inga |
+| **Tillåt självsignerade certifikat** | Under **Fler fält**. När den är på tar steget vilket certifikat servern än visar, så ett självsignerat fungerar, men det kontrollerar varken värdnamnet eller giltighetsdatumen, och vem som helst på nätverksvägen kan läsa begäran, hemligheter inräknade, och ändra svaret. | Av |
+| **CA-certifikat** | Under **Fler fält**, så länge **Tillåt självsignerade certifikat** är av. Certifikatet, i PEM, från den CA som signerade serverns certifikat, eller serverns eget när det är självsignerat. Steget litar då bara på det certifikatet, och kontrollerar fortfarande värdnamnet och giltighetsdatumen. | Inget |
 | **Brödtext** | Visas för `POST`, `PUT`, `PATCH` och `DELETE`. Skickas som JSON när den kan tolkas som JSON, annars som text. | Ingen |
 | **Tidsgräns för begäran** | Hur länge det väntas på slutpunktens svar innan steget misslyckas. | 30 sekunder |
 
@@ -113,6 +115,21 @@ Användbart för: att öppna en PagerDuty-incident, posta till en Slack-webhook,
 
 > [!TIP]
 > Håll tokens utanför steget. Spara dem som hemliga [runbook-variabler](/docs/runbooks/variables) och skriv `{{global.variables.NAME}}` där värdet ska stå, i URL:en, headers eller body. OneUptime skickar begäran själv, så det fyller även i hemligheter, och svaret som steget registrerar visar `[REDACTED]` i deras ställe. I JSON-headers eller en JSON-body hamnar ett värde inuti sin sträng, så ett citattecken eller en radbrytning i det förstör inte JSON:en.
+
+En server vars certifikat den själv har signerat, eller som din egen CA har signerat, avvisas tills steget litar på den, och inget skickas. Stegets fel säger vad du ska ändra: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Klistra in certifikatet som signerade det i **CA-certifikat**: CA:ns, eller serverns eget när det är självsignerat. Steget kontrollerar då serverns certifikat mot det, värdnamn och giltighetsdatum inräknade, så en server som bara utger sig för att vara din avvisas fortfarande. Slå på **Tillåt självsignerade certifikat** bara när du inte kan klistra in ett. Båda gäller bara det här stegets begäran, aldrig ett annat steg, en annan begäran från OneUptime eller anslutningen till en utgående proxy.
+
+> [!TIP]
+> För att i stället lita på din egen CA för alla begäranden på en gång, monitorer inräknade, sätter en självhostad installation `NODE_EXTRA_CA_CERTS` på sina containrar.
+
+Via API:et och Terraform är brytaren stegkonfigurationens `allowSelfSignedCertificates`, `true` eller `false`, och CA-certifikatet är dess `caCertificate`, PEM:en som text. En sparning avvisas när `caCertificate` inte är ett certifikat eller innehåller en privat nyckel.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 
