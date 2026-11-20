@@ -40,10 +40,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import { SECURITY_TELEMETRY_MAX_VALUES } from "../../../../Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { DETECTION_RETROHUNT_MAX_GROUPS } from "../../../../Types/SecurityEvent/DetectionRetrohunt";
-import {
-  DETECTION_RULE_LIBRARY,
-  DetectionRuleLibraryEntry,
-} from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
+import { DETECTION_RULE_LIBRARY } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import {
   SecurityTelemetrySearchValue,
   getTelemetrySearchValues,
@@ -389,9 +386,14 @@ describe("the detection library's reads fit one request", () => {
           projectId: PROJECT_ID,
           tableName: "oneuptime.SecurityEventItemV1",
           ruleWhere: SigmaClickhouseCompiler.compile(rule),
-          counting: readDetectionRetrohuntCounting(
-            entry as DetectionRuleLibraryEntry,
-          ),
+          // Counted as a retrohunt of the library's rule counts it.
+          counting: readDetectionRetrohuntCounting({
+            sigmaRuleYaml: entry.sigmaRuleYaml,
+            groupByField: entry.groupByField,
+            distinctCountField: entry.distinctCountField,
+            matchCountThreshold: entry.matchCountThreshold,
+            evaluationIntervalInMinutes: entry.evaluationIntervalInMinutes,
+          }),
           skipped: null,
           serviceFilter: {},
           startTime: WINDOW.happenedAfter,
