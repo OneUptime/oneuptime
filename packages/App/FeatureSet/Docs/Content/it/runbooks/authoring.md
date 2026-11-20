@@ -64,7 +64,7 @@ Ogni passaggio ha questi campi. Un passaggio automatico mostra il suo **Titolo**
 | [kubectl](#kubectl) | Un Runner | Un Runner, e una variabile kubeconfig o l'accesso proprio del Runner |
 | [AI](#ai) | Il Worker di OneUptime | Un provider LLM |
 
-In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima il suo **Runner**, per un passaggio che viene eseguito su uno, poi **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header di una chiamata HTTP, la porta, la passphrase della chiave e la chiave host di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout. Chiuso, indica il Runner del passaggio, così vedi dove viene eseguito un passaggio senza aprirlo.
+In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima il suo **Runner**, per un passaggio che viene eseguito su uno, poi **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header e le impostazioni del certificato di una chiamata HTTP, la porta, la passphrase della chiave e la chiave host di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout. Chiuso, indica il Runner del passaggio, così vedi dove viene eseguito un passaggio senza aprirlo.
 
 ### Manual
 
@@ -101,6 +101,8 @@ Una chiamata HTTP in uscita, effettuata dal Worker di OneUptime. Non serve alcun
 | **Metodo** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` o `HEAD`. | `GET` |
 | **URL** | L'endpoint da chiamare. | Vuoto |
 | **Intestazioni (JSON)** | In **Altri campi**. Un oggetto JSON, ad esempio `{ "Authorization": "Bearer ..." }`. Header che non sono JSON valido fanno fallire il passaggio. | Nessuno |
+| **Consenti certificati autofirmati** | In **Altri campi**. Se attivo, il passaggio accetta qualsiasi certificato mostri il server, così uno autofirmato funziona, ma non controlla né il nome host né le date di validità, e chiunque sul percorso di rete potrebbe leggere la richiesta, segreti compresi, e modificare la risposta. | Disattivato |
+| **Certificato della CA** | In **Altri campi**, finché **Consenti certificati autofirmati** è disattivato. Il certificato, in PEM, della CA che ha firmato il certificato del server, o quello del server stesso se è autofirmato. Il passaggio si fida allora solo di quel certificato, e controlla comunque il nome host e le date di validità. | Nessuno |
 | **Corpo** | Mostrato per `POST`, `PUT`, `PATCH` e `DELETE`. Inviato come JSON se è interpretabile come JSON, altrimenti come testo. | Nessuno |
 | **Timeout della richiesta** | Quanto attendere la risposta dell'endpoint prima di far fallire il passaggio. | 30 secondi |
 
@@ -113,6 +115,21 @@ Utile per: aprire un incidente PagerDuty, pubblicare su un webhook Slack, chiama
 
 > [!TIP]
 > Tieni i token fuori dal passaggio. Salvali come [variabili di runbook](/docs/runbooks/variables) segrete e scrivi `{{global.variables.NAME}}` dove va il valore, nell'URL, negli header o nel corpo. OneUptime invia la richiesta da sé, quindi inserisce anche i segreti, e la risposta che il passaggio registra mostra `[REDACTED]` al loro posto. In header o in un corpo JSON, un valore va dentro la sua stringa, quindi una virgoletta o un a capo al suo interno non rompono il JSON.
+
+Un server il cui certificato è autofirmato, o firmato dalla tua CA, viene rifiutato finché il passaggio non se ne fida, e non viene inviato nulla. L'errore del passaggio dice cosa cambiare: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Incolla il certificato che lo ha firmato in **Certificato della CA**: quello della CA, o quello del server stesso se è autofirmato. Il passaggio controlla allora il certificato del server con esso, nome host e date di validità compresi, quindi un server che si spaccia soltanto per il tuo viene comunque rifiutato. Attiva **Consenti certificati autofirmati** solo se non puoi incollarne uno. L'uno e l'altro valgono solo per la richiesta di questo passaggio, mai per un altro passaggio, un'altra richiesta di OneUptime o la connessione a un proxy in uscita.
+
+> [!TIP]
+> Per fidarti invece della tua CA per tutte le richieste in una volta, monitor compresi, un'installazione self-hosted imposta `NODE_EXTRA_CA_CERTS` sui suoi container.
+
+Tramite l'API e Terraform, l'interruttore è il `allowSelfSignedCertificates` della configurazione del passaggio, `true` o `false`, e il certificato della CA è il suo `caCertificate`, il PEM come testo. Un salvataggio viene rifiutato quando `caCertificate` non è un certificato o contiene una chiave privata.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 

@@ -11,6 +11,8 @@ import path from "path";
 import LogScrubRule from "../../../../../Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "../../../../../Models/DatabaseModels/MetricPipelineRule";
 import TraceScrubRule from "../../../../../Models/DatabaseModels/TraceScrubRule";
+import DataSecurityCustomDataType from "../../../../../Models/DatabaseModels/DataSecurityCustomDataType";
+import DataSecurityCustomDataTypeService from "../../../../../Server/Services/DataSecurityCustomDataTypeService";
 import LogScrubRuleService from "../../../../../Server/Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../../../Server/Services/MetricPipelineRuleService";
 import TraceScrubRuleService from "../../../../../Server/Services/TraceScrubRuleService";
@@ -1571,6 +1573,100 @@ describe("Scrub It", () => {
       "and every value under such a key inside a list, a map, a log body or a JSON text",
     );
     expect(saved.description!.length).toBeLessThanOrEqual(500);
+  });
+
+  /*
+   * One of the project's own data types under a sensitive key (#10363): the
+   * rule is named, and described, by the name the project gave the type -
+   * never "Custom data type", and never its id.
+   */
+  describe("one of the project's own data types", () => {
+    const EMPLOYEE_ROW: string = "0192f1a0-0000-7000-8000-0000000d5301";
+    const EMPLOYEE: string = `custom:${EMPLOYEE_ROW}`;
+
+    function projectTypes(
+      names: Array<[string, string]>,
+    ): ReturnType<typeof jest.spyOn> {
+      return jest
+        .spyOn(DataSecurityCustomDataTypeService, "findBy")
+        .mockResolvedValue(
+          names.map(([id, name]: [string, string]) => {
+            const row: DataSecurityCustomDataType =
+              new DataSecurityCustomDataType(new ObjectID(id));
+            row.name = name;
+            return row;
+          }) as never,
+        );
+    }
+
+    test("a log rule is named and described by the type's name", async () => {
+      const read: ReturnType<typeof jest.spyOn> = projectTypes([
+        [EMPLOYEE_ROW, "Employee ID"],
+      ]);
+
+      const created: CreatedScrubRule = await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryLogs,
+        dataTypeId: EMPLOYEE,
+        dataTypeName: "Staff number",
+        location: "attributes.api_token",
+      });
+
+      expect(created.scrubRuleName).toBe(
+        "Data Security: Employee ID in attributes.api_token",
+      );
+      expect(createdLogRule().description).toContain("Employee ID");
+      expect(JSON.stringify(createdLogRule())).not.toContain("custom:");
+      expect(read).toHaveBeenCalledTimes(1);
+    });
+
+    test("a type the project deleted keeps the name its finding was found under", async () => {
+      projectTypes([]);
+
+      const created: CreatedScrubRule = await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryTraces,
+        dataTypeId: EMPLOYEE,
+        dataTypeName: "Badge number",
+        location: "attributes.api_token",
+      });
+
+      // Held to a rule name's length, as every name Scrub It makes is.
+      expect(
+        created.scrubRuleName.startsWith("Data Security: Badge number in "),
+      ).toBe(true);
+      expect(created.scrubRuleName).not.toContain("custom:");
+    });
+
+    test("a metric's rule is named by the type's name too", async () => {
+      projectTypes([[EMPLOYEE_ROW, "Employee ID"]]);
+
+      const created: CreatedScrubRule = await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: EMPLOYEE,
+        location: "attributes.employee.code",
+        serviceId: CHECKOUT,
+      });
+
+      expect(created.scrubRuleName).toBe(
+        "Data Security: Employee ID in attributes.employee.code",
+      );
+      expect(createdMetricRule().description).toContain("Employee ID");
+    });
+
+    test("a built-in type reads no project's types", async () => {
+      const read: ReturnType<typeof jest.spyOn> = projectTypes([]);
+
+      await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryLogs,
+        dataTypeId: "github-token",
+        location: "attributes.api_token",
+      });
+
+      expect(read).not.toHaveBeenCalled();
+    });
   });
 
   test("a secret in a record's session.id: not a sensitive-keys rule, which keeps the record's own session id (#8924)", async () => {

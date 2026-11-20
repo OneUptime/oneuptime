@@ -25,6 +25,7 @@ import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { ProviderGenerator } from "../Core/ProviderGenerator";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
 import { GoCodeGenerator } from "../Core/GoCodeGenerator";
+import { providerGoFilePath } from "../Core/ProviderShards";
 import {
   API_KEY_ATTRIBUTE_DESCRIPTION,
   PROVIDER_DESCRIPTION,
@@ -109,7 +110,7 @@ beforeAll(async () => {
     "utf-8",
   );
   monitorDataSourceGo = fs.readFileSync(
-    path.join(outputDir, GENERATED_DIR, "data_source_monitor.go"),
+    path.join(outputDir, providerGoFilePath("data_source_monitor.go")),
     "utf-8",
   );
 });

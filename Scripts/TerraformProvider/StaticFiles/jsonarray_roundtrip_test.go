@@ -361,3 +361,58 @@ func TestRunbookSteps_DataSourceReadsTheArray(t *testing.T) {
 
 	requireSteps(t, tf.lookUp(stringAttribute(t, created, "id")), runbookTwoSteps)
 }
+
+// An HTTP request step that skips the server's certificate checks, and one
+// that trusts a CA certificate of its own (OneUptime#10277), as jsonencode()
+// writes them: a boolean, and a PEM whose line breaks are JSON's "\n".
+const runbookCertificateSteps = `[{"config":{"allowSelfSignedCertificates":true,"method":"GET","url":"https://lab-switch.internal.example/health"},"id":"example-03","order":0,"title":"Call the lab switch","type":"HttpRequest"},{"config":{"caCertificate":"-----BEGIN CERTIFICATE-----\nMIIBszCCAVmgAwIBAgIUQ2VydGlmaWNhdGU=\n-----END CERTIFICATE-----\n","method":"GET","url":"https://billing.internal.example/health"},"id":"example-04","order":1,"title":"Call the billing service","type":"HttpRequest"}]`
+
+// The same steps, the switch turned off and another CA certificate pasted.
+const runbookCertificateStepsChanged = `[{"config":{"allowSelfSignedCertificates":false,"method":"GET","url":"https://lab-switch.internal.example/health"},"id":"example-03","order":0,"title":"Call the lab switch","type":"HttpRequest"},{"config":{"caCertificate":"-----BEGIN CERTIFICATE-----\nMIIBtDCCAVqgAwIBAgIUQW5vdGhlciBDQQ==\n-----END CERTIFICATE-----\n","method":"GET","url":"https://billing.internal.example/health"},"id":"example-04","order":1,"title":"Call the billing service","type":"HttpRequest"}]`
+
+// The config of the step `index` of the runbook `id`, as the API was sent it.
+func (a *runbookAPI) stepConfigOf(t *testing.T, id string, index int) map[string]interface{} {
+	t.Helper()
+	steps, isArray := a.stepsOf(id).([]interface{})
+	if !isArray || len(steps) <= index {
+		t.Fatalf("the API keeps no step %d of runbook %s: %v", index, id, a.stepsOf(id))
+	}
+	step, isObject := steps[index].(map[string]interface{})
+	if !isObject {
+		t.Fatalf("step %d of runbook %s is %T, not an object", index, id, steps[index])
+	}
+	config, isObject := step["config"].(map[string]interface{})
+	if !isObject {
+		t.Fatalf("the config of step %d of runbook %s is %T, not an object", index, id, step["config"])
+	}
+	return config
+}
+
+func TestRunbookSteps_HttpStepCertificateSettingsKeepTheirValues(t *testing.T) {
+	api := newRunbookAPI(t)
+	tf := newRunbookTerraform(t, api)
+
+	created := tf.apply(tftypes.NewValue(tf.resourceType, nil), tf.runbookConfig(runbookCertificateSteps))
+	requireSteps(t, created, runbookCertificateSteps)
+
+	// The API is sent the switch as a boolean, which is all a step reads as
+	// on, and the PEM with its line breaks.
+	id := stringAttribute(t, created, "id")
+	if got := api.stepConfigOf(t, id, 0)["allowSelfSignedCertificates"]; got != true {
+		t.Fatalf("allowSelfSignedCertificates was sent as %#v, not the boolean true", got)
+	}
+	if got := api.stepConfigOf(t, id, 1)["caCertificate"]; got != "-----BEGIN CERTIFICATE-----\nMIIBszCCAVmgAwIBAgIUQ2VydGlmaWNhdGU=\n-----END CERTIFICATE-----\n" {
+		t.Fatalf("caCertificate was sent as %#v, not the PEM as written", got)
+	}
+
+	requireSteps(t, tf.refresh(created), runbookCertificateSteps)
+
+	updated := tf.apply(created, tf.runbookConfig(runbookCertificateStepsChanged))
+	requireSteps(t, updated, runbookCertificateStepsChanged)
+	requireSteps(t, tf.refresh(updated), runbookCertificateStepsChanged)
+	requireSteps(t, tf.lookUp(id), runbookCertificateStepsChanged)
+
+	if got := api.stepConfigOf(t, id, 0)["allowSelfSignedCertificates"]; got != false {
+		t.Fatalf("allowSelfSignedCertificates was updated to %#v, not the boolean false", got)
+	}
+}

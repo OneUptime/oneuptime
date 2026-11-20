@@ -11,6 +11,8 @@ import {
   applyStepConfigChange,
   convertLegacyCredentialStep,
   formatSshTarget,
+  getAllowSelfSignedCertificatesPatch,
+  getCaCertificatePatch,
   getFirstCommand,
   getHttpHeaderCount,
   getStepMoreFieldsItems,
@@ -356,6 +358,8 @@ describe("a step's More fields", () => {
       "requireApprovalBeforeRunning",
       "continueOnFailure",
       "headersJson",
+      "allowSelfSignedCertificates",
+      "caCertificate",
       "description",
       "timeouts",
     ]);
@@ -382,6 +386,125 @@ describe("a step's More fields", () => {
         step(RunbookStepType.HttpRequest, { headersJson: "  " }),
       )[2],
     ).toMatchObject({ key: "headersJson", isSet: false });
+  });
+
+  test("an HTTP request folds how it checks the server's certificate: the switch said 'On' while on, the CA certificate named while set and only while the step checks", () => {
+    const item: (
+      config: Record<string, unknown>,
+      key: string,
+    ) => FoldedSectionItem | undefined = (
+      config: Record<string, unknown>,
+      key: string,
+    ): FoldedSectionItem | undefined => {
+      return getStepMoreFieldsItems(
+        step(RunbookStepType.HttpRequest, config),
+      ).find((found: FoldedSectionItem): boolean => {
+        return found.key === key;
+      });
+    };
+
+    // Neither: both named, neither set.
+    expect(item({}, "allowSelfSignedCertificates")).toEqual({
+      key: "allowSelfSignedCertificates",
+      title: "Allow self-signed certificates",
+      isSet: false,
+    });
+    expect(item({}, "caCertificate")).toEqual({
+      key: "caCertificate",
+      title: "CA certificate",
+      isSet: false,
+    });
+
+    // The switch on: "On", and no CA certificate - it is not used then.
+    expect(
+      item(
+        { allowSelfSignedCertificates: true },
+        "allowSelfSignedCertificates",
+      ),
+    ).toEqual({
+      key: "allowSelfSignedCertificates",
+      title: "Allow self-signed certificates",
+      isSet: true,
+      value: "On",
+      translateValue: true,
+    });
+    expect(
+      item(
+        { allowSelfSignedCertificates: true, caCertificate: "PEM" },
+        "caCertificate",
+      ),
+    ).toBeUndefined();
+
+    // Only true is on, as the server reads it.
+    expect(
+      item(
+        { allowSelfSignedCertificates: "true" },
+        "allowSelfSignedCertificates",
+      ),
+    ).toMatchObject({ isSet: false });
+
+    // A CA certificate: set, never shown.
+    const ca: FoldedSectionItem | undefined = item(
+      {
+        caCertificate:
+          "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----",
+      },
+      "caCertificate",
+    );
+
+    expect(ca).toEqual({
+      key: "caCertificate",
+      title: "CA certificate",
+      isSet: true,
+    });
+    expect(item({ caCertificate: "   " }, "caCertificate")).toMatchObject({
+      isSet: false,
+    });
+
+    // Other step types fold neither.
+    for (const type of [
+      RunbookStepType.JavaScript,
+      RunbookStepType.Bash,
+      RunbookStepType.SSH,
+      RunbookStepType.Kubernetes,
+      RunbookStepType.AI,
+    ]) {
+      expect(
+        keys(
+          getStepMoreFieldsItems(
+            step(type, {
+              allowSelfSignedCertificates: true,
+              caCertificate: "PEM",
+            }),
+          ),
+        ).filter((key: string): boolean => {
+          return (
+            key === "allowSelfSignedCertificates" || key === "caCertificate"
+          );
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("the certificate switch writes true while on and nothing while off; the CA certificate writes what was pasted or nothing", () => {
+    expect(getAllowSelfSignedCertificatesPatch(true)).toEqual({
+      allowSelfSignedCertificates: true,
+    });
+    expect(getAllowSelfSignedCertificatesPatch(false)).toEqual({
+      allowSelfSignedCertificates: undefined,
+    });
+    expect(JSON.stringify(getAllowSelfSignedCertificatesPatch(false))).toBe(
+      "{}",
+    );
+
+    const pem: string =
+      "\n-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n";
+
+    expect(getCaCertificatePatch(pem)).toEqual({ caCertificate: pem });
+    expect(getCaCertificatePatch("  \n ")).toEqual({
+      caCertificate: undefined,
+    });
+    expect(getCaCertificatePatch("")).toEqual({ caCertificate: undefined });
   });
 
   test("an AI step folds the switches, its provider and the context it reads; context off is said 'Off'", () => {
