@@ -730,12 +730,14 @@ export class AddRecordCreatedByAndLastModifiedColumns1809187200000
 
   /*
    * The tables a run before this one stopped after: the ones that have all
-   * six columns already.
+   * six columns already. A runner that answers nothing - one that records
+   * the statements a migration makes, as the migration tests run every
+   * migration that alters a table - has none of them yet.
    */
   private async getTablesWithEveryColumn(
     queryRunner: QueryRunner,
   ): Promise<Set<string>> {
-    const rows: Array<{ table_name: string }> = await queryRunner.query(
+    const rows: unknown = await queryRunner.query(
       `SELECT "table_name" FROM "information_schema"."columns" WHERE "table_schema" = current_schema() AND "column_name" = ANY($1) GROUP BY "table_name" HAVING COUNT(DISTINCT "column_name") = $2`,
       [
         RECORD_ACTOR_COLUMN_DEFINITIONS.map(
@@ -746,6 +748,10 @@ export class AddRecordCreatedByAndLastModifiedColumns1809187200000
         RECORD_ACTOR_COLUMN_DEFINITIONS.length,
       ],
     );
+
+    if (!Array.isArray(rows)) {
+      return new Set<string>();
+    }
 
     return new Set<string>(
       rows.map((row: { table_name: string }): string => {

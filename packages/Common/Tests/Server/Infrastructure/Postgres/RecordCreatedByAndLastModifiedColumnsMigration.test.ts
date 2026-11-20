@@ -199,6 +199,20 @@ describe("up", () => {
     }
   });
 
+  test("run by a runner that answers nothing, as a migration test records statements, alters every table", async () => {
+    const statements: Array<string> = [];
+
+    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up({
+      query: async (statement: string): Promise<void> => {
+        if (!statement.includes('"information_schema"."columns"')) {
+          statements.push(statement);
+        }
+      },
+    } as unknown as QueryRunner);
+
+    expect(statements).toHaveLength(RECORD_ACTOR_TABLES.length);
+  });
+
   test("run again once every table is altered, alters nothing", async () => {
     const { runner, statements } = recordQueries([...RECORD_ACTOR_TABLES]);
 
