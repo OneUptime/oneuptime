@@ -102,7 +102,7 @@ Indtagelsen opretter miljøer for dig, så der er intet at indtaste. Åbn **App-
 
 ## Apps og udrulninger
 
-Hver tjeneste, et miljø kører, er en app i det, navngivet sådan som platformens konsol navngiver den. **App-platforme → Alle apps** viser hver app med den revision, den kører, og dens anmodninger, fejlrate og p95-latens den seneste time, og et miljøs fane **Apps** viser dets egne.
+Hver tjeneste, et miljø kører, er en app i det, navngivet sådan som platformens konsol navngiver den. **App-platforme → Alle apps** viser hver app med den revision, den kører, og dens anmodninger, fejlrate og p95-latens den seneste time, og et miljøs fane **Apps** viser dets egne. En App Service-app, der ikke sender spor, viser dér i stedet sitets tal fra Azure Monitor: de anmodninger, Azure talte, andelen besvaret med en 5xx-status og den gennemsnitlige svartid.
 
 | Platform | App | Holdt adskilt af | Revision |
 | --- | --- | --- | --- |

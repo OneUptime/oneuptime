@@ -1826,3 +1826,85 @@ describe("a streaming account's readings, from its streams", () => {
     expect(written[0]!["streamedReadings"]).toBeUndefined();
   });
 });
+
+/*
+ * #10407: an App Service app keeps the site it is tied to. An Azure read
+ * lists, creates and archives sites - a site deleted from its subscription,
+ * or moved, which gives it a new id - so once it has kept them, the
+ * project's App Service apps are tied to their sites again. Never on
+ * another cloud's read, and never at the cost of the read.
+ */
+describe("an Azure read ties the project's App Service apps to their sites", () => {
+  async function runLinking(
+    link: (data: { projectId: ObjectID }) => Promise<unknown>,
+  ): Promise<CloudConnectionPullOutcome> {
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async () => {
+        order.push("readings");
+        return { written: 0, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    return await CloudConnectionPullRunner.run(CONNECTION, {
+      importMetrics,
+      now: () => {
+        return NOW;
+      },
+      linkAppPlatformResources: link,
+    });
+  }
+
+  test("once, for the connection's project, after the sites are kept and read", async () => {
+    connection.provider = CloudProvider.Azure;
+    const asked: Array<string> = [];
+
+    const outcome: CloudConnectionPullOutcome = await runLinking(
+      async (data: { projectId: ObjectID }) => {
+        order.push("link");
+        asked.push(data.projectId.toString());
+        return 1;
+      },
+    );
+
+    expect(outcome.status).toBe("success");
+    expect(asked).toEqual([PROJECT.toString()]);
+    // After the sync that keeps the sites, and the readings of them.
+    expect(order.indexOf("link")).toBeGreaterThan(order.indexOf("sync"));
+    expect(order.indexOf("link")).toBeGreaterThan(order.indexOf("readings"));
+  });
+
+  test("not on another cloud's read", async () => {
+    for (const provider of [CloudProvider.AWS, CloudProvider.GCP]) {
+      connection.provider = provider;
+      const asked: Array<string> = [];
+
+      await runLinking(async (data: { projectId: ObjectID }) => {
+        asked.push(data.projectId.toString());
+        return 0;
+      });
+
+      expect({ provider, asked }).toEqual({ provider, asked: [] });
+    }
+  });
+
+  test("a link that fails is logged, and the read still succeeds and is recorded", async () => {
+    connection.provider = CloudProvider.Azure;
+    const logged: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {}) as never);
+
+    const outcome: CloudConnectionPullOutcome = await runLinking(async () => {
+      throw new Error("Postgres is away");
+    });
+
+    expect(outcome.status).toBe("success");
+    expect(lastRecord()).toEqual(
+      expect.objectContaining({ lastSuccessfulPullAt: NOW, lastError: null }),
+    );
+    expect(
+      logged.mock.calls.some((call: Array<unknown>): boolean => {
+        return String(call[0]).includes("Postgres is away");
+      }),
+    ).toBe(true);
+  });
+});

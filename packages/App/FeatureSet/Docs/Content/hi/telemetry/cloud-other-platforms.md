@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-SDK डिटेक्टर प्लेटफ़ॉर्म को बिंदु के साथ `azure.app_service` लिखते हैं; OneUptime इसे मिलते ही `azure_app_service` में बदल देता है। .NET में `OpenTelemetry.Resources.Azure` जोड़ें और `.ConfigureResource(r => r.AddAzureAppServiceDetector())` कॉल करें। दूसरी भाषाएँ `OTEL_RESOURCE_ATTRIBUTES` में `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` जोड़ती हैं, और कोड में `service.instance.id` को `WEBSITE_INSTANCE_ID` से लेती हैं।
+SDK डिटेक्टर प्लेटफ़ॉर्म को बिंदु के साथ `azure.app_service` लिखते हैं; OneUptime इसे मिलते ही `azure_app_service` में बदल देता है। हर स्टैक का App Service के लिए अपना resource detector होता है, जो हर इंस्टेंस का नाम बताता है और `cloud.resource_id` को साइट की ID पर सेट करता है: यही ऐप को उसकी साइट के Azure Monitor आँकड़ों से जोड़ता है। अपने स्टैक वाला डिटेक्टर चालू करें:
+
+| स्टैक | उसका App Service resource detector |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, `.ConfigureResource(r => r.AddAzureAppServiceDetector())` के साथ |
+| Java | OpenTelemetry Java एजेंट, `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` के साथ |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` के साथ |
+| Python | `opentelemetry-resource-detector-azure`, `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` के साथ |
 
 :::steps
 1. ऐप की सिस्टम-असाइन्ड प्रबंधित पहचान चालू करें (**Settings → Identity**), और उसे वॉल्ट पर **Key Vault Secrets User** दें। पूरा हेडर, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, सीक्रेट `oneuptime-otlp-headers` के रूप में सहेजें।
@@ -182,9 +187,9 @@ SDK डिटेक्टर प्लेटफ़ॉर्म को बिं�
 
 **नेटवर्किंग:** जब तक **VNet integration** के साथ **Route All** चालू न हो, App Service सीधे इंटरनेट तक पहुँचता है। तब VNet को NAT गेटवे चाहिए, या किसी ऐसे फ़ायरवॉल तक रूट जो OneUptime होस्ट के लिए TCP 443 की अनुमति देता हो।
 
-**ऐप के पेज पर क्या दिखता है:** अनुरोध, त्रुटि दर और लेटेंसी ऐप के ट्रेस से आते हैं, इसलिए जो ऐप सिर्फ़ लॉग या मेट्रिक्स भेजता है, उसमें वहाँ **कोई ट्रेस प्राप्त नहीं हुआ** दिखता है, और उसकी **सेटअप जाँच** बताती है कि क्या जोड़ना है। App Service किसी ऐप को उसका अपना CPU या मेमोरी नहीं देता, और उसकी CPU और मेमोरी वाली टाइलें यही बताती हैं। **क्लाउड → कनेक्ट करें** में सब्सक्रिप्शन कनेक्ट करें, तो ऐप के **अवलोकन** में एक **Azure Monitor** सेक्शन जुड़ जाता है: साइट के अनुरोध, सर्वर और क्लाइंट त्रुटियाँ, रिस्पॉन्स टाइम, CPU टाइम और मेमोरी, जैसे Azure उन्हें मापता है, चाहे ऐप कुछ भी भेजे। इसके बाद ऐप का **इंस्टेंस** टैब वे इंस्टेंस दिखाता है जिन पर Azure उसे चलाता है, और **रिविज़न** टैब वे डिप्लॉयमेंट जिन्हें Azure रखता है।
+**ऐप के पेज पर क्या दिखता है:** अनुरोध, त्रुटि दर और लेटेंसी ऐप के ट्रेस से आते हैं, इसलिए जो ऐप सिर्फ़ लॉग या मेट्रिक्स भेजता है, उसमें वहाँ **कोई ट्रेस प्राप्त नहीं हुआ** दिखता है, और उसकी **सेटअप जाँच** बताती है कि क्या जोड़ना है। App Service किसी ऐप को उसका अपना CPU या मेमोरी नहीं देता, और उसकी CPU और मेमोरी वाली टाइलें यही बताती हैं। **क्लाउड → कनेक्ट करें** में सब्सक्रिप्शन कनेक्ट करें, तो ऐप के **अवलोकन** में एक **Azure Monitor** सेक्शन जुड़ जाता है: साइट के अनुरोध, सर्वर और क्लाइंट त्रुटियाँ, रिस्पॉन्स टाइम, CPU टाइम और मेमोरी, जैसे Azure उन्हें मापता है, चाहे ऐप कुछ भी भेजे। इसके बाद ऐप का **इंस्टेंस** टैब वे इंस्टेंस दिखाता है जिन पर Azure उसे चलाता है, और **रिविज़न** टैब वे डिप्लॉयमेंट जिन्हें Azure रखता है। **ऐप प्लेटफ़ॉर्म → सभी ऐप** और किसी परिवेश के **ऐप** टैब में, जो ऐप ट्रेस नहीं भेजता वह इसके बजाय Azure Monitor से अपनी साइट के आँकड़े दिखाता है: Azure के गिने अनुरोध, 5xx स्थिति के साथ उत्तर दिए गए अनुरोधों का हिस्सा, और औसत रिस्पॉन्स टाइम।
 
-ऐप का **सेटअप** टैब ये सेटिंग्स .NET, Java, Node.js या Python के लिए Azure Cloud Shell कमांड के रूप में देता है, हर कमांड में ऐप के अपने नाम, संसाधन समूह और सब्सक्रिप्शन के साथ। साइट के अपने कंसोल, HTTP और प्लैटफ़ॉर्म लॉग के लिए, **क्लाउड → कनेक्ट करें** में सब्सक्रिप्शन की पंक्ति में **मेट्रिक्स और लॉग स्ट्रीम करें** भी चुनें: वे ऐप के **लॉग** टैब में **Azure डायग्नॉस्टिक सेटिंग्स से** के नीचे दिखते हैं।
+ऐप का **सेटअप** टैब ये सेटिंग्स .NET, Java, Node.js या Python के लिए Azure Cloud Shell कमांड के रूप में देता है, हर कमांड में ऐप के अपने नाम, संसाधन समूह और सब्सक्रिप्शन के साथ। साइट के अपने कंसोल, HTTP और प्लैटफ़ॉर्म लॉग के लिए, **क्लाउड → कनेक्ट करें** में सब्सक्रिप्शन की पंक्ति में **मेट्रिक्स और लॉग स्ट्रीम करें** भी चुनें: वे ऐप के **लॉग** टैब में **Azure डायग्नॉस्टिक सेटिंग्स से** के नीचे दिखते हैं। परिवेश की सेटअप गाइड भी हर स्टैक के चरण देती है, ऐप के नाम और संसाधन समूह के लिए प्लेसहोल्डर के साथ।
 
 ## Azure Container Instances
 

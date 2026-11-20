@@ -3,6 +3,7 @@ import {
   SetupGuideContent,
   SetupGuideOption,
   SetupGuideStep,
+  SetupGuideStepVariant,
   codeBlock,
   shellQuote,
 } from "../SetupGuide/SetupGuide";
@@ -40,6 +41,10 @@ import {
  *
  * Every sentence is the reader's language (each a key of the locale
  * files, as CloudSetupGuide's are); commands and code are as typed.
+ *
+ * The environment's App Service guide (CloudSetupGuide) shows the same
+ * stack steps as tabs (getAppServiceStackVariants, #10408), each name it
+ * does not know yet a placeholder, so the two can never drift apart.
  */
 
 export enum AppServiceStack {
@@ -405,14 +410,17 @@ export function resolveAppServiceStack(
     : AppServiceStack.DotNet;
 }
 
-export function getAppServiceTelemetryGuide(
-  options: AppServiceTelemetryGuideOptions,
-): SetupGuideContent {
-  const translator: Translator = options.translator || ENGLISH;
+// What every step is filled in with, and worded by.
+function getGuideContext(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  app?: Partial<AppServiceGuideApp> | undefined;
+  translator: Translator;
+}): GuideContext {
   const filled: (key: keyof AppServiceGuideApp) => string = (
     key: keyof AppServiceGuideApp,
   ): string => {
-    const value: string = (options.app?.[key] || "").trim();
+    const value: string = (data.app?.[key] || "").trim();
 
     /*
      * The subscription goes inside double quotes (the deploy step's), where
@@ -425,9 +433,10 @@ export function getAppServiceTelemetryGuide(
 
     return value || APP_SERVICE_GUIDE_PLACEHOLDERS[key];
   };
-  const context: GuideContext = {
-    oneuptimeUrl: options.oneuptimeUrl,
-    apiKey: options.apiKey,
+
+  return {
+    oneuptimeUrl: data.oneuptimeUrl,
+    apiKey: data.apiKey,
     app: {
       siteName: filled("siteName"),
       resourceGroup: filled("resourceGroup"),
@@ -435,10 +444,51 @@ export function getAppServiceTelemetryGuide(
     },
     tx: (text: string, values?: Record<string, string> | undefined): string => {
       return values
-        ? translator.translateTemplate(text, values)
-        : translator.translateText(text) || text;
+        ? data.translator.translateTemplate(text, values)
+        : data.translator.translateText(text) || text;
     },
   };
+}
+
+/*
+ * Each stack's own step - its packages, its App Service resource detector
+ * and its logs - as one tab each, in the stack picker's order (#10408): the
+ * environment's App Service guide shows them, with a placeholder for each
+ * name it does not know yet, from the very steps an app's Setup tab draws.
+ */
+export function getAppServiceStackVariants(options: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  app?: Partial<AppServiceGuideApp> | undefined;
+  translator?: Translator | undefined;
+}): Array<SetupGuideStepVariant> {
+  const context: GuideContext = getGuideContext({
+    oneuptimeUrl: options.oneuptimeUrl,
+    apiKey: options.apiKey,
+    app: options.app,
+    translator: options.translator || ENGLISH,
+  });
+
+  return APP_SERVICE_STACK_OPTIONS.map(
+    (option: SetupGuideOption<AppServiceStack>): SetupGuideStepVariant => {
+      return {
+        label: option.label,
+        markdown: STACK_STEPS[option.key](context).markdown || "",
+      };
+    },
+  );
+}
+
+export function getAppServiceTelemetryGuide(
+  options: AppServiceTelemetryGuideOptions,
+): SetupGuideContent {
+  const translator: Translator = options.translator || ENGLISH;
+  const context: GuideContext = getGuideContext({
+    oneuptimeUrl: options.oneuptimeUrl,
+    apiKey: options.apiKey,
+    app: options.app,
+    translator,
+  });
 
   return {
     language: translator.language,
