@@ -1,6 +1,7 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Dictionary from "../../Types/Dictionary";
+import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { getDefaultEscalationRuleName } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { EscalationRuleNames } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
@@ -36,17 +37,24 @@ export interface EscalationRuleResponder {
  * nobody is told again that they were added, and the feed and the channels
  * hear of nothing. Two creates at the same moment both pass that read, and
  * the table's partial unique index refuses the one that loses: it is refused
- * in the same words (create). Both are tagged as a unique violation
- * (PostgresErrorTranslator.createUniqueViolationException), so a caller that
- * takes "already there" as done - Ask AI's add_to_on_call_policy - tells it
- * from any other refusal with one check, whichever of the two refused it.
- * The refusal is a 400 with the sentence, to the Dashboard, the API, the
- * CLI and Terraform alike.
+ * in the same words (create). Both are tagged as a unique violation of the
+ * table's index (PostgresErrorTranslator.createUniqueViolationException), so
+ * a caller that takes "already there" as done - Ask AI's
+ * add_to_on_call_policy - tells it from any other refusal with one check
+ * (isUniqueViolationOf), whichever of the two refused it. The refusal is a
+ * 400 with the sentence, to the Dashboard, the API, the CLI and Terraform
+ * alike.
  *
  * Each service says which index holds its rows (getResponderIndexName),
  * reads the responder a write names (readResponder) and words the refusal,
  * naming the responder as the project knows it (getAlreadyOnRuleRefusal).
  */
+/*
+ * The refusals the check before the write made: thrown out of create() as
+ * they are, rather than worded again.
+ */
+const refusedBeforeTheWrite: WeakSet<object> = new WeakSet<object>();
+
 export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
   TBaseModel extends BaseModel,
 > extends OnCallDutyPolicyChildService<TBaseModel> {
@@ -86,6 +94,7 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
       return await super.create(createBy);
     } catch (error) {
       if (
+        refusedBeforeTheWrite.has(error as object) ||
         !PostgresErrorTranslator.isUniqueViolationOf(
           error,
           this.getResponderIndexName(),
@@ -118,6 +127,7 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
 
       throw PostgresErrorTranslator.createUniqueViolationException(
         await this.getRefusal(responder, createBy),
+        this.getResponderIndexName(),
       );
     }
   }
@@ -155,9 +165,15 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
     });
 
     if (rowsOfResponder.toNumber() > 0) {
-      throw PostgresErrorTranslator.createUniqueViolationException(
-        await this.getRefusal(responder, createBy),
-      );
+      const refusal: BadDataException =
+        PostgresErrorTranslator.createUniqueViolationException(
+          await this.getRefusal(responder, createBy),
+          this.getResponderIndexName(),
+        );
+
+      refusedBeforeTheWrite.add(refusal);
+
+      throw refusal;
     }
   }
 
