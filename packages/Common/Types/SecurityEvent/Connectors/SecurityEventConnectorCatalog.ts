@@ -839,6 +839,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           ),
           type: "text",
           required: true,
+          placeholder: translationKey("Select an account"),
           choicesFromProvider: { isMultiple: false },
         },
         {
@@ -849,6 +850,8 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           ),
           type: "text",
           required: false,
+          // Nothing picked is every zone: the placeholder says so.
+          placeholder: translationKey("All zones"),
           choicesFromProvider: { isMultiple: true, parentKey: "accountId" },
         },
       ],

@@ -58,6 +58,7 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
     translationKey("Azure Activity Log"),
   [DetectionRuleDataKind.NetworkActivity]: translationKey("Network activity"),
   [DetectionRuleDataKind.WebRequests]: translationKey("Web requests"),
+  [DetectionRuleDataKind.Cloudflare]: translationKey("Cloudflare firewall events"),
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Kubernetes audit logs",
   ),
@@ -123,6 +124,9 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.WebRequests]: translationKey(
     "Send your web servers' access logs to OneUptime and find security events in your logs.",
   ),
+  [DetectionRuleDataKind.Cloudflare]: translationKey(
+    "Connect Cloudflare to read what its firewall did with the requests to your sites.",
+  ),
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Send your clusters' audit logs to OneUptime and find security events in your logs.",
   ),
@@ -180,6 +184,7 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
   [DetectionRuleDataKind.NetworkActivity]:
     PageMap.SECURITY_EVENTS_DOCUMENTATION,
   [DetectionRuleDataKind.WebRequests]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.Cloudflare]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.KubernetesAuditLogs]:
     PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.OpenStackAuditTrail]:

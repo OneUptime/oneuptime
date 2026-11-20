@@ -1187,26 +1187,33 @@ export default class CloudflareConnector implements SecurityEventConnector {
         );
       }
 
+      /*
+       * Plain values and lists, so the run's diagnostics list them as they
+       * list any provider's: each zone with its plan ("example.com · Free"),
+       * and the zones left out and why, only when there are any.
+       */
       result.details = {
-        accountId: parsed.accountId,
         readsEveryZone: parsed.zoneIds.length === 0,
-        zones: reads.map((zoneRead: ZoneRead): JSONObject => {
-          return {
-            id: zoneRead.zone.id,
-            name: zoneRead.zone.name,
-            plan: CloudflareConnector.planLabel(zoneRead.zone),
-            eventsRead: zoneRead.eventsRead,
-            isRead: zoneRead.done,
-          };
+        zonesRead: reads.map((zoneRead: ZoneRead): string => {
+          const plan: string = CloudflareConnector.planLabel(zoneRead.zone);
+          return plan ? `${zoneRead.zone.name} · ${plan}` : zoneRead.zone.name;
         }),
-        unreadableZones: refused.map((zone: CloudflareZone): string => {
-          return zone.name;
-        }),
-        zonesWithoutFirewallEvents: notOffered.map(
-          (zone: CloudflareZone): string => {
-            return zone.name;
-          },
-        ),
+        ...(refused.length
+          ? {
+              unreadableZones: refused.map((zone: CloudflareZone): string => {
+                return zone.name;
+              }),
+            }
+          : {}),
+        ...(notOffered.length
+          ? {
+              zonesWithoutFirewallEvents: notOffered.map(
+                (zone: CloudflareZone): string => {
+                  return zone.name;
+                },
+              ),
+            }
+          : {}),
         letThroughWithoutAttack,
         sampledEvents,
         estimatedRequests,

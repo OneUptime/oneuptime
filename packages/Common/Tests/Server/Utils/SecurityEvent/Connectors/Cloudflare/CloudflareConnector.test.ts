@@ -585,11 +585,12 @@ describe("CloudflareConnector - reading firewall events", () => {
       }),
     ).toEqual([ZONE_A, ZONE_B, ZONE_A, ZONE_A, ZONE_A]);
     expect(rayNames(result)).toEqual(["a1", "a2", "a3"]);
-    expect(result.details).toMatchObject({
-      zones: [
-        { name: "example.com", plan: "Pro", eventsRead: 3, isRead: true },
-        { name: "shop.example.com", plan: "Pro", eventsRead: 0, isRead: true },
-      ],
+    expect(result.details).toEqual({
+      readsEveryZone: true,
+      zonesRead: ["example.com · Pro", "shop.example.com · Pro"],
+      letThroughWithoutAttack: 0,
+      sampledEvents: 0,
+      estimatedRequests: 3,
     });
   });
 

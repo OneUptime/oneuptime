@@ -330,6 +330,10 @@ describe("each library rule names the kind of event its Sigma reads", () => {
         case DetectionRuleDataKind.KubernetesAuditLogs:
           expect(readsField(entry, "objectRef.resource")).toBe(true);
           break;
+        case DetectionRuleDataKind.Cloudflare:
+          // Cloudflare's own events, by the product its connection stamps.
+          expect(readsField(entry, "productName", "Cloudflare WAF")).toBe(true);
+          break;
         case DetectionRuleDataKind.OneUptimeTraces:
         case DetectionRuleDataKind.NetworkFlows:
         case DetectionRuleDataKind.OneUptimeAuditLog:

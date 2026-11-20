@@ -369,6 +369,51 @@ export interface SecurityCaseDataAtRiskJson {
 export const SECURITY_CASE_IMPACT_MAX_DATA_STORES: number = 10;
 export const SECURITY_CASE_IMPACT_MAX_IDENTITIES: number = 10;
 
+/*
+ * WHAT THE EDGE IN FRONT OF THE APP DID WITH ONE OF THE CASE'S ADDRESSES,
+ * BESIDE WHAT REACHED THE APP: "Cloudflare challenged about 400 requests
+ * from 35.205.11.131; 12 passed the challenge; 3 reached your database."
+ * OneUptime holds both sides - the edge's firewall events
+ * (Types/SecurityEvent/EdgeAction) and the app's own requests with how far
+ * each got (SecurityEventRequestOutcome) - so the case says both.
+ */
+export interface SecurityCaseEdgeActivityJson {
+  // The edge product, as its events name it: "Cloudflare".
+  edge: string;
+  /*
+   * Requests by what the edge did (EdgeAction): each the sum of the events'
+   * sample intervals, so an estimate when isEstimate is true.
+   */
+  blocked: number;
+  challenged: number;
+  passedChallenge: number;
+  logged: number;
+  letThrough: number;
+  other: number;
+  // An event stood for more than one request: the counts are estimates, said "about".
+  isEstimate: boolean;
+}
+
+export interface SecurityCaseEdgeAddressJson {
+  address: string;
+  edges: Array<SecurityCaseEdgeActivityJson>;
+  /*
+   * The address's requests OneUptime saw in the app itself (its logs and
+   * traces, not the edge's events), by how far each got.
+   */
+  app: {
+    rejected: number;
+    reachedApp: number;
+    errored: number;
+    reachedDatabase: number;
+  };
+}
+
+export interface SecurityCaseEdgeJson {
+  // The case's addresses an edge acted on in the case's window, at most SECURITY_CASE_IMPACT_MAX_FLOW_ADDRESSES.
+  addresses: Array<SecurityCaseEdgeAddressJson>;
+}
+
 export interface SecurityCaseImpactJson {
   windowStart: string;
   windowEnd: string;
@@ -387,6 +432,11 @@ export interface SecurityCaseImpactJson {
    * out by a server older than it.
    */
   dataAtRisk?: SecurityCaseDataAtRiskJson | null | undefined;
+  /*
+   * What the edge did with the case's addresses, beside what reached the
+   * app: null when it could not be read, left out by a server older than it.
+   */
+  edge?: SecurityCaseEdgeJson | null | undefined;
   unreadableSources: Array<SecurityCaseImpactSource>;
   failedSources: Array<SecurityCaseImpactSource>;
 }

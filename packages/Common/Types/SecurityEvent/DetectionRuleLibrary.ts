@@ -2036,6 +2036,142 @@ detection:
 `,
     },
 
+    /*
+     * What Cloudflare's firewall did at the edge (its connection, read as
+     * HTTP Activity with OneUptime's edge action, EdgeAction), beside what
+     * the app's own logs and traces show reached it.
+     */
+    {
+      id: "00146e5e-0b2d-4e09-ad97-91f6f54715fc",
+      title: "Many Cloudflare managed rule hits from one address",
+      description:
+        "Twenty or more requests from one IP address within ten minutes that Cloudflare's WAF managed rules matched, blocked or not: a scanner working through your site, or an exploit being tried until it works.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Cloudflare firewall events",
+      dataKind: DetectionRuleDataKind.Cloudflare,
+      evaluationIntervalInMinutes: 10,
+      groupByField: "principalIp",
+      matchCountThreshold: 20,
+      sigmaRuleYaml: `title: Many Cloudflare managed rule hits from one address
+id: 00146e5e-0b2d-4e09-ad97-91f6f54715fc
+description: Cloudflare's WAF managed rules matched many requests from one address.
+level: medium
+tags:
+  - attack.initial_access
+  - attack.t1190
+  - attack.reconnaissance
+  - attack.t1595.002
+detection:
+  selection:
+    productName: 'Cloudflare WAF'
+    cloudflare.source:
+      - firewallManaged
+      - waf
+  condition: selection
+`,
+    },
+    {
+      id: "38bf7cff-c78b-4958-a56d-e75628ff87b2",
+      title: "An address passed a Cloudflare challenge, then sent attacks",
+      description:
+        "An IP address passed a Cloudflare challenge and, within thirty minutes, sent a request carrying an attack or one Cloudflare's managed rules matched: a person, or a bot that solves challenges, behind the attack.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Cloudflare firewall events and web requests",
+      dataKind: DetectionRuleDataKind.Cloudflare,
+      evaluationIntervalInMinutes: 5,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: An address passed a Cloudflare challenge, then sent attacks
+id: 38bf7cff-c78b-4958-a56d-e75628ff87b2
+description: An address passed a Cloudflare challenge, then sent requests carrying attacks.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1190
+correlation:
+  type: temporal_ordered
+  rules:
+    - cloudflare_challenge_passed
+    - attack_request_after_challenge
+  group-by:
+    - principalIp
+  timespan: 30m
+---
+title: Passed a Cloudflare challenge
+name: cloudflare_challenge_passed
+detection:
+  selection:
+    productName: 'Cloudflare WAF'
+    oneuptime.edge.action: passed-challenge
+  condition: selection
+---
+title: A request carrying an attack
+name: attack_request_after_challenge
+detection:
+  selection_attack:
+    className: 'HTTP Activity'
+    web.attack.kind:
+      - sql-injection
+      - path-traversal
+      - log4shell
+  selection_managed_rule:
+    productName: 'Cloudflare WAF'
+    cloudflare.source:
+      - firewallManaged
+      - waf
+  condition: 1 of selection_*
+`,
+    },
+    {
+      id: "237b4117-52ca-42e3-85e8-cbcc518ccbae",
+      title: "An attack Cloudflare let through reached your app",
+      description:
+        "Cloudflare logged an attack from an IP address, or a rule of yours let one through, and within fifteen minutes your app's own logs or traces show a request from that address reached the app.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Cloudflare firewall events and web requests followed into their traces",
+      dataKind: DetectionRuleDataKind.Cloudflare,
+      evaluationIntervalInMinutes: 5,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: An attack Cloudflare let through reached your app
+id: 237b4117-52ca-42e3-85e8-cbcc518ccbae
+description: Cloudflare logged or let through attack requests from an address, and the app's own logs or traces show requests from it reached the app.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1190
+correlation:
+  type: temporal
+  rules:
+    - cloudflare_let_attack_through
+    - request_reached_app
+  group-by:
+    - principalIp
+  timespan: 15m
+---
+title: Cloudflare logged or let through an attack
+name: cloudflare_let_attack_through
+detection:
+  selection:
+    productName: 'Cloudflare WAF'
+    oneuptime.edge.action:
+      - logged
+      - let-through
+  condition: selection
+---
+title: A request reached the app
+name: request_reached_app
+detection:
+  selection:
+    className: 'HTTP Activity'
+    requestOutcome:
+      - 'Reached App'
+      - 'Errored'
+      - 'Reached Database'
+  filter_edge:
+    productName: 'Cloudflare WAF'
+  condition: selection and not filter_edge
+`,
+    },
+
     // Kubernetes
     {
       id: "1ce3af71-a3d5-409a-b477-34e4a734aa83",
