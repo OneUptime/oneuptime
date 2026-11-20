@@ -437,7 +437,9 @@ function teamMemberReads(): Array<Array<string>> {
       return call[0];
     })
     .filter((params: any): boolean => {
-      return params.modelType === TeamMember && idsOf(params.query?.teamId);
+      return (
+        params.modelType === TeamMember && idsOf(params.query?.teamId) !== null
+      );
     })
     .map((params: any): Array<string> => {
       return [...idsOf(params.query.teamId)!].sort();
