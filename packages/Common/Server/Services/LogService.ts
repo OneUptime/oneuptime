@@ -120,12 +120,14 @@ export class LogService extends AnalyticsDatabaseService<Log> {
   }
 
   /*
-   * The prefilter as a ClickHouse condition on the body, every word bound as
-   * a parameter: a line holds one of `anyOf`, or matches one of the groups.
+   * The prefilter as a ClickHouse condition on the body, its words bound as
+   * parameters: a line holds one of `anyOf`, or matches one of the groups.
    * Every word is sent hex encoded (Statement's sendAsHex): ClickHouse writes
    * a failed query down, and the scan reads the logs it is written in -
    * where its own words, all together, would pass this very filter
-   * (issue #6419).
+   * (issue #6419). Each list of words is one parameter, however many words
+   * it holds: a parameter a word took the read past the 1,000 fields
+   * ClickHouse 26.7 takes in a request, and it read nothing (issue #10520).
    */
   public static buildSecurityLogPrefilter(): Statement {
     const statement: Statement = SQL`(multiSearchAnyCaseInsensitive(body, ${{
